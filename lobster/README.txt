@@ -1,5 +1,7 @@
-This folder contains the files requires to build the Lobster programming language.
-Full documentation is available in ../lobster/docs/readme_first.html
+This folder contains all you need to develop Lobster programs, assuming a pre-built executable is available
+for your platform is available in this folder (likely for win32 / OS X)
+
+Full documentation is available in docs/readme_first.html
 Lobster is licensed under the ZLIB license.
 
 
