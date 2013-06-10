@@ -152,7 +152,33 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
+         timestampString = "392594785.420863"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "323"
+         endingLineNumber = "323"
+         landmarkName = "SDLFrame(int2 &amp;screensize)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "../../src/sdlsystem.cpp"
+         timestampString = "392594785.420863"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "334"
+         endingLineNumber = "334"
+         landmarkName = "SDLFrame(int2 &amp;screensize)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "../../src/sdlsystem.cpp"
+         timestampString = "392594785.420863"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
          startingLineNumber = "325"
@@ -165,37 +191,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
+         timestampString = "392594785.420863"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "336"
-         endingLineNumber = "336"
-         landmarkName = "SDLFrame(int2 &amp;screensize)"
-         landmarkType = "7">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "327"
-         endingLineNumber = "327"
-         landmarkName = "SDLFrame(int2 &amp;screensize)"
-         landmarkType = "7">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "328"
-         endingLineNumber = "328"
+         startingLineNumber = "326"
+         endingLineNumber = "326"
          landmarkName = "SDLFrame(int2 &amp;screensize)"
          landmarkType = "7">
       </FileBreakpoint>
@@ -256,11 +256,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
+         timestampString = "392594785.420863"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "331"
-         endingLineNumber = "331"
+         startingLineNumber = "329"
+         endingLineNumber = "329"
          landmarkName = "SDLFrame(int2 &amp;screensize)"
          landmarkType = "7">
       </FileBreakpoint>
@@ -269,11 +269,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/sdlsystem.cpp"
-         timestampString = "392439911.264294"
+         timestampString = "392594785.420863"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "330"
-         endingLineNumber = "330"
+         startingLineNumber = "328"
+         endingLineNumber = "328"
          landmarkName = "SDLFrame(int2 &amp;screensize)"
          landmarkType = "7">
       </FileBreakpoint>
@@ -288,6 +288,32 @@
          startingLineNumber = "46"
          endingLineNumber = "46"
          landmarkName = "SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool forcecommandline)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "../../src/sdlsystem.cpp"
+         timestampString = "392589650.384026"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "227"
+         endingLineNumber = "227"
+         landmarkName = "SDLInit(const char *title, int2 &amp;screensize)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "/Users/aardappel/lobster/external/SDL-2.0.0-7295/Xcode-iOS/SDL/../../src/video/uikit/SDL_uikitmodes.m"
+         timestampString = "392589957.848565"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "227"
+         endingLineNumber = "227"
+         landmarkName = "UIKit_GetDisplayModes()"
          landmarkType = "7">
       </FileBreakpoint>
    </FileBreakpoints>

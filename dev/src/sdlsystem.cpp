@@ -230,14 +230,12 @@ string SDLInit(const char *title, int2 &screensize)
     {
         SDL_DisplayMode mode;
         SDL_GetDisplayMode(0, i, &mode);
-        printf("mode: %d %d\n", mode.w, mode.h);
+        //printf("mode: %d %d\n", mode.w, mode.h);
         if (landscape ? mode.w > screensize.x() : mode.h > screensize.y())
         {
             screensize = int2(mode.w, mode.h);
         }
     }
-    
-    //screensize = int2(1136, 640);
 
     DebugLog(-1, inttoa(screensize.x()));
     DebugLog(-1, inttoa(screensize.y()));
