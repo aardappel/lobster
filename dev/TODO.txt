@@ -1,0 +1,424 @@
+release version (alpha)
+- documentation, distribution, building on different platforms, examples, github?
+
+docs:
+- not clear
+  - value ... people used to doing v.x +=
+  - else: if:
+  - that you can make your own control structs in your own code: examples focus a bit too much on for/if
+  - the single graphics matrix stack
+  - more on debugging
+- tutorials
+  * absolute basics for those that don't know programming yet
+- shader system
+- performance - do benchmarking
+- gui system
+- better language cheat sheet ?
+- web page:
+  * link to reference and docs more for things that are not explained (e.g. ::)
+  * more images to cool samples written in lobster, to entice what the language can do.
+    first maybe add more/better examples
+
+examples:
+- more/better examples..
+- also make more basic games people can start from 
+
+features:
+- builtin functionality
+  - try out stb truetype
+  - ogg loading -> Sean Barett (streaming vs loading?)
+  - more sound functions: stopping a sound early, volume, getting notification when a sound stops playing, software-based audio mixing, some way to loop sounds.
+  - screenshots - image writing (sb for png etc)
+  - sphere-to-frustum intersection for easy culling
+  - TCP-IP? enet?
+  - threading
+  - physics
+    important that such code does not take over object management, but instead operates on existing list of lobster objects
+    in theory could even be a single function that advances object positions and creates a culling grid transiently, but once you want to be able to query nearby units on that grid,
+    means that you should at least cache since the last update.
+  - JSON
+  - a compact binary format for writing an arbitrary lobster value to a string, both for writing to files and other serialization (network, ipc)
+  - launching processes and other shell stuff
+
+
+- disadvantage to Lobster being based on immediate mode rendering is that that is quite taxing on the speed of the language, since you need so much code to just decide what to render each frame
+  directions:
+  - add display lists or something so it is easy to cache rendering calls, and the code generating them doesn't need to be called every frame
+    ideal for level backgrounds etc.
+    though complicates things a tiny bit, as now you have to decide manually when to re-render certain display lists
+  - work on optimizing the language a bit
+    - typechecking with quicker untyped ops
+    - inlining to undo all the small function value calling
+    - special bytecodes for common loop constructs etc.
+    - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build easily
+      a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++ optimizer can inline/simplify a lot of the simpler ops
+
+- typechecker
+  * make sure no incorrect types are stored in exptype
+
+
+- make it more straight forward to use as an embeddable scripting language
+  - add functionality to call individual functions inside a script
+
+- back port it to VS2010?
+
+- think about how to support a debugger
+  would be great if it could be written in Lobster itself:
+  have to figure out how to have a frozen VM, and have debugger code running
+  and how they can share graphics state
+  maybe we can allow multiple windows to start? can make objects that hold window+context+all other graphics state, and allow each VM to open 1, or even multiple per vm
+  if that approach doesn't work, can make a debugger that is a webserver inside the lobster exe, as that's nice and cross platform.
+  But better to try multiple windows first, that be good for threading and other features anyway.
+
+- find a better solution for vec.lobster/allint(), the type system should support this?
+
+- function f(): x := 1; x + x
+  gives error on x... should disallow
+
+- make win32 version not a console app
+  - need to save lobster text output always to a file, so when it crashes user can send me that
+  - can always type/cat it to show output
+  - ideally lobster has a callback for program output & errors
+  - trace output also to a file
+
+- BitmapFont::height is often 1 or 2 bigger than the original fontheight, which creates problems if code use the fontheight for rendering instead of gl_textsize()
+  either improve the math such that they are guaranteed equal, or document that fontheight should never be used for rendering bounding boxes etc 
+
+- replace the freetype lib by stb_truetype.h for less external dependencies?
+
+- Icon style matching on vectors or strings, whereby the current vector and position are stored globally, so you can easily write match('a') | match('b') etc.
+  and find() and other type of searches/matches that string function and regexps generally do. And easy string extraction functions.
+  Could use a HOF to be the stack context of these functions ... can even write it in Lobster itself (with private DS variables) if speed isn't an issue.
+  can support coroutines as a source too.
+
+- coroutines:
+  - having convenient syntax for resuming coroutines at a variety of entry points to simulate methods would be very cool
+  - speedup local access
+  - state tags: allowing blocks to be tagged such that its easy to query externally which "state" a coroutine is in
+
+- transforms:
+    - cannot use matrix functionality for own matmuls etc -> need loadmatrix etc
+    - localmousepos and hit are nonsensical when perspective is on
+
+- should all gl calls check minimized themselves for programmers that don't check gl_visible() (gl rendering when minimized crashes on IOS)
+
+- newer SDL:
+  - any of the reported bugs fixed?
+
+- multiple return values:
+  - builtin functions that return 0 values:
+    * first have to solve that when used as last call in a function, then that function still requires a return value
+    * thus can't make it an error
+    * could ideally have 0 returns not cause a pop
+
+- a way to solve the problem of not having direct file access on platforms like android could be to allow files to be packed directly into the bytecode file optionally,
+  and transparently loaded from there
+  - can have strings prefixed by some keyword to indicate that this thing is a file and should be pre-loaded, or just tag the right builtins
+  - people will like this also to hide their datafiles
+  - can the additionally allow the bytecode file to be packed into the exe on certain platforms for maximum containment
+  - one BIG issue is that things like textures get loaded once and then thrown away.. if they were in the bytecode file they'd be in memory constantly
+    * would have to make the bytecode file more like a pak file, where parts get loaded when required
+      which means they can't be packed into the exe anymore, but that's too platform specific anyway
+      but at least you only have to deal with 1 file on android
+  - file types:
+      source    path full name full     loadfile
+      fonts     path full name full     loadfile
+      textures  path full name full     loadfile
+      iqm       path full name full     loadfile
+      sfxr      path full name full     loadfile
+      shaders   path full name full     loadfile
+      readfile  path full name full     loadfile                read & write!
+      dumps etc                                                 write
+      best way to implement this is as a flag on the builtin call arg
+
+- for mgtest or other games with long load time, have a way to not have an uninitialized window while loading
+  * could add a system for threading long operations like this... 
+  * or an easy way to render a first frame?
+
+- a program that reformats lobster code to conform to the style-guide better.
+  Not a trivial program since it can't reuse the existing Lobster lex/parser, since that throws too much information away
+  Will need to be a "conservative" program, yet it must understand enough of program structure (with indents and multi-line exps) to reformat correctly.
+  Must also respect aligned spacing in places.
+
+- consistently have all set functions take a body
+- calling mg_scalevec(1, f) where f = nil doesn't work (see codegen NCM_CONT_EXIT).. probably doesn't happen a lot, but needs fixing
+
+- other IQM features
+  - make bone count dependent on max uniforms, and make it an error to load a model over that.. or find out what minimum uniform count is on relevant OpenGL ES 2 devices
+  - can very easily count max weights and choose a shader with less mats
+    maybe add some conditional feature to the shader parser to make this easier
+  - currently scaling is multiplied into the mats if its in the file. Either make scaling an error, or use this to transfrom the normal:
+    mat3 madjtrans = mat3(cross(m[1].xyz, m[2].xyz), cross(m[2].xyz, m[0].xyz), cross(m[0].xyz, m[1].xyz));
+    http://www.arcsynthesis.org/gltut/Illumination/Tut09%20Normal%20Transformation.html
+  - maybe use dual quats?
+
+- should vm errors be interceptable? -> if so, must differentiate between unrecoverable ones and normal
+
+- improve gui.lobster
+  - pop up menus
+  - multiline text editing system
+
+- should lobster transition to a callback model per frame? that's how mobile devices like to interact with your program, and SDL does some pretty nasty stuff
+  to emulate the pc way of doing things on there.. can we bypass that?
+  Hmm that doesn't require a new programming model.. we can just have gl_frame() suspend the VM so we can return from our frame callback
+
+- could consider Allegro 5 instead of SDL if progress remains slow
+- should see if we can isolate all of SDL behind an interface, and then provide a Marmalade alternative
+  its expensive, but may well be worth with for android ports etc for a well selling app
+
+- optimisations:
+  - could add an optimizer with constant folding, constant propagation and inlining, esp inlining of hofs very important
+    * ideally, need to additionally have a way to do while/if/for without function values, while is terrible atm
+  - think of ways to simplify function calling
+    could keep a simple function reference count, so we can only do the expensive backupping for recursive functions
+
+- for typing, rather than going with my full specialization typing idea, can instead have a special type that marks any parameter
+  as requiring the function to be specialized for each type that parameter is used with, allowing targeted optimisation.
+  One big advantage of specialization typing is that it can produce a lot of static types (from constants) without needing a lot of type annotations, so its still better 
+
+- per function real cpu profiling would not be too expensive
+  just a single qpc per call -> no, 2, needs stack
+    no, can do it stackless if we change the "definedfunction" saving to keeping a current one and saving the previous, that way on each function entry/exit we know who to attribute the current elapsed time to
+  gotta be able to display hierarchically blocks under named functions
+  alternatively, could just do a ++ every instruction to count instructions... not quite as accurate an indication of performance, and harder to display compactly since you'd have to display it next to the lines in source
+
+- add TCs to meshgen, use BasicVert
+
+- compressed loading/saving using my entropy encoder
+
+- min & max as vector ops: messy because 2 args, need to replicate a lot of the VM
+  can make certain builtins implemented as VM ops, esp unary/binary ops
+  maybe also good for control structures
+
+- threading might be fun to try out for something like smallpt
+  * must either make g_vm into TLS, or make vm an arg to everything
+  * can then either launch threads using the same mechanism as compile_run (pass strings between threads)
+    or maybe better just instantiate more VMs based on the same bytecode, that way we can
+    - pass data structures with refc==1 (if we share an alloc, though then all allocs must be threadsafe)
+    - or clone em (still a lot better than parsing), though to clone, need to access other VMs allocator?
+    hmm it be really nice to keep slaballoc thread-unsafe, so maybe it has to go thru an intermediary copy
+  what about SDL being optional, and we'd like to use its threading functionality? (see elsewhere)
+
+- we have the functionality of passing less args than needed in the VM
+  * currently only used by _ variables, which are dynamically scoped, e.g. in recurseworld
+    function recurseworld(n::node, body):
+    for(next):
+        primary := _.parents[0] == n
+        body(_, n, primary)
+        if(primary):
+            recurseworld(_, body)   // this makes a function with 1 arg, which if() does not supply, so it falls back on previous _
+  * could also be used with DS parameters, they would have to be annotated when declared, and allowed to be called with less args (<-> MM?)
+    this would allow defaults, which can then be overruled for a whole block with -> or just passed as extra arg
+  * on a sidenote, the -> would be more accurate if it was followed by a block itself 
+    DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than doing gl_color <-
+
+- with any new game, write it with coroutines from the ground up
+
+- didn't solve no mouse up msg when leaving window
+
+- see if we can get page aligned memory with VirtualAlloc / mmap for slaballoc
+
+- making SDL manditory:
+  + can use SDL log/file/thread abstractions.. threading in particular!
+  + error handling
+  + can make features that rely on graphics, like a graphical console/print, graphical debugging, could kill the DOS console
+  + if graphics are mandatory, frame based state makes more sense.. its a bit odd if such a thing is a gl_ feature, but hey why not
+  - no more console-only programs possible.. reduces its usefulness as a general purpose programming language
+  - don't want to have it initializing graphics before compilation... probably can just do it before VM init
+  - killing DOS console means giving up notepad++ integration
+  - right now, lobster could be used as a plug-in scripting language by simply not binding all the graphics stuff
+  at first we can just init SDL at the start of the program, then graphics optionally during execution. this gives us a lot of
+  the combined benefits.. the only thing we lose is not being able to be a plug-in language
+  alternatively, we can make on-demand init of SDL a bit more modular, so that it can be called upon when threading is needed etc.
+
+- some kind of profiler:
+  - measure instruction inside named function
+  - number of calls of builtin functions
+
+- code like the original smallpt really needs doubles, is it worth creating a 64bit version of lobster with all 64bit types?
+  fixed it in code by making the spheres slightly smaller
+  can create a "real" type easily with the new math library
+  bigger issue is having to maintain 64bit versions of SDL, freetype etc., too much of a pain having 2 versions
+  frankly it is easier to wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently
+
+- can't app switch in ios: http://dougdiego.com/2010/10/01/sgx-error-background-gpu-access-not-permitted/
+
+- a := a // where a is an arg is allowed
+
+- dispatcher:
+    - rewrite the dispatcher to be in tree form
+    - can add subtypes that don't have their own case? how about single variant functions?
+    - make type+idx into shorts, so they can be checked with a single compare?
+
+- "is" doesn't deal with subtypes
+
+- a way to make the language quicker is to really separate vectors from structs, such that vectors can be represented with just a single type field,
+  and structs can have a seperate array of type tags.
+  This is like the 4+1 idea for values, but instead of doing that globally, can do it for individual memory areas.
+  Memory usage wise this is smart, since if a program ever uses a lot of memory, it will all be in arrays and objects.
+  Can also have a fixed array of types for all variables. So only on the stack and in tempories you have the full fat Value.
+  Of course can take one step further, and store types for object fields globally somewhere, and disallow changing types of elements.. though this would suddenly require templated types...
+  
+- vm independent of ST
+
+- have a way to make a regular function into a function value
+
+- enums?
+
+- bytecode version of compile_run()
+
+- typing:
+  - also support withtype for "method calls"
+  - ::= op (first find a convincing use for it)
+  - could make it a warning or error if X.field is used where X has been withtyped
+
+- adding static variables to functions should be relatively easy?
+
+- MC functionality
+
+- get rid of client side data VB rendering by putting rect/line/circle etc in a static vbo, then transform with mvp or uniform
+
+- fix localmousepos to be a position in front of the camera in 3d mode? and in the middle in no cursor mode?
+
+- default arguments for datatypes?
+
+- can easily add return version that return from the closest block (-1)
+
+- add file IO functions so we can make a code graph prototype
+
+- switch can actually be a standard library function?
+
+- hiding the console unless there's output for graphical applications
+  note this screws up notepad++ capturing output
+
+- vec * float works, but float * vec doesn't
+
+- allowing functions to be called with less args will solve a lot of issues, i.e. with the 3 different for() etc
+  and easy to implement, as it is already supported by the function calling mechanism
+  allows functions with tons of options, and just set these stackwise
+  also means you can use standard idents like i instead of _
+  only big disadvantage is that HOFs can hide existing vars.. so would be great if they only assigned if needed
+  that would need a function value to be able to show its nargs
+  hmm that would not fully help in the case of for() since it will still hide i in most cases, though thats only an
+  issue for HOFs with frequently unused function value args, which doesn't happen that often
+  fold vs reduce: should use default args for this
+
+- address of named function, or just rely on function values?
+  f := x: x + 1
+  instead of 
+  f(x): x + 1
+  if you need to both call it normally and pass it as a value
+
+- have more ops that reuse their args if refc == 1
+
+- optimize field offset lookup tables by cutting trimming 0's on both ends
+
+- force coroutines to be top level functions to protect people against running into an undefined on resume if they use a free var?
+
+- multiple errors
+
+- make comparators non-associative?
+
+- could add additional special cases for assignment op:
+  - where exp being indexed into is a var
+
+- some form or switch or pattern match facility?
+- pattern matching by failing a function into the next
+- type specs & asserts that verify stuff at runtime - could be turned off in a release mode
+  a:type, a<100, a:fun // a is typed by fun if it doesn't fail
+  actually can just make types predicate functions, so they are really uniform
+  int can be a builtin function!
+  smallint: [ x => (int x) < 100 ]
+
+- make VM register based.. would be very easy since only used for temps.. reduces amount of instructions
+  a register would have to be a variable, but that means we need vars for temps, function calling etc?
+  making the VM a register machine:
+    since there is no FP and variables are not on the stack, this is not so easy
+    - could have N actual vars serve as temps
+      requires the call instruction to have an extra args that specifies how many need to survive across the call, and save them
+    - if temps are seperate from vars, then there will be not a lot of instruction count gain
+      - though there may be gain from not having to worry about copying the stack for backtracking..
+        though we may remove backtracking anyway
+    should have the N most common constants as vars too
+    should consider instead of register, register + offset...
+      though that works best in a statically typed language, where no type check is required to see
+      if the thing is actually a vector or string etc
+
+- what power could actual individual push & pop ops give?
+  - actually, that's a bit like how a linda tuple space would operate... though a FIFO would be better
+  - linda ops should check that the arg is a tree with all refc == 1
+
+- add additional assignment ops? comparators and logical is nonsensical, bitwise not builtin
+
+- make bytecode, not intcode, and ensure it encapsulates symbol table etc if needed
+- FIXMEs
+
+- if we're staying untyped, for memory efficiency (esp on 64bit) could convert vectors to split type & value
+- there some places in the code that will simply misbehave if strings or vectors have a len
+  that doesn't fit a signed int, might be nice to fix this
+  see (int) casts, and the any growing function in LVector
+
+CURRENT SOLUTION FROM TRADEOFS:
+===============================
+- you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
+    - if you simply clear that a hit happened this frame when its tested, you get that order wrong
+    - if you added z-layers to rendering such that you could do inverse order
+      * if you did it immediate mode, blending wouldn't work correctly, so it would have to be understood that if you did did multiple layers for hit testing, you can't hit on an alpha element
+      * could store all render calls and sort (or just reverse) them after, but this is a lot of storing of stuff
+        we would store color/blend/transform/shader/texture/linemode for each, which is not that much of an overhead since we set these things on every render op anyway
+        (except blend/texture/linemode which can be set when changed),
+        so its purely the cost of allocating/storing, and complicating the code a little
+    - could track an event handling closure and handle it it at the end of the frame. certainly the simplest, if not totally elegant
+      (extra call to handle delayed closure, and delayed closure can't access free variables)
+    - you could compare the current hit rect against the last rect that was hit last frame, and if they are the same, this is the one to fire
+      problem is, this doesn't work on touch screens, where you lose the first touch down event this way
+      -> unless you delayed all touch down events by one frame, to give one hover frame to register (this is the current solution)
+    regardless of the solution above, you also need an additional way to cancel hits that happen inside a toolbar or statusbar that may not have hittests everywhere
+    -> that can already be done by a gl_hit that doesn't react to it's return value
+
+- for things like GUI callbacks, lobsters non-escaping free var function values kinda suck. options:
+  - just call em in place, can only really work in a non-immediate mode gui since otherwise the callback can change the gui layout
+    - use caller_id() to make the gui aware of inserts/deletes so this is now safe <- curent solution
+      - instead of caller_id could have created a vector of args to the gui function as identity. slightly more correct for calls in a loop, but more work.
+    - alternatively since all troubles are caused by element insertion/deletion, have special functionality for turning things on/off, i.e. gui_if() instead of if()
+  - call em afterwards: problematic because variables not available
+  - call em afterwards & force it to take an arg. not elegant, but atleast the arg will remind people to pass values this way
+  - wrap in coroutine so the variable is captured... hard to do since you want to continue with other code after the yield
+  - implement full closures for escaping situations
+    * don't really want another programming language feature just for this
+    * to create closure, would need syntax at the call site which is clumsy if it gets forgotten, and some new data structure to hold vars
+    * would have to back up old vars, load vars from closure, call function, and put old vars back
+    * would probably have a special way to invoke closures so that we don't have to clutter normal function calling, and its easy to give errors if a non-closure is passed in
+      still, there has to be some indication on the stack that we're returning from a closure
+      though I suppose it can work like coroutines, where upon returning from the function it hits a special instruction that does the cleanup
+    * maybe also have a static type for it so no syntax is needed at the call site
+    * could we piggyback on coroutine resume? almost, but not quite.. it wouldn't restore the free vars upon ending the function, for example
+      hmm that could maybe be fixed with a special cleanup instruction
+    * so in summary the implementation effort is a simplified version of what coroutines currently do
+
+DECIDED AGAINST (for now):
+==========================
+- SLD freetype etc code directly in project? simplifies lib management, depends how often we update SDL.. might be a pain since different platforms have different stuff they link to SDL?
+  at over 400 files, it's a bit too big to maintain, as they make changes having to port those to my project
+
+BUILDING NOTES FOR SDL
+======================
+NOTE: must really update all platforms at once, since they share the headers!
+each platform must copy proper config.h, then for shared include folder use original again
+
+windows:
+- in windows config make sure HAVE_LIBC is uncommented (otherwise it uses weird replacement functions)
+  also comment out HAVE_ITOA HAVE_STRTOLL HAVE_SSCANF HAVE_M_PI HAVE_COPYSIGN HAVE_SCALBN
+- in include, copy the windows cfg to cfg (keep windows version)
+- in begin_code.h, #define DECLSPEC <nothing>  (stops exe from having external refs)
+- remove tests from projects
+- change in all projects: DLL -> LIB project, DLL -> static runtime, turn off PDB generation
+- put a "d" at the end of the "Target Name" field for debug mode
+- set up temp dirs to build, output folder to lib
+- copy include to own include
+
+OS-X / ios:
+- open Xcode project, select static-lib / 32bit, set to release, build
+- then copy libSDL2.a to lib
+
+

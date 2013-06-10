@@ -1,0 +1,3 @@
+# view AndroidManifest.xml #generated:20
+-keep class org.libsdl.app.SDLActivity { <init>(...); }
+

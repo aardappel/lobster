@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="compiler">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="compiler\builtins">
+      <UniqueIdentifier>{564c5719-24a0-4d9b-8808-665854c6bb93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine">
+      <UniqueIdentifier>{d933a959-f9c3-4269-9599-258505eccc49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\freetype">
+      <UniqueIdentifier>{795e30e0-3e17-4217-b4a8-903365e4bce4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\opengl">
+      <UniqueIdentifier>{45aa5d69-5709-4057-9efa-3f9bc0593b9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\opengl\image">
+      <UniqueIdentifier>{2ff8d0da-3fc3-4149-8dcf-06490528dfd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\sdl">
+      <UniqueIdentifier>{f646f806-efbc-446b-a9ec-a2873df29ff5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\shaders">
+      <UniqueIdentifier>{6d188669-f5b1-498a-995e-b55dce8152ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\lobster_bindings">
+      <UniqueIdentifier>{f4e8ad95-f6bc-4bc6-a95b-0c52adeddcc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\meshgen">
+      <UniqueIdentifier>{f6b02221-a8d6-491c-a1bc-b795d71bf457}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\stdafx.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lex.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\parser.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\codegen.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\node.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\disasm.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\idents.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vmdata.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tools.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\slaballoc.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\geom.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mctables.h">
+      <Filter>engine\meshgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\natreg.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\unicode.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\glincludes.h">
+      <Filter>engine\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\glinterface.h">
+      <Filter>engine\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ftinterface.h">
+      <Filter>engine\freetype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sdlincludes.h">
+      <Filter>engine\sdl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sdlinterface.h">
+      <Filter>engine\sdl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\stb_image.h">
+      <Filter>engine\opengl\image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\platform.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wentropy.h">
+      <Filter>base</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\lobster.cpp">
+      <Filter>compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\stdafx.cpp">
+      <Filter>base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\meshgen.cpp">
+      <Filter>engine\meshgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vmdata.cpp">
+      <Filter>compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\builtins.cpp">
+      <Filter>compiler\builtins</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\file.cpp">
+      <Filter>compiler\builtins</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\stb_image.c">
+      <Filter>engine\opengl\image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lobsterreader.cpp">
+      <Filter>compiler\builtins</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\glshader.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\glgeom.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\glsystem.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gltexture.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ftsystem.cpp">
+      <Filter>engine\freetype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sdlsystem.cpp">
+      <Filter>engine\sdl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sdlaudiosfxr.cpp">
+      <Filter>engine\sdl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\platform.cpp">
+      <Filter>base</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\glloadiqm.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio.cpp">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graphics.cpp">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\font.cpp">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\simplex.cpp">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\TODO.txt" />
+    <None Include="..\..\lobster\shaders\default.materials">
+      <Filter>engine\shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\lobster\docs\history.txt" />
+  </ItemGroup>
+</Project>
