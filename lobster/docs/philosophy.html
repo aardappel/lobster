@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <title>Lobster Design Philosophy, History, and Future</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="github.css">
+</head>
+<body>
+<header>
+<h1 class="title">Lobster Design Philosophy, History, and Future</h1>
+</header>
+<p>This document tries to clarify why certain design choices were made in the Lobster language and system.</p>
+<h3 id="primary-motivation">Primary Motivation</h3>
+<p>The most important over-arching reason behind everything in Lobster was to make it a pleasant language to use for one single person: me, the author. I've designed a fair number of languages in the past that had a particular goal or should appeal to a particular target group, or were even commercial. Lobster is not such a language.</p>
+<p>Unlike past work, its goal from the start wasn't to try to appeal to anyone in particular. If you happen to like Lobster, then congratulations, your taste in programming is probably similar to mine.</p>
+<p>Besides being useful to me, creating Lobster in itself was merely meant to be a fun project. I love creating programming languages, but there's really no money in it, and generally to most people new programming languages are not desirable things, which is what had stopped me for a while creating any more of them. Lobster was the &quot;screw it, I am making one because it's fun&quot; project. That, and I had some new ideas about some subtle features that would make a language suitable for my style of programming (heavily refactoring-based).</p>
+<h3 id="what-lobster-is-not">What Lobster is not:</h3>
+<ul>
+<li><p>A popular / mainstream language. For that, I've made far too many peculiar choices already, in particular in relation to its syntax (very terse, not C based) and it's semantics (more functional than OO).</p></li>
+<li><p>A beginner friendly system.</p>
+<ul>
+<li><p>The language: to use Lobster where it shines, you need to get very familiar with higher order functions and coroutines for example.</p></li>
+<li><p>Its engine, while friendly for simple drawing, generally gives you a lot of control (immediate mode rendering), and requires you to understand the rendering pipeline moreso than simple retained mode object systems (e.g. Flash). If you create more complex games with it, be prepared to program your own &quot;scenegraph&quot; on top of Lobster's low level drawing primitives.</p></li>
+<li><p>It contains no game editor or friendly IDE. Everything is code.</p></li>
+</ul></li>
+<li><p>A language for large scale / team programming. It's a dynamically typed language that favors expressive power over protecting the programmer. It's best used for small to medium sized projects by programmers that know what they're doing.</p></li>
+<li><p>A language that is all things to all people. While I would claim that Lobster is a <em>general purpose programming language</em>, it is strongly biased toward game programming and related fields. With a different set of built-in functions I am sure it would make a kick-ass server language, but I don't feel it is important to serve every niche.</p></li>
+</ul>
+<h3 id="what-lobster-is">What Lobster is:</h3>
+<ul>
+<li><p>A language design motivated by <em>refactoring</em> and <em>compositionality</em>. It should be easier than in most languages to rip arbitrary pieces of code out and reorganize them and make them reusable, to keep the program <em>non-redundant</em>. Lobster's free variables ensure that your code keeps doing what it did before it was moved without needing to create tons of function arguments. They allow your new functionality to be as local as possible, and look just as terse as any built-in abstractions when using function value arguments. I am fanatic about well-factored code, so the design reflects my thinking on how give the programmer maximum refactoring fluidity.</p></li>
+<li><p>A language that has some goodies built-in that streamline code typical in games:</p>
+<ul>
+<li><p>Almost everything can operate on vectors of numbers (2D, 3D, AnyD).</p></li>
+<li><p>Coroutines that can greatly simplify code that runs over time (across frames).</p></li>
+</ul></li>
+<li><p>A language inspired more by functional programming than by object oriented programming. Lobster is of course an imperative language first: games are full of global state, and I believe that the most natural way to express that is directly, rather than indirectly by emulating state (such as with monads). That said, any program benefits from trying to write as much code as possible in a purely functional style, i.e. if it is easy to express something in terms of re-generating data instead of modifying it in place, you almost always should. Lobster has some very strong tools to make this possible, with a very terse and uniform higher order function call syntax, optionally immutable objects and coroutines that reduce the need for global state in the first place.<br /> Lobster actually has very powerful object oriented features (multimethods being more expressive than traditional single dispatch in most OO languages), but it doesn't push it's OO angle to the forefront, and unlike OO languages doesn't have an object heavy API. While OO brought us many important ideas in programming, it is also single-handedly responsible for the crippling over-engineering culture so prevalent nowadays, and Lobster is trying to go the opposite direction.</p></li>
+<li><p>The belief that the ideal programming language is... TWO programming languages. Any larger project consists of a lot of high level and glue code that is infrequently executed and benefits from the simple and terse notation of a language like Lobster. However, any non trivial project (especially in games) also contains a few algorithms where complete control of memory layout and native code is desirable, and for that, there really is only one viable language, namely C++. Having access to both languages in a single project gives the most options for creating a fast, high quality result in reasonable time. Importantly, past systems/engines have not realized this potential because they make C++ the dominant language that is responsible for all the glue code, thus reducing the utility of the scripting language and complicating the overal project. Lobster instead wants Lobster code to be the main program, and relegate C++ to implement small libraries of speed sensitive code.</p></li>
+<li><p>An engine that adheres to <em>make simple things simple, and complex things possible</em>. It requires very little code to start drawing, yet the system doesn't make any assumptions about what kind of thing you might want to program, and how you want to structure it.</p></li>
+<li><p>A portable, cross platform system, targeting desktop and mobile OSes alike.</p></li>
+<li><p>An implementation that cares about simplicity, speed, and robustness.</p></li>
+</ul>
+<h3 id="what-lobster-was-history">What Lobster was (History):</h3>
+<p>Lobster development started in October of 2010.</p>
+<p>Unlike code, normally a programming language design is so intricate, you benefit from designing almost all of it up-front, before you write the first line of code. Lobster wasn't designed like that, it's design was constantly refactored much like it's implementation. In fact, normally the first thing I write before I start writing a parser is the grammar, but Lobster's grammer was instead derived from the parser code. Because initially it was simply a platform for fun and experimenation of language features, it started out very different, both in syntax and semantics.</p>
+<p>Lobster started out fully dynamically scoped. I like the idea of dynamic scoping, and wanted to experiment with it, to see if all the people on the net claiming it is evil are a bunch of whiners. I found out very quickly they are not whiners and reverted to default lexical scoping.</p>
+<p>My other early experiment was a complete implementation of Icon-style backtracking. For example, you could write things like:</p>
+<pre><code>print #3 &lt; 2 | #3 * 2</code></pre>
+<p>which would print <code>0 1 0 2 4</code>. In short, whereas in most programming language an expression returns exactly 1 result, in Icon an EarlyLobster it would 0..N results. <code>#</code> was an iteration operator that would generate values much like <code>for</code> does nowadays, and <code>|</code> would simply concatenate streams of values. The concept of something being false just meant no values were generated, i.e. the <code>&lt;</code> operator returns 0 or 1 results (the lhs). This backtracking would even work across function definitions.</p>
+<p>If that sounds complicated, it is certainly hard to get right, though it was helped by the fanastic paper <em>The Implementation of Generators and Goal-Directed-Evaluation in Icon</em> by Janalee O'Bagy whose implementation technique I followed closely.</p>
+<p>Sadly, though examples like the above look super terse and very powerful, more general examples turned out less readable, less general, and not much shorter than the equivalent code using higher order functions, which is when I got inspired to instead focus on making higher order functions terser and more similar to built-iteration, and make sure they have the same shortcutting power as backtracking (using Lobster's cross-function <code>return</code>). I ripped out all backtracking code at this point. I still have a copy of the last version that has this functionality in, which at some point I can release if there's interest.</p>
+<p>Syntax wise, EarlyLobster had a more haskell-y / smalltalk-y bracketed syntax. See for example:</p>
+<pre><code>factorial: [ n =&gt; 1 &gt; n | (factorial n - 1) * n ]
+print &quot;factorial of 7: &quot; + (factorial 7)</code></pre>
+<p>Function blocks were <code>[]</code>, and lists were <code>{}</code>. One of the first changes I made post EarlyLobster was to switch those two, and make function calls more C-style, as I had to admit I found I liked that better anyway, and made it easier to have function blocks follow the function call instead of being inside of it. Then I noticed I could denote function blocks entirely without brackets and just with indentation, and those were removed too.</p>
+<p>The implementation still had the C-stack based function calling implied by the abovementioned paper, which now wasn't necessary anymore, and Lobster switched to a more traditional VM stack.</p>
+<p>Later, multi-methods, and most recently, coroutines, got added.</p>
+<h3 id="what-lobster-will-be-future-plans">What Lobster will be (Future Plans)</h3>
+<p>I've collected many random scribbles about what I think Lobster still needs in <code>dev/TODO.TXT</code>, but here are some broad ideas as to what I think Lobster still needs, roughly in this order:</p>
+<ul>
+<li><p>More documentation, tutorials, examples, and reusable Lobster code for games.</p></li>
+<li><p>More built-in / graphics functionality. So far I've just added what I needed for my own game prototypes, but it is pretty barren.</p></li>
+<li><p>Generally more standard sub-systems. Related to sound, threading, networking, physics etc etc. I want to be careful however to not expand the amount of library dependencies unless I absolutely have to, since that makes building and integrating so much more painful, and gives a lot of people bloat they don't need. I am hoping that I can make a nice set of functionality with minimal code that can serve most people for small to medium projects, and for those who want extensive engine functionality to be linking their own additional libraries themselves (or at least make them optional components).</p></li>
+<li><p>Platform features: better testing / building / integration on some of the neglected platforms.</p></li>
+<li><p>A way to automatically package assets into a package for distribution purposes.</p></li>
+<li><p>Debugging: some form of interactive debugging. I'm not missing it myself much, but I know others will.</p></li>
+<li><p>Separate out the Lobster language from the engine even better, so it's easier for people to use Lobster for entirely different purposes.</p></li>
+<li><p>Allowing for multiple simultanuous VMs and simultanuous windows (cleaning up global state for that), which relates to being able to add threading features and potentially write a visual debugger in Lobster itself.</p></li>
+<li><p>A typechecker to catch more errors at compile time.</p></li>
+<li><p>A high-level optimizer</p></li>
+<li><p>An LLVM backend</p></li>
+<li><p>Make the VM file format simpler, smaller, and more self-contained.</p></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>C-style language Cheat Sheet for Lobster</title>
+
+<style type="text/css">
+table, tr, td {font-size: 10pt;border: 1pt solid #DDDDDD; border-Collapse: collapse; max-width:1200px; vertical-align:top}
+</style></head>
+<body>
+<div style="text-align: center;"><big style="font-family: Consolas;"><big><big>C-style
+language to Lobster Cheat Sheet</big></big></big><br style="font-family: Consolas;">
+<span style="font-family: Consolas;"></span><br style="font-family: Consolas;">
+</div>
+<table style="width: 100%; font-family: Consolas; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="2" cellspacing="2">
+<tbody>
+<tr>
+<td>Since
+every programmer usually knows at least one C-style language
+(C/C++/C#/Java/JavaScript/PHP etc.), a quick way to get to know Lobster
+is seeing how it differs from what you're familiar with. Where C-style
+languages differ I will by default pick C# (as being the most
+&nbsp;"average" of the range), though sometimes may show multiple
+language alternatives (as noted in the comments). This document mostly
+focusses on things that are different, i.e. you will not see how a + b
+in Lobster is the same as a + b in C#.</td>
+</tr>
+</tbody>
+</table>
+<div style="text-align: center;"><big><big><span style="font-family: Consolas;"><br>
+Basics</span></big></big><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+</div>
+<table style="font-family: Consolas; width: 100%; height: 100%; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td style="font-weight: bold;"><big>Lobster
+version</big></td>
+<td style="font-weight: bold;"><big>C-style
+version</big></td>
+<td style="font-weight: bold;"><big>Comments</big></td>
+</tr>
+<tr>
+<td>a := 1</td>
+<td>var a = 1;</td>
+<td>variables are dynamically typed like in JavaScript, in
+languages like C# a will be fixed to int</td>
+</tr>
+<tr>
+<td>a = 1</td>
+<td>a = 1;</td>
+<td></td>
+</tr>
+<tr>
+<td>a :== 1</td>
+<td>const var a = 1;</td>
+<td></td>
+</tr>
+<tr>
+<td>a, b := 1, 2</td>
+<td>var a = 1; var b = 2;</td>
+<td></td>
+</tr>
+<tr>
+<td>a, b := 1</td>
+<td>var a = 1; var b = 1;</td>
+<td></td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">v := [ 1, 2, 3 ]</td>
+<td>int[] v = new int[] { 1, 2, 3 };</td>
+<td>in Lobster we can of course put a mix of any types in a
+vector if we want. They are also resizable, so they are probably more
+akin a C# List than an array.</td>
+</tr>
+<tr>
+<td>w := v + v</td>
+<td style="white-space: nowrap;">int[] w = new
+int[3];<br>
+for (int i = 0; i &lt; 3; i++) w[i] = v[i] + v[i];</td>
+<td></td>
+</tr>
+<tr>
+<td>nil</td>
+<td>null</td>
+<td>null works only with reference types, in Lobster it is
+an alternative to all types (even ints)</td>
+</tr>
+<tr>
+<td>a | b &amp; c</td>
+<td>(a || b) &amp;&amp; c</td>
+<td>these are really the only operators that are different.
+the bitwise operators from C-style languages are instead functions and()
+or() not()</td>
+</tr>
+<tr>
+<td>a := f() | g()</td>
+<td>var a = f();<br>
+if (a == null) a = g();</td>
+<td>the | operator works slightly differently in that
+rather than returning true, it returns whatever value was true (and
+true is everything that is not nil, false, 0 or 0.0)</td>
+</tr>
+</tbody>
+</table>
+<div style="text-align: center;"><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+<big><big><span style="font-family: Consolas;">Control
+Structures</span></big></big><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+</div>
+<table style="font-family: Consolas; width: 100%; height: 100%; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td style="font-weight: bold;"><big>Lobster
+version</big></td>
+<td style="font-weight: bold;"><big>C-style
+version</big></td>
+<td style="font-weight: bold;"><big>Comments</big></td>
+</tr>
+<tr>
+<td>if(a): b else: c</td>
+<td>if (a) b; else c</td>
+<td></td>
+</tr>
+<tr>
+<td>if(a):<br>
+&nbsp; &nbsp; b<br>
+&nbsp; &nbsp; c<br>
+else:<br>
+&nbsp; &nbsp; d<br>
+&nbsp; &nbsp; e</td>
+<td>if (a) { b; c; } else { d; e; }</td>
+<td></td>
+</tr>
+<tr>
+<td>for(m) i: print(i)</td>
+<td>for (int i = 0; i &lt; m; i++) print(i);</td>
+<td></td>
+</tr>
+<tr>
+<td>for(m): print(_)</td>
+<td>for (int i = 0; i &lt; m; i++) print(i);</td>
+<td></td>
+</tr>
+<tr>
+<td>for(m) i:<br>
+&nbsp; &nbsp; print(i)</td>
+<td>for (int i = 0; i &lt; m; i++)<br>
+{<br>
+&nbsp; &nbsp; print(i);<br>
+}</td>
+<td></td>
+</tr>
+<tr>
+<td>while(a): b</td>
+<td>while (a) b;</td>
+<td></td>
+</tr>
+<tr>
+<td>collectwhile(a): b</td>
+<td>var list = new List();<br>
+while (a) list.Add(b);</td>
+<td></td>
+</tr>
+<tr>
+<td>for(list) a: print(a)</td>
+<td>foreach (var a in list) print(a);</td>
+<td></td>
+</tr>
+<tr>
+<td>r := map(list) x: x * x</td>
+<td>var r = new List();<br>
+foreach(var x in list) r.Add(x * x);</td>
+<td><br>
+</td>
+</tr>
+<tr>
+<td>r := map(list) x: x * x</td>
+<td>var r = list.ConvertAll(x =&gt; x * x);</td>
+<td>C# and pretty much all programming languages except for
+Java can nowadays use some form of lambdas that are similar but not
+quite as powerful as the ones in Lobster (for example, you can't use
+"return" to break out of a loop).</td>
+</tr>
+<tr>
+<td>r := filter(list): _ &gt; 0</td>
+<td>var r = new List();<br>
+foreach (var x in list) if (x
+&gt; 0) r.Add(x);</td>
+<td></td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">r := exists(list): _ &gt; 0</td>
+<td style="white-space: nowrap;">var r = false;<br>
+foreach (var x in list) if (x
+&gt; 0) { r = true; break; }</td>
+<td></td>
+</tr>
+
+</tbody>
+</table>
+<div style="text-align: center;"><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+<big><big><span style="font-family: Consolas;">Function
+Definitions
+and Scope</span></big></big><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+</div>
+<table style="font-family: Consolas; width: 100%; height: 100%; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td style="font-weight: bold;"><big>Lobster
+version</big></td>
+<td style="font-weight: bold;"><big>C-style
+version</big></td>
+<td style="font-weight: bold;"><big>Comments</big></td>
+</tr>
+<tr>
+<td>function name(a, b): a + b</td>
+<td>int name(int a, int b) { return a + b; }</td>
+<td>of course, the Lobster version is not restricted to int</td>
+</tr>
+<tr>
+<td>function name(a, b):<br>
+&nbsp; &nbsp; a + b</td>
+<td>int name(int a, int b)<br>
+{<br>
+&nbsp; &nbsp; return a + b;<br>
+}</td>
+<td></td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">function
+magnitude(v::xy): sqrt(x * x + y * y)</td>
+<td style="white-space: nowrap;">/* inside class xy */<br>
+float&nbsp;magnitude() { return x * x + y * y; }</td>
+<td>the :: way to indicate a type (v is of type xy) allows you to access
+object elements directly rather than having to write v.x etc. This is
+similar to writing a&nbsp;method, though Lobster makes no such distinction.</td>
+</tr>
+<tr>
+<td>v.magnitude()</td>
+<td>v.magnitude()</td>
+<td>on a function call, you can move the first argument to
+before the call, for <span style="font-style: italic;">any</span>
+function.</td>
+</tr>
+<tr>
+<td>function name(x:X): 0<br>
+function name(y:Y): 1</td>
+<td>/* inside class X */ int name() { return 0; }<br>
+/* inside class Y */ int name() { return 1; }</td>
+<td>you write polymorphic functions (like virtual methods,
+dynamic dispatch, and unlike overloading which is static) by simply
+writing multiple functions. These functions can work on user defined
+types or builtin ones. They can be written by whoever wrote the type, or completely separately. </td>
+</tr>
+<tr>
+<td>function name(x:X, z:Z): 0<br>
+function name(x:X, w:W): 1<br>
+function name(y:Y, z:Z): 2</td>
+<td style="white-space: nowrap;">/* inside class X
+*/ int name(B b) { return b.nameX(); }<br>
+/* inside class Y */ int name(Z z) { return 2; }<br>
+/* inside class Z */ int nameX() { return 0; }<br>
+/* inside class W */ int nameX() { return 1; }</td>
+<td>Lobster can dispatch on any number or arguments, where
+most languages cannot. To emulate that, you do double dispatch. Note
+that we're assuming we don't know the dynamic argument types to name(),
+so we can't use overloading.</td>
+</tr>
+<tr>
+<td>f := function(a, b): a + b</td>
+<td>var f = (int a, int b) =&gt; a + b</td>
+<td>function value in C#</td>
+</tr>
+<tr>
+<td>f := function(a, b): a + b</td>
+<td>auto f = [](int a, int a) { return a + b; }</td>
+<td>function value in C++</td>
+</tr>
+<tr>
+<td>function fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; init</td>
+<td>T fold&lt;T&gt;(List&lt;T&gt; xs, T init, Func&lt;T, T, T&gt; fun)<br>{<br>&nbsp; &nbsp; foreach (var x in xs) init = fun(init, x);<br>&nbsp; &nbsp; return init;<br>}</td>
+<td>How to write a <span style="font-style: italic;">Higher Order Function</span>:
+a function that takes a function argument. In this case "fold": take a
+list, and apply the function to each element and the previous result,
+effectively "folding" the list into a single value.</td>
+</tr>
+<tr>
+<td>r := fold(list, 0) a, b: a + b</td>
+<td>var r = fold(list, 0, (a, b) =&gt; a + b);</td>
+<td>How to call that function with a function value. This sums all values in a list.</td>
+</tr>
+<tr>
+<td>r := fold(list, 0): _a + _b</td>
+<td>var r = fold(list, 0, (a, b) =&gt; a + b);</td>
+<td>anonymous arguments in lexical order, see language reference</td>
+</tr>
+<tr>
+<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print(a)<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>var r = fold(list, 0, (a, b) =&gt;<br>{<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
+<td>note how in most languages lambda syntax becomes messy when you
+want to use them with a larger body, and looking very different from
+builtin control structures.</td>
+</tr>
+<tr>
+<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; if(a &lt; 0): return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>/* not possible */</td>
+<td>another way in which lambdas in most languages differ from Lobster:
+you cannot return/break
+from the loop, making them often useless as control structures. In
+Lobster, they function just like real constrol structures would. By
+default, return returns from the lexically enclosing named function.</td>
+</tr>
+<tr>
+<td>function f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>function g():<br>&nbsp; &nbsp; if(something): return 1 from f<br>&nbsp; &nbsp; 0</td>
+<td>int f()<br>{<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g()<br>{<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
+<td>return even allows you to specify which function to return from,
+which in other languages you can do with exception handling. In fact,
+exception handling in Lobster is not a language feature, it is simply
+some utility functions (try/catch/...) implemented on top of
+return/from (implemented in exception.lobster).</td>
+</tr>
+
+
+
+
+
+
+
+
+
+<tr>
+<td>a := 0<br>function g(): print(a) // 1<br>function f():<br>
+&nbsp; &nbsp; a &lt;- 1<br>
+&nbsp; &nbsp; g()</td>
+<td>int a = 0;<br>void g() { print(a); } // 1<br>void f()<br>
+{<br>
+&nbsp; &nbsp;var olda = a;<br>
+&nbsp; &nbsp;a = 1;<br>
+&nbsp; &nbsp;g();<br>
+&nbsp; &nbsp;a = olda;<br>
+}</td>
+<td>unlike dynamic scope in other languages, the variable a it is
+overriding must exist as lexically enclosing variable, making it a much
+safer feature</td>
+</tr>
+<tr>
+<td>function mret(): return 1, 2</td>
+<td style="white-space: nowrap;">int mret(out int o)
+{ o = 2; return 1; }</td>
+<td></td>
+</tr>
+<tr>
+<td>a, b := mret()</td>
+<td>var b; var a = mret(b);</td>
+<td></td>
+</tr>
+
+
+
+
+</tbody>
+</table>
+<div style="text-align: center;"><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+<big><big><span style="font-family: Consolas;">User
+Defined Types</span></big></big><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+</div>
+<table style="font-family: Consolas; width: 100%; height: 100%; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td style="font-weight: bold;"><big>Lobster
+version</big></td>
+<td style="font-weight: bold;"><big>C-style
+version</big></td>
+<td style="font-weight: bold;"><big>Comments</big></td>
+</tr>
+<tr>
+<td>struct xy: [ x, y ]</td>
+<td>public class xy { float x; float y; }</td>
+<td>the fields are dynamically typed in Lobster, in C# etc
+you'd use either specific types like here</td>
+</tr>
+<tr>
+<td>struct xy: [ x, y ]</td>
+<td>public class xy&lt;T&gt; { T x; T y; }</td>
+<td>or generics</td>
+</tr>
+<tr>
+<td>struct xy: [ x, y ]</td>
+<td style="white-space: nowrap;">public class xy { dynamic x; dynamic y; }</td>
+<td>or the type dynamic, which is most similar to Lobster</td>
+</tr>
+<tr>
+<td>struct xyz: xy [ z ]</td>
+<td>public class xyz : xy { float z; }</td>
+<td></td>
+</tr>
+<tr>
+<td>v := [ 1, 0, 0 ]:xyz</td>
+<td>var v = new xyz(1, 0, 0)</td>
+<td>you'd actually have to define the constructor in C# to
+be able to do this</td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">v := [ super s, 0 ]:xyz</td>
+<td>var v = new xyz(s, 0)</td>
+<td>here, s would be a value of type xy, whose elements will be copied
+into the new object. Again, requires a specific constructor in C#</td>
+</tr>
+
+
+
+
+
+
+</tbody>
+</table>
+<div style="text-align: center;"><br><br style="font-family: Consolas;">
+<big><big><span style="font-family: Consolas;">Coroutines</span></big></big><br style="font-family: Consolas;">
+<br style="font-family: Consolas;">
+
+<table style="font-family: Consolas; width: 100%; height: 100%; text-align: left; margin-left: auto; margin-right: auto;" border="1" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td style="font-weight: bold;"><big>Lobster
+version</big></td>
+<td style="font-weight: bold;"><big>C-style
+version</big></td>
+<td style="font-weight: bold;"><big>Comments</big></td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">function myiter(f):<br>&nbsp; &nbsp; for(10) i: f(i)</td>
+<td style="white-space: nowrap;">IEnumerable&lt;T&gt; myiter()<br>{<br>&nbsp; &nbsp; for (int i = 0; i &lt; 10; i++) yield return i;<br>}</td>
+<td>unlike most languages, you define coroutines just as you would any
+iteration function: by calling a function value. This allows you to
+define iteration functions without having to decide if you want to use
+them as control structure or as coroutine. "yield return" can also only
+be called from the myiter function body, not from any functions called
+from it. Lobster has no such limitations.</td>
+</tr>
+<tr>
+<td style="white-space: nowrap;">co := coroutine myiter()</td>
+<td>var co = myiter()</td>
+<td></td>
+</tr>
+<tr>
+<td>co.returnvalue</td>
+<td style="white-space: nowrap;">co.Current</td>
+<td>last value produced, or in the case of Lobster also the value returned at the end</td>
+</tr>
+<tr>
+<td>co.resume</td>
+<td>co.MoveNext</td>
+<td>ask coroutine to produce next value.</td>
+</tr>
+<tr>
+<td>co.resume(x)</td>
+<td>/* not available */</td>
+<td>ask coroutine to produce next value, returning x from the function value call that yielded the coroutine last</td>
+</tr>
+<tr><td>r := co.resume</td><td>/* not available */</td><td>ask coroutine to produce next value, receiving back argument to function value call</td></tr><tr>
+<td>co.active</td>
+<td>/* not available */</td>
+<td>in C#, MoveNext returns a boolean that plays this role</td>
+</tr><tr><td>co.i@myiter</td><td>/* not available */</td><td>access local vars inside a coroutine object. This feature makes it easier to have multiple coroutines communicate</td></tr>
+
+
+
+
+
+
+</tbody>
+</table>
+<div style="text-align: center;"><br style="font-family: Consolas;">
+</div>
+</div>
+</body></html>

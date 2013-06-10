@@ -1,0 +1,75 @@
+SHADER color
+    VERTEX
+        INPUTS apos:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+    PIXEL
+        UNIFORMS col
+        gl_FragColor = col;
+
+SHADER textured
+    VERTEX
+        INPUTS apos:4 atc:2
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        itc = atc;
+    PIXEL
+        INPUTS itc:2
+        UNIFORMS tex0 col
+        gl_FragColor = texture2D(tex0, itc) * col;
+
+PIXELFUNCTIONS
+    vec4 Phong(vec3 inormal, vec3 ipos)
+    {
+        vec3 nnormal = normalize(inormal);
+        vec3 cameravec = normalize(camera - ipos);
+        vec3 light1vec = normalize(light1 - ipos);
+        vec3 halfangle1 = normalize(cameravec + light1vec);
+        //return vec4((cameravec + 1) / 2, 1);
+        float NdotL = dot(nnormal, light1vec);
+        float NdotC = dot(nnormal, halfangle1);
+        float spec = pow(clamp(NdotC, 0.0, 1.0), 128.0);
+        return vec4(vec3(max(0.1, NdotL + spec)), 1);
+    }
+
+SHADER phong
+    VERTEX
+        INPUTS apos:4 anormal:3 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        inormal = anormal;
+        icol = acolor;
+        ipos = apos.xyz;
+    PIXEL
+        INPUTS inormal:3 ipos:3 icol:4
+        UNIFORMS col camera light1
+        gl_FragColor = col * icol * Phong(inormal, ipos);
+
+VERTEXFUNCTIONS
+    mat4 getmat(int i)  // have to do this to get around lack of mat3x4 support on ES2
+    {
+        return mat4(bones[i * 3 + 0],
+                    bones[i * 3 + 1],
+                    bones[i * 3 + 2],
+                    vec4(0, 0, 0, 1));
+    }
+
+SHADER phong_anim
+    VERTEX
+        INPUTS apos:4 anormal:3 atc:2 acolor:4 aweights:4 aindices:4
+        UNIFORMS mvp bones
+        mat4 m = getmat(int(aindices.x)) * aweights.x;
+        m +=     getmat(int(aindices.y)) * aweights.y;
+        m +=     getmat(int(aindices.z)) * aweights.z;
+        m +=     getmat(int(aindices.w)) * aweights.w;
+        gl_Position = mvp * (apos * m);
+        inormal = (vec4(anormal, 0) * m).xyz;
+        itc = atc;
+        icol = acolor;
+        ipos = apos.xyz;
+    PIXEL
+        INPUTS inormal:3 ipos:3 itc:2 icol:4
+        UNIFORMS col camera light1 tex0
+        gl_FragColor = col * icol * Phong(inormal, ipos) * texture2D(tex0, itc);
+
+

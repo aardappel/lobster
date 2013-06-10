@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <title>Lobster Language Reference</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="github.css">
+</head>
+<body>
+<header>
+<h1 class="title">Lobster Language Reference</h1>
+</header>
+<p>This is the definition of the language that tries to be a more exact a description of how the language works (the most exact description, however, will always be the source code :). As such, this is not the easiest way to learn the language, start with a tutorial first, and then use this for more difficult questions.</p>
+<p>Syntactically Lobster tries to follow a mix of Python and C conventions where possible, but has a lot of unique syntax too.</p>
+<h2 id="lexical-definition">Lexical definition</h2>
+<ul>
+<li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == !=     &lt; &gt; &lt;= &gt;= &lt;- = := :== ! @</code></p></li>
+<li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255).</p></li>
+<li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
+<li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
+<li><p>Keywords: <code>nil true false return from struct value include int float string     vector function super is program private coroutine</code></p></li>
+<li><p>Linefeed is whitespace if it follows a token that indicates an incomplete expression (such as <code>+</code> or <code>,</code>) and an actual token otherwise (used to separate lists of expressions inside a block, see below).</p></li>
+<li><p><code>indent</code> and <code>dedent</code> tokens are generated whenever the indentation level changes. Indentation of any 2 adjacent lines must start with the same sequence of spaces and/or tabs. This ensures it is impossible to create indentation that behaves differently from the way it looks visually.</p></li>
+</ul>
+<h2 id="grammar">Grammar</h2>
+<p>Below, <code>...</code> indicates a loop with exit point at that scope level, and <code>||</code> is like <code>|</code> except indicates a precedence level difference.</p>
+<p>program = stats end_of_file</p>
+<p>stats = topexp … linefeed</p>
+<p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( ident functiondef | struct | vardef ) | expstat</p>
+<p>struct = ( <code>struct</code> | <code>value</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
+<p>vardef = list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
+<p>functiondef = <code>(</code> args <code>) :</code> body</p>
+<p>block = args <code>:</code> body | functiondef</p>
+<p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
+<p>body = ( expstat | indent stats dedent )</p>
+<p>type = <code>int</code> | <code>float</code> | <code>string</code> | <code>vector</code> | <code>function</code> | <code>coroutine</code> | <code>nil</code> | ident</p>
+<p>call = <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
+<p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
+<p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
+<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> ) unary</p>
+<p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> ) unary | deref</p>
+<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ ( call | <code>@</code> ident ) ] | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
+<p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>function</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
+<p>constructor = <code>[</code> ( <code>super</code> exp [ <code>,</code> indlist( exp ) ] ) | [ indlist( exp ) ] <code>]</code> [ <code>:</code> type ]</p>
+<p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> | <code>true</code> | <code>false</code></p>
+<p>indlist(e) = list(e) | indent list(e) [ linefeed ] dedent linefeed</p>
+<p>list(e) = e ... <code>,</code></p>
+<h2 id="types">Types</h2>
+<p>Lobster is dynamically typed, and any variable, argument or vector element can be a value of one of the following types:</p>
+<ul>
+<li><p><code>int</code> : a 32bit signed integer. Constructed using:</p>
+<ul>
+<li><p>integer constants : <code>123</code></p></li>
+<li><p>hexadecimal constants : <code>0xABADCAFE</code></p></li>
+<li><p>character constants : <code>'A'</code> (65)</p></li>
+<li><p>default boolean values <code>true</code> and <code>false</code> (same as <code>1</code> and <code>0</code>)</p></li>
+</ul></li>
+<li><p><code>float</code> : 32bit IEEE floating point number</p></li>
+<li><p><code>string</code> : a vector of byte sized elements, generally used to store text, but can store any byte array. The recommended format for text is UTF-8, though this is not enforced; indexing and size operations act on bytes. To properly manipulate unicode symbols, UTF-8 strings can be converted to vectors of uncompressed unicode values using the built-in functions string2unicode and unicode2string. Immutable: can be indexed into for reading but not writing.</p></li>
+<li><p><code>vector</code> : a dynamically sized array of any Lobster values, constructed with square brackets surrounding 0 or more comma separated values, e.g. <code>[ 1,     &quot;hello&quot;, [] ]</code>. May be dereferenced for reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be typed by being suffixed by <code>: type</code>, which in the case of builtin types will require all elements to be of that type, or in the case of user defined types they can additionally be indexed by field names as opposed to just numeric indices (see <code>struct</code> / <code>value</code> below).</p></li>
+<li><p><code>nil</code> : a type with just one value, generally meant to indicate the absence of a value.</p></li>
+<li><p><code>function</code> : a function value, can be called just like a normal function. See below.</p></li>
+<li><p><code>coroutine</code> : a special object that contains a suspended computation, see the section on coroutines below.</p></li>
+<li><p>undefined : a special value used for unitialized variables and functions that don't return a value. There are no legal operations on this type of value, attempting to use one will result in a runtime error.</p></li>
+</ul>
+<p>Lobster does not have a separate boolean type. Instead, for boolean tests such as the <code>! &amp; |</code> operators (see below) or the builtin function <code>if</code>, the values <code>0 0.0 nil</code> (which includes the keyword <code>false</code>) are all considered to be false, and all other values are true.</p>
+<p>The <code>vector</code> and <code>coroutine</code> types are the only mutable objects (can change after creation), and have reference semantics (multiple values can refer to the same object in memory, and thus changes can be observed from each).</p>
+<h2 id="user-defined-types">User Defined Types</h2>
+<p>The <code>struct</code> and <code>value</code> keywords allow you to define &quot;typed vectors&quot;, that can mostly be used similarly to vectors, but have some additional perks, like being able to be indexed by name, and allowing you to write dynamically dispatched functions for them (see MultiMethods, below). For example, from <code>vec.lobster</code>:</p>
+<pre><code>value xy: [ x, y ]
+value xyz: xy [ z ]</code></pre>
+<p>You can use either <code>struct</code> or <code>value</code> to define these, both giving the same result except for the latter being more restrictive: it does not allow fields to be modified (assigned to) after it has been constructed. This makes sense for small objects such as the one in this example, and can be used to enforce a more functional style of programming.</p>
+<p>Generally in Lobster <code>:</code> separates the thing you are defining by what it is being defined as. Here it is followed by a vector of field names. Optionally, it can be prefixed by the name of a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
+<p>You construct values of these types similarly to vectors, with an added type specified at the end:</p>
+<pre><code>v := [ 1, 0, 0 ]:xyz</code></pre>
+<p>The type ensures that the right amount of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
+<p>You can optionally construct one out of a supertype value using <code>super</code>:</p>
+<pre><code>v := [ super s, 0 ]:xyz</code></pre>
+<p>Here, <code>s</code> is a vector of type <code>xy</code>, and both of its fields will be copied into the newly constructed <code>xyz</code> vector.</p>
+<p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction:</p>
+<pre><code>value xy: [ x:float, y:float ]</code></pre>
+<h2 id="operators">Operators</h2>
+<p>Lobster comes with a set of built-in operators mostly familiar from other languages that attempt to work on as many of the above types as makes sense. In particular, unlike most languages, many of them work on whole vectors, which makes typical game code both convenient and fast.</p>
+<h3 id="assignment-and-definition">Assignment and Definition</h3>
+<p>The assignment operators simply copies the value on the left hand side into the variable or vector index on the left hand side:</p>
+<pre><code>a = 1
+v[0] = 1
+v.x = 1</code></pre>
+<p>All variables must already have been declared, or this will result in an error. Instead, the <code>:=</code> operator defines and assigns in one go, and requires the variable to not have been declared yet in this scope:</p>
+<pre><code>a := 1
+b :== 1
+c &lt;- 1
+d, e := 1, 2
+f, g := 1</code></pre>
+<p>The <code>:==</code> operator does the same as <code>:=</code>, but now forces the variable to never be assigned to again in any of the following statements (makes it a constant). Think of the <code>==</code> in <code>:==</code> as saying that the two will be kept equal as opposed to merely assigned once.</p>
+<p><code>&lt;-</code> is another assignment operator, that re-defines an existing variable using <em>lexically bounded dynamic scope</em> instead of the default lexical scope (see example below). As you can see in the last 2 lines, all of these operators also allow multiple values to be assigned at once (see also multiple return values below).</p>
+<h3 id="indexing">Indexing</h3>
+<p>As indicated, square brackets can be used to index into vectors, with the . notation being a convenient shorthand for constant indices when field names are available. These may be chained arbitrarily (to index into a vector of vectors for example).</p>
+<p>You may even use a vector as index, e.g.</p>
+<pre><code>mat := [ [ 1, 2 ],
+         [ 3, 4 ] ]
+pos := [ 0, 1 ]
+print(mat[pos])</code></pre>
+<p>This prints <code>3</code>, and is a convenient shortcut for <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to index with first, this is because in code an other places 2d arrays are usually most naturally thought of as row-major.</p>
+<h3 id="mathematical-operators">Mathematical Operators</h3>
+<p>The 5 binary mathematical operators <code>+ - * / %</code> (the last 3 having higher precedence) work on <code>int</code>, <code>float</code> (or a combination, where the end result will be <code>float</code>). They also work on vectors containing ints or floats with either another vector or a single int or float. The resulting vector will have the length of the shortest of all input vectors, and will contain <code>float</code> elements unless <em>all</em> values involved were <code>int</code>. The type of the shortest vector (or left hand side if both equal) is preserved in the result:</p>
+<pre><code>[ 1, 2, 3 ] * [ 4, 5.5 ]:xy // results in [ 4.0, 11.0 ]:xy</code></pre>
+<p>All 5 also have have a combined assignment operator version, <code>+= -= *= /= %=</code>, which are implemented to have exactly the same effect as their expanded form, e.g. <code>a += 1</code> is always exactly the same as <code>a = a + 1</code>.</p>
+<p>This matters for vectors, where <code>+=</code> does <em>not</em> overwrite the left hand side vector with new values, but instead assigns the variable the newly constructed vector that is the result of the <code>+</code> operation. This is vital given that vectors use reference semantics, because otherwise assigning a constant vector to a variable followed by <code>+=</code> would also modify that constant, which would cause subtle bugs and generally go against Lobster's functional programming oriented design. The downside of this is that if you pass a vector to a function, and then use += to modify it, you are modifying your local variable only, and the caller's vector will be unaffected. Instead, you'll have to use (multiple) return values to give the modified value back to the caller.</p>
+<p>In addition, the <code>+</code> operator also works as string concatenation if either side is of string type (the other side will be converted to a string representation if it wasn't already).</p>
+<p>Unary minus (<code>-</code>) acts on the same types in the same way as the binary version.</p>
+<p>The increment and decrement operators <code>++</code> and <code>--</code> work either as prefix (increment, return new value) and as postfix (increment, return old value) on variables and vector index.</p>
+<h3 id="comparison-and-logical-operators">Comparison and Logical Operators</h3>
+<p>The next lower level of precedence are the comparison operators <code>&lt; &gt; &lt;= &gt;=</code> which work on <code>int</code>, <code>float</code> and <code>string</code> and <code>vector</code> (returning a vector of booleans, use builtin functions <code>any</code> and <code>all</code> to test these), and then the equality operators <code>==</code> and <code>!=</code> which additionally work on all other types, but in particular for <code>vector</code> and <code>coroutine</code> compare <em>by reference</em>, i.e they will give true only if both sides refer to the same object (<em>object identity</em>). To test for <em>structural identity</em> instead, use the built-in function <code>equal</code>.</p>
+<p>The logical operators <code>|</code> and <code>&amp;</code> (or, and) are the next lower level of precedence, and both short-circuit: <code>a | b</code> returns <code>a</code> if it is not a false value (one of <code>0 0.0 nil</code>), and <code>b</code> otherwise. <code>a &amp; b</code> returns <code>a</code> if it is a false value, <code>b</code> otherwise. The unary operator <code>!</code> turns false values into <code>1</code> and others into <code>0</code>.</p>
+<p>The <code>is</code> operator returns true if the left hand side value is of the type specified on the right, e.g. <code>x is float</code>.</p>
+<h2 id="function-definitions">Function Definitions</h2>
+<p>Lobster's entire design centers around functions and how they can be composed. It has both <em>named functions</em> and <em>function values</em>.</p>
+<h3 id="named-functions">Named Functions</h3>
+<p>Named functions can be declared at any scope level (may be local), like so:</p>
+<pre><code>function name(arg1, arg2): body</code></pre>
+<p><code>body</code> can either be a single expression, multiple expressions all on a single line separated by <code>;</code>, or, most commonly, an indentation (start of code on the next line further than the previous line, in this case the <code>function</code> keyword), and then any number of expressions on their own line separated by linefeeds, until a de-dedentation occurs (return to the indentation level of the parent, in this case again the <code>function</code> keyword). It is an error to de-dedent less than the parent level. For example:</p>
+<pre><code>function name(arg1, arg2):
+    exp1
+    exp2</code></pre>
+<p>The return value of a function is always that of the last expression evaluated, or given by <code>return</code> (see below).</p>
+<p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don't modify the argument.</p>
+<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types will be checked at run-time, and cause the incoming value to either be converted to that type, or rejected with a run-time error.</p>
+<p>You can use :: instead of : for typed vector arguments, which allows you to access all fields of that vector directly, without having to prefix them with the argument name, e.g.:</p>
+<pre><code>function magnitude(v::xy): sqrt(x * x + y * y) </code></pre>
+<p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
+<pre><code>function intersect(a, b): &quot;no idea how to intersect these two!&quot;
+function intersect(c:circle, p:xy): &quot;point in circle&quot;
+function intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
+<p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
+<h3 id="function-values">Function Values</h3>
+<p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
+<pre><code>f := function(arg1, arg2): body</code></pre>
+<p>You call these just like any other function, e.g. <code>f(1, 2)</code>.</p>
+<p>The full <code>function</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>function</code> keyword is omitted:</p>
+<pre><code>for(10) (i): print(i)</code></pre>
+<p>Here, the function <code>for</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>function(i): print(i)</code>. Lobster allows two more levels of further simplification of the syntax if the arguments do not contain type annotations:</p>
+<pre><code>for(10) i: print(i)
+for(10): print(_)</code></pre>
+<p>You can leave out the parentheses, and you may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in lexical order, irrespective of what order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
+<p>This style of syntax is intended to make each function that takes a function as argument (a <em>higher order function</em>) have the convenient syntax of a control structure, since that's what those functions usually are meant to be anyway. In fact, Lobster does not have built-in control structures as part of the language, <code>for</code> and <code>if</code> are examples of built-in functions, and have no different syntax from any such function the user could define.</p>
+<p>As an example of how to pass more than one function value, let's see an example for <code>if</code>:</p>
+<pre><code>nat := if(a &lt; 0): 0 else: a</code></pre>
+<p>Here we see that all except the first function value must be preceded by the name of the argument they're specifying. In Lobster, <code>else</code> is not a keyword, it simply is the name of the 3rd argument of <code>if</code>. Similarly, with indentation:</p>
+<pre><code>if(a &lt; 0):
+    print(&quot;negative numbers are scary!&quot;)
+else:
+    print(&quot;a = &quot; + a)</code></pre>
+<p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
+<h3 id="explicit-returns">Explicit Returns</h3>
+<p>Using return, we can bypass the default return value, and return from the closest lexically enclosing named function, e.g.:</p>
+<pre><code>function find(list, x):
+    for(list):
+        if(x == _): return true
+    false</code></pre>
+<p><code>find</code>'s return value appears to be <code>false</code>, but by using <code>return</code>, we can override it to be <code>true</code>. Importantly, <code>return true</code> is an expression that sits inside a function value being passed to <code>if</code> (which in turn sits in a function value passed to <code>for</code>), but bypasses all of this (unlike most programming languages with function values). This is essential for functions to be able to work as proper control structures.</p>
+<p>If this feels like it is similar to exception handling in other programming languages, that's because it is. Lobster even allows you to specify the name of the function to return from (e.g. <code>return &quot;expression expected&quot; from parse</code>), which is extremely handy when you want to be able to return errors from a bunch of helper functions without having to pass it back through all intermediate functions, such as when writing a parser. It is also powerful enough to allow you to implement fully general exception handling in Lobster code, see <code>exception.lobster</code>.</p>
+<p>You can use the keyword <code>program</code> instead of a function name to force returning from the entire program.</p>
+<h3 id="multiple-return-values">Multiple Return Values</h3>
+<p>return can specify more than one value to be returned, which can then be received by the multiple assignment syntax introduced above:</p>
+<pre><code>function m(): return 1, 2
+a, b := m()</code></pre>
+<p>All return statements for any function must all return the same amount of return values.</p>
+<p>When <code>m</code> returns multiple values, they get assigned to each variable in turn (if there was only 1 return value in this example, they would all receive the same value). If there are more return values than there are variables, additionally values are thrown away, and if there are more variables than there are return values, this is an error.</p>
+<h3 id="scope">Scope</h3>
+<p>Functions and variables declared there-in always obey lexical scope: any use of a variable always refers to the closest enclosing definition of it.</p>
+<p>Since functions and function values can be defined at any scope level, this means they can access variables from enclosing scopes, called <em>free variables</em>. Free variables are essential to make Lobster's higher order functions convenient. References to free variables are only valid within the scope they are defined, which luckily is almost always the case, but can be broken by storing a function value and then calling it at a later time outside of the context where its free variables were valid, which will result in a runtime error. Other languages use <em>closures</em> to ensure availability in all cases, which are very costly (parent stackframe(s) may have to be dynamically allocated) as opposed to Lobster's approach which makes function values and free variables have no overhead compared to regular functions and variables.</p>
+<p>Lobster also supports a safe way of optionally using <em>dynamic scope</em> by making it <em>lexically bounded</em>, i.e. you can use dynamic scoping only on variables that are already defined in lexical scope. As an example:</p>
+<pre><code>x, y := 0
+function f(): print(x + &quot; &quot; + y)
+function g():
+    x := 1
+    y &lt;- 1
+    f()
+g()</code></pre>
+<p>This will print <code>0 1</code>. This makes sense for <code>x</code>, after all, the second <code>x</code> is a completely separate variable that doesn't influence the print statement. The <code>&lt;-</code> operator however, changes an existing variable for the duration of it's lexical scope, meaning that inside <code>g</code> (and thus all functions called from it that can see the original variable) <code>y</code> has a different value. At the end of <code>g</code>, the old value is automatically restored.</p>
+<p>Alternatively, you can understand the part that does <code>y &lt;- 1; f()</code> as doing something like this:</p>
+<pre><code>oldy := y
+y = 1
+f()
+y = oldy</code></pre>
+<p>This is very useful for when you want to change a variable for the duration of a function, which is a common programming pattern. It is also safe because unlike other programming languages with dynamic scope, it can't function without a governing lexically scoped variable.</p>
+<h2 id="typing">Typing</h2>
+<p>While Lobster is dynamically typed by default, it does allow optional type annotations that have many uses:</p>
+<ul>
+<li><p>to cause type errors to happen earlier (where the values are created rather than used)</p></li>
+<li><p>used to create multi-methods (see earlier)</p></li>
+<li><p>to provide coercion (<code>int</code> -&gt; <code>float</code>, anything -&gt; <code>string</code>)</p></li>
+<li><p>as documentation</p></li>
+<li><p>(future) to receive some type errors at compile time</p></li>
+<li><p>(future) for faster execution</p></li>
+</ul>
+<p>As we've seen, you can type function arguments and UDT fields. Important to note is that these are checked when called / constructed, there are still cases when the exact types may change afterwards (though not in the case of <code>value</code>, whose fields are immutable).</p>
+<p>Lobster performs type checking when variables/fields are overwritten, and requires the new value to be the same as the old one, with some exceptions:</p>
+<ul>
+<li><p><code>nil</code> may overwrite anything, and anything may overwrite <code>nil</code></p></li>
+<li><p>an <code>int</code> may overwrite a <code>float</code> (and will become a <code>float</code>)</p></li>
+<li><p>any UDT may overwrite any other UDT type</p></li>
+</ul>
+<p>Note that a type annotation specifying a type only allows that type initially, it does not accept <code>nil</code> also. If you want to accept <code>nil</code> additionally, currently you just have to leave it typeless, though there may be a way to express that you accept a type or <code>nil</code> in the future.</p>
+<h2 id="coroutines">Coroutines</h2>
+<p>The higher order functions (function that take a function argument) we saw above often perform iteration, and then call the function value back 0..N times. But what if you want to iterate, but you don't want to run all iterations all at once? For example, what if you want the iteration to happen across frames in a game? In most languages, that means writing iteration code that is a lot clumsier than the nice functions you already have. In Lobster however, you can turn any such function into a coroutine, which is a higher order function that can be resumed on demand. Kind of like a separate thread that only runs when you want to (<em>cooperative multitasking</em>). For example:</p>
+<pre><code>co := coroutine for(10)</code></pre>
+<p>Normally, <code>for</code> takes 2 arguments, the thing to iterate over, and the function value to call for each element. When we prefix a call to for by <code>coroutine</code>, it transforms the call into an object that can have its iteration triggered manually. A coroutine <em>suspends</em> (yields) when it would normally call the function value (which here is supplied by <code>coroutine</code> automatically). We can check the last value the object produced using <code>co.returnvalue</code> (which after the above call should be <code>0</code>) and we can cause the next iteration step to happen with <code>co.resume</code> (or <code>co.resume(x)</code>, where <code>x</code> is the value to be returned from the function value call inside the coroutine). At some point, the coroutine may end naturally (when the loop is over), at which point it can't be resumed anymore, and trying to resume it would be an error. To test whether you can still iterate a coroutine further, you can call <code>co.active</code>. Putting that together, a typical loop to exhaust a coroutine looks like:</p>
+<pre><code>while(co.active):
+    print(co.returnvalue)
+    co.resume</code></pre>
+<p>Which would print 0..9. However, noone would ever write such a loop, since in that case it would have been easier to just call the function this coroutine is based on! Typical use of a coroutine object is therefore to resume it once per frame in a game loop (for programming animations or game objects that act over time), or once every time new data arrives from a file, a network, or another thread.</p>
+<p>Calling co.returnvalue when co.active has turned false will get you the return value of the coroutine call as a whole.</p>
+<p>If you create a coroutine object based on a function that contains local variables, you can access those local variables even when the coroutine is not running, using the <code>@</code> notation: <code>co.local@function</code> accesses a particular local variable in a particular function, relative to a coroutine object. You can use these variables just like you can any other variable (assign to them etc.).</p>
+<h2 id="programs-structure">Programs Structure</h2>
+<p>A lobster program is like the body of a function: a list of expressions on separate lines, defined by a single file, the main file of your program. At this top level of a file, you can additionally use the <code>include</code> keyword to bring additional code into your program:</p>
+<pre><code>include &quot;std.lobster&quot;</code></pre>
+<p>The contents of that file will be merged into your main file at the location of the <code>include</code> for the purpose of compilation. If you you include the same file twice, the second occurrence will be ignored.</p>
+<p>You may use the keyword <code>private</code> at the top level in a file to prefix structs, variables, and functions that you don't want to be visible outside that file.</p>
+<h2 id="memory-management">Memory Management</h2>
+<p>Lobster uses reference counting as its basic form of management for many reasons. Besides simplicity and space efficiency, reference counting makes a language more predictable in how much time is spent for a given amount of code, since memory management cost is spread equally through all code, instead of causing possibly long pauses like with garbage collection. Lobster has a custom allocator for its vector object that is very fast.</p>
+<p>Reference counting has one problem, which is that it can't deallocate cycles. For example, this code:</p>
+<pre><code>a := [ nil ]
+a[0] = a
+a = nil</code></pre>
+<p>will cause a memory leak, since initially the vector that a points at has a reference count of 1, then that count increases to 2 because it now points to itself, and then when the count is reduced to 1 because of <code>a</code>'s reference going away, we now have an object with no outside references that still thinks its being referenced, thus not deallocated. That is a leak. Now this is a simple example, but in the general case with complex data structures, it is not generally possible for a programming language to ensure this never happens.</p>
+<p>Leaks like these are not common, as they only occur with graph-like structures or &quot;parent reference&quot; common in more complicated data structures. An example in a game might be if two game units refer to eachother as their &quot;enemy&quot;, and then both die at the same time with the programmer forgetting to reset the enemy field before they die.</p>
+<p>Lobster deals with this by detecting that such objects are left over at the end of the program, and alerting the programmer that there are leaks. It then writes a text file with all leaks in somewhat readable form (with types and values), making it easier for the programmer to figure out what caused the leak. The programmer can then easily fix the leak by setting the reference causing the cycle to <code>nil</code>, like clearing the enemy field when a unit dies, or by writing <code>a[0] = nil</code> in the above simplified example.</p>
+<p>Manually fixing leaks is certainly preferable, but for the cases where a Lobster program may run for a long time, and leak-free code cannot be guaranteed, Lobster optionally provides a garbage collector that can be run periodically to clean up left over objects:</p>
+<pre><code>amount_of_leaks := collect_garbage()</code></pre>
+<p>Like most garbage collectors, this function can be slow depending on the amount of memory in use, so call it infrequently.</p>
+<h2 id="built-in-functions">Built-in Functions</h2>
+<p>Built-in functions are not strictly part of the language, but since Lobster relegates so much core functionality to them, it is useful to have a look how the important ones work. For a complete list, please refer to the <a href="builtin_functions_reference.html">built-in function reference</a>.</p>
+<h3 id="control-structures">Control Structures</h3>
+<p>We've already seen <code>if</code>, and it functions quite like you expect. The second function argument is optional.</p>
+<p>The loop constructs <code>for</code>, <code>map</code>, <code>filter</code>, and <code>exists</code> all function similarly in that the iteration argument can be an int N (iterate 0..N-1), a string (each byte value), or a vector (each element). They all supply 0, 1 (the element) or 2 (element, index) values to the function value, depending on the function value. <code>for</code> returns the amount of calls that returned a true value, <code>map</code> simply returns all return values in a vector, <code>filter</code> returns a vector of all elements for which the call returned a true value, and exists returns the first element for which the call returns true (and doesn't iterate further!) or <code>false</code> otherwise.</p>
+<p><code>while</code> is an odd function, since it is an exception to the rule of Lobster syntax:</p>
+<pre><code>while(a &lt; 10): a++</code></pre>
+<p>That looks perfectly normal, but one thing should stand out: while takes not one, but 2 function values. Normally, in Lobster, this would make more sense:</p>
+<pre><code>while(): a &lt; 10 do: a++</code></pre>
+<p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn't generally used elsewhere.</p>
+<p><code>while</code> returns the last return value of the body, or nil if never executed. A similar function <code>collectwhile</code> returns a vector of all body return values.</p>
+<p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate()</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
+</body>
+</html>

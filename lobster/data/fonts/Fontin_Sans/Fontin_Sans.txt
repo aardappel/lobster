@@ -1,0 +1,8 @@
+-This font is free for personal and commercial use
+-The font file/software may be modified to suit design of system requirements, but strictly for your own (personal or commercial) use. You may not sell or distribute it
+-Embedding (in PDF’s, Flash files and programs) is allowed
+-Using this font for a @font-face decleration is allowed, but only if a readable link to my homepage is put on every page where this font is used.
+-This link may be the size of a regular copyright notice.
+-This font may not be distributed or sold -not online nor on any media- without my permission
+-This font is and remains (even when modified) the intellecual property of Jos Buivenga
+-Exljbris (Jos Buivenga) is not liable for any damage resulting from the use of this font
