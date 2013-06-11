@@ -50,8 +50,6 @@ void FontCleanup()
 
 void AddFont()
 {
-    natreg.NativeSubSystemStart("font");
-
     STARTDECL(gl_setfontname) (Value &fname)   
     {       
         extern void TestGL(); TestGL();
@@ -152,4 +150,4 @@ void AddFont()
     ENDDECL1(gl_textsize, "text", "S", "V", "the x/y size in pixels the given text would need");
 }
 
-AutoRegister __af(AddFont);
+AutoRegister __af("font", AddFont);

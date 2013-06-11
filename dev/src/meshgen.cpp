@@ -919,8 +919,6 @@ Value AddShape(ImplicitFunction *f)
 
 void AddMeshGen()
 {
-    natreg.NativeSubSystemStart("meshgen");
-
     STARTDECL(mg_sphere)   () { return AddShape(new IFSphere());   } ENDDECL0(mg_sphere,   "", "", "", "a unit sphere");
     STARTDECL(mg_cube)     () { return AddShape(new IFCube());     } ENDDECL0(mg_cube,     "", "", "", "a unit cube (fits around unit sphere)");
     STARTDECL(mg_cylinder) () { return AddShape(new IFCylinder()); } ENDDECL0(mg_cylinder, "", "", "", "a unit cylinder (fits around unit sphere)");
@@ -1059,4 +1057,4 @@ void AddMeshGen()
     ENDDECL2CONTEXIT(mg_fill, "fill,body", "Ic", "A", "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts them (carves). when a body is given, restores the previous fill mode afterwards. Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
 };
 
-AutoRegister __amg(AddMeshGen);
+AutoRegister __amg("meshgen", AddMeshGen);

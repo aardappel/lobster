@@ -7,8 +7,6 @@
 
 void AddSoundOps()
 {
-    natreg.NativeSubSystemStart("audio");
-
     STARTDECL(play_wav) (Value &ins)
     {
         bool ok = SDLPlaySound(ins.sval->str(), false);
@@ -26,4 +24,4 @@ void AddSoundOps()
     ENDDECL1(play_sfxr, "filename", "S", "I", "plays a synth sound defined by a .sfs file (use http://www.drpetter.se/project_sfxr.html to generate these). returns false on error");
 }
 
-AutoRegister __aso(AddSoundOps);
+AutoRegister __aso("sound", AddSoundOps);

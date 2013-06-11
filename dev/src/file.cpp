@@ -34,8 +34,6 @@ void AddDirItem(LVector *list, const char *filename, int64_t size, int divisor)
 
 void AddFileOps()
 {
-    natreg.NativeSubSystemStart("file");
-
     STARTDECL(scan_folder) (Value &fld, Value &divisor)
     {
         string folder = SanitizePath(fld.sval->str());
@@ -117,4 +115,4 @@ void AddFileOps()
     ENDDECL2(write_file, "file,contents", "SS", "I", "creates a file with the contents of a string, returns false if writing wasn't possible");
 }
 
-AutoRegister __afo(AddFileOps);
+AutoRegister __afo("file", AddFileOps);

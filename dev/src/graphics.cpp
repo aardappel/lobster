@@ -96,8 +96,6 @@ int GetSampler(Value &i)
 
 void AddGraphics()
 {
-    natreg.NativeSubSystemStart("graphics");
-
     STARTDECL(gl_window) (Value &title, Value &xs, Value &ys)
     {
         if (graphics_initialized)
@@ -719,4 +717,4 @@ void AddGraphics()
     ENDDECL3(gl_debug_grid, "num,dist,thickness", "VVF", "", "renders a grid in space for debugging purposes. num is the amount of lines in all 3 directions, and dist their spacing. thickness of the lines in the same units");
 }
 
-AutoRegister __ag(AddGraphics);
+AutoRegister __ag("graphics", AddGraphics);

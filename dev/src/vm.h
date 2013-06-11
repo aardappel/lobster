@@ -181,8 +181,10 @@ struct VM : VMBase
     LVector   *NewVector(int n, int t)                        { return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector(n, t); }
     LString   *NewString(int l)                               { return new (vmpool->alloc(sizeof(LString) + l + 1)) LString(l); }
     CoRoutine *NewCoRoutine(int *rip, int *vip, CoRoutine *p) { return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p); }
+    #ifdef WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
+    #endif
     #endif
     
     LString *NewString(const char *c, int l)

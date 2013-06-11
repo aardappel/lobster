@@ -29,8 +29,6 @@ int KeyCompare(const Value &a, const Value &b, bool rec = false)
 
 void AddBuiltins()
 {
-    natreg.NativeSubSystemStart("standard");
-
     STARTDECL(add) (Value &x, Value &y)
     {
         return Value(x.ival + y.ival);
@@ -648,5 +646,5 @@ void AddBuiltins()
     ENDDECL1(set_max_stack_size, "max",  "I", "", "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
 }
 
-AutoRegister __abi(AddBuiltins);
+AutoRegister __abi("builtins", AddBuiltins);
 

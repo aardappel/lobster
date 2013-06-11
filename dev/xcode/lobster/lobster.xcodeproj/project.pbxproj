@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		33306EB117669FD900AF5315 /* default.lbc in Resources */ = {isa = PBXBuildFile; fileRef = 33306EB017669FD900AF5315 /* default.lbc */; };
 		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; };
@@ -40,7 +41,6 @@
 		3331458217596F4200D488CC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33EABDF215D9EE8400C1590D /* Foundation.framework */; };
 		3331458517596F4200D488CC /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3331458317596F4200D488CC /* Carbon.framework */; };
 		3331458617596F4200D488CC /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3331458417596F4200D488CC /* IOKit.framework */; };
-		335BD086175BAE68002064AE /* pythtree.lobster in Resources */ = {isa = PBXBuildFile; fileRef = 335BD085175BAE68002064AE /* pythtree.lobster */; };
 		3381CB28162371AB0069B2E8 /* builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CAB6162340540069B2E8 /* builtins.cpp */; };
 		3381CB29162371AB0069B2E8 /* file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABA162340540069B2E8 /* file.cpp */; };
 		3381CB2A162371AB0069B2E8 /* graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABE162340540069B2E8 /* graphics.cpp */; };
@@ -63,10 +63,8 @@
 		3395E40D17668A3E00E06FCE /* Default-Portrait~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */; };
 		3395E40F17668A4B00E06FCE /* Default-Landscape@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */; };
 		3395E41117668A5400E06FCE /* Default-Landscape~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */; };
-		339BBBEC175BE41300C6F3AB /* reach.lobster in Resources */ = {isa = PBXBuildFile; fileRef = 339BBBEB175BE41300C6F3AB /* reach.lobster */; };
 		339BBBF9175EA4FA00C6F3AB /* rpg_icons in Resources */ = {isa = PBXBuildFile; fileRef = 339BBBF5175EA4F900C6F3AB /* rpg_icons */; };
 		339BBBFA175EA4FA00C6F3AB /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = 339BBBF6175EA4F900C6F3AB /* sounds */; };
-		339BBBFC175EA4FA00C6F3AB /* totslike.lobster in Resources */ = {isa = PBXBuildFile; fileRef = 339BBBF8175EA4FA00C6F3AB /* totslike.lobster */; };
 		339BBBFE175EA5DA00C6F3AB /* data in Resources */ = {isa = PBXBuildFile; fileRef = 339BBBFD175EA5DA00C6F3AB /* data */; };
 		339BBC01175ED34900C6F3AB /* libFreetype2_sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 33AB297F148E8B4B0073A850 /* libFreetype2_sim.a */; };
 		339BBC02175ED34900C6F3AB /* libFreetype2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 33AB2887148E878C0073A850 /* libFreetype2.a */; };
@@ -124,7 +122,6 @@
 		33F7F3EA17236720005B7988 /* glshader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3D417236720005B7988 /* glshader.cpp */; };
 		33F7F3EC1723738E005B7988 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EB1723738E005B7988 /* shaders */; };
 		33F7F3ED1723738E005B7988 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EB1723738E005B7988 /* shaders */; };
-		33F7F3F017238C09005B7988 /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EF17238C09005B7988 /* include */; };
 		33F7F3F117238C09005B7988 /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EF17238C09005B7988 /* include */; };
 		33F9FE95148DE2DE0029564B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE94148DE2DE0029564B /* UIKit.framework */; };
 		33F9FE97148DE2DE0029564B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE96148DE2DE0029564B /* Foundation.framework */; };
@@ -149,6 +146,7 @@
 
 /* Begin PBXFileReference section */
 		331D9B66148BFD0300F1069A /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../lib/libfreetype.a; sourceTree = "<group>"; };
+		33306EB017669FD900AF5315 /* default.lbc */ = {isa = PBXFileReference; lastKnownFileType = file; name = default.lbc; path = ../../../projects/totslike/default.lbc; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3331457A17596EFD00D488CC /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -324,6 +322,7 @@
 		3368FEB21488AA88008B38B6 = {
 			isa = PBXGroup;
 			children = (
+				33306EB017669FD900AF5315 /* default.lbc */,
 				3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */,
 				3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */,
 				3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */,
@@ -700,16 +699,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				33306EB117669FD900AF5315 /* default.lbc in Resources */,
 				339BBBFE175EA5DA00C6F3AB /* data in Resources */,
 				339BBBF9175EA4FA00C6F3AB /* rpg_icons in Resources */,
 				339BBBFA175EA4FA00C6F3AB /* sounds in Resources */,
-				339BBBFC175EA4FA00C6F3AB /* totslike.lobster in Resources */,
-				339BBBEC175BE41300C6F3AB /* reach.lobster in Resources */,
-				335BD086175BAE68002064AE /* pythtree.lobster in Resources */,
 				33F9FEA3148DE2DE0029564B /* InfoPlist.strings in Resources */,
 				33EABE5715DAECA100C1590D /* icon.iconset in Resources */,
 				33F7F3EC1723738E005B7988 /* shaders in Resources */,
-				33F7F3F017238C09005B7988 /* include in Resources */,
 				3395E3FE1766886400E06FCE /* icon57.png in Resources */,
 				3395E4001766886B00E06FCE /* icon114.png in Resources */,
 				3395E4021766887900E06FCE /* icon72.png in Resources */,
@@ -845,6 +841,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					_DEBUG,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -962,6 +959,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					_DEBUG,
 				);
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				INFOPLIST_FILE = "lobsterapp/lobsterapp-Info.plist";
@@ -1013,6 +1011,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 					__IOS__,
+					_DEBUG,
 				);
 				"GCC_THUMB_SUPPORT[arch=armv6]" = "";
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;

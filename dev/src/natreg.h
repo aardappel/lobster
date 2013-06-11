@@ -164,9 +164,9 @@ extern AutoRegister *autoreglist;
 struct AutoRegister
 {
     AutoRegister *next;
+    const char *name;
     void (* regfun)();
-    AutoRegister(void (* _rf)()) : next(autoreglist), regfun(_rf) { autoreglist = this; }
-    void RegisterAll() { regfun(); if (next) next->RegisterAll(); }
+    AutoRegister(const char *_name, void (* _rf)()) : next(autoreglist), name(_name), regfun(_rf) { autoreglist = this; }
 };
 
 #define STARTDECL(name) struct ___##name { static Value s_##name

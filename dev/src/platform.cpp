@@ -108,7 +108,7 @@ void DebugLog(int lev, const char *msg)
         if (lev >= MINLOGLEVEL) { OutputDebugStringA("LOG: "); OutputDebugStringA(msg); OutputDebugStringA("\n"); }
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
-        IOSLog(msg);
+        //IOSLog(msg);
     #else
         //printf("LOG: %s\n", msg)
     #endif

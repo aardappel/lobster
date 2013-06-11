@@ -22,11 +22,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "273"
-         endingLineNumber = "273"
+         startingLineNumber = "271"
+         endingLineNumber = "271"
          landmarkName = "AddGraphics()"
          landmarkType = "7">
       </FileBreakpoint>
@@ -35,11 +35,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "277"
-         endingLineNumber = "277"
+         startingLineNumber = "275"
+         endingLineNumber = "275"
          landmarkName = "AddGraphics()"
          landmarkType = "7">
       </FileBreakpoint>
@@ -48,11 +48,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "180"
-         endingLineNumber = "180"
+         startingLineNumber = "178"
+         endingLineNumber = "178"
          landmarkName = "AddGraphics()"
          landmarkType = "7">
       </FileBreakpoint>
@@ -61,11 +61,11 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "292"
-         endingLineNumber = "292"
+         startingLineNumber = "290"
+         endingLineNumber = "290"
          landmarkName = "AddGraphics()"
          landmarkType = "7">
       </FileBreakpoint>
@@ -204,20 +204,7 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "418"
-         endingLineNumber = "418"
-         landmarkName = "AddGraphics()"
-         landmarkType = "7">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "../../src/graphics.cpp"
-         timestampString = "392251533.677195"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
          startingLineNumber = "416"
@@ -229,26 +216,26 @@
          shouldBeEnabled = "No"
          ignoreCount = "0"
          continueAfterRunningActions = "No"
-         filePath = "../../src/lobster.cpp"
-         timestampString = "392176263.319821"
+         filePath = "../../src/graphics.cpp"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "259"
-         endingLineNumber = "259"
-         landmarkName = "main(int argc, char* argv[])"
+         startingLineNumber = "414"
+         endingLineNumber = "414"
+         landmarkName = "AddGraphics()"
          landmarkType = "7">
       </FileBreakpoint>
       <FileBreakpoint
          shouldBeEnabled = "No"
          ignoreCount = "0"
          continueAfterRunningActions = "No"
-         filePath = "../../src/builtins.cpp"
-         timestampString = "392176804.447306"
+         filePath = "../../src/lobster.cpp"
+         timestampString = "392605906.948657"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "32"
-         endingLineNumber = "32"
-         landmarkName = "AddBuiltins()"
+         startingLineNumber = "269"
+         endingLineNumber = "269"
+         landmarkName = "main(int argc, char* argv[])"
          landmarkType = "7">
       </FileBreakpoint>
       <FileBreakpoint
@@ -314,6 +301,32 @@
          startingLineNumber = "227"
          endingLineNumber = "227"
          landmarkName = "UIKit_GetDisplayModes()"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "../../src/platform.cpp"
+         timestampString = "392602256.846614"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "48"
+         endingLineNumber = "48"
+         landmarkName = "SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool forcecommandline)"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "../../src/vm.h"
+         timestampString = "392604735.821964"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "562"
+         endingLineNumber = "562"
+         landmarkName = "EvalProgram(string &amp;evalret)"
          landmarkType = "7">
       </FileBreakpoint>
    </FileBreakpoints>

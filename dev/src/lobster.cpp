@@ -142,8 +142,6 @@ Value CompileRun(Value &source, bool stringiscode)
 
 void AddCompiler()  // it knows how to call itself!
 {
-    natreg.NativeSubSystemStart("compiler");
-
     STARTDECL(compile_run_code) (Value &filename)      
     {
         return CompileRun(filename, true);
@@ -157,7 +155,7 @@ void AddCompiler()  // it knows how to call itself!
     ENDDECL1(compile_run_file, "filename", "S", "AA", "same as compile_run_code(), only now you pass a filename.");
 }
 
-AutoRegister __ac(AddCompiler);
+AutoRegister __ac("compiler", AddCompiler);
 
 void DumpRegistry(char format)
 {
@@ -254,7 +252,19 @@ int main(int argc, char* argv[])
             throw string("Lobster has been compiled in 64bit mode, which is currently not supported");
         }
 
-        if (autoreglist) autoreglist->RegisterAll();
+        vector<AutoRegister *> autoregs;
+        while (autoreglist)
+        {
+            autoregs.push_back(autoreglist);
+            autoreglist = autoreglist->next;
+        }
+        sort(autoregs.begin(), autoregs.end(), [](AutoRegister *a, AutoRegister *b) { return strcmp(a->name, b->name) < 0; });
+        for (auto ar : autoregs)
+        {
+            //printf("%s\n", ar->name);
+            natreg.NativeSubSystemStart(ar->name);
+            ar->regfun();
+        }
 
         bool dump = false;
         bool verbose = false;
@@ -287,7 +297,7 @@ int main(int argc, char* argv[])
             fn = "pythtree.lobster";  // FIXME: temp solution
         #endif
         #ifdef __IOS__
-            fn = "totslike.lobster";  // FIXME: temp solution
+            //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
 
         if (!SetupDefaultDirs(argv[0], fn, forcecommandline))
@@ -314,7 +324,7 @@ int main(int argc, char* argv[])
         }
 
         string ret;
-        cp.Run(ret, StripDirPart(fn).c_str());
+        cp.Run(ret, fn ? StripDirPart(fn).c_str() : "");
     }
     catch (string &s)
     {

@@ -461,8 +461,6 @@ float simplexNoise( const int octaves, const float persistence, const float scal
 
 void AddNoise()
 {
-    natreg.NativeSubSystemStart("noise");
-
     STARTDECL(simplex) (Value &pos, Value &octaves, Value &scale, Value &persistence)
     {
         auto v = ValueDecTo<float4>(pos, 0);
@@ -472,4 +470,4 @@ void AddNoise()
     ENDDECL4(simplex, "pos,octaves,scale,persistence", "VIFF", "F", "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8), a scale (try 1), and persistence from one octave to the next (try 0.5)");
 };
 
-AutoRegister __an(AddNoise);
+AutoRegister __an("noise", AddNoise);

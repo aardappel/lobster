@@ -129,8 +129,6 @@ static Value ParseData(char *inp)
 
 void AddReaderOps()
 {
-    natreg.NativeSubSystemStart("parsedata");
-
     STARTDECL(parse_data) (Value &ins)
     {
         Value v = ParseData(ins.sval->str());
@@ -140,6 +138,6 @@ void AddReaderOps()
     ENDDECL1(parse_data, "stringdata", "S", "AA", "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and structs. structs will be forced to be compatible with their current definitions, i.e. too many elements will be truncated, missing elements will be set to nil, and unknown type means downgrade to vector. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)");
 }
 
-AutoRegister __aro(AddReaderOps);
+AutoRegister __aro("parsedata", AddReaderOps);
 
 
