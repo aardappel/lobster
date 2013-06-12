@@ -30,7 +30,7 @@ OBJS= \
 $(OBJS): CXXFLAGS += $(INCLUDES)
 
 lobster: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(LIBS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LIBS)
 
 install: all
 	cp lobster ../../lobster/
