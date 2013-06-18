@@ -56,6 +56,7 @@ features:
 - typechecker
   * make sure no incorrect types are stored in exptype
 
+- when running with no args (trying to load a .lbc), current dir should be aux dir when running from commandline
 
 - make it more straight forward to use as an embeddable scripting language
   - add functionality to call individual functions inside a script

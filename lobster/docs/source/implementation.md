@@ -44,7 +44,7 @@ Building for either one is easy using the single Xcode project (in
 To develop Lobster code on OS X, easiest probably is to use the command line
 version (use the -c option to tell it it's not running from an app bundle). Many
 OS X editors support running a command line compiler, e.g. Komodo Edit with
-Tools -\> Run Command.
+Tools -> Run Command.
 
 Alternatively, you could add your lobster source (and extra data it might need)
 to the Xcode project, and add it to the build rules such that these are copied
@@ -149,7 +149,7 @@ void MyNativeOps()
     // more such declarations here
 }
 
-AutoRegister __mno(MyNativeOps);
+AutoRegister __mno("name", MyNativeOps);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll need to become somewhat familiar with the Lobster internals to write

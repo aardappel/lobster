@@ -75,7 +75,7 @@ struct CompiledProgram
         st.Serialize(ser, code, linenumbers);
 
         vector<uint> out;
-        WEntropyCoder(ser.wbuf, out, true);
+        WEntropyCoder(ser.wbuf, out);
 
         FILE *f = OpenForWriting(bcf, true);
         if (f)
@@ -98,7 +98,7 @@ struct CompiledProgram
         free(bc);
 
         vector<uchar> decomp;
-        WEntropyCoder(decomp, in, false);
+        WEntropyCoder(decomp, in);
 
         Serializer ser(decomp.data());
         st.Serialize(ser, code, linenumbers);
