@@ -5,7 +5,7 @@ Please read lobster/docs/readme_first.html to learn how to use Lobster
 
 homepage: http://strlen.com/lobster
 github: https://github.com/aardappel/lobster
-google+ community: https://plus.google.com/u/0/communities/102851862468639498591
+google+ community: https://plus.google.com/communities/102851862468639498591
 
 Wouter van Oortmerssen
 
