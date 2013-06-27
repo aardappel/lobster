@@ -1,0 +1,6 @@
+/dev/src/*.o
+
+.DS_Store
+*.xcodeproj/
+!*.xcodeproj/project.pbxproj
+
