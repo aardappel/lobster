@@ -4,9 +4,11 @@
 
 This document is the starting point for all the Lobster documentation.
 
-Lobster [home page][1] on the web.
+Lobster [home page][1] on the web, [GitHub][12].
 
 [1]: <http://strlen.com/lobster/>
+
+[12]: <https://github.com/aardappel/lobster>
 
 Using the compiler
 ------------------
@@ -54,7 +56,7 @@ for your own C++ projects.
 Versions
 --------
 
-Learb about what has changed recently in the [change history][9].
+Learn about what has changed recently in the [change history][9].
 
 [9]: <history.txt>
 

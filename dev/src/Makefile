@@ -1,5 +1,5 @@
 CXXFLAGS= -O3 -fomit-frame-pointer
-override CXXFLAGS+= -m32 --std=c++11 -Wall -Wno-multichar -Wno-delete-non-virtual-dtor -DNDEBUG
+override CXXFLAGS+= -m32 --std=c++0x -Wall -Wno-multichar -Wno-reorder -Wno-delete-non-virtual-dtor -DNDEBUG
 
 INCLUDES= `freetype-config --cflags` `sdl2-config --cflags` -I.
 LIBS= `freetype-config --libs` `sdl2-config --libs` -lGL
@@ -30,7 +30,7 @@ OBJS= \
 $(OBJS): CXXFLAGS += $(INCLUDES)
 
 lobster: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(LIBS) $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LIBS)
 
 install: all
 	cp lobster ../../lobster/
