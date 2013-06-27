@@ -93,7 +93,7 @@ and will generally be a much more productive environment.
 The thinking here is that you use C++ purely to write performance critical code,
 which can usually be contained in libraries. For the non-performance critical
 code, which includes the general setup of your main program determining how
-things fit together, you are much better of using a friendlier language, like
+things fit together, you are much better off using a friendlier language, like
 Lobster. It means that changing the structure of your project is much quicker,
 and it is easier to experiment with new game ideas based on your C++ libraries.
 Iterations in Lobster can be done more rapidly and more safely, often in less
