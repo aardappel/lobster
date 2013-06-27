@@ -56,7 +56,7 @@ for your own C++ projects.
 Versions
 --------
 
-Learb about what has changed recently in the [change history][9].
+Learn about what has changed recently in the [change history][9].
 
 [9]: <history.txt>
 
