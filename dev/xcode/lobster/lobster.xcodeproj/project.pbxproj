@@ -250,7 +250,7 @@
 		33F9FE3D148C42B30029564B /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = /System/Library/Frameworks/ForceFeedback.framework; sourceTree = "<absolute>"; };
 		33F9FE3E148C42B30029564B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = /System/Library/Frameworks/IOKit.framework; sourceTree = "<absolute>"; };
 		33F9FE44148C43720029564B /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = /System/Library/Frameworks/CoreAudio.framework; sourceTree = "<absolute>"; };
-		33F9FE91148DE2DE0029564B /* lobster_ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lobster_ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		33F9FE91148DE2DE0029564B /* AvoidMonsters.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvoidMonsters.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33F9FE94148DE2DE0029564B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		33F9FE96148DE2DE0029564B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		33F9FE98148DE2DE0029564B /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -358,7 +358,7 @@
 		3368FEBE1488AA88008B38B6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33F9FE91148DE2DE0029564B /* lobster_ios.app */,
+				33F9FE91148DE2DE0029564B /* AvoidMonsters.app */,
 				33EABDEB15D9EE8400C1590D /* lobsterapp.app */,
 				3331455717596B6100D488CC /* lobster */,
 			);
@@ -652,7 +652,7 @@
 			);
 			name = lobster_ios;
 			productName = lobster_ios;
-			productReference = 33F9FE91148DE2DE0029564B /* lobster_ios.app */;
+			productReference = 33F9FE91148DE2DE0029564B /* AvoidMonsters.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -1022,7 +1022,7 @@
 					"\"$(SRCROOT)/../../lib/ios\"",
 				);
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = AvoidTheM;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -1058,7 +1058,7 @@
 					"\"$(SRCROOT)/../../lib/ios\"",
 				);
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = AvoidTheM;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
