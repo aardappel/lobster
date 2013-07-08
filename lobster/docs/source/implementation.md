@@ -64,8 +64,8 @@ future.
 ### Linux
 
 There is a makefile directly in the src folder, however unlike some of the other
-platforms this isn't self-contained, you'll need 32bit versions of SDL 2.0 and
-Freetype 2 installed.
+platforms this isn't self-contained, you'll need 32bit (!) versions of SDL 2.0
+and Freetype 2 installed.
 
 ### Android
 

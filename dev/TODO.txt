@@ -3,6 +3,7 @@ release version (alpha)
 
 docs:
 - not clear
+  - overwriting variables of other types
   - value ... people used to doing v.x +=
   - else: if:
   - that you can make your own control structs in your own code: examples focus a bit too much on for/if
@@ -48,13 +49,14 @@ features:
     though complicates things a tiny bit, as now you have to decide manually when to re-render certain display lists
   - work on optimizing the language a bit
     - typechecking with quicker untyped ops
-    - inlining to undo all the small function value calling
+    - inlining to undo all the small function value calling -> giving correct scope for inlined variables still requires a stack frame of sorts?
     - special bytecodes for common loop constructs etc.
     - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build easily
       a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++ optimizer can inline/simplify a lot of the simpler ops
 
 - typechecker
   * make sure no incorrect types are stored in exptype
+  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
 
 - when running with no args (trying to load a .lbc), current dir should be aux dir when running from commandline
 
@@ -401,6 +403,10 @@ DECIDED AGAINST (for now):
 ==========================
 - SLD freetype etc code directly in project? simplifies lib management, depends how often we update SDL.. might be a pain since different platforms have different stuff they link to SDL?
   at over 400 files, it's a bit too big to maintain, as they make changes having to port those to my project
+
+NOTES:
+======
+- mrgreenfur has the lobster.io domain we could use as a new homepage..
 
 BUILDING NOTES FOR SDL
 ======================

@@ -64,6 +64,8 @@ uint CompileGLSLShader(GLenum type, uint program, const GLchar *source, string &
 string LoadMaterialFile(const char *mfile)
 {
     auto mbuf = (char *)LoadFile(mfile);
+    if (!mbuf) return string("cannot load material file: ") + mfile;
+
     auto p = mbuf;
 
     string err;
