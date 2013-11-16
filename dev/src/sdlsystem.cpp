@@ -19,15 +19,26 @@ numlock caps lock scroll lock right shift left shift right ctrl left ctrl right 
 right meta left meta left super right super alt gr compose help print screen sys req break
 */
 
-struct KeyState
+
+struct KeyState : UpDown
 {
-    bool isdown;
-    bool wentdown;
+    UpDown lastframe;
 
-    bool isdown_lastframe;
-    bool wentdown_lastframe;
+    int lasttime[2];
+    int2 lastpos[2];
 
-    KeyState() : isdown(false), wentdown(false), isdown_lastframe(false), wentdown_lastframe(false) {};
+    KeyState()
+    {
+        lasttime[0] = lasttime[1] = 0x80000000;
+        lastpos[0] = lastpos[1] = int2(-1, -1);
+    }
+
+    void FrameReset()
+    {
+        lastframe = *(UpDown *)this;
+        wentdown = false;
+        wentup = false;
+    }
 };
 
 map<string, KeyState> keymap;
@@ -36,9 +47,7 @@ int mousewheeldelta = 0;
 
 int skipmousemotion = 3;
 
-
 int frametime = 0, lastmillis = 0, frames = 0, starttime = 0;
-
 
 int screenscalefactor = 1;  // FIXME: remove this
 
@@ -46,23 +55,6 @@ bool fullscreen = false;
 bool cursor = true;
 bool landscape = true;
 bool minimized = false;
-
-void updatebutton(string &name, bool on)
-{
-    auto kmit = keymap.find(name);
-    auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
-    ks->isdown = on;
-    if (on) ks->wentdown = true;
-}
-
-void updatemousebutton(int button, int finger, bool on)
-{
-    string name = "mouse";
-    name += '0' + (char)button;
-    if (finger) name += '0' + (char)finger;
-    updatebutton(name, on);
-}
-
 
 struct Finger
 {
@@ -75,6 +67,32 @@ struct Finger
 
 const int MAXFINGERS = 10;
 Finger fingers[MAXFINGERS];
+
+
+void updatebutton(string &name, bool on, int posfinger)
+{
+    auto kmit = keymap.find(name);
+    auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
+    ks->isdown = on;
+    if (on) 
+    {
+        ks->wentdown = true;
+    }
+    else
+    {
+        ks->wentup = true;
+    }
+    ks->lasttime[on] = lastmillis;
+    ks->lastpos[on] = fingers[posfinger].mousepos;
+}
+
+void updatemousebutton(int button, int finger, bool on)
+{
+    string name = "mouse";
+    name += '0' + (char)button;
+    if (finger) name += '0' + (char)finger;
+    updatebutton(name, on, finger);
+}
 
 void clearfingers(bool delta)
 {
@@ -291,6 +309,7 @@ string SDLInit(const char *title, int2 &screensize)
     #endif
 
     starttime = SDL_GetTicks();
+    lastmillis = starttime - 16;    // ensure first frame doesn't get a crazy delta
 
     return "";
 }
@@ -315,12 +334,7 @@ bool SDLFrame(int2 &screensize)
         break;
     }
 
-    for (auto &it : keymap)
-    {
-        it.second.isdown_lastframe = it.second.isdown;
-        it.second.wentdown_lastframe = it.second.wentdown;
-        it.second.wentdown = false;
-    }
+    for (auto &it : keymap) it.second.FrameReset();
 
     mousewheeldelta = 0;
     clearfingers(true);
@@ -350,7 +364,7 @@ bool SDLFrame(int2 &screensize)
             if (!*kn) break;
             string name = kn;
             std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-            updatebutton(name, event.key.state==SDL_PRESSED);
+            updatebutton(name, event.key.state==SDL_PRESSED, 0);
             break;
         }
 
@@ -467,22 +481,36 @@ bool SDLFrame(int2 &screensize)
     return closebutton;
 }
 
-bool GetKS(const char *name, bool delta)
+float Time(int lastmillis) { return (lastmillis-starttime)/1000.0f; }
+float SDLTime() { return Time(lastmillis); }
+float SDLDeltaTime() { return frametime/1000.0f; }
+
+UpDown GetKS(const char *name)
 {
     auto ks = keymap.find(name);
-    if (ks == keymap.end()) return false;
+    if (ks == keymap.end()) return UpDown();
     #if defined(__IOS__) || defined(ANDROID)    // delayed results by one frame, that way they get 1 frame over finger hovering over target, which makes gl_hit work correctly
-        return delta ? ks->second.wentdown_lastframe : ks->second.isdown_lastframe;
+        return ks->second.lastframe;
     #else
-        return delta ? ks->second.wentdown : ks->second.isdown;
+        return ks->second;
     #endif
+}
+
+float GetKeyTime(const char *name, int on)
+{
+    auto ks = keymap.find(name);
+    return ks == keymap.end() ? -3600 : Time(ks->second.lasttime[on]);
+}
+
+int2 GetKeyPos(const char *name, int on)
+{
+    auto ks = keymap.find(name);
+    return ks == keymap.end() ? int2(-1, -1) : ks->second.lastpos[on];
 }
 
 void SDLTitle(const char *title) { SDL_SetWindowTitle(_sdl_window, title); }
 
-float SDLTime() { return (lastmillis-starttime)/1000.0f; }
 
-float SDLDeltaTime() { return frametime/1000.0f; }
 int SDLWheelDelta() { return mousewheeldelta; }
 bool SDLIsMinimized() { return minimized; }
 

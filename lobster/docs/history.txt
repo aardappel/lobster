@@ -1,3 +1,5 @@
+(not updated anymore, future development will be on github only).
+
 2013-05-26:
 - added support for accessing local variables inside coroutine objects (see @ operator)
 - font rendering now supports utf8 strings and any unicode characters, and efficiently (renders to bitmap only characters actually used)

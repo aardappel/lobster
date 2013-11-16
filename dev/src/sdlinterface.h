@@ -6,8 +6,21 @@ extern void SDLShutdown();
 extern void SDLTitle(const char *title);
 extern bool SDLIsMinimized();
 
+
+struct UpDown
+{
+    bool isdown;
+    bool wentdown;
+    bool wentup;
+
+    UpDown() : isdown(false), wentdown(false), wentup(false) {}
+};
+
+
 extern const int2 &GetFinger(int i, bool delta);
-extern bool GetKS(const char *name, bool delta);
+extern UpDown GetKS(const char *name);
+extern float GetKeyTime(const char *name, int on);
+extern int2 GetKeyPos(const char *name, int on);
 
 extern float SDLTime();
 extern float SDLDeltaTime();

@@ -66,7 +66,7 @@ struct CompiledProgram
             }
         }
 
-        //pool->printstats();
+        //parserpool->printstats();
     }
 
     void Save(const char *bcf)
@@ -86,7 +86,7 @@ struct CompiledProgram
         }
     }
 
-    bool Load(const char *bcf)
+    bool Load(const char *bcf) 
     {
         size_t bclen = 0;
         uchar *bc = LoadFile(bcf, &bclen);

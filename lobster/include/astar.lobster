@@ -5,7 +5,7 @@ include "vec.lobster"
 
 struct astar_node: [ G, H, F, previous, state, delta, open, closed ]
 
-function new_astar_node(state, h):
+function new_astar_node(state, h:float):
     [ 0.0, h, h, nil, state, nil, false, false ]:astar_node
 
 function clear(n::astar_node):

@@ -1,4 +1,6 @@
 /dev/src/*.o
+*.suo
+*.lbc
 
 .DS_Store
 *.xcodeproj/
@@ -8,3 +10,5 @@
 /projects/
 /material/
 /build/
+
+/lobster/lobsterDBG.*

@@ -196,17 +196,25 @@ void AddGraphics()
 
     STARTDECL(gl_wentdown) (Value &name)
     {
-        auto ks = GetKS(name.sval->str(), true);
+        auto ks = GetKS(name.sval->str());
         name.DEC();
-        return Value(ks);
+        return Value(ks.wentdown);
     }
-    ENDDECL1(gl_wentdown, "name", "S", "I", "wether a key or mousebutton went down this frame (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc. mouse11 and on are additional fingers)");
+    ENDDECL1(gl_wentdown, "name", "S", "I", "wether a key/mousebutton/finger went down this frame (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc. mouse11 and on are additional fingers)");
+
+    STARTDECL(gl_wentup) (Value &name)
+    {
+        auto ks = GetKS(name.sval->str());
+        name.DEC();
+        return Value(ks.wentup);
+    }
+    ENDDECL1(gl_wentup, "name", "S", "I", "wether a key/mousebutton/finger went up this frame");
 
     STARTDECL(gl_isdown) (Value &name)
     {
-        auto ks = GetKS(name.sval->str(), false);
+        auto ks = GetKS(name.sval->str());
         name.DEC();
-        return Value(ks);
+        return Value(ks.isdown);
     }
     ENDDECL1(gl_isdown, "name", "S", "I", "wether a key/mousebutton/finger is currently down");
 
@@ -234,6 +242,14 @@ void AddGraphics()
     }
     ENDDECL1(gl_localmousepos, "i", "I", "V", "the current mouse/finger position local to the current transform (gl_translate etc) (only if the corresponding gl_isdown is true)");
 
+    STARTDECL(gl_lastpos) (Value &name, Value &on)     // need a local version of this too?
+    {
+        auto p = GetKeyPos(name.sval->str(), on.ival);
+        name.DEC();
+        return ToValue(p);
+    }
+    ENDDECL2(gl_lastpos, "name,down", "SI", "V", "position key/mousebutton/finger last went down (true) or up (false)");
+
     STARTDECL(gl_mousewheeldelta) ()
     {
         return Value(SDLWheelDelta());
@@ -251,6 +267,14 @@ void AddGraphics()
         return Value(SDLTime());
     }
     ENDDECL0(gl_time, "", "", "F", "seconds since the start of the OpenGL subsystem, updated only once per frame (use seconds_elapsed() for continuous timing)");
+
+    STARTDECL(gl_lasttime) (Value &name, Value &on)
+    {
+        auto t = GetKeyTime(name.sval->str(), on.ival);
+        name.DEC();
+        return Value(t);
+    }
+    ENDDECL2(gl_lasttime, "name,down", "SI", "F", "time key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_clear) (Value &col)
     {

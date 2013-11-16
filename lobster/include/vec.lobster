@@ -32,7 +32,8 @@ vec_1i :== [ 1, 1, 1, 1 ]:xyzw
 
 function allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
 
-function forxy(v, fun): for(v.x) x: for(v.y) y: fun([ x, y ]:xy)
+function forxy(v, fun): for(v.y) y: for(v.x) x: fun([ x, y ]:xy)
+function mapxy(v, fun): map(v.y) y: map(v.x) x: fun([ x, y ]:xy)
 
 function vecfromyawpitch(yaw, pitch, move, strafe):
     (sincos(yaw - 90/* start from Y rather than X axis */) * cos(pitch) - vec_z * sin(pitch)) * move + sincos(yaw) * strafe
