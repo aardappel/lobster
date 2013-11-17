@@ -50,7 +50,7 @@ shaders and what not), and `fatal` is a utility function defined in
 string if available.
 
 Once we're up and running, this while loop is our *frame loop*. Games work by
-rendering the current state of the game repeatedly to the screen, preferrably
+rendering the current state of the game repeatedly to the screen, preferably
 fast (30-60 times per second), giving the impression of smooth animation.
 `gl_frame` is the core of all of this: it makes sure we advance to rendering the
 next frame, and checks for input etc. If the user clicks the close button or
@@ -117,7 +117,7 @@ Here we'll take a simple approach: make the middle of the screen our coordinate
 system origin, and rendering outward enough from there that we have all ratios
 covered.
 
-gl_translate changes our coordinate system, and is used thruout graphics
+gl_translate changes our coordinate system, and is used throughout graphics
 rendering in Lobster to render things at different portions of the screen. Here
 we move from upper-left to the middle of the screen by translating by half the
 `gl_windowsize`.
@@ -305,7 +305,7 @@ while(gl_frame() & !gl_wentdown("escape")):
 
 To be able to shoot, first we have to worry about giving our player an
 orientation. We compute that in the vector `tomouse` which we get by
-substracting the player position from the mouse position (what we want to shoot
+subtracting the player position from the mouse position (what we want to shoot
 towards). Something funny is going on here though, as the name
 `gl_localmousepos` may indicate: normally mouse positions are in pixels, but
 those we can't compare against the player position, which is in world
@@ -535,7 +535,7 @@ To show the current state to the player, we use the simple:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We call this as the very last thing in the frame, so it is visible regardless of
-wether the player is in-game or not, for simplicity. `ceiling` is useful since
+whether the player is in-game or not, for simplicity. `ceiling` is useful since
 we'll be calculating the player's health in float, but want to show only the
 whole numbers. `ceiling` here is better than `truncate`, since we only want to
 show `0` when the player is truely dead.
@@ -550,7 +550,7 @@ show `0` when the player is truely dead.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Then finally, inside our `for(enemies) e:` loop, we add this bit of code which
-checks if this particular enemy is "touching" the player. If so, we substract
+checks if this particular enemy is "touching" the player. If so, we subtract
 health for how long he is touching. If the player runs out of health, we update
 the high score, and revert back into non-playing mode.
 
@@ -600,7 +600,7 @@ follow.
 
 So how do we get rid of all these globals? We could stick all these variables in
 objects. And while that potentially improves some things (we can now initialize
-all state related to one level in a single object, guaranteeing simulatuous
+all state related to one level in a single object, guaranteeing simultaneous
 initialization), in the end we've replaced our globals with a single global that
 holds... more globals. Just because we hide things in an object doesn't make
 them less global, if there's only one copy of the variable and it is used

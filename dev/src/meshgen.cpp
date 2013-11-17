@@ -930,7 +930,7 @@ void AddMeshGen()
         tc->top = top.fval;
         return AddShape(tc);
     }
-    ENDDECL2(mg_tapered_cylinder, "bot,top", "FF", "", "a cyclinder where you specify the top and bottom radius, height still 2");
+    ENDDECL2(mg_tapered_cylinder, "bot,top", "FF", "", "a cylinder where you specify the top and bottom radius, height still 2");
 
     STARTDECL(mg_superquadric) (Value &exps)
     {
@@ -1022,7 +1022,7 @@ void AddMeshGen()
         cursize = ValueDecTo<float3>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "Vc", "A", "non-unimformly scales the current coordinate system using individual factors per axis. when a body is given, restores the previous transform afterwards");
+    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "Vc", "A", "non-uniformly scales the current coordinate system using individual factors per axis. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_rotate) (Value &axis, Value &angle, Value &body)
     {
@@ -1054,7 +1054,7 @@ void AddMeshGen()
         curcol = fill.ival;
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_fill, "fill,body", "Ic", "A", "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts them (carves). when a body is given, restores the previous fill mode afterwards. Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
+    ENDDECL2CONTEXIT(mg_fill, "fill,body", "Ic", "A", "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 subtracts them (carves). when a body is given, restores the previous fill mode afterwards. Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
 };
 
 AutoRegister __amg("meshgen", AddMeshGen);
