@@ -153,7 +153,7 @@ AutoRegister __mno("name", MyNativeOps);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll need to become somewhat familiar with the Lobster internals to write
-these functions succesfully, in particular with the `Value` type (see
+these functions successfully, in particular with the `Value` type (see
 `vmbase.h`), which is a union of all possible lobster types. If you specify
 specific types (such as `I` for `int`, `F` for `float`, `S` for `string`, `V`
 for `vector`, `C` for a `function` value, `R` for a `coroutine` and `A` for any

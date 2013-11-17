@@ -106,7 +106,7 @@ suitable for my style of programming (heavily refactoring-based).
     result in reasonable time. Importantly, past systems/engines have not
     realized this potential because they make C++ the dominant language that is
     responsible for all the glue code, thus reducing the utility of the
-    scripting language and complicating the overal project. Lobster instead
+    scripting language and complicating the overall project. Lobster instead
     wants Lobster code to be the main program, and relegate C++ to implement
     small libraries of speed sensitive code.
 
@@ -129,9 +129,9 @@ Unlike code, normally a programming language design is so intricate, you benefit
 from designing almost all of it up-front, before you write the first line of
 code. Lobster wasn't designed like that, it's design was constantly refactored
 much like it's implementation. In fact, normally the first thing I write before
-I start writing a parser is the grammar, but Lobster's grammer was instead
+I start writing a parser is the grammar, but Lobster's grammar was instead
 derived from the parser code. Because initially it was simply a platform for fun
-and experimenation of language features, it started out very different, both in
+and experimentation of language features, it started out very different, both in
 syntax and semantics.
 
 Lobster started out fully dynamically scoped. I like the idea of dynamic
@@ -155,7 +155,7 @@ concept of something being false just meant no values were generated, i.e. the
 across function definitions.
 
 If that sounds complicated, it is certainly hard to get right, though it was
-helped by the fanastic paper *The Implementation of Generators and
+helped by the fantastic paper *The Implementation of Generators and
 Goal-Directed-Evaluation in Icon* by Janalee O'Bagy whose implementation
 technique I followed closely.
 
@@ -226,7 +226,7 @@ needs, roughly in this order:
 -   Separate out the Lobster language from the engine even better, so it's
     easier for people to use Lobster for entirely different purposes.
 
--   Allowing for multiple simultanuous VMs and simultanuous windows (cleaning up
+-   Allowing for multiple simultaneous VMs and simultaneous windows (cleaning up
     global state for that), which relates to being able to add threading
     features and potentially write a visual debugger in Lobster itself.
 

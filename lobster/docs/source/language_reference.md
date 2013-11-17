@@ -145,7 +145,7 @@ be a value of one of the following types:
 -   `coroutine` : a special object that contains a suspended computation, see
     the section on coroutines below.
 
--   undefined : a special value used for unitialized variables and functions
+-   undefined : a special value used for uninitialized variables and functions
     that don't return a value. There are no legal operations on this type of
     value, attempting to use one will result in a runtime error.
 
@@ -723,7 +723,7 @@ generally possible for a programming language to ensure this never happens.
 
 Leaks like these are not common, as they only occur with graph-like structures
 or "parent reference" common in more complicated data structures. An example in
-a game might be if two game units refer to eachother as their "enemy", and then
+a game might be if two game units refer to each other as their "enemy", and then
 both die at the same time with the programmer forgetting to reset the enemy
 field before they die.
 
