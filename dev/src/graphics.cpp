@@ -185,14 +185,14 @@ void AddGraphics()
         TestGL();
         return Value(SDLCursor(on.ival != 0));
     }
-    ENDDECL1(gl_cursor, "on", "I", "I", "default the cursor is visible, turn off for implementing FPS like control schemes. return wether it's on.");
+    ENDDECL1(gl_cursor, "on", "I", "I", "default the cursor is visible, turn off for implementing FPS like control schemes. return whether it's on.");
 
     STARTDECL(gl_grab) (Value &on)
     {
         TestGL();
         return Value(SDLGrab(on.ival != 0));
     }
-    ENDDECL1(gl_grab, "on", "I", "I", "grabs the mouse when the window is active. return wether it's on.");
+    ENDDECL1(gl_grab, "on", "I", "I", "grabs the mouse when the window is active. return whether it's on.");
 
     STARTDECL(gl_wentdown) (Value &name)
     {
@@ -200,7 +200,7 @@ void AddGraphics()
         name.DEC();
         return Value(ks.wentdown);
     }
-    ENDDECL1(gl_wentdown, "name", "S", "I", "wether a key/mousebutton/finger went down this frame (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc. mouse11 and on are additional fingers)");
+    ENDDECL1(gl_wentdown, "name", "S", "I", "whether a key/mousebutton/finger went down this frame (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc. mouse11 and on are additional fingers)");
 
     STARTDECL(gl_wentup) (Value &name)
     {
@@ -208,7 +208,7 @@ void AddGraphics()
         name.DEC();
         return Value(ks.wentup);
     }
-    ENDDECL1(gl_wentup, "name", "S", "I", "wether a key/mousebutton/finger went up this frame");
+    ENDDECL1(gl_wentup, "name", "S", "I", "whether a key/mousebutton/finger went up this frame");
 
     STARTDECL(gl_isdown) (Value &name)
     {
@@ -216,7 +216,7 @@ void AddGraphics()
         name.DEC();
         return Value(ks.isdown);
     }
-    ENDDECL1(gl_isdown, "name", "S", "I", "wether a key/mousebutton/finger is currently down");
+    ENDDECL1(gl_isdown, "name", "S", "I", "whether a key/mousebutton/finger is currently down");
 
     STARTDECL(gl_windowsize) ()
     {
@@ -234,7 +234,7 @@ void AddGraphics()
     {
         return ToValue(GetFinger(i.ival, true));
     }
-    ENDDECL1(gl_mousedelta, "i", "I", "V", "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions to correctly deal with lifted fingers and FPS mode (gl_cursor(0))");
+    ENDDECL1(gl_mousedelta, "i", "I", "V", "amount of pixels the mouse/finger has moved since the last frame. use this instead of subtracting positions to correctly deal with lifted fingers and FPS mode (gl_cursor(0))");
 
     STARTDECL(gl_localmousepos) (Value &i)
     {
@@ -439,7 +439,7 @@ void AddGraphics()
         }
         return Value(size == lastframehitsize && hit);
     }
-    ENDDECL2(gl_hit, "vec,i", "VI", "I", "wether the mouse/finger is inside of the rectangle specified in terms of the current transform (for fingers only if the corresponding gl_isdown is true). Only true if the last rectangle for which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)");
+    ENDDECL2(gl_hit, "vec,i", "VI", "I", "whether the mouse/finger is inside of the rectangle specified in terms of the current transform (for fingers only if the corresponding gl_isdown is true). Only true if the last rectangle for which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)");
 
     STARTDECL(gl_rect) (Value &vec)
     {
@@ -638,7 +638,7 @@ void AddGraphics()
 
         return Value((int)id);
     }
-    ENDDECL1(gl_loadtexture, "name", "S", "I", "returns texture id if succesfully loaded from file name, otherwise 0. Only loads from disk once if called again with the same name. Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.");
+    ENDDECL1(gl_loadtexture, "name", "S", "I", "returns texture id if successfully loaded from file name, otherwise 0. Only loads from disk once if called again with the same name. Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.");
 
     STARTDECL(gl_setprimitivetexture) (Value &i, Value &id)
     {

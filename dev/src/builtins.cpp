@@ -51,7 +51,7 @@ void AddBuiltins()
 
     STARTDECL(set_print_depth)    (Value &a) { g_vm->programprintprefs.depth    = a.ival;      return a; } ENDDECL1(set_print_depth,    "a", "I", "", "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
     STARTDECL(set_print_length)   (Value &a) { g_vm->programprintprefs.budget   = a.ival;      return a; } ENDDECL1(set_print_length,   "a", "I", "", "for printing / string conversion: sets max string length (default 10000)");
-    STARTDECL(set_print_quoted)   (Value &a) { g_vm->programprintprefs.quoted   = a.ival != 0; return a; } ENDDECL1(set_print_quoted,   "a", "I", "", "for printing / string conversion: if the top level value is a string, wether to convert it with escape codes and quotes (default false)");
+    STARTDECL(set_print_quoted)   (Value &a) { g_vm->programprintprefs.quoted   = a.ival != 0; return a; } ENDDECL1(set_print_quoted,   "a", "I", "", "for printing / string conversion: if the top level value is a string, whether to convert it with escape codes and quotes (default false)");
     STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival;      return a; } ENDDECL1(set_print_decimals, "a", "I", "", "for printing / string conversion: number of decimals for any floating point output (default -1, meaning all)");
 
     STARTDECL(getline) ()
@@ -362,7 +362,7 @@ void AddBuiltins()
         v.DECRT();
         return r;
     }
-    ENDDECL1(all, "xs", "V", "I", "returns wether all elements of the vector are true values");
+    ENDDECL1(all, "xs", "V", "I", "returns whether all elements of the vector are true values");
 
     STARTDECL(substring) (Value &l, Value &s, Value &e)
     {
@@ -597,7 +597,7 @@ void AddBuiltins()
         co.DECRT();
         return Value(active);
     }
-    ENDDECL1(active, "coroutine", "R", "I", "wether the given coroutine is still active");
+    ENDDECL1(active, "coroutine", "R", "I", "whether the given coroutine is still active");
 
     STARTDECL(program_name) ()
     {
