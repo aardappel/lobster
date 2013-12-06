@@ -37,10 +37,13 @@ features:
     important that such code does not take over object management, but instead operates on existing list of lobster objects
     in theory could even be a single function that advances object positions and creates a culling grid transiently, but once you want to be able to query nearby units on that grid,
     means that you should at least cache since the last update.
+    -> probably pointless to try and do this ourselves, might be better to use Box2D
   - JSON
   - a compact binary format for writing an arbitrary lobster value to a string, both for writing to files and other serialization (network, ipc)
   - launching processes and other shell stuff
 
+refactor:
+- vm.h is too big
 
 - LINUX: try building it on a 64bit install
   * add -m32
@@ -52,6 +55,7 @@ features:
   - add display lists or something so it is easy to cache rendering calls, and the code generating them doesn't need to be called every frame
     ideal for level backgrounds etc.
     though complicates things a tiny bit, as now you have to decide manually when to re-render certain display lists
+  - have an additional retained mode system (probably combined with physics e.g. Box2D) that would be doubly useful in some cases
   - work on optimizing the language a bit
     - typechecking with quicker untyped ops
     - inlining to undo all the small function value calling -> giving correct scope for inlined variables still requires a stack frame of sorts?

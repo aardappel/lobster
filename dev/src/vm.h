@@ -44,6 +44,10 @@ struct VM : VMBase
     
     const char *programname;
 
+    vector<Value> logread, logwrite;
+    size_t logi;
+    int *lognew;
+
     #define PUSH(v) (stack[++sp] = (v))
     #define TOP() (stack[sp])
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
@@ -53,7 +57,7 @@ struct VM : VMBase
     VM(SymbolTable &_st, int *_code, int _len, const vector<LineInfo> &_lineinfo, const char *_pn)
         : stack(NULL), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(NULL),
           curcoroutine(NULL), vars(NULL), st(_st), codelen(_len), byteprofilecounts(NULL), lineprofilecounts(NULL),
-          trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn)
+          trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), logi(0), lognew(NULL)
     {
         assert(sizeof(int) == sizeof(void *));   // search for "64bit" before trying to make a 64bit build, changes may be required
         assert(vmpool == NULL);
@@ -74,6 +78,8 @@ struct VM : VMBase
             memset(lineprofilecounts, 0, sizeof(size_t) * lineinfo.size());
         #endif
 
+        LogInit();
+
         static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", NULL }; // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
         for (auto name = default_vector_type_names; *name; name++)
         {
@@ -93,6 +99,9 @@ struct VM : VMBase
 
         if (stack) delete[] stack;
         if (vars)  delete[] vars;
+
+        if (byteprofilecounts) delete[] byteprofilecounts;
+        if (lineprofilecounts) delete[] lineprofilecounts;
 
         if (vmpool)
         {
@@ -346,6 +355,8 @@ struct VM : VMBase
         auto ipv = POP(); assert(ipv.type == V_FUNSTART);     ip = ipv.ip; 
         auto nav = POP(); assert(nav.type == V_NARGS);        auto nargs = nav.ival;
         auto riv = POP(); assert(riv.type == V_RETIP);        auto oldip = riv.ip;
+        LogFunctionExit(ipv.ip);
+
         auto nfree = *ip++;
         auto freevars = ip + nargs;
         ip += nfree;
@@ -398,6 +409,7 @@ struct VM : VMBase
         PUSH(Value(nargs, V_NARGS)); 
         PUSH(Value(funstart, V_FUNSTART));
         PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
+        LogFunctionEntry(funstart);
 
         #ifdef _DEBUG
             if (sp > maxsp) maxsp = sp;
@@ -519,7 +531,163 @@ struct VM : VMBase
 
         // the builtin call takes care of the return value
     }
-    
+
+    #define LOG_ENABLED 1
+
+    // FIXME: reference counting? GC? at end of program?
+
+    void LogInit()
+    {
+        #if LOG_ENABLED
+            // get the logs in a good state before the first frame
+            logread.push_back(Value(0, V_LOGMARKER));
+            logread.push_back(Value(0, V_LOGMARKER));
+            logi = 1;
+
+            logwrite.push_back(Value(0, V_LOGMARKER));
+            logwrite.push_back(Value(0, V_LOGEND));
+        #endif
+    }
+
+    void LogFrame()
+    {
+        #if LOG_ENABLED
+            while (logread[logi].type == V_LOGSTART) LogSkipNestedFuns();
+
+            logwrite.pop_back();    // this is the wrap around function end & begin, is there a better way?
+            logwrite.pop_back();
+            logwrite.push_back(Value(0, V_LOGMARKER));    // always bookend the log with markers, so we can blindly look ahead/behind
+            logwrite.swap(logread);
+            logwrite.clear();
+            logwrite.push_back(Value(0, V_LOGMARKER));
+            logi = 1;
+            lognew = NULL;
+            #if 1
+                printf("frame log:");
+                for (size_t i = logi; i < logread.size() - 1; i++)
+                {
+                    switch (logread[i].type)
+                    {
+                        case V_LOGSTART: printf(" ("); break;
+                        case V_LOGEND: printf(")"); break;
+                        case V_LOGMARKER: assert(0); break;
+                        default: printf(" %s", logread[i].ToString(debugpp).c_str()); break;
+                    }
+                }
+                printf("\n");
+            #endif
+        #endif
+    };
+
+    void LogSkipNestedFuns()
+    {
+        logi++;
+        int nest = 1;
+        while (nest)
+        {
+            switch (logread[logi].type)
+            {
+                case V_LOGSTART: nest++; break;
+                case V_LOGEND: nest--; break;
+                case V_LOGMARKER: assert(0); break;
+                default: logread[logi].DEC(); break;
+            }
+            logi++;
+        }
+    }
+
+    void LogFunctionEntry(int *funstart)
+    {
+        #if LOG_ENABLED
+            logwrite.push_back(Value(funstart, V_LOGSTART));
+
+            if (!lognew)
+            {
+                if (logread[logi].type == V_LOGSTART && logread[logi].ip == funstart)
+                {
+                    logi++; // expected path: function present
+                }
+                else
+                {
+                    lognew = funstart; // stop tryint to read from the log until we exit this function
+                }
+            }
+        #endif
+    }
+
+    void LogFunctionExit(int *funstart)
+    {
+        #if LOG_ENABLED
+            if (logwrite.back().type == V_LOGSTART)
+            {
+                // common case: function didn't write anything, we cull it
+                assert(logwrite.back().ip == funstart);
+                logwrite.pop_back();
+            }
+            else
+            {
+                logwrite.push_back(Value(funstart, V_LOGEND));
+            }
+
+            if (lognew)
+            {
+                if (lognew == funstart) lognew = NULL;
+            }
+            else for (;;) switch (logread[logi].type)
+            {
+                case V_LOGEND:      // expected
+                    assert(logread[logi].ip == funstart);
+                    logi++;
+                case V_LOGMARKER:   // can happen with empty log
+                    return;
+
+                case V_LOGSTART:    // clean up any
+                    LogSkipNestedFuns();
+                    break;
+
+                default:            // should not happen
+                    assert(0);
+                    logread[logi].DEC();
+                    logi++;
+                    break;
+            }
+        #endif
+    }
+
+    Value LogGet(Value def)
+    {
+        #if LOG_ENABLED
+            if (lognew)
+            {
+                return def;
+            }
+            else
+            {
+                while (logread[logi].type == V_LOGSTART)
+                {
+                    logi++;
+                    LogSkipNestedFuns();
+                }
+                if (logread[logi].type >= V_LOGEND)
+                    return def;
+
+                def.DEC();
+                return logread[logi++];
+            }
+        #else
+            return def;
+        #endif
+    }
+
+    void LogSet(Value val)
+    {
+        #if LOG_ENABLED
+            logwrite.push_back(val);
+        #else
+            val.DEC();
+        #endif
+    }
+
     void Require(const Value &v, int t, const char *op) // FIXME: make this a macro so we don't pass this extra string
     {
         if (v.type != t)

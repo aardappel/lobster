@@ -40,6 +40,9 @@ struct VMBase
     virtual void CoResume(CoRoutine *co) = 0;
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
+    virtual void LogFrame() = 0;
+    virtual Value LogGet(Value def) = 0;
+    virtual void LogSet(Value val) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -60,6 +63,7 @@ enum ValueType
     V_NIL,
     V_UNKNOWN,          // meaning either uninitialized or any of the above
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,   // used in function calling, if they appear as a value in a program, that's a bug
+    V_LOGSTART, V_LOGEND, V_LOGMARKER,
     V_MAXVMTYPES
 };
 
@@ -67,7 +71,10 @@ static const char *TypeName(int t)
 {
     static const char *typenames[] =
     {
-        "<cycle>", "<value_buffer>", "coroutine", "string", "vector", "int", "float", "function", "nil", "undefined", "<retip>", "<funstart>", "<nargs>", "<deffun>",
+        "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
+        "int", "float", "function", "nil", "undefined",
+         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
+         "<logstart>", "<logend>", "<logmarker>",
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
         return "<internal-error-type>";

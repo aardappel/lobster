@@ -644,6 +644,28 @@ void AddBuiltins()
         return max;
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "", "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
+
+    STARTDECL(log_frame) ()
+    {
+        g_vm->LogFrame();
+        return Value();
+    }
+    ENDDECL0(log_frame, "", "", "", "indicates the start of the log frame when using functions the log_write() function, usually called right after gl_frame() or equivalent");
+
+    STARTDECL(log_read) (Value &def)
+    {
+        return Value(g_vm->LogGet(def));
+    }
+    ENDDECL1(log_read, "default", "A", "A", "reads a value from the last frame's log");
+
+    STARTDECL(log_write) (Value &val)
+    {
+        g_vm->LogSet(val);
+        return Value();
+    }
+    ENDDECL1(log_write, "x", "A", "", "writes a value to frame log");
+
+
 }
 
 AutoRegister __abi("builtins", AddBuiltins);
