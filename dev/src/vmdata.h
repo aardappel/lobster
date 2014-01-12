@@ -1,3 +1,5 @@
+#define LOG_ENABLED 1
+
 struct Value;
 struct LString;
 struct LVector;

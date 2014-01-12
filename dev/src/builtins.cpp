@@ -645,6 +645,8 @@ void AddBuiltins()
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "", "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
 
+    #if LOG_ENABLED
+
     STARTDECL(log_frame) ()
     {
         g_vm->LogFrame();
@@ -667,7 +669,7 @@ void AddBuiltins()
     }
     ENDDECL2(log_write, "x,i", "AI", "", "writes a value to frame log");
 
-
+    #endif
 }
 
 AutoRegister __abi("builtins", AddBuiltins);

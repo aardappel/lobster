@@ -532,8 +532,6 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    #define LOG_ENABLED 1
-
     // FIXME: reference counting? GC? at end of program?
 
     void LogInit()
