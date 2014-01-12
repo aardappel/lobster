@@ -41,8 +41,8 @@ struct VMBase
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
-    virtual Value LogGet(Value def) = 0;
-    virtual void LogSet(Value val) = 0;
+    virtual Value LogGet(Value def, size_t &loc) = 0;
+    virtual void LogSet(Value val, size_t loc) = 0;
 };
 
 // the 2 globals that make up the current VM instance

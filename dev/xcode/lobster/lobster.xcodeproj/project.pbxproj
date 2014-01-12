@@ -122,7 +122,6 @@
 		33F7F3EA17236720005B7988 /* glshader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3D417236720005B7988 /* glshader.cpp */; };
 		33F7F3EC1723738E005B7988 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EB1723738E005B7988 /* shaders */; };
 		33F7F3ED1723738E005B7988 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EB1723738E005B7988 /* shaders */; };
-		33F7F3F117238C09005B7988 /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33F7F3EF17238C09005B7988 /* include */; };
 		33F9FE95148DE2DE0029564B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE94148DE2DE0029564B /* UIKit.framework */; };
 		33F9FE97148DE2DE0029564B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE96148DE2DE0029564B /* Foundation.framework */; };
 		33F9FE99148DE2DE0029564B /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE98148DE2DE0029564B /* CoreGraphics.framework */; };
@@ -250,7 +249,7 @@
 		33F9FE3D148C42B30029564B /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = /System/Library/Frameworks/ForceFeedback.framework; sourceTree = "<absolute>"; };
 		33F9FE3E148C42B30029564B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = /System/Library/Frameworks/IOKit.framework; sourceTree = "<absolute>"; };
 		33F9FE44148C43720029564B /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = /System/Library/Frameworks/CoreAudio.framework; sourceTree = "<absolute>"; };
-		33F9FE91148DE2DE0029564B /* AvoidMonsters.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvoidMonsters.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		33F9FE91148DE2DE0029564B /* AvoidTheM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AvoidTheM.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33F9FE94148DE2DE0029564B /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		33F9FE96148DE2DE0029564B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		33F9FE98148DE2DE0029564B /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -358,7 +357,7 @@
 		3368FEBE1488AA88008B38B6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33F9FE91148DE2DE0029564B /* AvoidMonsters.app */,
+				33F9FE91148DE2DE0029564B /* AvoidTheM.app */,
 				33EABDEB15D9EE8400C1590D /* lobsterapp.app */,
 				3331455717596B6100D488CC /* lobster */,
 			);
@@ -652,7 +651,7 @@
 			);
 			name = lobster_ios;
 			productName = lobster_ios;
-			productReference = 33F9FE91148DE2DE0029564B /* AvoidMonsters.app */;
+			productReference = 33F9FE91148DE2DE0029564B /* AvoidTheM.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -661,7 +660,7 @@
 		3368FEB41488AA88008B38B6 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0460;
+				LastUpgradeCheck = 0500;
 			};
 			buildConfigurationList = 3368FEB71488AA88008B38B6 /* Build configuration list for PBXProject "lobster" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -691,7 +690,6 @@
 				33EABE5115DAE20D00C1590D /* lobster.gif in Resources */,
 				33EABE5815DAECA100C1590D /* icon.iconset in Resources */,
 				33F7F3ED1723738E005B7988 /* shaders in Resources */,
-				33F7F3F117238C09005B7988 /* include in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -849,6 +847,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -866,6 +865,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -873,10 +873,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
@@ -896,7 +897,9 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -914,10 +917,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
@@ -933,7 +937,9 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -969,6 +975,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -991,6 +998,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;

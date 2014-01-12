@@ -162,7 +162,7 @@ bool LoadSound(const char* filename, bool sfxr)
     if (it == sound_files.end())
     {
         uchar *buf;
-        size_t len;
+        size_t len = 0;
         if (!(buf = LoadFile(filename, &len)))
             return false;
 

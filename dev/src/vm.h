@@ -654,9 +654,12 @@ struct VM : VMBase
         #endif
     }
 
-    Value LogGet(Value def)
+    Value LogGet(Value def, size_t &loc)
     {
         #if LOG_ENABLED
+            loc = logwrite.size();
+            logwrite.push_back(Value());
+        
             if (lognew)
             {
                 return def;
@@ -675,14 +678,15 @@ struct VM : VMBase
                 return logread[logi++];
             }
         #else
+            loc = 0;
             return def;
         #endif
     }
 
-    void LogSet(Value val)
+    void LogSet(Value val, size_t loc)
     {
         #if LOG_ENABLED
-            logwrite.push_back(val);
+            logwrite[loc] = val;    // FIXME: unsafe
         #else
             val.DEC();
         #endif

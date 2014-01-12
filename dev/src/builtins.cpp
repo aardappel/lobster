@@ -654,16 +654,18 @@ void AddBuiltins()
 
     STARTDECL(log_read) (Value &def)
     {
-        return Value(g_vm->LogGet(def));
+        size_t loc;
+        g_vm->Push(g_vm->LogGet(def, loc));
+        return Value((int)loc);
     }
-    ENDDECL1(log_read, "default", "A", "A", "reads a value from the last frame's log");
+    ENDDECL1(log_read, "default", "A", "AI", "reads a value from the last frame's log, it\'s new index as second return value");
 
-    STARTDECL(log_write) (Value &val)
+    STARTDECL(log_write) (Value &val, Value &loc)
     {
-        g_vm->LogSet(val);
+        g_vm->LogSet(val, loc.ival);
         return Value();
     }
-    ENDDECL1(log_write, "x", "A", "", "writes a value to frame log");
+    ENDDECL2(log_write, "x,i", "AI", "", "writes a value to frame log");
 
 
 }

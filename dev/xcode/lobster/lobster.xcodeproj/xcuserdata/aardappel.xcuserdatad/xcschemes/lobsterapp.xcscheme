@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "0460"
+   LastUpgradeVersion = "0500"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -43,8 +43,9 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
-      buildConfiguration = "Release"
+      useCustomWorkingDirectory = "YES"
+      customWorkingDirectory = "/Users/aardappel/lobster/lobster"
+      buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "NO"
       allowLocationSimulation = "YES">
@@ -60,6 +61,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "/Users/aardappel/lobster/projects/totslike/totslike.lobster"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-c /Users/aardappel/lobster/lobster/samples/framelogtest.lobster"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

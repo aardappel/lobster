@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "0460"
+   LastUpgradeVersion = "0500"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "33F9FE90148DE2DE0029564B"
-               BuildableName = "lobster_ios.app"
+               BuildableName = "AvoidTheM.app"
                BlueprintName = "lobster_ios"
                ReferencedContainer = "container:lobster.xcodeproj">
             </BuildableReference>
@@ -33,7 +33,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33F9FE90148DE2DE0029564B"
-            BuildableName = "lobster_ios.app"
+            BuildableName = "AvoidTheM.app"
             BlueprintName = "lobster_ios"
             ReferencedContainer = "container:lobster.xcodeproj">
          </BuildableReference>
@@ -52,7 +52,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33F9FE90148DE2DE0029564B"
-            BuildableName = "lobster_ios.app"
+            BuildableName = "AvoidTheM.app"
             BlueprintName = "lobster_ios"
             ReferencedContainer = "container:lobster.xcodeproj">
          </BuildableReference>
@@ -100,7 +100,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33F9FE90148DE2DE0029564B"
-            BuildableName = "lobster_ios.app"
+            BuildableName = "AvoidTheM.app"
             BlueprintName = "lobster_ios"
             ReferencedContainer = "container:lobster.xcodeproj">
          </BuildableReference>
