@@ -4,7 +4,7 @@ include "color.lobster"
 
 fatal(gl_window("logtest", 1024, 1024))
 
-function log1(def, f):
+function log(def, f):
     x, xi := log_read(def)
     log_write(f(x), xi)
     x
@@ -27,11 +27,11 @@ while(gl_frame()):
     gl_color(color_white)
     
     function a():
-        log1(0): _ + 1
+        log(0): _ + 1
         
     function b():
         if(a() % 4):
-            log1(0): _ + 1
+            log(0): _ + 1
 
     b()
     

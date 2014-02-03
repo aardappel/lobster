@@ -33,9 +33,10 @@ struct Ident : Name
     bool single_assignment;
     bool constant;
     bool static_constant;
+    bool logvar;
 
-    Ident()                                                  :                    line(-1), scope( -1), prev(NULL), sf(NULL), single_assignment(true), constant(false), static_constant(false) {}
-    Ident(const string &_name, int _l, int _idx, size_t _sc) : Name(_name, _idx), line(_l), scope(_sc), prev(NULL), sf(NULL), single_assignment(true), constant(false), static_constant(false) {}
+    Ident()                                                  :                    line(-1), scope( -1), prev(NULL), sf(NULL), single_assignment(true), constant(false), static_constant(false), logvar(false) {}
+    Ident(const string &_name, int _l, int _idx, size_t _sc) : Name(_name, _idx), line(_l), scope(_sc), prev(NULL), sf(NULL), single_assignment(true), constant(false), static_constant(false), logvar(false) {}
 
     void Serialize(Serializer &ser)
     {

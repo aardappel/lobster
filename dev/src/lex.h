@@ -224,8 +224,7 @@ struct Lex : LoadedFile
             //case '^':
             //case '~':
             //case '#':
-            //case '?':
-                return;
+                 return;
 
             case ';':
                 return;
@@ -249,6 +248,8 @@ struct Lex : LoadedFile
             case '=': cont = true; second('=', '=='); return;
             case '!': cont = true; second('=', '!='); cont = false; return;
             case '>': cont = true; second('=', '>='); return;
+
+            case '?': cont = true; second('=', '?='); Error("illegal token: ?");
 
             case ':':
                 cont = true;

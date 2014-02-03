@@ -141,10 +141,13 @@ struct Parser
         return n;
     }
 
-    Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef)
+    Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar)
     {
         auto id = isdef ? st.LookupLexDefOrDynScope(idname, lex.errorline, lex, false, CurSF()) 
                         : st.LookupLexUse(idname, lex);
+
+        if (islogvar) id->logvar = true;
+
         if (isprivate)
         {
             if (!isdef) Error("assignment cannot be made private");
@@ -154,26 +157,27 @@ struct Parser
         return new Node(lex, isdef ? ':=' : ',=', new Node(lex, id), e);
     }
 
-    Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef)
+    Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
     {
         Node *e = NULL;
         if (IsNextId())
         {
             string id2 = lastid;
             nids++;
-            if (Either(':=', '='))
+            if (Either(':=', '?=', '='))
             {
-                isdef = lex.token == ':=';
+                isdef = lex.token != '=';
+                islogvar = lex.token == '?=';
                 lex.Next();
 
                 int nrv;
-                e = DefineWith(id2, ParseMultiRet(ParseOpExp(), nrv), isprivate, isdef);
+                e = DefineWith(id2, ParseMultiRet(ParseOpExp(), nrv), isprivate, isdef, islogvar);
                 if (nrv > 1 && nrv != nids)
                     Error("number of values doesn't match number of variables");
             }
             else if (IsNext(','))
             {
-                e = RecMultiDef(id2, isprivate, nids, isdef);
+                e = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
             }
             else
             {
@@ -182,7 +186,7 @@ struct Parser
         }
         if (e)
         {
-            e = DefineWith(idname, e, isprivate, isdef);
+            e = DefineWith(idname, e, isprivate, isdef, islogvar);
         }
         else
         {
@@ -278,7 +282,8 @@ struct Parser
                     auto idname = lastid;
                     bool dynscope = lex.token == '<-';
                     bool constant = lex.token == ':==';
-                    if (lex.token == ':=' || dynscope || constant)  // codegen assumes these defs can only happen at toplevel
+                    bool logvar = lex.token == '?=';
+                    if (lex.token == ':=' || dynscope || constant || logvar)  // codegen assumes these defs can only happen at toplevel
                     {
                         lex.Next();
                         auto e = ParseExp();
@@ -286,12 +291,14 @@ struct Parser
                         if (dynscope)  id->Assign(lex);
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
+                        if (logvar)    id->logvar = true;
                         return new Node(lex, ':=', new Node(lex, id), e);
                     }
                     else if (IsNext(','))
                     {
                         bool isdef = false;
-                        auto e = RecMultiDef(idname, isprivate, 1, isdef);
+                        bool islogvar = false;
+                        auto e = RecMultiDef(idname, isprivate, 1, isdef, islogvar);
                         if (e) return e;
                     }
                     else
