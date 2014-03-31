@@ -692,6 +692,12 @@ struct VM : VMBase
         #endif
     }
 
+    void LogCleanup()
+    {
+        for (auto &v : logread) v.DEC();
+        for (auto &v : logwrite) v.DEC();
+    }
+
     void Require(const Value &v, int t, const char *op) // FIXME: make this a macro so we don't pass this extra string
     {
         if (v.type != t)
@@ -706,6 +712,7 @@ struct VM : VMBase
         POP().DEC();
         TempCleanup();
         FinalStackVarsCleanup();
+        LogCleanup();
         DumpLeaks();
         assert(!curcoroutine);
         
