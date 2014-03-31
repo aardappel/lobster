@@ -47,18 +47,21 @@ while(gl_frame() & !gl_wentdown("escape")):
 
             enemyspeed :== 3
             enemymaxhp :== 5
-            lastenemy ?= gl_time()
             enemies ?= []
             enemyrate ?= 1.0
             
             firerate :== 0.1
             bulletspeed :== 15
             bullets ?= []
-            lastbullet ?= gl_time()
+            
+            function every_n_seconds(sec, f):
+                last ?= gl_time()
+                if(last <= gl_time()):
+                    last += sec
+                    f()
  
-            if(lastenemy < gl_time()):
+            every_n_seconds(enemyrate):
                 enemies.push([ sincos(rnd(360)) * worldsize * 2, enemymaxhp ]:enemy)
-                lastenemy += enemyrate
                 enemyrate *= 0.999
                 
             for(enemies) e:
@@ -83,9 +86,8 @@ while(gl_frame() & !gl_wentdown("escape")):
                     
             enemies = filter(enemies): _.hp 
 
-            if(lastbullet < gl_time()):
+            every_n_seconds(firerate):
                 bullets.push([ playerpos, tomouse ]:bullet)
-                lastbullet += firerate
                 
             for(bullets) b:
                 b.pos += b.dir * gl_deltatime() * bulletspeed
