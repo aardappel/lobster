@@ -48,6 +48,7 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
         case IL_TT:
+        case IL_LOGREAD:
             fprintf(f, "%d", *ip++);
             break;
 
@@ -128,6 +129,8 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
             n = *ip++; 
             fprintf(f, "=> ");
             while (n--) fprintf(f, "%s ", st.ReverseLookupIdent(*ip++).c_str());
+            n = *ip++;
+            if (n) fprintf(f, "(log = %d)", n);
             break;
         }
 

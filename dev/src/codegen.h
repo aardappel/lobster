@@ -21,7 +21,7 @@
     F(UMINUS) F(LOGNOT) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
     F(PUSHONCE) F(PUSHPARENT) \
     F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
-    F(FIELDTABLES)
+    F(FIELDTABLES) F(LOGREAD)
 
 #define F(N) IL_##N,
 enum { ILNAMES };
@@ -171,13 +171,21 @@ struct CodeGen
         }
 
         vector<Ident *> defs;
+        vector<Ident *> logvars;
         for (auto topl = cl->b; topl; topl = topl->b)
         {
+            size_t logmultiassignstart = logvars.size();
             for (auto dl = topl->a; dl->type == ':='; dl = dl->b)
             {
                 auto id = dl->a->ident;
-                defs.push_back(id);
+                if (id->logvaridx >= 0)
+                {
+                    id->logvaridx = logvars.size();
+                    logvars.push_back(id);
+                }
+                else defs.push_back(id);
             }
+            reverse(logvars.begin() + logmultiassignstart, logvars.end()); // order of multi-assign initializers is reversed on the stack
         }
 
         linenumbernodes.push_back(cl);
@@ -185,8 +193,10 @@ struct CodeGen
         Emit(IL_FUNSTART);
         Emit((int)scope.size()); 
         for (auto idn : scope) Emit(idn->ident->idx);
-        Emit((int)defs.size());
+        Emit((int)(defs.size() + logvars.size()));
         for (auto id : defs) Emit(id->idx);
+        for (auto id : logvars) Emit(id->idx);
+        Emit((int)logvars.size());
 
         //for (auto idn : scope) GenTypeCheck(idn->ident->idx, idn->exptype);
 
@@ -258,7 +268,15 @@ struct CodeGen
                 dl = n;
                 for (int i = ids.size() - 1; i >= 0; i--)
                 {
-                    Emit(IL_LVALVAR, n->type == ':=' ? LVO_WRITED : LVO_WRITE, ids[i]->idx); 
+                    if (n->type == ':=')
+                    {
+                        if (ids[i]->logvaridx >= 0) Emit(IL_LOGREAD, ids[i]->logvaridx);
+                        Emit(IL_LVALVAR, LVO_WRITED, ids[i]->idx);
+                    }
+                    else
+                    {
+                        Emit(IL_LVALVAR, LVO_WRITE, ids[i]->idx);
+                    }
                 }
                 if (retval) Dummy(retval);  // currently can only happen with def on last line of body, which is nonsensical
                 break;

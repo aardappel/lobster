@@ -1,3 +1,8 @@
+- supposedly on OS X error window OK button is not clickable?
+- it be nice to have shaders as strings within a lobster program? special syntax for multi-line strings?
+- way to set custom uniforms?
+- way to affect texture sampling.. nearest neighbor etc.
+
 release version (alpha)
 - documentation, distribution, building on different platforms, examples, github?
 

@@ -14,10 +14,10 @@ function sierpinski(depth):
     else:
         gl_polygon(directions)
 
-fatal(gl_window("sierpinski", 256, 256))
+fatal(gl_window("sierpinski", 512, 512))
 
 while(gl_frame()):    
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
     gl_scale(gl_windowsize())
-    sierpinski(6)
+    sierpinski(7)

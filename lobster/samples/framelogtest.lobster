@@ -4,19 +4,6 @@ include "color.lobster"
 
 fatal(gl_window("logtest", 1024, 1024))
 
-function log(def, f):
-    x, xi := log_read(def)
-    log_write(f(x), xi)
-    x
-
-function log2(def1, def2, f):
-    x, xi := log_read(def1)
-    y, yi := log_read(def2)
-    xn, yn := f(x, y)
-    log_write(xn, xi)
-    log_write(yn, yi)
-    return x, y
-
 while(gl_frame()):
     
     log_frame()
@@ -27,11 +14,13 @@ while(gl_frame()):
     gl_color(color_white)
     
     function a():
-        log(0): _ + 1
+        v ?= 0
+        v++
         
     function b():
         if(a() % 4):
-            log(0): _ + 1
+            v ?= 0
+            v++
 
     b()
     

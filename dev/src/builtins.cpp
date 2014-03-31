@@ -654,6 +654,7 @@ void AddBuiltins()
     }
     ENDDECL0(log_frame, "", "", "", "indicates the start of the log frame when using functions the log_write() function, usually called right after gl_frame() or equivalent");
 
+    /*
     STARTDECL(log_read) (Value &def)
     {
         size_t loc;
@@ -668,6 +669,7 @@ void AddBuiltins()
         return Value();
     }
     ENDDECL2(log_write, "x,i", "AI", "", "writes a value to frame log");
+    */
 
     #endif
 }

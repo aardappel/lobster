@@ -355,13 +355,16 @@ struct VM : VMBase
         auto ipv = POP(); assert(ipv.type == V_FUNSTART);     ip = ipv.ip; 
         auto nav = POP(); assert(nav.type == V_NARGS);        auto nargs = nav.ival;
         auto riv = POP(); assert(riv.type == V_RETIP);        auto oldip = riv.ip;
-        LogFunctionExit(ipv.ip);
+        auto lfw = POP(); assert(lfw.type == V_LOGFUNWRITESTART);
 
         auto nfree = *ip++;
         auto freevars = ip + nargs;
         ip += nfree;
         auto ndef = *ip++;
         auto defvars = ip + ndef;
+
+        LogFunctionExit(ipv.ip, defvars, lfw.ival);
+
         while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); }
         while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); } 
 
@@ -396,20 +399,21 @@ struct VM : VMBase
             string nas = inttoa(nargs);
             Error(string("function value called with ") + nas + " arguments, but declared with only " + inttoa(nfree));
         }
-        //auto freevars = ip + nargs;
         
         for (int i = 0; i < nargs; i++) swap(vars[ip[i]], stack[sp - nargs + i + 1]);
         ip += nfree;
-        auto ndef = *ip++;
-        //auto defvars = ip + ndef;
-        for (int i = 0; i < ndef; i++) PUSH(vars[*ip++].INC()); // for most locals, this just saves an undefined, only in recursive cases it has an actual value. The reason we don't clear the var after backing it up is that in the DS case, you want to be able to use the old value until a new one gets defined, as in a <- a + 1. clearing it would save the INC and a DEC when it eventually gets overwritten, so maybe we can at some point distinguish between vars that are used with DS and those that are not. for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using a separate instruction for assign + def
 
-        // FIXME: can we reduce the amount of this?
+        auto ndef = *ip++;
+        for (int i = 0; i < ndef; i++) PUSH(vars[*ip++].INC()); // for most locals, this just saves an undefined, only in recursive cases it has an actual value. The reason we don't clear the var after backing it up is that in the DS case, you want to be able to use the old value until a new one gets defined, as in a <- a + 1. clearing it would save the INC and a DEC when it eventually gets overwritten, so maybe we can at some point distinguish between vars that are used with DS and those that are not. for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using a separate instruction for assign + def
+        auto nlogvars = *ip++;
+
+        // FIXME: can we reduce the amount of this? -> stick it in a struct on a seperate stack?
+        PUSH(Value((int)logwrite.size(), V_LOGFUNWRITESTART));
         PUSH(Value(oldip, V_RETIP)); 
         PUSH(Value(nargs, V_NARGS)); 
         PUSH(Value(funstart, V_FUNSTART));
         PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
-        LogFunctionEntry(funstart);
+        LogFunctionEntry(funstart, nlogvars);
 
         #ifdef _DEBUG
             if (sp > maxsp) maxsp = sp;
@@ -560,7 +564,7 @@ struct VM : VMBase
             logwrite.push_back(Value(0, V_LOGMARKER));
             logi = 1;
             lognew = NULL;
-            #if 1
+            #if 0
                 printf("frame log:");
                 for (size_t i = logi; i < logread.size() - 1; i++)
                 {
@@ -594,16 +598,19 @@ struct VM : VMBase
         }
     }
 
-    void LogFunctionEntry(int *funstart)
+    void LogFunctionEntry(int *funstart, int nlogvars)
     {
         #if LOG_ENABLED
             logwrite.push_back(Value(funstart, V_LOGSTART));
+
+            for (int i = 0; i < nlogvars; i++) logwrite.push_back(Value());
 
             if (!lognew)
             {
                 if (logread[logi].type == V_LOGSTART && logread[logi].ip == funstart)
                 {
                     logi++; // expected path: function present
+                    logi += nlogvars; // skip past them, read by index
                 }
                 else
                 {
@@ -613,7 +620,7 @@ struct VM : VMBase
         #endif
     }
 
-    void LogFunctionExit(int *funstart)
+    void LogFunctionExit(int *funstart, int *logvars, int logfunwritestart)
     {
         #if LOG_ENABLED
             if (logwrite.back().type == V_LOGSTART)
@@ -624,6 +631,12 @@ struct VM : VMBase
             }
             else
             {
+                int nlogvars = *logvars;
+                logvars -= nlogvars;
+                for (int i = 0; i < nlogvars; i++)
+                {
+                    logwrite[i + logfunwritestart + 1] = vars[*logvars++].INC();
+                }
                 logwrite.push_back(Value(funstart, V_LOGEND));
             }
 
@@ -652,41 +665,30 @@ struct VM : VMBase
         #endif
     }
 
-    Value LogGet(Value def, size_t &loc)
+    void LogGet(Value def, int idx)
     {
-        #if LOG_ENABLED
-            loc = logwrite.size();
-            logwrite.push_back(Value());
-        
+        #if LOG_ENABLED       
             if (lognew)
             {
-                return def;
+                PUSH(def);
             }
             else
             {
-                while (logread[logi].type == V_LOGSTART)
+                // FIXME!!!!
+                int nest = 1;
+                int i = logi;
+                while (nest)
                 {
-                    logi++;
-                    LogSkipNestedFuns();
+                    i--;
+                    if (logread[i].type == V_LOGEND) nest++;
+                    else if (logread[i].type == V_LOGSTART) nest--;
                 }
-                if (logread[logi].type >= V_LOGEND)
-                    return def;
 
                 def.DEC();
-                return logread[logi++];
+                PUSH(logread[i + idx + 1]);
             }
         #else
-            loc = 0;
-            return def;
-        #endif
-    }
-
-    void LogSet(Value val, size_t loc)
-    {
-        #if LOG_ENABLED
-            logwrite[loc] = val;    // FIXME: unsafe
-        #else
-            val.DEC();
+            PUSH(def);
         #endif
     }
 
@@ -825,7 +827,7 @@ struct VM : VMBase
                 {
                     int df = *ip++;
                     int nrv = 1;
-                    if (df >= 0) nrv = st.functiontable[df]->retvals;   // could encode this in the instruction
+                    if (df >= 0) nrv = st.functiontable[df]->retvals;   // TODO: could encode this in the instruction
                     if(FunOut(df, nrv)) return EndEval(evalret); 
                     break;
                 }
@@ -1148,7 +1150,7 @@ struct VM : VMBase
                 }
 
                 case IL_COCL:
-                    PUSH(Value(NULL, V_FUNCTION));
+                    PUSH(Value((int *)NULL, V_FUNCTION));
                     break;
 
                 case IL_CORO:
@@ -1157,6 +1159,10 @@ struct VM : VMBase
 
                 case IL_COEND:
                     CoClean();
+                    break;
+
+                case IL_LOGREAD:
+                    LogGet(POP(), *ip++);
                     break;
 
                 default:
@@ -1327,7 +1333,7 @@ struct VM : VMBase
             auto &v = TOP();
             for (int i = idx.vval->len - 1; ; i--)
             {
-                auto &sidx = idx.vval->at(i);
+                auto sidx = idx.vval->at(i);
                 if (sidx.type != V_INT) Error(string("illegal vector index element of type ") + ProperTypeName(sidx), idx);
                 if (!i)
                 {
