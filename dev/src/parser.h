@@ -65,12 +65,15 @@ struct Parser
         for (;;)
         {
             AddTail(tail, ParseTopExp());
-            
-            if (!IsNext('LF')) break;
                 
-            if (IsNext('EOI'))
+            if (lex.token == 'EOI')
             {
                 st.EndOfInclude();
+                lex.PopIncludeContinue();
+            }
+            else if (!IsNext('LF'))
+            {
+                break;
             }
                 
             if (Either('EOF', 'DED')) break;

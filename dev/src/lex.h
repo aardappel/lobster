@@ -77,18 +77,23 @@ struct Lex : LoadedFile
         FirstToken();
     }
 
-    void PopInclude()
+    void PopIncludeStart()
     {
         if (parentfiles.empty()) return;
-
-        Clean();
-
-        *((LoadedFile *)this) = parentfiles.back();
-        parentfiles.pop_back();
         
         token = 'EOI';
     }
 
+    void PopIncludeContinue()
+    {
+        Clean();
+
+        *((LoadedFile *)this) = parentfiles.back();
+        parentfiles.pop_back();
+
+        Next();
+    }
+    
     void Push(int t, const string &a = string())
     {
         Tok tok;
@@ -122,7 +127,7 @@ struct Lex : LoadedFile
         NextToken();
         //printf("%d: %s\n", line, TokStr().c_str());
 
-        if (islf && token != 'EOF')
+        if (islf && token != 'EOF' && token != 'EOI')
         {
             int indent = (int)(tokenstart - linestart);
             if (indent > 0)
@@ -209,7 +214,7 @@ struct Lex : LoadedFile
                 else
                 {
                     token = 'EOF';
-                    PopInclude();
+                    PopIncludeStart();
                 }
                 return;
 
