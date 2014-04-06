@@ -155,6 +155,8 @@ void AddGraphics()
 
         currentshader = colorshader;
 
+        g_vm->LogFrame();
+
         return Value(!cb);
     }
     ENDDECL0(gl_frame, "", "", "I", "advances rendering by one frame, swaps buffers, and collects new input events. returns true if the closebutton on the window was pressed");

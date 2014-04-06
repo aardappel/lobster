@@ -63,7 +63,7 @@ enum ValueType
     V_NIL,
     V_UNKNOWN,          // meaning either uninitialized or any of the above
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,   // used in function calling, if they appear as a value in a program, that's a bug
-    V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART,
+    V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
     V_MAXVMTYPES
 };
 
@@ -74,7 +74,7 @@ static const char *TypeName(int t)
         "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
         "int", "float", "function", "nil", "undefined",
          "<retip>", "<funstart>", "<nargs>", "<deffun>", 
-         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>"
+         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
         return "<internal-error-type>";

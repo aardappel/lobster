@@ -4,6 +4,8 @@
 
 struct VM : VMBase
 {
+    #include "vmlog.h"
+
     Value *stack;
     int stacksize;
     int maxstacksize;
@@ -44,9 +46,7 @@ struct VM : VMBase
     
     const char *programname;
 
-    vector<Value> logread, logwrite;
-    size_t logi;
-    int *lognew;
+    VMLog vml;
 
     #define PUSH(v) (stack[++sp] = (v))
     #define TOP() (stack[sp])
@@ -57,7 +57,7 @@ struct VM : VMBase
     VM(SymbolTable &_st, int *_code, int _len, const vector<LineInfo> &_lineinfo, const char *_pn)
         : stack(NULL), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(NULL),
           curcoroutine(NULL), vars(NULL), st(_st), codelen(_len), byteprofilecounts(NULL), lineprofilecounts(NULL),
-          trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), logi(0), lognew(NULL)
+          trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state)
     {
         assert(sizeof(int) == sizeof(void *));   // search for "64bit" before trying to make a 64bit build, changes may be required
         assert(vmpool == NULL);
@@ -78,7 +78,7 @@ struct VM : VMBase
             memset(lineprofilecounts, 0, sizeof(size_t) * lineinfo.size());
         #endif
 
-        LogInit();
+        vml.LogInit();
 
         static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", NULL }; // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
         for (auto name = default_vector_type_names; *name; name++)
@@ -344,6 +344,8 @@ struct VM : VMBase
         return -1;
     }
 
+    void LogFrame() { vml.LogFrame(); }
+
     void TempCleanup()
     {
         while (sp >= 0 && TOP().type != V_DEFFUN) POP().DEC();  // only if from a return or error thats has tempories above it, and if returning thru a control structure
@@ -355,7 +357,6 @@ struct VM : VMBase
         auto ipv = POP(); assert(ipv.type == V_FUNSTART);     ip = ipv.ip; 
         auto nav = POP(); assert(nav.type == V_NARGS);        auto nargs = nav.ival;
         auto riv = POP(); assert(riv.type == V_RETIP);        auto oldip = riv.ip;
-        auto lfw = POP(); assert(lfw.type == V_LOGFUNWRITESTART);
 
         auto nfree = *ip++;
         auto freevars = ip + nargs;
@@ -363,7 +364,12 @@ struct VM : VMBase
         auto ndef = *ip++;
         auto defvars = ip + ndef;
 
-        LogFunctionExit(ipv.ip, defvars, lfw.ival);
+        if (vml.uses_frame_state)
+        {
+            auto lfr = POP(); assert(lfr.type == V_LOGFUNREADSTART);
+            auto lfw = POP(); assert(lfw.type == V_LOGFUNWRITESTART);
+            vml.LogFunctionExit(ipv.ip, defvars, lfw.ival);
+        }
 
         while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); }
         while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); } 
@@ -384,6 +390,7 @@ struct VM : VMBase
 
         if (sp > stacksize - STACKMARGIN)   // per function call increment should be small
         {                                   // FIXME: not safe for untrusted scripts, could simply add lots of locals
+                                            // could record max number of locals? not allow more than N locals?
             if (stacksize >= maxstacksize) Error("stack overflow! (use set_max_stack_size() if needed)");
             auto nstack = new Value[stacksize *= 2];
             memcpy(nstack, stack, sizeof(Value) * (sp + 1));
@@ -407,13 +414,17 @@ struct VM : VMBase
         for (int i = 0; i < ndef; i++) PUSH(vars[*ip++].INC()); // for most locals, this just saves an undefined, only in recursive cases it has an actual value. The reason we don't clear the var after backing it up is that in the DS case, you want to be able to use the old value until a new one gets defined, as in a <- a + 1. clearing it would save the INC and a DEC when it eventually gets overwritten, so maybe we can at some point distinguish between vars that are used with DS and those that are not. for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using a separate instruction for assign + def
         auto nlogvars = *ip++;
 
+        if (vml.uses_frame_state)
+        {
+            PUSH(Value((int)vml.LogFunctionEntry(funstart, nlogvars), V_LOGFUNWRITESTART));
+            PUSH(Value((int)vml.logi - nlogvars, V_LOGFUNREADSTART));
+        }
+
         // FIXME: can we reduce the amount of this? -> stick it in a struct on a seperate stack?
-        PUSH(Value((int)logwrite.size(), V_LOGFUNWRITESTART));
         PUSH(Value(oldip, V_RETIP)); 
         PUSH(Value(nargs, V_NARGS)); 
         PUSH(Value(funstart, V_FUNSTART));
         PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
-        LogFunctionEntry(funstart, nlogvars);
 
         #ifdef _DEBUG
             if (sp > maxsp) maxsp = sp;
@@ -536,168 +547,6 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    // FIXME: reference counting? GC? at end of program?
-
-    void LogInit()
-    {
-        #if LOG_ENABLED
-            // get the logs in a good state before the first frame
-            logread.push_back(Value(0, V_LOGMARKER));
-            logread.push_back(Value(0, V_LOGMARKER));
-            logi = 1;
-
-            logwrite.push_back(Value(0, V_LOGMARKER));
-            logwrite.push_back(Value(0, V_LOGEND));
-        #endif
-    }
-
-    void LogFrame()
-    {
-        #if LOG_ENABLED
-            while (logread[logi].type == V_LOGSTART) LogSkipNestedFuns();
-
-            logwrite.pop_back();    // this is the wrap around function end & begin, is there a better way?
-            logwrite.pop_back();
-            logwrite.push_back(Value(0, V_LOGMARKER));    // always bookend the log with markers, so we can blindly look ahead/behind
-            logwrite.swap(logread);
-            logwrite.clear();
-            logwrite.push_back(Value(0, V_LOGMARKER));
-            logi = 1;
-            lognew = NULL;
-            #if 0
-                printf("frame log:");
-                for (size_t i = logi; i < logread.size() - 1; i++)
-                {
-                    switch (logread[i].type)
-                    {
-                        case V_LOGSTART: printf(" ("); break;
-                        case V_LOGEND: printf(")"); break;
-                        case V_LOGMARKER: assert(0); break;
-                        default: printf(" %s", logread[i].ToString(debugpp).c_str()); break;
-                    }
-                }
-                printf("\n");
-            #endif
-        #endif
-    };
-
-    void LogSkipNestedFuns()
-    {
-        logi++;
-        int nest = 1;
-        while (nest)
-        {
-            switch (logread[logi].type)
-            {
-                case V_LOGSTART: nest++; break;
-                case V_LOGEND: nest--; break;
-                case V_LOGMARKER: assert(0); break;
-                default: logread[logi].DEC(); break;
-            }
-            logi++;
-        }
-    }
-
-    void LogFunctionEntry(int *funstart, int nlogvars)
-    {
-        #if LOG_ENABLED
-            logwrite.push_back(Value(funstart, V_LOGSTART));
-
-            for (int i = 0; i < nlogvars; i++) logwrite.push_back(Value());
-
-            if (!lognew)
-            {
-                if (logread[logi].type == V_LOGSTART && logread[logi].ip == funstart)
-                {
-                    logi++; // expected path: function present
-                    logi += nlogvars; // skip past them, read by index
-                }
-                else
-                {
-                    lognew = funstart; // stop tryint to read from the log until we exit this function
-                }
-            }
-        #endif
-    }
-
-    void LogFunctionExit(int *funstart, int *logvars, int logfunwritestart)
-    {
-        #if LOG_ENABLED
-            if (logwrite.back().type == V_LOGSTART)
-            {
-                // common case: function didn't write anything, we cull it
-                assert(logwrite.back().ip == funstart);
-                logwrite.pop_back();
-            }
-            else
-            {
-                int nlogvars = *logvars;
-                logvars -= nlogvars;
-                for (int i = 0; i < nlogvars; i++)
-                {
-                    logwrite[i + logfunwritestart + 1] = vars[*logvars++].INC();
-                }
-                logwrite.push_back(Value(funstart, V_LOGEND));
-            }
-
-            if (lognew)
-            {
-                if (lognew == funstart) lognew = NULL;
-            }
-            else for (;;) switch (logread[logi].type)
-            {
-                case V_LOGEND:      // expected
-                    assert(logread[logi].ip == funstart);
-                    logi++;
-                case V_LOGMARKER:   // can happen with empty log
-                    return;
-
-                case V_LOGSTART:    // clean up any
-                    LogSkipNestedFuns();
-                    break;
-
-                default:            // should not happen
-                    assert(0);
-                    logread[logi].DEC();
-                    logi++;
-                    break;
-            }
-        #endif
-    }
-
-    void LogGet(Value def, int idx)
-    {
-        #if LOG_ENABLED       
-            if (lognew)
-            {
-                PUSH(def);
-            }
-            else
-            {
-                // FIXME!!!!
-                int nest = 1;
-                int i = logi;
-                while (nest)
-                {
-                    i--;
-                    if (logread[i].type == V_LOGEND) nest++;
-                    else if (logread[i].type == V_LOGSTART) nest--;
-                }
-
-                def.DEC();
-                PUSH(logread[i + idx + 1]);
-            }
-        #else
-            PUSH(def);
-        #endif
-    }
-
-    void LogCleanup()
-    {
-        for (auto &v : logread) v.DEC();
-        for (auto &v : logwrite) v.DEC();
-    }
-
     void Require(const Value &v, int t, const char *op) // FIXME: make this a macro so we don't pass this extra string
     {
         if (v.type != t)
@@ -712,7 +561,7 @@ struct VM : VMBase
         POP().DEC();
         TempCleanup();
         FinalStackVarsCleanup();
-        LogCleanup();
+        vml.LogCleanup();
         DumpLeaks();
         assert(!curcoroutine);
         
@@ -1169,7 +1018,7 @@ struct VM : VMBase
                     break;
 
                 case IL_LOGREAD:
-                    LogGet(POP(), *ip++);
+                    PUSH(vml.LogGet(POP(), *ip++));
                     break;
 
                 default:
@@ -1462,6 +1311,7 @@ struct VM : VMBase
     {
         for (int i = 0; i <= sp; i++) stack[i].Mark();
         for (size_t i = 0; i < st.identtable.size(); i++) vars[i].Mark();
+        vml.LogMark();
 
         vector<void *> objs;
         vector<void *> leaks;

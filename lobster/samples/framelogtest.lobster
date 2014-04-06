@@ -6,8 +6,6 @@ fatal(gl_window("logtest", 1024, 1024))
 
 while(gl_frame()):
     
-    log_frame()
-    
     if(gl_wentdown("escape")): return
     
     gl_clear(color_black)

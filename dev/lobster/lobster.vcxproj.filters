@@ -107,6 +107,9 @@
     <ClInclude Include="..\src\wentropy.h">
       <Filter>base</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\vmlog.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lobster.cpp">

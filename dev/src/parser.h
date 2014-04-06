@@ -149,7 +149,11 @@ struct Parser
         auto id = isdef ? st.LookupLexDefOrDynScope(idname, lex.errorline, lex, false, CurSF()) 
                         : st.LookupLexUse(idname, lex);
 
-        if (islogvar) id->logvaridx = 0;
+        if (islogvar)
+        {
+            id->logvaridx = 0;
+            st.uses_frame_state = true;
+        }
 
         if (isprivate)
         {
@@ -294,7 +298,7 @@ struct Parser
                         if (dynscope)  id->Assign(lex);
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
-                        if (logvar)    id->logvaridx = 0;
+                        if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
                         return new Node(lex, ':=', new Node(lex, id), e);
                     }
                     else if (IsNext(','))

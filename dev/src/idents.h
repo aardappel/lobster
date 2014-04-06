@@ -185,7 +185,9 @@ struct SymbolTable
     vector<pair<Type, Ident *>> withstack;
     vector<size_t> withstacklevels;
 
-    SymbolTable() {}
+    bool uses_frame_state;
+
+    SymbolTable() : uses_frame_state(false) {}
 
     ~SymbolTable()
     {
@@ -420,6 +422,8 @@ struct SymbolTable
         string vers = curvers;
         ser(vers);
         if (ser.rbuf && vers != curvers) throw string("cannot load bytecode from a different version of the compiler");
+
+        ser(uses_frame_state);
 
         ser(identtable);
         ser(functiontable);
