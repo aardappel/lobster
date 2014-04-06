@@ -19,7 +19,7 @@ function branch(n, max, scale, len):
 
 fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_grey)
     rndseed(0)

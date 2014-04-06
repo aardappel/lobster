@@ -10,9 +10,9 @@ SDL_GLContext _sdl_context = NULL;
 /*
 mouse1 mouse2 mouse3...
 backspace tab clear return pause escape space delete
-! " # $ & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ [ \ ] ^ _ ` 
+! " # $ & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ [ \ ] ^ _ `
 a b c d e f g h i j k l m n o p q r s t u v w x y z
-[0] [1] [2] [3] [4] [5] [6] [7] [8] [9] [.] [/] [*] [-] [+] 
+[0] [1] [2] [3] [4] [5] [6] [7] [8] [9] [.] [/] [*] [-] [+]
 enter equals up down right left insert home end page up page down
 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 numlock caps lock scroll lock right shift left shift right ctrl left ctrl right alt left alt
@@ -61,7 +61,7 @@ struct Finger
     SDL_FingerID id;
     int2 mousepos;
     int2 mousedelta;
-    
+
     Finger() : id(0), mousepos(-1), mousedelta(0) {};
 };
 
@@ -74,7 +74,7 @@ void updatebutton(string &name, bool on, int posfinger)
     auto kmit = keymap.find(name);
     auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
     ks->isdown = on;
-    if (on) 
+    if (on)
     {
         ks->wentdown = true;
     }
@@ -138,7 +138,7 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et, const int2 &screensize)
             auto ep = float2(e.x, e.y);
             auto ed = float2(e.dx, e.dy);
             auto xy = ep * float2(screensize);
-           
+
             f.mousepos = int2(xy * float(screenscalefactor));  // FIXME: converting back to int coords even though touch theoretically may have higher res
             f.mousedelta += int2(ed * float2(screensize));
             return j;
@@ -209,7 +209,7 @@ string SDLInit(const char *title, int2 &screensize)
     }
 
     SDL_SetEventFilter(SDLHandleAppEvents, NULL);
-    
+
     DebugLog(-1, "SDL initialized...");
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
@@ -218,7 +218,7 @@ string SDLInit(const char *title, int2 &screensize)
     //extern bool sfxr_init();
     //if (!sfxr_init())
     //   return SDLError("Unable to initialize audio");
-        
+
     #if defined(__IOS__) || defined(ANDROID)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     #else
@@ -232,7 +232,7 @@ string SDLInit(const char *title, int2 &screensize)
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
     #endif
-    
+
     //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);      // set this if we're in 2D mode for speed on mobile?
     SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);    // because we redraw the screen each frame
 
@@ -243,7 +243,7 @@ string SDLInit(const char *title, int2 &screensize)
     #if defined(__IOS__) || defined(ANDROID)
     landscape = screensize.x() >= screensize.y();
     int modes = SDL_GetNumDisplayModes(0);
-    screensize = int2(0); 
+    screensize = int2(0);
     for (int i = 0; i < modes; i++)
     {
         SDL_DisplayMode mode;
@@ -267,7 +267,7 @@ string SDLInit(const char *title, int2 &screensize)
     DebugLog(-1, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
 
     if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
-    
+
     int ax = 0, ay = 0;
     SDL_GetWindowSize(_sdl_window, &ax, &ay);
     int2 actualscreensize(ax, ay);
@@ -277,8 +277,8 @@ string SDLInit(const char *title, int2 &screensize)
         screensize = actualscreensize;
     #else
         screensize = actualscreensize;  // ANDROID
-        DebugLog(-1, inttoa(screensize.x));
-        DebugLog(-1, inttoa(screensize.y));
+        DebugLog(-1, inttoa(screensize.x()));
+        DebugLog(-1, inttoa(screensize.y()));
     #endif
     #else
     _sdl_window = SDL_CreateWindow(title,
@@ -287,7 +287,7 @@ string SDLInit(const char *title, int2 &screensize)
                                     SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     #endif
 
-    if (!_sdl_window) 
+    if (!_sdl_window)
         return SDLError("Unable to create window");
 
     DebugLog(-1, "SDL window opened...");
@@ -314,9 +314,9 @@ string SDLInit(const char *title, int2 &screensize)
     return "";
 }
 
-void SDLShutdown() 
+void SDLShutdown()
 {
-    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = NULL;  // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. 
+    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = NULL;  // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid.
     if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = NULL;
 
     SDL_Quit();
@@ -343,9 +343,9 @@ bool SDLFrame(int2 &screensize)
         SDL_Delay(10);  // save CPU/battery
     else
         SDL_GL_SwapWindow(_sdl_window);
-    
+
     //SDL_Delay(1000);
-    
+
     if (!cursor) clearfingers(false);
 
     bool closebutton = false;
@@ -354,7 +354,7 @@ bool SDLFrame(int2 &screensize)
     while(SDL_PollEvent(&event)) switch(event.type)
     {
         case SDL_QUIT:
-            closebutton = true;   
+            closebutton = true;
             break;
 
         case SDL_KEYDOWN:
@@ -369,7 +369,7 @@ bool SDLFrame(int2 &screensize)
         }
 
         #if defined(__IOS__) || defined(ANDROID)
-            
+
         // FIXME: if we're in cursor==0 mode, only update delta, not position
         case SDL_FINGERDOWN:
         {
@@ -383,7 +383,7 @@ bool SDLFrame(int2 &screensize)
             updatemousebutton(1, i, false);
             break;
         }
-            
+
         case SDL_FINGERMOTION:
         {
             updatedragpos(event.tfinger, event.type, screensize);
@@ -391,7 +391,7 @@ bool SDLFrame(int2 &screensize)
         }
 
         #else
-                    
+
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
         {
@@ -427,7 +427,7 @@ bool SDLFrame(int2 &screensize)
         case SDL_MOUSEWHEEL:
             mousewheeldelta += event.wheel.y;
             break;
-                    
+
         #endif
 
         case SDL_WINDOWEVENT:
@@ -447,11 +447,11 @@ bool SDLFrame(int2 &screensize)
                     break;
             }
             break;
-            
+
         case SDL_WINDOWEVENT_MINIMIZED:
             //minimized = true;
             break;
-            
+
         case SDL_WINDOWEVENT_MAXIMIZED:
         case SDL_WINDOWEVENT_RESTORED:
             /*
@@ -540,3 +540,21 @@ bool SDLGrab(bool on)
     SDL_SetWindowGrab(_sdl_window, on ? SDL_TRUE : SDL_FALSE);
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
+
+uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
+{
+    auto f = SDL_RWFromFile(absfilename, "rb");
+    if (!f) return NULL;
+    int64_t len = SDL_RWseek(f, 0, RW_SEEK_END);
+    SDL_RWseek(f, 0, RW_SEEK_SET);
+    uchar *buf = (uchar *)malloc(len + 1);
+    if (!buf) { SDL_RWclose(f); return NULL; }
+    buf[len] = 0;
+    size_t rlen = SDL_RWread(f, buf, 1, len);
+    SDL_RWclose(f);
+    if (len != rlen || len <= 0) { free(buf); return NULL; }
+    if (lenret) *lenret = len;
+    return buf;
+}
+
+

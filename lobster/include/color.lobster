@@ -31,10 +31,6 @@ color_olive  :== [ 0.5, 0.5, 0,   1 ]:color
 color_teal   :== [ 0,   0.5, 0.5, 1 ]:color
 color_purple :== [ 0.5, 0,   0.5, 1 ]:color
 
-color_elephant  :== [ 0.5, 0.5, 1,   1 ]:color
-color_salmon    :== [ 1,   0.5, 0.5, 1 ]:color
-color_seagreen  :== [ 0.5, 1,   0.5, 1 ]:color
-
 color_orange      :== [ 1,   0.5, 0,   1 ]:color
 color_chartreuse  :== [ 0.5, 1,   0,   1 ]:color
 color_springgreen :== [ 0,   1,   0.5, 1 ]:color

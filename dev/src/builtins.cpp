@@ -18,8 +18,8 @@ int KeyCompare(const Value &a, const Value &b, bool rec = false)
         case V_FLOAT:  return a.fval < b.fval ? -1 : a.fval > b.fval;
         case V_STRING: return strcmp(a.sval->str(), b.sval->str());
 
-        case V_VECTOR: 
-            if (a.vval->len && b.vval->len && !rec) return KeyCompare(a.vval->at(0), b.vval->at(0), true); 
+        case V_VECTOR:
+            if (a.vval->len && b.vval->len && !rec) return KeyCompare(a.vval->at(0), b.vval->at(0), true);
             // fall thru:
         default:
             g_vm->BuiltinError("binary search: illegal key type");
@@ -35,16 +35,16 @@ void AddBuiltins()
     }
     ENDDECL2(add, "x,y", "II", "I", "adds two integers.");
 
-	STARTDECL(print) (Value &a)
+    STARTDECL(print) (Value &a)
     {
-        printf("%s\n", a.ToString(g_vm->programprintprefs).c_str());
+        ProgramOutput(a.ToString(g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A", "output any value to the console (with linefeed). returns its argument.");
 
     STARTDECL(printnl) (Value &a)
     {
-        printf("%s", a.ToString(g_vm->programprintprefs).c_str());
+        ProgramOutput(a.ToString(g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(printnl, "x", "A", "A", "output any value to the console (no linefeed). returns its argument.");
@@ -97,14 +97,14 @@ void AddBuiltins()
 
     STARTDECL(while) (Value &c, Value &b)
     {
-        BWHILE(Value(0, V_NIL), { accum.DEC(); accum = lv2; });  
+        BWHILE(Value(0, V_NIL), { accum.DEC(); accum = lv2; });
             // FIXME: if the condition contains another while loop (thru a function call), then lv1 will have already been overwritten
     }
     ENDDECL2WHILE(while, "cond,body", "EC", "A", "evaluates body while cond (converted to a function) holds true, returns last body value");
 
     STARTDECL(collectwhile) (Value &c, Value &b)
     {
-        BWHILE(Value(g_vm->NewVector(4, V_VECTOR)), { assert(accum.type == V_VECTOR); accum.vval->push(lv2); });  
+        BWHILE(Value(g_vm->NewVector(4, V_VECTOR)), { assert(accum.type == V_VECTOR); accum.vval->push(lv2); });
     }
     ENDDECL2WHILE(collectwhile, "cond,body", "EC", "V", "evaluates body while cond holds true, returns a vector of all return values of body");
 
@@ -171,7 +171,7 @@ void AddBuiltins()
     {
         auto nv = g_vm->NewVector(v1.vval->len + v2.vval->len, V_VECTOR);
         nv->append(v1.vval, 0, v1.vval->len); v1.DEC();
-        nv->append(v2.vval, 0, v2.vval->len); v2.DEC(); 
+        nv->append(v2.vval, 0, v2.vval->len); v2.DEC();
         return Value(nv);
     }
     ENDDECL2(append, "xs,ys", "VV", "V", "creates new vector by appending all elements of 2 input vectors");
@@ -181,7 +181,7 @@ void AddBuiltins()
         int len;
         switch (a.type)
         {
-            case V_VECTOR: 
+            case V_VECTOR:
             case V_STRING: len = a.lobj->len; break;
             default: return g_vm->BuiltinError("illegal type passed to length");
         }
@@ -223,7 +223,7 @@ void AddBuiltins()
         return v.INC();
     }
     ENDDECL1(top, "xs", "V", "A", "returns last element from vector");
-    
+
     STARTDECL(replace) (Value &l, Value &i, Value &a)
     {
         if (i.ival < 0 || i.ival >= l.vval->len) g_vm->BuiltinError("replace: index out of range");
@@ -235,11 +235,11 @@ void AddBuiltins()
         Value &dest = nv->at(i.ival);
         dest.DEC();
         dest = a;
-        
+
         return Value(nv);
     }
     ENDDECL3(replace, "xs,i,x", "VIA", "V", "returns a copy of a vector with the element at i replaced by x");
-    
+
     STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
     {
         int amount = n.type == V_INT ? n.ival : 1;
@@ -372,7 +372,7 @@ void AddBuiltins()
         if (start < 0) start = l.vval->len + start;
         if (start < 0 || start + size > (int)l.vval->len)
             g_vm->BuiltinError("substring: values out of range");
-        
+
         auto ns = g_vm->NewString(l.sval->str() + start, size);
         l.DECRT();
         return Value(ns);
@@ -424,11 +424,11 @@ void AddBuiltins()
             s.insert(0, 1, from[i % b.ival]);
             i /= b.ival;
         }
-        
+
         return Value(g_vm->NewString(s));
     }
     ENDDECL3(number2string, "number,base,minchars", "III", "S", "converts the (unsigned version) of the input integer number to a string given the base (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).");
-    
+
     #define VECTOROP(name, op, otype, typen) \
         if (a.type == otype) { auto f = a; return Value(op); } \
         if (otype == V_FLOAT && a.type == V_INT) { Value f(float(a.ival)); return Value(op); } \
@@ -451,7 +451,7 @@ void AddBuiltins()
 
     STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval, b.fval)); } ENDDECL2(pow, "a,b", "FF", "F", "a raised to the power of b");
 
-    STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval)); } ENDDECL1(sqrt, "f", "F", "F", "square root");    
+    STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval)); } ENDDECL1(sqrt, "f", "F", "F", "square root");
 
     STARTDECL(and) (Value &a, Value &b) { return Value(a.ival & b.ival);  } ENDDECL2(and, "a,b", "II", "I", "bitwise and");
     STARTDECL(or)  (Value &a, Value &b) { return Value(a.ival | b.ival);  } ENDDECL2(or,  "a,b", "II", "I", "bitwise or");
@@ -460,17 +460,17 @@ void AddBuiltins()
     STARTDECL(shl) (Value &a, Value &b) { return Value(a.ival << b.ival); } ENDDECL2(shl, "a,b", "II", "I", "bitwise shift left");
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival >> b.ival); } ENDDECL2(shr, "a,b", "II", "I", "bitwise shift right");
 
-    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling,  int(ceilf(f.fval)));      } ENDDECL1(ceiling,  "f", "A", "A", "the nearest int >= f (or vector of numbers)");    
-    STARTDECL(floor)   (Value &a) { VECTOROPF(floor,    int(floorf(f.fval)));     } ENDDECL1(floor,    "f", "A", "A", "the nearest int <= f (or vector of numbers)");    
+    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling,  int(ceilf(f.fval)));      } ENDDECL1(ceiling,  "f", "A", "A", "the nearest int >= f (or vector of numbers)");
+    STARTDECL(floor)   (Value &a) { VECTOROPF(floor,    int(floorf(f.fval)));     } ENDDECL1(floor,    "f", "A", "A", "the nearest int <= f (or vector of numbers)");
     STARTDECL(truncate)(Value &a) { VECTOROPF(truncate, int(f.fval));             } ENDDECL1(truncate, "f", "A", "A", "converts a number (or vector of numbers) to an integer by dropping the fraction");
     STARTDECL(round)   (Value &a) { VECTOROPF(round,    int(f.fval + 0.5f));      } ENDDECL1(round,    "f", "A", "A", "converts a number (or vector of numbers) to the closest integer");
     STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval - floorf(f.fval)); } ENDDECL1(fraction, "f", "A", "A", "returns the fractional part of a number (or vector of numbers): short for f - floor(f)");
 
-    STARTDECL(sin) (Value &a) { return Value(sinf(a.fval * RAD)); } ENDDECL1(sin, "angle", "F", "F", "the y coordinate of the normalized vector indicated by angle (in degrees)");    
+    STARTDECL(sin) (Value &a) { return Value(sinf(a.fval * RAD)); } ENDDECL1(sin, "angle", "F", "F", "the y coordinate of the normalized vector indicated by angle (in degrees)");
     STARTDECL(cos) (Value &a) { return Value(cosf(a.fval * RAD)); } ENDDECL1(cos, "angle", "F", "F", "the x coordinate of the normalized vector indicated by angle (in degrees)");
     STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval * RAD), sinf(a.fval * RAD), 0.0f)); } ENDDECL1(sincos, "angle", "F", "V", "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
 
-    STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval) / RAD); } ENDDECL1(arcsin, "y", "F", "F", "the angle (in degrees) indicated by the y coordinate projected to the unit circle");    
+    STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval) / RAD); } ENDDECL1(arcsin, "y", "F", "F", "the angle (in degrees) indicated by the y coordinate projected to the unit circle");
     STARTDECL(arccos) (Value &x) { return Value(acosf(x.fval) / RAD); } ENDDECL1(arccos, "x", "F", "F", "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2)     (Value &vec) { auto v = ValueDecTo<float3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } ENDDECL1(atan2, "vec",  "V" , "F", "the angle (in degrees) corresponding to a normalized 2D vector");
@@ -506,7 +506,7 @@ void AddBuiltins()
     {
         switch (a.type)
         {
-            case V_INT:    return Value(a.ival >= 0 ? a.ival : -a.ival);         
+            case V_INT:    return Value(a.ival >= 0 ? a.ival : -a.ival);
             case V_FLOAT:  return Value(a.fval >= 0 ? a.fval : -a.fval);
             case V_VECTOR: {
                 auto v = g_vm->NewVector(a.vval->len, a.vval->type);
@@ -519,7 +519,7 @@ void AddBuiltins()
                         case V_FLOAT: v->push(Value(fabsf(f.fval))); break;
                         default: v->deleteself(); goto err;
                     }
-                } 
+                }
                 a.DECRT();
                 return Value(v);
             }
@@ -604,13 +604,13 @@ void AddBuiltins()
         return Value(g_vm->NewString(g_vm->GetProgramName()));
     }
     ENDDECL0(program_name, "", "", "S", "returns the name of the main program (e.g. \"foo.lobster\".");
-    
+
     STARTDECL(caller_id) ()
     {
         return Value(g_vm->CallerId());
     }
     ENDDECL0(caller_id, "", "", "I", "returns an int that uniquely identifies the caller to the current function.");
-    
+
     STARTDECL(seconds_elapsed) ()
     {
         return Value(g_vm->Time());

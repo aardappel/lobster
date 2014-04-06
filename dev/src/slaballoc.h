@@ -43,9 +43,9 @@ class SlabAlloc
                                 // lower means more blocks have to go thru the traditional allocator (slower)
                                 // higher means you may get pages with only few allocs of that unique size (memory wasted)
                                 // on 32bit, 32 means all allocations <= 256 bytes go into buckets (in increments of 8 bytes each)
-    enum { PAGESATONCE = 101 }; // depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZE
+    enum { PAGESATONCE = 101 }; // depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZEF
                                 // You will waste 1 page to alignment
-                                // with MAXBUCKETS at 32 on a 32bit system, PAGESIZE is 2048, so this is 202k
+                                // with MAXBUCKETS at 32 on a 32bit system, PAGESIZEF is 2048, so this is 202k
 
     // derived:
     enum { PTRBITS = sizeof(char *)==4 ? 2 : 3 };  // "64bit should be enough for everyone"
@@ -56,10 +56,10 @@ class SlabAlloc
 
     enum { MAXREUSESIZE = (MAXBUCKETS-1)*ALIGN };
 
-    enum { PAGESIZE = MAXBUCKETS*ALIGN*8 }; // meaning the largest block will fit almost 8 times
+    enum { PAGESIZEF = MAXBUCKETS*ALIGN*8 }; // meaning the largest block will fit almost 8 times
 
-    enum { PAGEMASK = (~(PAGESIZE-1)) };
-    enum { PAGEBLOCKSIZE = PAGESIZE*PAGESATONCE };
+    enum { PAGEMASK = (~(PAGESIZEF-1)) };
+    enum { PAGEBLOCKSIZE = PAGESIZEF*PAGESATONCE };
 
     struct PageHeader : DLNodeRaw
     {
@@ -78,7 +78,7 @@ class SlabAlloc
         return (PageHeader *)(((size_t)p)&PAGEMASK);
     }
 
-    inline int numobjs(int size) { return (PAGESIZE-sizeof(PageHeader))/size; }
+    inline int numobjs(int size) { return (PAGESIZEF-sizeof(PageHeader))/size; }
 
     DLList<DLNodeRaw> reuse[MAXBUCKETS];
     DLList<PageHeader> freepages, usedpages;
@@ -108,10 +108,10 @@ class SlabAlloc
         blocks = b;
         b++;
 
-        char *first = ((char *)ppage(b))+PAGESIZE;
+        char *first = ((char *)ppage(b))+PAGESIZEF;
         for (int i = 0; i<PAGESATONCE-1; i++)
         {
-            PageHeader *p = (PageHeader *)(first+i*PAGESIZE);
+            PageHeader *p = (PageHeader *)(first+i*PAGESIZEF);
             freepages.InsertAfterThis(p);
         }
     }
@@ -125,13 +125,13 @@ class SlabAlloc
         usedpages.InsertAfterThis(page);
         page->refc = 0;
         page->size = b*ALIGN;
-        putinbuckets((char *)(page+1), ((char *)page)+PAGESIZE, b, page->size);
+        putinbuckets((char *)(page+1), ((char *)page)+PAGESIZEF, b, page->size);
         return alloc_small(page->size);
     }
 
     void freepage(PageHeader *page, int size)
     {
-        for (char *b = (char *)(page+1); b+size<=((char *)page)+PAGESIZE; b += size)
+        for (char *b = (char *)(page+1); b+size<=((char *)page)+PAGESIZEF; b += size)
             ((DLNodeRaw *)b)->Remove();
 
         page->Remove();
@@ -211,8 +211,8 @@ class SlabAlloc
 
         PageHeader *page = ppage(p);
 
-        #ifdef _DEBUG     
-            memset(p, 0xBA, page->size); 
+        #ifdef _DEBUG
+            memset(p, 0xBA, page->size);
         #endif
 
         int b = page->size >> ALIGNBITS;
@@ -262,10 +262,10 @@ class SlabAlloc
         return p;
     }
 
-    void dealloc_sized(void *p) 
+    void dealloc_sized(void *p)
     {
         size_t *t = (size_t *)p;
-        size_t size = *--t;	
+        size_t size = *--t;
         size += sizeof(size_t);
         dealloc(t, size);
     }
@@ -376,7 +376,7 @@ class SlabAlloc
                     if (full || num)
                     {
                         sprintf(buf, "bucket %d -> freelist %lu (%lu k), %lld total allocs", i*ALIGN, ulong(num), ulong(waste), stats[i]);
-                        DebugLog(0, buf); 
+                        DebugLog(0, buf);
                     }
                 }
             #endif
@@ -407,7 +407,7 @@ giving the functionality of the _sized() functions without their overhead to all
   what are the chances that a float/int or other random data has the same value as the location its stored in? small, but still..
   of course could up the ante by having 2 such pointers, another one at the end of the page or whatever
   or could up it even further by having all big allocations have a magic number at the start of their buffer (not the page), so you'd
-  first check that, then the page header... still not fool proof and many checks means slower 
+  first check that, then the page header... still not fool proof and many checks means slower
 - write a large block allocator that also always has page headers for the start of any allocation
   this means multi-page allocations can't reuse the remaining space in the last page. They also generally need to allocate their
   own pages, so unless you can acquire page aligned mem from the system, this would be anothe page of overhead

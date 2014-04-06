@@ -32,3 +32,5 @@ extern bool SDLGrab(bool on);
 
 extern bool SDLPlaySound(const char *filename, bool sfxr);
 extern void SDLSoundClose();
+
+extern uchar *SDLLoadFile(const char *absfilename, size_t *len);

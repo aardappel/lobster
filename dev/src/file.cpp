@@ -28,7 +28,7 @@ void AddDirItem(LVector *list, const char *filename, int64_t size, int divisor)
         size /= divisor;
         if (size > 0x7FFFFFFF) size = 0x7FFFFFFF;
     }
-    elem->push(Value(int(size))); 
+    elem->push(Value(int(size)));
     list->push(Value(elem));
 }
 
@@ -49,7 +49,7 @@ void AddFileOps()
 
         auto list = g_vm->NewVector(0, V_VECTOR);
 
-        do 
+        do
         {
             if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
             {
@@ -59,12 +59,13 @@ void AddFileOps()
         }
         while(FindNextFile(fh, &fdata));
         FindClose(fh);
+        return Value(list);
 
-        #else
+        #elif !defined(ANDROID)
 
-	    glob_t gl;
-	    string mask = folder + "/*";
-	    if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, NULL, &gl)) return Value(0, V_NIL);
+        glob_t gl;
+        string mask = folder + "/*";
+        if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, NULL, &gl)) return Value(0, V_NIL);
 
         auto list = g_vm->NewVector(0, V_VECTOR);
 
@@ -80,10 +81,13 @@ void AddFileOps()
             AddDirItem(list, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival);
         }
         globfree(&gl);
+        return Value(list);
+
+        #else
+
+        return Value(0, V_NIL);
 
         #endif
-
-        return Value(list);
     }
     ENDDECL2(scan_folder, "folder,divisor", "SI", "I", "returns a vector of all elements in a folder, each element is [ name,  filesize (-1 if directory) ]. Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be clamped. Returns nil if folder couldn't be scanned.");
 

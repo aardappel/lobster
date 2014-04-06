@@ -24,23 +24,31 @@ bool graphics_initialized = false;
 
 void GraphicsShutDown()  // should be safe to call even if it wasn't initialized partially or at all
 {
-    extern void MeshGenClear(); MeshGenClear(); 
+    extern void MeshGenClear(); MeshGenClear();
     extern void FontCleanup(); FontCleanup();
 
     if (meshes) delete meshes;   meshes = NULL;
 
+    texturecache.clear();
+
     ShaderShutDown();
+    currentshader = NULL;
+    colorshader = NULL;
 
     SDLSoundClose();
     SDLShutdown();
 
-    // we don't set this to false, as currently SDL doesn't like being reinitialized
-    //graphics_initialized = false;
+    // we don't set this to false on most platforms, as currently SDL doesn't like being reinitialized
+    #ifdef ANDROID
+        // FIXME: really only allow this if the app has been killed
+        graphics_initialized = false;
+    #endif
 }
 
 void TestGL() { if (!graphics_initialized) g_vm->BuiltinError("graphics system not initialized yet, call gl_window() first"); }
 
-float2 localfingerpos(int i) { return (view2object * float4(float3(float2(GetFinger(i, false)), 0), 1)).xyz().xy(); }
+float2 localpos(const int2 &pos) { return (view2object * float4(float3(float2(pos), 0), 1)).xyz().xy(); }
+float2 localfingerpos(int i) { return localpos(GetFinger(i, false)); }
 
 struct transback { float4x4 view2object; float4x4 object2view; };
 
@@ -52,9 +60,9 @@ Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
         tb.view2object = view2object;
         tb.object2view = object2view;
         g_vm->Push(Value(g_vm->NewString((char *)&tb, sizeof(transback))));
-    } 
-    object2view *= forward; 
-    view2object = backward * view2object; 
+    }
+    object2view *= forward;
+    view2object = backward * view2object;
     return body;
 }
 
@@ -76,7 +84,7 @@ float2 transangle(Value &a)
         case V_VECTOR: return ValueDecTo<float3>(a).xy();
         case V_FLOAT:  return float2(cosf(a.fval * RAD), sinf(a.fval * RAD));
         case V_INT:    return float2(cosf(a.ival * RAD), sinf(a.ival * RAD));
-        default: g_vm->BuiltinError("angle passed to rotation function must be int/float or vector"); return float2_0; 
+        default: g_vm->BuiltinError("angle passed to rotation function must be int/float or vector"); return float2_0;
     }
 }
 
@@ -175,7 +183,7 @@ void AddGraphics()
         return s;
     }
     ENDDECL1(gl_windowtitle, "title", "S", "S", "changes the window title.");
-    
+
     STARTDECL(gl_visible) ()
     {
         return Value(!SDLIsMinimized());
@@ -230,7 +238,7 @@ void AddGraphics()
     {
         return ToValue(GetFinger(i.ival, false));
     }
-    ENDDECL1(gl_mousepos, "i", "I", "V", "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers (only if the corresponding gl_isdown is true)");
+    ENDDECL1(gl_mousepos, "i", "I", "V", "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_mousedelta) (Value &i)
     {
@@ -242,7 +250,7 @@ void AddGraphics()
     {
         return ToValue(localfingerpos(i.ival));
     }
-    ENDDECL1(gl_localmousepos, "i", "I", "V", "the current mouse/finger position local to the current transform (gl_translate etc) (only if the corresponding gl_isdown is true)");
+    ENDDECL1(gl_localmousepos, "i", "I", "V", "the current mouse/finger position local to the current transform (gl_translate etc) (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_lastpos) (Value &name, Value &on)     // need a local version of this too?
     {
@@ -250,7 +258,15 @@ void AddGraphics()
         name.DEC();
         return ToValue(p);
     }
-    ENDDECL2(gl_lastpos, "name,down", "SI", "V", "position key/mousebutton/finger last went down (true) or up (false)");
+    ENDDECL2(gl_lastpos, "name,down", "SI", "V", "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
+
+    STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
+    {
+        auto p = localpos(GetKeyPos(name.sval->str(), on.ival));
+        name.DEC();
+        return ToValue(p);
+    }
+    ENDDECL2(gl_locallastpos, "name,down", "SI", "V", "position (local to the current transform) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_mousewheeldelta) ()
     {
@@ -441,7 +457,7 @@ void AddGraphics()
         }
         return Value(size == lastframehitsize && hit);
     }
-    ENDDECL2(gl_hit, "vec,i", "VI", "I", "wether the mouse/finger is inside of the rectangle specified in terms of the current transform (for fingers only if the corresponding gl_isdown is true). Only true if the last rectangle for which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)");
+    ENDDECL2(gl_hit, "vec,i", "VI", "I", "wether the mouse/finger is inside of the rectangle specified in terms of the current transform (for touch screens only if the corresponding gl_isdown is true). Only true if the last rectangle for which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)");
 
     STARTDECL(gl_rect) (Value &vec)
     {
@@ -451,10 +467,10 @@ void AddGraphics()
 
         static float tempquad_rect[20] =
         {
-            0, 0, 0, 0, 0, 
-            0, 0, 0, 0, 1, 
-            0, 0, 0, 1, 1, 
-            0, 0, 0, 1, 0, 
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 1,
+            0, 0, 0, 1, 1,
+            0, 0, 0, 1, 0,
         };
         tempquad_rect[ 6] = tempquad_rect[11] = v.y();
         tempquad_rect[10] = tempquad_rect[15] = v.x();
@@ -474,7 +490,7 @@ void AddGraphics()
 
         float angle = atan2f(v2.y() - v1.y(), v2.x() - v1.x());
         float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval / 2;
-        
+
         RenderLine(currentshader, polymode, v1, v2, v);
 
         return Value();
@@ -493,7 +509,7 @@ void AddGraphics()
         Set2DMode(screensize);
         return Value();
     }
-    ENDDECL0(gl_ortho, "", "", "", "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the screen size in pixels bottom right. this is the default at the start of a frame, use this call to get back to that after gl_perspective.");            
+    ENDDECL0(gl_ortho, "", "", "", "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the screen size in pixels bottom right. this is the default at the start of a frame, use this call to get back to that after gl_perspective.");
 
     STARTDECL(gl_newmesh) (Value &indices, Value &positions, Value &colors, Value &texcoords, Value &normals)
     {
@@ -555,7 +571,7 @@ void AddGraphics()
 
     STARTDECL(gl_deletemesh) (Value &i)
     {
-        meshes->Delete(i.ival); 
+        meshes->Delete(i.ival);
         return Value();
     }
     ENDDECL1(gl_deletemesh, "i", "I", "", "free up memory for the given mesh id");
@@ -658,7 +674,7 @@ void AddGraphics()
 
         if (part.ival < 0 || part.ival >= (int)m->surfs.size())
             g_vm->BuiltinError("setmeshtexture: illegal part index");
-        
+
         m->surfs[part.ival]->textures[GetSampler(i)] = id.ival;
 
         return Value();
@@ -698,7 +714,7 @@ void AddGraphics()
     }
     ENDDECL1(gl_createtexture, "matrix", "V", "I", "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array");
 
-    STARTDECL(gl_deletetexture) (Value &i)  
+    STARTDECL(gl_deletetexture) (Value &i)
     {
         auto it = texturecache.begin();
         while (it != texturecache.end())    // this is potentially expensive, we're counting on gl_deletetexture not being needed often
@@ -707,14 +723,14 @@ void AddGraphics()
             else ++it;
         }
 
-        // the surfaces in meshes are still potentially referring to this texture, but OpenGL doesn't care about illegal texture ids, so neither do we 
+        // the surfaces in meshes are still potentially referring to this texture, but OpenGL doesn't care about illegal texture ids, so neither do we
 
         DeleteTexture(i.ival);
 
         return Value();
     }
     ENDDECL1(gl_deletetexture, "i", "I", "", "free up memory for the given texture id");
-    
+
     STARTDECL(gl_light) (Value &pos)
     {
         Light l;
@@ -724,7 +740,7 @@ void AddGraphics()
     }
     ENDDECL1(gl_light, "pos", "V", "", "sets up a light at the given position for this frame. make sure to call this after your camera transforms but before any object transforms (i.e. defined in \"worldspace\").");
 
-    STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness) 
+    STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness)
     {
         TestGL();
 

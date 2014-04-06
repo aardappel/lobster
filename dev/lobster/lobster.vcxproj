@@ -256,9 +256,6 @@
     <None Include="..\..\lobster\shaders\default.materials" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\lobster\docs\history.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

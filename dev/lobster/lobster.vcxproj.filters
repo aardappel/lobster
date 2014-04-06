@@ -182,7 +182,4 @@
       <Filter>engine\shaders</Filter>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\lobster\docs\history.txt" />
-  </ItemGroup>
 </Project>

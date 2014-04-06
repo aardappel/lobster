@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -30,6 +30,7 @@
 
 #include "SDL_stdinc.h"
 #include "SDL_error.h"
+#include "SDL_rwops.h"
 #include "SDL_joystick.h"
 
 #include "begin_code.h"
@@ -44,6 +45,10 @@ extern "C" {
  *  In order to use these functions, SDL_Init() must have been called
  *  with the ::SDL_INIT_JOYSTICK flag.  This causes SDL to scan the system
  *  for game controllers, and load appropriate drivers.
+ *
+ *  If you would like to receive controller updates while the application
+ *  is in the background, you should set the following hint before calling
+ *  SDL_Init(): SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS
  */
 
 /* The gamecontroller structure used to identify an SDL game controller */
@@ -103,6 +108,23 @@ typedef struct SDL_GameControllerButtonBind
  *  "341a3608000000000000504944564944,Afterglow PS3 Controller,a:b1,b:b2,y:b3,x:b0,start:b9,guide:b12,back:b8,dpup:h0.1,dpleft:h0.8,dpdown:h0.4,dpright:h0.2,leftshoulder:b4,rightshoulder:b5,leftstick:b10,rightstick:b11,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7",
  *
  */
+
+/**
+ *  Load a set of mappings from a seekable SDL data stream (memory or file), filtered by the current SDL_GetPlatform()
+ *  A community sourced database of controllers is available at https://raw.github.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
+ *
+ *  If \c freerw is non-zero, the stream will be closed after being read.
+ * 
+ * \return number of mappings added, -1 on error
+ */
+extern DECLSPEC int SDLCALL SDL_GameControllerAddMappingsFromRW( SDL_RWops * rw, int freerw );
+
+/**
+ *  Load a set of mappings from a file, filtered by the current SDL_GetPlatform()
+ *
+ *  Convenience macro.
+ */
+#define SDL_GameControllerAddMappingsFromFile(file)   SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(file, "rb"), 1)
 
 /**
  *  Add or update an existing mapping configuration

@@ -86,7 +86,7 @@ struct CompiledProgram
         }
     }
 
-    bool Load(const char *bcf) 
+    bool Load(const char *bcf)
     {
         size_t bclen = 0;
         uchar *bc = LoadFile(bcf, &bclen);
@@ -142,13 +142,13 @@ Value CompileRun(Value &source, bool stringiscode)
 
 void AddCompiler()  // it knows how to call itself!
 {
-    STARTDECL(compile_run_code) (Value &filename)      
+    STARTDECL(compile_run_code) (Value &filename)
     {
         return CompileRun(filename, true);
     }
     ENDDECL1(compile_run_code, "code", "S", "AA", "compiles and runs lobster source, sandboxed from the current program (in its own VM). the argument is a string of code. returns the return value of the program as a string, with an error string as second return value, or nil if none. using parse_data(), two program can communicate more complex data structures even if they don't have the same version of struct definitions.");
 
-    STARTDECL(compile_run_file) (Value &filename)     
+    STARTDECL(compile_run_file) (Value &filename)
     {
         return CompileRun(filename, false);
     }
@@ -236,14 +236,14 @@ int main(int argc, char* argv[])
     #ifdef WIN32
         _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
     #endif
-        
+
     DebugLog(-1, "Lobster running...");
 
     InitTime();
 
     bool wait = false;
     bool forcecommandline = false;
-    
+
     try
     {
         if (sizeof(void *) != sizeof(int))
@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
         const char *default_bcf = "default.lbc";
         const char *bcf = NULL;
 
-        char *fn = NULL;
+        const char *fn = NULL;
         for (int arg = 1; arg < argc; arg++) if (argv[arg][0] == '-')
         {
             switch (argv[arg][1])
@@ -340,10 +340,10 @@ int main(int argc, char* argv[])
 
     extern void GraphicsShutDown(); GraphicsShutDown();
 
-    #ifdef __IOS__  
+    #ifdef __IOS__
         exit(0); // to forcibly shut down the wrapper main()
     #endif
-    
+
     return 0;
 }
 
@@ -400,7 +400,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
         }
 
-    }    
+    }
 
     // tokenize the arguments
 
@@ -425,13 +425,13 @@ int APIENTRY WinMain(HINSTANCE hInstance,
             }
 
             if (arg[0] != 0) {
-                arg[0] = 0;    
+                arg[0] = 0;
                 arg++;
             }
 
         }
 
-    }    
+    }
 
     // put the program name into argv[0]
 
@@ -440,7 +440,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     GetModuleFileNameA(NULL, filename, _MAX_PATH);
     argv[0] = filename;
 
-    // call the user specified main function    
+    // call the user specified main function
 
     result = main(argc, argv);
 

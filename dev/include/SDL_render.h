@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -37,9 +37,12 @@
  *  them, and may also be stretched with linear interpolation.
  *
  *  This API is designed to accelerate simple 2D operations. You may
- *  want more functionality such as rotation and particle effects and
+ *  want more functionality such as polygons and particle effects and
  *  in that case you should use SDL's OpenGL/Direct3D support or one
  *  of the many good 3D engines.
+ *
+ *  These functions must be called from the main thread.
+ *  See this bug for details: http://bugzilla.libsdl.org/show_bug.cgi?id=1995
  */
 
 #ifndef _SDL_render_h
@@ -379,6 +382,31 @@ extern DECLSPEC int SDLCALL SDL_UpdateTexture(SDL_Texture * texture,
                                               const void *pixels, int pitch);
 
 /**
+ *  \brief Update a rectangle within a planar YV12 or IYUV texture with new pixel data.
+ *
+ *  \param texture   The texture to update
+ *  \param rect      A pointer to the rectangle of pixels to update, or NULL to
+ *                   update the entire texture.
+ *  \param Yplane    The raw pixel data for the Y plane.
+ *  \param Ypitch    The number of bytes between rows of pixel data for the Y plane.
+ *  \param Uplane    The raw pixel data for the U plane.
+ *  \param Upitch    The number of bytes between rows of pixel data for the U plane.
+ *  \param Vplane    The raw pixel data for the V plane.
+ *  \param Vpitch    The number of bytes between rows of pixel data for the V plane.
+ *
+ *  \return 0 on success, or -1 if the texture is not valid.
+ *
+ *  \note You can use SDL_UpdateTexture() as long as your pixel data is
+ *        a contiguous block of Y and U/V planes in the proper order, but
+ *        this function is available if your pixel data is not contiguous.
+ */
+extern DECLSPEC int SDLCALL SDL_UpdateYUVTexture(SDL_Texture * texture,
+                                                 const SDL_Rect * rect,
+                                                 const Uint8 *Yplane, int Ypitch,
+                                                 const Uint8 *Uplane, int Upitch,
+                                                 const Uint8 *Vplane, int Vpitch);
+
+/**
  *  \brief Lock a portion of the texture for write-only pixel access.
  *
  *  \param texture   The texture to lock for access, which was created with
@@ -568,7 +596,7 @@ extern DECLSPEC void SDLCALL SDL_RenderGetScale(SDL_Renderer * renderer,
  *
  *  \return 0 on success, or -1 on error
  */
-extern DECLSPEC int SDL_SetRenderDrawColor(SDL_Renderer * renderer,
+extern DECLSPEC int SDLCALL SDL_SetRenderDrawColor(SDL_Renderer * renderer,
                                            Uint8 r, Uint8 g, Uint8 b,
                                            Uint8 a);
 
@@ -584,7 +612,7 @@ extern DECLSPEC int SDL_SetRenderDrawColor(SDL_Renderer * renderer,
  *
  *  \return 0 on success, or -1 on error
  */
-extern DECLSPEC int SDL_GetRenderDrawColor(SDL_Renderer * renderer,
+extern DECLSPEC int SDLCALL SDL_GetRenderDrawColor(SDL_Renderer * renderer,
                                            Uint8 * r, Uint8 * g, Uint8 * b,
                                            Uint8 * a);
 

@@ -4,42 +4,37 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := main
 
-SDL_PATH := ../SDL
+SDL_PATH := ../../../../external/sdl
+LOBSTER_PATH := ../../..
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SDL_PATH)/include $(LOCAL_PATH)/../../../include
+LOCAL_C_INCLUDES := $(SDL_PATH)/include $(LOBSTER_PATH)/src $(LOCAL_PATH)/$(LOBSTER_PATH)/include
 
-LOBSTERSRC := ../../../src
-SLMATH := ../../../lib/slmath
+LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
+	$(LOBSTER_PATH)/src/lobster.cpp \
+	$(LOBSTER_PATH)/src/audio.cpp \
+	$(LOBSTER_PATH)/src/builtins.cpp \
+	$(LOBSTER_PATH)/src/file.cpp \
+	$(LOBSTER_PATH)/src/font.cpp \
+	$(LOBSTER_PATH)/src/ftsystem.cpp \
+	$(LOBSTER_PATH)/src/glgeom.cpp \
+	$(LOBSTER_PATH)/src/glloadiqm.cpp \
+	$(LOBSTER_PATH)/src/glshader.cpp \
+	$(LOBSTER_PATH)/src/glsystem.cpp \
+	$(LOBSTER_PATH)/src/gltexture.cpp \
+	$(LOBSTER_PATH)/src/graphics.cpp \
+	$(LOBSTER_PATH)/src/lobsterreader.cpp \
+	$(LOBSTER_PATH)/src/meshgen.cpp \
+	$(LOBSTER_PATH)/src/platform.cpp \
+	$(LOBSTER_PATH)/src/sdlaudiosfxr.cpp \
+	$(LOBSTER_PATH)/src/sdlsystem.cpp \
+	$(LOBSTER_PATH)/src/simplex.cpp \
+	$(LOBSTER_PATH)/src/stdafx.cpp \
+	$(LOBSTER_PATH)/src/vmdata.cpp \
+	$(LOBSTER_PATH)/lib/stb_image.c
 
-# Add your application source files here...
-LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.cpp \
-	$(LOBSTERSRC)/lobster.cpp \
-	$(LOBSTERSRC)/builtins.cpp \
-	$(LOBSTERSRC)/file.cpp \
-	$(LOBSTERSRC)/graphics.cpp \
-	$(LOBSTERSRC)/lobsterreader.cpp \
-	$(LOBSTERSRC)/meshgen.cpp \
-	$(LOBSTERSRC)/openglsup.cpp \
-	$(LOBSTERSRC)/sfxr.cpp \
-	$(LOBSTERSRC)/simplex.cpp \
-	$(LOBSTERSRC)/vmdata.cpp \
-	$(SLMATH)/vec2.cpp \
-	$(SLMATH)/vec3.cpp \
-	$(SLMATH)/vec4.cpp \
-	$(SLMATH)/mat4.cpp \
-	$(SLMATH)/runtime_checks.cpp \
-	$(SLMATH)/random.cpp \
-	$(SLMATH)/random_util.cpp \
-	$(SLMATH)/quat.cpp \
-	$(SLMATH)/intersect_util.cpp \
-	$(SLMATH)/float_util.cpp \
-	../../../lib/stb_image.c
+LOCAL_SHARED_LIBRARIES := SDL2
+LOCAL_STATIC_LIBRARIES := freetype2-static
 
-
-LOCAL_SHARED_LIBRARIES := SDL2 gnustl_shared freetype-prebuilt
-
-LOCAL_CFLAGS += -Wno-multichar -fpermissive -std=gnu++0x -Wno-write-strings -fexceptions
-
-LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog $(LOCAL_PATH)/../freetype/libfreetype2-static.so
+LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
 include $(BUILD_SHARED_LIBRARY)

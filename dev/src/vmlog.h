@@ -42,7 +42,7 @@ struct VMLog
             lognew = NULL;
 
             #ifdef _DEBUG
-                #if 1
+                #if 0
                     PrintPrefs pp(1, 20, true, -1);
                     printf("frame log:");
                     for (size_t i = logi + 1; i < logread.size() - 1; i++)

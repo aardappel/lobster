@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -55,7 +55,7 @@ extern "C" {
  *  \param h     The height of the window.
  *  \param flags The flags for the window, a mask of SDL_WINDOW_BORDERLESS with any of the following:
  *               ::SDL_WINDOW_OPENGL,     ::SDL_WINDOW_INPUT_GRABBED,
- *               ::SDL_WINDOW_SHOWN,      ::SDL_WINDOW_RESIZABLE,
+ *               ::SDL_WINDOW_HIDDEN,     ::SDL_WINDOW_RESIZABLE,
  *               ::SDL_WINDOW_MAXIMIZED,  ::SDL_WINDOW_MINIMIZED,
  *       ::SDL_WINDOW_BORDERLESS is always set, and ::SDL_WINDOW_FULLSCREEN is always unset.
  *

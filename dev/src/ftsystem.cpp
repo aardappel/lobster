@@ -100,7 +100,7 @@ bool BitmapFont::CacheChars(const char *text)
             }
         }
 
-        x += advance;    
+        x += advance;
     }
 
     texid = CreateTexture(image, texw, texh, true, false);
@@ -180,8 +180,8 @@ OutlineFont *LoadFont(const char *name)
 {
     FT_Error err = 0;
 
-    if (library || !(err = FT_Init_FreeType(&library))) 
-    { 
+    if (library || !(err = FT_Init_FreeType(&library)))
+    {
         size_t len = 0;
         auto fbuf = LoadFile(name, &len);
         if (fbuf)

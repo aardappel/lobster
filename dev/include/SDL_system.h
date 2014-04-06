@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2013 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2014 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,17 +29,40 @@
 #define _SDL_system_h
 
 #include "SDL_stdinc.h"
-
-#if defined(__IPHONEOS__) && __IPHONEOS__
-#include "SDL_video.h"
 #include "SDL_keyboard.h"
-#endif
+#include "SDL_render.h"
+#include "SDL_video.h"
 
 #include "begin_code.h"
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+/* Platform specific functions for Windows */
+#ifdef __WIN32__
+
+/* Returns the D3D9 adapter index that matches the specified display index.
+   This adapter index can be passed to IDirect3D9::CreateDevice and controls
+   on which monitor a full screen application will appear.
+*/
+extern DECLSPEC int SDLCALL SDL_Direct3D9GetAdapterIndex( int displayIndex );
+
+/* Returns the D3D device associated with a renderer, or NULL if it's not a D3D renderer.
+   Once you are done using the device, you should release it to avoid a resource leak.
+ */
+typedef struct IDirect3DDevice9 IDirect3DDevice9;
+extern DECLSPEC IDirect3DDevice9* SDLCALL SDL_RenderGetD3D9Device(SDL_Renderer * renderer);
+
+/* Returns the DXGI Adapter and Output indices for the specified display index. 
+   These can be passed to EnumAdapters and EnumOutputs respectively to get the objects
+   required to create a DX10 or DX11 device and swap chain.
+ */
+extern DECLSPEC void SDLCALL SDL_DXGIGetOutputInfo( int displayIndex, int *adapterIndex, int *outputIndex );
+
+#endif /* __WIN32__ */
+
 
 /* Platform specific functions for iOS */
 #if defined(__IPHONEOS__) && __IPHONEOS__
@@ -92,6 +115,69 @@ extern DECLSPEC int SDLCALL SDL_AndroidGetExternalStorageState();
 extern DECLSPEC const char * SDLCALL SDL_AndroidGetExternalStoragePath();
 
 #endif /* __ANDROID__ */
+
+/* Platform specific functions for WinRT */
+#if defined(__WINRT__) && __WINRT__
+
+/**
+ *  \brief WinRT / Windows Phone path types
+ */
+typedef enum
+{
+    /** \brief The installed app's root directory.
+        Files here are likely to be read-only. */
+    SDL_WINRT_PATH_INSTALLED_LOCATION,
+
+    /** \brief The app's local data store.  Files may be written here */
+    SDL_WINRT_PATH_LOCAL_FOLDER,
+
+    /** \brief The app's roaming data store.  Unsupported on Windows Phone.
+        Files written here may be copied to other machines via a network
+        connection.
+    */
+    SDL_WINRT_PATH_ROAMING_FOLDER,
+
+    /** \brief The app's temporary data store.  Unsupported on Windows Phone.
+        Files written here may be deleted at any time. */
+    SDL_WINRT_PATH_TEMP_FOLDER
+} SDL_WinRT_Path;
+
+
+/**
+ *  \brief Retrieves a WinRT defined path on the local file system
+ *
+ *  \note Documentation on most app-specific path types on WinRT
+ *      can be found on MSDN, at the URL:
+ *      http://msdn.microsoft.com/en-us/library/windows/apps/hh464917.aspx
+ *
+ *  \param pathType The type of path to retrieve.
+ *  \ret A UCS-2 string (16-bit, wide-char) containing the path, or NULL
+ *      if the path is not available for any reason.  Not all paths are
+ *      available on all versions of Windows.  This is especially true on
+ *      Windows Phone.  Check the documentation for the given
+ *      SDL_WinRT_Path for more information on which path types are
+ *      supported where.
+ */
+extern DECLSPEC const wchar_t * SDLCALL SDL_WinRTGetFSPathUNICODE(SDL_WinRT_Path pathType);
+
+/**
+ *  \brief Retrieves a WinRT defined path on the local file system
+ *
+ *  \note Documentation on most app-specific path types on WinRT
+ *      can be found on MSDN, at the URL:
+ *      http://msdn.microsoft.com/en-us/library/windows/apps/hh464917.aspx
+ *
+ *  \param pathType The type of path to retrieve.
+ *  \ret A UTF-8 string (8-bit, multi-byte) containing the path, or NULL
+ *      if the path is not available for any reason.  Not all paths are
+ *      available on all versions of Windows.  This is especially true on
+ *      Windows Phone.  Check the documentation for the given
+ *      SDL_WinRT_Path for more information on which path types are
+ *      supported where.
+ */
+extern DECLSPEC const char * SDLCALL SDL_WinRTGetFSPathUTF8(SDL_WinRT_Path pathType);
+
+#endif /* __WINRT__ */
 
 
 /* Ends C function definitions when using C++ */

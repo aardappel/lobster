@@ -22,6 +22,10 @@
 
 #ifdef ANDROID
 #include <android/log.h>
+#include <android/asset_manager.h>
+// FIXME:
+#include "sdlincludes.h"
+#include "sdlinterface.h"
 #endif
 
 string datadir;     // main dir to load files relative to, on windows this is where lobster.exe resides, on apple platforms it's the Resource folder in the bundle
@@ -47,6 +51,7 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
     writedir = auxdir;
 
+    // FIXME: use SDL_GetBasePath() instead?
     #ifdef __APPLE__
         if (!forcecommandline)
         {
@@ -66,11 +71,19 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
             #endif
         }
     #elif defined(ANDROID)
-        datadir = "/Documents/Lobster/";  // FIXME: temp solution
-        writedir = datadir;
+        SDL_Init(0); // FIXME, is this needed? bad dependency.
+        auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
+        auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
+        DebugLog(-1, internalstoragepath);
+        DebugLog(-1, externalstoragepath);
+        if (internalstoragepath) datadir = internalstoragepath + string("/");
+        if (externalstoragepath) writedir = externalstoragepath + string("/");
+        // for some reason, the above SDL functionality doesn't actually work, we have to use the relative path only to access APK files:
+        datadir = "";
+        auxdir = writedir;
     #endif
 
-    return true;  
+    return true;
 }
 
 string SanitizePath(const char *path)
@@ -85,14 +98,71 @@ string SanitizePath(const char *path)
     return r;
 }
 
-uchar *LoadFile(const char *relfilename, size_t *len)
+/*
+uchar *LoadFileAndroid(const char *relfilename, size_t *lenret)
+{
+    // FIXME: a mode other than AASSET_MODE_BUFFER may involve less copying?
+    // FIXME: no native activity!
+    auto activity = (jobject)SDL_AndroidGetActivity();
+    auto file = AAssetManager_open(activity->assetManager, relfilename, AASSET_MODE_BUFFER);
+    if (!file) return NULL;
+    auto len = AAsset_getLength(file);
+    auto buf = (uchar *)malloc(len + 1);
+    if (!buf) { AAsset_close(file); return NULL; }
+    buf[len] = 0;
+    memcpy(buf, AAsset_getBuffer(file), len);
+    AAsset_close(file);
+    if (lenret) *lenret = len;
+    return buf;
+}
+*/
+
+uchar *LoadFilePlatform(const char *absfilename, size_t *lenret)
+{
+    #ifdef ANDROID
+        DebugLog(-1, absfilename);
+        return SDLLoadFile(absfilename, lenret);
+
+        // FIXME: apk loading not working, just stick a temp src in here for now
+        auto src = strstr(absfilename, ".lobster") ?
+            "print(gl_window(\"hypocycloid\", 1024, 768))\n"
+            "while(gl_frame()):\n"
+            "    if(gl_wentdown(\"escape\")): return\n"
+            "    gl_clear([0, 0, 0, 0])\n"
+            "    gl_translate(gl_windowsize() / 2.0)\n"
+            "    gl_scale(gl_windowsize()[1] / 4.0)\n"
+            "    scalechange := sin(gl_time() * 50) * 0.2\n"
+            "    pts := map(360 * 4 + 1) a:\n"
+            "        p := [ 0, 0 ]\n"
+            "        for(5) i:\n"
+            "            p += sincos(a / 4.0 * pow(3, i)) * pow(0.4 + scalechange, i)\n"
+            "        p\n"
+            "    gl_linemode(1):\n"
+            "        gl_polygon(pts)\n"
+            :
+            "SHADER color\n"
+            "    VERTEX\n"
+            "        INPUTS apos:4\n"
+            "        UNIFORMS mvp\n"
+            "        gl_Position = mvp * apos;\n"
+            "    PIXEL\n"
+            "        UNIFORMS col\n"
+            "        gl_FragColor = col;\n";
+        if (lenret) *lenret = strlen(src);
+        return (uchar *)strdup(src);
+    #else
+        return loadfile(absfilename, lenret);
+    #endif
+}
+
+uchar *LoadFile(const char *relfilename, size_t *lenret)
 {
     auto srfn = SanitizePath(relfilename);
-    auto f = loadfile((datadir + srfn).c_str(), len);
+    auto f = LoadFilePlatform((datadir + srfn).c_str(), lenret);
     if (f) return f;
-    f = loadfile((auxdir + srfn).c_str(), len);
+    f = LoadFilePlatform((auxdir + srfn).c_str(), lenret);
     if (f) return f;
-    return loadfile((writedir + srfn).c_str(), len);
+    return LoadFilePlatform((writedir + srfn).c_str(), lenret);
 }
 
 FILE *OpenForWriting(const char *relfilename, bool binary)
@@ -103,7 +173,7 @@ FILE *OpenForWriting(const char *relfilename, bool binary)
 void DebugLog(int lev, const char *msg)
 {
     #ifdef ANDROID
-        __android_log_print(ANDROID_LOG_ERROR, "lobster", msg)
+        __android_log_print(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN), "lobster", "%s", msg);
     #elif defined(WIN32)
         if (lev >= MINLOGLEVEL) { OutputDebugStringA("LOG: "); OutputDebugStringA(msg); OutputDebugStringA("\n"); }
     #elif defined(__IOS__)
@@ -111,6 +181,15 @@ void DebugLog(int lev, const char *msg)
         //IOSLog(msg);
     #else
         //printf("LOG: %s\n", msg)
+    #endif
+}
+
+void ProgramOutput(const char *msg)
+{
+    #ifdef ANDROID
+        DebugLog(0, msg);
+    #else
+        printf("%s\n", msg);
     #endif
 }
 

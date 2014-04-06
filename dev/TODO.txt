@@ -1,7 +1,22 @@
+- Android APK file loading?
+- make sure graphics doesn't rely on any globals anymore, otherwise restarting graphics on Android is a pain
+
+- try and build for asm.js?
+
 - supposedly on OS X error window OK button is not clickable?
 - it be nice to have shaders as strings within a lobster program? special syntax for multi-line strings?
 - way to set custom uniforms?
 - way to affect texture sampling.. nearest neighbor etc.
+
+- we could easily also allow { instead of : for blocks (with matching }), to appease the C syntax people.
+  - maybe enforce that within a file only one or the other is used?
+  - also use ; and skip indent parsing?
+  - actually, whenever a function has less parameters than desired, can allow IND to start a block without :, and maybe a different token for : after params, like ->
+
+- this gives a confusing error message if 2 and 3 line up (but not otherwise), because there's no indent:
+                    if(1 &
+                        2):
+                        3
 
 release version (alpha)
 - documentation, distribution, building on different platforms, examples, github?
@@ -428,9 +443,7 @@ NOTE: must really update all platforms at once, since they share the headers!
 each platform must copy proper config.h, then for shared include folder use original again
 
 windows:
-- in windows config make sure HAVE_LIBC is uncommented (otherwise it uses weird replacement functions)
-  also comment out HAVE_ITOA HAVE_STRTOLL HAVE_SSCANF HAVE_M_PI HAVE_COPYSIGN HAVE_SCALBN
-- in include, copy the windows cfg to cfg (keep windows version)
+- define HAVE_LIBC in sdl_config_windows.h
 - in begin_code.h, #define DECLSPEC <nothing>  (stops exe from having external refs)
 - remove tests from projects
 - change in all projects: DLL -> LIB project, DLL -> static runtime, turn off PDB generation
