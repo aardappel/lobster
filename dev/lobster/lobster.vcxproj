@@ -186,6 +186,63 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\Box2D\Box2D.h" />
+    <ClInclude Include="..\include\Box2D\Collision\b2BroadPhase.h" />
+    <ClInclude Include="..\include\Box2D\Collision\b2Collision.h" />
+    <ClInclude Include="..\include\Box2D\Collision\b2Distance.h" />
+    <ClInclude Include="..\include\Box2D\Collision\b2DynamicTree.h" />
+    <ClInclude Include="..\include\Box2D\Collision\b2TimeOfImpact.h" />
+    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2ChainShape.h" />
+    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2CircleShape.h" />
+    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2EdgeShape.h" />
+    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2PolygonShape.h" />
+    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2Shape.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2BlockAllocator.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2Draw.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2FreeList.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2GrowableStack.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2IntrusiveList.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2Math.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2Settings.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2SlabAllocator.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2StackAllocator.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2Stat.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2Timer.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2TrackedBlock.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2Body.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2ContactManager.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2Fixture.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2Island.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2TimeStep.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2World.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\b2WorldCallbacks.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndCircleContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndPolygonContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2CircleContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2Contact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ContactSolver.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndCircleContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndPolygonContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2PolygonAndCircleContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2PolygonContact.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2DistanceJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2FrictionJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2GearJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2Joint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2MotorJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2MouseJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2PrismaticJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2PulleyJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2RevoluteJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2RopeJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WeldJoint.h" />
+    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WheelJoint.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2Particle.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2ParticleGroup.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2ParticleSystem.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2StackQueue.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2VoronoiDiagram.h" />
+    <ClInclude Include="..\include\Box2D\Rope\b2Rope.h" />
     <ClInclude Include="..\src\codegen.h" />
     <ClInclude Include="..\src\disasm.h" />
     <ClInclude Include="..\src\ftinterface.h" />
@@ -212,6 +269,218 @@
     <ClInclude Include="..\src\wentropy.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\include\Box2D\Collision\b2BroadPhase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2CollideCircle.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2CollideEdge.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2CollidePolygon.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2Collision.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2Distance.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2DynamicTree.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\b2TimeOfImpact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\Shapes\b2ChainShape.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\Shapes\b2CircleShape.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\Shapes\b2EdgeShape.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Collision\Shapes\b2PolygonShape.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2BlockAllocator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2Draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2FreeList.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2Math.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2Settings.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2StackAllocator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2Stat.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2Timer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Common\b2TrackedBlock.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2Body.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2ContactManager.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2Fixture.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2Island.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2World.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\b2WorldCallbacks.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndCircleContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndPolygonContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2CircleContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2Contact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2ContactSolver.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndCircleContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndPolygonContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2PolygonAndCircleContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Contacts\b2PolygonContact.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2DistanceJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2FrictionJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2GearJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2Joint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2MotorJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2MouseJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2PrismaticJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2PulleyJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2RevoluteJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2RopeJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2WeldJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Dynamics\Joints\b2WheelJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2Particle.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2ParticleGroup.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2ParticleSystem.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2VoronoiDiagram.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Rope\b2Rope.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\lib\stb_image.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -235,6 +504,7 @@
     <ClCompile Include="..\src\lobsterreader.cpp" />
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
+    <ClCompile Include="..\src\physics.cpp" />
     <ClCompile Include="..\src\platform.cpp" />
     <ClCompile Include="..\src\sdlsystem.cpp" />
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">
@@ -253,6 +523,13 @@
     <ClCompile Include="..\src\vmdata.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\lobster\include\3dhelpers.lobster" />
+    <None Include="..\..\lobster\include\color.lobster" />
+    <None Include="..\..\lobster\include\physics.lobster" />
+    <None Include="..\..\lobster\include\std.lobster" />
+    <None Include="..\..\lobster\samples\physics_boxes.lobster" />
+    <None Include="..\..\lobster\samples\physics_water.lobster" />
+    <None Include="..\..\lobster\samples\pythtree.lobster" />
     <None Include="..\..\lobster\shaders\default.materials" />
     <None Include="..\TODO.txt" />
   </ItemGroup>

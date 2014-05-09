@@ -6,9 +6,13 @@
 *.xcodeproj/
 !*.xcodeproj/project.pbxproj
 
-/external/
 /projects/
 /material/
 /build/
+/external/
 
 /lobster/lobsterDBG.*
+
+/dev/android/assets/
+/dev/android/VS/LobsterAndroid/Tegra-Android/Debug/
+/dev/android/VS/LobsterAndroid/Tegra-Android/Release/

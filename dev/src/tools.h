@@ -492,6 +492,7 @@ template <typename T> class IntResourceManagerCompact
 {
     vector<T *> elems;
     size_t firstfree;
+	const function<void(T *e)> deletefun;
 
     bool IsFree(T *e) { return ((size_t)e) & 1; }     // free slots have their lowest bit set, and represent an index (shifted by 1)
     size_t GetIndex(T *e) { return ((size_t)e) >> 1; }
@@ -500,17 +501,22 @@ template <typename T> class IntResourceManagerCompact
 
     public:
 
-    IntResourceManagerCompact() : firstfree(-1)
+	IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(-1), deletefun(_df)
     {
         elems.push_back(NULL);  // slot 0 is permanently blocked, so can be used to denote illegal index
     }
 
     ~IntResourceManagerCompact()
     {
-        for (auto &e : elems)
-            if (!IsFree(e))
-                delete e;
+		ForEach(deletefun);
     }
+
+	void ForEach(const function<void(T *e)> &f)
+	{
+        for (auto e : elems)
+            if (!IsFree(e) && e)
+                f(e);
+	}
 
     size_t Add(T *e)
     {
@@ -540,7 +546,7 @@ template <typename T> class IntResourceManagerCompact
         if (ValidSlot(i) && i)
         {
             T *&e = elems[i];
-            if (e) delete e;
+            if (e) deletefun(e);
             e = CreateIndex(firstfree);
             firstfree = i;
         }

@@ -14,6 +14,8 @@ IntResourceManagerCompact<Mesh> *meshes = NULL;
 
 map<string, uint> texturecache;
 
+float4 curcolor = float4_0;
+
 Shader *currentshader = NULL;
 Shader *colorshader = NULL;
 
@@ -24,10 +26,15 @@ bool graphics_initialized = false;
 
 void GraphicsShutDown()  // should be safe to call even if it wasn't initialized partially or at all
 {
+	extern void CleanPhysics(); CleanPhysics();
     extern void MeshGenClear(); MeshGenClear();
     extern void FontCleanup(); FontCleanup();
 
-    if (meshes) delete meshes;   meshes = NULL;
+    if (meshes)
+	{
+		delete meshes;
+		meshes = NULL;
+	}
 
     texturecache.clear();
 
@@ -129,7 +136,7 @@ void AddGraphics()
         colorshader = LookupShader("color");
         assert(colorshader);
 
-        meshes   = new IntResourceManagerCompact<Mesh>();
+		meshes = new IntResourceManagerCompact<Mesh>([](Mesh *m) { delete m; });
 
         DebugLog(-1, "graphics fully initialized...");
         graphics_initialized = true;
@@ -334,7 +341,8 @@ void AddGraphics()
             vbuf[i].col = byte4_255;
         }
 
-        RenderArray(currentshader, polymode, vl.vval->len, "PNTC", sizeof(BasicVert), vbuf);
+		currentshader->Set();
+        RenderArray(polymode, vl.vval->len, "PNTC", sizeof(BasicVert), vbuf);
 
         delete[] vbuf;
 
@@ -353,7 +361,8 @@ void AddGraphics()
             vbuf[i] = float3(sinf(i * step + 1) * radius.fval,
                            cosf(i * step + 1) * radius.fval, 0);        // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
 
-        RenderArray(currentshader, polymode, segments.ival, "P", sizeof(float3), vbuf);
+		currentshader->Set();
+        RenderArray(polymode, segments.ival, "P", sizeof(float3), vbuf);
 
         delete[] vbuf;
 
@@ -475,7 +484,8 @@ void AddGraphics()
         tempquad_rect[ 6] = tempquad_rect[11] = v.y();
         tempquad_rect[10] = tempquad_rect[15] = v.x();
 
-        RenderArray(currentshader, polymode, 4, "PT", sizeof(float) * 5, tempquad_rect);
+		currentshader->Set();
+		RenderArray(polymode, 4, "PT", sizeof(float) * 5, tempquad_rect);
 
         return vec;
     }
@@ -491,7 +501,8 @@ void AddGraphics()
         float angle = atan2f(v2.y() - v1.y(), v2.x() - v1.x());
         float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval / 2;
 
-        RenderLine(currentshader, polymode, v1, v2, v);
+		currentshader->Set();
+        RenderLine(polymode, v1, v2, v);
 
         return Value();
     }
@@ -749,9 +760,9 @@ void AddGraphics()
         auto step = ValueDecTo<float3>(dist);
 
         auto oldcolor = curcolor;
-        curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval);
-        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) RenderLine3D(currentshader, float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval);
-        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval);
+		curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { currentshader->Set(); RenderLine3D(float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval); }
+        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) { currentshader->Set(); RenderLine3D(float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval); }
+        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) { currentshader->Set(); RenderLine3D(float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval); }
         curcolor = oldcolor;
 
         return Value();

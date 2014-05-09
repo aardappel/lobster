@@ -110,7 +110,7 @@ bool BitmapFont::CacheChars(const char *text)
 	return true;
 }
 
-void BitmapFont::RenderText(Shader *sh, const char *text)
+void BitmapFont::RenderText(const char *text)
 {
 	if (!CacheChars(text))
 		return;
@@ -152,7 +152,7 @@ void BitmapFont::RenderText(Shader *sh, const char *text)
         x += advance;
     }
 
-    RenderArray(sh, PRIM_TRIS, len * 6, "PT", sizeof(PT), vbuf, ibuf);
+    RenderArray(PRIM_TRIS, len * 6, "PT", sizeof(PT), vbuf, ibuf);
 
     delete[] ibuf;
     delete[] vbuf;

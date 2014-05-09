@@ -31,3 +31,9 @@ function camera_direction(v):
     v = normalize(v)
     camera_yaw = atan2(v) + 90  // look along Y rather than X
     camera_pitch = arcsin(-v.z)
+
+function camera_2d_worldspace(size, origin, scale):
+    gl_translate(gl_windowsize() * origin)
+    sc := gl_windowsize() / size
+    gl_scale(min(sc.x, sc.y) * scale)
+

@@ -545,12 +545,12 @@ uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
 {
     auto f = SDL_RWFromFile(absfilename, "rb");
     if (!f) return NULL;
-    int64_t len = SDL_RWseek(f, 0, RW_SEEK_END);
+    auto len = (size_t)SDL_RWseek(f, 0, RW_SEEK_END);
     SDL_RWseek(f, 0, RW_SEEK_SET);
     uchar *buf = (uchar *)malloc(len + 1);
     if (!buf) { SDL_RWclose(f); return NULL; }
     buf[len] = 0;
-    size_t rlen = SDL_RWread(f, buf, 1, len);
+    size_t rlen = (size_t)SDL_RWread(f, buf, 1, len);
     SDL_RWclose(f);
     if (len != rlen || len <= 0) { free(buf); return NULL; }
     if (lenret) *lenret = len;

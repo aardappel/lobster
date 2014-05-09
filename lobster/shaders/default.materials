@@ -7,6 +7,27 @@ SHADER color
         UNIFORMS col
         gl_FragColor = col;
 
+SHADER color_attr
+    VERTEX
+        INPUTS apos:4 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+		icol = acolor;
+    PIXEL
+        INPUTS icol:4
+        gl_FragColor = icol;
+
+SHADER color_attr_particle
+    VERTEX
+        INPUTS apos:4 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+		icol = acolor;
+    PIXEL
+        INPUTS icol:4
+        vec2 c = gl_PointCoord * 2.0 - 1.0;
+        gl_FragColor = vec4(icol.xyz, smoothstep(0.0, 1.0, 1.0 - length(c)));
+
 SHADER textured
     VERTEX
         INPUTS apos:4 atc:2
@@ -25,7 +46,6 @@ PIXELFUNCTIONS
         vec3 cameravec = normalize(camera - ipos);
         vec3 light1vec = normalize(light1 - ipos);
         vec3 halfangle1 = normalize(cameravec + light1vec);
-        //return vec4((cameravec + 1) / 2, 1);
         float NdotL = dot(nnormal, light1vec);
         float NdotC = dot(nnormal, halfangle1);
         float spec = pow(clamp(NdotC, 0.0, 1.0), 128.0);

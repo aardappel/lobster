@@ -1,0 +1,21 @@
+// Useful constants & functions to use with the built-in physics functionality (ph_)
+
+ph_waterparticle                   :== 0
+ph_zombieparticle                  :== shl(1, 1)
+ph_wallparticle                    :== shl(1, 2)
+ph_springparticle                  :== shl(1, 3)
+ph_elasticparticle                 :== shl(1, 4)
+ph_viscousparticle                 :== shl(1, 5)
+ph_powderparticle                  :== shl(1, 6)
+ph_tensileparticle                 :== shl(1, 7)
+ph_colormixingparticle             :== shl(1, 8)
+ph_destructionlistenerparticle     :== shl(1, 9)
+ph_barrierparticle                 :== shl(1, 10)
+ph_staticpressureparticle          :== shl(1, 11)
+ph_reactiveparticle                :== shl(1, 12)
+ph_repulsiveparticle               :== shl(1, 13)
+ph_fixturecontactlistenerparticle  :== shl(1, 14)
+ph_particlecontactlistenerparticle :== shl(1, 15)
+ph_fixturecontactfilterparticle    :== shl(1, 16)
+ph_particlecontactfilterparticle   :== shl(1, 17)
+

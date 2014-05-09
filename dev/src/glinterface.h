@@ -18,11 +18,17 @@ struct Shader
     void SetTextures(uint *textures); // optionally, after Set()
 };
 
-struct Surface
+struct Textured
+{
+    uint textures[Shader::MAX_SAMPLERS];
+
+	Textured();
+};
+
+struct Surface : Textured
 {
     int numidx;
     uint vboId;
-    uint textures[Shader::MAX_SAMPLERS];
     string name;
 
     Surface(int *indices, int _nidx);
@@ -84,7 +90,7 @@ struct Light
 
 
 enum BlendMode { BLEND_NONE = 0, BLEND_ALPHA, BLEND_ADD, BLEND_ADDALPHA, BLEND_MUL };
-enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP };
+enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 
 extern void OpenGLInit();
@@ -93,6 +99,7 @@ extern void Set2DMode(const int2 &screensize);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void ClearFrameBuffer(const float3 &c);
 extern int SetBlendMode(BlendMode mode);
+extern void SetPointSprite(float size);
 
 extern string LoadMaterialFile(const char *mfile);
 extern Shader *LookupShader(const char *name);
@@ -104,9 +111,9 @@ extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();
 
-extern void RenderArray(Shader *sh, Primitive prim, int count, const char *fmt, int vertsize, void *vbuf, int *ibuf = NULL);
-extern void RenderLine(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
-extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
+extern void RenderArray(Primitive prim, int count, const char *fmt, int vertsize, void *vbuf1, int *ibuf = NULL, int vertsize2 = 0, void *vbuf2 = NULL);
+extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
+extern void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
 
 extern Mesh *LoadIQM(const char *filename);
 
@@ -117,6 +124,4 @@ extern float4x4 view2object;
 extern vector<Light> lights;
 
 extern float4 curcolor;
-
-
 

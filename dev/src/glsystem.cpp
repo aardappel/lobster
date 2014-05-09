@@ -18,8 +18,6 @@ float4x4 view2object(1);
 
 vector<Light> lights;
 
-float4 curcolor = float4_0;
-
 int SetBlendMode(BlendMode mode)
 {
     static BlendMode curblendmode = BLEND_NONE;

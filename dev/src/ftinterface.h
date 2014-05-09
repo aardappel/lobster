@@ -31,7 +31,7 @@ struct BitmapFont
     ~BitmapFont();
     BitmapFont(OutlineFont *_font, int _size);
 
-    void RenderText(Shader *sh, const char *text);
+    void RenderText(const char *text);
     const int2 TextSize(const char *text);
 
 	bool CacheChars(const char *text);

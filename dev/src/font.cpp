@@ -124,7 +124,8 @@ void AddFont()
         if (curfontsize > maxfontsize) { oldobject2view = object2view; object2view *= scaling(curfontsize / float(maxfontsize)); }
 
         SetTexture(0, f->texid);
-        f->RenderText(texturedshader, s.sval->str());
+		texturedshader->Set();
+        f->RenderText(s.sval->str());
 
         if (curfontsize > maxfontsize) object2view = oldobject2view;
 
