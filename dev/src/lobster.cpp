@@ -24,6 +24,7 @@ struct Node;
 
 #include "node.h"
 #include "parser.h"
+#include "typecheck.h"
 #include "codegen.h"
 #include "disasm.h"
 
@@ -43,6 +44,8 @@ struct CompiledProgram
     {
         Parser parser(fn, st, stringsource);
         parser.Parse();
+
+        //TypeChecker tc(parser, st);
 
         if (parsedump)
         {
@@ -266,7 +269,8 @@ int main(int argc, char* argv[])
             ar->regfun();
         }
 
-        bool dump = false;
+        bool dump_ast = false;
+        bool dump_bc = false;
         bool verbose = false;
         const char *default_bcf = "default.lbc";
         const char *bcf = NULL;
@@ -279,7 +283,9 @@ int main(int argc, char* argv[])
                 case 'w': wait = true; break;
                 case 'r': DumpRegistry(argv[arg][2]); return 0;
                 case 'b': bcf = default_bcf; break;
-                case 'd': dump = true; break;
+                case 'd': if (argv[arg][2] == 'a') dump_ast = true;
+                          if (argv[arg][2] == 'b') dump_bc = true;
+                          break;
                 case 'v': verbose = true; break;
                 case 'c': forcecommandline = true; break;
                 case 'p': if (!strncmp(argv[arg], "-psn_", 5)) break;    // process identifier supplied by OS X
@@ -314,7 +320,7 @@ int main(int argc, char* argv[])
         {
             DebugLog(-1, "compiling...");
 
-            cp.Compile(StripDirPart(fn).c_str(), NULL, dump, dump, verbose);
+            cp.Compile(StripDirPart(fn).c_str(), NULL, dump_ast, dump_bc, verbose);
 
             if (bcf)
             {

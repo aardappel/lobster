@@ -43,9 +43,9 @@ These can be passed to lobster anywhere on the command line.
 -   `-v` : verbose mode, outputs additional stats about the program being
     compiled
 
--   `-d` : dumps internal representations of the program as AST and readable
-    bytecode dump. Only useful for compiler development or if you are really
-    curious.
+-   `-da` : dumps internal representations of the program as AST, and `-db` for
+    a readable bytecode dump. Only useful for compiler development or if you are
+    really curious.
 
 -   `-w` : makes the compiler wait for commandline input before it exits.
 
@@ -72,7 +72,7 @@ Additionally, if any of these folders contains an "`include`" directory, it will
 load source code from there as well.
 
 Any of the Lobster builtin commands that load data files specify paths relative
-to either the main or auxiliary directories (and either / or \\ may be used as
+to either the main or auxiliary directories (and either / or \ may be used as
 path separators). If you package up a Lobster program for distribution, in
 addition to the executable, the bytecode file and any data files referenced in
 this way, you'll need `shaders/default.materials` which is implicitly loaded by

@@ -116,7 +116,7 @@ struct CodeGen
     {
         if (f->bytecodestart > 0 || !f->ncalls) return false;
 
-        if (!f->subf->next) // single function
+        if (!f->multimethod)
         {
             f->bytecodestart = (int)code.size();
             GenScope(f->subf->body);
@@ -231,10 +231,9 @@ struct CodeGen
             case 'INT': if (retval) { Emit(IL_PUSHINT, n->integer); }; break;
             case 'FLT': if (retval) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = (float)n->flt; Emit(i2f.i); }; break; 
             case 'STR': if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str; *p; p++) Emit(*p); Emit(0); }; break;
+            case 'NIL': if (retval) { Emit(IL_PUSHNIL); break; }
 
             case 'ID':  if (retval) { Emit(IL_PUSHVAR, n->ident->idx); }; break;
-
-            case 'NIL': if (retval)   Emit(IL_PUSHNIL); break;
 
             case '.':   
                 Gen(n->a, retval);
@@ -419,10 +418,10 @@ struct CodeGen
                 else if (n->type == 'CALL')
                 {
                     auto &f = *n->a->f;
-                    genargs(f.subf->args, f.subf->next ? 0 : f.nargs);
+                    genargs(f.subf->args, f.multimethod ? 0 : f.nargs);
                     if (f.nargs != nargs) parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) + " arguments, " + string(inttoa(nargs)) + " given", n->a);
                     f.ncalls++;
-                    Emit(f.subf->next ? IL_CALLMULTI : IL_CALL, nargs, f.idx);
+                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx);
                     if (f.retvals > 1)
                     {
                         maxretvalsupplied = f.retvals;
@@ -527,6 +526,7 @@ struct CodeGen
                     assert(cn->type == ',');
                     if (cn->a->type == 'SUP')
                     {
+                        if (!superclass) parser.Error("super used in object without superclass", cn->a);
                         Gen(cn->a->a, 1);
                         Emit(IL_PUSHPARENT, superclass ? superclass->idx : -1);
                         i += superclass->fields.size();  // FIXME: not typechecking these .. 
@@ -535,7 +535,7 @@ struct CodeGen
                     {
                         Gen(cn->a, 1);
 
-                        if (struc) GenTypeCheck(struc->fields[i].first.type);
+                        if (struc) GenTypeCheck(struc->fields[i].type);
                         else GenTypeCheck(n->exptype);
 
                         Emit(IL_PUSHONCE);

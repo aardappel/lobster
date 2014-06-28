@@ -170,18 +170,26 @@ FILE *OpenForWriting(const char *relfilename, bool binary)
     return fopen((writedir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
 }
 
-void DebugLog(int lev, const char *msg)
+void DebugLog(int lev, const char *msg, ...)
 {
+    va_list args;
+    va_start(args, msg);
     #ifdef __ANDROID__
-        __android_log_print(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN), "lobster", "%s", msg);
+        __android_log_vprint(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN), "lobster", msg, args);
     #elif defined(WIN32)
-        if (lev >= MINLOGLEVEL) { OutputDebugStringA("LOG: "); OutputDebugStringA(msg); OutputDebugStringA("\n"); }
+        char buf[256];
+        vsnprintf(buf, sizeof(buf), msg, args);
+        buf[sizeof(buf) - 1] = 0;
+        OutputDebugStringA("LOG: ");
+        OutputDebugStringA(buf);
+        OutputDebugStringA("\n");
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
         //IOSLog(msg);
     #else
-        //printf("LOG: %s\n", msg)
+        if (lev >= MINLOGLEVEL) vprintf(msg, args);
     #endif
+    va_end(args);
 }
 
 void ProgramOutput(const char *msg)

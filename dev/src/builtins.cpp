@@ -213,7 +213,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL1(pop, "xs", "V", "V", "removes last element from vector and returns it");
+    ENDDECL1(pop, "xs", "V", "A", "removes last element from vector and returns it");
 
     STARTDECL(top) (Value &l)
     {
@@ -450,6 +450,7 @@ void AddBuiltins()
 
 
     STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval, b.fval)); } ENDDECL2(pow, "a,b", "FF", "F", "a raised to the power of b");
+    STARTDECL(log) (Value &a) { return Value(logf(a.fval)); } ENDDECL1(log, "a", "F", "F", "natural logaritm of a");
 
     STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval)); } ENDDECL1(sqrt, "f", "F", "F", "square root");
 
@@ -478,7 +479,7 @@ void AddBuiltins()
 
     STARTDECL(dot)       (Value &a, Value &b) { return Value(dot(ValueDecTo<float4>(a), ValueDecTo<float4>(b))); } ENDDECL2(dot,   "a,b", "VV", "F", "the length of vector a when projected onto b (or vice versa)");
     STARTDECL(magnitude) (Value &a)           { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "V", "F", "the geometric length of a vector");
-    STARTDECL(cross)     (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a).xyz(), ValueDecTo<float3>(b).xyz())); } ENDDECL2(cross, "a,b", "VV", "V", "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
+    STARTDECL(cross)     (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); } ENDDECL2(cross, "a,b", "VV", "V", "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
     STARTDECL(rnd)     (Value &a)    { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd,     "max",  "A", "A", "a random value [0..max) or a random vector from an input vector. Uses the Mersenne Twister algorithm.");
     STARTDECL(rndseed) (Value &seed) { rnd.ReSeed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "", "explicitly set a random seed for reproducable randomness");

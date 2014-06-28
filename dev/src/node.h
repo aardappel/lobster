@@ -213,7 +213,7 @@ struct Node : SlabAllocated<Node>
                 for (auto f : fstack) if (f == n->a->f) return;    // ignore recursive call
                 for (auto args = n->b; args; args = args->b) if (args->a->type == 'COCL' && n != this) return;   // coroutine constructor, don't enter
                 fstack.push_back(n->a->f);
-                if (n->a->f->subf->next) err = "multi-method call";
+                if (n->a->f->multimethod) err = "multi-method call";
                 evalblock(n->a->f->subf->body, n->b);
                 fstack.pop_back();
             }
@@ -288,8 +288,8 @@ struct Node : SlabAllocated<Node>
                 bool ml = false;
                 auto indenb = indent - (type == ',') * 2;
 
-                if (a) { as = a->Dump(indent + 2, lex); if (as[0] == ' ') ml = true; }
-                if (b) { bs = b->Dump(indenb + 2, lex); if (bs[0] == ' ') ml = true; }
+                if (a) { as = a->Dump(indent + 2, lex); DumpType(a, as); if (as[0] == ' ') ml = true; }
+                if (b) { bs = b->Dump(indenb + 2, lex); DumpType(b, bs); if (bs[0] == ' ') ml = true; }
 
                 if (as.size() + bs.size() > 60) ml = true;
 
@@ -316,6 +316,15 @@ struct Node : SlabAllocated<Node>
                     else return "(" + s + " " + as + ")";
                 }
             }
+        }
+    }
+
+    void DumpType(Node *n, string &ns)
+    {
+        if (n->exptype.t != V_UNKNOWN)
+        {
+            ns += ":";
+            ns += TypeName(n->exptype.t);
         }
     }
 };

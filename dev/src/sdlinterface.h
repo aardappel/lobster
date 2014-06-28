@@ -21,6 +21,7 @@ extern const int2 &GetFinger(int i, bool delta);
 extern UpDown GetKS(const char *name);
 extern float GetKeyTime(const char *name, int on);
 extern int2 GetKeyPos(const char *name, int on);
+extern float GetJoyAxis(int i);
 
 extern float SDLTime();
 extern float SDLDeltaTime();

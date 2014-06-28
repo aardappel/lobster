@@ -11,7 +11,7 @@ extern string SanitizePath(const char *path);
 // logging:
 
 #define MINLOGLEVEL 0  // -1 = location trace, 0 = information, 1 = important
-extern void DebugLog(int lev, const char *msg);
+extern void DebugLog(int lev, const char *msg, ...);
 extern void ProgramOutput(const char *msg);
 
 extern void MsgBox(const char *err);

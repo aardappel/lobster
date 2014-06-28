@@ -255,7 +255,7 @@ struct Parser
                     for (auto &fld : base.fields)
                     {
                         struc.fields.push_back(fld);
-                        fld.second->NewFieldUse(FieldOffset(struc.idx, off++));
+                        fld.sf->NewFieldUse(FieldOffset(struc.idx, off++));
                     }
 
                     fieldid = base.fields.size();
@@ -268,7 +268,7 @@ struct Parser
                 for (auto ids = v; ids; ids = ids->b)
                 {
                     assert (ids->a->type == 'FLD');
-                    struc.fields.push_back(make_pair(UniqueField(ids->a->exptype), ids->a->fld));
+                    struc.fields.push_back(UniqueField(ids->a->exptype, ids->a->fld));
                 }
 
                 currentstruct = NULL;
@@ -341,8 +341,12 @@ struct Parser
         auto nargs = CountList(args);
         auto &f = st.FunctionDecl(idname, nargs, lex);
         
-        if (isprivate != f.isprivate && f.subf)
-            Error("inconsistent private annotation of multiple function implementations for " + idname);
+        if (f.subf)
+        {
+            f.multimethod = true;
+            if (isprivate != f.isprivate)
+                Error("inconsistent private annotation of multiple function implementations for " + idname);
+        }
         f.isprivate = isprivate;
         
         SubFunction *sf = new SubFunction(&f);
@@ -432,7 +436,8 @@ struct Parser
         Node *arg = ParseExp();
 
         CheckArg(nargs, thisarg, fname);
-        if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL) arg = new Node(lex, '{}', NULL, new Node(lex, ',', arg));
+        if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
+            arg = new Node(lex, '{}', NULL, new Node(lex, ',', arg));
 
         return new Node(lex, ';', arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
     }

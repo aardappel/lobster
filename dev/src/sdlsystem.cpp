@@ -56,6 +56,9 @@ bool cursor = true;
 bool landscape = true;
 bool minimized = false;
 
+const int MAXAXES = 8;
+float joyaxes[MAXAXES] = { 0 };
+
 struct Finger
 {
     SDL_FingerID id;
@@ -121,6 +124,11 @@ const int2 &GetFinger(int i, bool delta)
 {
     auto &f = fingers[max(min(i, MAXFINGERS - 1), 0)];
     return delta ? f.mousedelta : f.mousepos;
+}
+
+float GetJoyAxis(int i)
+{
+    return joyaxes[max(min(i, MAXAXES - 1), 0)];
 }
 
 int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et, const int2 &screensize)
@@ -203,7 +211,8 @@ int SDLHandleAppEvents(void *userdata, SDL_Event *event)
 
 string SDLInit(const char *title, int2 &screensize)
 {
-    if (SDL_Init(SDL_INIT_VIDEO/* | SDL_INIT_AUDIO*/) < 0)
+    //SDL_SetMainReady();
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0)
     {
         return SDLError("Unable to initialize SDL");
     }
@@ -307,6 +316,17 @@ string SDLInit(const char *title, int2 &screensize)
     #ifndef __IOS__
         SDL_GL_SetSwapInterval(1);  // vsync on
     #endif
+
+    SDL_JoystickEventState(SDL_ENABLE);
+    SDL_JoystickUpdate();
+    for(int i = 0; i < SDL_NumJoysticks(); i++)
+    {
+        SDL_Joystick *joy;
+        if (joy = SDL_JoystickOpen(i))
+        {
+            DebugLog(-1, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)\n", SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy), SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
+        };
+    };
 
     starttime = SDL_GetTicks();
     lastmillis = starttime - 16;    // ensure first frame doesn't get a crazy delta
@@ -430,6 +450,28 @@ bool SDLFrame(int2 &screensize)
 
         #endif
 
+        case SDL_JOYAXISMOTION:
+        {
+            const int deadzone = 800; // FIXME
+            if (event.jaxis.axis < MAXAXES)
+            {
+                joyaxes[event.jaxis.axis] = abs(event.jaxis.value) > deadzone ? event.jaxis.value / (float)0x8000 : 0;
+            };
+            break;
+        }
+
+        case SDL_JOYHATMOTION:
+            break;
+
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+        {
+            string name = "joy";
+            name += '0' + (char)event.jbutton.button;
+            updatebutton(name, event.jbutton.state == SDL_PRESSED, 0);
+            break;
+        }
+
         case SDL_WINDOWEVENT:
             switch (event.window.event)
             {
@@ -490,6 +532,7 @@ UpDown GetKS(const char *name)
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return UpDown();
     #if defined(__IOS__) || defined(__ANDROID__)    // delayed results by one frame, that way they get 1 frame over finger hovering over target, which makes gl_hit work correctly
+        // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching, and make that into a special case inside gl_hit
         return ks->second.lastframe;
     #else
         return ks->second;

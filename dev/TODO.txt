@@ -1,3 +1,10 @@
+- typechecker
+  * make sure no incorrect types are stored in exptype
+  * for function call nodes, as spec as to which subf they call, or none in specific
+  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
+    * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
+
+
 - Android APK file loading?
 - make sure graphics doesn't rely on any globals anymore, otherwise restarting graphics on Android is a pain
 
@@ -82,10 +89,6 @@ refactor:
     - special bytecodes for common loop constructs etc.
     - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build easily
       a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++ optimizer can inline/simplify a lot of the simpler ops
-
-- typechecker
-  * make sure no incorrect types are stored in exptype
-  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
 
 - when running with no args (trying to load a .lbc), current dir should be aux dir when running from commandline
 

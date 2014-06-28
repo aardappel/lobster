@@ -5,7 +5,11 @@
 // vec: supports 2..4 components of any numerical type
 
 // compile time unrolled loops for 2..4 components
-#define DOVEC(F)  { int i = 0; F; ++i; F; if (N > 2) { ++i; F; if (N > 3) { ++i; F; } } }   
+#define DOVEC(F)  { const int i = 0; F; \
+                  { const int i = 1; F; if (N > 2) \
+                  { const int i = 2; F; if (N > 3) \
+                  { const int i = 3; F; } } } }
+
 #define DOVECR(F) { vec<T,N> _t; DOVEC(_t.set(i, F)); return _t; }
 
 union int2float { int i; float f; };

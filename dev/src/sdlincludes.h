@@ -19,4 +19,7 @@
     #endif
 #endif
 #define _SDL_config_h
+//#define SDL_MAIN_HANDLED
 #include "SDL.h"
+//#include "SDL_main.h"
+

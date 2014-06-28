@@ -6,8 +6,9 @@
 include "vec.lobster"
 
 camera_position := vec_0
-camera_yaw := 0
-camera_pitch := 0
+camera_yaw := 0.0
+camera_pitch := 0.0
+camera_velocity := vec_0
 
 function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
     camera_yaw  += gl_mousedelta(0).x / mousesens
@@ -17,7 +18,11 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     
     move   := gl_isdown(upkey) - gl_isdown(downkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
-    camera_position += vecfromyawpitch(camera_yaw, camera_pitch, move, strafe) * gl_deltatime() * movementspeed
+    friction := 20
+    velspeed := friction * gl_deltatime()
+    dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
+    camera_velocity = lerp(camera_velocity, dir, velspeed)
+    camera_position += camera_velocity * gl_deltatime() * movementspeed
 
 function camera_FPS_view():    
     gl_rotate_x(90) // 90: look forward rather than down

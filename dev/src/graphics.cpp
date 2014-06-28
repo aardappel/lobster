@@ -281,6 +281,12 @@ void AddGraphics()
     }
     ENDDECL0(gl_mousewheeldelta, "", "", "I", "amount the mousewheel scrolled this frame, in number of notches");
 
+    STARTDECL(gl_joyaxis) (Value &i)
+    {
+        return Value(GetJoyAxis(i.ival));
+    }
+    ENDDECL1(gl_joyaxis, "i", "I", "F", "the current joystick orientation for axis i, as -1 to 1 value");
+
     STARTDECL(gl_deltatime) ()
     {
         return Value(SDLDeltaTime());
