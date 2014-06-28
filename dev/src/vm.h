@@ -1018,8 +1018,11 @@ struct VM : VMBase
                     break;
 
                 case IL_LOGREAD:
-                    PUSH(vml.LogGet(POP(), *ip++));
+                {
+                    auto val = POP();
+                    PUSH(vml.LogGet(val, *ip++));
                     break;
+                }
 
                 default:
                     Error(string("bytecode format problem: ") + inttoa(opc));

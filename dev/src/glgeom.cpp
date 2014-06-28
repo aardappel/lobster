@@ -122,9 +122,15 @@ Mesh::~Mesh()
 
 void SetPointSprite(float size)
 {
-    glEnable(GL_POINT_SPRITE);
-    glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-    glPointSize(size);
+    #if defined(__IOS__) || defined(__ANDROID__)
+        // glEnable(GL_POINT_SPRITE_OES);
+        // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
+        //glPointSize(size); // FIXME: set thru uniform
+    #else
+        glEnable(GL_POINT_SPRITE);
+        glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+        glPointSize(size);
+    #endif
 }
 
 GLenum GetPrimitive(Primitive prim)

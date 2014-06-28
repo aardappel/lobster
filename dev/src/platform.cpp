@@ -20,7 +20,7 @@
 #endif
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include <android/log.h>
 #include <android/asset_manager.h>
 // FIXME:
@@ -70,7 +70,7 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
                 writedir = datadir; // FIXME: this should probably be ~/Library/Application Support/AppName, but for now this works for non-app store apps
             #endif
         }
-    #elif defined(ANDROID)
+    #elif defined(__ANDROID__)
         SDL_Init(0); // FIXME, is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
@@ -119,7 +119,7 @@ uchar *LoadFileAndroid(const char *relfilename, size_t *lenret)
 
 uchar *LoadFilePlatform(const char *absfilename, size_t *lenret)
 {
-    #ifdef ANDROID
+    #ifdef __ANDROID__
         DebugLog(-1, absfilename);
         return SDLLoadFile(absfilename, lenret);
 
@@ -172,7 +172,7 @@ FILE *OpenForWriting(const char *relfilename, bool binary)
 
 void DebugLog(int lev, const char *msg)
 {
-    #ifdef ANDROID
+    #ifdef __ANDROID__
         __android_log_print(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN), "lobster", "%s", msg);
     #elif defined(WIN32)
         if (lev >= MINLOGLEVEL) { OutputDebugStringA("LOG: "); OutputDebugStringA(msg); OutputDebugStringA("\n"); }
@@ -186,7 +186,7 @@ void DebugLog(int lev, const char *msg)
 
 void ProgramOutput(const char *msg)
 {
-    #ifdef ANDROID
+    #ifdef __ANDROID__
         DebugLog(0, msg);
     #else
         printf("%s\n", msg);
@@ -196,6 +196,7 @@ void ProgramOutput(const char *msg)
 void MsgBox(const char *err)
 {
     #if defined(__APPLE__) && !defined(__IOS__)
+        // FIXME: this code should never be run when running from command line
         DialogRef alertDialog;
         CFStringRef sr = //CFStringCreateWithCharacters(NULL, err, strlen(err));
         CFStringCreateWithCString(kCFAllocatorDefault, err, ::GetApplicationTextEncoding());

@@ -8,7 +8,7 @@
         #include "SDL_config_macosx.h"
     #endif
 #else
-    #ifdef ANDROID
+    #ifdef __ANDROID__
         #include "SDL_config_android.h"
     #else
         #ifdef WIN32

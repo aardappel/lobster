@@ -11,7 +11,7 @@
     #define NOMINMAX
     #include <windows.h>
 #else
-    #ifndef ANDROID
+    #ifndef __ANDROID__
         #include <glob.h>
     #endif
     #include <sys/types.h>
@@ -61,7 +61,7 @@ void AddFileOps()
         FindClose(fh);
         return Value(list);
 
-        #elif !defined(ANDROID)
+        #elif !defined(__ANDROID__)
 
         glob_t gl;
         string mask = folder + "/*";

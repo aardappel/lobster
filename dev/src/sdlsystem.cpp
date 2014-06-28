@@ -219,7 +219,7 @@ string SDLInit(const char *title, int2 &screensize)
     //if (!sfxr_init())
     //   return SDLError("Unable to initialize audio");
 
-    #if defined(__IOS__) || defined(ANDROID)
+    #if defined(__IOS__) || defined(__ANDROID__)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     #else
     //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
@@ -240,7 +240,7 @@ string SDLInit(const char *title, int2 &screensize)
 
     DebugLog(-1, "SDL about to figure out display mode...");
 
-    #if defined(__IOS__) || defined(ANDROID)
+    #if defined(__IOS__) || defined(__ANDROID__)
     landscape = screensize.x() >= screensize.y();
     int modes = SDL_GetNumDisplayModes(0);
     screensize = int2(0);
@@ -276,7 +276,7 @@ string SDLInit(const char *title, int2 &screensize)
         assert(actualscreensize == screensize);
         screensize = actualscreensize;
     #else
-        screensize = actualscreensize;  // ANDROID
+        screensize = actualscreensize;  // __ANDROID__
         DebugLog(-1, inttoa(screensize.x()));
         DebugLog(-1, inttoa(screensize.y()));
     #endif
@@ -368,7 +368,7 @@ bool SDLFrame(int2 &screensize)
             break;
         }
 
-        #if defined(__IOS__) || defined(ANDROID)
+        #if defined(__IOS__) || defined(__ANDROID__)
 
         // FIXME: if we're in cursor==0 mode, only update delta, not position
         case SDL_FINGERDOWN:
@@ -489,7 +489,7 @@ UpDown GetKS(const char *name)
 {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return UpDown();
-    #if defined(__IOS__) || defined(ANDROID)    // delayed results by one frame, that way they get 1 frame over finger hovering over target, which makes gl_hit work correctly
+    #if defined(__IOS__) || defined(__ANDROID__)    // delayed results by one frame, that way they get 1 frame over finger hovering over target, which makes gl_hit work correctly
         return ks->second.lastframe;
     #else
         return ks->second;

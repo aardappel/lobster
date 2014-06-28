@@ -46,7 +46,7 @@ void GraphicsShutDown()  // should be safe to call even if it wasn't initialized
     SDLShutdown();
 
     // we don't set this to false on most platforms, as currently SDL doesn't like being reinitialized
-    #ifdef ANDROID
+    #ifdef __ANDROID__
         // FIXME: really only allow this if the app has been killed
         graphics_initialized = false;
     #endif

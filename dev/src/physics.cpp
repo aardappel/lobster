@@ -172,7 +172,11 @@ void AddPhysicsOps()
 		auto &body = GetBody(other_id, position);
 		b2PolygonShape shape;
 		auto verts = new b2Vec2[vertices.vval->len];
-        for (int i = 0; i < vertices.vval->len; i++) verts[i] = *(b2Vec2 *)&ValueTo<float2>(vertices.vval->at(i));
+    for (int i = 0; i < vertices.vval->len; i++)
+    {
+        auto vert = ValueTo<float2>(vertices.vval->at(i));
+        verts[i] = *(b2Vec2 *)&vert;
+    }
 		shape.Set(verts, vertices.vval->len);
 		delete[] verts;
 		vertices.DECRT();
@@ -276,7 +280,6 @@ void AddPhysicsOps()
 			for (b2Fixture *fixture = body->GetFixtureList(); fixture; fixture = fixture->GetNext())
 			{
 				auto shapetype = fixture->GetType();
-				int numverts = 0;
 				auto r = (Renderable *)fixture->GetUserData();
 				curcolor = r->color;
 				r->Set();
@@ -286,7 +289,7 @@ void AddPhysicsOps()
 					{
 						auto polyshape = (b2PolygonShape *)fixture->GetShape();
 						RenderArray(PRIM_FAN, polyshape->m_count, "pn", sizeof(b2Vec2), polyshape->m_vertices, NULL, 
-							                                            sizeof(b2Vec2), polyshape->m_normals);
+							                                              sizeof(b2Vec2), polyshape->m_normals);
 						break;
 					}
 					case b2Shape::e_circle:
@@ -307,6 +310,7 @@ void AddPhysicsOps()
 					}
 					case b2Shape::e_edge:
 					case b2Shape::e_chain:
+          case b2Shape::e_typeCount:
 						assert(0);
 						break;
 				}
@@ -326,7 +330,7 @@ void AddPhysicsOps()
         //DebugLog(1, (string("rendering particles: ") + inttoa(particlesystem->GetParticleCount())).c_str());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
-        auto scale = abs(object2view[0].x());
+        auto scale = fabs(object2view[0].x());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval);
         particlematerial->Set();
         RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, NULL, sizeof(byte4), colors);
