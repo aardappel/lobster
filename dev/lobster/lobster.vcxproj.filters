@@ -290,6 +290,12 @@
     <ClInclude Include="..\include\Box2D\Box2D.h">
       <Filter>engine\physics\Box2D</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\Box2D\Common\b2GrowableBuffer.h">
+      <Filter>engine\physics\Box2D</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Box2D\Particle\b2ParticleAssembly.h">
+      <Filter>engine\physics\Box2D</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lobster.cpp">
@@ -516,6 +522,9 @@
     </ClCompile>
     <ClCompile Include="..\src\physics.cpp">
       <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2ParticleAssembly.cpp">
+      <Filter>engine\physics\Box2D</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

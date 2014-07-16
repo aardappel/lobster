@@ -200,6 +200,7 @@
     <ClInclude Include="..\include\Box2D\Common\b2BlockAllocator.h" />
     <ClInclude Include="..\include\Box2D\Common\b2Draw.h" />
     <ClInclude Include="..\include\Box2D\Common\b2FreeList.h" />
+    <ClInclude Include="..\include\Box2D\Common\b2GrowableBuffer.h" />
     <ClInclude Include="..\include\Box2D\Common\b2GrowableStack.h" />
     <ClInclude Include="..\include\Box2D\Common\b2IntrusiveList.h" />
     <ClInclude Include="..\include\Box2D\Common\b2Math.h" />
@@ -238,6 +239,7 @@
     <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WeldJoint.h" />
     <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WheelJoint.h" />
     <ClInclude Include="..\include\Box2D\Particle\b2Particle.h" />
+    <ClInclude Include="..\include\Box2D\Particle\b2ParticleAssembly.h" />
     <ClInclude Include="..\include\Box2D\Particle\b2ParticleGroup.h" />
     <ClInclude Include="..\include\Box2D\Particle\b2ParticleSystem.h" />
     <ClInclude Include="..\include\Box2D\Particle\b2StackQueue.h" />
@@ -463,6 +465,9 @@
     </ClCompile>
     <ClCompile Include="..\include\Box2D\Particle\b2Particle.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\Box2D\Particle\b2ParticleAssembly.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\include\Box2D\Particle\b2ParticleGroup.cpp">
