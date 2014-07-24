@@ -20,7 +20,7 @@
 
 #include "sdlincludes.h"
 
-#ifdef WIN32
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 #define GLEXT(type, name) type name = NULL;
 GLBASEEXTS GLEXTS
 #undef GLEXT
@@ -101,7 +101,7 @@ void OpenGLInit()
     //if (!strstr(exts, "GL_ARB_shading_language_100") || !strstr(exts, "GL_ARB_shader_objects") || !strstr(exts, "GL_ARB_vertex_shader") || !strstr(exts, "GL_ARB_fragment_shader")) throw string("no GLSL!");
     #endif
 
-    #ifdef WIN32
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
     #define GLEXT(type, name) name = (type)SDL_GL_GetProcAddress(#name); if (!name) throw string("no " #name);
     GLBASEEXTS GLEXTS
     #undef GLEXT

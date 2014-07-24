@@ -66,7 +66,7 @@ About Lobster
 Lobster was designed and implemented by Wouter van Oortmerssen (aardappel at
 gmail dot com / strlen.com).
 
-It has been released under the ZLIB open source licence.
+It has been released under the Apache v2 open source licence.
 
 Read about the [design philosophy, history and future][11].
 
