@@ -19,7 +19,7 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     move   := gl_isdown(upkey) - gl_isdown(downkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
     friction := 20
-    velspeed := friction * gl_deltatime()
+    velspeed := min(1, friction * gl_deltatime())
     dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed

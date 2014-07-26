@@ -1,6 +1,7 @@
 // a minecraft clone in very few lines of code
 // implements random world generation, rendering, and mining/building of blocks
 // created in response to https://github.com/fogleman/Minecraft (which is 10x bigger in code)
+// NOTE: this code is seriously inefficient, it was written for small size only. Don't use this as a base to write a minecraft clone.
 
 include "std.lobster"
 include "vec.lobster"
