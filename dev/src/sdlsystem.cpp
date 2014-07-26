@@ -223,7 +223,7 @@ int SDLHandleAppEvents(void *userdata, SDL_Event *event)
     }
 }
 
-string SDLInit(const char *title, int2 &screensize)
+string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 {
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0)
@@ -307,7 +307,7 @@ string SDLInit(const char *title, int2 &screensize)
     _sdl_window = SDL_CreateWindow(title,
                                     SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                     screensize.x(), screensize.y(),
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
 
     if (!_sdl_window)

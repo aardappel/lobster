@@ -125,13 +125,13 @@ int GetSampler(Value &i)
 
 void AddGraphics()
 {
-    STARTDECL(gl_window) (Value &title, Value &xs, Value &ys)
+    STARTDECL(gl_window) (Value &title, Value &xs, Value &ys, Value &fullscreen)
     {
         if (graphics_initialized)
             g_vm->BuiltinError("cannot call gl_window() twice");
 
         screensize = int2(xs.ival, ys.ival);
-        string err = SDLInit(title.sval->str(), screensize);
+        string err = SDLInit(title.sval->str(), screensize, fullscreen.ival != 0);
         title.DECRT();
 
         if (err.empty())
@@ -157,7 +157,7 @@ void AddGraphics()
 
         return Value(0, V_NIL);
     }
-    ENDDECL3(gl_window, "title,xs,ys", "SII", "A", "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
+    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIIi", "A", "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
 
     STARTDECL(gl_loadmaterials) (Value &fn)
     {

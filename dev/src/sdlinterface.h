@@ -14,7 +14,7 @@
 
 // simple interface for SDL (that doesn't depend on its headers)
 
-extern string SDLInit(const char *title, int2 &screensize);
+extern string SDLInit(const char *title, int2 &screensize, bool fullscreen);
 extern bool SDLFrame(int2 &screensize);
 extern void SDLShutdown();
 extern void SDLTitle(const char *title);
