@@ -43,12 +43,6 @@ int KeyCompare(const Value &a, const Value &b, bool rec = false)
 
 void AddBuiltins()
 {
-    STARTDECL(add) (Value &x, Value &y)
-    {
-        return Value(x.ival + y.ival);
-    }
-    ENDDECL2(add, "x,y", "II", "I", "adds two integers.");
-
     STARTDECL(print) (Value &a)
     {
         ProgramOutput(a.ToString(g_vm->programprintprefs).c_str());
@@ -173,7 +167,7 @@ void AddBuiltins()
     {
         BLOOP(Value(false), { assert(accum.type == V_INT); if (lv.True()) { iter.DEC(); g_vm->Push(lv); return Value(false); }; lv.DEC(); });
     }
-    ENDDECL2LOOP(exists, "iter,body", "AC", "I", "iterates over int/vector/string, body may take [ element [ , index ] ] arguments, returns first element where body returns true, else false");
+    ENDDECL2LOOP(exists, "iter,body", "AC", "I", "iterates over int/vector/string, body may take [ element [ , index ] ] arguments, returns true upon first element where body returns true, else false");
 
     STARTDECL(map) (Value &iter, Value &body)
     {
@@ -391,7 +385,36 @@ void AddBuiltins()
         l.DECRT();
         return Value(ns);
     }
-    ENDDECL3(substring, "s,start,size", "SII", "S", "returns a substring of size characters from index start. start & size can be negative to indicate an offset from the string length.");
+    ENDDECL3(substring, "s,start,size", "SII", "S", 
+        "returns a substring of size characters from index start."
+        " start & size can be negative to indicate an offset from the string length.");
+
+    STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace)
+    {
+        auto v = g_vm->NewVector(0, V_VECTOR);
+        auto ws = whitespace.sval->str();
+        auto dl = delims.sval->str();
+        auto p = s.sval->str();
+        p += strspn(p, ws);
+        auto strspn1 = [](char c, const char *set) { while (*set) if (*set == c) return 1; return 0; };
+        while (*p)
+        {
+            auto delim = p + strcspn(p, dl);
+            auto end = delim;
+            while (end > p && strspn1(end[-1], ws)) end--;
+            v->push(g_vm->NewString(p, end - p));
+            p = delim + strspn(delim, dl);
+            p += strspn(p, ws);
+        }
+        s.DECRT();
+        delims.DECRT();
+        whitespace.DECRT();
+        return Value(v);
+    }
+    ENDDECL3(tokenize, "s,delimiters,whitespace", "SSS", "V",
+        "splits a string into a vector of strings, by splitting into segments upon each dividing or terminating delimiter."
+        " segments are stripped of leading and trailing whitespace."
+        " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and \" \" as whitespace." );
 
     STARTDECL(unicode2string) (Value &v)
     {

@@ -33,8 +33,8 @@ struct Node : SlabAllocated<Node>
     union
     {
         struct { Node *a, *b;      }; // default
-        int integer;                 // 'INT'
-        double flt;                  // 'FLT'
+        int integer;                  // 'INT'
+        double flt;                   // 'FLT'
         struct { char *str;        }; // 'STR'
 
         struct { Name *n;          }; // 'ID' | 'ST' | 'FLD' | 'FN'

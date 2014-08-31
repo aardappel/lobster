@@ -322,8 +322,8 @@ struct Lex : LoadedFile
                     sattr = string(tokenstart, p);
                     // add any new keywords also to TokStr below
                     if      (sattr == "nil")       token = 'NIL';
-                    else if (sattr == "true")      { token = 'INT'; sattr = "1"; }
-                    else if (sattr == "false")     { token = 'INT'; sattr = "0"; }
+                    else if (sattr == "true")    { token = 'INT'; sattr = "1"; }
+                    else if (sattr == "false")   { token = 'INT'; sattr = "0"; }
                     else if (sattr == "return")    token = 'RET'; 
                     else if (sattr == "struct")    token = 'TYPE'; 
                     else if (sattr == "value")     token = 'VALU';

@@ -7,6 +7,7 @@
 - the "ERROR: XAudio2: XAudio2Create() failed at initialization" is apparently happening on all sorts of cheap laptops, including Win7 & 8. SDL folk don't seem to want to fix, it, maybe I should
 
 
+
 - Android APK file loading?
 - make sure graphics doesn't rely on any globals anymore, otherwise restarting graphics on Android is a pain
 
@@ -26,6 +27,8 @@
                     if(1 &
                         2):
                         3
+
+- add a simple string2number function. There's already parsedata which covers everything, but it's a bit heavyweight?
 
 release version (alpha)
 - documentation, distribution, building on different platforms, examples, github?
