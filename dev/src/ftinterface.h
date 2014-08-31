@@ -21,13 +21,13 @@ struct OutlineFont
     void *fthandle;
     void *fbuf;
 
-	map<int, int> unicodemap;
-	vector<int> unicodetable;
+    map<int, int> unicodemap;
+    vector<int> unicodetable;
 
     OutlineFont(void *fth, void *fb) : fthandle(fth), fbuf(fb) {}
     ~OutlineFont();
 
-	bool EnsureCharsPresent(const char *utf8str);
+    bool EnsureCharsPresent(const char *utf8str);
 };
 
 struct BitmapFont
@@ -38,9 +38,9 @@ struct BitmapFont
     size_t texh, texw;
     int usedcount;
 
-	int size;
+    int size;
 
-	OutlineFont *font;
+    OutlineFont *font;
 
     ~BitmapFont();
     BitmapFont(OutlineFont *_font, int _size);
@@ -48,7 +48,7 @@ struct BitmapFont
     void RenderText(const char *text);
     const int2 TextSize(const char *text);
 
-	bool CacheChars(const char *text);
+    bool CacheChars(const char *text);
 };
 
 extern OutlineFont *LoadFont(const char *name);

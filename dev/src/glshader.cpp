@@ -170,9 +170,17 @@ string LoadMaterialFile(const char *mfile)
                     word();
                     if (last.empty()) break;
                     auto pos = strstr(last.c_str(), ":");
-                    if (!pos) { err = "input " + last + " doesn't specify number of components, e.g. anormal:3"; goto out; }
+                    if (!pos)
+                    {
+                        err = "input " + last + " doesn't specify number of components, e.g. anormal:3";
+                        goto out;
+                    }
                     int comp = atoi(pos + 1);
-                    if (comp <= 0 || comp > 4) { err = "input " + last + " can only use 1..4 components"; goto out; }
+                    if (comp <= 0 || comp > 4)
+                    {
+                        err = "input " + last + " can only use 1..4 components";
+                        goto out;
+                    }
                     last = last.substr(0, pos - last.c_str());
                     string d = string(" vec") + inttoa(comp) + " " + last + ";\n";
                     if (accum == &vertex) vdecl += "attribute" + d;
@@ -205,8 +213,10 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     program = glCreateProgram();
 
     string err;
-    vs = CompileGLSLShader(GL_VERTEX_SHADER,   program, vscode, err); if (!vs) return string("couldn't compile vertex shader: ") + name + "\n" + err;
-    ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err); if (!ps) return string("couldn't compile pixel shader: ") + name + "\n" + err;
+    vs = CompileGLSLShader(GL_VERTEX_SHADER,   program, vscode, err);
+    if (!vs) return string("couldn't compile vertex shader: ") + name + "\n" + err;
+    ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
+    if (!ps) return string("couldn't compile pixel shader: ") + name + "\n" + err;
 
     glBindAttribLocation(program, 0, "apos");
     glBindAttribLocation(program, 1, "anormal");

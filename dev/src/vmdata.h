@@ -27,7 +27,8 @@ struct PrintPrefs
     int decimals;
     int cycles;
 
-    PrintPrefs(int _depth, int _budget, bool _quoted, int _decimals) : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1) {}
+    PrintPrefs(int _depth, int _budget, bool _quoted, int _decimals)
+        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1) {}
 };
 
 struct VMBase
@@ -76,7 +77,8 @@ enum ValueType
     V_FUNCTION,
     V_NIL,
     V_UNKNOWN,          // meaning either uninitialized or any of the above
-    V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,   // used in function calling, if they appear as a value in a program, that's a bug
+    // used in function calling, if they appear as a value in a program, that's a bug
+    V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
     V_MAXVMTYPES
 };
@@ -424,7 +426,9 @@ struct CoRoutine : RefObj
     int *varip;
     CoRoutine *parent;
 
-    CoRoutine(int _ss, int *_rip, int *_vip, CoRoutine *_p) : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(NULL), stackcopylen(0), stackcopymax(0), returnip(_rip), varip(_vip), parent(_p) {}
+    CoRoutine(int _ss, int *_rip, int *_vip, CoRoutine *_p)
+        : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(NULL), stackcopylen(0), stackcopymax(0),
+          returnip(_rip), varip(_vip), parent(_p) {}
 
     Value &Current()
     {
@@ -471,7 +475,8 @@ struct CoRoutine : RefObj
         parent = p;
 
         stackstart = top;
-        memcpy(stack + top, stackcopy, stackcopylen * sizeof(Value));   // FIXME: assume that it fits, which is not guaranteed with recursive coros
+        // FIXME: assume that it fits, which is not guaranteed with recursive coros
+        memcpy(stack + top, stackcopy, stackcopylen * sizeof(Value));
         return stackcopylen;
     }
 
@@ -494,10 +499,15 @@ struct CoRoutine : RefObj
 
         // FIXME: we can probably make it work without this search, but for now no big deal
         for (int i = 1; i <= *varip; i++)
+        {
             if (varip[i] == ididx)
-                return stackcopy[stackcopylen - *varip + i - 1 - 1]; // -1 because of i's base, -1 because of retval on top of stack
-        
-        // this one should be really rare, since parser already only allows lexically contained vars for that function, could happen when accessing var that's not in the callchain of yields
+            {
+                // -1 because of i's base, -1 because of retval on top of stack
+                return stackcopy[stackcopylen - *varip + i - 1 - 1];
+            }
+        }
+        // this one should be really rare, since parser already only allows lexically contained vars for that function,
+        // could happen when accessing var that's not in the callchain of yields
         g_vm->BuiltinError("local variable being accessed is not part of coroutine state");
         return *stackcopy;
     }

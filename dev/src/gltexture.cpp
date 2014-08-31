@@ -76,6 +76,7 @@ void SetTexture(uint textureunit, uint id)
     glBindTexture(GL_TEXTURE_2D, id);
 }
 
-int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }   // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
+// from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
+int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
 
 

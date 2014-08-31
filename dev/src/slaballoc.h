@@ -22,8 +22,8 @@ It acquires new blocks by allocating a page from the system, and subdividing tha
 which it then adds to the bucket all at once.
 
 Each page has a page header that keeps track of how much of the page is in use. The allocator can access the page header
-from any memory block because pages are allocated aligned to their sizes (by clearing the lower bits of any pointer therein).
-To do this alignment, many pages at once are allocated from the system, which wastes 1 page on alignment,
+from any memory block because pages are allocated aligned to their sizes (by clearing the lower bits of any pointer
+therein). To do this alignment, many pages at once are allocated from the system, which wastes 1 page on alignment,
 currently representing 1% of memory.
 
 because each page tracks the amount of blocks in use, the moment any page becomes empty, it will remove all blocks
@@ -38,9 +38,11 @@ There aren't a lot of realistic worst cases for this allocator. To achieve a hyp
   that would create maximum waste.)
 - never use objects of size N again after this.
 
-This allocator can offer major cache advantages, because objects of the same type are often allocated closer to eachother.
+This allocator can offer major cache advantages, because objects of the same type are often allocated closer to
+eachother.
 
-alloc/dealloc do NOT store the size of the object, for a savings of size_t per object. This assumes you know the size of the object when deallocating.
+alloc/dealloc do NOT store the size of the object, for a savings of size_t per object.
+This assumes you know the size of the object when deallocating.
 alloc_sized/dealloc_sized instead do store the size, if a more drop-in replacement for malloc/free is desired.
 
 */
@@ -55,15 +57,16 @@ class SlabAlloc
     // tweakables:
     enum { MAXBUCKETS = 32 };   // must be ^2.
                                 // lower means more blocks have to go thru the traditional allocator (slower)
-                                // higher means you may get pages with only few allocs of that unique size (memory wasted)
-                                // on 32bit, 32 means all allocations <= 256 bytes go into buckets (in increments of 8 bytes each)
+                                // higher means you may get pages with only few allocs of that unique size
+                                // (memory wasted) on 32bit, 32 means all allocations <= 256 bytes go into buckets
+                                // (in increments of 8 bytes each)
     enum { PAGESATONCE = 101 }; // depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZEF
                                 // You will waste 1 page to alignment
                                 // with MAXBUCKETS at 32 on a 32bit system, PAGESIZEF is 2048, so this is 202k
 
     // derived:
-    enum { PTRBITS = sizeof(char *)==4 ? 2 : 3 };  // "64bit should be enough for everyone"
-                                                   // everything is twice as big on 64bit: alignment, memory blocks, and pages
+    enum { PTRBITS = sizeof(char *)==4 ? 2 : 3 };  // "64bit should be enough for everyone". Everything is twice as big
+                                                   // on 64bit: alignment, memory blocks, and pages
     enum { ALIGNBITS = PTRBITS+1 };                // must fit 2 pointers in smallest block for doubly linked list
     enum { ALIGN = 1<<ALIGNBITS };
     enum { ALIGNMASK = ALIGN-1 };
@@ -116,7 +119,8 @@ class SlabAlloc
 
     void newpageblocks()
     {
-        void **b = (void **)malloc(PAGEBLOCKSIZE+sizeof(void *)); // if we could get page aligned memory here, that would be even better
+        // if we could get page aligned memory here, that would be even better
+        void **b = (void **)malloc(PAGEBLOCKSIZE+sizeof(void *));
         assert(b);
         *b = (void *)blocks;
         blocks = b;
@@ -190,7 +194,8 @@ class SlabAlloc
         }
     }
 
-    // these are the most basic allocation functions, only useable if you know for sure that your allocated size is <= MAXREUSESIZE (i.e. single objects)
+    // these are the most basic allocation functions, only useable if you know for sure
+    // that your allocated size is <= MAXREUSESIZE (i.e. single objects)
     // they know their own size efficiently thanks to the pageheader, and are VERY fast
 
     void *alloc_small(size_t size)
@@ -245,7 +250,8 @@ class SlabAlloc
         return size_of_small_allocation(p) / sizeof(T);
     }
 
-    // unlike the _small functions, these functions can deal with any size, but require you to know the size you allocated upon deallocation
+    // unlike the _small functions, these functions can deal with any size,
+    // but require you to know the size you allocated upon deallocation
 
     void *alloc(size_t size)
     {
@@ -324,13 +330,15 @@ class SlabAlloc
         return new (alloc_obj_small<T>()) T();
     }
 
-    template<typename T> void destruct_obj_small(T *obj)      // will even work with a derived class of T, assuming it was also allocated with alloc_obj_small()
+    // will even work with a derived class of T, assuming it was also allocated with alloc_obj_small()
+    template<typename T> void destruct_obj_small(T *obj)
     {
         obj->~T();
         dealloc_small(obj);
     }
 
-    template<typename T> T *vector_copy_sized(vector<T> from)      // can get size of copied vector with size_of_allocation, and deallocate with dealloc_sized
+    // can get size of copied vector with size_of_allocation, and deallocate with dealloc_sized
+    template<typename T> T *vector_copy_sized(vector<T> from)
     {
         auto buf = (T *)alloc_sized(sizeof(T) * from.size());
         memcpy(buf, &from[0], sizeof(T) * from.size());
@@ -389,7 +397,8 @@ class SlabAlloc
                     totalallocs += stats[i];
                     if (full || num)
                     {
-                        sprintf(buf, "bucket %d -> freelist %lu (%lu k), %lld total allocs", i*ALIGN, ulong(num), ulong(waste), stats[i]);
+                        sprintf(buf, "bucket %d -> freelist %lu (%lu k), %lld total allocs",
+                                     i*ALIGN, ulong(num), ulong(waste), stats[i]);
                         DebugLog(0, buf);
                     }
                 }
@@ -403,7 +412,9 @@ class SlabAlloc
 
         if (full || numused || numlarge)
         {
-            sprintf(buf, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live, %lld total allocs made, %lld big allocs made", ulong(totalwaste), numfree, numused, numlarge, totalallocs, statbig);
+            sprintf(buf, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live,"
+                         " %lld total allocs made, %lld big allocs made",
+                         ulong(totalwaste), numfree, numused, numlarge, totalallocs, statbig);
             DebugLog(0, buf);
         }
     }
@@ -412,29 +423,33 @@ class SlabAlloc
 
 /* TODO / improvements:
 
-if we could distinguish a big alloc pointer from a slab allocated one, we could read the size of the block from the pageheader,
-giving the functionality of the _sized() functions without their overhead to all allocations. Ways this could be done:
+if we could distinguish a big alloc pointer from a slab allocated one, we could read the size of the block from the
+pageheader, giving the functionality of the _sized() functions without their overhead to all allocations. Ways this
+could be done:
 
-- cooperate with the OS to have small pages mapped to a separate virtual memory area so we can do a simple pointer comparison
+- cooperate with the OS to have small pages mapped to a separate virtual memory area so we can do a simple pointer
+  comparison
 - have magic numbers in the page header to distinguish it.. still not totally safe, and potentially access unused memory
   could be a pointer to itself. this guarantees that it can't be any other pointer.
-  what are the chances that a float/int or other random data has the same value as the location its stored in? small, but still..
+  what are the chances that a float/int or other random data has the same value as the location its stored in? small,
+  but still..
   of course could up the ante by having 2 such pointers, another one at the end of the page or whatever
-  or could up it even further by having all big allocations have a magic number at the start of their buffer (not the page), so you'd
-  first check that, then the page header... still not fool proof and many checks means slower
+  or could up it even further by having all big allocations have a magic number at the start of their buffer
+  (not the page), so you'd first check that, then the page header... still not fool proof and many checks means slower
 - write a large block allocator that also always has page headers for the start of any allocation
-  this means multi-page allocations can't reuse the remaining space in the last page. They also generally need to allocate their
-  own pages, so unless you can acquire page aligned mem from the system, this would be anothe page of overhead
-  and allocations that fit in a single page can possibly share a page (sizes roughly between MAXREUSESIZE and PAGESIZE). this category
-  would share the page pool with the small allocs.
-  Generally, large allocators that waste memory should make allocations that are as large as possible, then allow the client to query
-  the size it actually got: this is useful for vectors etc that can actually use the extra space.
+  this means multi-page allocations can't reuse the remaining space in the last page. They also generally need to
+  allocate their own pages, so unless you can acquire page aligned mem from the system, this would be anothe page of 
+  overhead and allocations that fit in a single page can possibly share a page (sizes roughly between MAXREUSESIZE and
+  PAGESIZE). this category would share the page pool with the small allocs.
+  Generally, large allocators that waste memory should make allocations that are as large as possible, then allow the
+  client to query the size it actually got: this is useful for vectors etc that can actually use the extra space.
   This idea could even be useful for small allocs to some extend, especially if you start doing non-linear bucket sizes
-  This all could be made specific to a programming language interpreter, since all large blocks are long strings or vectors, esp vectors,
-  which make sense to make em just fill pages.
+  This all could be made specific to a programming language interpreter, since all large blocks are long strings or
+  vectors, esp vectors, which make sense to make em just fill pages.
 - have a bit array for all pages of the entire 32bit address space that say if it is a small page block or not.
   at 2K pages, there's 2^21 pages, needing 2^18 bytes, i.e. 256K
-  Doesn't work in 64bit mode, and 256K fixed overhead is not great but doable. Accessing that 256k might be a cache issue but the bulk of those pages sit really close.
-  Can of course increase the page size to 4K or 8K, TC-Malloc thinks everything below 32k alloc is small, so we're probably being too careful.
-  Or if you can get aligned memory from the OS, you could make this table really small, even if our pages are smaller than the OS ones.
+  Doesn't work in 64bit mode, and 256K fixed overhead is not great but doable. Accessing that 256k might be a cache
+  issue but the bulk of those pages sit really close. Can of course increase the page size to 4K or 8K, TC-Malloc 
+  thinks everything below 32k alloc is small, so we're probably being too careful. Or if you can get aligned memory
+  from the OS, you could make this table really small, even if our pages are smaller than the OS ones.
 */

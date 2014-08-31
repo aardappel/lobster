@@ -21,38 +21,38 @@ void SetAttribs(uint vbo, const char *fmt, int vertsize1, char *buf1 = NULL, int
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     size_t offset = 0;
-	char *buf = buf1;
-	int vertsize = vertsize1;
+    char *buf = buf1;
+    int vertsize = vertsize1;
 
     while (*fmt)
-	{
-		switch (*fmt++)
-		{
-			case 'P': glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT,         false, vertsize, buf + offset); offset += 12; break;
-			case 'p': glEnableVertexAttribArray(0); glVertexAttribPointer(0, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
-			case 'N': glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT,         false, vertsize, buf + offset); offset += 12; break;
-			case 'n': glEnableVertexAttribArray(1); glVertexAttribPointer(1, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
-			case 'T': glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
-			case 'C': glEnableVertexAttribArray(3); glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, true,  vertsize, buf + offset); offset +=  4; break;
-			case 'W': glEnableVertexAttribArray(4); glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, true,  vertsize, buf + offset); offset +=  4; break;
-			case 'I': glEnableVertexAttribArray(5); glVertexAttribPointer(5, 4, GL_UNSIGNED_BYTE, false, vertsize, buf + offset); offset +=  4; break;
-			default: assert(0);
-		}
-		if (buf2)
-		{
-			buf = buf2;
-			vertsize = vertsize2;
-			offset = 0;
-		}
-	}
+    {
+        switch (*fmt++)
+        {
+            case 'P': glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT,         false, vertsize, buf + offset); offset += 12; break;
+            case 'p': glEnableVertexAttribArray(0); glVertexAttribPointer(0, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
+            case 'N': glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT,         false, vertsize, buf + offset); offset += 12; break;
+            case 'n': glEnableVertexAttribArray(1); glVertexAttribPointer(1, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
+            case 'T': glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT,         false, vertsize, buf + offset); offset +=  8; break;
+            case 'C': glEnableVertexAttribArray(3); glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, true,  vertsize, buf + offset); offset +=  4; break;
+            case 'W': glEnableVertexAttribArray(4); glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, true,  vertsize, buf + offset); offset +=  4; break;
+            case 'I': glEnableVertexAttribArray(5); glVertexAttribPointer(5, 4, GL_UNSIGNED_BYTE, false, vertsize, buf + offset); offset +=  4; break;
+            default: assert(0);
+        }
+        if (buf2)
+        {
+            buf = buf2;
+            vertsize = vertsize2;
+            offset = 0;
+        }
+    }
 }
 
 void UnSetAttribs(const char *fmt)
 {
     while (*fmt) switch (*fmt++)
     {
-		case 'P': case 'p': glDisableVertexAttribArray(0); break;
-		case 'N': case 'n': glDisableVertexAttribArray(1); break;
+        case 'P': case 'p': glDisableVertexAttribArray(0); break;
+        case 'N': case 'n': glDisableVertexAttribArray(1); break;
         case 'T':           glDisableVertexAttribArray(2); break;
         case 'C':           glDisableVertexAttribArray(3); break;
         case 'W':           glDisableVertexAttribArray(4); break;
@@ -85,7 +85,8 @@ Surface::~Surface()
     glDeleteBuffers(1, &vboId);
 }
 
-Geometry::Geometry(void *verts, int _nverts, int _vertsize, const char *_fmt) : vertsize(_vertsize), nverts(_nverts), fmt(_fmt)
+Geometry::Geometry(void *verts, int _nverts, int _vertsize, const char *_fmt)
+    : vertsize(_vertsize), nverts(_nverts), fmt(_fmt)
 {
     glGenBuffers(1, &vboId);
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
@@ -160,7 +161,8 @@ GLenum GetPrimitive(Primitive prim)
     }
 }
 
-void RenderArray(Primitive prim, int count, const char *fmt, int vertsize1, void *vbuf1, int *ibuf, int vertsize2, void *vbuf2)
+void RenderArray(Primitive prim, int count, const char *fmt,
+                 int vertsize1, void *vbuf1, int *ibuf, int vertsize2, void *vbuf2)
 {
     GLenum glprim = GetPrimitive(prim);
     SetAttribs(0, fmt, vertsize1, (char *)vbuf1, vertsize2, (char *)vbuf2);

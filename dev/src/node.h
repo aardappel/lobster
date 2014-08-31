@@ -50,17 +50,18 @@ struct Node : SlabAllocated<Node>
     int linenumber;
     int fileidx;
 
-    Node(Lex &lex, int _t)                     : type(_t),    a(NULL), b(NULL)                          { L(lex); };
-    Node(Lex &lex, int _t, Node *_a)           : type(_t),    a(_a),   b(NULL)                          { L(lex); };
-    Node(Lex &lex, int _t, Node *_a, Node *_b) : type(_t),    a(_a),   b(_b)                            { L(lex); };
-    Node(Lex &lex, int _t, int _i)             : type(_t),    integer(_i)                               { L(lex); };
-    Node(Lex &lex, int _t, double _f)          : type(_t),    flt(_f)                                   { L(lex); };
-    Node(Lex &lex, int _t, string &_s)         : type(_t),    str(parserpool->alloc_string_sized(_s.c_str())) { L(lex); };
-    Node(Lex &lex, Ident *_id)                 : type('ID'),  ident(_id)                                { L(lex); };
-    Node(Lex &lex, Struct *_st)                : type('ST'),  st(_st)                                   { L(lex); };
-    Node(Lex &lex, SharedField *_fld)          : type('FLD'), fld(_fld)                                 { L(lex); };
-    Node(Lex &lex, Function *_f)               : type('FN'),  f(_f)                                     { L(lex); };
-    Node(Lex &lex, NativeFun *_nf)             : type('NF'),  nf(_nf)                                   { L(lex); };
+    Node(Lex &lex, int _t)                     : type(_t),    a(NULL), b(NULL)                    { L(lex); };
+    Node(Lex &lex, int _t, Node *_a)           : type(_t),    a(_a),   b(NULL)                    { L(lex); };
+    Node(Lex &lex, int _t, Node *_a, Node *_b) : type(_t),    a(_a),   b(_b)                      { L(lex); };
+    Node(Lex &lex, int _t, int _i)             : type(_t),    integer(_i)                         { L(lex); };
+    Node(Lex &lex, int _t, double _f)          : type(_t),    flt(_f)                             { L(lex); };
+    Node(Lex &lex, int _t, string &_s)         : type(_t),    str(parserpool->
+                                                                  alloc_string_sized(_s.c_str())) { L(lex); };
+    Node(Lex &lex, Ident *_id)                 : type('ID'),  ident(_id)                          { L(lex); };
+    Node(Lex &lex, Struct *_st)                : type('ST'),  st(_st)                             { L(lex); };
+    Node(Lex &lex, SharedField *_fld)          : type('FLD'), fld(_fld)                           { L(lex); };
+    Node(Lex &lex, Function *_f)               : type('FN'),  f(_f)                               { L(lex); };
+    Node(Lex &lex, NativeFun *_nf)             : type('NF'),  nf(_nf)                             { L(lex); };
 
     void L(Lex &lex)
     {
@@ -166,7 +167,8 @@ struct Node : SlabAllocated<Node>
     }
     */
 
-    // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls, and tracking the value of idents as the value nodes they refer to
+    // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls,
+    // and tracking the value of idents as the value nodes they refer to
     const char *FindIdentsUpToYield(const function<void (vector<Ident *> &istack)> &customf)
     {
         vector<Ident *> istack;
@@ -202,7 +204,8 @@ struct Node : SlabAllocated<Node>
                 eval(n->a);
                 for (auto dl = n->a; dl->type == ':='; dl = dl->b)
                 {
-                    auto val = lookup(dl->b);   // FIXME: this is incorrect in the multiple assignments case, though not harmful
+                    // FIXME: this is incorrect in the multiple assignments case, though not harmful
+                    auto val = lookup(dl->b);
                     istack.push_back(dl->a->ident);
                     vstack.push_back(val);
                 }
@@ -224,7 +227,8 @@ struct Node : SlabAllocated<Node>
             if (n->type == 'CALL')
             {
                 for (auto f : fstack) if (f == n->a->f) return;    // ignore recursive call
-                for (auto args = n->b; args; args = args->b) if (args->a->type == 'COCL' && n != this) return;   // coroutine constructor, don't enter
+                for (auto args = n->b; args; args = args->b)
+                    if (args->a->type == 'COCL' && n != this) return;  // coroutine constructor, don't enter
                 fstack.push_back(n->a->f);
                 if (n->a->f->multimethod) err = "multi-method call";
                 evalblock(n->a->f->subf->body, n->b);
@@ -234,7 +238,8 @@ struct Node : SlabAllocated<Node>
             {
                 auto f = lookup(n->a);
                 if (f->type == 'COCL') { customf(istack); return; }
-                if (f->type != '{}') { assert(0); return; }  // ignore dynamic calls to non-function-vals, could make this an error?
+                // ignore dynamic calls to non-function-vals, could make this an error?
+                if (f->type != '{}') { assert(0); return; }
                 evalblock(f, n->b);
             }
             else if (n->type == 'NATC')
@@ -243,7 +248,9 @@ struct Node : SlabAllocated<Node>
                 {
                     auto a = lookup(list->a);
                     if (a->type == 'COCL') customf(istack);
-                    if (a->type == '{}') evalblock(a, a->a);    // a builtin calling a function, we don't know what values will be supplied for the args, so we define them in terms of themselves
+                    // a builtin calling a function, we don't know what values will be supplied for the args,
+                    // so we define them in terms of themselves
+                    if (a->type == '{}') evalblock(a, a->a);
                 }
             }
         };
@@ -251,13 +258,16 @@ struct Node : SlabAllocated<Node>
         evalblock = [&](Node *cl, Node *args)
         {
             Node *a = args;
-            for (Node *pars = cl->a; pars; pars = pars->b) if (a)   // if not, this is a _ var that's referring to a past version, ok to ignore
+            for (Node *pars = cl->a; pars; pars = pars->b)
             {
-                assert(pars->a->type == 'ID');
-                auto val = lookup(a->a);
-                istack.push_back(pars->a->ident);
-                vstack.push_back(val);
-                a = a->b;
+                if (a)  // if not, this is a _ var that's referring to a past version, ok to ignore
+                {
+                    assert(pars->a->type == 'ID');
+                    auto val = lookup(a->a);
+                    istack.push_back(pars->a->ident);
+                    vstack.push_back(val);
+                    a = a->b;
+                }
             }
 
             eval(cl->b);

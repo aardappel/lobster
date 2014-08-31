@@ -94,7 +94,8 @@ void AddFont()
             return Value(false);
         }
     }
-    ENDDECL1(gl_setfontname, "filename", "S", "I", "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns true if success.");
+    ENDDECL1(gl_setfontname, "filename", "S", "I",
+        "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns true if success.");
 
     STARTDECL(gl_setfontsize) (Value &fontsize) 
     {
@@ -121,11 +122,22 @@ void AddFont()
 
         return Value(true);
     }
-    ENDDECL1(gl_setfontsize, "size", "I", "I", "sets the font for rendering into this fontsize (in pixels). caches into a texture first time this size is used, flushes from cache if this size is not used an entire frame. font rendering will look best if using 1:1 pixels (careful with gl_scale/gl_translate). returns true if success");
+    ENDDECL1(gl_setfontsize, "size", "I", "I",
+        "sets the font for rendering into this fontsize (in pixels). caches into a texture first time this size is"
+        " used, flushes from cache if this size is not used an entire frame. font rendering will look best if using"
+        " 1:1 pixels (careful with gl_scale/gl_translate). returns true if success");
 
-    STARTDECL(gl_setmaxfontsize) (Value &fontsize) { maxfontsize = fontsize.ival; return Value(0); } ENDDECL1(gl_setmaxfontsize, "size", "I", "", "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize will still work but cause scaled rendering. default 128");
+    STARTDECL(gl_setmaxfontsize) (Value &fontsize)
+    {
+        maxfontsize = fontsize.ival;
+        return Value(0);
+    }
+    ENDDECL1(gl_setmaxfontsize, "size", "I", "",
+        "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize will still work"
+        " but cause scaled rendering. default 128");
 
-    STARTDECL(gl_getfontsize) () { return Value(curfontsize); } ENDDECL0(gl_getfontsize, "", "", "I", "the current font size");
+    STARTDECL(gl_getfontsize) () { return Value(curfontsize); } ENDDECL0(gl_getfontsize, "", "", "I",
+        "the current font size");
 
     STARTDECL(gl_text) (Value &s)
     {
@@ -135,7 +147,11 @@ void AddFont()
         if (!s.sval->len) return s;
 
         float4x4 oldobject2view;
-        if (curfontsize > maxfontsize) { oldobject2view = object2view; object2view *= scaling(curfontsize / float(maxfontsize)); }
+        if (curfontsize > maxfontsize)
+        {
+            oldobject2view = object2view;
+            object2view *= scaling(curfontsize / float(maxfontsize));
+        }
 
         SetTexture(0, f->texid);
 		texturedshader->Set();
@@ -145,7 +161,8 @@ void AddFont()
 
         return s;
     }
-    ENDDECL1(gl_text, "text", "S", "S", "renders a text with the current font (at the current coordinate origin)");
+    ENDDECL1(gl_text, "text", "S", "S",
+        "renders a text with the current font (at the current coordinate origin)");
 
     STARTDECL(gl_textsize) (Value &s)
     {
@@ -162,7 +179,8 @@ void AddFont()
 
         return ToValue(size);
     }
-    ENDDECL1(gl_textsize, "text", "S", "V", "the x/y size in pixels the given text would need");
+    ENDDECL1(gl_textsize, "text", "S", "V",
+        "the x/y size in pixels the given text would need");
 }
 
 AutoRegister __af("font", AddFont);

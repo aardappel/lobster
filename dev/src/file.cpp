@@ -67,8 +67,10 @@ void AddFileOps()
         {
             if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
             {
-                ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | fdata.nFileSizeLow;
-                AddDirItem(list, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size, divisor.ival);
+                ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
+                                 fdata.nFileSizeLow;
+                AddDirItem(list, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
+                           divisor.ival);
             }
         }
         while(FindNextFile(fh, &fdata));
@@ -103,7 +105,10 @@ void AddFileOps()
 
         #endif
     }
-    ENDDECL2(scan_folder, "folder,divisor", "SI", "I", "returns a vector of all elements in a folder, each element is [ name,  filesize (-1 if directory) ]. Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be clamped. Returns nil if folder couldn't be scanned.");
+    ENDDECL2(scan_folder, "folder,divisor", "SI", "I",
+        "returns a vector of all elements in a folder, each element is [ name,  filesize (-1 if directory) ]."
+        " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be clamped."
+        " Returns nil if folder couldn't be scanned.");
 
     STARTDECL(read_file) (Value &file)
     {
@@ -115,7 +120,9 @@ void AddFileOps()
         free(buf);
         return Value(s);
     }
-    ENDDECL1(read_file, "file", "S", "S", "returns the contents of a file as a string, or nil if the file can't be found. you may use either \\ or / as path separators");
+    ENDDECL1(read_file, "file", "S", "S",
+        "returns the contents of a file as a string, or nil if the file can't be found."
+        " you may use either \\ or / as path separators");
 
     STARTDECL(write_file) (Value &file, Value &contents)
     {
@@ -130,7 +137,8 @@ void AddFileOps()
         contents.DEC();
         return Value(written == 1);
     }
-    ENDDECL2(write_file, "file,contents", "SS", "I", "creates a file with the contents of a string, returns false if writing wasn't possible");
+    ENDDECL2(write_file, "file,contents", "SS", "I",
+        "creates a file with the contents of a string, returns false if writing wasn't possible");
 }
 
 AutoRegister __afo("file", AddFileOps);

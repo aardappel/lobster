@@ -106,8 +106,10 @@ struct NativeFun : Name
 
     ~NativeFun() { delete[] args; delete[] retvals; }
 
-    NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int _nargs, const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
-        : Name(string(_name), 0), fun(f), nargs(_nargs), nretvalues(strlen(rets)), ncm(_ncm), cont1(_cont1), help(_help), subsystemid(-1)
+    NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int _nargs,
+              const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
+        : Name(string(_name), 0), fun(f), nargs(_nargs), nretvalues(strlen(rets)), ncm(_ncm), cont1(_cont1),
+               help(_help), subsystemid(-1)
     {
         assert(strlen(typeids) == nargs);
         args = new Arg[nargs];
@@ -117,7 +119,8 @@ struct NativeFun : Name
             const char *idend = strchr(ids, ',');
             if (!idend)
             {
-                assert(i == nargs - 1); // if this fails, you're not specifying enough arg names in the comma separated list
+                // if this fails, you're not specifying enough arg names in the comma separated list
+                assert(i == nargs - 1);
                 idend = ids + strlen(ids);
             }
             args[i].Set(typeids[i], string(ids, idend)); 
@@ -179,14 +182,17 @@ struct AutoRegister
     AutoRegister *next;
     const char *name;
     void (* regfun)();
-    AutoRegister(const char *_name, void (* _rf)()) : next(autoreglist), name(_name), regfun(_rf) { autoreglist = this; }
+    AutoRegister(const char *_name, void (* _rf)())
+        : next(autoreglist), name(_name), regfun(_rf) { autoreglist = this; }
 };
 
 #define STARTDECL(name) struct ___##name { static Value s_##name
 
 #define MIDDECL(name) static Value mid_##name
 
-#define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { BuiltinPtr bp; bp.f##field = &___##name::s_##name; natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); }
+#define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
+    BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
+    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); }
 
 #define ENDDECL0(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, NULL)
 #define ENDDECL1(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, NULL)
@@ -197,7 +203,9 @@ struct AutoRegister
 #define ENDDECL6(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, NULL)
 
 #define ENDDECL3CONT(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONTINUATION, NULL)
-#define ENDDECL2CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, &___##name::mid_##name)
-#define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, &___##name::mid_##name)
+#define ENDDECL2CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, \
+                                                                                                 &___##name::mid_##name)
+#define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, \
+                                                                                                 &___##name::mid_##name)
 #define ENDDECL2LOOP(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_LOOP, NULL)
 #define ENDDECL2WHILE(   name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_WHILE, NULL)

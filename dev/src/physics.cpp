@@ -137,7 +137,8 @@ void AddPhysicsOps()
 		InitPhysics(ValueDecTo<float2>(gravity));
 		return Value();
 	}
-	ENDDECL1(ph_initialize, "gravityvector", "V", "", "initializes or resets the physical world, gravity typically [0, -10].");
+	ENDDECL1(ph_initialize, "gravityvector", "V", "",
+        "initializes or resets the physical world, gravity typically [0, -10].");
 
 	STARTDECL(ph_createbox) (Value &position, Value &size, Value &offset, Value &rot, Value &other_id)
 	{
@@ -148,7 +149,10 @@ void AddPhysicsOps()
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
 	}
-	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "VVvfi", "I", "creates a physical box shape in the world at position, with size the half-extends around the center, offset from the center if needed, at a particular rotation (in degrees). attachto is a previous physical object to attach this one to, to become a combined physical body.");
+	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "VVvfi", "I",
+        "creates a physical box shape in the world at position, with size the half-extends around the center,"
+        " offset from the center if needed, at a particular rotation (in degrees)."
+        " attachto is a previous physical object to attach this one to, to become a combined physical body.");
 
 	STARTDECL(ph_createcircle) (Value &position, Value &radius, Value &offset, Value &other_id)
 	{
@@ -159,7 +163,9 @@ void AddPhysicsOps()
 		shape.m_radius = radius.fval;
 		return CreateFixture(body, shape);
 	}
-	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "VFvi", "I", "creates a physical circle shape in the world at position, with the given radius, offset from the center if needed. attachto is a previous physical object to attach this one to, to become a combined physical body.");
+	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "VFvi", "I",
+        "creates a physical circle shape in the world at position, with the given radius, offset from the center if"
+        " needed. attachto is a previous physical object to attach this one to, to become a combined physical body.");
 
 	STARTDECL(ph_createpolygon) (Value &position, Value &vertices, Value &other_id)
 	{
@@ -176,7 +182,9 @@ void AddPhysicsOps()
 		vertices.DECRT();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "VVi", "I", "creates a polygon circle shape in the world at position, with the given list of vertices. attachto is a previous physical object to attach this one to, to become a combined physical body.");
+	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "VVi", "I",
+        "creates a polygon circle shape in the world at position, with the given list of vertices."
+        " attachto is a previous physical object to attach this one to, to become a combined physical body.");
 
 	STARTDECL(ph_dynamic) (Value &fixture_id, Value &on)
 	{
@@ -185,7 +193,8 @@ void AddPhysicsOps()
 		if (fixture) fixture->GetBody()->SetType(on.ival ? b2_dynamicBody : b2_staticBody);
 		return fixture_id;
 	}
-	ENDDECL2(ph_dynamic, "shape,on", "II", "", "makes a shape dynamic (on = true) or not. returns shape.");
+	ENDDECL2(ph_dynamic, "shape,on", "II", "",
+        "makes a shape dynamic (on = true) or not. returns shape.");
 
 	STARTDECL(ph_deleteshape) (Value &fixture_id)
 	{
@@ -200,7 +209,8 @@ void AddPhysicsOps()
 		}
 		return Value();
 	}
-	ENDDECL1(ph_deleteshape, "id", "I", "", "removes a shape from the physical world.");
+	ENDDECL1(ph_deleteshape, "id", "I", "",
+        "removes a shape from the physical world.");
 
 	STARTDECL(ph_setcolor) (Value &fixture_id, Value &color)
 	{
@@ -209,7 +219,8 @@ void AddPhysicsOps()
 		if (r) r->color = c;
 		return Value();
 	}
-	ENDDECL2(ph_setcolor, "id,color", "IV", "", "sets a shape (or 0 for particles) to be rendered with a particular color.");
+	ENDDECL2(ph_setcolor, "id,color", "IV", "",
+        "sets a shape (or 0 for particles) to be rendered with a particular color.");
 
 	STARTDECL(ph_setshader) (Value &fixture_id, Value &shader)
 	{
@@ -219,7 +230,8 @@ void AddPhysicsOps()
 		if (r && sh) r->sh = sh;
 		return Value();
 	}
-	ENDDECL2(ph_setshader, "id,shadername", "IS", "", "sets a shape (or 0 for particles) to be rendered with a particular shader.");
+	ENDDECL2(ph_setshader, "id,shadername", "IS", "",
+        "sets a shape (or 0 for particles) to be rendered with a particular shader.");
 
 	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex_id, Value &tex_unit)
 	{
@@ -227,7 +239,9 @@ void AddPhysicsOps()
 		if (r) r->textures[GetSampler(tex_unit)] = tex_id.ival;
 		return Value();
 	}
-	ENDDECL3(ph_settexture, "id,texid,texunit", "IIi", "", "sets a shape (or 0 for particles) to be rendered with a particular texture (assigned to a texture unit, default 0).");
+	ENDDECL3(ph_settexture, "id,texid,texunit", "IIi", "",
+        "sets a shape (or 0 for particles) to be rendered with a particular texture"
+        " (assigned to a texture unit, default 0).");
 
 	STARTDECL(ph_createparticlecircle) (Value &position, Value &radius, Value &color, Value &type)
 	{
@@ -243,14 +257,16 @@ void AddPhysicsOps()
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();
 	}
-	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "VFVi", "", "creates a circle filled with particles. For flags, see include/physics.lobster");
+	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "VFVi", "",
+        "creates a circle filled with particles. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_initializeparticles) (Value &size)
 	{
 		CheckParticles(size.fval);
 		return Value();
 	}
-	ENDDECL1(ph_initializeparticles, "radius", "F", "", "initializes the particle system with a given particle radius.");
+	ENDDECL1(ph_initializeparticles, "radius", "F", "",
+        "initializes the particle system with a given particle radius.");
 
 	STARTDECL(ph_step) (Value &delta)
 	{
@@ -258,7 +274,8 @@ void AddPhysicsOps()
 		world->Step(min(delta.fval, 0.1f), 8, 3);
 		return Value();
 	}
-	ENDDECL1(ph_step, "seconds", "F", "", "simulates the physical world for the given period (try: gl_deltatime()).");
+	ENDDECL1(ph_step, "seconds", "F", "",
+        "simulates the physical world for the given period (try: gl_deltatime()).");
 
 	STARTDECL(ph_render) ()
 	{
@@ -314,7 +331,8 @@ void AddPhysicsOps()
 		curcolor = oldcolor;
 		return Value();
 	}
-	ENDDECL0(ph_render, "", "", "", "renders all rigid body objects.");
+	ENDDECL0(ph_render, "", "", "",
+        "renders all rigid body objects.");
 
     STARTDECL(ph_renderparticles) (Value &particlescale)
     {
@@ -330,7 +348,8 @@ void AddPhysicsOps()
         RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, NULL, sizeof(byte4), colors);
         return Value();
     }
-    ENDDECL1(ph_renderparticles, "scale", "F", "", "render all particles, with the given scale.");
+    ENDDECL1(ph_renderparticles, "scale", "F", "",
+        "render all particles, with the given scale.");
 
 }
 

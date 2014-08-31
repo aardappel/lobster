@@ -32,17 +32,17 @@ BitmapFont::BitmapFont(OutlineFont *_font, int _size) : texid(0), usedcount(1), 
 
 bool BitmapFont::CacheChars(const char *text)
 {
-	usedcount++;
+    usedcount++;
 
-	font->EnsureCharsPresent(text);
+    font->EnsureCharsPresent(text);
 
-	if (positions.size() == font->unicodetable.size())
-		return true;
+    if (positions.size() == font->unicodetable.size())
+        return true;
 
-	if (texid) DeleteTexture(texid);
-	positions.clear();
+    if (texid) DeleteTexture(texid);
+    positions.clear();
 
-	if (FT_Set_Pixel_Sizes((FT_Face)font->fthandle, 0, size))
+    if (FT_Set_Pixel_Sizes((FT_Face)font->fthandle, 0, size))
         return false;
 
     auto face = (FT_Face)font->fthandle;
@@ -53,7 +53,7 @@ bool BitmapFont::CacheChars(const char *text)
     int max_descent = 0, max_ascent = 0;
     size_t space_on_line = texw - margin, lines = 1;
 
-	for (int i : font->unicodetable)
+    for (int i : font->unicodetable)
     {
         size_t char_index = FT_Get_Char_Index(face, i);
 
@@ -85,7 +85,7 @@ bool BitmapFont::CacheChars(const char *text)
 
     size_t x = margin, y = margin + max_ascent;
 
-	for (int i : font->unicodetable)
+    for (int i : font->unicodetable)
     {
         size_t char_index = FT_Get_Char_Index(face, i);
 
@@ -99,7 +99,7 @@ bool BitmapFont::CacheChars(const char *text)
             y += (max_ascent + max_descent + margin);
         }
 
-		positions.push_back(int3(x, y - max_ascent, advance - margin));
+        positions.push_back(int3(x, y - max_ascent, advance - margin));
 
         for (int row = 0; row < face->glyph->bitmap.rows; ++row)
         {
@@ -121,19 +121,19 @@ bool BitmapFont::CacheChars(const char *text)
 
     delete[] image;
 
-	return true;
+    return true;
 }
 
 void BitmapFont::RenderText(const char *text)
 {
-	if (!CacheChars(text))
-		return;
+    if (!CacheChars(text))
+        return;
 
     struct PT { float3 p; float2 t; };
 
-	int len = StrLenUTF8(text);
-	if (len <= 0)
-		return;
+    int len = StrLenUTF8(text);
+    if (len <= 0)
+        return;
 
     auto vbuf = new PT[len * 4];
     auto ibuf = new int[len * 6];
@@ -174,15 +174,15 @@ void BitmapFont::RenderText(const char *text)
 
 const int2 BitmapFont::TextSize(const char *text)
 {
-	if (!CacheChars(text))
-		return int2_0;
+    if (!CacheChars(text))
+        return int2_0;
 
     auto x = 0;
     for (;;)
     {
         int c = FromUTF8(text);
-		if (c <= 0) return int2(x, height);
-		x += positions[font->unicodemap[c]].z();
+        if (c <= 0) return int2(x, height);
+        x += positions[font->unicodemap[c]].z();
 
     }
 }
@@ -217,21 +217,21 @@ OutlineFont::~OutlineFont()
 
 bool OutlineFont::EnsureCharsPresent(const char *utf8str)
 {
-	bool anynew = false;
-	for (;;)
-	{
-		int uc = FromUTF8(utf8str);
-		if (uc <= 0)
-			break;
-		auto it = unicodemap.find(uc);
-		if (it == unicodemap.end())
-		{
-			anynew = true;
-			unicodemap[uc] = unicodetable.size();
-			unicodetable.push_back(uc);
-		}
-	}
-	return anynew;
+    bool anynew = false;
+    for (;;)
+    {
+        int uc = FromUTF8(utf8str);
+        if (uc <= 0)
+            break;
+        auto it = unicodemap.find(uc);
+        if (it == unicodemap.end())
+        {
+            anynew = true;
+            unicodemap[uc] = unicodetable.size();
+            unicodetable.push_back(uc);
+        }
+    }
+    return anynew;
 }
 
 void FTClosedown()

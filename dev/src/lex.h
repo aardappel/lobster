@@ -31,7 +31,9 @@ struct LoadedFile
 
     vector<Tok> gentokens;
 
-    LoadedFile(const char *fn, vector<string> &fns, char *_ss) : tokenstart(NULL), stringsource(_ss), fileidx(fns.size()), token('?'), line(1), errorline(1), islf(false), cont(false), prevline(NULL), prevlinetok(NULL) /* prevlineindenttype(0) */
+    LoadedFile(const char *fn, vector<string> &fns, char *_ss)
+        : tokenstart(NULL), stringsource(_ss), fileidx(fns.size()), token('?'), line(1), errorline(1), islf(false),
+          cont(false), prevline(NULL), prevlinetok(NULL) /* prevlineindenttype(0) */
     {
         source = stringsource;
         if (!source) source = (char *)LoadFile((string("include/") + fn).c_str());
@@ -138,18 +140,12 @@ struct Lex : LoadedFile
         cont = false;
 
         NextToken();
-        //printf("%d: %s\n", line, TokStr().c_str());
 
         if (islf && token != 'EOF' && token != 'EOI')
         {
             int indent = (int)(tokenstart - linestart);
             if (indent > 0)
             {
-                /*
-                for (auto p = linestart; p < tokenstart; p++) if (*p != *linestart) Error("mixed tabs & spaces in line indentation");
-                if (prevlineindenttype && prevlineindenttype != *linestart) Error("mixed tabs & spaces between adjacent lines");
-                prevlineindenttype = *linestart;
-                */
                 if (prevline)
                     for (const char *p = linestart; p < tokenstart && prevline < prevlinetok; p++, prevline++)
                         if (*p != *prevline)
@@ -166,8 +162,10 @@ struct Lex : LoadedFile
 
             if (lastcont)
             {
-                if (indent < indentstack.back().first) Error("line continuation can't indent less than the previous line");
-                if (indent > indentstack.back().first) indentstack.push_back(make_pair(indent, true));
+                if (indent < indentstack.back().first)
+                    Error("line continuation can't indent less than the previous line");
+                if (indent > indentstack.back().first)
+                    indentstack.push_back(make_pair(indent, true));
                 return;
             }
 
@@ -442,7 +440,8 @@ struct Lex : LoadedFile
             case 'ID':   return attr ? sattr : "identifier";
             case 'FLT':  return attr ? sattr : "floating point literal";
             case 'INT':  return attr ? sattr : "integer literal";
-            case 'STR':  return attr ? "\"" + sattr + "\"" : "string literal";  // FIXME: will not deal with other escape codes, use ToString code
+            case 'STR':  // FIXME: will not deal with other escape codes, use ToString code
+                         return attr ? "\"" + sattr + "\"" : "string literal";
             case 'IND':  return "indentation";
             case 'DED':  return "de-indentation";
             case 'LF':   return "end of line";
@@ -476,6 +475,7 @@ struct Lex : LoadedFile
 
     void Error(string err, int fidx = -1, int line = -1)
     {
-        throw (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) + "(" + inttoa(line >= 0 ? line : errorline) + "): error: " + err;
+        throw (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
+              "(" + inttoa(line >= 0 ? line : errorline) + "): error: " + err;
     } 
 };

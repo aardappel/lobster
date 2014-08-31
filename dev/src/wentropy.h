@@ -14,15 +14,19 @@
 
 // Wouter's Entropy Coder
 //
-// identical compression performance to huffman, and absolutely tiny code, one function for both compression and decompression
-// adaptive, so should work well even for tiny buffers
-// one of the vectors passed in is the input, the other the output (and exactly one of the two should be empty initially)
-// not the fastest possible implementation (only 40MB/sec for either compression or decompression on a modern pc), but should be sufficient for many uses
+// identical compression performance to huffman, and absolutely tiny code, one function for both compression and
+// decompression adaptive, so should work well even for tiny buffers
+// one of the vectors passed in is the input, the other the output (and exactly one of the two should be empty
+// initially)
+// not the fastest possible implementation (only 40MB/sec for either compression or decompression on a modern pc), 
+// but should be sufficient for many uses
 //
-// uses std::vector and std::swap as its only external dependencies for simplicity, but could made to not rely on them relatively easily.
+// uses std::vector and std::swap as its only external dependencies for simplicity, but could made to not rely on them
+// relatively easily.
 //
 // by design, it is limited to compress max 4GB at once.
-// replace unsigned int in the code below by size_t to allow it to compress larger files in 64bit mode, at the cost of incompatability of the data format with 32bit builds
+// replace unsigned int in the code below by size_t to allow it to compress larger files in 64bit mode, at the cost of
+// incompatability of the data format with 32bit builds
 // the vector<unsigned int> may require endian-swapping if used cross platform (hey, didn't little endian win? :P)
 
 void WEntropyCoder(vector<uchar> &uncompressed, vector<unsigned int> &compressed)

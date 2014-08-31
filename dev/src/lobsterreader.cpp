@@ -49,7 +49,9 @@ struct ValueParser
         {
             case 'INT': { int i    = atoi(lex.sattr.c_str()); lex.Next(); return Value(i); }
             case 'FLT': { double f = atof(lex.sattr.c_str()); lex.Next(); return Value((float)f); }
-            case 'STR': { string s = lex.sattr;               lex.Next(); auto str = g_vm->NewString(s); allocated.push_back(str); return Value(str); }     
+            case 'STR': { string s = lex.sattr;               lex.Next(); auto str = g_vm->NewString(s);
+                                                                          allocated.push_back(str);
+                                                                          return Value(str); }     
             case 'NIL': {                                     lex.Next(); return Value(0, V_NIL);    }
 
             case '-':
@@ -94,8 +96,10 @@ struct ValueParser
                     int idx = g_vm->StructIdx(sname, reqargs);
                     if (idx >= 0)   // if unknown type, becomes regular vector
                     {
-                        while (elems.size() < reqargs) { elems.push_back(Value(0, V_NIL)); }         // pad with NIL if current type has more fields
-                        while (elems.size() > reqargs) { elems.back().DEC(); elems.pop_back(); }     // drop elements if current type has less fields
+                        // pad with NIL if current type has more fields
+                        while (elems.size() < reqargs) { elems.push_back(Value(0, V_NIL)); }
+                        // drop elements if current type has less fields
+                        while (elems.size() > reqargs) { elems.back().DEC(); elems.pop_back(); }
                         type = idx;
                     }
                 }
@@ -149,7 +153,13 @@ void AddReaderOps()
         ins.DEC();
         return v;
     }
-    ENDDECL1(parse_data, "stringdata", "S", "AA", "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and structs. structs will be forced to be compatible with their current definitions, i.e. too many elements will be truncated, missing elements will be set to nil, and unknown type means downgrade to vector. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)");
+    ENDDECL1(parse_data, "stringdata", "S", "AA",
+        "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data"
+        " structure to a string) back into a data structure. supports int/float/string/vector and structs."
+        " structs will be forced to be compatible with their current definitions, i.e. too many elements will be"
+        " truncated, missing elements will be set to nil, and unknown type means downgrade to vector."
+        " useful for simple file formats. returns the value and an error string as second return value"
+        " (or nil if no error)");
 }
 
 AutoRegister __aro("parsedata", AddReaderOps);

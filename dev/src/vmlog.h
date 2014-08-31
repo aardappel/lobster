@@ -44,10 +44,12 @@ struct VMLog
         {
             while (logread[logi].type == V_LOGSTART) LogSkipNestedFuns();
 
-            assert(logwrite.back().type == V_LOGSTART);  // the start of whatever called this frame
+            // the start of whatever called this frame
+            assert(logwrite.back().type == V_LOGSTART);
             logwrite.pop_back();
 
-            logwrite.push_back(Value(0, V_LOGMARKER));    // always bookend the log with markers, so we can blindly look ahead/behind
+            // always bookend the log with markers, so we can blindly look ahead/behind
+            logwrite.push_back(Value(0, V_LOGMARKER));
             logwrite.swap(logread);
             logwrite.clear();
             logwrite.push_back(Value(0, V_LOGMARKER));

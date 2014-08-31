@@ -220,7 +220,9 @@ bool LoadSound(const char* filename, bool sfxr)
                 SDL_ConvertAudio(&wav_cvt);
 
                 snd.buf = wav_cvt.buf;
-                snd.len = size_t(wav_cvt.len * wav_cvt.len_ratio);  // caution: len is not size of buffer anymore, but size of valid data.. that works ok with SDL_FreeWAV/free
+                // caution: len is not size of buffer anymore, but size of valid data..
+                // that works ok with SDL_FreeWAV/free
+                snd.len = size_t(wav_cvt.len * wav_cvt.len_ratio);
             }
         }
 

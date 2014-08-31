@@ -43,7 +43,8 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
     static const char *ilnames[] = { ILNAMES };
     #undef F
 
-    fprintf(f, "I %d\tL %d\t%s ", int(ip - code), li.line, ilnames[*ip]);     // FIXME: some indication of the filename, maybe with a table index?
+    // FIXME: some indication of the filename, maybe with a table index?
+    fprintf(f, "I %d\tL %d\t%s ", int(ip - code), li.line, ilnames[*ip]);
 
     switch(*ip++)
     {

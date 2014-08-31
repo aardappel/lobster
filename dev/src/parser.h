@@ -27,7 +27,8 @@ struct Parser
     struct ForwardFunctionCall { string idname; size_t maxscopelevel; Node *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
 
-    Parser(const char *_src, SymbolTable &_st, char *_stringsource) : lex(_src, _st.filenames, _stringsource), root(NULL), st(_st), currentstruct(NULL)
+    Parser(const char *_src, SymbolTable &_st, char *_stringsource)
+        : lex(_src, _st.filenames, _stringsource), root(NULL), st(_st), currentstruct(NULL)
     {
         assert(parserpool == NULL);
         parserpool = new SlabAlloc();
@@ -303,7 +304,8 @@ struct Parser
                     bool dynscope = lex.token == '<-';
                     bool constant = lex.token == ':==';
                     bool logvar = lex.token == '?=';
-                    if (lex.token == ':=' || dynscope || constant || logvar)  // codegen assumes these defs can only happen at toplevel
+                    // codegen assumes these defs can only happen at toplevel
+                    if (lex.token == ':=' || dynscope || constant || logvar)
                     {
                         lex.Next();
                         auto e = ParseExp();
@@ -472,7 +474,10 @@ struct Parser
                 break;
 
             case 'ID':
-                if (trailingkeywordedfunctionvaluestack.empty() || trailingkeywordedfunctionvaluestack.back() != lex.sattr) // skip if this function value starts with an ID that's equal to the parents next keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
+                // skip if this function value starts with an ID that's equal to the parents next
+                // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
+                if (trailingkeywordedfunctionvaluestack.empty() || 
+                    trailingkeywordedfunctionvaluestack.back() != lex.sattr)
                     e = ParseFunDefBody(ParseFunDefArgs(false));
                 break;
             
@@ -530,7 +535,9 @@ struct Parser
                 string a = lex.sattr;
                 Expect('ID');
 
-                auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false, CurSF() /* this is good for function vals, but bad for named functions, which get corrected later */));
+                auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false,
+                    CurSF()  // this is good for function vals, but bad for named functions, which get corrected later
+                ));
 
                 bool withtype = lex.token == '::';
                 if (full && (lex.token == ':' || withtype))
@@ -572,13 +579,17 @@ struct Parser
 
         if (autoparlevel < autoparstack.size())
         {
-            if (f) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident->name + ", in named function: " + f->name,       autoparstack[autoparlevel]);
-            if (n) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident->name + ", with declared arguments in function", autoparstack[autoparlevel]);
+            if (f) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident->name + 
+                         ", in named function: " + f->name,       autoparstack[autoparlevel]);
+            if (n) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident->name +
+                         ", with declared arguments in function", autoparstack[autoparlevel]);
 
             auto ap = &n;
             for (size_t i = autoparlevel; i < autoparstack.size(); i++) 
             {
-                for (size_t j = autoparlevel; j < i; j++) if (autoparstack[i]->ident == autoparstack[j]->ident) goto twice;
+                for (size_t j = autoparlevel; j < i; j++)
+                    if (autoparstack[i]->ident == autoparstack[j]->ident)
+                        goto twice;
                 *ap = new Node(lex, ';', new Node(lex, autoparstack[i]->ident));
                 ap = &(*ap)->b;
                 twice:;
@@ -612,7 +623,8 @@ struct Parser
     void ReturnValues(Function &f, int nrv)
     {
         if (f.retvals && f.retvals != nrv)
-            Error(string("all return statements of this function must return the same amount of return values. previously: ") + inttoa(f.retvals));
+            Error(string("all return statements of this function must return the same amount of return values."
+                         " previously: ") + inttoa(f.retvals));
         f.retvals = nrv;
     }
 
@@ -660,7 +672,7 @@ struct Parser
         while (IsNext(';'))
         {
             if (IsNext('LF'))
-                Error("\';\' is not a statement terminator"); // specialized error for all the C-style language users
+                Error("\';\' is not a statement terminator");  // specialized error for all the C-style language users
             e = new Node(lex, 'BUT', e, ParseExp());
         }
 
@@ -687,7 +699,8 @@ struct Parser
             case '%=':
             {
                 auto type = lex.token;
-                if (e->type != 'ID' && e->type != '.' && e->type != '.@' && e->type != 'IDX') Error("illegal left hand side of assignment");
+                if (e->type != 'ID' && e->type != '.' && e->type != '.@' && e->type != 'IDX')
+                    Error("illegal left hand side of assignment");
                 Modify(e);
                 lex.Next();
                 e = new Node(lex, type, e, ParseExp());
@@ -844,7 +857,8 @@ struct Parser
                 {
                     string fname = lex.sattr;
                     Expect('ID');
-                    if (!st.FindFunction(fname)) // TODO: this is here because currently these functions have to be declared before use
+                    // TODO: this is here because currently these functions have to be declared before use
+                    if (!st.FindFunction(fname))
                         Error(string("function ") + fname + " hasn't been declared yet");
                     auto id = st.LookupIdentInFun(idname, fname);
                     if (!id)    
@@ -953,7 +967,9 @@ struct Parser
                         int nargs = CountList(n->a);
                         int reqargs = struc->fields.size();
                         if (n->a && n->a->a->type == 'SUP') reqargs -= struc->superclass->fields.size() - 1;
-                        if (nargs != reqargs) Error("constructor requires " + string(inttoa(reqargs)) + " arguments, not " + string(inttoa(nargs)));
+                        if (nargs != reqargs)
+                            Error("constructor requires " + string(inttoa(reqargs)) +
+                                  " arguments, not " + string(inttoa(nargs)));
                     }
                     else
                     {
@@ -974,7 +990,8 @@ struct Parser
                 lex.Next();
                 string idname = lex.sattr;
                 Expect('ID');
-                return new Node(lex, 'CORO', ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname), idname, NULL, true));
+                return new Node(lex, 'CORO', ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
+                                idname, NULL, true));
             }
 
             case 'ID':
@@ -985,12 +1002,14 @@ struct Parser
                 switch (lex.token)
                 {
                     case '(':
-                        return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname), idname, NULL, false);
+                        return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
+                                                 idname, NULL, false);
 
                     default:
                         if (idname[0] == '_')
                         {
-                            auto dest = new Node(lex, st.LookupLexDefOrDynScope(idname, lex.errorline, lex, true, CurSF()));
+                            auto dest = new Node(lex, st.LookupLexDefOrDynScope(idname, lex.errorline, lex, 
+                                                                                true, CurSF()));
                             autoparstack.push_back(dest);
                             return dest;
                         }

@@ -72,7 +72,7 @@ inline bool FromUTF8(const char *in, wstring &dest)   // appends into dest, retu
     for (;;)
     {
         int u = FromUTF8(in);
-		if (!u) return true;
+        if (!u) return true;
         if (u < 0) return false;
         dest += (wchar_t)u; // should we check it fits inside a wchar_t ?
     }
@@ -80,11 +80,11 @@ inline bool FromUTF8(const char *in, wstring &dest)   // appends into dest, retu
 
 inline int StrLenUTF8(const char *in)   // returns number of code points, returns -1 if encoding error encountered
 {
-	int num = 0;
+    int num = 0;
     for (;;)
     {
         int u = FromUTF8(in);
-		if (!u) return num;
+        if (!u) return num;
         if (u < 0) return -1;
         num++;
     }
@@ -98,7 +98,8 @@ inline void utf8test()
     ToUTF8(0x20AC, buf);  assert(!strcmp(buf, "\xE2\x82\xAC"));
     ToUTF8(0x24B62, buf); assert(!strcmp(buf, "\xF0\xA4\xAD\xA2"));
 
-    assert(ToUTF8(L"\u30E6\u30FC\u30B6\u30FC\u5225\u30B5\u30A4\u30C8") == string("\xe3\x83\xa6\xe3\x83\xbc\xe3\x82\xb6\xe3\x83\xbc\xe5\x88\xa5\xe3\x82\xb5\xe3\x82\xa4\xe3\x83\x88"));
+    assert(ToUTF8(L"\u30E6\u30FC\u30B6\u30FC\u5225\u30B5\u30A4\u30C8") == 
+           string("\xe3\x83\xa6\xe3\x83\xbc\xe3\x82\xb6\xe3\x83\xbc\xe5\x88\xa5\xe3\x82\xb5\xe3\x82\xa4\xe3\x83\x88"));
 
     const char *p;
     p = "\x24";             assert(FromUTF8(p) == 0x24    && !*p);
@@ -108,6 +109,7 @@ inline void utf8test()
     (void)p;
 
     wstring dest;
-    assert(FromUTF8("\xe3\x83\xa6\xe3\x83\xbc\xe3\x82\xb6\xe3\x83\xbc\xe5\x88\xa5\xe3\x82\xb5\xe3\x82\xa4\xe3\x83\x88\x00", dest));
+    assert(FromUTF8("\xe3\x83\xa6\xe3\x83\xbc\xe3\x82\xb6\xe3\x83\xbc\xe5\x88"
+                    "\xa5\xe3\x82\xb5\xe3\x82\xa4\xe3\x83\x88\x00", dest));
     assert(dest == wstring(L"\u30E6\u30FC\u30B6\u30FC\u5225\u30B5\u30A4\u30C8"));
 }

@@ -27,9 +27,9 @@ struct VM : VMBase
 
     enum
     {
-        INITSTACKSIZE   =   4 * 1024,    // *8 bytes each
-        DEFMAXSTACKSIZE = 128 * 1024,    // *8 bytes each, should be modest on smallest handheld we support (iPhone 3GS has 256MB)
-        STACKMARGIN     =   1 * 1024     // *8 bytes each, max by which the stack could possibly grow in a single function call
+        INITSTACKSIZE   =   4 * 1024, // *8 bytes each
+        DEFMAXSTACKSIZE = 128 * 1024, // *8 bytes each, modest on smallest handheld we support (iPhone 3GS has 256MB)
+        STACKMARGIN     =   1 * 1024  // *8 bytes each, max by which the stack could possibly grow in a single call
     }; 
 
     int *ip;
@@ -73,7 +73,8 @@ struct VM : VMBase
           curcoroutine(NULL), vars(NULL), st(_st), codelen(_len), byteprofilecounts(NULL), lineprofilecounts(NULL),
           trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state)
     {
-        assert(sizeof(int) == sizeof(void *));   // search for "64bit" before trying to make a 64bit build, changes may be required
+        // search for "64bit" before trying to make a 64bit build, changes may be required
+        assert(sizeof(int) == sizeof(void *));
         assert(vmpool == NULL);
         vmpool = new SlabAlloc();
         ip = codestart = _code;
@@ -94,11 +95,13 @@ struct VM : VMBase
 
         vml.LogInit();
 
-        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", NULL }; // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
+        // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
+        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", NULL };
         for (auto name = default_vector_type_names; *name; name++)
         {
             int t = V_VECTOR;
-            for (auto s : st.structtable) if (s->name == *name) { t = s->idx; break; } // linear search because we may not have the map available
+            // linear search because we may not have the map available
+            for (auto s : st.structtable) if (s->name == *name) { t = s->idx; break; }
             default_vector_types.push_back(t);
         }
 
@@ -148,7 +151,8 @@ struct VM : VMBase
 
         if (!leaks.empty())
         {
-            printf("\nLEAKS FOUND (this indicates cycles in your object graph, or a bug in Lobster, details in leaks.txt)\n");
+            printf("\nLEAKS FOUND (this indicates cycles in your object graph, or a bug in Lobster,"
+                   " details in leaks.txt)\n");
                     
             FILE *leakf = OpenForWriting("leaks.txt", false);
             if (leakf)
@@ -201,9 +205,12 @@ struct VM : VMBase
     const LineInfo &LookupLine(int *ip) { return ::LookupLine(ip - codestart, lineinfo); }
     
     #undef new
-    LVector   *NewVector(int n, int t)                        { return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector(n, t); }
-    LString   *NewString(int l)                               { return new (vmpool->alloc(sizeof(LString) + l + 1)) LString(l); }
-    CoRoutine *NewCoRoutine(int *rip, int *vip, CoRoutine *p) { return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p); }
+    LVector *NewVector(int n, int t) { return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector(n, t); }
+    LString *NewString(int l) { return new (vmpool->alloc(sizeof(LString) + l + 1)) LString(l); }
+    CoRoutine *NewCoRoutine(int *rip, int *vip, CoRoutine *p)
+    {
+        return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p);
+    }
     #ifdef WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
@@ -310,7 +317,8 @@ struct VM : VMBase
         auto nsubf = *ip++;
         for (int i = 0; i < nsubf; i++)
         {
-            for (int j = 0; j < nargs; j++)  // TODO: rather than going thru all args, only go thru those that have types
+            // TODO: rather than going thru all args, only go thru those that have types
+            for (int j = 0; j < nargs; j++)
             {
                 int desired = *ip++;
                 if (desired != V_UNKNOWN)
@@ -336,7 +344,8 @@ struct VM : VMBase
             argtypes += ProperTypeName(stack[sp - nargs + j + 1]);
             if (j < nargs - 1) argtypes += ", ";
         }
-        Error("the call " + st.ReverseLookupFunction(definedfunction) + "(" + argtypes + ") did not match any function variants");
+        Error("the call " + st.ReverseLookupFunction(definedfunction) + "(" + argtypes +
+              ") did not match any function variants");
     }
 
     void FinalStackVarsCleanup()
@@ -362,7 +371,10 @@ struct VM : VMBase
 
     void TempCleanup()
     {
-        while (sp >= 0 && TOP().type != V_DEFFUN) POP().DEC();  // only if from a return or error thats has tempories above it, and if returning thru a control structure
+        while (sp >= 0 && TOP().type != V_DEFFUN) {
+            // only if from a return or error thats has tempories above it, and if returning thru a control structure
+            POP().DEC();
+        }
     }
     
     int varcleanup(string *error)
@@ -385,8 +397,10 @@ struct VM : VMBase
             vml.LogFunctionExit(ipv.ip, defvars, lfw.ival);
         }
 
-        while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); }
-        while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC(); vars[i] = POP(); } 
+        while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
+                                                                                                vars[i] = POP(); }
+        while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
+                                                                                                vars[i] = POP(); } 
 
         ip = oldip;
 
@@ -425,7 +439,17 @@ struct VM : VMBase
         ip += nfree;
 
         auto ndef = *ip++;
-        for (int i = 0; i < ndef; i++) PUSH(vars[*ip++].INC()); // for most locals, this just saves an undefined, only in recursive cases it has an actual value. The reason we don't clear the var after backing it up is that in the DS case, you want to be able to use the old value until a new one gets defined, as in a <- a + 1. clearing it would save the INC and a DEC when it eventually gets overwritten, so maybe we can at some point distinguish between vars that are used with DS and those that are not. for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using a separate instruction for assign + def
+        for (int i = 0; i < ndef; i++)
+        {
+            // for most locals, this just saves an undefined, only in recursive cases it has an actual value.
+            // The reason we don't clear the var after backing it up is that in the DS case,
+            // you want to be able to use the old value until a new one gets defined, as in a <- a + 1.
+            // clearing it would save the INC and a DEC when it eventually gets overwritten,
+            // so maybe we can at some point distinguish between vars that are used with DS and those that are not.
+            // for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using
+            // a separate instruction for assign + def
+            PUSH(vars[*ip++].INC());
+        }
         auto nlogvars = *ip++;
 
         if (vml.uses_frame_state)
@@ -456,7 +480,8 @@ struct VM : VMBase
             TempCleanup();
             if (sp < 0)
             {
-                if (towhere >= 0) Error("\"return from " + st.ReverseLookupFunction(towhere) + "\" outside of function");
+                if (towhere >= 0)
+                    Error("\"return from " + st.ReverseLookupFunction(towhere) + "\" outside of function");
                 bottom = true;
                 break;
             }
@@ -473,8 +498,13 @@ struct VM : VMBase
     {
         // probably could be skipped in a "release" mode
         for (auto co = curcoroutine; co; co = co->parent) if (co->varip == varip)
-            Error("cannot create coroutine recursively");   // if allowed, inner coro would save vars of outer, and then possibly restore them outside of scope of parent
-        // TODO: this check guarantees all saved stack vars are undef, except for DS vars, which could still cause problems
+        {
+            // if allowed, inner coro would save vars of outer, and then possibly restore them outside of scope
+            // of parent
+            Error("cannot create coroutine recursively");
+        }
+        // TODO: this check guarantees all saved stack vars are undef, except for DS vars,
+        // which could still cause problems
     }
 
     void CoNew()
@@ -511,9 +541,14 @@ struct VM : VMBase
     void CoYield(int nargs)
     {
         if (nargs > 1)
+        {
             Error("more than 1 argument supplied to coroutine yield function");
+        }
         if (!curcoroutine)
-            Error("coroutine yield function called outside of context");  // can theoretically happen if programmer caches yield value somewhere
+        {
+            // can theoretically happen if programmer caches yield value somewhere
+            Error("coroutine yield function called outside of context");
+        }
 
         Value ret(0, V_NIL);  
         if (nargs) ret = POP();
@@ -545,7 +580,8 @@ struct VM : VMBase
 
         curcoroutine = co;
 
-        assert(curcoroutine->stackcopymax >= (size_t)*curcoroutine->varip); // must be, since those vars got backed up in it before
+        // must be, since those vars got backed up in it before
+        assert(curcoroutine->stackcopymax >= (size_t)*curcoroutine->varip);
         curcoroutine->stackcopylen = *curcoroutine->varip;
         //curcoroutine->BackupParentVars(vars);
 
@@ -565,7 +601,8 @@ struct VM : VMBase
     {
         if (v.type != t)
         {
-            Error(string("type error: ") + op + " requires value of type " + TypeName(t) + ", instead found " + ProperTypeName(v), v);
+            Error(string("type error: ") + op + " requires value of type " + TypeName(t) + 
+                  ", instead found " + ProperTypeName(v), v);
         }
     }
 
@@ -639,7 +676,9 @@ struct VM : VMBase
                     auto start = ip;
                     while (*ip++) ;
                     auto len = (int)(ip - start);
-                    auto s = NewString(len - 1);   // FIXME: have a way that constant strings can stay in the bytecode, or at least preallocate them all
+                    // FIXME: have a way that constant strings can stay in the bytecode,
+                    // or at least preallocate them all
+                    auto s = NewString(len - 1);
                     for (int i = 0; i < len; i++) s->str()[i] = start[i]; 
                     PUSH(Value(s));
                     break;
@@ -664,7 +703,8 @@ struct VM : VMBase
                 }
 
                 case IL_CALLVCOND:
-                    if (TOP().type != V_FUNCTION) { ip++; break; } // FIXME: don't need to check for function value again below if false
+                    // FIXME: don't need to check for function value again below if false
+                    if (TOP().type != V_FUNCTION) { ip++; break; }
                 case IL_CALLV:
                 {
                     Value fun = POP();
@@ -721,24 +761,27 @@ struct VM : VMBase
                 {
                     auto nf = natreg.nfuns[*ip++];
                     int n = *ip++;
-                    if (n > (int)nf->nargs) Error("native function \"" + nf->name + "\" called with too many arguments");
+                    if (n > (int)nf->nargs)
+                        Error("native function \"" + nf->name + "\" called with too many arguments");
                     Value v;
                     switch (nf->nargs)
                     {
                         #define ARG(N) Value a##N = POP(); NFCheck(a##N, *nf, N);
-                        case 0: {                                                 v = nf->fun.f0();                       break; }
-                        case 1: { ARG(0);                                         v = nf->fun.f1(a0);                     break; }
-                        case 2: { ARG(1); ARG(0);                                 v = nf->fun.f2(a0, a1);                 break; }
-                        case 3: { ARG(2); ARG(1); ARG(0);                         v = nf->fun.f3(a0, a1, a2);             break; }
-                        case 4: { ARG(3); ARG(2); ARG(1); ARG(0);                 v = nf->fun.f4(a0, a1, a2, a3);         break; }
-                        case 5: { ARG(4); ARG(3); ARG(2); ARG(1); ARG(0);         v = nf->fun.f5(a0, a1, a2, a3, a4);     break; }
-                        case 6: { ARG(5); ARG(4); ARG(3); ARG(2); ARG(1); ARG(0); v = nf->fun.f6(a0, a1, a2, a3, a4, a5); break; }
+                        case 0: {                                           v = nf->fun.f0(); break; }
+                        case 1: { ARG(0)                                    v = nf->fun.f1(a0); break; }
+                        case 2: { ARG(1) ARG(0)                             v = nf->fun.f2(a0, a1); break; }
+                        case 3: { ARG(2) ARG(1) ARG(0)                      v = nf->fun.f3(a0, a1, a2); break; }
+                        case 4: { ARG(3) ARG(2) ARG(1) ARG(0)               v = nf->fun.f4(a0, a1, a2, a3); break; }
+                        case 5: { ARG(4) ARG(3) ARG(2) ARG(1) ARG(0)        v = nf->fun.f5(a0, a1, a2, a3, a4); break; }
+                        case 6: { ARG(5) ARG(4) ARG(3) ARG(2) ARG(1) ARG(0) v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
+                                                                                                                break; }
                         default: assert(0); break;
                         #undef ARG
                     }
                     PUSH(v);
                     #ifdef _DEBUG   // see if any builtin function is lying about what type it returns
-                        if (nf->ncm == NCM_NONE) // other function types return intermediary values that don't correspond to final return values
+                        // other function types return intermediary values that don't correspond to final return values
+                        if (nf->ncm == NCM_NONE)
                         { 
                             for (int i = 0; i < nf->nretvalues; i++)
                             {
@@ -794,8 +837,10 @@ struct VM : VMBase
                         int len = VectorLoop(a, b, res, isfloat); \
                         if (len >= 0) { \
                             for (int j = 0; j < len; j++) \
-                            if (isfloat) { auto bv = VectorElem<float>(b, j); if (extras&1 && bv == 0) Div0(); res.vval->at(j) = Value(VectorElem<float>(a, j) op bv); }\
-                            else         { auto bv = VectorElem<int>  (b, j); if (extras&1 && bv == 0) Div0(); res.vval->at(j) = Value(VectorElem<int>  (a, j) op bv); }\
+                            if (isfloat) { auto bv = VectorElem<float>(b, j); if (extras&1 && bv == 0) Div0(); \
+                                           res.vval->at(j) = Value(VectorElem<float>(a, j) op bv); }\
+                            else         { auto bv = VectorElem<int>  (b, j); if (extras&1 && bv == 0) Div0(); \
+                                           res.vval->at(j) = Value(VectorElem<int>  (a, j) op bv); }\
                             VectorDec(a, res); VectorDec(b, res); \
                             break; } \
                     } \
@@ -888,7 +933,8 @@ struct VM : VMBase
                         case V_VECTOR: \
                             if (!dyn) { VecType(r); GETOFFSET(i, r, mode); } \
                             IDXErr(i, (int)r.vval->len, r); PUSH(r.vval->at(i).INC()); break; \
-                        case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); PUSH(Value((int)r.sval->str()[i])); break; } /* else fall thru */ \
+                        case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); \
+                                                  PUSH(Value((int)r.sval->str()[i])); break; } /* else fall thru */ \
                         default: Error(string("cannot index into type ") + TypeName(r.type), r); \
                     } \
                     r.DECRT(); \
@@ -981,7 +1027,8 @@ struct VM : VMBase
                     auto x = POP();
                     auto &v = TOP();
                     assert(v.type == V_VECTOR);
-                    if (x.type != V_VECTOR || *ip++ != x.vval->type) Error("super class constructor is of the wrong type", x);
+                    if (x.type != V_VECTOR || *ip++ != x.vval->type)
+                        Error("super class constructor is of the wrong type", x);
                     v.vval->append(x.vval, 0, x.vval->len);
                     //for (int i = 0; i < x.vval->len; i++) v.vval->push(x.vval->at(i));
                     x.DECRT();
@@ -1000,7 +1047,9 @@ struct VM : VMBase
                     auto udtid = *ip++;
                     if (v.type == V_VECTOR)
                     {
-                        for (int t = v.vval->type; t != -1; t = st.structtable[t]->superclassidx)   // only expensive if long inheritance chain and if often passing subtype values to supertype functions
+                        // only expensive if long inheritance chain and if often passing subtype values to
+                        // supertype functions
+                        for (int t = v.vval->type; t != -1; t = st.structtable[t]->superclassidx)
                         {
                             if (t == udtid) goto found;
                         }
@@ -1061,7 +1110,9 @@ struct VM : VMBase
 
             case LVO_WRITE:   { Value  b = POP();       OVERWRITE(a, b); a.DEC(); a = b; break; }
             case LVO_WRITER:  { Value &b = TOP().INC(); OVERWRITE(a, b); a.DEC(); a = b; break; }
-            case LVO_WRITED:  { Value  b = POP();                        a.DEC(); a = b; break; } // this last one is only there because OVERWRITE causes problems with rec functions, and its not needed for defines anyway
+            case LVO_WRITED:  { Value  b = POP();                        a.DEC(); a = b; break; }
+            // LVO_WRITED is only there because OVERWRITE causes problems with rec functions,
+            // and its not needed for defines anyway
                     
             case LVO_PP: 
             case LVO_PPR:  { PPOP(op == LVO_PPR,  +, true);  break; }
@@ -1114,9 +1165,12 @@ struct VM : VMBase
                 nt = n.vval->type;
                 if (ot == nt) return;   // 2nd most common path
                 if (ot >= 0 && nt >= 0) return; // for now, any struct types can be exchanged
-                // the code below only does super->sub and sub->super, but can't do common supertype which is too expensive at runtime
-                //for (int t = nt; t != -1; t = st.structtable[t]->superclassidx) if (t == ot) return;    // overwrite with a subclass
-                //for (int t = ot; t != -1; t = st.structtable[t]->superclassidx) if (t == nt) return;    // overwrite with a superclass
+                // the code below only does super->sub and sub->super,
+                // but can't do common supertype which is too expensive at runtime
+                // overwrite with a subclass:
+                //for (int t = nt; t != -1; t = st.structtable[t]->superclassidx) if (t == ot) return;
+                // overwrite with a superclass:
+                //for (int t = ot; t != -1; t = st.structtable[t]->superclassidx) if (t == nt) return;
             }
             else if (nt == V_NIL)
             {
@@ -1152,8 +1206,15 @@ struct VM : VMBase
         switch (desired)
         {
             case V_UNKNOWN: return true;  // this means "any" for builtin functions, not used by other callers
-            case V_FLOAT:   if (v.type == V_INT)    { v = Value((float)v.ival); return true; } break;
-            case V_STRING:  if (v.type != V_STRING) { auto s = v.ToString(programprintprefs); v.DEC(); v = Value(NewString(s)); return true; } break;
+            case V_FLOAT:   if (v.type == V_INT) { v = Value((float)v.ival); return true; } break;
+            case V_STRING:  if (v.type != V_STRING)
+                            {
+                                auto s = v.ToString(programprintprefs);
+                                v.DEC();
+                                v = Value(NewString(s));
+                                return true;
+                            }
+                            break;
         }
         return false;
     }
@@ -1171,7 +1232,8 @@ struct VM : VMBase
         if (!Coerce(v, nf.args[i].type.t))
         {
             if ((nf.args[i].flags == NF_OPTIONAL) && v.type == V_NIL) return;
-            Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + "\" needs to have type " + nf.args[i].type.Name() + ", not " + ProperTypeName(v), v);
+            Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + 
+                  "\" needs to have type " + nf.args[i].type.Name() + ", not " + ProperTypeName(v), v);
         }
     }
 
@@ -1207,13 +1269,16 @@ struct VM : VMBase
             for (int i = idx.vval->len - 1; ; i--)
             {
                 auto sidx = idx.vval->at(i);
-                if (sidx.type != V_INT) Error(string("illegal vector index element of type ") + ProperTypeName(sidx), idx);
+                if (sidx.type != V_INT)
+                    Error(string("illegal vector index element of type ") + ProperTypeName(sidx), idx);
                 if (!i)
                 {
                     idx.DECRT();
                     return sidx.ival;
                 }
-                if (v.type != V_VECTOR) Error(string("vector index of length ") + inttoa(idx.vval->len) + " used on nested vector of depth " + inttoa(i), idx, v); 
+                if (v.type != V_VECTOR)
+                    Error(string("vector index of length ") + inttoa(idx.vval->len) + 
+                          " used on nested vector of depth " + inttoa(i), idx, v); 
                 IDXErr(sidx.ival, v.vval->len, v);
                 auto nv = v.vval->at(sidx.ival).INC();
                 v.DECRT();

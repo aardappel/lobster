@@ -42,9 +42,11 @@
 #include "sdlinterface.h"
 #endif
 
-string datadir;     // main dir to load files relative to, on windows this is where lobster.exe resides, on apple platforms it's the Resource folder in the bundle
-string auxdir;      // auxiliary dir to load files from, this is where the bytecode file you're running or the main .lobster file you're compiling reside
-string writedir;    // folder to write to, usually the same as auxdir, special folder on mobile platforms
+string datadir;  // main dir to load files relative to, on windows this is where lobster.exe resides,
+                 // on apple platforms it's the Resource folder in the bundle
+string auxdir;   // auxiliary dir to load files from, this is where the bytecode file you're running or
+                 // the main .lobster file you're compiling reside
+string writedir; // folder to write to, usually the same as auxdir, special folder on mobile platforms
 
 string StripFilePart(const char *filepath)
 {
@@ -81,7 +83,9 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
             #ifdef __IOS__
                 writedir = StripFilePart(path) + "Documents/"; // there's probably a better way to do this in CF
             #else
-                writedir = datadir; // FIXME: this should probably be ~/Library/Application Support/AppName, but for now this works for non-app store apps
+                // FIXME: this should probably be ~/Library/Application Support/AppName,
+                // but for now this works for non-app store apps
+                writedir = datadir;
             #endif
         }
     #elif defined(__ANDROID__)
@@ -92,7 +96,8 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
         DebugLog(-1, externalstoragepath);
         if (internalstoragepath) datadir = internalstoragepath + string("/");
         if (externalstoragepath) writedir = externalstoragepath + string("/");
-        // for some reason, the above SDL functionality doesn't actually work, we have to use the relative path only to access APK files:
+        // for some reason, the above SDL functionality doesn't actually work,
+        // we have to use the relative path only to access APK files:
         datadir = "";
         auxdir = writedir;
     #endif
@@ -189,7 +194,8 @@ void DebugLog(int lev, const char *msg, ...)
     va_list args;
     va_start(args, msg);
     #ifdef __ANDROID__
-        __android_log_vprint(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN), "lobster", msg, args);
+        __android_log_vprint(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN),
+                             "lobster", msg, args);
     #elif defined(WIN32)
         char buf[256];
         vsnprintf(buf, sizeof(buf), msg, args);

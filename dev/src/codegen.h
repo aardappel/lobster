@@ -24,7 +24,8 @@
     F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
     F(PUSHLOC) F(LVALLOC) \
     F(BCALL) \
-    F(CALL) F(CALLV) F(CALLVCOND) F(STORELOOPVAR) F(DUP) F(CONT1) F(CONT2) F(FUNSTART) F(FUNEND) F(FUNMULTI) F(CALLMULTI) \
+    F(CALL) F(CALLV) F(CALLVCOND) F(STORELOOPVAR) F(DUP) F(CONT1) F(CONT2) \
+    F(FUNSTART) F(FUNEND) F(FUNMULTI) F(CALLMULTI) \
     F(JUMP) \
     F(NEWVEC) \
     F(POP) \
@@ -41,7 +42,8 @@ enum { ILNAMES };
 #undef F
 
 #define LVALOPNAMES \
-    F(WRITE) F(WRITER) F(WRITED) F(PLUS) F(PLUSR) F(MUL) F(MULR) F(SUB) F(SUBR) F(DIV) F(DIVR) F(MOD) F(MODR) F(PP) F(PPR) F(MM) F(MMR) F(PPP) F(PPPR) F(MMP) F(MMPR) 
+    F(WRITE) F(WRITER) F(WRITED) F(PLUS) F(PLUSR) F(MUL) F(MULR) F(SUB) F(SUBR) F(DIV) F(DIVR) F(MOD) F(MODR) \
+    F(PP) F(PPR) F(MM) F(MMR) F(PPP) F(PPPR) F(MMP) F(MMPR) 
 
 #define F(N) LVO_##N,
 enum { LVALOPNAMES };
@@ -56,7 +58,8 @@ struct CodeGen
     vector<Node *> linenumbernodes;
     SymbolTable &st;
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool verbose) : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
+    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool verbose)
+        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
     {
         linenumbernodes.push_back(parser.root);
 
@@ -198,7 +201,8 @@ struct CodeGen
                 }
                 else defs.push_back(id);
             }
-            reverse(logvars.begin() + logmultiassignstart, logvars.end()); // order of multi-assign initializers is reversed on the stack
+            // order of multi-assign initializers is reversed on the stack
+            reverse(logvars.begin() + logmultiassignstart, logvars.end());
         }
 
         linenumbernodes.push_back(cl);
@@ -236,14 +240,17 @@ struct CodeGen
     void Gen(Node *n, int retval)
     {
         linenumbernodes.push_back(n);
-        int maxretvalsupplied = 1;  // by default, the cases below only deal with 0 or 1 retvals, set this to > 1 to indicate extra values on the stack need to be dealt with
+        // by default, the cases below only deal with 0 or 1 retvals,
+        // set this to > 1 to indicate extra values on the stack need to be dealt with
+        int maxretvalsupplied = 1;
         int opc = 0;
 
         switch(n->type)
         {
             case 'INT': if (retval) { Emit(IL_PUSHINT, n->integer); }; break;
             case 'FLT': if (retval) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = (float)n->flt; Emit(i2f.i); }; break; 
-            case 'STR': if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str; *p; p++) Emit(*p); Emit(0); }; break;
+            case 'STR': if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str; *p; p++) Emit(*p);
+                                                        Emit(0); }; break;
             case 'NIL': if (retval) { Emit(IL_PUSHNIL); break; }
 
             case 'ID':  if (retval) { Emit(IL_PUSHVAR, n->ident->idx); }; break;
@@ -290,7 +297,8 @@ struct CodeGen
                         Emit(IL_LVALVAR, LVO_WRITE, ids[i]->idx);
                     }
                 }
-                if (retval) Dummy(retval);  // currently can only happen with def on last line of body, which is nonsensical
+                // currently can only happen with def on last line of body, which is nonsensical
+                if (retval) Dummy(retval);
                 break;
             }
 
@@ -364,7 +372,9 @@ struct CodeGen
                     {
                         Emit(IL_PUSHUNDEF);
                     }
-                    genargs(NULL, 0); // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call instruction?
+                    // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
+                    // instruction?
+                    genargs(NULL, 0);
                     switch(nf->ncm)
                     {
                         case NCM_CONTINUATION:  // if()
@@ -424,7 +434,8 @@ struct CodeGen
                     }
                     else if (!nf->nretvalues && retval)
                     { 
-                        // can't make this an error since these functions are often called as the last thing in a function, requiring a return value
+                        // can't make this an error since these functions are often called as the last thing in a
+                        // function, requiring a return value
                         //Error("builtin function call returns nothing", n); 
                     }
                 }
@@ -432,7 +443,9 @@ struct CodeGen
                 {
                     auto &f = *n->a->f;
                     genargs(f.subf->args, f.multimethod ? 0 : f.nargs);
-                    if (f.nargs != nargs) parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) + " arguments, " + string(inttoa(nargs)) + " given", n->a);
+                    if (f.nargs != nargs)
+                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
+                                     " arguments, " + string(inttoa(nargs)) + " given", n->a);
                     f.ncalls++;
                     Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx);
                     if (f.retvals > 1)
@@ -591,14 +604,16 @@ struct CodeGen
                 {
                     bool found = false;
                     Emit(0); // count
-                    // TODO: we shouldn't need to compute and store this table for each call, instead do it once for each function / builtin function
+                    // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
+                    // each function / builtin function
                     auto err = n->a->FindIdentsUpToYield([&](vector<Ident *> &istack)
                     {
                         found = true;
                         for (auto id : istack)
                         {
                             for (size_t i = loc + 1; i < code.size(); i++) if (code[i] == id->idx) continue;
-                            // FIXME: merging of variables from all yield sites is potentially incorrect, we might end up restoring variables that are not actually in use
+                            // FIXME: merging of variables from all yield sites is potentially incorrect, we might end
+                            // up restoring variables that are not actually in use
                             Emit(id->idx);
                             //printf("cor: %s\n", id->name.c_str());
                         }
@@ -607,8 +622,10 @@ struct CodeGen
                     if (err)
                         parser.Error(string("coroutine construction error: ") + err, n->a);
 
-                    // this guarantees FindIdentsUpToYield has done an accurate job finding all ids, since if it can reach the yield, it must also have found the whole callchain leading up to it
-                    // if people start storing the yield function inside data structures or doing other weird things to confuse the algorithm, they'll at least get this error
+                    // this guarantees FindIdentsUpToYield has done an accurate job finding all ids, since if it can
+                    // reach the yield, it must also have found the whole callchain leading up to it
+                    // if people start storing the yield function inside data structures or doing other weird things to
+                    // confuse the algorithm, they'll at least get this error
                     if (!found)
                         parser.Error("coroutine construction error: cannot find yield call", n->a);
                     code[loc] = code.size() - loc - 1;
@@ -685,7 +702,9 @@ struct CodeGen
         {
             if (f->numunique == 1) continue;
 
-            if (f->numunique == 2) // see if of the two offsets, one of them only is used with one type, then we can use a simple if-check encoding
+            // see if of the two offsets, one of them only is used with one type, then we can use a simple if-check
+            // encoding
+            if (f->numunique == 2)
             {
                 FieldOffset fo1, fo2;
                 int n1 = 1, n2 = 0;
@@ -714,8 +733,11 @@ struct CodeGen
 
         if (verbose)
         {
-            if (condfields.length())  printf("performance warning: conditionals generated for fields:%s\n", condfields.c_str());
-            if (tablefields.length()) printf("performance warning: table lookups generated for fields:%s (in %ld types)\n", tablefields.c_str(), long(st.structtable.size()));
+            if (condfields.length())
+                printf("performance warning: conditionals generated for fields:%s\n", condfields.c_str());
+            if (tablefields.length())
+                printf("performance warning: table lookups generated for fields:%s (in %ld types)\n",
+                       tablefields.c_str(), long(st.structtable.size()));
         }
     }
 

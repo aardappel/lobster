@@ -120,7 +120,12 @@ int findfinger(SDL_FingerID id, bool remove)
 {
     for (auto &f : fingers) if (f.id == id)
     {
-        if (remove) f.id = 0; // would be more correct to clear mouse position here, but that doesn't work with delayed touch.. would have to delay it too
+        if (remove)
+        {
+            // would be more correct to clear mouse position here, but that doesn't work with delayed touch..
+            // would have to delay it too
+            f.id = 0;
+        }
         return &f - fingers;
     }
     if (remove) return MAXFINGERS - 1; // FIXME: this is masking a bug...
@@ -161,7 +166,8 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et, const int2 &screensize)
             auto ed = float2(e.dx, e.dy);
             auto xy = ep * float2(screensize);
 
-            f.mousepos = int2(xy * float(screenscalefactor));  // FIXME: converting back to int coords even though touch theoretically may have higher res
+            // FIXME: converting back to int coords even though touch theoretically may have higher res
+            f.mousepos = int2(xy * float(screenscalefactor));
             f.mousedelta += int2(ed * float2(screensize));
             return j;
         }
@@ -201,7 +207,8 @@ int SDLHandleAppEvents(void *userdata, SDL_Event *event)
             return 0;
         case SDL_APP_DIDENTERBACKGROUND:
             /* This will get called if the user accepted whatever sent your app to the background.
-             If the user got a phone call and canceled it, you'll instead get an SDL_APP_DIDENTERFOREGROUND event and restart your loops.
+             If the user got a phone call and canceled it, 
+             you'll instead get an SDL_APP_DIDENTERFOREGROUND event and restart your loops.
              When you get this, you have 5 seconds to save all your state or the app will be terminated.
              Your app is NOT active at this point.
              */
@@ -307,7 +314,8 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     _sdl_window = SDL_CreateWindow(title,
                                     SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                     screensize.x(), screensize.y(),
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
+                                        (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
 
     if (!_sdl_window)
@@ -338,7 +346,9 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
         SDL_Joystick *joy;
         if (joy = SDL_JoystickOpen(i))
         {
-            DebugLog(-1, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)\n", SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy), SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
+            DebugLog(-1, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)\n",
+                         SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy),
+                         SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
         };
     };
 
@@ -350,7 +360,8 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 
 void SDLShutdown()
 {
-    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = NULL;  // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid.
+    // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. upon SDL_GL_DeleteContext
+    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = NULL;
     if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = NULL;
 
     SDL_Quit();
@@ -545,8 +556,11 @@ UpDown GetKS(const char *name)
 {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return UpDown();
-    #if defined(__IOS__) || defined(__ANDROID__)    // delayed results by one frame, that way they get 1 frame over finger hovering over target, which makes gl_hit work correctly
-        // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching, and make that into a special case inside gl_hit
+    #if defined(__IOS__) || defined(__ANDROID__)
+        // delayed results by one frame, that way they get 1 frame over finger hovering over target,
+        // which makes gl_hit work correctly
+        // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,
+        // and make that into a special case inside gl_hit
         return ks->second.lastframe;
     #else
         return ks->second;

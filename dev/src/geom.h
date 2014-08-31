@@ -61,8 +61,8 @@ template<typename T, int N> class vec
     vec(T x, T y, T z)      { assert(N == 3); c[0] = x; c[1] = y; c[2] = z; }
     vec(T x, T y)           { assert(N == 2); c[0] = x; c[1] = y; }
 
-  	const T *begin() const { return c; }    
-	const T *end()   const { return c + N; }
+    const T *begin() const { return c; }    
+    const T *end()   const { return c + N; }
 
     T x() const {                return c[0]; }
     T y() const {                return c[1]; }
@@ -71,7 +71,9 @@ template<typename T, int N> class vec
 
     T operator[](int i) const { return c[i]; }
     
-    void set(int i, const T a) { c[i] = a; } // no operator for this on purpose, you shouldn't be using this outside of this header (trying to encourage a functional style)
+    // no operator for this on purpose, you shouldn't be using this outside of this header
+    // (trying to encourage a functional style)
+    void set(int i, const T a) { c[i] = a; }
     vec &add(int i, const T a) { c[i] += a; return *this; }
 
     vec(const vec<T,3> &v, T e) { assert(N == 4); DOVEC(c[i] = i < 3 ? v[i] : e); }
@@ -127,7 +129,10 @@ template<typename T, int N> class vec
 template<typename T> inline T mix(T a, T b, float f) { return a * (1 - f) + b * f; }
 
 // rational replacement for powf (when t = 0..1), due to "Ratioquadrics: An Alternative Model for Superquadrics"
-//inline float rpowf(float t, float e) { assert(t >= 0 && t <= 1); e = 1 / e + 1.85f/* wtf */; return t / (e + (1 - e) * t); } 
+//inline float rpowf(float t, float e)
+//{
+//    assert(t >= 0 && t <= 1); e = 1 / e + 1.85f/* wtf */; return t / (e + (1 - e) * t);
+//} 
 inline float rpowf(float t, float e) { return expf(e * logf(t)); } 
 
 template<typename T, int N> inline vec<T,N> operator+(float f, const vec<T,N> &v) { DOVECR(f + v[i]); }
@@ -135,12 +140,19 @@ template<typename T, int N> inline vec<T,N> operator-(float f, const vec<T,N> &v
 template<typename T, int N> inline vec<T,N> operator*(float f, const vec<T,N> &v) { DOVECR(f * v[i]); }
 template<typename T, int N> inline vec<T,N> operator/(float f, const vec<T,N> &v) { DOVECR(f / v[i]); }
 
-template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b) { T t = 0; DOVEC(t += a[i] * b[i]); return t; }
+template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b)
+{
+    T t = 0; DOVEC(t += a[i] * b[i]);
+    return t;
+}
 template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return dot(v, v); }
 template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrtf(squaredlength(v)); }
 template<typename T, int N> inline vec<T,N> normalize(const vec<T,N> &v) { return v / length(v); }
 template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(fabsf(v[i])); }  // FIXME fabsf or abs
-template<typename T, int N> inline vec<T,N> mix(const vec<T,N> &a, const vec<T,N> &b, float f) { return a * (1 - f) + b * f; }
+template<typename T, int N> inline vec<T,N> mix(const vec<T,N> &a, const vec<T,N> &b, float f)
+{
+    return a * (1 - f) + b * f;
+}
 template<typename T, int N> inline vec<T,N> min(const vec<T,N> &a, const vec<T,N> &b) { DOVECR(min(a[i], b[i])); }
 template<typename T, int N> inline vec<T,N> max(const vec<T,N> &a, const vec<T,N> &b) { DOVECR(max(a[i], b[i])); }
 template<typename T, int N> inline vec<T,N> pow(const vec<T,N> &a, const vec<T,N> &b) { DOVECR(powf(a[i], b[i])); }
@@ -178,22 +190,31 @@ const byte4 byte4_255 = byte4((uchar)255);
 
 inline float3 cross(const float3 &a, const float3 &b)		
 {
-	return float3(a.y()*b.z()-a.z()*b.y(), a.z()*b.x()-a.x()*b.z(), a.x()*b.y()-a.y()*b.x());
+    return float3(a.y()*b.z()-a.z()*b.y(), a.z()*b.x()-a.x()*b.z(), a.x()*b.y()-a.y()*b.x());
 }
 
 inline float3 random_point_in_sphere(MersenneTwister &r)
 {
-	for (;;)
-	{
-		const float3 p(r.rndfloatsigned(), r.rndfloatsigned(), r.rndfloatsigned());
-		if (dot(p, p) < 1.f)
-			return p;
-	}
+    for (;;)
+    {
+        const float3 p(r.rndfloatsigned(), r.rndfloatsigned(), r.rndfloatsigned());
+        if (dot(p, p) < 1.f)
+            return p;
+    }
 }
 
-inline float3 rotateX(const float3 &v, const float2 &a) { return float3(v.x(), v.y() * a.x() - v.z() * a.y(), v.y() * a.y() + v.z() * a.x()); }
-inline float3 rotateY(const float3 &v, const float2 &a) { return float3(v.x() * a.x() + v.z() * a.y(), v.y(), v.z() * a.x() - v.x() * a.y()); }
-inline float3 rotateZ(const float3 &v, const float2 &a) { return float3(v.x() * a.x() - v.y() * a.y(), v.x() * a.y() + v.y() * a.x(), v.z()); }
+inline float3 rotateX(const float3 &v, const float2 &a)
+{
+    return float3(v.x(), v.y() * a.x() - v.z() * a.y(), v.y() * a.y() + v.z() * a.x());
+}
+inline float3 rotateY(const float3 &v, const float2 &a)
+{
+    return float3(v.x() * a.x() + v.z() * a.y(), v.y(), v.z() * a.x() - v.x() * a.y());
+}
+inline float3 rotateZ(const float3 &v, const float2 &a)
+{
+    return float3(v.x() * a.x() - v.y() * a.y(), v.x() * a.y() + v.y() * a.x(), v.z());
+}
 
 inline float3 rotateX(const float3 &v, float a) { return rotateX(v, float2(cosf(a), sinf(a))); }
 inline float3 rotateY(const float3 &v, float a) { return rotateY(v, float2(cosf(a), sinf(a))); }
@@ -266,24 +287,24 @@ template<typename T, int C, int R> class matrix
 
         *this = matrix(1);
 
-	    float s = sinf(a);
+        float s = sinf(a);
         float c = cosf(a);
 
-	    const float	t = 1.f - c;
-	    const float3 n = normalize(v);
-	    const float	x = n.x();
-	    const float	y = n.y();
-	    const float	z = n.z();
+        const float	t = 1.f - c;
+        const float3 n = normalize(v);
+        const float	x = n.x();
+        const float	y = n.y();
+        const float	z = n.z();
 
-	    m[0].c[0] = t*x*x + c;
-	    m[0].c[1] = t*x*y + z*s;
-	    m[0].c[2] = t*x*z - y*s;
-	    m[1].c[0] = t*x*y - z*s;
-	    m[1].c[1] = t*y*y + c;
-	    m[1].c[2] = t*y*z + x*s;
-	    m[2].c[0] = t*x*z + y*s;
-	    m[2].c[1] = t*y*z - x*s;
-	    m[2].c[2] = t*z*z + c;
+        m[0].c[0] = t*x*x + c;
+        m[0].c[1] = t*x*y + z*s;
+        m[0].c[2] = t*x*z - y*s;
+        m[1].c[0] = t*x*y - z*s;
+        m[1].c[1] = t*y*y + c;
+        m[1].c[2] = t*y*z + x*s;
+        m[2].c[0] = t*x*z + y*s;
+        m[2].c[1] = t*y*z - x*s;
+        m[2].c[2] = t*z*z + c;
     }
 
     const V &operator[](int i) const { return m[i]; }
@@ -301,9 +322,9 @@ template<typename T, int C, int R> class matrix
 
     matrix<T,R,C> transpose() const
     {
-	    matrix<T,R,C> res;
+        matrix<T,R,C> res;
         for (int y = 0; y < R; y++) res.set(y, row(y));
-	    return res;
+        return res;
     }
 
     V operator*(const vec<T,C> &v) const
@@ -375,47 +396,47 @@ inline float3x4 operator*(const float3x4 &m, const float3x4 &o)     // FIXME: cl
 
 inline float4x4 translation(const float3& t)
 {
-	return float4x4(
-	    float4(1, 0, 0, 0),
-	    float4(0, 1, 0, 0),
-	    float4(0, 0, 1, 0),
-	    float4(t, 1));
+    return float4x4(
+        float4(1, 0, 0, 0),
+        float4(0, 1, 0, 0),
+        float4(0, 0, 1, 0),
+        float4(t, 1));
 }
 
 inline float4x4 scaling(float s)
 {
-	return float4x4(
-	    float4(s, 0, 0, 0),
-	    float4(0, s, 0, 0),
-	    float4(0, 0, s, 0),
-	    float4(0, 0, 0, 1));
+    return float4x4(
+        float4(s, 0, 0, 0),
+        float4(0, s, 0, 0),
+        float4(0, 0, s, 0),
+        float4(0, 0, 0, 1));
 }
 
 inline float4x4 rotationX(const float2 &v)
 {
-	return float4x4(
-	    float4(1, 0,     0,     0),
-	    float4(0, v.x(), v.y(), 0),
-	    float4(0,-v.y(), v.x(), 0),
-	    float4(0, 0,     0,     1));
+    return float4x4(
+        float4(1, 0,     0,     0),
+        float4(0, v.x(), v.y(), 0),
+        float4(0,-v.y(), v.x(), 0),
+        float4(0, 0,     0,     1));
 }
 
 inline float4x4 rotationY(const float2 &v)
 {
-	return float4x4(
-	    float4(v.x(), 0,-v.y(), 0),
-	    float4(0,     1, 0,     0),
-	    float4(v.y(), 0, v.x(), 0),
-	    float4(0,     0, 0,     1));
+    return float4x4(
+        float4(v.x(), 0,-v.y(), 0),
+        float4(0,     1, 0,     0),
+        float4(v.y(), 0, v.x(), 0),
+        float4(0,     0, 0,     1));
 }
 
 inline float4x4 rotationZ(const float2 &v)
 {
-	return float4x4(
-	    float4( v.x(), v.y(), 0, 0),
-	    float4(-v.y(), v.x(), 0, 0),
-	    float4( 0,     0,     1, 0),
-	    float4( 0,     0,     0, 1));
+    return float4x4(
+        float4( v.x(), v.y(), 0, 0),
+        float4(-v.y(), v.x(), 0, 0),
+        float4( 0,     0,     1, 0),
+        float4( 0,     0,     0, 1));
 }
 
 inline float4x4 rotationX(float a) { return rotationX(float2(cosf(a), sinf(a))); }
@@ -434,7 +455,8 @@ inline float3x3 rotation(const quat &q)
                     float3(txz - twy, tyz + twx, 1 - (txx + tyy)));
 }
 
-inline float3x4 rotationscaletrans(const quat &q, const float3 &s, const float3 &t) // FIXME: this is not generic, here because of IQM
+// FIXME: this is not generic, here because of IQM
+inline float3x4 rotationscaletrans(const quat &q, const float3 &s, const float3 &t)
 {
     float3x3 m = rotation(q);
     for (int i = 0; i < 3; i++) m.set(i, m[i] * s);
@@ -452,18 +474,19 @@ inline float3x4 invertortho(const float3x4 &o) // FIXME: this is not generic, he
                     float4(inv[2], -dot(inv[2], inv[3])));
 }
 
-inline float4x4 perspectiveFov( float fovy, float aspect, float znear, float zfar, float handedness /* 1.f for RH, -1.f for LH */)
+// handedness: 1.f for RH, -1.f for LH
+inline float4x4 perspectiveFov( float fovy, float aspect, float znear, float zfar, float handedness)
 {
-	const float y = 1 / tanf(fovy * .5f);
-	const float x = y / aspect;
-	const float zdist = (znear-zfar)*handedness;
-	const float zfar_per_zdist = zfar / zdist;
+    const float y = 1 / tanf(fovy * .5f);
+    const float x = y / aspect;
+    const float zdist = (znear-zfar)*handedness;
+    const float zfar_per_zdist = zfar / zdist;
 
-	return float4x4(
-	    float4(x, 0, 0,					   		      0),
-	    float4(0, y, 0,					   		      0),
-	    float4(0, 0, zfar_per_zdist,    	   	     -1.f*handedness),
-	    float4(0, 0, znear*zfar_per_zdist*handedness, 0));
+    return float4x4(
+        float4(x, 0, 0,					   		      0),
+        float4(0, y, 0,					   		      0),
+        float4(0, 0, zfar_per_zdist,    	   	     -1.f*handedness),
+        float4(0, 0, znear*zfar_per_zdist*handedness, 0));
 }
 
 inline float4x4 orthoGL(float left, float right, float bottom, float top, float znear, float zfar)
@@ -472,7 +495,8 @@ inline float4x4 orthoGL(float left, float right, float bottom, float top, float 
         float4(2.0f / (right - left), 0, 0, 0),
         float4(0, 2.0f / (top - bottom), 0, 0),
         float4(0, 0, -2.0f / (zfar - znear), 0),
-        float4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(zfar + znear) / (zfar - znear), 1.0f)
+        float4(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(zfar + znear) / (zfar - znear),
+               1.0f)
     );
 }
 
@@ -481,7 +505,9 @@ inline byte4 quantizec(const float4 &v) { return byte4(v            * 255); }
 
 inline float4 color2vec(byte4 &col) { return float4(col) / 255; }
 
-inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, const float3 &c, float s, float tension = 0.5)		// spline interpolation
+// spline interpolation
+inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, const float3 &c, float s,
+                             float tension = 0.5)
 {
     float s2 = s*s;
     float s3 = s*s2;
@@ -492,7 +518,8 @@ inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, 
            (c - a) * tension * (   s3 -   s2    );
 }
 
-template<class T> void normalize_mesh(int *idxs, int idxlen, T *verts, int vertlen, bool ignore_bad_tris = true)    // type T must have .pos and .norm
+// type T must have .pos and .norm
+template<class T> void normalize_mesh(int *idxs, int idxlen, T *verts, int vertlen, bool ignore_bad_tris = true)
 {
     for (int i = 0; i < vertlen; i++)
     {

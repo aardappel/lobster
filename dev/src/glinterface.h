@@ -125,7 +125,8 @@ extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();
 
-extern void RenderArray(Primitive prim, int count, const char *fmt, int vertsize, void *vbuf1, int *ibuf = NULL, int vertsize2 = 0, void *vbuf2 = NULL);
+extern void RenderArray(Primitive prim, int count, const char *fmt, 
+                        int vertsize, void *vbuf1, int *ibuf = NULL, int vertsize2 = 0, void *vbuf2 = NULL);
 extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
 extern void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
 

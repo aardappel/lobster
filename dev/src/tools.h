@@ -13,9 +13,12 @@
 // limitations under the License.
 
 // doubly linked list
-// DLNodeRaw does not initialize nor assumes initialization, so can be used in situations where memory is already allocated
-// DLNodeBase is meant to be a base class for objects that want to be held in a DLList. Unlike DLNodeRaw it is always initialized and checks that it's being used sensibly
-// These are better than std::list which doesn't have a node to inherit from, so causes 2 allocations rather than 1 for object hierarchies
+// DLNodeRaw does not initialize nor assumes initialization, so can be used in
+// situations where memory is already allocated DLNodeBase is meant to be a base
+// class for objects that want to be held in a DLList. Unlike DLNodeRaw it is always
+// initialized and checks that it's being used sensibly
+// These are better than std::list which doesn't have a node to inherit from,
+// so causes 2 allocations rather than 1 for object hierarchies
 
 struct DLNodeRaw
 {
@@ -98,9 +101,12 @@ template<typename T> struct DLList : DLNodeRaw
 template<typename T> T *Next(T *n) { return (T *)n->next; }
 template<typename T> T *Prev(T *n) { return (T *)n->prev; }
 
-#define loopdllistother(L, n)   for (auto n = (L).Next();              n != (void *)&(L);          n = Next(n))    // safe Remove on not self
-#define loopdllist(L, n)        for (auto n = (L).Next(), p = Next(n); n != (void *)&(L); (n = p),(p = Next(n)))   // safe Remove on self
-#define loopdllistreverse(L, n) for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))   // safe Remove on self reverse
+// safe Remove on not self
+#define loopdllistother(L, n)   for (auto n = (L).Next();              n != (void *)&(L);          n = Next(n))
+// safe Remove on self
+#define loopdllist(L, n)        for (auto n = (L).Next(), p = Next(n); n != (void *)&(L); (n = p),(p = Next(n)))
+// safe Remove on self reverse
+#define loopdllistreverse(L, n) for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
 inline uchar *loadfile(const char *fn, size_t *lenret = NULL)
 {
@@ -152,8 +158,10 @@ class MersenneTwister
         int j;
         if(left < -1) SeedMT(4357U);
         left=N-1, next=state+1;
-        for(s0=state[0], s1=state[1], j=N-M+1; --j; s0=s1, s1=*p2++) *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
-        for(pM=state, j=M; --j; s0=s1, s1=*p2++) *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+        for(s0=state[0], s1=state[1], j=N-M+1; --j; s0=s1, s1=*p2++)
+            *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+        for(pM=state, j=M; --j; s0=s1, s1=*p2++)
+            *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
         s1=state[0], *p0 = *pM ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
         s1 ^= (s1 >> 11);
         s1 ^= (s1 <<  7) & 0x9D2C5680U;
@@ -315,7 +323,7 @@ template <typename T> class Accumulator
         return buf;
     }
 
-    Accumulator(const Accumulator &);               // don't copy, create instances of this class with new preferably
+    Accumulator(const Accumulator &);  // don't copy, create instances of this class with new preferably
     Accumulator &operator=(const Accumulator &);
 
     public:
@@ -347,7 +355,8 @@ template <typename T> class Accumulator
         if (last && last->unused)
         {
             size_t fit = min(amount, last->unused);
-            memcpy(last->Elems() + (last->size - last->unused), newelems, sizeof(T) * fit);   // note: copy constructor skipped, if any
+            // note: copy constructor skipped, if any
+            memcpy(last->Elems() + (last->size - last->unused), newelems, sizeof(T) * fit);
             last->unused -= fit;
             amount -= fit;
         }
@@ -366,14 +375,15 @@ template <typename T> class Accumulator
     {
         totalsize += amount;
 
-        // since Prepend is a less common operation, we don't respect mingrowth here and just allocate a single block every time
-        // we could support mingrowth if needed, at the cost of complicating tracking where the unused space lives
+        // since Prepend is a less common operation, we don't respect mingrowth here and just allocate
+        // a single block every time we could support mingrowth if needed, at the cost of complicating
+        // tracking where the unused space lives
         first = NewBuf(amount, amount, newelems, first);
         if (!last) last = first;
     }
 
-    // custom iterator, because it is more efficient to do this a block at a time for clients wishing to process multiple elements at once.
-    // limitation of one iterator at a time seems reasonable.
+    // custom iterator, because it is more efficient to do this a block at a time for clients wishing to process
+    // multiple elements at once. limitation of one iterator at a time seems reasonable.
 
     void ResetIterator() { iterator = first; }
 
@@ -431,7 +441,8 @@ template <typename T> struct DS
 // Cannot store NULL pointers (will assert on Add)
 // conveniently, index 0 is never used, so can be used by the client to indicate invalid index
 
-// TODO: can change IntResourceManager to takes T's instead of T* by making the next field have a special value for in-use (e.g. -2, or 0 if you skip the first field)
+// TODO: can change IntResourceManager to takes T's instead of T* by making the next field have a special value for
+// in-use (e.g. -2, or 0 if you skip the first field)
 
 template <typename T> class IntResourceManager
 {
@@ -462,7 +473,9 @@ template <typename T> class IntResourceManager
 
     size_t Add(T *t)
     {
-        assert(t);  // we can't store NULL pointers as elements, because we wouldn't be able to distinguish them from unallocated slots
+        // we can't store NULL pointers as elements, because we wouldn't be able to distinguish them from unallocated
+        // slots
+        assert(t);
         size_t i = elems.size();
         if (firstfree < i)
         {
@@ -499,37 +512,39 @@ template <typename T> class IntResourceManager
 
 // same as IntResourceManager, but now uses pointer tagging to store the free list in-place.
 // Uses half the memory. Access is slightly slower, but if memory bound could still be faster overall.
-// Can store NULL pointers, but not pointers with the lowest bit set (e.g. char * pointing inside of another allocation, will assert on Add)
+// Can store NULL pointers, but not pointers with the lowest bit set (e.g. char * pointing inside of another allocation,
+// will assert on Add)
 
 template <typename T> class IntResourceManagerCompact
 {
     vector<T *> elems;
     size_t firstfree;
-	const function<void(T *e)> deletefun;
+    const function<void(T *e)> deletefun;
 
-    bool IsFree(T *e) { return ((size_t)e) & 1; }     // free slots have their lowest bit set, and represent an index (shifted by 1)
+    // free slots have their lowest bit set, and represent an index (shifted by 1)
+    bool IsFree(T *e) { return ((size_t)e) & 1; }
     size_t GetIndex(T *e) { return ((size_t)e) >> 1; }
     T *CreateIndex(size_t i) { return (T *)((i << 1) | 1); }
     bool ValidSlot(size_t i) { return i < elems.size() && !IsFree(elems[i]); }
 
     public:
 
-	IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(-1), deletefun(_df)
+    IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(-1), deletefun(_df)
     {
         elems.push_back(NULL);  // slot 0 is permanently blocked, so can be used to denote illegal index
     }
 
     ~IntResourceManagerCompact()
     {
-		ForEach(deletefun);
+        ForEach(deletefun);
     }
 
-	void ForEach(const function<void(T *e)> &f)
-	{
+    void ForEach(const function<void(T *e)> &f)
+    {
         for (auto e : elems)
             if (!IsFree(e) && e)
                 f(e);
-	}
+    }
 
     size_t Add(T *e)
     {

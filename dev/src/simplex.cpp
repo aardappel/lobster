@@ -5,7 +5,8 @@
 
 
 /*
-This code was placed in the public domain by its original author, Stefan Gustavson. You may use it as you see fit, but attribution is appreciated.
+This code was placed in the public domain by its original author, Stefan Gustavson.
+You may use it as you see fit, but attribution is appreciated.
 
 http://webstaff.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
 */
@@ -15,7 +16,9 @@ int fastfloor( const float x ) { return x > 0 ? (int) x : (int) x - 1; }
 
 float dot( const int* g, const float x, const float y ) { return g[0]*x + g[1]*y; }
 float dot( const int* g, const float x, const float y, const float z ) { return g[0]*x + g[1]*y + g[2]*z; }
-float dot( const int* g, const float x, const float y, const float z, const float w ) { return g[0]*x + g[1]*y + g[2]*z + g[3]*w; }
+float dot( const int* g, const float x, const float y, const float z, const float w ) {
+    return g[0]*x + g[1]*y + g[2]*z + g[3]*w;
+}
 
 
 // The gradients are the midpoints of the vertices of a cube.
@@ -446,7 +449,8 @@ float simplexNoise( const int octaves, const float persistence, const float scal
     float maxAmplitude = 0;
 
     for( int i=0; i < octaves; i++ ) {
-        total += simplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency, v.w() * frequency ) * amplitude;
+        total += simplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency, v.w() * frequency ) *
+                 amplitude;
 
         frequency *= 2;
         maxAmplitude += amplitude;
@@ -467,7 +471,9 @@ void AddNoise()
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version
         return Value(simplexNoise(octaves.ival, persistence.fval, scale.fval, v));
     }
-    ENDDECL4(simplex, "pos,octaves,scale,persistence", "VIFF", "F", "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8), a scale (try 1), and persistence from one octave to the next (try 0.5)");
+    ENDDECL4(simplex, "pos,octaves,scale,persistence", "VIFF", "F",
+        "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8),"
+        " a scale (try 1), and persistence from one octave to the next (try 0.5)");
 };
 
 AutoRegister __an("noise", AddNoise);
