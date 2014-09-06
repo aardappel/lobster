@@ -78,8 +78,9 @@ struct Finger
     SDL_FingerID id;
     int2 mousepos;
     int2 mousedelta;
+    bool used;
 
-    Finger() : id(0), mousepos(-1), mousedelta(0) {};
+    Finger() : id(0), mousepos(-1), mousedelta(0), used(false) {};
 };
 
 const int MAXFINGERS = 10;
@@ -124,15 +125,16 @@ int findfinger(SDL_FingerID id, bool remove)
         {
             // would be more correct to clear mouse position here, but that doesn't work with delayed touch..
             // would have to delay it too
-            f.id = 0;
+            f.used = false;
         }
         return &f - fingers;
     }
     if (remove) return MAXFINGERS - 1; // FIXME: this is masking a bug...
     assert(!remove);
-    for (auto &f : fingers) if (!f.id)
+    for (auto &f : fingers) if (!f.used)
     {
         f.id = id;
+        f.used = true;
         return &f - fingers;
     }
     assert(0);
