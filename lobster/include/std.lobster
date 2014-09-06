@@ -2,7 +2,7 @@
 
 function forever(fun): while(true): fun()
 
-function fold(xs, init, fun): 
+function fold(xs, init, fun):
     for(xs): init = fun(init, _)
     init
 
@@ -14,20 +14,20 @@ function reduce(xs, fun):
 
 function connect(xs, fun):
     map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
-    
+
 function reducerev(xs, fun):
     assert(xs.length)
     init := xs[xs.length - 1]
     for(xs.length - 1) i: init = fun(xs[xs.length - i - 2], init)
     init
-    
+
 function filterindices(l, f):   // FIXME: inefficient, maybe better as a builtin
     filter(map(l) x, i: i): f(l[_])
-    
+
 function find(xs, fun):
     for(xs) x, i: if(fun(x)): return i
     return -1
-    
+
 function sum(xs):     fold(xs, 0): _x + _y
 function product(xs): fold(xs, 1): _x * _y
 
@@ -67,7 +67,7 @@ function qsort_in_place(xs, lt):
                     xs[ep] = c
             xs[--sp] = pivot
             rec(s, sp)
-            rec(ep, e)          
+            rec(ep, e)
     rec(0, xs.length)
 
 function insertion_sort(xs, lt):
@@ -76,7 +76,7 @@ function insertion_sort(xs, lt):
         while(j > 0 & lt(key, xs[j - 1])): xs[j--] = xs[j - 1]
         xs[j] = key
     nil
-        
+
 function nest_if(c, nest, with):
     if(c): nest(with)
     else: with()
@@ -84,7 +84,7 @@ function nest_if(c, nest, with):
 function return_after(v, f):
     f()
     v
-    
+
 function forbias (num, bias,  fun): for(num): fun(_ + bias)
 function forscale(num, scale, fun): for(num): fun(_ * scale)
 
@@ -102,7 +102,8 @@ function collect(hof):
 
 // coroutine utility functions:
 
-function coroutine_for(co, f):  // generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
+// generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
+function coroutine_for(co, f):
     while(co.active):
         f(co.returnvalue)
         co.resume
@@ -114,7 +115,7 @@ function fatal(msg):
     if(msg):
         print("fatal error: " + msg)
         return from program
-        
+
 function check(val, msg):
     if(!val): fatal(msg) else: val
 

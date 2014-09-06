@@ -1,7 +1,8 @@
 // a minecraft clone in very few lines of code
 // implements random world generation, rendering, and mining/building of blocks
 // created in response to https://github.com/fogleman/Minecraft (which is 10x bigger in code)
-// NOTE: this code is seriously inefficient, it was written for small size only. Don't use this as a base to write a minecraft clone.
+// NOTE: this code is seriously inefficient, it was written for small size only.
+// Don't use this as a base to write a minecraft clone.
 
 include "std.lobster"
 include "vec.lobster"
@@ -20,8 +21,10 @@ cells := map(lssize) z:
                 map(lssize) x:
                     v := [ x, y, z ]:xyz
                     h := simplex(v / (lssize + 0.0) + 11, 6, 1, 0.55)   // generate blocks using noise
-                    solid := h > div(z, lssize) - 0.5 & inside(v)  // more likely to be solid the lower it is, and only when not on the outside
-                    if(solid): solid = truncate((simplex([ x, y, z ] / (lssize + 0.0), 8, 1, 0.55) + 1) * 2) + 1 // pick material with noise too
+                    // more likely to be solid the lower it is, and only when not on the outside:
+                    solid := h > div(z, lssize) - 0.5 & inside(v)
+                    // pick material with noise too:
+                    if(solid): solid = truncate((simplex([ x, y, z ] / (lssize + 0.0), 8, 1, 0.55) + 1) * 2) + 1
                     solid
 
 colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
@@ -30,7 +33,7 @@ nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: map(s) c: 
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
-while(gl_frame()):   
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_light_blue)
     gl_cursor(0)
@@ -44,8 +47,9 @@ while(gl_frame()):
         if(e):  // if this cell is solid
             v := [ x, y, z ]:xyz
             for(nbdirs) nv, i:
-                if(!cells[nv + v]):  // and neighbor is empty 
-                    gl_color(colors[e - 1]) // we do this here rather than outside the loop because there's less visible faces than total solid cubes
+                if(!cells[nv + v]):  // and neighbor is empty
+                    // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
+                    gl_color(colors[e - 1])
                     gl_translate(v):
                         gl_polygon(nbpolys[i])  // draw face
     first_solid := nil  // find the first solid and last empty block we're looking at
@@ -56,8 +60,9 @@ while(gl_frame()):
         if(inside(pos) & !first_solid):
             if(cells[pos]): first_solid = pos
             else: last_empty = pos
-    if(gl_wentdown("mouse1") & last_empty & inventory.length): cells[last_empty] = inventory.pop()   // LMB places blocks
-    if(gl_wentdown("mouse3") & first_solid): inventory.push(cells[first_solid]); cells[first_solid] = 0   // RMB removes blocks
+    // LMB places blocks & RMB removes blocks
+    if(gl_wentdown("mouse1") & last_empty & inventory.length): cells[last_empty] = inventory.pop()
+    if(gl_wentdown("mouse3") & first_solid): inventory.push(cells[first_solid]); cells[first_solid] = 0
     gl_ortho()
     gl_setshader("color")
     gl_color(color_white)

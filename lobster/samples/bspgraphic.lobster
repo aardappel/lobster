@@ -29,17 +29,17 @@ function square(pos, size, depth):
             gl_rect(size)
             //col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.7 + 0.3
             //col[colorconstant] = 0.7
-            col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.15 + 0.75 
+            col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.15 + 0.75
             range := max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
-            col[colorconstant] = rndfloat() * range + (1 - range) 
+            col[colorconstant] = rndfloat() * range + (1 - range)
             gl_color(col)
             gl_rect(size - vec_1i * 2)
 
 seed := 342342432
-                
+
 fatal(gl_window("bsp", 512, 512))
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     if(gl_wentdown("space")): seed += 675656
     if(gl_wentdown("c")): colorconstant = (colorconstant + 1) % 3

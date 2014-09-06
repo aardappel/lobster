@@ -15,7 +15,7 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     if(dopitch):
         camera_pitch += gl_mousedelta(0).y / mousesens
         camera_pitch = min(85, max(-85, camera_pitch))
-    
+
     move   := gl_isdown(upkey) - gl_isdown(downkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
     friction := 20
@@ -24,13 +24,14 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
-function camera_FPS_view():    
+function camera_FPS_view():
     gl_rotate_x(90) // 90: look forward rather than down
     gl_rotate_x(-camera_pitch)
     gl_rotate_z(-camera_yaw)
     gl_translate(-camera_position)
 
-// an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update, then still call camera_FPS_view as before:
+// an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update,
+// then still call camera_FPS_view as before:
 
 function camera_direction(v):
     v = normalize(v)

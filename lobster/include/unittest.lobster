@@ -1,6 +1,6 @@
 // this file runs some test cases exercising different parts of the language
 // can be included in any lobster program to help verify there are no bugs in the compiler
-// will assert if anything is wrong - if this ever happens, contact Wouter 
+// will assert if anything is wrong - if this ever happens, contact Wouter
 
 include "std.lobster"
 include "exception.lobster"
@@ -33,7 +33,7 @@ function run_test_cases():
     assert(tf("", "") == 7)
 
     assert(tf("") == 8)
-    
+
     direct := [1, 2, [3.0, 4.0, 5.0]:xyz, "hello, world!\n\"\'\r\t\\\xC0", nil, true]
     parsed, err := parse_data("" + direct)
     //print(parsed)
@@ -41,7 +41,7 @@ function run_test_cases():
     if(err):
         print(err)
     assert(equal(parsed, direct))
-    
+
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert(equal(string2unicode(unicode2string(unicodetests)), unicodetests))
 
@@ -49,7 +49,7 @@ function run_test_cases():
     if(comperr1):
         print(comperr1)
     assert(compres1 == "3")
-    
+
     /*
     // this test makes it dependent on this file even in shipping builds, so off by default
     compres2, comperr2 := compile_run_file("plugintest.lobster")
@@ -57,7 +57,7 @@ function run_test_cases():
         print(comperr2)
     assert(compres2 == "plugintest return value")
     */
-    
+
     function scopetest():
         x := 1
         y := 1
@@ -98,13 +98,13 @@ function run_test_cases():
     assert(44 == sum(testvector))
     assert(264 == sum(testvector.map(): _ * _))
 
-    
+
     function factorial(n): 1 > n | factorial(n - 1) * n
     assert(7.factorial == 5040)
 
     assert(((function(f): f(4))(function(x): x * x)) == 16)
 
-    
+
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
 
@@ -137,7 +137,7 @@ function run_test_cases():
         "......OXXXXXXXXO//OOOOOOO........",
         ".......OOOOOOOO.................."
     ]
-    
+
     struct pathingcell: astar_node [ path, c ]
 
     worldsize := [ initworld[0].length, initworld.length ]:xy
@@ -156,7 +156,7 @@ function run_test_cases():
             (c == '#' & -1) | (c == '/' & 5) | 1
 
     assert(path.length == 27)
-    
+
     for(path) n:
         n.path = true
 
@@ -168,7 +168,7 @@ function run_test_cases():
 
     assert(equal(astar_result, expected_result))
 
-    
+
     // ////////////////////////////////////////////////////////////////////////
     // GOAP
 
@@ -180,7 +180,7 @@ function run_test_cases():
         [ "buy pizza",  function(s): s.money  >= 2, function(s): s.money -= 2; s.pizza++ ]:goapaction,
         [ "buy flour",  function(s): s.money  >= 1, function(s): s.money--;    s.flour++ ]:goapaction,
         [ "bake bread", function(s): s.flour  >= 1, function(s): s.flour--;    s.bread++ ]:goapaction,
-        [ 
+        [
             "eat",
             function(s): (s.bread > 0 | s.pizza > 0) & s.hungry > 0,
             function(s):
@@ -188,7 +188,7 @@ function run_test_cases():
                 s.hungry--
         ]:goapaction
     ]
-            
+
     path =
         astar_goap(goapactions, [ 3, 0, 0, 0, 0, 0, 2 ]:goapstate) state:
             state.hungry
@@ -197,12 +197,13 @@ function run_test_cases():
 
     assert(path.length == 9)
     path.pop()
-    assert(equal(path.map(): _.delta.name, ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"]))
+    assert(equal(path.map(): _.delta.name,
+        ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"]))
 
-    
+
     // ////////////////////////////////////////////////////////////////////////
     // coroutines test
-    
+
     function mycoro(f):
         forrange(3, 6): f(_)
         1337
@@ -218,8 +219,8 @@ function run_test_cases():
             if(co2.active):
                 co1, co2 = co2, co1
 
-    //interleave(co1, co2): print(_)         
-    
+    //interleave(co1, co2): print(_)
+
     assert(equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ]))
     assert(!co1.active)
     assert(!co2.active)
@@ -235,13 +236,13 @@ function run_test_cases():
         sum += co.returnvalue
         co.resume
     assert(sum == 45)
-    
+
     function loctest(f):
         a := 1
         for(10) i:
             b := 2
             f()
-            
+
     co = coroutine loctest()
     assert(co.a@loctest + co.i@loctest + co.b@loctest == 3)
 
@@ -256,10 +257,10 @@ function run_test_cases():
 
     sot := [ 1, 2, 3, 4, 5 ]:__testc
     assert(equal(sot, [sot.__a, sot.__b, sot.__d, sot.__c, sot.__e]:__testc))
-        
+
     // ////////////////////////////////////////////////////////////////////////
     // misc test
-    
+
     aa := 5
     aa %= 2
     assert(aa == 1)
@@ -281,7 +282,7 @@ function run_test_cases():
     function multiretpassthru(): return multiret()  // doesn't work without the return!
     jj, kk := multiretpassthru()
     assert(jj == 6 & kk == 7)
-    
+
     // non-local named returns: limited form of exception handling
     function nlr1():
         nlr2()
@@ -289,7 +290,7 @@ function run_test_cases():
     function nlr2():
         return 1 from nlr1
     assert(nlr1() == 1)
-    
+
     function recursive_exceptions(n):
         try():
             if(n): recursive_exceptions(n - 1)
@@ -298,7 +299,7 @@ function run_test_cases():
             assert(v == n)
             throw(n + 1)
     try():
-        recursive_exceptions(10)     
+        recursive_exceptions(10)
 
     starttime := seconds_elapsed()
     1000.for():

@@ -7,22 +7,22 @@ include "3dhelpers.lobster"
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 
 iqmtest := check(gl_newmesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
-    
+
 for(gl_meshparts(iqmtest)) name, i:
     tex := check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
     gl_setmeshtexture(iqmtest, i, 0, tex)
-  
+
 camera_position = [ 0, 0, 8 ]:xyz
 camera_yaw = 135
 camera_pitch = 20
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
 
     gl_clear(color_dark_grey)
     gl_cursor(0)
     gl_perspective(70, 0.1, 1000)
-    
+
     speed := 10
     if(gl_isdown("left shift")): speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
@@ -38,5 +38,5 @@ while(gl_frame()):
     gl_translate(vec_xy * 10):
         gl_rendermesh(iqmtest)
 
-    gl_setshader("color")   
+    gl_setshader("color")
     gl_debug_grid([20, 20, 0], vec_1, 0.005)

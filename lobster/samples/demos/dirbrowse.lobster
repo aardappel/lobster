@@ -28,7 +28,7 @@ function scan(n:node):
 function select(n:node):
     selected = n
     scan(n)
-    
+
 function unparent(n::node):
     parent = nil
     for(children): unparent(_)
@@ -99,5 +99,6 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_translate([ 500, 0 ]):
         render_entries()
 
-unparent(root)  // the parent links cause cycles that our refcount VM can't handle. could GC it instead, but that could mask bugs.
+// the parent links cause cycles that our refcount VM can't handle. could GC it instead, but that could mask bugs:
+unparent(root)
 

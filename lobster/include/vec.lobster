@@ -36,11 +36,12 @@ function forxy(v, fun): for(v.y) y: for(v.x) x: fun([ x, y ]:xy)
 function mapxy(v, fun): map(v.y) y: map(v.x) x: fun([ x, y ]:xy)
 
 function vecfromyawpitch(yaw, pitch, move, strafe):
-    (sincos(yaw - 90/* start from Y rather than X axis */) * cos(pitch) - vec_z * sin(pitch)) * move + sincos(yaw) * strafe
+    (sincos(yaw - 90/* start from Y rather than X axis */) *
+        cos(pitch) - vec_z * sin(pitch)) * move + sincos(yaw) * strafe
 
 function inrange2d(test, num, bias): test.x.inrange(num.x, bias.x) &
                                      test.y.inrange(num.y, bias.y)
-                                     
+
 function rotate2D(v, angle):
     s := sin(-angle)
     c := cos(-angle)

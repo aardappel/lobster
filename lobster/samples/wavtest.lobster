@@ -5,9 +5,11 @@ include "vec.lobster"
 include "color.lobster"
 
 fatal(gl_window("wav sound test", 1024, 768))
-check(gl_setfontname("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") & gl_setfontsize(30), "can\'t load font!")
+check(gl_setfontname("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") &
+      gl_setfontsize(30),
+    "can\'t load font!")
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
     gl_color(color_white)

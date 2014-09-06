@@ -1,8 +1,10 @@
 /* translated from http://www.kevinbeason.com/smallpt/
 
-made it incremental, i.e. it shows what it has rendered sofar after each sample for the whole scene, so the longer you wait, the prettier the image will get!
+made it incremental, i.e. it shows what it has rendered sofar after each sample for the whole scene, so the longer you
+wait, the prettier the image will get!
 
-It takes forever to run in an interpreted language, so just let it sit there for at least a few hrs if you want a pretty picture, or turn the resolution way down.
+It takes forever to run in an interpreted language, so just let it sit there for at least a few hrs if you want a pretty
+picture, or turn the resolution way down.
 It's not a great example to show of Lobster, this kind of code really belongs in C++, but maybe useful as a benchmark.
 
 The variables w and h below change the size of the image... don't increase unless you feel like running it overnight :)
@@ -41,7 +43,8 @@ function intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
         t=b+det
         if(t>eps): t else: 0
 
-// made the radiusses of some spheres smaller compared to the original (and some other adjustments), as we use floats, not doubles. walls may look rounder :)
+// made the radiusses of some spheres smaller compared to the original (and some other adjustments), as we use floats,
+// not doubles. walls may look rounder :)
 bigrad := 1000.0
 lrad := 100.0
 
@@ -114,7 +117,7 @@ function radiance(r:Ray, depth):
         else:
             radiance(reflRay,depth)*Re+radiance([ x, tdir ]:Ray,depth)*Tr
     obj.e + f*temp
-    
+
 w := 128
 h := 96
 
@@ -144,14 +147,14 @@ function onesample():
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[x][h-y-1] += r
     samples++
-    c2 := map(c): map(_): map(_): pow(clamp(_ / samples, 0, 1),1/2.2) 
+    c2 := map(c): map(_): map(_): pow(clamp(_ / samples, 0, 1),1/2.2)
     print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_windowtitle("smallpt: " + samples + " samples computed")
     gl_createtexture(c2)
 
 fatal(gl_window("smallpt in lobster!", w, h))
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
     tex := onesample()
@@ -162,6 +165,6 @@ while(gl_frame()):
     gl_rect(vec_1)
     gl_deletetexture(tex)
 
-                
+
 
 

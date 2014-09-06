@@ -3,8 +3,8 @@
 match.lobster: pattern matching functionality similar to regexps, but more generally applicable as it works on
 (unicode) strings, vectors of any kind of values, and even coroutines
 
-example: match any amount of A's, followed by either a B or C/D in sequence (and capture this substring), followed by an E
-and then the end of the sequence:
+example: match any amount of A's, followed by either a B or C/D in sequence (and capture this substring),
+followed by an E and then the end of the sequence:
 
     r := match_with("AAAAAAABCDCDBCDBBBE"):
         match_any(): match('A')
@@ -16,7 +16,7 @@ and then the end of the sequence:
 prints out: BCDCDBCDBBB
 
 You could replace the string by coroutine for("AAAAAAABCDCDBCDBBBE") and it would give the same result.
-    
+
 */
 
 
@@ -52,21 +52,21 @@ function match_elem(f):     // match single element
     (i < iterv.length | grow(iterable)) & f(iterv[i]) & ++i
 
 function match_end(): isend(iterable)
-    
+
 function guard(f):          // backtrack to the start if f fails
     prev := i
     f() | ((i = prev) & false)
-    
+
 function matched(f):    // return the sub-sequence matched by f as vector or string
     prev := i
     f()
     repr(iterable, slice(iterv, prev, i - prev))
-    
+
 // convenience functions:
 function match(x):     match_elem(): x == _
 function match_not(x): match_elem(): x != _
-    
+
 function match_any(f): while(f()): nil
 
 function match_sequence(s:string): match_sequence(string2unicode(s))
-function match_sequence(v:vector): guard(): !exists(v): !match(_) 
+function match_sequence(v:vector): guard(): !exists(v): !match(_)

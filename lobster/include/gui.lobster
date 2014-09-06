@@ -42,7 +42,9 @@ private value guielem: [ id, size ]
 private function cache_size(id, f):
     if(render_pass):
         i := size_index
-        while(i < size_list.length):    // usually this lookup will hit the if on the first iteration, but if not, any skipped elements are old elements just removed by an event handler
+        // usually this lookup will hit the if on the first iteration, but if not, any skipped elements are old
+        // elements just removed by an event handler
+        while(i < size_list.length):
             e := size_list[i++]
             if(e.id == id):
                 size_index = i
@@ -54,7 +56,7 @@ private function cache_size(id, f):
         size := f()
         size_list[i] = [ id, size ]:guielem
         size
-        
+
 
 private function advance(v, f):
     //allint(v)
@@ -67,7 +69,7 @@ private function advance(v, f):
 
 private function max_space(v):
     if(vertical): [ parent_size.x, v.y ]:xy else: [ v.x, parent_size.y ]:xy
-            
+
 private function position(v, f):
     //allint(v)
     r := max_space(v) - v
@@ -78,7 +80,7 @@ private function cursize_of(id, f):
         cursize <- vec_0i
         f()
         cursize
-    
+
 private function element(size, f):
     if(size):   // will be nil if we're in the render pass and element was just deleted
         advance(size):
@@ -105,7 +107,7 @@ function gui_text(text):
     element(cache_size(caller_id()): gl_textsize(text)):
         //print(gl_textsize(text))
         gl_text(text)
-        
+
 function gui_image(factors, tex):
     size := round(factors * gl_getfontsize())
     element(size):
@@ -113,7 +115,7 @@ function gui_image(factors, tex):
         gl_setprimitivetexture(0, tex)
         gl_rect(size)
         gl_setshader("color")
-        
+
 function gui_divider(thickness):
     align <- 0
     element(round(vec_1i * thickness)):
@@ -129,13 +131,13 @@ function gui_start(size, alignh, alignv, interact, f):   // top level only
         parent_size <- size
         vertical <- false
         interactive <- interact
-        
+
         render_pass = false
         size_list = []
 
         overalsize = cursize_of(id, f)
         assert(overalsize)
-        
+
         //print(size_list)
 
         render_pass = true
@@ -146,19 +148,19 @@ function gui_start(size, alignh, alignv, interact, f):   // top level only
             align <- alignh
             vertical <- true
             f()
-            
+
         //assert(size_index == length(size_list))
         //print(size_index)
-        
+
 function gui_hblock(al, sp, f): block(al, sp, false, caller_id(), f)
 function gui_vblock(al, sp, f): block(al, sp, true,  caller_id(), f)
-        
+
 function gui_fontscale(factor, f):
     os := gl_getfontsize()
     gl_setfontsize(round(os * factor))
     f()
     gl_setfontsize(os)
- 
+
 function gui_color(col, f): nest_if(render_pass, function(): gl_color(col, _), f)
 function gui_blend(bli, f): nest_if(render_pass, function(): gl_blend(bli, _), f)
 
@@ -169,7 +171,7 @@ private function around(m, draw, id, f):
         advance(size):
             if(draw):
                 position(size): // FIXME: clean this up
-                    gl_rect([ size.x, m.y ])    
+                    gl_rect([ size.x, m.y ])
                     gl_rect([ m.x, size.y ])
                     gl_translate([ size.x - m.x, 0]):
                         gl_rect([ m.x, size.y ])
@@ -182,7 +184,7 @@ private function around(m, draw, id, f):
 
 function gui_margin(m, f): around(m, false, caller_id(), f)
 function gui_border(m, f): around(m, true,  caller_id(), f)
-        
+
 private function overlay(stretch, id, f, g):
     size := cursize_of(id, f)
     if(size):
@@ -192,8 +194,8 @@ private function overlay(stretch, id, f, g):
             else:
                 position(size):
                     g(size)
-            f() 
-        
+            f()
+
 function gui_background(col, stretch, f):
     overlay(stretch, caller_id(), f) size:
         gl_color(col):
@@ -213,28 +215,28 @@ function gui_button(f, do):         button(caller_id(), f, do)
 function gui_button_text(text, do): button(caller_id(), function(): gui_text(text), do)
 
 function gui_custombackground(f): if(render_pass): f(overalsize)
-              
+
 function gui_setclickcolors(hover, sel):
     hover_color = hover
     select_color = sel
-    
+
 function gui_setactionsound(snd):
     actionsound = snd
-     
+
 if(program_name() == "gui.lobster"): // run example
 
     fatal(gl_window("gui test", 960, 640))
     check(gl_setfontname("data/fonts/US101/US101.ttf"), "can\'t load font!")
     //check(gl_setfontname("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
-            
+
     ghosttex := gl_loadtexture("data/textures/lobster.jpg")
-    
+
     clicked := false
-     
+
     while(gl_frame()):
         if(gl_wentdown("escape")):
             return
-        
+
         gl_setfontsize(gl_windowsize()[1] / 10)
         //gl_setmaxfontsize(512)
 
@@ -242,12 +244,12 @@ if(program_name() == "gui.lobster"): // run example
         gl_color(color_white)
 
         gui_setclickcolors(color_dark_green, color_green)
-        
+
         gui_start(gl_windowsize(), 1, 1, true):
             gui_hblock(1, 0):
                 //gui_fontscale(0.3):
                  //   gui_text(unicode2string(map(500): _))
-		
+
                 gui_text("A")
                 gui_fontscale(5):
                     gui_text("B")
@@ -271,7 +273,7 @@ if(program_name() == "gui.lobster"): // run example
                 do:
                     clicked = !clicked
                 if(clicked):
-                    gui_color(color_red):       
+                    gui_color(color_red):
                         //gui_text(unicode2string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
                         gui_text("ON")
                 gui_text("C")
@@ -279,7 +281,7 @@ if(program_name() == "gui.lobster"): // run example
                     gui_margin([ 4, 4 ]:xy):
                         gui_text("D")
                         if(clicked):
-                            gui_blend(2):    
+                            gui_blend(2):
                                 gui_image(vec_1, ghosttex)
                 gui_text("E")
                 gui_text("E")

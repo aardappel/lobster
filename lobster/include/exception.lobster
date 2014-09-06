@@ -8,12 +8,16 @@ function exception_handler(body):
 
 function throw(v):
     return v from exception_handler // will invoke catch() of nearest try-catch on the callstack
-    // if you get the runtime error: "return from exception_handler" outside of function, it means you're using throw() outside of try() body
+    // if you get the runtime error: "return from exception_handler" outside of function,
+    // it means you're using throw() outside of try() body
 
-function try(body):     // convenience function: empty catch
+// convenience function: empty catch
+function try(body):
     try(body): _
 
-function protect(body, finally):    // convenience function: ensure cleanup function "finally" always gets called regardless of wether an exception passes thru body
+// convenience function: ensure cleanup function "finally" always gets called regardless of wether
+// an exception passes thru body
+function protect(body, finally):
     try(body) v:
         finally()
         throw(v)
