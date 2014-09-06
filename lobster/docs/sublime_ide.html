@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="github.css">
+</head>
+<body>
+<p>SublimeText as Lobster IDE</p>
+<h2 id="running-lobster-programs-from-within-the-editor">Running Lobster programs from within the editor</h2>
+<ul>
+<li><p>This assumes SublimeText 3, though may also work with older versions.</p></li>
+<li><p>Copy the files in the <code>lobster/docs/sublime</code> folder to your <code>Packages/User</code> folder (on Windows this is <code>\Users\YourUserName\AppData\Roaming\Sublime Text 3\Packages\User</code>).</p></li>
+<li><p>Open up <code>lobster.sublime-build</code> and make sure the path to your lobster executable is correct. Also note that it refers to a custom version of <code>exec.py</code> called <code>lobster_exec.py</code>. The only difference is that the default script surpresses windows from popping up, which disables any graphical output from Lobster.</p></li>
+<li><p>Load some lobster code. pressing <code>ctrl+b</code> should run it.</p></li>
+</ul>
+<h2 id="editing">Editing</h2>
+<p>By default, SublimeText comes set up insert tabs into your code, which is against the Lobster <a href="style_guide.html">style guide</a>, and can result in errors if you modify the existing examples. Add <code>&quot;translate_tabs_to_spaces&quot;: true</code> to your user settings.</p>
+<h2 id="error-highlighting">Error Highlighting</h2>
+<p>The build script parses Lobster error messages, so just pressing F4 will get you to the line of the error.</p>
+<h2 id="syntax-highlighting">Syntax Highlighting</h2>
+<p>The <code>lobster.tmLanguage</code> file you copied should provide automatic syntax highlighting for any .lobster files.</p>
+<h2 id="section"></h2>
+</body>
+</html>
