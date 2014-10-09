@@ -251,7 +251,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     //if (!sfxr_init())
     //   return SDLError("Unable to initialize audio");
 
-    #if defined(__IOS__) || defined(__ANDROID__)
+    #ifdef PLATFORM_MOBILE
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     #else
     //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
@@ -272,7 +272,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 
     DebugLog(-1, "SDL about to figure out display mode...");
 
-    #if defined(__IOS__) || defined(__ANDROID__)
+    #ifdef PLATFORM_MOBILE
     landscape = screensize.x() >= screensize.y();
     int modes = SDL_GetNumDisplayModes(0);
     screensize = int2(0);
@@ -415,7 +415,8 @@ bool SDLFrame(int2 &screensize)
             break;
         }
 
-        #if defined(__IOS__) || defined(__ANDROID__)
+        // This #ifdef is needed, because on e.g. OS X we'd otherwise get SDL_FINGERDOWN in addition to SDL_MOUSEBUTTONDOWN on laptop touch pads.
+        #ifdef PLATFORM_MOBILE
 
         // FIXME: if we're in cursor==0 mode, only update delta, not position
         case SDL_FINGERDOWN:

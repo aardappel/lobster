@@ -1,3 +1,22 @@
+- this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
+
+vertex_neighbors :== [
+    [ [ [ 0, -1 ]:xy, 4 ],
+      [ [ 0, -1 ]:xy, 3 ],
+      [ [ 1, -1 ]:xy, 4 ],
+      [ nil, 0 ],
+      [ [ -1, 0 ]:xy, 2 ],
+      [ [ -1, -1 ]:xy, 3 ] ],
+      [ [ [ 0, -1 ]:xy, 4 ],
+      [ [ 0, -1 ]:xy, 3 ],
+      [ nil, 0 ],
+      [ nil, 0 ],
+      [ nil, 0 ],
+      [ [ -1, 0 ]:xy, 3 ] ]
+]
+
+- [float] / int does int division, which is wrong
+
 - typechecker
   * make sure no incorrect types are stored in exptype
   * for function call nodes, as spec as to which subf they call, or none in specific
@@ -54,7 +73,7 @@ docs:
 
 examples:
 - more/better examples..
-- also make more basic games people can start from 
+- also make more basic games people can start from
 
 features:
 - builtin functionality
@@ -81,7 +100,7 @@ refactor:
   * add -m32
   * problems with getting an OpenGL context?
   * unittest fails?
-  
+
 - disadvantage to Lobster being based on immediate mode rendering is that that is quite taxing on the speed of the language, since you need so much code to just decide what to render each frame
   directions:
   - add display lists or something so it is easy to cache rendering calls, and the code generating them doesn't need to be called every frame
@@ -122,7 +141,7 @@ refactor:
   - trace output also to a file
 
 - BitmapFont::height is often 1 or 2 bigger than the original fontheight, which creates problems if code use the fontheight for rendering instead of gl_textsize()
-  either improve the math such that they are guaranteed equal, or document that fontheight should never be used for rendering bounding boxes etc 
+  either improve the math such that they are guaranteed equal, or document that fontheight should never be used for rendering bounding boxes etc
 
 - replace the freetype lib by stb_truetype.h for less external dependencies?
 
@@ -172,7 +191,7 @@ refactor:
       best way to implement this is as a flag on the builtin call arg
 
 - for mgtest or other games with long load time, have a way to not have an uninitialized window while loading
-  * could add a system for threading long operations like this... 
+  * could add a system for threading long operations like this...
   * or an easy way to render a first frame?
 
 - a program that reformats lobster code to conform to the style-guide better.
@@ -214,7 +233,7 @@ refactor:
 
 - for typing, rather than going with my full specialization typing idea, can instead have a special type that marks any parameter
   as requiring the function to be specialized for each type that parameter is used with, allowing targeted optimisation.
-  One big advantage of specialization typing is that it can produce a lot of static types (from constants) without needing a lot of type annotations, so its still better 
+  One big advantage of specialization typing is that it can produce a lot of static types (from constants) without needing a lot of type annotations, so its still better
 
 - per function real cpu profiling would not be too expensive
   just a single qpc per call -> no, 2, needs stack
@@ -249,7 +268,7 @@ refactor:
             recurseworld(_, body)   // this makes a function with 1 arg, which if() does not supply, so it falls back on previous _
   * could also be used with DS parameters, they would have to be annotated when declared, and allowed to be called with less args (<-> MM?)
     this would allow defaults, which can then be overruled for a whole block with -> or just passed as extra arg
-  * on a sidenote, the -> would be more accurate if it was followed by a block itself 
+  * on a sidenote, the -> would be more accurate if it was followed by a block itself
     DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than doing gl_color <-
 
 - with any new game, write it with coroutines from the ground up
@@ -298,7 +317,7 @@ refactor:
   Memory usage wise this is smart, since if a program ever uses a lot of memory, it will all be in arrays and objects.
   Can also have a fixed array of types for all variables. So only on the stack and in tempories you have the full fat Value.
   Of course can take one step further, and store types for object fields globally somewhere, and disallow changing types of elements.. though this would suddenly require templated types...
-  
+
 - vm independent of ST
 
 - have a way to make a regular function into a function value
@@ -345,7 +364,7 @@ refactor:
 
 - address of named function, or just rely on function values?
   f := x: x + 1
-  instead of 
+  instead of
   f(x): x + 1
   if you need to both call it normally and pass it as a value
 

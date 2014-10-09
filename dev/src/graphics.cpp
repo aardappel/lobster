@@ -269,6 +269,17 @@ void AddGraphics()
     ENDDECL1(gl_isdown, "name", "S", "I",
         "wether a key/mousebutton/finger is currently down");
 
+    STARTDECL(gl_touchscreen) ()
+    {
+        #ifdef PLATFORM_MOBILE
+            return Value(true);
+        #else
+            return Value(false);
+        #endif
+    }
+    ENDDECL0(gl_touchscreen, "", "", "I",
+        "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)");
+
     STARTDECL(gl_windowsize) ()
     {
         return ToValue(screensize);
@@ -538,10 +549,19 @@ void AddGraphics()
                    localmousepos.y() >= 0 &&
                    localmousepos.x() < size.x() &&
                    localmousepos.y() < size.y();
-        if (hit)
-        {
-            lasthitsize = size;
-        }
+        if (hit) lasthitsize = size;
+        /*
+        #ifdef PLATFORM_MOBILE
+        // Inefficient for fingers other than 0, which is going to be rare. 
+        auto ks = i ? GetKS((string("mouse1") + (char)('0' + i)).c_str()) : GetKS("mouse1");
+        // On mobile, if the finger just went down, we wont have meaningfull lastframehitsize, so if the
+        // programmer checks for the combination of gl_hit and gl_wentdown, that would fail.
+        // Instead, we bypass that check.
+        // PROBLEM: now we'll be returning true for overlapping elements.
+        // if we can solve this, we can remove the frame delay from the input system.
+        if (ks.wentdown && hit) return true;
+        #endif
+        */
         return Value(size == lastframehitsize && hit);
     }
     ENDDECL2(gl_hit, "vec,i", "VI", "I",

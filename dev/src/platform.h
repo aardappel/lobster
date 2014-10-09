@@ -37,3 +37,8 @@ extern void MsgBox(const char *err);
 extern void InitTime();
 extern double SecondsSinceStart();
 
+
+#if defined(__IOS__) || defined(__ANDROID__)
+    // This assumes OpenGL ES + touch screen as opposed to Desktop GL + mouse.
+    #define PLATFORM_MOBILE
+#endif

@@ -88,7 +88,7 @@ string LoadMaterialFile(const char *mfile)
     string *accum = NULL;
 
     string header;
-    #if defined(__IOS__) || defined(__ANDROID__)
+    #ifdef PLATFORM_MOBILE
     header += "#ifdef GL_ES\nprecision highp float;\n#endif\n";
     #else
     //#ifdef __APPLE__

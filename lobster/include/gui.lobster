@@ -37,6 +37,8 @@ private interactive := true
 
 private actionsound := nil
 
+private focus_id := 0
+
 private value guielem: [ id, size ]
 
 private function cache_size(id, f):
@@ -202,17 +204,35 @@ function gui_background(col, stretch, f):
             gl_rect(size)
             gl_hit(size, 0)    // stop clicks from reaching whatevers beneath this
 
-private function button(id, f, do):
+private function button(id, f, do, focus):
     overlay(false, id, f) size:
-        if(gl_hit(size, 0) & interactive):
-            gl_color(if(gl_isdown("mouse1")): select_color else: hover_color):
-                gl_rect(size)
-            if(gl_wentdown("mouse1")):
-                if(actionsound): play_sfxr(actionsound) // FIXME: wavs too
-                do()
+        if(interactive):
+            hit := gl_hit(size, 0)
+            if(hit | (focus_id == id & gl_touchscreen())):
+                // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
+                gl_color(hover_color):
+                    gl_rect(size)
+                if(hit):
+                    if(gl_isdown("mouse1")):
+                        gl_color(select_color):
+                            gl_rect(size)
+                    up := gl_wentup("mouse1")
+                    if(focus & focus_id != id & (up | !gl_touchscreen())):
+                        // If we have a focus action and this button wasn't the focus, then on a touch screen
+                        // we're going to give this button focus on touch, and on desktop merely on hover.
+                        focus_id = nil  // May be a different type.
+                        focus_id = id
+                        focus()
+                    else: if(up):
+                        if(actionsound): play_sfxr(actionsound) // FIXME: wavs too
+                        do()
 
-function gui_button(f, do):         button(caller_id(), f, do)
-function gui_button_text(text, do): button(caller_id(), function(): gui_text(text), do)
+function gui_button(f, do):         button(caller_id(), f, do, nil)
+function gui_button(f, do, focus):  button(caller_id(), f, do, focus)
+function gui_button_text(text, do): button(caller_id(), function(): gui_text(text), do, nil)
+
+function gui_button_id(id, f, do):         button(id, f, do, nil)
+function gui_button_id(id, f, do, focus):  button(id, f, do, focus)
 
 function gui_custombackground(f): if(render_pass): f(overalsize)
 
@@ -232,6 +252,7 @@ if(program_name() == "gui.lobster"): // run example
     ghosttex := gl_loadtexture("data/textures/lobster.jpg")
 
     clicked := false
+    focused := false
 
     while(gl_frame()):
         if(gl_wentdown("escape")):
@@ -272,11 +293,13 @@ if(program_name() == "gui.lobster"): // run example
                             gui_text("clickme")
                 do:
                     clicked = !clicked
+                focus:
+                    focused = !focused
                 if(clicked):
                     gui_color(color_red):
                         //gui_text(unicode2string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
                         gui_text("ON")
-                gui_text("C")
+                gui_text(focused & "C" | "E")
                 gui_background(color_blue, false):
                     gui_margin([ 4, 4 ]:xy):
                         gui_text("D")

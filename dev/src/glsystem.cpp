@@ -91,7 +91,7 @@ void OpenGLFrameStart(const int2 &screensize)
 
 void OpenGLInit()
 {
-    #if !defined(__IOS__) && !defined(__ANDROID__)
+    #ifndef PLATFORM_MOBILE
     //auto vers = (char *)glGetString(GL_VERSION);
     auto exts = (char *)glGetString(GL_EXTENSIONS);
 
@@ -110,7 +110,7 @@ void OpenGLInit()
     #undef GLEXT
     #endif
 
-    #if !defined(__IOS__) && !defined(__ANDROID__)
+    #ifndef PLATFORM_MOBILE
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);

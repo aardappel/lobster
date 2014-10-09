@@ -678,7 +678,7 @@ void AddBuiltins()
     ENDDECL1(abs, "x", "A", "A",
         "absolute value of int/float/vector");
 
-    #define MINMAX(op) \
+    #define MINMAX(op,name) \
         switch (x.type) \
         { \
             case V_INT: \
@@ -689,14 +689,16 @@ void AddBuiltins()
                 if (y.type == V_INT) return Value(x.fval op y.ival ? x.fval : y.ival); \
                 else if (y.type == V_FLOAT) return Value(x.fval op y.fval ? x.fval : y.fval); \
                 break; \
+            case V_VECTOR: \
+                return ToValue(name(ValueDecTo<float4>(x), ValueDecTo<float4>(y))); \
             default: ; \
         } \
         return g_vm->BuiltinError("illegal arguments to min/max");
 
-    STARTDECL(min) (Value &x, Value &y) { MINMAX(<) } ENDDECL2(min, "x,y", "AA", "A",
-        "smallest of 2 values");
-    STARTDECL(max) (Value &x, Value &y) { MINMAX(>) } ENDDECL2(max, "x,y", "AA", "A",
-        "largest of 2 values");
+    STARTDECL(min) (Value &x, Value &y) { MINMAX(<,min) } ENDDECL2(min, "x,y", "AA", "A",
+        "smallest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
+    STARTDECL(max) (Value &x, Value &y) { MINMAX(>,max) } ENDDECL2(max, "x,y", "AA", "A",
+        "largest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
 
     #undef MINMAX
 
