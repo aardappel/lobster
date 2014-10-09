@@ -61,7 +61,7 @@ string StripDirPart(const char *filepath)
     return fpos ? fpos + 1 : filepath;
 }
 
-bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool forcecommandline)
+bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle)
 {
     datadir = StripFilePart(exefilepath);
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
@@ -69,7 +69,7 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool for
 
     // FIXME: use SDL_GetBasePath() instead?
     #ifdef __APPLE__
-        if (!forcecommandline)
+        if (from_bundle)
         {
             // default data dir is the Resources folder inside the .app bundle
             CFBundleRef mainBundle = CFBundleGetMainBundle();

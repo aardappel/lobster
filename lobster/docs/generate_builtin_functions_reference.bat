@@ -1,5 +1,6 @@
-..\lobster -r0
-rem ..\lobster -r1
+..\lobster -w --gen-builtins-html
+rem ..\lobster -w --gen-builtins-names
+
 
 
 

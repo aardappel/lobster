@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Using Lobster from the command line</title>
+  <title></title>
   <style type="text/css">code{white-space: pre;}</style>
   <!--[if lt IE 9]>
     <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -12,9 +12,7 @@
   <link rel="stylesheet" href="github.css">
 </head>
 <body>
-<header>
-<h1 class="title">Using Lobster from the command line</h1>
-</header>
+<p>Using Lobster from the command line</p>
 <h2 id="basic-usage">Basic usage</h2>
 <p>If you have a file <code>helloworld.lobster</code> that contains</p>
 <pre><code>print(&quot;Hello, World!&quot;)</code></pre>
@@ -24,16 +22,16 @@
 <p>These can be passed to lobster anywhere on the command line.</p>
 <ul>
 <li><p><code>-b</code> : generates a bytecode file (currently always called &quot;<code>default.lbc</code>&quot;) in the same folder as the <code>.lobster</code> file it reads, and doesn't run the program afterwards. If you run lobster with no arguments at all, it will try to load &quot;<code>default.lbc</code>&quot; from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a bytecode file and any data files it may use.</p></li>
-<li><p><code>-c</code> : forces lobster into &quot;command line&quot; mode. This is useful on Apple platforms where by default lobster expects to be run from within an app bundle. With this option, it will not try to look for files in an app bundle, but instead functions much like Windows &amp; Linux.</p></li>
-<li><p><code>-r</code> or <code>-r0</code> : dumps a help file of all builtin functions the compiler knows about to <code>builtin_functions_reference.html</code>. <code>-r1</code> dumps a plain text list of functions, useful for adding to syntax highlighting files etc.</p></li>
-<li><p><code>-v</code> : verbose mode, outputs additional stats about the program being compiled</p></li>
-<li><p><code>-da</code> : dumps internal representations of the program as AST, and <code>-db</code> for a readable bytecode dump. Only useful for compiler development or if you are really curious.</p></li>
-<li><p><code>-w</code> : makes the compiler wait for commandline input before it exits.</p></li>
+<li><p><code>-w</code> : makes the compiler wait for commandline input before it exits. Useful on Windows.</p></li>
+<li><p><code>-c</code> : (deprecated, this should now be automatically detected). <em>forces lobster into &quot;command line&quot; mode. This is useful on Apple platforms where by default lobster expects to be run from within an app bundle. With this option, it will not try to look for files in an app bundle, but instead functions much like Windows &amp; Linux.</em></p></li>
+<li><p><code>--gen-builtins-html</code> : dumps a help file of all builtin functions the compiler knows about to <code>builtin_functions_reference.html</code>. <code>--gen-builtins-names</code> dumps a plain text list of functions, useful for adding to syntax highlighting files etc.</p></li>
+<li><p><code>--verbose</code> : verbose mode, outputs additional stats about the program being compiled</p></li>
+<li><p><code>--parsedump</code> : dumps internal representations of the program as AST, and <code>--disasm</code> for a readable bytecode dump. Only useful for compiler development or if you are really curious.</p></li>
 </ul>
 <h2 id="default-directories">Default directories</h2>
 <p>It's useful to understand the directories lobster uses, both for reading source code files and any data files the program may use:</p>
 <ul>
-<li><p>the main directory (<code>lobster</code>): this is where the lobster exe resides, or the &quot;Resource&quot; folder on Apple platforms (if <code>-c</code> wasn't used). This is the folder this has the default <code>include shaders data docs samples</code> folders inside of it.</p></li>
+<li><p>the main directory (<code>lobster</code>): this is where the lobster exe resides, or the &quot;Resource&quot; folder on Apple platforms (when run from an app bundle instead of the command line). This is the folder this has the default <code>include shaders data docs samples</code> folders inside of it.</p></li>
 <li><p>the auxiliary directory: this is where the main <code>.lobster</code> file being compiled resides.</p></li>
 <li><p>the directory for writing files: the same as auxiliary on desktop platforms, but often a special directory on mobile platforms.</p></li>
 </ul>

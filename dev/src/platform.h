@@ -18,7 +18,7 @@ extern string StripFilePart(const char *filepath);
 extern string StripDirPart(const char *filepath);
 
 // call this at init to determine default folders to load stuff from
-extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool forcecommandline);
+extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle);
 
 extern uchar *LoadFile(const char *relfilename, size_t *len = NULL);
 extern FILE *OpenForWriting(const char *relfilename, bool binary);
