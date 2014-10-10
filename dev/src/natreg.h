@@ -20,7 +20,7 @@ struct Type
     Type()             : t(V_UNKNOWN), idx(-1) {}
     Type(ValueType _t) : t(_t),        idx(-1) {}
 
-    const char *Name()
+    const char *Name() const
     {
         return idx >= 0 ? g_vm->ReverseLookupType(idx).c_str() : TypeName(t);
     }

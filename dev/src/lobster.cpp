@@ -30,11 +30,11 @@ AutoRegister *autoreglist = NULL;
 NativeRegistry natreg;
 VMBase *g_vm = NULL;                    // set during the lifetime of a VM object
 
+#include "ttypes.h"
 #include "lex.h"
 
 struct Node;
 #include "idents.h"
-
 
 #include "node.h"
 #include "parser.h"
@@ -74,10 +74,11 @@ struct CompiledProgram
 
         if (flags & PARSEDUMP)
         {
+            auto dump = parser.Dump();
             FILE *f = OpenForWriting("parsedump.txt", false);
             if (f)
             {
-                fprintf(f, "%s\n", parser.Dump().c_str());
+                fprintf(f, "%s\n", dump.c_str());
                 fclose(f);
             }
         }
@@ -314,6 +315,7 @@ int main(int argc, char* argv[])
             string a = argv[arg];
             if      (a == "-w") { wait = true; }
             else if (a == "-b") { bcf = default_bcf; }
+            else if (a == "-t")          { flags |= CompiledProgram::TYPECHECK; }
             else if (a == "--verbose")   { flags |= CompiledProgram::VERBOSE; }
             else if (a == "--parsedump") { flags |= CompiledProgram::PARSEDUMP; }
             else if (a == "--disasm")    { flags |= CompiledProgram::DISASM; }

@@ -49,6 +49,8 @@ struct Ident : Name
 
     int logvaridx;
 
+    Type type;
+
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Name(_name, _idx), line(_l), 
           scope(_sc), prev(NULL), sf(NULL), 

@@ -42,7 +42,7 @@ struct Parser
         parserpool = NULL;
     }
 
-    void Error(string err, Node *what = NULL)
+    void Error(string err, const Node *what = NULL)
     {
         if (what) lex.Error(err, what->fileidx, what->linenumber);
         else      lex.Error(err);
@@ -56,7 +56,7 @@ struct Parser
 
         st.ScopeCleanup(lex);
 
-        Expect('EOF');
+        Expect(T_ENDOFFILE);
 
         if (!autoparstack.empty()) Error("implicit _ argument(s) used at top level");
 
@@ -67,7 +67,7 @@ struct Parser
 
     void AddTail(Node **&tail, Node *a)
     {
-        *tail = new Node(lex, ',', a);
+        *tail = new Node(lex, T_LIST, a);
         tail = &(*tail)->b;
     }
 
@@ -80,17 +80,17 @@ struct Parser
         {
             AddTail(tail, ParseTopExp());
                 
-            if (lex.token == 'EOI')
+            if (lex.token == T_ENDOFINCLUDE)
             {
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
             }
-            else if (!IsNext('LF'))
+            else if (!IsNext(T_LINEFEED))
             {
                 break;
             }
                 
-            if (Either('EOF', 'DED')) break;
+            if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
 
         ResolveForwardFunctionCalls();
@@ -99,19 +99,19 @@ struct Parser
         {
             switch (n->a->type)
             {
-                case 'ADT':
+                case T_STRUCTDEF:
                 {
                     st.UnregisterStruct(n->a->a->st);
                     break;
                 }
-                case 'FUN':
+                case T_FUNDEF:
                 {
                     st.UnregisterFun(n->a->a->f);
                     break;
                 }
-                case ':=':
+                case T_DEF:
                 {
-                    // FIXME: this never makes anything const if n->a->b is another ':='
+                    // FIXME: this never makes anything const if n->a->b is another T_DEF
                     auto id = n->a->a->ident;
                     id->static_constant = id->single_assignment && n->a->b->IsConst();
                     break;
@@ -124,9 +124,9 @@ struct Parser
 
     Node *ParseVector(int fieldid = -1)
     {
-        if (IsNext(']')) return NULL;
+        if (IsNext(T_RIGHTBRACKET)) return NULL;
 
-        bool indented = IsNext('IND');
+        bool indented = IsNext(T_INDENT);
 
         Node *list = NULL;
         Node **tail = &list;
@@ -135,26 +135,26 @@ struct Parser
         {
             AddTail(tail, fieldid < 0 ? ParseExp() : ParseField(fieldid++));
             
-            if (!IsNext(',')) break;
+            if (!IsNext(T_COMMA)) break;
         }
 
         if (indented)
         {
-            IsNext('LF');
-            Expect('DED');
-            Expect('LF');
+            IsNext(T_LINEFEED);
+            Expect(T_DEDENT);
+            Expect(T_LINEFEED);
         }
 
-        Expect(']');
+        Expect(T_RIGHTBRACKET);
         return list;
     }
 
     Node *ParseField(int idx)
     {
         string fname = lex.sattr;
-        Expect('ID');
+        Expect(T_IDENT);
         auto n = new Node(lex, &st.FieldDecl(fname, idx, currentstruct, lex));
-        if (IsNext(':')) ParseType(n->exptype, false);
+        if (IsNext(T_COLON)) ParseType(n->exptype, false);
         return n;
     }
 
@@ -175,7 +175,7 @@ struct Parser
             id->isprivate = true;
         }
 
-        return new Node(lex, isdef ? ':=' : ',=', new Node(lex, id), e);
+        return new Node(lex, isdef ? T_DEF : T_DEFLIST, new Node(lex, id), e);
     }
 
     Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
@@ -185,10 +185,10 @@ struct Parser
         {
             string id2 = lastid;
             nids++;
-            if (Either(':=', '?=', '='))
+            if (Either(T_DEF, T_LOGASSIGN, T_ASSIGN))
             {
-                isdef = lex.token != '=';
-                islogvar = lex.token == '?=';
+                isdef = lex.token != T_ASSIGN;
+                islogvar = lex.token == T_LOGASSIGN;
                 lex.Next();
 
                 int nrv;
@@ -196,13 +196,13 @@ struct Parser
                 if (nrv > 1 && nrv != nids)
                     Error("number of values doesn't match number of variables");
             }
-            else if (IsNext(','))
+            else if (IsNext(T_COMMA))
             {
                 e = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
             }
             else
             {
-                lex.Undo('ID', id2);
+                lex.Undo(T_IDENT, id2);
             }
         }
         if (e)
@@ -211,8 +211,8 @@ struct Parser
         }
         else
         {
-            lex.Undo(',');
-            lex.Undo('ID', idname);
+            lex.Undo(T_COMMA);
+            lex.Undo(T_IDENT, idname);
         }
         return e;
     }
@@ -221,33 +221,33 @@ struct Parser
     {   
         switch(lex.token)
         {
-            case 'PRIV':
+            case T_PRIVATE:
                 if (st.scopelevels.size() != 1 || isprivate)
                     Error("private must be used at file scope");
                 
                 lex.Next();
                 return ParseTopExp(true);
                 
-            case 'INCL':
+            case T_INCLUDE:
             {
                 if (isprivate)
                     Error("include cannot be private");
                 
                 lex.Next();
                 string fn = lex.sattr;
-                Expect('STR');
+                Expect(T_STR);
                 lex.Include((char *)fn.c_str());
 
                 return ParseTopExp();
             }
 
-            case 'VALU':
-            case 'TYPE':
+            case T_VALUE:
+            case T_STRUCT:
             {
-                bool isvalue = lex.token == 'VALU';
+                bool isvalue = lex.token == T_VALUE;
                 lex.Next();
                 string sname = lex.sattr;
-                Expect('ID');
+                Expect(T_IDENT);
 
                 Struct &struc = st.StructDecl(sname, lex);
                 struc.readonly = isvalue;
@@ -255,7 +255,7 @@ struct Parser
 
                 currentstruct = &struc;
 
-                Expect(':');
+                Expect(T_COLON);
 
                 int fieldid = 0;
 
@@ -275,22 +275,22 @@ struct Parser
                     fieldid = base.fields.size();
                 }
 
-                Expect('[');
+                Expect(T_LEFTBRACKET);
 
                 auto v = ParseVector(fieldid);
 
                 for (auto ids = v; ids; ids = ids->b)
                 {
-                    assert (ids->a->type == 'FLD');
+                    assert(ids->a->type == T_FIELD);
                     struc.fields.push_back(UniqueField(ids->a->exptype, ids->a->fld));
                 }
 
                 currentstruct = NULL;
 
-                return new Node(lex, 'ADT', new Node(lex, &struc), v);
+                return new Node(lex, T_STRUCTDEF, new Node(lex, &struc), v);
             }
 
-            case 'FUNC':
+            case T_FUN:
             {
                 lex.Next();
                 return ParseFunctionDefinition(isprivate);
@@ -301,11 +301,11 @@ struct Parser
                 if (IsNextId())
                 {
                     auto idname = lastid;
-                    bool dynscope = lex.token == '<-';
-                    bool constant = lex.token == ':==';
-                    bool logvar = lex.token == '?=';
+                    bool dynscope = lex.token == T_DYNASSIGN;
+                    bool constant = lex.token == T_DEFCONST;
+                    bool logvar = lex.token == T_LOGASSIGN;
                     // codegen assumes these defs can only happen at toplevel
-                    if (lex.token == ':=' || dynscope || constant || logvar)
+                    if (lex.token == T_DEF || dynscope || constant || logvar)
                     {
                         lex.Next();
                         auto e = ParseExp();
@@ -314,9 +314,9 @@ struct Parser
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
                         if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
-                        return new Node(lex, ':=', new Node(lex, id), e);
+                        return new Node(lex, T_DEF, new Node(lex, id), e);
                     }
-                    else if (IsNext(','))
+                    else if (IsNext(T_COMMA))
                     {
                         bool isdef = false;
                         bool islogvar = false;
@@ -325,7 +325,7 @@ struct Parser
                     }
                     else
                     {
-                        lex.Undo('ID', idname);
+                        lex.Undo(T_IDENT, idname);
                     }
                 }
                 
@@ -347,7 +347,7 @@ struct Parser
     Node *ParseFunctionDefinition(bool isprivate = false)
     {
         string idname = lex.sattr;
-        Expect('ID');
+        Expect(T_IDENT);
 
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
@@ -376,7 +376,7 @@ struct Parser
         functionstack.pop_back();
 
         for (auto stat = sf->body; stat; stat = stat->b)
-            if (!stat->b && (stat->a->type != 'RET' || stat->a->b->integer != f.idx /* return from */))
+            if (!stat->b && (stat->a->type != T_RETURN || stat->a->b->integer != f.idx /* return from */))
                 ReturnValues(f, 1);
         assert(f.retvals);
 
@@ -390,29 +390,28 @@ struct Parser
             arg.id = a->a->ident->name;
         }
 
-        return new Node(lex, 'FUN', new Node(lex, &f), sf->body);
+        return new Node(lex, T_FUNDEF, new Node(lex, &f), sf->body);
     }
 
     void ParseType(Type &dest, bool withtype)
     {
         switch(lex.token)
         {
-            case 'INTT': dest.t = V_INT;       lex.Next(); break;
-            case 'FLTT': dest.t = V_FLOAT;     lex.Next(); break;
-            case 'STRT': dest.t = V_STRING;    lex.Next(); break;
-            case 'CORO': dest.t = V_COROUTINE; lex.Next(); break;
-            case 'NIL':  dest.t = V_NIL;       lex.Next(); break;
-            case 'FUNC': dest.t = V_FUNCTION;  lex.Next(); break;
-            case 'VECT': dest.t = V_VECTOR;    lex.Next(); break;
+            case T_INTTYPE:   dest.t = V_INT;       lex.Next(); break;
+            case T_FLOATTYPE: dest.t = V_FLOAT;     lex.Next(); break;
+            case T_STRTYPE:   dest.t = V_STRING;    lex.Next(); break;
+            case T_COROUTINE: dest.t = V_COROUTINE; lex.Next(); break;
+            case T_NIL:       dest.t = V_NIL;       lex.Next(); break;
+            case T_FUN:       dest.t = V_FUNCTION;  lex.Next(); break;
+            case T_VECTTYPE:  dest.t = V_VECTOR;    lex.Next(); break;
 
-            case 'ID':
+            case T_IDENT:
             {
                 dest.t = V_VECTOR;
                 dest.idx = st.StructUse(lex.sattr, lex).idx;
                 lex.Next();
                 break;
             }
-            // FIXME more types
             default:
                 Error("illegal type syntax: " + lex.TokStr());
         }
@@ -425,36 +424,36 @@ struct Parser
         if (derefarg)
         {
             CheckArg(nargs, 0, fname);
-            if (IsNext('('))
+            if (IsNext(T_LEFTPAREN))
             {
-                return new Node(lex, ';', derefarg, ParseFunArgsRec(false, false, args, nargs, 1, fname));
+                return new Node(lex, T_ARGLIST, derefarg, ParseFunArgsRec(false, false, args, nargs, 1, fname));
             }
             else
             {
-                return new Node(lex, ';', derefarg);
+                return new Node(lex, T_ARGLIST, derefarg);
             }
         }
         else
         {
-            Expect('(');
+            Expect(T_LEFTPAREN);
             return ParseFunArgsRec(coroutine, false, args, nargs, 0, fname);
         }
     }
 
     Node *ParseFunArgsRec(bool coroutine, bool needscomma, Arg *argdecls, int nargs, int thisarg, const char *fname)
     {
-        if (IsNext(')'))
+        if (IsNext(T_RIGHTPAREN))
         {
             return ParseTrailingFunctionValues(coroutine, argdecls, nargs, thisarg, fname);
         }
-        if (needscomma) Expect(',');
+        if (needscomma) Expect(T_COMMA);
         Node *arg = ParseExp();
 
         CheckArg(nargs, thisarg, fname);
         if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
-            arg = new Node(lex, '{}', NULL, new Node(lex, ',', arg));
+            arg = new Node(lex, T_CLOSURE, NULL, new Node(lex, T_LIST, arg));
 
-        return new Node(lex, ';', arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
+        return new Node(lex, T_ARGLIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
     }
 
     void CheckArg(int nargs, int thisarg, const char *fname)
@@ -469,11 +468,11 @@ struct Parser
         Node *e = NULL;
         switch (lex.token)
         {
-            case ':':
+            case T_COLON:
                 e = ParseFunDefBody(ParseFunDefArgs(false, false));
                 break;
 
-            case 'ID':
+            case T_IDENT:
                 // skip if this function value starts with an ID that's equal to the parents next
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
@@ -481,7 +480,7 @@ struct Parser
                     e = ParseFunDefBody(ParseFunDefArgs(false));
                 break;
             
-            case '(':
+            case T_LEFTPAREN:
                 e = ParseFunDefBody(ParseFunDefArgs());
                 break;
         }
@@ -490,7 +489,7 @@ struct Parser
 
         if (!e)
         {
-            if (coroutine) { e = new Node(lex, 'COCL'); coroutine = false; }
+            if (coroutine) { e = new Node(lex, T_COCLOSURE); coroutine = false; }
             else return NULL;
         }
 
@@ -500,11 +499,11 @@ struct Parser
 
         Node *tail = NULL;
 
-        bool islf = lex.token == 'LF';
-        if (argdecls && thisarg < nargs && (lex.token == 'ID' || islf))
+        bool islf = lex.token == T_LINEFEED;
+        if (argdecls && thisarg < nargs && (lex.token == T_IDENT || islf))
         {
             if (islf) lex.Next();
-            if (lex.token == 'ID' && argdecls[thisarg].id == lex.sattr)
+            if (lex.token == T_IDENT && argdecls[thisarg].id == lex.sattr)
             {
                 lex.Next();
                 tail = ParseTrailingFunctionValues(coroutine, argdecls, nargs, thisarg, fname);
@@ -512,35 +511,35 @@ struct Parser
             else
             {
                 lex.PushCur();
-                if (islf) lex.Push('LF');
+                if (islf) lex.Push(T_LINEFEED);
                 lex.Next();
             }
         }
 
-        return new Node(lex, ';', e, tail);
+        return new Node(lex, T_ARGLIST, e, tail);
     }
 
     Node *ParseFunDefArgs(bool full = true, bool parseargs = true)
     {
         st.ScopeStart();
-        if (full) Expect('(');
+        if (full) Expect(T_LEFTPAREN);
 
         Node *n = NULL;
 
-        if (lex.token != ')' && parseargs)
+        if (lex.token != T_RIGHTPAREN && parseargs)
         {
             Node **tail = &n;
             for (;;)
             {
                 string a = lex.sattr;
-                Expect('ID');
+                Expect(T_IDENT);
 
                 auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false,
                     CurSF()  // this is good for function vals, but bad for named functions, which get corrected later
                 ));
 
-                bool withtype = lex.token == '::';
-                if (full && (lex.token == ':' || withtype))
+                bool withtype = lex.token == T_TYPEIN;
+                if (full && (lex.token == T_COLON || withtype))
                 {
                     lex.Next(); 
 
@@ -549,15 +548,15 @@ struct Parser
                     if (withtype) st.AddWithStruct(id->exptype, id->ident, lex);
                 }
 
-                *tail = new Node(lex, ';', id);
+                *tail = new Node(lex, T_ARGLIST, id);
                 tail = &(*tail)->b;
 
-                if (!IsNext(',')) break;
+                if (!IsNext(T_COMMA)) break;
             }
         }
 
-        if (full) Expect(')');
-        Expect(':');
+        if (full) Expect(T_RIGHTPAREN);
+        Expect(T_COLON);
 
         return n;
     }
@@ -567,14 +566,14 @@ struct Parser
         size_t autoparlevel = autoparstack.size();
         Node *body = NULL;
 
-        if (IsNext('IND'))
+        if (IsNext(T_INDENT))
         {
             body = ParseStatements();
-            Expect('DED');
+            Expect(T_DEDENT);
         }
         else
         {
-            body = new Node(lex, ',', ParseExpStat());
+            body = new Node(lex, T_LIST, ParseExpStat());
         }
 
         if (autoparlevel < autoparstack.size())
@@ -590,14 +589,14 @@ struct Parser
                 for (size_t j = autoparlevel; j < i; j++)
                     if (autoparstack[i]->ident == autoparstack[j]->ident)
                         goto twice;
-                *ap = new Node(lex, ';', new Node(lex, autoparstack[i]->ident));
+                *ap = new Node(lex, T_ARGLIST, new Node(lex, autoparstack[i]->ident));
                 ap = &(*ap)->b;
                 twice:;
             }
             while (autoparstack.size() > autoparlevel) autoparstack.pop_back();
         }
 
-        n = new Node(lex, '{}', n, body);
+        n = new Node(lex, T_CLOSURE, n, body);
 
         st.ScopeCleanup(lex);
         return n;
@@ -606,13 +605,13 @@ struct Parser
     Node *ParseMultiRet(Node *first, int &nrv)
     {
         nrv = 1;
-        if (lex.token != ',') return first;
+        if (lex.token != T_COMMA) return first;
 
-        auto list = new Node(lex, 'MR', first, NULL);
+        auto list = new Node(lex, T_MULTIRET, first, NULL);
         auto tail = &list->b;
-        while (IsNext(','))
+        while (IsNext(T_COMMA))
         {
-            *tail = new Node(lex, 'MR', ParseOpExp(), NULL);
+            *tail = new Node(lex, T_MULTIRET, ParseOpExp(), NULL);
             tail = &(*tail)->b;
             nrv++;
         }
@@ -630,21 +629,21 @@ struct Parser
 
     Node *ParseExpStat()
     {
-        if (IsNext('RET'))
+        if (IsNext(T_RETURN))
         {
             Node *rv = NULL;
             int nrv = 0;
-            if (!Either('LF', 'DED', 'FROM'))
+            if (!Either(T_LINEFEED, T_DEDENT, T_FROM))
             {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
-                if (rv->type == 'CALL')
+                if (rv->type == T_CALL)
                     nrv = max(nrv, rv->a->f->retvals);
             }
 
             int fid = -2;
-            if (IsNext('FROM'))
+            if (IsNext(T_FROM))
             {
-                if(!IsNext('PROG'))
+                if(!IsNext(T_PROGRAM))
                 {
                     if (!IsNextId()) Error("return from: must be followed by function identifier or \"program\"");
                     auto f = st.FindFunction(lastid);
@@ -664,16 +663,16 @@ struct Parser
             else if (nrv > 1)
                 Error("cannot return multiple values from top level");
 
-            return new Node(lex, 'RET', rv, new Node(lex, 'INT', fid));
+            return new Node(lex, T_RETURN, rv, new Node(lex, T_INT, fid));
         }
 
         auto e = ParseExp();
 
-        while (IsNext(';'))
+        while (IsNext(T_SEMICOLON))
         {
-            if (IsNext('LF'))
+            if (IsNext(T_LINEFEED))
                 Error("\';\' is not a statement terminator");  // specialized error for all the C-style language users
-            e = new Node(lex, 'BUT', e, ParseExp());
+            e = new Node(lex, T_SEQ, e, ParseExp());
         }
 
         return e;
@@ -681,7 +680,7 @@ struct Parser
     
     void Modify(Node *e)
     {
-        if (e->type == 'ID')
+        if (e->type == T_IDENT)
             e->ident->Assign(lex);
     }
 
@@ -691,15 +690,15 @@ struct Parser
 
         switch (lex.token)
         {
-            case '=':  
-            case '+=': 
-            case '-=': 
-            case '*=': 
-            case '/=':
-            case '%=':
+            case T_ASSIGN:  
+            case T_PLUSEQ: 
+            case T_MINUSEQ: 
+            case T_MULTEQ: 
+            case T_DIVEQ:
+            case T_MODEQ:
             {
                 auto type = lex.token;
-                if (e->type != 'ID' && e->type != '.' && e->type != '.@' && e->type != 'IDX')
+                if (e->type != T_IDENT && e->type != T_DOT && e->type != T_CO_AT && e->type != T_INDEX)
                     Error("illegal left hand side of assignment");
                 Modify(e);
                 lex.Next();
@@ -712,21 +711,21 @@ struct Parser
 
     Node *ParseOpExp(uint level = 4)
     {
-        static int ops[][4] =
+        static TType ops[][4] =
         {
-            { '*',  '/',  '%',  0    },
-            { '+',  '-',  0,    0    },
-            { '<',  '>',  '>=', '<=' },
-            { '==', '!=', 0,    0    },
-            { '&',  '|',  0,    0    },
+            { T_MULT, T_DIV, T_MOD, T_NONE },
+            { T_PLUS, T_MINUS, T_NONE, T_NONE },
+            { T_LT, T_GT, T_LTEQ, T_GTEQ },
+            { T_EQ, T_NEQ, T_NONE, T_NONE },
+            { T_AND, T_OR, T_NONE, T_NONE },
         };
 
         Node *exp = level ? ParseOpExp(level - 1) : ParseUnary();
 
-        int *o = &ops[level][0];
+        TType *o = &ops[level][0];
         while (Either(o[0], o[1]) || Either(o[2], o[3]))
         {
-            int op = lex.token;
+            TType op = lex.token;
             lex.Next();
             exp = new Node(lex, op, exp, level ? ParseOpExp(level - 1) : ParseUnary());
         }
@@ -738,16 +737,15 @@ struct Parser
     {
         switch (lex.token)
         {
-            case '-': 
-            //case '~': 
-            case '!':
-            case '++':
-            case '--':
+            case T_MINUS: 
+            case T_NOT:
+            case T_INCR:
+            case T_DECR:
             {
                 auto t = lex.token;
                 lex.Next();
                 auto e = ParseUnary();
-                if (t == '++' || t == '--') Modify(e);
+                if (t == T_INCR || t == T_DECR) Modify(e);
                 return new Node(lex, t, e);
             }
 
@@ -769,7 +767,7 @@ struct Parser
                 {
                     if (nf->args[i].flags == NF_OPTIONAL)
                     {
-                        *ai = new Node(lex, ';', new Node(lex, 'NIL'));   
+                        *ai = new Node(lex, T_ARGLIST, new Node(lex, T_NIL));   
                     }
                     else
                     {
@@ -779,7 +777,7 @@ struct Parser
                 }
                 ai = &(*ai)->b;
             }
-            return new Node(lex, 'NATC', new Node(lex, nf), args);
+            return new Node(lex, T_NATCALL, new Node(lex, nf), args);
         }
 
         if (f)
@@ -793,15 +791,15 @@ struct Parser
 
             f = FindFunctionWithNargs(f, nargs, idname, NULL);
 
-            return new Node(lex, 'CALL', new Node(lex, f), args);
+            return new Node(lex, T_CALL, new Node(lex, f), args);
         }
 
         auto args = ParseFunArgs(coroutine, firstarg);
         auto id = st.LookupLexMaybe(idname);
         if (id)
-            return new Node(lex, '->', new Node(lex, id), args);
+            return new Node(lex, T_DYNCALL, new Node(lex, id), args);
 
-        auto n = new Node(lex, 'CALL', new Node(lex, (Function *)NULL), args);
+        auto n = new Node(lex, T_CALL, new Node(lex, (Function *)NULL), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
         forwardfunctioncalls.push_back(ffc);
         return n;
@@ -848,29 +846,29 @@ struct Parser
 
         for (;;) switch (lex.token)
         {
-            case '.':
+            case T_DOT:
             {
                 lex.Next();
                 string idname = lex.sattr;
-                Expect('ID');
-                if (IsNext('@'))
+                Expect(T_IDENT);
+                if (IsNext(T_AT))
                 {
                     string fname = lex.sattr;
-                    Expect('ID');
+                    Expect(T_IDENT);
                     // TODO: this is here because currently these functions have to be declared before use
                     if (!st.FindFunction(fname))
                         Error(string("function ") + fname + " hasn't been declared yet");
                     auto id = st.LookupIdentInFun(idname, fname);
                     if (!id)    
                         Error(string("no unique local variable ") + idname + " in function with name " + fname);
-                    n = new Node(lex, '.@', n, new Node(lex, id));
+                    n = new Node(lex, T_CO_AT, n, new Node(lex, id));
                 }
                 else
                 {
                     SharedField *fld = st.FieldUse(idname);
                     if (fld) 
                     {
-                        n = new Node(lex, '.', n, new Node(lex, fld));
+                        n = new Node(lex, T_DOT, n, new Node(lex, fld));
                     }
                     else
                     {
@@ -889,33 +887,33 @@ struct Parser
                 break;
             }
 
-            case '[':
+            case T_LEFTBRACKET:
             {
                 lex.Next();
-                n = new Node(lex, 'IDX', n, ParseExp());
-                Expect(']');
+                n = new Node(lex, T_INDEX, n, ParseExp());
+                Expect(T_RIGHTBRACKET);
                 break;
             }
 
-            case '++':
-            case '--':
+            case T_INCR:
+            case T_DECR:
                 Modify(n);
-                n = new Node(lex, lex.token == '++' ? '+++' : '---', n);
+                n = new Node(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n);
                 lex.Next();
                 return n;
 
-            case '(':   // only for dyn calls
+            case T_LEFTPAREN:   // only for dyn calls
             {
                 auto args = ParseFunArgs(false, NULL);
-                n = new Node(lex, '->', n, args);
+                n = new Node(lex, T_DYNCALL, n, args);
                 break;
             }
 
-            case 'IS':
+            case T_IS:
             {
                 lex.Next();
                 ParseType(n->exptype, false);
-                return new Node(lex, 'IS', n);
+                return new Node(lex, T_IS, n);
             }
 
             default:
@@ -927,38 +925,38 @@ struct Parser
     {
         switch (lex.token)
         {
-            case 'INT': { int i    = atoi(lex.sattr.c_str()); lex.Next(); return new Node(lex, 'INT', i); }
-            case 'FLT': { double f = atof(lex.sattr.c_str()); lex.Next(); return new Node(lex, 'FLT', f); }
-            case 'STR': { string s = lex.sattr;               lex.Next(); return new Node(lex, 'STR', s); }     
-            case 'NIL': {                                     lex.Next(); return new Node(lex, 'NIL');    }
+            case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return new Node(lex, T_INT, i); }
+            case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return new Node(lex, T_FLOAT, f); }
+            case T_STR:   { string s = lex.sattr;               lex.Next(); return new Node(lex, T_STR, s); }     
+            case T_NIL:   {                                     lex.Next(); return new Node(lex, T_NIL); }
 
-            case '(':
+            case T_LEFTPAREN:
             {
                 lex.Next();
                 auto n = ParseExp();
-                Expect(')');
+                Expect(T_RIGHTPAREN);
                 return n;
             }
 
-            case '[':
+            case T_LEFTBRACKET:
             {
                 lex.Next();
 
                 Node *n;
-                if (IsNext('SUP'))
+                if (IsNext(T_SUPER))
                 {
-                    n = new Node(lex, ',', new Node(lex, 'SUP', ParseExp()));
-                    if (IsNext(',')) n->b = ParseVector();
-                    else Expect(']');
+                    n = new Node(lex, T_LIST, new Node(lex, T_SUPER, ParseExp()));
+                    if (IsNext(T_COMMA)) n->b = ParseVector();
+                    else Expect(T_RIGHTBRACKET);
                 }
                 else
                 {
                     n = ParseVector();
                 }
 
-                n = new Node(lex, '[]', n);
+                n = new Node(lex, T_CONSTRUCTOR, n);
 
-                if (IsNext(':'))
+                if (IsNext(T_COLON))
                 {
                     ParseType(n->exptype, false);
                     if (n->exptype.idx >= 0)
@@ -966,7 +964,7 @@ struct Parser
                         auto struc = st.structtable[n->exptype.idx];
                         int nargs = CountList(n->a);
                         int reqargs = struc->fields.size();
-                        if (n->a && n->a->a->type == 'SUP') reqargs -= struc->superclass->fields.size() - 1;
+                        if (n->a && n->a->a->type == T_SUPER) reqargs -= struc->superclass->fields.size() - 1;
                         if (nargs != reqargs)
                             Error("constructor requires " + string(inttoa(reqargs)) +
                                   " arguments, not " + string(inttoa(nargs)));
@@ -979,29 +977,29 @@ struct Parser
                 return n;
             }
 
-            case 'FUNC':
+            case T_FUN:
             {
                 lex.Next();
                 return ParseFunDefBody(ParseFunDefArgs());
             }
 
-            case 'CORO':
+            case T_COROUTINE:
             {
                 lex.Next();
                 string idname = lex.sattr;
-                Expect('ID');
-                return new Node(lex, 'CORO', ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
+                Expect(T_IDENT);
+                return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
                                 idname, NULL, true));
             }
 
-            case 'ID':
+            case T_IDENT:
             {
                 string idname = lex.sattr;
                 lex.Next();
 
                 switch (lex.token)
                 {
-                    case '(':
+                    case T_LEFTPAREN:
                         return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
                                                  idname, NULL, false);
 
@@ -1019,7 +1017,7 @@ struct Parser
                             auto fld = st.LookupWithStruct(idname, lex, id);
                             if (fld)
                             {
-                                return new Node(lex, '.', new Node(lex, id), new Node(lex, fld));
+                                return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
                             }
 
                             return new Node(lex, st.LookupLexUse(idname, lex));
@@ -1033,7 +1031,7 @@ struct Parser
         }
     }
 
-    bool IsNext(int t)
+    bool IsNext(TType t)
     {
         bool isnext = lex.token == t;
         if (isnext) lex.Next();
@@ -1044,16 +1042,16 @@ struct Parser
 
     bool IsNextId()
     {
-        if (lex.token != 'ID') return false;
+        if (lex.token != T_IDENT) return false;
         lastid = lex.sattr;
         lex.Next();
         return true;
     }
 
-    bool Either(int t1, int t2)         { return lex.token == t1 || lex.token == t2; }
-    bool Either(int t1, int t2, int t3) { return lex.token == t1 || lex.token == t2 || lex.token == t3; }
+    bool Either(TType t1, TType t2)           { return lex.token == t1 || lex.token == t2; }
+    bool Either(TType t1, TType t2, TType t3) { return lex.token == t1 || lex.token == t2 || lex.token == t3; }
 
-    void Expect(int t)
+    void Expect(TType t)
     {
         if (!IsNext(t))
             Error(lex.TokStr(t) + " expected, found: " + lex.TokStr());

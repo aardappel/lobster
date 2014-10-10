@@ -264,6 +264,8 @@
     <ClInclude Include="..\src\stb_image.h" />
     <ClInclude Include="..\src\stdafx.h" />
     <ClInclude Include="..\src\tools.h" />
+    <ClInclude Include="..\src\ttypes.h" />
+    <ClInclude Include="..\src\typecheck.h" />
     <ClInclude Include="..\src\unicode.h" />
     <ClInclude Include="..\src\vm.h" />
     <ClInclude Include="..\src\vmdata.h" />
@@ -536,6 +538,7 @@
     <None Include="..\..\lobster\samples\physics_boxes.lobster" />
     <None Include="..\..\lobster\samples\physics_water.lobster" />
     <None Include="..\..\lobster\samples\pythtree.lobster" />
+    <None Include="..\..\lobster\samples\tests\tctest.lobster" />
     <None Include="..\..\lobster\shaders\default.materials" />
     <None Include="..\TODO.txt" />
   </ItemGroup>

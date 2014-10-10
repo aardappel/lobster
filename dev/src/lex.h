@@ -16,7 +16,7 @@ struct LoadedFile
 {
     char *p, *linestart, *tokenstart, *source, *stringsource;
     int fileidx;
-    int token;
+    TType token;
     int line;
     int errorline;  // line before, if current token crossed a line
     bool islf;
@@ -27,13 +27,13 @@ struct LoadedFile
     //char prevlineindenttype;
     const char *prevline, *prevlinetok;
 
-    struct Tok { int t; string a; };
+    struct Tok { TType t; string a; };
 
     vector<Tok> gentokens;
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
-        : tokenstart(NULL), stringsource(_ss), fileidx(fns.size()), token('?'), line(1), errorline(1), islf(false),
-          cont(false), prevline(NULL), prevlinetok(NULL) /* prevlineindenttype(0) */
+        : tokenstart(NULL), stringsource(_ss), fileidx(fns.size()), token(T_NONE), line(1), errorline(1),
+          islf(false), cont(false), prevline(NULL), prevlinetok(NULL) /* prevlineindenttype(0) */
     {
         source = stringsource;
         if (!source) source = (char *)LoadFile((string("include/") + fn).c_str());
@@ -73,7 +73,7 @@ struct Lex : LoadedFile
     void FirstToken()
     {
         Next();
-        if (token == 'LF') Next();
+        if (token == T_LINEFEED) Next();
     }
 
     void Include(char *_fn)
@@ -92,13 +92,6 @@ struct Lex : LoadedFile
         FirstToken();
     }
 
-    void PopIncludeStart()
-    {
-        if (parentfiles.empty()) return;
-        
-        token = 'EOI';
-    }
-
     void PopIncludeContinue()
     {
         Clean();
@@ -109,7 +102,7 @@ struct Lex : LoadedFile
         Next();
     }
     
-    void Push(int t, const string &a = string())
+    void Push(TType t, const string &a = string())
     {
         Tok tok;
         tok.t = t;
@@ -119,7 +112,7 @@ struct Lex : LoadedFile
 
     void PushCur() { Push(token, sattr); }
     
-    void Undo(int t, const string &a = string())
+    void Undo(TType t, const string &a = string())
     {
         PushCur();
         Push(t, a);
@@ -139,9 +132,9 @@ struct Lex : LoadedFile
         bool lastcont = cont;
         cont = false;
 
-        NextToken();
+        token = NextToken();
 
-        if (islf && token != 'EOF' && token != 'EOI')
+        if (islf && token != T_ENDOFFILE && token != T_ENDOFINCLUDE)
         {
             int indent = (int)(tokenstart - linestart);
             if (indent > 0)
@@ -177,7 +170,7 @@ struct Lex : LoadedFile
                 if (indent > indentstack.back().first)
                 {
                     indentstack.push_back(make_pair(indent, false));
-                    Push('IND');
+                    Push(T_INDENT);
                 }
                 else
                 {
@@ -188,29 +181,29 @@ struct Lex : LoadedFile
                         indentstack.pop_back();
                         if (!iscont)
                         {
-                            Push('LF');
-                            Push('DED');
+                            Push(T_LINEFEED);
+                            Push(T_DEDENT);
                         }
                     }
                     if (iscont) goto tryagain;
-                    if (indent != indentstack.back().first /*&& !iscont*/) Error("inconsistent dedent");
-                    //if (iscont) Push('LF');
+                    if (indent != indentstack.back().first) Error("inconsistent dedent");
                 }
             }
             else
             {
-                Push('LF');
+                Push(T_LINEFEED);
             }
             
             Next();
         }
     }
 
-    void NextToken()
+    TType NextToken()
     {
         errorline = line;
         islf = false;
-        for (;;) switch (tokenstart = p, token = *p++)
+        int c;
+        for (;;) switch (tokenstart = p, c = *p++)
         {
             case '\0':
                 p--;
@@ -220,69 +213,58 @@ struct Lex : LoadedFile
                     indentstack.pop_back();
                     if (iscont) return NextToken();
                     islf = false; // avoid indents being generated because of this dedent
-                    token = 'DED';
+                    return T_DEDENT;
                 }
                 else
                 {
-                    token = 'EOF';
-                    PopIncludeStart();
+                    return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
-                return;
 
             case '\n': line++; islf = true; linestart = p; break;
             case ' ': case '\t': case '\r': case '\f': break;
             
-            case '(': case ')':
-            case '[': case ']':
-            //case '{': case '}':
+            case '(': return T_LEFTPAREN;
+            case ')': return T_RIGHTPAREN;
+            case '[': return T_LEFTBRACKET;
+            case ']': return T_RIGHTBRACKET;
 
-            //case '`':
-            //case '^':
-            //case '~':
-            //case '#':
-                 return;
+            case ';': return T_SEMICOLON;
 
-            case ';':
-                return;
+            case '@': cont = true; return T_AT;
+            case ',': cont = true; return T_COMMA;
+            case '&': cont = true; return T_AND;
+            case '|': cont = true; return T_OR;
 
-            case '@':
-            case ',':
-            case '&':
-            case '|':
-                cont = true;
-                return;
-
-            #define secondb(s, t, b) if (*p == s) { p++; token = t; b; return; }
+            #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
 
-            case '+': second('+', '++'); cont = true; second('=', '+='); return;
-            case '-': second('-', '--'); cont = true; second('=', '-='); return;
-            case '*':                    cont = true; second('=', '*='); return;
-            case '%':                    cont = true; second('=', '%='); return;
+            case '+': second('+', T_INCR); cont = true; second('=', T_PLUSEQ); return T_PLUS;
+            case '-': second('-', T_DECR); cont = true; second('=', T_MINUSEQ); return T_MINUS;
+            case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
+            case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 
-            case '<': cont = true; second('=', '<='); second('-', '<-'); return;
-            case '=': cont = true; second('=', '=='); return;
-            case '!': cont = true; second('=', '!='); cont = false; return;
-            case '>': cont = true; second('=', '>='); return;
+            case '<': cont = true; second('=', T_LTEQ); second('-', T_DYNASSIGN); return T_LT;
+            case '=': cont = true; second('=', T_EQ); return T_ASSIGN;
+            case '!': cont = true; second('=', T_NEQ); cont = false; return T_NOT;
+            case '>': cont = true; second('=', T_GTEQ); return T_GT;
 
-            case '?': cont = true; second('=', '?='); Error("illegal token: ?");
+            case '?': cont = true; second('=', T_LOGASSIGN); Error("illegal token: ?");
 
             case ':':
                 cont = true;
-                secondb('=', ':=', second('=', ':=='));
+                secondb('=', T_DEF, second('=', T_DEFCONST));
                 if (*p == ':')
                 {
                     p++;
-                    second('=', '::=');
-                    token = '::';
-                    return;
+                    second('=', T_DEFTYPEIN);
+                    return T_TYPEIN;
                 };
                 cont = false;
-                return;
+                return T_COLON;
 
             case '/':
                 cont = true;
-                second('=', '/=');
+                second('=', T_DIVEQ);
                 cont = false; 
                 if (*p == '/')
                 {
@@ -304,63 +286,61 @@ struct Lex : LoadedFile
                 else
                 {
                     cont = true;
-                    return;
+                    return T_DIV;
                 }
 
             case '\"':
             case '\'':
-                LexString();
-                return;
+                return LexString(c);
 
             default:
             {
-                if (isalpha(token) || token == '_' || token < 0)
+                if (isalpha(c) || c == '_' || c < 0)
                 {
                     while (isalnum(*p) || *p == '_' || *p < 0) p++;
                     sattr = string(tokenstart, p);
                     // add any new keywords also to TokStr below
-                    if      (sattr == "nil")       token = 'NIL';
-                    else if (sattr == "true")    { token = 'INT'; sattr = "1"; }
-                    else if (sattr == "false")   { token = 'INT'; sattr = "0"; }
-                    else if (sattr == "return")    token = 'RET'; 
-                    else if (sattr == "struct")    token = 'TYPE'; 
-                    else if (sattr == "value")     token = 'VALU';
-                    else if (sattr == "include")   token = 'INCL';
-                    else if (sattr == "int")       token = 'INTT';
-                    else if (sattr == "float")     token = 'FLTT';
-                    else if (sattr == "string")    token = 'STRT';
-                    else if (sattr == "vector")    token = 'VECT';
-                    else if (sattr == "function")  token = 'FUNC';
-                    else if (sattr == "super")     token = 'SUP';
-                    else if (sattr == "is")        token = 'IS';
-                    else if (sattr == "from")      token = 'FROM';
-                    else if (sattr == "program")   token = 'PROG';
-                    else if (sattr == "private")   token = 'PRIV';
-                    else if (sattr == "coroutine") token = 'CORO';
-                    else token = 'ID';
-                    return;
+                    if      (sattr == "nil")       return T_NIL;
+                    else if (sattr == "true")    { sattr = "1"; return T_INT; }
+                    else if (sattr == "false")   { sattr = "0"; return T_INT; }
+                    else if (sattr == "return")    return T_RETURN; 
+                    else if (sattr == "struct")    return T_STRUCT; 
+                    else if (sattr == "value")     return T_VALUE;
+                    else if (sattr == "include")   return T_INCLUDE;
+                    else if (sattr == "int")       return T_INTTYPE;
+                    else if (sattr == "float")     return T_FLOATTYPE;
+                    else if (sattr == "string")    return T_STRTYPE;
+                    else if (sattr == "vector")    return T_VECTTYPE;
+                    else if (sattr == "function")  return T_FUN;
+                    else if (sattr == "super")     return T_SUPER;
+                    else if (sattr == "is")        return T_IS;
+                    else if (sattr == "from")      return T_FROM;
+                    else if (sattr == "program")   return T_PROGRAM;
+                    else if (sattr == "private")   return T_PRIVATE;
+                    else if (sattr == "coroutine") return T_COROUTINE;
+                    else return T_IDENT;
                 }
 
-                if (isdigit(token) || (token == '.' && isdigit(*p)))
+                if (isdigit(c) || (c == '.' && isdigit(*p)))
                 {
-                    if (token == '0' && *p == 'x')
+                    if (c == '0' && *p == 'x')
                     {
                         p++;
                         int val = 0;
                         while (isxdigit(*p)) val = (val << 4) | HexDigit(*p++);
                         sattr = inttoa(val);
-                        token = 'INT';
-                        return;
+                        return T_INT;
                     }
                     while (isdigit(*p) || (*p=='.' && !isalpha(*(p + 1)))) p++;
                     sattr = string(tokenstart, p);
-                    token = strchr(sattr.c_str(), '.') ? 'FLT' : 'INT';
-                    return;
+                    return strchr(sattr.c_str(), '.') ? T_FLOAT : T_INT;
                 }
 
-                if (token == '.') return;
+                if (c == '.') return T_DOT;
 
-                Error("illegal token: " + TokStr());
+                auto tok = c <= ' ' ? string("[ascii ") + inttoa(c) + "]" : string("") + (char)c;
+                Error("illegal token: " + tok);
+                return T_NONE;
             }
         }
     }
@@ -372,12 +352,12 @@ struct Lex : LoadedFile
         return -1;
     }
 
-    void LexString()
+    TType LexString(int initial)
     {
         int c = 0;
         sattr = "";
 
-        while ((c = *p++) != token) switch(c)
+        while ((c = *p++) != initial) switch (c)
         {
             case 0:
             case '\n':
@@ -415,9 +395,9 @@ struct Lex : LoadedFile
                 sattr += c;
         };
 
-        if (token == '\"')
+        if (initial == '\"')
         {
-            token = 'STR';
+            return T_STR;
         }
         else
         {
@@ -425,52 +405,25 @@ struct Lex : LoadedFile
             int ival = 0;
             for (auto c : sattr) ival = (ival << 8) + c;
             sattr = inttoa(ival);
-            token = 'INT';
+            return T_INT;
         };
     };
 
-    string TokStr(int t = 0)
+    string TokStr(TType t = T_NONE)
     {
-        bool attr = !t;
-        if (attr) t = token;
-        switch (t)
+        if (t == T_NONE)
         {
-            case 'EOF':  return "end of source file";
-            case 'EOI':  return "end of include file";
-            case 'ID':   return attr ? sattr : "identifier";
-            case 'FLT':  return attr ? sattr : "floating point literal";
-            case 'INT':  return attr ? sattr : "integer literal";
-            case 'STR':  // FIXME: will not deal with other escape codes, use ToString code
-                         return attr ? "\"" + sattr + "\"" : "string literal";
-            case 'IND':  return "indentation";
-            case 'DED':  return "de-indentation";
-            case 'LF':   return "end of line";
-            case 'NIL':  return "nil";
-            case 'RET':  return "return";
-            case 'TYPE': return "struct";
-            case 'VALU': return "value";
-            case 'INCL': return "include";
-            case 'INTT': return "int";
-            case 'FLTT': return "float";
-            case 'STRT': return "string";
-            case 'VECT': return "vector";
-            case 'FUNC': return "function";
-            case 'SUP':  return "super";
-            case 'IS':   return "is";
-            case 'FROM': return "from";
-            case 'PROG': return "program";
-            case 'PRIV': return "private";
-            case 'CORO': return "coroutine";
-
-            default:
+            t = token;
+            switch (t)
             {
-                if (t <= ' ') return string("[ascii ") + inttoa(t) + "]";
-
-                string s;
-                while (t) { s = (char)t + s; t >>= 8; }
-                return s;
+                case T_IDENT:
+                case T_FLOAT:
+                case T_INT: return sattr;
+                case T_STR:  // FIXME: will not deal with other escape codes, use ToString code
+                             return "\"" + sattr + "\"";
             }
         }
+        return TName(t);
     }
 
     void Error(string err, int fidx = -1, int line = -1)

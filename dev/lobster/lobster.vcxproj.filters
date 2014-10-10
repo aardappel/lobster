@@ -296,6 +296,12 @@
     <ClInclude Include="..\include\Box2D\Particle\b2ParticleAssembly.h">
       <Filter>engine\physics\Box2D</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\typecheck.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ttypes.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lobster.cpp">
@@ -551,6 +557,9 @@
       <Filter>_samples</Filter>
     </None>
     <None Include="..\..\lobster\include\physics.lobster">
+      <Filter>_samples</Filter>
+    </None>
+    <None Include="..\..\lobster\samples\tests\tctest.lobster">
       <Filter>_samples</Filter>
     </None>
   </ItemGroup>

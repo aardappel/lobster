@@ -103,7 +103,7 @@ struct CodeGen
     {
         for (; n; n = n->b)
         {
-            assert(n->type == ',');
+            assert(n->type == T_LIST);
             Gen(n->a, !n->b);
         }
     }
@@ -191,7 +191,7 @@ struct CodeGen
         for (auto topl = cl->b; topl; topl = topl->b)
         {
             size_t logmultiassignstart = logvars.size();
-            for (auto dl = topl->a; dl->type == ':='; dl = dl->b)
+            for (auto dl = topl->a; dl->type == T_DEF; dl = dl->b)
             {
                 auto id = dl->a->ident;
                 if (id->logvaridx >= 0)
@@ -247,39 +247,38 @@ struct CodeGen
 
         switch(n->type)
         {
-            case 'INT': if (retval) { Emit(IL_PUSHINT, n->integer); }; break;
-            case 'FLT': if (retval) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = (float)n->flt; Emit(i2f.i); }; break; 
-            case 'STR': if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str; *p; p++) Emit(*p);
-                                                        Emit(0); }; break;
-            case 'NIL': if (retval) { Emit(IL_PUSHNIL); break; }
+            case T_INT:   if (retval) { Emit(IL_PUSHINT, n->integer); }; break;
+            case T_FLOAT: if (retval) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = (float)n->flt; Emit(i2f.i); }; break; 
+            case T_STR:   if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str; *p; p++) Emit(*p); Emit(0); }; break;
+            case T_NIL:   if (retval) { Emit(IL_PUSHNIL); break; }
 
-            case 'ID':  if (retval) { Emit(IL_PUSHVAR, n->ident->idx); }; break;
+            case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->ident->idx); }; break;
 
-            case '.':   
+            case T_DOT:   
                 Gen(n->a, retval);
                 if (retval) GenFieldAccess(n->b->fld, -1);
                 break;
 
-            case 'IDX':
+            case T_INDEX:
                 Gen(n->a, retval);
                 Gen(n->b, retval);
                 if (retval) Emit(IL_PUSHIDX);
                 break;
 
-            case '.@':
+            case T_CO_AT:
                 Gen(n->a, retval);
                 if (retval) Emit(IL_PUSHLOC, n->b->ident->idx);
                 break;
 
-            case ':=':
-            case ',=':
+            case T_DEF:
+            case T_DEFLIST:
             {
                 int num = 0;
                 auto dl = n;
                 vector<Ident *> ids;
-                for (; dl->type == ':=' || dl->type == ',='; dl = dl->b)
+                for (; dl->type == T_DEF || dl->type == T_DEFLIST; dl = dl->b)
                 {
-                    assert(dl->a->type == 'ID');
+                    assert(dl->a->type == T_IDENT);
                     ids.push_back(dl->a->ident);
                     num++;
                 }
@@ -287,7 +286,7 @@ struct CodeGen
                 dl = n;
                 for (int i = ids.size() - 1; i >= 0; i--)
                 {
-                    if (n->type == ':=')
+                    if (n->type == T_DEF)
                     {
                         if (ids[i]->logvaridx >= 0) Emit(IL_LOGREAD, ids[i]->logvaridx);
                         Emit(IL_LVALVAR, LVO_WRITED, ids[i]->idx);
@@ -302,30 +301,30 @@ struct CodeGen
                 break;
             }
 
-            case '=': GenAssign(n, LVO_WRITE, retval); break;
+            case T_ASSIGN: GenAssign(n, LVO_WRITE, retval); break;
 
-            case '+=': GenAssign(n, LVO_PLUS, retval); break;
-            case '*=': GenAssign(n, LVO_MUL,  retval); break;
-            case '-=': GenAssign(n, LVO_SUB,  retval); break;
-            case '/=': GenAssign(n, LVO_DIV,  retval); break;
-            case '%=': GenAssign(n, LVO_MOD,  retval); break;
+            case T_PLUSEQ:  GenAssign(n, LVO_PLUS, retval); break;
+            case T_MULTEQ:  GenAssign(n, LVO_MUL,  retval); break;
+            case T_MINUSEQ: GenAssign(n, LVO_SUB, retval); break;
+            case T_DIVEQ:   GenAssign(n, LVO_DIV, retval); break;
+            case T_MODEQ:   GenAssign(n, LVO_MOD,  retval); break;
 
-            case '---': GenAssign(n, LVO_MMP, retval); break;
-            case '+++': GenAssign(n, LVO_PPP, retval); break;
-            case '--':  GenAssign(n, LVO_MM,  retval); break;
-            case '++':  GenAssign(n, LVO_PP,  retval); break;
+            case T_POSTDECR: GenAssign(n, LVO_MMP, retval); break;
+            case T_POSTINCR: GenAssign(n, LVO_PPP, retval); break;
+            case T_DECR:     GenAssign(n, LVO_MM,  retval); break;
+            case T_INCR:     GenAssign(n, LVO_PP,  retval); break;
 
-            case '!=': opc++;
-            case '==': opc++;
-            case '>=': opc++;
-            case '<=': opc++;
-            case '>':  opc++;
-            case '<':  opc++;
-            case '%':  opc++;
-            case '/':  opc++;
-            case '*':  opc++;
-            case '-':  opc++;
-            case '+':
+            case T_NEQ:   opc++;
+            case T_EQ:    opc++;
+            case T_GTEQ:  opc++;
+            case T_LTEQ:  opc++;
+            case T_GT:    opc++;
+            case T_LT:    opc++;
+            case T_MOD:   opc++;
+            case T_DIV:   opc++;
+            case T_MULT:  opc++;
+            case T_MINUS: opc++;
+            case T_PLUS:
                 Gen(n->a, retval);
                 if (n->b)
                 {
@@ -334,20 +333,20 @@ struct CodeGen
                 }
                 else
                 {
-                    assert(n->type == '-');
+                    assert(n->type == T_MINUS);
                     if (retval) Emit(IL_UMINUS);
                 }
                 break;
 
-            case '{}': if (retval) GenFunctionVal(n); break; 
+            case T_CLOSURE: if (retval) GenFunctionVal(n); break; 
 
-            case 'ADT':
+            case T_STRUCTDEF:
                 Dummy(retval);
                 break;
             
-            case 'NATC':
-            case 'CALL':
-            case '->':     
+            case T_NATCALL:
+            case T_CALL:
+            case T_DYNCALL:     
             {
                 int nargs = 0;
                 Node *lastarg = NULL;
@@ -361,7 +360,7 @@ struct CodeGen
                         nargs++;
                     }
                 };
-                if (n->type == 'NATC')
+                if (n->type == T_NATCALL)
                 {
                     auto nf = n->a->nf;
                     if (nf->ncm == NCM_LOOP)
@@ -384,7 +383,7 @@ struct CodeGen
 
                         case NCM_CONT_EXIT:     // graphics.h
                             Emit(IL_BCALL, nf->idx, nargs);
-                            if (lastarg->type != 'NIL') // FIXME: this will not work if its a var with nil value
+                            if (lastarg->type != T_NIL) // FIXME: this will not work if its a var with nil value
                             {
                                 Emit(IL_CALLVCOND, 0);
                                 Emit(IL_CONT1, nf->idx);
@@ -393,9 +392,9 @@ struct CodeGen
 
                         case NCM_LOOP:      // for() filter() exists() map()
                         {
-                            assert(lastarg->type == '{}' || lastarg->type == 'COCL');
+                            assert(lastarg->type == T_CLOSURE || lastarg->type == T_COCLOSURE);
                             int clnargs = 0; 
-                            if (lastarg->type == 'COCL') clnargs = 1;
+                            if (lastarg->type == T_COCLOSURE) clnargs = 1;
                             else if (lastarg->a) for (auto ids = lastarg->a; ids; ids = ids->b) clnargs++;
                             Emit(IL_JUMP, 0);
                             MARKL(pos);
@@ -439,7 +438,7 @@ struct CodeGen
                         //Error("builtin function call returns nothing", n); 
                     }
                 }
-                else if (n->type == 'CALL')
+                else if (n->type == T_CALL)
                 {
                     auto &f = *n->a->f;
                     genargs(f.subf->args, f.multimethod ? 0 : f.nargs);
@@ -463,45 +462,31 @@ struct CodeGen
                 break;
             }
 
-            case 'FUN':
+            case T_FUNDEF:
                 Dummy(retval);
                 break;   
 
-            case ':':   // FIXME
-                Dummy(retval);
-                break;
-
-            case ',':
+            case T_LIST:
                 assert(0);  // handled by individual parents: EXPS {} [] ADT
                 break;
 
-            case 'BUT':
+            case T_SEQ:
                 Gen(n->a, false);
                 Gen(n->b, retval);
                 break;
 
-                /*
-            case 'EXPS':
-                for (n = n->a; n; n = n->b)
-                {
-                    assert(n->type == ',');
-                    Gen(n->a, retval && !n->b);
-                }
-                break;
-                */
-
-            case 'MR':
+            case T_MULTIRET:
                 maxretvalsupplied = 0;
                 assert(retval);
                 for (; n; n = n->b)
                 {
-                    assert(n->type == 'MR');
+                    assert(n->type == T_MULTIRET);
                     Gen(n->a, true);
                     maxretvalsupplied++;
                 }
                 break;
 
-            case '&':
+            case T_AND:
             {
                 Gen(n->a, 1);
                 Emit(retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
@@ -511,7 +496,7 @@ struct CodeGen
                 break;
             }
 
-            case '|':
+            case T_OR:
             {
                 Gen(n->a, 1);
                 Emit(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, 0);
@@ -521,14 +506,14 @@ struct CodeGen
                 break;
             }
 
-            case '!':
+            case T_NOT:
             {
                 Gen(n->a, retval);
                 if (retval) Emit(IL_LOGNOT);
                 break;
             }
 
-            case '[]':
+            case T_CONSTRUCTOR:
             {
                 Struct *superclass = NULL;
                 Struct *struc = NULL;
@@ -549,8 +534,8 @@ struct CodeGen
                 int i = 0;
                 for (auto cn = n->a; cn; cn = cn->b)
                 {
-                    assert(cn->type == ',');
-                    if (cn->a->type == 'SUP')
+                    assert(cn->type == T_LIST);
+                    if (cn->a->type == T_SUPER)
                     {
                         if (!superclass) parser.Error("super used in object without superclass", cn->a);
                         Gen(cn->a->a, 1);
@@ -574,14 +559,14 @@ struct CodeGen
                 break;
             }
 
-            case 'IS':
+            case T_IS:
             {
                 Gen(n->a, retval);
                 if (retval) Emit(IL_ISTYPE, n->a->exptype.t, n->a->exptype.idx);
                 break;
             }
 
-            case 'RET':
+            case T_RETURN:
             {
                 int fid = n->b->integer;
                 if (n->a) Gen(n->a, fid >= 0 ? st.functiontable[fid]->retvals : 1);
@@ -590,11 +575,11 @@ struct CodeGen
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }
-            case 'COCL':
+            case T_COCLOSURE:
                 if (retval) Emit(IL_COCL);
                 break;
 
-            case 'CORO':
+            case T_COROUTINE:
             {
                 // TODO: maybe more correct to generate call regardless of retval?
                 if (retval) Emit(IL_CORO, 0);
@@ -668,10 +653,10 @@ struct CodeGen
         if (n->b) Gen(n->b, 1);
         switch (n->a->type)
         {
-            case 'ID':  Emit(IL_LVALVAR, lvalop, n->a->ident->idx); break;
-            case '.':   Gen(n->a->a, 1); GenFieldAccess(n->a->b->fld, lvalop); break;
-            case '.@':  Gen(n->a->a, 1); Emit(IL_LVALLOC, lvalop, n->a->b->ident->idx); break;
-            case 'IDX': Gen(n->a->a, 1); Gen(n->a->b, 1); Emit(IL_LVALIDX, lvalop); break;
+            case T_IDENT: Emit(IL_LVALVAR, lvalop, n->a->ident->idx); break;
+            case T_DOT:   Gen(n->a->a, 1); GenFieldAccess(n->a->b->fld, lvalop); break;
+            case T_CO_AT: Gen(n->a->a, 1); Emit(IL_LVALLOC, lvalop, n->a->b->ident->idx); break;
+            case T_INDEX: Gen(n->a->a, 1); Gen(n->a->b, 1); Emit(IL_LVALIDX, lvalop); break;
             default:    parser.Error("lvalue required", n->a);
         }
     }

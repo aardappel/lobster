@@ -22,6 +22,8 @@ These can be passed to lobster anywhere on the command line.
     is as simple as packaging up the lobster executable with a bytecode
     file and any data files it may use.
 
+-   `-t` : run the typechecker (& optimizer)
+
 -   `-w` : makes the compiler wait for commandline input before it
     exits. Useful on Windows.
 

@@ -17,6 +17,7 @@
 #include "vmdata.h"
 #include "natreg.h"
 
+#include "ttypes.h"
 #include "lex.h"
 
 struct ValueParser
@@ -38,8 +39,8 @@ struct ValueParser
     Value Parse()
     {
         Value v = ParseFactor();
-        Gobble('LF');
-        Expect('EOF');
+        Gobble(T_LINEFEED);
+        Expect(T_ENDOFFILE);
         return v;
     }
 
@@ -47,14 +48,14 @@ struct ValueParser
     {
         switch (lex.token)
         {
-            case 'INT': { int i    = atoi(lex.sattr.c_str()); lex.Next(); return Value(i); }
-            case 'FLT': { double f = atof(lex.sattr.c_str()); lex.Next(); return Value((float)f); }
-            case 'STR': { string s = lex.sattr;               lex.Next(); auto str = g_vm->NewString(s);
-                                                                          allocated.push_back(str);
-                                                                          return Value(str); }     
-            case 'NIL': {                                     lex.Next(); return Value(0, V_NIL);    }
+            case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return Value(i); }
+            case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return Value((float)f); }
+            case T_STR:   { string s = lex.sattr;               lex.Next(); auto str = g_vm->NewString(s);
+                                                                            allocated.push_back(str);
+                                                                            return Value(str); }     
+            case T_NIL:   {                                     lex.Next(); return Value(0, V_NIL); }
 
-            case '-':
+            case T_MINUS:
             {
                 lex.Next(); 
                 Value v = ParseFactor();
@@ -67,31 +68,31 @@ struct ValueParser
                 return v;
             }
 
-            case '[':
+            case T_LEFTBRACKET:
             {
                 lex.Next();
-                Gobble('LF');
+                Gobble(T_LINEFEED);
                 vector<Value> elems;
-                if (lex.token == ']') lex.Next();
+                if (lex.token == T_RIGHTBRACKET) lex.Next();
                 else
                 {
                     for (;;)
                     {
                         elems.push_back(ParseFactor());
-                        bool haslf = lex.token == 'LF';
+                        bool haslf = lex.token == T_LINEFEED;
                         if (haslf) lex.Next();
-                        if (lex.token == ']') break;
-                        if (!haslf) Expect(',');
+                        if (lex.token == T_RIGHTBRACKET) break;
+                        if (!haslf) Expect(T_COMMA);
                     }
                     lex.Next();
                 }
 
                 int type = -1;
-                if (lex.token == ':')
+                if (lex.token == T_COLON)
                 {
                     lex.Next();
                     string sname = lex.sattr;
-                    Expect('ID');
+                    Expect(T_IDENT);
                     size_t reqargs = 0;
                     int idx = g_vm->StructIdx(sname, reqargs);
                     if (idx >= 0)   // if unknown type, becomes regular vector
@@ -116,7 +117,7 @@ struct ValueParser
         }
     }
 
-    void Expect(int t)
+    void Expect(TType t)
     {
         if (lex.token != t)
             lex.Error(lex.TokStr(t) + " expected, found: " + lex.TokStr());
@@ -124,7 +125,7 @@ struct ValueParser
         lex.Next();
     }
 
-    void Gobble(int t)
+    void Gobble(TType t)
     {
         if (lex.token == t) lex.Next();
     }
