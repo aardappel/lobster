@@ -30,38 +30,39 @@ struct Node : SlabAllocated<Node>
 {
     TType type;
 
+    private:
     union
     {
-        struct { Node *a, *b;      }; // default
-        int integer;                  // T_INT
-        double flt;                   // T_FLOAT
-        struct { char *str;        }; // T_STR
+        struct { Node *a_, *b_;     }; // default
+        int integer_;                  // T_INT
+        double flt_;                   // T_FLOAT
+        struct { char *str_;        }; // T_STR
 
-        struct { Name *n;          }; // T_IDENT | T_STRUCT | T_FIELD | T_FUN
-        struct { Ident *ident;     }; // T_IDENT
-        struct { Struct *st;       }; // T_STRUCT
-        struct { SharedField *fld; }; // T_FIELD
-        struct { Function *f;      }; // T_FUN
-        struct { NativeFun *nf;    }; // T_NATIVE
+        struct { Ident *ident_;     }; // T_IDENT
+        struct { Struct *st_;       }; // T_STRUCT
+        struct { SharedField *fld_; }; // T_FIELD
+        struct { Function *f_;      }; // T_FUN
+        struct { NativeFun *nf_;    }; // T_NATIVE
     };
+    public:
 
     Type exptype;
 
     int linenumber;
     int fileidx;
 
-    Node(Lex &lex, TType _t)                     : type(_t), a(NULL), b(NULL) { L(lex); };
-    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a(_a), b(NULL)   { L(lex); };
-    Node(Lex &lex, TType _t, Node *_a, Node *_b) : type(_t), a(_a), b(_b)     { L(lex); };
-    Node(Lex &lex, TType _t, int _i)             : type(_t), integer(_i)      { L(lex); };
-    Node(Lex &lex, TType _t, double _f)          : type(_t), flt(_f)          { L(lex); };
-    Node(Lex &lex, TType _t, string &_s)         : type(_t), str(parserpool->alloc_string_sized(_s.c_str())) { L(lex); };
+    Node(Lex &lex, TType _t)                     : type(_t), a_(NULL), b_(NULL) { L(lex); }
+    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a_(_a), b_(NULL)   { L(lex); }
+    Node(Lex &lex, TType _t, Node *_a, Node *_b) : type(_t), a_(_a), b_(_b)     { L(lex); }
+    Node(Lex &lex, TType _t, int _i)             : type(_t), integer_(_i)      { L(lex); }
+    Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)          { L(lex); }
+    Node(Lex &lex, TType _t, string &_s)         : type(_t), str_(parserpool->alloc_string_sized(_s.c_str())) { L(lex); }
 
-    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident(_id) { L(lex); };
-    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st(_st)    { L(lex); };
-    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld(_fld)  { L(lex); };
-    Node(Lex &lex, Function *_f)      : type(T_FUN),    f(_f)      { L(lex); };
-    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf(_nf)    { L(lex); };
+    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id) { L(lex); }
+    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)    { L(lex); }
+    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)  { L(lex); }
+    Node(Lex &lex, Function *_f)      : type(T_FUN),    f_(_f)      { L(lex); }
+    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)    { L(lex); }
 
     void L(Lex &lex)
     {
@@ -69,36 +70,60 @@ struct Node : SlabAllocated<Node>
         fileidx = lex.fileidx;
     }
 
-    bool HasChildren()
-    {
-        switch (type)
-        {
-            case T_INT:
-            case T_FLOAT:
-            case T_IDENT:
-            case T_STR: 
-            case T_STRUCT:
-            case T_FIELD:
-            case T_FUN:
-            case T_NATIVE:
-                return false;
+    bool HasChildren() { return TCat(type) != TT_NOCHILD; }
 
-            default:
-                return true;
-        }
-    }
+    int integer()      { assert(type == T_INT);    return integer_; }
+    double flt()       { assert(type == T_FLOAT);  return flt_; }
+    char *str()        { assert(type == T_STR);    return str_; }
+    Ident *ident()     { assert(type == T_IDENT);  return ident_; }
+    Struct *st()       { assert(type == T_STRUCT); return st_; }
+    SharedField *fld() { assert(type == T_FIELD);  return fld_; }
+    Function *&f()     { assert(type == T_FUN);    return f_; }
+    NativeFun *nf()    { assert(type == T_NATIVE); return nf_; }
+
+    Node *a()  { assert(TCat(type) != TT_NOCHILD); return a_; }
+    Node *&b() { assert(TCat(type) != TT_NOCHILD); return b_; }
+
+    Node *&left()  { assert(TCat(type) == TT_BINARY); return a_; }
+    Node *&right() { assert(TCat(type) == TT_BINARY); return b_; }
+
+    Node *child() { assert(TCat(type) == TT_UNARY); return a_; }
+
+    #define GEN_ACCESSOR_NO(ENUM, NAME, AB)
+    #define GEN_ACCESSOR_YES(ENUM, NAME, AB) Node *&NAME() { assert(type == ENUM); return AB; }
+    #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) GEN_ACCESSOR_##HASLEFT(ENUM, LEFT, a_) \
+                                                              GEN_ACCESSOR_##HASRIGHT(ENUM, RIGHT, b_)
+    TTYPES_LIST
+    #undef T
+    #undef GEN_ACCESSOR_NO
+    #undef GEN_ACCESSOR_YES
 
     ~Node()
     {
         if (type == T_STR)
         {
-            parserpool->dealloc_sized(str);
+            parserpool->dealloc_sized(str_);
         }
         else if (HasChildren())
         {
-            if (a) delete a;
-            if (b) delete b;
+            if (a_) delete a_;
+            if (b_) delete b_;
         }
+    }
+
+    Node *Clone()
+    {
+        auto n = parserpool->clone_obj_small(this);
+        if (HasChildren())
+        {
+            if (a_) n->a_ = a_->Clone();
+            if (b_) n->b_ = b_->Clone();
+        }
+        else if (type == T_STR)
+        {
+            n->str_ = parserpool->alloc_string_sized(str_);
+        }
+        return n;
     }
     
     bool IsConst()      // used to see if a var is worth outputting in a stacktrace
@@ -112,13 +137,13 @@ struct Node : SlabAllocated<Node>
                 return true;
                 
             case T_IDENT:
-                return ident->static_constant;
+                return ident()->static_constant;
                 
             case T_CONSTRUCTOR:
             {
-                for (Node *n = a; n; n = n->b)
+                for (Node *n = constructor_args(); n; n = n->tail())
                 {
-                    if (!n->a->IsConst()) return false;
+                    if (!n->head()->IsConst()) return false;
                 }
                 return true;
             }
@@ -144,7 +169,7 @@ struct Node : SlabAllocated<Node>
         {
             if (n->type == T_IDENT)
                 for (size_t i = 0; i < istack.size(); i++) 
-                    if (n->ident == istack[i])
+                    if (n->ident() == istack[i])
                         return vstack[i];
 
             return n;
@@ -162,18 +187,18 @@ struct Node : SlabAllocated<Node>
             if (n->type == T_CLOSURE)
                 return;
 
-            if (n->type == T_LIST && n->a->type == T_DEF)
+            if (n->type == T_LIST && n->head()->type == T_DEF)
             {
-                eval(n->a);
-                for (auto dl = n->a; dl->type == T_DEF; dl = dl->b)
+                eval(n->head());
+                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->tail())
                 {
                     // FIXME: this is incorrect in the multiple assignments case, though not harmful
-                    auto val = lookup(dl->b);
-                    istack.push_back(dl->a->ident);
+                    auto val = lookup(dl->tail());
+                    istack.push_back(dl->head()->ident());
                     vstack.push_back(val);
                 }
-                eval (n->b);
-                for (auto dl = n->a; dl->type == T_DEF; dl = dl->b)
+                eval (n->tail());
+                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->tail())
                 {
                     istack.pop_back();
                     vstack.pop_back();
@@ -183,37 +208,38 @@ struct Node : SlabAllocated<Node>
 
             if (n->HasChildren())
             {
-                eval(n->a);
-                eval(n->b);
+                eval(n->a());
+                eval(n->b());
             }
 
             if (n->type == T_CALL)
             {
-                for (auto f : fstack) if (f == n->a->f) return;    // ignore recursive call
-                for (auto args = n->b; args; args = args->b)
-                    if (args->a->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
-                fstack.push_back(n->a->f);
-                if (n->a->f->multimethod) err = "multi-method call";
-                evalblock(n->a->f->subf->body, n->b);
+                auto cf = n->call_function()->f();
+                for (auto f : fstack) if (f == cf) return;    // ignore recursive call
+                for (auto args = n->call_args(); args; args = args->tail())
+                    if (args->head()->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
+                fstack.push_back(cf);
+                if (cf->multimethod) err = "multi-method call";
+                evalblock(cf->subf->body, n->call_args());
                 fstack.pop_back();
             }
             else if (n->type == T_DYNCALL)
             {
-                auto f = lookup(n->a);
+                auto f = lookup(n->dcall_var());
                 if (f->type == T_COCLOSURE) { customf(istack); return; }
                 // ignore dynamic calls to non-function-vals, could make this an error?
                 if (f->type != T_CLOSURE) { assert(0); return; }
-                evalblock(f, n->b);
+                evalblock(f, n->dcall_args());
             }
             else if (n->type == T_NATCALL)
             {
-                for (Node *list = n->b; list; list = list->b)
+                for (Node *list = n->ncall_args(); list; list = list->tail())
                 {
-                    auto a = lookup(list->a);
+                    auto a = lookup(list->head());
                     if (a->type == T_COCLOSURE) customf(istack);
                     // a builtin calling a function, we don't know what values will be supplied for the args,
                     // so we define them in terms of themselves
-                    if (a->type == T_CLOSURE) evalblock(a, a->a);
+                    if (a->type == T_CLOSURE) evalblock(a, a->parameters());
                 }
             }
         };
@@ -221,26 +247,25 @@ struct Node : SlabAllocated<Node>
         evalblock = [&](Node *cl, Node *args)
         {
             Node *a = args;
-            for (Node *pars = cl->a; pars; pars = pars->b)
+            for (Node *pars = cl->parameters(); pars; pars = pars->tail())
             {
                 if (a)  // if not, this is a _ var that's referring to a past version, ok to ignore
                 {
-                    assert(pars->a->type == T_IDENT);
-                    auto val = lookup(a->a);
-                    istack.push_back(pars->a->ident);
+                    auto val = lookup(a->head());
+                    istack.push_back(pars->head()->ident());
                     vstack.push_back(val);
-                    a = a->b;
+                    a = a->tail();
                 }
             }
 
-            eval(cl->b);
+            eval(cl->body());
 
             a = args;
-            for (Node *pars = cl->a; pars; pars = pars->b) if (a) 
+            for (Node *pars = cl->parameters(); pars; pars = pars->tail()) if (a) 
             {
                 istack.pop_back();
                 vstack.pop_back();
-                a = a->b;
+                a = a->tail();
             }
         };
 
@@ -253,17 +278,16 @@ struct Node : SlabAllocated<Node>
     {
         switch (type)
         {
-            case T_INT:   return inttoa(integer);
-            case T_FLOAT: return flttoa(flt);
-            case T_STR:   return string("\"") + str + "\"";
+            case T_INT:   return inttoa(integer());
+            case T_FLOAT: return flttoa(flt());
+            case T_STR:   return string("\"") + str() + "\"";
             case T_NIL:   return "nil";
 
-            case T_IDENT: 
-            case T_STRUCT:  
-            case T_FIELD: 
-            case T_FUN:
-            case T_NATIVE:
-                return n->name;
+            case T_IDENT:  return ident()->name;
+            case T_STRUCT: return st()->name;
+            case T_FIELD:  return fld()->name;
+            case T_FUN:    return f()->name;
+            case T_NATIVE: return nf()->name;
 
             default:
             {
@@ -273,15 +297,15 @@ struct Node : SlabAllocated<Node>
                 bool ml = false;
                 auto indenb = indent - (type == T_LIST) * 2;
 
-                if (a) { as = a->Dump(indent + 2, lex); DumpType(a, as); if (as[0] == ' ') ml = true; }
-                if (b) { bs = b->Dump(indenb + 2, lex); DumpType(b, bs); if (bs[0] == ' ') ml = true; }
+                if (a()) { as = a()->Dump(indent + 2, lex); DumpType(a(), as); if (as[0] == ' ') ml = true; }
+                if (b()) { bs = b()->Dump(indenb + 2, lex); DumpType(b(), bs); if (bs[0] == ' ') ml = true; }
 
                 if (as.size() + bs.size() > 60) ml = true;
 
                 if (ml)
                 {
-                    if (a) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
-                    if (b) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
+                    if (a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
+                    if (b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
                     if (type == T_LIST)
                     {
                         s = "";
@@ -289,15 +313,15 @@ struct Node : SlabAllocated<Node>
                     else
                     {
                         s = string(indent, ' ') + s;
-                        if (a) s += "\n";
+                        if (a()) s += "\n";
                     }
-                    if (a) s += as;
-                    if (b) s += "\n" + bs;
+                    if (a()) s += as;
+                    if (b()) s += "\n" + bs;
                     return s;
                 }
                 else
                 {
-                    if (b) return "(" + s + " " + as + " " + bs + ")";
+                    if (b()) return "(" + s + " " + as + " " + bs + ")";
                     else return "(" + s + " " + as + ")";
                 }
             }

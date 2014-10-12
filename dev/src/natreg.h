@@ -25,12 +25,12 @@ struct Type
         return idx >= 0 ? g_vm->ReverseLookupType(idx).c_str() : TypeName(t);
     }
     
-    bool operator==(const Type &o) { return t == o.t && idx == o.idx; }
-    bool operator!=(const Type &o) { return t != o.t || idx != o.idx; }
-    bool operator< (const Type &o) { return t <  o.t || (t == o.t && idx < o.idx); }
+    bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
+    bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
+    bool operator< (const Type &o) const { return t <  o.t || (t == o.t && idx < o.idx); }
 };
 
-enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL };
+enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };
 
 struct Arg
 {

@@ -147,13 +147,17 @@ struct SubFunction
 
     int subbytecodestart;
 
-    SubFunction(Function *_p) : parent(_p), args(NULL), body(NULL), next(NULL), subbytecodestart(0) {}
+    bool typechecked;
+    Type returntype;
+
+    SubFunction(Function *_p) : parent(_p), args(NULL), body(NULL), next(NULL), subbytecodestart(0),
+        typechecked(false), returntype(V_UNDEFINED) {}
 
     ~SubFunction()
     {
         if (args) delete[] args;
         if (next) delete next;
-    } 
+    }
 };
 
 struct Function : Name

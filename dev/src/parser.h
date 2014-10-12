@@ -68,7 +68,7 @@ struct Parser
     void AddTail(Node **&tail, Node *a)
     {
         *tail = new Node(lex, T_LIST, a);
-        tail = &(*tail)->b;
+        tail = &(*tail)->tail();
     }
 
     Node *ParseStatements()
@@ -95,25 +95,26 @@ struct Parser
 
         ResolveForwardFunctionCalls();
 
-        for (auto n = list; n; n = n->b)
+        for (auto n = list; n; n = n->tail())
         {
-            switch (n->a->type)
+            auto def = n->head();
+            switch (def->type)
             {
                 case T_STRUCTDEF:
                 {
-                    st.UnregisterStruct(n->a->a->st);
+                    st.UnregisterStruct(def->struct_id()->st());
                     break;
                 }
                 case T_FUNDEF:
                 {
-                    st.UnregisterFun(n->a->a->f);
+                    st.UnregisterFun(def->function_def()->f());
                     break;
                 }
                 case T_DEF:
                 {
-                    // FIXME: this never makes anything const if n->a->b is another T_DEF
-                    auto id = n->a->a->ident;
-                    id->static_constant = id->single_assignment && n->a->b->IsConst();
+                    // FIXME: this never makes anything const if def->right() is another T_DEF
+                    auto id = def->left()->ident();
+                    id->static_constant = id->single_assignment && def->right()->IsConst();
                     break;
                 }
             }
@@ -175,7 +176,7 @@ struct Parser
             id->isprivate = true;
         }
 
-        return new Node(lex, isdef ? T_DEF : T_DEFLIST, new Node(lex, id), e);
+        return new Node(lex, isdef ? T_DEF : T_ASSIGNLIST, new Node(lex, id), e);
     }
 
     Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
@@ -279,10 +280,10 @@ struct Parser
 
                 auto v = ParseVector(fieldid);
 
-                for (auto ids = v; ids; ids = ids->b)
+                for (auto ids = v; ids; ids = ids->tail())
                 {
-                    assert(ids->a->type == T_FIELD);
-                    struc.fields.push_back(UniqueField(ids->a->exptype, ids->a->fld));
+                    assert(ids->head()->type == T_FIELD);
+                    struc.fields.push_back(UniqueField(ids->head()->exptype, ids->head()->fld()));
                 }
 
                 currentstruct = NULL;
@@ -340,7 +341,7 @@ struct Parser
     int CountList(Node *n)
     {
         int c = 0;
-        for (; n; n = n->b) c++;
+        for (; n; n = n->tail()) c++;
         return c;
     }
 
@@ -370,24 +371,25 @@ struct Parser
 
         functionstack.push_back(f.idx);
         subfunctionstack.push_back(sf);
-        for (auto n = args; n; n = n->b) n->a->ident->sf = sf;
+        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = sf;
         sf->body = ParseFunDefBody(args, &f);
         subfunctionstack.pop_back();
         functionstack.pop_back();
 
-        for (auto stat = sf->body; stat; stat = stat->b)
-            if (!stat->b && (stat->a->type != T_RETURN || stat->a->b->integer != f.idx /* return from */))
+        for (auto stat = sf->body->body(); stat; stat = stat->tail())
+            if (!stat->tail() && (stat->head()->type != T_RETURN ||
+                                  stat->head()->return_function_idx()->integer() != f.idx /* return from */))
                 ReturnValues(f, 1);
         assert(f.retvals);
 
         sf->args = new Arg[nargs];
         int i = 0;
-        for (auto a = args; a; a = a->b)
+        for (auto a = args; a; a = a->tail())
         {
             Arg &arg = sf->args[i++];
-            arg.type = a->a->exptype;
-            arg.flags = AF_NONE;
-            arg.id = a->a->ident->name;
+            arg.type = a->head()->exptype;
+            arg.flags = arg.type.t == V_UNKNOWN ? AF_ANYTYPE : AF_NONE;
+            arg.id = a->head()->ident()->name;
         }
 
         return new Node(lex, T_FUNDEF, new Node(lex, &f), sf->body);
@@ -426,11 +428,11 @@ struct Parser
             CheckArg(nargs, 0, fname);
             if (IsNext(T_LEFTPAREN))
             {
-                return new Node(lex, T_ARGLIST, derefarg, ParseFunArgsRec(false, false, args, nargs, 1, fname));
+                return new Node(lex, T_LIST, derefarg, ParseFunArgsRec(false, false, args, nargs, 1, fname));
             }
             else
             {
-                return new Node(lex, T_ARGLIST, derefarg);
+                return new Node(lex, T_LIST, derefarg);
             }
         }
         else
@@ -453,7 +455,7 @@ struct Parser
         if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
             arg = new Node(lex, T_CLOSURE, NULL, new Node(lex, T_LIST, arg));
 
-        return new Node(lex, T_ARGLIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
+        return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
     }
 
     void CheckArg(int nargs, int thisarg, const char *fname)
@@ -516,7 +518,7 @@ struct Parser
             }
         }
 
-        return new Node(lex, T_ARGLIST, e, tail);
+        return new Node(lex, T_LIST, e, tail);
     }
 
     Node *ParseFunDefArgs(bool full = true, bool parseargs = true)
@@ -545,11 +547,11 @@ struct Parser
 
                     ParseType(id->exptype, withtype);
 
-                    if (withtype) st.AddWithStruct(id->exptype, id->ident, lex);
+                    if (withtype) st.AddWithStruct(id->exptype, id->ident(), lex);
                 }
 
-                *tail = new Node(lex, T_ARGLIST, id);
-                tail = &(*tail)->b;
+                *tail = new Node(lex, T_LIST, id);
+                tail = &(*tail)->tail();
 
                 if (!IsNext(T_COMMA)) break;
             }
@@ -578,19 +580,19 @@ struct Parser
 
         if (autoparlevel < autoparstack.size())
         {
-            if (f) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident->name + 
-                         ", in named function: " + f->name,       autoparstack[autoparlevel]);
-            if (n) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident->name +
+            if (f) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident()->name + 
+                         ", in named function: " + f->name, autoparstack[autoparlevel]);
+            if (n) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident()->name +
                          ", with declared arguments in function", autoparstack[autoparlevel]);
 
             auto ap = &n;
             for (size_t i = autoparlevel; i < autoparstack.size(); i++) 
             {
                 for (size_t j = autoparlevel; j < i; j++)
-                    if (autoparstack[i]->ident == autoparstack[j]->ident)
+                    if (autoparstack[i]->ident() == autoparstack[j]->ident())
                         goto twice;
-                *ap = new Node(lex, T_ARGLIST, new Node(lex, autoparstack[i]->ident));
-                ap = &(*ap)->b;
+                *ap = new Node(lex, T_LIST, new Node(lex, autoparstack[i]->ident()));
+                ap = &(*ap)->tail();
                 twice:;
             }
             while (autoparstack.size() > autoparlevel) autoparstack.pop_back();
@@ -608,11 +610,11 @@ struct Parser
         if (lex.token != T_COMMA) return first;
 
         auto list = new Node(lex, T_MULTIRET, first, NULL);
-        auto tail = &list->b;
+        auto tail = &list->tail();
         while (IsNext(T_COMMA))
         {
             *tail = new Node(lex, T_MULTIRET, ParseOpExp(), NULL);
-            tail = &(*tail)->b;
+            tail = &(*tail)->tail();
             nrv++;
         }
 
@@ -637,7 +639,7 @@ struct Parser
             {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
                 if (rv->type == T_CALL)
-                    nrv = max(nrv, rv->a->f->retvals);
+                    nrv = max(nrv, rv->call_function()->f()->retvals);
             }
 
             int fid = -2;
@@ -681,7 +683,7 @@ struct Parser
     void Modify(Node *e)
     {
         if (e->type == T_IDENT)
-            e->ident->Assign(lex);
+            e->ident()->Assign(lex);
     }
 
     Node *ParseExp()
@@ -767,7 +769,7 @@ struct Parser
                 {
                     if (nf->args[i].flags == NF_OPTIONAL)
                     {
-                        *ai = new Node(lex, T_ARGLIST, new Node(lex, T_NIL));   
+                        *ai = new Node(lex, T_LIST, new Node(lex, T_NIL));   
                     }
                     else
                     {
@@ -775,7 +777,7 @@ struct Parser
                         Error("missing arg to builtin function: " + idname); 
                     }
                 }
-                ai = &(*ai)->b;
+                ai = &(*ai)->tail();
             }
             return new Node(lex, T_NATCALL, new Node(lex, nf), args);
         }
@@ -824,7 +826,7 @@ struct Parser
                 auto f = st.FindFunction(ffc->idname);
                 if (f)
                 {
-                    ffc->n->a->f = FindFunctionWithNargs(f, CountList(ffc->n->b), ffc->idname, ffc->n);
+                    ffc->n->call_function()->f() = FindFunctionWithNargs(f, CountList(ffc->n->call_args()), ffc->idname, ffc->n);
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 }
@@ -946,7 +948,7 @@ struct Parser
                 if (IsNext(T_SUPER))
                 {
                     n = new Node(lex, T_LIST, new Node(lex, T_SUPER, ParseExp()));
-                    if (IsNext(T_COMMA)) n->b = ParseVector();
+                    if (IsNext(T_COMMA)) n->b() = ParseVector();
                     else Expect(T_RIGHTBRACKET);
                 }
                 else
@@ -962,9 +964,10 @@ struct Parser
                     if (n->exptype.idx >= 0)
                     {
                         auto struc = st.structtable[n->exptype.idx];
-                        int nargs = CountList(n->a);
+                        int nargs = CountList(n->constructor_args());
                         int reqargs = struc->fields.size();
-                        if (n->a && n->a->a->type == T_SUPER) reqargs -= struc->superclass->fields.size() - 1;
+                        if (n->constructor_args() && n->constructor_args()->head()->type == T_SUPER)
+                            reqargs -= struc->superclass->fields.size() - 1;
                         if (nargs != reqargs)
                             Error("constructor requires " + string(inttoa(reqargs)) +
                                   " arguments, not " + string(inttoa(nargs)));

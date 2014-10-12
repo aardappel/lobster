@@ -330,6 +330,13 @@ class SlabAlloc
         return new (alloc_obj_small<T>()) T();
     }
 
+    template<typename T> T *clone_obj_small(const T *from)
+    {
+        auto to = (T *)alloc_small(sizeof(T));
+        memcpy(to, from, sizeof(T));
+        return to;
+    }
+
     // will even work with a derived class of T, assuming it was also allocated with alloc_obj_small()
     template<typename T> void destruct_obj_small(T *obj)
     {

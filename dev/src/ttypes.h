@@ -14,160 +14,122 @@
 
 // Enum used both for token and node types
 
+#define TTYPES_LIST \
+    T(T_NONE, "invalid_token", TT_NONE, NO, a, NO, b) \
+    \
+    /* These are used both as tokens and node types */ \
+    T(T_PLUS, "+", TT_BINARY, NO, a, NO, b) \
+    T(T_MINUS, "-", TT_BINARY, NO, a, NO, b) \
+    T(T_MULT, "*", TT_BINARY, NO, a, NO, b) \
+    T(T_DIV, "/", TT_BINARY, NO, a, NO, b) \
+    T(T_MOD, "%", TT_BINARY, NO, a, NO, b) \
+    T(T_PLUSEQ, "+=", TT_BINARY, NO, a, NO, b) \
+    T(T_MINUSEQ, "-=", TT_BINARY, NO, a, NO, b) \
+    T(T_MULTEQ, "*=", TT_BINARY, NO, a, NO, b) \
+    T(T_DIVEQ, "/=", TT_BINARY, NO, a, NO, b) \
+    T(T_MODEQ, "%=", TT_BINARY, NO, a, NO, b) \
+    T(T_AND, "&", TT_BINARY, NO, a, NO, b) \
+    T(T_OR, "|", TT_BINARY, NO, a, NO, b) \
+    T(T_NOT, "~", TT_UNARY, NO, a, NO, b) \
+    T(T_INCR, "++", TT_UNARY, NO, a, NO, b) \
+    T(T_DECR, "--", TT_UNARY, NO, a, NO, b) \
+    T(T_EQ, "==", TT_BINARY, NO, a, NO, b) \
+    T(T_NEQ, "!=", TT_BINARY, NO, a, NO, b) \
+    T(T_LT, "<", TT_BINARY, NO, a, NO, b) \
+    T(T_GT, ">", TT_BINARY, NO, a, NO, b) \
+    T(T_LTEQ, "<=", TT_BINARY, NO, a, NO, b) \
+    T(T_GTEQ, ">=", TT_BINARY, NO, a, NO, b) \
+    T(T_ASSIGN, "=", TT_BINARY, NO, a, NO, b) \
+    T(T_DYNASSIGN, "<-", TT_BINARY, NO, a, NO, b) \
+    T(T_LOGASSIGN, "?=", TT_BINARY, NO, a, NO, b) \
+    T(T_DEF, ":=", TT_BINARY, NO, a, NO, b) \
+    T(T_DOT, ".", TT_BINARY, NO, a, NO, b) \
+    T(T_INT, "integer literal", TT_NOCHILD, NO, a, NO, b) \
+    T(T_FLOAT, "floating point literal", TT_NOCHILD, NO, a, NO, b) \
+    T(T_STR, "string literal", TT_NOCHILD, NO, a, NO, b) \
+    T(T_NIL, "nil", TT_NOCHILD, NO, a, NO, b) \
+    T(T_IDENT, "identifier", TT_NOCHILD, NO, a, NO, b) \
+    T(T_STRUCT, "struct", TT_NOCHILD, NO, a, NO, b) \
+    T(T_FUN, "function", TT_NOCHILD, NO, a, NO, b) \
+    T(T_RETURN, "return", TT_NONE, YES, return_value, YES, return_function_idx) \
+    T(T_IS, "is", TT_UNARY, NO, a, NO, b) \
+    T(T_SUPER, "super", TT_UNARY, NO, a, NO, b) \
+    T(T_COROUTINE, "coroutine", TT_UNARY, NO, a, NO, b) \
+    \
+    /* These are used ONLY as node types: */ \
+    T(T_STRUCTDEF, "structdef", TT_NONE, YES, struct_id, YES, struct_fields) \
+    T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
+    T(T_FUNDEF, "fundef", TT_NONE, YES, function_def, YES, function_closure) \
+    T(T_NATIVE, "native", TT_NOCHILD, NO, a, NO, b) \
+    T(T_NATCALL, "natcall", TT_NONE, YES, ncall_id, YES, ncall_args) \
+    T(T_CALL, "call", TT_NONE, YES, call_function, YES, call_args) \
+    T(T_DYNCALL, "dyncall", TT_NONE, YES, dcall_var, YES, dcall_args) \
+    T(T_LIST, "list", TT_NONE, YES, head, YES, tail) \
+    T(T_ASSIGNLIST, "assignlist", TT_BINARY, NO, a, NO, b) \
+    T(T_CLOSURE, "closure", TT_NONE, YES, parameters, YES, body) \
+    T(T_COCLOSURE, "coclosure", TT_NOCHILD, NO, a, NO, b) \
+    T(T_MULTIRET, "multiret", TT_NONE, YES, headexp, YES, tailexps) \
+    T(T_SEQ, "seq", TT_BINARY, NO, a, NO, b) \
+    T(T_CO_AT, "co at", TT_NONE, YES, coroutine_at, YES, coroutine_var) \
+    T(T_INDEX, "index", TT_BINARY, NO, a, NO, b) \
+    T(T_POSTINCR, "+++", TT_UNARY, NO, a, NO, b) \
+    T(T_POSTDECR, "---", TT_UNARY, NO, a, NO, b) \
+    T(T_CONSTRUCTOR, "construct", TT_NONE, YES, constructor_args, NO, b) \
+    \
+    /* These are used ONLY as tokens: */ \
+    T(T_LINEFEED, "linefeed", TT_NONE, NO, a, NO, b) \
+    T(T_ENDOFINCLUDE, "end of include", TT_NONE, NO, a, NO, b) \
+    T(T_ENDOFFILE, "end of file", TT_NONE, NO, a, NO, b) \
+    T(T_INDENT, "indentation", TT_NONE, NO, a, NO, b) \
+    T(T_DEDENT, "de-indentation", TT_NONE, NO, a, NO, b) \
+    T(T_LEFTPAREN, "(", TT_NONE, NO, a, NO, b) \
+    T(T_RIGHTPAREN, ")", TT_NONE, NO, a, NO, b) \
+    T(T_LEFTBRACKET, "[", TT_NONE, NO, a, NO, b) \
+    T(T_RIGHTBRACKET, "]", TT_NONE, NO, a, NO, b) \
+    T(T_SEMICOLON, ";", TT_NONE, NO, a, NO, b) \
+    T(T_AT, "@", TT_NONE, NO, a, NO, b) \
+    T(T_COMMA, ",", TT_NONE, NO, a, NO, b) \
+    T(T_COLON, ":", TT_NONE, NO, a, NO, b) \
+    T(T_DEFCONST, ":==", TT_NONE, NO, a, NO, b) \
+    T(T_DEFTYPEIN, "::=", TT_NONE, NO, a, NO, b) \
+    T(T_TYPEIN, "::", TT_NONE, NO, a, NO, b) \
+    T(T_VALUE, "value", TT_NONE, NO, a, NO, b) \
+    T(T_INCLUDE, "include", TT_NONE, NO, a, NO, b) \
+    T(T_INTTYPE, "int", TT_NONE, NO, a, NO, b) \
+    T(T_FLOATTYPE, "float", TT_NONE, NO, a, NO, b) \
+    T(T_STRTYPE, "string", TT_NONE, NO, a, NO, b) \
+    T(T_VECTTYPE, "vector", TT_NONE, NO, a, NO, b) \
+    T(T_FROM, "from", TT_NONE, NO, a, NO, b) \
+    T(T_PROGRAM, "program", TT_NONE, NO, a, NO, b) \
+    T(T_PRIVATE, "private", TT_NONE, NO, a, NO, b) \
+
 enum TType
 {
-    T_NONE = 0,
-
-    // These are used in both.
-    T_PLUS,
-    T_MINUS,
-    T_MULT,
-    T_DIV,
-    T_MOD,
-    T_PLUSEQ,
-    T_MINUSEQ,
-    T_MULTEQ,
-    T_DIVEQ,
-    T_MODEQ,
-    T_AND,
-    T_OR,
-    T_NOT,
-    T_INCR,
-    T_DECR,
-    T_EQ,
-    T_NEQ,
-    T_LT,
-    T_GT,
-    T_LTEQ,
-    T_GTEQ,
-    T_ASSIGN,
-    T_DYNASSIGN,
-    T_LOGASSIGN,
-    T_DEF,
-    T_DOT,
-    T_INT,
-    T_FLOAT,
-    T_STR,
-    T_NIL,
-    T_IDENT,
-    T_STRUCT,
-    T_FUN,
-    T_RETURN,
-    T_IS,
-    T_SUPER,
-    T_COROUTINE,
-
-    // These are used ONLY as node types:
-    T_STRUCTDEF,
-    T_FIELD,
-    T_FUNDEF,
-    T_NATIVE,
-    T_NATCALL,
-    T_CALL,
-    T_DYNCALL,
-    T_LIST,
-    T_ARGLIST,
-    T_DEFLIST,
-    T_CLOSURE,
-    T_COCLOSURE,
-    T_MULTIRET,
-    T_SEQ,
-    T_CO_AT,
-    T_INDEX,
-    T_POSTINCR,
-    T_POSTDECR,
-    T_CONSTRUCTOR,
-
-    // These are used ONLY as tokens:
-    T_LINEFEED,
-    T_ENDOFINCLUDE,
-    T_ENDOFFILE,
-    T_INDENT,
-    T_DEDENT,
-    T_LEFTPAREN,
-    T_RIGHTPAREN,
-    T_LEFTBRACKET,
-    T_RIGHTBRACKET,
-    T_SEMICOLON,
-    T_AT,
-    T_COMMA,
-    T_COLON,
-
-    T_DEFCONST,
-    T_DEFTYPEIN,
-    T_TYPEIN,
-
-    T_VALUE,
-    T_INCLUDE,
-    T_INTTYPE,
-    T_FLOATTYPE,
-    T_STRTYPE,
-    T_VECTTYPE,
-    T_FROM,
-    T_PROGRAM,
-    T_PRIVATE,
-
+    #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) ENUM,
+    TTYPES_LIST
+    #undef T
 };
 
 inline const char *TName(TType t)
 {
     static const char *names[] =
     {
-        "invalid_token",
-
-        "+", "-", "*", "/", "%",
-        "+=", "-=", "*=", "/=", "%=",
-        "&", "|", "~",
-        "++", "--",
-        "==", "!=", "<", ">", "<=", ">=",
-        "=", "<-", "?=", ":=", ".",
-        "integer literal",
-        "floating point literal",
-        "string literal",
-        "nil",
-        "identifier",
-        "struct",
-        "function",
-        "return",
-        "is",
-        "super",
-        "coroutine",
-
-        "structdef",
-        "field",
-        "fundef",
-        "native",
-        "natcall",
-        "call",
-        "dyncall",
-        "list",
-        "#",
-        "deflist",
-        "closure",
-        "coclosure",
-        "multiret",
-        "seq",
-        "co at",
-        "index",
-        "+++", "---",
-        "construct",
-
-        "linefeed",
-        "end of include",
-        "end of file",
-        "indentation",
-        "de-indentation",
-        "(", ")", "[", "]", ";", "@", ",", ":",
-        ":==", "::=", "::", 
-        "value",
-        "include",
-        "int",
-        "float",
-        "string",
-        "vector",
-        "from",
-        "program",
-        "private",
+        #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) STR,
+        TTYPES_LIST
+        #undef T
     };
     return names[t];
+}
+
+enum TTypeCategory { TT_NONE, TT_BINARY, TT_UNARY, TT_NOCHILD };
+
+inline TTypeCategory TCat(TType t)
+{
+    static TTypeCategory cats[] =
+    {
+        #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) CAT,
+        TTYPES_LIST
+        #undef T
+    };
+    return cats[t];
 }

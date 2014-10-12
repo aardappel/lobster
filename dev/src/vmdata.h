@@ -77,6 +77,7 @@ enum ValueType
     V_FUNCTION,
     V_NIL,
     V_UNKNOWN,          // meaning either uninitialized or any of the above
+    V_UNDEFINED,
     // used in function calling, if they appear as a value in a program, that's a bug
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,

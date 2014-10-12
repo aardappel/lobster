@@ -286,6 +286,7 @@ struct VM : VMBase
 
         FinalStackVarsCleanup();
 
+        DebugLog(1, "%s", s.c_str());
         throw s;
         return Value();
     }
