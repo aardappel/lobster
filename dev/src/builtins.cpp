@@ -98,7 +98,7 @@ void AddBuiltins()
     #define BWHILE(INIT, BRET) \
         Value accum = g_vm->Pop(); \
         Value lv = g_vm->LoopVal(0); \
-        if (accum.type == V_UNKNOWN) \
+        if (accum.type == V_UNDEFINED) \
         { \
             accum = INIT; \
         } \

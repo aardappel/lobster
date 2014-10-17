@@ -76,8 +76,8 @@ enum ValueType
     V_FLOAT = 1, 
     V_FUNCTION,
     V_NIL,
-    V_UNKNOWN,          // meaning either uninitialized or any of the above
-    V_UNDEFINED,
+    V_UNDEFINED,        // used for unitialized values or functions returning "void".
+    V_ANY,              // used in the typesystem (not at runtime) to indicate any other type.
     // used in function calling, if they appear as a value in a program, that's a bug
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
@@ -89,7 +89,7 @@ static const char *BaseTypeName(int t)
     static const char *typenames[] =
     {
         "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined",
+        "int", "float", "function", "nil", "undefined", "unknown", 
          "<retip>", "<funstart>", "<nargs>", "<deffun>", 
          "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
@@ -198,7 +198,7 @@ struct Value
         int *ip;        // nullptr means its a coroutine yield
     };
 
-    inline Value()                    : type(V_UNKNOWN),   ival(0) {}
+    inline Value()                    : type(V_UNDEFINED), ival(0) {}
     inline Value(int i)               : type(V_INT),       ival(i) {}
     inline Value(int i, ValueType t)  : type(t),           ival(i) {}
     inline Value(bool b)              : type(V_INT),       ival(b) {}

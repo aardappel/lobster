@@ -243,7 +243,7 @@ struct CodeGen
         if (given == type) return;
         switch(type.t)
         {
-            case V_UNKNOWN: break;
+            case V_ANY:     break;
             case V_FLOAT:   Emit(IL_TTFLT); break;
             case V_STRING:  Emit(IL_TTSTR); break;
             case V_VECTOR:  if(type.idx >= 0) { Emit(IL_TTSTRUCT, type.idx); break; } // else fall thru

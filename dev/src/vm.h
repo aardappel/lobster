@@ -247,7 +247,7 @@ struct VM : VMBase
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && TOP().type != V_DEFFUN)
         {
-            if (TOP().type != V_UNKNOWN)
+            if (TOP().type != V_UNDEFINED)
             {
                 s += "\n   stack: " + ValueDBG(TOP());
             }
@@ -305,7 +305,7 @@ struct VM : VMBase
 
     string DumpVar(const Value &x, SymbolTable &st, int idx)
     {
-        if (x.type == V_UNKNOWN) return "";
+        if (x.type == V_UNDEFINED) return "";
         if (st.ReadOnlyIdent(idx)) return "";
         return "\n   " + st.ReverseLookupIdent(idx) + " = " + x.ToString(debugpp);
     }
@@ -324,7 +324,7 @@ struct VM : VMBase
             for (int j = 0; j < nargs; j++)
             {
                 int desired = *ip++;
-                if (desired != V_UNKNOWN)
+                if (desired != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
                     if (v.type != desired || (v.type == V_VECTOR && v.vval->type != *ip))
@@ -560,7 +560,7 @@ struct VM : VMBase
         {
             auto &var = vars[curcoroutine->varip[i]];
             PUSH(var);
-            //var.type = V_UNKNOWN;
+            //var.type = V_UNDEFINED;
             var = curcoroutine->stackcopy[i - 1];
         }
 
@@ -790,7 +790,7 @@ struct VM : VMBase
                             {
                                 auto t = (TOPPTR() - nf->nretvalues + i)->type;
                                 auto u = nf->retvals[i].type.t;
-                                assert(t == u || u == V_UNKNOWN);   
+                                assert(t == u || u == V_ANY);   
                             }
                         }
                     #endif
@@ -1205,7 +1205,7 @@ struct VM : VMBase
                 // all of these less common
             || ot == V_NIL
             || nt == V_NIL
-            || ot == V_UNKNOWN)    
+            || ot == V_UNDEFINED)    
         {
             return;
         }
@@ -1229,7 +1229,7 @@ struct VM : VMBase
         if (v.type == desired) return true;
         switch (desired)
         {
-            case V_UNKNOWN: return true;  // this means "any" for builtin functions, not used by other callers
+            case V_ANY: return true;  // only used by native functions, not used by other callers
             case V_FLOAT:   if (v.type == V_INT) { v = Value((float)v.ival); return true; } break;
             case V_STRING:  if (v.type != V_STRING)
                             {

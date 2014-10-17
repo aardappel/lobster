@@ -17,9 +17,9 @@ struct Type
     ValueType t;
     int idx;        // if t == V_VECTOR
 
-    Type()                       : t(V_UNKNOWN), idx(-1) {}
-    Type(ValueType _t)           : t(_t),        idx(-1) {}
-    Type(ValueType _t, int _idx) : t(_t),        idx(_idx) {}
+    Type()                       : t(V_ANY), idx(-1) {}
+    Type(ValueType _t)           : t(_t),    idx(-1) {}
+    Type(ValueType _t, int _idx) : t(_t),    idx(_idx) {}
 
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
     bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
@@ -50,7 +50,7 @@ struct Arg
             case 'E': type.t = V_FUNCTION; flags = NF_EXPFUNVAL; break;
             case 'C': type.t = V_FUNCTION; break;
             case 'R': type.t = V_COROUTINE; break;
-            case 'A': type.t = V_UNKNOWN; break;
+            case 'A': type.t = V_ANY; break;
             default:  assert(0);
         }
     }

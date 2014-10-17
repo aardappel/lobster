@@ -343,7 +343,7 @@ struct Node : SlabAllocated<Node>
 
     void DumpType(Node *n, string &ns, SymbolTable &symbols)
     {
-        if (n->exptype.t != V_UNKNOWN)
+        if (n->exptype.t != V_ANY)
         {
             ns += ":";
             ns += symbols.TypeName(n->exptype);

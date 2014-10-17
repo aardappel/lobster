@@ -27,7 +27,7 @@ struct TypeChecker
                 if (i) err += ", ";
                 auto &arg = sf->args[i];
                 err += arg.id;
-                if (arg.type.t != V_UNKNOWN)
+                if (arg.type.t != V_ANY)
                 {
                     err += ":";
                     err += st.TypeName(arg.type);
@@ -53,7 +53,7 @@ struct TypeChecker
         if (a->exptype == b->exptype) return a->exptype;
         if (ConvertsTo(a->exptype, b->exptype)) return b->exptype;
         if (ConvertsTo(b->exptype, a->exptype)) return a->exptype;
-        return Type(V_UNKNOWN);
+        return Type(V_ANY);
     }
 
     bool ExactType(const Node &a, const Type &sub)
@@ -68,7 +68,7 @@ struct TypeChecker
         if (type == sub) return;
         switch (sub.t)
         {
-            case V_UNKNOWN: return;
+            case V_ANY: return;
             //case V_FLOAT: if (type.t == V_INT) { a = new Node(T_I2F, a); return; } break;
         }
         TypeError(context, st.TypeName(sub), st.TypeName(type), *a);
@@ -80,7 +80,7 @@ struct TypeChecker
         auto scope = scopes.back();
         if (scope->returntype.t == V_UNDEFINED) scope->returntype = a ? a->exptype : Type();
         else if (a) SubType(a, scope->returntype, "return value");
-        else if (scope->returntype.t != V_UNKNOWN)
+        else if (scope->returntype.t != V_ANY)
             parser.Error(scope->parent->name + " must return a value");
         return a;
     }

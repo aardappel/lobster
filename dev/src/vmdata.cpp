@@ -44,7 +44,7 @@ bool Value::Equal(const Value &o, bool structural) const
 
         case V_NIL:         return true;
         case V_FUNCTION:    return ip == o.ip;
-        case V_UNKNOWN:     return true;
+        case V_UNDEFINED:   return true;
         default: assert(0); return false;
     }
 }
@@ -62,7 +62,7 @@ string Value::ToString(PrintPrefs &pp) const
 
         case V_NIL:       return "nil";
         case V_FUNCTION:  return "<FUNCTION>";
-        case V_UNKNOWN:   return "<UNDEFINED>";
+        case V_UNDEFINED: return "<UNDEFINED>";
         default:            return string("<") + inttoa(type) + ">";
     }
 }

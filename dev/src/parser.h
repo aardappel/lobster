@@ -388,7 +388,7 @@ struct Parser
         {
             Arg &arg = sf->args[i++];
             arg.type = a->head()->exptype;
-            arg.flags = arg.type.t == V_UNKNOWN ? AF_ANYTYPE : AF_NONE;
+            arg.flags = arg.type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
             arg.id = a->head()->ident()->name;
         }
 
