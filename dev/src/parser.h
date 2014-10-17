@@ -405,7 +405,7 @@ struct Parser
             case T_COROUTINE: dest.t = V_COROUTINE; lex.Next(); break;
             case T_NIL:       dest.t = V_NIL;       lex.Next(); break;
             case T_FUN:       dest.t = V_FUNCTION;  lex.Next(); break;
-            case T_VECTTYPE:  dest.t = V_VECTOR;    lex.Next(); break;
+            case T_VECTTYPE:  dest.t = V_VECTOR;    lex.Next(); break;  // FIXME: remove this one?
 
             case T_IDENT:
             {
@@ -414,6 +414,18 @@ struct Parser
                 lex.Next();
                 break;
             }
+
+            case T_LEFTBRACKET:
+            {
+                lex.Next();
+                Type elem;
+                ParseType(elem, false);
+                Expect(T_RIGHTBRACKET);
+                if (!elem.CanMakeVectorOf()) Error("can\'t nest vector types this deep");
+                dest = elem.VectorOf();
+                break;
+            }
+
             default:
                 Error("illegal type syntax: " + lex.TokStr());
         }
@@ -959,7 +971,7 @@ struct Parser
                 }
 
                 // FIXME: this type is not in line with other types: any non-struct type means a vector of it.
-                Type type;
+                Type type(V_VECTOR);
 
                 if (IsNext(T_COLON))
                 {
@@ -977,7 +989,7 @@ struct Parser
                     }
                     else
                     {
-                        if (type.t == V_VECTOR) Error("vector type annotation superfluous");
+                        if (type.t != V_VECTOR) Error("constructor must have struct or vector type");
                     }
                 }
                 return new Node(lex, T_CONSTRUCTOR, n, new Node(lex, type));

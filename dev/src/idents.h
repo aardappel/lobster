@@ -446,9 +446,13 @@ struct SymbolTable
     string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
-    const char *TypeName(const Type &type) const
+    string TypeName(const Type &type) const
     {
-        return type.t == V_STRUCT ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
+        return type.t == V_STRUCT
+            ? ReverseLookupType(type.idx).c_str() 
+            : (type.t == V_VECTOR 
+                ? "[" + TypeName(type.Element()) + "]" 
+                : BaseTypeName(type.t));
     }
 
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)

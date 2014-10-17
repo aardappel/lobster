@@ -567,7 +567,7 @@ struct CodeGen
 
                         auto &type = cn->head()->exptype;
                         if (struc) GenTypeCheck(type, struc->fields[i].type);
-                        else GenTypeCheck(type, *vtype);
+                        else GenTypeCheck(type, vtype->Element());
 
                         Emit(IL_PUSHONCE);
                         i++;

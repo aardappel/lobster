@@ -77,8 +77,10 @@ examples:
 
 features:
 - builtin functionality
-  - try out stb truetype
-  - ogg loading -> Sean Barett (streaming vs loading?)
+  - stb
+    - try out stb truetype
+    - ogg loading -> stb (streaming vs loading?)
+    - pull in https://github.com/nothings/stb rather than manual copy?
   - more sound functions: stopping a sound early, volume, getting notification when a sound stops playing, software-based audio mixing, some way to loop sounds.
   - screenshots - image writing (sb for png etc)
   - sphere-to-frustum intersection for easy culling

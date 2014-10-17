@@ -14,16 +14,50 @@
 
 struct Type
 {
-    ValueType t;
-    int idx;        // if t == V_STRUCT
+    ValueType t, t2, t3, t4;  // If t == V_VECTOR, t2 is the contained type, etc.
+                              // Means we only allow vector types to nest 3 deep.
+    int idx;                  // if any t* == V_STRUCT
 
-    Type()                       : t(V_ANY), idx(-1) {}
-    Type(ValueType _t)           : t(_t),    idx(-1) {}
-    Type(ValueType _t, int _idx) : t(_t),    idx(_idx) {}
+    Type()                       : t(V_ANY), t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1) {}
+    Type(ValueType _t)           : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1) {}
+    Type(ValueType _t, int _idx) : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(_idx) {}
 
-    bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
-    bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
-    bool operator< (const Type &o) const { return t <  o.t || (t == o.t && idx < o.idx); }
+    bool operator==(const Type &o) const { return t == o.t && idx == o.idx && t2 == o.t2 && t3 == o.t3 && t4 == o.t4; }
+    bool operator!=(const Type &o) const { return !(*this == o); }
+
+    // This one is used to sort types for multi-dispatch.
+    bool operator< (const Type &o) const
+    {
+        return              t  < o.t                                     ||
+            (t  == o.t  && (t2 < o.t2 || (t  == V_STRUCT && idx < o.idx) ||
+            (t2 == o.t2 && (t3 < o.t3 || (t2 == V_STRUCT && idx < o.idx) ||
+            (t3 == o.t3 && (t4 < o.t4 || (t3 == V_STRUCT && idx < o.idx) || 
+            (t4 == o.t4 &&               (t4 == V_STRUCT && idx < o.idx))))))));
+    }
+
+    Type Element() const
+    {
+        assert(t == V_VECTOR);
+        Type s = *this;
+        s.t = s.t2;
+        s.t2 = s.t3;
+        s.t3 = s.t4;
+        s.t4 = V_ANY;
+        return s;
+    }
+
+    bool CanMakeVectorOf() const { return t4 == V_ANY; }
+
+    Type VectorOf() const
+    {
+        assert(t4 == V_ANY);
+        Type v = *this;
+        v.t4 = v.t3;
+        v.t3 = v.t2;
+        v.t2 = v.t;
+        v.t = V_VECTOR;
+        return v;
+    }
 };
 
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };

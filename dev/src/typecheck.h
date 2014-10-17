@@ -71,7 +71,7 @@ struct TypeChecker
             case V_ANY: return;
             //case V_FLOAT: if (type.t == V_INT) { a = new Node(T_I2F, a); return; } break;
         }
-        TypeError(context, st.TypeName(sub), st.TypeName(type), *a);
+        TypeError(context, st.TypeName(sub).c_str(), st.TypeName(type).c_str(), *a);
     }
 
     Node *RetVal(Node *a)
@@ -148,17 +148,17 @@ struct TypeChecker
                 if (n.type == T_MOD)
                 {
                     if (type.t != V_INT)
-                        TypeError(TName(n.type), "int", st.TypeName(type), n);
+                        TypeError(TName(n.type), "int", st.TypeName(type).c_str(), n);
                 }
                 else if (n.type == T_PLUS)
                 {
                     if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_STRING)
-                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type), n);
+                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type).c_str(), n);
                 }
                 else
                 {
                     if (type.t != V_FLOAT && type.t != V_INT)
-                        TypeError(TName(n.type), "numeric", st.TypeName(type), n);
+                        TypeError(TName(n.type), "numeric", st.TypeName(type).c_str(), n);
                 }
                 SubType(n.left(), type, TName(n.type));
                 SubType(n.right(), type, TName(n.type));
@@ -271,17 +271,18 @@ struct TypeChecker
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    SubType(list->head(), type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type, "constructor");
+                    auto elemtype = type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type.Element();
+                    SubType(list->head(), elemtype, "constructor");
                     i++;
                 }
-                return type.t == V_STRUCT ? type : Type(V_VECTOR);  // FIXME: need more exact vector types.1
+                return type;
             }
 
             case T_DOT:
             {
                 auto &type = n.left()->exptype;
                 if (type.t != V_STRUCT)
-                    TypeError(".", "struct/value", st.TypeName(type), n);
+                    TypeError(".", "struct/value", st.TypeName(type).c_str(), n);
                 auto struc = st.structtable[type.idx];
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
