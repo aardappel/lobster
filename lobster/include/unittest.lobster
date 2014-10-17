@@ -8,6 +8,7 @@ include "vec.lobster"
 include "astar.lobster"
 
 function run_test_cases():
+    //trace_bytecode(1)
 
     value testa: [ a ]
     value testb: testa [ b ]

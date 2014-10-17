@@ -1169,7 +1169,7 @@ struct VM : VMBase
 
     const char *ProperTypeName(const Value &v)
     {
-        return st.TypeName(Type(v.type, v.type == V_VECTOR ? v.vval->type : -1));
+        return v.type == V_VECTOR && v.vval->type >= 0 ? ReverseLookupType(v.vval->type).c_str() : BaseTypeName(v.type);
     }
 
     void TTError(const string &tname, const Value &v)

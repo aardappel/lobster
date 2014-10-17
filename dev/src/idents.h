@@ -448,7 +448,7 @@ struct SymbolTable
 
     const char *TypeName(const Type &type) const
     {
-        return type.IsStruct() ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
+        return type.t == V_STRUCT ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
     }
 
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)

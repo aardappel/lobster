@@ -409,7 +409,7 @@ struct Parser
 
             case T_IDENT:
             {
-                dest.t = V_VECTOR;
+                dest.t = V_STRUCT;
                 dest.idx = st.StructUse(lex.sattr, lex).idx;
                 lex.Next();
                 break;
@@ -964,7 +964,7 @@ struct Parser
                 if (IsNext(T_COLON))
                 {
                     ParseType(type, false);
-                    if (type.idx >= 0)
+                    if (type.t == V_STRUCT)
                     {
                         auto struc = st.structtable[type.idx];
                         int nargs = CountList(n);

@@ -66,7 +66,8 @@ extern SlabAlloc *vmpool;
 
 enum ValueType
 {
-    V_MINVMTYPES = -6,
+    V_MINVMTYPES = -7,
+    V_STRUCT = -6,      // used in the typesystem (not at runtime) as an alias for V_VECTOR
     V_CYCLEDONE = -5,
     V_VALUEBUF = -4,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_COROUTINE = -3,
@@ -88,10 +89,10 @@ static const char *BaseTypeName(int t)
 {
     static const char *typenames[] =
     {
-        "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined", "unknown", 
-         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
-         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
+        "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
+        "int", "float", "function", "nil", "undefined", "any",
+        "<retip>", "<funstart>", "<nargs>", "<deffun>", 
+        "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
         return "<internal-error-type>";

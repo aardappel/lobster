@@ -152,7 +152,7 @@ struct TypeChecker
                 }
                 else if (n.type == T_PLUS)
                 {
-                    if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRING)
+                    if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_STRING)
                         TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type), n);
                 }
                 else
@@ -271,16 +271,16 @@ struct TypeChecker
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    SubType(list->head(), type.IsStruct() ? st.structtable[type.idx]->fields[i].type : type, "constructor");
+                    SubType(list->head(), type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type, "constructor");
                     i++;
                 }
-                return type.IsStruct() ? type : Type(V_VECTOR);  // FIXME: need more exact vector types.1
+                return type.t == V_STRUCT ? type : Type(V_VECTOR);  // FIXME: need more exact vector types.1
             }
 
             case T_DOT:
             {
                 auto &type = n.left()->exptype;
-                if (!type.IsStruct())
+                if (type.t != V_STRUCT)
                     TypeError(".", "struct/value", st.TypeName(type), n);
                 auto struc = st.structtable[type.idx];
                 auto sf = n.right()->fld();

@@ -15,7 +15,7 @@
 struct Type
 {
     ValueType t;
-    int idx;        // if t == V_VECTOR
+    int idx;        // if t == V_STRUCT
 
     Type()                       : t(V_ANY), idx(-1) {}
     Type(ValueType _t)           : t(_t),    idx(-1) {}
@@ -24,8 +24,6 @@ struct Type
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
     bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
     bool operator< (const Type &o) const { return t <  o.t || (t == o.t && idx < o.idx); }
-
-    bool IsStruct() const { return t == V_VECTOR && idx >= 0; }
 };
 
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };

@@ -122,7 +122,7 @@ struct CodeGen
         int nargs;
         CodeGen *cg;
         Function *f;
-        bool operator()(SubFunction *a, SubFunction *b)
+        bool operator() (SubFunction *a, SubFunction *b)
         {
             for (int i = 0; i < nargs; i++)
             {
@@ -175,7 +175,7 @@ struct CodeGen
                 for (int j = 0; j < f->nargs; j++)
                 {
                     auto arg = sf->args[j];
-                    Emit(arg.type.t, arg.type.idx);
+                    Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
                 }
                 Emit(sf->subbytecodestart);
             }
@@ -246,7 +246,7 @@ struct CodeGen
             case V_ANY:     break;
             case V_FLOAT:   Emit(IL_TTFLT); break;
             case V_STRING:  Emit(IL_TTSTR); break;
-            case V_VECTOR:  if(type.idx >= 0) { Emit(IL_TTSTRUCT, type.idx); break; } // else fall thru
+            case V_STRUCT:  Emit(IL_TTSTRUCT, type.idx); break;
             default:        Emit(IL_TT, type.t); break;
         }
     }
@@ -537,7 +537,7 @@ struct CodeGen
                 Struct *struc = nullptr;
 
                 auto vtype = n->constructor_type()->typenode();
-                if (vtype->IsStruct())
+                if (vtype->t == V_STRUCT)
                 {
                     struc = st.structtable[vtype->idx];
                     Emit(IL_NEWVEC, struc->idx, struc->fields.size());
@@ -582,7 +582,8 @@ struct CodeGen
             case T_IS:
             {
                 Gen(n->left(), retval);
-                if (retval) Emit(IL_ISTYPE, n->right()->typenode()->t, n->right()->typenode()->idx);
+                auto t = n->right()->typenode()->t;
+                if (retval) Emit(IL_ISTYPE, t == V_STRUCT ? V_VECTOR : t, n->right()->typenode()->idx);
                 break;
             }
 
