@@ -1,10 +1,12 @@
+//trace_bytecode(1)
+
+function addrec(a, b): a + b
 
 function add(a, b):
-    print(a + b)
-    a + b
+    addrec(a, b)
 
 i := and(1, 2)
 l := length("aaa")
-add(1, l)
-add(3.0, 4.0)
-add(nil, nil)
+print(add(i, l))
+print(add(3.0, 4.0))
+//add(nil, nil)

@@ -41,8 +41,9 @@ struct Node : SlabAllocated<Node>
         struct { Ident *ident_;     }; // T_IDENT
         struct { Struct *st_;       }; // T_STRUCT
         struct { SharedField *fld_; }; // T_FIELD
-        struct { Function *f_;      }; // T_FUN
+        struct { SubFunction *sf_;  }; // T_FUN
         struct { NativeFun *nf_;    }; // T_NATIVE
+        struct { Type *type_;       }; // T_TYPE
     };
     public:
 
@@ -58,11 +59,12 @@ struct Node : SlabAllocated<Node>
     Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)          { L(lex); }
     Node(Lex &lex, TType _t, string &_s)         : type(_t), str_(parserpool->alloc_string_sized(_s.c_str())) { L(lex); }
 
-    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id) { L(lex); }
-    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)    { L(lex); }
-    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)  { L(lex); }
-    Node(Lex &lex, Function *_f)      : type(T_FUN),    f_(_f)      { L(lex); }
-    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)    { L(lex); }
+    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id)  { L(lex); }
+    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)     { L(lex); }
+    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)   { L(lex); }
+    Node(Lex &lex, SubFunction *_sf)  : type(T_FUN),    sf_(_sf)     { L(lex); }
+    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)     { L(lex); }
+    Node(Lex &lex, Type &_type)       : type(T_TYPE),   type_(parserpool->clone_obj_small(&_type)) { L(lex); }
 
     void L(Lex &lex)
     {
@@ -78,8 +80,9 @@ struct Node : SlabAllocated<Node>
     Ident *ident()     { assert(type == T_IDENT);  return ident_; }
     Struct *st()       { assert(type == T_STRUCT); return st_; }
     SharedField *fld() { assert(type == T_FIELD);  return fld_; }
-    Function *&f()     { assert(type == T_FUN);    return f_; }
+    SubFunction *&sf() { assert(type == T_FUN);    return sf_; }
     NativeFun *nf()    { assert(type == T_NATIVE); return nf_; }
+    Type *typenode()   { assert(type == T_TYPE);   return type_; }
 
     Node *a()  { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node *&b() { assert(TCat(type) != TT_NOCHILD); return b_; }
@@ -103,6 +106,10 @@ struct Node : SlabAllocated<Node>
         if (type == T_STR)
         {
             parserpool->dealloc_sized(str_);
+        }
+        else if (type == T_TYPE)
+        {
+            parserpool->dealloc_small(type_);
         }
         else if (HasChildren())
         {
@@ -190,15 +197,15 @@ struct Node : SlabAllocated<Node>
             if (n->type == T_LIST && n->head()->type == T_DEF)
             {
                 eval(n->head());
-                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->tail())
+                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->right())
                 {
                     // FIXME: this is incorrect in the multiple assignments case, though not harmful
-                    auto val = lookup(dl->tail());
-                    istack.push_back(dl->head()->ident());
+                    auto val = lookup(dl->right());
+                    istack.push_back(dl->left()->ident());
                     vstack.push_back(val);
                 }
                 eval (n->tail());
-                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->tail())
+                for (auto dl = n->head(); dl->type == T_DEF; dl = dl->right())
                 {
                     istack.pop_back();
                     vstack.pop_back();
@@ -214,7 +221,7 @@ struct Node : SlabAllocated<Node>
 
             if (n->type == T_CALL)
             {
-                auto cf = n->call_function()->f();
+                auto cf = n->call_function()->sf()->parent;
                 for (auto f : fstack) if (f == cf) return;    // ignore recursive call
                 for (auto args = n->call_args(); args; args = args->tail())
                     if (args->head()->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
@@ -274,7 +281,7 @@ struct Node : SlabAllocated<Node>
         return err;
     }
 
-    string Dump(int indent, Lex &lex)
+    string Dump(int indent, SymbolTable &symbols)
     {
         switch (type)
         {
@@ -286,19 +293,25 @@ struct Node : SlabAllocated<Node>
             case T_IDENT:  return ident()->name;
             case T_STRUCT: return st()->name;
             case T_FIELD:  return fld()->name;
-            case T_FUN:    return f()->name;
+            case T_FUN:    return sf()->parent->name;
             case T_NATIVE: return nf()->name;
+            case T_TYPE:   return symbols.TypeName(*typenode());
+
+            case T_FUNDEF: return "[fundef " + function_def()->sf()->parent->name + "]";
 
             default:
             {
-                string s = lex.TokStr(type);
+                string s = TName(type);
 
                 string as, bs;
                 bool ml = false;
                 auto indenb = indent - (type == T_LIST) * 2;
 
-                if (a()) { as = a()->Dump(indent + 2, lex); DumpType(a(), as); if (as[0] == ' ') ml = true; }
-                if (b()) { bs = b()->Dump(indenb + 2, lex); DumpType(b(), bs); if (bs[0] == ' ') ml = true; }
+                if (HasChildren())
+                {
+                    if (a()) { as = a()->Dump(indent + 2, symbols); DumpType(a(), as, symbols); if (as[0] == ' ') ml = true; }
+                    if (b()) { bs = b()->Dump(indenb + 2, symbols); DumpType(b(), bs, symbols); if (bs[0] == ' ') ml = true; }
+                }
 
                 if (as.size() + bs.size() > 60) ml = true;
 
@@ -321,19 +334,19 @@ struct Node : SlabAllocated<Node>
                 }
                 else
                 {
-                    if (b()) return "(" + s + " " + as + " " + bs + ")";
+                    if (HasChildren() && b()) return "(" + s + " " + as + " " + bs + ")";
                     else return "(" + s + " " + as + ")";
                 }
             }
         }
     }
 
-    void DumpType(Node *n, string &ns)
+    void DumpType(Node *n, string &ns, SymbolTable &symbols)
     {
         if (n->exptype.t != V_UNKNOWN)
         {
             ns += ":";
-            ns += TypeName(n->exptype.t);
+            ns += symbols.TypeName(n->exptype);
         }
     }
 };

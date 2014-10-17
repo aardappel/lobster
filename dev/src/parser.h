@@ -107,7 +107,7 @@ struct Parser
                 }
                 case T_FUNDEF:
                 {
-                    st.UnregisterFun(def->function_def()->f());
+                    st.UnregisterFun(def->function_def()->sf()->parent);
                     break;
                 }
                 case T_DEF:
@@ -392,7 +392,7 @@ struct Parser
             arg.id = a->head()->ident()->name;
         }
 
-        return new Node(lex, T_FUNDEF, new Node(lex, &f), sf->body);
+        return new Node(lex, T_FUNDEF, new Node(lex, sf), sf->body);
     }
 
     void ParseType(Type &dest, bool withtype)
@@ -610,11 +610,11 @@ struct Parser
         if (lex.token != T_COMMA) return first;
 
         auto list = new Node(lex, T_MULTIRET, first, NULL);
-        auto tail = &list->tail();
+        auto tail = &list->tailexps();
         while (IsNext(T_COMMA))
         {
             *tail = new Node(lex, T_MULTIRET, ParseOpExp(), NULL);
-            tail = &(*tail)->tail();
+            tail = &(*tail)->tailexps();
             nrv++;
         }
 
@@ -639,7 +639,7 @@ struct Parser
             {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
                 if (rv->type == T_CALL)
-                    nrv = max(nrv, rv->call_function()->f()->retvals);
+                    nrv = max(nrv, rv->call_function()->sf()->parent->retvals);
             }
 
             int fid = -2;
@@ -748,6 +748,7 @@ struct Parser
                 lex.Next();
                 auto e = ParseUnary();
                 if (t == T_INCR || t == T_DECR) Modify(e);
+                if (t == T_MINUS) t = T_UMINUS;
                 return new Node(lex, t, e);
             }
 
@@ -793,7 +794,7 @@ struct Parser
 
             f = FindFunctionWithNargs(f, nargs, idname, NULL);
 
-            return new Node(lex, T_CALL, new Node(lex, f), args);
+            return new Node(lex, T_CALL, new Node(lex, f->subf), args);
         }
 
         auto args = ParseFunArgs(coroutine, firstarg);
@@ -801,7 +802,7 @@ struct Parser
         if (id)
             return new Node(lex, T_DYNCALL, new Node(lex, id), args);
 
-        auto n = new Node(lex, T_CALL, new Node(lex, (Function *)NULL), args);
+        auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)NULL), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
         forwardfunctioncalls.push_back(ffc);
         return n;
@@ -826,7 +827,7 @@ struct Parser
                 auto f = st.FindFunction(ffc->idname);
                 if (f)
                 {
-                    ffc->n->call_function()->f() = FindFunctionWithNargs(f, CountList(ffc->n->call_args()), ffc->idname, ffc->n);
+                    ffc->n->call_function()->sf() = FindFunctionWithNargs(f, CountList(ffc->n->call_args()), ffc->idname, ffc->n)->subf;
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 }
@@ -914,8 +915,9 @@ struct Parser
             case T_IS:
             {
                 lex.Next();
-                ParseType(n->exptype, false);
-                return new Node(lex, T_IS, n);
+                Type type;
+                ParseType(type, false);
+                return new Node(lex, T_IS, n, new Node(lex, type));
             }
 
             default:
@@ -956,17 +958,18 @@ struct Parser
                     n = ParseVector();
                 }
 
-                n = new Node(lex, T_CONSTRUCTOR, n);
+                // FIXME: this type is not in line with other types: any non-struct type means a vector of it.
+                Type type;
 
                 if (IsNext(T_COLON))
                 {
-                    ParseType(n->exptype, false);
-                    if (n->exptype.idx >= 0)
+                    ParseType(type, false);
+                    if (type.idx >= 0)
                     {
-                        auto struc = st.structtable[n->exptype.idx];
-                        int nargs = CountList(n->constructor_args());
+                        auto struc = st.structtable[type.idx];
+                        int nargs = CountList(n);
                         int reqargs = struc->fields.size();
-                        if (n->constructor_args() && n->constructor_args()->head()->type == T_SUPER)
+                        if (n && n->head()->type == T_SUPER)
                             reqargs -= struc->superclass->fields.size() - 1;
                         if (nargs != reqargs)
                             Error("constructor requires " + string(inttoa(reqargs)) +
@@ -974,10 +977,10 @@ struct Parser
                     }
                     else
                     {
-                        if (n->exptype.t == V_VECTOR) Error("vector type annotation superfluous");
+                        if (type.t == V_VECTOR) Error("vector type annotation superfluous");
                     }
                 }
-                return n;
+                return new Node(lex, T_CONSTRUCTOR, n, new Node(lex, type));
             }
 
             case T_FUN:
@@ -1060,5 +1063,20 @@ struct Parser
             Error(lex.TokStr(t) + " expected, found: " + lex.TokStr());
     }
 
-    string Dump() { return root->Dump(0, lex); }
+    string Dump()
+    { 
+        string s;
+        for (auto f : st.functiontable)
+        {
+            for (auto sf = f->subf; sf; sf = sf->next)
+            {
+                s += "FUNCTION: " + f->name + " ";
+                if (sf->body->parameters()) s += sf->body->parameters()->Dump(0, st);
+                s += "\n";
+                s += sf->body->body()->Dump(4, st);
+                s += "\n\n";
+            }
+        }
+        return s + "TOPLEVEL:\n" + root->Dump(0, st); 
+    }
 };

@@ -52,11 +52,12 @@
     T(T_STRUCT, "struct", TT_NOCHILD, NO, a, NO, b) \
     T(T_FUN, "function", TT_NOCHILD, NO, a, NO, b) \
     T(T_RETURN, "return", TT_NONE, YES, return_value, YES, return_function_idx) \
-    T(T_IS, "is", TT_UNARY, NO, a, NO, b) \
+    T(T_IS, "is", TT_BINARY, NO, a, NO, b) \
     T(T_SUPER, "super", TT_UNARY, NO, a, NO, b) \
     T(T_COROUTINE, "coroutine", TT_UNARY, NO, a, NO, b) \
     \
     /* These are used ONLY as node types: */ \
+    T(T_TYPE, "type", TT_NOCHILD, NO, a, NO, b) \
     T(T_STRUCTDEF, "structdef", TT_NONE, YES, struct_id, YES, struct_fields) \
     T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
     T(T_FUNDEF, "fundef", TT_NONE, YES, function_def, YES, function_closure) \
@@ -74,7 +75,8 @@
     T(T_INDEX, "index", TT_BINARY, NO, a, NO, b) \
     T(T_POSTINCR, "+++", TT_UNARY, NO, a, NO, b) \
     T(T_POSTDECR, "---", TT_UNARY, NO, a, NO, b) \
-    T(T_CONSTRUCTOR, "construct", TT_NONE, YES, constructor_args, NO, b) \
+    T(T_UMINUS, "-", TT_UNARY, NO, a, NO, b) \
+    T(T_CONSTRUCTOR, "construct", TT_NONE, YES, constructor_args, YES, constructor_type) \
     \
     /* These are used ONLY as tokens: */ \
     T(T_LINEFEED, "linefeed", TT_NONE, NO, a, NO, b) \

@@ -113,6 +113,8 @@ refactor:
     - special bytecodes for common loop constructs etc.
     - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build easily
       a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++ optimizer can inline/simplify a lot of the simpler ops
+      also see this for nice debugging: http://yosefk.com/blog/c-as-an-intermediate-language.html
+      If we use C, then we can link in libtcc to compile on the fly (on all but iOS) for a medium speedboost.
 
 - when running with no args (trying to load a .lbc), current dir should be aux dir when running from commandline
 

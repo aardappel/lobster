@@ -44,7 +44,7 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
     #undef F
 
     // FIXME: some indication of the filename, maybe with a table index?
-    fprintf(f, "I %d\tL %d\t%s ", int(ip - code), li.line, ilnames[*ip]);
+    fprintf(f, "I %d \tL %d \t%s ", int(ip - code), li.line, ilnames[*ip]);
 
     switch(*ip++)
     {
@@ -62,13 +62,15 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
         case IL_TT:
+        case IL_TTSTRUCT:
         case IL_LOGREAD:
             fprintf(f, "%d", *ip++);
             break;
 
         case IL_RETURN:
         {
-            fprintf(f, "%s", st.functiontable[*ip++]->name.c_str());
+            auto id = *ip++;
+            fprintf(f, "%s", id >= 0 ? st.functiontable[id]->name.c_str() : inttoa(id));
             break;
         }
 
@@ -76,14 +78,17 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_CALLMULTI:
         {
             auto nargs = *ip++;
-            fprintf(f, "%d %s", nargs, st.functiontable[*ip++]->name.c_str());
+            auto id = *ip++;
+            auto bc = *ip++;
+            fprintf(f, "%d %s %d", nargs, st.functiontable[id]->name.c_str(), bc);
             break;
         }
 
         case IL_NEWVEC:
         {
             auto t = *ip++;
-            if (t >= 0) fprintf(f, "%s", st.ReverseLookupType(t).c_str());
+            auto nargs = *ip++;
+            fprintf(f, "%s %d", t >= 0 ? st.ReverseLookupType(t).c_str() : "vector", nargs);
             break;
         }
 
@@ -148,7 +153,6 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
             break;
         }
 
-        case IL_TTSTRUCT:
         case IL_ISTYPE:
         {
             int idx = *ip++;
@@ -168,6 +172,14 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
             fprintf(f, "%d", *ip);
             ip = code + *ip;
             break;
+
+        case IL_FUNMULTI:
+        {
+            auto n = *ip++;
+            auto nargs = *ip++;
+            fprintf(f, "%d %d", n, nargs);
+            ip += (nargs * 2 + 1) * n;
+        }
 
     }
 

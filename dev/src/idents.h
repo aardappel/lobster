@@ -442,9 +442,14 @@ struct SymbolTable
     bool ReadOnlyIdent(uint v) { assert(v < identtable.size());    return identtable[v]->constant;  }
     bool ReadOnlyType (uint v) { assert(v < structtable.size());   return structtable[v]->readonly; }
     
-    string &ReverseLookupIdent   (uint v) { assert(v < identtable.size());    return identtable[v]->name;    }
-    string &ReverseLookupType    (uint v) { assert(v < structtable.size());   return structtable[v]->name;   }
-    string &ReverseLookupFunction(uint v) { assert(v < functiontable.size()); return functiontable[v]->name; }
+    string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
+    string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
+    string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
+
+    const char *TypeName(const Type &type) const
+    {
+        return type.t == V_VECTOR && type.idx >= 0 ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
+    }
 
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)
     {

@@ -316,6 +316,8 @@ struct VM : VMBase
         ip++;
 
         auto nsubf = *ip++;
+        auto table_nargs = *ip++;
+        assert(nargs == table_nargs);
         for (int i = 0; i < nsubf; i++)
         {
             // TODO: rather than going thru all args, only go thru those that have types
@@ -602,7 +604,7 @@ struct VM : VMBase
     {
         if (v.type != t)
         {
-            Error(string("type error: ") + op + " requires value of type " + TypeName(t) + 
+            Error(string("type error: ") + op + " requires value of type " + BaseTypeName(t) + 
                   ", instead found " + ProperTypeName(v), v);
         }
     }
@@ -689,7 +691,7 @@ struct VM : VMBase
                 {
                     auto nargs = *ip++;
                     auto fvar = *ip++;
-                    auto fun = st.functiontable[fvar]->bytecodestart;
+                    auto fun = *ip++;
                     FunIntro(nargs, codestart + fun, fvar, ip);
                     break;
                 }
@@ -698,7 +700,7 @@ struct VM : VMBase
                 {
                     auto nargs = *ip++;
                     auto fvar = *ip++;
-                    auto fun = st.functiontable[fvar]->bytecodestart;
+                    auto fun = *ip++;
                     EvalMulti(nargs, codestart + fun, fvar, ip);
                     break;
                 }
@@ -813,16 +815,16 @@ struct VM : VMBase
                     break;
 
                 #define REFOP(exp) { res = exp; a.DEC(); b.DEC(); }
-                #define BOP(op, l, r, extras) { if (extras & 1 && r == 0) Div0(); res = l op r; break; }
-                #define COP(t, op, l, r, extras) if (b.type == t) BOP(op, l, r, extras)
+                #define BOP(op, l, r, extras) { if (extras & 1 && r == 0) Div0(); res = l op r; }
+                #define COP(t, op, l, r, extras) if (b.type == t) { BOP(op, l, r, extras); break; }
                 #define GETARGS() Value b = POP(); Value a = POP()
+                #define TYPEOP(op, extras, field, errstat) Value res; errstat; BOP(op, a.field, b.field, extras);
 
-                #define _IOP(op, extras) \
-                    Value res; \
-                    if (a.type != V_INT || b.type != V_INT) BError(#op, a, b); \
-                    for (;;) BOP(op, a.ival, b.ival, extras);
+                #define _IOP(op, extras) TYPEOP(op, extras, ival, assert(a.type == V_INT && b.type == V_INT))
+                #define _FOP(op, extras) TYPEOP(op, extras, fval, assert(a.type == V_FLOAT && b.type == V_FLOAT))
+                #define _AIOP(op, extras) TYPEOP(op, extras, ival, if (a.type != V_INT || b.type != V_INT) BError(#op, a, b))
 
-                #define _OP(op, extras, opts) Value res; for (;;) { \
+                #define _AOP(op, extras, opts) Value res; for (;;) { \
                     if (a.type == V_INT) \
                     { \
                         COP(V_INT, op, a.ival, b.ival, extras) \
@@ -850,7 +852,7 @@ struct VM : VMBase
                     BError(#op, a, b); \
                 } 
 
-                #define COMPOPTS(op, extras) \
+                #define ACOMPOPTS(op, extras) \
                     if ((extras & 4) && a.type == V_STRING && b.type == V_STRING) \
                     { \
                         REFOP((*a.sval) op (*b.sval)); break; \
@@ -864,25 +866,48 @@ struct VM : VMBase
                         REFOP(a.type != b.type || a.ref != b.ref); break; \
                     }
 
-                #define IOP(op, extras)      { GETARGS(); _IOP(op, extras);      PUSH(res); break; }
-                #define OP(op, extras, opts) { GETARGS(); _OP(op, extras, opts); PUSH(res); break; }
+                #define AIOP(op, extras)      { GETARGS(); _AIOP(op, extras);      PUSH(res); break; }
+                #define IOP(op, extras)       { GETARGS(); _IOP(op, extras);       PUSH(res); break; }
+                #define FOP(op, extras)       { GETARGS(); _FOP(op, extras);       PUSH(res); break; }
+                #define AOP(op, extras, opts) { GETARGS(); _AOP(op, extras, opts); PUSH(res); break; }
 
-                #define COMPOP(op, extras) OP(op, extras, COMPOPTS(op, extras))
-                #define MATHOP(op, extras) OP(op, extras, {})
+                #define ACOMPOP(op, extras) AOP(op, extras, ACOMPOPTS(op, extras))
+                #define AMATHOP(op, extras) AOP(op, extras, {})
 
-                case IL_ADD: MATHOP(+, 2);
-                case IL_SUB: MATHOP(-, 0);
-                case IL_MUL: MATHOP(*, 0);
-                case IL_DIV: MATHOP(/, 1);
-
-                case IL_MOD: IOP(%, 1);
+                case IL_AADD: AMATHOP(+, 2);
+                case IL_ASUB: AMATHOP(-, 0);
+                case IL_AMUL: AMATHOP(*, 0);
+                case IL_ADIV: AMATHOP(/, 1);
+                case IL_AMOD: AIOP(%, 1);
+                case IL_ALT:  ACOMPOP(<,  4);
+                case IL_AGT:  ACOMPOP(>,  4);
+                case IL_ALE:  ACOMPOP(<=, 4);
+                case IL_AGE:  ACOMPOP(>=, 4);
+                case IL_AEQ:  ACOMPOP(==, (4 + 8));
+                case IL_ANE:  ACOMPOP(!=, (4 + 16));
                     
-                case IL_LT: COMPOP(<,  4);
-                case IL_GT: COMPOP(>,  4);
-                case IL_LE: COMPOP(<=, 4);
-                case IL_GE: COMPOP(>=, 4);
-                case IL_EQ: COMPOP(==, (4 + 8));
-                case IL_NE: COMPOP(!=, (4 + 16));
+                case IL_IADD: IOP(+, 0);
+                case IL_ISUB: IOP(-, 0);
+                case IL_IMUL: IOP(*, 0);
+                case IL_IDIV: IOP(/ , 1);
+                case IL_IMOD: IOP(%, 1);
+                case IL_ILT:  IOP(<, 0);
+                case IL_IGT:  IOP(>, 0);
+                case IL_ILE:  IOP(<=, 0);
+                case IL_IGE:  IOP(>=, 0);
+                case IL_IEQ:  IOP(==, 0);
+                case IL_INE:  IOP(!=, 0);
+                
+                case IL_FADD: FOP(+, 0);
+                case IL_FSUB: FOP(-, 0);
+                case IL_FMUL: FOP(*, 0);
+                case IL_FDIV: FOP(/, 1);
+                case IL_FLT:  FOP(<, 0);
+                case IL_FGT:  FOP(>, 0);
+                case IL_FLE:  FOP(<=, 0);
+                case IL_FGE:  FOP(>=, 0);
+                case IL_FEQ:  FOP(==, 0);
+                case IL_FNE:  FOP(!=, 0);
 
                 case IL_UMINUS:
                 {
@@ -936,7 +961,7 @@ struct VM : VMBase
                             IDXErr(i, (int)r.vval->len, r); PUSH(r.vval->at(i).INC()); break; \
                         case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); \
                                                   PUSH(Value((int)r.sval->str()[i])); break; } /* else fall thru */ \
-                        default: Error(string("cannot index into type ") + TypeName(r.type), r); \
+                        default: Error(string("cannot index into type ") + BaseTypeName(r.type), r); \
                     } \
                     r.DECRT(); \
                     break; \
@@ -1041,7 +1066,7 @@ struct VM : VMBase
                 case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;          }               break; }
                 case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x); } else x.DEC(); break; }
 
-                case IL_TT:       { auto &v = TOP(); int t = *ip++; if (v.type != t) TTError(TypeName(t), v); break; }
+                case IL_TT:       { auto &v = TOP(); int t = *ip++; if (v.type != t) TTError(BaseTypeName(t), v); break; }
                 case IL_TTFLT:    { auto &v = TOP(); if (!Coerce(v, V_FLOAT))  TTError("float",  v); break; }
                 case IL_TTSTR:    { auto &v = TOP(); if (!Coerce(v, V_STRING)) TTError("string", v); break; }
                 case IL_TTSTRUCT: { auto &v = TOP();
@@ -1098,16 +1123,16 @@ struct VM : VMBase
     {
         switch(op)
         {
-            case LVO_PLUS:  { Value b = POP();  _OP(+, 2, {}); a = res;                  break; }
-            case LVO_PLUSR: { Value b = POP();  _OP(+, 2, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_MUL:   { Value b = POP();  _OP(*, 0, {}); a = res;                  break; }
-            case LVO_MULR:  { Value b = POP();  _OP(*, 0, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_SUB:   { Value b = POP();  _OP(-, 0, {}); a = res;                  break; }
-            case LVO_SUBR:  { Value b = POP();  _OP(-, 0, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_DIV:   { Value b = POP();  _OP(/, 1, {}); a = res;                  break; }
-            case LVO_DIVR:  { Value b = POP();  _OP(/, 1, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_MOD:   { Value b = POP(); _IOP(%, 1);     a = res;                  break; }
-            case LVO_MODR:  { Value b = POP(); _IOP(%, 1);     a = res; PUSH(res.INC()); break; }
+            case LVO_PLUS:  { Value b = POP();  _AOP(+, 2, {}); a = res;                  break; }
+            case LVO_PLUSR: { Value b = POP();  _AOP(+, 2, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_MUL:   { Value b = POP();  _AOP(*, 0, {}); a = res;                  break; }
+            case LVO_MULR:  { Value b = POP();  _AOP(*, 0, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_SUB:   { Value b = POP();  _AOP(-, 0, {}); a = res;                  break; }
+            case LVO_SUBR:  { Value b = POP();  _AOP(-, 0, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_DIV:   { Value b = POP();  _AOP(/, 1, {}); a = res;                  break; }
+            case LVO_DIVR:  { Value b = POP();  _AOP(/, 1, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_MOD:   { Value b = POP(); _AIOP(%, 1);     a = res;                  break; }
+            case LVO_MODR:  { Value b = POP(); _AIOP(%, 1);     a = res; PUSH(res.INC()); break; }
 
             case LVO_WRITE:   { Value  b = POP();       OVERWRITE(a, b); a.DEC(); a = b; break; }
             case LVO_WRITER:  { Value &b = TOP().INC(); OVERWRITE(a, b); a.DEC(); a = b; break; }
@@ -1144,9 +1169,7 @@ struct VM : VMBase
 
     const char *ProperTypeName(const Value &v)
     {
-        return v.type == V_VECTOR && v.vval->type >= 0
-            ? st.ReverseLookupType(v.vval->type).c_str()
-            : TypeName(v.type);
+        return st.TypeName(Type(v.type, v.type == V_VECTOR ? v.vval->type : -1));
     }
 
     void TTError(const string &tname, const Value &v)
@@ -1234,7 +1257,7 @@ struct VM : VMBase
         {
             if ((nf.args[i].flags == NF_OPTIONAL) && v.type == V_NIL) return;
             Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + 
-                  "\" needs to have type " + nf.args[i].type.Name() + ", not " + ProperTypeName(v), v);
+                  "\" needs to have type " + st.TypeName(nf.args[i].type) + ", not " + ProperTypeName(v), v);
         }
     }
 

@@ -230,7 +230,7 @@ void DumpBuiltins()
                     a.flags == NF_OPTIONAL ? " [" : "",
                     i ? ", " : "",
                     a.id.c_str(),
-                    a.type.t == V_UNKNOWN ? "" : (string(":") + TypeName(a.type.t)).c_str(),
+                    a.type.t == V_UNKNOWN ? "" : (string(":") + BaseTypeName(a.type.t)).c_str(),
                     a.flags == NF_OPTIONAL ? "]" : ""
                 );
             }
@@ -242,7 +242,7 @@ void DumpBuiltins()
                 {
                     Arg &a = nf->retvals[i];
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
-                                a.type.t == V_UNKNOWN ? "any" : TypeName(a.type.t), 
+                                a.type.t == V_UNKNOWN ? "any" : BaseTypeName(a.type.t), 
                                 i < nf->nretvalues - 1 ? ", " : "");
                 }
             }

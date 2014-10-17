@@ -4,10 +4,35 @@ struct TypeChecker
     Lex &lex;
     Parser &parser;
     SymbolTable &st;
+    vector<SubFunction *> scopes;
 
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
-        parser.root->exptype = TypeCheck(*parser.root, NULL);
+        parser.root->exptype = TypeCheck(*parser.root);
+    }
+
+    void TypeError(const char *context, const char *required, const char *got, Node *n)
+    {
+        string err = "\"" + string(context) + "\" requires type: " + required + ", got: " + got;
+        for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
+        {
+            auto sf = *it;
+            err += "\n  in function: " + sf->parent->name + "(";
+            for (int i = 0; i < sf->parent->nargs; i++)
+            {
+                if (i) err += ", ";
+                auto &arg = sf->args[i];
+                err += arg.id;
+                if (arg.type.t != V_UNKNOWN)
+                {
+                    err += ":";
+                    err += st.TypeName(arg.type);
+                }
+            }
+            err += ")";
+        }
+        parser.Error(err, n);
+
     }
 
     bool ConvertsTo(const Type &type, const Type &sub)
@@ -28,10 +53,10 @@ struct TypeChecker
         return Type(V_UNKNOWN);
     }
 
-    bool SubTypeCheck(const Node &a, const Type &sub)
+    bool ExactType(const Node &a, const Type &sub)
     {
         const Type &type = a.exptype;
-        return type == sub || sub.t == V_UNKNOWN;
+        return type == sub;
     }
 
     void SubType(Node *&a, const Type &sub, const char *context)
@@ -43,11 +68,13 @@ struct TypeChecker
             case V_UNKNOWN: return;
             //case V_FLOAT: if (type.t == V_INT) { a = new Node(T_I2F, a); return; } break;
         }
-        parser.Error("\"" + string(context) + "\" requires type: " + sub.Name() + ", got: " + type.Name(), a);
+        TypeError(context, st.TypeName(sub), st.TypeName(type), a);
     }
 
-    Node *RetVal(Node *a, SubFunction *scope)
+    Node *RetVal(Node *a)
     {
+        if (scopes.empty()) return a;
+        auto scope = scopes.back();
         if (scope->returntype.t == V_UNDEFINED) scope->returntype = a ? a->exptype : Type();
         else if (a) SubType(a, scope->returntype, "return value");
         else if (scope->returntype.t != V_UNKNOWN)
@@ -57,6 +84,7 @@ struct TypeChecker
 
     void TypeCheckBody(SubFunction *sf, Node *args, Function &f)
     {
+        // Check all the manually typed args.
         int i = 0;
         for (Node *list = args; list; list = list->tail())
         {
@@ -65,6 +93,8 @@ struct TypeChecker
         }
         if (!sf->typechecked)
         {
+            scopes.push_back(sf);
+
             sf->typechecked = true;
             i = 0;
             for (Node *params = sf->body->parameters(); params; params = params->tail())
@@ -74,15 +104,17 @@ struct TypeChecker
                 // but will become an issue when we want to store values non-uniformly.
                 params->head()->ident()->type = arg.type;
             }
-            sf->body->exptype = TypeCheck(*sf->body, sf);
+            sf->body->exptype = TypeCheck(*sf->body);
             Node *last = NULL;
             for (auto topl = sf->body->body(); topl; topl = topl->tail()) last = topl;
             assert(last);
-            last->head() = RetVal(last->head(), sf);
+            last->head() = RetVal(last->head());
+
+            scopes.pop_back();
         }
     }
 
-    Type TypeCheck(Node &n, SubFunction *scope)
+    Type TypeCheck(Node &n)
     {
         switch (n.type)
         {
@@ -92,8 +124,8 @@ struct TypeChecker
 
         if (n.HasChildren())
         {
-            if (n.a()) n.a()->exptype = TypeCheck(*n.a(), scope);
-            if (n.b()) n.b()->exptype = TypeCheck(*n.b(), scope);
+            if (n.a()) n.a()->exptype = TypeCheck(*n.a());
+            if (n.b()) n.b()->exptype = TypeCheck(*n.b());
         }
 
         switch (n.type)
@@ -110,6 +142,21 @@ struct TypeChecker
             case T_MOD:
             {
                 auto type = Union(n.left(), n.right());
+                if (n.type == T_MOD)
+                {
+                    if (type.t != V_INT)
+                        TypeError(TName(n.type), "int", st.TypeName(type), &n);
+                }
+                else if (n.type == T_PLUS)
+                {
+                    if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRING)
+                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type), &n);
+                }
+                else
+                {
+                    if (type.t != V_FLOAT && type.t != V_INT)
+                        TypeError(TName(n.type), "numeric", st.TypeName(type), &n);
+                }
                 SubType(n.left(), type, TName(n.type));
                 SubType(n.right(), type, TName(n.type));
                 return type;
@@ -134,7 +181,7 @@ struct TypeChecker
 
             case T_CALL:
             {
-                auto &f = *n.call_function()->f();
+                auto &f = *n.call_function()->sf()->parent;
                 if (f.multimethod)
                 {
                     // FIXME
@@ -154,7 +201,7 @@ struct TypeChecker
                             for (Node *list = n.call_args(); list; list = list->tail())
                             {
                                 auto &arg = sf->args[i++];
-                                if (!SubTypeCheck(*list->head(), arg.type)) goto fail;
+                                if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
                             }
                             goto match;
                             fail:;
@@ -180,15 +227,11 @@ struct TypeChecker
                                 arg.type = list->head()->exptype;  // Specialized to arg.
                             }
                         }
-                        TypeCheckBody(sf, n.call_args(), f);
-                    }
-                    else
-                    {
-                        // Function has full type specs, do regular type checking.
-                        TypeCheckBody(sf, n.call_args(), f);
                     }
                     match:
-                    // Here we have a SubFunction that typechecked this call succesfully.
+                    // Here we have a SubFunction witch matching specialized types.
+                    TypeCheckBody(sf, n.call_args(), f);
+                    n.call_function()->sf() = sf;
                     return sf->returntype;
                 }
             }
@@ -196,14 +239,19 @@ struct TypeChecker
             case T_RETURN:
             {
                 // FIXME multiret
-                n.return_value() = RetVal(n.return_value(), scope);
+                n.return_value() = RetVal(n.return_value());
                 return Type();
             }
 
+            case T_TYPE:
+                return *n.typenode();
+
             case T_IS:
-                // FIXME this will already have overwritten its child type
+                // FIXME If the typecheck fails statically, we can replace this node with false
+                return Type(V_INT);
 
-
+            case T_FIELD:
+                return n.exptype;  // Already set by the parser.
 
             case T_DOT:
 
@@ -223,6 +271,8 @@ struct TypeChecker
             case T_POSTINCR: 
             case T_DECR:  
             case T_INCR:  
+
+            case T_UMINUS:
 
             case T_NEQ: 
             case T_EQ: 

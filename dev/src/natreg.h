@@ -17,14 +17,10 @@ struct Type
     ValueType t;
     int idx;        // if t == V_VECTOR
 
-    Type()             : t(V_UNKNOWN), idx(-1) {}
-    Type(ValueType _t) : t(_t),        idx(-1) {}
+    Type()                       : t(V_UNKNOWN), idx(-1) {}
+    Type(ValueType _t)           : t(_t),        idx(-1) {}
+    Type(ValueType _t, int _idx) : t(_t),        idx(_idx) {}
 
-    const char *Name() const
-    {
-        return idx >= 0 ? g_vm->ReverseLookupType(idx).c_str() : TypeName(t);
-    }
-    
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
     bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
     bool operator< (const Type &o) const { return t <  o.t || (t == o.t && idx < o.idx); }

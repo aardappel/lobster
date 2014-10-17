@@ -84,7 +84,7 @@ enum ValueType
     V_MAXVMTYPES
 };
 
-static const char *TypeName(int t)
+static const char *BaseTypeName(int t)
 {
     static const char *typenames[] =
     {
@@ -535,7 +535,7 @@ struct CoRoutine : RefObj
 inline int IterLen(Value &iter)
 {
     auto len = iter.Len();
-    if (len < 0) g_vm->BuiltinError(string("for: cannot generate values from type: ") + TypeName(iter.type));
+    if (len < 0) g_vm->BuiltinError(string("for: cannot generate values from type: ") + BaseTypeName(iter.type));
     return len;
 }
 

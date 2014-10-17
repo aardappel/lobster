@@ -30,8 +30,9 @@
     F(NEWVEC) \
     F(POP) \
     F(EXIT) \
-    F(ADD) F(SUB) F(MUL) F(DIV) F(MOD) \
-    F(LT) F(GT) F(LE) F(GE) F(EQ) F(NE) \
+    F(IADD) F(ISUB) F(IMUL) F(IDIV) F(IMOD) F(ILT) F(IGT) F(ILE) F(IGE) F(IEQ) F(INE) \
+    F(FADD) F(FSUB) F(FMUL) F(FDIV) F(FMOD) F(FLT) F(FGT) F(FLE) F(FGE) F(FEQ) F(FNE) \
+    F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
     F(UMINUS) F(LOGNOT) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
     F(PUSHONCE) F(PUSHPARENT) \
     F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
@@ -56,6 +57,7 @@ struct CodeGen
     Lex &lex;
     Parser &parser;
     vector<Node *> linenumbernodes;
+    vector<pair<int, SubFunction *>> call_fixups;
     SymbolTable &st;
 
     CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool verbose)
@@ -76,6 +78,16 @@ struct CodeGen
         }
 
         linenumbernodes.pop_back();
+
+        for (auto &fixup : call_fixups)
+        {
+            auto &sf = *fixup.second;
+            auto &f = *sf.parent;
+            auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
+            assert(bytecodestart);
+            assert(!code[fixup.first]);
+            code[fixup.first] = bytecodestart;
+        }
     }
 
     ~CodeGen()
@@ -91,8 +103,9 @@ struct CodeGen
         code.push_back(i);
     }
 
-    void Emit(int i, int j)        { Emit(i); Emit(j); }
-    void Emit(int i, int j, int k) { Emit(i); Emit(j); Emit(k); }
+    void Emit(int i, int j)               { Emit(i); Emit(j); }
+    void Emit(int i, int j, int k)        { Emit(i); Emit(j); Emit(k); }
+    void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
 
     #define MARKL(name) auto name = (int)code.size();
     #define SETL(name) code[name - 1] = (int)code.size();
@@ -131,38 +144,42 @@ struct CodeGen
         if (!f->multimethod)
         {
             f->bytecodestart = (int)code.size();
-            GenScope(f->subf->body);
-            return true;
-        }
-
-        // do multi-dispatch
-        vector<SubFunction *> sfs;
-
-        for (auto sf = f->subf; sf; sf = sf->next)
-        {
-            sf->subbytecodestart = (int)code.size();
-            sfs.push_back(sf);
-            GenScope(sf->body);
-        }
-
-        sfcomparator.nargs = f->nargs;
-        sfcomparator.cg = this;
-        sfcomparator.f = f;
-        sort(sfs.begin(), sfs.end(), sfcomparator);
-
-        f->bytecodestart = (int)code.size();
-        Emit(IL_FUNMULTI, sfs.size());
-
-        for (auto sf : sfs)
-        {
-            for (int j = 0; j < f->nargs; j++)
+            for (auto sf = f->subf; sf; sf = sf->next)
             {
-                auto arg = sf->args[j];
-                Emit(arg.type.t, arg.type.idx);
+                sf->subbytecodestart = (int)code.size();
+                GenScope(sf->body);
             }
-            Emit(sf->subbytecodestart);
         }
+        else
+        {
+            // do multi-dispatch
+            vector<SubFunction *> sfs;
 
+            for (auto sf = f->subf; sf; sf = sf->next)
+            {
+                sf->subbytecodestart = (int)code.size();
+                sfs.push_back(sf);
+                GenScope(sf->body);
+            }
+
+            sfcomparator.nargs = f->nargs;
+            sfcomparator.cg = this;
+            sfcomparator.f = f;
+            sort(sfs.begin(), sfs.end(), sfcomparator);
+
+            f->bytecodestart = (int)code.size();
+            Emit(IL_FUNMULTI, sfs.size(), f->nargs);
+
+            for (auto sf : sfs)
+            {
+                for (int j = 0; j < f->nargs; j++)
+                {
+                    auto arg = sf->args[j];
+                    Emit(arg.type.t, arg.type.idx);
+                }
+                Emit(sf->subbytecodestart);
+            }
+        }
         return true;
     }
 
@@ -221,8 +238,9 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenTypeCheck(Type &type)
+    void GenTypeCheck(Type &given, Type &type)
     {
+        if (given == type) return;
         switch(type.t)
         {
             case V_UNKNOWN: break;
@@ -296,18 +314,18 @@ struct CodeGen
                 break;
             }
 
-            case T_ASSIGN: GenAssign(n, LVO_WRITE, retval); break;
+            case T_ASSIGN: GenAssign(n->left(), LVO_WRITE, retval, n->right()); break;
 
-            case T_PLUSEQ:  GenAssign(n, LVO_PLUS, retval); break;
-            case T_MULTEQ:  GenAssign(n, LVO_MUL,  retval); break;
-            case T_MINUSEQ: GenAssign(n, LVO_SUB, retval); break;
-            case T_DIVEQ:   GenAssign(n, LVO_DIV, retval); break;
-            case T_MODEQ:   GenAssign(n, LVO_MOD,  retval); break;
+            case T_PLUSEQ:  GenAssign(n->left(), LVO_PLUS, retval, n->right()); break;
+            case T_MULTEQ:  GenAssign(n->left(), LVO_MUL,  retval, n->right()); break;
+            case T_MINUSEQ: GenAssign(n->left(), LVO_SUB, retval, n->right()); break;
+            case T_DIVEQ:   GenAssign(n->left(), LVO_DIV, retval, n->right()); break;
+            case T_MODEQ:   GenAssign(n->left(), LVO_MOD,  retval, n->right()); break;
 
-            case T_POSTDECR: GenAssign(n, LVO_MMP, retval); break;
-            case T_POSTINCR: GenAssign(n, LVO_PPP, retval); break;
-            case T_DECR:     GenAssign(n, LVO_MM,  retval); break;
-            case T_INCR:     GenAssign(n, LVO_PP,  retval); break;
+            case T_POSTDECR: GenAssign(n->child(), LVO_MMP, retval); break;
+            case T_POSTINCR: GenAssign(n->child(), LVO_PPP, retval); break;
+            case T_DECR:     GenAssign(n->child(), LVO_MM,  retval); break;
+            case T_INCR:     GenAssign(n->child(), LVO_PP,  retval); break;
 
             case T_NEQ:   opc++;
             case T_EQ:    opc++;
@@ -320,17 +338,19 @@ struct CodeGen
             case T_MULT:  opc++;
             case T_MINUS: opc++;
             case T_PLUS:
-                if (n->type != T_MINUS || TCat(n->type) == TT_BINARY)
+                Gen(n->left(), retval);
+                Gen(n->right(), retval);
+                if (retval)
                 {
-                    Gen(n->left(), retval);
-                    Gen(n->right(), retval);
-                    if (retval) Emit(IL_ADD + opc);
+                    if (n->exptype.t == V_INT) Emit(IL_IADD + opc);
+                    else if (n->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
+                    else Emit(IL_AADD + opc);
                 }
-                else
-                {
-                    Gen(n->child(), retval);
-                    if (retval) Emit(IL_UMINUS);
-                }
+                break;
+
+            case T_UMINUS:
+                Gen(n->child(), retval);
+                if (retval) Emit(IL_UMINUS);
                 break;
 
             case T_CLOSURE: if (retval) GenFunctionVal(n); break; 
@@ -350,7 +370,7 @@ struct CodeGen
                     for (; list; list = list->tail())
                     {
                         Gen(list->head(), 1);
-                        if (nargs < checkargs) GenTypeCheck(args[nargs].type);
+                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args[nargs].type);
                         lastarg = list->head();
                         nargs++;
                     }
@@ -435,13 +455,16 @@ struct CodeGen
                 }
                 else if (n->type == T_CALL)
                 {
-                    auto &f = *n->call_function()->f();
-                    genargs(n->call_args(), f.subf->args, f.multimethod ? 0 : f.nargs);
+                    auto &sf = *n->call_function()->sf();
+                    auto &f = *sf.parent;
+                    genargs(n->call_args(), sf.args, f.multimethod ? 0 : f.nargs);
                     if (f.nargs != nargs)
                         parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
                                      " arguments, " + string(inttoa(nargs)) + " given", n->call_function());
                     f.ncalls++;
-                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx);
+                    auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
+                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx, bytecodestart);
+                    if (!bytecodestart) call_fixups.push_back(make_pair((int)code.size() - 1, &sf));
                     if (f.retvals > 1)
                     {
                         maxretvalsupplied = f.retvals;
@@ -513,9 +536,10 @@ struct CodeGen
                 Struct *superclass = NULL;
                 Struct *struc = NULL;
 
-                if (n->exptype.idx >= 0)
+                auto vtype = n->constructor_type()->typenode();
+                if (vtype->t == V_VECTOR && vtype->idx >= 0)
                 {
-                    struc = st.structtable[n->exptype.idx];
+                    struc = st.structtable[vtype->idx];
                     Emit(IL_NEWVEC, struc->idx, struc->fields.size());
                     superclass = struc->superclass;
                 }
@@ -541,8 +565,9 @@ struct CodeGen
                     {
                         Gen(cn->head(), 1);
 
-                        if (struc) GenTypeCheck(struc->fields[i].type);
-                        else GenTypeCheck(n->exptype);
+                        auto &type = cn->head()->exptype;
+                        if (struc) GenTypeCheck(type, struc->fields[i].type);
+                        else GenTypeCheck(type, *vtype);
 
                         Emit(IL_PUSHONCE);
                         i++;
@@ -556,8 +581,8 @@ struct CodeGen
 
             case T_IS:
             {
-                Gen(n->child(), retval);
-                if (retval) Emit(IL_ISTYPE, n->child()->exptype.t, n->child()->exptype.idx);
+                Gen(n->left(), retval);
+                if (retval) Emit(IL_ISTYPE, n->right()->typenode()->t, n->right()->typenode()->idx);
                 break;
             }
 
@@ -642,11 +667,10 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenAssign(Node *n, int lvalop, int retval)
+    void GenAssign(Node *lval, int lvalop, int retval, Node *rhs = NULL)
     {
         if (retval) lvalop++;
-        if (n->right()) Gen(n->right(), 1);
-        auto lval = n->left();
+        if (rhs) Gen(rhs, 1);
         switch (lval->type)
         {
             case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;

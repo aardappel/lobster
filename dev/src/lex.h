@@ -428,7 +428,9 @@ struct Lex : LoadedFile
 
     void Error(string err, int fidx = -1, int line = -1)
     {
-        throw (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
+        err = (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
               "(" + inttoa(line >= 0 ? line : errorline) + "): error: " + err;
+        DebugLog(1, "%s", err.c_str());
+        throw err;
     } 
 };
