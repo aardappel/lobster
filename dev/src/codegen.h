@@ -131,7 +131,7 @@ struct CodeGen
 
                 if (ta != tb) return ta < tb;
             }
-            cg->parser.Error("function signature overlap for " + f->name, NULL);
+            cg->parser.Error("function signature overlap for " + f->name, nullptr);
             return false;
         }
     } sfcomparator;
@@ -364,7 +364,7 @@ struct CodeGen
             case T_DYNCALL:     
             {
                 int nargs = 0;
-                Node *lastarg = NULL;
+                Node *lastarg = nullptr;
                 auto genargs = [&](Node *list, Arg *args, int checkargs)
                 {
                     for (; list; list = list->tail())
@@ -388,7 +388,7 @@ struct CodeGen
                     }
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
-                    genargs(n->ncall_args(), NULL, 0);
+                    genargs(n->ncall_args(), nullptr, 0);
                     switch(nf->ncm)
                     {
                         case NCM_CONTINUATION:  // if()
@@ -472,7 +472,7 @@ struct CodeGen
                 }
                 else
                 {
-                    genargs(n->dcall_args(), NULL, 0);
+                    genargs(n->dcall_args(), nullptr, 0);
                     Gen(n->dcall_var(), 1);
                     Emit(IL_CALLV, nargs);
                 }
@@ -533,11 +533,11 @@ struct CodeGen
 
             case T_CONSTRUCTOR:
             {
-                Struct *superclass = NULL;
-                Struct *struc = NULL;
+                Struct *superclass = nullptr;
+                Struct *struc = nullptr;
 
                 auto vtype = n->constructor_type()->typenode();
-                if (vtype->t == V_VECTOR && vtype->idx >= 0)
+                if (vtype->IsStruct())
                 {
                     struc = st.structtable[vtype->idx];
                     Emit(IL_NEWVEC, struc->idx, struc->fields.size());
@@ -573,7 +573,7 @@ struct CodeGen
                         i++;
                     }
 
-                    superclass = NULL;
+                    superclass = nullptr;
                 }
                 if (!retval) Emit(IL_POP);
                 break;
@@ -667,7 +667,7 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenAssign(Node *lval, int lvalop, int retval, Node *rhs = NULL)
+    void GenAssign(Node *lval, int lvalop, int retval, Node *rhs = nullptr)
     {
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);

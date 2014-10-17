@@ -32,8 +32,8 @@ struct LoadedFile
     vector<Tok> gentokens;
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
-        : tokenstart(NULL), stringsource(_ss), fileidx(fns.size()), token(T_NONE), line(1), errorline(1),
-          islf(false), cont(false), prevline(NULL), prevlinetok(NULL) /* prevlineindenttype(0) */
+        : tokenstart(nullptr), stringsource(_ss), fileidx(fns.size()), token(T_NONE), line(1), errorline(1),
+          islf(false), cont(false), prevline(nullptr), prevlinetok(nullptr) /* prevlineindenttype(0) */
     {
         source = stringsource;
         if (!source) source = (char *)LoadFile((string("include/") + fn).c_str());
@@ -60,7 +60,7 @@ struct Lex : LoadedFile
 
     vector<string> &filenames;
 
-    Lex(const char *fn, vector<string> &fns, char *_ss = NULL) : LoadedFile(fn, fns, _ss), filenames(fns)
+    Lex(const char *fn, vector<string> &fns, char *_ss = nullptr) : LoadedFile(fn, fns, _ss), filenames(fns)
     {
         FirstToken();
     }
@@ -87,7 +87,7 @@ struct Lex : LoadedFile
         allfiles.insert(_fn);
         parentfiles.push_back(*this);
 
-        *((LoadedFile *)this) = LoadedFile(_fn, filenames, NULL);
+        *((LoadedFile *)this) = LoadedFile(_fn, filenames, nullptr);
 
         FirstToken();
     }
@@ -150,7 +150,7 @@ struct Lex : LoadedFile
             else
             {
                 //prevlineindenttype = 0;
-                prevlinetok = prevline = NULL;
+                prevlinetok = prevline = nullptr;
             }
 
             if (lastcont)

@@ -174,7 +174,7 @@ class SlabAlloc
 
     public:
 
-    SlabAlloc() : blocks(NULL), statbig(0)
+    SlabAlloc() : blocks(nullptr), statbig(0)
     {
         for (int i = 0; i<MAXBUCKETS; i++)
         {
@@ -381,7 +381,7 @@ class SlabAlloc
             }
 
             free(h->isfree);
-            h->isfree = NULL;
+            h->isfree = nullptr;
         }
 
         loopdllist(largeallocs, n) leaks.push_back(n + 1);

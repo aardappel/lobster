@@ -20,7 +20,7 @@ extern string StripDirPart(const char *filepath);
 // call this at init to determine default folders to load stuff from
 extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle);
 
-extern uchar *LoadFile(const char *relfilename, size_t *len = NULL);
+extern uchar *LoadFile(const char *relfilename, size_t *len = nullptr);
 extern FILE *OpenForWriting(const char *relfilename, bool binary);
 extern string SanitizePath(const char *path);
 

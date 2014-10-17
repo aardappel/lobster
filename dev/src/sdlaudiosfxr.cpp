@@ -103,7 +103,7 @@ int arp_time;
 int arp_limit;
 double arp_mod;
 
-float* vselected=NULL;
+float* vselected=nullptr;
 int vcurbutton=-1;
 
 int wav_bits=16;
@@ -480,13 +480,13 @@ void SynthSample(int length, float* buffer, FILE* file)
 
         ssample*=2.0f*sound_vol;
 
-        if(buffer!=NULL)
+        if(buffer!=nullptr)
         {
             if(ssample>1.0f) ssample=1.0f;
             if(ssample<-1.0f) ssample=-1.0f;
             *buffer++=ssample;
         }
-        if(file!=NULL)
+        if(file!=nullptr)
         {
             // quantize depending on format
             // accumulate/count to accomodate variable sample rate?
@@ -525,7 +525,7 @@ static void SDLAudioCallback(void *userdata, Uint8 *stream, int len)
             uint l = len/2;
             float *fbuf = new float[l];
             memset(fbuf, 0, sizeof(float)*l);
-            SynthSample(l, fbuf, NULL);
+            SynthSample(l, fbuf, nullptr);
             while (l--)
             {
                 float f = fbuf[l];
@@ -564,8 +564,8 @@ bool SDLSoundInit()
     playbackspec.channels = 1;
     playbackspec.samples = 512;
     playbackspec.callback = SDLAudioCallback;
-    playbackspec.userdata = NULL;
-    audioid = SDL_OpenAudioDevice(NULL, 0, &playbackspec, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    playbackspec.userdata = nullptr;
+    audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     return !!audioid;
 }

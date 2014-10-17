@@ -11,9 +11,13 @@ struct TypeChecker
         parser.root->exptype = TypeCheck(*parser.root);
     }
 
-    void TypeError(const char *context, const char *required, const char *got, Node *n)
+    void TypeError(const char *context, const char *required, const char *got, Node &n)
     {
-        string err = "\"" + string(context) + "\" requires type: " + required + ", got: " + got;
+        TypeError("\"" + string(context) + "\" requires type: " + required + ", got: " + got, n);
+    }
+
+    void TypeError(string err, Node &n)
+    {
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
             auto sf = *it;
@@ -31,8 +35,7 @@ struct TypeChecker
             }
             err += ")";
         }
-        parser.Error(err, n);
-
+        parser.Error(err, &n);
     }
 
     bool ConvertsTo(const Type &type, const Type &sub)
@@ -68,7 +71,7 @@ struct TypeChecker
             case V_UNKNOWN: return;
             //case V_FLOAT: if (type.t == V_INT) { a = new Node(T_I2F, a); return; } break;
         }
-        TypeError(context, st.TypeName(sub), st.TypeName(type), a);
+        TypeError(context, st.TypeName(sub), st.TypeName(type), *a);
     }
 
     Node *RetVal(Node *a)
@@ -105,7 +108,7 @@ struct TypeChecker
                 params->head()->ident()->type = arg.type;
             }
             sf->body->exptype = TypeCheck(*sf->body);
-            Node *last = NULL;
+            Node *last = nullptr;
             for (auto topl = sf->body->body(); topl; topl = topl->tail()) last = topl;
             assert(last);
             last->head() = RetVal(last->head());
@@ -145,22 +148,30 @@ struct TypeChecker
                 if (n.type == T_MOD)
                 {
                     if (type.t != V_INT)
-                        TypeError(TName(n.type), "int", st.TypeName(type), &n);
+                        TypeError(TName(n.type), "int", st.TypeName(type), n);
                 }
                 else if (n.type == T_PLUS)
                 {
                     if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRING)
-                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type), &n);
+                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type), n);
                 }
                 else
                 {
                     if (type.t != V_FLOAT && type.t != V_INT)
-                        TypeError(TName(n.type), "numeric", st.TypeName(type), &n);
+                        TypeError(TName(n.type), "numeric", st.TypeName(type), n);
                 }
                 SubType(n.left(), type, TName(n.type));
                 SubType(n.right(), type, TName(n.type));
                 return type;
             }
+
+            case T_NEQ: 
+            case T_EQ: 
+            case T_GTEQ: 
+            case T_LTEQ: 
+            case T_GT:  
+            case T_LT:  
+                return Type();
 
             case T_IDENT:
                 return n.ident()->type;
@@ -253,7 +264,30 @@ struct TypeChecker
             case T_FIELD:
                 return n.exptype;  // Already set by the parser.
 
+            case T_CONSTRUCTOR:
+            {
+                auto &type = *n.constructor_type()->typenode();
+                // FIXME: must specialize if there's any untyped fields.
+                int i = 0;
+                for (auto list = n.constructor_args(); list; list = list->tail())
+                {
+                    SubType(list->head(), type.IsStruct() ? st.structtable[type.idx]->fields[i].type : type, "constructor");
+                    i++;
+                }
+                return type.IsStruct() ? type : Type(V_VECTOR);  // FIXME: need more exact vector types.1
+            }
+
             case T_DOT:
+            {
+                auto &type = n.left()->exptype;
+                if (!type.IsStruct())
+                    TypeError(".", "struct/value", st.TypeName(type), n);
+                auto struc = st.structtable[type.idx];
+                auto sf = n.right()->fld();
+                auto uf = struc->Has(sf);
+                if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
+                return uf->type;
+            }
 
             case T_CO_AT:
 
@@ -274,12 +308,6 @@ struct TypeChecker
 
             case T_UMINUS:
 
-            case T_NEQ: 
-            case T_EQ: 
-            case T_GTEQ: 
-            case T_LTEQ: 
-            case T_GT:  
-            case T_LT:  
 
             case T_CLOSURE: 
 
@@ -303,12 +331,19 @@ struct TypeChecker
 
             case T_NOT:
 
-            case T_CONSTRUCTOR:
 
 
             case T_COCLOSURE:
 
             case T_COROUTINE:
+
+
+
+
+
+
+
+            case T_STRUCT:
                 return n.exptype;
 
             default:

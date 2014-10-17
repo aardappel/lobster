@@ -81,7 +81,7 @@ void AddFileOps()
 
         glob_t gl;
         string mask = folder + "/*";
-        if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, NULL, &gl)) return Value(0, V_NIL);
+        if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) return Value(0, V_NIL);
 
         auto list = g_vm->NewVector(0, V_VECTOR);
 

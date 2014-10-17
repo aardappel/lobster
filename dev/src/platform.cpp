@@ -124,10 +124,10 @@ uchar *LoadFileAndroid(const char *relfilename, size_t *lenret)
     // FIXME: no native activity!
     auto activity = (jobject)SDL_AndroidGetActivity();
     auto file = AAssetManager_open(activity->assetManager, relfilename, AASSET_MODE_BUFFER);
-    if (!file) return NULL;
+    if (!file) return nullptr;
     auto len = AAsset_getLength(file);
     auto buf = (uchar *)malloc(len + 1);
-    if (!buf) { AAsset_close(file); return NULL; }
+    if (!buf) { AAsset_close(file); return nullptr; }
     buf[len] = 0;
     memcpy(buf, AAsset_getBuffer(file), len);
     AAsset_close(file);
@@ -226,10 +226,10 @@ void MsgBox(const char *err)
     #if defined(__APPLE__) && !defined(__IOS__)
         // FIXME: this code should never be run when running from command line
         DialogRef alertDialog;
-        CFStringRef sr = //CFStringCreateWithCharacters(NULL, err, strlen(err));
+        CFStringRef sr = //CFStringCreateWithCharacters(nullptr, err, strlen(err));
         CFStringCreateWithCString(kCFAllocatorDefault, err, ::GetApplicationTextEncoding());
-        CreateStandardAlert(kAlertStopAlert, CFSTR("Error:"), sr, NULL, &alertDialog);
-        RunStandardAlert (alertDialog, NULL, NULL);
+        CreateStandardAlert(kAlertStopAlert, CFSTR("Error:"), sr, nullptr, &alertDialog);
+        RunStandardAlert (alertDialog, nullptr, nullptr);
     #endif
 }
 
@@ -242,7 +242,7 @@ void MsgBox(const char *err)
     void QueryPerformanceCounter(LARGE_INTEGER *dst)
     {
         struct timeval t;
-        gettimeofday (& t, NULL);
+        gettimeofday (& t, nullptr);
         dst->QuadPart = t.tv_sec * 1000000LL + t.tv_usec;
     }
 

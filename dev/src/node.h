@@ -52,8 +52,8 @@ struct Node : SlabAllocated<Node>
     int linenumber;
     int fileidx;
 
-    Node(Lex &lex, TType _t)                     : type(_t), a_(NULL), b_(NULL) { L(lex); }
-    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a_(_a), b_(NULL)   { L(lex); }
+    Node(Lex &lex, TType _t)                     : type(_t), a_(nullptr), b_(nullptr) { L(lex); }
+    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a_(_a), b_(nullptr)   { L(lex); }
     Node(Lex &lex, TType _t, Node *_a, Node *_b) : type(_t), a_(_a), b_(_b)     { L(lex); }
     Node(Lex &lex, TType _t, int _i)             : type(_t), integer_(_i)      { L(lex); }
     Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)          { L(lex); }
@@ -170,7 +170,7 @@ struct Node : SlabAllocated<Node>
         vector<Node *> vstack; // current value of each ident
         vector<Function *> fstack;
 
-        const char *err = NULL;
+        const char *err = nullptr;
 
         auto lookup = [&](Node *n) -> Node *
         {

@@ -69,13 +69,13 @@ struct VM : VMBase
     #define OVERWRITE(o, n) TTOverwrite(o, n)
 
     VM(SymbolTable &_st, int *_code, int _len, const vector<LineInfo> &_lineinfo, const char *_pn)
-        : stack(NULL), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(NULL),
-          curcoroutine(NULL), vars(NULL), st(_st), codelen(_len), byteprofilecounts(NULL), lineprofilecounts(NULL),
+        : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
+          curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr), lineprofilecounts(nullptr),
           trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state)
     {
         // search for "64bit" before trying to make a 64bit build, changes may be required
         assert(sizeof(int) == sizeof(void *));
-        assert(vmpool == NULL);
+        assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
         ip = codestart = _code;
         vars = new Value[st.identtable.size()];
@@ -96,7 +96,7 @@ struct VM : VMBase
         vml.LogInit();
 
         // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
-        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", NULL };
+        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
         for (auto name = default_vector_type_names; *name; name++)
         {
             int t = V_VECTOR;
@@ -105,14 +105,14 @@ struct VM : VMBase
             default_vector_types.push_back(t);
         }
 
-        assert(g_vm == NULL);
+        assert(g_vm == nullptr);
         g_vm = this;
     }
 
     ~VM()
     {
         assert(g_vm == this);
-        g_vm = NULL;
+        g_vm = nullptr;
 
         if (stack) delete[] stack;
         if (vars)  delete[] vars;
@@ -123,7 +123,7 @@ struct VM : VMBase
         if (vmpool)
         {
             delete vmpool;
-            vmpool = NULL;
+            vmpool = nullptr;
         }
     }
 
@@ -261,7 +261,7 @@ struct VM : VMBase
             if (sp < 0) break;
         
             string locals;
-            int deffun = varcleanup(s.length() < 10000 ? &locals : NULL);
+            int deffun = varcleanup(s.length() < 10000 ? &locals : nullptr);
 
             const LineInfo &li = LookupLine(ip - 1);
             if (deffun >= 0)
@@ -488,7 +488,7 @@ struct VM : VMBase
                 bottom = true;
                 break;
             }
-            int deffun = varcleanup(NULL);
+            int deffun = varcleanup(nullptr);
             if(towhere == -1 || towhere == deffun) break;
         }
         //PUSH(ret);
@@ -1095,7 +1095,7 @@ struct VM : VMBase
                 }
 
                 case IL_COCL:
-                    PUSH(Value((int *)NULL, V_FUNCTION));
+                    PUSH(Value((int *)nullptr, V_FUNCTION));
                     break;
 
                 case IL_CORO:

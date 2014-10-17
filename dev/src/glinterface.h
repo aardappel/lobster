@@ -91,7 +91,7 @@ struct Mesh
     float3x4 *mats;
     float curanim;
 
-    Mesh(Geometry *_g) : geom(_g), numframes(0), numbones(0), mats(NULL), curanim(0) {}
+    Mesh(Geometry *_g) : geom(_g), numframes(0), numbones(0), mats(nullptr), curanim(0) {}
     ~Mesh();
 
     void Render(Shader *sh);
@@ -126,7 +126,7 @@ extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();
 
 extern void RenderArray(Primitive prim, int count, const char *fmt, 
-                        int vertsize, void *vbuf1, int *ibuf = NULL, int vertsize2 = 0, void *vbuf2 = NULL);
+                        int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
 extern void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
 

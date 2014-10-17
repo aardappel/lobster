@@ -887,8 +887,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 }
 
 
-Group *root = NULL;
-Group *curgroup = NULL;
+Group *root = nullptr;
+Group *curgroup = nullptr;
 
 float3 cursize = float3_1;
 float3 curorig = float3_0;
@@ -898,7 +898,7 @@ int curcol   = 1;
 void MeshGenClear()
 {
     if (root) delete root;
-    root = curgroup = NULL;
+    root = curgroup = nullptr;
 
     cursize = float3_1;
     curorig = float3_0;

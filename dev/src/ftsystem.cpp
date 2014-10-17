@@ -188,7 +188,7 @@ const int2 BitmapFont::TextSize(const char *text)
 }
 
 
-FT_Library library = NULL;
+FT_Library library = nullptr;
 
 OutlineFont *LoadFont(const char *name)
 {
@@ -206,7 +206,7 @@ OutlineFont *LoadFont(const char *name)
             free(fbuf);
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 OutlineFont::~OutlineFont()
@@ -237,6 +237,6 @@ bool OutlineFont::EnsureCharsPresent(const char *utf8str)
 void FTClosedown()
 {
     if (library) FT_Done_FreeType(library);
-    library = NULL;
+    library = nullptr;
 }
 

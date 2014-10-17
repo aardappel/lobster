@@ -38,22 +38,22 @@ struct Renderable : Textured
 	}
 };
 
-b2World *world = NULL;
-IntResourceManagerCompact<b2Fixture> *fixtures = NULL;
-b2ParticleSystem *particlesystem = NULL;
-Renderable *particlematerial = NULL;
+b2World *world = nullptr;
+IntResourceManagerCompact<b2Fixture> *fixtures = nullptr;
+b2ParticleSystem *particlesystem = nullptr;
+Renderable *particlematerial = nullptr;
 
 void CleanPhysics()
 {
 	if (fixtures) delete fixtures;
-	fixtures = NULL;
+	fixtures = nullptr;
 
 	if (world) delete world;
-	world = NULL;
-	particlesystem = NULL;
+	world = nullptr;
+	particlesystem = nullptr;
 
 	delete particlematerial;
-	particlematerial = NULL;
+	particlematerial = nullptr;
 }
 
 void InitPhysics(const float2 &gv)
@@ -93,7 +93,7 @@ b2Vec2 ValueDecToB2(Value &vec)
 b2Body &GetBody(Value &id, Value &position)
 {
 	CheckPhysics();
-	b2Body *body = NULL;
+	b2Body *body = nullptr;
 	if (id.True())
 	{
 		auto other_fixture = fixtures->Get(id.ival);
@@ -125,7 +125,7 @@ Renderable *GetRenderable(int id)
 	CheckPhysics();
     if (!id) return particlematerial;
 	auto fixture = fixtures->Get(id);
-	return fixture ? (Renderable *)fixture->GetUserData() : NULL;
+	return fixture ? (Renderable *)fixture->GetUserData() : nullptr;
 }
 
 extern int GetSampler(Value &i); // from graphics
@@ -299,7 +299,7 @@ void AddPhysicsOps()
 					case b2Shape::e_polygon:
 					{
 						auto polyshape = (b2PolygonShape *)fixture->GetShape();
-						RenderArray(PRIM_FAN, polyshape->m_count, "pn", sizeof(b2Vec2), polyshape->m_vertices, NULL, 
+						RenderArray(PRIM_FAN, polyshape->m_count, "pn", sizeof(b2Vec2), polyshape->m_vertices, nullptr, 
 							                                              sizeof(b2Vec2), polyshape->m_normals);
 						break;
 					}
@@ -316,7 +316,7 @@ void AddPhysicsOps()
 							phverts[i].pos = pos * polyshape->m_radius + *(float2 *)&polyshape->m_p;
 							phverts[i].norm = pos;
 						}
-						RenderArray(PRIM_FAN, maxverts, "pn", sizeof(PhVert), phverts, NULL);
+						RenderArray(PRIM_FAN, maxverts, "pn", sizeof(PhVert), phverts, nullptr);
 						break;
 					}
 					case b2Shape::e_edge:
@@ -345,7 +345,7 @@ void AddPhysicsOps()
         auto scale = fabs(object2view[0].x());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval);
         particlematerial->Set();
-        RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, NULL, sizeof(byte4), colors);
+        RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, nullptr, sizeof(byte4), colors);
         return Value();
     }
     ENDDECL1(ph_renderparticles, "scale", "F", "",

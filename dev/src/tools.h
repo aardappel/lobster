@@ -49,7 +49,7 @@ struct DLNodeRaw
 
 struct DLNodeBase : DLNodeRaw
 {
-    DLNodeBase() { prev = next = NULL; }   
+    DLNodeBase() { prev = next = nullptr; }   
 
     bool Connected() { return next && prev; }
     
@@ -62,7 +62,7 @@ struct DLNodeBase : DLNodeRaw
     {
         assert(Connected());
         DLNodeRaw::Remove();
-        next = prev = NULL;
+        next = prev = nullptr;
     }
 
     void InsertAfterThis(DLNodeBase *o)
@@ -108,19 +108,19 @@ template<typename T> T *Prev(T *n) { return (T *)n->prev; }
 // safe Remove on self reverse
 #define loopdllistreverse(L, n) for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
-inline uchar *loadfile(const char *fn, size_t *lenret = NULL)
+inline uchar *loadfile(const char *fn, size_t *lenret = nullptr)
 {
     FILE *f = fopen(fn, "rb");
-    if (!f) return NULL;
+    if (!f) return nullptr;
     fseek(f, 0, SEEK_END);
     size_t len = ftell(f);
     fseek(f, 0, SEEK_SET);
     uchar *buf = (uchar *)malloc(len+1);
-    if (!buf) { fclose(f); return NULL; }
+    if (!buf) { fclose(f); return nullptr; }
     buf[len] = 0;
     size_t rlen = fread(buf, 1, len, f);
     fclose(f);
-    if (len!=rlen || len<=0) { free(buf); return NULL; }
+    if (len!=rlen || len<=0) { free(buf); return nullptr; }
     if (lenret) *lenret = len;
     return buf;
 }
@@ -329,7 +329,7 @@ template <typename T> class Accumulator
     public:
 
     Accumulator(size_t _mingrowth = 1024)
-        : first(NULL), last(NULL), iterator(NULL),
+        : first(nullptr), last(nullptr), iterator(nullptr),
           mingrowth(_mingrowth), totalsize(0)
           {}
 
@@ -365,7 +365,7 @@ template <typename T> class Accumulator
         if (amount)
         {
             size_t allocsize = max(mingrowth, amount);
-            Buf *buf = NewBuf(allocsize, min(amount, allocsize), newelems, NULL);
+            Buf *buf = NewBuf(allocsize, min(amount, allocsize), newelems, nullptr);
             if (last) last->next = buf;
             else last = first = buf;
         }
@@ -437,8 +437,8 @@ template <typename T> struct DS
 };
 
 // Container that turns pointers into integers, with O(1) add/delete/get.
-// Robust: passing invalid integers will just return a NULL pointer / ignore the delete
-// Cannot store NULL pointers (will assert on Add)
+// Robust: passing invalid integers will just return a nullptr pointer / ignore the delete
+// Cannot store nullptr pointers (will assert on Add)
 // conveniently, index 0 is never used, so can be used by the client to indicate invalid index
 
 // TODO: can change IntResourceManager to takes T's instead of T* by making the next field have a special value for
@@ -451,7 +451,7 @@ template <typename T> class IntResourceManager
         T *t;
         size_t nextfree;
 
-        Elem() : t(NULL), nextfree(size_t(-1)) {}
+        Elem() : t(nullptr), nextfree(size_t(-1)) {}
     };
 
     vector<Elem> elems;
@@ -461,7 +461,7 @@ template <typename T> class IntResourceManager
 
     IntResourceManager() : firstfree(size_t(-1))
     {
-        elems.push_back(Elem());    // a NULL item at index 0 that can never be allocated/deleted
+        elems.push_back(Elem());    // a nullptr item at index 0 that can never be allocated/deleted
     }
 
     ~IntResourceManager()
@@ -473,7 +473,7 @@ template <typename T> class IntResourceManager
 
     size_t Add(T *t)
     {
-        // we can't store NULL pointers as elements, because we wouldn't be able to distinguish them from unallocated
+        // we can't store nullptr pointers as elements, because we wouldn't be able to distinguish them from unallocated
         // slots
         assert(t);
         size_t i = elems.size();
@@ -492,7 +492,7 @@ template <typename T> class IntResourceManager
 
     T *Get(size_t i)
     {
-        return i < elems.size() ? elems[i].t : NULL;
+        return i < elems.size() ? elems[i].t : nullptr;
     }
 
     void Delete(size_t i)
@@ -501,7 +501,7 @@ template <typename T> class IntResourceManager
         if (e)
         {
             delete e;
-            elems[i].t = NULL;
+            elems[i].t = nullptr;
             elems[i].nextfree = firstfree;
             firstfree = i;
         }
@@ -512,7 +512,7 @@ template <typename T> class IntResourceManager
 
 // same as IntResourceManager, but now uses pointer tagging to store the free list in-place.
 // Uses half the memory. Access is slightly slower, but if memory bound could still be faster overall.
-// Can store NULL pointers, but not pointers with the lowest bit set (e.g. char * pointing inside of another allocation,
+// Can store nullptr pointers, but not pointers with the lowest bit set (e.g. char * pointing inside of another allocation,
 // will assert on Add)
 
 template <typename T> class IntResourceManagerCompact
@@ -531,7 +531,7 @@ template <typename T> class IntResourceManagerCompact
 
     IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(-1), deletefun(_df)
     {
-        elems.push_back(NULL);  // slot 0 is permanently blocked, so can be used to denote illegal index
+        elems.push_back(nullptr);  // slot 0 is permanently blocked, so can be used to denote illegal index
     }
 
     ~IntResourceManagerCompact()
@@ -566,7 +566,7 @@ template <typename T> class IntResourceManagerCompact
 
     T *Get(size_t i)
     {
-        return ValidSlot(i) ? elems[i] : NULL;
+        return ValidSlot(i) ? elems[i] : nullptr;
     }
 
     void Delete(size_t i)

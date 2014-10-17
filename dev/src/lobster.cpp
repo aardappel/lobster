@@ -20,15 +20,15 @@
 //#include <huffman.h>
 #include "wentropy.h"
 
-SlabAlloc *vmpool = NULL;               // set during the lifetime of a VM object
-static SlabAlloc *parserpool = NULL;    // set during the lifetime of a Parser object
+SlabAlloc *vmpool = nullptr;               // set during the lifetime of a VM object
+static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parser object
 
 #include "vmdata.h"
 #include "natreg.h"
 
-AutoRegister *autoreglist = NULL;
+AutoRegister *autoreglist = nullptr;
 NativeRegistry natreg;
-VMBase *g_vm = NULL;                    // set during the lifetime of a VM object
+VMBase *g_vm = nullptr;                    // set during the lifetime of a VM object
 
 #include "ttypes.h"
 #include "lex.h"
@@ -100,7 +100,7 @@ struct CompiledProgram
 
     void Save(const char *bcf)
     {
-        Serializer ser(NULL);
+        Serializer ser(nullptr);
         st.Serialize(ser, code, linenumbers);
 
         vector<uint> out;
@@ -146,13 +146,13 @@ Value CompileRun(Value &source, bool stringiscode)
 {
     ValueRef fref(source);
     string fn = stringiscode ? "string" : source.sval->str();  // fixme: datadir + sanitize?
-    SlabAlloc *parentpool = vmpool; vmpool = NULL;
-    VMBase    *parentvm   = g_vm;   g_vm = NULL;
+    SlabAlloc *parentpool = vmpool; vmpool = nullptr;
+    VMBase    *parentvm   = g_vm;   g_vm = nullptr;
     try
     {
         string ret;
         CompiledProgram cp;
-        cp.Compile(fn.c_str(), stringiscode ? source.sval->str() : NULL, 0);
+        cp.Compile(fn.c_str(), stringiscode ? source.sval->str() : nullptr, 0);
         cp.Run(ret, fn.c_str());
         assert(!vmpool && !g_vm);
         vmpool = parentpool;
@@ -307,9 +307,9 @@ int main(int argc, char* argv[])
 
         int flags = 0;
         const char *default_bcf = "default.lbc";
-        const char *bcf = NULL;
+        const char *bcf = nullptr;
 
-        const char *fn = NULL;
+        const char *fn = nullptr;
         for (int arg = 1; arg < argc; arg++) if (argv[arg][0] == '-')
         {
             string a = argv[arg];
@@ -353,7 +353,7 @@ int main(int argc, char* argv[])
         {
             DebugLog(-1, "compiling...");
 
-            cp.Compile(StripDirPart(fn).c_str(), NULL, flags);
+            cp.Compile(StripDirPart(fn).c_str(), nullptr, flags);
 
             if (bcf)
             {
@@ -401,13 +401,13 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     HANDLE handle_out = GetStdHandle(STD_OUTPUT_HANDLE);
     int hCrt = _open_osfhandle((long) handle_out, _O_TEXT);
     FILE* hf_out = _fdopen(hCrt, "w");
-    setvbuf(hf_out, NULL, _IONBF, 1);
+    setvbuf(hf_out, nullptr, _IONBF, 1);
     *stdout = *hf_out;
 
     HANDLE handle_in = GetStdHandle(STD_INPUT_HANDLE);
     hCrt = _open_osfhandle((long) handle_in, _O_TEXT);
     FILE* hf_in = _fdopen(hCrt, "r");
-    setvbuf(hf_in, NULL, _IONBF, 128);
+    setvbuf(hf_in, nullptr, _IONBF, 128);
     *stdin = *hf_in;
 
 
@@ -476,7 +476,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
     char filename[_MAX_PATH];
 
-    GetModuleFileNameA(NULL, filename, _MAX_PATH);
+    GetModuleFileNameA(nullptr, filename, _MAX_PATH);
     argv[0] = filename;
 
     // call the user specified main function

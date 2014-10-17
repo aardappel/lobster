@@ -21,7 +21,7 @@
 #include "sdlincludes.h"
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#define GLEXT(type, name) type name = NULL;
+#define GLEXT(type, name) type name = nullptr;
 GLBASEEXTS GLEXTS
 #undef GLEXT
 #endif

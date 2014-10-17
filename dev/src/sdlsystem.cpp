@@ -17,8 +17,8 @@
 #include "sdlincludes.h"
 #include "sdlinterface.h"
 
-SDL_Window *_sdl_window = NULL;
-SDL_GLContext _sdl_context = NULL;
+SDL_Window *_sdl_window = nullptr;
+SDL_GLContext _sdl_context = nullptr;
 
 
 /*
@@ -240,7 +240,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
         return SDLError("Unable to initialize SDL");
     }
 
-    SDL_SetEventFilter(SDLHandleAppEvents, NULL);
+    SDL_SetEventFilter(SDLHandleAppEvents, nullptr);
 
     DebugLog(-1, "SDL initialized...");
 
@@ -363,8 +363,8 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 void SDLShutdown()
 {
     // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. upon SDL_GL_DeleteContext
-    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = NULL;
-    if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = NULL;
+    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = nullptr;
+    if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = nullptr;
 
     SDL_Quit();
 }
@@ -537,7 +537,7 @@ bool SDLFrame(int2 &screensize)
     // doesn't work
     /*
     for (int i = 1; i <= 5; i++)
-        if (!(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(i)))
+        if (!(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(i)))
             updatemousebutton(i, false);
     */
 
@@ -618,15 +618,15 @@ bool SDLGrab(bool on)
 uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
 {
     auto f = SDL_RWFromFile(absfilename, "rb");
-    if (!f) return NULL;
+    if (!f) return nullptr;
     auto len = (size_t)SDL_RWseek(f, 0, RW_SEEK_END);
     SDL_RWseek(f, 0, RW_SEEK_SET);
     uchar *buf = (uchar *)malloc(len + 1);
-    if (!buf) { SDL_RWclose(f); return NULL; }
+    if (!buf) { SDL_RWclose(f); return nullptr; }
     buf[len] = 0;
     size_t rlen = (size_t)SDL_RWread(f, buf, 1, len);
     SDL_RWclose(f);
-    if (len != rlen || len <= 0) { free(buf); return NULL; }
+    if (len != rlen || len <= 0) { free(buf); return nullptr; }
     if (lenret) *lenret = len;
     return buf;
 }

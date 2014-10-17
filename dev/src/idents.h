@@ -53,7 +53,7 @@ struct Ident : Name
 
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Name(_name, _idx), line(_l), 
-          scope(_sc), prev(NULL), sf(NULL), 
+          scope(_sc), prev(nullptr), sf(nullptr), 
           single_assignment(true), constant(false), static_constant(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, -1) {}
 
@@ -117,7 +117,7 @@ struct Struct : Name
     
     bool readonly;
 
-    Struct(const string &_name, int _idx) : Name(_name, _idx), superclass(NULL), superclassidx(-1), readonly(false) {}
+    Struct(const string &_name, int _idx) : Name(_name, _idx), superclass(nullptr), superclassidx(-1), readonly(false) {}
     Struct() : Struct("", 0) {}
 
     void Serialize(Serializer &ser)
@@ -127,10 +127,10 @@ struct Struct : Name
         ser(readonly);
     }
 
-    bool Has(SharedField *fld)
+    UniqueField *Has(SharedField *fld)
     {
-        for (auto &uf : fields) if (uf.sf == fld) return true;
-        return false;
+        for (auto &uf : fields) if (uf.sf == fld) return &uf;
+        return nullptr;
     }
 };
 
@@ -150,7 +150,7 @@ struct SubFunction
     bool typechecked;
     Type returntype;
 
-    SubFunction(Function *_p) : parent(_p), args(NULL), body(NULL), next(NULL), subbytecodestart(0),
+    SubFunction(Function *_p) : parent(_p), args(nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
         typechecked(false), returntype(V_UNDEFINED) {}
 
     ~SubFunction()
@@ -177,7 +177,7 @@ struct Function : Name
     int ncalls;        // used by codegen to cull unused functions
 
     Function(const string &_name, int _idx, int _nargs, int _sl)
-     : Name(_name, _idx), nargs(_nargs), bytecodestart(0),  subf(NULL), sibf(NULL),
+     : Name(_name, _idx), nargs(_nargs), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), scopelevel(_sl), retvals(0), ncalls(0) {}
     Function() : Function("", 0, -1, -1) {}
     ~Function() { if (subf) delete subf; }
@@ -230,7 +230,7 @@ struct SymbolTable
         auto it = idents.find(name);
         if (dynscope && it != idents.end()) return it->second;
 
-        Ident *ident = NULL;
+        Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
         ident = new Ident(name, line, identtable.size(), scopelevels.back());
@@ -251,7 +251,7 @@ struct SymbolTable
     Ident *LookupLexMaybe(const string &name)
     {
         auto it = idents.find(name);
-        return it == idents.end() ? NULL : it->second;  
+        return it == idents.end() ? nullptr : it->second;  
     }
 
     Ident *LookupLexUse(const string &name, Lex &lex)
@@ -264,11 +264,11 @@ struct SymbolTable
 
     Ident *LookupIdentInFun(const string &idname, const string &fname) // slow, but infrequently used
     {
-        Ident *found = NULL;
+        Ident *found = nullptr;
         for (auto id : identtable)  
             if (id->name == idname && id->sf && id->sf->parent->name == fname)
             {
-                if (found) return NULL;
+                if (found) return nullptr;
                 found = id;
             }
 
@@ -287,7 +287,7 @@ struct SymbolTable
     SharedField *LookupWithStruct(const string &name, Lex &lex, Ident *&id)
     {
         auto fld = FieldUse(name);
-        if (!fld) return NULL;
+        if (!fld) return nullptr;
 
         assert(!id);
         for (auto &wp : withstack)
@@ -299,7 +299,7 @@ struct SymbolTable
             }
         }
 
-        return id ? fld : NULL;
+        return id ? fld : nullptr;
     }
     
     void ScopeStart()
@@ -400,7 +400,7 @@ struct SymbolTable
     SharedField *FieldUse(const string &name)
     {
         auto it = fields.find(name);
-        return it != fields.end() ? it->second : NULL;
+        return it != fields.end() ? it->second : nullptr;
     }
 
     Function &FunctionDecl(const string &name, int nargs, Lex &lex)
@@ -436,7 +436,7 @@ struct SymbolTable
     Function *FindFunction(const string &name)
     {
         auto it = functions.find(name);
-        return it != functions.end() ? it->second : NULL;
+        return it != functions.end() ? it->second : nullptr;
     }
 
     bool ReadOnlyIdent(uint v) { assert(v < identtable.size());    return identtable[v]->constant;  }
@@ -448,7 +448,7 @@ struct SymbolTable
 
     const char *TypeName(const Type &type) const
     {
-        return type.t == V_VECTOR && type.idx >= 0 ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
+        return type.IsStruct() ? ReverseLookupType(type.idx).c_str() : BaseTypeName(type.t);
     }
 
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)

@@ -48,10 +48,10 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
-#ifdef NULL
-#undef NULL
+#ifdef nullptr
+#undef nullptr
 #endif
-#define NULL nullptr
+#define nullptr nullptr
 
 // our universally used headers
 #include "platform.h"

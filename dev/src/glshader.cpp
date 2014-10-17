@@ -22,7 +22,7 @@ Shader *LookupShader(const char *name)
 {
     auto shi = shadermap.find(name);
     if (shi != shadermap.end()) return shi->second;
-    return NULL;
+    return nullptr;
 }
 
 void ShaderShutDown()
@@ -61,7 +61,7 @@ string GLSLError(uint obj, bool isprogram, const char *source)
 uint CompileGLSLShader(GLenum type, uint program, const GLchar *source, string &err) 
 {
     uint obj = glCreateShader(type);
-    glShaderSource(obj, 1, &source, NULL);
+    glShaderSource(obj, 1, &source, nullptr);
     glCompileShader(obj);
     GLint success;
     glGetShaderiv(obj, GL_COMPILE_STATUS, &success);
@@ -85,7 +85,7 @@ string LoadMaterialFile(const char *mfile)
     string err;
     string last;
     string vfunctions, pfunctions, vertex, pixel, vdecl, pdecl, shader;
-    string *accum = NULL;
+    string *accum = nullptr;
 
     string header;
     #ifdef PLATFORM_MOBILE
@@ -144,7 +144,7 @@ string LoadMaterialFile(const char *mfile)
                 shader = last;
                 vdecl.clear();
                 pdecl.clear();
-                accum = NULL;
+                accum = nullptr;
             }
             else if (last == "UNIFORMS")
             {
@@ -230,7 +230,7 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     glGetProgramiv(program, GL_LINK_STATUS, &status);
     if (status != GL_TRUE)
     {
-        GLSLError(program, true, NULL);
+        GLSLError(program, true, nullptr);
         throw string("linking failed for shader: ") + name;
     }
 

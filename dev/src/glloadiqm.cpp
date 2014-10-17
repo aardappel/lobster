@@ -137,47 +137,47 @@ template<class T> T getval(FILE *f) { T n; return fread(&n, 1, sizeof(n), f) == 
 template<class T> T getlil(FILE *f) { return lilswap(getval<T>(f)); }
 template<class T> T getbig(FILE *f) { return bigswap(getval<T>(f)); }
 
-static uchar *filebuffer = NULL;
-static float *inposition = NULL, *innormal = NULL, *intangent = NULL, *intexcoord = NULL;
-static uchar *inblendindex = NULL, *inblendweight = NULL, *incolor = NULL;
+static uchar *filebuffer = nullptr;
+static float *inposition = nullptr, *innormal = nullptr, *intangent = nullptr, *intexcoord = nullptr;
+static uchar *inblendindex = nullptr, *inblendweight = nullptr, *incolor = nullptr;
 static int nummeshes = 0, numtris = 0, numverts = 0, numjoints = 0, numframes = 0, numanims = 0;
-static iqmtriangle *tris = NULL, *adjacency = NULL;
-static iqmmesh *meshes = NULL;
-static const char **textures = NULL;
-static iqmjoint *joints = NULL;
-static iqmpose *poses = NULL;
-static iqmanim *anims = NULL;
-static iqmbounds *bounds = NULL;
-static float3x4 *baseframe = NULL, *inversebaseframe = NULL, *frames = NULL;
+static iqmtriangle *tris = nullptr, *adjacency = nullptr;
+static iqmmesh *meshes = nullptr;
+static const char **textures = nullptr;
+static iqmjoint *joints = nullptr;
+static iqmpose *poses = nullptr;
+static iqmanim *anims = nullptr;
+static iqmbounds *bounds = nullptr;
+static float3x4 *baseframe = nullptr, *inversebaseframe = nullptr, *frames = nullptr;
 
 void cleanupiqm()
 {
-    delete[] textures;         textures = NULL;
-    delete[] baseframe;        baseframe = NULL;
-    delete[] inversebaseframe; inversebaseframe = NULL;
-    delete[] frames;           frames = NULL;
-    free(filebuffer);          filebuffer = NULL;
+    delete[] textures;         textures = nullptr;
+    delete[] baseframe;        baseframe = nullptr;
+    delete[] inversebaseframe; inversebaseframe = nullptr;
+    delete[] frames;           frames = nullptr;
+    free(filebuffer);          filebuffer = nullptr;
 
-    inposition = NULL;
-    innormal = NULL;
-    intangent = NULL;
-    intexcoord = NULL;
-    inblendindex = NULL;
-    inblendweight = NULL;
-    incolor = NULL;
+    inposition = nullptr;
+    innormal = nullptr;
+    intangent = nullptr;
+    intexcoord = nullptr;
+    inblendindex = nullptr;
+    inblendweight = nullptr;
+    incolor = nullptr;
     nummeshes = 0;
     numtris = 0;
     numverts = 0;
     numjoints = 0;
     numframes = 0;
     numanims = 0;
-    tris = NULL;
-    adjacency = NULL;
-    meshes = NULL;
-    joints = NULL;
-    poses = NULL;
-    anims = NULL;
-    bounds = NULL;
+    tris = nullptr;
+    adjacency = nullptr;
+    meshes = nullptr;
+    joints = nullptr;
+    poses = nullptr;
+    anims = nullptr;
+    bounds = nullptr;
 }
 
 bool loadiqmmeshes(const char *filename, const iqmheader &hdr, uchar *buf)
@@ -317,7 +317,7 @@ Mesh *LoadIQM(const char *filename)
     if (!loadiqm(filename))
     {
         cleanupiqm();
-        return NULL;
+        return nullptr;
     }
     
     AnimVert *verts = new AnimVert[numverts];   // FIXME: can save 8 bytes on non-animated verts by using BasicVert

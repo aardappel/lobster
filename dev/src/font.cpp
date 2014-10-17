@@ -21,15 +21,15 @@
 #include "ftinterface.h"
 
 map<string, BitmapFont *> fontcache;
-BitmapFont *curfont = NULL;
+BitmapFont *curfont = nullptr;
 int curfontsize = -1;
 int maxfontsize = 128;
 
 map<string, OutlineFont *> loadedfaces;
-OutlineFont *curface = NULL;
+OutlineFont *curface = nullptr;
 string curfacename;
 
-Shader *texturedshader = NULL;
+Shader *texturedshader = nullptr;
 
 void CullFonts()
 {
@@ -42,7 +42,7 @@ void CullFonts()
         }
         else
         {
-            if (curfont == it->second) curfont = NULL;
+            if (curfont == it->second) curfont = nullptr;
             delete it->second;
             fontcache.erase(it++);
         }
@@ -53,11 +53,11 @@ void FontCleanup()
 {
     for (auto e : fontcache) delete e.second;
     fontcache.clear();
-    curfont = NULL;
+    curfont = nullptr;
 
     for (auto e : loadedfaces) delete e.second;
     loadedfaces.clear();
-    curface = NULL;
+    curface = nullptr;
 
     FTClosedown();
 }

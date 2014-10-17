@@ -24,6 +24,8 @@ struct Type
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx; }
     bool operator!=(const Type &o) const { return t != o.t || idx != o.idx; }
     bool operator< (const Type &o) const { return t <  o.t || (t == o.t && idx < o.idx); }
+
+    bool IsStruct() const { return t == V_VECTOR && idx >= 0; }
 };
 
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };
@@ -163,7 +165,7 @@ struct NativeRegistry
     NativeFun *FindNative(const string &name)
     {
         auto it = nfunlookup.find(name);
-        return it != nfunlookup.end() ? it->second : NULL;
+        return it != nfunlookup.end() ? it->second : nullptr;
     }
 };
 
@@ -190,18 +192,18 @@ struct AutoRegister
     BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
     natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); }
 
-#define ENDDECL0(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, NULL)
-#define ENDDECL1(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, NULL)
-#define ENDDECL2(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_NONE, NULL)
-#define ENDDECL3(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_NONE, NULL)
-#define ENDDECL4(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 4, NCM_NONE, NULL)
-#define ENDDECL5(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, NULL)
-#define ENDDECL6(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, NULL)
+#define ENDDECL0(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)
+#define ENDDECL1(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, nullptr)
+#define ENDDECL2(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_NONE, nullptr)
+#define ENDDECL3(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_NONE, nullptr)
+#define ENDDECL4(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 4, NCM_NONE, nullptr)
+#define ENDDECL5(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
+#define ENDDECL6(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
 
-#define ENDDECL3CONT(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONTINUATION, NULL)
+#define ENDDECL3CONT(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONTINUATION, nullptr)
 #define ENDDECL2CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, \
                                                                                                  &___##name::mid_##name)
 #define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, \
                                                                                                  &___##name::mid_##name)
-#define ENDDECL2LOOP(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_LOOP, NULL)
-#define ENDDECL2WHILE(   name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_WHILE, NULL)
+#define ENDDECL2LOOP(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_LOOP, nullptr)
+#define ENDDECL2WHILE(   name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_WHILE, nullptr)

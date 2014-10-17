@@ -28,9 +28,9 @@ struct Parser
     vector<ForwardFunctionCall> forwardfunctioncalls;
 
     Parser(const char *_src, SymbolTable &_st, char *_stringsource)
-        : lex(_src, _st.filenames, _stringsource), root(NULL), st(_st), currentstruct(NULL)
+        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), currentstruct(nullptr)
     {
-        assert(parserpool == NULL);
+        assert(parserpool == nullptr);
         parserpool = new SlabAlloc();
     }
     
@@ -39,10 +39,10 @@ struct Parser
         delete root;
 
         delete parserpool;
-        parserpool = NULL;
+        parserpool = nullptr;
     }
 
-    void Error(string err, const Node *what = NULL)
+    void Error(string err, const Node *what = nullptr)
     {
         if (what) lex.Error(err, what->fileidx, what->linenumber);
         else      lex.Error(err);
@@ -63,7 +63,7 @@ struct Parser
         assert(forwardfunctioncalls.empty());
     }
 
-    SubFunction *CurSF() { return subfunctionstack.empty() ? NULL : subfunctionstack.back(); }
+    SubFunction *CurSF() { return subfunctionstack.empty() ? nullptr : subfunctionstack.back(); }
 
     void AddTail(Node **&tail, Node *a)
     {
@@ -73,7 +73,7 @@ struct Parser
 
     Node *ParseStatements()
     {
-        Node *list = NULL;
+        Node *list = nullptr;
         Node **tail = &list;
 
         for (;;)
@@ -125,11 +125,11 @@ struct Parser
 
     Node *ParseVector(int fieldid = -1)
     {
-        if (IsNext(T_RIGHTBRACKET)) return NULL;
+        if (IsNext(T_RIGHTBRACKET)) return nullptr;
 
         bool indented = IsNext(T_INDENT);
 
-        Node *list = NULL;
+        Node *list = nullptr;
         Node **tail = &list;
 
         for (;;)
@@ -181,7 +181,7 @@ struct Parser
 
     Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
     {
-        Node *e = NULL;
+        Node *e = nullptr;
         if (IsNextId())
         {
             string id2 = lastid;
@@ -286,7 +286,7 @@ struct Parser
                     struc.fields.push_back(UniqueField(ids->head()->exptype, ids->head()->fld()));
                 }
 
-                currentstruct = NULL;
+                currentstruct = nullptr;
 
                 return new Node(lex, T_STRUCTDEF, new Node(lex, &struc), v);
             }
@@ -421,7 +421,7 @@ struct Parser
         if (withtype && dest.idx < 0) Error(":: must be used with a struct type");
     }
 
-    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", Arg *args = NULL, int nargs = -1)
+    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", Arg *args = nullptr, int nargs = -1)
     {
         if (derefarg)
         {
@@ -453,7 +453,7 @@ struct Parser
 
         CheckArg(nargs, thisarg, fname);
         if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
-            arg = new Node(lex, T_CLOSURE, NULL, new Node(lex, T_LIST, arg));
+            arg = new Node(lex, T_CLOSURE, nullptr, new Node(lex, T_LIST, arg));
 
         return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
     }
@@ -467,7 +467,7 @@ struct Parser
     {
         if (argdecls && thisarg + 1 < nargs) trailingkeywordedfunctionvaluestack.push_back(argdecls[thisarg + 1].id);
 
-        Node *e = NULL;
+        Node *e = nullptr;
         switch (lex.token)
         {
             case T_COLON:
@@ -492,14 +492,14 @@ struct Parser
         if (!e)
         {
             if (coroutine) { e = new Node(lex, T_COCLOSURE); coroutine = false; }
-            else return NULL;
+            else return nullptr;
         }
 
         CheckArg(nargs, thisarg, fname);
 
         thisarg++;
 
-        Node *tail = NULL;
+        Node *tail = nullptr;
 
         bool islf = lex.token == T_LINEFEED;
         if (argdecls && thisarg < nargs && (lex.token == T_IDENT || islf))
@@ -526,7 +526,7 @@ struct Parser
         st.ScopeStart();
         if (full) Expect(T_LEFTPAREN);
 
-        Node *n = NULL;
+        Node *n = nullptr;
 
         if (lex.token != T_RIGHTPAREN && parseargs)
         {
@@ -563,10 +563,10 @@ struct Parser
         return n;
     }
 
-    Node *ParseFunDefBody(Node *n, Function *f = NULL)  // continuation of ParseFunDefArgs(), n is its return value
+    Node *ParseFunDefBody(Node *n, Function *f = nullptr)  // continuation of ParseFunDefArgs(), n is its return value
     {
         size_t autoparlevel = autoparstack.size();
-        Node *body = NULL;
+        Node *body = nullptr;
 
         if (IsNext(T_INDENT))
         {
@@ -609,11 +609,11 @@ struct Parser
         nrv = 1;
         if (lex.token != T_COMMA) return first;
 
-        auto list = new Node(lex, T_MULTIRET, first, NULL);
+        auto list = new Node(lex, T_MULTIRET, first, nullptr);
         auto tail = &list->tailexps();
         while (IsNext(T_COMMA))
         {
-            *tail = new Node(lex, T_MULTIRET, ParseOpExp(), NULL);
+            *tail = new Node(lex, T_MULTIRET, ParseOpExp(), nullptr);
             tail = &(*tail)->tailexps();
             nrv++;
         }
@@ -633,7 +633,7 @@ struct Parser
     {
         if (IsNext(T_RETURN))
         {
-            Node *rv = NULL;
+            Node *rv = nullptr;
             int nrv = 0;
             if (!Either(T_LINEFEED, T_DEDENT, T_FROM))
             {
@@ -792,7 +792,7 @@ struct Parser
             auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(),  bestf->subf->args, bestf->nargs);
             auto nargs = CountList(args);
 
-            f = FindFunctionWithNargs(f, nargs, idname, NULL);
+            f = FindFunctionWithNargs(f, nargs, idname, nullptr);
 
             return new Node(lex, T_CALL, new Node(lex, f->subf), args);
         }
@@ -802,7 +802,7 @@ struct Parser
         if (id)
             return new Node(lex, T_DYNCALL, new Node(lex, id), args);
 
-        auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)NULL), args);
+        auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)nullptr), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
         forwardfunctioncalls.push_back(ffc);
         return n;
@@ -815,7 +815,7 @@ struct Parser
                 return f;
 
         Error("no version of function " + idname + " takes " + inttoa(nargs) + " arguments", errnode);
-        return NULL;
+        return nullptr;
     }
 
     void ResolveForwardFunctionCalls()
@@ -907,7 +907,7 @@ struct Parser
 
             case T_LEFTPAREN:   // only for dyn calls
             {
-                auto args = ParseFunArgs(false, NULL);
+                auto args = ParseFunArgs(false, nullptr);
                 n = new Node(lex, T_DYNCALL, n, args);
                 break;
             }
@@ -995,7 +995,7 @@ struct Parser
                 string idname = lex.sattr;
                 Expect(T_IDENT);
                 return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
-                                idname, NULL, true));
+                                idname, nullptr, true));
             }
 
             case T_IDENT:
@@ -1007,7 +1007,7 @@ struct Parser
                 {
                     case T_LEFTPAREN:
                         return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
-                                                 idname, NULL, false);
+                                                 idname, nullptr, false);
 
                     default:
                         if (idname[0] == '_')
@@ -1019,7 +1019,7 @@ struct Parser
                         }
                         else
                         {
-                            Ident *id = NULL;
+                            Ident *id = nullptr;
                             auto fld = st.LookupWithStruct(idname, lex, id);
                             if (fld)
                             {
@@ -1033,7 +1033,7 @@ struct Parser
 
             default:
                 Error("illegal start of expression: " + lex.TokStr());
-                return NULL;
+                return nullptr;
         }
     }
 

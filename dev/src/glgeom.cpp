@@ -16,7 +16,7 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-void SetAttribs(uint vbo, const char *fmt, int vertsize1, char *buf1 = NULL, int vertsize2 = 0, char *buf2 = NULL)
+void SetAttribs(uint vbo, const char *fmt, int vertsize1, char *buf1 = nullptr, int vertsize2 = 0, char *buf2 = nullptr)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 

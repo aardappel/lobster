@@ -195,7 +195,7 @@ struct Value
         CoRoutine *cval;
         LenObj *lobj;
         RefObj *ref;
-        int *ip;        // NULL means its a coroutine yield
+        int *ip;        // nullptr means its a coroutine yield
     };
 
     inline Value()                    : type(V_UNKNOWN),   ival(0) {}
@@ -428,7 +428,7 @@ struct CoRoutine : RefObj
     CoRoutine *parent;
 
     CoRoutine(int _ss, int *_rip, int *_vip, CoRoutine *_p)
-        : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(NULL), stackcopylen(0), stackcopymax(0),
+        : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           returnip(_rip), varip(_vip), parent(_p) {}
 
     Value &Current()
@@ -455,7 +455,7 @@ struct CoRoutine : RefObj
 
         assert(curco == this);
         curco = parent;
-        parent = NULL;
+        parent = nullptr;
 
         int newlen = top - stackstart;
         Resize(newlen);

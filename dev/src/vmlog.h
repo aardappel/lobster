@@ -21,7 +21,7 @@ struct VMLog
 
     VM &vm;
 
-    VMLog(VM &_vm, bool _ufs) : vm(_vm), uses_frame_state(_ufs), logi(0), lognew(NULL) {}
+    VMLog(VM &_vm, bool _ufs) : vm(_vm), uses_frame_state(_ufs), logi(0), lognew(nullptr) {}
 
     void LogInit()
     {
@@ -54,7 +54,7 @@ struct VMLog
             logwrite.clear();
             logwrite.push_back(Value(0, V_LOGMARKER));
             logi = 1;
-            lognew = NULL;
+            lognew = nullptr;
 
             #ifdef _DEBUG
                 #if 0
@@ -140,7 +140,7 @@ struct VMLog
 
         if (lognew)
         {
-            if (lognew == funstart) lognew = NULL;
+            if (lognew == funstart) lognew = nullptr;
         }
         else for (;;) switch (logread[logi].type)
         {

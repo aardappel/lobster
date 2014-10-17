@@ -24,14 +24,14 @@ int2 screensize = int2_0;
 
 Primitive polymode = PRIM_FAN;
 
-IntResourceManagerCompact<Mesh> *meshes = NULL;
+IntResourceManagerCompact<Mesh> *meshes = nullptr;
 
 map<string, uint> texturecache;
 
 float4 curcolor = float4_0;
 
-Shader *currentshader = NULL;
-Shader *colorshader = NULL;
+Shader *currentshader = nullptr;
+Shader *colorshader = nullptr;
 
 float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
@@ -47,14 +47,14 @@ void GraphicsShutDown()  // should be safe to call even if it wasn't initialized
     if (meshes)
     {
         delete meshes;
-        meshes = NULL;
+        meshes = nullptr;
     }
 
     texturecache.clear();
 
     ShaderShutDown();
-    currentshader = NULL;
-    colorshader = NULL;
+    currentshader = nullptr;
+    colorshader = nullptr;
 
     SDLSoundClose();
     SDLShutdown();
@@ -749,7 +749,7 @@ void AddGraphics()
 
         if (sh) currentshader = sh;
 
-        return Value(sh != NULL);
+        return Value(sh != nullptr);
     }
     ENDDECL1(gl_setshader, "shader", "S", "I",
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
