@@ -92,6 +92,7 @@
     T(T_RIGHTBRACKET, "]", TT_NONE, NO, a, NO, b) \
     T(T_SEMICOLON, ";", TT_NONE, NO, a, NO, b) \
     T(T_AT, "@", TT_NONE, NO, a, NO, b) \
+    T(T_QUESTIONMARK, "?", TT_NONE, NO, a, NO, b) \
     T(T_COMMA, ",", TT_NONE, NO, a, NO, b) \
     T(T_COLON, ":", TT_NONE, NO, a, NO, b) \
     T(T_DEFCONST, ":==", TT_NONE, NO, a, NO, b) \

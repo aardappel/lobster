@@ -248,7 +248,7 @@ struct Lex : LoadedFile
             case '!': cont = true; second('=', T_NEQ); cont = false; return T_NOT;
             case '>': cont = true; second('=', T_GTEQ); return T_GT;
 
-            case '?': cont = true; second('=', T_LOGASSIGN); Error("illegal token: ?");
+            case '?': cont = true; second('=', T_LOGASSIGN); cont = false; return T_QUESTIONMARK;
 
             case ':':
                 cont = true;

@@ -421,13 +421,20 @@ struct Parser
                 Type elem;
                 ParseType(elem, false);
                 Expect(T_RIGHTBRACKET);
-                if (!elem.CanMakeVectorOf()) Error("can\'t nest vector types this deep");
-                dest = elem.VectorOf();
+                if (!elem.CanWrap()) Error("can\'t nest vector types this deep");
+                dest = elem.Wrap();
                 break;
             }
 
             default:
                 Error("illegal type syntax: " + lex.TokStr());
+        }
+
+        if (IsNext(T_QUESTIONMARK))
+        {
+            if (dest.Numeric()) Error("numeric types can\'t be made nilable");
+            if (!dest.CanWrap()) Error("can\'t nest nilable vector types this deep");
+            dest = dest.Wrap(V_NILABLE);
         }
 
         if (withtype && dest.idx < 0) Error(":: must be used with a struct type");
@@ -780,9 +787,14 @@ struct Parser
             {
                 if (!*ai)
                 {
-                    if (nf->args[i].flags == NF_OPTIONAL)
+                    auto &type = nf->args[i].type;
+                    if (type.t == V_NILABLE)
                     {
-                        *ai = new Node(lex, T_LIST, new Node(lex, T_NIL));   
+                        *ai = new Node(lex, T_LIST, type.t2 == V_INT
+                                       ? new Node(lex, T_INT, (int)0) 
+                                       : (type.t2 == V_FLOAT 
+                                            ? new Node(lex, T_FLOAT, 0.0f)
+                                            : new Node(lex, T_NIL)));
                     }
                     else
                     {
@@ -989,7 +1001,8 @@ struct Parser
                     }
                     else
                     {
-                        if (type.t != V_VECTOR) Error("constructor must have struct or vector type");
+                        if (type.t != V_VECTOR)
+                            Error("constructor must have struct or vector type");
                     }
                 }
                 return new Node(lex, T_CONSTRUCTOR, n, new Node(lex, type));

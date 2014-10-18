@@ -227,11 +227,12 @@ void DumpBuiltins()
             {
                 Arg &a = nf->args[i];
                 fprintf(f, "%s%s%s<font color=\"#666666\">%s</font>%s",
-                    a.flags == NF_OPTIONAL ? " [" : "",
+                    a.type.t == V_NILABLE ? " [" : "",
                     i ? ", " : "",
                     a.id.c_str(),
-                    a.type.t == V_ANY ? "" : (string(":") + BaseTypeName(a.type.t)).c_str(),
-                    a.flags == NF_OPTIONAL ? "]" : ""
+                    a.type.t == V_ANY ? "" : (string(":") + 
+                        BaseTypeName(a.type.t == V_NILABLE ? a.type.Element().t : a.type.t)).c_str(),
+                    a.type.t == V_NILABLE ? "]" : ""
                 );
             }
             fprintf(f, ")");

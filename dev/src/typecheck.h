@@ -94,6 +94,7 @@ struct TypeChecker
         switch (sub.t)
         {
             case V_ANY: return;
+            case V_NILABLE: if (type.t == V_NIL || type == sub.Element()) return; break;  // FIXME: more flexible
             case V_VECTOR:
                 if (sub.idx < 0)
                 {
@@ -398,7 +399,7 @@ struct TypeChecker
                 return Type(V_FUNCTION);
 
 
-
+            case T_INDEX:
 
             case T_CO_AT:
 

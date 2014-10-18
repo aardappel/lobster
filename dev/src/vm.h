@@ -43,7 +43,6 @@ struct VM : VMBase
     size_t *byteprofilecounts;
     size_t *lineprofilecounts;
     
-    
     SymbolTable &st;
 
     bool trace;
@@ -600,7 +599,7 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    void Require(const Value &v, int t, const char *op) // FIXME: make this a macro so we don't pass this extra string
+    void Require(const Value &v, ValueType t, const char *op) // FIXME: make this a macro so we don't pass this extra string
     {
         if (v.type != t)
         {
@@ -713,7 +712,7 @@ struct VM : VMBase
                     Value fun = POP();
                     Require(fun, V_FUNCTION, "function call");
                     auto nargs = *ip++;
-                    if (fun.ip) FunIntro(nargs, fun.ip, -1, ip);
+                    if (fun.ip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs, fun.ip, -1, ip);
                     else CoYield(nargs);
                     break;
                 }
@@ -1082,7 +1081,7 @@ struct VM : VMBase
                 case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;          }               break; }
                 case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x); } else x.DEC(); break; }
 
-                case IL_TT:       { auto &v = TOP(); int t = *ip++; if (v.type != t) TTError(BaseTypeName(t), v); break; }
+                case IL_TT:       { auto &v = TOP(); auto t = (ValueType)*ip++; if (v.type != t) TTError(BaseTypeName(t), v); break; }
                 case IL_TTFLT:    { auto &v = TOP(); if (!Coerce(v, V_FLOAT))  TTError("float",  v); break; }
                 case IL_TTSTR:    { auto &v = TOP(); if (!Coerce(v, V_STRING)) TTError("string", v); break; }
                 case IL_TTSTRUCT: { auto &v = TOP();
@@ -1111,7 +1110,7 @@ struct VM : VMBase
                 }
 
                 case IL_COCL:
-                    PUSH(Value((int *)nullptr, V_FUNCTION));
+                    PUSH(Value((int *)Value::FAKE_COCLOSURE_ADDRESS, V_FUNCTION));
                     break;
 
                 case IL_CORO:
@@ -1240,7 +1239,7 @@ struct VM : VMBase
             Error(string("can't write to object of value type ") + ProperTypeName(Value(v)));
     }
 
-    bool Coerce(Value &v, int desired)
+    bool Coerce(Value &v, ValueType desired)
     {
         if (v.type == desired) return true;
         switch (desired)
@@ -1259,7 +1258,7 @@ struct VM : VMBase
         return false;
     }
 
-    void BuiltinCheck(Value &v, int desired, const char *name)
+    void BuiltinCheck(Value &v, ValueType desired, const char *name)
     {       
         if (!Coerce(v, desired))
         {
@@ -1271,7 +1270,10 @@ struct VM : VMBase
     {       
         if (!Coerce(v, nf.args[i].type.t))
         {
-            if ((nf.args[i].flags == NF_OPTIONAL) && v.type == V_NIL) return;
+            if (nf.args[i].type.t == V_NILABLE)
+            {
+                if (v.type == V_NIL || Coerce(v, nf.args[i].type.t2)) return;
+            }
             Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + 
                   "\" needs to have type " + st.TypeName(nf.args[i].type) + ", not " + ProperTypeName(v), v);
         }

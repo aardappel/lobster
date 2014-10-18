@@ -14,7 +14,7 @@
 
 struct Type
 {
-    ValueType t, t2, t3, t4;  // If t == V_VECTOR, t2 is the contained type, etc.
+    ValueType t, t2, t3, t4;  // If t == V_VECTOR|V_NILABLE, t2 is the contained type, etc.
                               // Means we only allow vector types to nest 3 deep.
     int idx;                  // if any t* == V_STRUCT
 
@@ -37,7 +37,7 @@ struct Type
 
     Type Element() const
     {
-        assert(t == V_VECTOR);
+        assert(t == V_VECTOR || t == V_NILABLE);
         Type s = *this;
         s.t = s.t2;
         s.t2 = s.t3;
@@ -46,16 +46,16 @@ struct Type
         return s;
     }
 
-    bool CanMakeVectorOf() const { return t4 == V_ANY; }
+    bool CanWrap() const { return t4 == V_ANY; }
 
-    Type VectorOf() const
+    Type Wrap(ValueType with = V_VECTOR) const
     {
         assert(t4 == V_ANY);
         Type v = *this;
         v.t4 = v.t3;
         v.t3 = v.t2;
         v.t2 = v.t;
-        v.t = V_VECTOR;
+        v.t = with;
         return v;
     }
 
@@ -74,7 +74,8 @@ struct Arg
     {
         id = name;
         flags = AF_NONE;
-        if (t >= 'a') { flags = NF_OPTIONAL; t -= 'a' - 'A'; }
+        bool optional = false;
+        if (t >= 'a') { optional = true; t -= 'a' - 'A'; }
         switch (t)
         {
             case 'I': type.t = V_INT; break;
@@ -86,6 +87,11 @@ struct Arg
             case 'R': type.t = V_COROUTINE; break;
             case 'A': type.t = V_ANY; break;
             default:  assert(0);
+        }
+        if (optional)
+        {
+            assert(type.CanWrap());
+            type = type.Wrap(V_NILABLE);
         }
     }
 };

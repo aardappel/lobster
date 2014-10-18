@@ -144,7 +144,7 @@ void AddPhysicsOps()
 	{
 		auto &body = GetBody(other_id, position);
 		auto sz = ValueDecTo<float2>(size);
-		auto r = rot.True() ? rot.fval : 0;
+		auto r = rot.fval;
 		b2PolygonShape shape;
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);

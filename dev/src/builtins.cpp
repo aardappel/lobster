@@ -294,10 +294,9 @@ void AddBuiltins()
 
     STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
     {
-        int amount = n.type == V_INT ? n.ival : 1;
-        if (amount <= 0 || i.ival < 0 || i.ival > l.vval->len)
+        if (n.ival < 0 || i.ival < 0 || i.ival > l.vval->len)
             g_vm->BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        l.vval->insert(a, i.ival, amount);
+        l.vval->insert(a, i.ival, max(n.ival, 1));
         return l;
     }
     ENDDECL4(insert, "xs,i,x,n", "VIAi", "V",
@@ -306,8 +305,8 @@ void AddBuiltins()
 
     STARTDECL(remove) (Value &l, Value &i, Value &n)
     {
-        int amount = n.type == V_INT ? n.ival : 1;
-        if (amount <= 0 || amount > l.vval->len || i.ival < 0 || i.ival > l.vval->len - amount)
+        int amount = max(n.ival, 1);
+        if (n.ival < 0 || amount > l.vval->len || i.ival < 0 || i.ival > l.vval->len - amount)
             g_vm->BuiltinError("remove: index or n out of range");
         auto v = l.vval->remove(i.ival, amount);
         l.DEC();

@@ -14,6 +14,42 @@
 
 #define LOG_ENABLED 1
 
+enum ValueType
+{
+    V_MINVMTYPES = -7,
+    V_STRUCT = -6,      // used in the typesystem (not at runtime) as an alias for V_VECTOR
+    V_CYCLEDONE = -5,
+    V_VALUEBUF = -4,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
+    V_COROUTINE = -3,
+    V_STRING = -2,      // refc types are negative
+    V_VECTOR = -1,
+    V_INT = 0,          // quickest check for most common type
+    V_FLOAT = 1, 
+    V_FUNCTION,
+    V_NIL,
+    V_UNDEFINED,        // used for unitialized values or functions returning "void".
+    V_NILABLE,          // used in the typesystem (not at runtime) to indicate a value that may be nil or a reference type.
+    V_ANY,              // used in the typesystem (not at runtime) to indicate any other type.
+    // used in function calling, if they appear as a value in a program, that's a bug
+    V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
+    V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
+    V_MAXVMTYPES
+};
+
+static const char *BaseTypeName(ValueType t)
+{
+    static const char *typenames[] =
+    {
+        "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
+        "int", "float", "function", "nil", "undefined", "nilable", "any",
+        "<retip>", "<funstart>", "<nargs>", "<deffun>", 
+        "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
+    };
+    if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
+        return "<internal-error-type>";
+    return typenames[t - V_MINVMTYPES - 1];
+}
+
 struct Value;
 struct LString;
 struct LVector;
@@ -39,7 +75,7 @@ struct VMBase
 
     //virtual Value EvalC(Value &cl, int nargs) = 0;
     virtual Value BuiltinError(string err) = 0;
-    virtual void BuiltinCheck(Value &v, int desired, const char *name) = 0;
+    virtual void BuiltinCheck(Value &v, ValueType desired, const char *name) = 0;
     virtual void Push(const Value &v) = 0;
     virtual Value Pop() = 0;
     virtual Value LoopVal(int i) = 0;
@@ -63,41 +99,6 @@ struct VMBase
 // the 2 globals that make up the current VM instance
 extern VMBase *g_vm;
 extern SlabAlloc *vmpool;
-
-enum ValueType
-{
-    V_MINVMTYPES = -7,
-    V_STRUCT = -6,      // used in the typesystem (not at runtime) as an alias for V_VECTOR
-    V_CYCLEDONE = -5,
-    V_VALUEBUF = -4,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
-    V_COROUTINE = -3,
-    V_STRING = -2,      // refc types are negative
-    V_VECTOR = -1,
-    V_INT = 0,          // quickest check for most common type
-    V_FLOAT = 1, 
-    V_FUNCTION,
-    V_NIL,
-    V_UNDEFINED,        // used for unitialized values or functions returning "void".
-    V_ANY,              // used in the typesystem (not at runtime) to indicate any other type.
-    // used in function calling, if they appear as a value in a program, that's a bug
-    V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
-    V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
-    V_MAXVMTYPES
-};
-
-static const char *BaseTypeName(int t)
-{
-    static const char *typenames[] =
-    {
-        "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined", "any",
-        "<retip>", "<funstart>", "<nargs>", "<deffun>", 
-        "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
-    };
-    if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
-        return "<internal-error-type>";
-    return typenames[t - V_MINVMTYPES - 1];
-}
 
 struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 {
@@ -196,8 +197,10 @@ struct Value
         CoRoutine *cval;
         LenObj *lobj;
         RefObj *ref;
-        int *ip;        // nullptr means its a coroutine yield
+        int *ip;        // FAKE_COCLOSURE_ADDRESS means its a coroutine yield
     };
+
+    static const int FAKE_COCLOSURE_ADDRESS = 1;
 
     inline Value()                    : type(V_UNDEFINED), ival(0) {}
     inline Value(int i)               : type(V_INT),       ival(i) {}
@@ -254,7 +257,7 @@ struct Value
     {
         assert(type == V_FUNCTION);
         //assert(*ip == IL_FUNSTART);
-        return ip ? ip[1] : 1;
+        return ip != (int *)FAKE_COCLOSURE_ADDRESS ? ip[1] : 1;
     }
 
 

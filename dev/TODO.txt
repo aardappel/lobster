@@ -1,3 +1,11 @@
+- typechecker
+  * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
+
+  * make sure no incorrect types are stored in exptype
+  * for function call nodes, as spec as to which subf they call, or none in specific
+  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
+    * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
+
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 
 vertex_neighbors :== [
@@ -17,11 +25,6 @@ vertex_neighbors :== [
 
 - [float] / int does int division, which is wrong
 
-- typechecker
-  * make sure no incorrect types are stored in exptype
-  * for function call nodes, as spec as to which subf they call, or none in specific
-  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
-    * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
 
 - the "ERROR: XAudio2: XAudio2Create() failed at initialization" is apparently happening on all sorts of cheap laptops, including Win7 & 8. SDL folk don't seem to want to fix, it, maybe I should
 
