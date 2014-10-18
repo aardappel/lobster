@@ -58,6 +58,8 @@ struct Type
         v.t = V_VECTOR;
         return v;
     }
+
+    bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 };
 
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };

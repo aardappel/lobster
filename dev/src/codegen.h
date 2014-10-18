@@ -33,7 +33,7 @@
     F(IADD) F(ISUB) F(IMUL) F(IDIV) F(IMOD) F(ILT) F(IGT) F(ILE) F(IGE) F(IEQ) F(INE) \
     F(FADD) F(FSUB) F(FMUL) F(FDIV) F(FMOD) F(FLT) F(FGT) F(FLE) F(FGE) F(FEQ) F(FNE) \
     F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
-    F(UMINUS) F(LOGNOT) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
+    F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
     F(PUSHONCE) F(PUSHPARENT) \
     F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
     F(FIELDTABLES) F(LOGREAD)
@@ -351,6 +351,16 @@ struct CodeGen
             case T_UMINUS:
                 Gen(n->child(), retval);
                 if (retval) Emit(IL_UMINUS);
+                break;
+
+            case T_I2F:
+                Gen(n->child(), retval);
+                if (retval) Emit(IL_I2F);
+                break;
+
+            case T_A2S:
+                Gen(n->child(), retval);
+                if (retval) Emit(IL_A2S);
                 break;
 
             case T_CLOSURE: if (retval) GenFunctionVal(n); break; 

@@ -76,7 +76,9 @@
     T(T_POSTINCR, "+++", TT_UNARY, NO, a, NO, b) \
     T(T_POSTDECR, "---", TT_UNARY, NO, a, NO, b) \
     T(T_UMINUS, "-", TT_UNARY, NO, a, NO, b) \
-    T(T_CONSTRUCTOR, "construct", TT_NONE, YES, constructor_args, YES, constructor_type) \
+    T(T_I2F, "tofloat", TT_UNARY, NO, a, NO, b) \
+    T(T_A2S, "tostring", TT_UNARY, NO, a, NO, b) \
+    T(T_CONSTRUCTOR, "constructor", TT_NONE, YES, constructor_args, YES, constructor_type) \
     \
     /* These are used ONLY as tokens: */ \
     T(T_LINEFEED, "linefeed", TT_NONE, NO, a, NO, b) \

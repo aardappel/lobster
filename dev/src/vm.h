@@ -945,6 +945,22 @@ struct VM : VMBase
                     break;
                 }
 
+                case IL_I2F:
+                {
+                    Value a = POP();
+                    assert(a.type == V_INT);
+                    PUSH((float)a.ival);    
+                    break;
+                }                
+                
+                case IL_A2S:
+                {
+                    Value a = POP();
+                    PUSH(NewString(a.ToString(programprintprefs)));   
+                    a.DEC();
+                    break;
+                }
+
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 
                 #define GETOFFSET(i, vec, mode) \

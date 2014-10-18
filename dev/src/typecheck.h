@@ -11,12 +11,18 @@ struct TypeChecker
         parser.root->exptype = TypeCheck(*parser.root);
     }
 
-    void TypeError(const char *context, const char *required, const char *got, Node &n)
+    void TypeError(const char *required, const Type &got, const Node &n, const char *context = nullptr)
     {
-        TypeError("\"" + string(context) + "\" requires type: " + required + ", got: " + got, n);
+        TypeError(string("\"") +
+                  (context ? context : TName(n.type)) + 
+                  "\" requires type: " + 
+                  required + 
+                  ", got: " + 
+                  st.TypeName(got).c_str(),
+                  n);
     }
 
-    void TypeError(string err, Node &n)
+    void TypeError(string err, const Node &n)
     {
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
@@ -48,11 +54,27 @@ struct TypeChecker
         return false;
     }
 
-    Type Union(const Node *a, const Node *b)
+    Type Union(const Node *a, const Node *b, bool coercions)
     {
-        if (a->exptype == b->exptype) return a->exptype;
-        if (ConvertsTo(a->exptype, b->exptype)) return b->exptype;
-        if (ConvertsTo(b->exptype, a->exptype)) return a->exptype;
+         return Union(a->exptype, b->exptype, coercions);
+    }
+    Type Union(const Type &at, const Type &bt, bool coercions)
+    {
+        if (at.t == bt.t)
+        {
+            if (at == bt) return at;
+            if (at.t == V_VECTOR) return Type(V_VECTOR);
+        }
+        else
+        {
+            if (coercions)
+            {
+                if (ConvertsTo(at, bt)) return bt;
+                if (ConvertsTo(bt, at)) return at;
+            }
+            if ((at.t == V_VECTOR && bt.t == V_STRUCT) ||
+                (bt.t == V_VECTOR && at.t == V_STRUCT)) return Type(V_VECTOR);
+        }
         return Type(V_ANY);
     }
 
@@ -62,6 +84,9 @@ struct TypeChecker
         return type == sub;
     }
 
+    void SubType(const Type &sub, Node &n) { SubType(n.left(), sub, n); SubType(n.right(), sub, n); }
+
+    void SubType(Node *&a, const Type &sub, const Node &context) { SubType(a, sub, TName(context.type)); }
     void SubType(Node *&a, const Type &sub, const char *context)
     {
         const Type &type = a->exptype;
@@ -69,9 +94,16 @@ struct TypeChecker
         switch (sub.t)
         {
             case V_ANY: return;
-            //case V_FLOAT: if (type.t == V_INT) { a = new Node(T_I2F, a); return; } break;
+            case V_VECTOR:
+                if (sub.idx < 0)
+                {
+                    if (type.t == V_VECTOR || type.t == V_STRUCT) return;
+                }
+                break;
+            case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); return; } break;
+            case V_STRING: a = new Node(lex, T_A2S, a); return;
         }
-        TypeError(context, st.TypeName(sub).c_str(), st.TypeName(type).c_str(), *a);
+        TypeError(st.TypeName(sub).c_str(), type, *a, context);
     }
 
     Node *RetVal(Node *a)
@@ -85,35 +117,47 @@ struct TypeChecker
         return a;
     }
 
-    void TypeCheckBody(SubFunction *sf, Node *args, Function &f)
+    void TypeCheck(SubFunction &sf)
     {
-        // Check all the manually typed args.
-        int i = 0;
-        for (Node *list = args; list; list = list->tail())
+        if (!sf.typechecked)
         {
-            auto &arg = sf->args[i++];
-            if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
-        }
-        if (!sf->typechecked)
-        {
-            scopes.push_back(sf);
+            scopes.push_back(&sf);
 
-            sf->typechecked = true;
-            i = 0;
-            for (Node *params = sf->body->parameters(); params; params = params->tail())
+            sf.typechecked = true;
+            int i = 0;
+            for (Node *params = sf.body->parameters(); params; params = params->tail())
             {
-                auto &arg = sf->args[i++];
+                auto &arg = sf.args[i++];
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
                 params->head()->ident()->type = arg.type;
             }
-            sf->body->exptype = TypeCheck(*sf->body);
+            sf.body->exptype = TypeCheck(*sf.body);
             Node *last = nullptr;
-            for (auto topl = sf->body->body(); topl; topl = topl->tail()) last = topl;
+            for (auto topl = sf.body->body(); topl; topl = topl->tail()) last = topl;
             assert(last);
             last->head() = RetVal(last->head());
 
             scopes.pop_back();
+        }
+    }
+
+    void MathCheck(const Type &type, const Node &n)
+    {
+        if (n.type == T_MOD || n.type == T_MODEQ)
+        {
+            if (type.t != V_INT)
+                TypeError("int", type, n);
+        }
+        else if (n.type == T_PLUS || n.type == T_PLUSEQ)
+        {
+            if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_STRING)
+                TypeError("numeric/string/vector/struct", type, n);
+        }
+        else
+        {
+            if (!type.Numeric())
+                TypeError("numeric", type, n);
         }
     }
 
@@ -144,24 +188,21 @@ struct TypeChecker
             case T_PLUS:
             case T_MOD:
             {
-                auto type = Union(n.left(), n.right());
-                if (n.type == T_MOD)
-                {
-                    if (type.t != V_INT)
-                        TypeError(TName(n.type), "int", st.TypeName(type).c_str(), n);
-                }
-                else if (n.type == T_PLUS)
-                {
-                    if (type.t != V_FLOAT && type.t != V_INT && type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_STRING)
-                        TypeError(TName(n.type), "numeric/string/vector", st.TypeName(type).c_str(), n);
-                }
-                else
-                {
-                    if (type.t != V_FLOAT && type.t != V_INT)
-                        TypeError(TName(n.type), "numeric", st.TypeName(type).c_str(), n);
-                }
-                SubType(n.left(), type, TName(n.type));
-                SubType(n.right(), type, TName(n.type));
+                auto type = Union(n.left(), n.right(), true);
+                MathCheck(type, n);
+                SubType(type, n);
+                return type;
+            }
+
+            case T_PLUSEQ:
+            case T_MULTEQ:
+            case T_MINUSEQ:
+            case T_DIVEQ:
+            case T_MODEQ:
+            {
+                auto type = n.left()->exptype;
+                MathCheck(type, n);
+                SubType(n.right(), type, n);
                 return type;
             }
 
@@ -170,8 +211,52 @@ struct TypeChecker
             case T_GTEQ: 
             case T_LTEQ: 
             case T_GT:  
-            case T_LT:  
-                return Type();
+            case T_LT:
+            {
+                auto type = Union(n.left(), n.right(), true);
+                if (!type.Numeric() && type.t != V_STRING)
+                {
+                    if (n.type == T_EQ || n.type == T_NEQ)
+                    {
+                        if (type.t != V_VECTOR && type.t != V_STRUCT)
+                            TypeError("numeric/string/vector/struct", type, n);
+                    }
+                    else
+                    {
+                        TypeError("numeric/string", type, n);
+                    }
+                }
+                SubType(type, n);
+                return Type(V_INT);
+            }
+
+            case T_AND:
+            case T_OR:
+            {
+                auto type = Union(n.left(), n.right(), false);
+                return type;         
+            }
+            case T_NOT:
+                return Type(V_INT);
+
+            case T_POSTDECR:
+            case T_POSTINCR:
+            case T_DECR:  
+            case T_INCR:
+            {
+                auto type = n.child()->exptype;
+                if (!type.Numeric())
+                    TypeError("numeric", type, n);
+                return type;
+            }
+
+            case T_UMINUS:
+            {
+                auto type = n.child()->exptype;
+                if (!type.Numeric() && type.t != V_VECTOR)
+                    TypeError("numeric/vector", type, n);
+                return type;
+            }
 
             case T_IDENT:
                 return n.ident()->type;
@@ -195,8 +280,13 @@ struct TypeChecker
                 auto &f = *n.call_function()->sf()->parent;
                 if (f.multimethod)
                 {
-                    // FIXME
-                    return Type();
+                    // Simplistic: typechecked with actual argument types.
+                    // Should attempt static picking as well, if static pick succeeds, specialize.
+                    // FIXME: no need to repeat this on every call.
+                    for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf);
+                    Type type = f.subf->returntype;
+                    for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntype, false);
+                    return type;
                 }
                 else
                 {
@@ -241,7 +331,14 @@ struct TypeChecker
                     }
                     match:
                     // Here we have a SubFunction witch matching specialized types.
-                    TypeCheckBody(sf, n.call_args(), f);
+                    // First check all the manually typed args.
+                    int i = 0;
+                    for (Node *list = n.call_args(); list; list = list->tail())
+                    {
+                        auto &arg = sf->args[i++];
+                        if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
+                    }
+                    TypeCheck(*sf);
                     n.call_function()->sf() = sf;
                     return sf->returntype;
                 }
@@ -272,7 +369,7 @@ struct TypeChecker
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
                     auto elemtype = type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type.Element();
-                    SubType(list->head(), elemtype, "constructor");
+                    SubType(list->head(), elemtype, n);
                     i++;
                 }
                 return type;
@@ -282,7 +379,7 @@ struct TypeChecker
             {
                 auto &type = n.left()->exptype;
                 if (type.t != V_STRUCT)
-                    TypeError(".", "struct/value", st.TypeName(type).c_str(), n);
+                    TypeError("struct/value", type, n);
                 auto struc = st.structtable[type.idx];
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
@@ -290,27 +387,22 @@ struct TypeChecker
                 return uf->type;
             }
 
+            case T_SEQ:
+                return n.right()->exptype;
+
+            case T_ASSIGN:
+                SubType(n.right(), n.left()->exptype, n);
+                return n.left()->exptype;
+
+            case T_CLOSURE:
+                return Type(V_FUNCTION);
+
+
+
+
             case T_CO_AT:
 
             case T_ASSIGNLIST:
-
-            case T_ASSIGN: 
-
-            case T_PLUSEQ:
-            case T_MULTEQ:
-            case T_MINUSEQ:
-            case T_DIVEQ:
-            case T_MODEQ:
-
-            case T_POSTDECR: 
-            case T_POSTINCR: 
-            case T_DECR:  
-            case T_INCR:  
-
-            case T_UMINUS:
-
-
-            case T_CLOSURE: 
 
             case T_STRUCTDEF:
 
@@ -322,17 +414,7 @@ struct TypeChecker
 
             case T_LIST:
 
-            case T_SEQ:
-
             case T_MULTIRET:
-
-            case T_AND:
-
-            case T_OR:
-
-            case T_NOT:
-
-
 
             case T_COCLOSURE:
 
