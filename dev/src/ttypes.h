@@ -58,23 +58,23 @@
     \
     /* These are used ONLY as node types: */ \
     T(T_TYPE, "type", TT_NOCHILD, NO, a, NO, b) \
-    T(T_STRUCTDEF, "structdef", TT_NONE, YES, struct_id, YES, struct_fields) \
+    T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, YES, struct_fields) \
     T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
-    T(T_FUNDEF, "fundef", TT_NONE, YES, function_def, YES, function_closure) \
-    T(T_NATIVE, "native", TT_NOCHILD, NO, a, NO, b) \
-    T(T_NATCALL, "natcall", TT_NONE, YES, ncall_id, YES, ncall_args) \
+    T(T_FUNDEF, "function definition", TT_NONE, YES, function_def, YES, function_closure) \
+    T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \
+    T(T_NATCALL, "native call", TT_NONE, YES, ncall_id, YES, ncall_args) \
     T(T_CALL, "call", TT_NONE, YES, call_function, YES, call_args) \
-    T(T_DYNCALL, "dyncall", TT_NONE, YES, dcall_var, YES, dcall_args) \
+    T(T_DYNCALL, "dynamic call", TT_NONE, YES, dcall_var, YES, dcall_args) \
     T(T_LIST, "list", TT_NONE, YES, head, YES, tail) \
-    T(T_ASSIGNLIST, "assignlist", TT_BINARY, NO, a, NO, b) \
-    T(T_CLOSURE, "closure", TT_NONE, YES, parameters, YES, body) \
-    T(T_COCLOSURE, "coclosure", TT_NOCHILD, NO, a, NO, b) \
-    T(T_MULTIRET, "multiret", TT_NONE, YES, headexp, YES, tailexps) \
-    T(T_SEQ, "seq", TT_BINARY, NO, a, NO, b) \
-    T(T_CO_AT, "co at", TT_NONE, YES, coroutine_at, YES, coroutine_var) \
-    T(T_INDEX, "index", TT_BINARY, NO, a, NO, b) \
-    T(T_POSTINCR, "+++", TT_UNARY, NO, a, NO, b) \
-    T(T_POSTDECR, "---", TT_UNARY, NO, a, NO, b) \
+    T(T_ASSIGNLIST, "assign list", TT_BINARY, NO, a, NO, b) \
+    T(T_CLOSURE, "function value", TT_NONE, YES, parameters, YES, body) \
+    T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
+    T(T_MULTIRET, "multiple return", TT_NONE, YES, headexp, YES, tailexps) \
+    T(T_SEQ, "statements", TT_BINARY, NO, a, NO, b) \
+    T(T_CO_AT, "@", TT_NONE, YES, coroutine_at, YES, coroutine_var) \
+    T(T_INDEX, "indexing operation", TT_BINARY, NO, a, NO, b) \
+    T(T_POSTINCR, "++", TT_UNARY, NO, a, NO, b) \
+    T(T_POSTDECR, "--", TT_UNARY, NO, a, NO, b) \
     T(T_UMINUS, "-", TT_UNARY, NO, a, NO, b) \
     T(T_I2F, "tofloat", TT_UNARY, NO, a, NO, b) \
     T(T_A2S, "tostring", TT_UNARY, NO, a, NO, b) \

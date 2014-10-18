@@ -388,6 +388,32 @@ struct TypeChecker
                 return uf->type;
             }
 
+            case T_INDEX:
+            {
+                auto vtype = n.left()->exptype;
+                if (vtype.t != V_VECTOR && vtype.t != V_STRING)
+                    TypeError("vector/string", vtype, n);
+                auto itype = n.right()->exptype;
+                switch (itype.t)
+                {
+                    case V_INT: vtype = vtype.t == V_VECTOR ? vtype.Element() : Type(V_INT); break;
+                    case V_STRUCT:
+                    {
+                        auto &struc = *st.structtable[itype.idx];
+                        for (auto &field : struc.fields)
+                        {
+                            if (field.type.t != V_INT) TypeError("int field", field.type, n);
+                            if (vtype.t != V_VECTOR) TypeError("nested vector", vtype, n);
+                            vtype = vtype.Element();
+                        }
+                        break;
+                    }
+                    case V_VECTOR: // FIXME only way to typecheck this correctly is if we knew the length statically
+                    default: TypeError("int/struct of int", itype, n);
+                }
+                return vtype;
+            }
+
             case T_SEQ:
                 return n.right()->exptype;
 
@@ -398,8 +424,6 @@ struct TypeChecker
             case T_CLOSURE:
                 return Type(V_FUNCTION);
 
-
-            case T_INDEX:
 
             case T_CO_AT:
 
