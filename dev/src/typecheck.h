@@ -168,6 +168,9 @@ struct TypeChecker
         {
             case T_FUNDEF:
                 return Type();
+
+            case T_CLOSURE:
+                return Type(V_FUNCTION);
         }
 
         if (n.HasChildren())
@@ -364,8 +367,22 @@ struct TypeChecker
 
             case T_CONSTRUCTOR:
             {
-                auto &type = *n.constructor_type()->typenode();
+                auto type = *n.constructor_type()->typenode();
                 // FIXME: must specialize if there's any untyped fields.
+                if (type == Type(V_VECTOR))
+                {
+                    // No type was specified.. first find union of all elements.
+                    Type u;
+                    int i = 0;
+                    for (auto list = n.constructor_args(); list; list = list->tail())
+                    {
+                        u = i ? Union(u, list->head()->exptype, true) : list->head()->exptype;
+                        i++;
+                    }
+                    if (!u.CanWrap()) parser.Error("can\'t nest vector values this deep", &n);
+                    type = u.Wrap();
+                    // FIXME: what if this was an empty vector? Should we make the statically known length part of the type?
+                }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
@@ -420,10 +437,6 @@ struct TypeChecker
             case T_ASSIGN:
                 SubType(n.right(), n.left()->exptype, n);
                 return n.left()->exptype;
-
-            case T_CLOSURE:
-                return Type(V_FUNCTION);
-
 
             case T_CO_AT:
 

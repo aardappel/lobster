@@ -292,6 +292,25 @@ struct VM : VMBase
 
     Value BuiltinError(string err) { return Error(err); }
 
+    void VMAssert(bool ok, const char *what) 
+    {
+        if (!ok) Error(string("VM internal assertion failure: ") + what); 
+    }
+    void VMAssert(bool ok, const char *what, const Value &a, const Value &b) 
+    {
+        if (!ok) Error(string("VM internal assertion failure: ") + what, a, b); 
+    }
+
+    #ifdef _DEBUG
+        #define STRINGIFY(x) #x
+        #define TOSTRING(x) STRINGIFY(x)
+        #define VMASSERT(test)             VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test)
+        #define VMASSERTVALUES(test, a, b) VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b)
+    #else
+        #define VMASSERT(test)
+        #define VMASSERTVALUES(test, a, b)
+    #endif
+
     string ValueDBG(const Value &a)
     {
         int found;
@@ -311,12 +330,12 @@ struct VM : VMBase
 
     void EvalMulti(int nargs, int *ip, int definedfunction, int *oldip)
     {
-        assert(*ip == IL_FUNMULTI);
+        VMASSERT(*ip == IL_FUNMULTI);
         ip++;
 
         auto nsubf = *ip++;
         auto table_nargs = *ip++;
-        assert(nargs == table_nargs);
+        VMASSERT(nargs == table_nargs);
         for (int i = 0; i < nsubf; i++)
         {
             // TODO: rather than going thru all args, only go thru those that have types
@@ -352,7 +371,7 @@ struct VM : VMBase
 
     void FinalStackVarsCleanup()
     {
-        assert(sp < 0);
+        VMASSERT(sp < 0);
 
         for (size_t i = 0; i < st.identtable.size(); i++) vars[i].DEC();
 
@@ -381,10 +400,10 @@ struct VM : VMBase
     
     int varcleanup(string *error)
     {
-        auto dfv = POP(); assert(dfv.type == V_DEFFUN);       auto deffun = dfv.ival;
-        auto ipv = POP(); assert(ipv.type == V_FUNSTART);     ip = ipv.ip; 
-        auto nav = POP(); assert(nav.type == V_NARGS);        auto nargs = nav.ival;
-        auto riv = POP(); assert(riv.type == V_RETIP);        auto oldip = riv.ip;
+        auto dfv = POP(); VMASSERT(dfv.type == V_DEFFUN);       auto deffun = dfv.ival;
+        auto ipv = POP(); VMASSERT(ipv.type == V_FUNSTART);     ip = ipv.ip; 
+        auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs = nav.ival;
+        auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto oldip = riv.ip;
 
         auto nfree = *ip++;
         auto freevars = ip + nargs;
@@ -394,8 +413,8 @@ struct VM : VMBase
 
         if (vml.uses_frame_state)
         {
-            auto lfr = POP(); assert(lfr.type == V_LOGFUNREADSTART);
-            auto lfw = POP(); assert(lfw.type == V_LOGFUNWRITESTART);
+            auto lfr = POP(); VMASSERT(lfr.type == V_LOGFUNREADSTART);
+            auto lfw = POP(); VMASSERT(lfw.type == V_LOGFUNWRITESTART);
             vml.LogFunctionExit(ipv.ip, defvars, lfw.ival);
         }
 
@@ -413,7 +432,7 @@ struct VM : VMBase
     {
         ip = newip;
 
-        assert(*ip == IL_FUNSTART);
+        VMASSERT(*ip == IL_FUNSTART);
         ip++;
 
         auto funstart = ip;
@@ -536,7 +555,7 @@ struct VM : VMBase
 
         auto co = curcoroutine;
         CoDone();
-        assert(co->stackcopylen == 1);
+        VMASSERT(co->stackcopylen == 1);
         co->active = false;
     }
 
@@ -583,7 +602,7 @@ struct VM : VMBase
         curcoroutine = co;
 
         // must be, since those vars got backed up in it before
-        assert(curcoroutine->stackcopymax >= (size_t)*curcoroutine->varip);
+        VMASSERT(curcoroutine->stackcopymax >= (size_t)*curcoroutine->varip);
         curcoroutine->stackcopylen = *curcoroutine->varip;
         //curcoroutine->BackupParentVars(vars);
 
@@ -616,7 +635,7 @@ struct VM : VMBase
         FinalStackVarsCleanup();
         vml.LogCleanup();
         DumpLeaks();
-        assert(!curcoroutine);
+        VMASSERT(!curcoroutine);
         
         #ifdef VM_PROFILER
             size_t total = 0;
@@ -729,7 +748,7 @@ struct VM : VMBase
                 }
 
                 case IL_FUNSTART:
-                    assert(0);
+                    VMASSERT(0);
 
                 case IL_FUNEND:
                     FunOut(-1, 1);
@@ -756,7 +775,7 @@ struct VM : VMBase
                 }
 
                 case IL_CONT2:
-                    assert(0);
+                    VMASSERT(0);
                     break;
 
                 case IL_BCALL:
@@ -777,7 +796,7 @@ struct VM : VMBase
                         case 5: { ARG(4) ARG(3) ARG(2) ARG(1) ARG(0)        v = nf->fun.f5(a0, a1, a2, a3, a4); break; }
                         case 6: { ARG(5) ARG(4) ARG(3) ARG(2) ARG(1) ARG(0) v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
                                                                                                                 break; }
-                        default: assert(0); break;
+                        default: VMASSERT(0); break;
                         #undef ARG
                     }
                     PUSH(v);
@@ -789,7 +808,7 @@ struct VM : VMBase
                             {
                                 auto t = (TOPPTR() - nf->nretvalues + i)->type;
                                 auto u = nf->retvals[i].type.t;
-                                assert(t == u || u == V_ANY);   
+                                VMASSERT(t == u || u == V_ANY);   
                             }
                         }
                     #endif
@@ -819,8 +838,8 @@ struct VM : VMBase
                 #define GETARGS() Value b = POP(); Value a = POP()
                 #define TYPEOP(op, extras, field, errstat) Value res; errstat; BOP(op, a.field, b.field, extras);
 
-                #define _IOP(op, extras) TYPEOP(op, extras, ival, assert(a.type == V_INT && b.type == V_INT))
-                #define _FOP(op, extras) TYPEOP(op, extras, fval, assert(a.type == V_FLOAT && b.type == V_FLOAT))
+                #define _IOP(op, extras) TYPEOP(op, extras, ival, VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
+                #define _FOP(op, extras) TYPEOP(op, extras, fval, VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
                 #define _AIOP(op, extras) TYPEOP(op, extras, ival, if (a.type != V_INT || b.type != V_INT) BError(#op, a, b))
 
                 #define _AOP(op, extras, opts) Value res; for (;;) { \
@@ -947,7 +966,7 @@ struct VM : VMBase
                 case IL_I2F:
                 {
                     Value a = POP();
-                    assert(a.type == V_INT);
+                    VMASSERT(a.type == V_INT);
                     PUSH((float)a.ival);    
                     break;
                 }                
@@ -1058,7 +1077,7 @@ struct VM : VMBase
                 {
                     auto x = POP();
                     auto &v = TOP();
-                    assert(v.type == V_VECTOR);
+                    VMASSERT(v.type == V_VECTOR);
                     v.vval->push(x);
                     break;
                 }
@@ -1067,7 +1086,7 @@ struct VM : VMBase
                 {
                     auto x = POP();
                     auto &v = TOP();
-                    assert(v.type == V_VECTOR);
+                    VMASSERT(v.type == V_VECTOR);
                     if (x.type != V_VECTOR || *ip++ != x.vval->type)
                         Error("super class constructor is of the wrong type", x);
                     v.vval->append(x.vval, 0, x.vval->len);
@@ -1409,7 +1428,7 @@ struct VM : VMBase
                 }
             }
             default:
-                assert(0);
+                VMASSERT(0);
                 return 0;
         }
     }
@@ -1459,7 +1478,7 @@ struct VM : VMBase
                 case V_VECTOR:    v.vval->len = 0; v.vval->deleteself(); break;
                 case V_STRING:                     v.sval->deleteself(); break;
                 case V_COROUTINE:                  v.cval->deleteself(false); break;
-                default: assert(0);
+                default: VMASSERT(0);
             }
         }
 

@@ -342,8 +342,8 @@ struct CodeGen
                 Gen(n->right(), retval);
                 if (retval)
                 {
-                    if (n->exptype.t == V_INT) Emit(IL_IADD + opc);
-                    else if (n->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
+                    if (n->left()->exptype.t == V_INT) Emit(IL_IADD + opc);
+                    else if (n->left()->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
                     else Emit(IL_AADD + opc);
                 }
                 break;

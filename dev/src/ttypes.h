@@ -61,14 +61,15 @@
     T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, YES, struct_fields) \
     T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
     T(T_FUNDEF, "function definition", TT_NONE, YES, function_def, YES, function_closure) \
+    T(T_CLOSUREDEF, "function value definition", TT_NONE, YES, closure_def, YES, closure) \
+    T(T_CLOSURE, "function value", TT_NONE, YES, parameters, YES, body) \
+    T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATCALL, "native call", TT_NONE, YES, ncall_id, YES, ncall_args) \
     T(T_CALL, "call", TT_NONE, YES, call_function, YES, call_args) \
     T(T_DYNCALL, "dynamic call", TT_NONE, YES, dcall_var, YES, dcall_args) \
     T(T_LIST, "list", TT_NONE, YES, head, YES, tail) \
     T(T_ASSIGNLIST, "assign list", TT_BINARY, NO, a, NO, b) \
-    T(T_CLOSURE, "function value", TT_NONE, YES, parameters, YES, body) \
-    T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
     T(T_MULTIRET, "multiple return", TT_NONE, YES, headexp, YES, tailexps) \
     T(T_SEQ, "statements", TT_BINARY, NO, a, NO, b) \
     T(T_CO_AT, "@", TT_NONE, YES, coroutine_at, YES, coroutine_var) \
