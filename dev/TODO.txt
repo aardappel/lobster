@@ -1,10 +1,10 @@
 - typechecker
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
 
-  * make sure no incorrect types are stored in exptype
   * for function call nodes, as spec as to which subf they call, or none in specific
   * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
     * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
+  * remove the @ kludge once we can strongly type coroutines?
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

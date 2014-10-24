@@ -262,6 +262,7 @@ struct SymbolTable
         return id;  
     }
 
+    // FIXME: only used for @, and causes a lot of complexity, refactor?
     Ident *LookupIdentInFun(const string &idname, const string &fname) // slow, but infrequently used
     {
         Ident *found = nullptr;
@@ -403,6 +404,14 @@ struct SymbolTable
         return it != fields.end() ? it->second : nullptr;
     }
 
+    Function &CreateFunction(const string &name, int nargs)
+    {
+        auto f = new Function(name, functiontable.size(), nargs, scopelevels.size());
+        if (f->name.empty()) f->name = string("__anonymous_function_value_") + inttoa(functiontable.size());
+        functiontable.push_back(f);
+        return *f;
+    }
+
     Function &FunctionDecl(const string &name, int nargs, Lex &lex)
     {
         auto fit = functions.find(name);
@@ -417,20 +426,19 @@ struct SymbolTable
                     return *f;
         }
 
-        auto f = new Function(name, functiontable.size(), nargs, scopelevels.size());
-        functiontable.push_back(f);
+        auto &f = CreateFunction(name, nargs);
 
         if (fit != functions.end())
         {
-            f->sibf = fit->second->sibf;
-            fit->second->sibf = f;
+            f.sibf = fit->second->sibf;
+            fit->second->sibf = &f;
         }
         else
         {
-            functions[name] = f;
+            functions[name] = &f;
         }
 
-        return *f;
+        return f;
     }
 
     Function *FindFunction(const string &name)
@@ -448,11 +456,13 @@ struct SymbolTable
 
     string TypeName(const Type &type) const
     {
-        return type.t == V_STRUCT
-            ? ReverseLookupType(type.idx).c_str() 
-            : (type.t == V_VECTOR 
-                ? "[" + TypeName(type.Element()) + "]" 
-                : BaseTypeName(type.t));
+        switch (type.t)
+        {
+            case V_STRUCT: return ReverseLookupType(type.idx).c_str();
+            case V_VECTOR: return "[" + TypeName(type.Element()) + "]";
+            case V_NILABLE: return TypeName(type.Element()) + "?";
+            default: return  BaseTypeName(type.t);
+        }
     }
 
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)

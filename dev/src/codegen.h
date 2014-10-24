@@ -363,7 +363,7 @@ struct CodeGen
                 if (retval) Emit(IL_A2S);
                 break;
 
-            case T_CLOSURE: if (retval) GenFunctionVal(n); break; 
+            case T_CLOSUREDEF: if (retval) GenFunctionVal(n->closure()); break; 
 
             case T_STRUCTDEF:
                 Dummy(retval);
@@ -417,10 +417,12 @@ struct CodeGen
 
                         case NCM_LOOP:      // for() filter() exists() map()
                         {
-                            assert(lastarg->type == T_CLOSURE || lastarg->type == T_COCLOSURE);
                             int clnargs = 0; 
                             if (lastarg->type == T_COCLOSURE) clnargs = 1;
-                            else if (lastarg->parameters()) for (auto ids = lastarg->parameters(); ids; ids = ids->tail()) clnargs++;
+                            else if (lastarg->closure()->parameters())
+                            {
+                                for (auto ids = lastarg->closure()->parameters(); ids; ids = ids->tail()) clnargs++;
+                            }
                             Emit(IL_JUMP, 0);
                             MARKL(pos);
                             Emit(IL_CALLV, min(2, clnargs));

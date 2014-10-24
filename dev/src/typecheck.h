@@ -44,12 +44,17 @@ struct TypeChecker
         parser.Error(err, &n);
     }
 
-    bool ConvertsTo(const Type &type, const Type &sub)
+    bool ConvertsTo(const Type &type, const Type &sub, bool coercions)
     {
+        if (sub == type) return true;
         switch (sub.t)
         {
-            case V_FLOAT: return type.t == V_INT;
-            case V_STRING: return true;
+            case V_ANY:      return true;
+            case V_FLOAT:    return type.t == V_INT && coercions;
+            case V_STRING:   return coercions;
+            case V_FUNCTION: return sub.idx < 0 && type.t == V_FUNCTION;
+            case V_VECTOR:   return sub.idx < 0 && sub.t2 == V_ANY && (type.t == V_VECTOR || type.t == V_STRUCT);
+            case V_NILABLE:  return type.t == V_NIL || ConvertsTo(type, sub.Element(), false);
         }
         return false;
     }
@@ -60,21 +65,9 @@ struct TypeChecker
     }
     Type Union(const Type &at, const Type &bt, bool coercions)
     {
-        if (at.t == bt.t)
-        {
-            if (at == bt) return at;
-            if (at.t == V_VECTOR) return Type(V_VECTOR);
-        }
-        else
-        {
-            if (coercions)
-            {
-                if (ConvertsTo(at, bt)) return bt;
-                if (ConvertsTo(bt, at)) return at;
-            }
-            if ((at.t == V_VECTOR && bt.t == V_STRUCT) ||
-                (bt.t == V_VECTOR && at.t == V_STRUCT)) return Type(V_VECTOR);
-        }
+        if (ConvertsTo(at, bt, coercions)) return bt;
+        if (ConvertsTo(bt, at, coercions)) return at;
+        if (at.t == V_VECTOR && bt.t == V_VECTOR) return Type(V_VECTOR);
         return Type(V_ANY);
     }
 
@@ -90,17 +83,9 @@ struct TypeChecker
     void SubType(Node *&a, const Type &sub, const char *context)
     {
         const Type &type = a->exptype;
-        if (type == sub) return;
+        if (ConvertsTo(type, sub, false)) return;
         switch (sub.t)
         {
-            case V_ANY: return;
-            case V_NILABLE: if (type.t == V_NIL || type == sub.Element()) return; break;  // FIXME: more flexible
-            case V_VECTOR:
-                if (sub.idx < 0)
-                {
-                    if (type.t == V_VECTOR || type.t == V_STRUCT) return;
-                }
-                break;
             case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); return; } break;
             case V_STRING: a = new Node(lex, T_A2S, a); return;
         }
@@ -169,8 +154,8 @@ struct TypeChecker
             case T_FUNDEF:
                 return Type();
 
-            case T_CLOSURE:
-                return Type(V_FUNCTION);
+            case T_CLOSUREDEF:
+                return Type(V_FUNCTION, n.closure_def()->sf()->parent->idx);
         }
 
         if (n.HasChildren())
@@ -437,6 +422,9 @@ struct TypeChecker
             case T_ASSIGN:
                 SubType(n.right(), n.left()->exptype, n);
                 return n.left()->exptype;
+
+            case T_CLOSURE:
+                //
 
             case T_CO_AT:
 

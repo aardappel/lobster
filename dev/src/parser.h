@@ -365,34 +365,45 @@ struct Parser
         }
         f.isprivate = isprivate;
         
-        SubFunction *sf = new SubFunction(&f);
-        sf->next = f.subf;
-        f.subf = sf;
+        auto empty_sf = new SubFunction(&f);
 
         functionstack.push_back(f.idx);
-        subfunctionstack.push_back(sf);
-        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = sf;
-        sf->body = ParseFunDefBody(args, &f);
+        subfunctionstack.push_back(empty_sf);
+        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = empty_sf;
+        auto closure = ParseFunDefBody(args, &f);
         subfunctionstack.pop_back();
         functionstack.pop_back();
 
-        for (auto stat = sf->body->body(); stat; stat = stat->tail())
+        for (auto stat = closure->body(); stat; stat = stat->tail())
             if (!stat->tail() && (stat->head()->type != T_RETURN ||
                                   stat->head()->return_function_idx()->integer() != f.idx /* return from */))
                 ReturnValues(f, 1);
         assert(f.retvals);
 
-        sf->args = new Arg[nargs];
+        return CreateSubFunctionNode(closure, f, empty_sf, T_FUNDEF);
+    }
+
+    Node *CreateSubFunctionNode(Node *closure, Function &f, SubFunction *sf, TType deftype)
+    {
+        sf->next = f.subf;
+        f.subf = sf;
+        sf->body = closure;
+        sf->args = new Arg[f.nargs];
         int i = 0;
-        for (auto a = args; a; a = a->tail())
+        for (auto a = closure->parameters(); a; a = a->tail())
         {
             Arg &arg = sf->args[i++];
             arg.type = a->head()->exptype;
             arg.flags = arg.type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
             arg.id = a->head()->ident()->name;
         }
+        return new Node(lex, deftype, new Node(lex, sf), closure);
+    }
 
-        return new Node(lex, T_FUNDEF, new Node(lex, sf), sf->body);
+    Node *FunctionValueDef(Node *closure)
+    {
+        auto &f = st.CreateFunction("", CountList(closure->parameters()));
+        return CreateSubFunctionNode(closure, f, new SubFunction(&f), T_CLOSUREDEF);
     }
 
     void ParseType(Type &dest, bool withtype)
@@ -472,7 +483,7 @@ struct Parser
 
         CheckArg(nargs, thisarg, fname);
         if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
-            arg = new Node(lex, T_CLOSURE, nullptr, new Node(lex, T_LIST, arg));
+            arg = FunctionValueDef(new Node(lex, T_CLOSURE, nullptr, new Node(lex, T_LIST, arg)));
 
         return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
     }
@@ -490,7 +501,7 @@ struct Parser
         switch (lex.token)
         {
             case T_COLON:
-                e = ParseFunDefBody(ParseFunDefArgs(false, false));
+                e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs(false, false)));
                 break;
 
             case T_IDENT:
@@ -498,11 +509,11 @@ struct Parser
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
                     trailingkeywordedfunctionvaluestack.back() != lex.sattr)
-                    e = ParseFunDefBody(ParseFunDefArgs(false));
+                    e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs(false)));
                 break;
             
             case T_LEFTPAREN:
-                e = ParseFunDefBody(ParseFunDefArgs());
+                e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs()));
                 break;
         }
 
@@ -813,7 +824,7 @@ struct Parser
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
                 if (fi->nargs > bestf->nargs) bestf = fi;
 
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(),  bestf->subf->args, bestf->nargs);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), bestf->subf ? bestf->subf->args : nullptr, bestf->nargs);
             auto nargs = CountList(args);
 
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
@@ -1011,7 +1022,7 @@ struct Parser
             case T_FUN:
             {
                 lex.Next();
-                return ParseFunDefBody(ParseFunDefArgs());
+                return FunctionValueDef(ParseFunDefBody(ParseFunDefArgs()));
             }
 
             case T_COROUTINE:

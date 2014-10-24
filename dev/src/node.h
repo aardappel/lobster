@@ -140,7 +140,7 @@ struct Node : SlabAllocated<Node>
             case T_INT:
             case T_FLOAT:
             case T_STR:
-            case T_CLOSURE:
+            case T_CLOSUREDEF:
                 return true;
                 
             case T_IDENT:
@@ -235,7 +235,7 @@ struct Node : SlabAllocated<Node>
                 auto f = lookup(n->dcall_var());
                 if (f->type == T_COCLOSURE) { customf(istack); return; }
                 // ignore dynamic calls to non-function-vals, could make this an error?
-                if (f->type != T_CLOSURE) { assert(0); return; }
+                if (f->type != T_CLOSUREDEF) { assert(0); return; }
                 evalblock(f, n->dcall_args());
             }
             else if (n->type == T_NATCALL)
@@ -246,7 +246,7 @@ struct Node : SlabAllocated<Node>
                     if (a->type == T_COCLOSURE) customf(istack);
                     // a builtin calling a function, we don't know what values will be supplied for the args,
                     // so we define them in terms of themselves
-                    if (a->type == T_CLOSURE) evalblock(a, a->parameters());
+                    if (a->type == T_CLOSUREDEF) evalblock(a->closure(), a->closure()->parameters());
                 }
             }
         };
