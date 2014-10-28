@@ -63,6 +63,8 @@ struct VM : VMBase
 
     #define PUSH(v) (stack[++sp] = (v))
     #define TOP() (stack[sp])
+    #define TOP2() (stack[sp - 1])
+    #define TOP3() (stack[sp - 2])
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
     #define TOPPTR() (stack + sp + 1)
     #define OVERWRITE(o, n) TTOverwrite(o, n)
@@ -328,7 +330,7 @@ struct VM : VMBase
         return "\n   " + st.ReverseLookupIdent(idx) + " = " + x.ToString(debugpp);
     }
 
-    void EvalMulti(int nargs, int *ip, int definedfunction, int *oldip)
+    void EvalMulti(int nargs, int *ip, int definedfunction, int *retip)
     {
         VMASSERT(*ip == IL_FUNMULTI);
         ip++;
@@ -354,7 +356,7 @@ struct VM : VMBase
                 ip++;
             }
 
-            return FunIntro(nargs, codestart + *ip, definedfunction, oldip);
+            return FunIntro(nargs, codestart + *ip, definedfunction, retip);
 
             fail:;
         }
@@ -403,7 +405,7 @@ struct VM : VMBase
         auto dfv = POP(); VMASSERT(dfv.type == V_DEFFUN);       auto deffun = dfv.ival;
         auto ipv = POP(); VMASSERT(ipv.type == V_FUNSTART);     ip = ipv.ip; 
         auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs = nav.ival;
-        auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto oldip = riv.ip;
+        auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto retip = riv.ip;
 
         auto nfree = *ip++;
         auto freevars = ip + nargs;
@@ -423,12 +425,18 @@ struct VM : VMBase
         while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
                                                                                                 vars[i] = POP(); } 
 
-        ip = oldip;
+        ip = retip;
 
         return deffun;
     }
 
-    void FunIntro(int nargs, int *newip, int definedfunction, int *oldip)
+    void FunIntroOrYield(int nargs, int *newip, int definedfunction, int *retip)
+    {
+        if (newip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs, newip, definedfunction, retip);
+        else CoYield(nargs, retip);
+    }
+
+    void FunIntro(int nargs, int *newip, int definedfunction, int *retip)
     {
         ip = newip;
 
@@ -480,7 +488,7 @@ struct VM : VMBase
         }
 
         // FIXME: can we reduce the amount of this? -> stick it in a struct on a seperate stack?
-        PUSH(Value(oldip, V_RETIP)); 
+        PUSH(Value(retip, V_RETIP)); 
         PUSH(Value(nargs, V_NARGS)); 
         PUSH(Value(funstart, V_FUNSTART));
         PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
@@ -539,9 +547,10 @@ struct VM : VMBase
         PUSH(Value(curcoroutine));
     }
 
-    void CoDone()
+    void CoDone(int *retip)
     {
-        int newtop = curcoroutine->Suspend(sp + 1, stack, ip, curcoroutine);
+        int newtop = curcoroutine->Suspend(sp + 1, stack, retip, curcoroutine);
+        ip = retip;
         sp = newtop - 1; // top of stack is now coro value from create or resume
     }
 
@@ -554,12 +563,12 @@ struct VM : VMBase
         }
 
         auto co = curcoroutine;
-        CoDone();
+        CoDone(ip);
         VMASSERT(co->stackcopylen == 1);
         co->active = false;
     }
 
-    void CoYield(int nargs)
+    void CoYield(int nargs, int *retip)
     {
         if (nargs > 1)
         {
@@ -583,7 +592,7 @@ struct VM : VMBase
         }
 
         PUSH(ret);  // current value always top of the stack
-        CoDone();
+        CoDone(retip);
     }
 
     void CoResume(CoRoutine *co)
@@ -731,8 +740,7 @@ struct VM : VMBase
                     Value fun = POP();
                     Require(fun, V_FUNCTION, "function call");
                     auto nargs = *ip++;
-                    if (fun.ip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs, fun.ip, -1, ip);
-                    else CoYield(nargs);
+                    FunIntroOrYield(nargs, fun.ip, -1, ip);
                     break;
                 }
 
@@ -777,6 +785,35 @@ struct VM : VMBase
                 case IL_CONT2:
                     VMASSERT(0);
                     break;
+
+                case IL_FOR:
+                {
+                    auto forstart = ip - 1;
+                    POP().DEC();  // body retval
+                    auto &body = TOP();
+                    auto &iter = TOP2();
+                    int len = IterLen(iter); 
+                    auto &i = TOP3();
+                    assert(i.type == V_INT); 
+                    i.ival++;
+                    if (i.ival < len) 
+                    {
+                        int nargs = body.Nargs(); 
+                        if (nargs)
+                        {
+                            PUSH(GetIter(iter, i.ival));  // FIXME: move into VM
+                            if (nargs > 1) PUSH(i);
+                        } 
+                        FunIntroOrYield(nargs, body.ip, -1, forstart);
+                    } 
+                    else 
+                    {
+                        POP();        // body
+                        POP().DEC();  // iter
+                        POP();        // i
+                    }
+                    break;
+                }
 
                 case IL_BCALL:
                 {

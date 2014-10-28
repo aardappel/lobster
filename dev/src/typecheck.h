@@ -301,12 +301,9 @@ struct TypeChecker
                         if (sf->typechecked)
                         {
                             // Clone it.
-                            sf = new SubFunction(&f);
-                            sf->args = new Arg[f.nargs];
+                            sf = new SubFunction(&f, f.subf, f.nargs);
                             for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->args[i];
                             sf->body = f.subf->body->Clone();
-                            sf->next = f.subf;
-                            f.subf = sf;
                         }
                         int i = 0;
                         for (Node *list = n.call_args(); list; list = list->tail())
@@ -422,6 +419,9 @@ struct TypeChecker
             case T_ASSIGN:
                 SubType(n.right(), n.left()->exptype, n);
                 return n.left()->exptype;
+
+            case T_IF:
+                // must return undef for retval if one branch
 
             case T_CLOSURE:
                 //

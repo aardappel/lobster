@@ -3,7 +3,7 @@ include "vec.lobster"
 include "color.lobster"
 
 mode := coroutine menu(0, 0)
-  
+
 function menu(lastscore, highscore, frame):
     forever():
         frame()
@@ -13,9 +13,9 @@ function menu(lastscore, highscore, frame):
         if(gl_wentdown("space")):
             mode = coroutine level(highscore)
 
-function level(highscore, frame):             
+function level(highscore, frame):
     score := 0
-    
+
     worldsize :== 20.0
 
     playerhealth := 100.0
@@ -38,7 +38,7 @@ function level(highscore, frame):
             gl_translate(pos):
                 gl_color(color_yellow):
                     gl_circle(0.2, 20)
-            
+
     function bulletset(frame):
         firerate :== 0.1
         lastbullet := gl_time()
@@ -48,11 +48,11 @@ function level(highscore, frame):
             if(lastbullet < gl_time()):
                 bullets.push(coroutine bullet(playerpos, dir))
                 lastbullet += firerate
-                
+
             bullets = filter(bullets) b:
                 b.resume()
                 b.active
-                    
+
     function enemy(pos, frame):
         speed :== 3
         maxhp :== 5
@@ -83,41 +83,41 @@ function level(highscore, frame):
             if(lastenemy < gl_time()):
                 enemies.push(coroutine enemy(sincos(rnd(360)) * worldsize * 2))
                 lastenemy += enemyrate
-                enemyrate *= 0.999                    
+                enemyrate *= 0.999
             enemies = filter(enemies) e:
                 e.resume()
                 e.active
-    
+
     while(playerhealth > 0):
         frame()
         gl_translate(gl_windowsize() / 2.0):
             scale := gl_windowsize().y / worldsize
             gl_scale(scale)
-            
+
             dir := [ gl_isdown("d") - gl_isdown("a"),
                      gl_isdown("s") - gl_isdown("w") ]
             newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
             if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
                 playerpos = newpos
-                
+
             tomouse := normalize(gl_localmousepos(0) - playerpos)
-            
+
             es.resume()
             bs.resume(tomouse)
-            
+
             gl_translate(gl_localmousepos(0)):
                 gl_linemode(1):
                     gl_color(color_grey):
                         gl_circle(0.5, 20)
-            
+
             renderpointytriangle(playerpos, tomouse)
         gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
-        
+
     mode = coroutine menu(score, max(highscore, score))
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_setfontname("data/fonts/US101/US101.TTF") & gl_setfontsize(32), "can\'t load font!")
-             
+
 while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)
     gl_color(color_white)

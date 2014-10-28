@@ -1,4 +1,9 @@
+- switch to /W4
+
 - typechecker
+  * make if/while/for have custom nodes and opcodes, simplify native calls getting closures, and typecheck them, make map/filter etc part of std.lobster
+  * typecheck function values from dyncall/natcall
+
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
 
   * for function call nodes, as spec as to which subf they call, or none in specific

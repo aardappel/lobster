@@ -53,17 +53,17 @@ struct Node : SlabAllocated<Node>
     int fileidx;
 
     Node(Lex &lex, TType _t)                     : type(_t), a_(nullptr), b_(nullptr) { L(lex); }
-    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a_(_a), b_(nullptr)   { L(lex); }
-    Node(Lex &lex, TType _t, Node *_a, Node *_b) : type(_t), a_(_a), b_(_b)     { L(lex); }
-    Node(Lex &lex, TType _t, int _i)             : type(_t), integer_(_i)      { L(lex); }
-    Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)          { L(lex); }
+    Node(Lex &lex, TType _t, Node *_a)           : type(_t), a_(_a), b_(nullptr)      { L(lex); }
+    Node(Lex &lex, TType _t, Node *_a, Node *_b) : type(_t), a_(_a), b_(_b)           { L(lex); }
+    Node(Lex &lex, TType _t, int _i)             : type(_t), integer_(_i)             { L(lex); }
+    Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)                 { L(lex); }
     Node(Lex &lex, TType _t, string &_s)         : type(_t), str_(parserpool->alloc_string_sized(_s.c_str())) { L(lex); }
 
-    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id)  { L(lex); }
-    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)     { L(lex); }
-    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)   { L(lex); }
-    Node(Lex &lex, SubFunction *_sf)  : type(T_FUN),    sf_(_sf)     { L(lex); }
-    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)     { L(lex); }
+    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id)  { assert(_id);  L(lex); }
+    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)     { assert(_st);  L(lex); }
+    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)   { assert(_fld); L(lex); }
+    Node(Lex &lex, SubFunction *_sf)  : type(T_FUN),    sf_(_sf)     {               L(lex); }
+    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)     { assert(_nf);  L(lex); }
     Node(Lex &lex, Type &_type)       : type(T_TYPE),   type_(parserpool->clone_obj_small(&_type)) { L(lex); }
 
     void L(Lex &lex)
@@ -162,6 +162,11 @@ struct Node : SlabAllocated<Node>
         }
     }
 
+    int ClosureArgs()
+    {
+        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : closure_def()->sf()->parent->nargs);
+    }
+
     // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls,
     // and tracking the value of idents as the value nodes they refer to
     const char *FindIdentsUpToYield(const function<void (vector<Ident *> &istack)> &customf)
@@ -184,6 +189,7 @@ struct Node : SlabAllocated<Node>
 
         std::function<void(Node *)> eval;
         std::function<void(Node *, Node *)> evalblock;
+        std::function<void(Node *)> evalnatarg;
 
         eval = [&](Node *n)
         {
@@ -219,36 +225,60 @@ struct Node : SlabAllocated<Node>
                 eval(n->b());
             }
 
-            if (n->type == T_CALL)
+            switch (n->type)
             {
-                auto cf = n->call_function()->sf()->parent;
-                for (auto f : fstack) if (f == cf) return;    // ignore recursive call
-                for (auto args = n->call_args(); args; args = args->tail())
-                    if (args->head()->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
-                fstack.push_back(cf);
-                if (cf->multimethod) err = "multi-method call";
-                evalblock(cf->subf->body, n->call_args());
-                fstack.pop_back();
-            }
-            else if (n->type == T_DYNCALL)
-            {
-                auto f = lookup(n->dcall_var());
-                if (f->type == T_COCLOSURE) { customf(istack); return; }
-                // ignore dynamic calls to non-function-vals, could make this an error?
-                if (f->type != T_CLOSUREDEF) { assert(0); return; }
-                evalblock(f, n->dcall_args());
-            }
-            else if (n->type == T_NATCALL)
-            {
-                for (Node *list = n->ncall_args(); list; list = list->tail())
+                case T_CALL:
                 {
-                    auto a = lookup(list->head());
-                    if (a->type == T_COCLOSURE) customf(istack);
-                    // a builtin calling a function, we don't know what values will be supplied for the args,
-                    // so we define them in terms of themselves
-                    if (a->type == T_CLOSUREDEF) evalblock(a->closure(), a->closure()->parameters());
+                    auto cf = n->call_function()->sf()->parent;
+                    for (auto f : fstack) if (f == cf) return;    // ignore recursive call
+                    for (auto args = n->call_args(); args; args = args->tail())
+                        if (args->head()->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
+                    fstack.push_back(cf);
+                    if (cf->multimethod) err = "multi-method call";
+                    evalblock(cf->subf->body, n->call_args());
+                    fstack.pop_back();
+                    break;
                 }
+                case T_DYNCALL:
+                {
+                    auto f = lookup(n->dcall_var());
+                    if (f->type == T_COCLOSURE) { customf(istack); return; }
+                    // ignore dynamic calls to non-function-vals, could make this an error?
+                    if (f->type != T_CLOSUREDEF) { assert(0); return; }
+                    evalblock(f->closure(), n->dcall_args());
+                    break;
+                }
+                case T_NATCALL:
+                {
+                    for (Node *list = n->ncall_args(); list; list = list->tail())
+                    {
+                        evalnatarg(list->head());
+                    }
+                    break;
+                }
+                case T_IF:
+                    evalnatarg(n->if_condition());
+                    evalnatarg(n->if_branches()->left());
+                    evalnatarg(n->if_branches()->right());
+                    break;
+                case T_WHILE:
+                    evalnatarg(n->while_condition());
+                    evalnatarg(n->while_body());
+                    break;
+                case T_FOR:
+                    evalnatarg(n->for_iter());
+                    evalnatarg(n->for_body());
+                    break;
             }
+        };
+
+        evalnatarg = [&](Node *arg)
+        {
+            auto a = lookup(arg);
+            if (a->type == T_COCLOSURE) customf(istack);
+            // a builtin calling a function, we don't know what values will be supplied for the args,
+            // so we define them in terms of themselves
+            if (a->type == T_CLOSUREDEF) evalblock(a->closure(), a->closure()->parameters());
         };
 
         evalblock = [&](Node *cl, Node *args)

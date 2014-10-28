@@ -365,11 +365,11 @@ struct Parser
         }
         f.isprivate = isprivate;
         
-        auto empty_sf = new SubFunction(&f);
+        auto sf = NewSubFunction(f, args);
 
         functionstack.push_back(f.idx);
-        subfunctionstack.push_back(empty_sf);
-        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = empty_sf;
+        subfunctionstack.push_back(sf);
+        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = sf;
         auto closure = ParseFunDefBody(args, &f);
         subfunctionstack.pop_back();
         functionstack.pop_back();
@@ -380,30 +380,34 @@ struct Parser
                 ReturnValues(f, 1);
         assert(f.retvals);
 
-        return CreateSubFunctionNode(closure, f, empty_sf, T_FUNDEF);
+        return CreateSubFunctionNode(closure, f, sf, T_FUNDEF);
     }
 
-    Node *CreateSubFunctionNode(Node *closure, Function &f, SubFunction *sf, TType deftype)
+    SubFunction *NewSubFunction(Function &f, Node *args)
     {
-        sf->next = f.subf;
-        f.subf = sf;
-        sf->body = closure;
-        sf->args = new Arg[f.nargs];
+        auto sf = new SubFunction(&f, f.subf, f.nargs);
         int i = 0;
-        for (auto a = closure->parameters(); a; a = a->tail())
+        for (auto a = args; a; a = a->tail())
         {
             Arg &arg = sf->args[i++];
             arg.type = a->head()->exptype;
             arg.flags = arg.type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
             arg.id = a->head()->ident()->name;
         }
+        return sf;
+    }
+
+    Node *CreateSubFunctionNode(Node *closure, Function &f, SubFunction *sf, TType deftype)
+    {
+        sf->body = closure;
         return new Node(lex, deftype, new Node(lex, sf), closure);
     }
 
     Node *FunctionValueDef(Node *closure)
     {
         auto &f = st.CreateFunction("", CountList(closure->parameters()));
-        return CreateSubFunctionNode(closure, f, new SubFunction(&f), T_CLOSUREDEF);
+        auto sf = NewSubFunction(f, closure->parameters());
+        return CreateSubFunctionNode(closure, f, sf, T_CLOSUREDEF);
     }
 
     void ParseType(Type &dest, bool withtype)
@@ -787,6 +791,14 @@ struct Parser
         }
     }
 
+    Node *MaxClosureArgCheck(Node *funval, int maxargs)
+    {
+        auto clnargs = funval->ClosureArgs();
+        if (clnargs > maxargs)
+            Error(string("body has ") + inttoa(clnargs - maxargs) + " parameters too many", funval);
+        return funval;
+    }
+
     Node *ParseFunctionCall(Function *f, NativeFun *nf, string &idname, Node *firstarg, bool coroutine)
     {
         if (nf)
@@ -815,6 +827,25 @@ struct Parser
                 }
                 ai = &(*ai)->tail();
             }
+
+            // Special formats for these functions, for better type checking and performance
+            // TODO: worth deleting the garbage list nodes this creates?
+            if (nf->name == "if")
+            {
+                return new Node(lex, T_IF, args->head(),
+                                           new Node(lex, T_BRANCHES,
+                                               MaxClosureArgCheck(args->tail()->head(), 0),
+                                               MaxClosureArgCheck(args->tail()->tail()->head(), 0)));
+            }
+            else if (nf->name == "while")
+            {
+                return new Node(lex, T_WHILE, MaxClosureArgCheck(args->head(), 0), MaxClosureArgCheck(args->tail()->head(), 0));
+            }
+            else if (nf->name == "for")
+            {
+                return new Node(lex, T_FOR, args->head(), MaxClosureArgCheck(args->tail()->head(), 2));
+            }
+
             return new Node(lex, T_NATCALL, new Node(lex, nf), args);
         }
 
@@ -824,7 +855,7 @@ struct Parser
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
                 if (fi->nargs > bestf->nargs) bestf = fi;
 
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), bestf->subf ? bestf->subf->args : nullptr, bestf->nargs);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), bestf->subf->args, bestf->nargs);
             auto nargs = CountList(args);
 
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);

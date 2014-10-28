@@ -90,6 +90,7 @@ void AddBuiltins()
 
     STARTDECL(if) (Value &c, Value &t, Value &e)
     {
+        assert(0);
         return c.DEC().True() ? t : e;  // e may be nil
     }
     ENDDECL3CONT(if, "cond,then,else", "ACc", "A",
@@ -121,6 +122,7 @@ void AddBuiltins()
 
     STARTDECL(while) (Value &c, Value &b)
     {
+        assert(0);
         BWHILE(Value(0, V_NIL), { accum.DEC(); accum = lv2; });
         // FIXME: if the condition contains another while loop (thru a function call), 
         // then lv1 will have already been overwritten
@@ -171,6 +173,7 @@ void AddBuiltins()
 
     STARTDECL(for) (Value &iter, Value &body)
     {
+        assert(0);
         BLOOP(Value(0), { assert(accum.type == V_INT); if (lv.DEC().True()) accum.ival++; });
     }
     ENDDECL2LOOP(for, "iter,body", "AC", "I",

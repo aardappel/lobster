@@ -197,7 +197,7 @@ void DebugLog(int lev, const char *msg, ...)
         __android_log_vprint(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN),
                              "lobster", msg, args);
     #elif defined(WIN32)
-        char buf[256];
+        char buf[4096];
         vsnprintf(buf, sizeof(buf), msg, args);
         buf[sizeof(buf) - 1] = 0;
         OutputDebugStringA("LOG: ");

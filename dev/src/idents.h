@@ -150,8 +150,14 @@ struct SubFunction
     bool typechecked;
     Type returntype;
 
-    SubFunction(Function *_p) : parent(_p), args(nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
-        typechecked(false), returntype(V_UNDEFINED) {}
+    SubFunction(Function *_p, SubFunction *&link, int nargs) 
+        : parent(_p), args(nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
+          typechecked(false), returntype(V_UNDEFINED)
+    {
+        next = link;
+        link = this;
+        args = new Arg[nargs];
+    }
 
     ~SubFunction()
     {

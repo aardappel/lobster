@@ -75,7 +75,6 @@ function insertion_sort(xs, lt):
         j := i
         while(j > 0 & lt(key, xs[j - 1])): xs[j--] = xs[j - 1]
         xs[j] = key
-    nil
 
 function nest_if(c, nest, with):
     if(c): nest(with)

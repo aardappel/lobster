@@ -33,7 +33,7 @@
     F(IADD) F(ISUB) F(IMUL) F(IDIV) F(IMOD) F(ILT) F(IGT) F(ILE) F(IGE) F(IEQ) F(INE) \
     F(FADD) F(FSUB) F(FMUL) F(FDIV) F(FMOD) F(FLT) F(FGT) F(FLE) F(FGE) F(FEQ) F(FNE) \
     F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
-    F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
+    F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) F(FOR) \
     F(PUSHONCE) F(PUSHPARENT) \
     F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
     F(FIELDTABLES) F(LOGREAD)
@@ -238,6 +238,14 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
+    void GenInlineScope(Node *cl, int retval, int nargs)
+    {
+        // FIXME: should NOT need a call here, vars need to be moved to outer scope
+        Gen(cl, 1);
+        Emit(IL_CALLV, nargs);
+        if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
+    }
+
     void GenTypeCheck(Type &given, Type &type)
     {
         if (given == type) return;
@@ -310,7 +318,7 @@ struct CodeGen
                     }
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
-                if (retval) Dummy(retval);
+                Dummy(retval);
                 break;
             }
 
@@ -417,15 +425,11 @@ struct CodeGen
 
                         case NCM_LOOP:      // for() filter() exists() map()
                         {
-                            int clnargs = 0; 
-                            if (lastarg->type == T_COCLOSURE) clnargs = 1;
-                            else if (lastarg->closure()->parameters())
-                            {
-                                for (auto ids = lastarg->closure()->parameters(); ids; ids = ids->tail()) clnargs++;
-                            }
+                            int clnargs = lastarg->ClosureArgs();
+                            assert(clnargs <= 2);
                             Emit(IL_JUMP, 0);
                             MARKL(pos);
-                            Emit(IL_CALLV, min(2, clnargs));
+                            Emit(IL_CALLV, clnargs);
                             Emit(IL_STORELOOPVAR, 0);
                             SETL(pos);
                             Emit(IL_BCALL, nf->idx, nargs);
@@ -540,6 +544,53 @@ struct CodeGen
             {
                 Gen(n->child(), retval);
                 if (retval) Emit(IL_LOGNOT);
+                break;
+            }
+
+            case T_IF:
+            {
+                Gen(n->if_condition(), 1);
+                bool has_else = n->if_branches()->right()->type != T_NIL;
+                // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
+                Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
+                MARKL(loc);
+                GenInlineScope(n->if_branches()->left(), retval, 0);
+                if (has_else)
+                {
+                    Emit(IL_JUMP, 0);
+                    MARKL(loc2);
+                    SETL(loc);
+                    GenInlineScope(n->if_branches()->right(), retval, 0);
+                    SETL(loc2);
+                }
+                else
+                {
+                    SETL(loc);
+                }
+                break;
+            }
+
+            case T_WHILE:
+            {
+                MARKL(loopback);
+                GenInlineScope(n->while_condition(), 1, 0);
+                Emit(IL_JUMPFAIL, 0);
+                MARKL(jumpout);
+                GenInlineScope(n->while_body(), 0, 0);
+                Emit(IL_JUMP, loopback);
+                SETL(jumpout);
+                Dummy(retval);
+                break;
+            }
+
+            case T_FOR:
+            {
+                Emit(IL_PUSHINT, -1);   // i
+                Gen(n->for_iter(), 1);
+                Gen(n->for_body(), 1);  // FIXME: inline this somehow.
+                Emit(IL_PUSHUNDEF);     // body retval
+                Emit(IL_FOR);
+                Dummy(retval);
                 break;
             }
 
