@@ -126,7 +126,7 @@ struct BuiltinPtr
     };
 };
 
-enum NativeCallMode { NCM_NONE, NCM_CONTINUATION, NCM_CONT_EXIT, NCM_LOOP, NCM_WHILE };
+enum NativeCallMode { NCM_NONE, NCM_CONT_EXIT };
 
 struct NativeFun : Name
 {
@@ -240,10 +240,7 @@ struct AutoRegister
 #define ENDDECL5(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
 #define ENDDECL6(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
 
-#define ENDDECL3CONT(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONTINUATION, nullptr)
 #define ENDDECL2CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, \
                                                                                                  &___##name::mid_##name)
 #define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, \
                                                                                                  &___##name::mid_##name)
-#define ENDDECL2LOOP(    name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_LOOP, nullptr)
-#define ENDDECL2WHILE(   name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_WHILE, nullptr)

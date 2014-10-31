@@ -52,10 +52,8 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_PUSHFUN:
         case IL_CALLV:
         case IL_CALLVCOND:
-        case IL_STORELOOPVAR:
         case IL_DUP:
         case IL_CONT1:
-        case IL_CONT2:
         case IL_JUMP:
         case IL_JUMPFAIL:
         case IL_JUMPFAILR:

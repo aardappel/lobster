@@ -1,5 +1,31 @@
 // standard functions that build on top of the builtin functions useful for almost all programs
 
+function map(xs, fun):
+    r := vector_reserve(xs.length)
+    for(xs) x, i:
+        r.push(fun(x, i))
+    r
+
+function filter(xs, fun):
+    r := []
+    for(xs) x, i:
+        if(fun(x, i)):
+            r.push(x)
+    r
+
+function filterindices(l, f):
+    r := []
+    for(l) x, i:
+        if(f(x, i)):
+            r.push(i)
+    r
+
+function exists(xs, fun):
+    for(xs) x, i:
+        if(fun(x, i)):
+            return true
+    false
+
 function forever(fun): while(true): fun()
 
 function fold(xs, init, fun):
@@ -20,9 +46,6 @@ function reducerev(xs, fun):
     init := xs[xs.length - 1]
     for(xs.length - 1) i: init = fun(xs[xs.length - i - 2], init)
     init
-
-function filterindices(l, f):   // FIXME: inefficient, maybe better as a builtin
-    filter(map(l) x, i: i): f(l[_])
 
 function find(xs, fun):
     for(xs) x, i: if(fun(x)): return i

@@ -11,7 +11,7 @@ function new_astar_node(state, h:float):
 function clear(n::astar_node):
     open = closed = false
     previous = nil
-    
+
 // the generic version searches any kind of graph in any kind of search space, use specialized versions below
 
 function astar_generic(n, endcondition, generatenewstates, heuristic):
@@ -33,16 +33,18 @@ function astar_generic(n, endcondition, generatenewstates, heuristic):
         for(openlist) c:
             if(!n | c.F < n.F | (c.F == n.F & c.H < n.H)):
                 n = c
-    collectwhile(n):
-        return_after(n):
-            n = n.previous
+    path := []
+    while(n):
+        path.push(n)
+        n = n.previous
+    path
 
 // specialized to a graph in 2D or 3D space (assumes pre existing nodes), usage:
 // - create a graph out of nodes inherited from astar_node above
 // - costf must compute the cost of traversal between 2 nodes
 // - neighbors generates adjacent nodes
 // - returns a list of nodes from end to start inclusive, or empty list if no path
- 
+
 function astar_graph(startnode, endnode, costf, distancef, neighbors):
     astar_generic(startnode) n:
         n == endnode
@@ -56,9 +58,9 @@ function astar_graph(startnode, endnode, costf, distancef, neighbors):
 
 function astar_space(startnode, endnode, costf, neighbors):
     astar_graph(startnode, endnode, costf, function(v): magnitude(v), neighbors)
-        
+
 // specialized to a 2D grid (specialized case of a graph)
-            
+
 function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     directions := [ [ -1, 0 ]:xy, [ 1, 0 ]:xy, [ 0, -1 ]:xy, [ 0, 1 ]:xy ]
     distancef := function(v): abs(v.x) + abs(v.y)
@@ -75,9 +77,9 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
                 f(getnode(np))
 
 // specialized to do GOAP (nodes created on the fly)
-        
+
 value goapaction: [ name, precondition, effect ]
-        
+
 function astar_goap(goapactions, initstate, heuristic, endcondition):
     existingnodes := [ new_astar_node(initstate, heuristic(initstate)) ]
     astar_generic(existingnodes[0]):

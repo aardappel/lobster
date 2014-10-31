@@ -90,130 +90,28 @@ void AddBuiltins()
 
     STARTDECL(if) (Value &c, Value &t, Value &e)
     {
-        assert(0);
-        return c.DEC().True() ? t : e;  // e may be nil
+        assert(0);  // Special case implementation in the VM
+        return Value();
     }
-    ENDDECL3CONT(if, "cond,then,else", "ACc", "A",
+    ENDDECL3(if, "cond,then,else", "ACc", "A",
         "evaluates then or else depending on cond, else is optional");
-
-    #define BWHILE(INIT, BRET) \
-        Value accum = g_vm->Pop(); \
-        Value lv = g_vm->LoopVal(0); \
-        if (accum.type == V_UNDEFINED) \
-        { \
-            accum = INIT; \
-        } \
-        else \
-        { \
-            auto lv2 = g_vm->LoopVal(1); \
-            BRET; \
-        } \
-        if (lv.True()) \
-        { \
-            g_vm->Push(accum); \
-            g_vm->Push(c); \
-            g_vm->Push(b); \
-        } \
-        else \
-        { \
-            g_vm->Push(accum); \
-        } \
-        return lv;
 
     STARTDECL(while) (Value &c, Value &b)
     {
-        assert(0);
-        BWHILE(Value(0, V_NIL), { accum.DEC(); accum = lv2; });
-        // FIXME: if the condition contains another while loop (thru a function call), 
-        // then lv1 will have already been overwritten
+        assert(0);  // Special case implementation in the VM
+        return Value();
     }
-    ENDDECL2WHILE(while, "cond,body", "EC", "A",
+    ENDDECL2(while, "cond,body", "EC", "A",
         "evaluates body while cond (converted to a function) holds true, returns last body value");
-
-    STARTDECL(collectwhile) (Value &c, Value &b)
-    {
-        BWHILE(Value(g_vm->NewVector(4, V_VECTOR)), { assert(accum.type == V_VECTOR); accum.vval->push(lv2); });
-    }
-    ENDDECL2WHILE(collectwhile, "cond,body", "EC", "V",
-        "evaluates body while cond holds true, returns a vector of all return values of body");
-
-    #define BLOOP(INIT, BRET) \
-        int nargs = body.Nargs(); \
-        int len = IterLen(iter); \
-        auto i = g_vm->Pop(); \
-        assert(i.type == V_INT); \
-        i.ival++; \
-        Value accum; \
-        if (i.ival) \
-        { \
-            auto lv = g_vm->LoopVal(0); \
-            accum = g_vm->Pop(); \
-            BRET; \
-        } \
-        else \
-        { \
-            accum = INIT; \
-        } \
-        if (i.ival < len) \
-        { \
-            g_vm->Push(accum); \
-            g_vm->Push(i); \
-            g_vm->Push(iter); \
-            g_vm->Push(body); \
-            if (nargs) { g_vm->Push(GetIter(iter, i.ival)); if (nargs > 1) g_vm->Push(i); } \
-            g_vm->Push(body);  \
-            return Value(true); \
-        } \
-        else \
-        { \
-            iter.DEC(); \
-            g_vm->Push(accum); \
-            return Value(false); \
-        }
 
     STARTDECL(for) (Value &iter, Value &body)
     {
-        assert(0);
-        BLOOP(Value(0), { assert(accum.type == V_INT); if (lv.DEC().True()) accum.ival++; });
+        assert(0);  // Special case implementation in the VM
+        return Value();
     }
-    ENDDECL2LOOP(for, "iter,body", "AC", "I",
+    ENDDECL2(for, "iter,body", "AC", "I",
         "iterates over int/vector/string, body may take [ element [ , index ] ] arguments,"
         " returns number of evaluations that returned true");
-
-    STARTDECL(filter) (Value &iter, Value &body)
-    {
-        // TODO: assumes the filtered vector is close to the original, can we do better?
-        BLOOP(Value(g_vm->NewVector(len, V_VECTOR)), { 
-            assert(accum.type == V_VECTOR);
-            if (lv.DEC().True()) accum.vval->push(GetIter(iter, i.ival - 1));
-        });
-    }
-    ENDDECL2LOOP(filter, "iter,body", "AC", "V",
-        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments,"
-        " returns vector of elements for which body returned true");
-
-    STARTDECL(exists) (Value &iter, Value &body)
-    {
-        BLOOP(Value(false), {
-            assert(accum.type == V_INT);
-            if (lv.True()) { iter.DEC(); g_vm->Push(lv); return Value(false); };
-            lv.DEC();
-        });
-    }
-    ENDDECL2LOOP(exists, "iter,body", "AC", "I",
-        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments,"
-        " returns true upon first element where body returns true, else false");
-
-    STARTDECL(map) (Value &iter, Value &body)
-    {
-        BLOOP(Value(g_vm->NewVector(len, V_VECTOR)), {
-            assert(accum.type == V_VECTOR); 
-            accum.vval->push(lv);
-        });
-    }
-    ENDDECL2LOOP(map, "iter,body", "AC", "V",
-        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments,"
-        " returns vector of return values of body");
 
     STARTDECL(append) (Value &v1, Value &v2)
     {
@@ -222,22 +120,29 @@ void AddBuiltins()
         nv->append(v2.vval, 0, v2.vval->len); v2.DEC();
         return Value(nv);
     }
-    ENDDECL2(append, "xs,ys", "VV", "V", "creates new vector by appending all elements of 2 input vectors");
+    ENDDECL2(append, "xs,ys", "VV", "V",
+        "creates a new vector by appending all elements of 2 input vectors");
+
+    STARTDECL(vector_reserve) (Value &len)
+    {
+        return Value(g_vm->NewVector(len.ival, V_VECTOR));
+    }
+    ENDDECL1(vector_reserve, "len", "I", "V",
+        "creates a new empty vector much like [] would, except now ensures"
+        " it will have space for len push() operations without having to reallocate.");
 
     STARTDECL(length) (Value &a)
     {
-        int len;
         switch (a.type)
         {
+            case V_INT:    return a;
             case V_VECTOR:
-            case V_STRING: len = a.lobj->len; break;
+            case V_STRING: { auto len = a.lobj->len; a.DECRT(); return Value(len); }
             default: return g_vm->BuiltinError("illegal type passed to length");
         }
-        a.DECRT();
-        return Value(len);
     }
     ENDDECL1(length, "xs", "A", "I",
-        "length of vector/string");
+        "length of vector/string/int");
 
     STARTDECL(equal) (Value &a, Value &b)
     {

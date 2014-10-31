@@ -6,6 +6,8 @@
 
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
 
+  * have a way to allocate empty typed vectors, and larger vectors for map()
+
   * for function call nodes, as spec as to which subf they call, or none in specific
   * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
     * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
@@ -270,18 +272,9 @@ refactor:
     hmm it be really nice to keep slaballoc thread-unsafe, so maybe it has to go thru an intermediary copy
   what about SDL being optional, and we'd like to use its threading functionality? (see elsewhere)
 
-- we have the functionality of passing less args than needed in the VM
-  * currently only used by _ variables, which are dynamically scoped, e.g. in recurseworld
-    function recurseworld(n::node, body):
-    for(next):
-        primary := _.parents[0] == n
-        body(_, n, primary)
-        if(primary):
-            recurseworld(_, body)   // this makes a function with 1 arg, which if() does not supply, so it falls back on previous _
-  * could also be used with DS parameters, they would have to be annotated when declared, and allowed to be called with less args (<-> MM?)
-    this would allow defaults, which can then be overruled for a whole block with -> or just passed as extra arg
-  * on a sidenote, the -> would be more accurate if it was followed by a block itself
-    DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than doing gl_color <-
+- could we remove the support for dynamic scoping alltogether?
+  * DS thru -> would be more accurate if it was followed by a block itself
+  * DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than doing gl_color <-
 
 - with any new game, write it with coroutines from the ground up
 

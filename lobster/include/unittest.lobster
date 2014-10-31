@@ -226,7 +226,6 @@ function run_test_cases():
     assert(!co1.active)
     assert(!co2.active)
     assert(co1.returnvalue == 1337)
-    assert(co2.returnvalue == 4)
 
     function pass_thru(co, f):
         coroutine_for(co): f(_)

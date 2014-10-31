@@ -404,12 +404,12 @@ struct VM : VMBase
     {
         auto dfv = POP(); VMASSERT(dfv.type == V_DEFFUN);       auto deffun = dfv.ival;
         auto ipv = POP(); VMASSERT(ipv.type == V_FUNSTART);     ip = ipv.ip; 
-        auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs = nav.ival;
+        auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs_given = nav.ival;
         auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto retip = riv.ip;
 
-        auto nfree = *ip++;
-        auto freevars = ip + nargs;
-        ip += nfree;
+        auto nargs_fun = *ip++;
+        auto freevars = ip + nargs_given;
+        ip += nargs_fun;
         auto ndef = *ip++;
         auto defvars = ip + ndef;
 
@@ -422,7 +422,7 @@ struct VM : VMBase
 
         while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
                                                                                                 vars[i] = POP(); }
-        while (nargs--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
+        while (nargs_given--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
                                                                                                 vars[i] = POP(); } 
 
         ip = retip;
@@ -430,13 +430,13 @@ struct VM : VMBase
         return deffun;
     }
 
-    void FunIntroOrYield(int nargs, int *newip, int definedfunction, int *retip)
+    void FunIntroOrYield(int nargs_given, int *newip, int definedfunction, int *retip)
     {
-        if (newip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs, newip, definedfunction, retip);
-        else CoYield(nargs, retip);
+        if (newip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs_given, newip, definedfunction, retip);
+        else CoYield(nargs_given, retip);
     }
 
-    void FunIntro(int nargs, int *newip, int definedfunction, int *retip)
+    void FunIntro(int nargs_given, int *newip, int definedfunction, int *retip)
     {
         ip = newip;
 
@@ -457,15 +457,40 @@ struct VM : VMBase
             DebugLog(0, (string("stack grew to: ") + inttoa(stacksize)).c_str());
         }
 
-        auto nfree = *ip++;
-        if (nargs > nfree)      // nargs < nfree currently only happens with _ DS vars, see todo.txt
+        auto nargs_fun = *ip++;
+        if (nargs_given != nargs_fun)
         {
-            string nas = inttoa(nargs);
-            Error(string("function value called with ") + nas + " arguments, but declared with only " + inttoa(nfree));
+            // This only ever happens when called from IL_CALLV, for IL_CALL, these two are are guaranteed to be equal by the parser.
+            if (nargs_given > nargs_fun)
+            {
+                // This used to be an error, since the only uses of this were in builtin functions like for/map,
+                // but since map is now not a builtin anymore, we support superfluous args on all dynamic calls.
+                // This is actually nice functionality, since very similarly to multiple return values, we should be
+                // able to choose what values we find useful.
+                // In the future, this code can become an assert, when the type system specializes every HOF call.
+
+                // string nas = inttoa(nargs_given);
+                // Error(string("function value called with ") + nas + " arguments, but declared with only " + inttoa(nargs_fun));
+
+                // Instead, simply discard superfluous args:
+                for (; nargs_given > nargs_fun; nargs_given--) POP().DEC();
+            }
+            else
+            {
+                // nargs_given < nargs_fun currently may still happen when a body is declared with more parameters than it needs:
+                // hof_supplies_no_args() x: x + 1
+                // Here, x would resolve to undefined and lead to a runtime error.
+                // more typically, this happens with the _ var:
+                // hof_supplies_one_arg(): _ + hof_supplies_no_args(): _
+                // This actually works as expected. This usuage used to work for if/while/for and will likely be disabled
+                // for all other hofs as well with typechecking, so this will become an assert instead.
+
+                // assert(0);
+            }
         }
         
-        for (int i = 0; i < nargs; i++) swap(vars[ip[i]], stack[sp - nargs + i + 1]);
-        ip += nfree;
+        for (int i = 0; i < nargs_given; i++) swap(vars[ip[i]], stack[sp - nargs_given + i + 1]);
+        ip += nargs_fun;
 
         auto ndef = *ip++;
         for (int i = 0; i < ndef; i++)
@@ -489,7 +514,7 @@ struct VM : VMBase
 
         // FIXME: can we reduce the amount of this? -> stick it in a struct on a seperate stack?
         PUSH(Value(retip, V_RETIP)); 
-        PUSH(Value(nargs, V_NARGS)); 
+        PUSH(Value(nargs_given, V_NARGS)); 
         PUSH(Value(funstart, V_FUNSTART));
         PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
 
@@ -568,11 +593,14 @@ struct VM : VMBase
         co->active = false;
     }
 
-    void CoYield(int nargs, int *retip)
+    void CoYield(int nargs_given, int *retip)
     {
-        if (nargs > 1)
+        if (nargs_given > 1)
         {
-            Error("more than 1 argument supplied to coroutine yield function");
+            // Error("more than 1 argument supplied to coroutine yield function");
+
+            // Similar to FunIntro, we support an excess in nargs_given for the moment:
+            for (; nargs_given > 1; nargs_given--) POP().DEC();
         }
         if (!curcoroutine)
         {
@@ -581,7 +609,7 @@ struct VM : VMBase
         }
 
         Value ret(0, V_NIL);  
-        if (nargs) ret = POP();
+        if (nargs_given) ret = POP();
 
         for (int i = 1; i <= *curcoroutine->varip; i++)
         {
@@ -744,10 +772,6 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_STORELOOPVAR:
-                    loopval[*ip++] = POP();
-                    break;
-
                 case IL_DUP:
                 {
                     int from = sp - *ip++;
@@ -782,36 +806,33 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_CONT2:
-                    VMASSERT(0);
-                    break;
-
                 case IL_FOR:
                 {
                     auto forstart = ip - 1;
                     POP().DEC();  // body retval
                     auto &body = TOP();
                     auto &iter = TOP2();
-                    int len = IterLen(iter); 
                     auto &i = TOP3();
                     assert(i.type == V_INT); 
                     i.ival++;
-                    if (i.ival < len) 
+                    int len = 0;
+                    switch (iter.type)
                     {
-                        int nargs = body.Nargs(); 
-                        if (nargs)
-                        {
-                            PUSH(GetIter(iter, i.ival));  // FIXME: move into VM
-                            if (nargs > 1) PUSH(i);
-                        } 
-                        FunIntroOrYield(nargs, body.ip, -1, forstart);
-                    } 
-                    else 
-                    {
-                        POP();        // body
-                        POP().DEC();  // iter
-                        POP();        // i
+                        #define PUSHITER(L, V) if (i.ival >= (len = L)) goto done; PUSH(V); break;
+                        case V_INT:    PUSHITER(iter.ival     , i);
+                        case V_VECTOR: PUSHITER(iter.vval->len, iter.vval->at(i.ival).INC());
+                        case V_STRING: PUSHITER(iter.sval->len, Value((int)((uchar *)iter.sval->str())[i.ival]));
+                        #undef PUSHITER
+                        default:       Error("for: cannot iterate over argument", iter);
                     }
+                    PUSH(i);
+                    FunIntroOrYield(2, body.ip, -1, forstart);
+                    break;
+
+                    done:
+                    POP();        // body
+                    POP().DEC();  // iter
+                    POP();        // i
                     break;
                 }
 
@@ -1469,9 +1490,6 @@ struct VM : VMBase
                 return 0;
         }
     }
-
-    Value loopval[2]; // FIXME: hack
-    Value LoopVal(int i) { return loopval[i]; }
 
     void Push(const Value &v) { PUSH(v); }
     Value Pop() { return POP(); }

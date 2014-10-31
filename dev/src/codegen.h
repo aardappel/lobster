@@ -24,7 +24,7 @@
     F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
     F(PUSHLOC) F(LVALLOC) \
     F(BCALL) \
-    F(CALL) F(CALLV) F(CALLVCOND) F(STORELOOPVAR) F(DUP) F(CONT1) F(CONT2) \
+    F(CALL) F(CALLV) F(CALLVCOND) F(DUP) F(CONT1) \
     F(FUNSTART) F(FUNEND) F(FUNMULTI) F(CALLMULTI) \
     F(JUMP) \
     F(NEWVEC) \
@@ -396,67 +396,21 @@ struct CodeGen
                 if (n->type == T_NATCALL)
                 {
                     auto nf = n->ncall_id()->nf();
-                    if (nf->ncm == NCM_LOOP)
-                    {
-                        Emit(IL_PUSHINT, -1);
-                    }
-                    else if (nf->ncm == NCM_WHILE)
-                    {
-                        Emit(IL_PUSHUNDEF);
-                    }
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
                     genargs(n->ncall_args(), nullptr, 0);
-                    switch(nf->ncm)
+                    if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
+                    {   
+                        Emit(IL_BCALL, nf->idx, nargs);
+                        if (lastarg->type != T_NIL) // FIXME: this will not work if its a var with nil value
+                        {
+                            Emit(IL_CALLVCOND, 0);
+                            Emit(IL_CONT1, nf->idx);
+                        }
+                    }
+                    else
                     {
-                        case NCM_CONTINUATION:  // if()
-                            Emit(IL_BCALL, nf->idx, nargs);
-                            Emit(IL_CALLVCOND, 0); 
-                            break;
-
-                        case NCM_CONT_EXIT:     // graphics.h
-                            Emit(IL_BCALL, nf->idx, nargs);
-                            if (lastarg->type != T_NIL) // FIXME: this will not work if its a var with nil value
-                            {
-                                Emit(IL_CALLVCOND, 0);
-                                Emit(IL_CONT1, nf->idx);
-                            }
-                            break;
-
-                        case NCM_LOOP:      // for() filter() exists() map()
-                        {
-                            int clnargs = lastarg->ClosureArgs();
-                            assert(clnargs <= 2);
-                            Emit(IL_JUMP, 0);
-                            MARKL(pos);
-                            Emit(IL_CALLV, clnargs);
-                            Emit(IL_STORELOOPVAR, 0);
-                            SETL(pos);
-                            Emit(IL_BCALL, nf->idx, nargs);
-                            Emit(IL_JUMPNOFAIL, pos);
-                            break;
-                        }
-
-                        case NCM_WHILE:     // while() collectwhile() // FIXME: reduce instructions
-                        {
-                            MARKL(start);
-                            Emit(IL_DUP, 1);
-                            Emit(IL_CALLV, 0);      
-                            Emit(IL_STORELOOPVAR, 0);
-                            Emit(IL_BCALL, nf->idx, nargs);
-                            Emit(IL_JUMPFAIL, 0);
-                            MARKL(pos);
-                            Emit(IL_DUP, 0);
-                            Emit(IL_CALLV, 0);  
-                            Emit(IL_STORELOOPVAR, 1);
-                            Emit(IL_JUMP, start);
-                            SETL(pos);
-                            break;
-                        }
-
-                        default:
-                            Emit(IL_BCALL, nf->idx, nargs);
-                            break;
+                        Emit(IL_BCALL, nf->idx, nargs);
                     }
                     if (nf->nretvalues > 1)
                     {

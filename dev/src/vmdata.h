@@ -78,7 +78,6 @@ struct VMBase
     virtual void BuiltinCheck(Value &v, ValueType desired, const char *name) = 0;
     virtual void Push(const Value &v) = 0;
     virtual Value Pop() = 0;
-    virtual Value LoopVal(int i) = 0;
     virtual LString *NewString(const string &s) = 0;
     virtual LString *NewString(const char *c, int l) = 0;
     virtual LVector *NewVector(int n, int t) = 0;
@@ -240,17 +239,6 @@ struct Value
     {
         ref->refc--;
         if (ref->refc <= 0) DECDELETE();
-    }
-
-    int Len()
-    {
-        switch (type)
-        {
-            case V_INT:     return ival;
-            case V_STRING:  
-            case V_VECTOR:  return lobj->len;
-            default:        return -1;
-        }
     }
 
     int Nargs()
@@ -535,24 +523,6 @@ struct CoRoutine : RefObj
         if (stackstart < 0) for (size_t i = 0; i < stackcopylen; i++) stackcopy[i].Mark();
     }
 };
-
-inline int IterLen(Value &iter)
-{
-    auto len = iter.Len();
-    if (len < 0) g_vm->BuiltinError(string("for: cannot generate values from type: ") + BaseTypeName(iter.type));
-    return len;
-}
-
-inline Value GetIter(Value &iter, int i)
-{
-    switch (iter.type)
-    {
-        case V_INT:    return Value(i);
-        case V_VECTOR: return iter.vval->at(i).INC(); 
-        case V_STRING: return Value((int)((uchar *)iter.sval->str())[i]); 
-        default:       return Value(); 
-    }
-}
 
 template<typename T> inline T ValueTo(const Value &v, float def = 0)
 {
