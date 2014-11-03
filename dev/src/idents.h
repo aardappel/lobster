@@ -460,14 +460,15 @@ struct SymbolTable
     string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
-    string TypeName(const Type &type) const
+    string TypeName(const Type &type, const Type *type_vars = nullptr) const
     {
         switch (type.t)
         {
             case V_STRUCT: return ReverseLookupType(type.idx).c_str();
-            case V_VECTOR: return "[" + TypeName(type.Element()) + "]";
-            case V_NILABLE: return TypeName(type.Element()) + "?";
-            default: return  BaseTypeName(type.t);
+            case V_VECTOR: return "[" + TypeName(type.Element(), type_vars) + "]";
+            case V_NILABLE: return TypeName(type.Element(), type_vars) + "?";
+            case V_ANYVAR: return type_vars ? TypeName(type_vars[type.idx], type_vars) + "*" : BaseTypeName(type.t);
+            default: return BaseTypeName(type.t);
         }
     }
 

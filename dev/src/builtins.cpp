@@ -101,7 +101,7 @@ void AddBuiltins()
         assert(0);  // Special case implementation in the VM
         return Value();
     }
-    ENDDECL2(while, "cond,body", "EC", "A",
+    ENDDECL2(while, "cond,body", "C@C", "A",
         "evaluates body while cond (converted to a function) holds true, returns last body value");
 
     STARTDECL(for) (Value &iter, Value &body)
@@ -120,14 +120,14 @@ void AddBuiltins()
         nv->append(v2.vval, 0, v2.vval->len); v2.DEC();
         return Value(nv);
     }
-    ENDDECL2(append, "xs,ys", "VV", "V",
+    ENDDECL2(append, "xs,ys", "VV1", "V1",
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (Value &len)
     {
         return Value(g_vm->NewVector(len.ival, V_VECTOR));
     }
-    ENDDECL1(vector_reserve, "len", "I", "V",
+    ENDDECL1(vector_reserve, "len", "I", "V*",
         "creates a new empty vector much like [] would, except now ensures"
         " it will have space for len push() operations without having to reallocate.");
 
@@ -160,7 +160,7 @@ void AddBuiltins()
         l.vval->push(x);
         return l;
     }
-    ENDDECL2(push, "xs,x", "VA", "V",
+    ENDDECL2(push, "xs,x", "V*A1", "V1",
         "appends one element to a vector, returns existing vector");
 
     STARTDECL(pop) (Value &l)
@@ -285,7 +285,7 @@ void AddBuiltins()
         v.DECRT();
         return Value(nv);
     }
-    ENDDECL1(copy, "xs", "V", "V",
+    ENDDECL1(copy, "xs", "V", "V1",
         "makes a shallow copy of vector/object.");
 
     STARTDECL(slice) (Value &l, Value &s, Value &e)
@@ -302,7 +302,7 @@ void AddBuiltins()
         return Value(nv);
     }
     ENDDECL3(slice,
-        "xs,start,size", "VII", "V", "returns a sub-vector of size elements from index start."
+        "xs,start,size", "VII", "V1", "returns a sub-vector of size elements from index start."
         " start & size can be negative to indicate an offset from the vector length.");
 
     STARTDECL(any) (Value &v)

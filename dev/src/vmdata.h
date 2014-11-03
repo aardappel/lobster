@@ -17,7 +17,7 @@
 enum ValueType
 {
     V_MINVMTYPES = -7,
-    V_STRUCT = -6,      // used in the typesystem (not at runtime) as an alias for V_VECTOR
+    V_STRUCT = -6,      // [typechecker only] an alias for V_VECTOR
     V_CYCLEDONE = -5,
     V_VALUEBUF = -4,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_COROUTINE = -3,
@@ -28,8 +28,9 @@ enum ValueType
     V_FUNCTION,
     V_NIL,
     V_UNDEFINED,        // used for unitialized values or functions returning "void".
-    V_NILABLE,          // used in the typesystem (not at runtime) to indicate a value that may be nil or a reference type.
-    V_ANY,              // used in the typesystem (not at runtime) to indicate any other type.
+    V_NILABLE,          // [typechecker only] a value that may be nil or a reference type.
+    V_ANY,              // [typechecker only] any other type.
+    V_ANYVAR,           // [typechecker only] like V_ANY, except idx refers to a type variable
     // used in function calling, if they appear as a value in a program, that's a bug
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
@@ -41,7 +42,7 @@ static const char *BaseTypeName(ValueType t)
     static const char *typenames[] =
     {
         "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined", "nilable", "any",
+        "int", "float", "function", "nil", "undefined", "nilable", "any", "anything",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };

@@ -332,6 +332,7 @@ class SlabAlloc
 
     template<typename T> T *clone_obj_small(const T *from)
     {
+        assert(from);
         auto to = (T *)alloc_small(sizeof(T));
         memcpy(to, from, sizeof(T));
         return to;

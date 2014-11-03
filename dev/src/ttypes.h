@@ -67,7 +67,8 @@
     T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATCALL, "native call", TT_NONE, YES, ncall_id, YES, ncall_args) \
     T(T_CALL, "call", TT_NONE, YES, call_function, YES, call_args) \
-    T(T_DYNCALL, "dynamic call", TT_NONE, YES, dcall_var, YES, dcall_args) \
+    T(T_DYNCALL, "dynamic call", TT_NONE, YES, dcall_fval, YES, dcall_info) \
+    T(T_DYNINFO, "dynamic info", TT_NONE, YES, dcall_function, YES, dcall_args) \
     T(T_LIST, "list", TT_NONE, YES, head, YES, tail) \
     T(T_ASSIGNLIST, "assign list", TT_BINARY, NO, a, NO, b) \
     T(T_MULTIRET, "multiple return", TT_NONE, YES, headexp, YES, tailexps) \
@@ -84,6 +85,7 @@
     T(T_BRANCHES, "branches", TT_BINARY, NO, a, NO, b) \
     T(T_WHILE, "while", TT_NONE, YES, while_condition, YES, while_body) \
     T(T_FOR, "for", TT_NONE, YES, for_iter, YES, for_body) \
+    T(T_FORLOOPVAR, "for loop variable", TT_NOCHILD, NO, a, NO, b) \
     \
     /* These are used ONLY as tokens: */ \
     T(T_LINEFEED, "linefeed", TT_NONE, NO, a, NO, b) \

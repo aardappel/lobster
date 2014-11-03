@@ -5,11 +5,14 @@ struct TypeChecker
     Parser &parser;
     SymbolTable &st;
     vector<SubFunction *> scopes;
+    vector<Type> type_variables;
 
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
         parser.root->exptype = TypeCheck(*parser.root);
     }
+
+    string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
     void TypeError(const char *required, const Type &got, const Node &n, const char *context = nullptr)
     {
@@ -18,7 +21,7 @@ struct TypeChecker
                   "\" requires type: " + 
                   required + 
                   ", got: " + 
-                  st.TypeName(got).c_str(),
+                  TypeName(got).c_str(),
                   n);
     }
 
@@ -36,25 +39,59 @@ struct TypeChecker
                 if (arg.type.t != V_ANY)
                 {
                     err += ":";
-                    err += st.TypeName(arg.type);
+                    err += TypeName(arg.type);
                 }
             }
             err += ")";
+            for (Node *list = sf->body->body(); list; list = list->tail())
+            {
+                for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
+                {
+                    auto id = dl->left()->ident();
+                    if (id->type.t != V_ANY)
+                    {
+                        err += ", " + id->name + ":" + TypeName(id->type);
+                    }
+                }
+            }
         }
         parser.Error(err, &n);
+    }
+
+    Type NewTypeVar()
+    {
+        type_variables.push_back(Type(V_UNDEFINED));
+        return Type(V_ANYVAR, (int)type_variables.size() - 1);
+    }
+
+    Type Promote(const Type &type)
+    {
+        /*if (type.t == V_ANYVAR && type_variables[type.idx].t != V_UNDEFINED) return Promote(type_variables[type.idx]);
+        else if (type.t == V_VECTOR) return Promote(type.Element()).Wrap();  // FIXME: CanWrap?
+        else */return type;
+    }
+
+    Type UnifyVar(const Type &type, const Type &hasvar)
+    {
+        auto &var = type_variables[hasvar.idx];
+        if (var.t == V_UNDEFINED) var = type;
+        return var;
     }
 
     bool ConvertsTo(const Type &type, const Type &sub, bool coercions)
     {
         if (sub == type) return true;
+        if (type.t == V_ANYVAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub.t)
         {
             case V_ANY:      return true;
+            case V_ANYVAR:   return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:    return type.t == V_INT && coercions;
             case V_STRING:   return coercions;
             case V_FUNCTION: return sub.idx < 0 && type.t == V_FUNCTION;
-            case V_VECTOR:   return sub.idx < 0 && sub.t2 == V_ANY && (type.t == V_VECTOR || type.t == V_STRUCT);
             case V_NILABLE:  return type.t == V_NIL || ConvertsTo(type, sub.Element(), false);
+            case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
+                                     (type.t == V_STRUCT && sub.t2 == V_ANY));
         }
         return false;
     }
@@ -89,7 +126,7 @@ struct TypeChecker
             case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); return; } break;
             case V_STRING: a = new Node(lex, T_A2S, a); return;
         }
-        TypeError(st.TypeName(sub).c_str(), type, *a, context);
+        TypeError(TypeName(sub).c_str(), type, *a, context);
     }
 
     Node *RetVal(Node *a)
@@ -99,7 +136,7 @@ struct TypeChecker
         if (scope->returntype.t == V_UNDEFINED) scope->returntype = a ? a->exptype : Type();
         else if (a) SubType(a, scope->returntype, "return value");
         else if (scope->returntype.t != V_ANY)
-            parser.Error(scope->parent->name + " must return a value");
+            TypeError(scope->parent->name + " must return a value", *a);
         return a;
     }
 
@@ -147,10 +184,114 @@ struct TypeChecker
         }
     }
 
+    Type TypeCheckCall(Function &f, Node *call_args, Node *function_def_node)
+    {
+        if (f.multimethod)
+        {
+            // Simplistic: typechecked with actual argument types.
+            // Should attempt static picking as well, if static pick succeeds, specialize.
+            // FIXME: no need to repeat this on every call.
+            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf);
+            Type type = f.subf->returntype;
+            for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntype, false);
+            return type;
+        }
+        else
+        {
+            int specializable = 0;
+            for (int i = 0; i < f.nargs; i++) if (f.subf->args[i].flags == AF_ANYTYPE) specializable++;
+            SubFunction *sf = f.subf;
+            if (specializable)
+            {
+                // Check if any fit.
+                for (; sf && sf->typechecked; sf = sf->next)
+                {
+                    int i = 0;
+                    for (Node *list = call_args; list; list = list->tail())
+                    {
+                        auto &arg = sf->args[i++];
+                        if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
+                    }
+                    goto match;
+                    fail:;
+                }
+                // No fit. Specialize existing function, or its clone.
+                sf = f.subf;
+                if (sf->typechecked)
+                {
+                    // Clone it.
+                    auto bodycopy = f.subf->body->Clone();
+                    sf = new SubFunction(&f, f.subf, f.nargs);
+                    for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->args[i];
+                    sf->body = bodycopy;
+                }
+                int i = 0;
+                for (Node *list = call_args; list; list = list->tail())
+                {
+                    auto &arg = sf->args[i++];
+                    if (arg.flags == AF_ANYTYPE)
+                    {
+                        arg.type = list->head()->exptype;  // Specialized to arg.
+                    }
+                }
+            }
+            match:
+            // Here we have a SubFunction witch matching specialized types.
+            // First check all the manually typed args.
+            int i = 0;
+            for (Node *list = call_args; list; list = list->tail())
+            {
+                auto &arg = sf->args[i++];
+                if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
+            }
+            TypeCheck(*sf);
+            if (function_def_node) function_def_node->sf() = sf;
+            else assert(!f.subf->next);  // the caller should track the possibly changed sf
+            return sf->returntype;
+        }
+    }
+
+    Type TypeCheckDynCall(Node *fval, Node **args_ptr, Node *fdef = nullptr)
+    {
+        auto ftype = fval->exptype;
+        if (ftype.t == V_FUNCTION && ftype.idx >= 0)
+        {
+            // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
+            auto &f = *st.functiontable[ftype.idx];
+            // Check we have correct number of args:
+            int i = 0;
+            for (Node **list = args_ptr; *list; list = &(*list)->tail())
+            {
+                i++;
+                if (i > f.nargs)
+                {
+                    // We just throw away excess args here.
+                    delete *list;
+                    *list = nullptr;
+                    break;
+                }
+            }
+            if (i < f.nargs)
+                TypeError("function value called with too few arguments", *fval);
+            return TypeCheckCall(f, *args_ptr, fdef);
+        }
+        else
+        {
+            // We have to do this call entirely at runtime. We take any args, and return any.
+            // FIXME: the body T_CLOSUREDEF that created this function value hasn't been typechecked
+            // at all, meaning its contents is all T_ANY. This is not necessary esp if the function
+            // had no args, or all typed args, but we have no way of telling which T_CLOSUREDEF's
+            // will end up this way.
+            // Btw, some values ending up here may be T_COCLOSURE.
+            return Type();
+        }
+    }
+
     Type TypeCheck(Node &n)
     {
         switch (n.type)
         {
+            case T_STRUCTDEF:
             case T_FUNDEF:
                 return Type();
 
@@ -251,89 +392,111 @@ struct TypeChecker
                 return n.ident()->type;
 
             case T_DEF:
-                return n.left()->ident()->type = n.right()->exptype;
+                return n.left()->ident()->type = Promote(n.right()->exptype);
 
             case T_NATCALL:
             {
                 auto nf = n.ncall_id()->nf();
                 int i = 0;
+                vector<Type> argtypes;
                 for (Node *list = n.ncall_args(); list; list = list->tail())
                 {
-                    SubType(list->head(), nf->args[i++].type, nf->name.c_str());
+                    auto argtype = nf->args[i].type;
+                    switch (nf->args[i].flags)
+                    {
+                        case NF_SUBARG1:
+                            assert(argtypes[0].t == V_VECTOR);
+                            SubType(list->head(), nf->args[i].type.t == V_VECTOR
+                                                      ? argtypes[0] 
+                                                      : argtypes[0].Element(),
+                                                  nf->name.c_str());
+                            break;
+
+                        case NF_ANYVAR:
+                            assert(nf->args[i].type.t == V_VECTOR);
+                            argtype = NewTypeVar().Wrap();
+                            break;
+                    }
+                    SubType(list->head(), argtype, nf->name.c_str());
+                    argtypes.push_back(list->head()->exptype);
+                    i++;
                 }
-                return nf->nretvalues ? nf->retvals[0].type : Type();  // FIXME: multiple retvals
+                if (!nf->nretvalues) return Type();
+                // FIXME: multiple retvals
+                switch (nf->retvals[0].flags)
+                {
+                    case NF_SUBARG1: assert(argtypes[0].t == nf->retvals[0].type.t); return argtypes[0];
+                    case NF_ANYVAR: assert(nf->retvals[0].type.t == V_VECTOR); return NewTypeVar().Wrap();
+                    default: return nf->retvals[0].type;
+                }
             }
 
             case T_CALL:
             {
                 auto &f = *n.call_function()->sf()->parent;
-                if (f.multimethod)
-                {
-                    // Simplistic: typechecked with actual argument types.
-                    // Should attempt static picking as well, if static pick succeeds, specialize.
-                    // FIXME: no need to repeat this on every call.
-                    for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf);
-                    Type type = f.subf->returntype;
-                    for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntype, false);
-                    return type;
-                }
-                else
-                {
-                    int specializable = 0;
-                    for (int i = 0; i < f.nargs; i++) if (f.subf->args[i].flags == AF_ANYTYPE) specializable++;
-                    SubFunction *sf = f.subf;
-                    if (specializable)
-                    {
-                        // Check if any fit.
-                        for (; sf && sf->typechecked; sf = sf->next)
-                        {
-                            int i = 0;
-                            for (Node *list = n.call_args(); list; list = list->tail())
-                            {
-                                auto &arg = sf->args[i++];
-                                if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
-                            }
-                            goto match;
-                            fail:;
-                        }
-                        // No fit. Specialize existing function, or its clone.
-                        sf = f.subf;
-                        if (sf->typechecked)
-                        {
-                            // Clone it.
-                            sf = new SubFunction(&f, f.subf, f.nargs);
-                            for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->args[i];
-                            sf->body = f.subf->body->Clone();
-                        }
-                        int i = 0;
-                        for (Node *list = n.call_args(); list; list = list->tail())
-                        {
-                            auto &arg = sf->args[i++];
-                            if (arg.flags == AF_ANYTYPE)
-                            {
-                                arg.type = list->head()->exptype;  // Specialized to arg.
-                            }
-                        }
-                    }
-                    match:
-                    // Here we have a SubFunction witch matching specialized types.
-                    // First check all the manually typed args.
-                    int i = 0;
-                    for (Node *list = n.call_args(); list; list = list->tail())
-                    {
-                        auto &arg = sf->args[i++];
-                        if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
-                    }
-                    TypeCheck(*sf);
-                    n.call_function()->sf() = sf;
-                    return sf->returntype;
-                }
+                return TypeCheckCall(f, n.call_args(), n.call_function());
             }
+
+            case T_DYNCALL:
+                return TypeCheckDynCall(n.dcall_fval(),
+                                        &n.dcall_info()->dcall_args(),
+                                        n.dcall_info()->dcall_function());
 
             case T_RETURN:
             {
                 // FIXME multiret
                 n.return_value() = RetVal(n.return_value());
+                return Type();
+            }
+
+            case T_IF:
+            {
+                Node *args = nullptr;
+                if (n.if_branches()->right()->type != T_NIL)
+                {
+
+                    auto tleft  = TypeCheckDynCall(n.if_branches()->left(), &args);
+                    auto tright = TypeCheckDynCall(n.if_branches()->right(), &args);
+                    auto type = Union(tleft, tright, false);
+                    // FIXME: we would want to allow coercions here, but we can't do so without changing
+                    // these closure to a T_DYNCALL or inlining them
+                    SubType(type, *n.if_branches());
+                    return type;
+                }
+                else
+                {
+                    TypeCheckDynCall(n.if_branches()->left(), &args);
+                    // No else: this currently returns either the condition or the branch value.
+                    return Type();
+                }
+                break;
+            }
+
+            case T_WHILE:
+            {
+                Node *args = nullptr;
+                TypeCheckDynCall(n.while_condition(), &args);
+                TypeCheckDynCall(n.while_body(), &args);
+                // Currently always return V_UNDEFINED
+                return Type();
+            }
+
+            case T_FOR:
+            {
+                // We create temp arg nodes just for typechecking this:
+                auto args = new Node(lex, T_LIST,
+                                new Node(lex, T_FORLOOPVAR),
+                                new Node(lex, T_LIST,
+                                    new Node(lex, T_FORLOOPVAR)));
+                auto itertype = n.for_iter()->exptype;
+                if (itertype.t == V_INT || itertype.t == V_STRING) itertype = Type(V_INT);
+                else if (itertype.t == V_VECTOR) itertype = itertype.Element();
+                else TypeError("for can only iterate over int/string/vector", n);
+                args->head()->exptype = itertype;
+                args->tail()->head()->exptype = Type(V_INT);
+                TypeCheckDynCall(n.for_body(), &args, nullptr);
+                delete args;
+                // Currently always return V_UNDEFINED
                 return Type();
             }
 
@@ -361,9 +524,9 @@ struct TypeChecker
                         u = i ? Union(u, list->head()->exptype, true) : list->head()->exptype;
                         i++;
                     }
-                    if (!u.CanWrap()) parser.Error("can\'t nest vector values this deep", &n);
+                    if (!u.CanWrap()) TypeError("can\'t nest vector values this deep", n);
                     type = u.Wrap();
-                    // FIXME: what if this was an empty vector? Should we make the statically known length part of the type?
+                    if (!i) type = NewTypeVar().Wrap();  // special case for empty vectors
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
@@ -420,38 +583,29 @@ struct TypeChecker
                 SubType(n.right(), n.left()->exptype, n);
                 return n.left()->exptype;
 
-            case T_IF:
-                // must return undef for retval if one branch
+            case T_COCLOSURE:
+                return Type(V_FUNCTION, -1);
 
-            case T_CLOSURE:
-                //
+            case T_COROUTINE:
+                return Type(V_COROUTINE);
+
+
 
             case T_CO_AT:
 
             case T_ASSIGNLIST:
 
-            case T_STRUCTDEF:
-
-            case T_DYNCALL:
-
-            case T_FUN:
-
-            case T_NATIVE:
-
-            case T_LIST:
 
             case T_MULTIRET:
 
-            case T_COCLOSURE:
-
-            case T_COROUTINE:
 
 
-
-
-
-
-
+            case T_FUN:
+            case T_NATIVE:
+            case T_LIST:
+            case T_CLOSURE:
+            case T_BRANCHES:
+            case T_DYNINFO:
             case T_STRUCT:
                 return n.exptype;
 

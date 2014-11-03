@@ -1,7 +1,8 @@
 - switch to /W4
 
 - typechecker
-  * make if/while/for have custom nodes and opcodes, simplify native calls getting closures, and typecheck them, make map/filter etc part of std.lobster
+  * we can't type check recursive function return types
+  * make Promote more pervasive, or fix ExactType to handle type_vars? 
   * typecheck function values from dyncall/natcall
 
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.

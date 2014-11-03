@@ -442,8 +442,8 @@ struct CodeGen
                 }
                 else
                 {
-                    genargs(n->dcall_args(), nullptr, 0);
-                    Gen(n->dcall_var(), 1);
+                    genargs(n->dcall_info()->dcall_args(), nullptr, 0);
+                    Gen(n->dcall_fval(), 1);
                     Emit(IL_CALLV, nargs);
                 }
                 if (!retval) Emit(IL_POP);

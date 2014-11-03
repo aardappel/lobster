@@ -241,11 +241,11 @@ struct Node : SlabAllocated<Node>
                 }
                 case T_DYNCALL:
                 {
-                    auto f = lookup(n->dcall_var());
+                    auto f = lookup(n->dcall_fval());
                     if (f->type == T_COCLOSURE) { customf(istack); return; }
                     // ignore dynamic calls to non-function-vals, could make this an error?
                     if (f->type != T_CLOSUREDEF) { assert(0); return; }
-                    evalblock(f->closure(), n->dcall_args());
+                    evalblock(f->closure(), n->dcall_info()->dcall_args());
                     break;
                 }
                 case T_NATCALL:

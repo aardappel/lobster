@@ -62,7 +62,7 @@ struct Type
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 };
 
-enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE };
+enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR };
 
 struct Arg
 {
@@ -70,8 +70,10 @@ struct Arg
     ArgFlags flags;
     string id;
 
-    void Set(char t, const string &name)
+    void Set(const char *&tid, const string &name, Arg *referents, int numrefs)
     {
+        char t = *tid++;
+        char idx = isalpha(*tid) ? 0 : *tid++;
         id = name;
         flags = AF_NONE;
         bool optional = false;
@@ -82,11 +84,18 @@ struct Arg
             case 'F': type.t = V_FLOAT; break;
             case 'S': type.t = V_STRING; break;
             case 'V': type.t = V_VECTOR; break;
-            case 'E': type.t = V_FUNCTION; flags = NF_EXPFUNVAL; break;
             case 'C': type.t = V_FUNCTION; break;
             case 'R': type.t = V_COROUTINE; break;
             case 'A': type.t = V_ANY; break;
             default:  assert(0);
+        }
+        switch (idx)
+        {
+            case 0: break;
+            case '1': flags = NF_SUBARG1; break;
+            case '*': flags = NF_ANYVAR; break;
+            case '@': flags = NF_EXPFUNVAL; break;
+            default: assert(0);
         }
         if (optional)
         {
@@ -146,10 +155,13 @@ struct NativeFun : Name
 
     NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int _nargs,
               const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
-        : Name(string(_name), 0), fun(f), nargs(_nargs), nretvalues(strlen(rets)), ncm(_ncm), cont1(_cont1),
+        : Name(string(_name), 0), fun(f), nargs(_nargs), nretvalues(0), ncm(_ncm), cont1(_cont1),
                help(_help), subsystemid(-1)
     {
-        assert(strlen(typeids) == nargs);
+        auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
+        nretvalues = TypeLen(rets);
+        assert(TypeLen(typeids) == nargs);
+
         args = new Arg[nargs];
 
         for (int i = 0; i < nargs; i++)
@@ -161,14 +173,14 @@ struct NativeFun : Name
                 assert(i == nargs - 1);
                 idend = ids + strlen(ids);
             }
-            args[i].Set(typeids[i], string(ids, idend)); 
+            args[i].Set(typeids, string(ids, idend), args, i); 
             ids = idend + 1;
         }
 
         retvals = new Arg[nretvalues];
         for (int i = 0; i < nretvalues; i++)
         {
-            retvals[i].Set(rets[i], string());
+            retvals[i].Set(rets, string(), args, nargs);
         }
     }
 };

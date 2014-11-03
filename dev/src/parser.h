@@ -866,7 +866,10 @@ struct Parser
         auto args = ParseFunArgs(coroutine, firstarg);
         auto id = st.LookupLexMaybe(idname);
         if (id)
-            return new Node(lex, T_DYNCALL, new Node(lex, id), args);
+            return new Node(lex, T_DYNCALL, new Node(lex, id),
+                                            new Node(lex, T_DYNINFO,
+                                                new Node(lex, (SubFunction *)nullptr),
+                                                args));
 
         auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)nullptr), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
@@ -974,7 +977,10 @@ struct Parser
             case T_LEFTPAREN:   // only for dyn calls
             {
                 auto args = ParseFunArgs(false, nullptr);
-                n = new Node(lex, T_DYNCALL, n, args);
+                n = new Node(lex, T_DYNCALL, n,
+                                             new Node(lex, T_DYNINFO,
+                                                 new Node(lex, (SubFunction *)nullptr), 
+                                                 args));
                 break;
             }
 
