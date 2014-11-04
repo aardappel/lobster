@@ -29,7 +29,7 @@
 // incompatability of the data format with 32bit builds
 // the vector<unsigned int> may require endian-swapping if used cross platform (hey, didn't little endian win? :P)
 
-void WEntropyCoder(vector<uchar> &uncompressed, vector<unsigned int> &compressed)
+void WEntropyCoder(vector<unsigned char> &uncompressed, vector<unsigned int> &compressed)
 {
     bool compress = uncompressed.size() != 0;
     assert(uncompressed.size() <= 0xFFFFFFFF);  // just in case, for 64bit builds
@@ -76,7 +76,7 @@ void WEntropyCoder(vector<uchar> &uncompressed, vector<unsigned int> &compressed
                 nbits--;
             }
         }
-        if (!compress) uncompressed.push_back(ch[start]);
+        if (!compress) uncompressed.push_back((unsigned char)ch[start]);
         assert(size == 1 && uncompressed[i] == ch[start]);   
         freq[start]++;
         while (start && freq[start - 1] < freq[start])

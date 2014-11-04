@@ -55,7 +55,7 @@ struct Ident : Name
         : Name(_name, _idx), line(_l), 
           scope(_sc), prev(nullptr), sf(nullptr), 
           single_assignment(true), constant(false), static_constant(false), logvaridx(-1) {}
-    Ident() : Ident("", -1, 0, -1) {}
+    Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Serialize(Serializer &ser)
     {
@@ -74,7 +74,7 @@ struct Ident : Name
 
 struct FieldOffset
 {
-    short structidx, offset;
+    int structidx, offset;
 
     FieldOffset(int _si, int _o) : structidx(_si), offset(_o) {}
     FieldOffset() : FieldOffset(-1, -1) {}
@@ -315,7 +315,7 @@ struct SymbolTable
         withstacklevels.push_back(withstack.size());
     }
 
-    void ScopeCleanup(Lex &lex)
+    void ScopeCleanup()
     {
         while (identstack.size() > scopelevels.back())
         {
@@ -391,7 +391,7 @@ struct SymbolTable
         return -1;
     }
 
-    SharedField &FieldDecl(const string &name, int idx, Struct *st, Lex &lex)
+    SharedField &FieldDecl(const string &name, int idx, Struct *st)
     {
         SharedField *fld = fields[name];
         if (!fld)

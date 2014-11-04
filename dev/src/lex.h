@@ -345,7 +345,7 @@ struct Lex : LoadedFile
         }
     }
 
-    int HexDigit(char c)
+    char HexDigit(char c)
     {
         if (isdigit(c)) return c - '0';
         if (isxdigit(c)) return c - (c < 'a' ? 'A' : 'a') + 10;
@@ -354,7 +354,7 @@ struct Lex : LoadedFile
 
     TType LexString(int initial)
     {
-        int c = 0;
+        char c = 0;
         sattr = "";
 
         while ((c = *p++) != initial) switch (c)

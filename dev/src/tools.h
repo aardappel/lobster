@@ -529,7 +529,7 @@ template <typename T> class IntResourceManagerCompact
 
     public:
 
-    IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(-1), deletefun(_df)
+    IntResourceManagerCompact(const function<void(T *e)> &_df) : firstfree(SIZE_MAX), deletefun(_df)
     {
         elems.push_back(nullptr);  // slot 0 is permanently blocked, so can be used to denote illegal index
     }

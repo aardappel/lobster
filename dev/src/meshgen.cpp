@@ -80,7 +80,7 @@ struct ImplicitFunction
 
     virtual ~ImplicitFunction() {}
 
-    inline bool Eval(const float3 &pos) { return false; }
+    inline bool Eval(const float3 & /*pos*/) { return false; }
 
     virtual float3 ComputeSize() { return size; };
     virtual void FillGrid(const int3 &start, const int3 &end, const int3 &gridsize, findex *fcellindices,
@@ -172,8 +172,8 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
                                 int oe = tmat ? maxedge - fc.edges[i] : fc.edges[i];
                                 e = material ? max(e, oe) : min(e, oe);
                             }
-                            fc.edges[i] = tmat ? maxedge - e : e;
-                            fc.material[i] = tmat ? tmat : omat;  // FIXME: make this depend on who is closer
+                            fc.edges[i] = ushort(tmat ? maxedge - e : e);
+                            fc.material[i] = short(tmat ? tmat : omat);  // FIXME: make this depend on who is closer
                         }
                     }
                     else
@@ -275,7 +275,7 @@ struct Group : ImplicitFunctionImpl<Group>
         for (auto c : children) delete c;
     }
 
-    static inline bool Eval(const float3 &pos) { return false; }
+    static inline bool Eval(const float3 & /*pos*/) { return false; }
 
     float3 ComputeSize()
     {
@@ -292,8 +292,8 @@ struct Group : ImplicitFunctionImpl<Group>
         return sz;
     }
 
-    void FillGrid(const int3 &start, const int3 &end, const int3 &gridsize, findex *fcellindices,
-                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 &_gridrot)
+    void FillGrid(const int3 & /*start*/, const int3 & /*end*/, const int3 &gridsize, findex *fcellindices,
+                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 & /*gridrot*/)
     {
         for (auto c : children)
         {

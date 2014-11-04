@@ -91,6 +91,9 @@ void AddBuiltins()
     STARTDECL(if) (Value &c, Value &t, Value &e)
     {
         assert(0);  // Special case implementation in the VM
+        (void)c;
+        (void)t;
+        (void)e;
         return Value();
     }
     ENDDECL3(if, "cond,then,else", "ACc", "A",
@@ -99,6 +102,8 @@ void AddBuiltins()
     STARTDECL(while) (Value &c, Value &b)
     {
         assert(0);  // Special case implementation in the VM
+        (void)c;
+        (void)b;
         return Value();
     }
     ENDDECL2(while, "cond,body", "C@C", "A",
@@ -107,6 +112,8 @@ void AddBuiltins()
     STARTDECL(for) (Value &iter, Value &body)
     {
         assert(0);  // Special case implementation in the VM
+        (void)iter;
+        (void)body;
         return Value();
     }
     ENDDECL2(for, "iter,body", "AC", "I",

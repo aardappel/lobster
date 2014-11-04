@@ -187,7 +187,7 @@ string SDLError(const char *msg)
     return s;
 }
 
-int SDLHandleAppEvents(void *userdata, SDL_Event *event)
+int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
 {
     switch (event->type)
     {
@@ -345,8 +345,8 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     SDL_JoystickUpdate();
     for(int i = 0; i < SDL_NumJoysticks(); i++)
     {
-        SDL_Joystick *joy;
-        if (joy = SDL_JoystickOpen(i))
+        SDL_Joystick *joy = SDL_JoystickOpen(i);
+        if (joy)
         {
             DebugLog(-1, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)\n",
                          SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy),
@@ -592,7 +592,8 @@ bool SDLCursor(bool on)
 {
     if (on != cursor)
     {
-        if ((cursor = !cursor))
+        cursor = !cursor;
+        if (cursor)
         {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
             SDL_ShowCursor(1);

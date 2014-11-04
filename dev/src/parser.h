@@ -54,7 +54,7 @@ struct Parser
 
         root = ParseStatements();
 
-        st.ScopeCleanup(lex);
+        st.ScopeCleanup();
 
         Expect(T_ENDOFFILE);
 
@@ -154,7 +154,7 @@ struct Parser
     {
         string fname = lex.sattr;
         Expect(T_IDENT);
-        auto n = new Node(lex, &st.FieldDecl(fname, idx, currentstruct, lex));
+        auto n = new Node(lex, &st.FieldDecl(fname, idx, currentstruct));
         if (IsNext(T_COLON)) ParseType(n->exptype, false);
         return n;
     }
@@ -380,7 +380,7 @@ struct Parser
                 ReturnValues(f, 1);
         assert(f.retvals);
 
-        return CreateSubFunctionNode(closure, f, sf, T_FUNDEF);
+        return CreateSubFunctionNode(closure, sf, T_FUNDEF);
     }
 
     SubFunction *NewSubFunction(Function &f, Node *args)
@@ -397,7 +397,7 @@ struct Parser
         return sf;
     }
 
-    Node *CreateSubFunctionNode(Node *closure, Function &f, SubFunction *sf, TType deftype)
+    Node *CreateSubFunctionNode(Node *closure, SubFunction *sf, TType deftype)
     {
         sf->body = closure;
         return new Node(lex, deftype, new Node(lex, sf), closure);
@@ -407,7 +407,7 @@ struct Parser
     {
         auto &f = st.CreateFunction("", CountList(closure->parameters()));
         auto sf = NewSubFunction(f, closure->parameters());
-        return CreateSubFunctionNode(closure, f, sf, T_CLOSUREDEF);
+        return CreateSubFunctionNode(closure, sf, T_CLOSUREDEF);
     }
 
     void ParseType(Type &dest, bool withtype)
@@ -634,7 +634,7 @@ struct Parser
 
         n = new Node(lex, T_CLOSURE, n, body);
 
-        st.ScopeCleanup(lex);
+        st.ScopeCleanup();
         return n;
     }
 

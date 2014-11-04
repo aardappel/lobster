@@ -180,7 +180,7 @@ void cleanupiqm()
     bounds = nullptr;
 }
 
-bool loadiqmmeshes(const char *filename, const iqmheader &hdr, uchar *buf)
+bool loadiqmmeshes(const iqmheader &hdr, uchar *buf)
 {
     lilswap((uint *)&buf[hdr.ofs_vertexarrays], hdr.num_vertexarrays*sizeof(iqmvertexarray)/sizeof(uint));
     lilswap((uint *)&buf[hdr.ofs_triangles], hdr.num_triangles*sizeof(iqmtriangle)/sizeof(uint));
@@ -235,15 +235,13 @@ bool loadiqmmeshes(const char *filename, const iqmheader &hdr, uchar *buf)
     for(int i = 0; i < (int)hdr.num_meshes; i++)
     {
         iqmmesh &m = meshes[i];
-        //printf("%s: loaded mesh: %s\n", filename, &str[m.name]);
         textures[i] = &str[m.name];
-        //if(textures[i]) printf("%s: loaded material: %s\n", filename, &str[m.material]);
     }
 
     return true;
 }
 
-bool loadiqmanims(const char *filename, const iqmheader &hdr, uchar *buf)
+bool loadiqmanims(const iqmheader &hdr, uchar *buf)
 {
     if((int)hdr.num_poses != numjoints) return false;      
 
@@ -306,8 +304,8 @@ bool loadiqm(const char *filename)
     if(len != hdr.filesize || hdr.filesize > (16<<20)) 
         return false; // sanity check... don't load files bigger than 16 MB
 
-    if(hdr.num_meshes > 0 && !loadiqmmeshes(filename, hdr, filebuffer)) return false;
-    if(hdr.num_anims  > 0 && !loadiqmanims (filename, hdr, filebuffer)) return false;
+    if(hdr.num_meshes > 0 && !loadiqmmeshes(hdr, filebuffer)) return false;
+    if(hdr.num_anims  > 0 && !loadiqmanims (hdr, filebuffer)) return false;
  
     return true;
 }

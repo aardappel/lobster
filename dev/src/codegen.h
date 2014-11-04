@@ -246,7 +246,7 @@ struct CodeGen
         if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
     }
 
-    void GenTypeCheck(Type &given, Type &type)
+    void GenTypeCheck(const Type &given, const Type &type)
     {
         if (given == type) return;
         switch(type.t)

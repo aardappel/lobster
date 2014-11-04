@@ -175,9 +175,9 @@ bool LoadSound(const char* filename, bool sfxr)
 
     if (it == sound_files.end())
     {
-        uchar *buf;
         size_t len = 0;
-        if (!(buf = LoadFile(filename, &len)))
+        uchar *buf = LoadFile(filename, &len);
+        if (!buf)
             return false;
 
         if (sfxr)
@@ -516,7 +516,7 @@ void SynthSample(int length, float* buffer, FILE* file)
     }
 }
 
-static void SDLAudioCallback(void *userdata, Uint8 *stream, int len)
+static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len)
 {
     if (playing_sample)
     {

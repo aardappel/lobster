@@ -266,7 +266,7 @@ template<typename T, int C, int R> class matrix
     {
         for (int x = 0; x < C; x++) 
             for (int y = 0; y < R; y++)
-                m[x].c[y] = (T)(x == y); 
+                m[x].c[y] = e * (T)(x == y); 
     }
 
     explicit matrix(const V &v)
@@ -555,6 +555,7 @@ template<class T> void normalize_mesh(int *idxs, int idxlen, T *verts, int vertl
         else
         {
             assert(ignore_bad_tris);
+            (void)ignore_bad_tris;
         }
     }
 

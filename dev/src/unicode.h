@@ -23,7 +23,7 @@ inline int ToUTF8(int u, char *out /* must have space for 7 chars */)
         if (u < (1 << maxbits))       // does it fit?
         {
             int remainbits = i * 6;   // remaining bits not encoded in the first byte, store 6 bits each
-            *out++ = (0xFE << (maxbits - remainbits)) + (u >> remainbits);            // first byte
+            *out++ = char((0xFE << (maxbits - remainbits)) + (u >> remainbits));        // first byte
             for (int j = i - 1; j >= 0; j--) *out++ = ((u >> (j * 6)) & 0x3F) | 0x80;   // remaining bytes
             *out++ = 0;     // terminate it
             return i + 1;   // strlen

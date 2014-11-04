@@ -289,7 +289,6 @@ struct VM : VMBase
 
         DebugLog(1, "%s", s.c_str());
         throw s;
-        return Value();
     }
 
     Value BuiltinError(string err) { return Error(err); }
@@ -309,13 +308,13 @@ struct VM : VMBase
         #define VMASSERT(test)             VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test)
         #define VMASSERTVALUES(test, a, b) VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b)
     #else
-        #define VMASSERT(test)
-        #define VMASSERTVALUES(test, a, b)
+        #define VMASSERT(test) (void)(test)
+        #define VMASSERTVALUES(test, a, b) (void)(test)
     #endif
 
     string ValueDBG(const Value &a)
     {
-        int found;
+        int found = 0;
         int nfound = 0;
         for (size_t i = 0; i < st.identtable.size(); i++) if (a.Equal(vars[i], false)) { found = i; nfound++; }
         string s = a.ToString(debugpp);
@@ -737,7 +736,7 @@ struct VM : VMBase
                     // FIXME: have a way that constant strings can stay in the bytecode,
                     // or at least preallocate them all
                     auto s = NewString(len - 1);
-                    for (int i = 0; i < len; i++) s->str()[i] = start[i]; 
+                    for (int i = 0; i < len; i++) s->str()[i] = (char)start[i]; 
                     PUSH(Value(s));
                     break;
                 }

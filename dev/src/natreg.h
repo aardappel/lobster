@@ -70,7 +70,7 @@ struct Arg
     ArgFlags flags;
     string id;
 
-    void Set(const char *&tid, const string &name, Arg *referents, int numrefs)
+    void Set(const char *&tid, const string &name)
     {
         char t = *tid++;
         char idx = isalpha(*tid) ? 0 : *tid++;
@@ -173,14 +173,14 @@ struct NativeFun : Name
                 assert(i == nargs - 1);
                 idend = ids + strlen(ids);
             }
-            args[i].Set(typeids, string(ids, idend), args, i); 
+            args[i].Set(typeids, string(ids, idend)); 
             ids = idend + 1;
         }
 
         retvals = new Arg[nretvalues];
         for (int i = 0; i < nretvalues; i++)
         {
-            retvals[i].Set(rets, string(), args, nargs);
+            retvals[i].Set(rets, string());
         }
     }
 };

@@ -102,6 +102,7 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool fro
         auxdir = writedir;
     #endif
 
+    (void)from_bundle;
     return true;
 }
 
@@ -191,6 +192,7 @@ FILE *OpenForWriting(const char *relfilename, bool binary)
 
 void DebugLog(int lev, const char *msg, ...)
 {
+    if (lev < MINLOGLEVEL) return;
     va_list args;
     va_start(args, msg);
     #ifdef __ANDROID__
@@ -207,7 +209,7 @@ void DebugLog(int lev, const char *msg, ...)
         extern void IOSLog(const char *msg);
         //IOSLog(msg);
     #else
-        if (lev >= MINLOGLEVEL) vprintf(msg, args);
+        vprintf(msg, args);
     #endif
     va_end(args);
 }
@@ -230,6 +232,8 @@ void MsgBox(const char *err)
         CFStringCreateWithCString(kCFAllocatorDefault, err, ::GetApplicationTextEncoding());
         CreateStandardAlert(kAlertStopAlert, CFSTR("Error:"), sr, nullptr, &alertDialog);
         RunStandardAlert (alertDialog, nullptr, nullptr);
+    #else
+        (void)err;
     #endif
 }
 

@@ -194,7 +194,8 @@ OutlineFont *LoadFont(const char *name)
 {
     FT_Error err = 0;
 
-    if (library || !(err = FT_Init_FreeType(&library)))
+    if (!library) err = FT_Init_FreeType(&library);
+    if (!err)
     {
         size_t len = 0;
         auto fbuf = LoadFile(name, &len);

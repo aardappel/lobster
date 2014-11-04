@@ -37,7 +37,7 @@ enum ValueType
     V_MAXVMTYPES
 };
 
-static const char *BaseTypeName(ValueType t)
+inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
@@ -170,7 +170,7 @@ struct LString : LenObj
         }
     }
 
-    char HexChar(int i) { return i + (i < 10 ? '0' : 'A' - 10); }
+    char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
     void Mark() { if (refc > 0) refc = -refc; }
 
