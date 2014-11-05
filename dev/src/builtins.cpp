@@ -127,7 +127,7 @@ void AddBuiltins()
         nv->append(v2.vval, 0, v2.vval->len); v2.DEC();
         return Value(nv);
     }
-    ENDDECL2(append, "xs,ys", "VV1", "V1",
+    ENDDECL2(append, "xs,ys", "V*V1", "V1",
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (Value &len)

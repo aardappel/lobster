@@ -406,6 +406,7 @@ struct Parser
     Node *FunctionValueDef(Node *closure)
     {
         auto &f = st.CreateFunction("", CountList(closure->parameters()));
+        f.anonymous = true;
         auto sf = NewSubFunction(f, closure->parameters());
         return CreateSubFunctionNode(closure, sf, T_CLOSUREDEF);
     }

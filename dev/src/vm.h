@@ -308,8 +308,8 @@ struct VM : VMBase
         #define VMASSERT(test)             VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test)
         #define VMASSERTVALUES(test, a, b) VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b)
     #else
-        #define VMASSERT(test) (void)(test)
-        #define VMASSERTVALUES(test, a, b) (void)(test)
+        #define VMASSERT(test)
+        #define VMASSERTVALUES(test, a, b)
     #endif
 
     string ValueDBG(const Value &a)
@@ -337,6 +337,7 @@ struct VM : VMBase
         auto nsubf = *ip++;
         auto table_nargs = *ip++;
         VMASSERT(nargs == table_nargs);
+        (void)table_nargs;
         for (int i = 0; i < nsubf; i++)
         {
             // TODO: rather than going thru all args, only go thru those that have types

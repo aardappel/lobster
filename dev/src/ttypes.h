@@ -82,7 +82,7 @@
     T(T_A2S, "tostring", TT_UNARY, NO, a, NO, b) \
     T(T_CONSTRUCTOR, "constructor", TT_NONE, YES, constructor_args, YES, constructor_type) \
     T(T_IF, "if", TT_NONE, YES, if_condition, YES, if_branches) \
-    T(T_BRANCHES, "branches", TT_BINARY, NO, a, NO, b) \
+    T(T_BRANCHES, "if branch", TT_BINARY, NO, a, NO, b) \
     T(T_WHILE, "while", TT_NONE, YES, while_condition, YES, while_body) \
     T(T_FOR, "for", TT_NONE, YES, for_iter, YES, for_body) \
     T(T_FORLOOPVAR, "for loop variable", TT_NOCHILD, NO, a, NO, b) \

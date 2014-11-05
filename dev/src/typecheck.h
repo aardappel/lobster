@@ -14,6 +14,19 @@ struct TypeChecker
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
+    string Signature(const SubFunction *sf)
+    {
+        auto s = sf->parent->name + "(";
+        for (int i = 0; i < sf->parent->nargs; i++)
+        {
+            if (i) s += ", ";
+            auto &arg = sf->args[i];
+            s += arg.id;
+            if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
+        }
+        return s + ")";
+    }
+
     void TypeError(const char *required, const Type &got, const Node &n, const char *context = nullptr)
     {
         TypeError(string("\"") +
@@ -30,19 +43,7 @@ struct TypeChecker
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
             auto sf = *it;
-            err += "\n  in function: " + sf->parent->name + "(";
-            for (int i = 0; i < sf->parent->nargs; i++)
-            {
-                if (i) err += ", ";
-                auto &arg = sf->args[i];
-                err += arg.id;
-                if (arg.type.t != V_ANY)
-                {
-                    err += ":";
-                    err += TypeName(arg.type);
-                }
-            }
-            err += ")";
+            err += "\n  in function: " + Signature(sf);
             for (Node *list = sf->body->body(); list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
@@ -66,9 +67,19 @@ struct TypeChecker
 
     Type Promote(const Type &type)
     {
-        /*if (type.t == V_ANYVAR && type_variables[type.idx].t != V_UNDEFINED) return Promote(type_variables[type.idx]);
-        else if (type.t == V_VECTOR) return Promote(type.Element()).Wrap();  // FIXME: CanWrap?
-        else */return type;
+        if (type.t == V_ANYVAR && type_variables[type.idx].t != V_UNDEFINED)
+        {
+            return Promote(type_variables[type.idx]);
+        }
+        else if (type.t == V_VECTOR)
+        {
+            auto pe = Promote(type.Element());
+            return pe.CanWrap() ? pe.Wrap() : type;
+        }
+        else
+        {
+            return type;
+        }
     }
 
     Type UnifyVar(const Type &type, const Type &hasvar)
@@ -102,8 +113,8 @@ struct TypeChecker
     }
     Type Union(const Type &at, const Type &bt, bool coercions)
     {
-        if (ConvertsTo(at, bt, coercions)) return bt;
-        if (ConvertsTo(bt, at, coercions)) return at;
+        if (ConvertsTo(at, bt, coercions)) return Promote(bt);
+        if (ConvertsTo(bt, at, coercions)) return Promote(at);
         if (at.t == V_VECTOR && bt.t == V_VECTOR) return Type(V_VECTOR);
         return Type(V_ANY);
     }
@@ -111,7 +122,7 @@ struct TypeChecker
     bool ExactType(const Node &a, const Type &sub)
     {
         const Type &type = a.exptype;
-        return type == sub;
+        return Promote(type) == Promote(sub);
     }
 
     void SubType(const Type &sub, Node &n) { SubType(n.left(), sub, n); SubType(n.right(), sub, n); }
@@ -120,24 +131,21 @@ struct TypeChecker
     void SubType(Node *&a, const Type &sub, const char *context)
     {
         const Type &type = a->exptype;
-        if (ConvertsTo(type, sub, false)) return;
+        if (ConvertsTo(type, sub, false)) { a->exptype = Promote(type); return; }
         switch (sub.t)
         {
-            case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); return; } break;
-            case V_STRING: a = new Node(lex, T_A2S, a); return;
+            case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); a->exptype = Type(V_FLOAT); return; } break;
+            case V_STRING: a = new Node(lex, T_A2S, a); a->exptype = Type(V_STRING); return;
         }
         TypeError(TypeName(sub).c_str(), type, *a, context);
     }
 
-    Node *RetVal(Node *a)
+    void RetVal(Node *&a)
     {
-        if (scopes.empty()) return a;
+        if (scopes.empty()) return;
         auto scope = scopes.back();
-        if (scope->returntype.t == V_UNDEFINED) scope->returntype = a ? a->exptype : Type();
-        else if (a) SubType(a, scope->returntype, "return value");
-        else if (scope->returntype.t != V_ANY)
-            TypeError(scope->parent->name + " must return a value", *a);
-        return a;
+        if (a) SubType(a, scope->returntype, "return value");
+        else scope->returntype = Type();  // FIXME: this allows "return" followed by "return 1" ?
     }
 
     void TypeCheck(SubFunction &sf)
@@ -155,11 +163,12 @@ struct TypeChecker
                 // but will become an issue when we want to store values non-uniformly.
                 params->head()->ident()->type = arg.type;
             }
+            sf.returntype = NewTypeVar();
             sf.body->exptype = TypeCheck(*sf.body);
             Node *last = nullptr;
             for (auto topl = sf.body->body(); topl; topl = topl->tail()) last = topl;
             assert(last);
-            last->head() = RetVal(last->head());
+            RetVal(last->head());
 
             scopes.pop_back();
         }
@@ -220,10 +229,10 @@ struct TypeChecker
                 if (sf->typechecked)
                 {
                     // Clone it.
-                    auto bodycopy = f.subf->body->Clone();
+                    DebugLog(1, "cloning: %s", Signature(sf).c_str());
                     sf = new SubFunction(&f, f.subf, f.nargs);
-                    for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->args[i];
-                    sf->body = bodycopy;
+                    for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->next->args[i];
+                    sf->body = f.subf->next->body->Clone();
                 }
                 int i = 0;
                 for (Node *list = call_args; list; list = list->tail())
@@ -234,6 +243,7 @@ struct TypeChecker
                         arg.type = list->head()->exptype;  // Specialized to arg.
                     }
                 }
+                DebugLog(1, "specialization: %s", Signature(sf).c_str());
             }
             match:
             // Here we have a SubFunction witch matching specialized types.
@@ -392,7 +402,7 @@ struct TypeChecker
                 return n.ident()->type;
 
             case T_DEF:
-                return n.left()->ident()->type = Promote(n.right()->exptype);
+                return n.left()->ident()->type = n.right()->exptype;
 
             case T_NATCALL:
             {
@@ -445,7 +455,7 @@ struct TypeChecker
             case T_RETURN:
             {
                 // FIXME multiret
-                n.return_value() = RetVal(n.return_value());
+                RetVal(n.return_value());
                 return Type();
             }
 

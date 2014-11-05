@@ -70,6 +70,8 @@ struct Arg
     ArgFlags flags;
     string id;
 
+    Arg() : flags(AF_NONE) {}
+
     void Set(const char *&tid, const string &name)
     {
         char t = *tid++;
