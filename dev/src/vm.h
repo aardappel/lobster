@@ -840,10 +840,10 @@ struct VM : VMBase
                 {
                     auto nf = natreg.nfuns[*ip++];
                     int n = *ip++;
-                    if (n > (int)nf->nargs)
+                    if (n > (int)nf->args.size())
                         Error("native function \"" + nf->name + "\" called with too many arguments");
                     Value v;
-                    switch (nf->nargs)
+                    switch (nf->args.size())
                     {
                         #define ARG(N) Value a##N = POP(); NFCheck(a##N, *nf, N);
                         case 0: {                                           v = nf->fun.f0(); break; }
@@ -862,9 +862,9 @@ struct VM : VMBase
                         // other function types return intermediary values that don't correspond to final return values
                         if (nf->ncm == NCM_NONE)
                         { 
-                            for (int i = 0; i < nf->nretvalues; i++)
+                            for (size_t i = 0; i < nf->retvals.size(); i++)
                             {
-                                auto t = (TOPPTR() - nf->nretvalues + i)->type;
+                                auto t = (TOPPTR() - nf->retvals.size() + i)->type;
                                 auto u = nf->retvals[i].type.t;
                                 VMASSERT(t == u || u == V_ANY);   
                             }

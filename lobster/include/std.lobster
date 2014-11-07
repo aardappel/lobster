@@ -70,8 +70,10 @@ function qsort(xs, lt):
     else:
         pivot := xs[0]
         tail := xs.slice(1, -1)
-        append(append(qsort(tail.filter():  lt(_, pivot), lt), [ pivot ]),
-                      qsort(tail.filter(): !lt(_, pivot), lt))
+        f1 := tail.filter():  lt(_, pivot)
+        f2 := tail.filter(): !lt(_, pivot)
+        append(append(qsort(f1, lt), [ pivot ]),
+                      qsort(f2, lt))
 
 function qsort_in_place(xs, lt):
     function rec(s, e):

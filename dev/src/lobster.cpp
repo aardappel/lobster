@@ -223,12 +223,12 @@ void DumpBuiltins()
             }
 
             fprintf(f, "<tr class=\"a\" valign=top><td class=\"a\"><tt><b>%s</b>(", nf->name.c_str());
-            for (int i = 0; i < nf->nargs; i++)
+            int i = 0;
+            for (auto &a : nf->args)
             {
-                Arg &a = nf->args[i];
                 fprintf(f, "%s%s%s<font color=\"#666666\">%s</font>%s",
                     a.type.t == V_NILABLE ? " [" : "",
-                    i ? ", " : "",
+                    i++ ? ", " : "",
                     a.id.c_str(),
                     a.type.t == V_ANY ? "" : (string(":") + 
                         BaseTypeName(a.type.t == V_NILABLE ? a.type.Element().t : a.type.t)).c_str(),
@@ -236,15 +236,15 @@ void DumpBuiltins()
                 );
             }
             fprintf(f, ")");
-            if (nf->nretvalues)
+            if (nf->retvals.size())
             {
                 fprintf(f, " -> ");
-                for (int i = 0; i < nf->nretvalues; i++)
+                size_t i = 0;
+                for (auto &a : nf->retvals)
                 {
-                    Arg &a = nf->retvals[i];
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
                                 a.type.t == V_ANY ? "any" : BaseTypeName(a.type.t), 
-                                i < nf->nretvalues - 1 ? ", " : "");
+                                i++ < nf->retvals.size() - 1 ? ", " : "");
                 }
             }
             fprintf(f, "</tt></td><td class=\"a\">%s</td></tr>\n", nf->help);

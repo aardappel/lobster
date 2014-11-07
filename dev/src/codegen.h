@@ -383,12 +383,12 @@ struct CodeGen
             {
                 int nargs = 0;
                 Node *lastarg = nullptr;
-                auto genargs = [&](Node *list, Arg *args, int checkargs)
+                auto genargs = [&](Node *list, vector<Arg> *args, int checkargs)
                 {
                     for (; list; list = list->tail())
                     {
                         Gen(list->head(), 1);
-                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args[nargs].type);
+                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, (*args)[nargs].type);
                         lastarg = list->head();
                         nargs++;
                     }
@@ -412,11 +412,11 @@ struct CodeGen
                     {
                         Emit(IL_BCALL, nf->idx, nargs);
                     }
-                    if (nf->nretvalues > 1)
+                    if (nf->retvals.size() > 1)
                     {
-                        maxretvalsupplied = nf->nretvalues;
+                        maxretvalsupplied = nf->retvals.size();
                     }
-                    else if (!nf->nretvalues && retval)
+                    else if (!nf->retvals.size() && retval)
                     { 
                         // can't make this an error since these functions are often called as the last thing in a
                         // function, requiring a return value
@@ -427,7 +427,7 @@ struct CodeGen
                 {
                     auto &sf = *n->call_function()->sf();
                     auto &f = *sf.parent;
-                    genargs(n->call_args(), sf.args, f.multimethod ? 0 : f.nargs);
+                    genargs(n->call_args(), &sf.args, f.multimethod ? 0 : sf.args.size());
                     if (f.nargs != nargs)
                         parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
                                      " arguments, " + string(inttoa(nargs)) + " given", n->call_function());

@@ -161,7 +161,8 @@ struct TypeChecker
                 auto &arg = sf.args[i++];
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
-                params->head()->ident()->type = arg.type;
+                auto id = params->head()->ident();
+                id->type = arg.type;
             }
             sf.returntype = NewTypeVar();
             sf.body->exptype = TypeCheck(*sf.body);
@@ -402,7 +403,10 @@ struct TypeChecker
                 return n.ident()->type;
 
             case T_DEF:
-                return n.left()->ident()->type = n.right()->exptype;
+            {
+                auto id = n.left()->ident();
+                return id->type = n.right()->exptype;
+            }
 
             case T_NATCALL:
             {
@@ -431,7 +435,7 @@ struct TypeChecker
                     argtypes.push_back(list->head()->exptype);
                     i++;
                 }
-                if (!nf->nretvalues) return Type();
+                if (!nf->retvals.size()) return Type();
                 // FIXME: multiple retvals
                 switch (nf->retvals[0].flags)
                 {

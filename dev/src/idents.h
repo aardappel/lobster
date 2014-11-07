@@ -41,7 +41,8 @@ struct Ident : Name
     
     Ident *prev;
 
-    SubFunction *sf;
+    SubFunction *sf_named;  // Surrounding named function (only used for @, remove me).
+    SubFunction *sf_def;    // Where it is defined, including anonymous functions.
     
     bool single_assignment;
     bool constant;
@@ -53,7 +54,7 @@ struct Ident : Name
 
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Name(_name, _idx), line(_l), 
-          scope(_sc), prev(nullptr), sf(nullptr), 
+          scope(_sc), prev(nullptr), sf_named(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
@@ -134,11 +135,20 @@ struct Struct : Name
     }
 };
 
+struct FreeVar
+{
+    Ident *id;
+    Type type;
+
+    FreeVar() : id(nullptr) {}
+};
+
 struct Function;
 
 struct SubFunction
 {
-    Arg *args;
+    vector<Arg> args;
+    vector<FreeVar> freevars;
 
     Node *body;
 
@@ -151,17 +161,15 @@ struct SubFunction
     Type returntype;
 
     SubFunction(Function *_p, SubFunction *&link, int nargs) 
-        : parent(_p), args(nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
+        : parent(_p), args(nargs), body(nullptr), next(nullptr), subbytecodestart(0),
           typechecked(false), returntype(V_UNDEFINED)
     {
         next = link;
         link = this;
-        args = new Arg[nargs];
     }
 
     ~SubFunction()
     {
-        if (args) delete[] args;
         if (next) delete next;
     }
 };
@@ -223,6 +231,9 @@ struct SymbolTable
 
     bool uses_frame_state;
 
+    // Used during parsing.
+    vector<SubFunction *> namedsubfunctionstack, defsubfunctionstack;
+
     SymbolTable() : uses_frame_state(false) {}
 
     ~SymbolTable()
@@ -233,7 +244,7 @@ struct SymbolTable
         for (auto f  : fieldtable)    delete f;
     }
     
-    Ident *LookupLexDefOrDynScope(const string &name, int line, Lex &lex, bool dynscope, SubFunction *sf)
+    Ident *LookupLexDefOrDynScope(const string &name, int line, Lex &lex, bool dynscope)
     {
         auto it = idents.find(name);
         if (dynscope && it != idents.end()) return it->second;
@@ -242,7 +253,9 @@ struct SymbolTable
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
         ident = new Ident(name, line, identtable.size(), scopelevels.back());
-        ident->sf = sf;
+
+        ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
+        ident->sf_def = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
 
         if (it == idents.end() || dynscope) idents[name] = ident;
         else
@@ -275,7 +288,7 @@ struct SymbolTable
     {
         Ident *found = nullptr;
         for (auto id : identtable)  
-            if (id->name == idname && id->sf && id->sf->parent->name == fname)
+            if (id->name == idname && id->sf_named && id->sf_named->parent->name == fname)
             {
                 if (found) return nullptr;
                 found = id;

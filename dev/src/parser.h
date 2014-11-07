@@ -20,7 +20,6 @@ struct Parser
     vector<Node *> autoparstack;
     vector<Ident *> maybeundefined;
     vector<int> functionstack;
-    vector<SubFunction *> subfunctionstack;
     vector<string> trailingkeywordedfunctionvaluestack;
     Struct *currentstruct;
 
@@ -62,8 +61,6 @@ struct Parser
 
         assert(forwardfunctioncalls.empty());
     }
-
-    SubFunction *CurSF() { return subfunctionstack.empty() ? nullptr : subfunctionstack.back(); }
 
     void AddTail(Node **&tail, Node *a)
     {
@@ -161,7 +158,7 @@ struct Parser
 
     Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar)
     {
-        auto id = isdef ? st.LookupLexDefOrDynScope(idname, lex.errorline, lex, false, CurSF()) 
+        auto id = isdef ? st.LookupLexDefOrDynScope(idname, lex.errorline, lex, false) 
                         : st.LookupLexUse(idname, lex);
 
         if (islogvar)
@@ -310,7 +307,7 @@ struct Parser
                     {
                         lex.Next();
                         auto e = ParseExp();
-                        auto id = st.LookupLexDefOrDynScope(idname, lex.errorline, lex, dynscope, CurSF());
+                        auto id = st.LookupLexDefOrDynScope(idname, lex.errorline, lex, dynscope);
                         if (dynscope)  id->Assign(lex);
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
@@ -353,7 +350,8 @@ struct Parser
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
 
-        auto args = ParseFunDefArgs();
+        st.ScopeStart();
+        auto args = ParseFunDefArgs(true, true, true);
         auto nargs = CountList(args);
         auto &f = st.FunctionDecl(idname, nargs, lex);
         
@@ -368,10 +366,12 @@ struct Parser
         auto sf = NewSubFunction(f, args);
 
         functionstack.push_back(f.idx);
-        subfunctionstack.push_back(sf);
-        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf = sf;
-        auto closure = ParseFunDefBody(args, &f);
-        subfunctionstack.pop_back();
+        st.namedsubfunctionstack.push_back(sf);
+        // Here we correct the sf_named var for the args, since ParseFunDefArgs above was called outside of
+        // this push/pop scope
+        for (auto n = args; n; n = n->tail()) n->head()->ident()->sf_named = sf;
+        auto closure = ParseFunDefBody(args, sf, &f);
+        st.namedsubfunctionstack.pop_back();
         functionstack.pop_back();
 
         for (auto stat = closure->body(); stat; stat = stat->tail())
@@ -401,14 +401,6 @@ struct Parser
     {
         sf->body = closure;
         return new Node(lex, deftype, new Node(lex, sf), closure);
-    }
-
-    Node *FunctionValueDef(Node *closure)
-    {
-        auto &f = st.CreateFunction("", CountList(closure->parameters()));
-        f.anonymous = true;
-        auto sf = NewSubFunction(f, closure->parameters());
-        return CreateSubFunctionNode(closure, sf, T_CLOSUREDEF);
     }
 
     void ParseType(Type &dest, bool withtype)
@@ -456,14 +448,14 @@ struct Parser
         if (withtype && dest.idx < 0) Error(":: must be used with a struct type");
     }
 
-    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", Arg *args = nullptr, int nargs = -1)
+    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", vector<Arg> *args = nullptr)
     {
         if (derefarg)
         {
-            CheckArg(nargs, 0, fname);
+            CheckArg(args, 0, fname);
             if (IsNext(T_LEFTPAREN))
             {
-                return new Node(lex, T_LIST, derefarg, ParseFunArgsRec(false, false, args, nargs, 1, fname));
+                return new Node(lex, T_LIST, derefarg, ParseFunArgsRec(false, false, args, 1, fname));
             }
             else
             {
@@ -473,40 +465,46 @@ struct Parser
         else
         {
             Expect(T_LEFTPAREN);
-            return ParseFunArgsRec(coroutine, false, args, nargs, 0, fname);
+            return ParseFunArgsRec(coroutine, false, args, 0, fname);
         }
     }
 
-    Node *ParseFunArgsRec(bool coroutine, bool needscomma, Arg *argdecls, int nargs, int thisarg, const char *fname)
+    Node *ParseFunArgsRec(bool coroutine, bool needscomma, vector<Arg> *args, size_t thisarg, const char *fname)
     {
         if (IsNext(T_RIGHTPAREN))
         {
-            return ParseTrailingFunctionValues(coroutine, argdecls, nargs, thisarg, fname);
+            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
         }
         if (needscomma) Expect(T_COMMA);
-        Node *arg = ParseExp();
+        Node *arg = nullptr;
 
-        CheckArg(nargs, thisarg, fname);
-        if (argdecls && argdecls[thisarg].flags == NF_EXPFUNVAL)
-            arg = FunctionValueDef(new Node(lex, T_CLOSURE, nullptr, new Node(lex, T_LIST, arg)));
+        CheckArg(args, thisarg, fname);
+        if (args && (*args)[thisarg].flags == NF_EXPFUNVAL)
+        {
+            arg = ParseFunctionValue(false, false, true);
+        }
+        else
+        {
+            arg = ParseExp();
+        }
 
-        return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, argdecls, nargs, thisarg + 1, fname));
+        return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, args, thisarg + 1, fname));
     }
 
-    void CheckArg(int nargs, int thisarg, const char *fname)
+    void CheckArg(vector<Arg> *args, size_t thisarg, const char *fname)
     {
-        if (thisarg == nargs) Error("too many arguments passed to function " + string(fname));
+        if (args && thisarg == args->size()) Error("too many arguments passed to function " + string(fname));
     }
 
-    Node *ParseTrailingFunctionValues(bool coroutine, Arg *argdecls, int nargs, int thisarg, const char *fname)
+    Node *ParseTrailingFunctionValues(bool coroutine, vector<Arg> *args, size_t thisarg, const char *fname)
     {
-        if (argdecls && thisarg + 1 < nargs) trailingkeywordedfunctionvaluestack.push_back(argdecls[thisarg + 1].id);
+        if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.push_back((*args)[thisarg + 1].id);
 
         Node *e = nullptr;
         switch (lex.token)
         {
             case T_COLON:
-                e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs(false, false)));
+                e = ParseFunctionValue(false, false, false);
                 break;
 
             case T_IDENT:
@@ -514,15 +512,15 @@ struct Parser
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
                     trailingkeywordedfunctionvaluestack.back() != lex.sattr)
-                    e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs(false)));
+                    e = ParseFunctionValue(false, true, false);
                 break;
             
             case T_LEFTPAREN:
-                e = FunctionValueDef(ParseFunDefBody(ParseFunDefArgs()));
+                e = ParseFunctionValue(true, true, false);
                 break;
         }
 
-        if (argdecls && thisarg + 1 < nargs) trailingkeywordedfunctionvaluestack.pop_back();
+        if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.pop_back();
 
         if (!e)
         {
@@ -530,20 +528,20 @@ struct Parser
             else return nullptr;
         }
 
-        CheckArg(nargs, thisarg, fname);
+        CheckArg(args, thisarg, fname);
 
         thisarg++;
 
         Node *tail = nullptr;
 
         bool islf = lex.token == T_LINEFEED;
-        if (argdecls && thisarg < nargs && (lex.token == T_IDENT || islf))
+        if (args && thisarg < args->size() && (lex.token == T_IDENT || islf))
         {
             if (islf) lex.Next();
-            if (lex.token == T_IDENT && argdecls[thisarg].id == lex.sattr)
+            if (lex.token == T_IDENT && (*args)[thisarg].id == lex.sattr)
             {
                 lex.Next();
-                tail = ParseTrailingFunctionValues(coroutine, argdecls, nargs, thisarg, fname);
+                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
             }
             else
             {
@@ -556,9 +554,21 @@ struct Parser
         return new Node(lex, T_LIST, e, tail);
     }
 
-    Node *ParseFunDefArgs(bool full = true, bool parseargs = true)
+    Node *ParseFunctionValue(bool full, bool parseargs, bool expfunval)
     {
         st.ScopeStart();
+        auto args = ParseFunDefArgs(full, parseargs, !expfunval);
+
+        auto &f = st.CreateFunction("", CountList(args));
+        f.anonymous = true;
+
+        auto sf = NewSubFunction(f, args);
+
+        return CreateSubFunctionNode(ParseFunDefBody(args, sf, nullptr, expfunval), sf, T_CLOSUREDEF);
+    }
+
+    Node *ParseFunDefArgs(bool full, bool parseargs, bool colon)
+    {
         if (full) Expect(T_LEFTPAREN);
 
         Node *n = nullptr;
@@ -571,9 +581,7 @@ struct Parser
                 string a = lex.sattr;
                 Expect(T_IDENT);
 
-                auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false,
-                    CurSF()  // this is good for function vals, but bad for named functions, which get corrected later
-                ));
+                auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false));
 
                 bool withtype = lex.token == T_TYPEIN;
                 if (full && (lex.token == T_COLON || withtype))
@@ -593,17 +601,24 @@ struct Parser
         }
 
         if (full) Expect(T_RIGHTPAREN);
-        Expect(T_COLON);
+
+        if (colon) Expect(T_COLON);
 
         return n;
     }
 
-    Node *ParseFunDefBody(Node *n, Function *f = nullptr)  // continuation of ParseFunDefArgs(), n is its return value
+    Node *ParseFunDefBody(Node *n, SubFunction *sf, Function *f = nullptr, bool expfunval = false)  // continuation of ParseFunDefArgs(), n is its return value
     {
         size_t autoparlevel = autoparstack.size();
         Node *body = nullptr;
 
-        if (IsNext(T_INDENT))
+        st.defsubfunctionstack.push_back(sf);
+
+        if (expfunval)
+        {
+            body = new Node(lex, T_LIST, ParseExp());
+        }
+        else if (IsNext(T_INDENT))
         {
             body = ParseStatements();
             Expect(T_DEDENT);
@@ -612,6 +627,8 @@ struct Parser
         {
             body = new Node(lex, T_LIST, ParseExpStat());
         }
+
+        st.defsubfunctionstack.pop_back();
 
         if (autoparlevel < autoparstack.size())
         {
@@ -804,14 +821,14 @@ struct Parser
     {
         if (nf)
         {
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), nf->args, nf->nargs);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &nf->args);
 
             Node **ai = &args;
-            for (int i = 0; i < nf->nargs; i++)
+            for (auto &arg : nf->args)
             {
                 if (!*ai)
                 {
-                    auto &type = nf->args[i].type;
+                    auto &type = arg.type;
                     if (type.t == V_NILABLE)
                     {
                         *ai = new Node(lex, T_LIST, type.t2 == V_INT
@@ -856,7 +873,7 @@ struct Parser
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
                 if (fi->nargs > bestf->nargs) bestf = fi;
 
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), bestf->subf->args, bestf->nargs);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &bestf->subf->args);
             auto nargs = CountList(args);
 
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
@@ -1060,7 +1077,7 @@ struct Parser
             case T_FUN:
             {
                 lex.Next();
-                return FunctionValueDef(ParseFunDefBody(ParseFunDefArgs()));
+                return ParseFunctionValue(true, true, false);
             }
 
             case T_COROUTINE:
@@ -1086,8 +1103,7 @@ struct Parser
                     default:
                         if (idname[0] == '_')
                         {
-                            auto dest = new Node(lex, st.LookupLexDefOrDynScope(idname, lex.errorline, lex, 
-                                                                                true, CurSF()));
+                            auto dest = new Node(lex, st.LookupLexDefOrDynScope(idname, lex.errorline, lex, true));
                             autoparstack.push_back(dest);
                             return dest;
                         }

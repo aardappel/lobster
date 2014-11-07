@@ -143,8 +143,7 @@ struct NativeFun : Name
 {
     BuiltinPtr fun;
 
-    int nargs, nretvalues;
-    Arg *args, *retvals;
+    vector<Arg> args, retvals;
 
     NativeCallMode ncm;
     Value (*cont1)(Value &);
@@ -153,18 +152,14 @@ struct NativeFun : Name
 
     int subsystemid;
 
-    ~NativeFun() { delete[] args; delete[] retvals; }
-
-    NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int _nargs,
+    NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int nargs,
               const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
-        : Name(string(_name), 0), fun(f), nargs(_nargs), nretvalues(0), ncm(_ncm), cont1(_cont1),
+        : Name(string(_name), 0), fun(f), args(nargs), ncm(_ncm), cont1(_cont1),
                help(_help), subsystemid(-1)
     {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
-        nretvalues = TypeLen(rets);
+        auto nretvalues = TypeLen(rets);
         assert(TypeLen(typeids) == nargs);
-
-        args = new Arg[nargs];
 
         for (int i = 0; i < nargs; i++)
         {
@@ -179,9 +174,9 @@ struct NativeFun : Name
             ids = idend + 1;
         }
 
-        retvals = new Arg[nretvalues];
         for (int i = 0; i < nretvalues; i++)
         {
+            retvals.push_back(Arg());
             retvals[i].Set(rets, string());
         }
     }

@@ -323,7 +323,7 @@ struct Node : SlabAllocated<Node>
             case T_IDENT:  return ident()->name;
             case T_STRUCT: return st()->name;
             case T_FIELD:  return fld()->name;
-            case T_FUN:    return sf()->parent->name;
+            case T_FUN:    return sf() ? sf()->parent->name : "<>";
             case T_NATIVE: return nf()->name;
             case T_TYPE:   return symbols.TypeName(*typenode());
 

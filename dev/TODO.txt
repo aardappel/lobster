@@ -1,8 +1,8 @@
 - switch to /W4
 
 - typechecker
-  * we can't type check recursive function return types
-  * make Promote more pervasive, or fix ExactType to handle type_vars? 
+  * specialize on free variables as well
+  * can remove arg list from closures now
   * typecheck function values from dyncall/natcall
 
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
@@ -33,6 +33,11 @@ vertex_neighbors :== [
 
 - [float] / int does int division, which is wrong
 
+
+- should consider allowing local functions to be declared with "public", which would expose them to closures called
+  from within their parent function. This would allow the whole definition of gui.lobster to be inside gui_start.
+  It would create kind of an inverted object, so all calls could lose the gui_ prefix since they're not global anymore.
+  Would probably work together well with frame state.
 
 - the "ERROR: XAudio2: XAudio2Create() failed at initialization" is apparently happening on all sorts of cheap laptops, including Win7 & 8. SDL folk don't seem to want to fix, it, maybe I should
 
