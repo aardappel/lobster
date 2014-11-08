@@ -224,27 +224,28 @@ void DumpBuiltins()
 
             fprintf(f, "<tr class=\"a\" valign=top><td class=\"a\"><tt><b>%s</b>(", nf->name.c_str());
             int i = 0;
-            for (auto &a : nf->args)
+            for (auto &a : nf->args.v)
             {
                 fprintf(f, "%s%s%s<font color=\"#666666\">%s</font>%s",
                     a.type.t == V_NILABLE ? " [" : "",
-                    i++ ? ", " : "",
-                    a.id.c_str(),
+                    i ? ", " : "",
+                    nf->args.GetName(i).c_str(),
                     a.type.t == V_ANY ? "" : (string(":") + 
                         BaseTypeName(a.type.t == V_NILABLE ? a.type.Element().t : a.type.t)).c_str(),
                     a.type.t == V_NILABLE ? "]" : ""
                 );
+                i++;
             }
             fprintf(f, ")");
-            if (nf->retvals.size())
+            if (nf->retvals.v.size())
             {
                 fprintf(f, " -> ");
                 size_t i = 0;
-                for (auto &a : nf->retvals)
+                for (auto &a : nf->retvals.v)
                 {
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
                                 a.type.t == V_ANY ? "any" : BaseTypeName(a.type.t), 
-                                i++ < nf->retvals.size() - 1 ? ", " : "");
+                                i++ < nf->retvals.v.size() - 1 ? ", " : "");
                 }
             }
             fprintf(f, "</tt></td><td class=\"a\">%s</td></tr>\n", nf->help);

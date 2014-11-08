@@ -20,8 +20,8 @@ struct TypeChecker
         for (int i = 0; i < sf->parent->nargs; i++)
         {
             if (i) s += ", ";
-            auto &arg = sf->args[i];
-            s += arg.id;
+            auto &arg = sf->args.v[i];
+            s += sf->args.GetName(i);
             if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
         }
         return s + ")";
@@ -158,7 +158,7 @@ struct TypeChecker
             int i = 0;
             for (Node *params = sf.body->parameters(); params; params = params->tail())
             {
-                auto &arg = sf.args[i++];
+                auto &arg = sf.args.v[i++];
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
                 auto id = params->head()->ident();
@@ -209,7 +209,7 @@ struct TypeChecker
         else
         {
             int specializable = 0;
-            for (int i = 0; i < f.nargs; i++) if (f.subf->args[i].flags == AF_ANYTYPE) specializable++;
+            for (int i = 0; i < f.nargs; i++) if (f.subf->args.v[i].flags == AF_ANYTYPE) specializable++;
             SubFunction *sf = f.subf;
             if (specializable)
             {
@@ -219,7 +219,7 @@ struct TypeChecker
                     int i = 0;
                     for (Node *list = call_args; list; list = list->tail())
                     {
-                        auto &arg = sf->args[i++];
+                        auto &arg = sf->args.v[i++];
                         if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
                     }
                     goto match;
@@ -231,14 +231,15 @@ struct TypeChecker
                 {
                     // Clone it.
                     DebugLog(1, "cloning: %s", Signature(sf).c_str());
-                    sf = new SubFunction(&f, f.subf, f.nargs);
-                    for (int i = 0; i < f.nargs; i++) sf->args[i] = f.subf->next->args[i];
+                    sf = new SubFunction();
+                    sf->SetParent(f, f.subf);
+                    for (int i = 0; i < f.nargs; i++) sf->args.v.push_back(f.subf->next->args.v[i]);
                     sf->body = f.subf->next->body->Clone();
                 }
                 int i = 0;
                 for (Node *list = call_args; list; list = list->tail())
                 {
-                    auto &arg = sf->args[i++];
+                    auto &arg = sf->args.v[i++];
                     if (arg.flags == AF_ANYTYPE)
                     {
                         arg.type = list->head()->exptype;  // Specialized to arg.
@@ -252,7 +253,7 @@ struct TypeChecker
             int i = 0;
             for (Node *list = call_args; list; list = list->tail())
             {
-                auto &arg = sf->args[i++];
+                auto &arg = sf->args.v[i++];
                 if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
             }
             TypeCheck(*sf);
@@ -415,19 +416,19 @@ struct TypeChecker
                 vector<Type> argtypes;
                 for (Node *list = n.ncall_args(); list; list = list->tail())
                 {
-                    auto argtype = nf->args[i].type;
-                    switch (nf->args[i].flags)
+                    auto argtype = nf->args.v[i].type;
+                    switch (nf->args.v[i].flags)
                     {
                         case NF_SUBARG1:
                             assert(argtypes[0].t == V_VECTOR);
-                            SubType(list->head(), nf->args[i].type.t == V_VECTOR
+                            SubType(list->head(), nf->args.v[i].type.t == V_VECTOR
                                                       ? argtypes[0] 
                                                       : argtypes[0].Element(),
                                                   nf->name.c_str());
                             break;
 
                         case NF_ANYVAR:
-                            assert(nf->args[i].type.t == V_VECTOR);
+                            assert(nf->args.v[i].type.t == V_VECTOR);
                             argtype = NewTypeVar().Wrap();
                             break;
                     }
@@ -435,13 +436,13 @@ struct TypeChecker
                     argtypes.push_back(list->head()->exptype);
                     i++;
                 }
-                if (!nf->retvals.size()) return Type();
+                if (!nf->retvals.v.size()) return Type();
                 // FIXME: multiple retvals
-                switch (nf->retvals[0].flags)
+                switch (nf->retvals.v[0].flags)
                 {
-                    case NF_SUBARG1: assert(argtypes[0].t == nf->retvals[0].type.t); return argtypes[0];
-                    case NF_ANYVAR: assert(nf->retvals[0].type.t == V_VECTOR); return NewTypeVar().Wrap();
-                    default: return nf->retvals[0].type;
+                    case NF_SUBARG1: assert(argtypes[0].t == nf->retvals.v[0].type.t); return argtypes[0];
+                    case NF_ANYVAR: assert(nf->retvals.v[0].type.t == V_VECTOR); return NewTypeVar().Wrap();
+                    default: return nf->retvals.v[0].type;
                 }
             }
 

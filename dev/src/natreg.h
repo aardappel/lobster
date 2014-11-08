@@ -62,21 +62,38 @@ struct Type
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 };
 
+struct Name : Serializable
+{
+    string name;
+    int idx;
+    bool isprivate;
+
+    Name()                                  :              idx(-1),   isprivate(false) {}
+    Name(const string &_name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
+
+    void Serialize(Serializer &ser)
+    {
+        ser(name);
+        ser(idx);
+    }
+};
+
+struct Ident;
+
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR };
 
 struct Arg
 {
     Type type;
     ArgFlags flags;
-    string id;
+    Ident *id;
 
-    Arg() : flags(AF_NONE) {}
+    Arg() : flags(AF_NONE), id(nullptr) {}
 
-    void Set(const char *&tid, const string &name)
+    void Set(const char *&tid)
     {
         char t = *tid++;
         char idx = isalpha(*tid) ? 0 : *tid++;
-        id = name;
         flags = AF_NONE;
         bool optional = false;
         if (t >= 'a') { optional = true; t -= 'a' - 'A'; }
@@ -107,20 +124,32 @@ struct Arg
     }
 };
 
-struct Name : Serializable
+struct ArgVector
 {
-    string name;
-    int idx;
-    bool isprivate;
+    vector<Arg> v;
+    const char *idlist;
 
-    Name()                                  :              idx(-1),   isprivate(false) {}
-    Name(const string &_name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
+    ArgVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
 
-    void Serialize(Serializer &ser)
+    string GetName(int i) const
     {
-        ser(name);
-        ser(idx);
-    }
+        if (v[i].id) return ((Name *)v[i].id)->name;
+
+        auto ids = idlist;
+        for (;;)
+        {
+            const char *idend = strchr(ids, ',');
+            if (!idend)
+            {
+                // if this fails, you're not specifying enough arg names in the comma separated list
+                assert(!i);
+                idend = ids + strlen(ids);
+            }
+            if (!i--) return string(ids, idend); 
+            ids = idend + 1;
+        }
+   }
+
 };
 
 struct BuiltinPtr
@@ -143,18 +172,19 @@ struct NativeFun : Name
 {
     BuiltinPtr fun;
 
-    vector<Arg> args, retvals;
+    ArgVector args, retvals;
 
     NativeCallMode ncm;
     Value (*cont1)(Value &);
 
+    const char *idlist;
     const char *help;
 
     int subsystemid;
 
-    NativeFun(const char *_name, BuiltinPtr f, const char *ids, const char *typeids, const char *rets, int nargs,
+    NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids, const char *rets, int nargs,
               const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
-        : Name(string(_name), 0), fun(f), args(nargs), ncm(_ncm), cont1(_cont1),
+        : Name(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm), cont1(_cont1),
                help(_help), subsystemid(-1)
     {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
@@ -163,23 +193,17 @@ struct NativeFun : Name
 
         for (int i = 0; i < nargs; i++)
         {
-            const char *idend = strchr(ids, ',');
-            if (!idend)
-            {
-                // if this fails, you're not specifying enough arg names in the comma separated list
-                assert(i == nargs - 1);
-                idend = ids + strlen(ids);
-            }
-            args[i].Set(typeids, string(ids, idend)); 
-            ids = idend + 1;
+            args.GetName(i);  // Call this just to trigger the assert.
+            args.v[i].Set(typeids); 
         }
 
         for (int i = 0; i < nretvalues; i++)
         {
-            retvals.push_back(Arg());
-            retvals[i].Set(rets, string());
+            retvals.v.push_back(Arg());
+            retvals.v[i].Set(rets);
         }
     }
+
 };
 
 struct NativeRegistry

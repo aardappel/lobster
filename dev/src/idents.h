@@ -135,20 +135,12 @@ struct Struct : Name
     }
 };
 
-struct FreeVar
-{
-    Ident *id;
-    Type type;
-
-    FreeVar() : id(nullptr) {}
-};
-
 struct Function;
 
 struct SubFunction
 {
-    vector<Arg> args;
-    vector<FreeVar> freevars;
+    ArgVector args;
+    ArgVector freevars;
 
     Node *body;
 
@@ -160,10 +152,13 @@ struct SubFunction
     bool typechecked;
     Type returntype;
 
-    SubFunction(Function *_p, SubFunction *&link, int nargs) 
-        : parent(_p), args(nargs), body(nullptr), next(nullptr), subbytecodestart(0),
-          typechecked(false), returntype(V_UNDEFINED)
+    SubFunction() 
+        : parent(nullptr), args(0, nullptr), freevars(0, nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
+        typechecked(false), returntype(V_UNDEFINED) {}
+
+    void SetParent(Function &f, SubFunction *&link)
     {
+        parent = &f;
         next = link;
         link = this;
     }

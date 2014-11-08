@@ -840,10 +840,10 @@ struct VM : VMBase
                 {
                     auto nf = natreg.nfuns[*ip++];
                     int n = *ip++;
-                    if (n > (int)nf->args.size())
+                    if (n > (int)nf->args.v.size())
                         Error("native function \"" + nf->name + "\" called with too many arguments");
                     Value v;
-                    switch (nf->args.size())
+                    switch (nf->args.v.size())
                     {
                         #define ARG(N) Value a##N = POP(); NFCheck(a##N, *nf, N);
                         case 0: {                                           v = nf->fun.f0(); break; }
@@ -862,10 +862,10 @@ struct VM : VMBase
                         // other function types return intermediary values that don't correspond to final return values
                         if (nf->ncm == NCM_NONE)
                         { 
-                            for (size_t i = 0; i < nf->retvals.size(); i++)
+                            for (size_t i = 0; i < nf->retvals.v.size(); i++)
                             {
-                                auto t = (TOPPTR() - nf->retvals.size() + i)->type;
-                                auto u = nf->retvals[i].type.t;
+                                auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
+                                auto u = nf->retvals.v[i].type.t;
                                 VMASSERT(t == u || u == V_ANY);   
                             }
                         }
@@ -1345,14 +1345,14 @@ struct VM : VMBase
 
     void NFCheck(Value &v, const NativeFun &nf, int i)
     {       
-        if (!Coerce(v, nf.args[i].type.t))
+        if (!Coerce(v, nf.args.v[i].type.t))
         {
-            if (nf.args[i].type.t == V_NILABLE)
+            if (nf.args.v[i].type.t == V_NILABLE)
             {
-                if (v.type == V_NIL || Coerce(v, nf.args[i].type.t2)) return;
+                if (v.type == V_NIL || Coerce(v, nf.args.v[i].type.t2)) return;
             }
             Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + 
-                  "\" needs to have type " + st.TypeName(nf.args[i].type) + ", not " + ProperTypeName(v), v);
+                  "\" needs to have type " + st.TypeName(nf.args.v[i].type) + ", not " + ProperTypeName(v), v);
         }
     }
 

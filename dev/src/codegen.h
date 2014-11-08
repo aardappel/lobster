@@ -126,8 +126,8 @@ struct CodeGen
         {
             for (int i = 0; i < nargs; i++)
             {
-                auto &ta = a->args[i].type;
-                auto &tb = b->args[i].type;
+                auto &ta = a->args.v[i].type;
+                auto &tb = b->args.v[i].type;
 
                 if (ta != tb) return ta < tb;
             }
@@ -174,7 +174,7 @@ struct CodeGen
             {
                 for (int j = 0; j < f->nargs; j++)
                 {
-                    auto arg = sf->args[j];
+                    auto arg = sf->args.v[j];
                     Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
                 }
                 Emit(sf->subbytecodestart);
@@ -383,12 +383,12 @@ struct CodeGen
             {
                 int nargs = 0;
                 Node *lastarg = nullptr;
-                auto genargs = [&](Node *list, vector<Arg> *args, int checkargs)
+                auto genargs = [&](Node *list, ArgVector *args, int checkargs)
                 {
                     for (; list; list = list->tail())
                     {
                         Gen(list->head(), 1);
-                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, (*args)[nargs].type);
+                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
                         lastarg = list->head();
                         nargs++;
                     }
@@ -412,11 +412,11 @@ struct CodeGen
                     {
                         Emit(IL_BCALL, nf->idx, nargs);
                     }
-                    if (nf->retvals.size() > 1)
+                    if (nf->retvals.v.size() > 1)
                     {
-                        maxretvalsupplied = nf->retvals.size();
+                        maxretvalsupplied = nf->retvals.v.size();
                     }
-                    else if (!nf->retvals.size() && retval)
+                    else if (!nf->retvals.v.size() && retval)
                     { 
                         // can't make this an error since these functions are often called as the last thing in a
                         // function, requiring a return value
@@ -427,7 +427,7 @@ struct CodeGen
                 {
                     auto &sf = *n->call_function()->sf();
                     auto &f = *sf.parent;
-                    genargs(n->call_args(), &sf.args, f.multimethod ? 0 : sf.args.size());
+                    genargs(n->call_args(), &sf.args, f.multimethod ? 0 : sf.args.v.size());
                     if (f.nargs != nargs)
                         parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
                                      " arguments, " + string(inttoa(nargs)) + " given", n->call_function());
