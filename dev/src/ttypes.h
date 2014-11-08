@@ -60,9 +60,8 @@
     T(T_TYPE, "type", TT_NOCHILD, NO, a, NO, b) \
     T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, YES, struct_fields) \
     T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
-    T(T_FUNDEF, "function definition", TT_NONE, YES, function_def, YES, function_closure) \
-    T(T_CLOSUREDEF, "function value definition", TT_NONE, YES, closure_def, YES, closure) \
-    T(T_CLOSURE, "function value", TT_NONE, YES, parameters, YES, body) \
+    T(T_FUNDEF, "function definition", TT_NONE, YES, function_def, YES, function_body) \
+    T(T_CLOSUREDEF, "function value definition", TT_NONE, YES, closure_def, YES, closure_body) \
     T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATCALL, "native call", TT_NONE, YES, ncall_id, YES, ncall_args) \

@@ -1,7 +1,6 @@
 - switch to /W4
 
 - typechecker
-  * can remove arg list from closures now
   * check what def_sf _ vars get assigned  
 
   * specialize on free variables as well

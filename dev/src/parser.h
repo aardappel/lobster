@@ -359,33 +359,30 @@ struct Parser
 
         auto sf = new SubFunction();
 
+        if (name)
+        {
+            st.namedsubfunctionstack.push_back(sf);
+        }
+
         if (parens) Expect(T_LEFTPAREN);
-        Node *args = nullptr;
         int nargs = 0;
         if (lex.token != T_RIGHTPAREN && parseargs)
         {
-            Node **tail = &args;
             for (;;)
             {
                 string a = lex.sattr;
                 Expect(T_IDENT);
                 nargs++;
-                auto id = new Node(lex, st.LookupLexDefOrDynScope(a, lex.errorline, lex, false));
+                Arg arg;
+                arg.id = st.LookupLexDefOrDynScope(a, lex.errorline, lex, false);
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
                 {
                     lex.Next(); 
-                    ParseType(id->exptype, withtype);
-                    if (withtype) st.AddWithStruct(id->exptype, id->ident(), lex);
+                    ParseType(arg.type, withtype);
+                    if (withtype) st.AddWithStruct(arg.type, arg.id, lex);
                 }
-
-                *tail = new Node(lex, T_LIST, id);
-                tail = &(*tail)->tail();
-
-                Arg arg;
-                arg.type = id->exptype;
                 arg.flags = arg.type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
-                arg.id = id->ident();
                 sf->args.v.push_back(arg);
 
                 if (!IsNext(T_COMMA)) break;
@@ -409,10 +406,6 @@ struct Parser
             f.isprivate = isprivate;
         
             functionstack.push_back(f.idx);
-            st.namedsubfunctionstack.push_back(sf);
-            // Here we correct the sf_named var for the args, since ParseFunDefArgs above was called outside of
-            // the namedsubfunctionstack scope
-            for (auto n = args; n; n = n->tail()) n->head()->ident()->sf_named = sf;
         }
         else
         {
@@ -420,22 +413,21 @@ struct Parser
         }
 
         size_t autoparlevel = autoparstack.size();
-        Node *body = nullptr;
 
         st.defsubfunctionstack.push_back(sf);
 
         if (expfunval)
         {
-            body = new Node(lex, T_LIST, ParseExp());
+            sf->body = new Node(lex, T_LIST, ParseExp());
         }
         else if (IsNext(T_INDENT))
         {
-            body = ParseStatements();
+            sf->body = ParseStatements();
             Expect(T_DEDENT);
         }
         else
         {
-            body = new Node(lex, T_LIST, ParseExpStat());
+            sf->body = new Node(lex, T_LIST, ParseExpStat());
         }
 
         st.defsubfunctionstack.pop_back();
@@ -444,17 +436,19 @@ struct Parser
         {
             if (name) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident()->name + 
                          ", in named function: " + f.name, autoparstack[autoparlevel]);
-            if (args) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident()->name +
+            if (nargs) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident()->name +
                          ", with declared arguments in function", autoparstack[autoparlevel]);
 
-            auto ap = &args;
             for (size_t i = autoparlevel; i < autoparstack.size(); i++) 
             {
                 for (size_t j = autoparlevel; j < i; j++)
                     if (autoparstack[i]->ident() == autoparstack[j]->ident())
                         goto twice;
-                *ap = new Node(lex, T_LIST, new Node(lex, autoparstack[i]->ident()));
-                ap = &(*ap)->tail();
+                {
+                    Arg arg;
+                    arg.id = autoparstack[i]->ident();
+                    sf->args.v.push_back(arg);
+                }
                 twice:;
             }
             while (autoparstack.size() > autoparlevel) autoparstack.pop_back();
@@ -467,14 +461,13 @@ struct Parser
             st.namedsubfunctionstack.pop_back();
             functionstack.pop_back();
 
-            for (auto stat = body; stat; stat = stat->tail())
+            for (auto stat = sf->body; stat; stat = stat->tail())
                 if (!stat->tail() && (stat->head()->type != T_RETURN ||
                                       stat->head()->return_function_idx()->integer() != f.idx /* return from */))
                     ReturnValues(f, 1);
             assert(f.retvals);
         }
 
-        sf->body = new Node(lex, T_CLOSURE, args, body);
         return new Node(lex, name ? T_FUNDEF : T_CLOSUREDEF, new Node(lex, sf), sf->body);
     }
 
@@ -1133,10 +1126,13 @@ struct Parser
         {
             for (auto sf = f->subf; sf; sf = sf->next)
             {
-                s += "FUNCTION: " + f->name + " ";
-                if (sf->body->parameters()) s += sf->body->parameters()->Dump(0, st);
-                s += "\n";
-                s += sf->body->body()->Dump(4, st);
+                s += "FUNCTION: " + f->name + "(";
+                for (auto &arg : sf->args.v)
+                {
+                    s += arg.id->name + ":" + st.TypeName(arg.type) + " ";
+                }
+                s += ")\n";
+                s += sf->body->Dump(4, st);
                 s += "\n\n";
             }
         }

@@ -147,7 +147,7 @@ struct CodeGen
             for (auto sf = f->subf; sf; sf = sf->next)
             {
                 sf->subbytecodestart = (int)code.size();
-                GenScope(sf->body);
+                GenScope(*sf);
             }
         }
         else
@@ -159,7 +159,7 @@ struct CodeGen
             {
                 sf->subbytecodestart = (int)code.size();
                 sfs.push_back(sf);
-                GenScope(sf->body);
+                GenScope(*sf);
             }
 
             sfcomparator.nargs = f->nargs;
@@ -183,25 +183,11 @@ struct CodeGen
         return true;
     }
 
-    void GenFunctionVal(Node *cl)
+    void GenScope(SubFunction &sf)
     {
-        Emit(IL_PUSHFUN, 0);
-        MARKL(funstart);
-        GenScope(cl);
-        SETL(funstart);
-    }
-                    
-    void GenScope(Node *cl)
-    {
-        vector<Node *> scope;
-        if (cl->parameters()) for (auto ids = cl->parameters(); ids; ids = ids->tail())
-        {
-            scope.push_back(ids->head());
-        }
-
         vector<Ident *> defs;
         vector<Ident *> logvars;
-        for (auto topl = cl->body(); topl; topl = topl->tail())
+        for (auto topl = sf.body; topl; topl = topl->tail())
         {
             size_t logmultiassignstart = logvars.size();
             for (auto dl = topl->head(); dl->type == T_DEF; dl = dl->right())
@@ -218,11 +204,11 @@ struct CodeGen
             reverse(logvars.begin() + logmultiassignstart, logvars.end());
         }
 
-        linenumbernodes.push_back(cl);
+        linenumbernodes.push_back(sf.body);
 
         Emit(IL_FUNSTART);
-        Emit((int)scope.size()); 
-        for (auto idn : scope) Emit(idn->ident()->idx);
+        Emit((int)sf.args.v.size()); 
+        for (auto arg : sf.args.v) Emit(arg.id->idx);
         Emit((int)(defs.size() + logvars.size()));
         for (auto id : defs) Emit(id->idx);
         for (auto id : logvars) Emit(id->idx);
@@ -230,7 +216,7 @@ struct CodeGen
 
         //for (auto idn : scope) GenTypeCheck(idn->ident->idx, idn->exptype);
 
-        if (cl->body()) BodyGen(cl->body());
+        if (sf.body) BodyGen(sf.body);
         else Dummy(true);
 
         Emit(IL_FUNEND);
@@ -371,7 +357,15 @@ struct CodeGen
                 if (retval) Emit(IL_A2S);
                 break;
 
-            case T_CLOSUREDEF: if (retval) GenFunctionVal(n->closure()); break; 
+            case T_CLOSUREDEF:
+                if (retval) 
+                {
+                    Emit(IL_PUSHFUN, 0);
+                    MARKL(funstart);
+                    GenScope(*n->closure_def()->sf());
+                    SETL(funstart);
+                }
+                break; 
 
             case T_STRUCTDEF:
                 Dummy(retval);

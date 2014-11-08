@@ -44,7 +44,7 @@ struct TypeChecker
         {
             auto sf = *it;
             err += "\n  in function: " + Signature(sf);
-            for (Node *list = sf->body->body(); list; list = list->tail())
+            for (Node *list = sf->body; list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
                 {
@@ -155,19 +155,16 @@ struct TypeChecker
             scopes.push_back(&sf);
 
             sf.typechecked = true;
-            int i = 0;
-            for (Node *params = sf.body->parameters(); params; params = params->tail())
+            for (auto &arg : sf.args.v)
             {
-                auto &arg = sf.args.v[i++];
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
-                auto id = params->head()->ident();
-                id->type = arg.type;
+                arg.id->type = arg.type;
             }
             sf.returntype = NewTypeVar();
             sf.body->exptype = TypeCheck(*sf.body);
             Node *last = nullptr;
-            for (auto topl = sf.body->body(); topl; topl = topl->tail()) last = topl;
+            for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
             assert(last);
             RetVal(last->head());
 
@@ -618,7 +615,6 @@ struct TypeChecker
             case T_FUN:
             case T_NATIVE:
             case T_LIST:
-            case T_CLOSURE:
             case T_BRANCHES:
             case T_DYNINFO:
             case T_STRUCT:

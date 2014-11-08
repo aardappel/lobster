@@ -181,14 +181,14 @@ struct Node : SlabAllocated<Node>
         {
             if (n->type == T_IDENT)
                 for (size_t i = 0; i < istack.size(); i++) 
-                    if (n->ident() == istack[i])
+                    if (n->ident() == istack[i] && vstack[i])
                         return vstack[i];
 
             return n;
         };
 
         std::function<void(Node *)> eval;
-        std::function<void(Node *, Node *)> evalblock;
+        std::function<void(SubFunction *, Node *, bool)> evalblock;
         std::function<void(Node *)> evalnatarg;
 
         eval = [&](Node *n)
@@ -197,7 +197,7 @@ struct Node : SlabAllocated<Node>
 
             //customf(n, istack);
 
-            if (n->type == T_CLOSURE)
+            if (n->type == T_CLOSUREDEF || n->type == T_FUNDEF)
                 return;
 
             if (n->type == T_LIST && n->head()->type == T_DEF)
@@ -235,7 +235,7 @@ struct Node : SlabAllocated<Node>
                         if (args->head()->type == T_COCLOSURE && n != this) return;  // coroutine constructor, don't enter
                     fstack.push_back(cf);
                     if (cf->multimethod) err = "multi-method call";
-                    evalblock(cf->subf->body, n->call_args());
+                    evalblock(cf->subf, n->call_args(), false);
                     fstack.pop_back();
                     break;
                 }
@@ -245,7 +245,7 @@ struct Node : SlabAllocated<Node>
                     if (f->type == T_COCLOSURE) { customf(istack); return; }
                     // ignore dynamic calls to non-function-vals, could make this an error?
                     if (f->type != T_CLOSUREDEF) { assert(0); return; }
-                    evalblock(f->closure(), n->dcall_info()->dcall_args());
+                    evalblock(f->closure_def()->sf(), n->dcall_info()->dcall_args(), false);
                     break;
                 }
                 case T_NATCALL:
@@ -276,30 +276,38 @@ struct Node : SlabAllocated<Node>
         {
             auto a = lookup(arg);
             if (a->type == T_COCLOSURE) customf(istack);
-            // a builtin calling a function, we don't know what values will be supplied for the args,
-            // so we define them in terms of themselves
-            if (a->type == T_CLOSUREDEF) evalblock(a->closure(), a->closure()->parameters());
+            if (a->type == T_CLOSUREDEF) evalblock(a->closure_def()->sf(), nullptr, true);
         };
 
-        evalblock = [&](Node *cl, Node *args)
+        evalblock = [&](SubFunction *sf, Node *args, bool fakeargs)
         {
             Node *a = args;
-            for (Node *pars = cl->parameters(); pars; pars = pars->tail())
+            for (auto &arg : sf->args.v)
             {
-                if (a)  // if not, this is a _ var that's referring to a past version, ok to ignore
+                if (fakeargs)
+                {
+                    istack.push_back(arg.id);
+                    vstack.push_back(nullptr);
+                }
+                else if (a)
                 {
                     auto val = lookup(a->head());
-                    istack.push_back(pars->head()->ident());
+                    istack.push_back(arg.id);
                     vstack.push_back(val);
                     a = a->tail();
                 }
+                else
+                {
+                    // this is a _ var that's referring to a past version, ok to ignore
+                }
             }
 
-            eval(cl->body());
+            eval(sf->body);
 
             a = args;
-            for (Node *pars = cl->parameters(); pars; pars = pars->tail()) if (a) 
+            for (auto &arg : sf->args.v) if (a) 
             {
+                (void)arg;
                 istack.pop_back();
                 vstack.pop_back();
                 a = a->tail();
