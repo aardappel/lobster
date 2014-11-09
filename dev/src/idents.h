@@ -247,8 +247,8 @@ struct SymbolTable
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = new Ident(name, line, identtable.size(), scopelevels.back());
 
+        ident = new Ident(name, line, identtable.size(), scopelevels.back());
         ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
         ident->sf_def = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
 
@@ -267,7 +267,28 @@ struct SymbolTable
     Ident *LookupLexMaybe(const string &name)
     {
         auto it = idents.find(name);
-        return it == idents.end() ? nullptr : it->second;  
+        if (it == idents.end()) return nullptr;
+        
+        if (defsubfunctionstack.size() && it->second->sf_def != defsubfunctionstack.back())
+        {
+            // This is a free variable, record it in all parents up to the definition point.
+            for (int i = (int)defsubfunctionstack.size() - 1; i >= 0; i--)
+            {
+                auto sf = defsubfunctionstack[i];
+                if (it->second->sf_def == sf) break;  // Found the definition.
+                for (auto &fv : sf->freevars.v)
+                    if (fv.id == it->second)
+                        goto twice;
+                {
+                    Arg freevar;
+                    freevar.id = it->second;
+                    sf->freevars.v.push_back(freevar);
+                }
+                twice:;
+            }
+        }
+
+        return it->second;  
     }
 
     Ident *LookupLexUse(const string &name, Lex &lex)

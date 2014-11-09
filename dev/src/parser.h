@@ -359,10 +359,8 @@ struct Parser
 
         auto sf = new SubFunction();
 
-        if (name)
-        {
-            st.namedsubfunctionstack.push_back(sf);
-        }
+        st.defsubfunctionstack.push_back(sf);
+        if (name) st.namedsubfunctionstack.push_back(sf);
 
         if (parens) Expect(T_LEFTPAREN);
         int nargs = 0;
@@ -413,8 +411,6 @@ struct Parser
         }
 
         size_t autoparlevel = autoparstack.size();
-
-        st.defsubfunctionstack.push_back(sf);
 
         if (expfunval)
         {

@@ -27,6 +27,14 @@ struct TypeChecker
         return s + ")";
     }
 
+    string SignatureWithFreeVars(const SubFunction *sf)
+    {
+        string s = Signature(sf) + " [ ";
+        for (auto &freevar : sf->freevars.v) s += freevar.id->name + " ";
+        s += "]";
+        return s;
+    }
+
     void TypeError(const char *required, const Type &got, const Node &n, const char *context = nullptr)
     {
         TypeError(string("\"") +
@@ -43,7 +51,7 @@ struct TypeChecker
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
             auto sf = *it;
-            err += "\n  in function: " + Signature(sf);
+            err += "\n  in function: " + SignatureWithFreeVars(sf);
             for (Node *list = sf->body; list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
@@ -205,10 +213,12 @@ struct TypeChecker
         }
         else
         {
-            int specializable = 0;
-            for (int i = 0; i < f.nargs; i++) if (f.subf->args.v[i].flags == AF_ANYTYPE) specializable++;
             SubFunction *sf = f.subf;
-            if (specializable)
+            // First see any args are untyped, this means we must specialize.
+            for (int i = 0; i < f.nargs; i++) if (sf->args.v[i].flags == AF_ANYTYPE) goto specialize;
+            // If we didn't find any such args, and we also don't have any freevars, we don't specialize.
+            if (!sf->freevars.v.size()) goto match;
+            specialize:
             {
                 // Check if any fit.
                 for (; sf && sf->typechecked; sf = sf->next)
@@ -218,6 +228,11 @@ struct TypeChecker
                     {
                         auto &arg = sf->args.v[i++];
                         if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
+                    }
+                    for (auto &freevar : sf->freevars.v)
+                    {
+                        // FIXME: call ExactType instead?
+                        if (freevar.type != freevar.id->type) goto fail;
                     }
                     goto match;
                     fail:;
@@ -242,7 +257,11 @@ struct TypeChecker
                         arg.type = list->head()->exptype;  // Specialized to arg.
                     }
                 }
-                DebugLog(1, "specialization: %s", Signature(sf).c_str());
+                for (auto &freevar : sf->freevars.v)
+                {
+                    freevar.type = freevar.id->type;  // Specialized to current value.
+                }
+                DebugLog(1, "specialization: %s", SignatureWithFreeVars(sf).c_str());
             }
             match:
             // Here we have a SubFunction witch matching specialized types.
