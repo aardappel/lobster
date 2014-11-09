@@ -72,28 +72,33 @@ struct Node : SlabAllocated<Node>
         fileidx = lex.fileidx;
     }
 
-    bool HasChildren() { return TCat(type) != TT_NOCHILD; }
+    bool HasChildren() const { return TCat(type) != TT_NOCHILD; }
 
-    int integer()      { assert(type == T_INT);    return integer_; }
-    double flt()       { assert(type == T_FLOAT);  return flt_; }
-    char *str()        { assert(type == T_STR);    return str_; }
-    Ident *ident()     { assert(type == T_IDENT);  return ident_; }
-    Struct *st()       { assert(type == T_STRUCT); return st_; }
-    SharedField *fld() { assert(type == T_FIELD);  return fld_; }
-    SubFunction *&sf() { assert(type == T_FUN);    return sf_; }
-    NativeFun *nf()    { assert(type == T_NATIVE); return nf_; }
-    Type *typenode()   { assert(type == T_TYPE);   return type_; }
+    int integer()      const { assert(type == T_INT);    return integer_; }
+    double flt()       const { assert(type == T_FLOAT);  return flt_; }
+    char *str()        const { assert(type == T_STR);    return str_; }
+    Ident *ident()     const { assert(type == T_IDENT);  return ident_; }
+    Struct *st()       const { assert(type == T_STRUCT); return st_; }
+    SharedField *fld() const { assert(type == T_FIELD);  return fld_; }
+    NativeFun *nf()    const { assert(type == T_NATIVE); return nf_; }
+    Type *typenode()   const { assert(type == T_TYPE);   return type_; }
+    SubFunction * sf() const { assert(type == T_FUN);    return sf_; }
+    SubFunction *&sf()       { assert(type == T_FUN);    return sf_; }
 
-    Node *a()  { assert(TCat(type) != TT_NOCHILD); return a_; }
-    Node *&b() { assert(TCat(type) != TT_NOCHILD); return b_; }
+    Node *a()  const { assert(TCat(type) != TT_NOCHILD); return a_; }
+    Node * b() const { assert(TCat(type) != TT_NOCHILD); return b_; }
+    Node *&b()       { assert(TCat(type) != TT_NOCHILD); return b_; }
 
-    Node *&left()  { assert(TCat(type) == TT_BINARY); return a_; }
-    Node *&right() { assert(TCat(type) == TT_BINARY); return b_; }
+    Node * left()  const { assert(TCat(type) == TT_BINARY); return a_; }
+    Node *&left()        { assert(TCat(type) == TT_BINARY); return a_; }
+    Node * right() const { assert(TCat(type) == TT_BINARY); return b_; }
+    Node *&right()       { assert(TCat(type) == TT_BINARY); return b_; }
 
-    Node *child() { assert(TCat(type) == TT_UNARY); return a_; }
+    Node *child() const { assert(TCat(type) == TT_UNARY); return a_; }
 
     #define GEN_ACCESSOR_NO(ENUM, NAME, AB)
-    #define GEN_ACCESSOR_YES(ENUM, NAME, AB) Node *&NAME() { assert(type == ENUM); return AB; }
+    #define GEN_ACCESSOR_YES(ENUM, NAME, AB)       Node *&NAME()       { assert(type == ENUM); return AB; } \
+                                             const Node * NAME() const { assert(type == ENUM); return AB; }
     #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) GEN_ACCESSOR_##HASLEFT(ENUM, LEFT, a_) \
                                                               GEN_ACCESSOR_##HASRIGHT(ENUM, RIGHT, b_)
     TTYPES_LIST
@@ -169,15 +174,15 @@ struct Node : SlabAllocated<Node>
 
     // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls,
     // and tracking the value of idents as the value nodes they refer to
-    const char *FindIdentsUpToYield(const function<void (vector<Ident *> &istack)> &customf)
+    const char *FindIdentsUpToYield(const function<void (const vector<const Ident *> &istack)> &customf)
     {
-        vector<Ident *> istack;
-        vector<Node *> vstack; // current value of each ident
-        vector<Function *> fstack;
+        vector<const Ident *> istack;
+        vector<const Node *> vstack; // current value of each ident
+        vector<const Function *> fstack;
 
         const char *err = nullptr;
 
-        auto lookup = [&](Node *n) -> Node *
+        auto lookup = [&](const Node *n) -> const Node *
         {
             if (n->type == T_IDENT)
                 for (size_t i = 0; i < istack.size(); i++) 
@@ -187,11 +192,11 @@ struct Node : SlabAllocated<Node>
             return n;
         };
 
-        std::function<void(Node *)> eval;
-        std::function<void(SubFunction *, Node *, bool)> evalblock;
-        std::function<void(Node *)> evalnatarg;
+        std::function<void(const Node *)> eval;
+        std::function<void(const SubFunction *, const Node *, bool)> evalblock;
+        std::function<void(const Node *)> evalnatarg;
 
-        eval = [&](Node *n)
+        eval = [&](const Node *n)
         {
             if (!n) return;
 
@@ -250,7 +255,7 @@ struct Node : SlabAllocated<Node>
                 }
                 case T_NATCALL:
                 {
-                    for (Node *list = n->ncall_args(); list; list = list->tail())
+                    for (const Node *list = n->ncall_args(); list; list = list->tail())
                     {
                         evalnatarg(list->head());
                     }
@@ -272,16 +277,16 @@ struct Node : SlabAllocated<Node>
             }
         };
 
-        evalnatarg = [&](Node *arg)
+        evalnatarg = [&](const Node *arg)
         {
             auto a = lookup(arg);
             if (a->type == T_COCLOSURE) customf(istack);
             if (a->type == T_CLOSUREDEF) evalblock(a->closure_def()->sf(), nullptr, true);
         };
 
-        evalblock = [&](SubFunction *sf, Node *args, bool fakeargs)
+        evalblock = [&](const SubFunction *sf, const Node *args, bool fakeargs)
         {
-            Node *a = args;
+            const Node *a = args;
             for (auto &arg : sf->args.v)
             {
                 if (fakeargs)

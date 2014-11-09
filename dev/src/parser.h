@@ -371,17 +371,16 @@ struct Parser
                 string a = lex.sattr;
                 Expect(T_IDENT);
                 nargs++;
-                Arg arg;
-                arg.id = st.LookupLexDefOrDynScope(a, lex.errorline, lex, false);
+                auto id = st.LookupLexDefOrDynScope(a, lex.errorline, lex, false);
+                Type type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
                 {
                     lex.Next(); 
-                    ParseType(arg.type, withtype);
-                    if (withtype) st.AddWithStruct(arg.type, arg.id, lex);
+                    ParseType(type, withtype);
+                    if (withtype) st.AddWithStruct(type, id, lex);
                 }
-                arg.flags = arg.type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
-                sf->args.v.push_back(arg);
+                sf->args.v.push_back(Arg(id, type));
 
                 if (!IsNext(T_COMMA)) break;
             }
@@ -440,11 +439,8 @@ struct Parser
                 for (size_t j = autoparlevel; j < i; j++)
                     if (autoparstack[i]->ident() == autoparstack[j]->ident())
                         goto twice;
-                {
-                    Arg arg;
-                    arg.id = autoparstack[i]->ident();
-                    sf->args.v.push_back(arg);
-                }
+                sf->args.v.push_back(Arg(autoparstack[i]->ident()));
+                f.nargs++;
                 twice:;
             }
             while (autoparstack.size() > autoparlevel) autoparstack.pop_back();

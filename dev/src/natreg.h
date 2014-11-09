@@ -90,6 +90,9 @@ struct Arg
 
     Arg() : flags(AF_NONE), id(nullptr) {}
 
+    Arg(Ident *_id, const Type &_type = Type())
+        : id(_id), type(_type), flags(_type.t == V_ANY ? AF_ANYTYPE : AF_NONE) {}
+
     void Set(const char *&tid)
     {
         char t = *tid++;

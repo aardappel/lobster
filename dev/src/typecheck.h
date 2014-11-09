@@ -4,7 +4,8 @@ struct TypeChecker
     Lex &lex;
     Parser &parser;
     SymbolTable &st;
-    vector<SubFunction *> scopes;
+    struct Scope { SubFunction *sf; const Node *call_context; };
+    vector<Scope> scopes;
     vector<Type> type_variables;
 
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
@@ -14,24 +15,29 @@ struct TypeChecker
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
+    string TypedArg(const Arg &arg)
+    {
+        string s = arg.id->name;
+        if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
+        return s;
+    }
+
     string Signature(const SubFunction *sf)
     {
         auto s = sf->parent->name + "(";
         for (int i = 0; i < sf->parent->nargs; i++)
         {
             if (i) s += ", ";
-            auto &arg = sf->args.v[i];
-            s += sf->args.GetName(i);
-            if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
+            s += TypedArg(sf->args.v[i]);
         }
         return s + ")";
     }
 
     string SignatureWithFreeVars(const SubFunction *sf)
     {
-        string s = Signature(sf) + " [ ";
-        for (auto &freevar : sf->freevars.v) s += freevar.id->name + " ";
-        s += "]";
+        string s = Signature(sf) + " { ";
+        for (auto &freevar : sf->freevars.v) s += TypedArg(freevar) + " ";
+        s += "}";
         return s;
     }
 
@@ -50,9 +56,10 @@ struct TypeChecker
     {
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
-            auto sf = *it;
-            err += "\n  in function: " + SignatureWithFreeVars(sf);
-            for (Node *list = sf->body; list; list = list->tail())
+            auto &scope = *it;
+            err += "\n  in " + parser.lex.Location(scope.call_context->fileidx, scope.call_context->linenumber) + ": ";
+            err += SignatureWithFreeVars(scope.sf);
+            for (Node *list = scope.sf->body; list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
                 {
@@ -147,20 +154,27 @@ struct TypeChecker
         }
         TypeError(TypeName(sub).c_str(), type, *a, context);
     }
+    void SubType(const Type &type, const Type &sub, const Node &n)
+    {
+        if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n);
+    }
 
     void RetVal(Node *&a)
     {
         if (scopes.empty()) return;
         auto scope = scopes.back();
-        if (a) SubType(a, scope->returntype, "return value");
-        else scope->returntype = Type();  // FIXME: this allows "return" followed by "return 1" ?
+        if (a) SubType(a, scope.sf->returntype, "return value");
+        else scope.sf->returntype = Type();  // FIXME: this allows "return" followed by "return 1" ?
     }
 
-    void TypeCheck(SubFunction &sf)
+    void TypeCheck(SubFunction &sf, const Node *call_context)
     {
         if (!sf.typechecked)
         {
-            scopes.push_back(&sf);
+            Scope scope;
+            scope.sf = &sf;
+            scope.call_context = call_context;
+            scopes.push_back(scope);
 
             sf.typechecked = true;
             for (auto &arg : sf.args.v)
@@ -206,7 +220,7 @@ struct TypeChecker
             // Simplistic: typechecked with actual argument types.
             // Should attempt static picking as well, if static pick succeeds, specialize.
             // FIXME: no need to repeat this on every call.
-            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf);
+            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf, function_def_node);
             Type type = f.subf->returntype;
             for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntype, false);
             return type;
@@ -242,10 +256,11 @@ struct TypeChecker
                 if (sf->typechecked)
                 {
                     // Clone it.
-                    DebugLog(1, "cloning: %s", Signature(sf).c_str());
+                    DebugLog(1, "cloning: %s", SignatureWithFreeVars(sf).c_str());
                     sf = new SubFunction();
                     sf->SetParent(f, f.subf);
                     for (int i = 0; i < f.nargs; i++) sf->args.v.push_back(f.subf->next->args.v[i]);
+                    sf->freevars = f.subf->next->freevars;
                     sf->body = f.subf->next->body->Clone();
                 }
                 int i = 0;
@@ -272,9 +287,8 @@ struct TypeChecker
                 auto &arg = sf->args.v[i++];
                 if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, f.name.c_str());
             }
-            TypeCheck(*sf);
-            if (function_def_node) function_def_node->sf() = sf;
-            else assert(!f.subf->next);  // the caller should track the possibly changed sf
+            TypeCheck(*sf, function_def_node);
+            function_def_node->sf() = sf;
             return sf->returntype;
         }
     }
@@ -301,7 +315,7 @@ struct TypeChecker
             }
             if (i < f.nargs)
                 TypeError("function value called with too few arguments", *fval);
-            return TypeCheckCall(f, *args_ptr, fdef);
+            return TypeCheckCall(f, *args_ptr, fdef ? fdef : fval->closure_def());
         }
         else
         {
@@ -491,7 +505,8 @@ struct TypeChecker
                     auto type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
-                    SubType(type, *n.if_branches());
+                    SubType(tleft, type, *n.if_branches()->left());
+                    SubType(tright, type, *n.if_branches()->right());
                     return type;
                 }
                 else
@@ -522,10 +537,10 @@ struct TypeChecker
                 auto itertype = n.for_iter()->exptype;
                 if (itertype.t == V_INT || itertype.t == V_STRING) itertype = Type(V_INT);
                 else if (itertype.t == V_VECTOR) itertype = itertype.Element();
-                else TypeError("for can only iterate over int/string/vector", n);
+                else TypeError("for can only iterate over int/string/vector, not: " + TypeName(itertype), n);
                 args->head()->exptype = itertype;
                 args->tail()->head()->exptype = Type(V_INT);
-                TypeCheckDynCall(n.for_body(), &args, nullptr);
+                TypeCheckDynCall(n.for_body(), &args);
                 delete args;
                 // Currently always return V_UNDEFINED
                 return Type();

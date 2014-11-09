@@ -426,10 +426,15 @@ struct Lex : LoadedFile
         return TName(t);
     }
 
+    string Location(int fidx, int line)
+    {
+        return (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
+              "(" + inttoa(line >= 0 ? line : errorline) + ")";
+    }
+
     void Error(string err, int fidx = -1, int line = -1)
     {
-        err = (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
-              "(" + inttoa(line >= 0 ? line : errorline) + "): error: " + err;
+        err = Location(fidx, line) + ": error: " + err;
         DebugLog(1, "%s", err.c_str());
         throw err;
     } 

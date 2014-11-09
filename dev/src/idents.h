@@ -366,7 +366,7 @@ struct SymbolTable
         withstacklevels.pop_back();
     }
 
-    void UnregisterStruct(Struct *st)
+    void UnregisterStruct(const Struct *st)
     {
         auto it = structs.find(st->name);
         assert(it != structs.end());

@@ -56,8 +56,8 @@ struct CodeGen
     vector<LineInfo> &lineinfo;
     Lex &lex;
     Parser &parser;
-    vector<Node *> linenumbernodes;
-    vector<pair<int, SubFunction *>> call_fixups;
+    vector<const Node *> linenumbernodes;
+    vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
 
     CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool verbose)
@@ -224,7 +224,7 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenInlineScope(Node *cl, int retval, int nargs)
+    void GenInlineScope(const Node *cl, int retval, int nargs)
     {
         // FIXME: should NOT need a call here, vars need to be moved to outer scope
         Gen(cl, 1);
@@ -245,7 +245,7 @@ struct CodeGen
         }
     }
 
-    void Gen(Node *n, int retval)
+    void Gen(const Node *n, int retval)
     {
         linenumbernodes.push_back(n);
         // by default, the cases below only deal with 0 or 1 retvals,
@@ -376,8 +376,8 @@ struct CodeGen
             case T_DYNCALL:     
             {
                 int nargs = 0;
-                Node *lastarg = nullptr;
-                auto genargs = [&](Node *list, ArgVector *args, int checkargs)
+                const Node *lastarg = nullptr;
+                auto genargs = [&](const Node *list, const ArgVector *args, int checkargs)
                 {
                     for (; list; list = list->tail())
                     {
@@ -385,6 +385,22 @@ struct CodeGen
                         if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
                         lastarg = list->head();
                         nargs++;
+                    }
+                };
+                auto gencall = [&](const SubFunction &sf, const Node *args, const Node *errnode)
+                {
+                    auto &f = *sf.parent;
+                    genargs(args, &sf.args, f.multimethod ? 0 : sf.args.v.size());
+                    if (f.nargs != nargs)
+                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
+                                     " arguments, " + string(inttoa(nargs)) + " given", errnode);
+                    f.ncalls++;
+                    auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
+                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx, bytecodestart);
+                    if (!bytecodestart) call_fixups.push_back(make_pair((int)code.size() - 1, &sf));
+                    if (f.retvals > 1)
+                    {
+                        maxretvalsupplied = f.retvals;
                     }
                 };
                 if (n->type == T_NATCALL)
@@ -419,26 +435,27 @@ struct CodeGen
                 }
                 else if (n->type == T_CALL)
                 {
-                    auto &sf = *n->call_function()->sf();
-                    auto &f = *sf.parent;
-                    genargs(n->call_args(), &sf.args, f.multimethod ? 0 : sf.args.v.size());
-                    if (f.nargs != nargs)
-                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
-                                     " arguments, " + string(inttoa(nargs)) + " given", n->call_function());
-                    f.ncalls++;
-                    auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
-                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx, bytecodestart);
-                    if (!bytecodestart) call_fixups.push_back(make_pair((int)code.size() - 1, &sf));
-                    if (f.retvals > 1)
-                    {
-                        maxretvalsupplied = f.retvals;
-                    }
+                    gencall(*n->call_function()->sf(), n->call_args(), n->call_function());
                 }
                 else
                 {
-                    genargs(n->dcall_info()->dcall_args(), nullptr, 0);
-                    Gen(n->dcall_fval(), 1);
-                    Emit(IL_CALLV, nargs);
+                    auto sf = n->dcall_info()->dcall_function()->sf();
+                    if (sf)
+                    {
+                        // We statically know which function this is calling, which means that we don't have
+                        // to need function value, but we generate code for it for the rare case it contains a
+                        // side effect, usually it is an ident which will result in no code (retval = 0).
+                        Gen(n->dcall_fval(), 0);
+                        // We can now turn this into a normal call.
+                        gencall(*sf, n->dcall_info()->dcall_args(), n);
+                    }
+                    else
+                    {
+                        // Fully dynamic call.
+                        genargs(n->dcall_info()->dcall_args(), nullptr, 0);
+                        Gen(n->dcall_fval(), 1);
+                        Emit(IL_CALLV, nargs);
+                    }
                 }
                 if (!retval) Emit(IL_POP);
                 break;
@@ -557,7 +574,7 @@ struct CodeGen
                 else
                 {
                     int nargs = 0;
-                    for (Node *it = n->constructor_args(); it; it = it->tail()) nargs++;
+                    for (const Node *it = n->constructor_args(); it; it = it->tail()) nargs++;
                     Emit(IL_NEWVEC, V_VECTOR, nargs);
                 }
 
@@ -623,7 +640,7 @@ struct CodeGen
                     Emit(0); // count
                     // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
                     // each function / builtin function
-                    auto err = n->child()->FindIdentsUpToYield([&](vector<Ident *> &istack)
+                    auto err = n->child()->FindIdentsUpToYield([&](const vector<const Ident *> &istack)
                     {
                         found = true;
                         for (auto id : istack)
@@ -679,7 +696,7 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenAssign(Node *lval, int lvalop, int retval, Node *rhs = nullptr)
+    void GenAssign(const Node *lval, int lvalop, int retval, const Node *rhs = nullptr)
     {
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
