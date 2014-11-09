@@ -101,24 +101,21 @@ struct SharedField : Name
     }
 };
 
-struct UniqueField
-{
-    Type type;
-    SharedField *sf; // SharedField * are shared between all Structs that have them
-
-    UniqueField(Type _t, SharedField *_sf) : type(_t), sf(_sf) {}
-};
+typedef Typed<SharedField> Field;
 
 struct Struct : Name
 {
-    vector<UniqueField> fields; 
+    vector<Field> fields; 
 
+    Struct *next;
     Struct *superclass;
     int superclassidx;
     
     bool readonly;
+    bool typechecked;
 
-    Struct(const string &_name, int _idx) : Name(_name, _idx), superclass(nullptr), superclassidx(-1), readonly(false) {}
+    Struct(const string &_name, int _idx)
+        : Name(_name, _idx), next(nullptr), superclass(nullptr), superclassidx(-1), readonly(false), typechecked(false) {}
     Struct() : Struct("", 0) {}
 
     void Serialize(Serializer &ser)
@@ -128,10 +125,19 @@ struct Struct : Name
         ser(readonly);
     }
 
-    UniqueField *Has(SharedField *fld)
+    Field *Has(SharedField *fld)
     {
-        for (auto &uf : fields) if (uf.sf == fld) return &uf;
+        for (auto &uf : fields) if (uf.id == fld) return &uf;
         return nullptr;
+    }
+
+    Struct *Clone()
+    {
+        auto st = new Struct();
+        *st = *this;
+        st->next = next;
+        next = st;
+        return st;
     }
 };
 
@@ -279,11 +285,7 @@ struct SymbolTable
                 for (auto &fv : sf->freevars.v)
                     if (fv.id == it->second)
                         goto twice;
-                {
-                    Arg freevar;
-                    freevar.id = it->second;
-                    sf->freevars.v.push_back(freevar);
-                }
+                sf->freevars.v.push_back(Arg(it->second));
                 twice:;
             }
         }

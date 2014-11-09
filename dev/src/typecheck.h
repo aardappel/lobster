@@ -15,23 +15,27 @@ struct TypeChecker
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
-    string TypedArg(const Arg &arg)
+    template<typename T> string TypedArg(const Typed<T> &arg)
     {
         string s = arg.id->name;
         if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
         return s;
     }
 
-    string Signature(const SubFunction *sf)
+    template<typename T> string Signature(const vector<Typed<T>> &v)
     {
-        auto s = sf->parent->name + "(";
-        for (int i = 0; i < sf->parent->nargs; i++)
+        string s = "(";
+        int i = 0;
+        for (auto &arg : v)
         {
-            if (i) s += ", ";
-            s += TypedArg(sf->args.v[i]);
+            if (i++) s += ", ";
+            s += TypedArg(arg);
         }
         return s + ")";
     }
+
+    string Signature(const Struct *struc)   { return struc->name      + Signature(struc->fields); }
+    string Signature(const SubFunction *sf) { return sf->parent->name + Signature(sf->args.v); }
 
     string SignatureWithFreeVars(const SubFunction *sf)
     {
@@ -134,10 +138,9 @@ struct TypeChecker
         return Type(V_ANY);
     }
 
-    bool ExactType(const Node &a, const Type &sub)
+    bool ExactType(const Type &a, const Type &b)
     {
-        const Type &type = a.exptype;
-        return Promote(type) == Promote(sub);
+        return Promote(a) == Promote(b);
     }
 
     void SubType(const Type &sub, Node &n) { SubType(n.left(), sub, n); SubType(n.right(), sub, n); }
@@ -213,6 +216,67 @@ struct TypeChecker
         }
     }
 
+    Struct *SpecializeStruct(Struct *head, const Node *args)
+    {
+        // This code is very similar to function specialization, but not similar enough to share.
+        // If they're all typed, we bail out early:
+        for (auto &field : head->fields) if (field.flags == AF_ANYTYPE) goto specialize;
+        return head;
+
+        // First collect types for all args.
+        specialize:
+        vector<Type> argtypes;
+        for (auto list = args; list; list = list->tail())
+        {
+            if (list->head()->type == T_SUPER)
+            {
+                auto &stype = list->head()->exptype;
+                assert(stype.t == V_STRUCT);  // FIXME
+                assert(stype.idx == head->superclassidx);  // FIXME
+                auto sstruc = st.structtable[stype.idx];
+                for (auto &f : sstruc->fields) argtypes.push_back(f.type);
+            }
+            else
+            {
+                argtypes.push_back(list->head()->exptype);
+            }
+        }
+        assert(argtypes.size() == head->fields.size());
+
+        // Now find a match:
+        auto struc = head;
+        for (; struc; struc = struc->next)
+        {
+            int i = 0;
+            for (auto &type : argtypes)
+            {
+                auto &field = struc->fields[i++];
+                if (field.flags == AF_ANYTYPE && !ExactType(type, field.type)) goto fail;
+            }
+            return struc;  // Found a match.
+            fail:;
+        }
+
+        // No match.
+        struc = head;
+        if (head->typechecked)
+        {
+            // This one is already in use.. clone it.
+            struc = head->Clone();
+            struc->idx = st.structtable.size();
+            st.structtable.push_back(struc);
+            DebugLog(1, "cloned struct: %s", struc->name.c_str());
+        }
+        int i = 0;
+        for (auto &type : argtypes)
+        {
+            auto &field = struc->fields[i++];
+            if (field.flags == AF_ANYTYPE) field.type = type;  // Specialize to arg.
+        }
+        DebugLog(1, "specialized struct: %s", Signature(struc).c_str());
+        return struc;
+    }
+
     Type TypeCheckCall(Function &f, Node *call_args, Node *function_def_node)
     {
         if (f.multimethod)
@@ -229,7 +293,7 @@ struct TypeChecker
         {
             SubFunction *sf = f.subf;
             // First see any args are untyped, this means we must specialize.
-            for (int i = 0; i < f.nargs; i++) if (sf->args.v[i].flags == AF_ANYTYPE) goto specialize;
+            for (auto &arg : sf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
             // If we didn't find any such args, and we also don't have any freevars, we don't specialize.
             if (!sf->freevars.v.size()) goto match;
             specialize:
@@ -241,7 +305,7 @@ struct TypeChecker
                     for (Node *list = call_args; list; list = list->tail())
                     {
                         auto &arg = sf->args.v[i++];
-                        if (arg.flags == AF_ANYTYPE && !ExactType(*list->head(), arg.type)) goto fail;
+                        if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
                     }
                     for (auto &freevar : sf->freevars.v)
                     {
@@ -256,7 +320,7 @@ struct TypeChecker
                 if (sf->typechecked)
                 {
                     // Clone it.
-                    DebugLog(1, "cloning: %s", SignatureWithFreeVars(sf).c_str());
+                    DebugLog(1, "cloning: %s", sf->parent->name.c_str());
                     sf = new SubFunction();
                     sf->SetParent(f, f.subf);
                     for (int i = 0; i < f.nargs; i++) sf->args.v.push_back(f.subf->next->args.v[i]);
@@ -559,7 +623,6 @@ struct TypeChecker
             case T_CONSTRUCTOR:
             {
                 auto type = *n.constructor_type()->typenode();
-                // FIXME: must specialize if there's any untyped fields.
                 if (type == Type(V_VECTOR))
                 {
                     // No type was specified.. first find union of all elements.
@@ -574,10 +637,23 @@ struct TypeChecker
                     type = u.Wrap();
                     if (!i) type = NewTypeVar().Wrap();  // special case for empty vectors
                 }
+                if (type.t == V_STRUCT)
+                {
+                    type.idx = SpecializeStruct(st.structtable[type.idx], n.constructor_args())->idx;
+                }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    auto elemtype = type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type.Element();
+                    Type elemtype;
+                    if (list->head()->type == T_SUPER)
+                    {
+                        assert(type.t == V_STRUCT);  // Parser checks this.
+                        elemtype = Type(V_STRUCT, st.structtable[type.idx]->superclassidx);
+                    }
+                    else
+                    {
+                        elemtype = type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type.Element();
+                    }
                     SubType(list->head(), elemtype, n);
                     i++;
                 }
@@ -634,6 +710,9 @@ struct TypeChecker
 
             case T_COROUTINE:
                 return Type(V_COROUTINE);
+
+            case T_SUPER:
+                return n.child()->exptype;
 
 
 

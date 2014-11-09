@@ -267,7 +267,7 @@ struct Parser
                     for (auto &fld : base.fields)
                     {
                         struc.fields.push_back(fld);
-                        fld.sf->NewFieldUse(FieldOffset(struc.idx, off++));
+                        fld.id->NewFieldUse(FieldOffset(struc.idx, off++));
                     }
 
                     fieldid = base.fields.size();
@@ -280,7 +280,7 @@ struct Parser
                 for (auto ids = v; ids; ids = ids->tail())
                 {
                     assert(ids->head()->type == T_FIELD);
-                    struc.fields.push_back(UniqueField(ids->head()->exptype, ids->head()->fld()));
+                    struc.fields.push_back(Field(ids->head()->fld(), ids->head()->exptype));
                 }
 
                 currentstruct = nullptr;
@@ -1029,6 +1029,10 @@ struct Parser
                             Error("constructor must have struct or vector type");
                     }
                 }
+
+                if (type.t != V_STRUCT && n && n->head()->type == T_SUPER)
+                    Error("constructor using super must have struct type");
+
                 return new Node(lex, T_CONSTRUCTOR, n, new Node(lex, type));
             }
 

@@ -1,7 +1,9 @@
 - switch to /W4
 
 - typechecker
-  * check what def_sf _ vars get assigned  
+  * struct specialization
+    * multimethods?
+    * superclass types?
 
   * specialize on free variables as well
   * typecheck function values from dyncall/natcall

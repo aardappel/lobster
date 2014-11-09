@@ -28,9 +28,9 @@ function run_test_cases():
     assert(tf("", 0.0) == 2)
     assert(tf("", 0) == 3)
     assert(tf([ 0 ]:testa, 0) == 4)
-    assert(tf([ [ 0 ]:testa, 0 ]:testb, "") == 9)
-    assert(tf([ [ 0 ]:testa, 0 ]:testb, 0.0) == 5)
-    assert(tf([ [ 0 ]:testa, 0 ]:testb, 0) == 6)
+    assert(tf([ super [ 0 ]:testa, 0 ]:testb, "") == 9)
+    assert(tf([ super [ 0 ]:testa, 0 ]:testb, 0.0) == 5)
+    assert(tf([ super [ 0 ]:testa, 0 ]:testb, 0) == 6)
     assert(tf("", "") == 7)
 
     assert(tf("") == 8)

@@ -78,19 +78,17 @@ struct Name : Serializable
     }
 };
 
-struct Ident;
-
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR };
 
-struct Arg
+template<typename T> struct Typed
 {
     Type type;
     ArgFlags flags;
-    Ident *id;
+    T *id;
 
-    Arg() : flags(AF_NONE), id(nullptr) {}
+    Typed() : flags(AF_NONE), id(nullptr) {}
 
-    Arg(Ident *_id, const Type &_type = Type())
+    Typed(T *_id, const Type &_type = Type())
         : id(_id), type(_type), flags(_type.t == V_ANY ? AF_ANYTYPE : AF_NONE) {}
 
     void Set(const char *&tid)
@@ -126,6 +124,9 @@ struct Arg
         }
     }
 };
+
+struct Ident;
+typedef Typed<Ident> Arg;
 
 struct ArgVector
 {
