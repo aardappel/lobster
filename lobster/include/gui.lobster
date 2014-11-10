@@ -79,7 +79,7 @@ private function position(v, f):
 
 private function cursize_of(id, f):
     cache_size(id):
-        cursize <- vec_0i
+        cursize <- xy_0i
         f()
         cursize
 
@@ -88,9 +88,9 @@ private function element(size, f):
         advance(size):
             position(size, f)
             if(vertical):
-                gl_translate(vec_y * (size.y + spacing))
+                gl_translate(xy_y * (size.y + spacing))
             else:
-                gl_translate(vec_x * (size.x + spacing))
+                gl_translate(xy_x * (size.x + spacing))
 
 private function block(al, sp, vert, id, f):
     spi := round(sp * gl_getfontsize())
@@ -120,11 +120,11 @@ function gui_image(factors, tex):
 
 function gui_divider(thickness):
     align <- 0
-    element(round(vec_1i * thickness)):
+    element(round(xy_1i * thickness)):
         gl_rect(if(vertical): [ parent_size.x, thickness ] else: [ thickness, parent_size.y ])
 
 function gui_space(thickness):
-    element(vec_1i * round(thickness * gl_getfontsize())): nil
+    element(xy_1i * round(thickness * gl_getfontsize())): nil
 
 function gui_start(size, alignh, alignv, interact, f):   // top level only
     id := caller_id()
@@ -179,7 +179,7 @@ private function around(m, draw, id, f):
                         gl_rect([ m.x, size.y ])
                     gl_translate([ 0, size.y - m.y]):
                         gl_rect([ size.x, m.y ])
-            function forward(): gl_translate([ vec_xi, vec_yi ][vertical] * m[vertical])
+            function forward(): gl_translate([ xy_xi, xy_yi ][vertical] * m[vertical])
             forward()
             f()
             forward()
@@ -288,7 +288,7 @@ if(program_name() == "gui.lobster"): // run example
                 gui_space(0.2)
                 gui_text("C")
                 gui_button():
-                    gui_border(vec_1 * 2):
+                    gui_border(xy_1 * 2):
                         gui_fontscale(2):
                             gui_text("clickme")
                 do:
@@ -305,7 +305,7 @@ if(program_name() == "gui.lobster"): // run example
                         gui_text("D")
                         if(clicked):
                             gui_blend(2):
-                                gui_image(vec_1, ghosttex)
+                                gui_image(xy_1, ghosttex)
                 gui_text("E")
                 gui_text("E")
 

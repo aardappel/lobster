@@ -26,17 +26,17 @@ while(gl_frame()):
     speed := 10
     if(gl_isdown("left shift")): speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    if(gl_isdown("space")): camera_direction(vec_xy * 10 - camera_position)
+    if(gl_isdown("space")): camera_direction(xy_1 * 10 - camera_position)
     camera_FPS_view()
 
     gl_light(camera_position)
-    //gl_light(sincos(gl_time() * 20) * 100 + vec_z * 100)
+    //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
 
     gl_blend(0)
     gl_setshader("phong_anim")
     gl_animatemesh(iqmtest, gl_time() * 60)
-    gl_translate(vec_xy * 10):
+    gl_translate(xy_1 * 10):
         gl_rendermesh(iqmtest)
 
     gl_setshader("color")
-    gl_debug_grid([20, 20, 0], vec_1, 0.005)
+    gl_debug_grid([20, 20, 0], xyz_1, 0.005)

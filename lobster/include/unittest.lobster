@@ -143,8 +143,8 @@ function run_test_cases():
 
     worldsize := [ initworld[0].length, initworld.length ]:xy
 
-    startpos := nil
-    endpos := nil
+    startpos := xy_0i
+    endpos := xy_0i
 
     world := worldsize.y.map() y: worldsize.x.map() x:
         c := initworld[y][x]

@@ -3,7 +3,7 @@
 include "vec.lobster"
 include "color.lobster"
 
-directions := [ vec_0, vec_x, vec_y ]
+directions := [ xy_0, xy_x, xy_y ]
 
 function sierpinski(depth):
     if(depth):
@@ -16,7 +16,7 @@ function sierpinski(depth):
 
 fatal(gl_window("sierpinski", 512, 512))
 
-while(gl_frame()):    
+while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
     gl_scale(gl_windowsize())

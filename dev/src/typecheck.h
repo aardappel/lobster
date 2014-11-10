@@ -157,9 +157,10 @@ struct TypeChecker
         }
         TypeError(TypeName(sub).c_str(), type, *a, context);
     }
-    void SubType(const Type &type, const Type &sub, const Node &n)
+    void SubType(Type &type, const Type &sub, const Node &n, const char *context = nullptr)
     {
-        if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n);
+        if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n, context);
+        type = Promote(type);
     }
 
     void RetVal(Node *&a)
@@ -180,14 +181,23 @@ struct TypeChecker
             scopes.push_back(scope);
 
             sf.typechecked = true;
+
+            auto backup = sf.args;
+            int i = 0;
             for (auto &arg : sf.args.v)
             {
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
+                backup.v[i].type = arg.id->type;  // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
                 arg.id->type = arg.type;
+                i++;
             }
+
             sf.returntype = NewTypeVar();
             sf.body->exptype = TypeCheck(*sf.body);
+
+            for (auto &back : backup.v) back.id->type = back.type;
+
             Node *last = nullptr;
             for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
             assert(last);
@@ -230,9 +240,8 @@ struct TypeChecker
         {
             if (list->head()->type == T_SUPER)
             {
-                auto &stype = list->head()->exptype;
-                assert(stype.t == V_STRUCT);  // FIXME
-                assert(stype.idx == head->superclassidx);  // FIXME
+                auto stype = list->head()->exptype;
+                SubType(stype, Type(V_STRUCT, head->superclassidx), *list->head(), "super");
                 auto sstruc = st.structtable[stype.idx];
                 for (auto &f : sstruc->fields) argtypes.push_back(f.type);
             }
@@ -353,13 +362,14 @@ struct TypeChecker
             }
             TypeCheck(*sf, function_def_node);
             function_def_node->sf() = sf;
+            DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntype).c_str());
             return sf->returntype;
         }
     }
 
     Type TypeCheckDynCall(Node *fval, Node **args_ptr, Node *fdef = nullptr)
     {
-        auto ftype = fval->exptype;
+        auto ftype = Promote(fval->exptype);
         if (ftype.t == V_FUNCTION && ftype.idx >= 0)
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
@@ -416,7 +426,7 @@ struct TypeChecker
             case T_INT:   return Type(V_INT);
             case T_FLOAT: return Type(V_FLOAT);
             case T_STR:   return Type(V_STRING);
-            case T_NIL:   return Type(V_NIL);
+            case T_NIL:   return NewTypeVar().Wrap(V_NILABLE);
 
             case T_DIV:
             case T_MULT:
@@ -436,7 +446,7 @@ struct TypeChecker
             case T_DIVEQ:
             case T_MODEQ:
             {
-                auto type = n.left()->exptype;
+                auto type = Promote(n.left()->exptype);
                 MathCheck(type, n);
                 SubType(n.right(), type, n);
                 return type;
@@ -480,7 +490,7 @@ struct TypeChecker
             case T_DECR:  
             case T_INCR:
             {
-                auto type = n.child()->exptype;
+                auto type = Promote(n.child()->exptype);
                 if (!type.Numeric())
                     TypeError("numeric", type, n);
                 return type;
@@ -488,7 +498,7 @@ struct TypeChecker
 
             case T_UMINUS:
             {
-                auto type = n.child()->exptype;
+                auto type = Promote(n.child()->exptype);
                 if (!type.Numeric() && type.t != V_VECTOR)
                     TypeError("numeric/vector", type, n);
                 return type;
@@ -598,7 +608,7 @@ struct TypeChecker
                                 new Node(lex, T_FORLOOPVAR),
                                 new Node(lex, T_LIST,
                                     new Node(lex, T_FORLOOPVAR)));
-                auto itertype = n.for_iter()->exptype;
+                auto itertype = Promote(n.for_iter()->exptype);
                 if (itertype.t == V_INT || itertype.t == V_STRING) itertype = Type(V_INT);
                 else if (itertype.t == V_VECTOR) itertype = itertype.Element();
                 else TypeError("for can only iterate over int/string/vector, not: " + TypeName(itertype), n);
@@ -662,7 +672,7 @@ struct TypeChecker
 
             case T_DOT:
             {
-                auto &type = n.left()->exptype;
+                auto type = Promote(n.left()->exptype);
                 if (type.t != V_STRUCT)
                     TypeError("struct/value", type, n);
                 auto struc = st.structtable[type.idx];
@@ -674,10 +684,10 @@ struct TypeChecker
 
             case T_INDEX:
             {
-                auto vtype = n.left()->exptype;
+                auto vtype = Promote(n.left()->exptype);
                 if (vtype.t != V_VECTOR && vtype.t != V_STRING)
                     TypeError("vector/string", vtype, n);
-                auto itype = n.right()->exptype;
+                auto itype = Promote(n.right()->exptype);
                 switch (itype.t)
                 {
                     case V_INT: vtype = vtype.t == V_VECTOR ? vtype.Element() : Type(V_INT); break;

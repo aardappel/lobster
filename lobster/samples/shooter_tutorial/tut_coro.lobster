@@ -19,7 +19,7 @@ function level(highscore, frame):
     worldsize :== 20.0
 
     playerhealth := 100.0
-    playerpos := vec_0
+    playerpos := xy_0
     playerspeed :== 10
 
     bs := coroutine bulletset()
@@ -28,7 +28,7 @@ function level(highscore, frame):
     function renderpointytriangle(pos, dir):
         gl_translate(pos):
             gl_rotate_z(dir):
-                gl_polygon([ [ -0.5, 0.5 ], vec_x, [ -0.5, -0.5 ] ])
+                gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
 
     function bullet(pos, dir, frame):
         bulletspeed :== 15
@@ -65,7 +65,7 @@ function level(highscore, frame):
             for(bs.bullets@bulletset) b:
                 if(magnitude(b.pos@bullet - pos) < 1):
                     hp--
-                    b.pos@bullet = vec_x * worldsize * 10
+                    b.pos@bullet = xy_x * worldsize * 10
                     if(hp <= 0):
                         score++
                         return

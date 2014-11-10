@@ -92,7 +92,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_color(color_black)
     gl_color(color_lightest_grey):
         gl_rect([ 400, gl_windowsize().y ])
-    gl_translate(vec_0):
+    gl_translate(xy_0):
         render_tree(root)
     gl_translate([ 400, 0 ]):
         render_sizes()

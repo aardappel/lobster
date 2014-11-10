@@ -49,15 +49,15 @@ bigrad := 1000.0
 lrad := 100.0
 
 spheres := [ //Scene: radius, position, emission, color, material
-    [lrad,   [50.0,lrad+81.6-1,81.6  ]:xyz, vec_1*12, vec_0,             DIFF]:Sphere, //Lite
-    [16.5,   [73.0,16.5,78.0         ]:xyz, vec_0,    vec_1*.999,        REFR]:Sphere, //Glas
-    [16.5,   [27.0,16.5,47.0         ]:xyz, vec_0,    vec_1*.999,        SPEC]:Sphere, //Mirr
-    [bigrad, [50.0,-bigrad+81.6,81.6 ]:xyz, vec_0,    vec_1*.75,         DIFF]:Sphere, //Top
-    [bigrad, [50.0, bigrad, 81.6     ]:xyz, vec_0,    vec_1*.75,         DIFF]:Sphere, //Botm
-    [bigrad, [50.0,40.8,-bigrad+170  ]:xyz, vec_0,    vec_0,             DIFF]:Sphere, //Frnt
-    [bigrad, [50.0,40.8, bigrad      ]:xyz, vec_0,    vec_1*.75,         DIFF]:Sphere, //Back
-    [bigrad, [-bigrad+99,40.8,81.6   ]:xyz, vec_0,    [.25,.25,.75]:xyz, DIFF]:Sphere, //Rght
-    [bigrad, [ bigrad+1, 40.8,81.6   ]:xyz, vec_0,    [.75,.25,.25]:xyz, DIFF]:Sphere  //Left
+    [lrad,   [50.0,lrad+81.6-1,81.6  ]:xyz, xyz_1*12, xyz_0,             DIFF]:Sphere, //Lite
+    [16.5,   [73.0,16.5,78.0         ]:xyz, xyz_0,    xyz_1*.999,        REFR]:Sphere, //Glas
+    [16.5,   [27.0,16.5,47.0         ]:xyz, xyz_0,    xyz_1*.999,        SPEC]:Sphere, //Mirr
+    [bigrad, [50.0,-bigrad+81.6,81.6 ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Top
+    [bigrad, [50.0, bigrad, 81.6     ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Botm
+    [bigrad, [50.0,40.8,-bigrad+170  ]:xyz, xyz_0,    xyz_0,             DIFF]:Sphere, //Frnt
+    [bigrad, [50.0,40.8, bigrad      ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Back
+    [bigrad, [-bigrad+99,40.8,81.6   ]:xyz, xyz_0,    [.25,.25,.75]:xyz, DIFF]:Sphere, //Rght
+    [bigrad, [ bigrad+1, 40.8,81.6   ]:xyz, xyz_0,    [.75,.25,.25]:xyz, DIFF]:Sphere  //Left
 ]
 
 function radiance(r:Ray, depth):
@@ -70,7 +70,7 @@ function radiance(r:Ray, depth):
                 t = d
                 id = i
         return id >= 0
-    if(!intersectray(r)): return vec_0 // if miss, return black
+    if(!intersectray(r)): return xyz_0 // if miss, return black
     obj := spheres[id]        // the hit object
     x := r.o+r.d*t
     n := normalize(x-obj.p)
@@ -83,7 +83,7 @@ function radiance(r:Ray, depth):
         r2 := rndfloat()
         r2s := sqrt(r2)
         w := nl
-        u := normalize((if(abs(w.x)>.1): vec_y else: vec_x).cross(w))
+        u := normalize((if(abs(w.x)>.1): xyz_y else: xyz_x).cross(w))
         v := w.cross(u)
         d := normalize(u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2))
         return obj.e + f * radiance([ x, d ]:Ray,depth)
@@ -122,12 +122,12 @@ w := 128
 h := 96
 
 cam := [ [50,50,290 ]:xyz, normalize([0,-0.042612,-1]:xyz) ]:Ray // cam pos, dir
-cx := vec_x * (w*.5135/h)
+cx := xyz_x * (w*.5135/h)
 cy := normalize(cx.cross(cam.d))*.5135
 
 set_max_stack_size(128)
 
-c := map(w): map(h): vec_0
+c := map(w): map(h): xyz_0
 
 samples := 0
 
@@ -162,7 +162,7 @@ while(gl_frame()):
     gl_scale(gl_windowsize())
     gl_blend(0)
     gl_setshader("textured")
-    gl_rect(vec_1)
+    gl_rect(xy_1)
     gl_deletetexture(tex)
 
 

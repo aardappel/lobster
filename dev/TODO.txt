@@ -253,6 +253,8 @@ refactor:
     * ideally, need to additionally have a way to do while/if/for without function values, while is terrible atm
   - think of ways to simplify function calling
     could keep a simple function reference count, so we can only do the expensive backupping for recursive functions
+    NOTE: recursive calls are not the only situation that requires backups. A simple map(): map(): .. does not look
+    recursive, but has the same implications.
 
 - for typing, rather than going with my full specialization typing idea, can instead have a special type that marks any parameter
   as requiring the function to be specialized for each type that parameter is used with, allowing targeted optimisation.

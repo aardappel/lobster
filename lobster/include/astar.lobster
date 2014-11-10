@@ -73,7 +73,7 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     astar_graph(startnode, endnode, costf, distancef) n, f:
         for(directions) delta:
             np := n.state + delta
-            if(np.inrange2d(gridsize, vec_0)):
+            if(np.inrange2d(gridsize, xy_0)):
                 f(getnode(np))
 
 // specialized to do GOAP (nodes created on the fly)

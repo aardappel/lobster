@@ -1,7 +1,7 @@
 include "vec.lobster"
 include "color.lobster"
 
-dirs := [ vec_xi, vec_yi ]
+dirs := [ xy_xi, xy_yi ]
 colorconstant := 1
 
 function square(pos, size, depth):
@@ -33,7 +33,7 @@ function square(pos, size, depth):
             range := max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
             col[colorconstant] = rndfloat() * range + (1 - range)
             gl_color(col)
-            gl_rect(size - vec_1i * 2)
+            gl_rect(size - xy_1i * 2)
 
 seed := 342342432
 
@@ -46,6 +46,6 @@ while(gl_frame()):
     gl_clear(color_black)
     rndseed(seed)
     //seed++
-    square(vec_0i, gl_windowsize(), 0)
+    square(xy_0i, gl_windowsize(), 0)
     //for(4) x: for(3) y:
     //    square([ x, y ]:xy * 530 + [ 10, 2 ]:xy, [ 512, 512 ]:xy, 0)

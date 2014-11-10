@@ -8,27 +8,45 @@ value xy:   [ x, y ]
 value xyz:  xy [ z ]
 value xyzw: xyz [ w ]
 
-vec_0 :== [ 0.0, 0.0, 0.0, 0.0 ]:xyzw
-vec_1 :== [ 1.0, 1.0, 1.0, 1.0 ]:xyzw
+xy_0 :== [ 0.0, 0.0 ]:xy
+xy_1 :== [ 1.0, 1.0 ]:xy
+xy_h :== [ 0.5, 0.5 ]:xy
+xy_x :== [ 1.0, 0.0 ]:xy
+xy_y :== [ 0.0, 1.0 ]:xy
 
-vec_h :== [ 0.5, 0.5 ]:xy
+xyz_0 :== [ 0.0, 0.0, 0.0 ]:xyz
+xyz_1 :== [ 1.0, 1.0, 1.0 ]:xyz
+xyz_x :== [ 1.0, 0.0, 0.0 ]:xyz
+xyz_y :== [ 0.0, 1.0, 0.0 ]:xyz
+xyz_z :== [ 0.0, 0.0, 1.0 ]:xyz
 
-vec_x :== [ 1.0, 0.0, 0.0, 0.0 ]:xyzw
-vec_y :== [ 0.0, 1.0, 0.0, 0.0 ]:xyzw
-vec_z :== [ 0.0, 0.0, 1.0, 0.0 ]:xyzw
-vec_w :== [ 0.0, 0.0, 0.0, 1.0 ]:xyzw
-
-vec_xy :== [ 1.0, 1.0, 0.0, 0.0 ]:xyzw
+xyzw_0 :== [ 0.0, 0.0, 0.0, 0.0 ]:xyzw
+xyzw_1 :== [ 1.0, 1.0, 1.0, 1.0 ]:xyzw
+xyzw_x :== [ 1.0, 0.0, 0.0, 0.0 ]:xyzw
+xyzw_y :== [ 0.0, 1.0, 0.0, 0.0 ]:xyzw
+xyzw_z :== [ 0.0, 0.0, 1.0, 0.0 ]:xyzw
+xyzw_w :== [ 0.0, 0.0, 0.0, 1.0 ]:xyzw
 
 // int versions
 
-vec_xi :== [ 1, 0, 0, 0 ]:xyzw
-vec_yi :== [ 0, 1, 0, 0 ]:xyzw
-vec_zi :== [ 0, 0, 1, 0 ]:xyzw
-vec_wi :== [ 0, 0, 0, 1 ]:xyzw
+xy_0i :== [ 0, 0 ]:xy
+xy_1i :== [ 1, 1 ]:xy
+xy_xi :== [ 1, 0 ]:xy
+xy_yi :== [ 0, 1 ]:xy
 
-vec_0i :== [ 0, 0, 0, 0 ]:xyzw
-vec_1i :== [ 1, 1, 1, 1 ]:xyzw
+xyz_0i :== [ 0, 0, 0 ]:xyz
+xyz_1i :== [ 1, 1, 1 ]:xyz
+xyz_xi :== [ 1, 0, 0 ]:xyz
+xyz_yi :== [ 0, 1, 0 ]:xyz
+xyz_zi :== [ 0, 0, 1 ]:xyz
+
+xyzw_0i :== [ 0, 0, 0, 0 ]:xyzw
+xyzw_1i :== [ 1, 1, 1, 1 ]:xyzw
+xyzw_xi :== [ 1, 0, 0, 0 ]:xyzw
+xyzw_yi :== [ 0, 1, 0, 0 ]:xyzw
+xyzw_zi :== [ 0, 0, 1, 0 ]:xyzw
+xyzw_wi :== [ 0, 0, 0, 1 ]:xyzw
+
 
 function allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
 
@@ -37,7 +55,7 @@ function mapxy(v, fun): map(v.y) y: map(v.x) x: fun([ x, y ]:xy)
 
 function vecfromyawpitch(yaw, pitch, move, strafe):
     (sincos(yaw - 90/* start from Y rather than X axis */) *
-        cos(pitch) - vec_z * sin(pitch)) * move + sincos(yaw) * strafe
+        cos(pitch) - xyzw_z * sin(pitch)) * move + sincos(yaw) * strafe
 
 function inrange2d(test, num, bias): test.x.inrange(num.x, bias.x) &
                                      test.y.inrange(num.y, bias.y)

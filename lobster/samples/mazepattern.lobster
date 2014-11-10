@@ -26,6 +26,6 @@ while(gl_frame()):
         gl_translate(v):
             if(rnd(3)):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
                 if(rnd(2)):
-                    endcap_line(vec_0, vec_xy, 0.25)
+                    endcap_line(xy_0, xy_1, 0.25)
                 else:
-                    endcap_line(vec_x, vec_y, 0.25)
+                    endcap_line(xy_x, xy_y, 0.25)

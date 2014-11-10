@@ -8,8 +8,8 @@ include "vec.lobster"
 // size: of the scrollable area (in its own units)
 // viewsize: in pixels
 
-private panoffset := vec_0
-private touchvelocity := vec_0
+private panoffset := xy_0
+private touchvelocity := xy_0
 
 function ui_inertiascroll(buttonname, scale, mino, maxo, viewsize):
     if(gl_isdown(buttonname)):
@@ -26,7 +26,7 @@ function ui_inertiascroll(buttonname, scale, mino, maxo, viewsize):
                 speed -= reduction
                 touchvelocity = touchvelocity.normalize() * speed
             else:
-                touchvelocity = vec_0
+                touchvelocity = xy_0
     maxo -= viewsize / scale
     if(maxo.x < mino.x):
         mino = mino.replace(0, (mino.x + maxo.x) / 2)   // FIXME!!!
@@ -41,7 +41,7 @@ function ui_inertiascroll(buttonname, scale, mino, maxo, viewsize):
 
 function ui_inertiascroll_reset(startoffset):
     panoffset = startoffset
-    touchvelocity = vec_0
+    touchvelocity = xy_0
 
 
 // Mouse wheel or pinch zoom: call each frame to receive a current zoom factor depending on the mousewheel of pinch
@@ -50,7 +50,7 @@ function ui_inertiascroll_reset(startoffset):
 // by ui_inertiascroll()
 // rate: determines how rapid you want to zoom, try 1.2
 // mins/default/maxs: the range of exponents, try e.g. (10, 15, 20) and tweak from there
-// origin is the translation that has been set so far, if gl_translate hasn't been called yet, pass in vec_0
+// origin is the translation that has been set so far, if gl_translate hasn't been called yet, pass in xy_0
 
 private viewsteps := nil
 private pinchfactor := 1.0
