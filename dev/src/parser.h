@@ -17,7 +17,6 @@ struct Parser
     Lex lex;
     Node *root;
     SymbolTable &st;
-    vector<Node *> autoparstack;
     vector<Ident *> maybeundefined;
     vector<int> functionstack;
     vector<string> trailingkeywordedfunctionvaluestack;
@@ -56,8 +55,6 @@ struct Parser
         st.ScopeCleanup();
 
         Expect(T_ENDOFFILE);
-
-        if (!autoparstack.empty()) Error("implicit _ argument(s) used at top level");
 
         assert(forwardfunctioncalls.empty());
     }
@@ -158,8 +155,8 @@ struct Parser
 
     Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar)
     {
-        auto id = isdef ? st.LookupLexDefOrDynScope(idname, lex.errorline, lex, false) 
-                        : st.LookupLexUse(idname, lex);
+        auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true) 
+                        : st.LookupUse(idname, lex);
 
         if (islogvar)
         {
@@ -307,7 +304,9 @@ struct Parser
                     {
                         lex.Next();
                         auto e = ParseExp();
-                        auto id = st.LookupLexDefOrDynScope(idname, lex.errorline, lex, dynscope);
+                        auto id = dynscope
+                                    ? st.LookupDynScopeRedef(idname, lex)
+                                    : st.LookupDef(idname, lex.errorline, lex, false, true);
                         if (dynscope)  id->Assign(lex);
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
@@ -371,8 +370,8 @@ struct Parser
                 string a = lex.sattr;
                 Expect(T_IDENT);
                 nargs++;
-                auto id = st.LookupLexDefOrDynScope(a, lex.errorline, lex, false);
-                Type type;
+                auto id = st.LookupDef(a, lex.errorline, lex, false, false);
+                Type &type = sf->args.v.back().type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
                 {
@@ -380,7 +379,6 @@ struct Parser
                     ParseType(type, withtype);
                     if (withtype) st.AddWithStruct(type, id, lex);
                 }
-                sf->args.v.push_back(Arg(id, type));
 
                 if (!IsNext(T_COMMA)) break;
             }
@@ -388,7 +386,7 @@ struct Parser
         if (parens) Expect(T_RIGHTPAREN);
         if (!expfunval) Expect(T_COLON);
 
-        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", nargs);
+        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
 
         sf->SetParent(f, f.subf);
 
@@ -409,8 +407,6 @@ struct Parser
             f.anonymous = true;
         }
 
-        size_t autoparlevel = autoparstack.size();
-
         if (expfunval)
         {
             sf->body = new Node(lex, T_LIST, ParseExp());
@@ -427,23 +423,15 @@ struct Parser
 
         st.defsubfunctionstack.pop_back();
 
-        if (autoparlevel < autoparstack.size())
+        for (auto &arg : sf->args.v)
         {
-            if (name) Error("cannot use anonymous argument: " + autoparstack[autoparlevel]->ident()->name + 
-                         ", in named function: " + f.name, autoparstack[autoparlevel]);
-            if (nargs) Error("cannot mix anonymous argument: " + autoparstack[autoparlevel]->ident()->name +
-                         ", with declared arguments in function", autoparstack[autoparlevel]);
-
-            for (size_t i = autoparlevel; i < autoparstack.size(); i++) 
+            if (arg.id->anonymous_arg)
             {
-                for (size_t j = autoparlevel; j < i; j++)
-                    if (autoparstack[i]->ident() == autoparstack[j]->ident())
-                        goto twice;
-                sf->args.v.push_back(Arg(autoparstack[i]->ident()));
-                f.nargs++;
-                twice:;
+                if (name) Error("cannot use anonymous argument: " + arg.id->name +
+                    " in named function: " + f.name, sf->body);
+                if (nargs) Error("cannot mix anonymous argument: " + arg.id->name +
+                    " with declared arguments in function", sf->body);
             }
-            while (autoparstack.size() > autoparlevel) autoparstack.pop_back();
         }
 
         st.ScopeCleanup();
@@ -829,7 +817,7 @@ struct Parser
         {
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
-                if (fi->nargs > bestf->nargs) bestf = fi;
+                if (fi->nargs() > bestf->nargs()) bestf = fi;
 
             auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &bestf->subf->args);
             auto nargs = CountList(args);
@@ -840,7 +828,7 @@ struct Parser
         }
 
         auto args = ParseFunArgs(coroutine, firstarg);
-        auto id = st.LookupLexMaybe(idname);
+        auto id = st.LookupMaybe(idname);
         if (id)
             return new Node(lex, T_DYNCALL, new Node(lex, id),
                                             new Node(lex, T_DYNINFO,
@@ -856,7 +844,7 @@ struct Parser
     Function *FindFunctionWithNargs(Function *f, int nargs, const string &idname, Node *errnode)
     {
         for (; f; f = f->sibf) 
-            if (f->nargs == nargs) 
+            if (f->nargs() == nargs) 
                 return f;
 
         Error("no version of function " + idname + " takes " + inttoa(nargs) + " arguments", errnode);
@@ -1065,8 +1053,7 @@ struct Parser
                     default:
                         if (idname[0] == '_')
                         {
-                            auto dest = new Node(lex, st.LookupLexDefOrDynScope(idname, lex.errorline, lex, true));
-                            autoparstack.push_back(dest);
+                            auto dest = new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
                             return dest;
                         }
                         else
@@ -1078,7 +1065,7 @@ struct Parser
                                 return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
                             }
 
-                            return new Node(lex, st.LookupLexUse(idname, lex));
+                            return new Node(lex, st.LookupUse(idname, lex));
                         }
                     }
             }

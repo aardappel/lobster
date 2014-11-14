@@ -5,17 +5,37 @@
     * multimethods?
     * superclass types?
 
-  * specialize on free variables as well
+  * check: a dynscope redef must have same type as its parent
+  * improve GenScope now that we have pre-parsed sf.dynscoperedefs
+
   * typecheck function values from dyncall/natcall
 
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
 
-  * have a way to allocate empty typed vectors, and larger vectors for map()
+  * multiple return values!
+
+  * builtins needing work:
+    * min/max
 
   * for function call nodes, as spec as to which subf they call, or none in specific
   * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
     * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
   * remove the @ kludge once we can strongly type coroutines?
+
+  * compile time optimize if-thens, should reduce total cloning quite a bit, example
+    astar_2dgrid isocta
+    issue: how can you do this with arguments that may be constant for the first call, but you
+    don't know how many calls there will be yet?
+
+  * problem cases we side-stepped for now:
+    - from the previous astar_2dgrid:
+        distancef := function(v): ...
+        if(isocta):
+            distancef = function(v): ...
+        the assignment won't work. Now you could make it an if-then returning the function value,
+        which will get you a dynamic call, and no specialization.
+        frankly, its worth rewriting this such that it can be specialized, especially since thats
+        free if isocta is contant
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

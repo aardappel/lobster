@@ -169,7 +169,7 @@ struct Node : SlabAllocated<Node>
 
     int ClosureArgs()
     {
-        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : closure_def()->sf()->parent->nargs);
+        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : closure_def()->sf()->parent->nargs());
     }
 
     // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls,

@@ -31,7 +31,7 @@ struct TypeChecker
             if (i++) s += ", ";
             s += TypedArg(arg);
         }
-        return s + ")";
+        return s + ")"; 
     }
 
     string Signature(const Struct *struc)   { return struc->name      + Signature(struc->fields); }
@@ -152,8 +152,18 @@ struct TypeChecker
         if (ConvertsTo(type, sub, false)) { a->exptype = Promote(type); return; }
         switch (sub.t)
         {
-            case V_FLOAT: if (type.t == V_INT) { a = new Node(lex, T_I2F, a); a->exptype = Type(V_FLOAT); return; } break;
-            case V_STRING: a = new Node(lex, T_A2S, a); a->exptype = Type(V_STRING); return;
+            case V_FLOAT:
+                if (Promote(type).t == V_INT)
+                {
+                    a = new Node(lex, T_I2F, a);
+                    a->exptype = Type(V_FLOAT);
+                    return;
+                }
+                break;
+            case V_STRING:
+                a = new Node(lex, T_A2S, a);
+                a->exptype = Type(V_STRING);
+                return;
         }
         TypeError(TypeName(sub).c_str(), type, *a, context);
     }
@@ -182,21 +192,33 @@ struct TypeChecker
 
             sf.typechecked = true;
 
-            auto backup = sf.args;
+            auto backup_args = sf.args;
+            auto backup_locals = sf.locals;
             int i = 0;
             for (auto &arg : sf.args.v)
             {
+                // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
+                backup_args.v[i].type = arg.id->type;
+
                 // FIXME: these idents are shared between clones. That will work for now, 
                 // but will become an issue when we want to store values non-uniformly.
-                backup.v[i].type = arg.id->type;  // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
                 arg.id->type = arg.type;
+                i++;
+            }
+            // Same for locals
+            i = 0;
+            for (auto &local : sf.locals.v)
+            {
+                backup_locals.v[i].type = local.id->type;
+                local.id->type = local.type;
                 i++;
             }
 
             sf.returntype = NewTypeVar();
             sf.body->exptype = TypeCheck(*sf.body);
 
-            for (auto &back : backup.v) back.id->type = back.type;
+            for (auto &back : backup_args.v) back.id->type = back.type;
+            for (auto &back : backup_locals.v) back.id->type = back.type;
 
             Node *last = nullptr;
             for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
@@ -207,22 +229,27 @@ struct TypeChecker
         }
     }
 
-    void MathCheck(const Type &type, const Node &n)
+    void MathCheck(const Type &type, const Node &n, int op)
     {
-        if (n.type == T_MOD || n.type == T_MODEQ)
+        if (op == T_MOD)
         {
             if (type.t != V_INT)
                 TypeError("int", type, n);
         }
-        else if (n.type == T_PLUS || n.type == T_PLUSEQ)
-        {
-            if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_STRING)
-                TypeError("numeric/string/vector/struct", type, n);
-        }
         else
         {
-            if (!type.Numeric())
-                TypeError("numeric", type, n);
+            if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT)
+            {
+                if (op == T_PLUS)
+                {
+                    if (type.t != V_STRING)
+                        TypeError("numeric/string/vector/struct", type, n);
+                }
+                else
+                {
+                    TypeError("numeric/vector/struct", type, n);
+                }
+            }
         }
     }
 
@@ -332,8 +359,7 @@ struct TypeChecker
                     DebugLog(1, "cloning: %s", sf->parent->name.c_str());
                     sf = new SubFunction();
                     sf->SetParent(f, f.subf);
-                    for (int i = 0; i < f.nargs; i++) sf->args.v.push_back(f.subf->next->args.v[i]);
-                    sf->freevars = f.subf->next->freevars;
+                    sf->CloneIds(*f.subf->next);
                     sf->body = f.subf->next->body->Clone();
                 }
                 int i = 0;
@@ -379,7 +405,7 @@ struct TypeChecker
             for (Node **list = args_ptr; *list; list = &(*list)->tail())
             {
                 i++;
-                if (i > f.nargs)
+                if (i > f.nargs())
                 {
                     // We just throw away excess args here.
                     delete *list;
@@ -387,7 +413,7 @@ struct TypeChecker
                     break;
                 }
             }
-            if (i < f.nargs)
+            if (i < f.nargs())
                 TypeError("function value called with too few arguments", *fval);
             return TypeCheckCall(f, *args_ptr, fdef ? fdef : fval->closure_def());
         }
@@ -413,6 +439,12 @@ struct TypeChecker
 
             case T_CLOSUREDEF:
                 return Type(V_FUNCTION, n.closure_def()->sf()->parent->idx);
+
+            case T_LIST:
+                // Flatten the TypeCheck recursion a bit
+                for (Node *stats = &n; stats; stats = stats->b())
+                    stats->a()->exptype = TypeCheck(*stats->a());
+                return Type();
         }
 
         if (n.HasChildren())
@@ -428,14 +460,14 @@ struct TypeChecker
             case T_STR:   return Type(V_STRING);
             case T_NIL:   return NewTypeVar().Wrap(V_NILABLE);
 
-            case T_DIV:
-            case T_MULT:
-            case T_MINUS:
             case T_PLUS:
+            case T_MINUS:
+            case T_MULT:
+            case T_DIV:
             case T_MOD:
             {
                 auto type = Union(n.left(), n.right(), true);
-                MathCheck(type, n);
+                MathCheck(type, n, n.type);
                 SubType(type, n);
                 return type;
             }
@@ -447,7 +479,7 @@ struct TypeChecker
             case T_MODEQ:
             {
                 auto type = Promote(n.left()->exptype);
-                MathCheck(type, n);
+                MathCheck(type, n, n.type - T_PLUSEQ + T_PLUS);
                 SubType(n.right(), type, n);
                 return type;
             }
@@ -518,22 +550,28 @@ struct TypeChecker
                 auto nf = n.ncall_id()->nf();
                 int i = 0;
                 vector<Type> argtypes;
+                if (nf->name == "max")
+                {
+                    printf("");
+                }
                 for (Node *list = n.ncall_args(); list; list = list->tail())
                 {
-                    auto argtype = nf->args.v[i].type;
-                    switch (nf->args.v[i].flags)
+                    auto &arg = nf->args.v[i];
+                    auto argtype = arg.type;
+                    switch (arg.flags)
                     {
                         case NF_SUBARG1:
                             assert(argtypes[0].t == V_VECTOR);
-                            SubType(list->head(), nf->args.v[i].type.t == V_VECTOR
+                            SubType(list->head(), argtype.t == V_VECTOR
                                                       ? argtypes[0] 
                                                       : argtypes[0].Element(),
                                                   nf->name.c_str());
                             break;
 
                         case NF_ANYVAR:
-                            assert(nf->args.v[i].type.t == V_VECTOR);
-                            argtype = NewTypeVar().Wrap();
+                            if (argtype.t == V_VECTOR) argtype = NewTypeVar().Wrap();
+                            else if (argtype.t == V_ANY) argtype = NewTypeVar();
+                            else assert(0);
                             break;
                     }
                     SubType(list->head(), argtype, nf->name.c_str());

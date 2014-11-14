@@ -162,17 +162,17 @@ struct CodeGen
                 GenScope(*sf);
             }
 
-            sfcomparator.nargs = f->nargs;
+            sfcomparator.nargs = f->nargs();
             sfcomparator.cg = this;
             sfcomparator.f = f;
             sort(sfs.begin(), sfs.end(), sfcomparator);
 
             f->bytecodestart = (int)code.size();
-            Emit(IL_FUNMULTI, sfs.size(), f->nargs);
+            Emit(IL_FUNMULTI, sfs.size(), f->nargs());
 
             for (auto sf : sfs)
             {
-                for (int j = 0; j < f->nargs; j++)
+                for (int j = 0; j < f->nargs(); j++)
                 {
                     auto arg = sf->args.v[j];
                     Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
@@ -187,6 +187,7 @@ struct CodeGen
     {
         vector<Ident *> defs;
         vector<Ident *> logvars;
+        // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order stays the same
         for (auto topl = sf.body; topl; topl = topl->tail())
         {
             size_t logmultiassignstart = logvars.size();
@@ -209,6 +210,7 @@ struct CodeGen
         Emit(IL_FUNSTART);
         Emit((int)sf.args.v.size()); 
         for (auto arg : sf.args.v) Emit(arg.id->idx);
+        // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus optimize function calls
         Emit((int)(defs.size() + logvars.size()));
         for (auto id : defs) Emit(id->idx);
         for (auto id : logvars) Emit(id->idx);
@@ -391,8 +393,8 @@ struct CodeGen
                 {
                     auto &f = *sf.parent;
                     genargs(args, &sf.args, f.multimethod ? 0 : sf.args.v.size());
-                    if (f.nargs != nargs)
-                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs)) +
+                    if (f.nargs() != nargs)
+                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs())) +
                                      " arguments, " + string(inttoa(nargs)) + " given", errnode);
                     f.ncalls++;
                     auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;

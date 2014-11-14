@@ -154,6 +154,14 @@ struct ArgVector
         }
    }
 
+    void Add(Ident *id)
+    {
+        for (auto &arg : v)
+            if (arg.id == id)
+                return;
+        v.push_back(Arg(id));
+    }
+
 };
 
 struct BuiltinPtr

@@ -609,9 +609,9 @@ void AddBuiltins()
         } \
         return g_vm->BuiltinError("illegal arguments to min/max");
 
-    STARTDECL(min) (Value &x, Value &y) { MINMAX(<,min) } ENDDECL2(min, "x,y", "AA", "A",
+    STARTDECL(min) (Value &x, Value &y) { MINMAX(<,min) } ENDDECL2(min, "x,y", "A*A1", "A1",
         "smallest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
-    STARTDECL(max) (Value &x, Value &y) { MINMAX(>,max) } ENDDECL2(max, "x,y", "AA", "A",
+    STARTDECL(max) (Value &x, Value &y) { MINMAX(>,max) } ENDDECL2(max, "x,y", "A*A1", "A1",
         "largest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
 
     #undef MINMAX

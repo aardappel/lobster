@@ -47,6 +47,7 @@ struct Ident : Name
     bool single_assignment;
     bool constant;
     bool static_constant;
+    bool anonymous_arg;
 
     int logvaridx;
 
@@ -55,7 +56,7 @@ struct Ident : Name
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Name(_name, _idx), line(_l), 
           scope(_sc), prev(nullptr), sf_named(nullptr), sf_def(nullptr),
-          single_assignment(true), constant(false), static_constant(false), logvaridx(-1) {}
+          single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Serialize(Serializer &ser)
@@ -146,7 +147,9 @@ struct Function;
 struct SubFunction
 {
     ArgVector args;
-    ArgVector freevars;
+    ArgVector locals;
+    ArgVector dynscoperedefs;  // any lhs of <-
+    ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
 
     Node *body;
 
@@ -159,14 +162,23 @@ struct SubFunction
     Type returntype;
 
     SubFunction() 
-        : parent(nullptr), args(0, nullptr), freevars(0, nullptr), body(nullptr), next(nullptr), subbytecodestart(0),
-        typechecked(false), returntype(V_UNDEFINED) {}
+        : parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
+          body(nullptr), next(nullptr), subbytecodestart(0),
+          typechecked(false), returntype(V_UNDEFINED) {}
 
     void SetParent(Function &f, SubFunction *&link)
     {
         parent = &f;
         next = link;
         link = this;
+    }
+
+    void CloneIds(SubFunction &o)
+    {
+        args = o.args;
+        locals = o.locals;
+        dynscoperedefs = o.dynscoperedefs;
+        freevars = o.freevars;
     }
 
     ~SubFunction()
@@ -177,7 +189,6 @@ struct SubFunction
 
 struct Function : Name
 {
-    int nargs;
     int bytecodestart;
 
     SubFunction *subf; // functions with the same name and args, but different types (dynamic dispatch | specialization) 
@@ -193,16 +204,17 @@ struct Function : Name
 
     int ncalls;        // used by codegen to cull unused functions
 
-    Function(const string &_name, int _idx, int _nargs, int _sl)
-     : Name(_name, _idx), nargs(_nargs), bytecodestart(0),  subf(nullptr), sibf(nullptr),
+    Function(const string &_name, int _idx, int _sl)
+     : Name(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), scopelevel(_sl), retvals(0), ncalls(0) {}
-    Function() : Function("", 0, -1, -1) {}
+    Function() : Function("", 0, -1) {}
     ~Function() { if (subf) delete subf; }
+
+    int nargs() { return (int)subf->args.v.size(); }
 
     void Serialize(Serializer &ser)
     {
         Name::Serialize(ser);
-        ser(nargs);
         ser(bytecodestart);
         ser(retvals);
     }
@@ -245,20 +257,28 @@ struct SymbolTable
         for (auto f  : fieldtable)    delete f;
     }
     
-    Ident *LookupLexDefOrDynScope(const string &name, int line, Lex &lex, bool dynscope)
+    Ident *LookupDef(const string &name, int line, Lex &lex, bool anonymous_arg, bool islocal)
     {
+        auto sf = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
+
         auto it = idents.find(name);
-        if (dynscope && it != idents.end()) return it->second;
+        if (anonymous_arg && it != idents.end() && it->second->sf_def == sf) return it->second;
 
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
 
         ident = new Ident(name, line, identtable.size(), scopelevels.back());
-        ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
-        ident->sf_def = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
+        ident->anonymous_arg = anonymous_arg;
 
-        if (it == idents.end() || dynscope) idents[name] = ident;
+        ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
+        ident->sf_def = sf;
+        if (sf) (islocal ? sf->locals : sf->args).v.push_back(ident);
+
+        if (it == idents.end())
+        {
+            idents[name] = ident;
+        }
         else
         {
             if (scopelevels.back() == it->second->scope) lex.Error("identifier redefinition: " + ident->name);
@@ -270,7 +290,15 @@ struct SymbolTable
         return ident;
     }
 
-    Ident *LookupLexMaybe(const string &name)
+    Ident *LookupDynScopeRedef(const string &name, Lex &lex)
+    {
+        auto it = idents.find(name);
+        if (it == idents.end()) lex.Error("lhs of <- must refer to existing variable: " + name);
+        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second);
+        return it->second;
+    }
+        
+    Ident *LookupMaybe(const string &name)
     {
         auto it = idents.find(name);
         if (it == idents.end()) return nullptr;
@@ -282,20 +310,15 @@ struct SymbolTable
             {
                 auto sf = defsubfunctionstack[i];
                 if (it->second->sf_def == sf) break;  // Found the definition.
-                for (auto &fv : sf->freevars.v)
-                    if (fv.id == it->second)
-                        goto twice;
-                sf->freevars.v.push_back(Arg(it->second));
-                twice:;
+                sf->freevars.Add(it->second);
             }
         }
-
         return it->second;  
     }
 
-    Ident *LookupLexUse(const string &name, Lex &lex)
+    Ident *LookupUse(const string &name, Lex &lex)
     {
-        auto id = LookupLexMaybe(name);
+        auto id = LookupMaybe(name);
         if (!id)
             lex.Error("unknown identifier: " + name);
         return id;  
@@ -319,7 +342,7 @@ struct SymbolTable
     {
         for (auto &wp : withstack) if (wp.first.idx == t.idx) lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash with the struct,
-        // or do so in LookupLexUse
+        // or do so in LookupUse
         assert(t.idx >= 0);
         withstack.push_back(make_pair(t, id));
     }
@@ -443,9 +466,9 @@ struct SymbolTable
         return it != fields.end() ? it->second : nullptr;
     }
 
-    Function &CreateFunction(const string &name, int nargs)
+    Function &CreateFunction(const string &name)
     {
-        auto f = new Function(name, functiontable.size(), nargs, scopelevels.size());
+        auto f = new Function(name, functiontable.size(), scopelevels.size());
         if (f->name.empty()) f->name = string("function") + inttoa(functiontable.size());
         functiontable.push_back(f);
         return *f;
@@ -461,11 +484,11 @@ struct SymbolTable
                 lex.Error("cannot define a variation of function " + name + " at a different scope level");
 
             for (auto f = fit->second; f; f = f->sibf)
-                if (f->nargs == nargs)
+                if (f->nargs() == nargs)
                     return *f;
         }
 
-        auto &f = CreateFunction(name, nargs);
+        auto &f = CreateFunction(name);
 
         if (fit != functions.end())
         {

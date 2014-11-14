@@ -63,18 +63,20 @@ function astar_space(startnode, endnode, costf, neighbors):
 
 function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     directions := [ [ -1, 0 ]:xy, [ 1, 0 ]:xy, [ 0, -1 ]:xy, [ 0, 1 ]:xy ]
-    distancef := function(v): abs(v.x) + abs(v.y)
+    function astar_distance(distancef):
+        astar_graph(startnode, endnode, costf, distancef) n, f:
+            for(directions) delta:
+                np := n.state + delta
+                if(np.inrange2d(gridsize, xy_0)):
+                    f(getnode(np))
     if(isocta):
         directions = directions.append([ [ -1, -1 ]:xy, [ 1, 1 ]:xy, [ 1, -1 ]:xy, [ -1, 1 ]:xy ])
-        distancef = function(v):
+        astar_distance() v:
             big := max(v.x, v.y)
             small := min(v.x, v.y)
             sqrt(2) * small + big - small
-    astar_graph(startnode, endnode, costf, distancef) n, f:
-        for(directions) delta:
-            np := n.state + delta
-            if(np.inrange2d(gridsize, xy_0)):
-                f(getnode(np))
+    else:
+        astar_distance() v: abs(v.x) + abs(v.y)
 
 // specialized to do GOAP (nodes created on the fly)
 
