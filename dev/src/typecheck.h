@@ -496,7 +496,7 @@ struct TypeChecker
                 {
                     if (n.type == T_EQ || n.type == T_NEQ)
                     {
-                        if (type.t != V_VECTOR && type.t != V_STRUCT)
+                        if (type.t != V_VECTOR && type.t != V_STRUCT && type.t != V_NILABLE)
                             TypeError("numeric/string/vector/struct", type, n);
                     }
                     else
@@ -550,10 +550,6 @@ struct TypeChecker
                 auto nf = n.ncall_id()->nf();
                 int i = 0;
                 vector<Type> argtypes;
-                if (nf->name == "max")
-                {
-                    printf("");
-                }
                 for (Node *list = n.ncall_args(); list; list = list->tail())
                 {
                     auto &arg = nf->args.v[i];
@@ -561,11 +557,17 @@ struct TypeChecker
                     switch (arg.flags)
                     {
                         case NF_SUBARG1:
-                            assert(argtypes[0].t == V_VECTOR);
-                            SubType(list->head(), argtype.t == V_VECTOR
-                                                      ? argtypes[0] 
-                                                      : argtypes[0].Element(),
-                                                  nf->name.c_str());
+                            if (argtypes[0].t == V_VECTOR)
+                            {
+                                SubType(list->head(), argtype.t == V_VECTOR
+                                    ? argtypes[0]
+                                    : argtypes[0].Element(),
+                                    nf->name.c_str());
+                            }
+                            else
+                            {
+                                SubType(list->head(), argtypes[0], nf->name.c_str());
+                            }
                             break;
 
                         case NF_ANYVAR:
@@ -582,8 +584,8 @@ struct TypeChecker
                 // FIXME: multiple retvals
                 switch (nf->retvals.v[0].flags)
                 {
-                    case NF_SUBARG1: assert(argtypes[0].t == nf->retvals.v[0].type.t); return argtypes[0];
-                    case NF_ANYVAR: assert(nf->retvals.v[0].type.t == V_VECTOR); return NewTypeVar().Wrap();
+                    case NF_SUBARG1: return argtypes[0];
+                    case NF_ANYVAR: return nf->retvals.v[0].type.t == V_VECTOR ? NewTypeVar().Wrap() : NewTypeVar();
                     default: return nf->retvals.v[0].type;
                 }
             }

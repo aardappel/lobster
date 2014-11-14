@@ -28,6 +28,9 @@
     don't know how many calls there will be yet?
 
   * problem cases we side-stepped for now:
+    - creating a nillable var in astar_generic:
+        n := nil
+        n = startnode
     - from the previous astar_2dgrid:
         distancef := function(v): ...
         if(isocta):
