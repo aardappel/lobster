@@ -67,12 +67,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-t unittest.lobster"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-B../projects/totslike/default.lbc"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-c /Users/aardappel/lobster/lobster/samples/framelogtest.lobster"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-c"

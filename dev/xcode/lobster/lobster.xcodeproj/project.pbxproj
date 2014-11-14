@@ -313,6 +313,8 @@
 		3331458317596F4200D488CC /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		3331458417596F4200D488CC /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		335BD085175BAE68002064AE /* pythtree.lobster */ = {isa = PBXFileReference; lastKnownFileType = text; name = pythtree.lobster; path = ../../../lobster/samples/pythtree.lobster; sourceTree = "<group>"; };
+		33625C931A15A7B2005B131F /* ttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ttypes.h; sourceTree = "<group>"; };
+		33625C941A15A7B2005B131F /* typecheck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = typecheck.h; sourceTree = "<group>"; };
 		3381CAB6162340540069B2E8 /* builtins.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtins.cpp; sourceTree = "<group>"; };
 		3381CAB8162340540069B2E8 /* codegen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = codegen.h; sourceTree = "<group>"; };
 		3381CAB9162340540069B2E8 /* disasm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = disasm.h; sourceTree = "<group>"; };
@@ -701,6 +703,8 @@
 		3395A8BE176140570047BE1F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
+				33625C931A15A7B2005B131F /* ttypes.h */,
+				33625C941A15A7B2005B131F /* typecheck.h */,
 				3395A8BF176140650047BE1F /* builtins */,
 				3381CAB8162340540069B2E8 /* codegen.h */,
 				3381CAB9162340540069B2E8 /* disasm.h */,
