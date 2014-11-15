@@ -85,7 +85,8 @@ struct Node : SlabAllocated<Node>
     SubFunction * sf() const { assert(type == T_FUN);    return sf_; }
     SubFunction *&sf()       { assert(type == T_FUN);    return sf_; }
 
-    Node *a()  const { assert(TCat(type) != TT_NOCHILD); return a_; }
+    Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
+    Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node * b() const { assert(TCat(type) != TT_NOCHILD); return b_; }
     Node *&b()       { assert(TCat(type) != TT_NOCHILD); return b_; }
 
@@ -94,7 +95,8 @@ struct Node : SlabAllocated<Node>
     Node * right() const { assert(TCat(type) == TT_BINARY); return b_; }
     Node *&right()       { assert(TCat(type) == TT_BINARY); return b_; }
 
-    Node *child() const { assert(TCat(type) == TT_UNARY); return a_; }
+    Node * child() const { assert(TCat(type) == TT_UNARY); return a_; }
+    Node *&child()       { assert(TCat(type) == TT_UNARY); return a_; }
 
     #define GEN_ACCESSOR_NO(ENUM, NAME, AB)
     #define GEN_ACCESSOR_YES(ENUM, NAME, AB)       Node *&NAME()       { assert(type == ENUM); return AB; } \

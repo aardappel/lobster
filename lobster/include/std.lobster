@@ -49,7 +49,7 @@ function reducerev(xs, fun):
 
 function find(xs, fun):
     for(xs) x, i: if(fun(x)): return i
-    return -1
+    -1
 
 function sum(xs):     fold(xs, 0): _x + _y
 function product(xs): fold(xs, 1): _x * _y

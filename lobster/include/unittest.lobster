@@ -190,15 +190,15 @@ function run_test_cases():
         ]:goapaction
     ]
 
-    path =
+    goap_path :=
         astar_goap(goapactions, [ 3, 0, 0, 0, 0, 0, 2 ]:goapstate) state:
             state.hungry
         endcondition s:
             s.hungry <= 0
 
-    assert(path.length == 9)
-    path.pop()
-    assert(equal(path.map(): _.delta.name,
+    assert(goap_path.length == 9)
+    goap_path.pop()
+    assert(equal(goap_path.map(): _.delta.name,
         ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"]))
 
 

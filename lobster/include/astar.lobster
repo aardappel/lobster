@@ -93,6 +93,7 @@ function astar_goap(goapactions, initstate, heuristic, endcondition):
             if(act.precondition(n.state)):
                 nstate := n.state.copy
                 act.effect(nstate)
-                nn := (existingnodes.exists(): equal(_.state, nstate) & _) | new_astar_node(nstate, 0.0)
+                i := existingnodes.find(): equal(_.state, nstate)
+                nn := i >= 0 & existingnodes[i] | new_astar_node(nstate, 0.0)
                 f(act, 1, nn)
     heuristic: heuristic(_)

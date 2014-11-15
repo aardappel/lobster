@@ -349,10 +349,12 @@ struct Parser
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
 
-        return ParseFunction(&idname, isprivate, true, true, false);
+        return ParseFunction(&idname, isprivate, true, true, false, "");
     }
 
-    Node *ParseFunction(const string *name, bool isprivate, bool parens, bool parseargs, bool expfunval)
+    Node *ParseFunction(const string *name,
+                        bool isprivate, bool parens, bool parseargs, bool expfunval,
+                        const string &context)
     {
         st.ScopeStart();
 
@@ -386,7 +388,7 @@ struct Parser
         if (parens) Expect(T_RIGHTPAREN);
         if (!expfunval) Expect(T_COLON);
 
-        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("");
+        auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", context);
 
         sf->SetParent(f, f.subf);
 
@@ -529,7 +531,7 @@ struct Parser
         CheckArg(args, thisarg, fname);
         if (args && args->v[thisarg].flags == NF_EXPFUNVAL)
         {
-            arg = ParseFunction(nullptr, false, false, false, true);
+            arg = ParseFunction(nullptr, false, false, false, true, args->GetName(thisarg));
         }
         else
         {
@@ -548,11 +550,13 @@ struct Parser
     {
         if (args && thisarg + 1 < args->v.size()) trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
 
+        auto name = args && thisarg < args->v.size() ? args->GetName(thisarg) : "";
+
         Node *e = nullptr;
         switch (lex.token)
         {
             case T_COLON:
-                e = ParseFunction(nullptr, false, false, false, false);
+                e = ParseFunction(nullptr, false, false, false, false, name);
                 break;
 
             case T_IDENT:
@@ -560,11 +564,11 @@ struct Parser
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
                     trailingkeywordedfunctionvaluestack.back() != lex.sattr)
-                    e = ParseFunction(nullptr, false, false, true, false);
+                    e = ParseFunction(nullptr, false, false, true, false, name);
                 break;
             
             case T_LEFTPAREN:
-                e = ParseFunction(nullptr, false, true, true, false);
+                e = ParseFunction(nullptr, false, true, true, false, name);
                 break;
         }
 
@@ -1027,7 +1031,7 @@ struct Parser
             case T_FUN:
             {
                 lex.Next();
-                return ParseFunction(nullptr, false, true, true, false);
+                return ParseFunction(nullptr, false, true, true, false, "");
             }
 
             case T_COROUTINE:

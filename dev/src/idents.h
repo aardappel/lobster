@@ -447,6 +447,14 @@ struct SymbolTable
         return -1;
     }
 
+    bool IsSuperTypeOrSame(int superidx, int subidx)
+    {
+        for (int t = subidx; t != -1; t = structtable[t]->superclassidx)
+            if (t == superidx)
+                return true;
+        return false;
+    }
+
     SharedField &FieldDecl(const string &name, int idx, Struct *st)
     {
         SharedField *fld = fields[name];
@@ -466,10 +474,10 @@ struct SymbolTable
         return it != fields.end() ? it->second : nullptr;
     }
 
-    Function &CreateFunction(const string &name)
+    Function &CreateFunction(const string &name, const string &context)
     {
-        auto f = new Function(name, functiontable.size(), scopelevels.size());
-        if (f->name.empty()) f->name = string("function") + inttoa(functiontable.size());
+        auto fname = name.length() ? name : string("function") + inttoa(functiontable.size()) + context;
+        auto f = new Function(fname, functiontable.size(), scopelevels.size());
         functiontable.push_back(f);
         return *f;
     }
@@ -488,7 +496,7 @@ struct SymbolTable
                     return *f;
         }
 
-        auto &f = CreateFunction(name);
+        auto &f = CreateFunction(name, "");
 
         if (fit != functions.end())
         {
@@ -526,7 +534,7 @@ struct SymbolTable
                                 ? "function"
                                 : functiontable[type.idx]->name;
             case V_NILABLE: return TypeName(type.Element(), type_vars) + "?";
-            case V_ANYVAR: return type_vars ? TypeName(type_vars[type.idx], type_vars) + "*" : BaseTypeName(type.t);
+            case V_VAR: return type_vars ? TypeName(type_vars[type.idx], type_vars) + "*" : BaseTypeName(type.t);
             default: return BaseTypeName(type.t);
         }
     }

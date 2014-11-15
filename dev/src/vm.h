@@ -1284,9 +1284,9 @@ struct VM : VMBase
                 // the code below only does super->sub and sub->super,
                 // but can't do common supertype which is too expensive at runtime
                 // overwrite with a subclass:
-                //for (int t = nt; t != -1; t = st.structtable[t]->superclassidx) if (t == ot) return;
+                // if (st.IsSuperTypeOrSame(ot, nt)) return;
                 // overwrite with a superclass:
-                //for (int t = ot; t != -1; t = st.structtable[t]->superclassidx) if (t == nt) return;
+                // if (st.IsSuperTypeOrSame(nt, ot)) return;
             }
             else if (nt == V_NIL)
             {

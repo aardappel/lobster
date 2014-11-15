@@ -30,7 +30,7 @@ enum ValueType
     V_UNDEFINED,        // used for unitialized values or functions returning "void".
     V_NILABLE,          // [typechecker only] a value that may be nil or a reference type.
     V_ANY,              // [typechecker only] any other type.
-    V_ANYVAR,           // [typechecker only] like V_ANY, except idx refers to a type variable
+    V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     // used in function calling, if they appear as a value in a program, that's a bug
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
