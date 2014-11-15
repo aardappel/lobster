@@ -15,9 +15,9 @@ function clear(n::astar_node):
 // the generic version searches any kind of graph in any kind of search space, use specialized versions below
 
 function astar_generic(startnode, endcondition, generatenewstates, heuristic):
+    openlist := [ startnode ]
     n := nil
     n = startnode
-    openlist := [ n ]
     while(n & !endcondition(n)):
         openlist.removeobj(n)
         n.closed = true

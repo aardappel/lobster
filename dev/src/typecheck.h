@@ -4,13 +4,20 @@ struct TypeChecker
     Lex &lex;
     Parser &parser;
     SymbolTable &st;
+
     struct Scope { SubFunction *sf; const Node *call_context; };
     vector<Scope> scopes;
+
     vector<Type> type_variables;
+
+    vector<Ident *> flowstack;  // For now, only for changes from nilable and back.
 
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
         parser.root->exptype = TypeCheck(*parser.root);
+
+        assert(!scopes.size());
+        assert(!flowstack.size());
     }
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
@@ -90,10 +97,10 @@ struct TypeChecker
         {
             return Promote(type_variables[type.idx]);
         }
-        else if (type.t == V_VECTOR)
+        else if (type.t == V_VECTOR || type.t == V_NILABLE)
         {
             auto pe = Promote(type.Element());
-            return pe.CanWrap() ? pe.Wrap() : type;
+            return pe.CanWrap() ? pe.Wrap(type.t) : type;
         }
         else
         {
@@ -119,7 +126,9 @@ struct TypeChecker
             case V_FLOAT:    return type.t == V_INT && coercions;
             case V_STRING:   return coercions;
             case V_FUNCTION: return sub.idx < 0 && type.t == V_FUNCTION;
-            case V_NILABLE:  return type.t == V_NIL || ConvertsTo(type, sub.Element(), false);
+            case V_NILABLE:  return type.t == V_NIL ||
+                                    (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
+                                    ConvertsTo(type, sub.Element(), false);
             case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                      (type.t == V_STRUCT && sub.t2 == V_ANY));
         }
@@ -429,6 +438,113 @@ struct TypeChecker
         }
     }
 
+    Type TypeCheckBranch(bool iftrue, Node *condition, Node *fval, Node **args_ptr)
+    {
+        auto flowstart = CheckFlowTypeChanges(iftrue, condition);
+        auto type = TypeCheckDynCall(fval, args_ptr);
+        CleanUpFlow(flowstart);
+        return type;
+    }
+
+    void CheckFlowTypeChangesSub(bool iftrue, Node *condition)
+    {
+        switch (condition->type)
+        {
+            case T_IDENT:
+                if (iftrue)
+                {
+                    auto id = condition->ident();
+                    auto type = Promote(id->type);
+                    if (type.t == V_NILABLE)
+                    {
+                        flowstack.push_back(id);
+                        id->type = type.Element();
+                    }
+                }
+                break;
+
+            case T_NOT:
+                CheckFlowTypeChangesSub(!iftrue, condition->child());
+                break;
+        }
+    }
+
+    size_t CheckFlowTypeChanges(bool iftrue, Node *condition)
+    {
+        auto start = flowstack.size();
+        switch (condition->type)
+        {
+            // FIXME: this doesn't work if you do a & b & c & f(a,b,c) since we only support one nesting level.
+            case T_OR:
+            case T_AND:
+                // AND only works for then, and OR only for else.
+                if (iftrue == (condition->type == T_AND))
+                {
+                    CheckFlowTypeChangesSub(iftrue, condition->left());
+                    CheckFlowTypeChangesSub(iftrue, condition->right());
+                }
+                break;
+
+            default:
+                CheckFlowTypeChangesSub(iftrue, condition);
+                break;
+        }
+        return start;
+    }
+
+    void UnFlow(Ident *id)
+    {
+        assert(id->type.CanWrap());  // it was wrapped before.
+        id->type = id->type.Wrap(V_NILABLE);
+    }
+
+    void AssignFlow(Node *left, const Node *right)
+    {
+        // Check if this assignment breaks a flow based promotion.
+        // If the rhs is not nilable, we keep the id's status, so we early out.
+        if (right->exptype.t != V_NILABLE ||
+            left->exptype.Numeric() ||
+            left->type != T_IDENT) return;
+        // FIXME: this can in theory remove the wrong var, if the same function nests, and the outer one
+        // was specialized to a nilable and the inner one was not.
+        // This would be very rare though, and benign.
+        for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it)
+        {
+            if (*it == left->ident())
+            {
+                UnFlow(*it);
+                left->exptype = (*it)->type;
+                flowstack.erase(std::next(it).base());
+                break;
+            }
+        }
+    }
+
+    void CleanUpFlow(size_t start)
+    {
+        while (flowstack.size() > start)
+        {
+            auto id = flowstack.back();
+            flowstack.pop_back();
+            UnFlow(id);
+        }
+    }
+
+    Type TypeCheckAndOr(Node &n, bool only_true_type)
+    {
+        if (n.type != T_AND && n.type != T_OR) return TypeCheck(n);
+
+        n.left()->exptype = TypeCheckAndOr(*n.left(), n.type == T_OR);
+        auto flowstart = CheckFlowTypeChanges(n.type == T_AND, n.left());
+        n.right()->exptype = TypeCheckAndOr(*n.right(), only_true_type);
+        CleanUpFlow(flowstart);
+        // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
+        // and the overal type should be the union of b & c.
+        return only_true_type && n.type == T_AND
+            ? n.right()->exptype
+            : Union(n.left()->exptype, n.right()->exptype, false);
+    }
+
     Type TypeCheck(Node &n)
     {
         switch (n.type)
@@ -445,6 +561,10 @@ struct TypeChecker
                 for (Node *stats = &n; stats; stats = stats->b())
                     stats->a()->exptype = TypeCheck(*stats->a());
                 return Type();
+
+            case T_OR:
+            case T_AND:
+                return TypeCheckAndOr(n, false);
         }
 
         if (n.HasChildren())
@@ -508,12 +628,6 @@ struct TypeChecker
                 return Type(V_INT);
             }
 
-            case T_AND:
-            case T_OR:
-            {
-                auto type = Union(n.left(), n.right(), false);
-                return type;         
-            }
             case T_NOT:
                 return Type(V_INT);
 
@@ -613,9 +727,8 @@ struct TypeChecker
                 Node *args = nullptr;
                 if (n.if_branches()->right()->type != T_NIL)
                 {
-
-                    auto tleft  = TypeCheckDynCall(n.if_branches()->left(), &args);
-                    auto tright = TypeCheckDynCall(n.if_branches()->right(), &args);
+                    auto tleft  = TypeCheckBranch(true, n.if_condition(), n.if_branches()->left(), &args);
+                    auto tright = TypeCheckBranch(true, n.if_condition(), n.if_branches()->right(), &args);
                     auto type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
@@ -636,7 +749,7 @@ struct TypeChecker
             {
                 Node *args = nullptr;
                 TypeCheckDynCall(n.while_condition(), &args);
-                TypeCheckDynCall(n.while_body(), &args);
+                TypeCheckBranch(true, n.while_condition()->closure_body()->head(), n.while_body(), &args);
                 // Currently always return V_UNDEFINED
                 return Type();
             }
@@ -752,6 +865,7 @@ struct TypeChecker
                 return n.right()->exptype;
 
             case T_ASSIGN:
+                AssignFlow(n.left(), n.right());
                 SubType(n.right(), n.left()->exptype, n);
                 return n.left()->exptype;
 

@@ -17,6 +17,8 @@
   * builtins needing work:
     * min/max
 
+  * a := nil; a = 1 // allows creating nilable scalars, which we don't want, though its benign
+
   * for function call nodes, as spec as to which subf they call, or none in specific
   * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
     * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
@@ -26,6 +28,16 @@
     astar_2dgrid isocta
     issue: how can you do this with arguments that may be constant for the first call, but you
     don't know how many calls there will be yet?
+    -> maybe we should analyze the if-then to be constant, but don't actually cull the code, leave
+       that to a seperate optimisation pass. The branch will simply not be typechecked for this
+       specialization.
+       Though that would mean we'd need to make this boolean part of the type signature,
+       because otherwise a second call with a different boolean value would reuse it,
+       and run into un-type checked code.
+       We already specialize on nilable/non-nillable, and specializing on booleans sounds attractive,
+       though we don't generally want to specialize on ints or other values, unless we made a special
+       annotation for it.
+    Once we have conditional typechecking for if(a is b), we can extend it to propagated constansts.
 
   * problem cases we side-stepped for now:
     - creating a nillable var in astar_generic:
