@@ -318,6 +318,7 @@ struct Lex : LoadedFile
                     else if (sattr == "program")   return T_PROGRAM;
                     else if (sattr == "private")   return T_PRIVATE;
                     else if (sattr == "coroutine") return T_COROUTINE;
+                    else if (sattr == "enum")      return T_ENUM;
                     else return T_IDENT;
                 }
 

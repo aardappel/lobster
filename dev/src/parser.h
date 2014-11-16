@@ -72,7 +72,7 @@ struct Parser
 
         for (;;)
         {
-            AddTail(tail, ParseTopExp());
+            ParseTopExp(tail);
                 
             if (lex.token == T_ENDOFINCLUDE)
             {
@@ -212,7 +212,7 @@ struct Parser
         return e;
     }
 
-    Node *ParseTopExp(bool isprivate = false)
+    void ParseTopExp(Node **&tail, bool isprivate = false)
     {   
         switch(lex.token)
         {
@@ -221,7 +221,8 @@ struct Parser
                     Error("private must be used at file scope");
                 
                 lex.Next();
-                return ParseTopExp(true);
+                ParseTopExp(tail, true);
+                break;
                 
             case T_INCLUDE:
             {
@@ -233,7 +234,8 @@ struct Parser
                 Expect(T_STR);
                 lex.Include((char *)fn.c_str());
 
-                return ParseTopExp();
+                ParseTopExp(tail);
+                break;
             }
 
             case T_VALUE:
@@ -282,13 +284,41 @@ struct Parser
 
                 currentstruct = nullptr;
 
-                return new Node(lex, T_STRUCTDEF, new Node(lex, &struc), v);
+                AddTail(tail, new Node(lex, T_STRUCTDEF, new Node(lex, &struc), v));
+                break;
             }
 
             case T_FUN:
             {
                 lex.Next();
-                return ParseNamedFunctionDefinition(isprivate);
+                AddTail(tail, ParseNamedFunctionDefinition(isprivate));
+                break;
+            }
+            
+            case T_ENUM:
+            {
+                lex.Next();
+                bool incremental = IsNext(T_PLUS) || !IsNext(T_MULT);
+                int cur = incremental ? 0 : 1;
+                for (;;)
+                {
+                    auto idname = lex.sattr;
+                    Expect(T_IDENT);
+                    auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
+                    id->constant = true;
+                    if (isprivate) id->isprivate = true;
+                    if (IsNext(T_ASSIGN))
+                    {
+                        cur = atoi(lex.sattr.c_str());
+                        Expect(T_INT);
+                    }
+                    DebugLog(1, "%s is %d", idname.c_str(), cur);
+                    AddTail(tail, new Node(lex, T_DEF, new Node(lex, id), new Node(lex, T_INT, cur)));
+                    if (lex.token != T_COMMA) break;
+                    lex.Next();
+                    if (incremental) cur++; else cur *= 2;
+                }
+                break;
             }
 
             default:
@@ -311,14 +341,19 @@ struct Parser
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
                         if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
-                        return new Node(lex, T_DEF, new Node(lex, id), e);
+                        AddTail(tail, new Node(lex, T_DEF, new Node(lex, id), e));
+                        break;
                     }
                     else if (IsNext(T_COMMA))
                     {
                         bool isdef = false;
                         bool islogvar = false;
                         auto e = RecMultiDef(idname, isprivate, 1, isdef, islogvar);
-                        if (e) return e;
+                        if (e)
+                        {
+                            AddTail(tail, e);
+                            break;
+                        }
                     }
                     else
                     {
@@ -329,7 +364,8 @@ struct Parser
                 if (isprivate)
                     Error("private only applies to declarations");
                 
-                return ParseExpStat();
+                AddTail(tail, ParseExpStat());
+                break;
             }
         }
     }

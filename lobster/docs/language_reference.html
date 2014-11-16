@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Lobster Language Reference</title>
+  <title></title>
   <style type="text/css">code{white-space: pre;}</style>
   <!--[if lt IE 9]>
     <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -12,9 +12,7 @@
   <link rel="stylesheet" href="github.css">
 </head>
 <body>
-<header>
-<h1 class="title">Lobster Language Reference</h1>
-</header>
+<p>Lobster Language Reference</p>
 <p>This is the definition of the language that tries to be a more exact a description of how the language works (the most exact description, however, will always be the source code :). As such, this is not the easiest way to learn the language, start with a tutorial first, and then use this for more difficult questions.</p>
 <p>Syntactically Lobster tries to follow a mix of Python and C conventions where possible, but has a lot of unique syntax too.</p>
 <h2 id="lexical-definition">Lexical definition</h2>
@@ -24,7 +22,7 @@
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
-<li><p>Keywords: <code>nil true false return from struct value include int float string vector function super is program private coroutine</code></p></li>
+<li><p>Keywords: <code>nil true false return from struct value include int float string vector function super is program private coroutine enum</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an incomplete expression (such as <code>+</code> or <code>,</code>) and an actual token otherwise (used to separate lists of expressions inside a block, see below).</p></li>
 <li><p><code>indent</code> and <code>dedent</code> tokens are generated whenever the indentation level changes. Indentation of any 2 adjacent lines must start with the same sequence of spaces and/or tabs. This ensures it is impossible to create indentation that behaves differently from the way it looks visually.</p></li>
 </ul>
@@ -32,9 +30,10 @@
 <p>Below, <code>...</code> indicates a loop with exit point at that scope level, and <code>||</code> is like <code>|</code> except indicates a precedence level difference.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
-<p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( ident functiondef | struct | vardef ) | expstat</p>
+<p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( ident functiondef | struct | vardef | enumdef ) | expstat</p>
 <p>struct = ( <code>struct</code> | <code>value</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
 <p>vardef = list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
+<p>enumdef = <code>enum</code> [ <code>+</code> | <code>*</code> ] list( ident [ <code>=</code> integer_constant ] )</p>
 <p>functiondef = <code>(</code> args <code>) :</code> body</p>
 <p>block = args <code>:</code> body | functiondef</p>
 <p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
@@ -95,10 +94,12 @@ v.x = 1</code></pre>
 <p>All variables must already have been declared, or this will result in an error. Instead, the <code>:=</code> operator defines and assigns in one go, and requires the variable to not have been declared yet in this scope:</p>
 <pre><code>a := 1
 b :== 1
+enum x = 1, y, z
 c &lt;- 1
 d, e := 1, 2
 f, g := 1</code></pre>
 <p>The <code>:==</code> operator does the same as <code>:=</code>, but now forces the variable to never be assigned to again in any of the following statements (makes it a constant). Think of the <code>==</code> in <code>:==</code> as saying that the two will be kept equal as opposed to merely assigned once.</p>
+<p><code>enum</code> is merely a shorthand for <code>:==</code>, e.g. the above example is equivalent to <code>x :== 1; y :== 2; z :== 3</code>. If you leave out the <code>= 1</code>, the sequence will start at <code>0</code> instead. You may specify <code>+</code> or <code>*</code> after <code>enum</code> to indicate wether you want the sequence to continue using addition (default, by 1) or multiplication (by 2), the latter useful for flags.</p>
 <p><code>&lt;-</code> is another assignment operator, that re-defines an existing variable using <em>lexically bounded dynamic scope</em> instead of the default lexical scope (see example below). As you can see in the last 2 lines, all of these operators also allow multiple values to be assigned at once (see also multiple return values below).</p>
 <h3 id="indexing">Indexing</h3>
 <p>As indicated, square brackets can be used to index into vectors, with the . notation being a convenient shorthand for constant indices when field names are available. These may be chained arbitrarily (to index into a vector of vectors for example).</p>

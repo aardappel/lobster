@@ -113,6 +113,7 @@
     T(T_FROM, "from", TT_NONE, NO, a, NO, b) \
     T(T_PROGRAM, "program", TT_NONE, NO, a, NO, b) \
     T(T_PRIVATE, "private", TT_NONE, NO, a, NO, b) \
+    T(T_ENUM, "enum", TT_NONE, NO, a, NO, b) \
 
 enum TType
 {
