@@ -12,8 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 struct NativeFun;
 struct SymbolTable;
+struct Node;
 
 struct LineInfo : Serializable
 {
@@ -198,6 +202,7 @@ struct Function : Name
                        // implemented dynamic dispatch
 
     bool anonymous;    // does not have a programmer specified name
+    bool istype;       // its merely a function type, has no body, but does have a set return type.
 
     int scopelevel;
     int retvals;
@@ -206,7 +211,9 @@ struct Function : Name
 
     Function(const string &_name, int _idx, int _sl)
      : Name(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
-       multimethod(false), anonymous(false), scopelevel(_sl), retvals(0), ncalls(0) {}
+       multimethod(false), anonymous(false), istype(false), scopelevel(_sl), retvals(0), ncalls(0)
+    {
+    }
     Function() : Function("", 0, -1) {}
     ~Function() { if (subf) delete subf; }
 
@@ -558,3 +565,5 @@ struct SymbolTable
         ser(linenumbers);
     }
 };
+
+}  // namespace lobster

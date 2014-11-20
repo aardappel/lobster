@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 struct Parser
 {
     Lex lex;
@@ -312,7 +315,6 @@ struct Parser
                         cur = atoi(lex.sattr.c_str());
                         Expect(T_INT);
                     }
-                    DebugLog(1, "%s is %d", idname.c_str(), cur);
                     AddTail(tail, new Node(lex, T_DEF, new Node(lex, id), new Node(lex, T_INT, cur)));
                     if (lex.token != T_COMMA) break;
                     lex.Next();
@@ -409,7 +411,7 @@ struct Parser
                 Expect(T_IDENT);
                 nargs++;
                 auto id = st.LookupDef(a, lex.errorline, lex, false, false);
-                Type &type = sf->args.v.back().type;
+                Type type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
                 {
@@ -417,16 +419,38 @@ struct Parser
                     ParseType(type, withtype);
                     if (withtype) st.AddWithStruct(type, id, lex);
                 }
+                sf->args.v.back().SetType(type);
 
                 if (!IsNext(T_COMMA)) break;
             }
         }
         if (parens) Expect(T_RIGHTPAREN);
-        if (!expfunval) Expect(T_COLON);
 
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", context);
 
         sf->SetParent(f, f.subf);
+
+        auto istype = name && IsNext(T_DEFCONST);
+        if (istype)
+        {
+            if (f.istype || f.subf->next)
+                Error("redefinition of function type: " + *name);
+            f.istype = istype;
+            sf->typechecked = true;
+
+            // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
+            // which specialization that refers to).
+            for (auto &arg : f.subf->args.v)
+            {
+                if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
+            }
+
+            ParseType(sf->returntype, false);
+        }
+        else
+        {
+            if (!expfunval) Expect(T_COLON);
+        }
 
         if (name)
         {
@@ -445,18 +469,21 @@ struct Parser
             f.anonymous = true;
         }
 
-        if (expfunval)
+        if (!f.istype)
         {
-            sf->body = new Node(lex, T_LIST, ParseExp());
-        }
-        else if (IsNext(T_INDENT))
-        {
-            sf->body = ParseStatements();
-            Expect(T_DEDENT);
-        }
-        else
-        {
-            sf->body = new Node(lex, T_LIST, ParseExpStat());
+            if (expfunval)
+            {
+                sf->body = new Node(lex, T_LIST, ParseExp());
+            }
+            else if (IsNext(T_INDENT))
+            {
+                sf->body = ParseStatements();
+                Expect(T_DEDENT);
+            }
+            else
+            {
+                sf->body = new Node(lex, T_LIST, ParseExpStat());
+            }
         }
 
         st.defsubfunctionstack.pop_back();
@@ -479,11 +506,14 @@ struct Parser
             st.namedsubfunctionstack.pop_back();
             functionstack.pop_back();
 
-            for (auto stat = sf->body; stat; stat = stat->tail())
-                if (!stat->tail() && (stat->head()->type != T_RETURN ||
-                                      stat->head()->return_function_idx()->integer() != f.idx /* return from */))
-                    ReturnValues(f, 1);
-            assert(f.retvals);
+            if (!f.istype)
+            {
+                for (auto stat = sf->body; stat; stat = stat->tail())
+                    if (!stat->tail() && (stat->head()->type != T_RETURN ||
+                        stat->head()->return_function_idx()->integer() != f.idx /* return from */))
+                        ReturnValues(f, 1);
+                assert(f.retvals);
+            }
         }
 
         return new Node(lex, name ? T_FUNDEF : T_CLOSUREDEF, new Node(lex, sf), sf->body);
@@ -498,13 +528,39 @@ struct Parser
             case T_STRTYPE:   dest.t = V_STRING;    lex.Next(); break;
             case T_COROUTINE: dest.t = V_COROUTINE; lex.Next(); break;
             case T_NIL:       dest.t = V_NIL;       lex.Next(); break;
-            case T_FUN:       dest.t = V_FUNCTION;  lex.Next(); break;
             case T_VECTTYPE:  dest.t = V_VECTOR;    lex.Next(); break;  // FIXME: remove this one?
+
+            case T_FUN:
+            {
+                dest.t = V_FUNCTION;
+                lex.Next();
+                auto idname = lex.sattr;
+                if (IsNext(T_IDENT))
+                {
+                    auto f = st.FindFunction(idname);
+                    if (!f)
+                        Error("unknown function type: " + idname);
+                    if (!f->istype)
+                        Error("function not declared as type: " + idname);
+                    dest.idx = f->idx;
+                }
+                break;
+            }
 
             case T_IDENT:
             {
                 dest.t = V_STRUCT;
-                dest.idx = st.StructUse(lex.sattr, lex).idx;
+                auto &struc = st.StructUse(lex.sattr, lex);
+                /*
+                for (auto &field : struc.fields)
+                {
+                    // We may be able to lift this restriction in the future, but for now,
+                    // we wouldn't know which specialization this type refers to.
+                    if (field.flags == AF_ANYTYPE)
+                        Error("struct/value type " + lex.sattr + " has untyped field: " + field.id->name);
+                }
+                */
+                dest.idx = struc.idx;
                 lex.Next();
                 break;
             }
@@ -855,6 +911,7 @@ struct Parser
 
         if (f)
         {
+            if (f->istype) Error("can\'t call function type: " + f->name);
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
@@ -1155,10 +1212,12 @@ struct Parser
                     s += arg.id->name + ":" + st.TypeName(arg.type) + " ";
                 }
                 s += ")\n";
-                s += sf->body->Dump(4, st);
+                if (sf->body) s += sf->body->Dump(4, st);
                 s += "\n\n";
             }
         }
         return s + "TOPLEVEL:\n" + root->Dump(0, st); 
     }
 };
+
+}  // namespace lobster

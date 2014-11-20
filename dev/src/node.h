@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+    
 template <typename T> struct SlabAllocated
 {
     #undef new
@@ -395,3 +398,5 @@ struct Node : SlabAllocated<Node>
         }
     }
 };
+
+}  // namespace lobster

@@ -193,7 +193,7 @@ inline float3 cross(const float3 &a, const float3 &b)
     return float3(a.y()*b.z()-a.z()*b.y(), a.z()*b.x()-a.x()*b.z(), a.x()*b.y()-a.y()*b.x());
 }
 
-inline float3 random_point_in_sphere(MersenneTwister &r)
+template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r)
 {
     for (;;)
     {

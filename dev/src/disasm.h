@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 static const LineInfo &LookupLine(int pos, const vector<LineInfo> &_lineinfo)
 {
     const LineInfo *lineinfo = _lineinfo.data();
@@ -194,5 +197,4 @@ static void DisAsm(FILE *f, SymbolTable &st, int *code, const vector<LineInfo> &
     }
 }
 
-
-
+}  // namespace lobster

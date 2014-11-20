@@ -145,18 +145,18 @@ class MersenneTwister
     
     MersenneTwister() : left(-1) {}  
 
-    void SeedMT(uint seed)
+    void Seed(uint seed)
     {
         uint x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
         int j;
         for(left=0, *s++=x, j=N; --j; *s++ = (x*=69069U) & 0xFFFFFFFFU);
     }
 
-    uint ReloadMT()
+    uint Reload()
     {
         uint *p0=state, *p2=state+2, *pM=state+M, s0, s1;
         int j;
-        if(left < -1) SeedMT(4357U);
+        if(left < -1) Seed(4357U);
         left=N-1, next=state+1;
         for(s0=state[0], s1=state[1], j=N-M+1; --j; s0=s1, s1=*p2++)
             *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
@@ -169,10 +169,10 @@ class MersenneTwister
         return(s1 ^ (s1 >> 18));
     }
 
-    uint RandomMT()
+    uint Random()
     {
         uint y;
-        if(--left < 0) return(ReloadMT());
+        if(--left < 0) return(Reload());
         y  = *next++;
         y ^= (y >> 11);
         y ^= (y <<  7) & 0x9D2C5680U;
@@ -180,18 +180,53 @@ class MersenneTwister
         return(y ^ (y >> 18));
     }
     
-    int operator()(int max) { return RandomMT()%max; }
-
-    double rnddouble() { return RandomMT() * (1.0 / 4294967296.0); }
-    float rndfloat() { return (float)rnddouble(); } // FIXME: performance?
-    float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
-
     void ReSeed(uint seed)
     {
-        SeedMT(seed);
+        Seed(seed);
         left = 0;
-        ReloadMT();
+        Reload();
     }
+};
+
+
+class PCG32
+{
+    // This is apparently better than the Mersenne Twister, and its also smaller/faster!
+    // Adapted from *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
+    // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
+
+    uint64_t state;
+    uint64_t inc;
+
+    public:
+
+    PCG32() : state(0xABADCAFEDEADBEEF), inc(0xDEADBABEABADD00D) {}
+
+    uint32_t Random()
+    {
+        uint64_t oldstate = state;
+        // Advance internal state
+        state = oldstate * 6364136223846793005ULL + (inc | 1);
+        // Calculate output function (XSH RR), uses old state for max ILP
+        uint32_t xorshifted = uint32_t(((oldstate >> 18u) ^ oldstate) >> 27u);
+        uint32_t rot = oldstate >> 59u;
+        return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+    }
+
+    void ReSeed(uint32_t s) { state = s; inc = 0xDEADBABEABADD00D; }
+};
+
+template<typename T> struct RandomNumberGenerator
+{
+    T rnd;
+
+    void seed(uint s) { rnd.ReSeed(s); }
+
+    int operator()(int max) { return rnd.Random() % max; }
+
+    double rnddouble() { return rnd.Random() * (1.0 / 4294967296.0); }
+    float rndfloat() { return (float)rnddouble(); } // FIXME: performance?
+    float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
 };
 
 struct Serializer;

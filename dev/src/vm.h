@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 #ifdef _DEBUG
     #define VM_PROFILER                     // tiny VM slowdown and memory usage when enabled
 #endif
@@ -203,7 +206,7 @@ struct VM : VMBase
         vmpool->printstats(false);
     }
 
-    const LineInfo &LookupLine(int *ip) { return ::LookupLine(ip - codestart, lineinfo); }
+    const LineInfo &LookupLine(int *ip) { return lobster::LookupLine(ip - codestart, lineinfo); }
     
     #undef new
     LVector *NewVector(int n, int t) { return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector(n, t); }
@@ -1540,3 +1543,5 @@ struct VM : VMBase
         return leaks.size();
     }
 };
+
+}  // namespace lobster

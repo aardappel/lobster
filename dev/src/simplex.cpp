@@ -3,6 +3,8 @@
 #include "vmdata.h"
 #include "natreg.h"
 
+using namespace lobster;
+
 
 /*
 This code was placed in the public domain by its original author, Stefan Gustavson.

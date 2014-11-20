@@ -20,6 +20,8 @@
 #include "ttypes.h"
 #include "lex.h"
 
+using namespace lobster;
+
 struct ValueParser
 {
     vector<string> filenames;

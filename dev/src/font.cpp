@@ -20,6 +20,8 @@
 #include "glinterface.h"
 #include "ftinterface.h"
 
+using namespace lobster;
+
 map<string, BitmapFont *> fontcache;
 BitmapFont *curfont = nullptr;
 int curfontsize = -1;

@@ -19,6 +19,8 @@
 
 #include "sdlinterface.h"
 
+using namespace lobster;
+
 void AddSoundOps()
 {
     STARTDECL(play_wav) (Value &ins)

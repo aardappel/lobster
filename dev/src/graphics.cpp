@@ -20,6 +20,8 @@
 #include "glinterface.h"
 #include "sdlinterface.h"
 
+using namespace lobster;
+
 int2 screensize = int2_0;
 
 Primitive polymode = PRIM_FAN;

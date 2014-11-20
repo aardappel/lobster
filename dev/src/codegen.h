@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 #define ILNAMES \
     F(PUSHINT) \
     F(PUSHFLT) \
@@ -442,7 +445,8 @@ struct CodeGen
                 else
                 {
                     auto sf = n->dcall_info()->dcall_function()->sf();
-                    if (sf)
+                    // FIXME: in the future, we can make a special case for istype calls.
+                    if (sf && !sf->parent->istype)
                     {
                         // We statically know which function this is calling, which means that we don't have
                         // to need function value, but we generate code for it for the rare case it contains a
@@ -780,3 +784,5 @@ struct CodeGen
     #undef MARKL
     #undef SETL
 };
+
+}  // namespace lobster

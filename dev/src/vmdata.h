@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster {
+
 #define LOG_ENABLED 1
 
 enum ValueType
@@ -571,3 +573,5 @@ template <typename T> inline Value ToValue(const T &vec)
     for (auto a : vec) v->push(Value(a));
     return Value(v);
 }
+
+}  // namespace lobster

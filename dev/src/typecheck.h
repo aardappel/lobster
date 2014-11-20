@@ -1,4 +1,7 @@
 
+namespace lobster
+{
+    
 struct TypeChecker
 {
     Lex &lex;
@@ -141,7 +144,7 @@ struct TypeChecker
             case V_VAR:      return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:    return type.t == V_INT && coercions;
             case V_STRING:   return coercions;
-            case V_FUNCTION: return sub.idx < 0 && type.t == V_FUNCTION;
+            case V_FUNCTION: return type.t == V_FUNCTION && sub.idx < 0;
             case V_NILABLE:  return type.t == V_NIL ||
                                     (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                     ConvertsTo(type, sub.Element(), false);
@@ -193,7 +196,33 @@ struct TypeChecker
                 a = new Node(lex, T_A2S, a);
                 a->exptype = Type(V_STRING);
                 return;
+            case V_FUNCTION:
+                if (type.t == V_FUNCTION && sub.idx >= 0 && type.idx >= 0)
+                {
+                    // See if these functions can be made compatible. Specialize and typecheck if needed.
+                    auto sf = st.functiontable[type.idx]->subf;
+                    auto ss = st.functiontable[sub.idx]->subf;
+                    if (sf->args.v.size() != ss->args.v.size()) break;
+                    int i = 0;
+                    for (auto &arg : sf->args.v)
+                    {
+                        // Specialize to the function type, if requested.
+                        if (!sf->typechecked && arg.flags == AF_ANYTYPE)
+                        {
+                            arg.type = ss->args.v[i].type;
+                        }
+                        // Note this has the args in reverse: function args are contravariant.
+                        if (!ConvertsTo(ss->args.v[i].type, arg.type, false)) goto error;
+                        i++;
+                    }
+                    TypeCheck(*sf, sf->body);
+                    // Covariant again.
+                    if (!ConvertsTo(sf->returntype, ss->returntype, false)) break;
+                    return;
+                }
+                break;
         }
+        error:
         TypeError(TypeName(sub).c_str(), type, *a, argname, context);
     }
     void SubType(Type &type, const Type &sub, const Node &n, const char *argname, const char *context)
@@ -383,6 +412,8 @@ struct TypeChecker
             if (!sf->freevars.v.size()) goto match;
             specialize:
             {
+                assert(!f.istype);  // Should not contain any AF_ANYTYPE
+
                 // Check if any fit.
                 for (; sf && sf->typechecked; sf = sf->next)
                 {
@@ -435,7 +466,7 @@ struct TypeChecker
                 auto &arg = sf->args.v[i++];
                 if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
             }
-            TypeCheck(*sf, function_def_node);
+            if (!f.istype) TypeCheck(*sf, function_def_node);
             function_def_node->sf() = sf;
             if (verbose) DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntype).c_str());
             return sf->returntype;
@@ -464,6 +495,7 @@ struct TypeChecker
             }
             if (i < f.nargs())
                 TypeError("function value called with too few arguments", *fval);
+
             return TypeCheckCall(f, *args_ptr, fdef ? fdef : fval->closure_def());
         }
         else
@@ -1004,3 +1036,5 @@ struct TypeChecker
         }
     }
 };
+
+}  // namespace lobster

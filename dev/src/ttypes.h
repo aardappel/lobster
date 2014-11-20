@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 // Enum used both for token and node types
 
 #define TTYPES_LIST \
@@ -145,3 +148,5 @@ inline TTypeCategory TCat(TType t)
     };
     return cats[t];
 }
+
+}  // namespace lobster

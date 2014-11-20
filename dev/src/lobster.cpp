@@ -20,20 +20,25 @@
 //#include <huffman.h>
 #include "wentropy.h"
 
-SlabAlloc *vmpool = nullptr;               // set during the lifetime of a VM object
-static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parser object
+namespace lobster
+{
+    SlabAlloc *vmpool = nullptr;               // set during the lifetime of a VM object
+    static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parser object
+}
 
 #include "vmdata.h"
 #include "natreg.h"
 
-AutoRegister *autoreglist = nullptr;
-NativeRegistry natreg;
-VMBase *g_vm = nullptr;                    // set during the lifetime of a VM object
+namespace lobster
+{
+    AutoRegister *autoreglist = nullptr;
+    NativeRegistry natreg;
+    VMBase *g_vm = nullptr;                    // set during the lifetime of a VM object
+}
 
 #include "ttypes.h"
 #include "lex.h"
 
-struct Node;
 #include "idents.h"
 
 #include "node.h"
@@ -44,9 +49,9 @@ struct Node;
 
 #include "vm.h"
 
+using namespace lobster;
+
 const char *fileheader = "\xA5\x74\xEF\x19";
-
-
 
 struct CompiledProgram
 {

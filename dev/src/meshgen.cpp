@@ -7,6 +7,8 @@
 
 #include "mctables.h"
 
+using namespace lobster;
+
 
 /* TODO:
 
@@ -449,7 +451,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     const bool flat_triangles_opt = true;
     const bool simple_occlusion = false;
 
-    MersenneTwister r;
+    RandomNumberGenerator<PCG32> r;
 
     if (mesh_displacent)
     {

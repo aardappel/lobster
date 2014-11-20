@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 struct LoadedFile
 {
     char *p, *linestart, *tokenstart, *source, *stringsource;
@@ -440,3 +443,5 @@ struct Lex : LoadedFile
         throw err;
     } 
 };
+
+}  // namespace lobster

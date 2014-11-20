@@ -21,6 +21,8 @@
 
 #include "glinterface.h"
 
+using namespace lobster;
+
 struct Renderable : Textured
 {
 	float4 color;

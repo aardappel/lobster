@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace lobster
+{
+
 struct Type
 {
     ValueType t, t2, t3, t4;  // If t == V_VECTOR|V_NILABLE, t2 is the contained type, etc.
@@ -88,8 +91,13 @@ template<typename T> struct Typed
 
     Typed() : flags(AF_NONE), id(nullptr) {}
 
-    Typed(T *_id, const Type &_type = Type())
-        : id(_id), type(_type), flags(_type.t == V_ANY ? AF_ANYTYPE : AF_NONE) {}
+    Typed(T *_id, const Type &_type = Type()) : id(_id) { SetType(_type); }
+
+    void SetType(const Type &_type)
+    {
+        type = _type;
+        flags = _type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
+    }
 
     void Set(const char *&tid)
     {
@@ -289,3 +297,5 @@ struct AutoRegister
                                                                                                  &___##name::mid_##name)
 #define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, \
                                                                                                  &___##name::mid_##name)
+
+}  // namespace lobster

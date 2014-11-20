@@ -19,7 +19,9 @@
 
 #include "unicode.h"
 
-static MersenneTwister rnd;
+using namespace lobster;
+
+static RandomNumberGenerator<MersenneTwister> rnd;
 
 int KeyCompare(const Value &a, const Value &b, bool rec = false)
 {
@@ -537,7 +539,7 @@ void AddBuiltins()
 
     STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd, "max", "A", "A",
         "a random value [0..max) or a random vector from an input vector. Uses the Mersenne Twister algorithm.");
-    STARTDECL(rndseed) (Value &seed) { rnd.ReSeed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
+    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); } ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");

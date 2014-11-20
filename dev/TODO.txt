@@ -1,9 +1,12 @@
-- switch to /W4
+- allow random number generator to be selected
 
 - typechecker
   * struct specialization
     * multimethods?
     * superclass types?
+
+  * need to do something about types in the parser referring to unspecialized function/struct types.
+    functions using them still need to be specialized?
 
   * check: a dynscope redef must have same type as its parent
   * improve GenScope now that we have pre-parsed sf.dynscoperedefs

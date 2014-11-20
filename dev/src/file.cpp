@@ -33,6 +33,8 @@
     #include <unistd.h>
 #endif
 
+using namespace lobster;
+
 void AddDirItem(LVector *list, const char *filename, int64_t size, int divisor)
 {
     auto elem = g_vm->NewVector(2, V_VECTOR);

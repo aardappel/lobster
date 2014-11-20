@@ -82,9 +82,15 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 // specialized to do GOAP (nodes created on the fly)
 
-value goapaction: [ name, precondition, effect ]
+function goapf(state:[int]) :== int
 
-function astar_goap(goapactions, initstate, heuristic, endcondition):
+value goapaction: [
+    name:string,
+    precondition:function goapf,
+    effect:function goapf
+]
+
+function astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     existingnodes := [ new_astar_node(initstate, heuristic(initstate)) ]
     astar_generic(existingnodes[0]):
         endcondition(_.state)

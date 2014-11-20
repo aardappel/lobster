@@ -16,6 +16,8 @@
 
 #include "vmdata.h"
 
+using namespace lobster;
+
 void Value::DECDELETE() const
 {
     assert(ref->refc == 0);
