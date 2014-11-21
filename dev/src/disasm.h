@@ -112,6 +112,8 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
            LvalDisAsm(f, ip);
         case IL_PUSHFLDT:
         case IL_PUSHFLDO:
+        case IL_PUSHFLDMT:
+        case IL_PUSHFLDMO:
         case IL_PUSHLOC:
             fprintf(f, "%d", *ip++);
             break;
@@ -119,6 +121,7 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_LVALFLDC:
            LvalDisAsm(f, ip);
         case IL_PUSHFLDC:
+        case IL_PUSHFLDMC:
         {
             int si = *ip++;
             int o1 = *ip++;

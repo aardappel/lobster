@@ -18,7 +18,7 @@
 <h2 id="lexical-definition">Lexical definition</h2>
 <ul>
 <li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
-<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! @</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! @ ? ?.</code></p></li>
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
@@ -44,7 +44,7 @@
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> ) unary</p>
 <p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> ) unary | deref</p>
-<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ ( call | <code>@</code> ident ) ] | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
+<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ ( call | <code>@</code> ident ) ] | <code>?.</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>function</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> ( <code>super</code> exp [ <code>,</code> indlist( exp ) ] ) | [ indlist( exp ) ] <code>]</code> [ <code>:</code> type ]</p>
 <p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> | <code>true</code> | <code>false</code></p>
@@ -103,6 +103,7 @@ f, g := 1</code></pre>
 <p><code>&lt;-</code> is another assignment operator, that re-defines an existing variable using <em>lexically bounded dynamic scope</em> instead of the default lexical scope (see example below). As you can see in the last 2 lines, all of these operators also allow multiple values to be assigned at once (see also multiple return values below).</p>
 <h3 id="indexing">Indexing</h3>
 <p>As indicated, square brackets can be used to index into vectors, with the . notation being a convenient shorthand for constant indices when field names are available. These may be chained arbitrarily (to index into a vector of vectors for example).</p>
+<p>The <code>?.</code> operator will only dereference if its argument is not <code>nil</code>, otherwise return <code>nil</code>.</p>
 <p>You may even use a vector as index, e.g.</p>
 <pre><code>mat := [ [ 1, 2 ],
          [ 3, 4 ] ]

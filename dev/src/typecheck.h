@@ -535,6 +535,7 @@ struct TypeChecker
                 break;
           
             case T_DOT:
+            case T_DOTMAYBE:
                 if (iftrue)
                 {
                     if (type.t == V_NILABLE && condition->left()->type == T_IDENT)
@@ -602,7 +603,7 @@ struct TypeChecker
                     {
                         goto found;
                     }
-                    else if (in.type == T_DOT && in.left()->ident() == n.ident() && assign)
+                    else if ((in.type == T_DOT || in.type == T_DOTMAYBE) && in.left()->ident() == n.ident() && assign)
                     {
                         // We're writing to var V and V.f is in the stack: invalidate regardless.
                         isnil = true;
@@ -611,7 +612,8 @@ struct TypeChecker
                     break;
 
                 case T_DOT:
-                    if (in.type == T_DOT &&
+                case T_DOTMAYBE:
+                    if ((in.type == T_DOT || in.type == T_DOTMAYBE) &&
                         in.left()->ident() == n.left()->ident() &&
                         in.right()->fld() == n.right()->fld())
                     {
@@ -993,15 +995,22 @@ struct TypeChecker
             }
 
             case T_DOT:
+            case T_DOTMAYBE:
             {
-                auto stype = Promote(n.left()->exptype);
+                auto smtype = Promote(n.left()->exptype);
+                auto stype = n.type == T_DOTMAYBE && smtype.t == V_NILABLE
+                             ? smtype.Element()
+                             : smtype;
                 if (stype.t != V_STRUCT)
                     TypeError("struct/value", stype, n, "object");
                 auto struc = st.structtable[stype.idx];
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
                 if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
-                type = uf->type;
+                assert(uf->type.CanWrap());
+                type = n.type == T_DOTMAYBE && smtype.t == V_NILABLE && uf->type.t != V_NILABLE
+                       ? uf->type.Wrap(V_NILABLE)
+                       : uf->type;
                 UseFlow(n);
                 break;
             }

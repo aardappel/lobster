@@ -1045,8 +1045,8 @@ struct VM : VMBase
                 #define GETOFFSET(i, vec, mode) \
                     if (mode == 1) { int o1 = *ip++; int o2 = *ip++; i = (i == vec.vval->type) ? o1 : o2; } \
                     if (mode == 2) { i = codestart[i + vec.vval->type]; }
-                    
-                #define PUSHDEREF(i, dyn, mode) \
+
+                #define PUSHDEREF(i, dyn, mode, maybe) \
                 { \
                     Value r = POP(); \
                     switch (r.type) \
@@ -1054,6 +1054,7 @@ struct VM : VMBase
                         case V_VECTOR: \
                             if (!dyn) { VecType(r); GETOFFSET(i, r, mode); } \
                             IDXErr(i, (int)r.vval->len, r); PUSH(r.vval->at(i).INC()); break; \
+                        case V_NIL: if (maybe) PUSH(r); else Error("dereferencing nil"); \
                         case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); \
                                                   PUSH(Value((int)r.sval->str()[i])); break; } /* else fall thru */ \
                         default: Error(string("cannot index into type ") + BaseTypeName(r.type), r); \
@@ -1061,15 +1062,19 @@ struct VM : VMBase
                     r.DECRT(); \
                     break; \
                 }
-                case IL_PUSHFLDO: { int i = *ip++; PUSHDEREF(i, false, 0); }
-                case IL_PUSHFLDC: { int i = *ip++; PUSHDEREF(i, false, 1); }
-                case IL_PUSHFLDT: { int i = *ip++; PUSHDEREF(i, false, 2); }
+
+                case IL_PUSHFLDO:  { int i = *ip++; PUSHDEREF(i, false, 0, false); }
+                case IL_PUSHFLDMO: { int i = *ip++; PUSHDEREF(i, false, 0, true); }
+                case IL_PUSHFLDC:  { int i = *ip++; PUSHDEREF(i, false, 1, false); }
+                case IL_PUSHFLDMC: { int i = *ip++; PUSHDEREF(i, false, 1, true); }
+                case IL_PUSHFLDT:  { int i = *ip++; PUSHDEREF(i, false, 2, false); }
+                case IL_PUSHFLDMT: { int i = *ip++; PUSHDEREF(i, false, 2, true); }
 
                 case IL_PUSHIDX:
                 {
                     Value idx = POP();
                     int i = GrabIndex(idx);
-                    PUSHDEREF(i, true, -1);
+                    PUSHDEREF(i, true, -1, false);
                 }
 
                 case IL_PUSHLOC:

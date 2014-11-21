@@ -24,7 +24,7 @@ namespace lobster
     F(PUSHFUN) \
     F(PUSHVAR) F(LVALVAR) \
     F(PUSHIDX) F(LVALIDX) \
-    F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
+    F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(PUSHFLDMO) F(PUSHFLDMC) F(PUSHFLDMT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
     F(PUSHLOC) F(LVALLOC) \
     F(BCALL) \
     F(CALL) F(CALLV) F(CALLVCOND) F(DUP) F(CONT1) \
@@ -267,9 +267,10 @@ struct CodeGen
 
             case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->ident()->idx); }; break;
 
-            case T_DOT:   
+            case T_DOT:
+            case T_DOTMAYBE:
                 Gen(n->left(), retval);
-                if (retval) GenFieldAccess(n->right()->fld(), -1);
+                if (retval) GenFieldAccess(n->right()->fld(), -1, n->type == T_DOTMAYBE);
                 break;
 
             case T_INDEX:
@@ -709,19 +710,19 @@ struct CodeGen
         switch (lval->type)
         {
             case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;
-            case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right()->fld(), lvalop); break;
+            case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right()->fld(), lvalop, false); break;
             case T_CO_AT: Gen(lval->coroutine_at(), 1); Emit(IL_LVALLOC, lvalop, lval->coroutine_var()->ident()->idx); break;
             case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); Emit(IL_LVALIDX, lvalop); break;
             default:    parser.Error("lvalue required", lval);
         }
     }
 
-    void GenFieldAccess(SharedField *f, int lvalop)
+    void GenFieldAccess(SharedField *f, int lvalop, bool maybe)
     {
         int om = f->numunique == 1 ? 0 : f->offsettable >= 0 ? 2 : 1;
 
         if (lvalop >= 0) Emit(IL_LVALFLDO + om, lvalop);
-        else Emit(IL_PUSHFLDO + om);
+        else Emit(IL_PUSHFLDO + om + (maybe ? IL_PUSHFLDMO - IL_PUSHFLDO : 0));
 
         switch (om)
         {

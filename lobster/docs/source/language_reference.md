@@ -15,7 +15,7 @@ where possible, but has a lot of unique syntax too.
     by `/*` and `*/` or single line comments starting with `//`
 
 -   Operator tokens are
-    `( ) [ ] : ; , & | + ++ += - -- -= * *= / /= % %= == != < > <= >= <- = := :== ! @`
+    `( ) [ ] : ; , & | + ++ += - -- -= * *= / /= % %= == != < > <= >= <- = := :== ! @ ? ?.`
 
 -   Strings delimited by `"` and character constants with `'` using
     escape codes `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g.
@@ -85,8 +85,8 @@ opexp = unary ( `*` | `/` | `%` || `+` | `-` || `<` | `>` | `>=` | `<=`
 
 unary = ( `-` | `!` | `++` | `--` ) unary | deref
 
-deref = factor [ `[` exp `]` | `.` ident [ ( call | `@` ident ) ] | `++`
-| `--` | call | `is` type ]
+deref = factor [ `[` exp `]` | `.` ident [ ( call | `@` ident ) ] | `?.`
+ident | `++` | `--` | call | `is` type ]
 
 factor = constant | `(` exp `)` | constructor | `function` functiondef |
 `coroutine` ident call | ident [ call ]
@@ -253,6 +253,9 @@ As indicated, square brackets can be used to index into vectors, with
 the . notation being a convenient shorthand for constant indices when
 field names are available. These may be chained arbitrarily (to index
 into a vector of vectors for example).
+
+The `?.` operator will only dereference if its argument is not `nil`,
+otherwise return `nil`.
 
 You may even use a vector as index, e.g.
 

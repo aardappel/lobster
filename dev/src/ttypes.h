@@ -47,6 +47,7 @@ namespace lobster
     T(T_LOGASSIGN, "?=", TT_BINARY, NO, a, NO, b) \
     T(T_DEF, ":=", TT_BINARY, NO, a, NO, b) \
     T(T_DOT, ".", TT_BINARY, NO, a, NO, b) \
+    T(T_DOTMAYBE, "?.", TT_BINARY, NO, a, NO, b) \
     T(T_INT, "integer literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_FLOAT, "floating point literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_STR, "string literal", TT_NOCHILD, NO, a, NO, b) \

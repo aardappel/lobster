@@ -980,11 +980,13 @@ struct Parser
         for (;;) switch (lex.token)
         {
             case T_DOT:
+            case T_DOTMAYBE:
             {
+                auto op = lex.token;
                 lex.Next();
                 string idname = lex.sattr;
                 Expect(T_IDENT);
-                if (IsNext(T_AT))
+                if (IsNext(T_AT) && op == T_DOT)
                 {
                     string fname = lex.sattr;
                     Expect(T_IDENT);
@@ -1001,13 +1003,13 @@ struct Parser
                     SharedField *fld = st.FieldUse(idname);
                     if (fld) 
                     {
-                        n = new Node(lex, T_DOT, n, new Node(lex, fld));
+                        n = new Node(lex, op, n, new Node(lex, fld));
                     }
                     else
                     {
                         auto f = st.FindFunction(idname);
                         auto nf = natreg.FindNative(idname);
-                        if (f || nf)
+                        if ((f || nf) && op == T_DOT)
                         {
                             n = ParseFunctionCall(f, nf, idname, n, false);
                         }
