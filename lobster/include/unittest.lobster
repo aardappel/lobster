@@ -198,7 +198,7 @@ function run_test_cases():
 
     assert(goap_path.length == 9)
     goap_path.pop()
-    assert(equal(goap_path.map(): _.delta.name,
+    assert(equal(goap_path.map(): _.delta & _.delta.name | "",
         ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"]))
 
 

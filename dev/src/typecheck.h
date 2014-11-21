@@ -1,7 +1,7 @@
 
 namespace lobster
 {
-    
+
 struct TypeChecker
 {
     Lex &lex;
@@ -13,7 +13,7 @@ struct TypeChecker
 
     vector<Type> type_variables;
 
-    vector<Ident *> flowstack;  // For now, only for changes from nilable and back.
+    vector<Node *> flowstack;  // For now, only for changes from nilable and back, for ident and dot nodes.
 
     bool verbose;
 
@@ -449,6 +449,7 @@ struct TypeChecker
                     if (arg.flags == AF_ANYTYPE)
                     {
                         arg.type = list->head()->exptype;  // Specialized to arg.
+                        if (verbose) DebugLog(1, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
                     }
                 }
                 for (auto &freevar : sf->freevars.v)
@@ -520,17 +521,25 @@ struct TypeChecker
 
     void CheckFlowTypeChangesSub(bool iftrue, Node *condition)
     {
+        auto type = Promote(condition->exptype);
         switch (condition->type)
         {
             case T_IDENT:
                 if (iftrue)
                 {
-                    auto id = condition->ident();
-                    auto type = Promote(id->type);
                     if (type.t == V_NILABLE)
                     {
-                        flowstack.push_back(id);
-                        id->type = type.Element();
+                        flowstack.push_back(condition);
+                    }
+                }
+                break;
+          
+            case T_DOT:
+                if (iftrue)
+                {
+                    if (type.t == V_NILABLE && condition->left()->type == T_IDENT)
+                    {
+                        flowstack.push_back(condition);
                     }
                 }
                 break;
@@ -564,63 +573,106 @@ struct TypeChecker
         return start;
     }
 
-    void UnFlow(Ident *id)
-    {
-        assert(id->type.CanWrap());  // it was wrapped before.
-        id->type = id->type.Wrap(V_NILABLE);
-    }
-
     void AssignFlow(Node *left, const Node *right)
     {
-        // Check if this assignment breaks a flow based promotion.
-        // If the rhs is not nilable, we keep the id's status, so we early out.
-        if (right->exptype.t != V_NILABLE ||
-            left->exptype.Numeric() ||
-            left->type != T_IDENT) return;
-        // FIXME: this can in theory remove the wrong var, if the same function nests, and the outer one
+        if (left->exptype.Numeric()) return;  // Early out.
+
+        LookupFlow(*left, true, right->exptype.t == V_NILABLE);
+    }
+
+    void UseFlow(Node &n)
+    {
+        if (n.exptype.t != V_NILABLE) return;  // Early out.
+
+        LookupFlow(n, false, true);
+    }
+
+    void LookupFlow(Node &n, bool assign, bool isnil)
+    {
+        // FIXME: this can in theory find the wrong node, if the same function nests, and the outer one
         // was specialized to a nilable and the inner one was not.
         // This would be very rare though, and benign.
         for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it)
         {
-            if (*it == left->ident())
+            auto &in = **it;
+            switch (n.type)
             {
-                UnFlow(*it);
-                left->exptype = (*it)->type;
-                flowstack.erase(std::next(it).base());
-                break;
+                case T_IDENT:
+                    if (in.type == T_IDENT && in.ident() == n.ident())
+                    {
+                        goto found;
+                    }
+                    else if (in.type == T_DOT && in.left()->ident() == n.ident() && assign)
+                    {
+                        // We're writing to var V and V.f is in the stack: invalidate regardless.
+                        isnil = true;
+                        goto found;
+                    }
+                    break;
+
+                case T_DOT:
+                    if (in.type == T_DOT &&
+                        in.left()->ident() == n.left()->ident() &&
+                        in.right()->fld() == n.right()->fld())
+                    {
+                        goto found;
+                    }
+                    break;
+
+                default: assert(0);
             }
+
+            continue;
+
+            found:
+            if (assign)
+            {
+                if (isnil)
+                {
+                    // FLow based promotion is invalidated.
+                    assert(n.exptype.CanWrap());
+                    n.exptype = n.exptype.Wrap(V_NILABLE);
+                    flowstack.erase(std::next(it).base());
+                }
+            }
+            else
+            {
+                n.exptype = n.exptype.Element();
+            }
+            return;
         }
     }
 
     void CleanUpFlow(size_t start)
     {
-        while (flowstack.size() > start)
-        {
-            auto id = flowstack.back();
-            flowstack.pop_back();
-            UnFlow(id);
-        }
+        while (flowstack.size() > start) flowstack.pop_back();
     }
 
-    void TypeCheckAndOr(Node *&n_ptr, bool only_true_type)
+    Type TypeCheckAndOr(Node *&n_ptr, bool only_true_type)
     {
+        // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
+        // and the overal type should be the union of b and c.
+        // Or a? | b, which should also be the union of a and b.
+
         Node &n = *n_ptr;
 
         if (n.type != T_AND && n.type != T_OR)
         {
             TypeCheck(n_ptr);
-            return;
+            auto type = Promote(n.exptype);
+            if (type.t == V_NILABLE && only_true_type) return type.Element();
+            return type;
         }
 
-        TypeCheckAndOr(n.left(), n.type == T_OR);
+        auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR);
         auto flowstart = CheckFlowTypeChanges(n.type == T_AND, n.left());
-        TypeCheckAndOr(n.right(), only_true_type);
+        auto tright = TypeCheckAndOr(n.right(), only_true_type);
         CleanUpFlow(flowstart);
-        // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
-        // and the overal type should be the union of b & c.
+
         n.exptype = only_true_type && n.type == T_AND
-            ? n.right()->exptype
-            : Union(n.left()->exptype, n.right()->exptype, false);
+            ? tright
+            : Union(tleft, tright, false);
+        return n.exptype;
     }
 
     void TypeCheck(Node *&n_ptr)
@@ -738,6 +790,7 @@ struct TypeChecker
 
             case T_IDENT:
                 type = n.ident()->type;
+                UseFlow(n);
                 break;
 
             case T_DEF:
@@ -949,6 +1002,7 @@ struct TypeChecker
                 auto uf = struc->Has(sf);
                 if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
                 type = uf->type;
+                UseFlow(n);
                 break;
             }
 

@@ -22,7 +22,7 @@ struct Type
     int idx;                  // if any t* == V_STRUCT
 
     Type()                       : t(V_ANY), t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1) {}
-    Type(ValueType _t)           : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1) {}
+    explicit Type(ValueType _t)  : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1) {}
     Type(ValueType _t, int _idx) : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(_idx) {}
 
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx && t2 == o.t2 && t3 == o.t3 && t4 == o.t4; }

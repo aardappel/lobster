@@ -16,8 +16,7 @@ function clear(n::astar_node):
 
 function astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
-    n := nil
-    n = startnode
+    n := startnode | nil
     while(n & !endcondition(n)):
         openlist.removeobj(n)
         n.closed = true
