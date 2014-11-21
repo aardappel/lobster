@@ -445,7 +445,7 @@ struct Parser
                 if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
             }
 
-            ParseType(sf->returntype, false);
+            ParseType(sf->returntypes[0], false);
         }
         else
         {
@@ -744,7 +744,7 @@ struct Parser
                     if (!IsNextId()) Error("return from: must be followed by function identifier or \"program\"");
                     auto f = st.FindFunction(lastid);
                     if (!f) Error("return from: not a known function");
-                    if (f->sibf) Error("return from: function must have single implementation");
+                    if (f->sibf || f->multimethod) Error("return from: function must have single implementation");
                     fid = f->idx;
                 }
             }

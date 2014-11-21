@@ -154,6 +154,7 @@ struct SubFunction
     ArgVector locals;
     ArgVector dynscoperedefs;  // any lhs of <-
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
+    vector<Type> returntypes;
 
     Node *body;
 
@@ -163,12 +164,14 @@ struct SubFunction
     int subbytecodestart;
 
     bool typechecked;
-    Type returntype;
 
     SubFunction() 
         : parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
-          typechecked(false), returntype(V_UNDEFINED) {}
+          typechecked(false)
+    {
+        returntypes.push_back(Type());  // functions always have at least 1 return value.
+    }
 
     void SetParent(Function &f, SubFunction *&link)
     {

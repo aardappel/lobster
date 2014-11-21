@@ -1,6 +1,8 @@
 - allow random number generator to be selected
 
 - typechecker
+  * coroutine type checking!
+
   * struct specialization
     * multimethods?
     * superclass types?

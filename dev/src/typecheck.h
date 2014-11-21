@@ -130,7 +130,11 @@ struct TypeChecker
     Type UnifyVar(const Type &type, const Type &hasvar)
     {
         auto &var = type_variables[hasvar.idx];
-        if (var.t == V_UNDEFINED) var = type;
+        if (var.t == V_UNDEFINED)
+        {
+            auto pt = Promote(type);
+            if (pt.t != V_VAR || pt.idx != hasvar.idx) var = pt;
+        }
         return var;
     }
 
@@ -217,7 +221,9 @@ struct TypeChecker
                     }
                     TypeCheck(*sf, sf->body);
                     // Covariant again.
-                    if (!ConvertsTo(sf->returntype, ss->returntype, false)) break;
+                    if (sf->returntypes.size() != ss->returntypes.size() ||
+                        !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false)) break;
+                    assert(ss->returntypes.size() == 1);  // Parser only parsers one ret type for function types.
                     return;
                 }
                 break;
@@ -225,7 +231,7 @@ struct TypeChecker
         error:
         TypeError(TypeName(sub).c_str(), type, *a, argname, context);
     }
-    void SubType(Type &type, const Type &sub, const Node &n, const char *argname, const char *context)
+    void SubType(Type &type, const Type &sub, const Node &n, const char *argname, const char *context = nullptr)
     {
         if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n, argname, context);
         type = Promote(type);
@@ -273,11 +279,20 @@ struct TypeChecker
 
     SubFunction *TopScope(vector<Scope> &scopes) { return scopes.empty() ? nullptr : scopes.back().sf; }
 
-    void RetVal(Node *&a, SubFunction *sf)
+    void RetVal(Node *&a, SubFunction *sf, size_t i, Type *exacttype = nullptr)
     {
         if (!sf) return;
-        if (a) SubType(a, sf->returntype, nullptr, "return value");
-        else sf->returntype = Type();  // FIXME: this allows "return" followed by "return 1" ?
+        if (i >= sf->returntypes.size())
+        {
+            assert(i == sf->returntypes.size());
+            sf->returntypes.push_back(exacttype ? *exacttype : a->exptype);
+        }
+        else
+        {
+            if (exacttype) SubType(*exacttype, sf->returntypes[i], *a, nullptr);
+            else if (a) SubType(a, sf->returntypes[i], nullptr, "return value");
+            else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
+        }
     }
 
     void TypeCheck(SubFunction &sf, const Node *call_context)
@@ -314,7 +329,8 @@ struct TypeChecker
                 i++;
             }
 
-            sf.returntype = NewTypeVar();
+            // FIXME: this would not be able to typecheck recursive functions with multiret.
+            sf.returntypes[0] = NewTypeVar();
             TypeCheck(sf.body);
 
             for (auto &back : backup_args.v) back.id->type = back.type;
@@ -323,7 +339,7 @@ struct TypeChecker
             Node *last = nullptr;
             for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
             assert(last);
-            if (last->head()->type != T_RETURN) RetVal(last->head(), TopScope(scopes));
+            if (last->head()->type != T_RETURN) RetVal(last->head(), TopScope(scopes), 0);
 
             if (!sf.parent->anonymous) named_scopes.pop_back();
             scopes.pop_back();
@@ -399,8 +415,8 @@ struct TypeChecker
             // Should attempt static picking as well, if static pick succeeds, specialize.
             // FIXME: no need to repeat this on every call.
             for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf, function_def_node);
-            Type type = f.subf->returntype;
-            for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntype, false);
+            Type type = f.subf->returntypes[0];
+            for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntypes[0], false);
             return type;
         }
         else
@@ -469,8 +485,8 @@ struct TypeChecker
             }
             if (!f.istype) TypeCheck(*sf, function_def_node);
             function_def_node->sf() = sf;
-            if (verbose) DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntype).c_str());
-            return sf->returntype;
+            if (verbose) DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
+            return sf->returntypes[0];
         }
     }
 
@@ -574,11 +590,11 @@ struct TypeChecker
         return start;
     }
 
-    void AssignFlow(Node *left, const Node *right)
+    void AssignFlow(Node *left, bool isnil)
     {
         if (left->exptype.Numeric()) return;  // Early out.
 
-        LookupFlow(*left, true, right->exptype.t == V_NILABLE);
+        LookupFlow(*left, true, isnil);
     }
 
     void UseFlow(Node &n)
@@ -613,7 +629,8 @@ struct TypeChecker
 
                 case T_DOT:
                 case T_DOTMAYBE:
-                    if ((in.type == T_DOT || in.type == T_DOTMAYBE) &&
+                    if (n.left()->type == T_IDENT &&
+                        (in.type == T_DOT || in.type == T_DOTMAYBE) &&
                         in.left()->ident() == n.left()->ident() &&
                         in.right()->fld() == n.right()->fld())
                     {
@@ -796,14 +813,59 @@ struct TypeChecker
                 break;
 
             case T_DEF:
+            case T_ASSIGNLIST:
             {
-                auto id = n.left()->ident();
-                type = n.right()->exptype;
-                n.left()->exptype = type;
-                id->type = type;
-                if (verbose) DebugLog(1, "var: %s:%s", id->name.c_str(), TypeName(type).c_str());
+                auto dl = &n;
+                vector<Node *> ids;
+                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
+                {
+                    ids.push_back(dl->left());
+                }
+                size_t i = 0;
+                for (auto id : ids)
+                {
+                    if (!dl) parser.Error("right hand side does not return enough values", &n);
+                    auto type = dl->exptype;
+                    switch (dl->type)
+                    {
+                        case T_CALL:
+                        {
+                            auto sf = dl->call_function()->sf();
+                            if (sf->returntypes.size() <= i)
+                            {
+                                string nvals = inttoa(sf->returntypes.size());
+                                parser.Error("function " + sf->parent->name + " returns " + nvals + " values, " +
+                                             inttoa(ids.size()) + " requested", &n);
+                            }
+                            type = sf->returntypes[i];
+                            break;
+                        }
+
+                        case T_MULTIRET:
+                            type = dl->headexp()->exptype;
+                            dl = dl->tailexps();
+                    }
+                    if (n.type == T_DEF)
+                    {
+                        id->exptype = type;
+                        id->ident()->type = type;
+                        if (verbose) DebugLog(1, "var: %s:%s", id->ident()->name.c_str(), TypeName(type).c_str());
+                    }
+                    else
+                    {
+                        AssignFlow(id, type.t == V_NILABLE);
+                        SubType(type, id->exptype, n, "right");
+                    }
+                    i++;
+                }
                 break;
             }
+
+            case T_ASSIGN:
+                AssignFlow(n.left(), n.right()->exptype.t == V_NILABLE);
+                SubType(n.right(), n.left()->exptype, "right", n);
+                type = n.left()->exptype;
+                break;
 
             case T_NATCALL:
             {
@@ -875,16 +937,36 @@ struct TypeChecker
 
             case T_RETURN:
             {
-                // FIXME multiret
-                auto sf = TopScope(named_scopes);
-                if (sf == st.functiontable[n.return_function_idx()->integer()]->subf)
+                auto sf_lexical = TopScope(named_scopes);
+                // Even if this function is specialized, the current one should be the top one.
+                auto sf = st.functiontable[n.return_function_idx()->integer()]->subf;
+                if (sf != sf_lexical)
                 {
-                    RetVal(n.return_value(), sf);
+                    // This is a non-local return.
+                    // FIXME: this is returnining from a specialized version, should really make VM implementation use
+                    // SubFunction too.
+                    if (!sf->typechecked)
+                        parser.Error("return from " + sf->parent->name + " called out of context", &n);
+                }
+                if (n.return_value()->type == T_MULTIRET)
+                {
+                    int i = 0;
+                    for (auto mr = n.return_value(); mr; mr = mr->tailexps())
+                    {
+                        RetVal(mr->headexp(), sf, i++);
+                    }
+                }
+                else if (n.return_value()->type == T_CALL &&
+                            n.return_value()->call_function()->sf()->returntypes.size() > 1)
+                {
+                    // Multi-ret pass-thru:
+                    size_t i = 0;
+                    for (auto &type : n.return_value()->call_function()->sf()->returntypes)
+                        RetVal(n.return_value(), sf, i++, &type);
                 }
                 else
                 {
-                    // FIXME: return from .. target function may not be typechecking right now?
-                    assert(0);
+                    RetVal(n.return_value(), sf, 0);
                 }
                 type = n.return_value()->exptype;
                 break;
@@ -895,8 +977,8 @@ struct TypeChecker
                 Node *args = nullptr;
                 if (n.if_branches()->right()->type != T_NIL)
                 {
-                    auto tleft  = TypeCheckBranch(true, n.if_condition(), n.if_branches()->left(), &args);
-                    auto tright = TypeCheckBranch(true, n.if_condition(), n.if_branches()->right(), &args);
+                    auto tleft  = TypeCheckBranch(true,  n.if_condition(), n.if_branches()->left(), &args);
+                    auto tright = TypeCheckBranch(false, n.if_condition(), n.if_branches()->right(), &args);
                     type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
@@ -905,7 +987,7 @@ struct TypeChecker
                 }
                 else
                 {
-                    TypeCheckDynCall(n.if_branches()->left(), &args);
+                    TypeCheckBranch(true, n.if_condition(), n.if_branches()->left(), &args);
                     // No else: this currently returns either the condition or the branch value.
                     type = Type();
                 }
@@ -1046,12 +1128,6 @@ struct TypeChecker
                 type = n.right()->exptype;
                 break;
 
-            case T_ASSIGN:
-                AssignFlow(n.left(), n.right());
-                SubType(n.right(), n.left()->exptype, "right", n);
-                type = n.left()->exptype;
-                break;
-
             case T_COCLOSURE:
                 type = Type(V_FUNCTION, -1);
                 break;
@@ -1068,13 +1144,9 @@ struct TypeChecker
 
             case T_CO_AT:
 
-            case T_ASSIGNLIST:
 
 
             case T_MULTIRET:
-
-
-
             case T_FUN:
             case T_NATIVE:
             case T_LIST:

@@ -205,6 +205,8 @@ function run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // coroutines test
 
+    /*
+
     function mycoro(f):
         forrange(3, 6): f(_)
         1337
@@ -245,6 +247,8 @@ function run_test_cases():
 
     co = coroutine loctest()
     assert(co.a@loctest + co.i@loctest + co.b@loctest == 3)
+
+    */
 
     // ////////////////////////////////////////////////////////////////////////
     // structure offsets test
@@ -309,9 +313,10 @@ function run_test_cases():
     assert(seconds_elapsed() - starttime > 0)
 
     function cycletest():
-        cycle := [ "cycleouter", nil, [ "cycleinner", nil ] ]
-        cycle[1] = cycle
-        cycle[2][1] = cycle[2]
+        value cyclist: [ name, loop, next ]
+        cycle := [ "cycleouter", nil, [ "cycleinner", nil, nil ]:cyclist ]:cyclist
+        cycle.loop = cycle
+        cycle.next.loop = cycle.next
 
     cycletest()
     assert(collect_garbage() == 4) // 2 vectors, 2 strings

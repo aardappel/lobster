@@ -287,15 +287,13 @@ struct CodeGen
             case T_DEF:
             case T_ASSIGNLIST:
             {
-                int num = 0;
                 auto dl = n;
                 vector<Ident *> ids;
                 for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
                 {
                     ids.push_back(dl->left()->ident());
-                    num++;
                 }
-                Gen(dl, num);
+                Gen(dl, ids.size());
                 dl = n;
                 for (int i = ids.size() - 1; i >= 0; i--)
                 {
@@ -486,7 +484,6 @@ struct CodeGen
                 assert(retval);
                 for (; n; n = n->tailexps())
                 {
-                    assert(n->type == T_MULTIRET);
                     Gen(n->headexp(), true);
                     maxretvalsupplied++;
                 }
