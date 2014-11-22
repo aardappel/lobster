@@ -957,7 +957,7 @@ void AddMeshGen()
         sq->exp = ValueDecTo<float3>(exps);
         return AddShape(sq);
     }
-    ENDDECL1(mg_superquadric, "exponents", "V", "",
+    ENDDECL1(mg_superquadric, "exponents", "F]", "",
         "a super quadric. specify an exponent of 2 for spherical, higher values for rounded squares");
 
     STARTDECL(mg_supertoroid) (Value &r, Value &exps)

@@ -119,7 +119,7 @@ struct TypeChecker
         else if (type.t == V_VECTOR || type.t == V_NILABLE)
         {
             auto pe = Promote(type.Element());
-            return pe.CanWrap() ? pe.Wrap(type.t) : type;
+            return pe.Wrap(type.t);
         }
         else
         {
@@ -153,7 +153,7 @@ struct TypeChecker
                                     (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                     ConvertsTo(type, sub.Element(), false);
             case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
-                                     (type.t == V_STRUCT && sub.t2 == V_ANY));
+                                     (type.t == V_STRUCT && ConvertsTo(st.structtable[type.idx]->vectortype, sub, false)));
             case V_STRUCT:   return type.t == V_STRUCT && st.IsSuperTypeOrSame(sub.idx, type.idx);
         }
         return false;
@@ -346,12 +346,29 @@ struct TypeChecker
         }
     }
 
+    Struct *ComputeStructVectorType(Struct *struc)
+    {
+        if (struc->fields.size())
+        {
+            Type vectortype = struc->fields[0].type;
+            for (size_t i = 1; i < struc->fields.size(); i++)
+            {
+                // FIXME: Can't use Union here since it will bind variables
+                //vectortype = Union(vectortype, struc->fields[i].type, false);
+                // use simplified alternative:
+                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = Type();
+            }
+            struc->vectortype = vectortype.Wrap();
+        }
+        return struc;
+    }
+
     Struct *SpecializeStruct(Struct *head, const Node *args)
     {
         // This code is very similar to function specialization, but not similar enough to share.
         // If they're all typed, we bail out early:
         for (auto &field : head->fields) if (field.flags == AF_ANYTYPE) goto specialize;
-        return head;
+        return ComputeStructVectorType(head);  // FIXME: computes vector type repeatedly
 
         // First collect types for all args.
         specialize:
@@ -403,8 +420,9 @@ struct TypeChecker
             auto &field = struc->fields[i++];
             if (field.flags == AF_ANYTYPE) field.type = type;  // Specialize to arg.
         }
+
         if (verbose) DebugLog(1, "specialized struct: %s", Signature(struc).c_str());
-        return struc;
+        return ComputeStructVectorType(struc);
     }
 
     Type TypeCheckCall(Function &f, Node *call_args, Node *function_def_node)
@@ -499,11 +517,12 @@ struct TypeChecker
             auto &f = *st.functiontable[ftype.idx];
             // Check we have correct number of args:
             int i = 0;
-            for (Node **list = args_ptr; *list; list = &(*list)->tail())
+            for (auto list = args_ptr; *list; list = &(*list)->tail())
             {
                 i++;
                 if (i > f.nargs())
                 {
+                    // FIXME: this is not cool for clones.
                     // We just throw away excess args here.
                     delete *list;
                     *list = nullptr;
@@ -649,7 +668,6 @@ struct TypeChecker
                 if (isnil)
                 {
                     // FLow based promotion is invalidated.
-                    assert(n.exptype.CanWrap());
                     n.exptype = n.exptype.Wrap(V_NILABLE);
                     flowstack.erase(std::next(it).base());
                 }
@@ -906,16 +924,17 @@ struct TypeChecker
                 if (nf->retvals.v.size())
                 {
                     // FIXME: multiple retvals
-                    switch (nf->retvals.v[0].flags)
+                    auto &ret = nf->retvals.v[0];
+                    switch (ret.flags)
                     {
                         case NF_SUBARG1:
-                            type = argtypes[0]; 
+                            type = ret.type.t == V_NILABLE ? argtypes[0].Wrap(V_NILABLE) : argtypes[0];
                             break;
                         case NF_ANYVAR: 
-                            type = nf->retvals.v[0].type.t == V_VECTOR ? NewTypeVar().Wrap() : NewTypeVar(); 
+                            type = ret.type.t == V_VECTOR ? NewTypeVar().Wrap() : NewTypeVar(); 
                             break;
                         default:
-                            type = nf->retvals.v[0].type; 
+                            type = ret.type; 
                             break;
                     }
                 }
@@ -937,9 +956,12 @@ struct TypeChecker
 
             case T_RETURN:
             {
+                auto fid = n.return_function_idx()->integer();
+                if (fid < 0) break;  // return from program
+
                 auto sf_lexical = TopScope(named_scopes);
                 // Even if this function is specialized, the current one should be the top one.
-                auto sf = st.functiontable[n.return_function_idx()->integer()]->subf;
+                auto sf = st.functiontable[fid]->subf;
                 if (sf != sf_lexical)
                 {
                     // This is a non-local return.
@@ -1089,7 +1111,6 @@ struct TypeChecker
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
                 if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
-                assert(uf->type.CanWrap());
                 type = n.type == T_DOTMAYBE && smtype.t == V_NILABLE && uf->type.t != V_NILABLE
                        ? uf->type.Wrap(V_NILABLE)
                        : uf->type;

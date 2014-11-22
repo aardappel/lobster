@@ -179,7 +179,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL1(pop, "xs", "V", "A",
+    ENDDECL1(pop, "xs", "V", "A1",
         "removes last element from vector and returns it");
 
     STARTDECL(top) (Value &l)
@@ -189,7 +189,7 @@ void AddBuiltins()
         l.DEC();
         return v.INC();
     }
-    ENDDECL1(top, "xs", "V", "A",
+    ENDDECL1(top, "xs", "V", "A1",
         "returns last element from vector");
 
     STARTDECL(replace) (Value &l, Value &i, Value &a)
@@ -229,7 +229,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL3(remove, "xs,i,n", "VIi", "A",
+    ENDDECL3(remove, "xs,i,n", "VIi", "A1",
         "remove element(s) at index i, following elements shift down. pass the number of elements to remove"
         " as an optional argument, default 1. returns the first element removed.");
 
@@ -329,7 +329,7 @@ void AddBuiltins()
         v.DECRT();
         return r;
     }
-    ENDDECL1(any, "xs", "V", "A",
+    ENDDECL1(any, "xs", "V", "a1",
         "returns the first true element of the vector, or nil");
 
     STARTDECL(all) (Value &v)
@@ -388,7 +388,7 @@ void AddBuiltins()
         whitespace.DECRT();
         return Value(v);
     }
-    ENDDECL3(tokenize, "s,delimiters,whitespace", "SSS", "V",
+    ENDDECL3(tokenize, "s,delimiters,whitespace", "SSS", "S]",
         "splits a string into a vector of strings, by splitting into segments upon each dividing or terminating"
         " delimiter. Segments are stripped of leading and trailing whitespace."
         " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and \" \" as whitespace." );
@@ -407,7 +407,7 @@ void AddBuiltins()
         }
         return Value(g_vm->NewString(s));
     }
-    ENDDECL1(unicode2string, "us", "V", "S",
+    ENDDECL1(unicode2string, "us", "I]", "S",
         "converts a vector of ints representing unicode values to a UTF-8 string.");
 
     STARTDECL(string2unicode) (Value &s)
@@ -424,7 +424,7 @@ void AddBuiltins()
         }
         return Value(v).INC();
     }
-    ENDDECL1(string2unicode, "s", "S", "V",
+    ENDDECL1(string2unicode, "s", "S", "I]?",
         "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error");
 
     STARTDECL(number2string) (Value &n, Value &b, Value &mc)
@@ -506,7 +506,7 @@ void AddBuiltins()
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
 
     STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval * RAD), sinf(a.fval * RAD), 0.0f)); }
-    ENDDECL1(sincos, "angle", "F", "V",
+    ENDDECL1(sincos, "angle", "F", "F]",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
 
     STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval) / RAD); } ENDDECL1(arcsin, "y", "F", "F",
@@ -515,7 +515,7 @@ void AddBuiltins()
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2) (Value &vec) { auto v = ValueDecTo<float3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } 
-    ENDDECL1(atan2, "vec",  "V" , "F",
+    ENDDECL1(atan2, "vec",  "F]" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
 
     STARTDECL(normalize) (Value &vec)
@@ -523,18 +523,18 @@ void AddBuiltins()
         auto v = ValueDecTo<float3>(vec);
         return ToValue(v == float3_0 ? v : normalize(v)); 
     }
-    ENDDECL1(normalize, "vec",  "V" , "V",
+    ENDDECL1(normalize, "vec",  "F]" , "F]",
         "returns a vector of unit length");
 
     STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecTo<float4>(a), ValueDecTo<float4>(b))); }
-    ENDDECL2(dot,   "a,b", "VV", "F",
+    ENDDECL2(dot,   "a,b", "F]F]", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
-    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "V", "F",
+    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "F]", "F",
         "the geometric length of a vector");
 
     STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); }
-    ENDDECL2(cross, "a,b", "VV", "V",
+    ENDDECL2(cross, "a,b", "F]F]", "F]",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
     STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd, "max", "A", "A",
@@ -591,7 +591,7 @@ void AddBuiltins()
         a.DECRT();
         return g_vm->BuiltinError("abs() needs a numerical value or numerical vector");
     }
-    ENDDECL1(abs, "x", "A", "A",
+    ENDDECL1(abs, "x", "A", "A1",
         "absolute value of int/float/vector");
 
     #define MINMAX(op,name) \
@@ -625,7 +625,7 @@ void AddBuiltins()
                                        ValueDecTo<float3>(b),
                                        ValueDecTo<float3>(c), f.fval, t.fval));
     }
-    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "VVVVFF", "V",
+    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]",
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
         " cardinal spline (tension at 0.5 is a good default)");
 

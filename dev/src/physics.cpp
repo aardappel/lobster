@@ -139,7 +139,7 @@ void AddPhysicsOps()
 		InitPhysics(ValueDecTo<float2>(gravity));
 		return Value();
 	}
-	ENDDECL1(ph_initialize, "gravityvector", "V", "",
+	ENDDECL1(ph_initialize, "gravityvector", "F]", "",
         "initializes or resets the physical world, gravity typically [0, -10].");
 
 	STARTDECL(ph_createbox) (Value &position, Value &size, Value &offset, Value &rot, Value &other_id)

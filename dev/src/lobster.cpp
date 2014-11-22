@@ -236,7 +236,7 @@ void DumpBuiltins()
                     i ? ", " : "",
                     nf->args.GetName(i).c_str(),
                     a.type.t == V_ANY ? "" : (string(":") + 
-                        BaseTypeName(a.type.t == V_NILABLE ? a.type.Element().t : a.type.t)).c_str(),
+                        (a.type.t == V_NILABLE ? a.type.Element() : a.type).Name()).c_str(),
                     a.type.t == V_NILABLE ? "]" : ""
                 );
                 i++;
@@ -249,7 +249,7 @@ void DumpBuiltins()
                 for (auto &a : nf->retvals.v)
                 {
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
-                                a.type.t == V_ANY ? "any" : BaseTypeName(a.type.t), 
+                                a.type.Name().c_str(), 
                                 i++ < nf->retvals.v.size() - 1 ? ", " : "");
                 }
             }

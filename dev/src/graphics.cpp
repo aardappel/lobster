@@ -163,7 +163,7 @@ void AddGraphics()
 
         return Value(0, V_NIL);
     }
-    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIIi", "A",
+    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIIi", "s",
         "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
 
     STARTDECL(gl_loadmaterials) (Value &fn)
@@ -173,7 +173,7 @@ void AddGraphics()
         fn.DECRT();
         return err[0] ? Value(g_vm->NewString(err)) : Value(0, V_NIL);
     }
-    ENDDECL1(gl_loadmaterials, "filename", "S", "A",
+    ENDDECL1(gl_loadmaterials, "filename", "S", "s",
         "loads an additional materials file (shader/default.materials is already loaded by default by gl_window())."
         " returns error string if any problems, nil otherwise.");
 
@@ -286,14 +286,14 @@ void AddGraphics()
     {
         return ToValue(screensize);
     }
-    ENDDECL0(gl_windowsize, "", "", "V",
+    ENDDECL0(gl_windowsize, "", "", "I]",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
     STARTDECL(gl_mousepos) (Value &i)
     {
         return ToValue(GetFinger(i.ival, false));
     }
-    ENDDECL1(gl_mousepos, "i", "I", "V",
+    ENDDECL1(gl_mousepos, "i", "I", "I]",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
@@ -301,7 +301,7 @@ void AddGraphics()
     {
         return ToValue(GetFinger(i.ival, true));
     }
-    ENDDECL1(gl_mousedelta, "i", "I", "V",
+    ENDDECL1(gl_mousedelta, "i", "I", "I]",
         "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
         " to correctly deal with lifted fingers and FPS mode (gl_cursor(0))");
 
@@ -309,7 +309,7 @@ void AddGraphics()
     {
         return ToValue(localfingerpos(i.ival));
     }
-    ENDDECL1(gl_localmousepos, "i", "I", "V",
+    ENDDECL1(gl_localmousepos, "i", "I", "F]",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
@@ -319,7 +319,7 @@ void AddGraphics()
         name.DEC();
         return ToValue(p);
     }
-    ENDDECL2(gl_lastpos, "name,down", "SI", "V",
+    ENDDECL2(gl_lastpos, "name,down", "SI", "I]",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
@@ -328,7 +328,7 @@ void AddGraphics()
         name.DEC();
         return ToValue(p);
     }
-    ENDDECL2(gl_locallastpos, "name,down", "SI", "V",
+    ENDDECL2(gl_locallastpos, "name,down", "SI", "F]",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_mousewheeldelta) ()
@@ -375,7 +375,7 @@ void AddGraphics()
         ClearFrameBuffer(ValueDecTo<float3>(col));
         return Value();
     }
-    ENDDECL1(gl_clear, "col", "V", "",
+    ENDDECL1(gl_clear, "col", "F]", "",
         "clears the framebuffer (and depth buffer) to the given color");
 
     STARTDECL(gl_color) (Value &col, Value &body)
@@ -515,7 +515,7 @@ void AddGraphics()
         auto pos = float2(object2view[3].x(), object2view[3].y());
         return ToValue(pos);
     }
-    ENDDECL0(gl_origin, "", "", "V",
+    ENDDECL0(gl_origin, "", "", "F]",
         "returns a vector representing the current transform origin in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
@@ -524,7 +524,7 @@ void AddGraphics()
         auto sc = float2(object2view[0].x(), object2view[1].y());
         return ToValue(sc);
     }
-    ENDDECL0(gl_scaling, "", "", "V",
+    ENDDECL0(gl_scaling, "", "", "F]",
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
@@ -593,7 +593,7 @@ void AddGraphics()
 
         return vec;
     }
-    ENDDECL1(gl_rect, "vec", "V", "V",
+    ENDDECL1(gl_rect, "vec", "F]", "F]",
         "renders a rectangle of the given size. returns the argument.");
 
     STARTDECL(gl_line) (Value &start, Value &end, Value &thickness)
@@ -712,7 +712,7 @@ void AddGraphics()
         for (auto s : m->surfs) v->push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }
-    ENDDECL1(gl_meshparts, "i", "I", "V",
+    ENDDECL1(gl_meshparts, "i", "I", "S]",
         "returns an array of names of all parts of mesh i (names may be empty)");
 
     STARTDECL(gl_meshsize) (Value &i)
@@ -854,7 +854,7 @@ void AddGraphics()
         mat.DECRT();
         return Value(0);
     }
-    ENDDECL1(gl_createtexture, "matrix", "V", "I",
+    ENDDECL1(gl_createtexture, "matrix", "F]]]", "I",
         "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array");
 
     STARTDECL(gl_deletetexture) (Value &i)
@@ -883,7 +883,7 @@ void AddGraphics()
         lights.push_back(l);
         return Value();
     }
-    ENDDECL1(gl_light, "pos", "V", "",
+    ENDDECL1(gl_light, "pos", "F]", "",
         "sets up a light at the given position for this frame. make sure to call this after your camera transforms"
         " but before any object transforms (i.e. defined in \"worldspace\").");
 

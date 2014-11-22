@@ -63,6 +63,16 @@ struct Type
     }
 
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
+
+    string Name() const  // use SymbolTable::TypeName or TypeChecker::TypeName for more specific types
+    {
+        switch (t)
+        {
+            case V_VECTOR: return "[" + Element().Name() + "]";
+            case V_NILABLE: return Element().Name() + "?";
+            default: return BaseTypeName(t);
+        }
+    }
 };
 
 struct Name : Serializable
@@ -102,32 +112,35 @@ template<typename T> struct Typed
     void Set(const char *&tid)
     {
         char t = *tid++;
-        char idx = isalpha(*tid) ? 0 : *tid++;
         flags = AF_NONE;
         bool optional = false;
-        if (t >= 'a') { optional = true; t -= 'a' - 'A'; }
+        if (t >= 'a' && t <= 'z') { optional = true; t -= 'a' - 'A'; }  // Deprecated, use '?'
         switch (t)
         {
             case 'I': type.t = V_INT; break;
             case 'F': type.t = V_FLOAT; break;
             case 'S': type.t = V_STRING; break;
-            case 'V': type.t = V_VECTOR; break;
+            case 'V': type.t = V_VECTOR; break;  // Deprecated, use ']'
             case 'C': type.t = V_FUNCTION; break;
             case 'R': type.t = V_COROUTINE; break;
             case 'A': type.t = V_ANY; break;
             default:  assert(0);
         }
-        switch (idx)
+        while (*tid && !isalpha(*tid))
         {
-            case 0: break;
-            case '1': flags = NF_SUBARG1; break;
-            case '*': flags = NF_ANYVAR; break;
-            case '@': flags = NF_EXPFUNVAL; break;
-            default: assert(0);
+            switch (*tid++)
+            {
+                case 0: break;
+                case '1': flags = NF_SUBARG1; break;
+                case '*': flags = NF_ANYVAR; break;
+                case '@': flags = NF_EXPFUNVAL; break;
+                case ']': type = type.Wrap(); break;
+                case '?': type = type.Wrap(V_NILABLE); break;
+                default: assert(0);
+            }
         }
         if (optional)
         {
-            assert(type.CanWrap());
             type = type.Wrap(V_NILABLE);
         }
     }

@@ -119,8 +119,11 @@ struct Struct : Name
     bool readonly;
     bool typechecked;
 
+    Type vectortype;  // What kind of vector this can be demoted to.
+
     Struct(const string &_name, int _idx)
-        : Name(_name, _idx), next(nullptr), superclass(nullptr), superclassidx(-1), readonly(false), typechecked(false) {}
+        : Name(_name, _idx), next(nullptr), superclass(nullptr), superclassidx(-1), readonly(false), typechecked(false),
+          vectortype(Type(V_VECTOR)) {}
     Struct() : Struct("", 0) {}
 
     void Serialize(Serializer &ser)

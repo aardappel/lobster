@@ -44,7 +44,7 @@ inline const char *BaseTypeName(ValueType t)
     static const char *typenames[] =
     {
         "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined", "nilable", "any", "anything",
+        "int", "float", "function", "nil", "undefined", "nilable", "any", "variable",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
