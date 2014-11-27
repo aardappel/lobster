@@ -1,4 +1,5 @@
-/dev/src/*.o
+/dev/**/*.o
+/dev/src/lobster
 *.suo
 *.lbc
 

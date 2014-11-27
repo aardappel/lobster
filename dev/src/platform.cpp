@@ -15,6 +15,7 @@
 // misc platform specific stuff
 
 #include "stdafx.h"
+#include <stdarg.h>
 
 #ifdef WIN32
     #define VC_EXTRALEAN
