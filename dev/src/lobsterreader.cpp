@@ -156,7 +156,7 @@ void AddReaderOps()
         ins.DEC();
         return v;
     }
-    ENDDECL1(parse_data, "stringdata", "S", "AA",
+    ENDDECL1(parse_data, "stringdata", "S", "As",
         "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data"
         " structure to a string) back into a data structure. supports int/float/string/vector and structs."
         " structs will be forced to be compatible with their current definitions, i.e. too many elements will be"

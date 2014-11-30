@@ -13,7 +13,12 @@ struct TypeChecker
 
     vector<Type> type_variables;
 
-    vector<Node *> flowstack;  // For now, only for changes from nilable and back, for ident and dot nodes.
+    struct FlowItem
+    {
+        const Node *item;  // For now, only for ident and dot nodes.
+        Type old, now;
+    };
+    vector<FlowItem> flowstack;
 
     bool verbose;
 
@@ -425,14 +430,14 @@ struct TypeChecker
         return ComputeStructVectorType(struc);
     }
 
-    Type TypeCheckCall(Function &f, Node *call_args, Node *function_def_node)
+    Type TypeCheckCall(Function &f, Node *call_args, Node &function_def_node)
     {
         if (f.multimethod)
         {
             // Simplistic: typechecked with actual argument types.
             // Should attempt static picking as well, if static pick succeeds, specialize.
             // FIXME: no need to repeat this on every call.
-            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf, function_def_node);
+            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf, &function_def_node);
             Type type = f.subf->returntypes[0];
             for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntypes[0], false);
             return type;
@@ -452,7 +457,7 @@ struct TypeChecker
                 for (; sf && sf->typechecked; sf = sf->next)
                 {
                     int i = 0;
-                    for (Node *list = call_args; list; list = list->tail())
+                    for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
                     {
                         auto &arg = sf->args.v[i++];
                         if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
@@ -477,7 +482,7 @@ struct TypeChecker
                     sf->body = f.subf->next->body->Clone();
                 }
                 int i = 0;
-                for (Node *list = call_args; list; list = list->tail())
+                for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
                 {
                     auto &arg = sf->args.v[i++];
                     if (arg.flags == AF_ANYTYPE)
@@ -496,43 +501,31 @@ struct TypeChecker
             // Here we have a SubFunction witch matching specialized types.
             // First check all the manually typed args.
             int i = 0;
-            for (Node *list = call_args; list; list = list->tail())
+            for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
             {
                 auto &arg = sf->args.v[i++];
                 if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
             }
-            if (!f.istype) TypeCheck(*sf, function_def_node);
-            function_def_node->sf() = sf;
+            if (!f.istype) TypeCheck(*sf, &function_def_node);
+            function_def_node.sf() = sf;
             if (verbose) DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
             return sf->returntypes[0];
         }
     }
 
-    Type TypeCheckDynCall(Node *fval, Node **args_ptr, Node *fdef = nullptr)
+    Type TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
     {
-        auto ftype = Promote(fval->exptype);
+        auto ftype = Promote(fval.exptype);
         if (ftype.t == V_FUNCTION && ftype.idx >= 0)
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
             auto &f = *st.functiontable[ftype.idx];
-            // Check we have correct number of args:
-            int i = 0;
-            for (auto list = args_ptr; *list; list = &(*list)->tail())
-            {
-                i++;
-                if (i > f.nargs())
-                {
-                    // FIXME: this is not cool for clones.
-                    // We just throw away excess args here.
-                    delete *list;
-                    *list = nullptr;
-                    break;
-                }
-            }
-            if (i < f.nargs())
-                TypeError("function value called with too few arguments", *fval);
 
-            return TypeCheckCall(f, *args_ptr, fdef ? fdef : fval->closure_def());
+            if (Parser::CountList(*args_ptr) < f.nargs())
+                TypeError("function value called with too few arguments", fval);
+            // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
+
+            return TypeCheckCall(f, *args_ptr, fdef ? *fdef : *fval.closure_def());
         }
         else
         {
@@ -546,7 +539,7 @@ struct TypeChecker
         }
     }
 
-    Type TypeCheckBranch(bool iftrue, Node *condition, Node *fval, Node **args_ptr)
+    Type TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node **args_ptr)
     {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
         auto type = TypeCheckDynCall(fval, args_ptr);
@@ -554,51 +547,51 @@ struct TypeChecker
         return type;
     }
 
-    void CheckFlowTypeChangesSub(bool iftrue, Node *condition)
+    void CheckFlowTypeIdOrDot(const Node &n, const Type &type)
     {
-        auto type = Promote(condition->exptype);
-        switch (condition->type)
+        if (n.type == T_IDENT ||
+            ((n.type == T_DOT || n.type == T_DOTMAYBE) && n.left()->type == T_IDENT))
         {
-            case T_IDENT:
-                if (iftrue)
-                {
-                    if (type.t == V_NILABLE)
-                    {
-                        flowstack.push_back(condition);
-                    }
-                }
-                break;
-          
-            case T_DOT:
-            case T_DOTMAYBE:
-                if (iftrue)
-                {
-                    if (type.t == V_NILABLE && condition->left()->type == T_IDENT)
-                    {
-                        flowstack.push_back(condition);
-                    }
-                }
+            FlowItem fi;
+            fi.item = &n;
+            fi.now = type;
+            fi.old = n.exptype;
+            flowstack.push_back(fi);
+        }
+    }
+
+    void CheckFlowTypeChangesSub(bool iftrue, const Node &condition)
+    {
+        auto type = Promote(condition.exptype);
+        switch (condition.type)
+        {
+            case T_IS:
+                if (iftrue) CheckFlowTypeIdOrDot(*condition.left(), *condition.right()->typenode());
                 break;
 
             case T_NOT:
-                CheckFlowTypeChangesSub(!iftrue, condition->child());
+                CheckFlowTypeChangesSub(!iftrue, *condition.child());
+                break;
+
+            default:
+                if (iftrue && type.t == V_NILABLE) CheckFlowTypeIdOrDot(condition, type.Element());
                 break;
         }
     }
 
-    size_t CheckFlowTypeChanges(bool iftrue, Node *condition)
+    size_t CheckFlowTypeChanges(bool iftrue, const Node &condition)
     {
         auto start = flowstack.size();
-        switch (condition->type)
+        switch (condition.type)
         {
             // FIXME: this doesn't work if you do a & b & c & f(a,b,c) since we only support one nesting level.
             case T_OR:
             case T_AND:
                 // AND only works for then, and OR only for else.
-                if (iftrue == (condition->type == T_AND))
+                if (iftrue == (condition.type == T_AND))
                 {
-                    CheckFlowTypeChangesSub(iftrue, condition->left());
-                    CheckFlowTypeChangesSub(iftrue, condition->right());
+                    CheckFlowTypeChangesSub(iftrue, *condition.left());
+                    CheckFlowTypeChangesSub(iftrue, *condition.right());
                 }
                 break;
 
@@ -609,39 +602,41 @@ struct TypeChecker
         return start;
     }
 
-    void AssignFlow(Node *left, bool isnil)
+    void AssignFlow(Node &left)
     {
-        if (left->exptype.Numeric()) return;  // Early out.
+        // Early out, numeric types are not nillable, nor do they make any sense for "is"
+        if (left.exptype.Numeric()) return;
 
-        LookupFlow(*left, true, isnil);
+        LookupFlow(left, true);
     }
 
     void UseFlow(Node &n)
     {
-        if (n.exptype.t != V_NILABLE) return;  // Early out.
+        if (n.exptype.Numeric()) return;  // Early out, same as above.
 
-        LookupFlow(n, false, true);
+        LookupFlow(n, false);
     }
 
-    void LookupFlow(Node &n, bool assign, bool isnil)
+    void LookupFlow(Node &n, bool assign)
     {
         // FIXME: this can in theory find the wrong node, if the same function nests, and the outer one
         // was specialized to a nilable and the inner one was not.
         // This would be very rare though, and benign.
         for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it)
         {
-            auto &in = **it;
+            auto &flow = *it;
+            auto &in = *flow.item;
             switch (n.type)
             {
                 case T_IDENT:
                     if (in.type == T_IDENT && in.ident() == n.ident())
                     {
+                        n.exptype = flow.old;  // only for assign
                         goto found;
                     }
                     else if ((in.type == T_DOT || in.type == T_DOTMAYBE) && in.left()->ident() == n.ident() && assign)
                     {
                         // We're writing to var V and V.f is in the stack: invalidate regardless.
-                        isnil = true;
                         goto found;
                     }
                     break;
@@ -653,6 +648,7 @@ struct TypeChecker
                         in.left()->ident() == n.left()->ident() &&
                         in.right()->fld() == n.right()->fld())
                     {
+                        n.exptype = flow.old;  // only for assign
                         goto found;
                     }
                     break;
@@ -665,18 +661,19 @@ struct TypeChecker
             found:
             if (assign)
             {
-                if (isnil)
-                {
-                    // FLow based promotion is invalidated.
-                    n.exptype = n.exptype.Wrap(V_NILABLE);
-                    flowstack.erase(std::next(it).base());
-                }
+                // FLow based promotion is invalidated.
+                flow.now = flow.old;
+                // TODO: it be cool to instead overwrite with whatever type is currently being assigned.
+                // That currently doesn't work, since our flow analysis is a conservative approximation,
+                // so if this assignment happens conditionally it wouldn't work.
+
+                // We continue with the loop here, since a single assignment may invalidate multiple promotions.
             }
             else
             {
-                n.exptype = n.exptype.Element();
+                n.exptype = flow.now;
+                return;
             }
-            return;
         }
     }
 
@@ -702,7 +699,7 @@ struct TypeChecker
         }
 
         auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR);
-        auto flowstart = CheckFlowTypeChanges(n.type == T_AND, n.left());
+        auto flowstart = CheckFlowTypeChanges(n.type == T_AND, *n.left());
         auto tright = TypeCheckAndOr(n.right(), only_true_type);
         CleanUpFlow(flowstart);
 
@@ -871,7 +868,7 @@ struct TypeChecker
                     }
                     else
                     {
-                        AssignFlow(id, type.t == V_NILABLE);
+                        AssignFlow(*id);
                         SubType(type, id->exptype, n, "right");
                     }
                     i++;
@@ -880,7 +877,7 @@ struct TypeChecker
             }
 
             case T_ASSIGN:
-                AssignFlow(n.left(), n.right()->exptype.t == V_NILABLE);
+                AssignFlow(*n.left());
                 SubType(n.right(), n.left()->exptype, "right", n);
                 type = n.left()->exptype;
                 break;
@@ -944,12 +941,12 @@ struct TypeChecker
             case T_CALL:
             {
                 auto &f = *n.call_function()->sf()->parent;
-                type = TypeCheckCall(f, n.call_args(), n.call_function());
+                type = TypeCheckCall(f, n.call_args(), *n.call_function());
                 break;
             }
 
             case T_DYNCALL:
-                type = TypeCheckDynCall(n.dcall_fval(),
+                type = TypeCheckDynCall(*n.dcall_fval(),
                                         &n.dcall_info()->dcall_args(),
                                         n.dcall_info()->dcall_function());
                 break;
@@ -999,8 +996,8 @@ struct TypeChecker
                 Node *args = nullptr;
                 if (n.if_branches()->right()->type != T_NIL)
                 {
-                    auto tleft  = TypeCheckBranch(true,  n.if_condition(), n.if_branches()->left(), &args);
-                    auto tright = TypeCheckBranch(false, n.if_condition(), n.if_branches()->right(), &args);
+                    auto tleft  = TypeCheckBranch(true,  *n.if_condition(), *n.if_branches()->left(), &args);
+                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), &args);
                     type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
@@ -1009,7 +1006,7 @@ struct TypeChecker
                 }
                 else
                 {
-                    TypeCheckBranch(true, n.if_condition(), n.if_branches()->left(), &args);
+                    TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), &args);
                     // No else: this currently returns either the condition or the branch value.
                     type = Type();
                 }
@@ -1019,8 +1016,8 @@ struct TypeChecker
             case T_WHILE:
             {
                 Node *args = nullptr;
-                TypeCheckDynCall(n.while_condition(), &args);
-                TypeCheckBranch(true, n.while_condition()->closure_body()->head(), n.while_body(), &args);
+                TypeCheckDynCall(*n.while_condition(), &args);
+                TypeCheckBranch(true, *n.while_condition()->closure_def()->sf()->body->head(), *n.while_body(), &args);
                 // Currently always return V_UNDEFINED
                 type = Type();
                 break;
@@ -1039,7 +1036,7 @@ struct TypeChecker
                 else TypeError("for can only iterate over int/string/vector, not: " + TypeName(itertype), n);
                 args->head()->exptype = itertype;
                 args->tail()->head()->exptype = Type(V_INT);
-                TypeCheckDynCall(n.for_body(), &args);
+                TypeCheckDynCall(*n.for_body(), &args);
                 delete args;
                 // Currently always return V_UNDEFINED
                 type = Type();

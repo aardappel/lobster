@@ -1,6 +1,8 @@
 - allow random number generator to be selected
 
 - typechecker
+  * T_FUNDEF and T_CLOSUREDEF nodes are now just an indirection on T_FUN, can probably be removed.
+
   * coroutine type checking!
 
   * struct specialization
@@ -56,6 +58,43 @@
         which will get you a dynamic call, and no specialization.
         frankly, its worth rewriting this such that it can be specialized, especially since thats
         free if isocta is contant
+
+  * for the optimizer:
+    * typechecker leaves in unused args in dyn calls, the codegen strips them out. Would be better if the optimizer
+      does it, but then optimizer isn't optional anymore
+
+  * this language does very similar type inference, and has some interesting additional ideas:
+    http://crystal-lang.org/2014/04/27/type-inference-rules.html
+    - a "noreturn" type, that when you union it with some other type, you retain that other type rather than any.
+      What scenario does this fix, though?
+      an if-then-else with one of the two branches a return, and the value of the if-then-else as a whole still
+      used? doesn't seem very common.
+      It would mostly be useful with exception handling, in our case uses of "return from".
+    - true union types rather than any.
+      Not sure how useful this, since at runtime you still need the same type field, and knowing it can have
+      a smaller set of possible types is not THAT useful, as it will still be slow.
+      The biggest improvement would be in type errors, so now it can say instead of "expected int, got any"
+      it will say "expected int, got int|string".
+      Problem is that they are expensive to represent, as in its most generic for, they are a vector<Type>.
+      We could cheat however, and make all the basic types (int/float/string) into INT_ANY etc variants, that
+      have the other type as a subtype. Basically, the same as ANY for the purpose of most typechecking code,
+      but carries more information for errors.
+      It would also be useful for if(x is int):, because if x is ANY_INT, then the else branch x can have the
+      parameter type (or if its ANY_FLOAT or ANY_STRING, and the parameter is INT).
+      We can't do this with parametric types. Though in theory ANY_VECTOR could first have its own parameter followed
+      by the second type, this won't work if either of those contain a struct/function/var type.
+      Of course you could have VECTOR_ANY only work with int/float/string sub types, and the second type could be
+      anything, which would be at least a small step forward, i.e. instead of "expected [int], got any", it
+      can now say "expected [int] got [int]|[mytype]", but then if we have more complex types, it would have to
+      resort to "[any]|[mytype]" (which is confusing) when really you want to say "[mytype1]|[mytype2]".
+      In that case just "any" might be better?
+      Of course, we could switch to a type representation where the index and the types fit in the same kind of
+      fields, in which case we can represent any unions as long as there is space:
+      STRUCT_ANY, idx1, STRUCT_ANY, idx2, STRUCT, idx3
+      would be a union between 3 struct types.
+    - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
+      an if() in Lobster only destroys the type promotion, here it changes the type promotion.
+      That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

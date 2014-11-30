@@ -383,7 +383,8 @@ struct CodeGen
                 const Node *lastarg = nullptr;
                 auto genargs = [&](const Node *list, const ArgVector *args, int checkargs)
                 {
-                    for (; list; list = list->tail())
+                    // Skip unused args, this may happen for dynamic calls.
+                    for (; list && nargs < (int)args->v.size(); list = list->tail())
                     {
                         Gen(list->head(), 1);
                         if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);

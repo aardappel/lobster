@@ -372,7 +372,7 @@ struct Parser
         }
     }
 
-    int CountList(Node *n)
+    static int CountList(Node *n)
     {
         int c = 0;
         for (; n; n = n->tail()) c++;
@@ -516,7 +516,7 @@ struct Parser
             }
         }
 
-        return new Node(lex, name ? T_FUNDEF : T_CLOSUREDEF, new Node(lex, sf), sf->body);
+        return new Node(lex, name ? T_FUNDEF : T_CLOSUREDEF, new Node(lex, sf));
     }
 
     void ParseType(Type &dest, bool withtype)
