@@ -525,14 +525,14 @@ struct TypeChecker
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
 
-            return TypeCheckCall(f, *args_ptr, fdef ? *fdef : *fval.closure_def());
+            return TypeCheckCall(f, *args_ptr, fdef ? *fdef : fval);
         }
         else
         {
             // We have to do this call entirely at runtime. We take any args, and return any.
-            // FIXME: the body T_CLOSUREDEF that created this function value hasn't been typechecked
+            // FIXME: the body T_FUN that created this function value hasn't been typechecked
             // at all, meaning its contents is all T_ANY. This is not necessary esp if the function
-            // had no args, or all typed args, but we have no way of telling which T_CLOSUREDEF's
+            // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
             // Btw, some values ending up here may be T_COCLOSURE.
             return Type();
@@ -717,11 +717,10 @@ struct TypeChecker
         switch (n.type)
         {
             case T_STRUCTDEF:
-            case T_FUNDEF:
                 return;
 
-            case T_CLOSUREDEF:
-                type = Type(V_FUNCTION, n.closure_def()->sf()->parent->idx);
+            case T_FUN:
+                type = n.sf() ? Type(V_FUNCTION, n.sf()->parent->idx) : Type();
                 return;
 
             case T_LIST:
@@ -1017,7 +1016,7 @@ struct TypeChecker
             {
                 Node *args = nullptr;
                 TypeCheckDynCall(*n.while_condition(), &args);
-                TypeCheckBranch(true, *n.while_condition()->closure_def()->sf()->body->head(), *n.while_body(), &args);
+                TypeCheckBranch(true, *n.while_condition()->sf()->body->head(), *n.while_body(), &args);
                 // Currently always return V_UNDEFINED
                 type = Type();
                 break;

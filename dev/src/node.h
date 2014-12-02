@@ -150,7 +150,7 @@ struct Node : SlabAllocated<Node>
             case T_INT:
             case T_FLOAT:
             case T_STR:
-            case T_CLOSUREDEF:
+            case T_FUN:
                 return true;
                 
             case T_IDENT:
@@ -174,7 +174,7 @@ struct Node : SlabAllocated<Node>
 
     int ClosureArgs()
     {
-        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : closure_def()->sf()->parent->nargs());
+        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
     }
 
     // this "evaluates" an exp, by iterating thru all subexps and thru function calls, ignoring recursive calls,
@@ -207,7 +207,7 @@ struct Node : SlabAllocated<Node>
 
             //customf(n, istack);
 
-            if (n->type == T_CLOSUREDEF || n->type == T_FUNDEF)
+            if (n->type == T_FUN)
                 return;
 
             if (n->type == T_LIST && n->head()->type == T_DEF)
@@ -254,8 +254,8 @@ struct Node : SlabAllocated<Node>
                     auto f = lookup(n->dcall_fval());
                     if (f->type == T_COCLOSURE) { customf(istack); return; }
                     // ignore dynamic calls to non-function-vals, could make this an error?
-                    if (f->type != T_CLOSUREDEF) { assert(0); return; }
-                    evalblock(f->closure_def()->sf(), n->dcall_info()->dcall_args(), false);
+                    if (f->type != T_FUN) { assert(0); return; }
+                    evalblock(f->sf(), n->dcall_info()->dcall_args(), false);
                     break;
                 }
                 case T_NATCALL:
@@ -286,7 +286,7 @@ struct Node : SlabAllocated<Node>
         {
             auto a = lookup(arg);
             if (a->type == T_COCLOSURE) customf(istack);
-            if (a->type == T_CLOSUREDEF) evalblock(a->closure_def()->sf(), nullptr, true);
+            if (a->type == T_FUN) evalblock(a->sf(), nullptr, true);
         };
 
         evalblock = [&](const SubFunction *sf, const Node *args, bool fakeargs)
@@ -341,11 +341,12 @@ struct Node : SlabAllocated<Node>
             case T_IDENT:  return ident()->name;
             case T_STRUCT: return st()->name;
             case T_FIELD:  return fld()->name;
-            case T_FUN:    return sf() ? sf()->parent->name : "<>";
             case T_NATIVE: return nf()->name;
             case T_TYPE:   return symbols.TypeName(*typenode());
 
-            case T_FUNDEF: return "[fundef " + function_def()->sf()->parent->name + "]";
+            case T_FUN:    return sf()
+                             ? "[fundef " + sf()->parent->name + "]" + sf()->body->Dump(indent + 2, symbols) 
+                             : "<>";
 
             default:
             {

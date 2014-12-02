@@ -102,9 +102,10 @@ struct Parser
                     st.UnregisterStruct(def->struct_id()->st());
                     break;
                 }
-                case T_FUNDEF:
+                case T_FUN:
                 {
-                    st.UnregisterFun(def->function_def()->sf()->parent);
+                    auto f = def->sf()->parent;
+                    if (!f->anonymous) st.UnregisterFun(f);
                     break;
                 }
                 case T_DEF:
@@ -516,7 +517,7 @@ struct Parser
             }
         }
 
-        return new Node(lex, name ? T_FUNDEF : T_CLOSUREDEF, new Node(lex, sf));
+        return new Node(lex, sf);
     }
 
     void ParseType(Type &dest, bool withtype)

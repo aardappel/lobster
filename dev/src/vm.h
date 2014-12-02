@@ -869,7 +869,7 @@ struct VM : VMBase
                             {
                                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                                 auto u = nf->retvals.v[i].type.t;
-                                VMASSERT(t == u || u == V_ANY);   
+                                VMASSERT(t == u || u == V_ANY || u == V_NILABLE);   
                             }
                         }
                     #endif
@@ -1538,10 +1538,10 @@ struct VM : VMBase
             Value v(ro);
             switch (ro->type)
             {
+                default: VMASSERT(ro->type >= 0);  // fall thru: a struct type
                 case V_VECTOR:    v.vval->len = 0; v.vval->deleteself(); break;
                 case V_STRING:                     v.sval->deleteself(); break;
                 case V_COROUTINE:                  v.cval->deleteself(false); break;
-                default: VMASSERT(0);
             }
         }
 

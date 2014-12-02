@@ -313,7 +313,7 @@ function run_test_cases():
     assert(seconds_elapsed() - starttime > 0)
 
     function cycletest():
-        value cyclist: [ name, loop, next ]
+        struct cyclist: [ name, loop, next ]
         cycle := [ "cycleouter", nil, [ "cycleinner", nil, nil ]:cyclist ]:cyclist
         cycle.loop = cycle
         cycle.next.loop = cycle.next

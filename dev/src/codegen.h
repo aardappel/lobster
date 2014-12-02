@@ -361,13 +361,20 @@ struct CodeGen
                 if (retval) Emit(IL_A2S);
                 break;
 
-            case T_CLOSUREDEF:
+            case T_FUN:
                 if (retval) 
                 {
-                    Emit(IL_PUSHFUN, 0);
-                    MARKL(funstart);
-                    GenScope(*n->closure_def()->sf());
-                    SETL(funstart);
+                    if (n->sf()->parent->anonymous)
+                    {
+                        Emit(IL_PUSHFUN, 0);
+                        MARKL(funstart);
+                        GenScope(*n->sf());
+                        SETL(funstart);
+                    }
+                    else
+                    {
+                        Dummy(retval);
+                    }
                 }
                 break; 
 
@@ -384,7 +391,7 @@ struct CodeGen
                 auto genargs = [&](const Node *list, const ArgVector *args, int checkargs)
                 {
                     // Skip unused args, this may happen for dynamic calls.
-                    for (; list && nargs < (int)args->v.size(); list = list->tail())
+                    for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
                     {
                         Gen(list->head(), 1);
                         if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
@@ -465,11 +472,7 @@ struct CodeGen
                 }
                 if (!retval) Emit(IL_POP);
                 break;
-            }
-
-            case T_FUNDEF:
-                Dummy(retval);
-                break;   
+            }  
 
             case T_LIST:
                 assert(0);  // handled by individual parents: EXPS {} [] ADT
