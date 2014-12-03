@@ -94,6 +94,11 @@
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
+  * once we remove the ability to run without the typechecker:
+    - can extend the amount of native functions that use overloading.
+      Right now there is a giant hack in NFCheck to allow the VM to select an overload at runtime which only works
+      in limited cases, and should be removed.
+
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 
 vertex_neighbors :== [

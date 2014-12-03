@@ -215,10 +215,12 @@ struct NativeFun : Name
 
     int subsystemid;
 
+    NativeFun *overloads, *first;
+
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids, const char *rets, int nargs,
               const char *_help, NativeCallMode _ncm, Value (*_cont1)(Value &))
         : Name(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm), cont1(_cont1),
-               help(_help), subsystemid(-1)
+          help(_help), subsystemid(-1), overloads(nullptr), first(this)
     {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
@@ -257,13 +259,26 @@ struct NativeRegistry
         nf->idx = (int)nfuns.size();
         nf->subsystemid = subsystems.size() - 1;
 
-        if (nfunlookup[nf->name])
+        auto existing = nfunlookup[nf->name];
+        if (existing)
         {
-            assert(0);
-            throw "native library name clash: " + nf->name;
+            if (nf->args.v.size() != existing->args.v.size() ||
+                nf->retvals.v.size() != existing->retvals.v.size() ||
+                nf->subsystemid != existing->subsystemid ||
+                nf->ncm != existing->ncm)
+            {
+                // Must have similar signatures.
+                assert(0);
+                throw "native library name clash: " + nf->name;
+            }
+            nf->overloads = existing->overloads;
+            existing->overloads = nf;
+            nf->first = existing->first;
         }
-
-        nfunlookup[nf->name] = nf;
+        else
+        {
+            nfunlookup[nf->name] = nf;
+        }
 
         nfuns.push_back(nf);
     }
@@ -290,13 +305,13 @@ struct AutoRegister
         : next(autoreglist), name(_name), regfun(_rf) { autoreglist = this; }
 };
 
-#define STARTDECL(name) struct ___##name { static Value s_##name
+#define STARTDECL(name) { struct ___##name { static Value s_##name
 
 #define MIDDECL(name) static Value mid_##name
 
 #define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
     BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
-    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); }
+    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); } }
 
 #define ENDDECL0(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)
 #define ENDDECL1(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, nullptr)

@@ -447,9 +447,7 @@ void AddBuiltins()
         "converts the (unsigned version) of the input integer number to a string given the base (2..36, e.g. 16 for"
         " hex) and outputting a minimum of characters (padding with 0).");
 
-    #define VECTOROP(name, op, otype, typen) \
-        if (a.type == otype) { auto f = a; return Value(op); } \
-        if (otype == V_FLOAT && a.type == V_INT) { Value f(float(a.ival)); return Value(op); } \
+    #define VECTOROP(name, op, otype) \
         if (a.type == V_VECTOR) { \
             auto v = g_vm->NewVector(a.vval->len, a.vval->type); \
             for (int i = 0; i < a.vval->len; i++) { \
@@ -461,10 +459,10 @@ void AddBuiltins()
             a.DECRT(); \
             return Value(v); \
         } \
-        err: g_vm->BuiltinError(#name " requires " typen " or vector argument"); \
+        err: g_vm->BuiltinError(#name " requires numeric vector argument"); \
         return Value();
-    #define VECTOROPF(name, op) VECTOROP(name, op, V_FLOAT, "numeric")
-    #define VECTOROPI(name, op) VECTOROP(name, op, V_INT, "integer")
+    #define VECTOROPF(name, op) VECTOROP(name, op, V_FLOAT)
+    #define VECTOROPI(name, op) VECTOROP(name, op, V_INT)
 
 
     STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval, b.fval)); } ENDDECL2(pow, "a,b", "FF", "F",
@@ -489,15 +487,29 @@ void AddBuiltins()
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival >> b.ival); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
-    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling,  int(ceilf(f.fval)));      } ENDDECL1(ceiling,  "f", "A", "A",
+    STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval))); } ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f (or vector of numbers)");
-    STARTDECL(floor)   (Value &a) { VECTOROPF(floor,    int(floorf(f.fval)));     } ENDDECL1(floor,    "f", "A", "A",
+    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling, int(ceilf(f.fval))); } ENDDECL1(ceiling, "v", "F]", "I]",
+        "the nearest int >= f (or vector of numbers)");
+
+    STARTDECL(floor)   (Value &a) { return Value(int(floorf(a.fval))); } ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f (or vector of numbers)");
-    STARTDECL(truncate)(Value &a) { VECTOROPF(truncate, int(f.fval));             } ENDDECL1(truncate, "f", "A", "A",
+    STARTDECL(floor)   (Value &a) { VECTOROPF(floor, int(floorf(f.fval))); } ENDDECL1(floor, "v", "F]", "I]",
+        "the nearest int <= f (or vector of numbers)");
+
+    STARTDECL(truncate)(Value &a) { return Value(int(a.fval)); } ENDDECL1(truncate, "f", "F", "I",
         "converts a number (or vector of numbers) to an integer by dropping the fraction");
-    STARTDECL(round)   (Value &a) { VECTOROPF(round,    int(f.fval + 0.5f));      } ENDDECL1(round,    "f", "A", "A",
+    STARTDECL(truncate)(Value &a) { VECTOROPF(truncate, int(f.fval)); } ENDDECL1(truncate, "v", "F]", "I]",
+        "converts a number (or vector of numbers) to an integer by dropping the fraction");
+
+    STARTDECL(round)   (Value &a) { return Value(int(a.fval + 0.5f)); } ENDDECL1(round, "f", "F", "I",
         "converts a number (or vector of numbers) to the closest integer");
-    STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval - floorf(f.fval)); } ENDDECL1(fraction, "f", "A", "A",
+    STARTDECL(round)   (Value &a) { VECTOROPF(round, int(f.fval + 0.5f)); } ENDDECL1(round, "v", "F]", "I]",
+        "converts a number (or vector of numbers) to the closest integer");
+
+    STARTDECL(fraction)(Value &a) { return Value(a.fval - floorf(a.fval)); } ENDDECL1(fraction, "f", "F", "F",
+        "returns the fractional part of a number (or vector of numbers): short for f - floor(f)");
+    STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval - floorf(f.fval)); } ENDDECL1(fraction, "v", "F]", "F]",
         "returns the fractional part of a number (or vector of numbers): short for f - floor(f)");
 
     STARTDECL(sin) (Value &a) { return Value(sinf(a.fval * RAD)); } ENDDECL1(sin, "angle", "F", "F",
@@ -537,12 +549,14 @@ void AddBuiltins()
     ENDDECL2(cross, "a,b", "F]F]", "F]",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
-    STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd, "max", "A", "A",
-        "a random value [0..max) or a random vector from an input vector. Uses the Mersenne Twister algorithm.");
-    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
-        "explicitly set a random seed for reproducable randomness");
+    STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival))); } ENDDECL1(rnd, "max", "I", "I",
+        "a random value [0..max).");
+    STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd, "max", "I]", "I]",
+        "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); } ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");
+    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
+        "explicitly set a random seed for reproducable randomness");
 
     STARTDECL(div) (Value &a, Value &b) { return Value(float(a.ival) / float(b.ival)); } ENDDECL2(div, "a,b", "II", "F",
         "forces two ints to be divided as floats");

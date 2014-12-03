@@ -242,7 +242,7 @@ struct TypeChecker
         type = Promote(type);
     }
 
-    const char *MathCheck(const Type &type, int op)
+    const char *MathCheck(const Type &type, const Node &n, TType op)
     {
         if (op == T_MOD)
         {
@@ -254,7 +254,11 @@ struct TypeChecker
             {
                 if (op == T_PLUS)
                 {
-                    if (type.t != V_STRING)
+                    if (type.t != V_STRING && 
+                        // Anything nilable can be added to a string, but only on one side:
+                        (type.t != V_NILABLE ||
+                         type.t2 != V_STRING ||
+                         (n.left()->exptype.t == V_NILABLE && n.right()->exptype.t == V_NILABLE)))
                         return "numeric/string/vector/struct";
                 }
                 else
@@ -266,13 +270,13 @@ struct TypeChecker
         return nullptr;
     }
 
-    void MathError(const Type &type, const Node &n, int op)
+    void MathError(const Type &type, const Node &n, TType op)
     {
-        auto err = MathCheck(type, op);
+        auto err = MathCheck(type, n, op);
         if (err)
         {
-            if (MathCheck(n.left()->exptype, op)) TypeError(err, n.left()->exptype, n, "left");
-            if (MathCheck(n.right()->exptype, op)) TypeError(err, n.right()->exptype, n, "right");
+            if (MathCheck(n.left()->exptype,  n, op)) TypeError(err, n.left()->exptype,  n, "left");
+            if (MathCheck(n.right()->exptype, n, op)) TypeError(err, n.right()->exptype, n, "right");
             TypeError(string("can\'t use \"") +
                       TName(n.type) + 
                       "\" on " + 
@@ -709,6 +713,15 @@ struct TypeChecker
         return n.exptype;
     }
 
+    void CheckReturnValues(size_t nretvals, size_t i, const string &name, const Node &n)
+    {
+        if (nretvals <= i)
+        {
+            string nvals = inttoa(nretvals);
+            parser.Error("function " + name + " returns " + nvals + " values, " + inttoa(i + 1) + " requested", &n);
+        }
+    }
+
     void TypeCheck(Node *&n_ptr)
     {
         Node &n = *n_ptr;
@@ -767,7 +780,7 @@ struct TypeChecker
             case T_MODEQ:
             {
                 type = Promote(n.left()->exptype);
-                MathError(type, n, n.type - T_PLUSEQ + T_PLUS);
+                MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS));
                 SubType(n.right(), type, "right", n);
                 break;
             }
@@ -845,19 +858,27 @@ struct TypeChecker
                         case T_CALL:
                         {
                             auto sf = dl->call_function()->sf();
-                            if (sf->returntypes.size() <= i)
-                            {
-                                string nvals = inttoa(sf->returntypes.size());
-                                parser.Error("function " + sf->parent->name + " returns " + nvals + " values, " +
-                                             inttoa(ids.size()) + " requested", &n);
-                            }
+                            CheckReturnValues(sf->returntypes.size(), i, sf->parent->name, n);
                             type = sf->returntypes[i];
+                            break;
+                        }
+
+                        case T_NATCALL:
+                        {
+                            if (i)  // For the 0th value, we prefer the existing type, see T_NATCALL below.
+                            {
+                                auto nf = dl->ncall_id()->nf();
+                                CheckReturnValues(nf->retvals.v.size(), i, nf->name, n);
+                                assert(nf->retvals.v[i].flags == AF_NONE);  // See T_NATCALL below.
+                                type = nf->retvals.v[i].type;
+                            }
                             break;
                         }
 
                         case T_MULTIRET:
                             type = dl->headexp()->exptype;
                             dl = dl->tailexps();
+                            break;
                     }
                     if (n.type == T_DEF)
                     {
@@ -884,6 +905,29 @@ struct TypeChecker
             case T_NATCALL:
             {
                 auto nf = n.ncall_id()->nf();
+
+                if (nf->first->overloads)
+                {
+                    // Multiple overloads available, figure out which we want to call.
+                    auto cnf = nf->first;
+                    nf = nullptr;
+                    for (; cnf; cnf = cnf->overloads)
+                    {
+                        Node *list = n.ncall_args();
+                        for (auto &arg : cnf->args.v)
+                        {
+                            if (!ConvertsTo(list->head()->exptype, arg.type, true)) goto nomatch;
+                            list = list->tail();
+                        }
+                        // TODO: list possible alternatives, also in error below.
+                        if (nf) parser.Error("arguments match more than one overload of " + cnf->name, &n);
+                        nf = cnf;
+                        n.ncall_id()->nf() = nf;
+                        nomatch:;
+                    }
+                    if (!nf) parser.Error("arguments match no overloads of " + nf->name, &n);
+                }
+
                 int i = 0;
                 vector<Type> argtypes;
                 for (Node *list = n.ncall_args(); list; list = list->tail())
@@ -919,7 +963,7 @@ struct TypeChecker
                 type = Type();  // no retvals
                 if (nf->retvals.v.size())
                 {
-                    // FIXME: multiple retvals
+                    // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
                     auto &ret = nf->retvals.v[0];
                     switch (ret.flags)
                     {
@@ -1082,7 +1126,9 @@ struct TypeChecker
                     if (list->head()->type == T_SUPER)
                     {
                         assert(type.t == V_STRUCT);  // Parser checks this.
-                        elemtype = Type(V_STRUCT, st.structtable[type.idx]->superclassidx);
+                        auto super_idx = st.structtable[type.idx]->superclassidx;
+                        elemtype = Type(V_STRUCT, super_idx);
+                        i += st.structtable[super_idx]->fields.size() - 1;
                     }
                     else
                     {

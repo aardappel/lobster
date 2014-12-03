@@ -83,7 +83,8 @@ struct Node : SlabAllocated<Node>
     Ident *ident()     const { assert(type == T_IDENT);  return ident_; }
     Struct *st()       const { assert(type == T_STRUCT); return st_; }
     SharedField *fld() const { assert(type == T_FIELD);  return fld_; }
-    NativeFun *nf()    const { assert(type == T_NATIVE); return nf_; }
+    NativeFun * nf()   const { assert(type == T_NATIVE); return nf_; }
+    NativeFun *&nf()         { assert(type == T_NATIVE); return nf_; }
     Type *typenode()   const { assert(type == T_TYPE);   return type_; }
     SubFunction * sf() const { assert(type == T_FUN);    return sf_; }
     SubFunction *&sf()       { assert(type == T_FUN);    return sf_; }
@@ -345,7 +346,7 @@ struct Node : SlabAllocated<Node>
             case T_TYPE:   return symbols.TypeName(*typenode());
 
             case T_FUN:    return sf()
-                             ? "[fundef " + sf()->parent->name + "]" + sf()->body->Dump(indent + 2, symbols) 
+                             ? "[fun " + sf()->parent->name + "]" /*+ sf()->body->Dump(indent + 2, symbols) */
                              : "<>";
 
             default:

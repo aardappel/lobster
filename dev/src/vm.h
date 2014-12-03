@@ -848,7 +848,7 @@ struct VM : VMBase
                     Value v;
                     switch (nf->args.v.size())
                     {
-                        #define ARG(N) Value a##N = POP(); NFCheck(a##N, *nf, N);
+                        #define ARG(N) Value a##N = POP(); NFCheck(a##N, nf, N);
                         case 0: {                                           v = nf->fun.f0(); break; }
                         case 1: { ARG(0)                                    v = nf->fun.f1(a0); break; }
                         case 2: { ARG(1) ARG(0)                             v = nf->fun.f2(a0, a1); break; }
@@ -1351,16 +1351,26 @@ struct VM : VMBase
         }
     }
 
-    void NFCheck(Value &v, const NativeFun &nf, int i)
-    {       
-        if (!Coerce(v, nf.args.v[i].type.t))
+    void NFCheck(Value &v, NativeFun *&nf, int i)
+    {   
+        tryagain:
+        if (!Coerce(v, nf->args.v[i].type.t))
         {
-            if (nf.args.v[i].type.t == V_NILABLE)
+            if (nf->args.v[i].type.t == V_NILABLE)
             {
-                if (v.type == V_NIL || Coerce(v, nf.args.v[i].type.t2)) return;
+                if (v.type == V_NIL || Coerce(v, nf->args.v[i].type.t2)) return;
             }
-            Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf.name + 
-                  "\" needs to have type " + st.TypeName(nf.args.v[i].type) + ", not " + ProperTypeName(v), v);
+            if (!i && nf->overloads)
+            {
+                // This is a giant hack, because we accidentally added native function overloading which doesn't
+                // work without the typechecker.
+                // We try to recover by trying one of the other overloads.
+                // When we remove this hack, nf doesn't need to be a * and can be const.
+                nf = nf->overloads;
+                goto tryagain;
+            }
+            Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf->name + 
+                  "\" needs to have type " + st.TypeName(nf->args.v[i].type) + ", not " + ProperTypeName(v), v);
         }
     }
 
