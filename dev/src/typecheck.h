@@ -17,6 +17,8 @@ struct TypeChecker
     {
         const Node *item;  // For now, only for ident and dot nodes.
         Type old, now;
+
+        FlowItem(const Node *_item, const Type &type) : item(_item), old(_item->exptype), now(type) {}
     };
     vector<FlowItem> flowstack;
 
@@ -156,7 +158,7 @@ struct TypeChecker
             case V_FUNCTION: return type.t == V_FUNCTION && sub.idx < 0;
             case V_NILABLE:  return type.t == V_NIL ||
                                     (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
-                                    ConvertsTo(type, sub.Element(), false);
+                                    (!type.Numeric() && ConvertsTo(type, sub.Element(), false));
             case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                      (type.t == V_STRUCT && ConvertsTo(st.structtable[type.idx]->vectortype, sub, false)));
             case V_STRUCT:   return type.t == V_STRUCT && st.IsSuperTypeOrSame(sub.idx, type.idx);
@@ -172,7 +174,10 @@ struct TypeChecker
     {
         if (ConvertsTo(at, bt, coercions)) return Promote(bt);
         if (ConvertsTo(bt, at, coercions)) return Promote(at);
-        if (at.t == V_VECTOR && bt.t == V_VECTOR) return Type(V_VECTOR);
+        auto pat = Promote(at);
+        auto pbt = Promote(bt);
+        if (pat.t == V_VECTOR && pbt.t == V_VECTOR) return Type(V_VECTOR);
+        if (pat.t == V_STRUCT && pbt.t == V_STRUCT) return st.CommonSuperType(pat.idx, pbt.idx);
         return Type(V_ANY);
     }
 
@@ -340,7 +345,12 @@ struct TypeChecker
 
             // FIXME: this would not be able to typecheck recursive functions with multiret.
             sf.returntypes[0] = NewTypeVar();
+
+            auto start_promoted_vars = flowstack.size();
+
             TypeCheck(sf.body);
+
+            CleanUpFlow(start_promoted_vars);
 
             for (auto &back : backup_args.v) back.id->type = back.type;
             for (auto &back : backup_locals.v) back.id->type = back.type;
@@ -556,11 +566,7 @@ struct TypeChecker
         if (n.type == T_IDENT ||
             ((n.type == T_DOT || n.type == T_DOTMAYBE) && n.left()->type == T_IDENT))
         {
-            FlowItem fi;
-            fi.item = &n;
-            fi.now = type;
-            fi.old = n.exptype;
-            flowstack.push_back(fi);
+            flowstack.push_back(FlowItem(&n, type));
         }
     }
 
@@ -588,13 +594,20 @@ struct TypeChecker
         auto start = flowstack.size();
         switch (condition.type)
         {
-            // FIXME: this doesn't work if you do a & b & c & f(a,b,c) since we only support one nesting level.
             case T_OR:
             case T_AND:
                 // AND only works for then, and OR only for else.
                 if (iftrue == (condition.type == T_AND))
                 {
-                    CheckFlowTypeChangesSub(iftrue, *condition.left());
+                    // This is a bit clumsy, but allows for a chain of &'s without allowing mixed operators
+                    if (condition.left()->type == condition.type)
+                    {
+                        CheckFlowTypeChanges(iftrue, *condition.left());
+                    }
+                    else
+                    {
+                        CheckFlowTypeChangesSub(iftrue, *condition.left());
+                    }
                     CheckFlowTypeChangesSub(iftrue, *condition.right());
                 }
                 break;
@@ -606,7 +619,16 @@ struct TypeChecker
         return start;
     }
 
-    void AssignFlow(Node &left)
+    void AssignFlowPromote(Node &left, const Type &right)
+    {
+        if ((left.exptype.t == V_ANY && right.t != V_ANY) ||
+            (left.exptype.t == V_NILABLE && right.t != V_NILABLE))
+        {
+            CheckFlowTypeIdOrDot(left, right);
+        }
+    }
+
+    void AssignFlowDemote(Node &left)
     {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         if (left.exptype.Numeric()) return;
@@ -759,7 +781,7 @@ struct TypeChecker
             case T_INT:   type = Type(V_INT); break;
             case T_FLOAT: type = Type(V_FLOAT); break;
             case T_STR:   type = Type(V_STRING); break;
-            case T_NIL:   type = NewTypeVar().Wrap(V_NILABLE); break;
+            case T_NIL:   type = n.typenode() ? *n.typenode() : NewTypeVar().Wrap(V_NILABLE); break;
 
             case T_PLUS:
             case T_MINUS:
@@ -888,7 +910,7 @@ struct TypeChecker
                     }
                     else
                     {
-                        AssignFlow(*id);
+                        AssignFlowDemote(*id);
                         SubType(type, id->exptype, n, "right");
                     }
                     i++;
@@ -897,8 +919,9 @@ struct TypeChecker
             }
 
             case T_ASSIGN:
-                AssignFlow(*n.left());
+                AssignFlowDemote(*n.left());
                 SubType(n.right(), n.left()->exptype, "right", n);
+                AssignFlowPromote(*n.left(), n.right()->exptype);
                 type = n.left()->exptype;
                 break;
 
@@ -934,20 +957,22 @@ struct TypeChecker
                 {
                     auto &arg = nf->args.v[i];
                     auto argtype = arg.type;
+                    if (argtype.t == V_NILABLE)
+                    {
+                        // This is somewhat of a hack, because we conflate V_NILABLE with being optional for 
+                        // native functions, but we don't want numeric types to be nilable.
+                        auto subt = argtype.Element();
+                        if (subt.Numeric()) argtype = subt;
+                    }
                     switch (arg.flags)
                     {
                         case NF_SUBARG1:
-                            if (argtypes[0].t == V_VECTOR)
-                            {
-                                SubType(list->head(), argtype.t == V_VECTOR
-                                    ? argtypes[0]
-                                    : argtypes[0].Element(),
-                                    ArgName(i).c_str(), nf->name.c_str());
-                            }
-                            else
-                            {
-                                SubType(list->head(), argtypes[0], ArgName(i).c_str(), nf->name.c_str());
-                            }
+                            SubType(list->head(),
+                                    argtypes[0].t == V_VECTOR && argtype.t != V_VECTOR
+                                        ? argtypes[0].Element()
+                                        : argtypes[0],
+                                    ArgName(i).c_str(),
+                                    nf->name.c_str());
                             break;
 
                         case NF_ANYVAR:
@@ -968,7 +993,11 @@ struct TypeChecker
                     switch (ret.flags)
                     {
                         case NF_SUBARG1:
-                            type = ret.type.t == V_NILABLE ? argtypes[0].Wrap(V_NILABLE) : argtypes[0];
+                            type = ret.type.t == V_NILABLE
+                                       ? argtypes[0].Wrap(V_NILABLE) 
+                                       : (argtypes[0].t == V_VECTOR && ret.type.t != V_VECTOR
+                                            ? argtypes[0].Element()
+                                            : argtypes[0]);
                             break;
                         case NF_ANYVAR: 
                             type = ret.type.t == V_VECTOR ? NewTypeVar().Wrap() : NewTypeVar(); 

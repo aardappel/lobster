@@ -46,7 +46,7 @@ struct Node : SlabAllocated<Node>
         struct { SharedField *fld_; }; // T_FIELD
         struct { SubFunction *sf_;  }; // T_FUN
         struct { NativeFun *nf_;    }; // T_NATIVE
-        struct { Type *type_;       }; // T_TYPE
+        struct { Type *type_;       }; // T_TYPE, optionally T_NIL
     };
     public:
 
@@ -62,12 +62,14 @@ struct Node : SlabAllocated<Node>
     Node(Lex &lex, TType _t, double _f)          : type(_t), flt_(_f)                 { L(lex); }
     Node(Lex &lex, TType _t, string &_s)         : type(_t), str_(parserpool->alloc_string_sized(_s.c_str())) { L(lex); }
 
-    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id)  { assert(_id);  L(lex); }
-    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)     { assert(_st);  L(lex); }
-    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)   { assert(_fld); L(lex); }
-    Node(Lex &lex, SubFunction *_sf)  : type(T_FUN),    sf_(_sf)     {               L(lex); }
-    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)     { assert(_nf);  L(lex); }
-    Node(Lex &lex, Type &_type)       : type(T_TYPE),   type_(parserpool->clone_obj_small(&_type)) { L(lex); }
+    Node(Lex &lex, Ident *_id)        : type(T_IDENT),  ident_(_id)  { assert(_id);    L(lex); }
+    Node(Lex &lex, Struct *_st)       : type(T_STRUCT), st_(_st)     { assert(_st);    L(lex); }
+    Node(Lex &lex, SharedField *_fld) : type(T_FIELD),  fld_(_fld)   { assert(_fld);   L(lex); }
+    Node(Lex &lex, SubFunction *_sf)  : type(T_FUN),    sf_(_sf)     {                 L(lex); }
+    Node(Lex &lex, NativeFun *_nf)    : type(T_NATIVE), nf_(_nf)     { assert(_nf);    L(lex); }
+    Node(Lex &lex, Type &_type)       : type(T_TYPE), type_(nullptr) { SetType(_type); L(lex); }
+
+    void SetType(Type &_type) { type_ = parserpool->clone_obj_small(&_type); }
 
     void L(Lex &lex)
     {
@@ -85,9 +87,9 @@ struct Node : SlabAllocated<Node>
     SharedField *fld() const { assert(type == T_FIELD);  return fld_; }
     NativeFun * nf()   const { assert(type == T_NATIVE); return nf_; }
     NativeFun *&nf()         { assert(type == T_NATIVE); return nf_; }
-    Type *typenode()   const { assert(type == T_TYPE);   return type_; }
     SubFunction * sf() const { assert(type == T_FUN);    return sf_; }
     SubFunction *&sf()       { assert(type == T_FUN);    return sf_; }
+    Type *typenode()   const { assert(type == T_TYPE || type == T_NIL); return type_; }
 
     Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }
@@ -118,9 +120,9 @@ struct Node : SlabAllocated<Node>
         {
             parserpool->dealloc_sized(str_);
         }
-        else if (type == T_TYPE)
+        else if (type == T_TYPE || type == T_NIL)
         {
-            parserpool->dealloc_small(type_);
+            if (type_) parserpool->dealloc_small(type_);
         }
         else if (HasChildren())
         {

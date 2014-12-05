@@ -3,7 +3,7 @@
 include "std.lobster"
 include "vec.lobster"
 
-struct astar_node: [ G, H, F, previous, state, delta, open, closed ]
+struct astar_node: [ G:float, H:float, F:float, previous, state, delta, open:int, closed:int ]
 
 function new_astar_node(state, h:float):
     [ 0.0, h, h, nil, state, nil, false, false ]:astar_node

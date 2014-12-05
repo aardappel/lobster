@@ -17,8 +17,6 @@
 
   * make function calls with trailing nilable arguments default, as long as they're not ambiguous with sibling functions.
 
-  * multiple return values!
-
   * builtins needing work:
     * min/max
 
@@ -45,9 +43,7 @@
     Once we have conditional typechecking for if(a is b), we can extend it to propagated constansts.
 
   * problem cases we side-stepped for now:
-    - creating a nillable var in astar_generic:
-        n := nil
-        n = startnode
+    - need a better solution than replace() for assigning to read-only structs
     - from the previous astar_2dgrid:
         distancef := function(v): ...
         if(isocta):

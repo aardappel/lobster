@@ -1067,8 +1067,21 @@ struct Parser
         {
             case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return new Node(lex, T_INT, i); }
             case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return new Node(lex, T_FLOAT, f); }
-            case T_STR:   { string s = lex.sattr;               lex.Next(); return new Node(lex, T_STR, s); }     
-            case T_NIL:   {                                     lex.Next(); return new Node(lex, T_NIL); }
+            case T_STR:   { string s = lex.sattr;               lex.Next(); return new Node(lex, T_STR, s); }
+
+            case T_NIL:
+            {
+                lex.Next();
+                auto n = new Node(lex, T_NIL);
+                if (IsNext(T_COLON))
+                {
+                    Type type;
+                    ParseType(type, false);
+                    type = type.Wrap(V_NILABLE);
+                    n->SetType(type);
+                }
+                return n;
+            }
 
             case T_LEFTPAREN:
             {

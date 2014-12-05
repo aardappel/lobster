@@ -442,7 +442,7 @@ struct Lex : LoadedFile
         err = Location(fidx, line) + ": error: " + err;
         DebugLog(1, "%s", err.c_str());
         throw err;
-    } 
+    }
 };
 
 }  // namespace lobster

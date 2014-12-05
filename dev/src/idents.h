@@ -286,7 +286,7 @@ struct SymbolTable
 
         ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
         ident->sf_def = sf;
-        if (sf) (islocal ? sf->locals : sf->args).v.push_back(ident);
+        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, Type()));
 
         if (it == idents.end())
         {
@@ -307,7 +307,7 @@ struct SymbolTable
     {
         auto it = idents.find(name);
         if (it == idents.end()) lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second);
+        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, Type());
         return it->second;
     }
         
@@ -323,7 +323,7 @@ struct SymbolTable
             {
                 auto sf = defsubfunctionstack[i];
                 if (it->second->sf_def == sf) break;  // Found the definition.
-                sf->freevars.Add(it->second);
+                sf->freevars.Add(it->second, Type());
             }
         }
         return it->second;  
@@ -468,6 +468,17 @@ struct SymbolTable
         return false;
     }
 
+    Type CommonSuperType(int a, int b)
+    {
+        if (a != b) for (;;)
+        {
+            a = structtable[a]->superclassidx;
+            if (a < 0) return Type();
+            if (IsSuperTypeOrSame(a, b)) break;
+        }
+        return Type(V_STRUCT, a);
+    }
+
     SharedField &FieldDecl(const string &name, int idx, Struct *st)
     {
         SharedField *fld = fields[name];
@@ -537,17 +548,38 @@ struct SymbolTable
     string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
-    string TypeName(const Type &type, const Type *type_vars = nullptr) const
+    string TypeName(const Type &type, const Type *type_vars = nullptr, int depth = 0) const
     {
         switch (type.t)
         {
-            case V_STRUCT: return ReverseLookupType(type.idx).c_str();
-            case V_VECTOR: return "[" + TypeName(type.Element(), type_vars) + "]";
+            case V_STRUCT:
+            {
+                auto struc = structtable[type.idx];
+                string s = struc->name;
+                if (!depth)
+                {
+                    int i = 0;
+                    for (auto &field : struc->fields)
+                    {
+                        if (field.flags == AF_ANYTYPE)
+                        {
+                            s += i ? "," : "<";
+                            s += TypeName(field.type, type_vars, depth + 1);
+                            i++;
+                        }
+                    }
+                    if (i) s += ">";
+                }
+                return s;
+            }
+            case V_VECTOR: return "[" + TypeName(type.Element(), type_vars, depth + 1) + "]";
             case V_FUNCTION: return type.idx < 0 // || functiontable[type.idx]->anonymous
                                 ? "function"
                                 : functiontable[type.idx]->name;
-            case V_NILABLE: return TypeName(type.Element(), type_vars) + "?";
-            case V_VAR: return type_vars ? TypeName(type_vars[type.idx], type_vars) + "*" : BaseTypeName(type.t);
+            case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
+            case V_VAR: return type_vars
+                ? TypeName(type_vars[type.idx], type_vars, depth + 1) + "*"
+                : BaseTypeName(type.t);
             default: return BaseTypeName(type.t);
         }
     }

@@ -100,8 +100,8 @@ template<typename T> struct Typed
     T *id;
 
     Typed() : flags(AF_NONE), id(nullptr) {}
-
-    Typed(T *_id, const Type &_type = Type()) : id(_id) { SetType(_type); }
+    Typed(const Typed<T> &o) : flags(o.flags), id(o.id), type(o.type) {}
+    Typed(T *_id, const Type &_type) : id(_id) { SetType(_type); }
 
     void SetType(const Type &_type)
     {
@@ -175,12 +175,12 @@ struct ArgVector
         }
    }
 
-    void Add(Ident *id)
+    void Add(Ident *id, const Type &type)
     {
         for (auto &arg : v)
             if (arg.id == id)
                 return;
-        v.push_back(Arg(id));
+        v.push_back(Arg(id, type));
     }
 
 };

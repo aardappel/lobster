@@ -246,7 +246,9 @@ struct CodeGen
             case V_FLOAT:   Emit(IL_TTFLT); break;
             case V_STRING:  Emit(IL_TTSTR); break;
             case V_STRUCT:  Emit(IL_TTSTRUCT, type.idx); break;
-            default:        Emit(IL_TT, type.t); break;
+            // FIXME: this may need to reworked now that we have more rich types, or removed alltogether.
+            default:        //Emit(IL_TT, type.t); 
+                break;
         }
     }
 

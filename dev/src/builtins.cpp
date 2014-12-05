@@ -206,7 +206,7 @@ void AddBuiltins()
 
         return Value(nv);
     }
-    ENDDECL3(replace, "xs,i,x", "VIA", "V",
+    ENDDECL3(replace, "xs,i,x", "VIA1", "V1",
         "returns a copy of a vector with the element at i replaced by x");
 
     STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
