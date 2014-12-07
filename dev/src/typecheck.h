@@ -247,7 +247,7 @@ struct TypeChecker
         type = Promote(type);
     }
 
-    const char *MathCheck(const Type &type, const Node &n, TType op)
+    const char *MathCheck(Type &type, const Node &n, TType op, bool &unionchecked)
     {
         if (op == T_MOD)
         {
@@ -257,13 +257,37 @@ struct TypeChecker
         {
             if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT)
             {
+                auto &ltype = n.left()->exptype;
+                auto &rtype = n.right()->exptype;
+                
+                // Special purpose check for vector * scalar etc, needs to be improved further.
+                // VM supports scalar * vector also, but maybe not needed?
+                if (rtype.Numeric())
+                {
+                    Type vtype;
+                    if (ltype.t == V_VECTOR)
+                    {
+                        vtype = ltype.Element();
+                    }
+                    else if (ltype.t == V_STRUCT)
+                    {
+                        vtype = st.structtable[ltype.idx]->vectortype.Element();
+                    }
+                    if (vtype.Numeric())
+                    {
+                        type = vtype.t == V_INT && rtype.t == V_INT ? Type(V_VECTOR, V_INT) : Type(V_VECTOR, V_FLOAT);
+                        unionchecked = true;
+                        return nullptr;
+                    }
+                }
+
                 if (op == T_PLUS)
                 {
                     if (type.t != V_STRING && 
                         // Anything nilable can be added to a string, but only on one side:
                         (type.t != V_NILABLE ||
                          type.t2 != V_STRING ||
-                         (n.left()->exptype.t == V_NILABLE && n.right()->exptype.t == V_NILABLE)))
+                         (ltype.t == V_NILABLE && rtype.t == V_NILABLE)))
                         return "numeric/string/vector/struct";
                 }
                 else
@@ -275,13 +299,13 @@ struct TypeChecker
         return nullptr;
     }
 
-    void MathError(const Type &type, const Node &n, TType op)
+    void MathError(Type &type, const Node &n, TType op, bool &unionchecked)
     {
-        auto err = MathCheck(type, n, op);
+        auto err = MathCheck(type, n, op, unionchecked);
         if (err)
         {
-            if (MathCheck(n.left()->exptype,  n, op)) TypeError(err, n.left()->exptype,  n, "left");
-            if (MathCheck(n.right()->exptype, n, op)) TypeError(err, n.right()->exptype, n, "right");
+            if (MathCheck(n.left()->exptype, n, op, unionchecked)) TypeError(err, n.left()->exptype, n, "left");
+            if (MathCheck(n.right()->exptype, n, op, unionchecked)) TypeError(err, n.right()->exptype, n, "right");
             TypeError(string("can\'t use \"") +
                       TName(n.type) + 
                       "\" on " + 
@@ -790,8 +814,9 @@ struct TypeChecker
             case T_MOD:
             {
                 type = Union(n.left(), n.right(), true);
-                MathError(type, n, n.type);
-                SubTypeLR(type, n);
+                bool unionchecked = false;
+                MathError(type, n, n.type, unionchecked);
+                if (!unionchecked) SubTypeLR(type, n);
                 break;
             }
 
@@ -802,7 +827,8 @@ struct TypeChecker
             case T_MODEQ:
             {
                 type = Promote(n.left()->exptype);
-                MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS));
+                bool unionchecked = false;
+                MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
                 SubType(n.right(), type, "right", n);
                 break;
             }
