@@ -347,7 +347,23 @@ struct Parser
                         AddTail(tail, new Node(lex, T_DEF, new Node(lex, id), e));
                         break;
                     }
-                    else if (IsNext(T_COMMA))
+                    bool withtype = lex.token == T_TYPEIN;
+                    if (lex.token == T_COLON || withtype)
+                    {
+                        lex.Next();
+                        Type type;
+                        ParseType(type, withtype);
+                        Expect(T_ASSIGN);
+                        auto e = ParseExp();
+                        auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
+                        if (isprivate) id->isprivate = true;
+                        auto n = new Node(lex, T_DEF, new Node(lex, id), e);
+                        n->exptype = type;
+                        AddTail(tail, n);
+                        break;
+                    }
+
+                    if (IsNext(T_COMMA))
                     {
                         bool isdef = false;
                         bool islogvar = false;
