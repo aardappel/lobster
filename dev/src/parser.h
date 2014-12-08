@@ -174,7 +174,8 @@ struct Parser
             id->isprivate = true;
         }
 
-        return new Node(lex, isdef ? T_DEF : T_ASSIGNLIST, new IdRef(lex, id), e);
+        auto idr = new IdRef(lex, id);
+        return isdef ? (Node *)new Ternary(lex, T_DEF, idr, e, nullptr) : new Node(lex, T_ASSIGNLIST, idr, e);
     }
 
     Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
@@ -316,7 +317,7 @@ struct Parser
                         cur = atoi(lex.sattr.c_str());
                         Expect(T_INT);
                     }
-                    AddTail(tail, new Node(lex, T_DEF, new IdRef(lex, id), new IntConst(lex, cur)));
+                    AddTail(tail, (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), new IntConst(lex, cur), nullptr));
                     if (lex.token != T_COMMA) break;
                     lex.Next();
                     if (incremental) cur++; else cur *= 2;
@@ -344,21 +345,20 @@ struct Parser
                         if (constant)  id->constant = true;
                         if (isprivate) id->isprivate = true;
                         if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
-                        AddTail(tail, new Node(lex, T_DEF, new IdRef(lex, id), e));
+                        AddTail(tail, (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, nullptr));
                         break;
                     }
                     bool withtype = lex.token == T_TYPEIN;
                     if (lex.token == T_COLON || withtype)
                     {
                         lex.Next();
-                        Type type;
-                        ParseType(type, withtype);
+                        auto tn = new TypeNode(lex, T_TYPE);
+                        ParseType(tn->type_, withtype);
                         Expect(T_ASSIGN);
                         auto e = ParseExp();
                         auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
                         if (isprivate) id->isprivate = true;
-                        auto n = new Node(lex, T_DEF, new IdRef(lex, id), e);
-                        n->exptype = type;
+                        auto n = (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, tn);
                         AddTail(tail, n);
                         break;
                     }

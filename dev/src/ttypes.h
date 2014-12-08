@@ -45,7 +45,7 @@ namespace lobster
     T(T_ASSIGN, "=", TT_BINARY, NO, a, NO, b) \
     T(T_DYNASSIGN, "<-", TT_BINARY, NO, a, NO, b) \
     T(T_LOGASSIGN, "?=", TT_BINARY, NO, a, NO, b) \
-    T(T_DEF, ":=", TT_BINARY, NO, a, NO, b) \
+    T(T_DEF, ":=", TT_TERNARY, NO, a, NO, b) \
     T(T_DOT, ".", TT_BINARY, NO, a, NO, b) \
     T(T_DOTMAYBE, "?.", TT_BINARY, NO, a, NO, b) \
     T(T_INT, "integer literal", TT_NOCHILD, NO, a, NO, b) \
@@ -135,7 +135,7 @@ inline const char *TName(TType t)
     return names[t];
 }
 
-enum TTypeCategory { TT_NONE, TT_BINARY, TT_UNARY, TT_NOCHILD };
+enum TTypeCategory { TT_NONE, TT_NOCHILD, TT_UNARY, TT_BINARY, TT_TERNARY };
 
 inline TTypeCategory TCat(TType t)
 {

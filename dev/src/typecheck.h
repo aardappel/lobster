@@ -794,11 +794,10 @@ struct TypeChecker
                 return;
         }
 
-        if (n.HasChildren())
-        {
-            if (n.a()) TypeCheck(n.a());
-            if (n.b()) TypeCheck(n.b());
-        }
+        auto nc = n.NumChildren();
+        if (nc > 0 && n.a()) TypeCheck(n.a());
+        if (nc > 1 && n.b()) TypeCheck(n.b());
+        if (nc > 2 && n.c()) TypeCheck(n.c());
 
         switch (n.type)
         {
@@ -930,6 +929,7 @@ struct TypeChecker
                     }
                     if (n.type == T_DEF)
                     {
+                        if (n.c()) type = n.c()->typenode();
                         id->exptype = type;
                         id->ident()->type = type;
                         if (verbose) DebugLog(1, "var: %s:%s", id->ident()->name.c_str(), TypeName(type).c_str());

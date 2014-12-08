@@ -1,6 +1,13 @@
 - allow random number generator to be selected
 
 - typechecker
+  * improve the code for ternary nodes, and add unary.
+    its all a bit of a hack right now, esp looping through nodes.
+
+  * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
+    is reused, so should apply same demotes.
+    Can this ever happen? can we guarantee it doesn't? Or for now just force a specialization if it has demotes?
+
   * coroutine type checking!
 
   * struct specialization

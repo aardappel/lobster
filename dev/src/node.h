@@ -55,9 +55,18 @@ struct FunRef   : AST { SubFunction *sf_;  FunRef  (Lex &lex, SubFunction *sf)  
 struct NatRef   : AST { NativeFun *nf_;    NatRef  (Lex &lex, NativeFun *nf)    : AST(lex, T_NATIVE), nf_(nf) {} };  // T_NATIVE
 struct TypeNode : AST { Type type_;        TypeNode(Lex &lex, TType t)          : AST(lex, t) {} };  // T_TYPE, T_NIL
 
+struct Ternary : AST
+{
+    Node *a_, *b_, *c_;
+    Ternary(Lex &lex, TType t, AST *a, AST *b, AST *c) : AST(lex, t), a_((Node *)a), b_((Node *)b), c_((Node *)c)
+    {
+        assert(TCat(t) == TT_TERNARY);
+    }
+};
+
 // Inverted subtyping: rather than have most of the compiler deal with the AST base type (which would require a ton
 // of virtual methods or casts to access the subtypes), we make Node (the most common occurring subtype) the
-// type we use, and give it accessors that can read all fields of all subtypes, protected by an assert.
+// type we use, and give it accessors that can read all fields of all other subtypes, protected by an assert.
 // This is safe, fast, and memory efficient.
 struct Node : AST
 {
@@ -67,7 +76,7 @@ struct Node : AST
 
     Node(Lex &lex, TType t, AST *a, AST *b) : AST(lex, t), a_((Node *)a), b_((Node *)b) {};
 
-    bool HasChildren() const { return TCat(type) != TT_NOCHILD; }
+    int NumChildren()  const { return TCat(type) == TT_NOCHILD ? 0 : TCat(type) == TT_TERNARY ? 3 : 2; }
 
     int integer()      const { assert(type == T_INT);    return ((const IntConst *)this)->integer_; }
     double flt()       const { assert(type == T_FLOAT);  return ((const FltConst *)this)->flt_; }
@@ -86,11 +95,13 @@ struct Node : AST
     Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node * b() const { assert(TCat(type) != TT_NOCHILD); return b_; }
     Node *&b()       { assert(TCat(type) != TT_NOCHILD); return b_; }
+    Node * c() const { assert(TCat(type) == TT_TERNARY); return ((Ternary *)this)->c_; }
+    Node *&c()       { assert(TCat(type) == TT_TERNARY); return ((Ternary *)this)->c_; }
 
-    Node * left()  const { assert(TCat(type) == TT_BINARY); return a_; }
-    Node *&left()        { assert(TCat(type) == TT_BINARY); return a_; }
-    Node * right() const { assert(TCat(type) == TT_BINARY); return b_; }
-    Node *&right()       { assert(TCat(type) == TT_BINARY); return b_; }
+    Node * left()  const { assert(TCat(type) >= TT_BINARY); return a_; }
+    Node *&left()        { assert(TCat(type) >= TT_BINARY); return a_; }
+    Node * right() const { assert(TCat(type) >= TT_BINARY); return b_; }
+    Node *&right()       { assert(TCat(type) >= TT_BINARY); return b_; }
 
     Node * child() const { assert(TCat(type) == TT_UNARY); return a_; }
     Node *&child()       { assert(TCat(type) == TT_UNARY); return a_; }
@@ -112,22 +123,23 @@ struct Node : AST
         {
             parserpool->dealloc_sized(str());
         }
-        else if (HasChildren())
-        {
-            if (a()) delete a();
-            if (b()) delete b();
+        else
+        {   
+            auto nc = NumChildren();
+            if (nc > 0 && a()) delete a();
+            if (nc > 1 && b()) delete b();
+            if (nc > 2 && c()) delete c();
         }
     }
 
     Node *Clone()
     {
         auto n = (Node *)parserpool->clone_obj_small_unknown(this);
-        if (HasChildren())
-        {
-            if (a()) n->a() = a()->Clone();
-            if (b()) n->b() = b()->Clone();
-        }
-        else if (type == T_STR)
+        auto nc = NumChildren();
+        if (nc > 0 && a()) n->a() = a()->Clone();
+        if (nc > 1 && b()) n->b() = b()->Clone();
+        if (nc > 2 && c()) n->c() = c()->Clone();
+        if (type == T_STR)
         {
             n->str() = parserpool->alloc_string_sized(str());
         }
@@ -222,11 +234,10 @@ const char *FindIdentsUpToYield(const Node *start_call, const function<void(cons
             return;
         }
 
-        if (n->HasChildren())
-        {
-            eval(n->a());
-            eval(n->b());
-        }
+        auto nc = n->NumChildren();
+        if (nc > 0) eval(n->a());
+        if (nc > 1) eval(n->b());
+        if (nc > 2) eval(n->c());
 
         switch (n->type)
         {
@@ -354,22 +365,22 @@ inline string Dump(const Node &n, int indent, SymbolTable &symbols)
         {
             string s = TName(n.type);
 
-            string as, bs;
+            string as, bs, cs;
             bool ml = false;
             auto indenb = indent - (n.type == T_LIST) * 2;
 
-            if (n.HasChildren())
-            {
-                if (n.a()) { as = Dump(*n.a(), indent + 2, symbols); DumpType(*n.a(), as, symbols); if (as[0] == ' ') ml = true; }
-                if (n.b()) { bs = Dump(*n.b(), indenb + 2, symbols); DumpType(*n.b(), bs, symbols); if (bs[0] == ' ') ml = true; }
-            }
+            auto nc = n.NumChildren();
+            if (nc > 0 && n.a()) { as = Dump(*n.a(), indent + 2, symbols); DumpType(*n.a(), as, symbols); if (as[0] == ' ') ml = true; }
+            if (nc > 1 && n.b()) { bs = Dump(*n.b(), indenb + 2, symbols); DumpType(*n.b(), bs, symbols); if (bs[0] == ' ') ml = true; }
+            if (nc > 2 && n.c()) { cs = Dump(*n.c(), indenb + 2, symbols); DumpType(*n.c(), cs, symbols); if (cs[0] == ' ') ml = true; }
 
-            if (as.size() + bs.size() > 60) ml = true;
+            if (as.size() + bs.size() + cs.size() > 60) ml = true;
 
             if (ml)
             {
-                if (n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
-                if (n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
+                if (nc > 0 && n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
+                if (nc > 1 && n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
+                if (nc > 2 && n.c()) { if (cs[0] != ' ') cs = string(indenb + 2, ' ') + cs; }
                 if (n.type == T_LIST)
                 {
                     s = "";
@@ -379,13 +390,15 @@ inline string Dump(const Node &n, int indent, SymbolTable &symbols)
                     s = string(indent, ' ') + s;
                     if (n.a()) s += "\n";
                 }
-                if (n.a()) s += as;
-                if (n.b()) s += "\n" + bs;
+                if (nc > 0 && n.a()) s += as;
+                if (nc > 1 && n.b()) s += "\n" + bs;
+                if (nc > 2 && n.c()) s += "\n" + cs;
                 return s;
             }
             else
             {
-                if (n.HasChildren() && n.b()) return "(" + s + " " + as + " " + bs + ")";
+                if (nc > 1 && n.b()) return nc > 2 && n.c() ? "(" + s + " " + as + " " + bs + " " + cs + ")"
+                                                            : "(" + s + " " + as + " " + bs + ")";
                 else return "(" + s + " " + as + ")";
             }
         }
