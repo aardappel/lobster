@@ -79,7 +79,7 @@ struct CompiledProgram
 
         if (flags & PARSEDUMP)
         {
-            auto dump = parser.Dump();
+            auto dump = parser.DumpAll();
             FILE *f = OpenForWriting("parsedump.txt", false);
             if (f)
             {

@@ -575,9 +575,9 @@ struct CodeGen
                 Struct *struc = nullptr;
 
                 auto vtype = n->constructor_type()->typenode();
-                if (vtype->t == V_STRUCT)
+                if (vtype.t == V_STRUCT)
                 {
-                    struc = st.structtable[vtype->idx];
+                    struc = st.structtable[vtype.idx];
                     Emit(IL_NEWVEC, struc->idx, struc->fields.size());
                     superclass = struc->superclass;
                 }
@@ -605,7 +605,7 @@ struct CodeGen
 
                         auto &type = cn->head()->exptype;
                         if (struc) GenTypeCheck(type, struc->fields[i].type);
-                        else GenTypeCheck(type, vtype->Element());
+                        else GenTypeCheck(type, vtype.Element());
 
                         Emit(IL_PUSHONCE);
                         i++;
@@ -620,8 +620,8 @@ struct CodeGen
             case T_IS:
             {
                 Gen(n->left(), retval);
-                auto t = n->right()->typenode()->t;
-                if (retval) Emit(IL_ISTYPE, t == V_STRUCT ? V_VECTOR : t, n->right()->typenode()->idx);
+                auto t = n->right()->typenode().t;
+                if (retval) Emit(IL_ISTYPE, t == V_STRUCT ? V_VECTOR : t, n->right()->typenode().idx);
                 break;
             }
 
@@ -650,7 +650,7 @@ struct CodeGen
                     Emit(0); // count
                     // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
                     // each function / builtin function
-                    auto err = n->child()->FindIdentsUpToYield([&](const vector<const Ident *> &istack)
+                    auto err = FindIdentsUpToYield(n->child(), [&](const vector<const Ident *> &istack)
                     {
                         found = true;
                         for (auto id : istack)

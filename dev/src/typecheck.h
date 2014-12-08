@@ -201,13 +201,13 @@ struct TypeChecker
             case V_FLOAT:
                 if (Promote(type).t == V_INT)
                 {
-                    a = new Node(lex, T_I2F, a);
+                    a = new Node(lex, T_I2F, a, nullptr);
                     a->exptype = Type(V_FLOAT);
                     return;
                 }
                 break;
             case V_STRING:
-                a = new Node(lex, T_A2S, a);
+                a = new Node(lex, T_A2S, a, nullptr);
                 a->exptype = Type(V_STRING);
                 return;
             case V_FUNCTION:
@@ -600,7 +600,7 @@ struct TypeChecker
         switch (condition.type)
         {
             case T_IS:
-                if (iftrue) CheckFlowTypeIdOrDot(*condition.left(), *condition.right()->typenode());
+                if (iftrue) CheckFlowTypeIdOrDot(*condition.left(), condition.right()->typenode());
                 break;
 
             case T_NOT:
@@ -805,7 +805,7 @@ struct TypeChecker
             case T_INT:   type = Type(V_INT); break;
             case T_FLOAT: type = Type(V_FLOAT); break;
             case T_STR:   type = Type(V_STRING); break;
-            case T_NIL:   type = n.typenode() ? *n.typenode() : NewTypeVar().Wrap(V_NILABLE); break;
+            case T_NIL:   type = n.typenode().t != V_ANY ? n.typenode() : NewTypeVar().Wrap(V_NILABLE); break;
 
             case T_PLUS:
             case T_MINUS:
@@ -1125,9 +1125,10 @@ struct TypeChecker
             {
                 // We create temp arg nodes just for typechecking this:
                 auto args = new Node(lex, T_LIST,
-                                new Node(lex, T_FORLOOPVAR),
+                                new AST(lex, T_FORLOOPVAR),
                                 new Node(lex, T_LIST,
-                                    new Node(lex, T_FORLOOPVAR)));
+                                    new AST(lex, T_FORLOOPVAR),
+                                    nullptr));
                 auto itertype = Promote(n.for_iter()->exptype);
                 if (itertype.t == V_INT || itertype.t == V_STRING) itertype = Type(V_INT);
                 else if (itertype.t == V_VECTOR) itertype = itertype.Element();
@@ -1142,7 +1143,7 @@ struct TypeChecker
             }
 
             case T_TYPE:
-                type = *n.typenode();
+                type = n.typenode();
                 break;
 
             case T_IS:
@@ -1155,7 +1156,7 @@ struct TypeChecker
 
             case T_CONSTRUCTOR:
             {
-                type = *n.constructor_type()->typenode();
+                type = n.constructor_type()->typenode();
                 if (type == Type(V_VECTOR))
                 {
                     // No type was specified.. first find union of all elements.

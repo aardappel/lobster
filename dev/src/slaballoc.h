@@ -90,7 +90,7 @@ class SlabAlloc
         return (s+ALIGNMASK)>>ALIGNBITS;
     }
 
-    inline PageHeader *ppage(void *p)
+    inline PageHeader *ppage(const void *p)
     {
         return (PageHeader *)(((size_t)p)&PAGEMASK);
     }
@@ -240,12 +240,12 @@ class SlabAlloc
         if (!--page->refc) freepage(page, page->size);
     }
 
-    size_t size_of_small_allocation(void *p)
+    size_t size_of_small_allocation(const void *p)
     {
         return ppage(p)->size;
     }
 
-    template<typename T> size_t size_of_small_allocation_typed(T *p)
+    template<typename T> size_t size_of_small_allocation_typed(const T *p)
     {
         return size_of_small_allocation(p) / sizeof(T);
     }
@@ -335,6 +335,15 @@ class SlabAlloc
         assert(from);
         auto to = (T *)alloc_small(sizeof(T));
         memcpy(to, from, sizeof(T));
+        return to;
+    }
+
+    void *clone_obj_small_unknown(const void *from)  // Clones anything regardless of what it is, finds out size itself.
+    {
+        assert(from);
+        auto sz = size_of_small_allocation(from);
+        auto to = alloc_small(sz);
+        memcpy(to, from, sz);
         return to;
     }
 
