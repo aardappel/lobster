@@ -401,7 +401,6 @@ class SlabAlloc
     {
         size_t totalwaste = 0;
         long long totalallocs = 0;
-        char buf[1024]; // FIXME
         for (int i = 0; i<MAXBUCKETS; i++)
         {
             size_t num = 0;
@@ -414,9 +413,8 @@ class SlabAlloc
                     totalallocs += stats[i];
                     if (full || num)
                     {
-                        sprintf(buf, "bucket %d -> freelist %lu (%lu k), %lld total allocs",
-                                     i*ALIGN, ulong(num), ulong(waste), stats[i]);
-                        DebugLog(0, buf);
+                        Output(OUTPUT_INFO, "bucket %d -> freelist %lu (%lu k), %lld total allocs",
+                                            i*ALIGN, ulong(num), ulong(waste), stats[i]);
                     }
                 }
             #endif
@@ -429,10 +427,9 @@ class SlabAlloc
 
         if (full || numused || numlarge)
         {
-            sprintf(buf, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live,"
+            Output(OUTPUT_INFO, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live,"
                          " %lld total allocs made, %lld big allocs made",
                          ulong(totalwaste), numfree, numused, numlarge, totalallocs, statbig);
-            DebugLog(0, buf);
         }
     }
 };

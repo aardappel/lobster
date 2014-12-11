@@ -22,9 +22,7 @@ struct TypeChecker
     };
     vector<FlowItem> flowstack;
 
-    bool verbose;
-
-    TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st), verbose(true)
+    TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
         TypeCheck(parser.root);
 
@@ -454,7 +452,7 @@ struct TypeChecker
             struc = head->Clone();
             struc->idx = st.structtable.size();
             st.structtable.push_back(struc);
-            if (verbose) DebugLog(1, "cloned struct: %s", struc->name.c_str());
+            Output(OUTPUT_DEBUG, "cloned struct: %s", struc->name.c_str());
         }
         struc->typechecked = true;
         int i = 0;
@@ -464,7 +462,7 @@ struct TypeChecker
             if (field.flags == AF_ANYTYPE) field.type = type;  // Specialize to arg.
         }
 
-        if (verbose) DebugLog(1, "specialized struct: %s", Signature(struc).c_str());
+        Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(struc).c_str());
         return ComputeStructVectorType(struc);
     }
 
@@ -513,7 +511,7 @@ struct TypeChecker
                 if (sf->typechecked)
                 {
                     // Clone it.
-                    if (verbose) DebugLog(1, "cloning: %s", sf->parent->name.c_str());
+                    Output(OUTPUT_DEBUG, "cloning: %s", sf->parent->name.c_str());
                     sf = new SubFunction();
                     sf->SetParent(f, f.subf);
                     sf->CloneIds(*f.subf->next);
@@ -526,14 +524,14 @@ struct TypeChecker
                     if (arg.flags == AF_ANYTYPE)
                     {
                         arg.type = list->head()->exptype;  // Specialized to arg.
-                        if (verbose) DebugLog(1, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
+                        Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
                     }
                 }
                 for (auto &freevar : sf->freevars.v)
                 {
                     freevar.type = freevar.id->type;  // Specialized to current value.
                 }
-                if (verbose) DebugLog(1, "specialization: %s", SignatureWithFreeVars(sf).c_str());
+                Output(OUTPUT_DEBUG, "specialization: %s", SignatureWithFreeVars(sf).c_str());
             }
             match:
             // Here we have a SubFunction witch matching specialized types.
@@ -546,7 +544,7 @@ struct TypeChecker
             }
             if (!f.istype) TypeCheck(*sf, &function_def_node);
             function_def_node.sf() = sf;
-            if (verbose) DebugLog(1, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
+            Output(OUTPUT_DEBUG, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
             return sf->returntypes[0];
         }
     }
@@ -932,7 +930,7 @@ struct TypeChecker
                         if (n.c()) type = n.c()->typenode();
                         id->exptype = type;
                         id->ident()->type = type;
-                        if (verbose) DebugLog(1, "var: %s:%s", id->ident()->name.c_str(), TypeName(type).c_str());
+                        Output(OUTPUT_DEBUG, "var: %s:%s", id->ident()->name.c_str(), TypeName(type).c_str());
                     }
                     else
                     {

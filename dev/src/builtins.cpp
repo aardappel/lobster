@@ -47,19 +47,11 @@ void AddBuiltins()
 {
     STARTDECL(print) (Value &a)
     {
-        ProgramOutput(a.ToString(g_vm->programprintprefs).c_str());
+        Output(OUTPUT_PROGRAM, a.ToString(g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A",
         "output any value to the console (with linefeed). returns its argument.");
-
-    STARTDECL(printnl) (Value &a)
-    {
-        ProgramOutput(a.ToString(g_vm->programprintprefs).c_str());
-        return a;
-    }
-    ENDDECL1(printnl, "x", "A", "A",
-        "output any value to the console (no linefeed). returns its argument.");
 
     STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival; return a; } 
     ENDDECL1(set_print_depth, "a", "I", "", 
@@ -147,7 +139,7 @@ void AddBuiltins()
             case V_INT:    return a;
             case V_VECTOR:
             case V_STRING: { auto len = a.lobj->len; a.DECRT(); return Value(len); }
-            default: return g_vm->BuiltinError("illegal type passed to length");
+            default: return g_vm->BuiltinError(string("illegal type passed to length: ") + BaseTypeName(a.type));
         }
     }
     ENDDECL1(length, "xs", "A", "I",

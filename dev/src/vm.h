@@ -155,8 +155,8 @@ struct VM : VMBase
 
         if (!leaks.empty())
         {
-            printf("\nLEAKS FOUND (this indicates cycles in your object graph, or a bug in Lobster,"
-                   " details in leaks.txt)\n");
+            Output(OUTPUT_WARN,
+                "LEAKS FOUND (this indicates cycles in your object graph, or a bug in Lobster, details in leaks.txt)");
                     
             FILE *leakf = OpenForWriting("leaks.txt", false);
             if (leakf)
@@ -290,7 +290,7 @@ struct VM : VMBase
 
         FinalStackVarsCleanup();
 
-        DebugLog(1, "%s", s.c_str());
+        //Output(OUTPUT_DEBUG, "%s", s.c_str());
         throw s;
     }
 
@@ -381,7 +381,7 @@ struct VM : VMBase
         for (size_t i = 0; i < st.identtable.size(); i++) vars[i].DEC();
 
         #ifdef _DEBUG
-            DebugLog(0, (string("stack at its highest was: ") + inttoa(maxsp)).c_str());
+            Output(OUTPUT_INFO, (string("stack at its highest was: ") + inttoa(maxsp)).c_str());
         #endif
     }
     
@@ -457,7 +457,7 @@ struct VM : VMBase
             delete[] stack;
             stack = nstack;
 
-            DebugLog(0, (string("stack grew to: ") + inttoa(stacksize)).c_str());
+            Output(OUTPUT_DEBUG, (string("stack grew to: ") + inttoa(stacksize)).c_str());
         }
 
         auto nargs_fun = *ip++;
@@ -690,7 +690,8 @@ struct VM : VMBase
             {
                 size_t c = lineprofilecounts[&li - &lineinfo[0]];
                 if(c > total / 100)
-                    printf("%s(%d): %.1f %%\n", st.filenames[li.fileidx].c_str(), li.line, c * 100.0f / total);
+                    Output(OUTPUT_INFO, "%s(%d): %.1f %%\n", st.filenames[li.fileidx].c_str(), li.line,
+                                                             c * 100.0f / total);
             }
         #endif
     }
@@ -703,9 +704,9 @@ struct VM : VMBase
                 if (trace)
                 {
                     DisAsmIns(stdout, st, ip, codestart, LookupLine(ip));
-                    if (sp >= 0) printf(" [%d] - %s", sp + 1, TOP().ToString(debugpp).c_str());
-                    if (sp >= 1) printf(" / %s", stack[sp - 1].ToString(debugpp).c_str());
-                    printf("\n");
+                    Output(OUTPUT_INFO, " [%d] - %s / %s", sp + 1,
+                           sp >= 0 ? TOP().ToString(debugpp).c_str() : "<bottom>",
+                           sp >= 1 ? stack[sp - 1].ToString(debugpp).c_str() : "<bottom>");
                 }
 
                 //currentline = LookupLine(ip).line;

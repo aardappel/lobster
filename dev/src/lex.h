@@ -440,7 +440,7 @@ struct Lex : LoadedFile
     void Error(string err, int fidx = -1, int line = -1)
     {
         err = Location(fidx, line) + ": error: " + err;
-        DebugLog(1, "%s", err.c_str());
+        //Output(OUTPUT_DEBUG, "%s", err.c_str());
         throw err;
     }
 };

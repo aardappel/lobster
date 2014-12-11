@@ -728,7 +728,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                     }
                 }
             }
-            //printf("flipped tris: %d\n", flipped);
+            //Output(OUTPUT_DEBUG, "flipped tris: %d\n", flipped);
 
             for (size_t t = 0; t < triangles.size(); t += 3)
             {
@@ -781,7 +781,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                 }
             }
             int polysreduced = (triangles.size() - writep) / 3;
-            //printf("reduced tris: %d\n", polysreduced);
+            //Output(OUTPUT_DEBUG, "reduced tris: %d\n", polysreduced);
             triangles.erase(triangles.begin() + writep, triangles.end());
 
             for (size_t t = 0; t < triangles.size(); t++)
@@ -875,7 +875,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         delete[] cfactor;
     }
 
-    //printf("verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", ulong(verts.size()),
+    //Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", ulong(verts.size()),
     //       ulong(edges.size()), ulong(triangles.size()/3), ulong(mctriangles.size()/3), ulong(fcells.size()),
     //       targetgridsize);
 

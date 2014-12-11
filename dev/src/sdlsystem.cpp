@@ -182,7 +182,7 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et, const int2 &screensize)
 string SDLError(const char *msg)
 {
     string s = string(msg) + ": " + SDL_GetError();
-    DebugLog(1, s.c_str());
+    Output(OUTPUT_WARN, s.c_str());
     SDLShutdown();
     return s;
 }
@@ -242,7 +242,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 
     SDL_SetEventFilter(SDLHandleAppEvents, nullptr);
 
-    DebugLog(-1, "SDL initialized...");
+    Output(OUTPUT_INFO, "SDL initialized...");
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
@@ -270,7 +270,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    DebugLog(-1, "SDL about to figure out display mode...");
+    Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
     #ifdef PLATFORM_MOBILE
     landscape = screensize.x() >= screensize.y();
@@ -280,23 +280,23 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     {
         SDL_DisplayMode mode;
         SDL_GetDisplayMode(0, i, &mode);
-        //printf("mode: %d %d\n", mode.w, mode.h);
+        Output(OUTPUT_INFO, "mode: %d %d", mode.w, mode.h);
         if (landscape ? mode.w > screensize.x() : mode.h > screensize.y())
         {
             screensize = int2(mode.w, mode.h);
         }
     }
 
-    DebugLog(-1, inttoa(screensize.x()));
-    DebugLog(-1, inttoa(screensize.y()));
-    DebugLog(-1, "SDL about to create window...");
+    Output(OUTPUT_INFO, inttoa(screensize.x()));
+    Output(OUTPUT_INFO, inttoa(screensize.y()));
+    Output(OUTPUT_INFO, "SDL about to create window...");
 
     _sdl_window = SDL_CreateWindow(title,
                                     0, 0,
                                     screensize.x(), screensize.y(),
                                     SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
 
-    DebugLog(-1, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
+    Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
 
     if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
 
@@ -309,8 +309,8 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
         screensize = actualscreensize;
     #else
         screensize = actualscreensize;  // __ANDROID__
-        DebugLog(-1, inttoa(screensize.x()));
-        DebugLog(-1, inttoa(screensize.y()));
+        Output(OUTPUT_INFO, inttoa(screensize.x()));
+        Output(OUTPUT_INFO, inttoa(screensize.y()));
     #endif
     #else
     _sdl_window = SDL_CreateWindow(title,
@@ -323,14 +323,14 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     if (!_sdl_window)
         return SDLError("Unable to create window");
 
-    DebugLog(-1, "SDL window opened...");
+    Output(OUTPUT_INFO, "SDL window opened...");
 
 
     _sdl_context = SDL_GL_CreateContext(_sdl_window);
-    DebugLog(-1, _sdl_context ? "SDL context passed..." : "SDL context FAILED...");
+    Output(OUTPUT_INFO, _sdl_context ? "SDL context passed..." : "SDL context FAILED...");
     if (!_sdl_context) return SDLError("Unable to create OpenGL context");
 
-    DebugLog(-1, "SDL OpenGL context created...");
+    Output(OUTPUT_INFO, "SDL OpenGL context created...");
 
     /*
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -348,9 +348,9 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
         SDL_Joystick *joy = SDL_JoystickOpen(i);
         if (joy)
         {
-            DebugLog(-1, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)\n",
-                         SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy),
-                         SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
+            Output(OUTPUT_INFO, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)",
+                                SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy),
+                                SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
         };
     };
 

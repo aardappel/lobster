@@ -63,12 +63,12 @@ struct CodeGen
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool verbose)
+    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo)
         : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
     {
         linenumbernodes.push_back(parser.root);
 
-        GenFieldTables(st, verbose);
+        GenFieldTables(st);
 
         BodyGen(parser.root);
         Emit(IL_EXIT);
@@ -659,7 +659,6 @@ struct CodeGen
                             // FIXME: merging of variables from all yield sites is potentially incorrect, we might end
                             // up restoring variables that are not actually in use
                             Emit(id->idx);
-                            //printf("cor: %s\n", id->name.c_str());
                         }
                     });
 
@@ -735,7 +734,7 @@ struct CodeGen
         }
     }
 
-    void GenFieldTables(SymbolTable &st, bool verbose)
+    void GenFieldTables(SymbolTable &st)
     {
         string condfields, tablefields;
 
@@ -775,14 +774,11 @@ struct CodeGen
 
         SETL(loc);
 
-        if (verbose)
-        {
-            if (condfields.length())
-                printf("performance warning: conditionals generated for fields:%s\n", condfields.c_str());
-            if (tablefields.length())
-                printf("performance warning: table lookups generated for fields:%s (in %ld types)\n",
-                       tablefields.c_str(), long(st.structtable.size()));
-        }
+        if (condfields.length())
+            Output(OUTPUT_INFO, "performance warning: conditionals generated for fields:%s", condfields.c_str());
+        if (tablefields.length())
+            Output(OUTPUT_INFO, "performance warning: table lookups generated for fields:%s (in %ld types)",
+                   tablefields.c_str(), long(st.structtable.size()));
     }
 
     #undef MARKL

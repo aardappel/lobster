@@ -26,9 +26,18 @@ extern string SanitizePath(const char *path);
 
 // logging:
 
-#define MINLOGLEVEL 0  // -1 = location trace, 0 = information, 1 = important
-extern void DebugLog(int lev, const char *msg, ...);
-extern void ProgramOutput(const char *msg);
+enum OutputType
+{
+    OUTPUT_DEBUG,    // temp spam, should eventually be removed.
+    OUTPUT_INFO,     // output that helps understanding what the code is doing when not under a debugger
+    OUTPUT_WARN,     // non-critical issues, e.g. SDL errors.
+    OUTPUT_ERROR,    // compiler & vm errors, program terminates after this
+    OUTPUT_PROGRAM,  // output by the Lobster code, should always be shown
+};
+
+extern OutputType min_output_level;  // defaults to showing OUTPUT_WARN and up.
+
+extern void Output(OutputType ot, const char *msg, ...);
 
 extern void MsgBox(const char *err);
 

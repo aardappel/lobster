@@ -63,8 +63,7 @@ struct CompiledProgram
     {
         PARSEDUMP = 1,
         DISASM = 2,
-        VERBOSE = 4,
-        TYPECHECK = 8,
+        TYPECHECK = 4,
     };
 
     void Compile(const char *fn, char *stringsource, int flags)
@@ -88,7 +87,7 @@ struct CompiledProgram
             }
         }
 
-        CodeGen cg(parser, st, code, linenumbers, (flags & VERBOSE) != 0);
+        CodeGen cg(parser, st, code, linenumbers);
 
         if (flags & DISASM)
         {
@@ -275,7 +274,7 @@ int main(int argc, char* argv[])
         _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
     #endif
 
-    DebugLog(-1, "Lobster running...");
+    Output(OUTPUT_INFO, "Lobster running...");
 
     InitTime();
 
@@ -307,7 +306,7 @@ int main(int argc, char* argv[])
         });
         for (auto ar : autoregs)
         {
-            //printf("%s\n", ar->name);
+            Output(OUTPUT_DEBUG, "subsystem: %s", ar->name);
             natreg.NativeSubSystemStart(ar->name);
             ar->regfun();
         }
@@ -323,9 +322,10 @@ int main(int argc, char* argv[])
             if      (a == "-w") { wait = true; }
             else if (a == "-b") { bcf = default_bcf; }
             else if (a == "-t")          { flags |= CompiledProgram::TYPECHECK; }
-            else if (a == "--verbose")   { flags |= CompiledProgram::VERBOSE; }
             else if (a == "--parsedump") { flags |= CompiledProgram::PARSEDUMP; }
             else if (a == "--disasm")    { flags |= CompiledProgram::DISASM; }
+            else if (a == "--verbose")   { min_output_level = OUTPUT_INFO; }
+            else if (a == "--debug")     { min_output_level = OUTPUT_DEBUG; }
             else if (a == "--gen-builtins-html")  { DumpBuiltins(); return 0; }
             else if (a == "--gen-builtins-names") { DumpNames();    return 0; }
             else if (a == "-c") {}  // deprecated, remove this one, not needed anymore.
@@ -358,7 +358,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            DebugLog(-1, "compiling...");
+            Output(OUTPUT_INFO, "compiling...");
 
             cp.Compile(StripDirPart(fn).c_str(), nullptr, flags);
 
@@ -374,12 +374,11 @@ int main(int argc, char* argv[])
     }
     catch (string &s)
     {
-        DebugLog(1, s.c_str());
-        printf("%s\n", s.c_str());
+        Output(OUTPUT_ERROR, s.c_str());
         if (from_bundle) MsgBox(s.c_str());
         if (wait)
         {
-            printf("press <ENTER> to continue:\n");
+            Output(OUTPUT_PROGRAM, "press <ENTER> to continue:\n");
             getchar();
         }
     }

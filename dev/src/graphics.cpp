@@ -149,7 +149,7 @@ void AddGraphics()
 
         if (!err.empty())
         {
-            DebugLog(1, err.c_str());
+            Output(OUTPUT_INFO, err.c_str());
             return Value(g_vm->NewString(err));
         }
 
@@ -158,7 +158,7 @@ void AddGraphics()
 
         meshes = new IntResourceManagerCompact<Mesh>([](Mesh *m) { delete m; });
 
-        DebugLog(-1, "graphics fully initialized...");
+        Output(OUTPUT_INFO, "graphics fully initialized...");
         graphics_initialized = true;
 
         return Value(0, V_NIL);

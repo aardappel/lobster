@@ -93,8 +93,8 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool fro
         SDL_Init(0); // FIXME, is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
-        DebugLog(-1, internalstoragepath);
-        DebugLog(-1, externalstoragepath);
+        Output(OUTPUT_INFO, internalstoragepath);
+        Output(OUTPUT_INFO, externalstoragepath);
         if (internalstoragepath) datadir = internalstoragepath + string("/");
         if (externalstoragepath) writedir = externalstoragepath + string("/");
         // for some reason, the above SDL functionality doesn't actually work,
@@ -141,7 +141,7 @@ uchar *LoadFileAndroid(const char *relfilename, size_t *lenret)
 uchar *LoadFilePlatform(const char *absfilename, size_t *lenret)
 {
     #ifdef __ANDROID__
-        DebugLog(-1, absfilename);
+        Output(OUTPUT_DEBUG, absfilename);
         return SDLLoadFile(absfilename, lenret);
 
         // FIXME: apk loading not working, just stick a temp src in here for now
@@ -191,14 +191,23 @@ FILE *OpenForWriting(const char *relfilename, bool binary)
     return fopen((writedir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
 }
 
-void DebugLog(int lev, const char *msg, ...)
+OutputType min_output_level = OUTPUT_WARN;
+
+void Output(OutputType ot, const char *msg, ...)
 {
-    if (lev < MINLOGLEVEL) return;
+    if (ot < min_output_level) return;
     va_list args;
     va_start(args, msg);
     #ifdef __ANDROID__
-        __android_log_vprint(lev < 0 ? ANDROID_LOG_INFO : (lev > 0 ? ANDROID_LOG_ERROR : ANDROID_LOG_WARN),
-                             "lobster", msg, args);
+        auto tag = "lobster";
+        switch (ot)
+        {
+            case OUTPUT_DEBUG:   __android_log_vprint(ANDROID_LOG_DEBUG, tag, msg, args); break;
+            case OUTPUT_INFO:    __android_log_vprint(ANDROID_LOG_INFO,  tag, msg, args); break;
+            case OUTPUT_WARN:    __android_log_vprint(ANDROID_LOG_WARN,  tag, msg, args); break;
+            case OUTPUT_ERROR:   __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
+            case OUTPUT_PROGRAM: __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
+        }
     #elif defined(WIN32)
         char buf[4096];
         vsnprintf(buf, sizeof(buf), msg, args);
@@ -206,22 +215,15 @@ void DebugLog(int lev, const char *msg, ...)
         OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
+        if (ot >= OUTPUT_WARN) printf("%s\n", msg);  // FIXME: args?
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
-        //IOSLog(msg);
+        IOSLog(msg);  // FIXME: args?
     #else
         vprintf(msg, args);
+        printf("\n");
     #endif
     va_end(args);
-}
-
-void ProgramOutput(const char *msg)
-{
-    #ifdef __ANDROID__
-        DebugLog(0, msg);
-    #else
-        printf("%s\n", msg);
-    #endif
 }
 
 void MsgBox(const char *err)
