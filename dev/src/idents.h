@@ -112,7 +112,7 @@ struct Struct : Name
 {
     vector<Field> fields; 
 
-    Struct *next;
+    Struct *next, *first;
     Struct *superclass;
     int superclassidx;
     
@@ -122,7 +122,8 @@ struct Struct : Name
     Type vectortype;  // What kind of vector this can be demoted to.
 
     Struct(const string &_name, int _idx)
-        : Name(_name, _idx), next(nullptr), superclass(nullptr), superclassidx(-1), readonly(false), typechecked(false),
+        : Name(_name, _idx), next(nullptr), first(this), superclass(nullptr), superclassidx(-1),
+          readonly(false), typechecked(false),
           vectortype(Type(V_VECTOR)) {}
     Struct() : Struct("", 0) {}
 
@@ -144,6 +145,7 @@ struct Struct : Name
         auto st = new Struct();
         *st = *this;
         st->next = next;
+        st->first = first;
         next = st;
         return st;
     }

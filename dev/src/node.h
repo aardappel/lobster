@@ -89,7 +89,8 @@ struct Node : AST
     NativeFun *&nf()         { assert(type == T_NATIVE); return ((NatRef *)this)->nf_; }
     SubFunction * sf() const { assert(type == T_FUN);    return ((const FunRef *)this)->sf_; }
     SubFunction *&sf()       { assert(type == T_FUN);    return ((FunRef *)this)->sf_; }
-    Type typenode()    const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
+    Type  typenode()   const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
+    Type &typenode()         { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
 
     Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }

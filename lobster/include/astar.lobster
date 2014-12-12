@@ -73,11 +73,14 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     if(isocta):
         directions = directions.append([ [ -1, -1 ]:xy, [ 1, 1 ]:xy, [ 1, -1 ]:xy, [ -1, 1 ]:xy ])
         astar_distance() v:
-            big := max(v.x, v.y)
-            small := min(v.x, v.y)
+            x := abs(v.x)
+            y := abs(v.y)
+            big := max(x, y)
+            small := min(x, y)
             sqrt(2) * small + big - small
     else:
-        astar_distance() v: abs(v.x) + abs(v.y)
+        astar_distance() v:
+            abs(v.x) + abs(v.y)
 
 // specialized to do GOAP (nodes created on the fly)
 

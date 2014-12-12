@@ -107,6 +107,19 @@ function run_test_cases():
 
 
     // ////////////////////////////////////////////////////////////////////////
+    // typechecking
+
+    function freevarfunctionvaluetest():
+        function h(i): i()
+        function g(f):
+            // Here, the function passed to h appears the same each time, but it has a freevar f that is different.
+            h():
+                f()
+        assert((g(): 1) == 1)
+        assert((g(): "a") == "a")
+    freevarfunctionvaluetest()
+
+    // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
 
     initworld := [

@@ -485,6 +485,7 @@ struct TypeChecker
             for (auto &arg : sf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
             // If we didn't find any such args, and we also don't have any freevars, we don't specialize.
             if (!sf->freevars.v.size()) goto match;
+            
             specialize:
             {
                 assert(!f.istype);  // Should not contain any AF_ANYTYPE
@@ -1171,7 +1172,10 @@ struct TypeChecker
                 }
                 if (type.t == V_STRUCT)
                 {
-                    type.idx = SpecializeStruct(st.structtable[type.idx], n.constructor_args())->idx;
+                    auto newidx = SpecializeStruct(st.structtable[type.idx]->first, n.constructor_args())->idx;
+                    type.idx = newidx;
+                    n.constructor_type()->typenode().idx = newidx;
+                    // FIXME: need to also specialize the supertype with it?
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())

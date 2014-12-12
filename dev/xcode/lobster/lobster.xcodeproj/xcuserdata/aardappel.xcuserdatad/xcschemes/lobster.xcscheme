@@ -67,11 +67,15 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-t"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--debug"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-t unittest.lobster"
+            argument = "unittest.lobster"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
