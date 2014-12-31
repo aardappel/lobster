@@ -109,7 +109,9 @@ function run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // typechecking
 
-    function freevarfunctionvaluetest():
+    function block(f): f()
+
+    block():
         function h(i): i()
         function g(f):
             // Here, the function passed to h appears the same each time, but it has a freevar f that is different.
@@ -117,7 +119,6 @@ function run_test_cases():
                 f()
         assert((g(): 1) == 1)
         assert((g(): "a") == "a")
-    freevarfunctionvaluetest()
 
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test

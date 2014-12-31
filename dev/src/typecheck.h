@@ -227,7 +227,7 @@ struct TypeChecker
                         if (!ConvertsTo(ss->args.v[i].type, arg.type, false)) goto error;
                         i++;
                     }
-                    TypeCheck(*sf, sf->body);
+                    TypeCheckFunctionDef(*sf, sf->body);
                     // Covariant again.
                     if (sf->returntypes.size() != ss->returntypes.size() ||
                         !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false)) break;
@@ -331,60 +331,59 @@ struct TypeChecker
         }
     }
 
-    void TypeCheck(SubFunction &sf, const Node *call_context)
+    void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context)
     {
-        if (!sf.typechecked)
+        if (sf.typechecked) return;
+        
+        Scope scope;
+        scope.sf = &sf;
+        scope.call_context = call_context;
+        scopes.push_back(scope);
+        if (!sf.parent->anonymous) named_scopes.push_back(scope);
+
+        sf.typechecked = true;
+
+        auto backup_args = sf.args;
+        auto backup_locals = sf.locals;
+        int i = 0;
+        for (auto &arg : sf.args.v)
         {
-            Scope scope;
-            scope.sf = &sf;
-            scope.call_context = call_context;
-            scopes.push_back(scope);
-            if (!sf.parent->anonymous) named_scopes.push_back(scope);
+            // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
+            backup_args.v[i].type = arg.id->type;
 
-            sf.typechecked = true;
-
-            auto backup_args = sf.args;
-            auto backup_locals = sf.locals;
-            int i = 0;
-            for (auto &arg : sf.args.v)
-            {
-                // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
-                backup_args.v[i].type = arg.id->type;
-
-                // FIXME: these idents are shared between clones. That will work for now, 
-                // but will become an issue when we want to store values non-uniformly.
-                arg.id->type = arg.type;
-                i++;
-            }
-            // Same for locals
-            i = 0;
-            for (auto &local : sf.locals.v)
-            {
-                backup_locals.v[i].type = local.id->type;
-                //local.id->type = local.type;  // not needed, will be set inside body
-                i++;
-            }
-
-            // FIXME: this would not be able to typecheck recursive functions with multiret.
-            sf.returntypes[0] = NewTypeVar();
-
-            auto start_promoted_vars = flowstack.size();
-
-            TypeCheck(sf.body);
-
-            CleanUpFlow(start_promoted_vars);
-
-            for (auto &back : backup_args.v) back.id->type = back.type;
-            for (auto &back : backup_locals.v) back.id->type = back.type;
-
-            Node *last = nullptr;
-            for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
-            assert(last);
-            if (last->head()->type != T_RETURN) RetVal(last->head(), TopScope(scopes), 0);
-
-            if (!sf.parent->anonymous) named_scopes.pop_back();
-            scopes.pop_back();
+            // FIXME: these idents are shared between clones. That will work for now, 
+            // but will become an issue when we want to store values non-uniformly (i.e. different sizes).
+            arg.id->type = arg.type;
+            i++;
         }
+        // Same for locals
+        i = 0;
+        for (auto &local : sf.locals.v)
+        {
+            backup_locals.v[i].type = local.id->type;
+            //local.id->type = local.type;  // not needed, will be set inside body
+            i++;
+        }
+
+        // FIXME: this would not be able to typecheck recursive functions with multiret.
+        sf.returntypes[0] = NewTypeVar();
+
+        auto start_promoted_vars = flowstack.size();
+
+        TypeCheck(sf.body);
+
+        CleanUpFlow(start_promoted_vars);
+
+        for (auto &back : backup_args.v) back.id->type = back.type;
+        for (auto &back : backup_locals.v) back.id->type = back.type;
+
+        Node *last = nullptr;
+        for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
+        assert(last);
+        if (last->head()->type != T_RETURN) RetVal(last->head(), TopScope(scopes), 0);
+
+        if (!sf.parent->anonymous) named_scopes.pop_back();
+        scopes.pop_back();
     }
 
     Struct *ComputeStructVectorType(Struct *struc)
@@ -473,13 +472,14 @@ struct TypeChecker
             // Simplistic: typechecked with actual argument types.
             // Should attempt static picking as well, if static pick succeeds, specialize.
             // FIXME: no need to repeat this on every call.
-            for (auto sf = f.subf; sf; sf = sf->next) TypeCheck(*sf, &function_def_node);
+            for (auto sf = f.subf; sf; sf = sf->next) TypeCheckFunctionDef(*sf, &function_def_node);
             Type type = f.subf->returntypes[0];
             for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntypes[0], false);
             return type;
         }
         else
         {
+            //bool recursive = false;
             SubFunction *sf = f.subf;
             // First see any args are untyped, this means we must specialize.
             for (auto &arg : sf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
@@ -489,20 +489,45 @@ struct TypeChecker
             specialize:
             {
                 assert(!f.istype);  // Should not contain any AF_ANYTYPE
+                
+                /* This doesn't seem to work in all circumstances
+                if (!f.anonymous)
+                {
+                    // Check if recursive calls. We make an exception for them, since any recursive call with function
+                    // value args would get us in an infinite recursion (see matching code below).
+                    // So instead, we require that a recursive call be typeable by its parent call.
+                    for (auto it = named_scopes.rbegin(); it != named_scopes.rend(); ++it)
+                    {
+                        if (it->sf->parent == &f)
+                        {
+                            sf = it->sf;
+                            recursive = true;
+                            goto match;
+                        }
+                    }
+                }
+                */
 
-                // Check if any fit.
+                // Check if any existing specializations match.
                 for (; sf && sf->typechecked; sf = sf->next)
                 {
                     int i = 0;
                     for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
                     {
                         auto &arg = sf->args.v[i++];
+                        //auto atype = Promote(list->head()->exptype);
                         if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
+                        /*
+                        // We don't know how this function value will get specialized, so we can't assume it's the
+                        // same as other function values of this idx.
+                        if (atype.t == V_FUNCTION) goto fail;
+                        */
                     }
                     for (auto &freevar : sf->freevars.v)
                     {
-                        // FIXME: call ExactType instead?
-                        if (freevar.type != freevar.id->type) goto fail;
+                        //auto atype = Promote(freevar.id->type);
+                        if (!ExactType(freevar.type, freevar.id->type)) goto fail;
+                        //if (atype.t == V_FUNCTION) goto fail;
                     }
                     goto match;
                     fail:;
@@ -541,9 +566,10 @@ struct TypeChecker
             for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
             {
                 auto &arg = sf->args.v[i++];
-                if (arg.flags != AF_ANYTYPE) SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
+                if (arg.flags != AF_ANYTYPE /*|| recursive*/)
+                    SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
             }
-            if (!f.istype) TypeCheck(*sf, &function_def_node);
+            if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
             function_def_node.sf() = sf;
             Output(OUTPUT_DEBUG, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
             return sf->returntypes[0];
