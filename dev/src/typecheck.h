@@ -29,6 +29,8 @@ struct TypeChecker
         assert(!scopes.size());
         assert(!named_scopes.size());
         assert(!flowstack.size());
+        
+        Stats();
     }
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
@@ -1360,6 +1362,20 @@ struct TypeChecker
                 assert(0);
                 break;
         }
+    }
+    
+    void Stats()
+    {
+        int origsf = 0, multisf = 0, clonesf = 0;
+        int orignodes = 0, clonenodes = 0;
+        for (auto sf : st.subfunctiontable)
+        {
+            if (sf->parent->multimethod) { multisf++; orignodes += sf->body->Count(); }
+            else if (!sf->next)          { origsf++;  orignodes += sf->body->Count(); }
+            else                         { clonesf++; clonenodes += sf->body->Count(); }
+        }
+        Output(OUTPUT_DEBUG, "SF count: multi: %d, orig: %d, cloned: %d", multisf, origsf, clonesf);
+        Output(OUTPUT_DEBUG, "Node count: orig: %d, cloned: %d", orignodes, clonenodes);
     }
 };
 

@@ -146,6 +146,17 @@ struct Node : AST
         }
         return n;
     }
+    
+    int Count()
+    {
+        if (!this) return 0;
+        auto nc = NumChildren();
+        int count = 1;
+        if (nc > 0 && a()) count += a()->Count();
+        if (nc > 1 && b()) count += b()->Count();
+        if (nc > 2 && c()) count += c()->Count();
+        return count;
+    }
 
     bool IsConst()      // used to see if a var is worth outputting in a stacktrace
     {

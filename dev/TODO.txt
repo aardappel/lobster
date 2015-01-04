@@ -1,8 +1,6 @@
 - allow random number generator to be selected
 
 - typechecker
-  * can we remove type nodes now that we have subfunction idxs in types?
-
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
   * fixme: accessing flt_ in Node could fail if 64bit aligned
