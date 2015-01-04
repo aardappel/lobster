@@ -212,8 +212,8 @@ struct TypeChecker
                 if (type.t == V_FUNCTION && !sub.Generic() && !type.Generic())
                 {
                     // See if these functions can be made compatible. Specialize and typecheck if needed.
-                    auto sf = st.FunctionFromType(type)->subf;
-                    auto ss = st.FunctionFromType(sub)->subf;
+                    auto sf = st.FunctionFromType(type);
+                    auto ss = st.FunctionFromType(sub);
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     int i = 0;
                     for (auto &arg : sf->args.v)
@@ -465,8 +465,9 @@ struct TypeChecker
         return ComputeStructVectorType(struc);
     }
 
-    Type TypeCheckCall(Function &f, Node *call_args, Node &function_def_node)
+    Type TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node)
     {
+        Function &f = *csf->parent;
         if (f.multimethod)
         {
             // Simplistic: typechecked with actual argument types.
@@ -480,11 +481,11 @@ struct TypeChecker
         else
         {
             //bool recursive = false;
-            SubFunction *sf = f.subf;
+            SubFunction *sf = csf;
             // First see any args are untyped, this means we must specialize.
-            for (auto &arg : sf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
+            for (auto &arg : csf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
             // If we didn't find any such args, and we also don't have any freevars, we don't specialize.
-            if (!sf->freevars.v.size()) goto match;
+            if (!csf->freevars.v.size()) goto match;
             
             specialize:
             {
@@ -508,40 +509,38 @@ struct TypeChecker
                 }
                 */
 
-                // Check if any existing specializations match.
-                for (; sf && sf->typechecked; sf = sf->next)
-                {
-                    int i = 0;
-                    for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
-                    {
-                        auto &arg = sf->args.v[i++];
-                        //auto atype = Promote(list->head()->exptype);
-                        if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
-                        /*
-                        // We don't know how this function value will get specialized, so we can't assume it's the
-                        // same as other function values of this idx.
-                        if (atype.t == V_FUNCTION) goto fail;
-                        */
-                    }
-                    for (auto &freevar : sf->freevars.v)
-                    {
-                        //auto atype = Promote(freevar.id->type);
-                        if (!ExactType(freevar.type, freevar.id->type)) goto fail;
-                        //if (atype.t == V_FUNCTION) goto fail;
-                    }
-                    goto match;
-                    fail:;
-                }
-                // No fit. Specialize existing function, or its clone.
-                sf = f.subf;
                 if (sf->typechecked)
                 {
-                    // Clone it.
-                    Output(OUTPUT_DEBUG, "cloning: %s", sf->parent->name.c_str());
+                    // Check if any existing specializations match.
+                    for (sf = f.subf; sf; sf = sf->next) if (sf->typechecked)
+                    {
+                        int i = 0;
+                        for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
+                        {
+                            auto &arg = sf->args.v[i++];
+                            //auto atype = Promote(list->head()->exptype);
+                            if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
+                            /*
+                            // We don't know how this function value will get specialized, so we can't assume it's the
+                            // same as other function values of this idx.
+                            if (atype.t == V_FUNCTION) goto fail;
+                            */
+                        }
+                        for (auto &freevar : sf->freevars.v)
+                        {
+                            //auto atype = Promote(freevar.id->type);
+                            if (!ExactType(freevar.type, freevar.id->type)) goto fail;
+                            //if (atype.t == V_FUNCTION) goto fail;
+                        }
+                        goto match;
+                        fail:;
+                    }
+                    // No fit. Specialize existing function, or its clone.
+                    Output(OUTPUT_DEBUG, "cloning: %s", csf->parent->name.c_str());
                     sf = st.CreateSubFunction();
                     sf->SetParent(f, f.subf);
-                    sf->CloneIds(*f.subf->next);
-                    sf->body = f.subf->next->body->Clone();
+                    sf->CloneIds(*csf);
+                    sf->body = csf->body->Clone();
                 }
                 int i = 0;
                 for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
@@ -553,6 +552,7 @@ struct TypeChecker
                         Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
                     }
                 }
+                // FIXME: replace with assert? should always be correct if freevar pre-specialization is working.
                 for (auto &freevar : sf->freevars.v)
                 {
                     freevar.type = freevar.id->type;  // Specialized to current value.
@@ -582,13 +582,13 @@ struct TypeChecker
         if (ftype.t == V_FUNCTION && !ftype.Generic())
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
-            auto &f = *st.FunctionFromType(ftype);
+            auto sf = st.FunctionFromType(ftype);
 
-            if (Parser::CountList(*args_ptr) < f.nargs())
+            if (Parser::CountList(*args_ptr) < sf->parent->nargs())
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
 
-            return TypeCheckCall(f, *args_ptr, fdef ? *fdef : fval);
+            return TypeCheckCall(sf, *args_ptr, fdef ? *fdef : fval);
         }
         else
         {
@@ -1063,8 +1063,8 @@ struct TypeChecker
 
             case T_CALL:
             {
-                auto &f = *n.call_function()->sf()->parent;
-                type = TypeCheckCall(f, n.call_args(), *n.call_function());
+                auto sf = n.call_function()->sf();
+                type = TypeCheckCall(sf, n.call_args(), *n.call_function());
                 break;
             }
 

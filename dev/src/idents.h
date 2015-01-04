@@ -567,10 +567,10 @@ struct SymbolTable
         return structtable[type.idx];
     }
 
-    Function *FunctionFromType(const Type &type) const
+    SubFunction *FunctionFromType(const Type &type) const
     {
         assert(type.t == V_FUNCTION && !type.Generic());
-        return subfunctiontable[type.idx]->parent;
+        return subfunctiontable[type.idx];
     }
     
     string TypeName(const Type &type, const Type *type_vars = nullptr, int depth = 0) const
@@ -600,7 +600,7 @@ struct SymbolTable
             case V_VECTOR: return "[" + TypeName(type.Element(), type_vars, depth + 1) + "]";
             case V_FUNCTION: return type.Generic() // || functiontable[type.idx]->anonymous
                                 ? "function"
-                                : FunctionFromType(type)->name;
+                                : FunctionFromType(type)->parent->name;
             case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
             case V_VAR: return type_vars
                 ? TypeName(type_vars[type.idx], type_vars, depth + 1) + "*"
