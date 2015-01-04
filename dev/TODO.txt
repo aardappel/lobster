@@ -1,35 +1,7 @@
 - allow random number generator to be selected
 
 - typechecker
-  * free variables in function values are not taken into account in types for functions receiving them,
-    causing them to not be specialized, and thus calling the wrong function on the second call.
-    (see example in unittest)
-    Tried:
-    * simply treating all function values as different when doing specialization comparison:
-      causes recursive calls go get instantiated indefinitely
-    * making a special case for recursion (function is already on the stack):
-      does not work for nested calls like map(): map():
-    in essence, to be fully correct, a function value must be specialized to its free variables when the
-    the function value is *created*, and to its args when it is *called*.
-    We must thus specialize at creation time.
-    This first requires we use SubFunctions as type-ids because otherwise this specialization will
-    get lost thru multiple calls. This should not affect us using Function ids for return-from etc, as these
-    can still be retrieved.
-    It may allow us to remove SubFunction nodes.
-    Then, how to specialize:
-    at creation time:
-    if no specialization yet (only an untypechecked instance), point to that.
-    otherwise, if none of the current specializations fit the current free vars, force a clone, and point to that.
-    Make sure we set the types of the freevars to their current values (move from TypeCheckCall).
-    this forces that type-system-wise, no two functions with different free vars have the same id.
-    Might make sense that if there are already multiple subfunctions that have matching freevars we always pick the
-    last one (the first one added), such that these kinds of function values always have the same type, though it
-    may not matter.
-    This should not affect function type definitions, as this is an explicit type check
-    at call time:
-    We must now not terminate at the first untypechecked function.
-    If the current sf is not type-checked, we can simply go ahead and use it.
-    Otherwise, checking all alternatives includes freevars, so will select or clone the right one.
+  * can we remove type nodes now that we have subfunction idxs in types?
 
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
@@ -553,6 +525,32 @@ refactor:
 - there some places in the code that will simply misbehave if strings or vectors have a len
   that doesn't fit a signed int, might be nice to fix this
   see (int) casts, and the any growing function in LVector
+
+TYPECHECKER NOTES:
+==================
+free variable pre-specialization implementation:
+in essence, to be fully correct, a function value must be specialized to its free variables when the
+the function value is *created*, and to its args when it is *called*.
+We must thus specialize at creation time.
+This first requires we use SubFunctions as type-ids because otherwise this specialization will
+get lost thru multiple calls. This should not affect us using Function ids for return-from etc, as these
+can still be retrieved.
+Then, how to specialize:
+at creation time:
+if first sf is not freevarchecked, just use that one and mark it as such.
+otherwise, check all specializations (typechecked or not, but only with flag freevarchecked) for a match in freevars.
+otherwise, if none of the current specializations fit the current free vars, force a clone, and point to that.
+Make sure we set the types of the freevars to their current values (move from TypeCheckCall).
+this forces that type-system-wise, no two functions with different free vars have the same id.
+Might make sense that if there are already multiple subfunctions that have matching freevars we always pick the
+last one (the first one added), such that these kinds of function values always have the same type, though it
+may not matter.
+This should not affect function type definitions, as this is an explicit type check
+at call time:
+We must now not terminate at the first untypechecked function.
+If the current sf is not type-checked, we can simply go ahead and use it.
+Otherwise, checking all alternatives includes freevars, so will select or clone the right one.
+
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================

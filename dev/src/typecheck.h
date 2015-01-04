@@ -464,6 +464,28 @@ struct TypeChecker
         Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(struc).c_str());
         return ComputeStructVectorType(struc);
     }
+    
+    bool FreeVarsSameAsCurrent(SubFunction *sf)
+    {
+        for (auto &freevar : sf->freevars.v)
+        {
+            //auto atype = Promote(freevar.id->type);
+            if (!ExactType(freevar.type, freevar.id->type)) return false;
+            //if (atype.t == V_FUNCTION) return false;
+        }
+        return true;
+    }
+    
+    SubFunction *CloneFunction(SubFunction *csf)
+    {
+        Output(OUTPUT_DEBUG, "cloning: %s", csf->parent->name.c_str());
+        auto sf = st.CreateSubFunction();
+        sf->SetParent(*csf->parent, csf->parent->subf);
+        sf->CloneIds(*csf);
+        sf->body = csf->body->Clone();
+        sf->freevarchecked = true;
+        return sf;
+    }
 
     Type TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node)
     {
@@ -526,21 +548,11 @@ struct TypeChecker
                             if (atype.t == V_FUNCTION) goto fail;
                             */
                         }
-                        for (auto &freevar : sf->freevars.v)
-                        {
-                            //auto atype = Promote(freevar.id->type);
-                            if (!ExactType(freevar.type, freevar.id->type)) goto fail;
-                            //if (atype.t == V_FUNCTION) goto fail;
-                        }
-                        goto match;
+                        if (FreeVarsSameAsCurrent(sf)) goto match;
                         fail:;
                     }
                     // No fit. Specialize existing function, or its clone.
-                    Output(OUTPUT_DEBUG, "cloning: %s", csf->parent->name.c_str());
-                    sf = st.CreateSubFunction();
-                    sf->SetParent(f, f.subf);
-                    sf->CloneIds(*csf);
-                    sf->body = csf->body->Clone();
+                    sf = CloneFunction(csf);
                 }
                 int i = 0;
                 for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
@@ -552,10 +564,12 @@ struct TypeChecker
                         Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
                     }
                 }
-                // FIXME: replace with assert? should always be correct if freevar pre-specialization is working.
+
+                // This must be the correct freevar specialization.
+                assert(sf->freevarchecked);
                 for (auto &freevar : sf->freevars.v)
                 {
-                    freevar.type = freevar.id->type;  // Specialized to current value.
+                    assert(ExactType(freevar.type, freevar.id->type));
                 }
                 Output(OUTPUT_DEBUG, "specialization: %s", SignatureWithFreeVars(sf).c_str());
             }
@@ -574,6 +588,36 @@ struct TypeChecker
             Output(OUTPUT_DEBUG, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
             return sf->returntypes[0];
         }
+    }
+    
+    SubFunction *PreSpecializeFunction(SubFunction *hsf)
+    {
+        hsf = hsf->parent->subf;
+        
+        auto sf = hsf;
+        if (sf->freevarchecked)
+        {
+            // See if there's an existing match.
+            for (; sf; sf = sf->next) if (sf->freevarchecked)
+            {
+                if (FreeVarsSameAsCurrent(sf)) return sf;
+            }
+            
+            sf = CloneFunction(hsf);
+        }
+        else
+        {
+            // First time this function has ever been touched.
+            sf->freevarchecked = true;
+        }
+        
+        // Copy freevars.
+        for (auto &freevar : sf->freevars.v)
+        {
+            freevar.type = freevar.id->type;  // Specialized to current value.
+        }
+        
+        return sf;
     }
 
     Type TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
@@ -804,7 +848,7 @@ struct TypeChecker
                 return;
 
             case T_FUN:
-                type = n.sf() ? Type(V_FUNCTION, n.sf()->idx) : Type();
+                type = n.sf() ? Type(V_FUNCTION, PreSpecializeFunction(n.sf())->idx) : Type();
                 return;
 
             case T_LIST:

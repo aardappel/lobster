@@ -170,13 +170,13 @@ struct SubFunction
 
     int subbytecodestart;
 
-    bool typechecked;
+    bool typechecked, freevarchecked;
 
     SubFunction(int _idx)
         : idx(_idx),
           parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
-          typechecked(false)
+          typechecked(false), freevarchecked(false)
     {
         returntypes.push_back(Type());  // functions always have at least 1 return value.
     }
