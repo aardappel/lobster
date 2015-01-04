@@ -178,6 +178,7 @@ struct CodeGen
                 for (int j = 0; j < f->nargs(); j++)
                 {
                     auto arg = sf->args.v[j];
+                    // FIXME: this probably doesn't cover all cases anymore..
                     Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
                 }
                 Emit(sf->subbytecodestart);
@@ -621,6 +622,7 @@ struct CodeGen
             {
                 Gen(n->left(), retval);
                 auto t = n->right()->typenode().t;
+                // FIXME: this probably dpesn't cover all cases anymore
                 if (retval) Emit(IL_ISTYPE, t == V_STRUCT ? V_VECTOR : t, n->right()->typenode().idx);
                 break;
             }

@@ -19,7 +19,9 @@ struct Type
 {
     ValueType t, t2, t3, t4;  // If t == V_VECTOR|V_NILABLE, t2 is the contained type, etc.
                               // Means we only allow vector types to nest 3 deep.
-    int idx;                  // if any t* == V_STRUCT
+    //protected:
+    int idx;                  // if any t* == V_STRUCT, V_FUNCTION, V_VAR
+    //public:
 
     Type()                            : t(V_ANY), t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1)   {}
     explicit Type(ValueType _t)       : t(_t),    t2(V_ANY), t3(V_ANY), t4(V_ANY), idx(-1)   {}
@@ -73,6 +75,16 @@ struct Type
             case V_NILABLE: return Element().Name() + "?";
             default: return BaseTypeName(t);
         }
+    }
+    
+    bool SameIndex(const Type &o) const { return idx == o.idx; }
+    
+    bool Generic() const { return idx < 0; }
+
+    Type &LookupVar(vector<Type> &vars) const
+    {
+        assert(t == V_VAR);
+        return vars[idx];
     }
 };
 

@@ -604,7 +604,7 @@ struct Parser
             dest = dest.Wrap(V_NILABLE);
         }
 
-        if (withtype && dest.idx < 0) Error(":: must be used with a struct type");
+        if (withtype && dest.t != V_STRUCT) Error(":: must be used with a struct type");
     }
 
     Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", ArgVector *args = nullptr)
@@ -1130,7 +1130,7 @@ struct Parser
                     ParseType(tn->type_, false);
                     if (tn->type_.t == V_STRUCT)
                     {
-                        auto struc = st.structtable[tn->type_.idx];
+                        auto struc = st.StructFromType(tn->type_);
                         int nargs = CountList(n);
                         int reqargs = struc->fields.size();
                         if (n && n->head()->type == T_SUPER)

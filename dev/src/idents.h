@@ -355,10 +355,10 @@ struct SymbolTable
 
     void AddWithStruct(Type &t, Ident *id, Lex &lex)
     {
-        for (auto &wp : withstack) if (wp.first.idx == t.idx) lex.Error("type used twice in the same scope with ::");
+        for (auto &wp : withstack) if (wp.first.SameIndex(t)) lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash with the struct,
         // or do so in LookupUse
-        assert(t.idx >= 0);
+        assert(!t.Generic());
         withstack.push_back(make_pair(t, id));
     }
 
@@ -370,7 +370,7 @@ struct SymbolTable
         assert(!id);
         for (auto &wp : withstack)
         {
-            if (structtable[wp.first.idx]->Has(fld))
+            if (StructFromType(wp.first)->Has(fld))
             {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wp.second;
@@ -549,14 +549,26 @@ struct SymbolTable
     string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
     string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
+    
+    Struct *StructFromType(const Type &type) const
+    {
+        assert(type.t == V_STRUCT && !type.Generic());
+        return structtable[type.idx];
+    }
 
+    Function *FunctionFromType(const Type &type) const
+    {
+        assert(type.t == V_FUNCTION && !type.Generic());
+        return functiontable[type.idx];
+    }
+    
     string TypeName(const Type &type, const Type *type_vars = nullptr, int depth = 0) const
     {
         switch (type.t)
         {
             case V_STRUCT:
             {
-                auto struc = structtable[type.idx];
+                auto struc = StructFromType(type);
                 string s = struc->name;
                 if (!depth)
                 {
@@ -575,9 +587,9 @@ struct SymbolTable
                 return s;
             }
             case V_VECTOR: return "[" + TypeName(type.Element(), type_vars, depth + 1) + "]";
-            case V_FUNCTION: return type.idx < 0 // || functiontable[type.idx]->anonymous
+            case V_FUNCTION: return type.Generic() // || functiontable[type.idx]->anonymous
                                 ? "function"
-                                : functiontable[type.idx]->name;
+                                : FunctionFromType(type)->name;
             case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
             case V_VAR: return type_vars
                 ? TypeName(type_vars[type.idx], type_vars, depth + 1) + "*"

@@ -117,9 +117,9 @@ struct TypeChecker
 
     Type Promote(const Type &type)
     {
-        if (type.t == V_VAR && type_variables[type.idx].t != V_UNDEFINED)
+        if (type.t == V_VAR && type.LookupVar(type_variables).t != V_UNDEFINED)
         {
-            return Promote(type_variables[type.idx]);
+            return Promote(type.LookupVar(type_variables));
         }
         else if (type.t == V_VECTOR || type.t == V_NILABLE)
         {
@@ -134,11 +134,11 @@ struct TypeChecker
 
     Type UnifyVar(const Type &type, const Type &hasvar)
     {
-        auto &var = type_variables[hasvar.idx];
+        auto &var = hasvar.LookupVar(type_variables);
         if (var.t == V_UNDEFINED)
         {
             auto pt = Promote(type);
-            if (pt.t != V_VAR || pt.idx != hasvar.idx) var = pt;
+            if (pt.t != V_VAR || !pt.SameIndex(hasvar)) var = pt;
         }
         return var;
     }
@@ -153,12 +153,12 @@ struct TypeChecker
             case V_VAR:      return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:    return type.t == V_INT && coercions;
             case V_STRING:   return coercions;
-            case V_FUNCTION: return type.t == V_FUNCTION && sub.idx < 0;
+            case V_FUNCTION: return type.t == V_FUNCTION && sub.Generic();
             case V_NILABLE:  return type.t == V_NIL ||
                                     (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                     (!type.Numeric() && ConvertsTo(type, sub.Element(), false));
             case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
-                                     (type.t == V_STRUCT && ConvertsTo(st.structtable[type.idx]->vectortype, sub, false)));
+                                     (type.t == V_STRUCT && ConvertsTo(st.StructFromType(type)->vectortype, sub, false)));
             case V_STRUCT:   return type.t == V_STRUCT && st.IsSuperTypeOrSame(sub.idx, type.idx);
         }
         return false;
@@ -209,11 +209,11 @@ struct TypeChecker
                 a->exptype = Type(V_STRING);
                 return;
             case V_FUNCTION:
-                if (type.t == V_FUNCTION && sub.idx >= 0 && type.idx >= 0)
+                if (type.t == V_FUNCTION && !sub.Generic() && !type.Generic())
                 {
                     // See if these functions can be made compatible. Specialize and typecheck if needed.
-                    auto sf = st.functiontable[type.idx]->subf;
-                    auto ss = st.functiontable[sub.idx]->subf;
+                    auto sf = st.FunctionFromType(type)->subf;
+                    auto ss = st.FunctionFromType(sub)->subf;
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     int i = 0;
                     for (auto &arg : sf->args.v)
@@ -269,7 +269,7 @@ struct TypeChecker
                     }
                     else if (ltype.t == V_STRUCT)
                     {
-                        vtype = st.structtable[ltype.idx]->vectortype.Element();
+                        vtype = st.StructFromType(ltype)->vectortype.Element();
                     }
                     if (vtype.Numeric())
                     {
@@ -419,7 +419,7 @@ struct TypeChecker
             {
                 auto stype = list->head()->exptype;
                 SubType(stype, Type(V_STRUCT, head->superclassidx), *list->head(), nullptr, "super");
-                auto sstruc = st.structtable[stype.idx];
+                auto sstruc = st.StructFromType(stype);
                 for (auto &f : sstruc->fields) argtypes.push_back(f.type);
             }
             else
@@ -579,10 +579,10 @@ struct TypeChecker
     Type TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
     {
         auto ftype = Promote(fval.exptype);
-        if (ftype.t == V_FUNCTION && ftype.idx >= 0)
+        if (ftype.t == V_FUNCTION && !ftype.Generic())
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
-            auto &f = *st.functiontable[ftype.idx];
+            auto &f = *st.FunctionFromType(ftype);
 
             if (Parser::CountList(*args_ptr) < f.nargs())
                 TypeError("function value called with too few arguments", fval);
@@ -1198,7 +1198,7 @@ struct TypeChecker
                 }
                 if (type.t == V_STRUCT)
                 {
-                    auto newidx = SpecializeStruct(st.structtable[type.idx]->first, n.constructor_args())->idx;
+                    auto newidx = SpecializeStruct(st.StructFromType(type)->first, n.constructor_args())->idx;
                     type.idx = newidx;
                     n.constructor_type()->typenode().idx = newidx;
                     // FIXME: need to also specialize the supertype with it?
@@ -1210,13 +1210,13 @@ struct TypeChecker
                     if (list->head()->type == T_SUPER)
                     {
                         assert(type.t == V_STRUCT);  // Parser checks this.
-                        auto super_idx = st.structtable[type.idx]->superclassidx;
+                        auto super_idx = st.StructFromType(type)->superclassidx;
                         elemtype = Type(V_STRUCT, super_idx);
                         i += st.structtable[super_idx]->fields.size() - 1;
                     }
                     else
                     {
-                        elemtype = type.t == V_STRUCT ? st.structtable[type.idx]->fields[i].type : type.Element();
+                        elemtype = type.t == V_STRUCT ? st.StructFromType(type)->fields[i].type : type.Element();
                     }
                     SubType(list->head(), elemtype, ArgName(i).c_str(), n);
                     i++;
@@ -1233,7 +1233,7 @@ struct TypeChecker
                              : smtype;
                 if (stype.t != V_STRUCT)
                     TypeError("struct/value", stype, n, "object");
-                auto struc = st.structtable[stype.idx];
+                auto struc = st.StructFromType(stype);
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
                 if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
@@ -1255,7 +1255,7 @@ struct TypeChecker
                     case V_INT: vtype = vtype.t == V_VECTOR ? vtype.Element() : Type(V_INT); break;
                     case V_STRUCT:
                     {
-                        auto &struc = *st.structtable[itype.idx];
+                        auto &struc = *st.StructFromType(itype);
                         for (auto &field : struc.fields)
                         {
                             if (field.type.t != V_INT) TypeError("int field", field.type, n, "index");
