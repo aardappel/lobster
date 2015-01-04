@@ -155,6 +155,8 @@ struct Function;
 
 struct SubFunction
 {
+    int idx;
+    
     ArgVector args;
     ArgVector locals;
     ArgVector dynscoperedefs;  // any lhs of <-
@@ -170,8 +172,9 @@ struct SubFunction
 
     bool typechecked;
 
-    SubFunction() 
-        : parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
+    SubFunction(int _idx)
+        : idx(_idx),
+          parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
           typechecked(false)
     {
@@ -249,6 +252,7 @@ struct SymbolTable
 
     map<string, Function *> functions;
     vector<Function *> functiontable;
+    vector<SubFunction *> subfunctiontable;
 
     vector<string> filenames;
     
@@ -499,6 +503,13 @@ struct SymbolTable
         auto it = fields.find(name);
         return it != fields.end() ? it->second : nullptr;
     }
+    
+    SubFunction *CreateSubFunction()
+    {
+        auto sf = new SubFunction(subfunctiontable.size());
+        subfunctiontable.push_back(sf);
+        return sf;
+    }
 
     Function &CreateFunction(const string &name, const string &context)
     {
@@ -559,7 +570,7 @@ struct SymbolTable
     Function *FunctionFromType(const Type &type) const
     {
         assert(type.t == V_FUNCTION && !type.Generic());
-        return functiontable[type.idx];
+        return subfunctiontable[type.idx]->parent;
     }
     
     string TypeName(const Type &type, const Type *type_vars = nullptr, int depth = 0) const

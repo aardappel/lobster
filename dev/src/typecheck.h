@@ -538,7 +538,7 @@ struct TypeChecker
                 {
                     // Clone it.
                     Output(OUTPUT_DEBUG, "cloning: %s", sf->parent->name.c_str());
-                    sf = new SubFunction();
+                    sf = st.CreateSubFunction();
                     sf->SetParent(f, f.subf);
                     sf->CloneIds(*f.subf->next);
                     sf->body = f.subf->next->body->Clone();
@@ -804,7 +804,7 @@ struct TypeChecker
                 return;
 
             case T_FUN:
-                type = n.sf() ? Type(V_FUNCTION, n.sf()->parent->idx) : Type();
+                type = n.sf() ? Type(V_FUNCTION, n.sf()->idx) : Type();
                 return;
 
             case T_LIST:

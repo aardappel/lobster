@@ -413,7 +413,7 @@ struct Parser
     {
         st.ScopeStart();
 
-        auto sf = new SubFunction();
+        auto sf = st.CreateSubFunction();
 
         st.defsubfunctionstack.push_back(sf);
         if (name) st.namedsubfunctionstack.push_back(sf);
@@ -559,7 +559,7 @@ struct Parser
                         Error("unknown function type: " + idname);
                     if (!f->istype)
                         Error("function not declared as type: " + idname);
-                    dest.idx = f->idx;
+                    dest.idx = f->subf->idx;
                 }
                 break;
             }
