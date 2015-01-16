@@ -15,6 +15,8 @@ TODO:
 
 */
 
+private struct guielem: [ id, size ]
+
 private cursize := nil
 
 private parent_size := nil
@@ -22,7 +24,7 @@ private parent_size := nil
 private vertical := true
 
 private render_pass := false
-private size_list := []
+private size_list := []:[guielem]
 private size_index := 0
 
 private align := nil
@@ -39,8 +41,6 @@ private actionsound := nil
 
 private focus_id := 0
 
-private value guielem: [ id, size ]
-
 private function cache_size(id, f):
     if(render_pass):
         i := size_index
@@ -53,12 +53,10 @@ private function cache_size(id, f):
                 return e.size
         nil   // new element inserted by event handler, do not render yet
     else:
-        i := size_list.length()
-        size_list.push(nil) // push first, just in case f() pushes elements also (keep pre-order)
-        size := f()
-        size_list[i] = [ id, size ]:guielem
-        size
-
+        e := [ id, xy_0i ]:guielem
+        // push first, just in case f() pushes elements also (keep pre-order)
+        size_list.push(e)
+        e.size = f()
 
 private function advance(v, f):
     //allint(v)

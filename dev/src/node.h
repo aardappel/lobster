@@ -127,6 +127,8 @@ struct Node : AST
         else
         {   
             auto nc = NumChildren();
+            // This looks odd, since it calls delete on potentially the incorrect type, but the implementation
+            // is dealloc_small which knows the correct size.
             if (nc > 0 && a()) delete a();
             if (nc > 1 && b()) delete b();
             if (nc > 2 && c()) delete c();

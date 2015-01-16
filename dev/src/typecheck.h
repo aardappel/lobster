@@ -623,6 +623,7 @@ struct TypeChecker
             // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
             // Btw, some values ending up here may be T_COCLOSURE.
+            assert(0);  // Not typechecking code has consequences, must find solution.
             return Type();
         }
     }
@@ -1058,7 +1059,24 @@ struct TypeChecker
                             break;
                     }
                     SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
-                    argtypes.push_back(list->head()->exptype);
+                    auto &actualtype = list->head()->exptype;
+                    if (actualtype.t == V_FUNCTION && !actualtype.Generic())
+                    {
+                        // We must assume this is going to get called and type-check it
+                        auto sf = st.FunctionFromType(actualtype);
+                        Node *args = nullptr;
+                        if (sf->args.v.size())
+                        {
+                            // we have no idea what args.
+                            assert(0);
+                        }
+                        auto fake_function_def = (Node *)new FunRef(parser.lex, sf);
+                        fake_function_def->linenumber = n.linenumber;
+                        fake_function_def->fileidx = n.fileidx;
+                        TypeCheckCall(sf, args, *fake_function_def);
+                        delete fake_function_def;
+                    }
+                    argtypes.push_back(actualtype);
                     i++;
                 }
                 type = Type();  // no retvals
