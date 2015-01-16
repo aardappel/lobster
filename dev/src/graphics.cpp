@@ -286,14 +286,14 @@ void AddGraphics()
     {
         return ToValue(screensize);
     }
-    ENDDECL0(gl_windowsize, "", "", "I]",
+    ENDDECL0(gl_windowsize, "", "", "I]:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
     STARTDECL(gl_mousepos) (Value &i)
     {
         return ToValue(GetFinger(i.ival, false));
     }
-    ENDDECL1(gl_mousepos, "i", "I", "I]",
+    ENDDECL1(gl_mousepos, "i", "I", "I]:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
@@ -301,7 +301,7 @@ void AddGraphics()
     {
         return ToValue(GetFinger(i.ival, true));
     }
-    ENDDECL1(gl_mousedelta, "i", "I", "I]",
+    ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
         "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
         " to correctly deal with lifted fingers and FPS mode (gl_cursor(0))");
 
@@ -309,7 +309,7 @@ void AddGraphics()
     {
         return ToValue(localfingerpos(i.ival));
     }
-    ENDDECL1(gl_localmousepos, "i", "I", "F]",
+    ENDDECL1(gl_localmousepos, "i", "I", "F]:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
@@ -319,7 +319,7 @@ void AddGraphics()
         name.DEC();
         return ToValue(p);
     }
-    ENDDECL2(gl_lastpos, "name,down", "SI", "I]",
+    ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
@@ -328,7 +328,7 @@ void AddGraphics()
         name.DEC();
         return ToValue(p);
     }
-    ENDDECL2(gl_locallastpos, "name,down", "SI", "F]",
+    ENDDECL2(gl_locallastpos, "name,down", "SI", "F]:2",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_mousewheeldelta) ()
@@ -515,7 +515,7 @@ void AddGraphics()
         auto pos = float2(object2view[3].x(), object2view[3].y());
         return ToValue(pos);
     }
-    ENDDECL0(gl_origin, "", "", "F]",
+    ENDDECL0(gl_origin, "", "", "F]:2",
         "returns a vector representing the current transform origin in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
@@ -524,7 +524,7 @@ void AddGraphics()
         auto sc = float2(object2view[0].x(), object2view[1].y());
         return ToValue(sc);
     }
-    ENDDECL0(gl_scaling, "", "", "F]",
+    ENDDECL0(gl_scaling, "", "", "F]:2",
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 

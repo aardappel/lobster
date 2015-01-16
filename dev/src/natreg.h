@@ -110,11 +110,12 @@ template<typename T> struct Typed
 {
     Type type;
     ArgFlags flags;
+    uchar fixed_len;
     T *id;
 
-    Typed() : flags(AF_NONE), id(nullptr) {}
-    Typed(const Typed<T> &o) : flags(o.flags), id(o.id), type(o.type) {}
-    Typed(T *_id, const Type &_type) : id(_id) { SetType(_type); }
+    Typed() : flags(AF_NONE), fixed_len(0), id(nullptr) {}
+    Typed(const Typed<T> &o) : type(o.type), flags(o.flags), fixed_len(o.fixed_len), id(o.id) {}
+    Typed(T *_id, const Type &_type) : fixed_len(0), id(_id) { SetType(_type); }
 
     void SetType(const Type &_type)
     {
@@ -149,6 +150,7 @@ template<typename T> struct Typed
                 case '@': flags = NF_EXPFUNVAL; break;
                 case ']': type = type.Wrap(); break;
                 case '?': type = type.Wrap(V_NILABLE); break;
+                case ':': assert(*tid >= '0' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
                 default: assert(0);
             }
         }

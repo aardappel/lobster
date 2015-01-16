@@ -510,7 +510,7 @@ void AddBuiltins()
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
 
     STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval * RAD), sinf(a.fval * RAD), 0.0f)); }
-    ENDDECL1(sincos, "angle", "F", "F]",
+    ENDDECL1(sincos, "angle", "F", "F]:3",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
 
     STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval) / RAD); } ENDDECL1(arcsin, "y", "F", "F",
@@ -527,7 +527,7 @@ void AddBuiltins()
         auto v = ValueDecTo<float3>(vec);
         return ToValue(v == float3_0 ? v : normalize(v)); 
     }
-    ENDDECL1(normalize, "vec",  "F]" , "F]",
+    ENDDECL1(normalize, "vec",  "F]" , "F]:3",
         "returns a vector of unit length");
 
     STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecTo<float4>(a), ValueDecTo<float4>(b))); }
@@ -538,7 +538,7 @@ void AddBuiltins()
         "the geometric length of a vector");
 
     STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); }
-    ENDDECL2(cross, "a,b", "F]F]", "F]",
+    ENDDECL2(cross, "a,b", "F]F]", "F]:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
     STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival))); } ENDDECL1(rnd, "max", "I", "I",
@@ -631,7 +631,7 @@ void AddBuiltins()
                                        ValueDecTo<float3>(b),
                                        ValueDecTo<float3>(c), f.fval, t.fval));
     }
-    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]",
+    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
         " cardinal spline (tension at 0.5 is a good default)");
 

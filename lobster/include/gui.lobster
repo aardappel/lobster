@@ -258,7 +258,7 @@ if(program_name() == "gui.lobster"): // run example
         if(gl_wentdown("escape")):
             return
 
-        gl_setfontsize(gl_windowsize()[1] / 10)
+        gl_setfontsize(gl_windowsize().y / 10)
         //gl_setmaxfontsize(512)
 
         gl_clear(color_black)

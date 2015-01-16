@@ -58,8 +58,6 @@ struct VM : VMBase
 
     PrintPrefs debugpp;
 
-    vector<int> default_vector_types;
-    
     const char *programname;
 
     VMLog vml;
@@ -99,15 +97,7 @@ struct VM : VMBase
 
         vml.LogInit();
 
-        // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
-        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
-        for (auto name = default_vector_type_names; *name; name++)
-        {
-            int t = V_VECTOR;
-            // linear search because we may not have the map available
-            for (auto s : st.structtable) if (s->name == *name) { t = s->idx; break; }
-            default_vector_types.push_back(t);
-        }
+        st.RegisterDefaultVectorTypes();
 
         assert(g_vm == nullptr);
         g_vm = this;
@@ -133,7 +123,7 @@ struct VM : VMBase
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
-    int GetVectorType(int which) { return default_vector_types[which - 2]; }
+    int GetVectorType(int which) { return st.GetVectorType(which); }
 
     static bool _LeakSorter(void *va, void *vb)
     {

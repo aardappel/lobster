@@ -24,6 +24,8 @@ struct TypeChecker
 
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
+        st.RegisterDefaultVectorTypes();
+            
         TypeCheck(parser.root);
 
         assert(!scopes.size());
@@ -504,7 +506,6 @@ struct TypeChecker
         }
         else
         {
-            //bool recursive = false;
             SubFunction *sf = csf;
             // First see any args are untyped, this means we must specialize.
             for (auto &arg : csf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
@@ -514,24 +515,6 @@ struct TypeChecker
             specialize:
             {
                 assert(!f.istype);  // Should not contain any AF_ANYTYPE
-                
-                /* This doesn't seem to work in all circumstances
-                if (!f.anonymous)
-                {
-                    // Check if recursive calls. We make an exception for them, since any recursive call with function
-                    // value args would get us in an infinite recursion (see matching code below).
-                    // So instead, we require that a recursive call be typeable by its parent call.
-                    for (auto it = named_scopes.rbegin(); it != named_scopes.rend(); ++it)
-                    {
-                        if (it->sf->parent == &f)
-                        {
-                            sf = it->sf;
-                            recursive = true;
-                            goto match;
-                        }
-                    }
-                }
-                */
 
                 if (sf->typechecked)
                 {
@@ -542,13 +525,7 @@ struct TypeChecker
                         for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
                         {
                             auto &arg = sf->args.v[i++];
-                            //auto atype = Promote(list->head()->exptype);
                             if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
-                            /*
-                            // We don't know how this function value will get specialized, so we can't assume it's the
-                            // same as other function values of this idx.
-                            if (atype.t == V_FUNCTION) goto fail;
-                            */
                         }
                         if (FreeVarsSameAsCurrent(sf)) goto match;
                         fail:;
@@ -618,7 +595,9 @@ struct TypeChecker
         {
             freevar.type = freevar.id->type;  // Specialized to current value.
         }
-        
+
+        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(sf).c_str());
+
         return sf;
     }
 
@@ -1102,6 +1081,23 @@ struct TypeChecker
                         default:
                             type = ret.type; 
                             break;
+                    }
+                    // See if we can promote the return type to one of the standard vector types (xy/xyz/xyzw).
+                    if (ret.fixed_len >= 2 && ret.fixed_len <= 4 &&
+                        type.t == V_VECTOR && (type.t2 == V_INT || type.t2 == V_FLOAT))
+                    {
+                        int idx = st.GetVectorType(ret.fixed_len);
+                        if (idx >= 0)
+                        {
+                            for (auto struc = st.structtable[idx]->first; struc; struc = struc->next)
+                            {
+                                if (struc->vectortype.t2 == type.t2)
+                                {
+                                    type = Type(V_STRUCT, struc->idx);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
                 break;

@@ -261,6 +261,8 @@ struct SymbolTable
     vector<pair<Type, Ident *>> withstack;
     vector<size_t> withstacklevels;
 
+    vector<int> default_vector_types;
+
     bool uses_frame_state;
 
     // Used during parsing.
@@ -560,7 +562,23 @@ struct SymbolTable
     string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
     string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
-    
+
+    void RegisterDefaultVectorTypes()
+    {
+        // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
+        if (default_vector_types.size()) return;  // Already initialized.
+        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
+        for (auto name = default_vector_type_names; *name; name++)
+        {
+            int t = V_VECTOR;
+            // linear search because we may not have the map available if called from a VM loaded from bytecode.
+            for (auto s : structtable) if (s->name == *name) { t = s->idx; break; }
+            default_vector_types.push_back(t);
+        }
+    }
+
+    int GetVectorType(int which) { return default_vector_types[which - 2]; }
+
     Struct *StructFromType(const Type &type) const
     {
         assert(type.t == V_STRUCT && !type.Generic());
