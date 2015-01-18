@@ -17,32 +17,37 @@ TODO:
 
 private struct guielem: [ id, size ]
 
-private cursize := nil
+private cursize := xy_0i
 
-private parent_size := nil
+private parent_size := xy_0i
 
 private vertical := true
 
 private render_pass := false
-private size_list := []:[guielem]
+private size_list := []
 private size_index := 0
 
-private align := nil
+private align := 0
 private spacing := 0
 
 private hover_color := color_dark_grey
 private select_color := color_grey
 
-private overalsize := nil
+private overalsize := xy_0i
 
 private interactive := true
 
 private actionsound := nil
 
-private focus_id := 0
+private focus_id := -1
 
 private function cache_size(id, f):
-    if(render_pass):
+    if(!render_pass):
+        e := [ id, xy_0i ]:guielem
+        // push first, just in case f() pushes elements also (keep pre-order)
+        size_list.push(e)
+        e.size = f()
+    else:
         i := size_index
         // usually this lookup will hit the if on the first iteration, but if not, any skipped elements are old
         // elements just removed by an event handler
@@ -51,12 +56,7 @@ private function cache_size(id, f):
             if(e.id == id):
                 size_index = i
                 return e.size
-        nil   // new element inserted by event handler, do not render yet
-    else:
-        e := [ id, xy_0i ]:guielem
-        // push first, just in case f() pushes elements also (keep pre-order)
-        size_list.push(e)
-        e.size = f()
+        xy_0i   // new element inserted by event handler, do not render yet
 
 private function advance(v, f):
     //allint(v)
@@ -73,7 +73,7 @@ private function max_space(v):
 private function position(v, f):
     //allint(v)
     r := max_space(v) - v
-    gl_translate(if(align == 1): round(r / 2) else: align / 2 * r, f)
+    gl_translate(if(align == 1): r / 2 else: r * (align / 2), f)
 
 private function cursize_of(id, f):
     cache_size(id):
@@ -82,7 +82,7 @@ private function cursize_of(id, f):
         cursize
 
 private function element(size, f):
-    if(size):   // will be nil if we're in the render pass and element was just deleted
+    if(size != xy_0i):   // (note: object identity compare!) will be xy_0i if we're in the render pass and element was just deleted
         advance(size):
             position(size, f)
             if(vertical):
@@ -116,12 +116,12 @@ function gui_image(factors, tex):
         gl_rect(size)
         gl_setshader("color")
 
-function gui_divider(thickness):
+function gui_divider(thickness:int):
     align <- 0
-    element(round(xy_1i * thickness)):
+    element(xy_1i * thickness):
         gl_rect(if(vertical): [ parent_size.x, thickness ] else: [ thickness, parent_size.y ])
 
-function gui_space(thickness):
+function gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
 
 function gui_start(size, alignh, alignv, interact, f):   // top level only
@@ -218,7 +218,6 @@ private function button(id, f, do, focus):
                     if(focus & focus_id != id & (up | !gl_touchscreen())):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
-                        focus_id = nil  // May be a different type.
                         focus_id = id
                         focus()
                     else: if(up):
@@ -229,8 +228,8 @@ function gui_button(f, do):         button(caller_id(), f, do, nil)
 function gui_button(f, do, focus):  button(caller_id(), f, do, focus)
 function gui_button_text(text, do): button(caller_id(), function(): gui_text(text), do, nil)
 
-function gui_button_id(id, f, do):         button(id, f, do, nil)
-function gui_button_id(id, f, do, focus):  button(id, f, do, focus)
+function gui_button_id(id:int, f, do):         button(id, f, do, nil)
+function gui_button_id(id:int, f, do, focus):  button(id, f, do, focus)
 
 function gui_custombackground(f): if(render_pass): f(overalsize)
 
@@ -286,7 +285,7 @@ if(program_name() == "gui.lobster"): // run example
                 gui_space(0.2)
                 gui_text("C")
                 gui_button():
-                    gui_border(xy_1 * 2):
+                    gui_border(xy_1i * 2):
                         gui_fontscale(2):
                             gui_text("clickme")
                 do:
@@ -299,7 +298,7 @@ if(program_name() == "gui.lobster"): // run example
                         gui_text("ON")
                 gui_text(focused & "C" | "E")
                 gui_background(color_blue, false):
-                    gui_margin([ 4, 4 ]:xy):
+                    gui_margin(xy_1i * 4):
                         gui_text("D")
                         if(clicked):
                             gui_blend(2):

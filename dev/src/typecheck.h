@@ -39,7 +39,7 @@ struct TypeChecker
 
     template<typename T> string TypedArg(const Typed<T> &arg)
     {
-        string s = arg.id->name;
+        string s = arg.id ? arg.id->name : "arg";  // FIXME: use ArgVector::GetName here instead
         if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
         return s;
     }
@@ -58,6 +58,7 @@ struct TypeChecker
 
     string Signature(const Struct *struc)   { return struc->name      + Signature(struc->fields); }
     string Signature(const SubFunction *sf) { return sf->parent->name + Signature(sf->args.v); }
+    string Signature(const NativeFun *nf)   { return nf->name         + Signature(nf->args.v); }
 
     string SignatureWithFreeVars(const SubFunction *sf)
     {
@@ -111,6 +112,21 @@ struct TypeChecker
             }
         }
         parser.Error(err, &n);
+    }
+
+    void NatCallError(const char *errstr, const NativeFun *nf, const Node &callnode)
+    {
+        auto err = errstr + nf->name;
+        err += "\n  got:";
+        for (auto list = callnode.ncall_args(); list; list = list->tail())
+        {
+            err += " " + TypeName(list->head()->exptype);
+        }
+        for (auto cnf = nf->first; cnf; cnf = cnf->overloads)
+        {
+            err += "\n  overload: " + Signature(cnf);
+        }
+        parser.Error(err, &callnode);
     }
 
     Type NewTypeVar()
@@ -249,6 +265,18 @@ struct TypeChecker
         type = Promote(type);
     }
 
+    Type StructTypeFromVector(const Type &vectortype, int structidx)
+    {
+        for (auto struc = st.structtable[structidx]->first; struc; struc = struc->next)
+        {
+            if (struc->vectortype.t2 == vectortype.t2)
+            {
+                return Type(V_STRUCT, struc->idx);
+            }
+        }
+        return vectortype;
+    }
+
     const char *MathCheck(Type &type, const Node &n, TType op, bool &unionchecked)
     {
         if (op == T_MOD)
@@ -275,9 +303,12 @@ struct TypeChecker
                     {
                         vtype = st.StructFromType(ltype)->vectortype.Element();
                     }
+
                     if (vtype.Numeric())
                     {
                         type = vtype.t == V_INT && rtype.t == V_INT ? Type(V_VECTOR, V_INT) : Type(V_VECTOR, V_FLOAT);
+                        // Recover struct type if possible.
+                        if (ltype.t == V_STRUCT) type = StructTypeFromVector(type, ltype.idx);
                         unionchecked = true;
                         return nullptr;
                     }
@@ -545,10 +576,24 @@ struct TypeChecker
                 }
 
                 // This must be the correct freevar specialization.
-                assert(sf->freevarchecked);
+                assert(!f.anonymous || sf->freevarchecked);
                 for (auto &freevar : sf->freevars.v)
                 {
-                    assert(ExactType(freevar.type, freevar.id->type));
+                    if (f.anonymous)
+                    {
+                        // cases where these might not be equal:
+                        // - if the original freevar wasn't bound yet:
+                        //if (freevar.type.t == V_VAR) UnifyVar(freevar.id->type, freevar.type);
+                        // - in the case of a dynamic scope assignment? FIXME: make a test case for this.
+                        // is it easier to just overwrite the freevar by the one in the id in all cases? does that work?
+
+                        assert(ExactType(freevar.type, freevar.id->type));
+                        (void)freevar;
+                    }
+                    else  // Named function.
+                    {
+                        freevar.type = freevar.id->type;  // Specialized to current value.
+                    }
                 }
                 Output(OUTPUT_DEBUG, "specialization: %s", SignatureWithFreeVars(sf).c_str());
             }
@@ -571,6 +616,9 @@ struct TypeChecker
     
     SubFunction *PreSpecializeFunction(SubFunction *hsf)
     {
+        // Don't pre-specialize named functions, because this is not their call-site.
+        if (!hsf->parent->anonymous) return hsf;
+        
         hsf = hsf->parent->subf;
         
         auto sf = hsf;
@@ -1020,12 +1068,12 @@ struct TypeChecker
                             list = list->tail();
                         }
                         // TODO: list possible alternatives, also in error below.
-                        if (nf) parser.Error("arguments match more than one overload of " + cnf->name, &n);
+                        if (nf) NatCallError("arguments match more than one overload of ", cnf, n);
                         nf = cnf;
                         n.ncall_id()->nf() = nf;
                         nomatch:;
                     }
-                    if (!nf) parser.Error("arguments match no overloads of " + nf->name, &n);
+                    if (!nf) NatCallError("arguments match no overloads of ", n.ncall_id()->nf(), n);
                 }
 
                 int i = 0;
@@ -1074,6 +1122,7 @@ struct TypeChecker
                         fake_function_def->linenumber = n.linenumber;
                         fake_function_def->fileidx = n.fileidx;
                         TypeCheckCall(sf, args, *fake_function_def);
+                        assert(sf == fake_function_def->sf());
                         delete fake_function_def;
                     }
                     argtypes.push_back(actualtype);
@@ -1101,21 +1150,18 @@ struct TypeChecker
                             break;
                     }
                     // See if we can promote the return type to one of the standard vector types (xy/xyz/xyzw).
-                    if (ret.fixed_len >= 2 && ret.fixed_len <= 4 &&
+                    int flen = ret.fixed_len;
+                    if (flen == -1 && n.ncall_args() && n.ncall_args()->head()->exptype.t == V_STRUCT)
+                    {
+                        // Special case: type is promised to be the same as the input arg 0, so if it was a struct,
+                        // we can find the length from that.
+                        flen = (int)st.StructFromType(n.ncall_args()->head()->exptype)->fields.size();
+                    }
+                    if (flen >= 2 && flen <= 4 &&
                         type.t == V_VECTOR && (type.t2 == V_INT || type.t2 == V_FLOAT))
                     {
-                        int idx = st.GetVectorType(ret.fixed_len);
-                        if (idx >= 0)
-                        {
-                            for (auto struc = st.structtable[idx]->first; struc; struc = struc->next)
-                            {
-                                if (struc->vectortype.t2 == type.t2)
-                                {
-                                    type = Type(V_STRUCT, struc->idx);
-                                    break;
-                                }
-                            }
-                        }
+                        int idx = st.GetVectorType(flen);
+                        if (idx >= 0) type = StructTypeFromVector(type, idx);
                     }
                 }
                 break;
@@ -1307,6 +1353,7 @@ struct TypeChecker
             case T_INDEX:
             {
                 auto vtype = Promote(n.left()->exptype);
+                if (vtype.t == V_STRUCT) vtype = st.StructFromType(vtype)->vectortype;
                 if (vtype.t != V_VECTOR && vtype.t != V_STRING)
                     TypeError("vector/string", vtype, n, "container");
                 auto itype = Promote(n.right()->exptype);

@@ -11,7 +11,6 @@
 <h3>builtins</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>
 <tr class="a" valign=top><td class="a"><tt><b>print</b>(x<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">output any value to the console (with linefeed). returns its argument.</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>printnl</b>(x<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">output any value to the console (no linefeed). returns its argument.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>set_print_depth</b>(a<font color="#666666">:int</font>)</tt></td><td class="a">for printing / string conversion: sets max vectors/objects recursion depth (default 10)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>set_print_length</b>(a<font color="#666666">:int</font>)</tt></td><td class="a">for printing / string conversion: sets max string length (default 10000)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>set_print_quoted</b>(a<font color="#666666">:int</font>)</tt></td><td class="a">for printing / string conversion: if the top level value is a string, whether to convert it with escape codes and quotes (default false)</td></tr>
@@ -50,11 +49,16 @@
 <tr class="a" valign=top><td class="a"><tt><b>not</b>(a<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">bitwise negation</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>shl</b>(a<font color="#666666">:int</font>, b<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">bitwise shift left</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>shr</b>(a<font color="#666666">:int</font>, b<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">bitwise shift right</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(f<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">the nearest int >= f (or vector of numbers)</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>floor</b>(f<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">the nearest int <= f (or vector of numbers)</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>truncate</b>(f<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">converts a number (or vector of numbers) to an integer by dropping the fraction</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>round</b>(f<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">converts a number (or vector of numbers) to the closest integer</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(f<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">returns the fractional part of a number (or vector of numbers): short for f - floor(f)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">the nearest int >= f (or vector of numbers)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(v<font color="#666666">:[float]</font>) -> <font color="#666666">[int]</font></tt></td><td class="a">the nearest int >= f (or vector of numbers)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>floor</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">the nearest int <= f (or vector of numbers)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">:[float]</font>) -> <font color="#666666">[int]</font></tt></td><td class="a">the nearest int <= f (or vector of numbers)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>truncate</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a number (or vector of numbers) to an integer by dropping the fraction</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>truncate</b>(v<font color="#666666">:[float]</font>) -> <font color="#666666">[int]</font></tt></td><td class="a">converts a number (or vector of numbers) to an integer by dropping the fraction</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(f<font color="#666666">:float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to the closest integer</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">:[float]</font>) -> <font color="#666666">[int]</font></tt></td><td class="a">converts a vector of floats to the closest integers</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(f<font color="#666666">:float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns the fractional part of a number (or vector of numbers): short for f - floor(f)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">:[float]</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">returns the fractional part of a number (or vector of numbers): short for f - floor(f)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">:float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the y coordinate of the normalized vector indicated by angle (in degrees)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">:float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the x coordinate of the normalized vector indicated by angle (in degrees)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>sincos</b>(angle<font color="#666666">:float</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]</td></tr>
@@ -65,9 +69,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>dot</b>(a<font color="#666666">:[float]</font>, b<font color="#666666">:[float]</font>) -> <font color="#666666">float</font></tt></td><td class="a">the length of vector a when projected onto b (or vice versa)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>magnitude</b>(a<font color="#666666">:[float]</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>cross</b>(a<font color="#666666">:[float]</font>, b<font color="#666666">:[float]</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">a random value [0..max) or a random vector from an input vector. Uses the Mersenne Twister algorithm.</td></tr>
-<tr class="a" valign=top><td class="a"><tt><b>rndseed</b>(seed<font color="#666666">:int</font>)</tt></td><td class="a">explicitly set a random seed for reproducable randomness</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">a random value [0..max).</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">:[int]</font>) -> <font color="#666666">[int]</font></tt></td><td class="a">a random vector within the range of an input vector.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>rndfloat</b>() -> <font color="#666666">float</font></tt></td><td class="a">a random float [0..1)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>rndseed</b>(seed<font color="#666666">:int</font>)</tt></td><td class="a">explicitly set a random seed for reproducable randomness</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>div</b>(a<font color="#666666">:int</font>, b<font color="#666666">:int</font>) -> <font color="#666666">float</font></tt></td><td class="a">forces two ints to be divided as floats</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666"></font>, min<font color="#666666"></font>, max<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">forces a number to be in the range between min and max (inclusive)</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666"></font>) -> <font color="#666666">any</font></tt></td><td class="a">absolute value of int/float/vector</td></tr>
@@ -189,7 +194,7 @@
 </table>
 <h3>parsedata</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>
-<tr class="a" valign=top><td class="a"><tt><b>parse_data</b>(stringdata<font color="#666666">:string</font>) -> <font color="#666666">any</font>, <font color="#666666">any</font></tt></td><td class="a">parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and structs. structs will be forced to be compatible with their current definitions, i.e. too many elements will be truncated, missing elements will be set to nil, and unknown type means downgrade to vector. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>parse_data</b>(stringdata<font color="#666666">:string</font>) -> <font color="#666666">any</font>, <font color="#666666">string?</font></tt></td><td class="a">parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and structs. structs will be forced to be compatible with their current definitions, i.e. too many elements will be truncated, missing elements will be set to nil, and unknown type means downgrade to vector. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)</td></tr>
 </table>
 <h3>physics</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>

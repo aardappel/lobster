@@ -87,7 +87,7 @@ struct CompiledProgram
             }
         }
 
-        CodeGen cg(parser, st, code, linenumbers);
+        CodeGen cg(parser, st, code, linenumbers, (flags & TYPECHECK) != 0);
 
         if (flags & DISASM)
         {

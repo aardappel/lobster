@@ -577,7 +577,7 @@ struct SymbolTable
         }
     }
 
-    int GetVectorType(int which) { return default_vector_types[which - 2]; }
+    int GetVectorType(int which) { assert(which >= 2); return default_vector_types[which - 2]; }
 
     Struct *StructFromType(const Type &type) const
     {
@@ -621,7 +621,7 @@ struct SymbolTable
                                 : FunctionFromType(type)->parent->name;
             case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
             case V_VAR: return type_vars
-                ? TypeName(type_vars[type.idx], type_vars, depth + 1) + "*"
+                ? TypeName(type_vars[type.idx], type_vars, depth) + "*"
                 : BaseTypeName(type.t);
             default: return BaseTypeName(type.t);
         }

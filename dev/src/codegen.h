@@ -62,9 +62,10 @@ struct CodeGen
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
+    bool typechecked;
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo)
-        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
+    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool _typechecked)
+        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st), typechecked(_typechecked)
     {
         linenumbernodes.push_back(parser.root);
 
@@ -189,6 +190,8 @@ struct CodeGen
 
     void GenScope(SubFunction &sf)
     {
+        assert(!typechecked || sf.typechecked);
+
         vector<Ident *> defs;
         vector<Ident *> logvars;
         // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order stays the same

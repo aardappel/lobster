@@ -110,7 +110,7 @@ template<typename T> struct Typed
 {
     Type type;
     ArgFlags flags;
-    uchar fixed_len;
+    char fixed_len;
     T *id;
 
     Typed() : flags(AF_NONE), fixed_len(0), id(nullptr) {}
@@ -150,7 +150,7 @@ template<typename T> struct Typed
                 case '@': flags = NF_EXPFUNVAL; break;
                 case ']': type = type.Wrap(); break;
                 case '?': type = type.Wrap(V_NILABLE); break;
-                case ':': assert(*tid >= '0' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
+                case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
                 default: assert(0);
             }
         }

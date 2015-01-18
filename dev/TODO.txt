@@ -1,6 +1,8 @@
 - allow random number generator to be selected
 
 - typechecker
+  * must have a way to specifically indicate specialized struct types
+
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
   * fixme: accessing flt_ in Node could fail if 64bit aligned
@@ -15,6 +17,8 @@
     Can this ever happen? can we guarantee it doesn't? Or for now just force a specialization if it has demotes?
 
   * coroutine type checking!
+
+  * gl_rect takes a [any] but what we really want is [num].. or should we just overload it?
 
   * struct specialization
     * multimethods?

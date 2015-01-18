@@ -593,7 +593,7 @@ void AddGraphics()
 
         return vec;
     }
-    ENDDECL1(gl_rect, "vec", "F]", "F]",
+    ENDDECL1(gl_rect, "vec", "A]", "F]",   // FIXME: we'd prefer a numeric type
         "renders a rectangle of the given size. returns the argument.");
 
     STARTDECL(gl_line) (Value &start, Value &end, Value &thickness)
@@ -657,8 +657,8 @@ void AddGraphics()
         {
             v.pos  = ValueTo<float3>(positions.vval->at(i), 0);
             v.col  = i < colors.vval->len    ? quantizec(ValueTo<float4>(colors.vval->at(i), 1)) : byte4_255;
-            v.tc   = i < texcoords.vval->len ? ValueTo<float3>(texcoords.vval->at(i), 0).xy()     : v.pos.xy();
-            v.norm = i < normals.vval->len   ? ValueTo<float3>(normals.vval->at(i), 0)            : float3_0;
+            v.tc   = i < texcoords.vval->len ? ValueTo<float3>(texcoords.vval->at(i), 0).xy()    : v.pos.xy();
+            v.norm = i < normals.vval->len   ? ValueTo<float3>(normals.vval->at(i), 0)           : float3_0;
             verts[i] = v;
         }
 
