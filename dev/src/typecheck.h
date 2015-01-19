@@ -315,8 +315,8 @@ struct TypeChecker
         {
             if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT)
             {
-                auto &ltype = n.left()->exptype;
-                auto &rtype = n.right()->exptype;
+                auto ltype = Promote(n.left()->exptype);
+                auto rtype = Promote(n.right()->exptype);
                 
                 if (MathCheckVector(type, ltype, rtype))
                 {

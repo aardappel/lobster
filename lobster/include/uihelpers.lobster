@@ -5,13 +5,13 @@ include "vec.lobster"
 // inertia scroll: call this once a frame to receive a panning offset for any 2D scrolling item,
 // as it has been dragged by the user using "button" (e.g. "mouse1")
 // scale: the size in pixels of one unit in the scrollable area
-// size: of the scrollable area (in its own units)
+// mino/maxo: bounding box of the scrollable area (in its own units)
 // viewsize: in pixels
 
 private panoffset := xy_0
 private touchvelocity := xy_0
 
-function ui_inertiascroll(buttonname, scale, mino, maxo, viewsize):
+function ui_inertiascroll(buttonname, scale, mino:xy, maxo:xy, viewsize):
     if(gl_isdown(buttonname)):
         delta := gl_mousedelta(0) / scale
         panoffset -= delta

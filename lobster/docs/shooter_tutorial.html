@@ -74,7 +74,7 @@ include &quot;color.lobster&quot;
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 worldsize := 20.0
-playerpos := xy_0
+playerpos := vec_0
 playerspeed := 10
 
 while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
@@ -93,7 +93,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     
     gl_translate(playerpos):
         gl_circle(1, 6)</code></pre>
-<p>To make our player move, we added 2 new variables: <code>playerpos</code> and <code>playerspeed</code>. We initialize the former with a vector constant from <code>vec.lobster</code>: <code>xy_0</code> means all zeroes.</p>
+<p>To make our player move, we added 2 new variables: <code>playerpos</code> and <code>playerspeed</code>. We initialize the former with a vector constant from <code>vec.lobster</code>: <code>vec_0</code> means all zeroes.</p>
 <p>We first figure out which direction the player wants to move by checking the current state of the WASD keys: by combining the boolean values (0 / 1) for each direction, both DA and SW give us a -1 / 0 / 1 value which conveniently corresponds to a directional vector (<code>dir</code>).</p>
 <p>Now, we can't just add this vector to the player and be done with it, we have to take into account:</p>
 <ul>
@@ -116,7 +116,7 @@ fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 worldsize :== 20.0
 
-playerpos := xy_0
+playerpos := vec_0
 playerspeed :== 10
 
 struct bullet: [ pos, dir ]
@@ -162,7 +162,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     
     gl_translate(playerpos):
         gl_rotate_z(tomouse):
-            gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
+            gl_polygon([ [ -0.5, 0.5 ], vec_x, [ -0.5, -0.5 ] ])</code></pre>
 <p>To be able to shoot, first we have to worry about giving our player an orientation. We compute that in the vector <code>tomouse</code> which we get by substracting the player position from the mouse position (what we want to shoot towards). Something funny is going on here though, as the name <code>gl_localmousepos</code> may indicate: normally mouse positions are in pixels, but those we can't compare against the player position, which is in world coordinates! <code>gl_localmousepos</code> however gives us the mouse position relative to the current transform, which is world coordinates (as specified by the <code>gl_translate</code> and <code>gl_scale</code> above). We then normalize this vector to make it easier to use, as we don't care about the original length of this vector.</p>
 <p>To make the players orientation visual, we first render the player differently: rather than a simple circle, we render him as a pointy triangle, to make it clear what direction he's looking at. That's the <code>gl_polygon</code> at the end with 3 explicit coordinates (relative to the playerpos, which has now become our coordinate system origin thanks to <code>gl_translate</code>). Additionally, we insert a <code>gl_rotate_z</code> command to make the pointy part of the triangle always look towards the mouse cursor. The <code>z</code> is because if we rotate around the z axis, we end up rotating the xy plane, which is what we look at in 2D. The argument to <code>gl_rotate_z</code> can either be a vector (as used here) or an angle in degrees. Vectors are generally awesomer.</p>
 <p>Additionally, to cater for situations where the mouse cursor isn't visible (which it typically isn't in games) we draw a circle (for now) at the mouse location to give the player feedback where he's aiming at. This starts at the <code>gl_translate</code> before where we draw the player (before, because if the two overlap, the last one will be drawn on top). We translate to the mouse location in world space, change the linemode to 1 (which draws just the outline instead of a filled circle) and change the color. As you can see, all these commands are ones that undo themselves automatically after the circle is drawn, which is very convenient.</p>
@@ -183,7 +183,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
 <pre><code>function renderpointytriangle(pos, dir):
     gl_translate(pos):
         gl_rotate_z(dir):
-            gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
+            gl_polygon([ [ -0.5, 0.5 ], vec_x, [ -0.5, -0.5 ] ])</code></pre>
 <p>First, let's take the code for rendering the player and put it in it's own function, since we'll be needing it for enemies too. Call instead of the original code with <code>renderpointytriangle(playerpos, tomouse)</code></p>
 <pre><code>struct enemy: [ pos, hp ]
 
@@ -204,7 +204,7 @@ lastenemy := gl_time()</code></pre>
         for(bullets) b:
             if(magnitude(b.pos - e.pos) &lt; 1):
                 e.hp = max(e.hp - 1, 0)
-                b.pos = xy_x * worldsize * 10
+                b.pos = vec_x * worldsize * 10
         gl_color(lerp(color_red, color_blue, div(e.hp, enemymaxhp))):
             renderpointytriangle(e.pos, playerdir)
             
@@ -236,7 +236,7 @@ playing := false</code></pre>
         if(gl_wentdown(&quot;space&quot;)):
             score = 0
             playerhealth = 100.0
-            playerpos = xy_0
+            playerpos = vec_0
             bullets = []
             lastbullet = gl_time()
             enemyrate = 1.0
