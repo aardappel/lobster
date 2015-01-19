@@ -479,29 +479,34 @@ void AddBuiltins()
     #define VECTOROPI(name, op) VECTOROP(name, op, V_INT)
 
     STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval))); } ENDDECL1(ceiling, "f", "F", "I",
-        "the nearest int >= f (or vector of numbers)");
+        "the nearest int >= f");
     STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling, int(ceilf(f.fval))); } ENDDECL1(ceiling, "v", "F]", "I]:/",
-        "the nearest int >= f (or vector of numbers)");
+        "the nearest ints >= each component of v");
 
     STARTDECL(floor)   (Value &a) { return Value(int(floorf(a.fval))); } ENDDECL1(floor, "f", "F", "I",
-        "the nearest int <= f (or vector of numbers)");
+        "the nearest int <= f");
     STARTDECL(floor)   (Value &a) { VECTOROPF(floor, int(floorf(f.fval))); } ENDDECL1(floor, "v", "F]", "I]:/",
-        "the nearest int <= f (or vector of numbers)");
+        "the nearest ints <= each component of v");
 
-    STARTDECL(truncate)(Value &a) { return Value(int(a.fval)); } ENDDECL1(truncate, "f", "F", "I",
-        "converts a number (or vector of numbers) to an integer by dropping the fraction");
-    STARTDECL(truncate)(Value &a) { VECTOROPF(truncate, int(f.fval)); } ENDDECL1(truncate, "v", "F]", "I]:/",
-        "converts a number (or vector of numbers) to an integer by dropping the fraction");
+    STARTDECL(int)(Value &a) { return Value(int(a.fval)); } ENDDECL1(int, "f", "F", "I",
+        "converts a float to an int by dropping the fraction");
+    STARTDECL(int)(Value &a) { VECTOROPF(int, int(f.fval)); } ENDDECL1(int, "v", "F]", "I]:/",
+        "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round)   (Value &a) { return Value(int(a.fval + 0.5f)); } ENDDECL1(round, "f", "F", "I",
-        "converts a float to the closest integer");
+        "converts a float to the closest int");
     STARTDECL(round)   (Value &a) { VECTOROPF(round, int(f.fval + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
-        "converts a vector of floats to the closest integers");
+        "converts a vector of floats to the closest ints");
 
     STARTDECL(fraction)(Value &a) { return Value(a.fval - floorf(a.fval)); } ENDDECL1(fraction, "f", "F", "F",
-        "returns the fractional part of a number (or vector of numbers): short for f - floor(f)");
+        "returns the fractional part of a float: short for f - floor(f)");
     STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval - floorf(f.fval)); } ENDDECL1(fraction, "v", "F]", "F]:/",
-        "returns the fractional part of a number (or vector of numbers): short for f - floor(f)");
+        "returns the fractional part of a vector of floats");
+
+    STARTDECL(float)(Value &a) { return Value(float(a.ival)); } ENDDECL1(float, "i", "I", "F",
+        "converts an int to float");
+    STARTDECL(float)(Value &a) { VECTOROPI(float, float(f.ival)); } ENDDECL1(float, "v", "I]", "F]:/",
+        "converts a vector of ints to floats");
 
     STARTDECL(sin) (Value &a) { return Value(sinf(a.fval * RAD)); } ENDDECL1(sin, "angle", "F", "F",
         "the y coordinate of the normalized vector indicated by angle (in degrees)");
@@ -533,7 +538,7 @@ void AddBuiltins()
     ENDDECL2(dot,   "a,b", "F]F]", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
-    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "F]", "F",
+    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "A]", "F",
         "the geometric length of a vector");
 
     STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); }

@@ -167,7 +167,7 @@ function gui_blend(bli, f): nest_if(render_pass, function(): gl_blend(bli, _), f
 private function around(m, draw, id, f):
     size := cursize_of(id, f)
     if(size):
-        size += round(m * 2)
+        size += m * 2
         advance(size):
             if(draw):
                 position(size): // FIXME: clean this up

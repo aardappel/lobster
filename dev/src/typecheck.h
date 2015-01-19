@@ -126,7 +126,7 @@ struct TypeChecker
         {
             err += "\n  overload: " + Signature(cnf);
         }
-        parser.Error(err, &callnode);
+        TypeError(err, callnode);
     }
 
     Type NewTypeVar()
@@ -277,6 +277,34 @@ struct TypeChecker
         return vectortype;
     }
 
+    bool MathCheckVector(Type &type, const Type &ltype, const Type &rtype)
+    {
+        // Special purpose check for vector * scalar etc, needs to be improved further.
+        // VM supports scalar * vector also, but maybe not needed?
+        if (rtype.Numeric())
+        {
+            Type vtype;
+            if (ltype.t == V_VECTOR)
+            {
+                vtype = ltype.Element();
+            }
+            else if (ltype.t == V_STRUCT)
+            {
+                vtype = st.StructFromType(ltype)->vectortype.Element();
+            }
+
+            if (vtype.Numeric())
+            {
+                type = vtype.t == V_INT && rtype.t == V_INT ? Type(V_VECTOR, V_INT) : Type(V_VECTOR, V_FLOAT);
+                // Recover struct type if possible.
+                if (ltype.t == V_STRUCT) type = StructTypeFromVector(type, ltype.idx);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     const char *MathCheck(Type &type, const Node &n, TType op, bool &unionchecked)
     {
         if (op == T_MOD)
@@ -290,28 +318,10 @@ struct TypeChecker
                 auto &ltype = n.left()->exptype;
                 auto &rtype = n.right()->exptype;
                 
-                // Special purpose check for vector * scalar etc, needs to be improved further.
-                // VM supports scalar * vector also, but maybe not needed?
-                if (rtype.Numeric())
+                if (MathCheckVector(type, ltype, rtype))
                 {
-                    Type vtype;
-                    if (ltype.t == V_VECTOR)
-                    {
-                        vtype = ltype.Element();
-                    }
-                    else if (ltype.t == V_STRUCT)
-                    {
-                        vtype = st.StructFromType(ltype)->vectortype.Element();
-                    }
-
-                    if (vtype.Numeric())
-                    {
-                        type = vtype.t == V_INT && rtype.t == V_INT ? Type(V_VECTOR, V_INT) : Type(V_VECTOR, V_FLOAT);
-                        // Recover struct type if possible.
-                        if (ltype.t == V_STRUCT) type = StructTypeFromVector(type, ltype.idx);
-                        unionchecked = true;
-                        return nullptr;
-                    }
+                    unionchecked = true;
+                    return nullptr;
                 }
 
                 if (op == T_PLUS)
@@ -925,9 +935,12 @@ struct TypeChecker
             case T_MODEQ:
             {
                 type = Promote(n.left()->exptype);
-                bool unionchecked = false;
-                MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
-                SubType(n.right(), type, "right", n);
+                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype))
+                {
+                    bool unionchecked = false;
+                    MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
+                    SubType(n.right(), type, "right", n);
+                }
                 break;
             }
 

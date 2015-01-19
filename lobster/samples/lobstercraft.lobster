@@ -24,7 +24,7 @@ cells := map(lssize) z:
                     // more likely to be solid the lower it is, and only when not on the outside:
                     solid := h > div(z, lssize) - 0.5 & inside(v)
                     // pick material with noise too:
-                    if(solid): solid = truncate((simplex([ x, y, z ] / (lssize + 0.0), 8, 1, 0.55) + 1) * 2) + 1
+                    if(solid): solid = int((simplex([ x, y, z ] / (lssize + 0.0), 8, 1, 0.55) + 1) * 2) + 1
                     solid
 
 colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
@@ -56,7 +56,7 @@ while(gl_frame()):
     last_empty := nil
     camvec := vecfromyawpitch(camera_yaw, camera_pitch, 1, 0)
     for(100) i:  // look at most 10 cubes ahead
-        pos := map(camera_position + camvec * (i / 10.0)): truncate(_)
+        pos := map(camera_position + camvec * (i / 10.0)): int(_)
         if(inside(pos) & !first_solid):
             if(cells[pos]): first_solid = pos
             else: last_empty = pos

@@ -18,7 +18,13 @@
 
   * coroutine type checking!
 
-  * gl_rect takes a [any] but what we really want is [num].. or should we just overload it?
+  * gl_rect/magnitude takes a [any] but what we really want is [num].. or should we just overload it?
+    we could actually make it [float] and require the caller to explictly convert it in the few int cases,
+    though int coords for gl_rect are pretty common so that may get annoying.
+
+  * value structs are still compared by reference.. by value would be better, which also means we can choose
+    to copy them and store them wherever.
+    See e.g. gui.lobster/element()
 
   * struct specialization
     * multimethods?
@@ -131,6 +137,10 @@ vertex_neighbors :== [
 
 - [float] / int does int division, which is wrong
 
+- should redo gui.lobster to take all args in virtual float coords, not some in float font relative coords and some
+  in pixels.
+
+- try Lobster with Emscripten now that SDL has built-in Emscripten support: https://hg.libsdl.org/SDL/rev/8900afb78a19
 
 - should consider allowing local functions to be declared with "public", which would expose them to closures called
   from within their parent function. This would allow the whole definition of gui.lobster to be inside gui_start.

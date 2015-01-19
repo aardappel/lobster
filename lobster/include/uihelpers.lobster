@@ -52,20 +52,20 @@ function ui_inertiascroll_reset(startoffset):
 // mins/default/maxs: the range of exponents, try e.g. (10, 15, 20) and tweak from there
 // origin is the translation that has been set so far, if gl_translate hasn't been called yet, pass in xy_0
 
-private viewsteps := nil
+private viewsteps := 0
 private pinchfactor := 1.0
 private lastdistance := 0.0
 
 function ui_mousewheelorpinchzoom(rate, mins, default, maxs, origin):
-    if(viewsteps == nil): viewsteps = default
+    if(viewsteps == 0): viewsteps = default
     oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
     viewsteps -= gl_mousewheeldelta()
     viewsteps = max(min(viewsteps, maxs), mins)
     viewscale := pow(rate, viewsteps)
-    center := gl_mousepos(0)
+    center := float(gl_mousepos(0))
     if(gl_isdown("mouse1") & gl_isdown("mouse11")):
         dist := magnitude(gl_mousepos(0) - gl_mousepos(1))
-        center = (gl_mousepos(0) + gl_mousepos(1)) / 2
+        center = (gl_mousepos(0) + gl_mousepos(1)) / 2.0
         if(lastdistance):
             pinchfactor *= dist / lastdistance
         lastdistance = dist
@@ -79,7 +79,7 @@ function ui_mousewheelorpinchzoom(rate, mins, default, maxs, origin):
     scale
 
 function ui_mousewheelzoom_reset():
-    viewsteps = nil
+    viewsteps = 0
     pinchfactor = 1
     lastdistance = 0
 

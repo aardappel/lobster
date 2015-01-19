@@ -47,7 +47,6 @@ xyzw_yi :== [ 0, 1, 0, 0 ]:xyzw
 xyzw_zi :== [ 0, 0, 1, 0 ]:xyzw
 xyzw_wi :== [ 0, 0, 0, 1 ]:xyzw
 
-
 function allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
 
 function forxy(v, fun): for(v.y) y: for(v.x) x: fun([ x, y ]:xy)

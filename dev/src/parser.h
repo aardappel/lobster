@@ -1167,6 +1167,10 @@ struct Parser
                                 idname, nullptr, true), nullptr);
             }
 
+            case T_FLOATTYPE:
+            case T_INTTYPE:
+                // These are also used as built-in functions, so allow them to function as identifier
+                // FALL-THROUGH:
             case T_IDENT:
             {
                 string idname = lex.sattr;
