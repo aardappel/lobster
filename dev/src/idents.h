@@ -113,17 +113,21 @@ struct Struct : Name
     vector<Field> fields; 
 
     Struct *next, *first;
+
     Struct *superclass;
     int superclassidx;
     
+    Struct *firstsubclass, *nextsubclass;  // Used in codegen.
+
     bool readonly;
-    bool typechecked;
+    bool generic;
 
     Type vectortype;  // What kind of vector this can be demoted to.
 
     Struct(const string &_name, int _idx)
         : Name(_name, _idx), next(nullptr), first(this), superclass(nullptr), superclassidx(-1),
-          readonly(false), typechecked(false),
+          firstsubclass(nullptr), nextsubclass(nullptr),
+          readonly(false), generic(false),
           vectortype(Type(V_VECTOR)) {}
     Struct() : Struct("", 0) {}
 
@@ -140,14 +144,19 @@ struct Struct : Name
         return nullptr;
     }
 
-    Struct *Clone()
+    Struct *CloneInto(Struct *st)
     {
-        auto st = new Struct();
         *st = *this;
         st->next = next;
         st->first = first;
         next = st;
         return st;
+    }
+
+    bool IsSpecialization(Struct *other)
+    {
+        for (auto struc = first->next; struc; struc = struc->next) if (struc == other) return true;
+        return false;
     }
 };
 
@@ -215,6 +224,8 @@ struct Function : Name
     bool anonymous;    // does not have a programmer specified name
     bool istype;       // its merely a function type, has no body, but does have a set return type.
 
+    ArgVector orig_args; // Store the original types the function was declared with, before specialization.
+
     int scopelevel;
     int retvals;
 
@@ -222,7 +233,8 @@ struct Function : Name
 
     Function(const string &_name, int _idx, int _sl)
      : Name(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
-       multimethod(false), anonymous(false), istype(false), scopelevel(_sl), retvals(0), ncalls(0)
+       multimethod(false), anonymous(false), istype(false), orig_args(0, nullptr),
+       scopelevel(_sl), retvals(0), ncalls(0)
     {
     }
     Function() : Function("", 0, -1) {}
@@ -294,7 +306,7 @@ struct SymbolTable
 
         ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
         ident->sf_def = sf;
-        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, Type()));
+        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, Type(), true));
 
         if (it == idents.end())
         {
@@ -315,7 +327,7 @@ struct SymbolTable
     {
         auto it = idents.find(name);
         if (it == idents.end()) lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, Type());
+        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, Type(), true);
         return it->second;
     }
         
@@ -331,7 +343,7 @@ struct SymbolTable
             {
                 auto sf = defsubfunctionstack[i];
                 if (it->second->sf_def == sf) break;  // Found the definition.
-                sf->freevars.Add(it->second, Type());
+                sf->freevars.Add(it->second, Type(), true);
             }
         }
         return it->second;  
@@ -364,7 +376,7 @@ struct SymbolTable
         for (auto &wp : withstack) if (wp.first.SameIndex(t)) lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash with the struct,
         // or do so in LookupUse
-        assert(!t.Generic());
+        assert(t.HasIndex());
         withstack.push_back(make_pair(t, id));
     }
 
@@ -577,17 +589,24 @@ struct SymbolTable
         }
     }
 
+    bool IsGeneric(const Type &type)
+    {
+        if (type.t == V_ANY) return true;
+        auto u = type.UnWrapped();
+        return u.t == V_STRUCT && StructFromType(u)->generic;
+    }
+
     int GetVectorType(int which) { assert(which >= 2); return default_vector_types[which - 2]; }
 
     Struct *StructFromType(const Type &type) const
     {
-        assert(type.t == V_STRUCT && !type.Generic());
+        assert(type.t == V_STRUCT && type.HasIndex());
         return structtable[type.idx];
     }
 
     SubFunction *FunctionFromType(const Type &type) const
     {
-        assert(type.t == V_FUNCTION && !type.Generic());
+        assert(type.t == V_FUNCTION && type.HasIndex());
         return subfunctiontable[type.idx];
     }
     
@@ -599,26 +618,26 @@ struct SymbolTable
             {
                 auto struc = StructFromType(type);
                 string s = struc->name;
-                if (!depth)
+                if (depth < 2)
                 {
                     int i = 0;
                     for (auto &field : struc->fields)
                     {
                         if (field.flags == AF_ANYTYPE)
                         {
-                            s += i ? "," : "<";
+                            s += i ? "," : "(";
                             s += TypeName(field.type, type_vars, depth + 1);
                             i++;
                         }
                     }
-                    if (i) s += ">";
+                    if (i) s += ")";
                 }
                 return s;
             }
             case V_VECTOR: return "[" + TypeName(type.Element(), type_vars, depth + 1) + "]";
-            case V_FUNCTION: return type.Generic() // || functiontable[type.idx]->anonymous
-                                ? "function"
-                                : FunctionFromType(type)->parent->name;
+            case V_FUNCTION: return type.HasIndex() // || functiontable[type.idx]->anonymous
+                                ? FunctionFromType(type)->parent->name
+                                : "function";
             case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
             case V_VAR: return type_vars
                 ? TypeName(type_vars[type.idx], type_vars, depth) + "*"

@@ -248,7 +248,7 @@ struct Parser
             {
                 bool isvalue = lex.token == T_VALUE;
                 lex.Next();
-                string sname = lex.sattr;
+                auto sname = lex.sattr;
                 Expect(T_IDENT);
 
                 Struct &struc = st.StructDecl(sname, lex);
@@ -256,40 +256,98 @@ struct Parser
                 struc.isprivate = isprivate;
 
                 currentstruct = &struc;
+                Node *field_nodes = nullptr;
 
-                Expect(T_COLON);
-
-                int fieldid = 0;
-
-                if (IsNextId())
+                if (IsNext(T_ASSIGN))
                 {
-                    auto &base = st.StructUse(lastid, lex);
-                    struc.superclass = &base;
-                    struc.superclassidx = base.idx;
+                    // A specialization of an existing struct
+                    auto gname = lex.sattr;
+                    Expect(T_IDENT);
+                    auto &gstruc = st.StructUse(gname, lex);
 
-                    int off = 0;
-                    for (auto &fld : base.fields)
+                    if (!gstruc.generic)
+                        Error("you can only specialize a generic struct/value");
+                    if (struc.readonly != gstruc.readonly)
+                        Error("specialization must use same struct/value keyword");
+                    if (struc.isprivate != gstruc.isprivate)
+                        Error("specialization must have same privacy level");
+
+                    gstruc.CloneInto(&struc);
+                    struc.idx = st.structtable.size() - 1;
+                    struc.name = sname;
+                    struc.generic = false;
+
+                    Expect(T_LEFTPAREN);
+                    int i = 0;
+                    for (auto &field : struc.fields)
                     {
-                        struc.fields.push_back(fld);
-                        fld.id->NewFieldUse(FieldOffset(struc.idx, off++));
+                        // FIXME: merge this code with the supertype specialization below?
+                        if (field.flags == AF_ANYTYPE)
+                        {
+                            if (i++) Expect(T_COMMA);
+                            ParseType(field.type, false);
+                            // We don't reset AF_ANYTYPE here, because its used to know which fields to select
+                            // a specialization on.
+                        }
+                    }
+                    Expect(T_RIGHTPAREN);
+                }
+                else
+                {
+                    // A regular struct declaration
+                    Expect(T_COLON);
+
+                    int fieldid = 0;
+
+                    if (IsNextId())
+                    {
+                        auto &base = st.StructUse(lastid, lex);
+                        struc.superclass = &base;
+                        struc.superclassidx = base.idx;
+
+                        bool specializing = IsNext(T_LEFTPAREN);
+                        int i = 0;
+                        int off = 0;
+                        for (auto &fld : base.fields)
+                        {
+                            struc.fields.push_back(fld);
+                            auto &field = struc.fields.back();
+                            field.id->NewFieldUse(FieldOffset(struc.idx, off++));
+                            if (specializing && field.flags == AF_ANYTYPE)
+                            {
+                                if (i++) Expect(T_COMMA);
+                                // FIXME: must check if this type is a subtype if old type isn't V_ANY
+                                ParseType(field.type, false);
+                            }
+                            if (st.IsGeneric(field.type)) struc.generic = true;
+                        }
+                        if (specializing) Expect(T_RIGHTPAREN);
+
+                        fieldid = base.fields.size();
                     }
 
-                    fieldid = base.fields.size();
-                }
+                    Expect(T_LEFTBRACKET);
 
-                Expect(T_LEFTBRACKET);
+                    field_nodes = ParseVector(fieldid);
 
-                auto v = ParseVector(fieldid);
-
-                for (auto ids = v; ids; ids = ids->tail())
-                {
-                    assert(ids->head()->type == T_FIELD);
-                    struc.fields.push_back(Field(ids->head()->fld(), ids->head()->exptype));
+                    for (auto ids = field_nodes; ids; ids = ids->tail())
+                    {
+                        assert(ids->head()->type == T_FIELD);
+                        bool generic = st.IsGeneric(ids->head()->exptype);
+                        struc.fields.push_back(Field(ids->head()->fld(), ids->head()->exptype, generic));
+                        if (generic) struc.generic = true;
+                    }
+                    // Loop thru a second time, because this type may have become generic just now, and may refer
+                    // to itself.
+                    for (auto &field : struc.fields)
+                    {
+                        if (st.IsGeneric(field.type)) field.flags = AF_ANYTYPE;
+                    }
                 }
 
                 currentstruct = nullptr;
 
-                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), v));
+                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), field_nodes));
                 break;
             }
 
@@ -436,7 +494,7 @@ struct Parser
                     ParseType(type, withtype);
                     if (withtype) st.AddWithStruct(type, id, lex);
                 }
-                sf->args.v.back().SetType(type);
+                sf->args.v.back().SetType(type, st.IsGeneric(type));
 
                 if (!IsNext(T_COMMA)) break;
             }
@@ -486,6 +544,7 @@ struct Parser
             f.anonymous = true;
         }
 
+        // Parse the body.
         if (!f.istype)
         {
             if (expfunval)
@@ -533,6 +592,9 @@ struct Parser
             }
         }
 
+        // Keep copy or arg types from before specialization.
+        f.orig_args = sf->args;  // not used for multimethods
+
         return (Node *)new FunRef(lex, sf);
     }
 
@@ -568,15 +630,6 @@ struct Parser
             {
                 dest.t = V_STRUCT;
                 auto &struc = st.StructUse(lex.sattr, lex);
-                /*
-                for (auto &field : struc.fields)
-                {
-                    // We may be able to lift this restriction in the future, but for now,
-                    // we wouldn't know which specialization this type refers to.
-                    if (field.flags == AF_ANYTYPE)
-                        Error("struct/value type " + lex.sattr + " has untyped field: " + field.id->name);
-                }
-                */
                 dest.idx = struc.idx;
                 lex.Next();
                 break;

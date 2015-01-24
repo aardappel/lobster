@@ -159,7 +159,14 @@ Similarly, if you tried to assign a vector to `a` after the first
 assignment, it would complain that only a `string?` is valid, i.e. a
 `string` or `nil` value.
 
-## Flow based types
+To bypass that process and force `nil` to represent a particular nilable
+type, you can attach a type, like `nil:string`, which creates a value of
+type `string?`. Alternatively you could write `nil & a`, which makes
+`nil` have the type of whatever `a` has, which may be a generic
+variable. Similarly, `a | nil` has the same nilable type, but now the
+value is actually `a` rather than `nil`.
+
+## More flow based types
 
 As we saw with `nil`, a variable may have a different type in certain
 parts of the code, thanks to the information that a conditional
@@ -184,6 +191,10 @@ Note how there are two different cases here: with an assignment inside a
 conditional, the type checker has to be conservative, and can't
 guarantee the value is non-nil. But with an un-conditional assignment,
 we can change the type of `a` for the rest of the block.
+
+An additional way is to use `assert`. Use this when you know for sure a
+value must be non-nil or have a particular type, but you can't structure
+your code such that this is already obvious to the type system.
 
 ## Generic objects
 

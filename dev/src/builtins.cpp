@@ -528,10 +528,15 @@ void AddBuiltins()
 
     STARTDECL(normalize) (Value &vec)
     {
-        auto v = ValueDecTo<float3>(vec);
-        return ToValue(v == float3_0 ? v : normalize(v)); 
+        switch (vec.vval->len)
+        {
+            case 2: { auto v = ValueDecTo<float2>(vec); return ToValue(v == float2_0 ? v : normalize(v)); }
+            case 3: { auto v = ValueDecTo<float3>(vec); return ToValue(v == float3_0 ? v : normalize(v)); }
+            case 4: { auto v = ValueDecTo<float4>(vec); return ToValue(v == float4_0 ? v : normalize(v)); }
+            default: return g_vm->BuiltinError("normalize() only works on vectors of length 2 to 4");
+        }
     }
-    ENDDECL1(normalize, "vec",  "F]" , "F]:3",
+    ENDDECL1(normalize, "vec",  "F]" , "F]:/",
         "returns a vector of unit length");
 
     STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecTo<float4>(a), ValueDecTo<float4>(b))); }

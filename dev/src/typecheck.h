@@ -25,6 +25,16 @@ struct TypeChecker
     TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
     {
         st.RegisterDefaultVectorTypes();
+        for (auto &struc : st.structtable)
+        {
+            if (!struc->generic) ComputeStructVectorType(struc);
+            if (struc->superclassidx >= 0) for (auto &field : struc->fields)
+            {
+                // If this type refers to the super struct type, make it refer to this type instead.
+                // There may be corner cases where this is not what you want, but generally you do.
+                PromoteStructIdx(field.type, struc->superclassidx, struc->idx);
+            }
+        }
             
         TypeCheck(parser.root);
 
@@ -37,32 +47,32 @@ struct TypeChecker
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
-    template<typename T> string TypedArg(const Typed<T> &arg)
+    template<typename T> string TypedArg(const Typed<T> &arg, bool withtype = true)
     {
         string s = arg.id ? arg.id->name : "arg";  // FIXME: use ArgVector::GetName here instead
-        if (arg.type.t != V_ANY) s += ":" + TypeName(arg.type);
+        if (arg.type.t != V_ANY && withtype) s += ":" + TypeName(arg.type);
         return s;
     }
 
-    template<typename T> string Signature(const vector<Typed<T>> &v)
+    template<typename T> string Signature(const vector<Typed<T>> &v, bool withtype = true)
     {
         string s = "(";
         int i = 0;
         for (auto &arg : v)
         {
             if (i++) s += ", ";
-            s += TypedArg(arg);
+            s += TypedArg(arg, withtype);
         }
         return s + ")"; 
     }
 
-    string Signature(const Struct *struc)   { return struc->name      + Signature(struc->fields); }
-    string Signature(const SubFunction *sf) { return sf->parent->name + Signature(sf->args.v); }
-    string Signature(const NativeFun *nf)   { return nf->name         + Signature(nf->args.v); }
+    string Signature(const Struct *struc)                         { return struc->name      + Signature(struc->fields); }
+    string Signature(const SubFunction *sf, bool withtype = true) { return sf->parent->name + Signature(sf->args.v, withtype); }
+    string Signature(const NativeFun *nf)                         { return nf->name         + Signature(nf->args.v); }
 
-    string SignatureWithFreeVars(const SubFunction *sf)
+    string SignatureWithFreeVars(const SubFunction *sf, bool withtype = true)
     {
-        string s = Signature(sf) + " { ";
+        string s = Signature(sf, withtype) + " { ";
         for (auto &freevar : sf->freevars.v) s += TypedArg(freevar) + " ";
         s += "}";
         return s;
@@ -173,7 +183,7 @@ struct TypeChecker
             case V_VAR:      return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:    return type.t == V_INT && coercions;
             case V_STRING:   return coercions;
-            case V_FUNCTION: return type.t == V_FUNCTION && sub.Generic();
+            case V_FUNCTION: return type.t == V_FUNCTION && !sub.HasIndex();
             case V_NILABLE:  return type.t == V_NIL ||
                                     (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
                                     (!type.Numeric() && ConvertsTo(type, sub.Element(), false));
@@ -229,7 +239,7 @@ struct TypeChecker
                 a->exptype = Type(V_STRING);
                 return;
             case V_FUNCTION:
-                if (type.t == V_FUNCTION && !sub.Generic() && !type.Generic())
+                if (type.t == V_FUNCTION && sub.HasIndex() && type.HasIndex())
                 {
                     // See if these functions can be made compatible. Specialize and typecheck if needed.
                     auto sf = st.FunctionFromType(type);
@@ -259,15 +269,15 @@ struct TypeChecker
         error:
         TypeError(TypeName(sub).c_str(), type, *a, argname, context);
     }
-    void SubType(Type &type, const Type &sub, const Node &n, const char *argname, const char *context = nullptr)
+
+    void SubTypeT(const Type &type, const Type &sub, const Node &n, const char *argname, const char *context = nullptr)
     {
         if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n, argname, context);
-        type = Promote(type);
     }
 
     Type StructTypeFromVector(const Type &vectortype, int structidx)
     {
-        for (auto struc = st.structtable[structidx]->first; struc; struc = struc->next)
+        for (auto struc = st.structtable[structidx]->first->next; struc; struc = struc->next)
         {
             if (struc->vectortype.t2 == vectortype.t2)
             {
@@ -277,10 +287,9 @@ struct TypeChecker
         return vectortype;
     }
 
-    bool MathCheckVector(Type &type, const Type &ltype, const Type &rtype)
+    bool MathCheckVector(Type &type, const Type &ltype, const Type &rtype, bool flipalso)
     {
         // Special purpose check for vector * scalar etc, needs to be improved further.
-        // VM supports scalar * vector also, but maybe not needed?
         if (rtype.Numeric())
         {
             Type vtype;
@@ -302,6 +311,12 @@ struct TypeChecker
             }
         }
 
+        if (flipalso)
+        {
+            // Now check scalar * vector instead.
+            return MathCheckVector(type, rtype, ltype, false);
+        }
+
         return false;
     }
 
@@ -318,7 +333,7 @@ struct TypeChecker
                 auto ltype = Promote(n.left()->exptype);
                 auto rtype = Promote(n.right()->exptype);
                 
-                if (MathCheckVector(type, ltype, rtype))
+                if (MathCheckVector(type, ltype, rtype, true))
                 {
                     unionchecked = true;
                     return nullptr;
@@ -370,7 +385,7 @@ struct TypeChecker
         }
         else
         {
-            if (exacttype) SubType(*exacttype, sf->returntypes[i], *a, nullptr);
+            if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, nullptr);
             else if (a) SubType(a, sf->returntypes[i], nullptr, "return value");
             else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
         }
@@ -431,7 +446,7 @@ struct TypeChecker
         scopes.pop_back();
     }
 
-    Struct *ComputeStructVectorType(Struct *struc)
+    void ComputeStructVectorType(Struct *struc)
     {
         if (struc->fields.size())
         {
@@ -445,37 +460,39 @@ struct TypeChecker
             }
             struc->vectortype = vectortype.Wrap();
         }
-        return struc;
     }
 
-    Struct *SpecializeStruct(Struct *head, const Node *args)
+    Struct *SpecializeStruct(Struct *given, const Node *args, const Node &n)
     {
-        // This code is very similar to function specialization, but not similar enough to share.
+        // This code is somewhat similar to function specialization, but not similar enough to share.
         // If they're all typed, we bail out early:
-        for (auto &field : head->fields) if (field.flags == AF_ANYTYPE) goto specialize;
-        return ComputeStructVectorType(head);  // FIXME: computes vector type repeatedly
+        if (!given->generic) return given;
+
+        auto head = given->first;
 
         // First collect types for all args.
-        specialize:
         vector<Type> argtypes;
+        int specialized_super_idx = -1;
         for (auto list = args; list; list = list->tail())
         {
+            auto stype = Promote(list->head()->exptype);
             if (list->head()->type == T_SUPER)
             {
-                auto stype = list->head()->exptype;
-                SubType(stype, Type(V_STRUCT, head->superclassidx), *list->head(), nullptr, "super");
+                CheckIfSpecialization(st.structtable[head->superclassidx], stype, n, "super");
                 auto sstruc = st.StructFromType(stype);
+                assert(!sstruc->generic);
+                specialized_super_idx = sstruc->idx;
                 for (auto &f : sstruc->fields) argtypes.push_back(f.type);
             }
             else
             {
-                argtypes.push_back(list->head()->exptype);
+                argtypes.push_back(stype);
             }
         }
         assert(argtypes.size() == head->fields.size());
 
         // Now find a match:
-        auto struc = head;
+        auto struc = head->next;
         for (; struc; struc = struc->next)
         {
             int i = 0;
@@ -488,26 +505,75 @@ struct TypeChecker
             fail:;
         }
 
-        // No match.
-        struc = head;
-        if (head->typechecked)
+        // No match, clone.
+        struc = head->CloneInto(new Struct());
+        struc->idx = st.structtable.size();
+        if (specialized_super_idx >= 0)
         {
-            // This one is already in use.. clone it.
-            struc = head->Clone();
-            struc->idx = st.structtable.size();
-            st.structtable.push_back(struc);
-            Output(OUTPUT_DEBUG, "cloned struct: %s", struc->name.c_str());
+            struc->superclassidx = specialized_super_idx;
+            struc->superclass = st.structtable[specialized_super_idx];
         }
-        struc->typechecked = true;
+        st.structtable.push_back(struc);
+        Output(OUTPUT_DEBUG, "cloned struct: %s", struc->name.c_str());
+
+        // Specialize.
+        struc->generic = false;
         int i = 0;
         for (auto &type : argtypes)
         {
-            auto &field = struc->fields[i++];
-            if (field.flags == AF_ANYTYPE) field.type = type;  // Specialize to arg.
+            type = Promote(type);
+            auto &field = struc->fields[i];
+
+            if (field.flags == AF_ANYTYPE)
+            {
+                field.type = type;  // Specialize to arg.
+                auto otype = head->fields[i].type;
+                // If this type refers to the generic struct type, make it refer to this type instead.
+                PromoteStructIdx(otype, head->idx, struc->idx);
+                CheckGenericArg(otype, type, field.id->name.c_str(), n, struc->name.c_str());
+            }
+            i++;
         }
 
+        ComputeStructVectorType(struc);
+
         Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(struc).c_str());
-        return ComputeStructVectorType(struc);
+        return struc;
+    }
+
+    void PromoteStructIdx(Type &type, int oldidx, int newidx)
+    {
+        if (type.idx == oldidx && type.UnWrapped().t == V_STRUCT)
+            type.idx = newidx;
+    }
+
+    void CheckIfSpecialization(Struct *spec_struc, const Type &given, const Node &n, const char *argname,
+                               const char *req = nullptr)
+    {
+        if (given.t != V_STRUCT ||
+            !spec_struc->IsSpecialization(st.StructFromType(given.UnWrapped())))
+        {
+            TypeError(req ? req : spec_struc->name.c_str(), given, n, argname);
+        }
+    }
+
+    void CheckGenericArg(const Type &otype, const Type &argtype, const char *argname, const Node &n, const char *context)
+    {
+        if (otype.t != V_ANY)  // Argument is a generic struct type, or wrapped in vector/nilable
+        {
+            auto u = otype.UnWrapped();
+            assert(u.t == V_STRUCT);
+            if (otype.EqNoIndex(argtype))
+            {
+                CheckIfSpecialization(st.StructFromType(u), argtype, n, argname, TypeName(otype).c_str());
+            }
+            else
+            {
+                // This likely generates either an error, or contains an unbound var that will get bound.
+                SubTypeT(argtype, otype, n, argname, context);
+                //TypeError(TypeName(otype).c_str(), argtype, n, argname, context);
+            }
+        }
     }
     
     bool FreeVarsSameAsCurrent(SubFunction *sf)
@@ -574,15 +640,20 @@ struct TypeChecker
                     // No fit. Specialize existing function, or its clone.
                     sf = CloneFunction(csf);
                 }
+
+                // Now specialize.
                 int i = 0;
                 for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
                 {
-                    auto &arg = sf->args.v[i++];
+                    auto &arg = sf->args.v[i];
                     if (arg.flags == AF_ANYTYPE)
                     {
-                        arg.type = list->head()->exptype;  // Specialized to arg.
+                        arg.type = Promote(list->head()->exptype);  // Specialized to arg.
+                        CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.id->name.c_str(), *list->head(),
+                                        f.name.c_str());
                         Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
                     }
+                    i++;
                 }
 
                 // This must be the correct freevar specialization.
@@ -614,7 +685,7 @@ struct TypeChecker
             for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
             {
                 auto &arg = sf->args.v[i++];
-                if (arg.flags != AF_ANYTYPE /*|| recursive*/)
+                if (arg.flags != AF_ANYTYPE)
                     SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
             }
             if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
@@ -654,7 +725,8 @@ struct TypeChecker
             freevar.type = freevar.id->type;  // Specialized to current value.
         }
 
-        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(sf).c_str());
+        // Output without types, since those are yet to be overwritten.
+        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(sf, false).c_str());
 
         return sf;
     }
@@ -662,7 +734,7 @@ struct TypeChecker
     Type TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
     {
         auto ftype = Promote(fval.exptype);
-        if (ftype.t == V_FUNCTION && !ftype.Generic())
+        if (ftype.t == V_FUNCTION && ftype.HasIndex())
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
             auto sf = st.FunctionFromType(ftype);
@@ -761,22 +833,22 @@ struct TypeChecker
         }
     }
 
-    void AssignFlowDemote(Node &left)
+    void AssignFlowDemote(Node &left, const Type &overwritetype, bool coercions)
     {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         if (left.exptype.Numeric()) return;
 
-        LookupFlow(left, true);
+        LookupFlow(left, true, &overwritetype, coercions);
     }
 
     void UseFlow(Node &n)
     {
         if (n.exptype.Numeric()) return;  // Early out, same as above.
 
-        LookupFlow(n, false);
+        LookupFlow(n, false, nullptr, false);
     }
 
-    void LookupFlow(Node &n, bool assign)
+    void LookupFlow(Node &n, bool assign, const Type *overwritetype, bool coercions)
     {
         // FIXME: this can in theory find the wrong node, if the same function nests, and the outer one
         // was specialized to a nilable and the inner one was not.
@@ -820,12 +892,15 @@ struct TypeChecker
             found:
             if (assign)
             {
-                // FLow based promotion is invalidated.
-                flow.now = flow.old;
-                // TODO: it be cool to instead overwrite with whatever type is currently being assigned.
-                // That currently doesn't work, since our flow analysis is a conservative approximation,
-                // so if this assignment happens conditionally it wouldn't work.
-
+                assert(overwritetype);
+                if (!ConvertsTo(*overwritetype, flow.now, coercions))
+                {
+                    // FLow based promotion is invalidated.
+                    flow.now = flow.old;
+                    // TODO: it be cool to instead overwrite with whatever type is currently being assigned.
+                    // That currently doesn't work, since our flow analysis is a conservative approximation,
+                    // so if this assignment happens conditionally it wouldn't work.
+                }
                 // We continue with the loop here, since a single assignment may invalidate multiple promotions.
             }
             else
@@ -935,7 +1010,7 @@ struct TypeChecker
             case T_MODEQ:
             {
                 type = Promote(n.left()->exptype);
-                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype))
+                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, true))
                 {
                     bool unionchecked = false;
                     MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
@@ -988,7 +1063,9 @@ struct TypeChecker
             case T_UMINUS:
             {
                 type = Promote(n.child()->exptype);
-                if (!type.Numeric() && type.t != V_VECTOR)
+                if (!type.Numeric() &&
+                    type.t != V_VECTOR &&
+                    (type.t != V_STRUCT || !st.StructFromType(type)->vectortype.Element().Numeric()))
                     TypeError("numeric/vector", type, n, nullptr);
                 break;
             }
@@ -1048,8 +1125,8 @@ struct TypeChecker
                     }
                     else
                     {
-                        AssignFlowDemote(*id);
-                        SubType(type, id->exptype, n, "right");
+                        AssignFlowDemote(*id, type, false);
+                        SubTypeT(type, id->exptype, n, "right");
                     }
                     i++;
                 }
@@ -1057,7 +1134,7 @@ struct TypeChecker
             }
 
             case T_ASSIGN:
-                AssignFlowDemote(*n.left());
+                AssignFlowDemote(*n.left(), n.right()->exptype, true);
                 SubType(n.right(), n.left()->exptype, "right", n);
                 AssignFlowPromote(*n.left(), n.right()->exptype);
                 type = n.left()->exptype;
@@ -1121,7 +1198,7 @@ struct TypeChecker
                     }
                     SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
                     auto &actualtype = list->head()->exptype;
-                    if (actualtype.t == V_FUNCTION && !actualtype.Generic())
+                    if (actualtype.t == V_FUNCTION && actualtype.HasIndex())
                     {
                         // We must assume this is going to get called and type-check it
                         auto sf = st.FunctionFromType(actualtype);
@@ -1141,6 +1218,13 @@ struct TypeChecker
                     argtypes.push_back(actualtype);
                     i++;
                 }
+
+                if (nf->name == "assert")
+                {
+                    // Special case, add to flow:
+                    CheckFlowTypeChanges(true, *n.ncall_args()->head());
+                }
+
                 type = Type();  // no retvals
                 if (nf->retvals.v.size())
                 {
@@ -1243,8 +1327,8 @@ struct TypeChecker
                     type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
-                    SubType(tleft, type, *n.if_branches()->left(), "then branch", nullptr);
-                    SubType(tright, type, *n.if_branches()->right(), "else branch", nullptr);
+                    SubTypeT(tleft, type, *n.if_branches()->left(), "then branch", nullptr);
+                    SubTypeT(tright, type, *n.if_branches()->right(), "else branch", nullptr);
                 }
                 else
                 {
@@ -1317,27 +1401,27 @@ struct TypeChecker
                 }
                 if (type.t == V_STRUCT)
                 {
-                    auto newidx = SpecializeStruct(st.StructFromType(type)->first, n.constructor_args())->idx;
+                    auto newidx = SpecializeStruct(st.StructFromType(type), n.constructor_args(), n)->idx;
                     type.idx = newidx;
-                    n.constructor_type()->typenode().idx = newidx;
-                    // FIXME: need to also specialize the supertype with it?
+                    //n.constructor_type()->typenode().idx = newidx;
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    Type elemtype;
                     if (list->head()->type == T_SUPER)
                     {
                         assert(type.t == V_STRUCT);  // Parser checks this.
                         auto super_idx = st.StructFromType(type)->superclassidx;
-                        elemtype = Type(V_STRUCT, super_idx);
-                        i += st.structtable[super_idx]->fields.size() - 1;
+                        auto super_struc = st.structtable[super_idx];
+                        Type elemtype = Type(V_STRUCT, super_idx);
+                        i += super_struc->fields.size() - 1;
+                        CheckIfSpecialization(super_struc, Promote(list->head()->exptype), *list->head(), "super");
                     }
                     else
                     {
-                        elemtype = type.t == V_STRUCT ? st.StructFromType(type)->fields[i].type : type.Element();
+                        Type elemtype = type.t == V_STRUCT ? st.StructFromType(type)->fields[i].type : type.Element();
+                        SubType(list->head(), elemtype, ArgName(i).c_str(), n);
                     }
-                    SubType(list->head(), elemtype, ArgName(i).c_str(), n);
                     i++;
                 }
                 break;
@@ -1436,6 +1520,9 @@ struct TypeChecker
                 assert(0);
                 break;
         }
+
+        // FIXME: expensive check, but helps track down generic type bugs.
+        //assert(n.type == T_TYPE || type.UnWrapped().t != V_STRUCT || !st.structtable[type.UnWrapped().idx]->generic);
     }
     
     void Stats()

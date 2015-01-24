@@ -30,6 +30,8 @@ struct Type
 
     bool operator==(const Type &o) const { return t == o.t && idx == o.idx && t2 == o.t2 && t3 == o.t3 && t4 == o.t4; }
     bool operator!=(const Type &o) const { return !(*this == o); }
+    bool EqNoIndex(const Type &o) const { return t == o.t && t2 == o.t2 && t3 == o.t3 && t4 == o.t4; }
+    bool NoVar() const { return t != V_VAR && t2 != V_VAR && t3 != V_VAR && t4 != V_VAR; }
 
     // This one is used to sort types for multi-dispatch.
     bool operator< (const Type &o) const
@@ -65,6 +67,8 @@ struct Type
         return v;
     }
 
+    Type UnWrapped() const { return t == V_VECTOR || t == V_NILABLE ? Element() : *this; }
+
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 
     string Name() const  // use SymbolTable::TypeName or TypeChecker::TypeName for more specific types
@@ -79,7 +83,7 @@ struct Type
     
     bool SameIndex(const Type &o) const { return idx == o.idx; }
     
-    bool Generic() const { return idx < 0; }
+    bool HasIndex() const { return idx >= 0; }
 
     Type &LookupVar(vector<Type> &vars) const
     {
@@ -115,12 +119,12 @@ template<typename T> struct Typed
 
     Typed() : flags(AF_NONE), fixed_len(0), id(nullptr) {}
     Typed(const Typed<T> &o) : type(o.type), flags(o.flags), fixed_len(o.fixed_len), id(o.id) {}
-    Typed(T *_id, const Type &_type) : fixed_len(0), id(_id) { SetType(_type); }
+    Typed(T *_id, const Type &_type, bool generic) : fixed_len(0), id(_id) { SetType(_type, generic); }
 
-    void SetType(const Type &_type)
+    void SetType(const Type &_type, bool generic)
     {
         type = _type;
-        flags = _type.t == V_ANY ? AF_ANYTYPE : AF_NONE;
+        flags = generic ? AF_ANYTYPE : AF_NONE;
     }
 
     void Set(const char *&tid)
@@ -190,14 +194,13 @@ struct ArgVector
         }
    }
 
-    void Add(Ident *id, const Type &type)
+    void Add(Ident *id, const Type &type, bool generic)
     {
         for (auto &arg : v)
             if (arg.id == id)
                 return;
-        v.push_back(Arg(id, type));
+        v.push_back(Arg(id, type, generic));
     }
-
 };
 
 struct BuiltinPtr

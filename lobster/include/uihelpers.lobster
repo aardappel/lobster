@@ -11,7 +11,7 @@ include "vec.lobster"
 private panoffset := xy_0
 private touchvelocity := xy_0
 
-function ui_inertiascroll(buttonname, scale, mino:xy, maxo:xy, viewsize):
+function ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
     if(gl_isdown(buttonname)):
         delta := gl_mousedelta(0) / scale
         panoffset -= delta
@@ -29,11 +29,11 @@ function ui_inertiascroll(buttonname, scale, mino:xy, maxo:xy, viewsize):
                 touchvelocity = xy_0
     maxo -= viewsize / scale
     if(maxo.x < mino.x):
-        mino = mino.replace(0, (mino.x + maxo.x) / 2)   // FIXME!!!
-        maxo = maxo.replace(0, (mino.x + maxo.x) / 2)
+        mino = [ (mino.x + maxo.x) / 2, mino.y ]:xy  // FIXME!!!
+        maxo = [ (mino.x + maxo.x) / 2, maxo.y ]:xy
     if(maxo.y < mino.y):
-        mino = mino.replace(1, (mino.y + maxo.y) / 2)
-        maxo = maxo.replace(1, (mino.y + maxo.y) / 2)
+        mino = [ mino.x, (mino.y + maxo.y) / 2 ]:xy
+        maxo = [ maxo.x, (mino.y + maxo.y) / 2 ]:xy
 
     panoffset = [ max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
                   max(min(maxo.y, panoffset.y), mino.y) ]:xy

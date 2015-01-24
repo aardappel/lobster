@@ -67,6 +67,16 @@ struct CodeGen
     CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool _typechecked)
         : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st), typechecked(_typechecked)
     {
+        // Create list of subclasses, to help in creation of dispatch tables.
+        for (auto struc : st.structtable)
+        {
+            if (struc->superclassidx >= 0)
+            {
+                struc->nextsubclass = struc->superclass->firstsubclass;
+                struc->superclass->firstsubclass = struc;
+            }
+        }
+
         linenumbernodes.push_back(parser.root);
 
         GenFieldTables(st);
@@ -174,15 +184,49 @@ struct CodeGen
             f->bytecodestart = (int)code.size();
             Emit(IL_FUNMULTI, sfs.size(), f->nargs());
 
+            // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs)
             {
+                auto gendispatch = [&] (int override_j, int override_idx)
+                {
+                    for (int j = 0; j < f->nargs(); j++)
+                    {
+                        if (j == override_j)
+                        {
+                            Emit(V_VECTOR, override_idx);
+                        }
+                        else
+                        {
+                            auto arg = sf->args.v[j];
+                            // FIXME: this probably doesn't cover all cases anymore..
+                            Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
+                        }
+                    }
+                    Emit(sf->subbytecodestart);
+                };
+                // Generate regular dispatch entry.
+                gendispatch(-1, -1);
+                // See if this entry contains super-types and generate additional entries.
                 for (int j = 0; j < f->nargs(); j++)
                 {
                     auto arg = sf->args.v[j];
-                    // FIXME: this probably doesn't cover all cases anymore..
-                    Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
+                    if (arg.type.t == V_STRUCT)
+                    {
+                        auto struc = st.StructFromType(arg.type);
+                        for (auto subs = struc->firstsubclass; subs; subs = subs->nextsubclass)
+                        {
+                            // See if this instance already exists:
+                            for (auto osf : sfs)
+                            {
+                                // Only check this arg, not all arg, which is reasonable.
+                                if (osf->args.v[j].type == Type(V_STRUCT, subs->idx)) goto skip;
+                            }
+                            gendispatch(j, subs->idx);
+                            // FIXME: We should also call it on subtypes of subs.
+                            skip:;
+                        }
+                    }
                 }
-                Emit(sf->subbytecodestart);
             }
         }
         return true;

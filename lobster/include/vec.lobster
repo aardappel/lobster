@@ -8,6 +8,19 @@ value xy:   [ x, y ]
 value xyz:  xy [ z ]
 value xyzw: xyz [ w ]
 
+// Specialized type names:
+
+value xy_f = xy(float, float)
+value xy_i = xy(int, int)
+
+value xyz_f = xyz(float, float, float)
+value xyz_i = xyz(int, int, int)
+
+value xyzw_f = xyzw(float, float, float, float)
+value xyzw_i = xyzw(int, int, int, int)
+
+// Convenient constants:
+
 xy_0 :== [ 0.0, 0.0 ]:xy
 xy_1 :== [ 1.0, 1.0 ]:xy
 xy_h :== [ 0.5, 0.5 ]:xy

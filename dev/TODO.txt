@@ -1,6 +1,11 @@
 - allow random number generator to be selected
 
+- upgrade SDL
+
 - typechecker
+  - typecheck of super args?
+  - move generic double check from parser to type checker init
+
   * must have a way to specifically indicate specialized struct types
 
   * improve the code for ternary nodes, and add unary.
@@ -15,8 +20,16 @@
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.
     Can this ever happen? can we guarantee it doesn't? Or for now just force a specialization if it has demotes?
+    x := "" | nil
+    function f(): x = nil
+    if(x):  // promoted
+        f() // demoted
+    if(x):  // promoted
+        f() // nothing happens, f() has already been typechecked
 
   * coroutine type checking!
+
+  * clean up function/subfunction and struct defs. There's a lot of duplicate information between the specializations.
 
   * gl_rect/magnitude takes a [any] but what we really want is [num].. or should we just overload it?
     we could actually make it [float] and require the caller to explictly convert it in the few int cases,
@@ -75,6 +88,10 @@
         which will get you a dynamic call, and no specialization.
         frankly, its worth rewriting this such that it can be specialized, especially since thats
         free if isocta is contant
+    - variables can cause trouble with specialization, for example:
+      function f(): []
+      first you call f(), and use the result as a [A]
+      then call it a second time and you want to use it as [B]
 
   * for the optimizer:
     * typechecker leaves in unused args in dyn calls, the codegen strips them out. Would be better if the optimizer
