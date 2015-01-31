@@ -23,13 +23,12 @@ struct Parser
     vector<Ident *> maybeundefined;
     vector<int> functionstack;
     vector<string> trailingkeywordedfunctionvaluestack;
-    Struct *currentstruct;
 
     struct ForwardFunctionCall { string idname; size_t maxscopelevel; Node *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
 
     Parser(const char *_src, SymbolTable &_st, char *_stringsource)
-        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), currentstruct(nullptr)
+        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st)
     {
         assert(parserpool == nullptr);
         parserpool = new SlabAlloc();
@@ -121,18 +120,15 @@ struct Parser
         return list;
     }
 
-    Node *ParseVector(int fieldid = -1)
+    void ParseVector(const function<void ()> &f)
     {
-        if (IsNext(T_RIGHTBRACKET)) return nullptr;
+        if (IsNext(T_RIGHTBRACKET)) return;
 
         bool indented = IsNext(T_INDENT);
 
-        Node *list = nullptr;
-        Node **tail = &list;
-
         for (;;)
         {
-            AddTail(tail, fieldid < 0 ? ParseExp() : ParseField(fieldid++));
+            f();
             
             if (!IsNext(T_COMMA)) break;
         }
@@ -145,16 +141,6 @@ struct Parser
         }
 
         Expect(T_RIGHTBRACKET);
-        return list;
-    }
-
-    Node *ParseField(int idx)
-    {
-        string fname = lex.sattr;
-        Expect(T_IDENT);
-        auto n = new FldRef(lex, &st.FieldDecl(fname, idx, currentstruct));
-        if (IsNext(T_COLON)) ParseType(n->exptype, false);
-        return (Node *)n;
     }
 
     Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar)
@@ -255,9 +241,6 @@ struct Parser
                 struc.readonly = isvalue;
                 struc.isprivate = isprivate;
 
-                currentstruct = &struc;
-                Node *field_nodes = nullptr;
-
                 if (IsNext(T_ASSIGN))
                 {
                     // A specialization of an existing struct
@@ -328,15 +311,22 @@ struct Parser
 
                     Expect(T_LEFTBRACKET);
 
-                    field_nodes = ParseVector(fieldid);
+                    ParseVector([this, &fieldid, &struc] ()
+                    { 
+                        string fname = lex.sattr;
+                        Expect(T_IDENT);
+                        auto &sfield = st.FieldDecl(fname, fieldid++, &struc);
+                        Type type;
+                        if (IsNext(T_COLON))
+                        {
+                            auto fieldref = ParseType(type, false, &struc);
+                            // FIXME remove struct_fields
+                        }
 
-                    for (auto ids = field_nodes; ids; ids = ids->tail())
-                    {
-                        assert(ids->head()->type == T_FIELD);
-                        bool generic = st.IsGeneric(ids->head()->exptype);
-                        struc.fields.push_back(Field(ids->head()->fld(), ids->head()->exptype, generic));
+                        bool generic = st.IsGeneric(type);
+                        struc.fields.push_back(Field(&sfield, type, generic));
                         if (generic) struc.generic = true;
-                    }
+                    });
                     // Loop thru a second time, because this type may have become generic just now, and may refer
                     // to itself.
                     for (auto &field : struc.fields)
@@ -345,9 +335,7 @@ struct Parser
                     }
                 }
 
-                currentstruct = nullptr;
-
-                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), field_nodes));
+                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), nullptr));
                 break;
             }
 
@@ -598,7 +586,7 @@ struct Parser
         return (Node *)new FunRef(lex, sf);
     }
 
-    void ParseType(Type &dest, bool withtype)
+    int ParseType(Type &dest, bool withtype, Struct *fieldrefstruct = nullptr)
     {
         switch(lex.token)
         {
@@ -628,6 +616,18 @@ struct Parser
 
             case T_IDENT:
             {
+                if (fieldrefstruct)
+                {
+                    for (auto &field : fieldrefstruct->fields)
+                    {
+                        if (field.id->name == lex.sattr)
+                        {
+                            lex.Next();
+                            dest = field.type;
+                            return &field - &fieldrefstruct->fields[0];
+                        }
+                    }
+                }
                 dest.t = V_STRUCT;
                 auto &struc = st.StructUse(lex.sattr, lex);
                 dest.idx = struc.idx;
@@ -658,6 +658,8 @@ struct Parser
         }
 
         if (withtype && dest.t != V_STRUCT) Error(":: must be used with a struct type");
+
+        return -1;
     }
 
     Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", ArgVector *args = nullptr)
@@ -1163,15 +1165,22 @@ struct Parser
                 lex.Next();
 
                 Node *n;
+                Node *list = nullptr;
+                Node **tail = &list;
+                auto elemf = [this, &tail] ()
+                {
+                    AddTail(tail, this->ParseExp());
+                };
                 if (IsNext(T_SUPER))
                 {
                     n = new Node(lex, T_LIST, new Node(lex, T_SUPER, ParseExp(), nullptr), nullptr);
-                    if (IsNext(T_COMMA)) n->b() = ParseVector();
+                    if (IsNext(T_COMMA)) { ParseVector(elemf); n->b() = list; }
                     else Expect(T_RIGHTBRACKET);
                 }
                 else
                 {
-                    n = ParseVector();
+                    ParseVector(elemf);
+                    n = list;
                 }
 
                 // FIXME: this type is not in line with other types: any non-struct type means a vector of it.
