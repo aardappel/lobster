@@ -39,7 +39,7 @@ function ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
                   max(min(maxo.y, panoffset.y), mino.y) ]:xy
     panoffset
 
-function ui_inertiascroll_reset(startoffset):
+function ui_inertiascroll_reset(startoffset:xy_f):
     panoffset = startoffset
     touchvelocity = xy_0
 

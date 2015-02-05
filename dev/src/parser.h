@@ -259,6 +259,7 @@ struct Parser
                     struc.idx = st.structtable.size() - 1;
                     struc.name = sname;
                     struc.generic = false;
+                    struc.explicit_specialization = true;
 
                     Expect(T_LEFTPAREN);
                     int i = 0;
@@ -272,6 +273,8 @@ struct Parser
                             // We don't reset AF_ANYTYPE here, because its used to know which fields to select
                             // a specialization on.
                         }
+
+                        struc.Resolve(field);
                     }
                     Expect(T_RIGHTPAREN);
                 }
@@ -317,21 +320,20 @@ struct Parser
                         Expect(T_IDENT);
                         auto &sfield = st.FieldDecl(fname, fieldid++, &struc);
                         Type type;
+                        int fieldref = -1;
                         if (IsNext(T_COLON))
                         {
-                            auto fieldref = ParseType(type, false, &struc);
-                            // FIXME remove struct_fields
+                            fieldref = ParseType(type, false, &struc);
                         }
-
-                        bool generic = st.IsGeneric(type);
-                        struc.fields.push_back(Field(&sfield, type, generic));
+                        bool generic = st.IsGeneric(type) && fieldref < 0;
+                        struc.fields.push_back(Field(&sfield, type, generic, fieldref));
                         if (generic) struc.generic = true;
                     });
                     // Loop thru a second time, because this type may have become generic just now, and may refer
                     // to itself.
                     for (auto &field : struc.fields)
                     {
-                        if (st.IsGeneric(field.type)) field.flags = AF_ANYTYPE;
+                        if (st.IsGeneric(field.type) && field.fieldref < 0) field.flags = AF_ANYTYPE;
                     }
                 }
 
@@ -508,7 +510,16 @@ struct Parser
                 if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
             }
 
-            ParseType(sf->returntypes[0], false);
+            if (IsNext(T_LEFTPAREN))
+            {
+                // Special case for ANY, since we have no way to specify such a type, and we only need here.
+                Expect(T_RIGHTPAREN);
+                sf->returntypes[0] = Type();
+            }
+            else
+            {
+                ParseType(sf->returntypes[0], false);
+            }
         }
         else
         {
@@ -622,6 +633,8 @@ struct Parser
                     {
                         if (field.id->name == lex.sattr)
                         {
+                            if (field.flags != AF_ANYTYPE)
+                                Error("field reference must be to generic field: " + lex.sattr);
                             lex.Next();
                             dest = field.type;
                             return &field - &fieldrefstruct->fields[0];

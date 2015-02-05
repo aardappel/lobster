@@ -4,20 +4,20 @@ include "std.lobster"
 
 // vector types: generally for float elements, but useful for other types as well
 
-value xy:   [ x, y ]
-value xyz:  xy [ z ]
-value xyzw: xyz [ w ]
+value xy:   [ x, y:x ]
+value xyz:  xy [ z:x ]
+value xyzw: xyz [ w:x ]
 
 // Specialized type names:
 
-value xy_f = xy(float, float)
-value xy_i = xy(int, int)
+value xy_f = xy(float)
+value xy_i = xy(int)
 
-value xyz_f = xyz(float, float, float)
-value xyz_i = xyz(int, int, int)
+value xyz_f = xyz(float)
+value xyz_i = xyz(int)
 
-value xyzw_f = xyzw(float, float, float, float)
-value xyzw_i = xyzw(int, int, int, int)
+value xyzw_f = xyzw(float)
+value xyzw_i = xyzw(int)
 
 // Convenient constants:
 

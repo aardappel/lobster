@@ -106,7 +106,14 @@ struct SharedField : Name
     }
 };
 
-typedef Typed<SharedField> Field;
+struct Field : Typed<SharedField>
+{
+    int fieldref;
+
+    Field(SharedField *_id, const Type &_type, bool _generic, int _fieldref)
+        : Typed(_id, _type, _generic),
+          fieldref(_fieldref) {}
+};
 
 struct Struct : Name
 {
@@ -121,13 +128,14 @@ struct Struct : Name
 
     bool readonly;
     bool generic;
+    bool explicit_specialization;
 
     Type vectortype;  // What kind of vector this can be demoted to.
 
     Struct(const string &_name, int _idx)
         : Name(_name, _idx), next(nullptr), first(this), superclass(nullptr), superclassidx(-1),
           firstsubclass(nullptr), nextsubclass(nullptr),
-          readonly(false), generic(false),
+          readonly(false), generic(false), explicit_specialization(false),
           vectortype(Type(V_VECTOR)) {}
     Struct() : Struct("", 0) {}
 
@@ -157,6 +165,11 @@ struct Struct : Name
     {
         for (auto struc = first->next; struc; struc = struc->next) if (struc == other) return true;
         return false;
+    }
+
+    void Resolve(Field &field)
+    {
+        if (field.fieldref >= 0) field.type = fields[field.fieldref].type;
     }
 };
 
@@ -618,7 +631,7 @@ struct SymbolTable
             {
                 auto struc = StructFromType(type);
                 string s = struc->name;
-                if (depth < 2)
+                if (depth < 2 && !struc->explicit_specialization && (struc != struc->first || struc->generic))
                 {
                     int i = 0;
                     for (auto &field : struc->fields)

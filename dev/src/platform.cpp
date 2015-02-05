@@ -209,7 +209,7 @@ void Output(OutputType ot, const char *msg, ...)
             case OUTPUT_PROGRAM: __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
         }
     #elif defined(WIN32)
-        char buf[4096];
+        char buf[1024 * 16];
         vsnprintf(buf, sizeof(buf), msg, args);
         buf[sizeof(buf) - 1] = 0;
         OutputDebugStringA("LOG: ");

@@ -37,24 +37,24 @@ struct TypeChecker
         }
             
         TypeCheck(parser.root);
+        CleanUpFlow(0);
 
         assert(!scopes.size());
         assert(!named_scopes.size());
-        assert(!flowstack.size());
         
         Stats();
     }
 
     string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
 
-    template<typename T> string TypedArg(const Typed<T> &arg, bool withtype = true)
+    template<typename T> string TypedArg(const T &arg, bool withtype = true)
     {
         string s = arg.id ? arg.id->name : "arg";  // FIXME: use ArgVector::GetName here instead
         if (arg.type.t != V_ANY && withtype) s += ":" + TypeName(arg.type);
         return s;
     }
 
-    template<typename T> string Signature(const vector<Typed<T>> &v, bool withtype = true)
+    template<typename T> string Signature(const vector<T> &v, bool withtype = true)
     {
         string s = "(";
         int i = 0;
@@ -66,14 +66,14 @@ struct TypeChecker
         return s + ")"; 
     }
 
-    string Signature(const Struct *struc)                         { return struc->name      + Signature(struc->fields); }
-    string Signature(const SubFunction *sf, bool withtype = true) { return sf->parent->name + Signature(sf->args.v, withtype); }
-    string Signature(const NativeFun *nf)                         { return nf->name         + Signature(nf->args.v); }
+    string Signature(const Struct &struc)                         { return struc.name      + Signature(struc.fields); }
+    string Signature(const SubFunction &sf, bool withtype = true) { return sf.parent->name + Signature(sf.args.v, withtype); }
+    string Signature(const NativeFun &nf)                         { return nf.name         + Signature(nf.args.v); }
 
-    string SignatureWithFreeVars(const SubFunction *sf, bool withtype = true)
+    string SignatureWithFreeVars(const SubFunction &sf, bool withtype = true)
     {
         string s = Signature(sf, withtype) + " { ";
-        for (auto &freevar : sf->freevars.v) s += TypedArg(freevar) + " ";
+        for (auto &freevar : sf.freevars.v) s += TypedArg(freevar) + " ";
         s += "}";
         return s;
     }
@@ -108,7 +108,7 @@ struct TypeChecker
         {
             auto &scope = *it;
             err += "\n  in " + parser.lex.Location(scope.call_context->fileidx, scope.call_context->linenumber) + ": ";
-            err += SignatureWithFreeVars(scope.sf);
+            err += SignatureWithFreeVars(*scope.sf);
             for (Node *list = scope.sf->body; list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
@@ -134,7 +134,7 @@ struct TypeChecker
         }
         for (auto cnf = nf->first; cnf; cnf = cnf->overloads)
         {
-            err += "\n  overload: " + Signature(cnf);
+            err += "\n  overload: " + Signature(*cnf);
         }
         TypeError(err, callnode);
     }
@@ -261,7 +261,7 @@ struct TypeChecker
                     // Covariant again.
                     if (sf->returntypes.size() != ss->returntypes.size() ||
                         !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false)) break;
-                    assert(ss->returntypes.size() == 1);  // Parser only parsers one ret type for function types.
+                    assert(ss->returntypes.size() == 1);  // Parser only parses one ret type for function types.
                     return;
                 }
                 break;
@@ -385,16 +385,24 @@ struct TypeChecker
         }
         else
         {
+            /*
             if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, nullptr);
             else if (a) SubType(a, sf->returntypes[i], nullptr, "return value");
             else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
+            */
+            if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
+            else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
+            else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
         }
+        //Output(OUTPUT_DEBUG, "return val %d of %s is now %s", i, sf->parent->name.c_str(), TypeName(sf->returntypes[i]).c_str());
     }
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context)
     {
         if (sf.typechecked) return;
         
+        Output(OUTPUT_DEBUG, "function start: %s", SignatureWithFreeVars(sf).c_str());
+
         Scope scope;
         scope.sf = &sf;
         scope.call_context = call_context;
@@ -440,10 +448,12 @@ struct TypeChecker
         Node *last = nullptr;
         for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
         assert(last);
-        if (last->head()->type != T_RETURN) RetVal(last->head(), TopScope(scopes), 0);
+        if (last->head()->type != T_RETURN) RetVal(last->head(), &sf, 0);
 
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
+
+        Output(OUTPUT_DEBUG, "function end %s returns %s", Signature(sf).c_str(), TypeName(sf.returntypes[0]).c_str());
     }
 
     void ComputeStructVectorType(Struct *struc)
@@ -532,12 +542,15 @@ struct TypeChecker
                 PromoteStructIdx(otype, head->idx, struc->idx);
                 CheckGenericArg(otype, type, field.id->name.c_str(), n, struc->name.c_str());
             }
+
+            struc->Resolve(field);
+
             i++;
         }
 
         ComputeStructVectorType(struc);
 
-        Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(struc).c_str());
+        Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(*struc).c_str());
         return struc;
     }
 
@@ -548,10 +561,12 @@ struct TypeChecker
     }
 
     void CheckIfSpecialization(Struct *spec_struc, const Type &given, const Node &n, const char *argname,
-                               const char *req = nullptr)
+                               const char *req = nullptr, bool subtypeok = false)
     {
+        auto givenu = given.UnWrapped();
         if (given.t != V_STRUCT ||
-            !spec_struc->IsSpecialization(st.StructFromType(given.UnWrapped())))
+            (!spec_struc->IsSpecialization(st.StructFromType(givenu)) &&
+             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc->idx, givenu.idx))))
         {
             TypeError(req ? req : spec_struc->name.c_str(), given, n, argname);
         }
@@ -565,7 +580,7 @@ struct TypeChecker
             assert(u.t == V_STRUCT);
             if (otype.EqNoIndex(argtype))
             {
-                CheckIfSpecialization(st.StructFromType(u), argtype, n, argname, TypeName(otype).c_str());
+                CheckIfSpecialization(st.StructFromType(u), argtype, n, argname, TypeName(otype).c_str(), true);
             }
             else
             {
@@ -676,7 +691,7 @@ struct TypeChecker
                         freevar.type = freevar.id->type;  // Specialized to current value.
                     }
                 }
-                Output(OUTPUT_DEBUG, "specialization: %s", SignatureWithFreeVars(sf).c_str());
+                Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
             }
             match:
             // Here we have a SubFunction witch matching specialized types.
@@ -684,13 +699,13 @@ struct TypeChecker
             int i = 0;
             for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
             {
-                auto &arg = sf->args.v[i++];
+                auto &arg = sf->args.v[i];
                 if (arg.flags != AF_ANYTYPE)
                     SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
+                i++;
             }
             if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
             function_def_node.sf() = sf;
-            Output(OUTPUT_DEBUG, "function %s returns %s", Signature(sf).c_str(), TypeName(sf->returntypes[0]).c_str());
             return sf->returntypes[0];
         }
     }
@@ -726,7 +741,7 @@ struct TypeChecker
         }
 
         // Output without types, since those are yet to be overwritten.
-        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(sf, false).c_str());
+        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(*sf, false).c_str());
 
         return sf;
     }
@@ -753,7 +768,10 @@ struct TypeChecker
             // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
             // Btw, some values ending up here may be T_COCLOSURE.
-            assert(0);  // Not typechecking code has consequences, must find solution.
+            // For now, just error.
+            SubTypeT(ftype, Type(V_FUNCTION), fval, "function value", "function call");
+            // If this magically succeeds, its because ftype was a variable, likely from a nil function value.
+            // If so, we don't care, because this will never get executed at runtime?
             return Type();
         }
     }
@@ -1282,38 +1300,48 @@ struct TypeChecker
                 auto fid = n.return_function_idx()->integer();
                 if (fid < 0) break;  // return from program
 
-                auto sf_lexical = TopScope(named_scopes);
+                auto sf = TopScope(named_scopes);
                 // Even if this function is specialized, the current one should be the top one.
-                auto sf = st.functiontable[fid]->subf;
-                if (sf != sf_lexical)
+                auto sf_req = st.functiontable[fid]->subf;
+                if (sf->parent != sf_req->parent)
                 {
-                    // This is a non-local return.
+                    // This is a non-local "return from".
                     // FIXME: this is returnining from a specialized version, should really make VM implementation use
                     // SubFunction too.
-                    if (!sf->typechecked)
-                        parser.Error("return from " + sf->parent->name + " called out of context", &n);
+                    if (!sf_req->typechecked)
+                        parser.Error("return from " + sf_req->parent->name + " called out of context", &n);
+                    // Do typechecking below against non-local one:
+                    sf = sf_req;
                 }
-                if (n.return_value()->type == T_MULTIRET)
+                if (n.return_value())
                 {
-                    int i = 0;
-                    for (auto mr = n.return_value(); mr; mr = mr->tailexps())
+                    if (n.return_value()->type == T_MULTIRET)
                     {
-                        RetVal(mr->headexp(), sf, i++);
+                        int i = 0;
+                        for (auto mr = n.return_value(); mr; mr = mr->tailexps())
+                        {
+                            RetVal(mr->headexp(), sf, i++);
+                        }
                     }
-                }
-                else if (n.return_value()->type == T_CALL &&
-                            n.return_value()->call_function()->sf()->returntypes.size() > 1)
-                {
-                    // Multi-ret pass-thru:
-                    size_t i = 0;
-                    for (auto &type : n.return_value()->call_function()->sf()->returntypes)
-                        RetVal(n.return_value(), sf, i++, &type);
+                    else if (n.return_value()->type == T_CALL &&
+                             n.return_value()->call_function()->sf()->returntypes.size() > 1)
+                    {
+                        // Multi-ret pass-thru:
+                        size_t i = 0;
+                        for (auto &type : n.return_value()->call_function()->sf()->returntypes)
+                            RetVal(n.return_value(), sf, i++, &type);
+                    }
+                    else
+                    {
+                        RetVal(n.return_value(), sf, 0);
+                    }
+                    type = n.return_value()->exptype;
                 }
                 else
                 {
-                    RetVal(n.return_value(), sf, 0);
+                    type = Type();
+                    RetVal(n_ptr, sf, 0, &type);
                 }
-                type = n.return_value()->exptype;
                 break;
             }
 

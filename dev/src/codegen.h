@@ -182,7 +182,9 @@ struct CodeGen
             sort(sfs.begin(), sfs.end(), sfcomparator);
 
             f->bytecodestart = (int)code.size();
-            Emit(IL_FUNMULTI, sfs.size(), f->nargs());
+            int numentries = 0;
+            MARKL(multistart);
+            Emit(IL_FUNMULTI, 0, f->nargs());
 
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs)
@@ -203,6 +205,7 @@ struct CodeGen
                         }
                     }
                     Emit(sf->subbytecodestart);
+                    numentries++;
                 };
                 // Generate regular dispatch entry.
                 gendispatch(-1, -1);
@@ -228,6 +231,7 @@ struct CodeGen
                     }
                 }
             }
+            code[multistart + 1] = numentries;
         }
         return true;
     }

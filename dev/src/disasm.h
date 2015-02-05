@@ -47,6 +47,7 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
     #undef F
 
     // FIXME: some indication of the filename, maybe with a table index?
+    //fflush(f);
     fprintf(f, "I %d \tL %d \t%s ", int(ip - code), li.line, ilnames[*ip]);
 
     switch(*ip++)

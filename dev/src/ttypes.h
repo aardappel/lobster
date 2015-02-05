@@ -62,7 +62,7 @@ namespace lobster
     \
     /* These are used ONLY as node types: */ \
     T(T_TYPE, "type", TT_NOCHILD, NO, a, NO, b) \
-    T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, YES, struct_fields) \
+    T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, NO, b) \
     T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
     T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
     T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \

@@ -1160,7 +1160,13 @@ struct VM : VMBase
                 case IL_TT:       { auto &v = TOP(); auto t = (ValueType)*ip++; if (v.type != t) TTError(BaseTypeName(t), v); break; }
                 case IL_TTFLT:    { auto &v = TOP(); if (!Coerce(v, V_FLOAT))  TTError("float",  v); break; }
                 case IL_TTSTR:    { auto &v = TOP(); if (!Coerce(v, V_STRING)) TTError("string", v); break; }
-                case IL_TTSTRUCT: { auto &v = TOP();
+                case IL_TTSTRUCT: { 
+                    
+                    // This doesn't work anymore, because without the typechecker the type will not be specialized.
+                    ip++;
+
+                    /*
+                    auto &v = TOP();
                     auto udtid = *ip++;
                     if (v.type == V_VECTOR)
                     {
@@ -1173,6 +1179,7 @@ struct VM : VMBase
                     }
                     TTError(st.ReverseLookupType(udtid), v);
                     found:
+                    */
                     break;
                 }
 

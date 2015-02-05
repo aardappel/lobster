@@ -8,7 +8,7 @@ struct astar_node: [ G:float, H:float, F:float, previous, state, delta, open:int
 function new_astar_node(state, h:float):
     [ 0.0, h, h, nil, state, nil, false, false ]:astar_node
 
-function clear(n::astar_node):
+function astar_clear(n::astar_node):
     open = closed = false
     previous = nil
 
