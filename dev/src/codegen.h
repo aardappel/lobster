@@ -238,7 +238,12 @@ struct CodeGen
 
     void GenScope(SubFunction &sf)
     {
-        assert(!typechecked || sf.typechecked);
+        if (typechecked && !sf.typechecked)
+        {
+            auto s = Dump(*sf.body, 0, st);
+            Output(OUTPUT_DEBUG, "untypechecked: %s : %s", sf.parent->name.c_str(), s.c_str());
+            assert(0);
+        }
 
         vector<Ident *> defs;
         vector<Ident *> logvars;

@@ -23,6 +23,7 @@
     #define NOMINMAX
     #include <windows.h>
     #define FILESEP '\\'
+    #include <intrin.h>
 #else
     #include <sys/time.h>
     #define FILESEP '/'
@@ -273,3 +274,18 @@ double SecondsSinceStart()
     QueryPerformanceCounter(&end);
     return double(end.QuadPart - start.QuadPart) / double(freq.QuadPart);
 }
+
+// use this instead of assert to break on a condition and still be able to continue in the debugger.
+
+void ConditionalBreakpoint(bool shouldbreak)
+{
+    if (shouldbreak)
+    {
+        #ifdef WIN32
+            __debugbreak();
+        #elif __GCC__
+            __builtin_trap();
+        #endif
+    }
+}
+

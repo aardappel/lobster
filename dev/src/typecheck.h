@@ -36,7 +36,7 @@ struct TypeChecker
             }
         }
             
-        TypeCheck(parser.root);
+        TypeCheck(parser.root, T_LIST);
         CleanUpFlow(0);
 
         assert(!scopes.size());
@@ -438,7 +438,7 @@ struct TypeChecker
 
         auto start_promoted_vars = flowstack.size();
 
-        TypeCheck(sf.body);
+        TypeCheck(sf.body, T_LIST);
 
         CleanUpFlow(start_promoted_vars);
 
@@ -934,7 +934,7 @@ struct TypeChecker
         while (flowstack.size() > start) flowstack.pop_back();
     }
 
-    Type TypeCheckAndOr(Node *&n_ptr, bool only_true_type)
+    Type TypeCheckAndOr(Node *&n_ptr, bool only_true_type, TType parent_type)
     {
         // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
         // and the overal type should be the union of b and c.
@@ -944,15 +944,15 @@ struct TypeChecker
 
         if (n.type != T_AND && n.type != T_OR)
         {
-            TypeCheck(n_ptr);
+            TypeCheck(n_ptr, parent_type);
             auto type = Promote(n.exptype);
             if (type.t == V_NILABLE && only_true_type) return type.Element();
             return type;
         }
 
-        auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR);
+        auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR, n.type);
         auto flowstart = CheckFlowTypeChanges(n.type == T_AND, *n.left());
-        auto tright = TypeCheckAndOr(n.right(), only_true_type);
+        auto tright = TypeCheckAndOr(n.right(), only_true_type, n.type);
         CleanUpFlow(flowstart);
 
         n.exptype = only_true_type && n.type == T_AND
@@ -970,7 +970,7 @@ struct TypeChecker
         }
     }
 
-    void TypeCheck(Node *&n_ptr)
+    void TypeCheck(Node *&n_ptr, TType parent_type)
     {
         Node &n = *n_ptr;
         Type &type = n.exptype;
@@ -981,25 +981,29 @@ struct TypeChecker
                 return;
 
             case T_FUN:
-                type = n.sf() ? Type(V_FUNCTION, PreSpecializeFunction(n.sf())->idx) : Type();
+                type = n.sf()
+                    ? Type(V_FUNCTION, (parent_type == T_DYNINFO
+                        ? n.sf()
+                        : PreSpecializeFunction(n.sf()))->idx) 
+                    : Type();
                 return;
 
             case T_LIST:
                 // Flatten the TypeCheck recursion a bit
                 for (Node *stats = &n; stats; stats = stats->b())
-                    TypeCheck(stats->a());
+                    TypeCheck(stats->a(), T_LIST);
                 return;
 
             case T_OR:
             case T_AND:
-                TypeCheckAndOr(n_ptr, false);
+                TypeCheckAndOr(n_ptr, false, parent_type);
                 return;
         }
 
         auto nc = n.NumChildren();
-        if (nc > 0 && n.a()) TypeCheck(n.a());
-        if (nc > 1 && n.b()) TypeCheck(n.b());
-        if (nc > 2 && n.c()) TypeCheck(n.c());
+        if (nc > 0 && n.a()) TypeCheck(n.a(), n.type);
+        if (nc > 1 && n.b()) TypeCheck(n.b(), n.type);
+        if (nc > 2 && n.c()) TypeCheck(n.c(), n.type);
 
         switch (n.type)
         {

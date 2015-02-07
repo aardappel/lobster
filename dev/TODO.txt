@@ -2,6 +2,18 @@
 
 - upgrade SDL
 
+- syntax overhaul.
+  think of ways in which we can improve the syntax to be less jarring to people coming from either
+  Python (which it already kinda looks like), or C-style languages.
+  possible places for optimization:
+  - the uniform block syntax is great, but it does make some things heavier than need be, like 
+    if(c): can we somehow lose either the : or the ()?
+    Also, the syntax with typed args isn't great: hof(): (x:type, ..): body
+  - constructors are a bit weird, would be better to have the type name first:
+    [1,2]:xy  ->  xy[1,2]
+    but that looks too much like indexing, so maybe also change the []? But its nice to see constructors
+    as different from function calls. could use {} ?
+
 - typechecker
   - typecheck of super args?
   - move generic double check from parser to type checker init
