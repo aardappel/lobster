@@ -399,8 +399,9 @@ struct CodeGen
                 Gen(n->right(), retval);
                 if (retval)
                 {
-                    if (n->left()->exptype.t == V_INT) Emit(IL_IADD + opc);
-                    else if (n->left()->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
+                    // Have to check node and left because comparison ops generate ints
+                    if (n->exptype.t == V_INT && n->left()->exptype.t == V_INT) Emit(IL_IADD + opc);
+                    else if (n->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
                     else Emit(IL_AADD + opc);
                 }
                 break;
@@ -519,11 +520,19 @@ struct CodeGen
                         // side effect, usually it is an ident which will result in no code (retval = 0).
                         Gen(n->dcall_fval(), 0);
                         // We can now turn this into a normal call.
+                        assert(sf->idx == n->dcall_fval()->exptype.idx);
                         gencall(*sf, n->dcall_info()->dcall_args(), n);
                     }
                     else
                     {
                         // Fully dynamic call.
+                        if (typechecked && !sf)
+                        {
+                            // Don't support these in typechecked mode
+                            Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0, st).c_str());
+                            assert(0);
+                        }
+
                         genargs(n->dcall_info()->dcall_args(), nullptr, 0);
                         Gen(n->dcall_fval(), 1);
                         Emit(IL_CALLV, nargs);

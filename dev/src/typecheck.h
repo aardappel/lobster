@@ -758,7 +758,11 @@ struct TypeChecker
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
 
-            return TypeCheckCall(sf, *args_ptr, fdef ? *fdef : fval);
+            auto &fnode = fdef ? *fdef : fval;
+            auto type = TypeCheckCall(sf, *args_ptr, fnode);
+            auto nsf = fnode.sf();
+            fnode.exptype = fval.exptype = Type(V_FUNCTION, nsf->idx);
+            return type;
         }
         else
         {

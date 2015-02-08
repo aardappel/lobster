@@ -48,7 +48,6 @@ struct VM : VMBase
     
     SymbolTable &st;
 
-    bool trace;
 
     const vector<LineInfo> &lineinfo;
     #ifdef _DEBUG
@@ -62,6 +61,10 @@ struct VM : VMBase
 
     VMLog vml;
 
+    bool trace;
+    bool trace_tail;
+    string trace_output;
+
     #define PUSH(v) (stack[++sp] = (v))
     #define TOP() (stack[sp])
     #define TOP2() (stack[sp - 1])
@@ -73,7 +76,8 @@ struct VM : VMBase
     VM(SymbolTable &_st, int *_code, int _len, const vector<LineInfo> &_lineinfo, const char *_pn)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
           curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr), lineprofilecounts(nullptr),
-          trace(false), lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state)
+          lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state),
+          trace(false), trace_tail(true)
     {
         // search for "64bit" before trying to make a 64bit build, changes may be required
         assert(sizeof(int) == sizeof(void *));
@@ -235,6 +239,8 @@ struct VM : VMBase
 
     Value Error(string err, const Value &a = Value(0, V_MAXVMTYPES), const Value &b = Value(0, V_MAXVMTYPES))
     {
+        if (trace_tail) err = trace_output + err;
+
         const LineInfo &li = LookupLine(ip - 1);  // error is usually in the byte before the current ip
         auto s = string(st.filenames[li.fileidx]) + "(" + inttoa(li.line) + "): VM error: " + err;
         if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
@@ -680,7 +686,7 @@ struct VM : VMBase
             {
                 size_t c = lineprofilecounts[&li - &lineinfo[0]];
                 if(c > total / 100)
-                    Output(OUTPUT_INFO, "%s(%d): %.1f %%\n", st.filenames[li.fileidx].c_str(), li.line,
+                    Output(OUTPUT_INFO, "%s(%d): %.1f %%", st.filenames[li.fileidx].c_str(), li.line,
                                                              c * 100.0f / total);
             }
         #endif
@@ -693,10 +699,23 @@ struct VM : VMBase
             #ifdef _DEBUG
                 if (trace)
                 {
-                    DisAsmIns(stdout, st, ip, codestart, LookupLine(ip));
-                    Output(OUTPUT_INFO, " [%d] - %s / %s", sp + 1,
-                           sp >= 0 ? TOP().ToString(debugpp).c_str() : "<bottom>",
-                           sp >= 1 ? stack[sp - 1].ToString(debugpp).c_str() : "<bottom>");
+                    if (!trace_tail) trace_output.clear();
+                    DisAsmIns(trace_output, st, ip, codestart, LookupLine(ip));
+                    trace_output += " [";
+                    trace_output += inttoa(sp + 1);
+                    trace_output += "] - ";
+                    if (sp >= 0) trace_output += TOP().ToString(debugpp);
+                    if (sp >= 1) { trace_output += " "; trace_output += TOP2().ToString(debugpp); }
+                    if (trace_tail)
+                    {
+                        trace_output += "\n";
+                        const int trace_max = 10000;
+                        if (trace_output.length() > trace_max) trace_output.erase(0, trace_max / 2);
+                    }
+                    else
+                    {
+                        Output(OUTPUT_INFO, "%s", trace_output.c_str());
+                    }
                 }
 
                 //currentline = LookupLine(ip).line;

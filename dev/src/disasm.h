@@ -31,24 +31,30 @@ static const LineInfo &LookupLine(int pos, const vector<LineInfo> &_lineinfo)
     }
 }
 
-static void LvalDisAsm(FILE *f, int *&ip)
+static void LvalDisAsm(string &s, int *&ip)
 {
     #define F(N) #N,
     static const char *lvonames[] = { LVALOPNAMES };
     #undef F
 
-    fprintf(f, "%s ", lvonames[*ip++]);
+    s += lvonames[*ip++];
+    s += " ";
 }
 
-static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineInfo &li)
+static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const LineInfo &li)
 {
     #define F(N) #N,
     static const char *ilnames[] = { ILNAMES };
     #undef F
 
     // FIXME: some indication of the filename, maybe with a table index?
-    //fflush(f);
-    fprintf(f, "I %d \tL %d \t%s ", int(ip - code), li.line, ilnames[*ip]);
+    s += "I ";
+    s += inttoa(ip - code);
+    s += " \tL ";
+    s += inttoa(li.line);
+    s += " \t";
+    s += ilnames[*ip];
+    s += " ";
 
     switch(*ip++)
     {
@@ -66,13 +72,13 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         case IL_TT:
         case IL_TTSTRUCT:
         case IL_LOGREAD:
-            fprintf(f, "%d", *ip++);
+            s += inttoa(*ip++);
             break;
 
         case IL_RETURN:
         {
             auto id = *ip++;
-            fprintf(f, "%s", id >= 0 ? st.functiontable[id]->name.c_str() : inttoa(id));
+            s += id >= 0 ? st.functiontable[id]->name.c_str() : inttoa(id);
             break;
         }
 
@@ -82,7 +88,11 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
             auto nargs = *ip++;
             auto id = *ip++;
             auto bc = *ip++;
-            fprintf(f, "%d %s %d", nargs, st.functiontable[id]->name.c_str(), bc);
+            s += inttoa(nargs);
+            s += " ";
+            s += st.functiontable[id]->name;
+            s += " ";
+            s += inttoa(bc);
             break;
         }
 
@@ -90,91 +100,94 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         {
             auto t = *ip++;
             auto nargs = *ip++;
-            fprintf(f, "%s %d", t >= 0 ? st.ReverseLookupType(t).c_str() : "vector", nargs);
+            s += t >= 0 ? st.ReverseLookupType(t).c_str() : "vector";
+            s += " ";
+            s += inttoa(nargs);
             break;
         }
 
         case IL_BCALL:
         {
             int a = *ip++;
-            fprintf(f, "%s %d", natreg.nfuns[a]->name.c_str(), *ip++);
+            s += natreg.nfuns[a]->name;
+            s += " ";
+            s += inttoa(*ip++);
             break;
         }
 
         case IL_LVALVAR:
-            LvalDisAsm(f, ip);
+            LvalDisAsm(s, ip);
         case IL_PUSHVAR:
-            fprintf(f, "%s", st.ReverseLookupIdent(*ip++).c_str());
+            s += st.ReverseLookupIdent(*ip++);
             break;
 
         case IL_LVALFLDO:
         case IL_LVALFLDT:
         case IL_LVALLOC:
-           LvalDisAsm(f, ip);
+           LvalDisAsm(s, ip);
         case IL_PUSHFLDT:
         case IL_PUSHFLDO:
         case IL_PUSHFLDMT:
         case IL_PUSHFLDMO:
         case IL_PUSHLOC:
-            fprintf(f, "%d", *ip++);
+            s += inttoa(*ip++);
             break;
 
         case IL_LVALFLDC:
-           LvalDisAsm(f, ip);
+           LvalDisAsm(s, ip);
         case IL_PUSHFLDC:
         case IL_PUSHFLDMC:
-        {
-            int si = *ip++;
-            int o1 = *ip++;
-            fprintf(f, "%d %d %d", si, o1, *ip++);
+            s += inttoa(*ip++);
+            s += " ";
+            s += inttoa(*ip++);
+            s += " ";
+            s += inttoa(*ip++);
             break;
-        }
 
         case IL_LVALIDX:
-            LvalDisAsm(f, ip);
+            LvalDisAsm(s, ip);
             break;
 
         case IL_PUSHFLT:
-            fprintf(f, "%f", *(float *)ip);
+            s += flttoa(*(float *)ip);
             ip++;
             break;
 
         case IL_PUSHSTR:
-            fprintf(f, "\"");
-            while(*ip) fprintf(f, "%c", *ip++);
+            s += "\"";
+            while(*ip) s += (char)*ip++;
             ip++;
-            fprintf(f, "\"");
+            s += "\"";
             break;
 
         case IL_FUNSTART:
         {
             int n = *ip++;
-            while (n--) fprintf(f, "%s ", st.ReverseLookupIdent(*ip++).c_str());
+            while (n--) { s += st.ReverseLookupIdent(*ip++); s += " "; }
             n = *ip++; 
-            fprintf(f, "=> ");
-            while (n--) fprintf(f, "%s ", st.ReverseLookupIdent(*ip++).c_str());
+            s += "=> ";
+            while (n--) { s += st.ReverseLookupIdent(*ip++); s += " "; }
             n = *ip++;
-            if (n) fprintf(f, "(log = %d)", n);
+            if (n) { s += "(log = "; s += inttoa(n); s += ")"; }
             break;
         }
 
         case IL_ISTYPE:
-        {
-            int idx = *ip++;
-            fprintf(f, "%d %d", idx, *ip++);
+            s += inttoa(*ip++);
+            s += " ";
+            s += inttoa(*ip++);
             break;
-        }
 
         case IL_CORO:
         {
-            fprintf(f, "%d", *ip++);
+            s += inttoa(*ip++);
             int n = *ip++;
-            for (int i = 0; i < n; i++) fprintf(f, " v%d", *ip++);
+            for (int i = 0; i < n; i++) { s += " v"; s += inttoa(*ip++); }
             break;
         }
 
         case IL_FIELDTABLES:
-            fprintf(f, "%d", *ip);
+            s += inttoa(*ip);
             ip = code + *ip;
             break;
 
@@ -182,22 +195,23 @@ static int *DisAsmIns(FILE *f, SymbolTable &st, int *ip, int *code, const LineIn
         {
             auto n = *ip++;
             auto nargs = *ip++;
-            fprintf(f, "%d %d", n, nargs);
+            s += inttoa(n);
+            s += " ";
+            s += inttoa(nargs);
             ip += (nargs * 2 + 1) * n;
         }
-
     }
 
     return ip;
 }
 
-static void DisAsm(FILE *f, SymbolTable &st, int *code, const vector<LineInfo> &lineinfo, int len)
+static void DisAsm(string &s, SymbolTable &st, int *code, const vector<LineInfo> &lineinfo, int len)
 {
     int *ip = code;
     while (ip < code + len)
     {
-        ip = DisAsmIns(f, st, ip, code, LookupLine(ip - code, lineinfo));
-        fprintf(f, "\n");
+        ip = DisAsmIns(s, st, ip, code, LookupLine(ip - code, lineinfo));
+        s += "\n";
     }
 }
 

@@ -94,7 +94,9 @@ struct CompiledProgram
             FILE *f = OpenForWriting("disasm.txt", false);
             if (f)
             {
-                DisAsm(f, st, &code[0], linenumbers, (int)code.size());
+                string s;
+                DisAsm(s, st, &code[0], linenumbers, (int)code.size());
+                fputs(s.c_str(), f);
                 fclose(f);
             }
         }

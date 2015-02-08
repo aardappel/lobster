@@ -46,6 +46,9 @@ extern void MsgBox(const char *err);
 extern void InitTime();
 extern double SecondsSinceStart();
 
+// misc:
+
+extern void ConditionalBreakpoint(bool shouldbreak);
 
 #if defined(__IOS__) || defined(__ANDROID__)
     // This assumes OpenGL ES + touch screen as opposed to Desktop GL + mouse.
