@@ -70,7 +70,7 @@ struct CodeGen
         // Create list of subclasses, to help in creation of dispatch tables.
         for (auto struc : st.structtable)
         {
-            if (struc->superclassidx >= 0)
+            if (struc->superclass)
             {
                 struc->nextsubclass = struc->superclass->firstsubclass;
                 struc->superclass->firstsubclass = struc;
@@ -140,8 +140,8 @@ struct CodeGen
         {
             for (int i = 0; i < nargs; i++)
             {
-                auto &ta = a->args.v[i].type;
-                auto &tb = b->args.v[i].type;
+                auto ta = a->args.v[i].type;
+                auto tb = b->args.v[i].type;
 
                 if (ta != tb) return ta < tb;
             }
@@ -201,7 +201,8 @@ struct CodeGen
                         {
                             auto arg = sf->args.v[j];
                             // FIXME: this probably doesn't cover all cases anymore..
-                            Emit(arg.type.t == V_STRUCT ? V_VECTOR : arg.type.t, arg.type.idx);
+                            if (arg.type->t == V_STRUCT) Emit(V_VECTOR, arg.type->struc->idx); 
+                            else Emit(arg.type->t, -1);
                         }
                     }
                     Emit(sf->subbytecodestart);
@@ -213,16 +214,16 @@ struct CodeGen
                 for (int j = 0; j < f->nargs(); j++)
                 {
                     auto arg = sf->args.v[j];
-                    if (arg.type.t == V_STRUCT)
+                    if (arg.type->t == V_STRUCT)
                     {
-                        auto struc = st.StructFromType(arg.type);
+                        auto struc = arg.type->struc;
                         for (auto subs = struc->firstsubclass; subs; subs = subs->nextsubclass)
                         {
                             // See if this instance already exists:
                             for (auto osf : sfs)
                             {
                                 // Only check this arg, not all arg, which is reasonable.
-                                if (osf->args.v[j].type == Type(V_STRUCT, subs->idx)) goto skip;
+                                if (*osf->args.v[j].type == subs->thistype) goto skip;
                             }
                             gendispatch(j, subs->idx);
                             // FIXME: We should also call it on subtypes of subs.
@@ -240,7 +241,7 @@ struct CodeGen
     {
         if (typechecked && !sf.typechecked)
         {
-            auto s = Dump(*sf.body, 0, st);
+            auto s = Dump(*sf.body, 0);
             Output(OUTPUT_DEBUG, "untypechecked: %s : %s", sf.parent->name.c_str(), s.c_str());
             assert(0);
         }
@@ -294,17 +295,17 @@ struct CodeGen
         if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
     }
 
-    void GenTypeCheck(const Type &given, const Type &type)
+    void GenTypeCheck(TypeRef given, TypeRef type)
     {
         if (given == type) return;
-        switch(type.t)
+        switch(type->t)
         {
             case V_ANY:     break;
             case V_FLOAT:   Emit(IL_TTFLT); break;
             case V_STRING:  Emit(IL_TTSTR); break;
-            case V_STRUCT:  Emit(IL_TTSTRUCT, type.idx); break;
+            case V_STRUCT:  Emit(IL_TTSTRUCT, type->struc->idx); break;
             // FIXME: this may need to reworked now that we have more rich types, or removed alltogether.
-            default:        //Emit(IL_TT, type.t); 
+            default:        //Emit(IL_TT, type->t); 
                 break;
         }
     }
@@ -400,8 +401,8 @@ struct CodeGen
                 if (retval)
                 {
                     // Have to check node and left because comparison ops generate ints
-                    if (n->exptype.t == V_INT && n->left()->exptype.t == V_INT) Emit(IL_IADD + opc);
-                    else if (n->exptype.t == V_FLOAT) Emit(IL_FADD + opc);
+                    if (n->exptype->t == V_INT && n->left()->exptype->t == V_INT) Emit(IL_IADD + opc);
+                    else if (n->exptype->t == V_FLOAT) Emit(IL_FADD + opc);
                     else Emit(IL_AADD + opc);
                 }
                 break;
@@ -520,7 +521,7 @@ struct CodeGen
                         // side effect, usually it is an ident which will result in no code (retval = 0).
                         Gen(n->dcall_fval(), 0);
                         // We can now turn this into a normal call.
-                        assert(sf->idx == n->dcall_fval()->exptype.idx);
+                        assert(sf == n->dcall_fval()->exptype->sf);
                         gencall(*sf, n->dcall_info()->dcall_args(), n);
                     }
                     else
@@ -529,7 +530,7 @@ struct CodeGen
                         if (typechecked && !sf)
                         {
                             // Don't support these in typechecked mode
-                            Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0, st).c_str());
+                            Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
                             assert(0);
                         }
 
@@ -641,9 +642,9 @@ struct CodeGen
                 Struct *struc = nullptr;
 
                 auto vtype = n->constructor_type()->typenode();
-                if (vtype.t == V_STRUCT)
+                if (vtype->t == V_STRUCT)
                 {
-                    struc = st.structtable[vtype.idx];
+                    struc = vtype->struc;
                     Emit(IL_NEWVEC, struc->idx, struc->fields.size());
                     superclass = struc->superclass;
                 }
@@ -671,7 +672,7 @@ struct CodeGen
 
                         auto &type = cn->head()->exptype;
                         if (struc) GenTypeCheck(type, struc->fields[i].type);
-                        else GenTypeCheck(type, vtype.Element());
+                        else GenTypeCheck(type, vtype->Element());
 
                         Emit(IL_PUSHONCE);
                         i++;
@@ -686,9 +687,13 @@ struct CodeGen
             case T_IS:
             {
                 Gen(n->left(), retval);
-                auto t = n->right()->typenode().t;
+                auto t = n->right()->typenode()->t;
                 // FIXME: this probably dpesn't cover all cases anymore
-                if (retval) Emit(IL_ISTYPE, t == V_STRUCT ? V_VECTOR : t, n->right()->typenode().idx);
+                if (retval)
+                {
+                    if (t == V_STRUCT) Emit(IL_ISTYPE, V_VECTOR, n->right()->typenode()->struc->idx);
+                    else Emit(IL_ISTYPE, t, -1);
+                }
                 break;
             }
 

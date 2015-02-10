@@ -38,7 +38,7 @@ struct LineInfo : Serializable
 
 struct SubFunction;
 
-struct Ident : Name
+struct Ident : Named
 {
     int line;
     size_t scope;
@@ -55,17 +55,17 @@ struct Ident : Name
 
     int logvaridx;
 
-    Type type;
+    TypeRef type;
 
     Ident(const string &_name, int _l, int _idx, size_t _sc)
-        : Name(_name, _idx), line(_l), 
+        : Named(_name, _idx), line(_l), 
           scope(_sc), prev(nullptr), sf_named(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Serialize(Serializer &ser)
     {
-        Name::Serialize(ser);
+        Named::Serialize(ser);
         ser(line);
         ser(static_constant);
     }
@@ -86,7 +86,7 @@ struct FieldOffset
     FieldOffset() : FieldOffset(-1, -1) {}
 };
 
-struct SharedField : Name
+struct SharedField : Named
 {
     vector<FieldOffset> offsets;
 
@@ -94,7 +94,7 @@ struct SharedField : Name
     FieldOffset fo1, foN;    // in the case of 2 unique offsets where fo1 has only 1 occurence, and foN all the others
     int offsettable;         // in the case of N offsets (bytecode index)
 
-    SharedField(const string &_name, int _idx) : Name(_name, _idx), numunique(0), offsettable(-1) {}
+    SharedField(const string &_name, int _idx) : Named(_name, _idx), numunique(0), offsettable(-1) {}
     SharedField() : SharedField("", 0) {}
 
     void NewFieldUse(const FieldOffset &nfo)
@@ -110,19 +110,18 @@ struct Field : Typed<SharedField>
 {
     int fieldref;
 
-    Field(SharedField *_id, const Type &_type, bool _generic, int _fieldref)
+    Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref)
         : Typed(_id, _type, _generic),
           fieldref(_fieldref) {}
 };
 
-struct Struct : Name
+struct Struct : Named
 {
     vector<Field> fields; 
 
     Struct *next, *first;
 
     Struct *superclass;
-    int superclassidx;
     
     Struct *firstsubclass, *nextsubclass;  // Used in codegen.
 
@@ -130,19 +129,20 @@ struct Struct : Name
     bool generic;
     bool explicit_specialization;
 
-    Type vectortype;  // What kind of vector this can be demoted to.
+    Type thistype;       // convenient place to store the type corresponding to this
+    TypeRef vectortype;  // What kind of vector this can be demoted to.
 
     Struct(const string &_name, int _idx)
-        : Name(_name, _idx), next(nullptr), first(this), superclass(nullptr), superclassidx(-1),
+        : Named(_name, _idx), next(nullptr), first(this), superclass(nullptr),
           firstsubclass(nullptr), nextsubclass(nullptr),
           readonly(false), generic(false), explicit_specialization(false),
-          vectortype(Type(V_VECTOR)) {}
+          thistype(V_STRUCT, this),
+          vectortype(type_vector_any) {}
     Struct() : Struct("", 0) {}
 
     void Serialize(Serializer &ser)
     {
-        Name::Serialize(ser);
-        ser(superclassidx);
+        Named::Serialize(ser);
         ser(readonly);
     }
 
@@ -155,6 +155,7 @@ struct Struct : Name
     Struct *CloneInto(Struct *st)
     {
         *st = *this;
+        st->thistype = Type(V_STRUCT, st);
         st->next = next;
         st->first = first;
         next = st;
@@ -183,7 +184,7 @@ struct SubFunction
     ArgVector locals;
     ArgVector dynscoperedefs;  // any lhs of <-
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
-    vector<Type> returntypes;
+    vector<TypeRef> returntypes;
 
     Node *body;
 
@@ -194,13 +195,16 @@ struct SubFunction
 
     bool typechecked, freevarchecked;
 
+    Type thistype;       // convenient place to store the type corresponding to this
+
     SubFunction(int _idx)
         : idx(_idx),
           parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
-          typechecked(false), freevarchecked(false)
+          typechecked(false), freevarchecked(false),
+          thistype(V_FUNCTION, this)
     {
-        returntypes.push_back(Type());  // functions always have at least 1 return value.
+        returntypes.push_back(type_any);  // functions always have at least 1 return value.
     }
 
     void SetParent(Function &f, SubFunction *&link)
@@ -224,7 +228,7 @@ struct SubFunction
     }
 };
 
-struct Function : Name
+struct Function : Named
 {
     int bytecodestart;
 
@@ -245,7 +249,7 @@ struct Function : Name
     int ncalls;        // used by codegen to cull unused functions
 
     Function(const string &_name, int _idx, int _sl)
-     : Name(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
+     : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0, nullptr),
        scopelevel(_sl), retvals(0), ncalls(0)
     {
@@ -257,11 +261,47 @@ struct Function : Name
 
     void Serialize(Serializer &ser)
     {
-        Name::Serialize(ser);
+        Named::Serialize(ser);
         ser(bytecodestart);
         ser(retvals);
     }
 };
+
+inline string TypeName(TypeRef type, int depth = 0)
+{
+    switch (type->t)
+    {
+        case V_STRUCT:
+        {
+            auto struc = type->struc;
+            string s = struc->name;
+            if (depth < 2 && !struc->explicit_specialization && (struc != struc->first || struc->generic))
+            {
+                int i = 0;
+                for (auto &field : struc->fields)
+                {
+                    if (field.flags == AF_ANYTYPE)
+                    {
+                        s += i ? "," : "(";
+                        s += TypeName(field.type, depth + 1);
+                        i++;
+                    }
+                }
+                if (i) s += ")";
+            }
+            return s;
+        }
+        case V_VECTOR: return "[" + TypeName(type->Element(), depth + 1) + "]";
+        case V_FUNCTION: return type->sf // || type->sf->anonymous
+                                ? type->sf->parent->name
+                                : "function";
+        case V_NILABLE: return TypeName(type->Element(), depth + 1) + "?";
+        case V_VAR: return type->sub
+            ? TypeName(type->sub, depth) + "*"
+            : BaseTypeName(type->t);
+        default: return BaseTypeName(type->t);
+    }
+}
 
 struct SymbolTable
 {
@@ -283,10 +323,10 @@ struct SymbolTable
     
     vector<size_t> scopelevels;
 
-    vector<pair<Type, Ident *>> withstack;
+    vector<pair<TypeRef, Ident *>> withstack;
     vector<size_t> withstacklevels;
 
-    vector<int> default_vector_types;
+    vector<Struct *> default_vector_types;
 
     bool uses_frame_state;
 
@@ -319,7 +359,7 @@ struct SymbolTable
 
         ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
         ident->sf_def = sf;
-        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, Type(), true));
+        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, type_any, true));
 
         if (it == idents.end())
         {
@@ -340,7 +380,7 @@ struct SymbolTable
     {
         auto it = idents.find(name);
         if (it == idents.end()) lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, Type(), true);
+        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, type_any, true);
         return it->second;
     }
         
@@ -356,7 +396,7 @@ struct SymbolTable
             {
                 auto sf = defsubfunctionstack[i];
                 if (it->second->sf_def == sf) break;  // Found the definition.
-                sf->freevars.Add(it->second, Type(), true);
+                sf->freevars.Add(it->second, type_any, true);
             }
         }
         return it->second;  
@@ -384,12 +424,13 @@ struct SymbolTable
         return found;
     }
 
-    void AddWithStruct(Type &t, Ident *id, Lex &lex)
+    void AddWithStruct(TypeRef t, Ident *id, Lex &lex)
     {
-        for (auto &wp : withstack) if (wp.first.SameIndex(t)) lex.Error("type used twice in the same scope with ::");
+        if (t->t != V_STRUCT) lex.Error(":: can only be used with struct/value types");
+        for (auto &wp : withstack) if (wp.first->struc == t->struc) lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash with the struct,
         // or do so in LookupUse
-        assert(t.HasIndex());
+        assert(t->struc);
         withstack.push_back(make_pair(t, id));
     }
 
@@ -401,7 +442,7 @@ struct SymbolTable
         assert(!id);
         for (auto &wp : withstack)
         {
-            if (StructFromType(wp.first)->Has(fld))
+            if (wp.first->struc->Has(fld))
             {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wp.second;
@@ -493,23 +534,23 @@ struct SymbolTable
         return -1;
     }
 
-    bool IsSuperTypeOrSame(int superidx, int subidx)
+    bool IsSuperTypeOrSame(const Struct *sup, const Struct *sub)
     {
-        for (int t = subidx; t != -1; t = structtable[t]->superclassidx)
-            if (t == superidx)
+        for (auto t = sub; t; t = t->superclass)
+            if (t == sup)
                 return true;
         return false;
     }
 
-    Type CommonSuperType(int a, int b)
+    const Struct *CommonSuperType(const Struct *a, const Struct *b)
     {
         if (a != b) for (;;)
         {
-            a = structtable[a]->superclassidx;
-            if (a < 0) return Type();
+            a = a->superclass;
+            if (!a) return nullptr;
             if (IsSuperTypeOrSame(a, b)) break;
         }
-        return Type(V_STRUCT, a);
+        return a;
     }
 
     SharedField &FieldDecl(const string &name, int idx, Struct *st)
@@ -595,70 +636,22 @@ struct SymbolTable
         static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
         for (auto name = default_vector_type_names; *name; name++)
         {
-            int t = V_VECTOR;
+            Struct *t = nullptr;
             // linear search because we may not have the map available if called from a VM loaded from bytecode.
-            for (auto s : structtable) if (s->name == *name) { t = s->idx; break; }
+            for (auto s : structtable) if (s->name == *name) { t = s; break; }
             default_vector_types.push_back(t);
         }
     }
 
-    bool IsGeneric(const Type &type)
+    bool IsGeneric(TypeRef type)
     {
-        if (type.t == V_ANY) return true;
-        auto u = type.UnWrapped();
-        return u.t == V_STRUCT && StructFromType(u)->generic;
+        if (type->t == V_ANY) return true;
+        auto u = type->UnWrapped();
+        return u->t == V_STRUCT && u->struc->generic;
     }
 
-    int GetVectorType(int which) { assert(which >= 2); return default_vector_types[which - 2]; }
-
-    Struct *StructFromType(const Type &type) const
-    {
-        assert(type.t == V_STRUCT && type.HasIndex());
-        return structtable[type.idx];
-    }
-
-    SubFunction *FunctionFromType(const Type &type) const
-    {
-        assert(type.t == V_FUNCTION && type.HasIndex());
-        return subfunctiontable[type.idx];
-    }
+    Struct *GetVectorType(int which) { assert(which >= 2); return default_vector_types[which - 2]; }
     
-    string TypeName(const Type &type, const Type *type_vars = nullptr, int depth = 0) const
-    {
-        switch (type.t)
-        {
-            case V_STRUCT:
-            {
-                auto struc = StructFromType(type);
-                string s = struc->name;
-                if (depth < 2 && !struc->explicit_specialization && (struc != struc->first || struc->generic))
-                {
-                    int i = 0;
-                    for (auto &field : struc->fields)
-                    {
-                        if (field.flags == AF_ANYTYPE)
-                        {
-                            s += i ? "," : "(";
-                            s += TypeName(field.type, type_vars, depth + 1);
-                            i++;
-                        }
-                    }
-                    if (i) s += ")";
-                }
-                return s;
-            }
-            case V_VECTOR: return "[" + TypeName(type.Element(), type_vars, depth + 1) + "]";
-            case V_FUNCTION: return type.HasIndex() // || functiontable[type.idx]->anonymous
-                                ? FunctionFromType(type)->parent->name
-                                : "function";
-            case V_NILABLE: return TypeName(type.Element(), type_vars, depth + 1) + "?";
-            case V_VAR: return type_vars
-                ? TypeName(type_vars[type.idx], type_vars, depth) + "*"
-                : BaseTypeName(type.t);
-            default: return BaseTypeName(type.t);
-        }
-    }
-
     void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)
     {
         auto curvers = __DATE__; // __TIME__;

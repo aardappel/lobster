@@ -33,7 +33,7 @@ struct AST : SlabAllocatedSmall
 {
     TType type;
 
-    Type exptype;
+    TypeRef exptype;
 
     int linenumber;
     int fileidx;
@@ -53,7 +53,7 @@ struct StRef    : AST { Struct *st_;       StRef   (Lex &lex, Struct *st)       
 struct FldRef   : AST { SharedField *fld_; FldRef  (Lex &lex, SharedField *fld) : AST(lex, T_FIELD), fld_(fld) {} };  // T_FIELD
 struct FunRef   : AST { SubFunction *sf_;  FunRef  (Lex &lex, SubFunction *sf)  : AST(lex, T_FUN), sf_(sf) {} };  // T_FUN
 struct NatRef   : AST { NativeFun *nf_;    NatRef  (Lex &lex, NativeFun *nf)    : AST(lex, T_NATIVE), nf_(nf) {} };  // T_NATIVE
-struct TypeNode : AST { Type type_;        TypeNode(Lex &lex, TType t)          : AST(lex, t) {} };  // T_TYPE, T_NIL
+struct TypeNode : AST { TypeRef type_;     TypeNode(Lex &lex, TType t)          : AST(lex, t) {} };  // T_TYPE, T_NIL
 
 struct Ternary : AST
 {
@@ -89,8 +89,8 @@ struct Node : AST
     NativeFun *&nf()         { assert(type == T_NATIVE); return ((NatRef *)this)->nf_; }
     SubFunction * sf() const { assert(type == T_FUN);    return ((const FunRef *)this)->sf_; }
     SubFunction *&sf()       { assert(type == T_FUN);    return ((FunRef *)this)->sf_; }
-    Type  typenode()   const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
-    Type &typenode()         { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
+    TypeRef  typenode()   const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
+    TypeRef &typenode()         { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
 
     Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }
@@ -347,16 +347,16 @@ const char *FindIdentsUpToYield(const Node *start_call, const function<void(cons
     return err;
 }
 
-inline void DumpType(const Node &n, string &ns, SymbolTable &symbols)
+inline void DumpType(const Node &n, string &ns)
 {
-    if (n.exptype.t != V_ANY)
+    if (n.exptype->t != V_ANY)
     {
         ns += ":";
-        ns += symbols.TypeName(n.exptype);
+        ns += TypeName(n.exptype);
     }
 }
 
-inline string Dump(const Node &n, int indent, SymbolTable &symbols)
+inline string Dump(const Node &n, int indent)
 {
     switch (n.type)
     {
@@ -369,7 +369,7 @@ inline string Dump(const Node &n, int indent, SymbolTable &symbols)
         case T_STRUCT: return n.st()->name;
         case T_FIELD:  return n.fld()->name;
         case T_NATIVE: return n.nf()->name;
-        case T_TYPE:   return symbols.TypeName(n.typenode());
+        case T_TYPE:   return TypeName(n.typenode());
 
         case T_FUN:    return n.sf()
             ? "[fun " + n.sf()->parent->name + "]" /*+ sf()->body->Dump(indent + 2, symbols) */
@@ -384,9 +384,9 @@ inline string Dump(const Node &n, int indent, SymbolTable &symbols)
             auto indenb = indent - (n.type == T_LIST) * 2;
 
             auto nc = n.NumChildren();
-            if (nc > 0 && n.a()) { as = Dump(*n.a(), indent + 2, symbols); DumpType(*n.a(), as, symbols); if (as[0] == ' ') ml = true; }
-            if (nc > 1 && n.b()) { bs = Dump(*n.b(), indenb + 2, symbols); DumpType(*n.b(), bs, symbols); if (bs[0] == ' ') ml = true; }
-            if (nc > 2 && n.c()) { cs = Dump(*n.c(), indenb + 2, symbols); DumpType(*n.c(), cs, symbols); if (cs[0] == ' ') ml = true; }
+            if (nc > 0 && n.a()) { as = Dump(*n.a(), indent + 2); DumpType(*n.a(), as); if (as[0] == ' ') ml = true; }
+            if (nc > 1 && n.b()) { bs = Dump(*n.b(), indenb + 2); DumpType(*n.b(), bs); if (bs[0] == ' ') ml = true; }
+            if (nc > 2 && n.c()) { cs = Dump(*n.c(), indenb + 2); DumpType(*n.c(), cs); if (cs[0] == ' ') ml = true; }
 
             if (as.size() + bs.size() + cs.size() > 60) ml = true;
 

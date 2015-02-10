@@ -34,6 +34,15 @@ namespace lobster
     AutoRegister *autoreglist = nullptr;
     NativeRegistry natreg;
     VMBase *g_vm = nullptr;                    // set during the lifetime of a VM object
+    const Type g_type_int          (V_INT);                  TypeRef type_int = &g_type_int;
+    const Type g_type_float        (V_FLOAT);                TypeRef type_float = &g_type_float;
+    const Type g_type_string       (V_STRING);               TypeRef type_string = &g_type_string;
+    const Type g_type_any          (V_ANY);                  TypeRef type_any = &g_type_any;
+    const Type g_type_vector_any   (V_VECTOR, &*type_any);   TypeRef type_vector_any = &g_type_vector_any;
+    const Type g_type_vector_int   (V_VECTOR, &*type_int);   TypeRef type_vector_int = &g_type_vector_int;
+    const Type g_type_vector_float (V_VECTOR, &*type_float); TypeRef type_vector_float = &g_type_vector_float;
+    const Type g_type_function_null(V_FUNCTION);             TypeRef type_function_null = &g_type_function_null;
+    const Type g_type_coroutine    (V_COROUTINE);            TypeRef type_coroutine = &g_type_coroutine;
 }
 
 #include "ttypes.h"
@@ -233,12 +242,12 @@ void DumpBuiltins()
             for (auto &a : nf->args.v)
             {
                 fprintf(f, "%s%s%s<font color=\"#666666\">%s</font>%s",
-                    a.type.t == V_NILABLE ? " [" : "",
+                    a.type->t == V_NILABLE ? " [" : "",
                     i ? ", " : "",
                     nf->args.GetName(i).c_str(),
-                    a.type.t == V_ANY ? "" : (string(":") + 
-                        (a.type.t == V_NILABLE ? a.type.Element() : a.type).Name()).c_str(),
-                    a.type.t == V_NILABLE ? "]" : ""
+                    a.type->t == V_ANY ? "" : (string(":") + 
+                        TypeName(a.type->t == V_NILABLE ? a.type->Element() : a.type)).c_str(),
+                    a.type->t == V_NILABLE ? "]" : ""
                 );
                 i++;
             }
@@ -250,7 +259,7 @@ void DumpBuiltins()
                 for (auto &a : nf->retvals.v)
                 {
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
-                                a.type.Name().c_str(), 
+                                TypeName(a.type).c_str(), 
                                 i++ < nf->retvals.v.size() - 1 ? ", " : "");
                 }
             }

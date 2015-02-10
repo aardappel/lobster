@@ -289,7 +289,6 @@ struct Parser
                     {
                         auto &base = st.StructUse(lastid, lex);
                         struc.superclass = &base;
-                        struc.superclassidx = base.idx;
 
                         bool specializing = IsNext(T_LEFTPAREN);
                         int i = 0;
@@ -319,7 +318,7 @@ struct Parser
                         string fname = lex.sattr;
                         Expect(T_IDENT);
                         auto &sfield = st.FieldDecl(fname, fieldid++, &struc);
-                        Type type;
+                        TypeRef type;
                         int fieldref = -1;
                         if (IsNext(T_COLON))
                         {
@@ -476,7 +475,7 @@ struct Parser
                 Expect(T_IDENT);
                 nargs++;
                 auto id = st.LookupDef(a, lex.errorline, lex, false, false);
-                Type type;
+                TypeRef type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
                 {
@@ -514,7 +513,7 @@ struct Parser
             {
                 // Special case for ANY, since we have no way to specify such a type, and we only need here.
                 Expect(T_RIGHTPAREN);
-                sf->returntypes[0] = Type();
+                sf->returntypes[0] = type_any;
             }
             else
             {
@@ -597,20 +596,26 @@ struct Parser
         return (Node *)new FunRef(lex, sf);
     }
 
-    int ParseType(Type &dest, bool withtype, Struct *fieldrefstruct = nullptr)
+    static Type *NewType()
+    {
+        // FIXME: this potentially generates quite a bit of "garbage".
+        // Instead, we could hash these, or store common type variants inside Struct etc.
+        // A quick test revealed that 10% of nodes cause one of these to be allocated, so probably not worth optimizing.
+        return parserpool->alloc_obj_small<Type>();
+    }
+
+    int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr)
     {
         switch(lex.token)
         {
-            case T_INTTYPE:   dest.t = V_INT;       lex.Next(); break;
-            case T_FLOATTYPE: dest.t = V_FLOAT;     lex.Next(); break;
-            case T_STRTYPE:   dest.t = V_STRING;    lex.Next(); break;
-            case T_COROUTINE: dest.t = V_COROUTINE; lex.Next(); break;
-            case T_NIL:       dest.t = V_NIL;       lex.Next(); break;
-            case T_VECTTYPE:  dest.t = V_VECTOR;    lex.Next(); break;  // FIXME: remove this one?
+            case T_INTTYPE:   dest = type_int;        lex.Next(); break;
+            case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
+            case T_STRTYPE:   dest = type_string;     lex.Next(); break;
+            case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
+            case T_VECTTYPE:  dest = type_vector_any; lex.Next(); break;  // FIXME: remove this one?
 
             case T_FUN:
             {
-                dest.t = V_FUNCTION;
                 lex.Next();
                 auto idname = lex.sattr;
                 if (IsNext(T_IDENT))
@@ -620,7 +625,11 @@ struct Parser
                         Error("unknown function type: " + idname);
                     if (!f->istype)
                         Error("function not declared as type: " + idname);
-                    dest.idx = f->subf->idx;
+                    dest = &f->subf->thistype;
+                }
+                else
+                {
+                    dest = type_function_null;  // FIXME: in what cases does this make sense?
                 }
                 break;
             }
@@ -641,9 +650,8 @@ struct Parser
                         }
                     }
                 }
-                dest.t = V_STRUCT;
                 auto &struc = st.StructUse(lex.sattr, lex);
-                dest.idx = struc.idx;
+                dest = &struc.thistype;
                 lex.Next();
                 break;
             }
@@ -651,11 +659,10 @@ struct Parser
             case T_LEFTBRACKET:
             {
                 lex.Next();
-                Type elem;
+                TypeRef elem;
                 ParseType(elem, false);
                 Expect(T_RIGHTBRACKET);
-                if (!elem.CanWrap()) Error("can\'t nest vector types this deep");
-                dest = elem.Wrap();
+                dest = elem->Wrap(NewType());
                 break;
             }
 
@@ -665,12 +672,11 @@ struct Parser
 
         if (IsNext(T_QUESTIONMARK))
         {
-            if (dest.Numeric()) Error("numeric types can\'t be made nilable");
-            if (!dest.CanWrap()) Error("can\'t nest nilable vector types this deep");
-            dest = dest.Wrap(V_NILABLE);
+            if (dest->Numeric()) Error("numeric types can\'t be made nilable");
+            dest = dest->Wrap(NewType(), V_NILABLE);
         }
 
-        if (withtype && dest.t != V_STRUCT) Error(":: must be used with a struct type");
+        if (withtype && dest->t != V_STRUCT) Error(":: must be used with a struct type");
 
         return -1;
     }
@@ -956,11 +962,11 @@ struct Parser
                 if (!*ai)
                 {
                     auto &type = arg.type;
-                    if (type.t == V_NILABLE)
+                    if (type->t == V_NILABLE)
                     {
-                        *ai = new Node(lex, T_LIST, type.t2 == V_INT
+                        *ai = new Node(lex, T_LIST, type->sub->t == V_INT
                                        ? (Node *)new IntConst(lex, 0) 
-                                       : (type.t2 == V_FLOAT 
+                                       : (type->sub->t == V_FLOAT 
                                             ? (Node *)new FltConst(lex, 0.0)
                                             : (Node *)new TypeNode(lex, T_NIL)), nullptr);
                     }
@@ -1160,7 +1166,7 @@ struct Parser
                 if (IsNext(T_COLON))
                 {
                     ParseType(n->type_, false);
-                    n->type_ = n->type_.Wrap(V_NILABLE);
+                    n->type_ = n->type_->Wrap(NewType(), V_NILABLE);
                 }
                 return (Node *)n;
             }
@@ -1198,14 +1204,14 @@ struct Parser
 
                 // FIXME: this type is not in line with other types: any non-struct type means a vector of it.
                 auto tn = new TypeNode(lex, T_TYPE);
-                tn->type_ = Type(V_VECTOR);
+                tn->type_ = type_vector_any;
 
                 if (IsNext(T_COLON))
                 {
                     ParseType(tn->type_, false);
-                    if (tn->type_.t == V_STRUCT)
+                    if (tn->type_->t == V_STRUCT)
                     {
-                        auto struc = st.StructFromType(tn->type_);
+                        auto struc = tn->type_->struc;
                         int nargs = CountList(n);
                         int reqargs = struc->fields.size();
                         if (n && n->head()->type == T_SUPER)
@@ -1216,12 +1222,12 @@ struct Parser
                     }
                     else
                     {
-                        if (tn->type_.t != V_VECTOR)
+                        if (tn->type_->t != V_VECTOR)
                             Error("constructor must have struct or vector type");
                     }
                 }
 
-                if (tn->type_.t != V_STRUCT && n && n->head()->type == T_SUPER)
+                if (tn->type_->t != V_STRUCT && n && n->head()->type == T_SUPER)
                     Error("constructor using super must have struct type");
 
                 return new Node(lex, T_CONSTRUCTOR, n, tn);
@@ -1318,14 +1324,14 @@ struct Parser
                 s += "FUNCTION: " + f->name + "(";
                 for (auto &arg : sf->args.v)
                 {
-                    s += arg.id->name + ":" + st.TypeName(arg.type) + " ";
+                    s += arg.id->name + ":" + TypeName(arg.type) + " ";
                 }
                 s += ")\n";
-                if (sf->body) s += Dump(*sf->body, 4, st);
+                if (sf->body) s += Dump(*sf->body, 4);
                 s += "\n\n";
             }
         }
-        return s + "TOPLEVEL:\n" + Dump(*root, 0, st);
+        return s + "TOPLEVEL:\n" + Dump(*root, 0);
     }
 };
 

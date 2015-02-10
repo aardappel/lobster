@@ -127,7 +127,7 @@ struct VM : VMBase
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
-    int GetVectorType(int which) { return st.GetVectorType(which); }
+    int GetVectorType(int which) { return st.GetVectorType(which)->idx; }
 
     static bool _LeakSorter(void *va, void *vb)
     {
@@ -878,7 +878,7 @@ struct VM : VMBase
                             for (size_t i = 0; i < nf->retvals.v.size(); i++)
                             {
                                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
-                                auto u = nf->retvals.v[i].type.t;
+                                auto u = nf->retvals.v[i].type->t;
                                 VMASSERT(t == u || u == V_ANY || u == V_NILABLE);   
                             }
                         }
@@ -1371,11 +1371,11 @@ struct VM : VMBase
     void NFCheck(Value &v, NativeFun *&nf, int i)
     {   
         tryagain:
-        if (!Coerce(v, nf->args.v[i].type.t))
+        if (!Coerce(v, nf->args.v[i].type->t))
         {
-            if (nf->args.v[i].type.t == V_NILABLE)
+            if (nf->args.v[i].type->t == V_NILABLE)
             {
-                if (v.type == V_NIL || Coerce(v, nf->args.v[i].type.t2)) return;
+                if (v.type == V_NIL || Coerce(v, nf->args.v[i].type->sub->t)) return;
             }
             if (!i && nf->overloads)
             {
@@ -1387,7 +1387,7 @@ struct VM : VMBase
                 goto tryagain;
             }
             Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf->name + 
-                  "\" needs to have type " + st.TypeName(nf->args.v[i].type) + ", not " + ProperTypeName(v), v);
+                  "\" needs to have type " + TypeName(nf->args.v[i].type) + ", not " + ProperTypeName(v), v);
         }
     }
 

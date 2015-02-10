@@ -11,14 +11,12 @@ struct TypeChecker
     struct Scope { SubFunction *sf; const Node *call_context; };
     vector<Scope> scopes, named_scopes;
 
-    vector<Type> type_variables;
-
     struct FlowItem
     {
         const Node *item;  // For now, only for ident and dot nodes.
-        Type old, now;
+        TypeRef old, now;
 
-        FlowItem(const Node *_item, const Type &type) : item(_item), old(_item->exptype), now(type) {}
+        FlowItem(const Node *_item, TypeRef type) : item(_item), old(_item->exptype), now(type) {}
     };
     vector<FlowItem> flowstack;
 
@@ -28,11 +26,11 @@ struct TypeChecker
         for (auto &struc : st.structtable)
         {
             if (!struc->generic) ComputeStructVectorType(struc);
-            if (struc->superclassidx >= 0) for (auto &field : struc->fields)
+            if (struc->superclass) for (auto &field : struc->fields)
             {
                 // If this type refers to the super struct type, make it refer to this type instead.
                 // There may be corner cases where this is not what you want, but generally you do.
-                PromoteStructIdx(field.type, struc->superclassidx, struc->idx);
+                PromoteStructIdx(field.type, struc->superclass, struc);
             }
         }
             
@@ -45,12 +43,12 @@ struct TypeChecker
         Stats();
     }
 
-    string TypeName(const Type &type) { return st.TypeName(type, type_variables.data()); }
+    Type *NewType() { return parser.NewType(); }
 
     template<typename T> string TypedArg(const T &arg, bool withtype = true)
     {
         string s = arg.id ? arg.id->name : "arg";  // FIXME: use ArgVector::GetName here instead
-        if (arg.type.t != V_ANY && withtype) s += ":" + TypeName(arg.type);
+        if (arg.type->t != V_ANY && withtype) s += ":" + TypeName(arg.type);
         return s;
     }
 
@@ -89,7 +87,7 @@ struct TypeChecker
         }
     }
 
-    void TypeError(const char *required, const Type &got, const Node &n, const char *argname, const char *context = nullptr)
+    void TypeError(const char *required, TypeRef got, const Node &n, const char *argname, const char *context = nullptr)
     {
         TypeError(string("\"") +
                   (context ? context : TName(n.type)) + 
@@ -114,7 +112,7 @@ struct TypeChecker
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
                 {
                     auto id = dl->left()->ident();
-                    //if (id->type.t != V_ANY)
+                    //if (id->type->t != V_ANY)
                     {
                         err += ", " + id->name + ":" + TypeName(id->type);
                     }
@@ -139,111 +137,92 @@ struct TypeChecker
         TypeError(err, callnode);
     }
 
-    Type NewTypeVar()
+    TypeRef NewTypeVar()
     {
-        type_variables.push_back(Type(V_UNDEFINED));
-        return Type(V_VAR, (int)type_variables.size() - 1);
-    }
-
-    Type Promote(const Type &type)
-    {
-        if (type.t == V_VAR && type.LookupVar(type_variables).t != V_UNDEFINED)
-        {
-            return Promote(type.LookupVar(type_variables));
-        }
-        else if (type.t == V_VECTOR || type.t == V_NILABLE)
-        {
-            auto pe = Promote(type.Element());
-            return pe.Wrap(type.t);
-        }
-        else
-        {
-            return type;
-        }
-    }
-
-    Type UnifyVar(const Type &type, const Type &hasvar)
-    {
-        auto &var = hasvar.LookupVar(type_variables);
-        if (var.t == V_UNDEFINED)
-        {
-            auto pt = Promote(type);
-            if (pt.t != V_VAR || !pt.SameIndex(hasvar)) var = pt;
-        }
+        auto var = NewType();
+        *var = Type(V_VAR);
         return var;
     }
 
-    bool ConvertsTo(const Type &type, const Type &sub, bool coercions)
+    TypeRef UnifyVar(TypeRef type, TypeRef hasvar)
+    {
+        // Typically Type is const, but this is the one place we overwrite them.
+        // Type objects that are V_VAR are seperate heap instances, so overwriting them has no side-effects on
+        // non-V_VAR Type instances.
+        assert(hasvar->t == V_VAR);
+        if (type->t != V_VAR || type != hasvar) *(Type *)&*hasvar = *type;
+        return hasvar;
+    }
+
+    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions)
     {
         if (sub == type) return true;
-        if (type.t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
-        switch (sub.t)
+        if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
+        switch (sub->t)
         {
             case V_ANY:      return true;
             case V_VAR:      return ConvertsTo(type, UnifyVar(type, sub), coercions);
-            case V_FLOAT:    return type.t == V_INT && coercions;
+            case V_FLOAT:    return type->t == V_INT && coercions;
             case V_STRING:   return coercions;
-            case V_FUNCTION: return type.t == V_FUNCTION && !sub.HasIndex();
-            case V_NILABLE:  return type.t == V_NIL ||
-                                    (type.t == V_NILABLE && ConvertsTo(type.Element(), sub.Element(), false)) ||
-                                    (!type.Numeric() && ConvertsTo(type, sub.Element(), false));
-            case V_VECTOR:   return ((type.t == V_VECTOR && ConvertsTo(type.Element(), sub.Element(), false)) ||
-                                     (type.t == V_STRUCT && ConvertsTo(st.StructFromType(type)->vectortype, sub, false)));
-            case V_STRUCT:   return type.t == V_STRUCT && st.IsSuperTypeOrSame(sub.idx, type.idx);
+            case V_FUNCTION: return type->t == V_FUNCTION && !sub->sf;
+            case V_NILABLE:  return type->t == V_NIL ||
+                                    (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false)) ||
+                                    (!type->Numeric() && ConvertsTo(type, sub->Element(), false));
+            case V_VECTOR:   return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false)) ||
+                                     (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false)));
+            case V_STRUCT:   return type->t == V_STRUCT && st.IsSuperTypeOrSame(sub->struc, type->struc);
         }
         return false;
     }
 
-    Type Union(const Node *a, const Node *b, bool coercions)
+    TypeRef Union(const Node *a, const Node *b, bool coercions)
     {
          return Union(a->exptype, b->exptype, coercions);
     }
-    Type Union(const Type &at, const Type &bt, bool coercions)
+    TypeRef Union(TypeRef at, TypeRef bt, bool coercions)
     {
-        if (ConvertsTo(at, bt, coercions)) return Promote(bt);
-        if (ConvertsTo(bt, at, coercions)) return Promote(at);
-        auto pat = Promote(at);
-        auto pbt = Promote(bt);
-        if (pat.t == V_VECTOR && pbt.t == V_VECTOR) return Type(V_VECTOR);
-        if (pat.t == V_STRUCT && pbt.t == V_STRUCT) return st.CommonSuperType(pat.idx, pbt.idx);
-        return Type(V_ANY);
+        if (ConvertsTo(at, bt, coercions)) return bt;
+        if (ConvertsTo(bt, at, coercions)) return at;
+        if (at->t == V_VECTOR && bt->t == V_VECTOR) return type_vector_any;
+        if (at->t == V_STRUCT && bt->t == V_STRUCT) return &st.CommonSuperType(at->struc, bt->struc)->thistype;
+        return type_any;
     }
 
-    bool ExactType(const Type &a, const Type &b)
+    bool ExactType(TypeRef a, TypeRef b)
     {
-        return Promote(a) == Promote(b);
+        return a == b;  // Not inlined for documentation purposes.
     }
 
-    void SubTypeLR(const Type &sub, Node &n) { SubType(n.left(), sub, "left", n); SubType(n.right(), sub, "right", n); }
+    void SubTypeLR(TypeRef sub, Node &n) { SubType(n.left(), sub, "left", n); SubType(n.right(), sub, "right", n); }
 
-    void SubType(Node *&a, const Type &sub, const char *argname, const Node &context)
+    void SubType(Node *&a, TypeRef sub, const char *argname, const Node &context)
     {
         SubType(a, sub, argname, TName(context.type));
     }
-    void SubType(Node *&a, const Type &sub, const char *argname, const char *context)
+    void SubType(Node *&a, TypeRef sub, const char *argname, const char *context)
     {
-        const Type &type = a->exptype;
-        if (ConvertsTo(type, sub, false)) { a->exptype = Promote(type); return; }
-        switch (sub.t)
+        TypeRef type = a->exptype;
+        if (ConvertsTo(type, sub, false)) { a->exptype = type; return; }
+        switch (sub->t)
         {
             case V_FLOAT:
-                if (Promote(type).t == V_INT)
+                if (type->t == V_INT)
                 {
                     a = new Node(lex, T_I2F, a, nullptr);
-                    a->exptype = Type(V_FLOAT);
+                    a->exptype = type_float;
                     return;
                 }
                 break;
             case V_STRING:
                 a = new Node(lex, T_A2S, a, nullptr);
-                a->exptype = Type(V_STRING);
+                a->exptype = type_string;
                 return;
             case V_FUNCTION:
-                if (type.t == V_FUNCTION && sub.HasIndex() && type.HasIndex())
+                if (type->IsFunction() && sub->sf)
                 {
                     // See if these functions can be made compatible. Specialize and typecheck if needed.
-                    auto sf = st.FunctionFromType(type);
-                    auto ss = st.FunctionFromType(sub);
+                    auto sf = type->sf;
+                    auto ss = sub->sf;
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     int i = 0;
                     for (auto &arg : sf->args.v)
@@ -270,43 +249,43 @@ struct TypeChecker
         TypeError(TypeName(sub).c_str(), type, *a, argname, context);
     }
 
-    void SubTypeT(const Type &type, const Type &sub, const Node &n, const char *argname, const char *context = nullptr)
+    void SubTypeT(TypeRef type, TypeRef sub, const Node &n, const char *argname, const char *context = nullptr)
     {
         if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n, argname, context);
     }
 
-    Type StructTypeFromVector(const Type &vectortype, int structidx)
+    TypeRef StructTypeFromVector(TypeRef vectortype, const Struct *struc)
     {
-        for (auto struc = st.structtable[structidx]->first->next; struc; struc = struc->next)
+        for (struc = struc->first->next; struc; struc = struc->next)
         {
-            if (struc->vectortype.t2 == vectortype.t2)
+            if (struc->vectortype->sub->t == vectortype->sub->t)
             {
-                return Type(V_STRUCT, struc->idx);
+                return &struc->thistype;
             }
         }
         return vectortype;
     }
 
-    bool MathCheckVector(Type &type, const Type &ltype, const Type &rtype, bool flipalso)
+    bool MathCheckVector(TypeRef &type, TypeRef ltype, TypeRef rtype, bool flipalso)
     {
         // Special purpose check for vector * scalar etc, needs to be improved further.
-        if (rtype.Numeric())
+        if (rtype->Numeric())
         {
-            Type vtype;
-            if (ltype.t == V_VECTOR)
+            TypeRef vtype;
+            if (ltype->t == V_VECTOR)
             {
-                vtype = ltype.Element();
+                vtype = ltype->Element();
             }
-            else if (ltype.t == V_STRUCT)
+            else if (ltype->t == V_STRUCT)
             {
-                vtype = st.StructFromType(ltype)->vectortype.Element();
+                vtype = ltype->struc->vectortype->Element();
             }
 
-            if (vtype.Numeric())
+            if (vtype->Numeric())
             {
-                type = vtype.t == V_INT && rtype.t == V_INT ? Type(V_VECTOR, V_INT) : Type(V_VECTOR, V_FLOAT);
+                type = vtype->t == V_INT && rtype->t == V_INT ? type_vector_int : type_vector_float;
                 // Recover struct type if possible.
-                if (ltype.t == V_STRUCT) type = StructTypeFromVector(type, ltype.idx);
+                if (ltype->t == V_STRUCT) type = StructTypeFromVector(type, ltype->struc);
                 return true;
             }
         }
@@ -320,18 +299,18 @@ struct TypeChecker
         return false;
     }
 
-    const char *MathCheck(Type &type, const Node &n, TType op, bool &unionchecked)
+    const char *MathCheck(TypeRef &type, const Node &n, TType op, bool &unionchecked)
     {
         if (op == T_MOD)
         {
-            if (type.t != V_INT) return "int";
+            if (type->t != V_INT) return "int";
         }
         else
         {
-            if (!type.Numeric() && type.t != V_VECTOR && type.t != V_STRUCT)
+            if (!type->Numeric() && type->t != V_VECTOR && type->t != V_STRUCT)
             {
-                auto ltype = Promote(n.left()->exptype);
-                auto rtype = Promote(n.right()->exptype);
+                auto ltype = n.left()->exptype;
+                auto rtype = n.right()->exptype;
                 
                 if (MathCheckVector(type, ltype, rtype, true))
                 {
@@ -341,11 +320,11 @@ struct TypeChecker
 
                 if (op == T_PLUS)
                 {
-                    if (type.t != V_STRING && 
+                    if (type->t != V_STRING && 
                         // Anything nilable can be added to a string, but only on one side:
-                        (type.t != V_NILABLE ||
-                         type.t2 != V_STRING ||
-                         (ltype.t == V_NILABLE && rtype.t == V_NILABLE)))
+                        (type->t != V_NILABLE ||
+                         type->sub->t != V_STRING ||
+                         (ltype->t == V_NILABLE && rtype->t == V_NILABLE)))
                         return "numeric/string/vector/struct";
                 }
                 else
@@ -357,7 +336,7 @@ struct TypeChecker
         return nullptr;
     }
 
-    void MathError(Type &type, const Node &n, TType op, bool &unionchecked)
+    void MathError(TypeRef &type, const Node &n, TType op, bool &unionchecked)
     {
         auto err = MathCheck(type, n, op, unionchecked);
         if (err)
@@ -375,7 +354,7 @@ struct TypeChecker
 
     SubFunction *TopScope(vector<Scope> &scopes) { return scopes.empty() ? nullptr : scopes.back().sf; }
 
-    void RetVal(Node *&a, SubFunction *sf, size_t i, Type *exacttype = nullptr)
+    void RetVal(Node *&a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
     {
         if (!sf) return;
         if (i >= sf->returntypes.size())
@@ -388,11 +367,11 @@ struct TypeChecker
             /*
             if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, nullptr);
             else if (a) SubType(a, sf->returntypes[i], nullptr, "return value");
-            else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
+            else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
             */
             if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
             else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
-            else sf->returntypes[i] = Type();  // FIXME: this allows "return" followed by "return 1" ?
+            else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
         }
         //Output(OUTPUT_DEBUG, "return val %d of %s is now %s", i, sf->parent->name.c_str(), TypeName(sf->returntypes[i]).c_str());
     }
@@ -460,15 +439,15 @@ struct TypeChecker
     {
         if (struc->fields.size())
         {
-            Type vectortype = struc->fields[0].type;
+            TypeRef vectortype = struc->fields[0].type;
             for (size_t i = 1; i < struc->fields.size(); i++)
             {
                 // FIXME: Can't use Union here since it will bind variables
                 //vectortype = Union(vectortype, struc->fields[i].type, false);
                 // use simplified alternative:
-                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = Type();
+                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = type_any;
             }
-            struc->vectortype = vectortype.Wrap();
+            struc->vectortype = vectortype->Wrap(NewType());
         }
     }
 
@@ -481,18 +460,17 @@ struct TypeChecker
         auto head = given->first;
 
         // First collect types for all args.
-        vector<Type> argtypes;
-        int specialized_super_idx = -1;
+        vector<TypeRef> argtypes;
+        Struct *specialized_super = nullptr;
         for (auto list = args; list; list = list->tail())
         {
-            auto stype = Promote(list->head()->exptype);
+            auto stype = list->head()->exptype;
             if (list->head()->type == T_SUPER)
             {
-                CheckIfSpecialization(st.structtable[head->superclassidx], stype, n, "super");
-                auto sstruc = st.StructFromType(stype);
-                assert(!sstruc->generic);
-                specialized_super_idx = sstruc->idx;
-                for (auto &f : sstruc->fields) argtypes.push_back(f.type);
+                CheckIfSpecialization(head->superclass, stype, n, "super");
+                specialized_super = stype->struc;
+                assert(!specialized_super->generic);
+                for (auto &f : specialized_super->fields) argtypes.push_back(f.type);
             }
             else
             {
@@ -518,10 +496,9 @@ struct TypeChecker
         // No match, clone.
         struc = head->CloneInto(new Struct());
         struc->idx = st.structtable.size();
-        if (specialized_super_idx >= 0)
+        if (specialized_super)
         {
-            struc->superclassidx = specialized_super_idx;
-            struc->superclass = st.structtable[specialized_super_idx];
+            struc->superclass = specialized_super;
         }
         st.structtable.push_back(struc);
         Output(OUTPUT_DEBUG, "cloned struct: %s", struc->name.c_str());
@@ -531,7 +508,6 @@ struct TypeChecker
         int i = 0;
         for (auto &type : argtypes)
         {
-            type = Promote(type);
             auto &field = struc->fields[i];
 
             if (field.flags == AF_ANYTYPE)
@@ -539,7 +515,7 @@ struct TypeChecker
                 field.type = type;  // Specialize to arg.
                 auto otype = head->fields[i].type;
                 // If this type refers to the generic struct type, make it refer to this type instead.
-                PromoteStructIdx(otype, head->idx, struc->idx);
+                PromoteStructIdx(otype, head, struc);
                 CheckGenericArg(otype, type, field.id->name.c_str(), n, struc->name.c_str());
             }
 
@@ -554,33 +530,39 @@ struct TypeChecker
         return struc;
     }
 
-    void PromoteStructIdx(Type &type, int oldidx, int newidx)
+    TypeRef PromoteStructIdxRec(TypeRef type, const Struct *news)
     {
-        if (type.idx == oldidx && type.UnWrapped().t == V_STRUCT)
-            type.idx = newidx;
+        return type->Wrapped() ? PromoteStructIdxRec(type->sub, news)->Wrap(NewType(), type->t) : &news->thistype;
     }
 
-    void CheckIfSpecialization(Struct *spec_struc, const Type &given, const Node &n, const char *argname,
+    void PromoteStructIdx(TypeRef &type, const Struct *olds, const Struct *news)
+    {
+        auto u = type;
+        while (u->Wrapped()) u = u->Element();
+        if (u->t == V_STRUCT && u->struc == olds) type = PromoteStructIdxRec(type, news);
+    }
+
+    void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n, const char *argname,
                                const char *req = nullptr, bool subtypeok = false)
     {
-        auto givenu = given.UnWrapped();
-        if (given.t != V_STRUCT ||
-            (!spec_struc->IsSpecialization(st.StructFromType(givenu)) &&
-             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc->idx, givenu.idx))))
+        auto givenu = given->UnWrapped();
+        if (given->t != V_STRUCT ||
+            (!spec_struc->IsSpecialization(givenu->struc) &&
+             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->struc))))
         {
             TypeError(req ? req : spec_struc->name.c_str(), given, n, argname);
         }
     }
 
-    void CheckGenericArg(const Type &otype, const Type &argtype, const char *argname, const Node &n, const char *context)
+    void CheckGenericArg(TypeRef otype, TypeRef argtype, const char *argname, const Node &n, const char *context)
     {
-        if (otype.t != V_ANY)  // Argument is a generic struct type, or wrapped in vector/nilable
+        if (otype->t != V_ANY)  // Argument is a generic struct type, or wrapped in vector/nilable
         {
-            auto u = otype.UnWrapped();
-            assert(u.t == V_STRUCT);
-            if (otype.EqNoIndex(argtype))
+            auto u = otype->UnWrapped();
+            assert(u->t == V_STRUCT);
+            if (otype->EqNoIndex(*argtype))
             {
-                CheckIfSpecialization(st.StructFromType(u), argtype, n, argname, TypeName(otype).c_str(), true);
+                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype).c_str(), true);
             }
             else
             {
@@ -597,7 +579,7 @@ struct TypeChecker
         {
             //auto atype = Promote(freevar.id->type);
             if (!ExactType(freevar.type, freevar.id->type)) return false;
-            //if (atype.t == V_FUNCTION) return false;
+            //if (atype->t == V_FUNCTION) return false;
         }
         return true;
     }
@@ -613,7 +595,7 @@ struct TypeChecker
         return sf;
     }
 
-    Type TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node)
+    TypeRef TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node)
     {
         Function &f = *csf->parent;
         if (f.multimethod)
@@ -622,7 +604,7 @@ struct TypeChecker
             // Should attempt static picking as well, if static pick succeeds, specialize.
             // FIXME: no need to repeat this on every call.
             for (auto sf = f.subf; sf; sf = sf->next) TypeCheckFunctionDef(*sf, &function_def_node);
-            Type type = f.subf->returntypes[0];
+            TypeRef type = f.subf->returntypes[0];
             for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntypes[0], false);
             return type;
         }
@@ -663,7 +645,7 @@ struct TypeChecker
                     auto &arg = sf->args.v[i];
                     if (arg.flags == AF_ANYTYPE)
                     {
-                        arg.type = Promote(list->head()->exptype);  // Specialized to arg.
+                        arg.type = list->head()->exptype;  // Specialized to arg.
                         CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.id->name.c_str(), *list->head(),
                                         f.name.c_str());
                         Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(), TypeName(arg.type).c_str());
@@ -679,7 +661,7 @@ struct TypeChecker
                     {
                         // cases where these might not be equal:
                         // - if the original freevar wasn't bound yet:
-                        //if (freevar.type.t == V_VAR) UnifyVar(freevar.id->type, freevar.type);
+                        //if (freevar.type->t == V_VAR) UnifyVar(freevar.id->type, freevar.type);
                         // - in the case of a dynamic scope assignment? FIXME: make a test case for this.
                         // is it easier to just overwrite the freevar by the one in the id in all cases? does that work?
 
@@ -746,13 +728,13 @@ struct TypeChecker
         return sf;
     }
 
-    Type TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
+    TypeRef TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
     {
-        auto ftype = Promote(fval.exptype);
-        if (ftype.t == V_FUNCTION && ftype.HasIndex())
+        auto ftype = fval.exptype;
+        if (ftype->IsFunction())
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
-            auto sf = st.FunctionFromType(ftype);
+            auto sf = ftype->sf;
 
             if (Parser::CountList(*args_ptr) < sf->parent->nargs())
                 TypeError("function value called with too few arguments", fval);
@@ -761,7 +743,7 @@ struct TypeChecker
             auto &fnode = fdef ? *fdef : fval;
             auto type = TypeCheckCall(sf, *args_ptr, fnode);
             auto nsf = fnode.sf();
-            fnode.exptype = fval.exptype = Type(V_FUNCTION, nsf->idx);
+            fnode.exptype = fval.exptype = &nsf->thistype;
             return type;
         }
         else
@@ -773,14 +755,14 @@ struct TypeChecker
             // will end up this way.
             // Btw, some values ending up here may be T_COCLOSURE.
             // For now, just error.
-            SubTypeT(ftype, Type(V_FUNCTION), fval, "function value", "function call");
+            SubTypeT(ftype, type_function_null, fval, "function value", "function call");
             // If this magically succeeds, its because ftype was a variable, likely from a nil function value.
             // If so, we don't care, because this will never get executed at runtime?
-            return Type();
+            return type_any;
         }
     }
 
-    Type TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node **args_ptr)
+    TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node **args_ptr)
     {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
         auto type = TypeCheckDynCall(fval, args_ptr);
@@ -788,7 +770,7 @@ struct TypeChecker
         return type;
     }
 
-    void CheckFlowTypeIdOrDot(const Node &n, const Type &type)
+    void CheckFlowTypeIdOrDot(const Node &n, TypeRef type)
     {
         if (n.type == T_IDENT ||
             ((n.type == T_DOT || n.type == T_DOTMAYBE) && n.left()->type == T_IDENT))
@@ -799,7 +781,7 @@ struct TypeChecker
 
     void CheckFlowTypeChangesSub(bool iftrue, const Node &condition)
     {
-        auto type = Promote(condition.exptype);
+        auto type = condition.exptype;
         switch (condition.type)
         {
             case T_IS:
@@ -811,7 +793,7 @@ struct TypeChecker
                 break;
 
             default:
-                if (iftrue && type.t == V_NILABLE) CheckFlowTypeIdOrDot(condition, type.Element());
+                if (iftrue && type->t == V_NILABLE) CheckFlowTypeIdOrDot(condition, type->Element());
                 break;
         }
     }
@@ -846,31 +828,31 @@ struct TypeChecker
         return start;
     }
 
-    void AssignFlowPromote(Node &left, const Type &right)
+    void AssignFlowPromote(Node &left, TypeRef right)
     {
-        if ((left.exptype.t == V_ANY && right.t != V_ANY) ||
-            (left.exptype.t == V_NILABLE && right.t != V_NILABLE))
+        if ((left.exptype->t == V_ANY && right->t != V_ANY) ||
+            (left.exptype->t == V_NILABLE && right->t != V_NILABLE))
         {
             CheckFlowTypeIdOrDot(left, right);
         }
     }
 
-    void AssignFlowDemote(Node &left, const Type &overwritetype, bool coercions)
+    void AssignFlowDemote(Node &left, TypeRef overwritetype, bool coercions)
     {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
-        if (left.exptype.Numeric()) return;
+        if (left.exptype->Numeric()) return;
 
         LookupFlow(left, true, &overwritetype, coercions);
     }
 
     void UseFlow(Node &n)
     {
-        if (n.exptype.Numeric()) return;  // Early out, same as above.
+        if (n.exptype->Numeric()) return;  // Early out, same as above.
 
         LookupFlow(n, false, nullptr, false);
     }
 
-    void LookupFlow(Node &n, bool assign, const Type *overwritetype, bool coercions)
+    void LookupFlow(Node &n, bool assign, const TypeRef *overwritetype, bool coercions)
     {
         // FIXME: this can in theory find the wrong node, if the same function nests, and the outer one
         // was specialized to a nilable and the inner one was not.
@@ -938,7 +920,7 @@ struct TypeChecker
         while (flowstack.size() > start) flowstack.pop_back();
     }
 
-    Type TypeCheckAndOr(Node *&n_ptr, bool only_true_type, TType parent_type)
+    TypeRef TypeCheckAndOr(Node *&n_ptr, bool only_true_type, TType parent_type)
     {
         // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
         // and the overal type should be the union of b and c.
@@ -949,8 +931,8 @@ struct TypeChecker
         if (n.type != T_AND && n.type != T_OR)
         {
             TypeCheck(n_ptr, parent_type);
-            auto type = Promote(n.exptype);
-            if (type.t == V_NILABLE && only_true_type) return type.Element();
+            auto type = n.exptype;
+            if (type->t == V_NILABLE && only_true_type) return type->Element();
             return type;
         }
 
@@ -977,7 +959,7 @@ struct TypeChecker
     void TypeCheck(Node *&n_ptr, TType parent_type)
     {
         Node &n = *n_ptr;
-        Type &type = n.exptype;
+        TypeRef &type = n.exptype;
 
         switch (n.type)
         {
@@ -986,10 +968,10 @@ struct TypeChecker
 
             case T_FUN:
                 type = n.sf()
-                    ? Type(V_FUNCTION, (parent_type == T_DYNINFO
+                    ? &(parent_type == T_DYNINFO
                         ? n.sf()
-                        : PreSpecializeFunction(n.sf()))->idx) 
-                    : Type();
+                        : PreSpecializeFunction(n.sf()))->thistype
+                    : type_any;
                 return;
 
             case T_LIST:
@@ -1011,10 +993,10 @@ struct TypeChecker
 
         switch (n.type)
         {
-            case T_INT:   type = Type(V_INT); break;
-            case T_FLOAT: type = Type(V_FLOAT); break;
-            case T_STR:   type = Type(V_STRING); break;
-            case T_NIL:   type = n.typenode().t != V_ANY ? n.typenode() : NewTypeVar().Wrap(V_NILABLE); break;
+            case T_INT:   type = type_int; break;
+            case T_FLOAT: type = type_float; break;
+            case T_STR:   type = type_string; break;
+            case T_NIL:   type = n.typenode()->t != V_ANY ? n.typenode() : NewTypeVar()->Wrap(NewType(), V_NILABLE); break;
 
             case T_PLUS:
             case T_MINUS:
@@ -1035,7 +1017,7 @@ struct TypeChecker
             case T_DIVEQ:
             case T_MODEQ:
             {
-                type = Promote(n.left()->exptype);
+                type = n.left()->exptype;
                 if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, true))
                 {
                     bool unionchecked = false;
@@ -1053,12 +1035,12 @@ struct TypeChecker
             case T_LT:
             {
                 auto u = Union(n.left(), n.right(), true);
-                if (!u.Numeric() && u.t != V_STRING)
+                if (!u->Numeric() && u->t != V_STRING)
                 {
                     // FIXME: rather than nullptr, these TypeError need to figure out which side caused the error much like MathError
                     if (n.type == T_EQ || n.type == T_NEQ)
                     {
-                        if (u.t != V_VECTOR && u.t != V_STRUCT && u.t != V_NILABLE)
+                        if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NILABLE)
                             TypeError("numeric/string/vector/struct", u, n, nullptr);
                     }
                     else
@@ -1067,12 +1049,12 @@ struct TypeChecker
                     }
                 }
                 SubTypeLR(u, n);
-                type = Type(V_INT);
+                type = type_int;
                 break;
             }
 
             case T_NOT:
-                type = Type(V_INT);
+                type = type_int;
                 break;
 
             case T_POSTDECR:
@@ -1080,18 +1062,18 @@ struct TypeChecker
             case T_DECR:  
             case T_INCR:
             {
-                type = Promote(n.child()->exptype);
-                if (!type.Numeric())
+                type = n.child()->exptype;
+                if (!type->Numeric())
                     TypeError("numeric", type, n, nullptr);
                 break;
             }
 
             case T_UMINUS:
             {
-                type = Promote(n.child()->exptype);
-                if (!type.Numeric() &&
-                    type.t != V_VECTOR &&
-                    (type.t != V_STRUCT || !st.StructFromType(type)->vectortype.Element().Numeric()))
+                type = n.child()->exptype;
+                if (!type->Numeric() &&
+                    type->t != V_VECTOR &&
+                    (type->t != V_STRUCT || !type->struc->vectortype->Element()->Numeric()))
                     TypeError("numeric/vector", type, n, nullptr);
                 break;
             }
@@ -1193,41 +1175,41 @@ struct TypeChecker
                 }
 
                 int i = 0;
-                vector<Type> argtypes;
+                vector<TypeRef> argtypes;
                 for (Node *list = n.ncall_args(); list; list = list->tail())
                 {
                     auto &arg = nf->args.v[i];
                     auto argtype = arg.type;
-                    if (argtype.t == V_NILABLE)
+                    if (argtype->t == V_NILABLE)
                     {
                         // This is somewhat of a hack, because we conflate V_NILABLE with being optional for 
                         // native functions, but we don't want numeric types to be nilable.
-                        auto subt = argtype.Element();
-                        if (subt.Numeric()) argtype = subt;
+                        auto subt = argtype->Element();
+                        if (subt->Numeric()) argtype = subt;
                     }
                     switch (arg.flags)
                     {
                         case NF_SUBARG1:
                             SubType(list->head(),
-                                    argtypes[0].t == V_VECTOR && argtype.t != V_VECTOR
-                                        ? argtypes[0].Element()
+                                    argtypes[0]->t == V_VECTOR && argtype->t != V_VECTOR
+                                        ? argtypes[0]->Element()
                                         : argtypes[0],
                                     ArgName(i).c_str(),
                                     nf->name.c_str());
                             break;
 
                         case NF_ANYVAR:
-                            if (argtype.t == V_VECTOR) argtype = NewTypeVar().Wrap();
-                            else if (argtype.t == V_ANY) argtype = NewTypeVar();
+                            if (argtype->t == V_VECTOR) argtype = NewTypeVar()->Wrap(NewType());
+                            else if (argtype->t == V_ANY) argtype = NewTypeVar();
                             else assert(0);
                             break;
                     }
                     SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
                     auto &actualtype = list->head()->exptype;
-                    if (actualtype.t == V_FUNCTION && actualtype.HasIndex())
+                    if (actualtype->IsFunction())
                     {
                         // We must assume this is going to get called and type-check it
-                        auto sf = st.FunctionFromType(actualtype);
+                        auto sf = actualtype->sf;
                         Node *args = nullptr;
                         if (sf->args.v.size())
                         {
@@ -1251,7 +1233,7 @@ struct TypeChecker
                     CheckFlowTypeChanges(true, *n.ncall_args()->head());
                 }
 
-                type = Type();  // no retvals
+                type = type_any;  // no retvals
                 if (nf->retvals.v.size())
                 {
                     // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
@@ -1259,14 +1241,14 @@ struct TypeChecker
                     switch (ret.flags)
                     {
                         case NF_SUBARG1:
-                            type = ret.type.t == V_NILABLE
-                                       ? argtypes[0].Wrap(V_NILABLE) 
-                                       : (argtypes[0].t == V_VECTOR && ret.type.t != V_VECTOR
-                                            ? argtypes[0].Element()
+                            type = ret.type->t == V_NILABLE
+                                ? argtypes[0]->Wrap(NewType(), V_NILABLE)
+                                       : (argtypes[0]->t == V_VECTOR && ret.type->t != V_VECTOR
+                                            ? argtypes[0]->Element()
                                             : argtypes[0]);
                             break;
                         case NF_ANYVAR: 
-                            type = ret.type.t == V_VECTOR ? NewTypeVar().Wrap() : NewTypeVar(); 
+                            type = ret.type->t == V_VECTOR ? NewTypeVar()->Wrap(NewType()) : NewTypeVar();
                             break;
                         default:
                             type = ret.type; 
@@ -1274,17 +1256,16 @@ struct TypeChecker
                     }
                     // See if we can promote the return type to one of the standard vector types (xy/xyz/xyzw).
                     int flen = ret.fixed_len;
-                    if (flen == -1 && n.ncall_args() && n.ncall_args()->head()->exptype.t == V_STRUCT)
+                    if (flen == -1 && n.ncall_args() && n.ncall_args()->head()->exptype->t == V_STRUCT)
                     {
                         // Special case: type is promised to be the same as the input arg 0, so if it was a struct,
                         // we can find the length from that.
-                        flen = (int)st.StructFromType(n.ncall_args()->head()->exptype)->fields.size();
+                        flen = (int)n.ncall_args()->head()->exptype->struc->fields.size();
                     }
-                    if (flen >= 2 && flen <= 4 &&
-                        type.t == V_VECTOR && (type.t2 == V_INT || type.t2 == V_FLOAT))
+                    if (flen >= 2 && flen <= 4 && type->t == V_VECTOR && type->sub->Numeric())
                     {
-                        int idx = st.GetVectorType(flen);
-                        if (idx >= 0) type = StructTypeFromVector(type, idx);
+                        auto struc = st.GetVectorType(flen);
+                        if (struc) type = StructTypeFromVector(type, struc);
                     }
                 }
                 break;
@@ -1347,7 +1328,7 @@ struct TypeChecker
                 }
                 else
                 {
-                    type = Type();
+                    type = type_any;
                     RetVal(n_ptr, sf, 0, &type);
                 }
                 break;
@@ -1370,7 +1351,7 @@ struct TypeChecker
                 {
                     TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), &args);
                     // No else: this currently returns either the condition or the branch value.
-                    type = Type();
+                    type = type_any;
                 }
                 break;
             }
@@ -1381,7 +1362,7 @@ struct TypeChecker
                 TypeCheckDynCall(*n.while_condition(), &args);
                 TypeCheckBranch(true, *n.while_condition()->sf()->body->head(), *n.while_body(), &args);
                 // Currently always return V_UNDEFINED
-                type = Type();
+                type = type_any;
                 break;
             }
 
@@ -1393,16 +1374,16 @@ struct TypeChecker
                                 new Node(lex, T_LIST,
                                     new AST(lex, T_FORLOOPVAR),
                                     nullptr));
-                auto itertype = Promote(n.for_iter()->exptype);
-                if (itertype.t == V_INT || itertype.t == V_STRING) itertype = Type(V_INT);
-                else if (itertype.t == V_VECTOR) itertype = itertype.Element();
+                auto itertype = n.for_iter()->exptype;
+                if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;
+                else if (itertype->t == V_VECTOR) itertype = itertype->Element();
                 else TypeError("for can only iterate over int/string/vector, not: " + TypeName(itertype), n);
                 args->head()->exptype = itertype;
-                args->tail()->head()->exptype = Type(V_INT);
+                args->tail()->head()->exptype = type_int;
                 TypeCheckDynCall(*n.for_body(), &args);
                 delete args;
                 // Currently always return V_UNDEFINED
-                type = Type();
+                type = type_any;
                 break;
             }
 
@@ -1412,7 +1393,7 @@ struct TypeChecker
 
             case T_IS:
                 // FIXME If the typecheck fails statically, we can replace this node with false
-                type = Type(V_INT);
+                type = type_int;
                 break;
 
             case T_FIELD:
@@ -1421,24 +1402,23 @@ struct TypeChecker
             case T_CONSTRUCTOR:
             {
                 type = n.constructor_type()->typenode();
-                if (type == Type(V_VECTOR))
+                if (type->t == V_VECTOR && type->sub->t == V_ANY)
                 {
                     // No type was specified.. first find union of all elements.
-                    Type u;
+                    TypeRef u;
                     int i = 0;
                     for (auto list = n.constructor_args(); list; list = list->tail())
                     {
                         u = i ? Union(u, list->head()->exptype, true) : list->head()->exptype;
                         i++;
                     }
-                    if (!u.CanWrap()) TypeError("can\'t nest vector values this deep", n);
-                    type = u.Wrap();
-                    if (!i) type = NewTypeVar().Wrap();  // special case for empty vectors
+                    type = u->Wrap(NewType());
+                    if (!i) type = NewTypeVar()->Wrap(NewType());  // special case for empty vectors
                 }
-                if (type.t == V_STRUCT)
+                if (type->t == V_STRUCT)
                 {
-                    auto newidx = SpecializeStruct(st.StructFromType(type), n.constructor_args(), n)->idx;
-                    type.idx = newidx;
+                    auto newstruc = SpecializeStruct(type->struc, n.constructor_args(), n);
+                    type = &newstruc->thistype;
                     //n.constructor_type()->typenode().idx = newidx;
                 }
                 int i = 0;
@@ -1446,16 +1426,14 @@ struct TypeChecker
                 {
                     if (list->head()->type == T_SUPER)
                     {
-                        assert(type.t == V_STRUCT);  // Parser checks this.
-                        auto super_idx = st.StructFromType(type)->superclassidx;
-                        auto super_struc = st.structtable[super_idx];
-                        Type elemtype = Type(V_STRUCT, super_idx);
+                        assert(type->t == V_STRUCT);  // Parser checks this.
+                        auto super_struc = type->struc->superclass;
                         i += super_struc->fields.size() - 1;
-                        CheckIfSpecialization(super_struc, Promote(list->head()->exptype), *list->head(), "super");
+                        CheckIfSpecialization(super_struc, list->head()->exptype, *list->head(), "super");
                     }
                     else
                     {
-                        Type elemtype = type.t == V_STRUCT ? st.StructFromType(type)->fields[i].type : type.Element();
+                        TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields[i].type : type->Element();
                         SubType(list->head(), elemtype, ArgName(i).c_str(), n);
                     }
                     i++;
@@ -1466,18 +1444,18 @@ struct TypeChecker
             case T_DOT:
             case T_DOTMAYBE:
             {
-                auto smtype = Promote(n.left()->exptype);
-                auto stype = n.type == T_DOTMAYBE && smtype.t == V_NILABLE
-                             ? smtype.Element()
+                auto smtype = n.left()->exptype;
+                auto stype = n.type == T_DOTMAYBE && smtype->t == V_NILABLE
+                             ? smtype->Element()
                              : smtype;
-                if (stype.t != V_STRUCT)
+                if (stype->t != V_STRUCT)
                     TypeError("struct/value", stype, n, "object");
-                auto struc = st.StructFromType(stype);
+                auto struc = stype->struc;
                 auto sf = n.right()->fld();
                 auto uf = struc->Has(sf);
                 if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
-                type = n.type == T_DOTMAYBE && smtype.t == V_NILABLE && uf->type.t != V_NILABLE
-                       ? uf->type.Wrap(V_NILABLE)
+                type = n.type == T_DOTMAYBE && smtype->t == V_NILABLE && uf->type->t != V_NILABLE
+                       ? uf->type->Wrap(NewType(), V_NILABLE)
                        : uf->type;
                 UseFlow(n);
                 break;
@@ -1485,22 +1463,22 @@ struct TypeChecker
 
             case T_INDEX:
             {
-                auto vtype = Promote(n.left()->exptype);
-                if (vtype.t == V_STRUCT) vtype = st.StructFromType(vtype)->vectortype;
-                if (vtype.t != V_VECTOR && vtype.t != V_STRING)
+                auto vtype = n.left()->exptype;
+                if (vtype->t == V_STRUCT) vtype = vtype->struc->vectortype;
+                if (vtype->t != V_VECTOR && vtype->t != V_STRING)
                     TypeError("vector/string", vtype, n, "container");
-                auto itype = Promote(n.right()->exptype);
-                switch (itype.t)
+                auto itype = n.right()->exptype;
+                switch (itype->t)
                 {
-                    case V_INT: vtype = vtype.t == V_VECTOR ? vtype.Element() : Type(V_INT); break;
+                    case V_INT: vtype = vtype->t == V_VECTOR ? vtype->Element() : type_int; break;
                     case V_STRUCT:
                     {
-                        auto &struc = *st.StructFromType(itype);
+                        auto &struc = *itype->struc;
                         for (auto &field : struc.fields)
                         {
-                            if (field.type.t != V_INT) TypeError("int field", field.type, n, "index");
-                            if (vtype.t != V_VECTOR) TypeError("nested vector", vtype, n, "container");
-                            vtype = vtype.Element();
+                            if (field.type->t != V_INT) TypeError("int field", field.type, n, "index");
+                            if (vtype->t != V_VECTOR) TypeError("nested vector", vtype, n, "container");
+                            vtype = vtype->Element();
                         }
                         break;
                     }
@@ -1516,11 +1494,11 @@ struct TypeChecker
                 break;
 
             case T_COCLOSURE:
-                type = Type(V_FUNCTION, -1);
+                type = type_function_null;
                 break;
 
             case T_COROUTINE:
-                type = Type(V_COROUTINE);
+                type = type_coroutine;
                 break;
 
             case T_SUPER:
@@ -1558,7 +1536,7 @@ struct TypeChecker
         }
 
         // FIXME: expensive check, but helps track down generic type bugs.
-        //assert(n.type == T_TYPE || type.UnWrapped().t != V_STRUCT || !st.structtable[type.UnWrapped().idx]->generic);
+        //assert(n.type == T_TYPE || type.UnWrapped()->t != V_STRUCT || !st.structtable[type.UnWrapped().idx]->generic);
     }
     
     void Stats()
