@@ -6,7 +6,7 @@
   think of ways in which we can improve the syntax to be less jarring to people coming from either
   Python (which it already kinda looks like), or C-style languages.
   possible places for optimization:
-  - the uniform block syntax is great, but it does make some things heavier than need be, like 
+  - the uniform block syntax is great, but it does make some things heavier than need be, like
     if(c): can we somehow lose either the : or the ()?
     Also, the syntax with typed args isn't great: hof(): (x:type, ..): body
   - constructors are a bit weird, would be better to have the type name first:
@@ -165,6 +165,8 @@ vertex_neighbors :== [
 ]
 
 - [float] / int does int division, which is wrong
+
+- Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki
 
 - should redo gui.lobster to take all args in virtual float coords, not some in float font relative coords and some
   in pixels.

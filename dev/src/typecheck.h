@@ -184,7 +184,11 @@ struct TypeChecker
         if (ConvertsTo(at, bt, coercions)) return bt;
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) return type_vector_any;
-        if (at->t == V_STRUCT && bt->t == V_STRUCT) return &st.CommonSuperType(at->struc, bt->struc)->thistype;
+        if (at->t == V_STRUCT && bt->t == V_STRUCT)
+        {
+            auto sstruc = st.CommonSuperType(at->struc, bt->struc);
+            if (sstruc) return &sstruc->thistype;
+        }
         return type_any;
     }
 
@@ -970,7 +974,7 @@ struct TypeChecker
                 type = n.sf()
                     ? &(parent_type == T_DYNINFO
                         ? n.sf()
-                        : PreSpecializeFunction(n.sf()))->thistype
+                        : (n.sf() = PreSpecializeFunction(n.sf())))->thistype
                     : type_any;
                 return;
 
@@ -1377,7 +1381,8 @@ struct TypeChecker
                 auto itertype = n.for_iter()->exptype;
                 if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;
                 else if (itertype->t == V_VECTOR) itertype = itertype->Element();
-                else TypeError("for can only iterate over int/string/vector, not: " + TypeName(itertype), n);
+                else if (itertype->t == V_STRUCT) itertype = itertype->struc->vectortype->Element();
+                else TypeError("for can only iterate over int/string/vector/struct, not: " + TypeName(itertype), n);
                 args->head()->exptype = itertype;
                 args->tail()->head()->exptype = type_int;
                 TypeCheckDynCall(*n.for_body(), &args);

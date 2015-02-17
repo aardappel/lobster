@@ -23,7 +23,7 @@ while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_grey)
     rndseed(0)
-    gl_translate(gl_windowsize() * [ 0.5, 1.0 ])
+    gl_translate(gl_windowsize() / [ 2, 1 ]:xy)
     gl_rotate_z(180)
     gl_scale(gl_windowsize().y / 17)
     branch(0, 11.0, 0.7, 4)

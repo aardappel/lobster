@@ -14,12 +14,12 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     camera_yaw  += gl_mousedelta(0).x / mousesens
     if(dopitch):
         camera_pitch += gl_mousedelta(0).y / mousesens
-        camera_pitch = min(85, max(-85, camera_pitch))
+        camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
     move   := gl_isdown(upkey) - gl_isdown(downkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
     friction := 20
-    velspeed := min(1, friction * gl_deltatime())
+    velspeed := min(1.0, friction * gl_deltatime())
     dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
@@ -38,8 +38,9 @@ function camera_direction(v):
     camera_yaw = atan2(v) + 90  // look along Y rather than X
     camera_pitch = arcsin(-v.z)
 
-function camera_2d_worldspace(size, origin, scale):
-    gl_translate(gl_windowsize() * origin)
-    sc := gl_windowsize() / size
-    gl_scale(min(sc.x, sc.y) * scale)
+function camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
+    ws := float(gl_windowsize())
+    gl_translate(ws * origin)
+    sc := ws / size
+    gl_scale(scale * min(sc.x, sc.y))
 

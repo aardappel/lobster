@@ -141,8 +141,6 @@ class TypeRef
     bool operator< (const TypeRef &o) const { return *type <  *o.type; };
 };
 
-//typedef const Type *TypeRef;
-
 extern TypeRef type_int;
 extern TypeRef type_float;
 extern TypeRef type_string;

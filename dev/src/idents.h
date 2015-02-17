@@ -246,12 +246,10 @@ struct Function : Named
     int scopelevel;
     int retvals;
 
-    int ncalls;        // used by codegen to cull unused functions
-
     Function(const string &_name, int _idx, int _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0, nullptr),
-       scopelevel(_sl), retvals(0), ncalls(0)
+       scopelevel(_sl), retvals(0)
     {
     }
     Function() : Function("", 0, -1) {}

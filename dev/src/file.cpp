@@ -107,7 +107,7 @@ void AddFileOps()
 
         #endif
     }
-    ENDDECL2(scan_folder, "folder,divisor", "SI", "I",
+    ENDDECL2(scan_folder, "folder,divisor", "SI", "A]]?",
         "returns a vector of all elements in a folder, each element is [ name,  filesize (-1 if directory) ]."
         " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be clamped."
         " Returns nil if folder couldn't be scanned.");

@@ -564,20 +564,17 @@ void AddBuiltins()
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c)
     {
-        if (a.type == V_INT && b.type == V_INT && c.type == V_INT)
-        {
-            return Value(max(min(a.ival, c.ival), b.ival));
-        }
-        else
-        {
-            g_vm->BuiltinCheck(a, V_FLOAT, "clamp");
-            g_vm->BuiltinCheck(b, V_FLOAT, "clamp");
-            g_vm->BuiltinCheck(c, V_FLOAT, "clamp");
-            return Value(max(min(a.fval, c.fval), b.fval));
-        }
+        return Value(max(min(a.ival, c.ival), b.ival));
     }
-    ENDDECL3(clamp, "x,min,max", "AAA", "A",
-        "forces a number to be in the range between min and max (inclusive)");
+    ENDDECL3(clamp, "x,min,max", "III", "I",
+        "forces an integer to be in the range between min and max (inclusive)");
+
+    STARTDECL(clamp) (Value &a, Value &b, Value &c)
+    {
+        return Value(max(min(a.fval, c.fval), b.fval));
+    }
+    ENDDECL3(clamp, "x,min,max", "FFF", "F",
+             "forces a float to be in the range between min and max (inclusive)");
 
     STARTDECL(abs) (Value &a)
     {
@@ -660,7 +657,7 @@ void AddBuiltins()
         g_vm->BuiltinError("illegal arguments passed to lerp()");
         return Value();
     }
-    ENDDECL3(lerp, "x,y,f", "AAF", "A",
+    ENDDECL3(lerp, "x,y,f", "AAF", "A1",
         "linearly interpolates between x and y (float/int/vector) with factor f [0..1]");
 
 

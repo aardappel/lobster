@@ -736,9 +736,8 @@ struct VM : VMBase
 
                 case IL_PUSHFUN:
                 {
-                    int after = *ip++;
-                    PUSH(Value(ip));
-                    ip = codestart + after;
+                    int start = *ip++;
+                    PUSH(Value(codestart + start));
                     break;
                 }
 

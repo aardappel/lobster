@@ -7,9 +7,9 @@ include "physics.lobster"
 
 fatal(gl_window("Physics demo : water", 1024, 768))
 
-worldsize :== [ 60, 40 ] 
+worldsize :== [ 60.0, 40.0 ]:xy
 
-ph_initialize([ 0, -10 ])
+ph_initialize([ 0.0, -10.0 ])
 ph_initializeparticles(0.15)
 ph_setshader(0, "color_attr_particle")
 
@@ -25,7 +25,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
-    camera_2d_worldspace(worldsize, [ 0.5, 1 ], [ 1, -1 ])
+    camera_2d_worldspace(worldsize, [ 0.5, 1 ]:xy, [ 1.0, -1.0 ]:xy)
 
     if(gl_isdown("mouse1")):
         ph_createparticlecircle(gl_localmousepos(0), 0.5, color_light_blue, ph_colormixingparticle)

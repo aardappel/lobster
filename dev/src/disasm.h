@@ -205,7 +205,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
     return ip;
 }
 
-static void DisAsm(string &s, SymbolTable &st, int *code, const vector<LineInfo> &lineinfo, int len)
+static void DisAsm(string &s, SymbolTable &st, int *code, const vector<LineInfo> &lineinfo, size_t len)
 {
     int *ip = code;
     while (ip < code + len)

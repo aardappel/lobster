@@ -16,16 +16,14 @@ I timed it to be 2.5 times faster than the Python version, though most of that w
 include "vec.lobster"
 include "color.lobster"
 
-value Ray: [ o, d ]
+value Ray: [ o:xyz_f, d:xyz_f ]
 
-DIFF := 0   // material types, used in radiance()
-SPEC := 1
-REFR := 2
+enum + DIFF, SPEC, REFR   // material types, used in radiance()
 
 value Sphere: [
-    rad,       // radius
-    p, e, c,   // position, emission, color
-    refl       // reflection type (DIFFuse, SPECular, REFRactive)
+    rad:float,                 // radius
+    p:xyz_f, e:xyz_f, c:xyz_f, // position, emission, color
+    refl:int                   // reflection type (DIFFuse, SPECular, REFRactive)
 ]
 
 function intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
@@ -34,14 +32,14 @@ function intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     b := op.dot(r.d)
     det := b*b-op.dot(op)+rad*rad
     //print(op + " " + b + " " + det)
-    if(det<0): return 0
+    if(det<0): return 0.0
     det = sqrt(det)
     t := b-det
     if(t>eps):
         t
     else:
         t=b+det
-        if(t>eps): t else: 0
+        if(t>eps): t else: 0.0
 
 // made the radiusses of some spheres smaller compared to the original (and some other adjustments), as we use floats,
 // not doubles. walls may look rounder :)
@@ -121,7 +119,7 @@ function radiance(r:Ray, depth):
 w := 128
 h := 96
 
-cam := [ [50,50,290 ]:xyz, normalize([0,-0.042612,-1]:xyz) ]:Ray // cam pos, dir
+cam := [ [50.0,50.0,290.0]:xyz, normalize([0.0,-0.042612,-1.0]:xyz) ]:Ray // cam pos, dir
 cx := xyz_x * (w*.5135/h)
 cy := normalize(cx.cross(cam.d))*.5135
 

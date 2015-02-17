@@ -141,5 +141,6 @@ function fatal(msg):
         return from program
 
 function check(val, msg):
-    if(!val): fatal(msg) else: val
+    if(!val): fatal(msg)
+    val
 

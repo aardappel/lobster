@@ -104,7 +104,7 @@ struct CompiledProgram
             if (f)
             {
                 string s;
-                DisAsm(s, st, &code[0], linenumbers, (int)code.size());
+                DisAsm(s, st, &code[0], linenumbers, code.size());
                 fputs(s.c_str(), f);
                 fclose(f);
             }

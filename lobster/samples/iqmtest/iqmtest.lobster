@@ -12,7 +12,7 @@ for(gl_meshparts(iqmtest)) name, i:
     tex := check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
     gl_setmeshtexture(iqmtest, i, 0, tex)
 
-camera_position = [ 0, 0, 8 ]:xyz
+camera_position = [ 0.0, 0.0, 8.0 ]:xyz
 camera_yaw = 135
 camera_pitch = 20
 
@@ -26,7 +26,7 @@ while(gl_frame()):
     speed := 10
     if(gl_isdown("left shift")): speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    if(gl_isdown("space")): camera_direction(xy_1 * 10 - camera_position)
+    if(gl_isdown("space")): camera_direction(xyz_1 * 10 - camera_position)
     camera_FPS_view()
 
     gl_light(camera_position)

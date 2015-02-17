@@ -9,7 +9,7 @@ print("generating models... this may take some time!")
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 1024))
 
-camera_position = [ -10, -10, 10 ]:xyz
+camera_position = [ -10.0, -10.0, 10.0 ]:xyz
 camera_yaw = 135
 
 function mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
@@ -25,23 +25,23 @@ mg_set_polygonreduction(100, 0.98, 0.95)
 gun := nil
 if(true):
     mg_rotate(xyz_y, 90):
-        mg_scalevec([ 1, 1.3, 1 ]):
+        mg_scalevec([ 1.0, 1.3, 1.0 ]):
             mg_supertoroid(3, [3, 3, 5])
     mg_translate([ 0, -1.3, 2 ]):
         mg_scalevec([ 0.5, 0.5, 3.5 ]):
             mg_rotate(xyz_x, 20):
-                mg_superquadric([ 3, 3, 3 ])
+                mg_superquadric([ 3.0, 3.0, 3.0 ])
     mg_translate([ 0, -8, 4 ]):
         mg_scalevec([ 0.5, 0.5, 2.5 ]):
             mg_rotate(xyz_x, 30):
-                mg_superquadric([ 3, 3, 3 ])
+                mg_superquadric([ 3.0, 3.0, 3.0 ])
     mg_translate([ 0, -5.5, -3 ]):
         mg_scalevec([ 1.5, 2.5, 6.5 ]):
             mg_rotate(xyz_x, -20):
-                mg_superquadric([ 5, 5, 100 ])
+                mg_superquadric([ 5.0, 5.0, 100.0 ])
     mg_translate([ 0, 2, 4.2 ]):
         mg_scalevec([ 2, 10, 3 ]):
-            mg_superquadric([ 3, 100, 3 ])
+            mg_superquadric([ 3.0, 100.0, 3.0 ])
     mg_translate([ 0, 14, 5 ]):
         mg_scalevec([ 1, 1, 3 ]):
             mg_rotate(xyz_x, 90):

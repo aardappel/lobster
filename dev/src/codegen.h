@@ -64,6 +64,24 @@ struct CodeGen
     SymbolTable &st;
     bool typechecked;
 
+    void Emit(int i)
+    {
+        int l = linenumbernodes.back()->linenumber;
+        int f = linenumbernodes.back()->fileidx;
+        if (lineinfo.empty() || l != lineinfo.back().line || f != lineinfo.back().fileidx)
+            lineinfo.push_back(LineInfo(l, f, code.size()));
+        code.push_back(i);
+    }
+
+    void Emit(int i, int j) { Emit(i); Emit(j); }
+    void Emit(int i, int j, int k) { Emit(i); Emit(j); Emit(k); }
+    void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
+
+    int Pos() { return (int)code.size(); }
+
+    #define MARKL(name) auto name = Pos();
+    #define SETL(name) code[name - 1] = Pos();
+
     CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool _typechecked)
         : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st), typechecked(_typechecked)
     {
@@ -81,15 +99,15 @@ struct CodeGen
 
         GenFieldTables(st);
 
+        Emit(IL_JUMP, 0);
+        MARKL(fundefjump);
+        for (auto f : parser.st.functiontable)
+            if (f->subf->typechecked || !typechecked)
+                GenFunction(*f);
+        SETL(fundefjump);
+
         BodyGen(parser.root);
         Emit(IL_EXIT);
-
-        for (;;)    // breadth first generation of functions that are actually used
-        {
-            int generated = 0;
-            for (auto f : parser.st.functiontable) if (GenFunction(f)) generated++;
-            if (!generated) break;
-        }
 
         linenumbernodes.pop_back();
 
@@ -107,22 +125,6 @@ struct CodeGen
     ~CodeGen()
     {
     }
-
-    void Emit(int i)
-    {
-        int l = linenumbernodes.back()->linenumber;
-        int f = linenumbernodes.back()->fileidx;
-        if (lineinfo.empty() || l != lineinfo.back().line || f != lineinfo.back().fileidx)
-            lineinfo.push_back(LineInfo(l, f, code.size()));
-        code.push_back(i);
-    }
-
-    void Emit(int i, int j)               { Emit(i); Emit(j); }
-    void Emit(int i, int j, int k)        { Emit(i); Emit(j); Emit(k); }
-    void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
-
-    #define MARKL(name) auto name = (int)code.size();
-    #define SETL(name) code[name - 1] = (int)code.size();
 
     void Dummy(int retval) { while (retval--) Emit(IL_PUSHUNDEF); }
 
@@ -151,16 +153,15 @@ struct CodeGen
     } sfcomparator;
 
 
-    bool GenFunction(Function *f)
+    bool GenFunction(Function &f)
     {
-        if (f->bytecodestart > 0 || !f->ncalls) return false;
+        if (f.bytecodestart > 0 || f.istype) return false;
 
-        if (!f->multimethod)
+        if (!f.multimethod)
         {
-            f->bytecodestart = (int)code.size();
-            for (auto sf = f->subf; sf; sf = sf->next)
+            f.bytecodestart = Pos();
+            for (auto sf = f.subf; sf; sf = sf->next)
             {
-                sf->subbytecodestart = (int)code.size();
                 GenScope(*sf);
             }
         }
@@ -169,29 +170,28 @@ struct CodeGen
             // do multi-dispatch
             vector<SubFunction *> sfs;
 
-            for (auto sf = f->subf; sf; sf = sf->next)
+            for (auto sf = f.subf; sf; sf = sf->next)
             {
-                sf->subbytecodestart = (int)code.size();
                 sfs.push_back(sf);
                 GenScope(*sf);
             }
 
-            sfcomparator.nargs = f->nargs();
+            sfcomparator.nargs = f.nargs();
             sfcomparator.cg = this;
-            sfcomparator.f = f;
+            sfcomparator.f = &f;
             sort(sfs.begin(), sfs.end(), sfcomparator);
 
-            f->bytecodestart = (int)code.size();
+            f.bytecodestart = Pos();
             int numentries = 0;
             MARKL(multistart);
-            Emit(IL_FUNMULTI, 0, f->nargs());
+            Emit(IL_FUNMULTI, 0, f.nargs());
 
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs)
             {
                 auto gendispatch = [&] (int override_j, int override_idx)
                 {
-                    for (int j = 0; j < f->nargs(); j++)
+                    for (int j = 0; j < f.nargs(); j++)
                     {
                         if (j == override_j)
                         {
@@ -211,7 +211,7 @@ struct CodeGen
                 // Generate regular dispatch entry.
                 gendispatch(-1, -1);
                 // See if this entry contains super-types and generate additional entries.
-                for (int j = 0; j < f->nargs(); j++)
+                for (int j = 0; j < f.nargs(); j++)
                 {
                     auto arg = sf->args.v[j];
                     if (arg.type->t == V_STRUCT)
@@ -239,6 +239,9 @@ struct CodeGen
 
     void GenScope(SubFunction &sf)
     {
+        if (sf.subbytecodestart > 0) return;
+        sf.subbytecodestart = Pos();
+
         if (typechecked && !sf.typechecked)
         {
             auto s = Dump(*sf.body, 0);
@@ -287,11 +290,16 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenInlineScope(const Node *cl, int retval, int nargs)
+    void GenInlineScope(const Node *cl, int retval)
     {
         // FIXME: should NOT need a call here, vars need to be moved to outer scope
-        Gen(cl, 1);
-        Emit(IL_CALLV, nargs);
+        // FIXME: is it guaranteed that someone can't call if(a,b,c) ? do we want to allow it?
+        assert(cl->type == T_FUN);
+        auto sf = cl->sf();
+        int nargs = 0;
+        auto returned = GenCall(*sf, nullptr, sf->body, nargs);
+        assert(returned == 1);
+        (void)returned;
         if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
     }
 
@@ -309,6 +317,40 @@ struct CodeGen
                 break;
         }
     }
+
+    void GenFixup(const SubFunction *sf)
+    {
+        if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
+    }
+
+    const Node *GenArgs(const Node *list, const ArgVector *args, int checkargs, int &nargs)
+    {
+        // Skip unused args, this may happen for dynamic calls.
+        const Node *lastarg = nullptr;
+        for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
+        {
+            Gen(list->head(), 1);
+            if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
+            lastarg = list->head();
+            nargs++;
+        }
+        return lastarg;
+    };
+
+    int GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
+    {
+        auto &f = *sf.parent;
+        GenArgs(args, &sf.args, f.multimethod ? 0 : sf.args.v.size(), nargs);
+        if (f.nargs() != nargs)
+            parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs())) +
+            " arguments, " + string(inttoa(nargs)) + " given", errnode);
+        Emit(f.multimethod ? IL_CALLMULTI : IL_CALL,
+             nargs,
+             f.idx,
+             f.multimethod ? f.bytecodestart : sf.subbytecodestart);
+        GenFixup(&sf);
+        return max(f.retvals, 1);
+    };
 
     void Gen(const Node *n, int retval)
     {
@@ -427,10 +469,8 @@ struct CodeGen
                 {
                     if (n->sf()->parent->anonymous)
                     {
-                        Emit(IL_PUSHFUN, 0);
-                        MARKL(funstart);
-                        GenScope(*n->sf());
-                        SETL(funstart);
+                        Emit(IL_PUSHFUN, n->sf()->subbytecodestart);
+                        GenFixup(n->sf());
                     }
                     else
                     {
@@ -448,40 +488,12 @@ struct CodeGen
             case T_DYNCALL:     
             {
                 int nargs = 0;
-                const Node *lastarg = nullptr;
-                auto genargs = [&](const Node *list, const ArgVector *args, int checkargs)
-                {
-                    // Skip unused args, this may happen for dynamic calls.
-                    for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
-                    {
-                        Gen(list->head(), 1);
-                        if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
-                        lastarg = list->head();
-                        nargs++;
-                    }
-                };
-                auto gencall = [&](const SubFunction &sf, const Node *args, const Node *errnode)
-                {
-                    auto &f = *sf.parent;
-                    genargs(args, &sf.args, f.multimethod ? 0 : sf.args.v.size());
-                    if (f.nargs() != nargs)
-                        parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs())) +
-                                     " arguments, " + string(inttoa(nargs)) + " given", errnode);
-                    f.ncalls++;
-                    auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
-                    Emit(f.multimethod ? IL_CALLMULTI : IL_CALL, nargs, f.idx, bytecodestart);
-                    if (!bytecodestart) call_fixups.push_back(make_pair((int)code.size() - 1, &sf));
-                    if (f.retvals > 1)
-                    {
-                        maxretvalsupplied = f.retvals;
-                    }
-                };
                 if (n->type == T_NATCALL)
                 {
                     auto nf = n->ncall_id()->nf();
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
-                    genargs(n->ncall_args(), nullptr, 0);
+                    auto lastarg = GenArgs(n->ncall_args(), nullptr, 0, nargs);
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx, nargs);
@@ -508,21 +520,22 @@ struct CodeGen
                 }
                 else if (n->type == T_CALL)
                 {
-                    gencall(*n->call_function()->sf(), n->call_args(), n->call_function());
+                    maxretvalsupplied = GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs);
                 }
                 else
                 {
-                    auto sf = n->dcall_info()->dcall_function()->sf();
+                    auto sf = n->dcall_fval()->exptype->sf;
+                    auto spec_sf = n->dcall_info()->dcall_function()->sf();
                     // FIXME: in the future, we can make a special case for istype calls.
                     if (sf && !sf->parent->istype)
                     {
+                        assert(sf == spec_sf);
                         // We statically know which function this is calling, which means that we don't have
                         // to need function value, but we generate code for it for the rare case it contains a
                         // side effect, usually it is an ident which will result in no code (retval = 0).
                         Gen(n->dcall_fval(), 0);
                         // We can now turn this into a normal call.
-                        assert(sf == n->dcall_fval()->exptype->sf);
-                        gencall(*sf, n->dcall_info()->dcall_args(), n);
+                        maxretvalsupplied = GenCall(*sf, n->dcall_info()->dcall_args(), n, nargs);
                     }
                     else
                     {
@@ -530,11 +543,15 @@ struct CodeGen
                         if (typechecked && !sf)
                         {
                             // Don't support these in typechecked mode
-                            Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
-                            assert(0);
+                            if (!spec_sf)   // FIXME: if spec_sf is set, this is a call to nil function value.
+                                            // e.g. focus in gui.lobster
+                            {
+                                Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
+                                assert(0);
+                            }
                         }
 
-                        genargs(n->dcall_info()->dcall_args(), nullptr, 0);
+                        GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
                         Gen(n->dcall_fval(), 1);
                         Emit(IL_CALLV, nargs);
                     }
@@ -596,13 +613,13 @@ struct CodeGen
                 // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
                 Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
                 MARKL(loc);
-                GenInlineScope(n->if_branches()->left(), retval, 0);
+                GenInlineScope(n->if_branches()->left(), retval);
                 if (has_else)
                 {
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
-                    GenInlineScope(n->if_branches()->right(), retval, 0);
+                    GenInlineScope(n->if_branches()->right(), retval);
                     SETL(loc2);
                 }
                 else
@@ -615,10 +632,10 @@ struct CodeGen
             case T_WHILE:
             {
                 MARKL(loopback);
-                GenInlineScope(n->while_condition(), 1, 0);
+                GenInlineScope(n->while_condition(), 1);
                 Emit(IL_JUMPFAIL, 0);
                 MARKL(jumpout);
-                GenInlineScope(n->while_body(), 0, 0);
+                GenInlineScope(n->while_body(), 0);
                 Emit(IL_JUMP, loopback);
                 SETL(jumpout);
                 Dummy(retval);
