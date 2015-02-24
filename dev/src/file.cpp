@@ -35,17 +35,15 @@
 
 using namespace lobster;
 
-void AddDirItem(LVector *list, const char *filename, int64_t size, int divisor)
+void AddDirItem(LVector *nlist, LVector *slist, const char *filename, int64_t size, int divisor)
 {
-    auto elem = g_vm->NewVector(2, V_VECTOR);
-    elem->push(Value(g_vm->NewString(filename, strlen(filename))));
+    nlist->push(Value(g_vm->NewString(filename, strlen(filename))));
     if (size >= 0)
     {
         size /= divisor;
         if (size > 0x7FFFFFFF) size = 0x7FFFFFFF;
     }
-    elem->push(Value(int(size)));
-    list->push(Value(elem));
+    slist->push(Value(int(size)));
 }
 
 void AddFileOps()
@@ -59,56 +57,64 @@ void AddFileOps()
 
         #ifdef WIN32
 
-        WIN32_FIND_DATA fdata;
-        HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
-        if (fh == INVALID_HANDLE_VALUE) return Value(0, V_NIL);
+            WIN32_FIND_DATA fdata;
+            HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
+            if (fh == INVALID_HANDLE_VALUE) return Value(0, V_NIL);
 
-        auto list = g_vm->NewVector(0, V_VECTOR);
+            auto nlist = g_vm->NewVector(0, V_VECTOR);
+            auto slist = g_vm->NewVector(0, V_VECTOR);
 
-        do
-        {
-            if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
+            do
             {
-                ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
-                                 fdata.nFileSizeLow;
-                AddDirItem(list, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
-                           divisor.ival);
+                if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
+                {
+                    ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
+                                     fdata.nFileSizeLow;
+                    AddDirItem(nlist, slist, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
+                               divisor.ival);
+                }
             }
-        }
-        while(FindNextFile(fh, &fdata));
-        FindClose(fh);
-        return Value(list);
+            while(FindNextFile(fh, &fdata));
+            FindClose(fh);
+
+            g_vm->Push(Value(nlist));
+            return Value(slist);
 
         #elif !defined(__ANDROID__)
 
-        glob_t gl;
-        string mask = folder + "/*";
-        if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) return Value(0, V_NIL);
+            glob_t gl;
+            string mask = folder + "/*";
+            if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) return Value(0, V_NIL);
 
-        auto list = g_vm->NewVector(0, V_VECTOR);
+            auto nlist = g_vm->NewVector(0, V_VECTOR);
+            auto slist = g_vm->NewVector(0, V_VECTOR);
 
-        for (size_t fi = 0; fi < gl.gl_pathc; fi++)
-        {
-            string xFileName = gl.gl_pathv[fi];
-            bool isDir = xFileName[xFileName.length()-1] == '/';
-            if (isDir) xFileName = xFileName.substr(0, xFileName.length() - 1);
-            string cFileName = xFileName.substr(xFileName.find_last_of('/') + 1);
-            struct stat st;
-            stat(gl.gl_pathv[fi], &st);
+            for (size_t fi = 0; fi < gl.gl_pathc; fi++)
+            {
+                string xFileName = gl.gl_pathv[fi];
+                bool isDir = xFileName[xFileName.length()-1] == '/';
+                if (isDir) xFileName = xFileName.substr(0, xFileName.length() - 1);
+                string cFileName = xFileName.substr(xFileName.find_last_of('/') + 1);
+                struct stat st;
+                stat(gl.gl_pathv[fi], &st);
 
-            AddDirItem(list, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival);
-        }
-        globfree(&gl);
-        return Value(list);
+                AddDirItem(nlist, slist, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival);
+            }
+            globfree(&gl);
+
+            g_vm->Push(Value(nlist));
+            return Value(slist);
 
         #else
 
-        return Value(0, V_NIL);
+            g_vm->Push(Value(0, V_NIL));
+            return Value(0, V_NIL);
 
         #endif
     }
-    ENDDECL2(scan_folder, "folder,divisor", "SI", "A]]?",
-        "returns a vector of all elements in a folder, each element is [ name,  filesize (-1 if directory) ]."
+    ENDDECL2(scan_folder, "folder,divisor", "SI", "S]?I]?",
+        "returns two vectors representing all elements in a folder, the first vector containing all names,"
+        " the second vector containing sizes (or -1 if a directory)."
         " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be clamped."
         " Returns nil if folder couldn't be scanned.");
 

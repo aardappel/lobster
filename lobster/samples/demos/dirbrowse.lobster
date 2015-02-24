@@ -7,7 +7,7 @@ include "unittest.lobster"
 indentsize := 20
 fontsize := 20
 
-struct node: [ name, size, parent, children ]
+struct node: [ name:string, size:int, parent:node?, children:[node] ]
 
 root := [ "", -1, nil, [] ]:node
 selected := root
@@ -18,10 +18,10 @@ function fullpath(n::node):
 
 function scan(n:node):
     entries = []
-    scan := scan_folder(n.fullpath, 1024)
-    if(scan):
-        for(scan) elem:
-            entries.push([ elem[0], elem[1], nil, nil ]:node)
+    names, sizes := scan_folder(n.fullpath, 1024)
+    if(names & sizes):
+        for(names) name, i:
+            entries.push([ name, sizes[i], nil, [] ]:node)
     insertion_sort(entries) a, b:
         if((a.size < 0) == (b.size < 0)): a.name < b.name else: a.size < b.size
 
