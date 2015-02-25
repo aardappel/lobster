@@ -22,7 +22,7 @@ mg_set_vertrandomize(0)
 mg_set_colornoise(0.5, 1)
 mg_set_polygonreduction(100, 0.98, 0.95)
 
-gun := nil
+gun := 0
 if(true):
     mg_rotate(xyz_y, 90):
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
@@ -48,7 +48,7 @@ if(true):
                 mg_cylinder()
     gun = mg_polygonize(256, [[1.0, 1.0, 1.0]])
 
-spaceship := nil
+spaceship := 0
 if(true):
     mg_superquadric_non_uniform([ 1, 2, 2], [ 2, 2, 2], [ 2, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
     mg_superquadric_non_uniform([ 2, 1.5, 1], [ 2, 1.5, 2], [ 4, 1, 0.7 ], [ 0.7, 1, 0.4 ])
@@ -57,11 +57,11 @@ if(true):
     mg_mirror_y(1.5):
         mg_translate(xyz_x):
             mg_scalevec([ 1.3, 0.2, 0.2 ]):
-                mg_superquadric([ 100, 2, 2 ])
+                mg_superquadric([ 100.0, 2.0, 2.0 ])
     mg_mirror_y(2):
         mg_translate(xyz_x):
-            mg_scalevec([ 1, 0.15, 0.15 ]):
-                mg_superquadric([ 100, 2, 2 ])
+            mg_scalevec([ 1.0, 0.15, 0.15 ]):
+                mg_superquadric([ 100.0, 2.0, 2.0 ])
     mg_mirror_y(1):
         mg_translate(xyz_x * -0.6):
             mg_superquadric_non_uniform([ 1, 2, 2 ], [ 1, 2, 2 ], [ 1.5, 0.5, 0.5 ], [ 0.01, 0.5, 0.5 ])
@@ -92,23 +92,21 @@ function model_tree(numb, branchl, narrowf, leafs):
 
 density := 100
 
-trees := [ nil, nil, nil ]
+trees := []
 
 if(true):
     model_tree(10, 1.5, 0.75, 12)
-    trees[0] = mg_polygonize(density, [[0.7, 0.6, 0.5], [0.6, 1.0, 0.6]])
+    trees.push(mg_polygonize(density, [[0.7, 0.6, 0.5], [0.6, 1.0, 0.6]]))
 
     model_tree(10, 1.2, 0.8, 1.2)
-    trees[1] = mg_polygonize(density, [[0.5, 0.4, 0.3], [0.8, 1.0, 0.5]])
+    trees.push(mg_polygonize(density, [[0.5, 0.4, 0.3], [0.8, 1.0, 0.5]]))
 
     model_tree(9, 2.0, 0.7, 15)
-    trees[2] = mg_polygonize(density, [[0.6, 0.5, 0.4], [0.5, 0.7, 0.5]])
+    trees.push(mg_polygonize(density, [[0.6, 0.5, 0.4], [0.5, 0.7, 0.5]]))
 
-print("vertcounts: gun " + gl_meshsize(gun) +
-               " / ship " + gl_meshsize(spaceship) +
-               " / tree1 " + gl_meshsize(trees[0]) +
-               " / tree2 " + gl_meshsize(trees[1]) +
-               " / tree3 " + gl_meshsize(trees[2]))
+print("vertcount: gun " + gl_meshsize(gun))
+print("vertcount: ship " + gl_meshsize(spaceship))
+for(trees): print("vertcount: tree1 " + gl_meshsize(_))
 
 print(seconds_elapsed())
 
@@ -143,10 +141,9 @@ while(gl_frame()):
                     gl_rendermesh(gun)
 
         for(trees) t, i:
-            if(t):
-                gl_translate(xyz_x * i * 10):
-                    gl_scale(0.5):
-                        gl_rendermesh(t)
+            gl_translate(xyz_x * i * 10):
+                gl_scale(0.5):
+                    gl_rendermesh(t)
 
         gl_setshader("color")
 

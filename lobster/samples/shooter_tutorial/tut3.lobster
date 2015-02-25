@@ -17,7 +17,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_scale(scale)
 
     dir := [ gl_isdown("d") - gl_isdown("a"),
-             gl_isdown("s") - gl_isdown("w") ]:[float]
+             gl_isdown("s") - gl_isdown("w") ]:xy_f
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
         playerpos = newpos

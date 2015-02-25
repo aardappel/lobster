@@ -7,7 +7,7 @@ function g(x:string): 1
 function g(x:int): 2
 */
 
-function addrec(a, b): 
+function addrec(a, b):
     //if(a is string):
         //a.length + b
         //g(a)
@@ -23,4 +23,4 @@ i := and(t.a, 2)
 l := length(t.b)
 print(add(i, l))
 print(add(3.0, 4.0))
-add(1, nil)
+//add(1, nil)

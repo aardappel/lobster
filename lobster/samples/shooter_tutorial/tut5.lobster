@@ -38,7 +38,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_scale(scale)
 
     dir := [ gl_isdown("d") - gl_isdown("a"),
-             gl_isdown("s") - gl_isdown("w") ]
+             gl_isdown("s") - gl_isdown("w") ]:xy_f
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
         playerpos = newpos
@@ -46,9 +46,13 @@ while(gl_frame() & !gl_wentdown("escape")):
     tomouse := normalize(gl_localmousepos(0) - playerpos)
 
     if(lastenemy < gl_time()):
-        enemies.push([ sincos(rnd(360)) * worldsize * 2, enemymaxhp ]:enemy)
+        enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
         lastenemy += enemyrate
         enemyrate *= 0.999
+
+    if(lastbullet < gl_time()):
+        bullets.push([ playerpos, tomouse ]:bullet)
+        lastbullet += firerate
 
     for(enemies) e:
         playerdir := normalize(playerpos - e.pos)
@@ -61,10 +65,6 @@ while(gl_frame() & !gl_wentdown("escape")):
             renderpointytriangle(e.pos, playerdir)
 
     enemies = filter(enemies): _.hp
-
-    if(lastbullet < gl_time()):
-        bullets.push([ playerpos, tomouse ]:bullet)
-        lastbullet += firerate
 
     for(bullets) b:
         b.pos += b.dir * gl_deltatime() * bulletspeed

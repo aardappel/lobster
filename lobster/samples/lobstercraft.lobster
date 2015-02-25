@@ -10,7 +10,7 @@ include "color.lobster"
 include "3dhelpers.lobster"
 
 lssize := 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
-inventory := [] // blocks we've mined
+inventory := []:[int] // blocks we've mined
 camera_position = xyz_1 * lssize / 2
 camera_yaw = 45
 
@@ -56,7 +56,7 @@ while(gl_frame()):
     last_empty := nil
     camvec := vecfromyawpitch(camera_yaw, camera_pitch, 1, 0)
     for(100) i:  // look at most 10 cubes ahead
-        pos := map(camera_position + camvec * (i / 10.0)): int(_)
+        pos := int(camera_position + camvec * (i / 10.0))
         if(inside(pos) & !first_solid):
             if(cells[pos]): first_solid = pos
             else: last_empty = pos

@@ -13,6 +13,6 @@ while(gl_frame()):
     scalechange := sin(gl_time() * 50) * 0.2
     pts := map(360 * 4 + 1) a:
         fold(5, xy_0) p, i:
-            p + sincos(a / 4.0 * pow(3, i)) * pow(0.4 + scalechange, i)
+            p + sincos(a / 4.0 * pow(3, i)).xy * pow(0.4 + scalechange, i)
     gl_linemode(1):
         gl_polygon(pts)

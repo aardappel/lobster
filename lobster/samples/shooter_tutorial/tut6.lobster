@@ -8,7 +8,7 @@ check(gl_setfontname("data/fonts/US101/US101.TTF") & gl_setfontsize(32), "can\'t
 
 worldsize :== 20.0
 
-playerpos := nil
+playerpos := xy_0
 playerspeed :== 10
 playerhealth := 0.0
 
@@ -16,16 +16,16 @@ struct bullet: [ pos, dir ]
 
 firerate :== 0.1
 bulletspeed :== 15
-bullets := nil
-lastbullet := nil
+bullets := []
+lastbullet := gl_time()
 
 struct enemy: [ pos, hp ]
 
-enemyrate := nil
+enemyrate := 1.0
 enemyspeed :== 3
 enemymaxhp :== 5
-enemies := nil
-lastenemy := nil
+enemies := []
+lastenemy := gl_time()
 
 score := 0
 highscore := 0
@@ -46,7 +46,7 @@ while(gl_frame() & !gl_wentdown("escape")):
             gl_scale(scale)
 
             dir := [ gl_isdown("d") - gl_isdown("a"),
-                     gl_isdown("s") - gl_isdown("w") ]
+                     gl_isdown("s") - gl_isdown("w") ]:xy_f
             newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
             if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
                 playerpos = newpos
@@ -54,9 +54,13 @@ while(gl_frame() & !gl_wentdown("escape")):
             tomouse := normalize(gl_localmousepos(0) - playerpos)
 
             if(lastenemy < gl_time()):
-                enemies.push([ sincos(rnd(360)) * worldsize * 2, enemymaxhp ]:enemy)
+                enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
                 lastenemy += enemyrate
                 enemyrate *= 0.999
+
+            if(lastbullet < gl_time()):
+                bullets.push([ playerpos, tomouse ]:bullet)
+                lastbullet += firerate
 
             for(enemies) e:
                 playervec := playerpos - e.pos
@@ -79,10 +83,6 @@ while(gl_frame() & !gl_wentdown("escape")):
                     renderpointytriangle(e.pos, playerdir)
 
             enemies = filter(enemies): _.hp
-
-            if(lastbullet < gl_time()):
-                bullets.push([ playerpos, tomouse ]:bullet)
-                lastbullet += firerate
 
             for(bullets) b:
                 b.pos += b.dir * gl_deltatime() * bulletspeed

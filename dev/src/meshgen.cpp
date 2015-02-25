@@ -1026,7 +1026,7 @@ void AddMeshGen()
         MeshGenClear();
         return Value(mesh);
     }
-    ENDDECL2(mg_polygonize, "subdiv,colors", "IV", "I", "returns a generated mesh from past mg_ commands."
+    ENDDECL2(mg_polygonize, "subdiv,colors", "IV", "I", "returns a generated mesh (id 1..) from past mg_ commands."
         " subdiv determines detail and amount of polygons, try 30.. 300 depending on the subject."
         " values much higher than that will likely make you run out of memory (or take very long)."
         " colors is a list of colors to be used with mg_fill()");

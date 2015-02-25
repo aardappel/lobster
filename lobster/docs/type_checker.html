@@ -53,7 +53,8 @@ if(a):        // guaranteed not be nil inside block
 <p>De-referencing nillables as in <code>o &amp; o.f</code> is so common that there's a shorthand for it: <code>o?.f</code> (which can be chained). As useful as this looks, note that you are just passing on the problem, as the result of such an expression is again a nilable type. As such, this is best used inside conditionals or as statements where the result is not needed.</p>
 <p><code>?</code> is generally the way to indicate a nilable type, e.g. <code>string?</code> is a nilable string.</p>
 <p>One more thing to notice about <code>nil</code> is that it only knows what exact nilable type it represents once it comes &quot;in contact with&quot; its reference type. That means that if you tried to access <code>a</code> right after it was defined, it would have still have type <code>nil</code> rather than <code>string?</code>. Similarly, if you tried to assign a vector to <code>a</code> after the first assignment, it would complain that only a <code>string?</code> is valid, i.e. a <code>string</code> or <code>nil</code> value.</p>
-<h2 id="flow-based-types">Flow based types</h2>
+<p>To bypass that process and force <code>nil</code> to represent a particular nilable type, you can attach a type, like <code>nil:string</code>, which creates a value of type <code>string?</code>. Alternatively you could write <code>nil &amp; a</code>, which makes <code>nil</code> have the type of whatever <code>a</code> has, which may be a generic variable. Similarly, <code>a | nil</code> has the same nilable type, but now the value is actually <code>a</code> rather than <code>nil</code>.</p>
+<h2 id="more-flow-based-types">More flow based types</h2>
 <p>As we saw with <code>nil</code>, a variable may have a different type in certain parts of the code, thanks to the information that a conditional provides.</p>
 <p>Another example of this is the <code>is</code> operator:</p>
 <pre><code>if(a is xyz): a.x</code></pre>
@@ -65,6 +66,7 @@ a.x        // error
 a = xyz_0  // a is guaranteed non-nil below
 a.x        // ok</code></pre>
 <p>Note how there are two different cases here: with an assignment inside a conditional, the type checker has to be conservative, and can't guarantee the value is non-nil. But with an un-conditional assignment, we can change the type of <code>a</code> for the rest of the block.</p>
+<p>An additional way is to use <code>assert</code>. Use this when you know for sure a value must be non-nil or have a particular type, but you can't structure your code such that this is already obvious to the type system.</p>
 <h2 id="generic-objects">Generic objects</h2>
 </body>
 </html>

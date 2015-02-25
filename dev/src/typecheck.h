@@ -137,6 +137,14 @@ struct TypeChecker
         TypeError(err, callnode);
     }
 
+    TypeRef VectorStructElement(TypeRef type)
+    {
+        if (type->t == V_VECTOR) return type->sub;
+        if (type->t == V_STRUCT) return type->struc->vectortype->sub;
+        assert(0);
+        return type;
+    }
+
     TypeRef NewTypeVar()
     {
         auto var = NewType();
@@ -1022,7 +1030,7 @@ struct TypeChecker
             case T_MODEQ:
             {
                 type = n.left()->exptype;
-                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, true))
+                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, false))
                 {
                     bool unionchecked = false;
                     MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
@@ -1038,22 +1046,37 @@ struct TypeChecker
             case T_GT:  
             case T_LT:
             {
+                type = type_int;
                 auto u = Union(n.left(), n.right(), true);
                 if (!u->Numeric() && u->t != V_STRING)
                 {
                     // FIXME: rather than nullptr, these TypeError need to figure out which side caused the error much like MathError
                     if (n.type == T_EQ || n.type == T_NEQ)
                     {
+                        // pointer comparison
                         if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NILABLE)
                             TypeError("numeric/string/vector/struct", u, n, nullptr);
                     }
                     else
                     {
-                        TypeError("numeric/string", u, n, nullptr);
+                        // comparison vector op
+                        if ((u->t == V_VECTOR && u->Element()->Numeric()) ||
+                            (u->t == V_STRUCT && u->struc->vectortype->Element()->Numeric()))
+                        {
+                            type = type_vector_int;
+                        }
+                        else if (MathCheckVector(type, n.left()->exptype, n.right()->exptype, false))
+                        {
+                            type = type_vector_int;
+                            break; // don't do SubTypeLR since type already verified and `u` not appropriate anyway.
+                        }
+                        else
+                        {
+                            TypeError("numeric/string/vector/struct", u, n, nullptr);
+                        }
                     }
                 }
                 SubTypeLR(u, n);
-                type = type_int;
                 break;
             }
 
@@ -1195,8 +1218,8 @@ struct TypeChecker
                     {
                         case NF_SUBARG1:
                             SubType(list->head(),
-                                    argtypes[0]->t == V_VECTOR && argtype->t != V_VECTOR
-                                        ? argtypes[0]->Element()
+                                    nf->args.v[0].type->t == V_VECTOR && argtype->t != V_VECTOR
+                                        ? VectorStructElement(argtypes[0])
                                         : argtypes[0],
                                     ArgName(i).c_str(),
                                     nf->name.c_str());
@@ -1246,9 +1269,9 @@ struct TypeChecker
                     {
                         case NF_SUBARG1:
                             type = ret.type->t == V_NILABLE
-                                ? argtypes[0]->Wrap(NewType(), V_NILABLE)
-                                       : (argtypes[0]->t == V_VECTOR && ret.type->t != V_VECTOR
-                                            ? argtypes[0]->Element()
+                                        ? argtypes[0]->Wrap(NewType(), V_NILABLE)
+                                        : (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR
+                                            ? VectorStructElement(argtypes[0])
                                             : argtypes[0]);
                             break;
                         case NF_ANYVAR: 
