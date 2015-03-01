@@ -289,11 +289,15 @@ inline string TypeName(TypeRef type, int depth = 0)
             }
             return s;
         }
-        case V_VECTOR: return "[" + TypeName(type->Element(), depth + 1) + "]";
+        case V_VECTOR: return type->Element()->t == V_VAR 
+                                    ? "[]"
+                                    : "[" + TypeName(type->Element(), depth + 1) + "]";
         case V_FUNCTION: return type->sf // || type->sf->anonymous
                                 ? type->sf->parent->name
                                 : "function";
-        case V_NILABLE: return TypeName(type->Element(), depth + 1) + "?";
+        case V_NILABLE: return type->Element()->t == V_VAR
+                                    ? "nil"
+                                    : TypeName(type->Element(), depth + 1) + "?";
         case V_VAR: return type->sub
             ? TypeName(type->sub, depth) + "*"
             : BaseTypeName(type->t);

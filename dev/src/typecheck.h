@@ -71,7 +71,7 @@ struct TypeChecker
     string SignatureWithFreeVars(const SubFunction &sf, bool withtype = true)
     {
         string s = Signature(sf, withtype) + " { ";
-        for (auto &freevar : sf.freevars.v) s += TypedArg(freevar) + " ";
+        for (auto &freevar : sf.freevars.v) if (freevar.type->t != V_FUNCTION) s += TypedArg(freevar) + " ";
         s += "}";
         return s;
     }
@@ -555,14 +555,14 @@ struct TypeChecker
     }
 
     void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n, const char *argname,
-                               const char *req = nullptr, bool subtypeok = false)
+                               const char *req = nullptr, bool subtypeok = false, const char *context = nullptr)
     {
         auto givenu = given->UnWrapped();
         if (given->t != V_STRUCT ||
             (!spec_struc->IsSpecialization(givenu->struc) &&
              (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->struc))))
         {
-            TypeError(req ? req : spec_struc->name.c_str(), given, n, argname);
+            TypeError(req ? req : spec_struc->name.c_str(), given, n, argname, context);
         }
     }
 
@@ -574,7 +574,7 @@ struct TypeChecker
             assert(u->t == V_STRUCT);
             if (otype->EqNoIndex(*argtype))
             {
-                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype).c_str(), true);
+                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype).c_str(), true, context);
             }
             else
             {
@@ -1456,15 +1456,20 @@ struct TypeChecker
                     {
                         assert(type->t == V_STRUCT);  // Parser checks this.
                         auto super_struc = type->struc->superclass;
-                        i += super_struc->fields.size() - 1;
                         CheckIfSpecialization(super_struc, list->head()->exptype, *list->head(), "super");
+                        super_struc = list->head()->exptype->struc;  // Use the specialization.
+                        for (auto &field : super_struc->fields)
+                        {
+                            //SubTypeT(field.type, type->struc->fields[i].type, n, ArgName(i).c_str());
+                            i++;
+                        }
                     }
                     else
                     {
                         TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields[i].type : type->Element();
                         SubType(list->head(), elemtype, ArgName(i).c_str(), n);
+                        i++;
                     }
-                    i++;
                 }
                 break;
             }
