@@ -128,6 +128,7 @@ struct Struct : Named
     bool readonly;
     bool generic;
     bool explicit_specialization;
+    bool predeclaration;
 
     Type thistype;       // convenient place to store the type corresponding to this
     TypeRef vectortype;  // What kind of vector this can be demoted to.
@@ -135,7 +136,7 @@ struct Struct : Named
     Struct(const string &_name, int _idx)
         : Named(_name, _idx), next(nullptr), first(this), superclass(nullptr),
           firstsubclass(nullptr), nextsubclass(nullptr),
-          readonly(false), generic(false), explicit_specialization(false),
+          readonly(false), generic(false), explicit_specialization(false), predeclaration(false),
           thistype(V_STRUCT, this),
           vectortype(type_vector_any) {}
     Struct() : Struct("", 0) {}
@@ -164,8 +165,15 @@ struct Struct : Named
 
     bool IsSpecialization(Struct *other)
     {
-        for (auto struc = first->next; struc; struc = struc->next) if (struc == other) return true;
-        return false;
+        if (generic)
+        {
+            for (auto struc = first->next; struc; struc = struc->next) if (struc == other) return true;
+            return false;
+        }
+        else
+        {
+            return this == other;
+        }
     }
 
     void Resolve(Field &field)
@@ -480,11 +488,11 @@ struct SymbolTable
         withstacklevels.pop_back();
     }
 
-    void UnregisterStruct(const Struct *st)
+    void UnregisterStruct(const Struct *st, Lex &lex)
     {
+        if (st->predeclaration) lex.Error("pre-declared struct never defined: " + st->name);
         auto it = structs.find(st->name);
-        assert(it != structs.end());
-        structs.erase(it);
+        if (it != structs.end()) structs.erase(it);
     }
 
     void UnregisterFun(Function *f)
@@ -512,10 +520,17 @@ struct SymbolTable
     Struct &StructDecl(const string &name, Lex &lex)
     {
         Struct *st = structs[name];
-        if (st) lex.Error("double declaration of type: " + name);
-        st = new Struct(name, structtable.size());
-        structs[name] = st;
-        structtable.push_back(st);
+        if (st)
+        {
+            if (!st->predeclaration) lex.Error("double declaration of type: " + name);
+            st->predeclaration = false;
+        }
+        else
+        {
+            st = new Struct(name, structtable.size());
+            structs[name] = st;
+            structtable.push_back(st);
+        }
         return *st;
     }
 

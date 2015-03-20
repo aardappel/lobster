@@ -1368,9 +1368,10 @@ struct TypeChecker
                 {
                     auto tleft  = TypeCheckBranch(true,  *n.if_condition(), *n.if_branches()->left(), &args);
                     auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), &args);
-                    type = Union(tleft, tright, false);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
+                    // bad, because currently even if(a) 1 else: 1.0 doesn't work.
+                    type = Union(tleft, tright, false);
                     SubTypeT(tleft, type, *n.if_branches()->left(), "then branch", nullptr);
                     SubTypeT(tright, type, *n.if_branches()->right(), "else branch", nullptr);
                 }

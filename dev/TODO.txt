@@ -166,6 +166,8 @@ vertex_neighbors :== [
 
 - [float] / int does int division, which is wrong
 
+- add support for http://vallentinsource.com/opengl/debug-output
+
 - Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki
 
 - should redo gui.lobster to take all args in virtual float coords, not some in float font relative coords and some

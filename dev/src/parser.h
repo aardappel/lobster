@@ -98,7 +98,7 @@ struct Parser
             {
                 case T_STRUCTDEF:
                 {
-                    st.UnregisterStruct(def->struct_id()->st());
+                    st.UnregisterStruct(def->struct_id()->st(), lex);
                     break;
                 }
                 case T_FUN:
@@ -278,11 +278,9 @@ struct Parser
                     }
                     Expect(T_RIGHTPAREN);
                 }
-                else
+                else if (IsNext(T_COLON))
                 {
                     // A regular struct declaration
-                    Expect(T_COLON);
-
                     int fieldid = 0;
 
                     if (IsNextId())
@@ -334,6 +332,11 @@ struct Parser
                     {
                         if (st.IsGeneric(field.type) && field.fieldref < 0) field.flags = AF_ANYTYPE;
                     }
+                }
+                else
+                {
+                    // A pre-declaration.
+                    struc.predeclaration = true;
                 }
 
                 AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), nullptr));
