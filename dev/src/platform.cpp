@@ -216,7 +216,7 @@ void Output(OutputType ot, const char *msg, ...)
         OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
-        if (ot >= OUTPUT_WARN) printf("%s\n", msg);  // FIXME: args?
+        if (ot >= OUTPUT_WARN) printf("%s\n", buf);
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
         IOSLog(msg);  // FIXME: args?

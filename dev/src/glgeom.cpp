@@ -61,12 +61,25 @@ void UnSetAttribs(const char *fmt)
     }
 }
 
+GLenum GetPrimitive(Primitive prim)
+{
+    switch (prim)
+    {
+        default: assert(0);
+
+        case PRIM_TRIS:  return GL_TRIANGLES;
+        case PRIM_FAN:   return GL_TRIANGLE_FAN;
+        case PRIM_LOOP:  return GL_LINE_LOOP;
+        case PRIM_POINT: return GL_POINTS;
+    }
+}
+
 Textured::Textured()
 {
     memset(textures, 0, sizeof(uint) * Shader::MAX_SAMPLERS);
 }
 
-Surface::Surface(int *indices, int _nidx) : numidx(_nidx)
+Surface::Surface(int *indices, int _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
 {
     glGenBuffers(1, &vboId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
@@ -77,7 +90,7 @@ void Surface::Render(Shader *sh)
 {
     sh->SetTextures(textures);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
-    glDrawElements(GL_TRIANGLES, numidx, GL_UNSIGNED_INT, 0);
+    glDrawElements(GetPrimitive(prim), numidx, GL_UNSIGNED_INT, 0);
 }
 
 Surface::~Surface()
@@ -145,20 +158,8 @@ void SetPointSprite(float size)
         glEnable(GL_POINT_SPRITE);
         glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
         glPointSize(size);
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     #endif
-}
-
-GLenum GetPrimitive(Primitive prim)
-{
-    switch (prim)
-    {
-        default: assert(0);
-
-        case PRIM_TRIS:  return GL_TRIANGLES;
-        case PRIM_FAN:   return GL_TRIANGLE_FAN;
-        case PRIM_LOOP:  return GL_LINE_LOOP;
-        case PRIM_POINT: return GL_POINTS;
-    }
 }
 
 void RenderArray(Primitive prim, int count, const char *fmt,

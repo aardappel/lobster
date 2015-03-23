@@ -65,6 +65,23 @@ SHADER phong
         UNIFORMS col camera light1
         gl_FragColor = col * icol * Phong(inormal, ipos);
 
+SHADER phong_particle
+    VERTEX
+        INPUTS apos:4 anormal:3 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        inormal = anormal;
+        icol = acolor;
+        ipos = apos.xyz;
+        gl_PointSize = 60 / gl_Position.w;  // FIXME: properly compute size
+    PIXEL
+        INPUTS inormal:3 ipos:3 icol:4
+        UNIFORMS col camera light1
+        vec2 c = gl_PointCoord * 2.0 - 1.0;
+        if(length(c) > 1.0) discard;
+        gl_FragColor = col * icol * Phong(inormal, ipos);
+
+
 VERTEXFUNCTIONS
     mat4 getmat(int i)  // have to do this to get around lack of mat3x4 support on ES2
     {

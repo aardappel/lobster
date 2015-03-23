@@ -325,9 +325,11 @@ float noisestretch = 1;
 float noiseintensity = 0;
 float randomizeverts = 0;
 
-int polyreductionpasses = 100;
+int polyreductionpasses = 0;
 float epsilon = 0.98f;
 float maxtricornerdot = 0.95f;
+
+bool pointmode = false;
 
 int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float3> &materials)
 {
@@ -875,16 +877,25 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         delete[] cfactor;
     }
 
-    //Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", ulong(verts.size()),
-    //       ulong(edges.size()), ulong(triangles.size()/3), ulong(mctriangles.size()/3), ulong(fcells.size()),
-    //       targetgridsize);
-
     if (verts.empty())
         return -1;
 
+    if (pointmode)
+    {
+        // Replace triangle indices by point indices.
+        triangles.clear();
+        for (size_t i = 0; i < verts.size(); i++) triangles.push_back(i);
+
+        SetPointSprite(1);
+    }
+
+    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", ulong(verts.size()),
+           ulong(edges.size()), ulong(triangles.size() / 3), ulong(mctriangles.size() / 3), ulong(fcells.size()),
+           targetgridsize);
+
     extern IntResourceManagerCompact<Mesh> *meshes;
     auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(vert), "PNC"));
-    m->surfs.push_back(new Surface(&triangles[0], triangles.size()));
+    m->surfs.push_back(new Surface(&triangles[0], triangles.size(), pointmode ? PRIM_POINT : PRIM_TRIS));
     return meshes->Add(m);
 }
 
@@ -1017,6 +1028,14 @@ void AddMeshGen()
         " by the algorithm. try 0.15. note that any setting other than 0 will likely counteract the polygon"
         " reduction algorithm");
 
+    STARTDECL(mg_set_pointmode) (Value &aspoints)
+    {
+        pointmode = aspoints.True();
+        return Value();
+    }
+    ENDDECL1(mg_set_pointmode, "on", "I", "",
+             "generates a point mesh instead of polygons");
+
     STARTDECL(mg_polygonize) (Value &subdiv, Value &color)
     {
         vector<float3> materials;
@@ -1026,8 +1045,10 @@ void AddMeshGen()
         MeshGenClear();
         return Value(mesh);
     }
-    ENDDECL2(mg_polygonize, "subdiv,colors", "IV", "I", "returns a generated mesh (id 1..) from past mg_ commands."
-        " subdiv determines detail and amount of polygons, try 30.. 300 depending on the subject."
+    ENDDECL2(mg_polygonize, "subdiv,colors", "IV", "I",
+        "returns a generated mesh (id 1..) from past mg_ commands."
+        " subdiv determines detail and amount of polygons (relative to the largest dimension of the model),"
+        " try 30.. 300 depending on the subject."
         " values much higher than that will likely make you run out of memory (or take very long)."
         " colors is a list of colors to be used with mg_fill()");
 

@@ -734,13 +734,11 @@ void AddGraphics()
     STARTDECL(gl_rendermesh) (Value &i)
     {
         TestGL();
-
         GetMesh(i)->Render(currentshader);
-
         return i;
     }
     ENDDECL1(gl_rendermesh, "i", "I", "",
-        "renders the specified vertex buffer");
+        "renders the specified mesh");
 
     STARTDECL(gl_setshader) (Value &shader)
     {

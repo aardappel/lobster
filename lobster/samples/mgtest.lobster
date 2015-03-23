@@ -7,9 +7,9 @@ include "3dhelpers.lobster"
 
 print("generating models... this may take some time!")
 
-fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 1024))
+fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
 
-camera_position = [ -10.0, -10.0, 10.0 ]:xyz
+camera_position = [ 10.0, 10.0, 10.0 ]:xyz
 camera_yaw = 135
 
 function mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
@@ -18,9 +18,13 @@ function mg_mirror_y(dist, body):
     for(2) i:
         mg_translate([ 0, i * dist * 2 - dist, 0 ], body)
 
-mg_set_vertrandomize(0)
 mg_set_colornoise(0.5, 1)
-mg_set_polygonreduction(100, 0.98, 0.95)
+aspoints := true
+mg_set_pointmode(aspoints)
+if(!aspoints):
+    mg_set_polygonreduction(100, 0.98, 0.95)
+    mg_set_vertrandomize(0)
+
 
 gun := 0
 if(true):
@@ -90,7 +94,7 @@ function model_tree(numb, branchl, narrowf, leafs):
             mg_scale(leafs):
                 mg_sphere()
 
-density := 100
+density := 120
 
 trees := []
 
@@ -110,10 +114,10 @@ for(trees): print("vertcount: tree1 " + gl_meshsize(_))
 
 print(seconds_elapsed())
 
-gl_windowtitle("meshgen test")
-
 while(gl_frame()):
     if(gl_wentdown("escape")): return
+
+    gl_windowtitle("meshgen test: " + gl_deltatime())
 
     gl_clear(color_dark_grey)
     gl_cursor(0)
@@ -129,7 +133,7 @@ while(gl_frame()):
 
     rndseed(0)
     gl_blend(0):
-        gl_setshader("phong")
+        gl_setshader(aspoints & "phong_particle" | "phong")
 
         if(spaceship):
             gl_translate(xy_1 * 10):
@@ -139,11 +143,12 @@ while(gl_frame()):
             gl_translate(xy_1 * 20):
                 gl_scale(0.1):
                     gl_rendermesh(gun)
-
-        for(trees) t, i:
-            gl_translate(xyz_x * i * 10):
-                gl_scale(0.5):
-                    gl_rendermesh(t)
+        for(10) j:
+            gl_translate(xyz_y * j * -5):
+                for(trees) t, i:
+                    gl_translate(xyz_x * i * 10):
+                        gl_scale(0.5):
+                            gl_rendermesh(t)
 
         gl_setshader("color")
 

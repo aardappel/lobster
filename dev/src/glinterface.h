@@ -14,6 +14,9 @@
 
 // simple rendering interface for OpenGL (ES) (that doesn't depend on its headers)
 
+enum BlendMode { BLEND_NONE = 0, BLEND_ALPHA, BLEND_ADD, BLEND_ADDALPHA, BLEND_MUL };
+enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
+
 struct Shader
 {
     enum { MAX_SAMPLERS = 3 };
@@ -44,8 +47,9 @@ struct Surface : Textured
     int numidx;
     uint vboId;
     string name;
+    Primitive prim;
 
-    Surface(int *indices, int _nidx);
+    Surface(int *indices, int _nidx, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -101,10 +105,6 @@ struct Light
 {
     float4 pos;
 };
-
-
-enum BlendMode { BLEND_NONE = 0, BLEND_ALPHA, BLEND_ADD, BLEND_ADDALPHA, BLEND_MUL };
-enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 
 extern void OpenGLInit();
