@@ -219,22 +219,23 @@ function run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // coroutines test
 
-    /*
-
     function mycoro(f):
         forrange(3, 6): f(_)
         1337
 
+    function myfor(n, f): for(n): f(_)
+
     co1 := coroutine mycoro()   // out of nested HOFs
-    co2 := coroutine for(4)     // out of a builtin function
+    co2 := coroutine myfor(4)   // out of a simple function
 
     function interleave(co1, co2, f):   // test using 2 at once
         while(co1.active | co2.active):
             if(co1.active):
                 f(co1.returnvalue)
-                co1.resume(true)
+                co1.resume
             if(co2.active):
-                co1, co2 = co2, co1
+                f(co2.returnvalue)
+                co2.resume
 
     //interleave(co1, co2): print(_)
 
@@ -246,11 +247,11 @@ function run_test_cases():
     function pass_thru(co, f):
         coroutine_for(co): f(_)
 
-    co := coroutine pass_thru(coroutine for(10))    // test consuming 1 coro with another and then passing that on
+    co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
     sum := 0
-    while(co.active):       // we currently can't use coroutine_for here, will be a runtime error (nesting)
-        sum += co.returnvalue
-        co.resume
+    while(co3.active):       // we currently can't use coroutine_for here, will be a runtime error (nesting)
+        sum += co3.returnvalue
+        co3.resume
     assert(sum == 45)
 
     function loctest(f):
@@ -259,10 +260,8 @@ function run_test_cases():
             b := 2
             f()
 
-    co = coroutine loctest()
-    assert(co.a@loctest + co.i@loctest + co.b@loctest == 3)
-
-    */
+    co4 := coroutine loctest()
+    //assert(co4.a@loctest + co4.i@loctest + co4.b@loctest == 3)
 
     // ////////////////////////////////////////////////////////////////////////
     // structure offsets test

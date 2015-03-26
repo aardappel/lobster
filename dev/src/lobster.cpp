@@ -42,6 +42,7 @@ namespace lobster
     const Type g_type_vector_int   (V_VECTOR, &*type_int);   TypeRef type_vector_int = &g_type_vector_int;
     const Type g_type_vector_float (V_VECTOR, &*type_float); TypeRef type_vector_float = &g_type_vector_float;
     const Type g_type_function_null(V_FUNCTION);             TypeRef type_function_null = &g_type_function_null;
+    const Type g_type_function_cocl(V_YIELD);                TypeRef type_function_cocl = &g_type_function_cocl;
     const Type g_type_coroutine    (V_COROUTINE);            TypeRef type_coroutine = &g_type_coroutine;
 }
 

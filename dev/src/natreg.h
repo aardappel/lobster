@@ -42,8 +42,8 @@ struct Type
     union
     {
         const Type *sub; // V_VECTOR | V_NILABLE | V_VAR
-        Named *named;    // V_FUNCTION | V_STRUCT
-        SubFunction *sf; // V_FUNCTION
+        Named *named;    // V_FUNCTION | V_COROUTINE | V_STRUCT 
+        SubFunction *sf; // V_FUNCTION | V_COROUTINE
         Struct *struc;   // V_STRUCT
     };
 
@@ -149,6 +149,7 @@ extern TypeRef type_vector_any;
 extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
+extern TypeRef type_function_cocl;
 extern TypeRef type_coroutine;
 
 enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR };

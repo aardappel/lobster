@@ -1247,7 +1247,7 @@ struct Parser
                 lex.Next();
                 string idname = lex.sattr;
                 Expect(T_IDENT);
-                return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
+                return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname), nullptr,
                                 idname, nullptr, true), nullptr);
             }
 

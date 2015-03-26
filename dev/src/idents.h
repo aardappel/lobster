@@ -193,6 +193,7 @@ struct SubFunction
     ArgVector dynscoperedefs;  // any lhs of <-
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
+    TypeRef coreturntype;
 
     Node *body;
 
@@ -201,7 +202,7 @@ struct SubFunction
 
     int subbytecodestart;
 
-    bool typechecked, freevarchecked;
+    bool typechecked, freevarchecked, iscoroutine;
 
     Type thistype;       // convenient place to store the type corresponding to this
 
@@ -209,7 +210,7 @@ struct SubFunction
         : idx(_idx),
           parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
-          typechecked(false), freevarchecked(false),
+          typechecked(false), freevarchecked(false), iscoroutine(false),
           thistype(V_FUNCTION, this)
     {
         returntypes.push_back(type_any);  // functions always have at least 1 return value.
@@ -298,17 +299,20 @@ inline string TypeName(TypeRef type, int depth = 0)
             return s;
         }
         case V_VECTOR: return type->Element()->t == V_VAR 
-                                    ? "[]"
-                                    : "[" + TypeName(type->Element(), depth + 1) + "]";
+            ? "[]"
+            : "[" + TypeName(type->Element(), depth + 1) + "]";
         case V_FUNCTION: return type->sf // || type->sf->anonymous
-                                ? type->sf->parent->name
-                                : "function";
+            ? type->sf->parent->name
+            : "function";
         case V_NILABLE: return type->Element()->t == V_VAR
-                                    ? "nil"
-                                    : TypeName(type->Element(), depth + 1) + "?";
+            ? "nil"
+            : TypeName(type->Element(), depth + 1) + "?";
         case V_VAR: return type->sub
             ? TypeName(type->sub, depth) + "*"
             : BaseTypeName(type->t);
+        case V_COROUTINE: return type->sf
+            ? "coroutine(" + type->sf->parent->name + ")"
+            : "coroutine";
         default: return BaseTypeName(type->t);
     }
 }

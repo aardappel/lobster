@@ -168,17 +168,18 @@ struct TypeChecker
         if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub->t)
         {
-            case V_ANY:      return true;
-            case V_VAR:      return ConvertsTo(type, UnifyVar(type, sub), coercions);
-            case V_FLOAT:    return type->t == V_INT && coercions;
-            case V_STRING:   return coercions;
-            case V_FUNCTION: return type->t == V_FUNCTION && !sub->sf;
-            case V_NILABLE:  return type->t == V_NIL ||
-                                    (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false)) ||
-                                    (!type->Numeric() && ConvertsTo(type, sub->Element(), false));
-            case V_VECTOR:   return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false)) ||
-                                     (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false)));
-            case V_STRUCT:   return type->t == V_STRUCT && st.IsSuperTypeOrSame(sub->struc, type->struc);
+            case V_ANY:       return true;
+            case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
+            case V_FLOAT:     return type->t == V_INT && coercions;
+            case V_STRING:    return coercions;
+            case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
+            case V_NILABLE:   return type->t == V_NIL ||
+                                     (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false)) ||
+                                     (!type->Numeric() && ConvertsTo(type, sub->Element(), false));
+            case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false)) ||
+                                      (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false)));
+            case V_STRUCT:    return type->t == V_STRUCT && st.IsSuperTypeOrSame(sub->struc, type->struc);
+            case V_COROUTINE: return type->t == V_COROUTINE && (sub->sf == type->sf || !sub->sf);
         }
         return false;
     }
@@ -691,12 +692,13 @@ struct TypeChecker
             // Here we have a SubFunction witch matching specialized types.
             // First check all the manually typed args.
             int i = 0;
-            for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
+            for (Node *list = call_args; list && i < f.nargs(); i++, list = list->tail())
             {
                 auto &arg = sf->args.v[i];
                 if (arg.flags != AF_ANYTYPE)
                     SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
-                i++;
+                if (list->head()->type == T_COCLOSURE)
+                    sf->iscoroutine = true;
             }
             if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
             function_def_node.sf() = sf;
@@ -740,7 +742,7 @@ struct TypeChecker
         return sf;
     }
 
-    TypeRef TypeCheckDynCall(Node &fval, Node **args_ptr, Node *fdef = nullptr)
+    TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode = nullptr)
     {
         auto ftype = fval.exptype;
         if (ftype->IsFunction())
@@ -748,15 +750,33 @@ struct TypeChecker
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
             auto sf = ftype->sf;
 
-            if (Parser::CountList(*args_ptr) < sf->parent->nargs())
+            if (Parser::CountList(args) < sf->parent->nargs())
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
 
-            auto &fnode = fdef ? *fdef : fval;
-            auto type = TypeCheckCall(sf, *args_ptr, fnode);
+            auto &fnode = fspecnode ? *fspecnode : fval;
+            auto type = TypeCheckCall(sf, args, fnode);
             auto nsf = fnode.sf();
             fnode.exptype = fval.exptype = &nsf->thistype;
             return type;
+        }
+        else if (ftype->t == V_YIELD)
+        {
+            // V_YIELD must have perculated up from a coroutine call.
+            if (Parser::CountList(args) > 1)
+                TypeError("coroutine yield call must at most one argument", fval);
+
+            for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope)
+            {
+                if (scope->sf->iscoroutine)
+                {
+                    auto type = args ? args->head()->exptype : type_any;
+                    scope->sf->coreturntype = type;
+                    return type_any;  // Whatever we get from resume, can we improve this?
+                }
+            }
+            TypeError("yield function called outside scope of coroutine", fval);
+            return type_any;
         }
         else
         {
@@ -765,7 +785,6 @@ struct TypeChecker
             // at all, meaning its contents is all T_ANY. This is not necessary esp if the function
             // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
-            // Btw, some values ending up here may be T_COCLOSURE.
             // For now, just error.
             SubTypeT(ftype, type_function_null, fval, "function value", "function call");
             // If this magically succeeds, its because ftype was a variable, likely from a nil function value.
@@ -774,10 +793,10 @@ struct TypeChecker
         }
     }
 
-    TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node **args_ptr)
+    TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node *args)
     {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        auto type = TypeCheckDynCall(fval, args_ptr);
+        auto type = TypeCheckDynCall(fval, args);
         CleanUpFlow(flowstart);
         return type;
     }
@@ -1268,11 +1287,24 @@ struct TypeChecker
                     switch (ret.flags)
                     {
                         case NF_SUBARG1:
-                            type = ret.type->t == V_NILABLE
-                                        ? argtypes[0]->Wrap(NewType(), V_NILABLE)
-                                        : (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR
-                                            ? VectorStructElement(argtypes[0])
-                                            : argtypes[0]);
+                            if (ret.type->t == V_NILABLE)
+                            {
+                                type = argtypes[0]->Wrap(NewType(), V_NILABLE);
+                            }
+                            else if (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR)
+                            {
+                                type = VectorStructElement(argtypes[0]);
+                            }
+                            else if (nf->args.v[0].type->t == V_COROUTINE)
+                            {
+                                auto sf = argtypes[0]->sf;
+                                assert(sf);
+                                type = sf->coreturntype;  // in theory it is possible this hasn't been generated yet..
+                            }
+                            else
+                            {
+                                type = argtypes[0];
+                            }
                             break;
                         case NF_ANYVAR: 
                             type = ret.type->t == V_VECTOR ? NewTypeVar()->Wrap(NewType()) : NewTypeVar();
@@ -1307,7 +1339,7 @@ struct TypeChecker
 
             case T_DYNCALL:
                 type = TypeCheckDynCall(*n.dcall_fval(),
-                                        &n.dcall_info()->dcall_args(),
+                                        n.dcall_info()->dcall_args(),
                                         n.dcall_info()->dcall_function());
                 break;
 
@@ -1363,11 +1395,10 @@ struct TypeChecker
 
             case T_IF:
             {
-                Node *args = nullptr;
                 if (n.if_branches()->right()->type != T_NIL)
                 {
-                    auto tleft  = TypeCheckBranch(true,  *n.if_condition(), *n.if_branches()->left(), &args);
-                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), &args);
+                    auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), nullptr);
+                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), nullptr);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
                     // bad, because currently even if(a) 1 else: 1.0 doesn't work.
@@ -1377,7 +1408,7 @@ struct TypeChecker
                 }
                 else
                 {
-                    TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), &args);
+                    TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), nullptr);
                     // No else: this currently returns either the condition or the branch value.
                     type = type_any;
                 }
@@ -1386,9 +1417,8 @@ struct TypeChecker
 
             case T_WHILE:
             {
-                Node *args = nullptr;
-                TypeCheckDynCall(*n.while_condition(), &args);
-                TypeCheckBranch(true, *n.while_condition()->sf()->body->head(), *n.while_body(), &args);
+                TypeCheckDynCall(*n.while_condition(), nullptr);
+                TypeCheckBranch(true, *n.while_condition()->sf()->body->head(), *n.while_body(), nullptr);
                 // Currently always return V_UNDEFINED
                 type = type_any;
                 break;
@@ -1409,7 +1439,7 @@ struct TypeChecker
                 else TypeError("for can only iterate over int/string/vector/struct, not: " + TypeName(itertype), n);
                 args->head()->exptype = itertype;
                 args->tail()->head()->exptype = type_int;
-                TypeCheckDynCall(*n.for_body(), &args);
+                TypeCheckDynCall(*n.for_body(), args);
                 delete args;
                 // Currently always return V_UNDEFINED
                 type = type_any;
@@ -1528,12 +1558,19 @@ struct TypeChecker
                 break;
 
             case T_COCLOSURE:
-                type = type_function_null;
+                type = type_function_cocl;
                 break;
 
             case T_COROUTINE:
-                type = type_coroutine;
+            {
+                if (n.child()->type != T_CALL)  // could be dyn call
+                    TypeError("coroutine constructor must be regular function call", n);
+                auto sf = n.child()->call_function()->sf();
+                auto ct = NewType();
+                *ct = Type(V_COROUTINE, sf);
+                type = ct;
                 break;
+            }
 
             case T_SUPER:
                 type = n.child()->exptype;

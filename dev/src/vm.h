@@ -429,12 +429,6 @@ struct VM : VMBase
         return deffun;
     }
 
-    void FunIntroOrYield(int nargs_given, int *newip, int definedfunction, int *retip)
-    {
-        if (newip != (int *)Value::FAKE_COCLOSURE_ADDRESS) FunIntro(nargs_given, newip, definedfunction, retip);
-        else CoYield(nargs_given, retip);
-    }
-
     void FunIntro(int nargs_given, int *newip, int definedfunction, int *retip)
     {
         ip = newip;
@@ -592,23 +586,11 @@ struct VM : VMBase
         co->active = false;
     }
 
-    void CoYield(int nargs_given, int *retip)
+    void CoYield(int *retip)
     {
-        if (nargs_given > 1)
-        {
-            // Error("more than 1 argument supplied to coroutine yield function");
+        assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
 
-            // Similar to FunIntro, we support an excess in nargs_given for the moment:
-            for (; nargs_given > 1; nargs_given--) POP().DEC();
-        }
-        if (!curcoroutine)
-        {
-            // can theoretically happen if programmer caches yield value somewhere
-            Error("coroutine yield function called outside of context");
-        }
-
-        Value ret(0, V_NIL);  
-        if (nargs_given) ret = POP();
+        auto ret = POP();
 
         for (int i = 1; i <= *curcoroutine->varip; i++)
         {
@@ -780,9 +762,13 @@ struct VM : VMBase
                     Value fun = POP();
                     Require(fun, V_FUNCTION, "function call");
                     auto nargs = *ip++;
-                    FunIntroOrYield(nargs, fun.ip, -1, ip);
+                    FunIntro(nargs, fun.ip, -1, ip);
                     break;
                 }
+
+                case IL_YIELD:
+                    CoYield(ip);
+                    break;
 
                 case IL_DUP:
                 {
@@ -838,7 +824,7 @@ struct VM : VMBase
                         default:       Error("for: cannot iterate over argument", iter);
                     }
                     PUSH(i);
-                    FunIntroOrYield(2, body.ip, -1, forstart);
+                    FunIntro(2, body.ip, -1, forstart);
                     break;
 
                     done:
@@ -1211,7 +1197,7 @@ struct VM : VMBase
                 }
 
                 case IL_COCL:
-                    PUSH(Value((int *)Value::FAKE_COCLOSURE_ADDRESS, V_FUNCTION));
+                    PUSH(Value(0, V_YIELD));  // This value never gets used anywhere, just a placeholder.
                     break;
 
                 case IL_CORO:

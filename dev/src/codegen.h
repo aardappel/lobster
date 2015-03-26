@@ -27,7 +27,7 @@ namespace lobster
     F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(PUSHFLDMO) F(PUSHFLDMC) F(PUSHFLDMT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
     F(PUSHLOC) F(LVALLOC) \
     F(BCALL) \
-    F(CALL) F(CALLV) F(CALLVCOND) F(DUP) F(CONT1) \
+    F(CALL) F(CALLV) F(CALLVCOND) F(YIELD) F(DUP) F(CONT1) \
     F(FUNSTART) F(FUNEND) F(FUNMULTI) F(CALLMULTI) \
     F(JUMP) \
     F(NEWVEC) \
@@ -524,36 +524,47 @@ struct CodeGen
                 }
                 else
                 {
-                    auto sf = n->dcall_fval()->exptype->sf;
-                    auto spec_sf = n->dcall_info()->dcall_function()->sf();
-                    // FIXME: in the future, we can make a special case for istype calls.
-                    if (sf && !sf->parent->istype)
+                    assert(n->type == T_DYNCALL);
+
+                    if (n->dcall_fval()->exptype->t == V_YIELD)
                     {
-                        assert(sf == spec_sf);
-                        // We statically know which function this is calling, which means that we don't have
-                        // to need function value, but we generate code for it for the rare case it contains a
-                        // side effect, usually it is an ident which will result in no code (retval = 0).
-                        Gen(n->dcall_fval(), 0);
-                        // We can now turn this into a normal call.
-                        maxretvalsupplied = GenCall(*sf, n->dcall_info()->dcall_args(), n, nargs);
+                        GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
+                        if (!nargs) Emit(IL_PUSHNIL);
+                        Emit(IL_YIELD);
                     }
                     else
                     {
-                        // Fully dynamic call.
-                        if (typechecked && !sf)
+                        auto sf = n->dcall_fval()->exptype->sf;
+                        auto spec_sf = n->dcall_info()->dcall_function()->sf();
+                        // FIXME: in the future, we can make a special case for istype calls.
+                        if (sf && !sf->parent->istype)
                         {
-                            // Don't support these in typechecked mode
-                            if (!spec_sf)   // FIXME: if spec_sf is set, this is a call to nil function value.
-                                            // e.g. focus in gui.lobster
-                            {
-                                Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
-                                assert(0);
-                            }
+                            assert(sf == spec_sf);
+                            // We statically know which function this is calling, which means that we don't have
+                            // to need function value, but we generate code for it for the rare case it contains a
+                            // side effect, usually it is an ident which will result in no code (retval = 0).
+                            Gen(n->dcall_fval(), 0);
+                            // We can now turn this into a normal call.
+                            maxretvalsupplied = GenCall(*sf, n->dcall_info()->dcall_args(), n, nargs);
                         }
+                        else
+                        {
+                            // Fully dynamic call.
+                            if (typechecked && !sf)
+                            {
+                                // Don't support these in typechecked mode
+                                if (!spec_sf)   // FIXME: if spec_sf is set, this is a call to nil function value.
+                                    // e.g. focus in gui.lobster
+                                {
+                                    Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
+                                    assert(0);
+                                }
+                            }
 
-                        GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
-                        Gen(n->dcall_fval(), 1);
-                        Emit(IL_CALLV, nargs);
+                            GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
+                            Gen(n->dcall_fval(), 1);
+                            Emit(IL_CALLV, nargs);
+                        }
                     }
                 }
                 if (!retval) Emit(IL_POP);

@@ -28,6 +28,7 @@ enum ValueType
     V_INT = 0,          // quickest check for most common type
     V_FLOAT = 1, 
     V_FUNCTION,
+    V_YIELD,
     V_NIL,
     V_UNDEFINED,        // used for unitialized values or functions returning "void".
     V_NILABLE,          // [typechecker only] a value that may be nil or a reference type.
@@ -44,7 +45,7 @@ inline const char *BaseTypeName(ValueType t)
     static const char *typenames[] =
     {
         "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
-        "int", "float", "function", "nil", "undefined", "nilable", "any", "variable",
+        "int", "float", "function", "yield_function", "nil", "undefined", "nilable", "any", "variable",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
@@ -199,10 +200,8 @@ struct Value
         CoRoutine *cval;
         LenObj *lobj;
         RefObj *ref;
-        int *ip;        // FAKE_COCLOSURE_ADDRESS means its a coroutine yield
+        int *ip;
     };
-
-    static const int FAKE_COCLOSURE_ADDRESS = 1;
 
     inline Value()                    : type(V_UNDEFINED), ival(0) {}
     inline Value(int i)               : type(V_INT),       ival(i) {}
@@ -248,7 +247,7 @@ struct Value
     {
         assert(type == V_FUNCTION);
         //assert(*ip == IL_FUNSTART);
-        return ip != (int *)FAKE_COCLOSURE_ADDRESS ? ip[1] : 1;
+        return ip[1];
     }
 
 

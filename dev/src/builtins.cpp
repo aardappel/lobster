@@ -675,7 +675,7 @@ void AddBuiltins()
         co.DECRT();
         return rv;
     }
-    ENDDECL1(returnvalue, "coroutine", "R", "A",
+    ENDDECL1(returnvalue, "coroutine", "R", "A1",
         "gets the last return value of a coroutine");
 
     STARTDECL(active) (Value &co)
