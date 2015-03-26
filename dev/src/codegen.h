@@ -739,47 +739,26 @@ struct CodeGen
 
             case T_COROUTINE:
             {
-                // TODO: maybe more correct to generate call regardless of retval?
-                if (retval) Emit(IL_CORO, 0);
+                Emit(IL_CORO, 0);
                 MARKL(loc);
 
-                if (retval)
-                {
-                    bool found = false;
-                    Emit(0); // count
-                    // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
-                    // each function / builtin function
-                    auto err = FindIdentsUpToYield(n->child(), [&](const vector<const Ident *> &istack)
-                    {
-                        found = true;
-                        for (auto id : istack)
-                        {
-                            for (size_t i = loc + 1; i < code.size(); i++) if (code[i] == id->idx) continue;
-                            // FIXME: merging of variables from all yield sites is potentially incorrect, we might end
-                            // up restoring variables that are not actually in use
-                            Emit(id->idx);
-                        }
-                    });
+                assert(n->exptype->t == V_COROUTINE);
+                auto sf = n->exptype->sf;
 
-                    if (err)
-                        parser.Error(string("coroutine construction error: ") + err, n->child());
+                Emit(0); // count
+                // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
+                // each function
 
-                    // this guarantees FindIdentsUpToYield has done an accurate job finding all ids, since if it can
-                    // reach the yield, it must also have found the whole callchain leading up to it
-                    // if people start storing the yield function inside data structures or doing other weird things to
-                    // confuse the algorithm, they'll at least get this error
-                    if (!found)
-                        parser.Error("coroutine construction error: cannot find yield call", n->child());
-                    code[loc] = code.size() - loc - 1;
-                }
+                for (auto id : sf->coyieldsave) Emit(id->idx);
+
+                code[loc] = code.size() - loc - 1;
 
                 Gen(n->child(), retval);
 
-                if (retval)
-                {
-                    Emit(IL_COEND);
-                    SETL(loc);
-                }
+                Emit(IL_COEND);
+                SETL(loc);
+
+                if (!retval) Emit(IL_POP);
                 break;
             }
 

@@ -193,7 +193,9 @@ struct SubFunction
     ArgVector dynscoperedefs;  // any lhs of <-
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
+
     TypeRef coreturntype;
+    vector<const Ident *> coyieldsave;
 
     Node *body;
 
@@ -234,6 +236,12 @@ struct SubFunction
     ~SubFunction()
     {
         if (next) delete next;
+    }
+
+    void YieldSave(const Ident *id)
+    {
+        for (auto eid : coyieldsave) if (eid == id) return;
+        coyieldsave.push_back(id);
     }
 };
 

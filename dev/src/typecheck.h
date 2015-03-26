@@ -768,12 +768,27 @@ struct TypeChecker
 
             for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope)
             {
-                if (scope->sf->iscoroutine)
+                auto sf = scope->sf;
+                if (!sf->iscoroutine) continue;
+
+                // What yield returns to returnvalue()
+                auto type = args ? args->head()->exptype : type_any;
+                sf->coreturntype = type;
+
+                // Now collect all ids between coroutine and yield, so that we can save these in the VM
+                bool foundstart = false;
+                for (auto savescope = scopes.begin(); savescope != scopes.end(); ++savescope)
                 {
-                    auto type = args ? args->head()->exptype : type_any;
-                    scope->sf->coreturntype = type;
-                    return type_any;  // Whatever we get from resume, can we improve this?
+                    auto ssf = savescope->sf;
+                    if (ssf == sf) foundstart = true;
+                    if (!foundstart) continue;
+
+                    for (auto &arg : ssf->args.v) sf->YieldSave(arg.id);
+                    for (auto &loc : ssf->locals.v) sf->YieldSave(loc.id);
+                    for (auto &dyn : ssf->dynscoperedefs.v) sf->YieldSave(dyn.id);
                 }
+
+                return type_any;  // Whatever we get from resume, can we improve this?
             }
             TypeError("yield function called outside scope of coroutine", fval);
             return type_any;
@@ -1492,6 +1507,7 @@ struct TypeChecker
                         for (auto &field : super_struc->fields)
                         {
                             //SubTypeT(field.type, type->struc->fields[i].type, n, ArgName(i).c_str());
+                            (void)field; // FIXME: this subtype is needed in some cases, see cdrl.lobster
                             i++;
                         }
                     }
@@ -1566,6 +1582,7 @@ struct TypeChecker
                 if (n.child()->type != T_CALL)  // could be dyn call
                     TypeError("coroutine constructor must be regular function call", n);
                 auto sf = n.child()->call_function()->sf();
+                assert(sf->iscoroutine);
                 auto ct = NewType();
                 *ct = Type(V_COROUTINE, sf);
                 type = ct;
