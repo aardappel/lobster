@@ -194,7 +194,6 @@ struct SubFunction
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
 
-    TypeRef coreturntype;
     vector<const Ident *> coyieldsave;
 
     Node *body;

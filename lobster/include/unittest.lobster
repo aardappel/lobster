@@ -223,7 +223,9 @@ function run_test_cases():
         forrange(3, 6): f(_)
         1337
 
-    function myfor(n, f): for(n): f(_)
+    function myfor(n, f):
+        for(n): f(_)
+        0
 
     co1 := coroutine mycoro()   // out of nested HOFs
     co2 := coroutine myfor(4)   // out of a simple function
@@ -262,6 +264,11 @@ function run_test_cases():
 
     co4 := coroutine loctest()
     //assert(co4.a@loctest + co4.i@loctest + co4.b@loctest == 3)
+
+    // Even functions that don't yield are cool:
+    function conoyield(f): 1
+    co5 := coroutine conoyield()
+    assert(co5.returnvalue == 1)
 
     // ////////////////////////////////////////////////////////////////////////
     // structure offsets test

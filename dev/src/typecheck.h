@@ -367,7 +367,7 @@ struct TypeChecker
 
     SubFunction *TopScope(vector<Scope> &scopes) { return scopes.empty() ? nullptr : scopes.back().sf; }
 
-    void RetVal(Node *&a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
+    void RetVal(Node *a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
     {
         if (!sf) return;
         if (i >= sf->returntypes.size())
@@ -377,16 +377,10 @@ struct TypeChecker
         }
         else
         {
-            /*
-            if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, nullptr);
-            else if (a) SubType(a, sf->returntypes[i], nullptr, "return value");
-            else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
-            */
             if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
             else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
             else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
         }
-        //Output(OUTPUT_DEBUG, "return val %d of %s is now %s", i, sf->parent->name.c_str(), TypeName(sf->returntypes[i]).c_str());
     }
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context)
@@ -773,7 +767,7 @@ struct TypeChecker
 
                 // What yield returns to returnvalue()
                 auto type = args ? args->head()->exptype : type_any;
-                sf->coreturntype = type;
+                RetVal(nullptr, sf, 0, &type);
 
                 // Now collect all ids between coroutine and yield, so that we can save these in the VM
                 bool foundstart = false;
@@ -1314,7 +1308,7 @@ struct TypeChecker
                             {
                                 auto sf = argtypes[0]->sf;
                                 assert(sf);
-                                type = sf->coreturntype;  // in theory it is possible this hasn't been generated yet..
+                                type = sf->returntypes[0];  // in theory it is possible this hasn't been generated yet..
                             }
                             else
                             {

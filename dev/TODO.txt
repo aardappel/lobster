@@ -15,6 +15,7 @@
     as different from function calls. could use {} ?
 
 - typechecker
+  - UPDATE DOCS & WEB PAGE to reflect that we're now statically typed only.
   - typecheck of super args?
   - move generic double check from parser to type checker init
 
