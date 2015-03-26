@@ -73,7 +73,6 @@ struct CompiledProgram
     {
         PARSEDUMP = 1,
         DISASM = 2,
-        TYPECHECK = 4,
     };
 
     void Compile(const char *fn, char *stringsource, int flags)
@@ -81,10 +80,7 @@ struct CompiledProgram
         Parser parser(fn, st, stringsource);
         parser.Parse();
 
-        if (flags & TYPECHECK)
-        {
-            TypeChecker tc(parser, st);
-        }
+        TypeChecker tc(parser, st);
 
         if (flags & PARSEDUMP)
         {
@@ -97,7 +93,7 @@ struct CompiledProgram
             }
         }
 
-        CodeGen cg(parser, st, code, linenumbers, (flags & TYPECHECK) != 0);
+        CodeGen cg(parser, st, code, linenumbers);
 
         if (flags & DISASM)
         {
@@ -333,7 +329,6 @@ int main(int argc, char* argv[])
             string a = argv[arg];
             if      (a == "-w") { wait = true; }
             else if (a == "-b") { bcf = default_bcf; }
-            else if (a == "-t")          { flags |= CompiledProgram::TYPECHECK; }
             else if (a == "--parsedump") { flags |= CompiledProgram::PARSEDUMP; }
             else if (a == "--disasm")    { flags |= CompiledProgram::DISASM; }
             else if (a == "--verbose")   { min_output_level = OUTPUT_INFO; }

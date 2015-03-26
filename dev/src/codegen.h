@@ -62,7 +62,6 @@ struct CodeGen
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
-    bool typechecked;
 
     void Emit(int i)
     {
@@ -82,8 +81,8 @@ struct CodeGen
     #define MARKL(name) auto name = Pos();
     #define SETL(name) code[name - 1] = Pos();
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo, bool _typechecked)
-        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st), typechecked(_typechecked)
+    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo)
+        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
     {
         // Create list of subclasses, to help in creation of dispatch tables.
         for (auto struc : st.structtable)
@@ -102,7 +101,7 @@ struct CodeGen
         Emit(IL_JUMP, 0);
         MARKL(fundefjump);
         for (auto f : parser.st.functiontable)
-            if (f->subf->typechecked || !typechecked)
+            if (f->subf->typechecked)
                 GenFunction(*f);
         SETL(fundefjump);
 
@@ -242,7 +241,7 @@ struct CodeGen
         if (sf.subbytecodestart > 0) return;
         sf.subbytecodestart = Pos();
 
-        if (typechecked && !sf.typechecked)
+        if (!sf.typechecked)
         {
             auto s = Dump(*sf.body, 0);
             Output(OUTPUT_DEBUG, "untypechecked: %s : %s", sf.parent->name.c_str(), s.c_str());
@@ -550,7 +549,7 @@ struct CodeGen
                         else
                         {
                             // Fully dynamic call.
-                            if (typechecked && !sf)
+                            if (!sf)
                             {
                                 // Don't support these in typechecked mode
                                 if (!spec_sf)   // FIXME: if spec_sf is set, this is a call to nil function value.
