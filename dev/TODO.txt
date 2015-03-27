@@ -15,20 +15,14 @@
     as different from function calls. could use {} ?
 
 - typechecker
-  - UPDATE DOCS & WEB PAGE to reflect that we're now statically typed only.
+  - improve type checking doc.
   - typecheck of super args?
   - move generic double check from parser to type checker init
-
-  * must have a way to specifically indicate specialized struct types
+  - struct specialization with generics is still a bit clumsy.
 
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
   * fixme: accessing flt_ in Node could fail if 64bit aligned
-
-  * rather than the fragile use of Promote, should habe variable aware Compare
-
-  * should make it an error if someone if-checks a non-nil pointer value? though that might be bad if
-    specialized.. at least should be optimized out.
 
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.
@@ -70,9 +64,6 @@
   * a := nil; a = 1 // allows creating nilable scalars, which we don't want, though its benign
 
   * for function call nodes, as spec as to which subf they call, or none in specific
-  * might be easier after an optimizer, funnily enough, since then most HOFs will have been inlined etc. But tt might decide to clone functions, which affects the typechecker, so maybe they should work together
-    * should really inline these before typechecking, since they will be opaque types, typecheck will miss lots of opportunities if they are inlined after.
-  * remove the @ kludge once we can strongly type coroutines?
 
   * compile time optimize if-thens, should reduce total cloning quite a bit, example
     astar_2dgrid isocta
@@ -120,7 +111,7 @@
       a smaller set of possible types is not THAT useful, as it will still be slow.
       The biggest improvement would be in type errors, so now it can say instead of "expected int, got any"
       it will say "expected int, got int|string".
-      Problem is that they are expensive to represent, as in its most generic for, they are a vector<Type>.
+      Problem is that they are expensive to represent, as in its most generic form, they are a vector<Type>.
       We could cheat however, and make all the basic types (int/float/string) into INT_ANY etc variants, that
       have the other type as a subtype. Basically, the same as ANY for the purpose of most typechecking code,
       but carries more information for errors.
@@ -140,11 +131,6 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
-
-  * once we remove the ability to run without the typechecker:
-    - can extend the amount of native functions that use overloading.
-      Right now there is a giant hack in NFCheck to allow the VM to select an overload at runtime which only works
-      in limited cases, and should be removed.
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

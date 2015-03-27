@@ -22,7 +22,6 @@
 <p>These can be passed to lobster anywhere on the command line.</p>
 <ul>
 <li><p><code>-b</code> : generates a bytecode file (currently always called &quot;<code>default.lbc</code>&quot;) in the same folder as the <code>.lobster</code> file it reads, and doesn't run the program afterwards. If you run lobster with no arguments at all, it will try to load &quot;<code>default.lbc</code>&quot; from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a bytecode file and any data files it may use.</p></li>
-<li><p><code>-t</code> : run the typechecker (&amp; optimizer)</p></li>
 <li><p><code>-w</code> : makes the compiler wait for commandline input before it exits. Useful on Windows.</p></li>
 <li><p><code>-c</code> : (deprecated, this should now be automatically detected). <em>forces lobster into &quot;command line&quot; mode. This is useful on Apple platforms where by default lobster expects to be run from within an app bundle. With this option, it will not try to look for files in an app bundle, but instead functions much like Windows &amp; Linux.</em></p></li>
 <li><p><code>--gen-builtins-html</code> : dumps a help file of all builtin functions the compiler knows about to <code>builtin_functions_reference.html</code>. <code>--gen-builtins-names</code> dumps a plain text list of functions, useful for adding to syntax highlighting files etc.</p></li>

@@ -18,7 +18,7 @@
 <h2 id="lexical-definition">Lexical definition</h2>
 <ul>
 <li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
-<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! @ ? ?.</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! ? ?. . -&gt;</code></p></li>
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
@@ -44,7 +44,7 @@
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> ) unary</p>
 <p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> ) unary | deref</p>
-<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ ( call | <code>@</code> ident ) ] | <code>?.</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
+<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>?.</code> ident | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>function</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> ( <code>super</code> exp [ <code>,</code> indlist( exp ) ] ) | [ indlist( exp ) ] <code>]</code> [ <code>:</code> type ]</p>
 <p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> | <code>true</code> | <code>false</code></p>
@@ -95,7 +95,7 @@ v.x = 1</code></pre>
 <pre><code>a := 1
 b :== 1
 enum x = 1, y, z
-c &lt;- 1
+c \&lt;- 1
 d, e := 1, 2
 f, g := 1</code></pre>
 <p>The <code>:==</code> operator does the same as <code>:=</code>, but now forces the variable to never be assigned to again in any of the following statements (makes it a constant). Think of the <code>==</code> in <code>:==</code> as saying that the two will be kept equal as opposed to merely assigned once.</p>
@@ -105,8 +105,7 @@ f, g := 1</code></pre>
 <p>As indicated, square brackets can be used to index into vectors, with the . notation being a convenient shorthand for constant indices when field names are available. These may be chained arbitrarily (to index into a vector of vectors for example).</p>
 <p>The <code>?.</code> operator will only dereference if its argument is not <code>nil</code>, otherwise return <code>nil</code>.</p>
 <p>You may even use a vector as index, e.g.</p>
-<pre><code>mat := [ [ 1, 2 ],
-         [ 3, 4 ] ]
+<pre><code>mat := [ [ 1, 2 ],  [ 3, 4 ] ]
 pos := [ 0, 1 ]
 print(mat[pos])</code></pre>
 <p>This prints <code>3</code>, and is a convenient shortcut for <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to index with first, this is because in code an other places 2d arrays are usually most naturally thought of as row-major.</p>
@@ -135,7 +134,7 @@ print(mat[pos])</code></pre>
 <p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don't modify the argument.</p>
 <p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types will be checked at run-time, and cause the incoming value to either be converted to that type, or rejected with a run-time error.</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields of that vector directly, without having to prefix them with the argument name, e.g.:</p>
-<pre><code>function magnitude(v::xy): sqrt(x * x + y * y) </code></pre>
+<pre><code>function magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
 <p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
 <pre><code>function intersect(a, b): &quot;no idea how to intersect these two!&quot;
 function intersect(c:circle, p:xy): &quot;point in circle&quot;
@@ -164,7 +163,8 @@ else:
 <p>Using return, we can bypass the default return value, and return from the closest lexically enclosing named function, e.g.:</p>
 <pre><code>function find(list, x):
     for(list):
-        if(x == _): return true
+        if(x == \_):
+            return true
     false</code></pre>
 <p><code>find</code>'s return value appears to be <code>false</code>, but by using <code>return</code>, we can override it to be <code>true</code>. Importantly, <code>return true</code> is an expression that sits inside a function value being passed to <code>if</code> (which in turn sits in a function value passed to <code>for</code>), but bypasses all of this (unlike most programming languages with function values). This is essential for functions to be able to work as proper control structures.</p>
 <p>If this feels like it is similar to exception handling in other programming languages, that's because it is. Lobster even allows you to specify the name of the function to return from (e.g. <code>return &quot;expression expected&quot; from parse</code>), which is extremely handy when you want to be able to return errors from a bunch of helper functions without having to pass it back through all intermediate functions, such as when writing a parser. It is also powerful enough to allow you to implement fully general exception handling in Lobster code, see <code>exception.lobster</code>.</p>
@@ -180,7 +180,8 @@ a, b := m()</code></pre>
 <p>Since functions and function values can be defined at any scope level, this means they can access variables from enclosing scopes, called <em>free variables</em>. Free variables are essential to make Lobster's higher order functions convenient. References to free variables are only valid within the scope they are defined, which luckily is almost always the case, but can be broken by storing a function value and then calling it at a later time outside of the context where its free variables were valid, which will result in a runtime error. Other languages use <em>closures</em> to ensure availability in all cases, which are very costly (parent stackframe(s) may have to be dynamically allocated) as opposed to Lobster's approach which makes function values and free variables have no overhead compared to regular functions and variables.</p>
 <p>Lobster also supports a safe way of optionally using <em>dynamic scope</em> by making it <em>lexically bounded</em>, i.e. you can use dynamic scoping only on variables that are already defined in lexical scope. As an example:</p>
 <pre><code>x, y := 0
-function f(): print(x + &quot; &quot; + y)
+function f():
+    print(x + &quot; &quot; + y)
 function g():
     x := 1
     y &lt;- 1
@@ -213,14 +214,14 @@ y = oldy</code></pre>
 <p>Note that a type annotation specifying a type only allows that type initially, it does not accept <code>nil</code> also. If you want to accept <code>nil</code> additionally, currently you just have to leave it typeless, though there may be a way to express that you accept a type or <code>nil</code> in the future.</p>
 <h2 id="coroutines">Coroutines</h2>
 <p>The higher order functions (function that take a function argument) we saw above often perform iteration, and then call the function value back 0..N times. But what if you want to iterate, but you don't want to run all iterations all at once? For example, what if you want the iteration to happen across frames in a game? In most languages, that means writing iteration code that is a lot clumsier than the nice functions you already have. In Lobster however, you can turn any such function into a coroutine, which is a higher order function that can be resumed on demand. Kind of like a separate thread that only runs when you want to (<em>cooperative multitasking</em>). For example:</p>
-<pre><code>co := coroutine for(10)</code></pre>
-<p>Normally, <code>for</code> takes 2 arguments, the thing to iterate over, and the function value to call for each element. When we prefix a call to for by <code>coroutine</code>, it transforms the call into an object that can have its iteration triggered manually. A coroutine <em>suspends</em> (yields) when it would normally call the function value (which here is supplied by <code>coroutine</code> automatically). We can check the last value the object produced using <code>co.returnvalue</code> (which after the above call should be <code>0</code>) and we can cause the next iteration step to happen with <code>co.resume</code> (or <code>co.resume(x)</code>, where <code>x</code> is the value to be returned from the function value call inside the coroutine). At some point, the coroutine may end naturally (when the loop is over), at which point it can't be resumed anymore, and trying to resume it would be an error. To test whether you can still iterate a coroutine further, you can call <code>co.active</code>. Putting that together, a typical loop to exhaust a coroutine looks like:</p>
+<pre><code>co := coroutine cofor(10)</code></pre>
+<p>Normally, <code>cofor</code> takes two arguments, the range to iterate over, and the function value to call for each value. When we prefix a call to for by <code>coroutine</code>, it transforms the call into an object that can have its iteration triggered manually. A coroutine <em>suspends</em> (yields) when it would normally call the function value (which here is supplied by <code>coroutine</code> automatically). We can check the last value the object produced using <code>co.returnvalue</code> (which after the above call should be <code>0</code>) and we can cause the next iteration step to happen with <code>co.resume</code> (or <code>co.resume(x)</code>, where <code>x</code> is the value to be returned from the function value call inside the coroutine). At some point, the coroutine may end naturally (when the loop is over), at which point it can't be resumed anymore, and trying to resume it would be an error. To test whether you can still iterate a coroutine further, you can call <code>co.active</code>. Putting that together, a typical loop to exhaust a coroutine looks like:</p>
 <pre><code>while(co.active):
     print(co.returnvalue)
     co.resume</code></pre>
 <p>Which would print 0..9. However, noone would ever write such a loop, since in that case it would have been easier to just call the function this coroutine is based on! Typical use of a coroutine object is therefore to resume it once per frame in a game loop (for programming animations or game objects that act over time), or once every time new data arrives from a file, a network, or another thread.</p>
 <p>Calling co.returnvalue when co.active has turned false will get you the return value of the coroutine call as a whole.</p>
-<p>If you create a coroutine object based on a function that contains local variables, you can access those local variables even when the coroutine is not running, using the <code>@</code> notation: <code>co.local@function</code> accesses a particular local variable in a particular function, relative to a coroutine object. You can use these variables just like you can any other variable (assign to them etc.).</p>
+<p>If you create a coroutine object based on a function that contains local variables, you can access those local variables even when the coroutine is not running, using the <code>-&gt;</code> operator: <code>co-&gt;local</code> accesses a particular local variable in a coroutine object. You can use these variables just like you can any other variable (assign to them etc.).</p>
 <h2 id="programs-structure">Programs Structure</h2>
 <p>A lobster program is like the body of a function: a list of expressions on separate lines, defined by a single file, the main file of your program. At this top level of a file, you can additionally use the <code>include</code> keyword to bring additional code into your program:</p>
 <pre><code>include &quot;std.lobster&quot;</code></pre>
@@ -246,9 +247,14 @@ a = nil</code></pre>
 <p><code>while</code> is an odd function, since it is an exception to the rule of Lobster syntax:</p>
 <pre><code>while(a &lt; 10): a++</code></pre>
 <p>That looks perfectly normal, but one thing should stand out: while takes not one, but 2 function values. Normally, in Lobster, this would make more sense:</p>
-<pre><code>while(): a &lt; 10 do: a++</code></pre>
+<pre><code>while():
+    a &lt; 10
+do:
+    a++</code></pre>
 <p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn't generally used elsewhere.</p>
 <p><code>while</code> returns the last return value of the body, or nil if never executed. A similar function <code>collectwhile</code> returns a vector of all body return values.</p>
 <p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate()</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
+<h2 id="type-checking">Type Checking</h2>
+<p>This has its own document, <a href="type_checker.html">here</a>.</p>
 </body>
 </html>

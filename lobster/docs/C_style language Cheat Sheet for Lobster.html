@@ -41,8 +41,7 @@ version</big></td>
 <tr>
 <td>a := 1</td>
 <td>var a = 1;</td>
-<td>variables are dynamically typed like in JavaScript, in
-languages like C# a will be fixed to int</td>
+<td>variable declarations use type inference</td>
 </tr>
 <tr>
 <td>a = 1</td>
@@ -67,8 +66,7 @@ languages like C# a will be fixed to int</td>
 <tr>
 <td style="white-space: nowrap;">v := [ 1, 2, 3 ]</td>
 <td>int[] v = new int[] { 1, 2, 3 };</td>
-<td>in Lobster we can of course put a mix of any types in a
-vector if we want. They are also resizable, so they are probably more
+<td>The type of vectors is inferred. They are also resizable, so they are probably more
 akin a C# List than an array.</td>
 </tr>
 <tr>
@@ -81,8 +79,9 @@ for (int i = 0; i &lt; 3; i++) w[i] = v[i] + v[i];</td>
 <tr>
 <td>nil</td>
 <td>null</td>
-<td>null works only with reference types, in Lobster it is
-an alternative to all types (even ints)</td>
+<td>nil is more strict in lobster, in that a reference type which can
+be nil is different from those that are never nil, and you explicitly
+convert between them</td>
 </tr>
 <tr>
 <td>a | b &amp; c</td>
@@ -217,7 +216,7 @@ version</big></td>
 <tr>
 <td>function name(a, b): a + b</td>
 <td>int name(int a, int b) { return a + b; }</td>
-<td>of course, the Lobster version is not restricted to int</td>
+<td>of course, the Lobster version is not restricted to int, you can call it with any combination of types that work with +</td>
 </tr>
 <tr>
 <td>function name(a, b):<br>
@@ -378,21 +377,16 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td>struct xy: [ x, y ]</td>
+<td>struct xy: [ x:float, y:float ]</td>
 <td>public class xy { float x; float y; }</td>
-<td>the fields are dynamically typed in Lobster, in C# etc
-you'd use either specific types like here</td>
+<td><br></td>
 </tr>
 <tr>
 <td>struct xy: [ x, y ]</td>
 <td>public class xy&lt;T&gt; { T x; T y; }</td>
 <td>or generics</td>
 </tr>
-<tr>
-<td>struct xy: [ x, y ]</td>
-<td style="white-space: nowrap;">public class xy { dynamic x; dynamic y; }</td>
-<td>or the type dynamic, which is most similar to Lobster</td>
-</tr>
+
 <tr>
 <td>struct xyz: xy [ z ]</td>
 <td>public class xyz : xy { float z; }</td>
@@ -465,7 +459,7 @@ from it. Lobster has no such limitations.</td>
 <td>co.active</td>
 <td>/* not available */</td>
 <td>in C#, MoveNext returns a boolean that plays this role</td>
-</tr><tr><td>co.i@myiter</td><td>/* not available */</td><td>access local vars inside a coroutine object. This feature makes it easier to have multiple coroutines communicate</td></tr>
+</tr><tr><td>co-&gt;i</td><td>/* not available */</td><td>access local vars inside a coroutine object. This feature makes it easier to have multiple coroutines communicate</td></tr>
 
 
 

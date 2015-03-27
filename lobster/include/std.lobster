@@ -133,6 +133,11 @@ function coroutine_for(co, f):
         co.resume
     co.returnvalue
 
+// builtin for() made useful as a coroutine.
+function cofor(n, f):
+    for(n): f(i)
+    n
+
 // error checking
 
 function fatal(msg):

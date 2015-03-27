@@ -1355,21 +1355,11 @@ struct VM : VMBase
 
     void NFCheck(Value &v, NativeFun *&nf, int i)
     {   
-        tryagain:
         if (!Coerce(v, nf->args.v[i].type->t))
         {
             if (nf->args.v[i].type->t == V_NILABLE)
             {
                 if (v.type == V_NIL || Coerce(v, nf->args.v[i].type->sub->t)) return;
-            }
-            if (!i && nf->overloads)
-            {
-                // This is a giant hack, because we accidentally added native function overloading which doesn't
-                // work without the typechecker.
-                // We try to recover by trying one of the other overloads.
-                // When we remove this hack, nf doesn't need to be a * and can be const.
-                nf = nf->overloads;
-                goto tryagain;
             }
             Error(string("argument ") + inttoa(i + 1) + " of native function \"" + nf->name + 
                   "\" needs to have type " + TypeName(nf->args.v[i].type) + ", not " + ProperTypeName(v), v);

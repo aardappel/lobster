@@ -164,7 +164,10 @@ mostly be used similarly to vectors, but have some additional perks, like being
 able to be indexed by name, and allowing you to write dynamically dispatched
 functions for them (see MultiMethods, below). For example, from `vec.lobster`:
 
-    value xy: [ x, y ] value xyz: xy [ z ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+value xy: [ x, y ]
+value xyz: xy [ z ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use either `struct` or `value` to define these, both giving the same
 result except for the latter being more restrictive: it does not allow fields to
@@ -181,14 +184,18 @@ the former.
 You construct values of these types similarly to vectors, with an added type
 specified at the end:
 
-    v := [ 1, 0, 0 ]:xyz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+v := [ 1, 0, 0 ]:xyz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The type ensures that the right amount of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
 
 You can optionally construct one out of a supertype value using `super`:
 
-    v := [ super s, 0 ]:xyz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+v := [ super s, 0 ]:xyz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here, `s` is a vector of type `xy`, and both of its fields will be copied into
 the newly constructed `xyz` vector.
@@ -196,7 +203,9 @@ the newly constructed `xyz` vector.
 Optionally, you may declare types of elements, which will cause these types to
 be checked upon construction:
 
-    value xy: [ x:float, y:float ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+value xy: [ x:float, y:float ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Operators
 ---------
@@ -211,13 +220,24 @@ makes typical game code both convenient and fast.
 The assignment operators simply copies the value on the left hand side into the
 variable or vector index on the left hand side:
 
-    a = 1 v[0] = 1 v.x = 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+a = 1
+v[0] = 1
+v.x = 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All variables must already have been declared, or this will result in an error.
 Instead, the `:=` operator defines and assigns in one go, and requires the
 variable to not have been declared yet in this scope:
 
-    a := 1 b :== 1 enum x = 1, y, z c \<- 1 d, e := 1, 2 f, g := 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+a := 1
+b :== 1
+enum x = 1, y, z
+c \<- 1
+d, e := 1, 2
+f, g := 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The `:==` operator does the same as `:=`, but now forces the variable to never
 be assigned to again in any of the following statements (makes it a constant).
@@ -248,7 +268,11 @@ return `nil`.
 
 You may even use a vector as index, e.g.
 
-    mat := [ [ 1, 2 ],  [ 3, 4 ] ] pos := [ 0, 1 ] print(mat[pos])
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mat := [ [ 1, 2 ],  [ 3, 4 ] ]
+pos := [ 0, 1 ]
+print(mat[pos])
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This prints `3`, and is a convenient shortcut for `mat[pos.y][pos.x]`. Note how
 it uses the last element to index with first, this is because in code an other
@@ -264,7 +288,9 @@ length of the shortest of all input vectors, and will contain `float` elements
 unless *all* values involved were `int`. The type of the shortest vector (or
 left hand side if both equal) is preserved in the result:
 
-    [ 1, 2, 3 ] \* [ 4, 5.5 ]:xy // results in [ 4.0, 11.0 ]:xy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 1, 2, 3 ] * [ 4, 5.5 ]:xy // results in [ 4.0, 11.0 ]:xy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,
 which are implemented to have exactly the same effect as their expanded form,
@@ -320,7 +346,9 @@ It has both *named functions* and *function values*.
 
 Named functions can be declared at any scope level (may be local), like so:
 
-    function name(arg1, arg2): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function name(arg1, arg2): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `body` can either be a single expression, multiple expressions all on a single
 line separated by `;`, or, most commonly, an indentation (start of code on the
@@ -330,7 +358,11 @@ until a de-dedentation occurs (return to the indentation level of the parent, in
 this case again the `function` keyword). It is an error to de-dedent less than
 the parent level. For example:
 
-    function name(arg1, arg2): exp1 exp2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function name(arg1, arg2):
+    exp1
+    exp2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The return value of a function is always that of the last expression evaluated,
 or given by `return` (see below).
@@ -352,15 +384,19 @@ You can use :: instead of : for typed vector arguments, which allows you to
 access all fields of that vector directly, without having to prefix them with
 the argument name, e.g.:
 
-    function magnitude(v::xy): sqrt(x * x + y * y)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function magnitude(v::xy): sqrt(x * x + y * y)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, types allow the definition of multimethods, whereby all functions
 of the same name and number of arguments inside the program (not necessarily
 adjacent in code, in any order) act as a single function:
 
-    function intersect(a, b): "no idea how to intersect these two!" function
-    intersect(c:circle, p:xy): "point in circle" function intersect(c:circle,
-    r:ray): "ray vs circle"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function intersect(a, b): "no idea how to intersect these two!"
+function intersect(c:circle, p:xy): "point in circle"
+function intersect(c:circle, r:ray): "ray vs circle"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Calling intersect with any 2 arguments will automatically call the most
 appropriate function. If 2 functions apply to the argument types, the most
@@ -374,7 +410,9 @@ error, since at least one function always matches).
 You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
-    f := function(arg1, arg2): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+f := function(arg1, arg2): body
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You call these just like any other function, e.g. `f(1, 2)`.
 
@@ -384,14 +422,19 @@ syntax for this situation that is meant to mimic control structures in other
 languages. Any function call may be followed by one or more function values,
 where the `function` keyword is omitted:
 
-    for(10) (i): print(i)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for(10) (i): print(i)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here, the function `for` is called with 2 arguments, the first is `10`, and the
 second is the function value `function(i): print(i)`. Lobster allows two more
 levels of further simplification of the syntax if the arguments do not contain
 type annotations:
 
-    for(10) i: print(i) for(10): print(\_)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for(10) i: print(i)
+for(10): print(_)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can leave out the parentheses, and you may use anonymous arguments, which
 are variable names starting with an `_` that will automatically be declared as
@@ -410,13 +453,20 @@ from any such function the user could define.
 As an example of how to pass more than one function value, let's see an example
 for `if`:
 
-    nat := if(a \< 0): 0 else: a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+nat := if(a < 0): 0 else: a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here we see that all except the first function value must be preceded by the
 name of the argument they're specifying. In Lobster, `else` is not a keyword, it
 simply is the name of the 3rd argument of `if`. Similarly, with indentation:
 
-    if(a \< 0): print("negative numbers are scary!") else: print("a = " + a)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if(a < 0):
+    print("negative numbers are scary!")
+else:
+    print("a = " + a)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Writing your own functions that take function values is the key to getting the
 most out of Lobster. It allows you to refactor pretty much any code into
@@ -427,7 +477,13 @@ something that has no redundancy yet is easy to create, use and modify.
 Using return, we can bypass the default return value, and return from the
 closest lexically enclosing named function, e.g.:
 
-    function find(list, x): for(list): if(x == \_): return true false
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function find(list, x):
+    for(list):
+        if(x == \_):
+            return true
+    false
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `find`'s return value appears to be `false`, but by using `return`, we can
 override it to be `true`. Importantly, `return true` is an expression that sits
@@ -453,7 +509,10 @@ from the entire program.
 return can specify more than one value to be returned, which can then be
 received by the multiple assignment syntax introduced above:
 
-    function m(): return 1, 2 a, b := m()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function m(): return 1, 2
+a, b := m()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All return statements for any function must all return the same amount of return
 values.
@@ -485,8 +544,16 @@ Lobster also supports a safe way of optionally using *dynamic scope* by making
 it *lexically bounded*, i.e. you can use dynamic scoping only on variables that
 are already defined in lexical scope. As an example:
 
-    x, y := 0 function f(): print(x + " " + y) function g(): x := 1 y \<- 1 f()
-    g()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+x, y := 0
+function f():
+    print(x + " " + y)
+function g():
+    x := 1
+    y <- 1
+    f()
+g()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This will print `0 1`. This makes sense for `x`, after all, the second `x` is a
 completely separate variable that doesn't influence the print statement. The
@@ -498,7 +565,12 @@ that can see the original variable) `y` has a different value. At the end of
 Alternatively, you can understand the part that does `y <- 1; f()` as doing
 something like this:
 
-    oldy := y y = 1 f() y = oldy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+oldy := y
+y = 1
+f()
+y = oldy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is very useful for when you want to change a variable for the duration of a
 function, which is a common programming pattern. It is also safe because unlike
@@ -556,13 +628,15 @@ turn any such function into a coroutine, which is a higher order function that
 can be resumed on demand. Kind of like a separate thread that only runs when you
 want to (*cooperative multitasking*). For example:
 
-    co := coroutine for(10)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+co := coroutine cofor(10)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Normally, `for` takes 2 arguments, the thing to iterate over, and the function
-value to call for each element. When we prefix a call to for by `coroutine`, it
-transforms the call into an object that can have its iteration triggered
-manually. A coroutine *suspends* (yields) when it would normally call the
-function value (which here is supplied by `coroutine` automatically). We can
+Normally, `cofor` takes two arguments, the range to iterate over, and the
+function value to call for each value. When we prefix a call to for by
+`coroutine`, it transforms the call into an object that can have its iteration
+triggered manually. A coroutine *suspends* (yields) when it would normally call
+the function value (which here is supplied by `coroutine` automatically). We can
 check the last value the object produced using `co.returnvalue` (which after the
 above call should be `0`) and we can cause the next iteration step to happen
 with `co.resume` (or `co.resume(x)`, where `x` is the value to be returned from
@@ -572,7 +646,11 @@ anymore, and trying to resume it would be an error. To test whether you can
 still iterate a coroutine further, you can call `co.active`. Putting that
 together, a typical loop to exhaust a coroutine looks like:
 
-    while(co.active): print(co.returnvalue) co.resume
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+while(co.active):
+    print(co.returnvalue)
+    co.resume
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Which would print 0..9. However, noone would ever write such a loop, since in
 that case it would have been easier to just call the function this coroutine is
@@ -598,7 +676,9 @@ separate lines, defined by a single file, the main file of your program. At this
 top level of a file, you can additionally use the `include` keyword to bring
 additional code into your program:
 
-    include "std.lobster"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+include "std.lobster"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents of that file will be merged into your main file at the location of
 the `include` for the purpose of compilation. If you you include the same file
@@ -620,7 +700,11 @@ allocator for its vector object that is very fast.
 Reference counting has one problem, which is that it can't deallocate cycles.
 For example, this code:
 
-    a := [ nil ] a[0] = a a = nil
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+a := [ nil ]
+a[0] = a
+a = nil
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 will cause a memory leak, since initially the vector that a points at has a
 reference count of 1, then that count increases to 2 because it now points to
@@ -649,7 +733,9 @@ program may run for a long time, and leak-free code cannot be guaranteed,
 Lobster optionally provides a garbage collector that can be run periodically to
 clean up left over objects:
 
-    amount\_of\_leaks := collect\_garbage()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+amount_of_leaks := collect_garbage()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Like most garbage collectors, this function can be slow depending on the amount
 of memory in use, so call it infrequently.
@@ -660,7 +746,9 @@ Built-in Functions
 Built-in functions are not strictly part of the language, but since Lobster
 relegates so much core functionality to them, it is useful to have a look how
 the important ones work. For a complete list, please refer to the [built-in
-function reference][].
+function reference][1].
+
+[1]: <builtin_functions_reference.html>
 
 ### Control Structures
 
@@ -680,12 +768,19 @@ otherwise.
 `while` is an odd function, since it is an exception to the rule of Lobster
 syntax:
 
-    while(a \< 10): a++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+while(a < 10): a++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 That looks perfectly normal, but one thing should stand out: while takes not
 one, but 2 function values. Normally, in Lobster, this would make more sense:
 
-    while(): a \< 10 do: a++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+while():
+    a < 10
+do:
+    a++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 but since people are so used to the way while loops work from other languages,
 the first argument has a special type that automatically converts an expression
@@ -703,4 +798,9 @@ structures, like many of the graphics function that change the current rendering
 state. An example is `gl_translate()`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
-[built-in function reference]: builtin\_functions\_reference.html
+Type Checking
+-------------
+
+This has its own document, [here][2].
+
+[2]: <type_checker.html>

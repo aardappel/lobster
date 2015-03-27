@@ -1,6 +1,6 @@
-% Lobster Design Philosophy, History, and Future
-
-
+---
+title: "Lobster Design Philosophy, History, and Future"
+...
 
 This document tries to clarify why certain design choices were made in the
 Lobster language and system.
@@ -45,10 +45,9 @@ suitable for my style of programming (heavily refactoring-based).
 
     -   It contains no game editor or friendly IDE. Everything is code.
 
--   A language for large scale / team programming. It's a dynamically typed
-    language that favors expressive power over protecting the programmer. It's
-    best used for small to medium sized projects by programmers that know what
-    they're doing.
+-   A language for large scale / team programming. Its type system favors
+    expressive power over building interfaces. It's best used for small to
+    medium sized projects by programmers that know what they're doing.
 
 -   A language that is all things to all people. While I would claim that
     Lobster is a *general purpose programming language*, it is strongly biased
@@ -95,6 +94,10 @@ suitable for my style of programming (heavily refactoring-based).
     the crippling over-engineering culture so prevalent nowadays, and Lobster is
     trying to go the opposite direction.
 
+-   A type system that tries to get as close to the experience of using a
+    dynamically typed language as possible while allowing maximum efficiency
+    thanks to full types.
+
 -   The belief that the ideal programming language is... TWO programming
     languages. Any larger project consists of a lot of high level and glue code
     that is infrequently executed and benefits from the simple and terse
@@ -118,8 +121,6 @@ suitable for my style of programming (heavily refactoring-based).
 -   A portable, cross platform system, targeting desktop and mobile OSes alike.
 
 -   An implementation that cares about simplicity, speed, and robustness.
-
-
 
 ### What Lobster was (History):
 
@@ -188,9 +189,15 @@ The implementation still had the C-stack based function calling implied by the
 abovementioned paper, which now wasn't necessary anymore, and Lobster switched
 to a more traditional VM stack.
 
-Later, multi-methods, and most recently, coroutines, got added.
+Later, multi-methods, and more recently, coroutines, got added.
 
-
+Most recently, Lobster transitioned from being a dynamically typed language to a
+statically typed language. I prefer programming using dynamic typing, but I had
+an idea how I could use specialization in combination with type inference and
+flow-sensitive typing to get very far in being able to type-check all existing
+Lobster code without having to litter it with types. That challenge took it much
+further than I anticipated. The end result is impressively powerful, even though
+I made it a bit more strict than I planned (i.e. making `nil` its own type).
 
 ### What Lobster will be (Future Plans)
 
@@ -230,12 +237,8 @@ needs, roughly in this order:
     global state for that), which relates to being able to add threading
     features and potentially write a visual debugger in Lobster itself.
 
--   A typechecker to catch more errors at compile time.
-
 -   A high-level optimizer
 
 -   An LLVM backend
 
 -   Make the VM file format simpler, smaller, and more self-contained.
-
-
