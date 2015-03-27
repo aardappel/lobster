@@ -19,7 +19,7 @@ function mg_mirror_y(dist, body):
         mg_translate([ 0, i * dist * 2 - dist, 0 ], body)
 
 mg_set_colornoise(0.5, 1)
-aspoints := true
+aspoints := false
 mg_set_pointmode(aspoints)
 if(!aspoints):
     mg_set_polygonreduction(100, 0.98, 0.95)

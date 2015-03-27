@@ -54,8 +54,12 @@ while(gl_frame() & !gl_wentdown("escape")):
         enemyrate ?= 1.0
         enemymaxhp :== 5
         every_n_seconds(enemyrate):
-            enemies.push([ sincos(rnd(360)) * worldsize * 2, enemymaxhp ]:enemy)
+            enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
             enemyrate *= 0.999
+
+        firerate :== 0.1
+        every_n_seconds(firerate):
+            bullets.push([ playerpos, tomouse ]:bullet)
 
         enemyspeed :== 3
         for(enemies) e:
@@ -79,10 +83,6 @@ while(gl_frame() & !gl_wentdown("escape")):
                 renderpointytriangle(e.pos, playerdir)
 
         enemies = filter(enemies): _.hp
-
-        firerate :== 0.1
-        every_n_seconds(firerate):
-            bullets.push([ playerpos, tomouse ]:bullet)
 
         bulletspeed :== 15
         for(bullets) b:
