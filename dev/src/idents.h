@@ -45,7 +45,6 @@ struct Ident : Named
     
     Ident *prev;
 
-    SubFunction *sf_named;  // Surrounding named function (only used for @, remove me).
     SubFunction *sf_def;    // Where it is defined, including anonymous functions.
     
     bool single_assignment;
@@ -59,7 +58,7 @@ struct Ident : Named
 
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Named(_name, _idx), line(_l), 
-          scope(_sc), prev(nullptr), sf_named(nullptr), sf_def(nullptr),
+          scope(_sc), prev(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
@@ -194,7 +193,8 @@ struct SubFunction
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
 
-    vector<const Ident *> coyieldsave;
+    ArgVector coyieldsave;
+    TypeRef coresumetype;
 
     Node *body;
 
@@ -210,6 +210,7 @@ struct SubFunction
     SubFunction(int _idx)
         : idx(_idx),
           parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
+          coyieldsave(0, nullptr),
           body(nullptr), next(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), iscoroutine(false),
           thistype(V_FUNCTION, this)
@@ -235,12 +236,6 @@ struct SubFunction
     ~SubFunction()
     {
         if (next) delete next;
-    }
-
-    void YieldSave(const Ident *id)
-    {
-        for (auto eid : coyieldsave) if (eid == id) return;
-        coyieldsave.push_back(id);
     }
 };
 
@@ -352,7 +347,7 @@ struct SymbolTable
     bool uses_frame_state;
 
     // Used during parsing.
-    vector<SubFunction *> namedsubfunctionstack, defsubfunctionstack;
+    vector<SubFunction *> defsubfunctionstack;
 
     SymbolTable() : uses_frame_state(false) {}
 
@@ -364,12 +359,24 @@ struct SymbolTable
         for (auto f  : fieldtable)    delete f;
     }
     
+    Ident *Lookup(const string &name)
+    {
+        auto it = idents.find(name);
+        return it == idents.end() ? nullptr : it->second;
+    }
+        
+    Ident *LookupAny(const string &name)
+    {
+        for (auto id : identtable) if (id->name == name) return id;
+        return nullptr;
+    }
+
     Ident *LookupDef(const string &name, int line, Lex &lex, bool anonymous_arg, bool islocal)
     {
         auto sf = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
 
-        auto it = idents.find(name);
-        if (anonymous_arg && it != idents.end() && it->second->sf_def == sf) return it->second;
+        auto existing_ident = Lookup(name);
+        if (anonymous_arg && existing_ident && existing_ident->sf_def == sf) return existing_ident;
 
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
@@ -378,20 +385,15 @@ struct SymbolTable
         ident = new Ident(name, line, identtable.size(), scopelevels.back());
         ident->anonymous_arg = anonymous_arg;
 
-        ident->sf_named = namedsubfunctionstack.empty() ? nullptr : namedsubfunctionstack.back();
         ident->sf_def = sf;
         if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, type_any, true));
 
-        if (it == idents.end())
+        if (existing_ident)
         {
-            idents[name] = ident;
+            if (scopelevels.back() == existing_ident->scope) lex.Error("identifier redefinition: " + ident->name);
+            ident->prev = existing_ident;
         }
-        else
-        {
-            if (scopelevels.back() == it->second->scope) lex.Error("identifier redefinition: " + ident->name);
-            ident->prev = it->second;
-            it->second = ident;
-        }
+        idents[name] = ident;
         identstack.push_back(ident);
         identtable.push_back(ident);
         return ident;
@@ -399,28 +401,28 @@ struct SymbolTable
 
     Ident *LookupDynScopeRedef(const string &name, Lex &lex)
     {
-        auto it = idents.find(name);
-        if (it == idents.end()) lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(it->second, type_any, true);
-        return it->second;
+        auto ident = Lookup(name);
+        if (!ident) lex.Error("lhs of <- must refer to existing variable: " + name);
+        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, type_any, true));
+        return ident;
     }
         
     Ident *LookupMaybe(const string &name)
     {
-        auto it = idents.find(name);
-        if (it == idents.end()) return nullptr;
+        auto ident = Lookup(name);
+        if (!ident) return nullptr;
         
-        if (defsubfunctionstack.size() && it->second->sf_def != defsubfunctionstack.back())
+        if (defsubfunctionstack.size() && ident->sf_def != defsubfunctionstack.back())
         {
             // This is a free variable, record it in all parents up to the definition point.
             for (int i = (int)defsubfunctionstack.size() - 1; i >= 0; i--)
             {
                 auto sf = defsubfunctionstack[i];
-                if (it->second->sf_def == sf) break;  // Found the definition.
-                sf->freevars.Add(it->second, type_any, true);
+                if (ident->sf_def == sf) break;  // Found the definition.
+                sf->freevars.Add(Arg(ident, type_any, true));
             }
         }
-        return it->second;  
+        return ident;  
     }
 
     Ident *LookupUse(const string &name, Lex &lex)
@@ -431,24 +433,12 @@ struct SymbolTable
         return id;  
     }
 
-    // FIXME: only used for @, and causes a lot of complexity, refactor?
-    Ident *LookupIdentInFun(const string &idname, const string &fname) // slow, but infrequently used
-    {
-        Ident *found = nullptr;
-        for (auto id : identtable)  
-            if (id->name == idname && id->sf_named && id->sf_named->parent->name == fname)
-            {
-                if (found) return nullptr;
-                found = id;
-            }
-
-        return found;
-    }
-
     void AddWithStruct(TypeRef t, Ident *id, Lex &lex)
     {
         if (t->t != V_STRUCT) lex.Error(":: can only be used with struct/value types");
-        for (auto &wp : withstack) if (wp.first->struc == t->struc) lex.Error("type used twice in the same scope with ::");
+        for (auto &wp : withstack)
+            if (wp.first->struc == t->struc)
+                lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash with the struct,
         // or do so in LookupUse
         assert(t->struc);

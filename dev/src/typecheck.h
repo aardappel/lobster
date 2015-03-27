@@ -421,6 +421,7 @@ struct TypeChecker
 
         // FIXME: this would not be able to typecheck recursive functions with multiret.
         sf.returntypes[0] = NewTypeVar();
+        sf.coresumetype = sf.iscoroutine ? NewTypeVar() : type_any;
 
         auto start_promoted_vars = flowstack.size();
 
@@ -777,12 +778,12 @@ struct TypeChecker
                     if (ssf == sf) foundstart = true;
                     if (!foundstart) continue;
 
-                    for (auto &arg : ssf->args.v) sf->YieldSave(arg.id);
-                    for (auto &loc : ssf->locals.v) sf->YieldSave(loc.id);
-                    for (auto &dyn : ssf->dynscoperedefs.v) sf->YieldSave(dyn.id);
+                    for (auto &arg : ssf->args.v) sf->coyieldsave.Add(arg);
+                    for (auto &loc : ssf->locals.v) sf->coyieldsave.Add(Arg(loc.id, loc.id->type, false));
+                    for (auto &dyn : ssf->dynscoperedefs.v) sf->coyieldsave.Add(dyn);
                 }
 
-                return type_any;  // Whatever we get from resume, can we improve this?
+                return sf->coresumetype;
             }
             TypeError("yield function called outside scope of coroutine", fval);
             return type_any;
@@ -1258,9 +1259,17 @@ struct TypeChecker
                             else if (argtype->t == V_ANY) argtype = NewTypeVar();
                             else assert(0);
                             break;
+
+                        case NF_CORESUME:
+                        {
+                            // Specialized typechecking for resume()
+                            assert(argtypes[0]->t == V_COROUTINE);  
+                            auto sf = argtypes[0]->sf;
+                            SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                        }
                     }
                     SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
-                    auto &actualtype = list->head()->exptype;
+                    auto actualtype = list->head()->exptype;
                     if (actualtype->IsFunction())
                     {
                         // We must assume this is going to get called and type-check it
@@ -1535,6 +1544,23 @@ struct TypeChecker
                 break;
             }
 
+            case T_CODOT:
+            {
+                SubType(n.left(), type_coroutine, "coroutine", n);
+                auto sf = n.left()->exptype->sf;
+                Arg *uarg = nullptr;
+                auto &name = n.right()->ident()->name;  // This ident is not necessarily the right one.
+                for (auto &arg : sf->coyieldsave.v) if (arg.id->name == name)
+                {
+                    if (uarg) TypeError("multiple coroutine variables named: " + name, n);
+                    uarg = &arg;
+                }
+                if (!uarg) TypeError("no coroutine variables named: " + name, n);
+                n.right()->ident() = uarg->id;
+                n.right()->exptype = type = uarg->type;
+                break;
+            }
+
             case T_INDEX:
             {
                 auto vtype = n.left()->exptype;
@@ -1586,12 +1612,6 @@ struct TypeChecker
             case T_SUPER:
                 type = n.child()->exptype;
                 break;
-
-
-
-            case T_CO_AT:
-
-
 
             case T_MULTIRET:
             case T_FUN:

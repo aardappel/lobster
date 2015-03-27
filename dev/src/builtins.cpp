@@ -666,7 +666,7 @@ void AddBuiltins()
         g_vm->CoResume(co.cval);
         return ret;
     }
-    ENDDECL2(resume, "coroutine,returnvalue", "Ra", "A",
+    ENDDECL2(resume, "coroutine,returnvalue", "Ra%", "A",
         "resumes execution of a coroutine, passing a value back or nil");
 
     STARTDECL(returnvalue) (Value &co)

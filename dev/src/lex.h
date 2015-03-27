@@ -233,7 +233,6 @@ struct Lex : LoadedFile
 
             case ';': return T_SEMICOLON;
 
-            case '@': cont = true; return T_AT;
             case ',': cont = true; return T_COMMA;
             case '&': cont = true; return T_AND;
             case '|': cont = true; return T_OR;
@@ -242,7 +241,7 @@ struct Lex : LoadedFile
             #define second(s, t) secondb(s, t, {})
 
             case '+': second('+', T_INCR); cont = true; second('=', T_PLUSEQ); return T_PLUS;
-            case '-': second('-', T_DECR); cont = true; second('=', T_MINUSEQ); return T_MINUS;
+            case '-': second('-', T_DECR); cont = true; second('=', T_MINUSEQ); second('>', T_CODOT); return T_MINUS;
             case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
             case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 

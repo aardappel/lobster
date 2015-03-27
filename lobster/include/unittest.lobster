@@ -256,6 +256,7 @@ function run_test_cases():
         co3.resume
     assert(sum == 45)
 
+    // Access variables inside coroutines from the outside:
     function loctest(f):
         a := 1
         for(10) i:
@@ -263,7 +264,7 @@ function run_test_cases():
             f()
 
     co4 := coroutine loctest()
-    //assert(co4.a@loctest + co4.i@loctest + co4.b@loctest == 3)
+    assert(co4->a + co4->i + co4->b == 3)
 
     // Even functions that don't yield are cool:
     function conoyield(f): 1

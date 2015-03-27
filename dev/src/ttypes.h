@@ -48,6 +48,7 @@ namespace lobster
     T(T_DEF, ":=", TT_TERNARY, NO, a, NO, b) \
     T(T_DOT, ".", TT_BINARY, NO, a, NO, b) \
     T(T_DOTMAYBE, "?.", TT_BINARY, NO, a, NO, b) \
+    T(T_CODOT, "->", TT_BINARY, NO, a, NO, b) \
     T(T_INT, "integer literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_FLOAT, "floating point literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_STR, "string literal", TT_NOCHILD, NO, a, NO, b) \
@@ -74,7 +75,6 @@ namespace lobster
     T(T_ASSIGNLIST, "assign list", TT_BINARY, NO, a, NO, b) \
     T(T_MULTIRET, "multiple return", TT_NONE, YES, headexp, YES, tailexps) \
     T(T_SEQ, "statements", TT_BINARY, NO, a, NO, b) \
-    T(T_CO_AT, "@", TT_NONE, YES, coroutine_at, YES, coroutine_var) \
     T(T_INDEX, "indexing operation", TT_BINARY, NO, a, NO, b) \
     T(T_POSTINCR, "++", TT_UNARY, NO, a, NO, b) \
     T(T_POSTDECR, "--", TT_UNARY, NO, a, NO, b) \

@@ -152,7 +152,7 @@ extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
 extern TypeRef type_coroutine;
 
-enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR };
+enum ArgFlags { AF_NONE, NF_EXPFUNVAL, NF_OPTIONAL, AF_ANYTYPE, NF_SUBARG1, NF_ANYVAR, NF_CORESUME };
 
 template<typename T> struct Typed
 {
@@ -196,6 +196,7 @@ template<typename T> struct Typed
                 case '1': flags = NF_SUBARG1; break;
                 case '*': flags = NF_ANYVAR; break;
                 case '@': flags = NF_EXPFUNVAL; break;
+                case '%': flags = NF_CORESUME; break;
                 case ']': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back()); break;
                 case '?': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back(), V_NILABLE); break;
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
@@ -239,12 +240,12 @@ struct ArgVector
         }
    }
 
-    void Add(Ident *id, TypeRef type, bool generic)
+    void Add(const Arg &in)
     {
         for (auto &arg : v)
-            if (arg.id == id)
+            if (arg.id == in.id)
                 return;
-        v.push_back(Arg(id, type, generic));
+        v.push_back(in);
     }
 };
 

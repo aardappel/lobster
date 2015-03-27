@@ -466,7 +466,6 @@ struct Parser
         auto sf = st.CreateSubFunction();
 
         st.defsubfunctionstack.push_back(sf);
-        if (name) st.namedsubfunctionstack.push_back(sf);
 
         if (parens) Expect(T_LEFTPAREN);
         int nargs = 0;
@@ -580,7 +579,6 @@ struct Parser
 
         if (name)
         {
-            st.namedsubfunctionstack.pop_back();
             functionstack.pop_back();
 
             if (!f.istype)
@@ -888,7 +886,7 @@ struct Parser
             case T_MODEQ:
             {
                 auto type = lex.token;
-                if (e->type != T_IDENT && e->type != T_DOT && e->type != T_CO_AT && e->type != T_INDEX)
+                if (e->type != T_IDENT && e->type != T_DOT && e->type != T_CODOT && e->type != T_INDEX)
                     Error("illegal left hand side of assignment");
                 Modify(e);
                 lex.Next();
@@ -1075,22 +1073,21 @@ struct Parser
         {
             case T_DOT:
             case T_DOTMAYBE:
+            case T_CODOT:
             {
                 auto op = lex.token;
                 lex.Next();
                 string idname = lex.sattr;
                 Expect(T_IDENT);
-                if (IsNext(T_AT) && op == T_DOT)
+                if (op == T_CODOT)
                 {
-                    string fname = lex.sattr;
-                    Expect(T_IDENT);
-                    // TODO: this is here because currently these functions have to be declared before use
-                    if (!st.FindFunction(fname))
-                        Error(string("function ") + fname + " hasn't been declared yet");
-                    auto id = st.LookupIdentInFun(idname, fname);
-                    if (!id)    
-                        Error(string("no unique local variable ") + idname + " in function with name " + fname);
-                    n = new Node(lex, T_CO_AT, n, new IdRef(lex, id));
+                    // Here we just look up ANY var with this name, only in the typechecker can we know if it exists
+                    // inside the coroutine.
+                    // Can cause error if used before coroutine is defined, error hopefully hints at that.
+                    auto id = st.LookupAny(idname);
+                    if (!id)
+                        Error("coroutines have no variable named: " + idname);
+                    n = new Node(lex, T_CODOT, n, new IdRef(lex, id));
                 }
                 else
                 {

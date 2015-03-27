@@ -78,19 +78,20 @@ struct Node : AST
 
     int NumChildren()  const { return TCat(type) == TT_NOCHILD ? 0 : TCat(type) == TT_TERNARY ? 3 : 2; }
 
-    int integer()      const { assert(type == T_INT);    return ((const IntConst *)this)->integer_; }
-    double flt()       const { assert(type == T_FLOAT);  return ((const FltConst *)this)->flt_; }
-    char * str()       const { assert(type == T_STR);    return ((const StrConst *)this)->str_; }
-    char *&str()             { assert(type == T_STR);    return ((      StrConst *)this)->str_; }
-    Ident *ident()     const { assert(type == T_IDENT);  return ((const IdRef *)this)->ident_; }
-    Struct *st()       const { assert(type == T_STRUCT); return ((const StRef *)this)->st_; }
-    SharedField *fld() const { assert(type == T_FIELD);  return ((const FldRef *)this)->fld_; }
-    NativeFun * nf()   const { assert(type == T_NATIVE); return ((const NatRef *)this)->nf_; }
-    NativeFun *&nf()         { assert(type == T_NATIVE); return ((NatRef *)this)->nf_; }
-    SubFunction * sf() const { assert(type == T_FUN);    return ((const FunRef *)this)->sf_; }
-    SubFunction *&sf()       { assert(type == T_FUN);    return ((FunRef *)this)->sf_; }
-    TypeRef  typenode()   const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
-    TypeRef &typenode()         { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
+    int integer()       const { assert(type == T_INT);    return ((const IntConst *)this)->integer_; }
+    double flt()        const { assert(type == T_FLOAT);  return ((const FltConst *)this)->flt_; }
+    char * str()        const { assert(type == T_STR);    return ((const StrConst *)this)->str_; }
+    char *&str()              { assert(type == T_STR);    return ((      StrConst *)this)->str_; }
+    Ident * ident()     const { assert(type == T_IDENT);  return ((const IdRef *)this)->ident_; }
+    Ident *&ident()           { assert(type == T_IDENT);  return ((      IdRef *)this)->ident_; }
+    Struct *st()        const { assert(type == T_STRUCT); return ((const StRef *)this)->st_; }
+    SharedField *fld()  const { assert(type == T_FIELD);  return ((const FldRef *)this)->fld_; }
+    NativeFun * nf()    const { assert(type == T_NATIVE); return ((const NatRef *)this)->nf_; }
+    NativeFun *&nf()          { assert(type == T_NATIVE); return ((      NatRef *)this)->nf_; }
+    SubFunction * sf()  const { assert(type == T_FUN);    return ((const FunRef *)this)->sf_; }
+    SubFunction *&sf()        { assert(type == T_FUN);    return ((      FunRef *)this)->sf_; }
+    TypeRef  typenode() const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
+    TypeRef &typenode()       { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
 
     Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
     Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }

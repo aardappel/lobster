@@ -44,7 +44,7 @@ function level(highscore, frame):
         lastbullet := gl_time()
         bullets := []
         forever():
-            dir := frame()
+            dir := frame() | xy_0
             if(lastbullet < gl_time()):
                 bullets.push(coroutine bullet(playerpos, dir))
                 lastbullet += firerate
@@ -62,10 +62,10 @@ function level(highscore, frame):
             playervec := playerpos - pos
             playerdir := normalize(playervec)
             pos += playerdir * gl_deltatime() * speed
-            for(bs.bullets@bulletset) b:
-                if(magnitude(b.pos@bullet - pos) < 1):
+            for(bs->bullets) b:
+                if(magnitude(b->pos - pos) < 1):
                     hp--
-                    b.pos@bullet = xy_x * worldsize * 10
+                    b->pos = xy_x * worldsize * 10
                     if(hp <= 0):
                         score++
                         return
@@ -81,7 +81,7 @@ function level(highscore, frame):
         forever():
             frame()
             if(lastenemy < gl_time()):
-                enemies.push(coroutine enemy(sincos(rnd(360)) * worldsize * 2))
+                enemies.push(coroutine enemy(sincos(rnd(360)).xy * worldsize * 2))
                 lastenemy += enemyrate
                 enemyrate *= 0.999
             enemies = filter(enemies) e:

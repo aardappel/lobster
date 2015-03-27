@@ -40,13 +40,6 @@
     if(x):  // promoted
         f() // nothing happens, f() has already been typechecked
 
-  * coroutine type checking!
-    - also use V_YIELD in VM! V_FUNCTION is never -1 anymore
-    - if cocl is its own type, no more need for function types ever to be null?
-    - move var detection to type checker (removing will break dynamic)
-    - arg to resume?
-    - remove @ syntax (will break dynamic version)
-
   * clean up function/subfunction and struct defs. There's a lot of duplicate information between the specializations.
 
   * gl_rect/magnitude takes a [any] but what we really want is [num].. or should we just overload it?

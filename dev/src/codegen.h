@@ -380,9 +380,9 @@ struct CodeGen
                 if (retval) Emit(IL_PUSHIDX);
                 break;
 
-            case T_CO_AT:
-                Gen(n->coroutine_at(), retval);
-                if (retval) Emit(IL_PUSHLOC, n->coroutine_var()->ident()->idx);
+            case T_CODOT:
+                Gen(n->left(), retval);
+                if (retval) Emit(IL_PUSHLOC, n->right()->ident()->idx);
                 break;
 
             case T_DEF:
@@ -749,7 +749,7 @@ struct CodeGen
                 // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
                 // each function
 
-                for (auto id : sf->coyieldsave) Emit(id->idx);
+                for (auto &arg : sf->coyieldsave.v) Emit(arg.id->idx);
 
                 code[loc] = code.size() - loc - 1;
 
@@ -791,7 +791,7 @@ struct CodeGen
         {
             case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;
             case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right()->fld(), lvalop, false); break;
-            case T_CO_AT: Gen(lval->coroutine_at(), 1); Emit(IL_LVALLOC, lvalop, lval->coroutine_var()->ident()->idx); break;
+            case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->ident()->idx); break;
             case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); Emit(IL_LVALIDX, lvalop); break;
             default:    parser.Error("lvalue required", lval);
         }
