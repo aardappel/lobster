@@ -135,7 +135,7 @@ function coroutine_for(co, f):
 
 // builtin for() made useful as a coroutine.
 function cofor(n, f):
-    for(n): f(i)
+    for(n): f(_)
     n
 
 // error checking
