@@ -9,7 +9,7 @@ print("generating models... this may take some time!")
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
 
-camera_position = [ 10.0, 10.0, 10.0 ]:xyz
+camera_position = xyz { 10.0, 10.0, 10.0 }
 camera_yaw = 135
 
 function mg_scale(f, body): mg_scalevec(xyz_1 * f, body)

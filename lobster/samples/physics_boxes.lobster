@@ -6,7 +6,7 @@ include "3dhelpers.lobster"
 
 fatal(gl_window("Physics demo : boxes", 1024, 768))
 
-worldsize :== [ 60.0, 40.0 ]:xy
+worldsize :== xy { 60.0, 40.0 }
 
 ph_initialize([ 0.0, -10.0 ])
 ph_createbox([ 0, 1 ], [ 40, 1 ])  // floor
@@ -17,7 +17,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
-    camera_2d_worldspace(worldsize, [ 0.5, 1.0 ]:xy, [ 1.0, -1.0 ]:xy)
+    camera_2d_worldspace(worldsize, xy { 0.5, 1.0 }, xy { 1.0, -1.0 })
 
     ph_step(gl_deltatime())
     ph_render()

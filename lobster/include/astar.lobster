@@ -3,10 +3,16 @@
 include "std.lobster"
 include "vec.lobster"
 
-struct astar_node: [ G:float, H:float, F:float, previous, state, delta, open:int, closed:int ]
-
-function new_astar_node(state, h:float):
-    [ 0.0, h, h, nil, state, nil, false, false ]:astar_node
+struct astar_node {
+    G:float = 0.0,
+    H:float = 0.0,
+    F:float = 0.0,
+    previous = nil,
+    state,
+    delta = nil,
+    open:int = false,
+    closed:int = false
+}
 
 function astar_clear(n::astar_node):
     open = closed = false
@@ -63,7 +69,7 @@ function astar_space(startnode, endnode, costf, neighbors):
 // specialized to a 2D grid (specialized case of a graph)
 
 function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
-    directions := [ [ -1, 0 ]:xy, [ 1, 0 ]:xy, [ 0, -1 ]:xy, [ 0, 1 ]:xy ]
+    directions := [ xy { -1, 0 }, xy { 1, 0 }, xy { 0, -1 }, xy { 0, 1 } ]
     function astar_distance(distancef):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
@@ -71,7 +77,7 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
                 if(np.inrange2d(gridsize, xy_0)):
                     f(getnode(np))
     if(isocta):
-        directions = directions.append([ [ -1, -1 ]:xy, [ 1, 1 ]:xy, [ 1, -1 ]:xy, [ -1, 1 ]:xy ])
+        directions = directions.append([ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } ])
         astar_distance() v:
             x := abs(v.x)
             y := abs(v.y)
@@ -86,14 +92,17 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 function goapf(state:[int]) :== int
 
-value goapaction: [
+value goapaction {
     name:string,
     precondition:function goapf,
     effect:function goapf
-]
+}
+
+struct goap_node = astar_node(goap_node?, [int], goapaction?)
 
 function astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
-    existingnodes := [ new_astar_node(initstate, heuristic(initstate)) ]
+    H := heuristic(initstate)
+    existingnodes := [ goap_node { H: H, F: H, state: initstate } ]
     astar_generic(existingnodes[0]):
         endcondition(_.state)
     generatenewstates n, f:
@@ -102,6 +111,6 @@ function astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcon
                 nstate := n.state.copy
                 act.effect(nstate)
                 i := existingnodes.find(): equal(_.state, nstate)
-                nn := i >= 0 & existingnodes[i] | new_astar_node(nstate, 0.0)
+                nn := i >= 0 & existingnodes[i] | goap_node { nstate }
                 f(act, 1, nn)
     heuristic: heuristic(_)

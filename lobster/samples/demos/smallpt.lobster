@@ -16,15 +16,15 @@ I timed it to be 2.5 times faster than the Python version, though most of that w
 include "vec.lobster"
 include "color.lobster"
 
-value Ray: [ o:xyz_f, d:xyz_f ]
+value Ray { o:xyz_f, d:xyz_f }
 
 enum + DIFF, SPEC, REFR   // material types, used in radiance()
 
-value Sphere: [
+value Sphere {
     rad:float,                 // radius
     p:xyz_f, e:xyz_f, c:xyz_f, // position, emission, color
     refl:int                   // reflection type (DIFFuse, SPECular, REFRactive)
-]
+}
 
 function intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     op := p-r.o   // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0
@@ -47,15 +47,15 @@ bigrad := 1000.0
 lrad := 100.0
 
 spheres := [ //Scene: radius, position, emission, color, material
-    [lrad,   [50.0,lrad+81.6-1,81.6  ]:xyz, xyz_1*12, xyz_0,             DIFF]:Sphere, //Lite
-    [16.5,   [73.0,16.5,78.0         ]:xyz, xyz_0,    xyz_1*.999,        REFR]:Sphere, //Glas
-    [16.5,   [27.0,16.5,47.0         ]:xyz, xyz_0,    xyz_1*.999,        SPEC]:Sphere, //Mirr
-    [bigrad, [50.0,-bigrad+81.6,81.6 ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Top
-    [bigrad, [50.0, bigrad, 81.6     ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Botm
-    [bigrad, [50.0,40.8,-bigrad+170  ]:xyz, xyz_0,    xyz_0,             DIFF]:Sphere, //Frnt
-    [bigrad, [50.0,40.8, bigrad      ]:xyz, xyz_0,    xyz_1*.75,         DIFF]:Sphere, //Back
-    [bigrad, [-bigrad+99,40.8,81.6   ]:xyz, xyz_0,    [.25,.25,.75]:xyz, DIFF]:Sphere, //Rght
-    [bigrad, [ bigrad+1, 40.8,81.6   ]:xyz, xyz_0,    [.75,.25,.25]:xyz, DIFF]:Sphere  //Left
+    Sphere { lrad,   xyz { 50.0,lrad+81.6-1,81.6  }, xyz_1*12, xyz_0,             DIFF }, //Lite
+    Sphere { 16.5,   xyz { 73.0,16.5,78.0         }, xyz_0,    xyz_1*.999,        REFR }, //Glas
+    Sphere { 16.5,   xyz { 27.0,16.5,47.0         }, xyz_0,    xyz_1*.999,        SPEC }, //Mirr
+    Sphere { bigrad, xyz { 50.0,-bigrad+81.6,81.6 }, xyz_0,    xyz_1*.75,         DIFF }, //Top
+    Sphere { bigrad, xyz { 50.0, bigrad, 81.6     }, xyz_0,    xyz_1*.75,         DIFF }, //Botm
+    Sphere { bigrad, xyz { 50.0,40.8,-bigrad+170  }, xyz_0,    xyz_0,             DIFF }, //Frnt
+    Sphere { bigrad, xyz { 50.0,40.8, bigrad      }, xyz_0,    xyz_1*.75,         DIFF }, //Back
+    Sphere { bigrad, xyz { -bigrad+99,40.8,81.6   }, xyz_0,    xyz {.25,.25,.75}, DIFF }, //Rght
+    Sphere { bigrad, xyz {  bigrad+1, 40.8,81.6   }, xyz_0,    xyz {.75,.25,.25}, DIFF }  //Left
 ]
 
 function radiance(r:Ray, depth):
@@ -84,10 +84,10 @@ function radiance(r:Ray, depth):
         u := normalize((if(abs(w.x)>.1): xyz_y else: xyz_x).cross(w))
         v := w.cross(u)
         d := normalize(u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2))
-        return obj.e + f * radiance([ x, d ]:Ray,depth)
+        return obj.e + f * radiance(Ray { x, d },depth)
     else: if(obj.refl == SPEC):            // Ideal SPECULAR reflection
-        return obj.e + f * radiance([ x, r.d-n*2*n.dot(r.d) ]:Ray,depth)
-    reflRay := [x, r.d-n*2*n.dot(r.d)]:Ray     // Ideal dielectric REFRACTION
+        return obj.e + f * radiance(Ray { x, r.d-n*2*n.dot(r.d) },depth)
+    reflRay := Ray {x, r.d-n*2*n.dot(r.d)}     // Ideal dielectric REFRACTION
     into := n.dot(nl)>0                // Ray from outside going in?
     nc := 1.0
     nt := 1.5
@@ -111,15 +111,15 @@ function radiance(r:Ray, depth):
             if(rndfloat()<P):
                 radiance(reflRay,depth)*RP  // Russian roulette
             else:
-                radiance([ x, tdir ]:Ray,depth)*TP
+                radiance(Ray { x, tdir },depth)*TP
         else:
-            radiance(reflRay,depth)*Re+radiance([ x, tdir ]:Ray,depth)*Tr
+            radiance(reflRay,depth)*Re+radiance(Ray { x, tdir },depth)*Tr
     obj.e + f*temp
 
 w := 128
 h := 96
 
-cam := [ [50.0,50.0,290.0]:xyz, normalize([0.0,-0.042612,-1.0]:xyz) ]:Ray // cam pos, dir
+cam := Ray { xyz { 50.0,50.0,290.0 }, normalize(xyz { 0.0,-0.042612,-1.0 }) } // cam pos, dir
 cx := xyz_x * (w*.5135/h)
 cy := normalize(cx.cross(cam.d))*.5135
 
@@ -141,7 +141,7 @@ function onesample():
             d := cx*( ( (1 + dx)/2 + x)/w - .5) +
                  cy*( ( (1 + dy)/2 + y)/h - .5) + cam.d
             d = normalize(d)
-            r := radiance([ cam.o+d*140, d ]:Ray,0)
+            r := radiance(Ray { cam.o+d*140, d },0)
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[x][h-y-1] += r
     samples++

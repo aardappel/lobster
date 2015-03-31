@@ -230,6 +230,8 @@ struct Lex : LoadedFile
             case ')': return T_RIGHTPAREN;
             case '[': return T_LEFTBRACKET;
             case ']': return T_RIGHTBRACKET;
+            case '{': return T_LEFTCURLY;
+            case '}': return T_RIGHTCURLY;
 
             case ';': return T_SEMICOLON;
 
@@ -315,7 +317,6 @@ struct Lex : LoadedFile
                     else if (sattr == "string")    return T_STRTYPE;
                     else if (sattr == "vector")    return T_VECTTYPE;
                     else if (sattr == "function")  return T_FUN;
-                    else if (sattr == "super")     return T_SUPER;
                     else if (sattr == "is")        return T_IS;
                     else if (sattr == "from")      return T_FROM;
                     else if (sattr == "program")   return T_PROGRAM;

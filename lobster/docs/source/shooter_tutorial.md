@@ -23,12 +23,12 @@ this:
 
 Impressively.. empty.
 
-    include "std.lobster"
+    include "vec.lobster"
 
     fatal(gl_window("Shooter Tutorial", 640, 480))
 
     while(gl_frame() & !gl_wentdown("escape")):
-        gl_clear([ 0, 0, 0, 1 ])
+        gl_clear([ 0.0, 0.0, 0.0, 1.0 ])
 
 `gl_window` is our graphics initialization routine, and is the first
 thing we need to do before we can access any other graphics
@@ -155,17 +155,17 @@ It moved! I swear!
     while(gl_frame() & !gl_wentdown("escape")):
         gl_clear(color_black)
         gl_color(color_white)
-        
+
         gl_translate(gl_windowsize() / 2.0)
         scale := gl_windowsize().y / worldsize
         gl_scale(scale)
-        
-        dir := [ gl_isdown("d") - gl_isdown("a"),
-                 gl_isdown("s") - gl_isdown("w") ]:xy_f
+
+        dir := xy_f { gl_isdown("d") - gl_isdown("a"),
+                      gl_isdown("s") - gl_isdown("w") }
         newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
         if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
             playerpos = newpos
-        
+
         gl_translate(playerpos):
             gl_circle(1, 6)
 
@@ -250,7 +250,7 @@ player from 12 to 3.
     playerpos := xy_0
     playerspeed :== 10
 
-    struct bullet: [ pos, dir ]
+    struct bullet { pos:xy_f, dir:xy_f }
 
     firerate :== 0.1
     bulletspeed :== 15
@@ -260,37 +260,37 @@ player from 12 to 3.
     while(gl_frame() & !gl_wentdown("escape")):
         gl_clear(color_black)
         gl_color(color_white)
-        
+
         gl_translate(gl_windowsize() / 2.0)
         scale := gl_windowsize().y / worldsize
         gl_scale(scale)
-        
-        dir := [ gl_isdown("d") - gl_isdown("a"),
-                 gl_isdown("s") - gl_isdown("w") ]:xy_f
+
+        dir := xy_f { gl_isdown("d") - gl_isdown("a"),
+                      gl_isdown("s") - gl_isdown("w") }
         newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
         if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
             playerpos = newpos
-            
+
         tomouse := normalize(gl_localmousepos(0) - playerpos)
-        
+
         if(lastbullet < gl_time()):
-            bullets.push([ playerpos, tomouse ]:bullet)
+            bullets.push(bullet { playerpos, tomouse })
             lastbullet += firerate
-            
+
         for(bullets) b:
             b.pos += b.dir * gl_deltatime() * bulletspeed
             gl_translate(b.pos):
                 gl_color(color_yellow):
                     gl_circle(0.2, 20)
-                    
+
         bullets = filter(bullets) b:
             magnitude(b.pos) < worldsize * 2
-        
+
         gl_translate(gl_localmousepos(0)):
             gl_linemode(1):
                 gl_color(color_grey):
                     gl_circle(0.5, 20)
-        
+
         gl_translate(playerpos):
             gl_rotate_z(tomouse):
                 gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
@@ -397,7 +397,7 @@ First, let's take the code for rendering the player and put it in it's
 own function, since we'll be needing it for enemies too. Call instead of
 the original code with `renderpointytriangle(playerpos, tomouse)`
 
-    struct enemy: [ pos, hp ]
+    struct enemy { pos:xy_f, hp:int }
 
     enemyrate := 1.0
     enemyspeed :== 3
@@ -410,7 +410,7 @@ some of this functionality between them, but let's not complicate
 matters for now. Add this to the declarations.
 
         if(lastenemy < gl_time()):
-            enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
+            enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
             lastenemy += enemyrate
             enemyrate *= 0.999
             

@@ -22,12 +22,12 @@
 <img src="screenshots/shooter/tut1.jpg" />
 </figure>
 <p>Impressively.. empty.</p>
-<pre><code>include &quot;std.lobster&quot;
+<pre><code>include &quot;vec.lobster&quot;
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
-    gl_clear([ 0, 0, 0, 1 ])</code></pre>
+    gl_clear([ 0.0, 0.0, 0.0, 1.0 ])</code></pre>
 <p><code>gl_window</code> is our graphics initialization routine, and is the first thing we need to do before we can access any other graphics functionality. We specify a title and a size, though note that these are merely suggestions: on desktop platforms the user may resize/maximize our window, and on mobile platforms they just determine landscape vs portrait orientation, whereas the resolution is determined by the device itself.</p>
 <p><code>gl_window</code> returns an error string if something goes wrong (and things can go wrong, behind the scenes this call boots up an OpenGL engine including compiling shaders and what not), and <code>fatal</code> is a utility function defined in <code>std.lobster</code> that we're including that will quit the program and show the error string if available.</p>
 <p>Once we're up and running, this while loop is our <em>frame loop</em>. Games work by rendering the current state of the game repeatedly to the screen, preferrably fast (30-60 times per second), giving the impression of smooth animation. <code>gl_frame</code> is the core of all of this: it makes sure we advance to rendering the next frame, and checks for input etc. If the user clicks the close button or otherwise terminates the app, <code>gl_frame</code> will return <code>false</code>, which is our signal to quit the game. Additionally, we want the user to be able to quit if they press the escape key, so we check for that too (the <code>&amp;</code> symbol means and <em>and</em> <code>!</code> is <em>not</em>).</p>
@@ -78,17 +78,17 @@ playerspeed := 10
 while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     gl_clear(color_black)
     gl_color(color_white)
-    
+
     gl_translate(gl_windowsize() / 2.0)
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
-    
-    dir := [ gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
-             gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) ]:xy_f
+
+    dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
+                  gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if(!any(abs(newpos) &gt; gl_windowsize() / scale / 2)):
         playerpos = newpos
-    
+
     gl_translate(playerpos):
         gl_circle(1, 6)</code></pre>
 <p>To make our player move, we added 2 new variables: <code>playerpos</code> and <code>playerspeed</code>. We initialize the former with a vector constant from <code>vec.lobster</code>: <code>vec_0</code> means all zeroes.</p>
@@ -117,7 +117,7 @@ worldsize :== 20.0
 playerpos := xy_0
 playerspeed :== 10
 
-struct bullet: [ pos, dir ]
+struct bullet { pos:xy_f, dir:xy_f }
 
 firerate :== 0.1
 bulletspeed :== 15
@@ -127,37 +127,37 @@ lastbullet := gl_time()
 while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     gl_clear(color_black)
     gl_color(color_white)
-    
+
     gl_translate(gl_windowsize() / 2.0)
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
-    
-    dir := [ gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
-             gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) ]:xy_f
+
+    dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
+                  gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if(!any(abs(newpos) &gt; gl_windowsize() / scale / 2)):
         playerpos = newpos
-        
+
     tomouse := normalize(gl_localmousepos(0) - playerpos)
-    
+
     if(lastbullet &lt; gl_time()):
-        bullets.push([ playerpos, tomouse ]:bullet)
+        bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
-        
+
     for(bullets) b:
         b.pos += b.dir * gl_deltatime() * bulletspeed
         gl_translate(b.pos):
             gl_color(color_yellow):
                 gl_circle(0.2, 20)
-                
+
     bullets = filter(bullets) b:
         magnitude(b.pos) &lt; worldsize * 2
-    
+
     gl_translate(gl_localmousepos(0)):
         gl_linemode(1):
             gl_color(color_grey):
                 gl_circle(0.5, 20)
-    
+
     gl_translate(playerpos):
         gl_rotate_z(tomouse):
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
@@ -183,7 +183,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
         gl_rotate_z(dir):
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
 <p>First, let's take the code for rendering the player and put it in it's own function, since we'll be needing it for enemies too. Call instead of the original code with <code>renderpointytriangle(playerpos, tomouse)</code></p>
-<pre><code>struct enemy: [ pos, hp ]
+<pre><code>struct enemy { pos:xy_f, hp:int }
 
 enemyrate := 1.0
 enemyspeed :== 3
@@ -192,7 +192,7 @@ enemies := []
 lastenemy := gl_time()</code></pre>
 <p>We can set up enemies analogous to bullets. Of course, we could share some of this functionality between them, but let's not complicate matters for now. Add this to the declarations.</p>
 <pre><code>    if(lastenemy &lt; gl_time()):
-        enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
+        enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
         

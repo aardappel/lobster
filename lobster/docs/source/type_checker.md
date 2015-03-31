@@ -197,3 +197,40 @@ such that this is already obvious to the type system.
 
 Generic objects
 ---------------
+
+Besides functions, objects can also be generic. If you define any field without
+types:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct foo: [ a:string, b ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You create a generic type.
+
+Unlike functions however, Lobster is a bit more strict here in that it requires
+you to explicitly define a specialization before you can use it[^1]:
+
+[^1]: The initial typed version of Lobster would create specializations on the
+fly, but this could cause very hard to track down type errors.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct foo_f: foo(float)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can now construct a foo with floats, either explicitly with `foo_f { "hi",
+2.0 }`, or you can use the generic type: `foo { "hi", 2.0 }` and let the
+compiler pick from all available specializations.
+
+Functions written to accept `foo` arguments will of course work on any of the
+specializations.
+
+You can even specialize and subclass at the same time:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct bar : foo { c }
+struct bar : foo(float) { c:int }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first version subclasses `foo` into another generic type, and the second
+specializes and subclasses at the same time, creating a non-generic type
+instead.

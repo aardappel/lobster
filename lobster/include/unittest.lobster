@@ -10,8 +10,8 @@ include "astar.lobster"
 function run_test_cases():
     //trace_bytecode(1)
 
-    value testa: [ a ]
-    value testb: testa [ b ]
+    value testa { a:int }
+    value testb : testa { b:int }
 
     function tf(x:int, y): 1
     function tf(x:string, y:float): 2
@@ -27,15 +27,15 @@ function run_test_cases():
     assert(tf(1, 0) == 1)
     assert(tf("", 0.0) == 2)
     assert(tf("", 0) == 3)
-    assert(tf([ 0 ]:testa, 0) == 4)
-    assert(tf([ super [ 0 ]:testa, 0 ]:testb, "") == 9)
-    assert(tf([ super [ 0 ]:testa, 0 ]:testb, 0.0) == 5)
-    assert(tf([ super [ 0 ]:testa, 0 ]:testb, 0) == 6)
+    assert(tf(testa { 0 }, 0) == 4)
+    assert(tf(testb { 0, 0 }, "") == 9)
+    assert(tf(testb { 0, 0 }, 0.0) == 5)
+    assert(tf(testb { 0, 0 }, 0) == 6)
     assert(tf("", "") == 7)
 
     assert(tf("") == 8)
 
-    direct := [1, 2, [3.0, 4.0, 5.0]:xyz, "hello, world!\n\"\'\r\t\\\xC0", nil, true]
+    direct := [1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0", nil, true]
     parsed, err := parse_data("" + direct)
     //print(parsed)
     //print(direct)
@@ -153,18 +153,18 @@ function run_test_cases():
         ".......OOOOOOOO.................."
     ]
 
-    struct pathingcell: astar_node [ path, c ]
+    struct pathingcell : astar_node(pathingcell?, xy_i, xy_i?) { path:int, c:int }
 
-    worldsize := [ initworld[0].length, initworld.length ]:xy
+    worldsize := xy { initworld[0].length, initworld.length }
 
     startpos := xy_0i
     endpos := xy_0i
 
     world := worldsize.y.map() y: worldsize.x.map() x:
         c := initworld[y][x]
-        if(c == 'S'): startpos = [ x, y ]:xy
-        if(c == 'E'): endpos   = [ x, y ]:xy
-        [ super new_astar_node([ x, y ]:xy, 0.0), false, c ]:pathingcell
+        if(c == 'S'): startpos = xy { x, y }
+        if(c == 'E'): endpos   = xy { x, y }
+        pathingcell { xy { x, y }, false, c }
 
     path :=
         astar_2dgrid(false, worldsize, world[startpos], world[endpos], function(): world[_]) (n, nn::pathingcell):
@@ -190,18 +190,18 @@ function run_test_cases():
     enum wolves, skins, money, flour, bread, pizza, hungry
 
     goapactions := [
-        [ "kill wolf",  function(s): s[wolves] >= 1, function(s): s[wolves]--;   s[skins]++ ]:goapaction,
-        [ "sell skin",  function(s): s[skins]  >= 1, function(s): s[money] += 2; s[skins]-- ]:goapaction,
-        [ "buy pizza",  function(s): s[money]  >= 2, function(s): s[money] -= 2; s[pizza]++ ]:goapaction,
-        [ "buy flour",  function(s): s[money]  >= 1, function(s): s[money]--;    s[flour]++ ]:goapaction,
-        [ "bake bread", function(s): s[flour]  >= 1, function(s): s[flour]--;    s[bread]++ ]:goapaction,
-        [
+        goapaction { "kill wolf",  function(s): s[wolves] >= 1, function(s): s[wolves]--;   s[skins]++ },
+        goapaction { "sell skin",  function(s): s[skins]  >= 1, function(s): s[money] += 2; s[skins]-- },
+        goapaction { "buy pizza",  function(s): s[money]  >= 2, function(s): s[money] -= 2; s[pizza]++ },
+        goapaction { "buy flour",  function(s): s[money]  >= 1, function(s): s[money]--;    s[flour]++ },
+        goapaction { "bake bread", function(s): s[flour]  >= 1, function(s): s[flour]--;    s[bread]++ },
+        goapaction {
             "eat",
             function(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
             function(s):
                 if(s[bread] > 0): s[bread]-- else: s[pizza]--
                 s[hungry]--
-        ]:goapaction
+        }
     ]
 
     goap_path :=
@@ -272,18 +272,6 @@ function run_test_cases():
     assert(co5.returnvalue == 1)
 
     // ////////////////////////////////////////////////////////////////////////
-    // structure offsets test
-
-    struct __testa: [ __a, __b, __c, __d ]
-    struct __testb: [ __a, __c, __b, __d ]
-    struct __testc: [ __a, __b, __d, __c, __e ]
-    struct __testd: [ __a, __b, __d, __e ]
-    // should generate conditional warning for b & e, and table warning for c & d in verbose mode
-
-    sot := [ 1, 2, 3, 4, 5 ]:__testc
-    assert(equal(sot, [sot.__a, sot.__b, sot.__d, sot.__c, sot.__e]:__testc))
-
-    // ////////////////////////////////////////////////////////////////////////
     // misc test
 
     aa := 5
@@ -334,9 +322,10 @@ function run_test_cases():
     assert(seconds_elapsed() - starttime > 0)
 
     function cycletest():
-        struct cyclist: [ name, loop, next ]
-        cycle := [ "cycleouter", nil, [ "cycleinner", nil, nil ]:cyclist ]:cyclist
+        struct cyclist { name:string, loop:cyclist?, next:cyclist? }
+        cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
         cycle.loop = cycle
+        assert(cycle.next)
         cycle.next.loop = cycle.next
 
     cycletest()

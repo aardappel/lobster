@@ -58,7 +58,6 @@ namespace lobster
     T(T_FUN, "function", TT_NOCHILD, NO, a, NO, b) \
     T(T_RETURN, "return", TT_NONE, YES, return_value, YES, return_function_idx) \
     T(T_IS, "is", TT_BINARY, NO, a, NO, b) \
-    T(T_SUPER, "super", TT_UNARY, NO, a, NO, b) \
     T(T_COROUTINE, "coroutine", TT_UNARY, NO, a, NO, b) \
     \
     /* These are used ONLY as node types: */ \
@@ -98,6 +97,8 @@ namespace lobster
     T(T_RIGHTPAREN, ")", TT_NONE, NO, a, NO, b) \
     T(T_LEFTBRACKET, "[", TT_NONE, NO, a, NO, b) \
     T(T_RIGHTBRACKET, "]", TT_NONE, NO, a, NO, b) \
+    T(T_LEFTCURLY, "{", TT_NONE, NO, a, NO, b) \
+    T(T_RIGHTCURLY, "}", TT_NONE, NO, a, NO, b) \
     T(T_SEMICOLON, ";", TT_NONE, NO, a, NO, b) \
     T(T_AT, "@", TT_NONE, NO, a, NO, b) \
     T(T_QUESTIONMARK, "?", TT_NONE, NO, a, NO, b) \

@@ -9,7 +9,7 @@ worldsize :== 20.0
 playerpos := xy_0
 playerspeed :== 10
 
-struct bullet: [ pos, dir ]
+struct bullet { pos:xy_f, dir:xy_f }
 
 firerate :== 0.1
 bulletspeed :== 15
@@ -24,8 +24,8 @@ while(gl_frame() & !gl_wentdown("escape")):
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
-    dir := [ gl_isdown("d") - gl_isdown("a"),
-             gl_isdown("s") - gl_isdown("w") ]:xy_f
+    dir := xy_f { gl_isdown("d") - gl_isdown("a"),
+                  gl_isdown("s") - gl_isdown("w") }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
         playerpos = newpos
@@ -33,7 +33,7 @@ while(gl_frame() & !gl_wentdown("escape")):
     tomouse := normalize(gl_localmousepos(0) - playerpos)
 
     if(lastbullet < gl_time()):
-        bullets.push([ playerpos, tomouse ]:bullet)
+        bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
 
     for(bullets) b:

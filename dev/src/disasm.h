@@ -121,26 +121,12 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             s += st.ReverseLookupIdent(*ip++);
             break;
 
-        case IL_LVALFLDO:
-        case IL_LVALFLDT:
+        case IL_LVALFLD:
         case IL_LVALLOC:
            LvalDisAsm(s, ip);
-        case IL_PUSHFLDT:
-        case IL_PUSHFLDO:
-        case IL_PUSHFLDMT:
-        case IL_PUSHFLDMO:
+        case IL_PUSHFLD:
+        case IL_PUSHFLDM:
         case IL_PUSHLOC:
-            s += inttoa(*ip++);
-            break;
-
-        case IL_LVALFLDC:
-           LvalDisAsm(s, ip);
-        case IL_PUSHFLDC:
-        case IL_PUSHFLDMC:
-            s += inttoa(*ip++);
-            s += " ";
-            s += inttoa(*ip++);
-            s += " ";
             s += inttoa(*ip++);
             break;
 
@@ -185,11 +171,6 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             for (int i = 0; i < n; i++) { s += " v"; s += inttoa(*ip++); }
             break;
         }
-
-        case IL_FIELDTABLES:
-            s += inttoa(*ip);
-            ip = code + *ip;
-            break;
 
         case IL_FUNMULTI:
         {

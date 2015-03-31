@@ -1,13 +1,11 @@
-% The Lobster C++ Implementation
-
-
+---
+title: The Lobster C++ Implementation
+...
 
 This document gives hints on how to work with the Lobster C++ code in terms of
 building, extending, and reusing.
 
-Lobster has been released under the ZLIB open source license.
-
-
+Lobster has been released under the Apache 2 open source license.
 
 Building Lobster
 ----------------
@@ -34,6 +32,10 @@ This platform is definitely best supported and easiest to use for now. Open up
 lobster.exe in the main lobster folder, and will be ready for use as described
 either from the [command line][1] or [notepad++][2].
 
+[1]: <command_line_usage.html>
+
+[2]: <notepadpp_ide.html>
+
 ### OS X & iOS
 
 Building for either one is easy using the single Xcode project (in
@@ -44,7 +46,7 @@ Building for either one is easy using the single Xcode project (in
 To develop Lobster code on OS X, easiest probably is to use the command line
 version (use the -c option to tell it it's not running from an app bundle). Many
 OS X editors support running a command line compiler, e.g. Komodo Edit with
-Tools -> Run Command.
+Tools -\> Run Command.
 
 Alternatively, you could add your lobster source (and extra data it might need)
 to the Xcode project, and add it to the build rules such that these are copied
@@ -61,6 +63,8 @@ so if iOS exe complains that it can't read the bytecode, make sure the OS X exe
 you used to produce it was compiled on the same day. This will improve in the
 future.
 
+[3]: <command_line_usage.html>
+
 ### Linux
 
 There is a makefile directly in the src folder, however unlike some of the other
@@ -71,8 +75,6 @@ and Freetype 2 installed.
 
 I've made a preliminary port to Android which worked at that time, but hasn't
 been updated in a while. Will get back to making this work more smoothly soon.
-
-
 
 Extending Lobster
 -----------------
@@ -123,6 +125,8 @@ You can always run Lobster with the `-r` option to get an overview of all
 functions currently added to the system (the current list is [here][4]). To
 add/remove functionality is generally as easy as adding/removing the
 corresponding `.cpp` file.
+
+[4]: <builtin_functions_reference.html>
 
 Lobster uses some macros to allow you to define a native function in one
 location without declarations needed elsewhere. To learn how to write your own
@@ -210,11 +214,3 @@ functionality as native functions as described in the previous section.
 Some of Lobster relies on it's own math library (`geom.h`), but it should be
 very easy to make convenient functions to convert Lobster vectors into your own
 math types (you could wrap around the `ToValue` and `ValueTo` functions).
-
-[1]: <command_line_usage.html>
-
-[2]: <notepadpp_ide.html>
-
-[3]: <command_line_usage.html>
-
-[4]: <builtin_functions_reference.html>

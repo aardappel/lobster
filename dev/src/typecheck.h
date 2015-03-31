@@ -43,6 +43,34 @@ struct TypeChecker
         Stats();
     }
 
+    void ComputeStructVectorType(Struct *struc)
+    {
+        if (struc->fields.size())
+        {
+            TypeRef vectortype = struc->fields[0].type;
+            for (size_t i = 1; i < struc->fields.size(); i++)
+            {
+                // FIXME: Can't use Union here since it will bind variables
+                //vectortype = Union(vectortype, struc->fields[i].type, false);
+                // use simplified alternative:
+                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = type_any;
+            }
+            struc->vectortype = vectortype->Wrap(NewType());
+        }
+    }
+
+    void PromoteStructIdx(TypeRef &type, const Struct *olds, const Struct *news)
+    {
+        auto u = type;
+        while (u->Wrapped()) u = u->Element();
+        if (u->t == V_STRUCT && u->struc == olds) type = PromoteStructIdxRec(type, news);
+    }
+
+    TypeRef PromoteStructIdxRec(TypeRef type, const Struct *news)
+    {
+        return type->Wrapped() ? PromoteStructIdxRec(type->sub, news)->Wrap(NewType(), type->t) : &news->thistype;
+    }
+
     Type *NewType() { return parser.NewType(); }
 
     template<typename T> string TypedArg(const T &arg, bool withtype = true)
@@ -443,23 +471,7 @@ struct TypeChecker
         Output(OUTPUT_DEBUG, "function end %s returns %s", Signature(sf).c_str(), TypeName(sf.returntypes[0]).c_str());
     }
 
-    void ComputeStructVectorType(Struct *struc)
-    {
-        if (struc->fields.size())
-        {
-            TypeRef vectortype = struc->fields[0].type;
-            for (size_t i = 1; i < struc->fields.size(); i++)
-            {
-                // FIXME: Can't use Union here since it will bind variables
-                //vectortype = Union(vectortype, struc->fields[i].type, false);
-                // use simplified alternative:
-                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = type_any;
-            }
-            struc->vectortype = vectortype->Wrap(NewType());
-        }
-    }
-
-    Struct *SpecializeStruct(Struct *given, const Node *args, const Node &n)
+    Struct *FindStructSpecialization(Struct *given, const Node *args, const Node &n)
     {
         // This code is somewhat similar to function specialization, but not similar enough to share.
         // If they're all typed, we bail out early:
@@ -469,21 +481,9 @@ struct TypeChecker
 
         // First collect types for all args.
         vector<TypeRef> argtypes;
-        Struct *specialized_super = nullptr;
         for (auto list = args; list; list = list->tail())
         {
-            auto stype = list->head()->exptype;
-            if (list->head()->type == T_SUPER)
-            {
-                CheckIfSpecialization(head->superclass, stype, n, "super");
-                specialized_super = stype->struc;
-                assert(!specialized_super->generic);
-                for (auto &f : specialized_super->fields) argtypes.push_back(f.type);
-            }
-            else
-            {
-                argtypes.push_back(stype);
-            }
+            argtypes.push_back(list->head()->exptype);
         }
         assert(argtypes.size() == head->fields.size());
 
@@ -501,53 +501,10 @@ struct TypeChecker
             fail:;
         }
 
-        // No match, clone.
-        struc = head->CloneInto(new Struct());
-        struc->idx = st.structtable.size();
-        if (specialized_super)
-        {
-            struc->superclass = specialized_super;
-        }
-        st.structtable.push_back(struc);
-        Output(OUTPUT_DEBUG, "cloned struct: %s", struc->name.c_str());
-
-        // Specialize.
-        struc->generic = false;
-        int i = 0;
-        for (auto &type : argtypes)
-        {
-            auto &field = struc->fields[i];
-
-            if (field.flags == AF_ANYTYPE)
-            {
-                field.type = type;  // Specialize to arg.
-                auto otype = head->fields[i].type;
-                // If this type refers to the generic struct type, make it refer to this type instead.
-                PromoteStructIdx(otype, head, struc);
-                CheckGenericArg(otype, type, field.id->name.c_str(), n, struc->name.c_str());
-            }
-
-            struc->Resolve(field);
-
-            i++;
-        }
-
-        ComputeStructVectorType(struc);
-
-        Output(OUTPUT_DEBUG, "specialized struct: %s", Signature(*struc).c_str());
-        return struc;
-    }
-
-    TypeRef PromoteStructIdxRec(TypeRef type, const Struct *news)
-    {
-        return type->Wrapped() ? PromoteStructIdxRec(type->sub, news)->Wrap(NewType(), type->t) : &news->thistype;
-    }
-
-    void PromoteStructIdx(TypeRef &type, const Struct *olds, const Struct *news)
-    {
-        auto u = type;
-        while (u->Wrapped()) u = u->Element();
-        if (u->t == V_STRUCT && u->struc == olds) type = PromoteStructIdxRec(type, news);
+        string s;
+        for (auto type : argtypes) s += " " + TypeName(type);
+        TypeError("no specialization of " + given->first->name + " matches these types:" + s, n);
+        return nullptr;
     }
 
     void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n, const char *argname,
@@ -1279,6 +1236,7 @@ struct TypeChecker
                         {
                             // we have no idea what args.
                             assert(0);
+                            TypeError("function passed to " + nf->name + " cannot take any arguments", n);
                         }
                         auto fake_function_def = (Node *)new FunRef(parser.lex, sf);
                         fake_function_def->linenumber = n.linenumber;
@@ -1494,32 +1452,16 @@ struct TypeChecker
                 }
                 if (type->t == V_STRUCT)
                 {
-                    auto newstruc = SpecializeStruct(type->struc, n.constructor_args(), n);
-                    type = &newstruc->thistype;
+                    auto struc = FindStructSpecialization(type->struc, n.constructor_args(), n);
+                    type = &struc->thistype;
                     //n.constructor_type()->typenode().idx = newidx;
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    if (list->head()->type == T_SUPER)
-                    {
-                        assert(type->t == V_STRUCT);  // Parser checks this.
-                        auto super_struc = type->struc->superclass;
-                        CheckIfSpecialization(super_struc, list->head()->exptype, *list->head(), "super");
-                        super_struc = list->head()->exptype->struc;  // Use the specialization.
-                        for (auto &field : super_struc->fields)
-                        {
-                            //SubTypeT(field.type, type->struc->fields[i].type, n, ArgName(i).c_str());
-                            (void)field; // FIXME: this subtype is needed in some cases, see cdrl.lobster
-                            i++;
-                        }
-                    }
-                    else
-                    {
-                        TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields[i].type : type->Element();
-                        SubType(list->head(), elemtype, ArgName(i).c_str(), n);
-                        i++;
-                    }
+                    TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields[i].type : type->Element();
+                    SubType(list->head(), elemtype, ArgName(i).c_str(), n);
+                    i++;
                 }
                 break;
             }
@@ -1535,11 +1477,13 @@ struct TypeChecker
                     TypeError("struct/value", stype, n, "object");
                 auto struc = stype->struc;
                 auto sf = n.right()->fld();
-                auto uf = struc->Has(sf);
-                if (!uf) TypeError("type " + struc->name + " has no field named " + sf->name, n);
-                type = n.type == T_DOTMAYBE && smtype->t == V_NILABLE && uf->type->t != V_NILABLE
-                       ? uf->type->Wrap(NewType(), V_NILABLE)
-                       : uf->type;
+                auto fieldidx = struc->Has(sf);
+                if (fieldidx < 0) TypeError("type " + struc->name + " has no field named " + sf->name, n);
+                auto &uf = struc->fields[fieldidx];
+                type = n.type == T_DOTMAYBE && smtype->t == V_NILABLE && uf.type->t != V_NILABLE
+                       ? uf.type->Wrap(NewType(), V_NILABLE)
+                       : uf.type;
+                n.right()->exptype = stype;  // Store struct type here for codegen.
                 UseFlow(n);
                 break;
             }
@@ -1608,10 +1552,6 @@ struct TypeChecker
                 type = ct;
                 break;
             }
-
-            case T_SUPER:
-                type = n.child()->exptype;
-                break;
 
             case T_MULTIRET:
             case T_FUN:

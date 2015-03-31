@@ -46,6 +46,37 @@ struct ValueParser
         return v;
     }
 
+    Value ParseElems(TType end, int type, int numelems = -1)
+    {
+        Gobble(T_LINEFEED);
+        vector<Value> elems;
+        if (lex.token == end) lex.Next();
+        else
+        {
+            for (;;)
+            {
+                auto x = ParseFactor();
+                if ((int)elems.size() == numelems) x.DEC();
+                else elems.push_back(x);
+                bool haslf = lex.token == T_LINEFEED;
+                if (haslf) lex.Next();
+                if (lex.token == end) break;
+                if (!haslf) Expect(T_COMMA);
+            }
+            lex.Next();
+        }
+
+        // FIXME: improve error.
+        // There's no default value possible for non-nillables, so we can't provide a default value here.
+        if (numelems >= 0 && (int)elems.size() < numelems)
+            lex.Error("not enough constructor initializers");
+
+        auto vec = g_vm->NewVector(elems.size(), type);
+        allocated.push_back(vec);
+        for (auto &e : elems) vec->push(e.INC());
+        return Value(vec);
+    }
+
     Value ParseFactor()
     {
         switch (lex.token)
@@ -73,44 +104,18 @@ struct ValueParser
             case T_LEFTBRACKET:
             {
                 lex.Next();
-                Gobble(T_LINEFEED);
-                vector<Value> elems;
-                if (lex.token == T_RIGHTBRACKET) lex.Next();
-                else
-                {
-                    for (;;)
-                    {
-                        elems.push_back(ParseFactor());
-                        bool haslf = lex.token == T_LINEFEED;
-                        if (haslf) lex.Next();
-                        if (lex.token == T_RIGHTBRACKET) break;
-                        if (!haslf) Expect(T_COMMA);
-                    }
-                    lex.Next();
-                }
+                return ParseElems(T_RIGHTBRACKET, -1);
+            }
 
-                int type = -1;
-                if (lex.token == T_COLON)
-                {
-                    lex.Next();
-                    string sname = lex.sattr;
-                    Expect(T_IDENT);
-                    size_t reqargs = 0;
-                    int idx = g_vm->StructIdx(sname, reqargs);
-                    if (idx >= 0)   // if unknown type, becomes regular vector
-                    {
-                        // pad with NIL if current type has more fields
-                        while (elems.size() < reqargs) { elems.push_back(Value(0, V_NIL)); }
-                        // drop elements if current type has less fields
-                        while (elems.size() > reqargs) { elems.back().DEC(); elems.pop_back(); }
-                        type = idx;
-                    }
-                }
-
-                auto vec = g_vm->NewVector(elems.size(), type);
-                allocated.push_back(vec);
-                for (auto &e : elems) vec->push(e.INC());
-                return Value(vec);
+            case T_IDENT:
+            {
+                string sname = lex.sattr;
+                lex.Next();
+                Expect(T_LEFTCURLY);
+                size_t reqargs = 0;
+                int idx = g_vm->StructIdx(sname, reqargs);
+                if (idx < 0) lex.Error("unknown type: " + sname);
+                return ParseElems(T_RIGHTCURLY, idx, reqargs);
             }
 
             default:

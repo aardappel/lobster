@@ -4,12 +4,12 @@ include "std.lobster"
 include "vec.lobster"
 include "color.lobster"
 
-struct segment: [ pos, dir ]
-segs := map(7): [ [ 0.5, 1 ]:xy, xy_0 ]:segment
+struct segment { pos:xy_f, dir:xy_f }
+segs := map(7): segment { xy { 0.5, 1 }, xy_0 }
 
 ballradius :== 0.1
 ball := xy_h
-ballvel := [ 0.005, -0.004 ]:xy
+ballvel := xy { 0.005, -0.004 }
 
 fatal(gl_window("reach", 600, 600))
 
@@ -24,8 +24,8 @@ while(gl_frame()):
 
     ball += ballvel
 
-    if(ball.x > 1 - ballradius | ball.x < ballradius): ballvel *= [ -1.0,  1.0 ]:xy
-    if(ball.y > 1 - ballradius | ball.y < ballradius): ballvel *= [  1.0, -1.0 ]:xy
+    if(ball.x > 1 - ballradius | ball.x < ballradius): ballvel *= xy { -1.0,  1.0 }
+    if(ball.y > 1 - ballradius | ball.y < ballradius): ballvel *= xy {  1.0, -1.0 }
 
     gl_translate(ball):
         gl_color(color_dark_grey)

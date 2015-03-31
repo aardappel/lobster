@@ -10,7 +10,7 @@ include "color.lobster"
 include "3dhelpers.lobster"
 
 lssize := 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
-inventory := []:[int] // blocks we've mined
+inventory := []:int // blocks we've mined
 camera_position = xyz_1 * lssize / 2
 camera_yaw = 45
 
@@ -19,7 +19,7 @@ function inside(v): all(v > 0) & all(v < lssize - 1)    // keep the outer blocks
 cells := map(lssize) z:
             map(lssize) y:
                 map(lssize) x:
-                    v := [ x, y, z ]:xyz
+                    v := xyz { x, y, z }
                     h := simplex(v / (lssize + 0.0) + 11, 6, 1, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
                     solid := h > div(z, lssize) - 0.5 & inside(v)
@@ -45,7 +45,7 @@ while(gl_frame()):
     gl_setshader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
         if(e):  // if this cell is solid
-            v := [ x, y, z ]:xyz
+            v := xyz { x, y, z }
             for(nbdirs) nv, i:
                 if(!cells[nv + v]):  // and neighbor is empty
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)

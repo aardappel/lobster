@@ -24,7 +24,7 @@ namespace lobster
     F(PUSHFUN) \
     F(PUSHVAR) F(LVALVAR) \
     F(PUSHIDX) F(LVALIDX) \
-    F(PUSHFLDO) F(PUSHFLDC) F(PUSHFLDT) F(PUSHFLDMO) F(PUSHFLDMC) F(PUSHFLDMT) F(LVALFLDO) F(LVALFLDC) F(LVALFLDT) \
+    F(PUSHFLD) F(PUSHFLDM) F(LVALFLD) \
     F(PUSHLOC) F(LVALLOC) \
     F(BCALL) \
     F(CALL) F(CALLV) F(CALLVCOND) F(YIELD) F(DUP) F(CONT1) \
@@ -37,9 +37,9 @@ namespace lobster
     F(FADD) F(FSUB) F(FMUL) F(FDIV) F(FMOD) F(FLT) F(FGT) F(FLE) F(FGE) F(FEQ) F(FNE) \
     F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
     F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) F(FOR) \
-    F(PUSHONCE) F(PUSHPARENT) \
+    F(PUSHONCE) \
     F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
-    F(FIELDTABLES) F(LOGREAD)
+    F(LOGREAD)
 
 #define F(N) IL_##N,
 enum { ILNAMES };
@@ -95,8 +95,6 @@ struct CodeGen
         }
 
         linenumbernodes.push_back(parser.root);
-
-        GenFieldTables(st);
 
         Emit(IL_JUMP, 0);
         MARKL(fundefjump);
@@ -371,7 +369,7 @@ struct CodeGen
             case T_DOT:
             case T_DOTMAYBE:
                 Gen(n->left(), retval);
-                if (retval) GenFieldAccess(n->right()->fld(), -1, n->type == T_DOTMAYBE);
+                if (retval) GenFieldAccess(n->right(), -1, n->type == T_DOTMAYBE);
                 break;
 
             case T_INDEX:
@@ -686,24 +684,15 @@ struct CodeGen
                 for (auto cn = n->constructor_args(); cn; cn = cn->tail())
                 {
                     assert(cn->type == T_LIST);
-                    if (cn->head()->type == T_SUPER)
-                    {
-                        if (!superclass) parser.Error("super used in object without superclass", cn->head());
-                        Gen(cn->head()->child(), 1);
-                        Emit(IL_PUSHPARENT, superclass ? superclass->idx : -1);
-                        i += superclass->fields.size();  // FIXME: not typechecking these .. 
-                    }
-                    else
-                    {
-                        Gen(cn->head(), 1);
 
-                        auto &type = cn->head()->exptype;
-                        if (struc) GenTypeCheck(type, struc->fields[i].type);
-                        else GenTypeCheck(type, vtype->Element());
+                    Gen(cn->head(), 1);
 
-                        Emit(IL_PUSHONCE);
-                        i++;
-                    }
+                    auto &type = cn->head()->exptype;
+                    if (struc) GenTypeCheck(type, struc->fields[i].type);
+                    else GenTypeCheck(type, vtype->Element());
+
+                    Emit(IL_PUSHONCE);
+                    i++;
 
                     superclass = nullptr;
                 }
@@ -790,73 +779,25 @@ struct CodeGen
         switch (lval->type)
         {
             case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;
-            case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right()->fld(), lvalop, false); break;
+            case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right(), lvalop, false); break;
             case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->ident()->idx); break;
             case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); Emit(IL_LVALIDX, lvalop); break;
             default:    parser.Error("lvalue required", lval);
         }
     }
 
-    void GenFieldAccess(SharedField *f, int lvalop, bool maybe)
+    void GenFieldAccess(Node *sfieldnode, int lvalop, bool maybe)
     {
-        int om = f->numunique == 1 ? 0 : f->offsettable >= 0 ? 2 : 1;
+        auto f = sfieldnode->fld();
+        auto stype = sfieldnode->exptype;
+        assert(stype->t == V_STRUCT);  // Ensured by typechecker.
 
-        if (lvalop >= 0) Emit(IL_LVALFLDO + om, lvalop);
-        else Emit(IL_PUSHFLDO + om + (maybe ? IL_PUSHFLDMO - IL_PUSHFLDO : 0));
-
-        switch (om)
-        {
-            case 0: Emit(f->offsets[0].offset); break;
-            case 1: Emit(f->fo1.structidx, f->fo1.offset, f->foN.offset); break;
-            case 2: Emit(f->offsettable); break;
-        }
-    }
-
-    void GenFieldTables(SymbolTable &st)
-    {
-        string condfields, tablefields;
-
-        Emit(IL_FIELDTABLES, 0);
-        MARKL(loc);
-
-        for (auto f : st.fieldtable)
-        {
-            if (f->numunique == 1) continue;
-
-            // see if of the two offsets, one of them only is used with one type, then we can use a simple if-check
-            // encoding
-            if (f->numunique == 2)
-            {
-                FieldOffset fo1, fo2;
-                int n1 = 1, n2 = 0;
-                fo1 = f->offsets[0];
-                for (auto &fo : f->offsets)
-                {
-                    if (fo.offset == fo1.offset) n1++;
-                    else { fo2 = fo; n2++; } 
-                }
-                if (n1 == 1) { f->fo1 = fo1; f->foN = fo2; condfields += " " + f->name; continue; }
-                if (n2 == 1) { f->fo1 = fo2; f->foN = fo1; condfields += " " + f->name; continue; }
-            }
-            
-            // we have a more complex distribution, encode as a lookup table
-
-            f->offsettable = code.size();
-
-            // TODO: could optimize this by cutting off leading and trailing 0's.
-            for (size_t i = 0; i < st.structtable.size(); i++) Emit(0);
-            for (auto &fo : f->offsets) code[f->offsettable + fo.structidx] = fo.offset; 
-
-            tablefields += " " + f->name;
-        }
-
-        SETL(loc);
-
-        if (condfields.length())
-            Output(OUTPUT_INFO, "performance warning: conditionals generated for fields:%s", condfields.c_str());
-        if (tablefields.length())
-            Output(OUTPUT_INFO, "performance warning: table lookups generated for fields:%s (in %ld types)",
-                   tablefields.c_str(), long(st.structtable.size()));
+        if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
+        else Emit(IL_PUSHFLD + (int)maybe);
+        
+        auto idx = stype->struc->Has(f);
+        assert(idx >= 0);
+        Emit(idx);
     }
 
     #undef MARKL

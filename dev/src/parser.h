@@ -120,9 +120,9 @@ struct Parser
         return list;
     }
 
-    void ParseVector(const function<void ()> &f)
+    void ParseVector(const function<void ()> &f, TType closing)
     {
-        if (IsNext(T_RIGHTBRACKET)) return;
+        if (IsNext(closing)) return;
 
         bool indented = IsNext(T_INDENT);
 
@@ -140,7 +140,7 @@ struct Parser
             Expect(T_LINEFEED);
         }
 
-        Expect(T_RIGHTBRACKET);
+        Expect(closing);
     }
 
     Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar)
@@ -237,98 +237,121 @@ struct Parser
                 auto sname = lex.sattr;
                 Expect(T_IDENT);
 
-                Struct &struc = st.StructDecl(sname, lex);
-                struc.readonly = isvalue;
-                struc.isprivate = isprivate;
+                Struct *struc = &st.StructDecl(sname, lex);
+
+                Struct *sup = nullptr;
+                auto parse_sup = [&] ()
+                {
+                    auto sname = lex.sattr;
+                    Expect(T_IDENT);
+                    sup = &st.StructUse(sname, lex);
+                };
+
+                vector<TypeRef> spectypes;
+                auto parse_specializers = [&] ()
+                {
+                    if (IsNext(T_LEFTPAREN))
+                    {
+                        for (;;)
+                        {
+                            spectypes.push_back(nullptr);
+                            ParseType(spectypes.back(), false);
+                            if (IsNext(T_RIGHTPAREN)) break;
+                            Expect(T_COMMA);
+                        }
+                    }
+                };
+
+                size_t i = 0;
+                auto specialize_field = [&] (Field &field)
+                {
+                    if (field.flags == AF_ANYTYPE)
+                    {
+                        if (i >= spectypes.size()) Error("too many type specializers");
+                        field.type = spectypes[i++];
+                    }
+                };
 
                 if (IsNext(T_ASSIGN))
                 {
                     // A specialization of an existing struct
-                    auto gname = lex.sattr;
-                    Expect(T_IDENT);
-                    auto &gstruc = st.StructUse(gname, lex);
+                    parse_sup();
 
-                    if (!gstruc.generic)
+                    struc = sup->CloneInto(struc);
+                    struc->idx = st.structtable.size() - 1;
+                    struc->name = sname;
+                    struc->generic = false;
+
+                    parse_specializers();
+
+                    if (!spectypes.size())
+                        Error("no specialization types specified");
+                    if (!sup->generic)
                         Error("you can only specialize a generic struct/value");
-                    if (struc.readonly != gstruc.readonly)
+                    if (isvalue != sup->readonly)
                         Error("specialization must use same struct/value keyword");
-                    if (struc.isprivate != gstruc.isprivate)
+                    if (isprivate != sup->isprivate)
                         Error("specialization must have same privacy level");
 
-                    gstruc.CloneInto(&struc);
-                    struc.idx = st.structtable.size() - 1;
-                    struc.name = sname;
-                    struc.generic = false;
-                    struc.explicit_specialization = true;
-
-                    Expect(T_LEFTPAREN);
-                    int i = 0;
-                    for (auto &field : struc.fields)
+                    for (auto &field : struc->fields)
                     {
-                        // FIXME: merge this code with the supertype specialization below?
-                        if (field.flags == AF_ANYTYPE)
-                        {
-                            if (i++) Expect(T_COMMA);
-                            ParseType(field.type, false);
-                            // We don't reset AF_ANYTYPE here, because its used to know which fields to select
-                            // a specialization on.
-                        }
+                        // We don't reset AF_ANYTYPE here, because its used to know which fields to select
+                        // a specialization on.
+                        specialize_field(field);
 
-                        struc.Resolve(field);
+                        struc->Resolve(field);
                     }
-                    Expect(T_RIGHTPAREN);
                 }
-                else if (IsNext(T_COLON))
+                else if (lex.token == T_COLON || lex.token == T_LEFTCURLY)
                 {
                     // A regular struct declaration
-                    int fieldid = 0;
+                    struc->readonly = isvalue;
+                    struc->isprivate = isprivate;
 
-                    if (IsNextId())
+                    if (IsNext(T_COLON))
                     {
-                        auto &base = st.StructUse(lastid, lex);
-                        struc.superclass = &base;
-
-                        bool specializing = IsNext(T_LEFTPAREN);
-                        int i = 0;
-                        int off = 0;
-                        for (auto &fld : base.fields)
-                        {
-                            struc.fields.push_back(fld);
-                            auto &field = struc.fields.back();
-                            field.id->NewFieldUse(FieldOffset(struc.idx, off++));
-                            if (specializing && field.flags == AF_ANYTYPE)
-                            {
-                                if (i++) Expect(T_COMMA);
-                                // FIXME: must check if this type is a subtype if old type isn't V_ANY
-                                ParseType(field.type, false);
-                            }
-                            if (st.IsGeneric(field.type)) struc.generic = true;
-                        }
-                        if (specializing) Expect(T_RIGHTPAREN);
-
-                        fieldid = base.fields.size();
+                        parse_sup();
+                        parse_specializers();
                     }
 
-                    Expect(T_LEFTBRACKET);
+                    int fieldid = 0;
 
+                    if (sup)
+                    {
+                        struc->superclass = sup;
+
+                        for (auto &fld : sup->fields)
+                        {
+                            struc->fields.push_back(fld);
+                            auto &field = struc->fields.back();
+                            // FIXME: must check if this type is a subtype if old type isn't V_ANY
+                            if (spectypes.size()) specialize_field(field);
+                            if (st.IsGeneric(field.type)) struc->generic = true;
+                        }
+
+                        fieldid = sup->fields.size();
+                    }
+
+                    Expect(T_LEFTCURLY);
                     ParseVector([this, &fieldid, &struc] ()
                     { 
                         string fname = lex.sattr;
                         Expect(T_IDENT);
-                        auto &sfield = st.FieldDecl(fname, fieldid++, &struc);
+                        auto &sfield = st.FieldDecl(fname);
                         TypeRef type;
                         int fieldref = -1;
                         if (IsNext(T_COLON))
                         {
-                            fieldref = ParseType(type, false, &struc);
+                            fieldref = ParseType(type, false, struc);
                         }
                         bool generic = st.IsGeneric(type) && fieldref < 0;
-                        struc.fields.push_back(Field(&sfield, type, generic, fieldref));
-                        if (generic) struc.generic = true;
-                    });
+                        Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                        struc->fields.push_back(Field(&sfield, type, generic, fieldref, defaultval));
+                        if (generic) struc->generic = true;
+                    }, T_RIGHTCURLY);
                     // Loop thru a second time, because this type may have become generic just now, and may refer
                     // to itself.
-                    for (auto &field : struc.fields)
+                    for (auto &field : struc->fields)
                     {
                         if (st.IsGeneric(field.type) && field.fieldref < 0) field.flags = AF_ANYTYPE;
                     }
@@ -336,10 +359,10 @@ struct Parser
                 else
                 {
                     // A pre-declaration.
-                    struc.predeclaration = true;
+                    struc->predeclaration = true;
                 }
 
-                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, &struc), nullptr));
+                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, struc), nullptr));
                 break;
             }
 
@@ -951,7 +974,7 @@ struct Parser
         return funval;
     }
 
-    Node *ParseFunctionCall(Function *f, NativeFun *nf, string &idname, Node *firstarg, bool coroutine)
+    Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg, bool coroutine)
     {
         if (nf)
         {
@@ -1183,54 +1206,23 @@ struct Parser
             {
                 lex.Next();
 
-                Node *n;
                 Node *list = nullptr;
                 Node **tail = &list;
-                auto elemf = [this, &tail] ()
+                ParseVector([this, &tail] ()
                 {
                     AddTail(tail, this->ParseExp());
-                };
-                if (IsNext(T_SUPER))
-                {
-                    n = new Node(lex, T_LIST, new Node(lex, T_SUPER, ParseExp(), nullptr), nullptr);
-                    if (IsNext(T_COMMA)) { ParseVector(elemf); n->b() = list; }
-                    else Expect(T_RIGHTBRACKET);
-                }
-                else
-                {
-                    ParseVector(elemf);
-                    n = list;
-                }
+                }, T_RIGHTBRACKET);
 
-                // FIXME: this type is not in line with other types: any non-struct type means a vector of it.
                 auto tn = new TypeNode(lex, T_TYPE);
                 tn->type_ = type_vector_any;
 
                 if (IsNext(T_COLON))
                 {
                     ParseType(tn->type_, false);
-                    if (tn->type_->t == V_STRUCT)
-                    {
-                        auto struc = tn->type_->struc;
-                        int nargs = CountList(n);
-                        int reqargs = struc->fields.size();
-                        if (n && n->head()->type == T_SUPER)
-                            reqargs -= struc->superclass->fields.size() - 1;
-                        if (nargs != reqargs)
-                            Error("constructor requires " + string(inttoa(reqargs)) +
-                                  " arguments, not " + string(inttoa(nargs)));
-                    }
-                    else
-                    {
-                        if (tn->type_->t != V_VECTOR)
-                            Error("constructor must have struct or vector type");
-                    }
+                    tn->type_ = tn->type_->Wrap(NewType());
                 }
 
-                if (tn->type_->t != V_STRUCT && n && n->head()->type == T_SUPER)
-                    Error("constructor using super must have struct type");
-
-                return new Node(lex, T_CONSTRUCTOR, n, tn);
+                return new Node(lex, T_CONSTRUCTOR, list, tn);
             }
 
             case T_FUN:
@@ -1250,41 +1242,103 @@ struct Parser
 
             case T_FLOATTYPE:
             case T_INTTYPE:
-                // These are also used as built-in functions, so allow them to function as identifier
-                // FALL-THROUGH:
+            {
+                // These are also used as built-in functions, so allow them to function as identifier for calls
+                string idname = lex.sattr;
+                lex.Next();
+                if (lex.token != T_LEFTPAREN) Error("type used as expression");
+                return IdentFactor(idname);
+            }
+
             case T_IDENT:
             {
                 string idname = lex.sattr;
                 lex.Next();
-
-                switch (lex.token)
-                {
-                    case T_LEFTPAREN:
-                        return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
-                                                 idname, nullptr, false);
-
-                    default:
-                        if (idname[0] == '_')
-                        {
-                            return (Node *)new IdRef(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
-                        }
-                        else
-                        {
-                            Ident *id = nullptr;
-                            auto fld = st.LookupWithStruct(idname, lex, id);
-                            if (fld)
-                            {
-                                return new Node(lex, T_DOT, new IdRef(lex, id), new FldRef(lex, fld));
-                            }
-
-                            return (Node *)new IdRef(lex, st.LookupUse(idname, lex));
-                        }
-                    }
+                return IdentFactor(idname);
             }
 
             default:
                 Error("illegal start of expression: " + lex.TokStr());
                 return nullptr;
+        }
+    }
+
+    Node *IdentFactor(const string &idname)
+    {
+        switch (lex.token)
+        {
+            case T_LEFTPAREN:
+                return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
+                                         idname, nullptr, false);
+            
+            case T_LEFTCURLY:
+            {
+                lex.Next();
+                auto &struc = st.StructUse(idname, lex);
+
+                vector<Node *> exps(struc.fields.size(), nullptr);
+                ParseVector([&] ()
+                {
+                    auto id = lex.sattr;
+                    if (IsNext(T_IDENT))
+                    {
+                        if (IsNext(T_COLON))
+                        {
+                            auto fld = st.FieldUse(id);
+                            auto field = struc.Has(fld);
+                            if (field < 0) Error("unknown field: " + id);
+                            if (exps[field]) Error("field initialized twice: " + id);
+                            exps[field] = ParseExp();
+                            return;
+                        }
+                        else  // Undo
+                        {
+                            lex.PushCur();
+                            lex.Push(T_IDENT, id);
+                            lex.Next();
+                        }
+                    }
+                    // An initializer without a tag. Find first field without a default thats not set yet.
+                    for (size_t i = 0; i < exps.size(); i++) if (!exps[i] && !struc.fields[i].defaultval)
+                    {
+                        exps[i] = ParseExp();
+                        return;
+                    }
+                    Error("too many initializers for: " + struc.name);
+                }, T_RIGHTCURLY);
+                // Now fill in defaults, check for missing fields, and construct list.
+                Node *list = nullptr;
+                Node **tail = &list;
+                for (size_t i = 0; i < exps.size(); i++)
+                {
+                    if (!exps[i])
+                    {
+                        if (struc.fields[i].defaultval) exps[i] = struc.fields[i].defaultval->Clone();
+                        else Error("field not initialized: " + struc.fields[i].id->name);
+                    }
+                    AddTail(tail, exps[i]);
+                }
+                auto tn = new TypeNode(lex, T_TYPE);
+                tn->type_ = &struc.thistype;
+                return new Node(lex, T_CONSTRUCTOR, list, tn);
+            }
+
+            default:
+                if (idname[0] == '_')
+                {
+                    return (Node *)new IdRef(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
+                }
+                else
+                {
+                    Ident *id = nullptr;
+                    auto fld = st.LookupWithStruct(idname, lex, id);
+                    if (fld)
+                    {
+                        return new Node(lex, T_DOT, new IdRef(lex, id), new FldRef(lex, fld));
+                    }
+
+                    return (Node *)new IdRef(lex, st.LookupUse(idname, lex));
+                }
         }
     }
 

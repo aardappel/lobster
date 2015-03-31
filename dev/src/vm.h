@@ -871,7 +871,6 @@ struct VM : VMBase
                     break;
                 }
                 
-                case IL_FIELDTABLES:
                 case IL_JUMP:
                     ip = codestart + *ip;
                     break;
@@ -1037,17 +1036,13 @@ struct VM : VMBase
 
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 
-                #define GETOFFSET(i, vec, mode) \
-                    if (mode == 1) { int o1 = *ip++; int o2 = *ip++; i = (i == vec.vval->type) ? o1 : o2; } \
-                    if (mode == 2) { i = codestart[i + vec.vval->type]; }
-
-                #define PUSHDEREF(i, dyn, mode, maybe) \
+                #define PUSHDEREF(i, dyn, maybe) \
                 { \
                     Value r = POP(); \
                     switch (r.type) \
                     { \
                         case V_VECTOR: \
-                            if (!dyn) { VecType(r); GETOFFSET(i, r, mode); } \
+                            if (!dyn) { VecType(r); } \
                             IDXErr(i, (int)r.vval->len, r); PUSH(r.vval->at(i).INC()); break; \
                         case V_NIL: if (maybe) PUSH(r); else Error("dereferencing nil"); \
                         case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); \
@@ -1058,18 +1053,14 @@ struct VM : VMBase
                     break; \
                 }
 
-                case IL_PUSHFLDO:  { int i = *ip++; PUSHDEREF(i, false, 0, false); }
-                case IL_PUSHFLDMO: { int i = *ip++; PUSHDEREF(i, false, 0, true); }
-                case IL_PUSHFLDC:  { int i = *ip++; PUSHDEREF(i, false, 1, false); }
-                case IL_PUSHFLDMC: { int i = *ip++; PUSHDEREF(i, false, 1, true); }
-                case IL_PUSHFLDT:  { int i = *ip++; PUSHDEREF(i, false, 2, false); }
-                case IL_PUSHFLDMT: { int i = *ip++; PUSHDEREF(i, false, 2, true); }
+                case IL_PUSHFLD:  { int i = *ip++; PUSHDEREF(i, false, false); }
+                case IL_PUSHFLDM: { int i = *ip++; PUSHDEREF(i, false, true); }
 
                 case IL_PUSHIDX:
                 {
                     Value idx = POP();
                     int i = GrabIndex(idx);
-                    PUSHDEREF(i, true, -1, false);
+                    PUSHDEREF(i, true, false);
                 }
 
                 case IL_PUSHLOC:
@@ -1094,7 +1085,7 @@ struct VM : VMBase
                     break;
                 }
 
-                #define WRITEDEREFOP(dyn, mode) { \
+                #define WRITEDEREFOP(dyn) { \
                     int lvalop = *ip++; \
                     int i; \
                     if (dyn) { \
@@ -1106,7 +1097,7 @@ struct VM : VMBase
                     } \
                     Value vec = POP(); \
                     Require(vec, V_VECTOR, "vector indexed assign"); \
-                    if (!dyn) { VecType(vec); GETOFFSET(i, vec, mode); } \
+                    if (!dyn) { VecType(vec); } \
                     CheckWritable(vec.vval); \
                     IDXErr(i, (int)vec.vval->len, vec); \
                     Value &a = vec.vval->at(i); \
@@ -1129,10 +1120,8 @@ struct VM : VMBase
                     break; \
                 }
 
-                case IL_LVALIDX:  WRITEDEREFOP(true, -1);
-                case IL_LVALFLDO: WRITEDEREFOP(false, 0);
-                case IL_LVALFLDC: WRITEDEREFOP(false, 1);
-                case IL_LVALFLDT: WRITEDEREFOP(false, 2);
+                case IL_LVALIDX: WRITEDEREFOP(true);
+                case IL_LVALFLD: WRITEDEREFOP(false);
 
                 case IL_PUSHONCE:
                 {
@@ -1140,19 +1129,6 @@ struct VM : VMBase
                     auto &v = TOP();
                     VMASSERT(v.type == V_VECTOR);
                     v.vval->push(x);
-                    break;
-                }
-
-                case IL_PUSHPARENT:
-                {
-                    auto x = POP();
-                    auto &v = TOP();
-                    VMASSERT(v.type == V_VECTOR);
-                    if (x.type != V_VECTOR || *ip++ != x.vval->type)
-                        Error("super class constructor is of the wrong type", x);
-                    v.vval->append(x.vval, 0, x.vval->len);
-                    //for (int i = 0; i < x.vval->len; i++) v.vval->push(x.vval->at(i));
-                    x.DECRT();
                     break;
                 }
 

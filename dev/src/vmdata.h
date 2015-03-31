@@ -379,7 +379,7 @@ struct LVector : LenObj
             CycleDone(pp.cycles);
         }
 
-        string s = "[";
+        string s = type >= 0 ? g_vm->ReverseLookupType(type) + "{" : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
@@ -387,8 +387,7 @@ struct LVector : LenObj
             PrintPrefs subpp(pp.depth - 1, pp.budget - s.size(), true, pp.decimals);
             s += pp.depth || v[i].type >= 0 ? v[i].ToString(subpp) : "..";
         }
-        s += "]";
-        if (type >= 0) s += ":" + g_vm->ReverseLookupType(type);
+        s += type >= 0 ? "}" : "]";
         return s;
     }
 

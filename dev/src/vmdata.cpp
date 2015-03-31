@@ -65,7 +65,7 @@ string Value::ToString(PrintPrefs &pp) const
         case V_NIL:       return "nil";
         case V_FUNCTION:  return "<FUNCTION>";
         case V_UNDEFINED: return "<UNDEFINED>";
-        default:            return string("<") + inttoa(type) + ">";
+        default:          return string("(") + BaseTypeName(type) + ")";
     }
 }
 

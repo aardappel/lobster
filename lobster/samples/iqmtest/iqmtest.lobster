@@ -12,7 +12,7 @@ for(gl_meshparts(iqmtest)) name, i:
     tex := check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
     gl_setmeshtexture(iqmtest, i, 0, tex)
 
-camera_position = [ 0.0, 0.0, 8.0 ]:xyz
+camera_position = xyz { 0.0, 0.0, 8.0 }
 camera_yaw = 135
 camera_pitch = 20
 

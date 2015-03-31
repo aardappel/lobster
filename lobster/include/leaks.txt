@@ -1,0 +1,4 @@
+_0_ = ["cycleinner", ["cycleinner", [.., .., nil], nil], ....]
+_1_ = ["cycleouter", ["cycleouter", [.., .., ..], [.., .., ....]], ....]
+_2_ = "cycleouter"
+_3_ = "cycleinner"

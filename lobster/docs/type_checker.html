@@ -67,5 +67,22 @@ a.x        // ok</code></pre>
 <p>Note how there are two different cases here: with an assignment inside a conditional, the type checker has to be conservative, and can't guarantee the value is non-nil. But with an un-conditional assignment, we can change the type of <code>a</code> for the rest of the block.</p>
 <p>An additional way is to use <code>assert</code>. Use this when you know for sure a value must be non-nil or have a particular type, but you can't structure your code such that this is already obvious to the type system.</p>
 <h2 id="generic-objects">Generic objects</h2>
+<p>Besides functions, objects can also be generic. If you define any field without types:</p>
+<pre><code>struct foo: [ a:string, b ]</code></pre>
+<p>You create a generic type.</p>
+<p>Unlike functions however, Lobster is a bit more strict here in that it requires you to explicitly define a specialization before you can use it<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
+<pre><code>struct foo_f: foo(float)</code></pre>
+<p>You can now construct a foo with floats, either explicitly with <code>foo_f { &quot;hi&quot;, 2.0 }</code>, or you can use the generic type: <code>foo { &quot;hi&quot;, 2.0 }</code> and let the compiler pick from all available specializations.</p>
+<p>Functions written to accept <code>foo</code> arguments will of course work on any of the specializations.</p>
+<p>You can even specialize and subclass at the same time:</p>
+<pre><code>struct bar : foo { c }
+struct bar : foo(float) { c:int }</code></pre>
+<p>The first version subclasses <code>foo</code> into another generic type, and the second specializes and subclasses at the same time, creating a non-generic type instead.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>The initial typed version of Lobster would create specializations on the fly, but this could cause very hard to track down type errors.<a href="#fnref1">↩</a></p></li>
+</ol>
+</section>
 </body>
 </html>

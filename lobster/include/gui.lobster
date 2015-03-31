@@ -15,7 +15,7 @@ TODO:
 
 */
 
-private struct guielem: [ id, size ]
+private struct guielem { id:string, size:xy_i }
 
 private cursize := xy_0i
 
@@ -43,7 +43,7 @@ private focus_id := -1
 
 private function cache_size(id, f):
     if(!render_pass):
-        e := [ id, xy_0i ]:guielem
+        e := guielem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
         e.size = f()
@@ -64,11 +64,11 @@ private function advance(v, f):
         f()
     else:
         cursize =
-            if(vertical): [ max(cursize.x, v.x), cursize.y + v.y + (cursize.y & spacing) ]:xy
-            else:         [ cursize.x + v.x + (cursize.x & spacing), max(cursize.y, v.y) ]:xy
+            if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y & spacing) }
+            else:         xy { cursize.x + v.x + (cursize.x & spacing), max(cursize.y, v.y) }
 
 private function max_space(v):
-    if(vertical): [ parent_size.x, v.y ]:xy else: [ v.x, parent_size.y ]:xy
+    if(vertical): xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
 
 private function position(v, f):
     //allint(v)

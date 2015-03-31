@@ -39,7 +39,7 @@ Tutorials: How to [build a 2D shooter][8] step by step in Lobster.
 [8]: <shooter_tutorial.html>
 
 To learn the language more in-depth: The [language reference][9]. Check out the
-[style guide][10] before you write lots of code :) Read about the optional [type
+[style guide][10] before you write lots of code :) Read about the [type
 system][11].
 
 [9]: <language_reference.html>

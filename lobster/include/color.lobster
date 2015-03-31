@@ -1,39 +1,39 @@
 // standard color constants
 
-value color: [ red:float, green:float, blue:float, alpha:float ]
+value color { red:float, green:float, blue:float, alpha:float }
 
-color_black :== [ 0, 0, 0, 1 ]:color
-color_white :== [ 1, 1, 1, 1 ]:color
+color_black :== color { 0, 0, 0, 1 }
+color_white :== color { 1, 1, 1, 1 }
 
-color_red   :== [ 1, 0, 0, 1 ]:color
-color_green :== [ 0, 1, 0, 1 ]:color
-color_blue  :== [ 0, 0, 1, 1 ]:color
+color_red   :== color { 1, 0, 0, 1 }
+color_green :== color { 0, 1, 0, 1 }
+color_blue  :== color { 0, 0, 1, 1 }
 
-color_yellow :== [ 1, 1, 0, 1 ]:color
-color_cyan   :== [ 0, 1, 1, 1 ]:color
-color_pink   :== [ 1, 0, 1, 1 ]:color
+color_yellow :== color { 1, 1, 0, 1 }
+color_cyan   :== color { 0, 1, 1, 1 }
+color_pink   :== color { 1, 0, 1, 1 }
 
-color_grey          :== [ 0.5,  0.5,  0.5,  1 ]:color
-color_dark_grey     :== [ 0.25, 0.25, 0.25, 1 ]:color
-color_light_grey    :== [ 0.75, 0.75, 0.75, 1 ]:color
-color_lightest_grey :== [ 0.9,  0.9,  0.9,  1 ]:color
-color_darkest_grey  :== [ 0.1,  0.1,  0.1,  1 ]:color
+color_grey          :== color { 0.5,  0.5,  0.5,  1 }
+color_dark_grey     :== color { 0.25, 0.25, 0.25, 1 }
+color_light_grey    :== color { 0.75, 0.75, 0.75, 1 }
+color_lightest_grey :== color { 0.9,  0.9,  0.9,  1 }
+color_darkest_grey  :== color { 0.1,  0.1,  0.1,  1 }
 
-color_dark_red   :== [ 0.5,   0,   0, 1 ]:color
-color_dark_green :== [   0, 0.5,   0, 1 ]:color
-color_dark_blue  :== [   0,   0, 0.5, 1 ]:color
+color_dark_red   :== color { 0.5,   0,   0, 1 }
+color_dark_green :== color {   0, 0.5,   0, 1 }
+color_dark_blue  :== color {   0,   0, 0.5, 1 }
 
-color_light_red   :== [ 1,   0.5, 0.5, 1 ]:color
-color_light_green :== [ 0.5, 1,   0.5, 1 ]:color
-color_light_blue  :== [ 0.5, 0.5, 1,   1 ]:color
+color_light_red   :== color { 1,   0.5, 0.5, 1 }
+color_light_green :== color { 0.5, 1,   0.5, 1 }
+color_light_blue  :== color { 0.5, 0.5, 1,   1 }
 
-color_olive  :== [ 0.5, 0.5, 0,   1 ]:color
-color_teal   :== [ 0,   0.5, 0.5, 1 ]:color
-color_purple :== [ 0.5, 0,   0.5, 1 ]:color
+color_olive  :== color { 0.5, 0.5, 0,   1 }
+color_teal   :== color { 0,   0.5, 0.5, 1 }
+color_purple :== color { 0.5, 0,   0.5, 1 }
 
-color_orange      :== [ 1,   0.5, 0,   1 ]:color
-color_chartreuse  :== [ 0.5, 1,   0,   1 ]:color
-color_springgreen :== [ 0,   1,   0.5, 1 ]:color
-color_dodgerblue  :== [ 0,   0.5, 1,   1 ]:color
-color_pink_violet :== [ 1,   0,   0.5, 1 ]:color
-color_blue_violet :== [ 0.5, 0,   1,   1 ]:color
+color_orange      :== color { 1,   0.5, 0,   1 }
+color_chartreuse  :== color { 0.5, 1,   0,   1 }
+color_springgreen :== color { 0,   1,   0.5, 1 }
+color_dodgerblue  :== color { 0,   0.5, 1,   1 }
+color_pink_violet :== color { 1,   0,   0.5, 1 }
+color_blue_violet :== color { 0.5, 0,   1,   1 }

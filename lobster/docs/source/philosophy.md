@@ -95,8 +95,7 @@ suitable for my style of programming (heavily refactoring-based).
     trying to go the opposite direction.
 
 -   A type system that tries to get as close to the experience of using a
-    dynamically typed language as possible while allowing maximum efficiency
-    thanks to full types.
+    dynamically typed language as possible while allowing maximum efficiency.
 
 -   The belief that the ideal programming language is... TWO programming
     languages. Any larger project consists of a lot of high level and glue code

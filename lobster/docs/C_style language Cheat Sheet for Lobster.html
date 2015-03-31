@@ -377,33 +377,28 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td>struct xy: [ x:float, y:float ]</td>
+<td>struct xy { x:float, y:float }</td>
 <td>public class xy { float x; float y; }</td>
 <td><br></td>
 </tr>
 <tr>
-<td>struct xy: [ x, y ]</td>
+<td>struct xy { x, y }</td>
 <td>public class xy&lt;T&gt; { T x; T y; }</td>
 <td>or generics</td>
 </tr>
 
 <tr>
-<td>struct xyz: xy [ z ]</td>
+<td>struct xyz : xy { z:float }</td>
 <td>public class xyz : xy { float z; }</td>
 <td></td>
 </tr>
 <tr>
-<td>v := [ 1, 0, 0 ]:xyz</td>
+<td>v := xyz { 1, 0, 0 }</td>
 <td>var v = new xyz(1, 0, 0)</td>
 <td>you'd actually have to define the constructor in C# to
 be able to do this</td>
 </tr>
-<tr>
-<td style="white-space: nowrap;">v := [ super s, 0 ]:xyz</td>
-<td>var v = new xyz(s, 0)</td>
-<td>here, s would be a value of type xy, whose elements will be copied
-into the new object. Again, requires a specific constructor in C#</td>
-</tr>
+
 
 
 

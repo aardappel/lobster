@@ -15,7 +15,7 @@ Lexical definition
 -   Whitespace is space, tab, carriage return, nested comments delimited by `/*`
     and `*/` or single line comments starting with `//`
 
--   Operator tokens are `( ) [ ] : ; , & | + ++ += - -- -= * *= / /= % %= == !=
+-   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= == !=
     < > <= >= <- = := :== ! ? ?. . ->`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
@@ -159,14 +159,12 @@ same object in memory, and thus changes can be observed from each).
 User Defined Types
 ------------------
 
-The `struct` and `value` keywords allow you to define "typed vectors", that can
-mostly be used similarly to vectors, but have some additional perks, like being
-able to be indexed by name, and allowing you to write dynamically dispatched
-functions for them (see MultiMethods, below). For example, from `vec.lobster`:
+The `struct` and `value` keywords allow you to define a user defined type.
+For example, from `vec.lobster`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy: [ x, y ]
-value xyz: xy [ z ]
+value xy { x, y }
+value xyz : xy { z }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use either `struct` or `value` to define these, both giving the same
@@ -175,36 +173,29 @@ be modified (assigned to) after it has been constructed. This makes sense for
 small objects such as the one in this example, and can be used to enforce a more
 functional style of programming.
 
-Generally in Lobster `:` separates the thing you are defining by what it is
-being defined as. Here it is followed by a vector of field names. Optionally, it
-can be prefixed by the name of a supertype, which has the effect of adding all
+You specify a list of fields betweeb `{` and `}`. The above example has no types
+specified, which makes it a generic type, more about the [type system][11].
+
+[11]: <type_checker.html>
+
+Optionally, you specify a supertype, which has the effect of adding all
 the fields of the supertype to the current type, thus making it an extension of
 the former.
 
-You construct values of these types similarly to vectors, with an added type
-specified at the end:
+You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-v := [ 1, 0, 0 ]:xyz
+v := xyz { 1, 0, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The type ensures that the right amount of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
 
-You can optionally construct one out of a supertype value using `super`:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-v := [ super s, 0 ]:xyz
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here, `s` is a vector of type `xy`, and both of its fields will be copied into
-the newly constructed `xyz` vector.
-
 Optionally, you may declare types of elements, which will cause these types to
 be checked upon construction:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy: [ x:float, y:float ]
+value xy { x:float, y:float }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Operators
@@ -289,7 +280,7 @@ unless *all* values involved were `int`. The type of the shortest vector (or
 left hand side if both equal) is preserved in the result:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[ 1, 2, 3 ] * [ 4, 5.5 ]:xy // results in [ 4.0, 11.0 ]:xy
+[ 1, 2, 3 ] * xy { 4, 5.5 } // results in xy { 4.0, 11.0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,

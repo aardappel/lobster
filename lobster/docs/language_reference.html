@@ -18,7 +18,7 @@
 <h2 id="lexical-definition">Lexical definition</h2>
 <ul>
 <li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
-<li><p>Operator tokens are <code>( ) [ ] : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! ? ?. . -&gt;</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! ? ?. . -&gt;</code></p></li>
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
@@ -71,19 +71,17 @@
 <p>Lobster does not have a separate boolean type. Instead, for boolean tests such as the <code>! &amp; |</code> operators (see below) or the builtin function <code>if</code>, the values <code>0 0.0 nil</code> (which includes the keyword <code>false</code>) are all considered to be false, and all other values are true.</p>
 <p>The <code>vector</code> and <code>coroutine</code> types are the only mutable objects (can change after creation), and have reference semantics (multiple values can refer to the same object in memory, and thus changes can be observed from each).</p>
 <h2 id="user-defined-types">User Defined Types</h2>
-<p>The <code>struct</code> and <code>value</code> keywords allow you to define &quot;typed vectors&quot;, that can mostly be used similarly to vectors, but have some additional perks, like being able to be indexed by name, and allowing you to write dynamically dispatched functions for them (see MultiMethods, below). For example, from <code>vec.lobster</code>:</p>
-<pre><code>value xy: [ x, y ]
-value xyz: xy [ z ]</code></pre>
+<p>The <code>struct</code> and <code>value</code> keywords allow you to define a user defined type. For example, from <code>vec.lobster</code>:</p>
+<pre><code>value xy { x, y }
+value xyz : xy { z }</code></pre>
 <p>You can use either <code>struct</code> or <code>value</code> to define these, both giving the same result except for the latter being more restrictive: it does not allow fields to be modified (assigned to) after it has been constructed. This makes sense for small objects such as the one in this example, and can be used to enforce a more functional style of programming.</p>
-<p>Generally in Lobster <code>:</code> separates the thing you are defining by what it is being defined as. Here it is followed by a vector of field names. Optionally, it can be prefixed by the name of a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
-<p>You construct values of these types similarly to vectors, with an added type specified at the end:</p>
-<pre><code>v := [ 1, 0, 0 ]:xyz</code></pre>
+<p>You specify a list of fields betweeb <code>{</code> and <code>}</code>. The above example has no types specified, which makes it a generic type, more about the <a href="type_checker.html">type system</a>.</p>
+<p>Optionally, you specify a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
+<p>You construct values of these types you use a similar syntax:</p>
+<pre><code>v := xyz { 1, 0, 0 }</code></pre>
 <p>The type ensures that the right amount of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
-<p>You can optionally construct one out of a supertype value using <code>super</code>:</p>
-<pre><code>v := [ super s, 0 ]:xyz</code></pre>
-<p>Here, <code>s</code> is a vector of type <code>xy</code>, and both of its fields will be copied into the newly constructed <code>xyz</code> vector.</p>
 <p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction:</p>
-<pre><code>value xy: [ x:float, y:float ]</code></pre>
+<pre><code>value xy { x:float, y:float }</code></pre>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from other languages that attempt to work on as many of the above types as makes sense. In particular, unlike most languages, many of them work on whole vectors, which makes typical game code both convenient and fast.</p>
 <h3 id="assignment-and-definition">Assignment and Definition</h3>
@@ -111,7 +109,7 @@ print(mat[pos])</code></pre>
 <p>This prints <code>3</code>, and is a convenient shortcut for <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to index with first, this is because in code an other places 2d arrays are usually most naturally thought of as row-major.</p>
 <h3 id="mathematical-operators">Mathematical Operators</h3>
 <p>The 5 binary mathematical operators <code>+ - * / %</code> (the last 3 having higher precedence) work on <code>int</code>, <code>float</code> (or a combination, where the end result will be <code>float</code>). They also work on vectors containing ints or floats with either another vector or a single int or float. The resulting vector will have the length of the shortest of all input vectors, and will contain <code>float</code> elements unless <em>all</em> values involved were <code>int</code>. The type of the shortest vector (or left hand side if both equal) is preserved in the result:</p>
-<pre><code>[ 1, 2, 3 ] * [ 4, 5.5 ]:xy // results in [ 4.0, 11.0 ]:xy</code></pre>
+<pre><code>[ 1, 2, 3 ] * xy { 4, 5.5 } // results in xy { 4.0, 11.0 }</code></pre>
 <p>All 5 also have have a combined assignment operator version, <code>+= -= *= /= %=</code>, which are implemented to have exactly the same effect as their expanded form, e.g. <code>a += 1</code> is always exactly the same as <code>a = a + 1</code>.</p>
 <p>This matters for vectors, where <code>+=</code> does <em>not</em> overwrite the left hand side vector with new values, but instead assigns the variable the newly constructed vector that is the result of the <code>+</code> operation. This is vital given that vectors use reference semantics, because otherwise assigning a constant vector to a variable followed by <code>+=</code> would also modify that constant, which would cause subtle bugs and generally go against Lobster's functional programming oriented design. The downside of this is that if you pass a vector to a function, and then use += to modify it, you are modifying your local variable only, and the caller's vector will be unaffected. Instead, you'll have to use (multiple) return values to give the modified value back to the caller.</p>
 <p>In addition, the <code>+</code> operator also works as string concatenation if either side is of string type (the other side will be converted to a string representation if it wasn't already).</p>

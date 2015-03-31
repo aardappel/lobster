@@ -59,7 +59,7 @@ void AddFileOps()
 
             WIN32_FIND_DATA fdata;
             HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
-            if (fh == INVALID_HANDLE_VALUE) return Value(0, V_NIL);
+            if (fh == INVALID_HANDLE_VALUE) goto fail;
 
             auto nlist = g_vm->NewVector(0, V_VECTOR);
             auto slist = g_vm->NewVector(0, V_VECTOR);
@@ -84,7 +84,7 @@ void AddFileOps()
 
             glob_t gl;
             string mask = folder + "/*";
-            if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) return Value(0, V_NIL);
+            if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) goto fail;
 
             auto nlist = g_vm->NewVector(0, V_VECTOR);
             auto slist = g_vm->NewVector(0, V_VECTOR);
@@ -105,12 +105,12 @@ void AddFileOps()
             g_vm->Push(Value(nlist));
             return Value(slist);
 
-        #else
-
-            g_vm->Push(Value(0, V_NIL));
-            return Value(0, V_NIL);
-
         #endif
+
+        fail:
+        g_vm->Push(Value(0, V_NIL));
+        return Value(0, V_NIL);
+
     }
     ENDDECL2(scan_folder, "folder,divisor", "SI", "S]?I]?",
         "returns two vectors representing all elements in a folder, the first vector containing all names,"

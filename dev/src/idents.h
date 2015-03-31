@@ -77,41 +77,20 @@ struct Ident : Named
     }
 };
 
-struct FieldOffset
+struct SharedField : Named  // Only still needed because we have no idea which struct it refers to at parsing time.
 {
-    int structidx, offset;
-
-    FieldOffset(int _si, int _o) : structidx(_si), offset(_o) {}
-    FieldOffset() : FieldOffset(-1, -1) {}
-};
-
-struct SharedField : Named
-{
-    vector<FieldOffset> offsets;
-
-    int numunique;
-    FieldOffset fo1, foN;    // in the case of 2 unique offsets where fo1 has only 1 occurence, and foN all the others
-    int offsettable;         // in the case of N offsets (bytecode index)
-
-    SharedField(const string &_name, int _idx) : Named(_name, _idx), numunique(0), offsettable(-1) {}
+    SharedField(const string &_name, int _idx) : Named(_name, _idx) {}
     SharedField() : SharedField("", 0) {}
-
-    void NewFieldUse(const FieldOffset &nfo)
-    {
-        for (auto &fo : offsets) if (fo.offset == nfo.offset) goto found;
-        numunique++;
-        found:
-        offsets.push_back(nfo);
-    }
 };
 
 struct Field : Typed<SharedField>
 {
     int fieldref;
+    Node *defaultval;  // Not deleted, possibly referred to by multiple structs.
 
-    Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref)
+    Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
         : Typed(_id, _type, _generic),
-          fieldref(_fieldref) {}
+          fieldref(_fieldref), defaultval(_defaultval) {}
 };
 
 struct Struct : Named
@@ -126,7 +105,6 @@ struct Struct : Named
 
     bool readonly;
     bool generic;
-    bool explicit_specialization;
     bool predeclaration;
 
     Type thistype;       // convenient place to store the type corresponding to this
@@ -135,7 +113,7 @@ struct Struct : Named
     Struct(const string &_name, int _idx)
         : Named(_name, _idx), next(nullptr), first(this), superclass(nullptr),
           firstsubclass(nullptr), nextsubclass(nullptr),
-          readonly(false), generic(false), explicit_specialization(false), predeclaration(false),
+          readonly(false), generic(false), predeclaration(false),
           thistype(V_STRUCT, this),
           vectortype(type_vector_any) {}
     Struct() : Struct("", 0) {}
@@ -146,10 +124,10 @@ struct Struct : Named
         ser(readonly);
     }
 
-    Field *Has(SharedField *fld)
+    int Has(SharedField *fld)
     {
-        for (auto &uf : fields) if (uf.id == fld) return &uf;
-        return nullptr;
+        for (auto &uf : fields) if (uf.id == fld) return &uf - &fields[0];
+        return -1;
     }
 
     Struct *CloneInto(Struct *st)
@@ -276,41 +254,22 @@ struct Function : Named
     }
 };
 
-inline string TypeName(TypeRef type, int depth = 0)
+inline string TypeName(TypeRef type)
 {
     switch (type->t)
     {
-        case V_STRUCT:
-        {
-            auto struc = type->struc;
-            string s = struc->name;
-            if (depth < 2 && !struc->explicit_specialization && (struc != struc->first || struc->generic))
-            {
-                int i = 0;
-                for (auto &field : struc->fields)
-                {
-                    if (field.flags == AF_ANYTYPE)
-                    {
-                        s += i ? "," : "(";
-                        s += TypeName(field.type, depth + 1);
-                        i++;
-                    }
-                }
-                if (i) s += ")";
-            }
-            return s;
-        }
+        case V_STRUCT: return type->struc->name;
         case V_VECTOR: return type->Element()->t == V_VAR 
             ? "[]"
-            : "[" + TypeName(type->Element(), depth + 1) + "]";
+            : "[" + TypeName(type->Element()) + "]";
         case V_FUNCTION: return type->sf // || type->sf->anonymous
             ? type->sf->parent->name
             : "function";
         case V_NILABLE: return type->Element()->t == V_VAR
             ? "nil"
-            : TypeName(type->Element(), depth + 1) + "?";
+            : TypeName(type->Element()) + "?";
         case V_VAR: return type->sub
-            ? TypeName(type->sub, depth) + "*"
+            ? TypeName(type->sub) + "*"
             : BaseTypeName(type->t);
         case V_COROUTINE: return type->sf
             ? "coroutine(" + type->sf->parent->name + ")"
@@ -453,7 +412,7 @@ struct SymbolTable
         assert(!id);
         for (auto &wp : withstack)
         {
-            if (wp.first->struc->Has(fld))
+            if (wp.first->struc->Has(fld) >= 0)
             {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wp.second;
@@ -571,7 +530,7 @@ struct SymbolTable
         return a;
     }
 
-    SharedField &FieldDecl(const string &name, int idx, Struct *st)
+    SharedField &FieldDecl(const string &name)
     {
         SharedField *fld = fields[name];
         if (!fld)
@@ -580,7 +539,6 @@ struct SymbolTable
             fields[name] = fld;
             fieldtable.push_back(fld);
         }
-        fld->NewFieldUse(FieldOffset(st->idx, idx));
         return *fld;
     }
 

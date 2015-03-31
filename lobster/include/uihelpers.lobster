@@ -29,14 +29,14 @@ function ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
                 touchvelocity = xy_0
     maxo -= viewsize / scale
     if(maxo.x < mino.x):
-        mino = [ (mino.x + maxo.x) / 2, mino.y ]:xy  // FIXME!!!
-        maxo = [ (mino.x + maxo.x) / 2, maxo.y ]:xy
+        mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!
+        maxo = xy { (mino.x + maxo.x) / 2, maxo.y }
     if(maxo.y < mino.y):
-        mino = [ mino.x, (mino.y + maxo.y) / 2 ]:xy
-        maxo = [ maxo.x, (mino.y + maxo.y) / 2 ]:xy
+        mino = xy { mino.x, (mino.y + maxo.y) / 2 }
+        maxo = xy { maxo.x, (mino.y + maxo.y) / 2 }
 
-    panoffset = [ max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
-                  max(min(maxo.y, panoffset.y), mino.y) ]:xy
+    panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
+                     max(min(maxo.y, panoffset.y), mino.y) }
     panoffset
 
 function ui_inertiascroll_reset(startoffset:xy_f):
@@ -56,7 +56,7 @@ private viewsteps := 0
 private pinchfactor := 1.0
 private lastdistance := 0.0
 
-function ui_mousewheelorpinchzoom(rate, mins, default, maxs, origin):
+function ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin:xy_f):
     if(viewsteps == 0): viewsteps = default
     oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
     viewsteps -= gl_mousewheeldelta()

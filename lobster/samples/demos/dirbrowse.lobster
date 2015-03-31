@@ -7,9 +7,9 @@ include "unittest.lobster"
 indentsize := 20
 fontsize := 20
 
-struct node: [ name:string, size:int, parent:node?, children:[node] ]
+struct node { name:string, size:int, parent:node?, children:[node] }
 
-root := [ "", -1, nil, [] ]:node
+root := node { "", -1, nil, [] }
 selected := root
 entries := []
 
@@ -21,7 +21,7 @@ function scan(n:node):
     names, sizes := scan_folder(n.fullpath, 1024)
     if(names & sizes):
         for(names) name, i:
-            entries.push([ name, sizes[i], nil, [] ]:node)
+            entries.push(node { name, sizes[i], nil, [] })
     insertion_sort(entries) a, b:
         if((a.size < 0) == (b.size < 0)): a.name < b.name else: a.size < b.size
 
@@ -67,7 +67,7 @@ function render_entries():
                     if(dups.length):
                         select(dups[0])
                     else:
-                        n := [ e.name, e.size, selected, [] ]:node
+                        n := node { e.name, e.size, selected, [] }
                         selected.children.push(n)
                         select(n)
                 gl_color(color_light_grey):

@@ -94,8 +94,8 @@ function level(highscore, frame):
             scale := gl_windowsize().y / worldsize
             gl_scale(scale)
 
-            dir := [ gl_isdown("d") - gl_isdown("a"),
-                     gl_isdown("s") - gl_isdown("w") ]:xy_f
+            dir := xy_f { gl_isdown("d") - gl_isdown("a"),
+                          gl_isdown("s") - gl_isdown("w") }
             newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
             if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
                 playerpos = newpos

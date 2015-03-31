@@ -31,16 +31,16 @@ while(gl_frame() & !gl_wentdown("escape")):
         scale := gl_windowsize().y / worldsize
         gl_scale(scale)
 
-        dir := [ gl_isdown("d") - gl_isdown("a"),
-                 gl_isdown("s") - gl_isdown("w") ]:xy_f
+        dir := xy_f { gl_isdown("d") - gl_isdown("a"),
+                      gl_isdown("s") - gl_isdown("w") }
         newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
         if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
             playerpos = newpos
 
         tomouse := normalize(gl_localmousepos(0) - playerpos)
 
-        struct enemy: [ pos, hp ]
-        struct bullet: [ pos, dir ]
+        struct enemy { pos:xy_f, hp:int }
+        struct bullet { pos:xy_f, dir:xy_f }
 
         enemies ?= []
         bullets ?= []
@@ -54,12 +54,12 @@ while(gl_frame() & !gl_wentdown("escape")):
         enemyrate ?= 1.0
         enemymaxhp :== 5
         every_n_seconds(enemyrate):
-            enemies.push([ sincos(rnd(360)).xy * worldsize * 2, enemymaxhp ]:enemy)
+            enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
             enemyrate *= 0.999
 
         firerate :== 0.1
         every_n_seconds(firerate):
-            bullets.push([ playerpos, tomouse ]:bullet)
+            bullets.push(bullet { playerpos, tomouse })
 
         enemyspeed :== 3
         for(enemies) e:
