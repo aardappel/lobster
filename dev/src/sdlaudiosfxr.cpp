@@ -559,6 +559,13 @@ bool SDLSoundInit()
     if (SDL_InitSubSystem(SDL_INIT_AUDIO))
         return false;
 
+    int count = SDL_GetNumAudioDevices(0);
+    for (int i = 0; i < count; ++i)
+    {
+        Output(OUTPUT_INFO, "Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+    }
+
+    SDL_zero(playbackspec);
     playbackspec.freq = 44100;
     playbackspec.format = AUDIO_S16SYS;
     playbackspec.channels = 1;

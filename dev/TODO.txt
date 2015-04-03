@@ -1,6 +1,6 @@
 - allow random number generator to be selected
 
-- upgrade SDL
+- upgrade other platforms to SDL 2.0.3 too
 
 - syntax overhaul.
   think of ways in which we can improve the syntax to be less jarring to people coming from either
@@ -663,16 +663,15 @@ NOTES:
 BUILDING NOTES FOR SDL
 ======================
 NOTE: must really update all platforms at once, since they share the headers!
-each platform must copy proper config.h, then for shared include folder use original again
 
 windows:
+- copy include to own include
 - define HAVE_LIBC in sdl_config_windows.h
 - in begin_code.h, #define DECLSPEC <nothing>  (stops exe from having external refs)
 - remove tests from projects
 - change in all projects: DLL -> LIB project, DLL -> static runtime, turn off PDB generation
 - put a "d" at the end of the "Target Name" field for debug mode
 - set up temp dirs to build, output folder to lib
-- copy include to own include
 
 OS-X / ios:
 - open Xcode project, select static-lib / 32bit, set to release, build
