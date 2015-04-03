@@ -1,5 +1,3 @@
-- allow random number generator to be selected
-
 - upgrade other platforms to SDL 2.0.3 too
 
 - syntax overhaul.
@@ -26,13 +24,17 @@
       would also solve the lack of space after if()
       does not solve else:if
     - keep it as-is.
-  - constructors are a bit weird, would be better to have the type name first:
-    [1,2]:xy  ->  xy[1,2]
-    but that looks too much like indexing, so maybe also change the []? But its nice to see constructors
-    as different from function calls. could use {} ? xy { 1, 2 }
-    or maybe only for objects and leave lists as-is, that way it looks more like json. Could even allow
-    tagged field names and field defaults to be even more like that.
+    most frequent indentations, in this order:
+    - if
+    - function
+    - else
+    - for
+    - while
+    - map
+    - other hof
   - people really dislike := because they assume it means assignment.. could use a different operator?
+    maybe var: = val to make it look more like regular assignment?
+  - use def instead of function to be less verbose?
 
 - typechecker
   - improve type checking doc.
@@ -162,6 +164,8 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
+
+- allow random number generator to be selected
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

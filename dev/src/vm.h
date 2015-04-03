@@ -1137,32 +1137,6 @@ struct VM : VMBase
                 case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;          }               break; }
                 case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x); } else x.DEC(); break; }
 
-                case IL_TT:       { auto &v = TOP(); auto t = (ValueType)*ip++; if (v.type != t) TTError(BaseTypeName(t), v); break; }
-                case IL_TTFLT:    { auto &v = TOP(); if (!Coerce(v, V_FLOAT))  TTError("float",  v); break; }
-                case IL_TTSTR:    { auto &v = TOP(); if (!Coerce(v, V_STRING)) TTError("string", v); break; }
-                case IL_TTSTRUCT: { 
-                    
-                    // This doesn't work anymore, because without the typechecker the type will not be specialized.
-                    ip++;
-
-                    /*
-                    auto &v = TOP();
-                    auto udtid = *ip++;
-                    if (v.type == V_VECTOR)
-                    {
-                        // only expensive if long inheritance chain and if often passing subtype values to
-                        // supertype functions
-                        for (int t = v.vval->type; t != -1; t = st.structtable[t]->superclassidx)
-                        {
-                            if (t == udtid) goto found;
-                        }
-                    }
-                    TTError(st.ReverseLookupType(udtid), v);
-                    found:
-                    */
-                    break;
-                }
-
                 case IL_ISTYPE:
                 {
                     auto t = *ip++;

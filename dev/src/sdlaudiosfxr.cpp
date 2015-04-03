@@ -569,10 +569,11 @@ bool SDLSoundInit()
     playbackspec.freq = 44100;
     playbackspec.format = AUDIO_S16SYS;
     playbackspec.channels = 1;
-    playbackspec.samples = 512;
+    playbackspec.samples = 1024;
     playbackspec.callback = SDLAudioCallback;
     playbackspec.userdata = nullptr;
-    audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, nullptr, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    SDL_AudioSpec obtained;
+    audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     return !!audioid;
 }

@@ -69,8 +69,6 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_JUMPFAILR:
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
-        case IL_TT:
-        case IL_TTSTRUCT:
         case IL_LOGREAD:
             s += inttoa(*ip++);
             break;

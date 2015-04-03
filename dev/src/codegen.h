@@ -38,7 +38,7 @@ namespace lobster
     F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
     F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) F(FOR) \
     F(PUSHONCE) \
-    F(TTSTRUCT) F(TT) F(TTFLT) F(TTSTR) F(ISTYPE) F(CORO) F(COCL) F(COEND) \
+    F(ISTYPE) F(CORO) F(COCL) F(COEND) \
     F(LOGREAD)
 
 #define F(N) IL_##N,
@@ -300,34 +300,18 @@ struct CodeGen
         if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
     }
 
-    void GenTypeCheck(TypeRef given, TypeRef type)
-    {
-        if (given == type) return;
-        switch(type->t)
-        {
-            case V_ANY:     break;
-            case V_FLOAT:   Emit(IL_TTFLT); break;
-            case V_STRING:  Emit(IL_TTSTR); break;
-            case V_STRUCT:  Emit(IL_TTSTRUCT, type->struc->idx); break;
-            // FIXME: this may need to reworked now that we have more rich types, or removed alltogether.
-            default:        //Emit(IL_TT, type->t); 
-                break;
-        }
-    }
-
     void GenFixup(const SubFunction *sf)
     {
         if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
     }
 
-    const Node *GenArgs(const Node *list, const ArgVector *args, int checkargs, int &nargs)
+    const Node *GenArgs(const Node *list, const ArgVector *args, int &nargs)
     {
         // Skip unused args, this may happen for dynamic calls.
         const Node *lastarg = nullptr;
         for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
         {
             Gen(list->head(), 1);
-            if (nargs < checkargs) GenTypeCheck(list->head()->exptype, args->v[nargs].type);
             lastarg = list->head();
             nargs++;
         }
@@ -337,7 +321,7 @@ struct CodeGen
     int GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
     {
         auto &f = *sf.parent;
-        GenArgs(args, &sf.args, f.multimethod ? 0 : sf.args.v.size(), nargs);
+        GenArgs(args, &sf.args, nargs);
         if (f.nargs() != nargs)
             parser.Error("call to function " + f.name + " needs " + string(inttoa(f.nargs())) +
             " arguments, " + string(inttoa(nargs)) + " given", errnode);
@@ -490,7 +474,7 @@ struct CodeGen
                     auto nf = n->ncall_id()->nf();
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
-                    auto lastarg = GenArgs(n->ncall_args(), nullptr, 0, nargs);
+                    auto lastarg = GenArgs(n->ncall_args(), nullptr, nargs);
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx, nargs);
@@ -525,7 +509,7 @@ struct CodeGen
 
                     if (n->dcall_fval()->exptype->t == V_YIELD)
                     {
-                        GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
+                        GenArgs(n->dcall_info()->dcall_args(), nullptr, nargs);
                         if (!nargs) Emit(IL_PUSHNIL);
                         Emit(IL_YIELD);
                     }
@@ -558,7 +542,7 @@ struct CodeGen
                                 }
                             }
 
-                            GenArgs(n->dcall_info()->dcall_args(), nullptr, 0, nargs);
+                            GenArgs(n->dcall_info()->dcall_args(), nullptr, nargs);
                             Gen(n->dcall_fval(), 1);
                             Emit(IL_CALLV, nargs);
                         }
@@ -686,10 +670,6 @@ struct CodeGen
                     assert(cn->type == T_LIST);
 
                     Gen(cn->head(), 1);
-
-                    auto &type = cn->head()->exptype;
-                    if (struc) GenTypeCheck(type, struc->fields[i].type);
-                    else GenTypeCheck(type, vtype->Element());
 
                     Emit(IL_PUSHONCE);
                     i++;
