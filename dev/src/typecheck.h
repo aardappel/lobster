@@ -1155,9 +1155,9 @@ struct TypeChecker
             }
 
             case T_ASSIGN:
-                AssignFlowDemote(*n.left(), n.right()->exptype, true);
+                if (n.left()->type != T_INDEX) AssignFlowDemote(*n.left(), n.right()->exptype, true);
                 SubType(n.right(), n.left()->exptype, "right", n);
-                AssignFlowPromote(*n.left(), n.right()->exptype);
+                if (n.left()->type != T_INDEX) AssignFlowPromote(*n.left(), n.right()->exptype);
                 type = n.left()->exptype;
                 break;
 
