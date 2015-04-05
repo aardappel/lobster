@@ -28,7 +28,7 @@
             <key>name</key>
             <string>keyword.source.lobster</string>
             <key>match</key>
-            <string>\b(return|struct|value|include|function|super|is|from|program|private|coroutine)\b</string>
+            <string>\b(return|struct|value|include|def|is|from|program|private|coroutine|enum)\b</string>
         </dict>
         <dict>
             <key>name</key>
@@ -88,7 +88,7 @@
             <key>name</key>
             <string>support.constant.source.lobster</string>
             <key>match</key>
-            <string>\b(vec_0|vec_1|vec_h|vec_x|vec_y|vec_z|vec_w|vec_xy|vec_0i|vec_1i|vec_xi|vec_yi|vec_zi|vec_wi|color_black|color_white|color_red|color_green|color_blue|color_yellow|color_cyan|color_pink|color_grey|color_dark_grey|color_light_grey|color_lightest_grey|color_darkest_grey|color_dark_red|color_dark_green|color_dark_blue|color_light_red|color_light_green|color_light_blue|color_olive|color_teal|color_purple|color_orange|color_chartreuse|color_springgreen|color_dodgerblue|color_pink_violet|color_blue_violet)\b</string>
+            <string>\b(xy_0|xy_1|xy_h|xy_x|xy_y|xy_z|xy_w|xy_xy|xy_0i|xy_1i|xy_xi|xy_yi|xy_zi|xy_wi|color_black|color_white|color_red|color_green|color_blue|color_yellow|color_cyan|color_pink|color_grey|color_dark_grey|color_light_grey|color_lightest_grey|color_darkest_grey|color_dark_red|color_dark_green|color_dark_blue|color_light_red|color_light_green|color_light_blue|color_olive|color_teal|color_purple|color_orange|color_chartreuse|color_springgreen|color_dodgerblue|color_pink_violet|color_blue_violet)\b</string>
         </dict>
         <dict>
             <key>name</key>
