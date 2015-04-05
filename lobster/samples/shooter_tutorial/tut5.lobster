@@ -24,7 +24,7 @@ enemymaxhp :== 5
 enemies := []
 lastenemy := gl_time()
 
-function renderpointytriangle(pos, dir):
+def renderpointytriangle(pos, dir):
     gl_translate(pos):
         gl_rotate_z(dir):
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])

@@ -62,22 +62,22 @@ xyzw_wi :== xyzw { 0, 0, 0, 1 }
 
 // shorten vectors, e.g. xyz -> xy
 // FIXME: subtyping should take care of this
-function xy(v): xy { v.x, v.y }
-function xyz(v): xyz { v.x, v.y, v.z }
+def xy(v): xy { v.x, v.y }
+def xyz(v): xyz { v.x, v.y, v.z }
 
-function allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
+def allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
 
-function forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
-function mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
+def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
+def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
 
-function vecfromyawpitch(yaw, pitch, move, strafe):
+def vecfromyawpitch(yaw, pitch, move, strafe):
     (sincos(yaw - 90/* start from Y rather than X axis */) *
         cos(pitch) - xyz_z * sin(pitch)) * move + sincos(yaw) * strafe
 
-function inrange2d(test, num, bias): test.x.inrange(num.x, bias.x) &
+def inrange2d(test, num, bias): test.x.inrange(num.x, bias.x) &
                                      test.y.inrange(num.y, bias.y)
 
-function rotate2D(v, angle):
+def rotate2D(v, angle):
     s := sin(-angle)
     c := cos(-angle)
     xy { v.x * c + v.y * s,

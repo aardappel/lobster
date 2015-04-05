@@ -388,7 +388,7 @@ But for now... target practice!
 Since the code is getting long, let's continue, talking purely in terms
 of modifications to the existing code:
 
-    function renderpointytriangle(pos, dir):
+    def renderpointytriangle(pos, dir):
         gl_translate(pos):
             gl_rotate_z(dir):
                 gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
@@ -413,7 +413,7 @@ matters for now. Add this to the declarations.
             enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
             lastenemy += enemyrate
             enemyrate *= 0.999
-            
+
         for(enemies) e:
             playerdir := normalize(playerpos - e.pos)
             e.pos += playerdir * gl_deltatime() * enemyspeed
@@ -423,8 +423,8 @@ matters for now. Add this to the declarations.
                     b.pos = xy_x * worldsize * 10
             gl_color(lerp(color_red, color_blue, div(e.hp, enemymaxhp))):
                 renderpointytriangle(e.pos, playerdir)
-                
-        enemies = filter(enemies): _.hp 
+
+        enemies = filter(enemies): _.hp
 
 During the frame, we use the above code to deal with enemies, which is
 very similar to bullets yet again. We spawn new enemies initially once

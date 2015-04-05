@@ -7,22 +7,22 @@ include "exception.lobster"
 include "vec.lobster"
 include "astar.lobster"
 
-function run_test_cases():
+def run_test_cases():
     //trace_bytecode(1)
 
     value testa { a:int }
     value testb : testa { b:int }
 
-    function tf(x:int, y): 1
-    function tf(x:string, y:float): 2
-    function tf(x:string, y:int): 3
-    function tf(x:testa, y): 4
-    function tf(x:testb, y): 9
-    function tf(x:testb, y:float): 5
-    function tf(x:testb, y:int): 6
-    function tf(x, y): 7
+    def tf(x:int, y): 1
+    def tf(x:string, y:float): 2
+    def tf(x:string, y:int): 3
+    def tf(x:testa, y): 4
+    def tf(x:testb, y): 9
+    def tf(x:testb, y:float): 5
+    def tf(x:testb, y:int): 6
+    def tf(x, y): 7
 
-    function tf(x): 8
+    def tf(x): 8
 
     assert(tf(1, 0) == 1)
     assert(tf("", 0.0) == 2)
@@ -59,13 +59,13 @@ function run_test_cases():
     assert(compres2 == "plugintest return value")
     */
 
-    function scopetest():
+    def scopetest():
         x := 1
         y := 1
-        function f():
+        def f():
             assert(x == 1)
             assert(y == 2)
-        function g():
+        def g():
             x := 2
             y <- 2
             f()
@@ -100,21 +100,21 @@ function run_test_cases():
     assert(264 == sum(testvector.map(): _ * _))
 
 
-    function factorial(n): 1 > n | factorial(n - 1) * n
+    def factorial(n): 1 > n | factorial(n - 1) * n
     assert(7.factorial == 5040)
 
-    assert(((function(f): f(4))(function(x): x * x)) == 16)
+    assert(((def(f): f(4))(def(x): x * x)) == 16)
 
 
     // ////////////////////////////////////////////////////////////////////////
     // typechecking
 
-    function block(f): f()
+    def block(f): f()
 
     block():
-        function h(i): i()
-        function g(f):
-            // Here, the function passed to h appears the same each time, but it has a freevar f that is different.
+        def h(i): i()
+        def g(f):
+            // Here, the def passed to h appears the same each time, but it has a freevar f that is different.
             h():
                 f()
         assert((g(): 1) == 1)
@@ -167,7 +167,7 @@ function run_test_cases():
         pathingcell { xy { x, y }, false, c }
 
     path :=
-        astar_2dgrid(false, worldsize, world[startpos], world[endpos], function(): world[_]) (n, nn::pathingcell):
+        astar_2dgrid(false, worldsize, world[startpos], world[endpos], def(): world[_]) (n, nn::pathingcell):
             (c == '#' & -1) | (c == '/' & 5) | 1
 
     assert(path.length == 27)
@@ -190,15 +190,15 @@ function run_test_cases():
     enum wolves, skins, money, flour, bread, pizza, hungry
 
     goapactions := [
-        goapaction { "kill wolf",  function(s): s[wolves] >= 1, function(s): s[wolves]--;   s[skins]++ },
-        goapaction { "sell skin",  function(s): s[skins]  >= 1, function(s): s[money] += 2; s[skins]-- },
-        goapaction { "buy pizza",  function(s): s[money]  >= 2, function(s): s[money] -= 2; s[pizza]++ },
-        goapaction { "buy flour",  function(s): s[money]  >= 1, function(s): s[money]--;    s[flour]++ },
-        goapaction { "bake bread", function(s): s[flour]  >= 1, function(s): s[flour]--;    s[bread]++ },
+        goapaction { "kill wolf",  def(s): s[wolves] >= 1, def(s): s[wolves]--;   s[skins]++ },
+        goapaction { "sell skin",  def(s): s[skins]  >= 1, def(s): s[money] += 2; s[skins]-- },
+        goapaction { "buy pizza",  def(s): s[money]  >= 2, def(s): s[money] -= 2; s[pizza]++ },
+        goapaction { "buy flour",  def(s): s[money]  >= 1, def(s): s[money]--;    s[flour]++ },
+        goapaction { "bake bread", def(s): s[flour]  >= 1, def(s): s[flour]--;    s[bread]++ },
         goapaction {
             "eat",
-            function(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
-            function(s):
+            def(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
+            def(s):
                 if(s[bread] > 0): s[bread]-- else: s[pizza]--
                 s[hungry]--
         }
@@ -219,18 +219,18 @@ function run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // coroutines test
 
-    function mycoro(f):
+    def mycoro(f):
         forrange(3, 6): f(_)
         1337
 
-    function myfor(n, f):
+    def myfor(n, f):
         for(n): f(_)
         0
 
     co1 := coroutine mycoro()   // out of nested HOFs
     co2 := coroutine myfor(4)   // out of a simple function
 
-    function interleave(co1, co2, f):   // test using 2 at once
+    def interleave(co1, co2, f):   // test using 2 at once
         while(co1.active | co2.active):
             if(co1.active):
                 f(co1.returnvalue)
@@ -246,7 +246,7 @@ function run_test_cases():
     assert(!co2.active)
     assert(co1.returnvalue == 1337)
 
-    function pass_thru(co, f):
+    def pass_thru(co, f):
         coroutine_for(co): f(_)
 
     co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
@@ -257,7 +257,7 @@ function run_test_cases():
     assert(sum == 45)
 
     // Access variables inside coroutines from the outside:
-    function loctest(f):
+    def loctest(f):
         a := 1
         for(10) i:
             b := 2
@@ -267,7 +267,7 @@ function run_test_cases():
     assert(co4->a + co4->i + co4->b == 3)
 
     // Even functions that don't yield are cool:
-    function conoyield(f): 1
+    def conoyield(f): 1
     co5 := coroutine conoyield()
     assert(co5.returnvalue == 1)
 
@@ -285,26 +285,26 @@ function run_test_cases():
     assert(ff == 2 & gg == 3)
     ff, gg = 8, 9
     assert(ff == 8 & gg == 9)
-    function multiret():
+    def multiret():
         if(false): return 4, 5
         return 6, 7
     hh, ii := multiret()
     assert(hh == 6 & ii == 7)
     hh = multiret()
     assert(hh == 6)
-    function multiretpassthru(): return multiret()  // doesn't work without the return!
+    def multiretpassthru(): return multiret()  // doesn't work without the return!
     jj, kk := multiretpassthru()
     assert(jj == 6 & kk == 7)
 
     // non-local named returns: limited form of exception handling
-    function nlr1():
+    def nlr1():
         nlr2()
         2
-    function nlr2():
+    def nlr2():
         return 1 from nlr1
     assert(nlr1() == 1)
 
-    function recursive_exceptions(n):
+    def recursive_exceptions(n):
         try():
             if(n): recursive_exceptions(n - 1)
             else: throw(0)
@@ -321,7 +321,7 @@ function run_test_cases():
 
     assert(seconds_elapsed() - starttime > 0)
 
-    function cycletest():
+    def cycletest():
         struct cyclist { name:string, loop:cyclist?, next:cyclist? }
         cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
         cycle.loop = cycle

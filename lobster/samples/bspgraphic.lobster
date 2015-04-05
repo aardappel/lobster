@@ -4,7 +4,7 @@ include "color.lobster"
 dirs := [ xy_xi, xy_yi ]
 colorconstant := 1
 
-function square(pos, size, depth):
+def square(pos, size, depth):
     if((rnd(4) | depth < 2) & size.x > 8 & size.y > 8):
         //dir := rnd(2)
         //dir := size.y > size.x

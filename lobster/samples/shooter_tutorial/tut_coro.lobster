@@ -4,7 +4,7 @@ include "color.lobster"
 
 mode := coroutine menu(0, 0)
 
-function menu(lastscore, highscore, frame):
+def menu(lastscore, highscore, frame):
     forever():
         frame()
         msg := "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
@@ -13,7 +13,7 @@ function menu(lastscore, highscore, frame):
         if(gl_wentdown("space")):
             mode = coroutine level(highscore)
 
-function level(highscore, frame):
+def level(highscore, frame):
     score := 0
 
     worldsize :== 20.0
@@ -25,12 +25,12 @@ function level(highscore, frame):
     bs := coroutine bulletset()
     es := coroutine enemyset()
 
-    function renderpointytriangle(pos, dir):
+    def renderpointytriangle(pos, dir):
         gl_translate(pos):
             gl_rotate_z(dir):
                 gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
 
-    function bullet(pos, dir, frame):
+    def bullet(pos, dir, frame):
         bulletspeed :== 15
         while(magnitude(pos) < worldsize * 2):
             frame()
@@ -39,7 +39,7 @@ function level(highscore, frame):
                 gl_color(color_yellow):
                     gl_circle(0.2, 20)
 
-    function bulletset(frame):
+    def bulletset(frame):
         firerate :== 0.1
         lastbullet := gl_time()
         bullets := []
@@ -53,7 +53,7 @@ function level(highscore, frame):
                 b.resume()
                 b.active
 
-    function enemy(pos, frame):
+    def enemy(pos, frame):
         speed :== 3
         maxhp :== 5
         hp := maxhp
@@ -74,7 +74,7 @@ function level(highscore, frame):
             gl_color(lerp(color_red, color_blue, div(hp, maxhp))):
                 renderpointytriangle(pos, playerdir)
 
-    function enemyset(frame):
+    def enemyset(frame):
         enemies := []
         enemyrate := 1.0
         lastenemy := gl_time()

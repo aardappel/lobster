@@ -316,7 +316,7 @@ struct Lex : LoadedFile
                     else if (sattr == "float")     return T_FLOATTYPE;
                     else if (sattr == "string")    return T_STRTYPE;
                     else if (sattr == "vector")    return T_VECTTYPE;
-                    else if (sattr == "function")  return T_FUN;
+                    else if (sattr == "def")       return T_FUN;
                     else if (sattr == "is")        return T_IS;
                     else if (sattr == "from")      return T_FROM;
                     else if (sattr == "program")   return T_PROGRAM;

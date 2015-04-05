@@ -21,7 +21,7 @@ while(gl_frame() & !gl_wentdown("escape")):
         playerhealth ?= 100.0
         worldsize :== 20.0
 
-        function renderpointytriangle(pos, dir):
+        def renderpointytriangle(pos, dir):
             gl_translate(pos):
                 gl_rotate_z(dir):
                     gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
@@ -45,7 +45,7 @@ while(gl_frame() & !gl_wentdown("escape")):
         enemies ?= []
         bullets ?= []
 
-        function every_n_seconds(sec, f):
+        def every_n_seconds(sec, f):
             last ?= gl_time()
             if(last <= gl_time()):
                 last += sec

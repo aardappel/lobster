@@ -35,7 +35,7 @@ samples in the Lobster documentation and distribution. Let's look at a typical
 example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function qsort(xs, lt):
+def qsort(xs, lt):
     if(xs.length <= 1):
         xs
     else:

@@ -65,7 +65,7 @@ In the simplest cases, there is no difference between writing dynamically typed
 code and typed code. For example a simple function like:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function add(x, y): x + y
+def add(x, y): x + y
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 is how you create a generic functions in either case. You create a generic

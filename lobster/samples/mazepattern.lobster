@@ -12,7 +12,7 @@ include "color.lobster"
 
 fatal(gl_window("rndmaze", 1024, 768))
 
-function endcap_line(a, b, thickness):
+def endcap_line(a, b, thickness):
     extension := (a - b) * thickness * sqrt(2) / 4
     gl_line(a + extension, b - extension, thickness)
 

@@ -26,7 +26,7 @@ value Sphere {
     refl:int                   // reflection type (DIFFuse, SPECular, REFRactive)
 }
 
-function intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
+def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     op := p-r.o   // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0
     eps := 0.0001
     b := op.dot(r.d)
@@ -58,10 +58,10 @@ spheres := [ //Scene: radius, position, emission, color, material
     Sphere { bigrad, xyz {  bigrad+1, 40.8,81.6   }, xyz_0,    xyz {.75,.25,.25}, DIFF }  //Left
 ]
 
-function radiance(r:Ray, depth):
+def radiance(r:Ray, depth):
     t := 1000000000000.0                            // distance to intersection
     id := -1                             // id of intersected object
-    function intersectray(r:Ray):
+    def intersectray(r:Ray):
         for(spheres) s, i:
             d := s.intersect(r)
             if(d != 0 & d<t):
@@ -130,7 +130,7 @@ c := map(w): map(h): xyz_0
 samples := 0
 
 
-function onesample():
+def onesample():
     starttime := seconds_elapsed()
     for(h) y:                       // Loop over image rows
         for(w) x:                           // Loop cols

@@ -31,7 +31,7 @@ score := 0
 highscore := 0
 playing := false
 
-function renderpointytriangle(pos, dir):
+def renderpointytriangle(pos, dir):
     gl_translate(pos):
         gl_rotate_z(dir):
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])

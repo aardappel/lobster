@@ -214,12 +214,12 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td>function name(a, b): a + b</td>
+<td>def&nbsp;name(a, b): a + b</td>
 <td>int name(int a, int b) { return a + b; }</td>
 <td>of course, the Lobster version is not restricted to int, you can call it with any combination of types that work with +</td>
 </tr>
 <tr>
-<td>function name(a, b):<br>
+<td>def&nbsp;name(a, b):<br>
 &nbsp; &nbsp; a + b</td>
 <td>int name(int a, int b)<br>
 {<br>
@@ -228,8 +228,7 @@ version</big></td>
 <td></td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">function
-magnitude(v::xy): sqrt(x * x + y * y)</td>
+<td style="white-space: nowrap;">def&nbsp;magnitude(v::xy): sqrt(x * x + y * y)</td>
 <td style="white-space: nowrap;">/* inside class xy */<br>
 float&nbsp;magnitude() { return x * x + y * y; }</td>
 <td>the :: way to indicate a type (v is of type xy) allows you to access
@@ -244,8 +243,8 @@ before the call, for <span style="font-style: italic;">any</span>
 function.</td>
 </tr>
 <tr>
-<td>function name(x:X): 0<br>
-function name(y:Y): 1</td>
+<td>def&nbsp;name(x:X): 0<br>
+def name(y:Y): 1</td>
 <td>/* inside class X */ int name() { return 0; }<br>
 /* inside class Y */ int name() { return 1; }</td>
 <td>you write polymorphic functions (like virtual methods,
@@ -254,9 +253,9 @@ writing multiple functions. These functions can work on user defined
 types or builtin ones. They can be written by whoever wrote the type, or completely separately. </td>
 </tr>
 <tr>
-<td>function name(x:X, z:Z): 0<br>
-function name(x:X, w:W): 1<br>
-function name(y:Y, z:Z): 2</td>
+<td>def&nbsp;name(x:X, z:Z): 0<br>
+def name(x:X, w:W): 1<br>
+def name(y:Y, z:Z): 2</td>
 <td style="white-space: nowrap;">/* inside class X
 */ int name(B b) { return b.nameX(); }<br>
 /* inside class Y */ int name(Z z) { return 2; }<br>
@@ -268,17 +267,17 @@ that we're assuming we don't know the dynamic argument types to name(),
 so we can't use overloading.</td>
 </tr>
 <tr>
-<td>f := function(a, b): a + b</td>
+<td>f := def(a, b): a + b</td>
 <td>var f = (int a, int b) =&gt; a + b</td>
 <td>function value in C#</td>
 </tr>
 <tr>
-<td>f := function(a, b): a + b</td>
+<td>f := def(a, b): a + b</td>
 <td>auto f = [](int a, int a) { return a + b; }</td>
 <td>function value in C++</td>
 </tr>
 <tr>
-<td>function fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; init</td>
+<td>def&nbsp;fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; init</td>
 <td>T fold&lt;T&gt;(List&lt;T&gt; xs, T init, Func&lt;T, T, T&gt; fun)<br>{<br>&nbsp; &nbsp; foreach (var x in xs) init = fun(init, x);<br>&nbsp; &nbsp; return init;<br>}</td>
 <td>How to write a <span style="font-style: italic;">Higher Order Function</span>:
 a function that takes a function argument. In this case "fold": take a
@@ -312,7 +311,7 @@ Lobster, they function just like real constrol structures would. By
 default, return returns from the lexically enclosing named function.</td>
 </tr>
 <tr>
-<td>function f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>function g():<br>&nbsp; &nbsp; if(something): return 1 from f<br>&nbsp; &nbsp; 0</td>
+<td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if(something): return 1 from f<br>&nbsp; &nbsp; 0</td>
 <td>int f()<br>{<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g()<br>{<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
 <td>return even allows you to specify which function to return from,
 which in other languages you can do with exception handling. In fact,
@@ -330,7 +329,7 @@ return/from (implemented in exception.lobster).</td>
 
 
 <tr>
-<td>a := 0<br>function g(): print(a) // 1<br>function f():<br>
+<td>a := 0<br>def&nbsp;g(): print(a) // 1<br>def&nbsp;f():<br>
 &nbsp; &nbsp; a &lt;- 1<br>
 &nbsp; &nbsp; g()</td>
 <td>int a = 0;<br>void g() { print(a); } // 1<br>void f()<br>
@@ -345,7 +344,7 @@ overriding must exist as lexically enclosing variable, making it a much
 safer feature</td>
 </tr>
 <tr>
-<td>function mret(): return 1, 2</td>
+<td>def&nbsp;mret(): return 1, 2</td>
 <td style="white-space: nowrap;">int mret(out int o)
 { o = 2; return 1; }</td>
 <td></td>
@@ -421,7 +420,7 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">function myiter(f):<br>&nbsp; &nbsp; for(10) i: f(i)</td>
+<td style="white-space: nowrap;">def&nbsp;myiter(f):<br>&nbsp; &nbsp; for(10) i: f(i)</td>
 <td style="white-space: nowrap;">IEnumerable&lt;T&gt; myiter()<br>{<br>&nbsp; &nbsp; for (int i = 0; i &lt; 10; i++) yield return i;<br>}</td>
 <td>unlike most languages, you define coroutines just as you would any
 iteration function: by calling a function value. This allows you to

@@ -38,14 +38,14 @@
 <p>block = args <code>:</code> body | functiondef</p>
 <p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
-<p>type = <code>int</code> | <code>float</code> | <code>string</code> | <code>vector</code> | <code>function</code> | <code>coroutine</code> | <code>nil</code> | ident</p>
+<p>type = <code>int</code> | <code>float</code> | <code>string</code> | <code>vector</code> | <code>def</code> | <code>coroutine</code> | <code>nil</code> | ident</p>
 <p>call = <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> ) unary</p>
 <p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> ) unary | deref</p>
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>?.</code> ident | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
-<p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>function</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
+<p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>def</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> ( <code>super</code> exp [ <code>,</code> indlist( exp ) ] ) | [ indlist( exp ) ] <code>]</code> [ <code>:</code> type ]</p>
 <p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> | <code>true</code> | <code>false</code></p>
 <p>indlist(e) = list(e) | indent list(e) [ linefeed ] dedent linefeed</p>
@@ -123,20 +123,20 @@ print(mat[pos])</code></pre>
 <p>Lobster's entire design centers around functions and how they can be composed. It has both <em>named functions</em> and <em>function values</em>.</p>
 <h3 id="named-functions">Named Functions</h3>
 <p>Named functions can be declared at any scope level (may be local), like so:</p>
-<pre><code>function name(arg1, arg2): body</code></pre>
-<p><code>body</code> can either be a single expression, multiple expressions all on a single line separated by <code>;</code>, or, most commonly, an indentation (start of code on the next line further than the previous line, in this case the <code>function</code> keyword), and then any number of expressions on their own line separated by linefeeds, until a de-dedentation occurs (return to the indentation level of the parent, in this case again the <code>function</code> keyword). It is an error to de-dedent less than the parent level. For example:</p>
-<pre><code>function name(arg1, arg2):
+<pre><code>def name(arg1, arg2): body</code></pre>
+<p><code>body</code> can either be a single expression, multiple expressions all on a single line separated by <code>;</code>, or, most commonly, an indentation (start of code on the next line further than the previous line, in this case the <code>def</code> keyword), and then any number of expressions on their own line separated by linefeeds, until a de-dedentation occurs (return to the indentation level of the parent, in this case again the <code>def</code> keyword). It is an error to de-dedent less than the parent level. For example:</p>
+<pre><code>def name(arg1, arg2):
     exp1
     exp2</code></pre>
 <p>The return value of a function is always that of the last expression evaluated, or given by <code>return</code> (see below).</p>
 <p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don't modify the argument.</p>
 <p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types will be checked at run-time, and cause the incoming value to either be converted to that type, or rejected with a run-time error.</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields of that vector directly, without having to prefix them with the argument name, e.g.:</p>
-<pre><code>function magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
+<pre><code>def magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
 <p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
-<pre><code>function intersect(a, b): &quot;no idea how to intersect these two!&quot;
-function intersect(c:circle, p:xy): &quot;point in circle&quot;
-function intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
+<pre><code>def intersect(a, b): &quot;no idea how to intersect these two!&quot;
+def intersect(c:circle, p:xy): &quot;point in circle&quot;
+def intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
 <p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
 <h3 id="function-values">Function Values</h3>
 <p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
@@ -159,7 +159,7 @@ else:
 <p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
 <h3 id="explicit-returns">Explicit Returns</h3>
 <p>Using return, we can bypass the default return value, and return from the closest lexically enclosing named function, e.g.:</p>
-<pre><code>function find(list, x):
+<pre><code>def find(list, x):
     for(list):
         if(x == \_):
             return true
@@ -169,7 +169,7 @@ else:
 <p>You can use the keyword <code>program</code> instead of a function name to force returning from the entire program.</p>
 <h3 id="multiple-return-values">Multiple Return Values</h3>
 <p>return can specify more than one value to be returned, which can then be received by the multiple assignment syntax introduced above:</p>
-<pre><code>function m(): return 1, 2
+<pre><code>def m(): return 1, 2
 a, b := m()</code></pre>
 <p>All return statements for any function must all return the same amount of return values.</p>
 <p>When <code>m</code> returns multiple values, they get assigned to each variable in turn (if there was only 1 return value in this example, they would all receive the same value). If there are more return values than there are variables, additionally values are thrown away, and if there are more variables than there are return values, this is an error.</p>
@@ -178,9 +178,9 @@ a, b := m()</code></pre>
 <p>Since functions and function values can be defined at any scope level, this means they can access variables from enclosing scopes, called <em>free variables</em>. Free variables are essential to make Lobster's higher order functions convenient. References to free variables are only valid within the scope they are defined, which luckily is almost always the case, but can be broken by storing a function value and then calling it at a later time outside of the context where its free variables were valid, which will result in a runtime error. Other languages use <em>closures</em> to ensure availability in all cases, which are very costly (parent stackframe(s) may have to be dynamically allocated) as opposed to Lobster's approach which makes function values and free variables have no overhead compared to regular functions and variables.</p>
 <p>Lobster also supports a safe way of optionally using <em>dynamic scope</em> by making it <em>lexically bounded</em>, i.e. you can use dynamic scoping only on variables that are already defined in lexical scope. As an example:</p>
 <pre><code>x, y := 0
-function f():
+def f():
     print(x + &quot; &quot; + y)
-function g():
+def g():
     x := 1
     y &lt;- 1
     f()

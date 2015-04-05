@@ -14,13 +14,13 @@ struct astar_node {
     closed:int = false
 }
 
-function astar_clear(n::astar_node):
+def astar_clear(n::astar_node):
     open = closed = false
     previous = nil
 
 // the generic version searches any kind of graph in any kind of search space, use specialized versions below
 
-function astar_generic(startnode, endcondition, generatenewstates, heuristic):
+def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
     n := startnode | nil
     while(n & !endcondition(n)):
@@ -52,7 +52,7 @@ function astar_generic(startnode, endcondition, generatenewstates, heuristic):
 // - neighbors generates adjacent nodes
 // - returns a list of nodes from end to start inclusive, or empty list if no path
 
-function astar_graph(startnode, endnode, costf, distancef, neighbors):
+def astar_graph(startnode, endnode, costf, distancef, neighbors):
     astar_generic(startnode) n:
         n == endnode
     generatenewstates n, f:
@@ -63,14 +63,14 @@ function astar_graph(startnode, endnode, costf, distancef, neighbors):
     heuristic state:
         distancef(state - endnode.state)
 
-function astar_space(startnode, endnode, costf, neighbors):
-    astar_graph(startnode, endnode, costf, function(v): magnitude(v), neighbors)
+def astar_space(startnode, endnode, costf, neighbors):
+    astar_graph(startnode, endnode, costf, def(v): magnitude(v), neighbors)
 
 // specialized to a 2D grid (specialized case of a graph)
 
-function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
+def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     directions := [ xy { -1, 0 }, xy { 1, 0 }, xy { 0, -1 }, xy { 0, 1 } ]
-    function astar_distance(distancef):
+    def astar_distance(distancef):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
                 np := n.state + delta
@@ -90,17 +90,17 @@ function astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 // specialized to do GOAP (nodes created on the fly)
 
-function goapf(state:[int]) :== int
+def goapf(state:[int]) :== int
 
 value goapaction {
     name:string,
-    precondition:function goapf,
-    effect:function goapf
+    precondition:def goapf,
+    effect:def goapf
 }
 
 struct goap_node = astar_node(goap_node?, [int], goapaction?)
 
-function astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
+def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     H := heuristic(initstate)
     existingnodes := [ goap_node { H: H, F: H, state: initstate } ]
     astar_generic(existingnodes[0]):

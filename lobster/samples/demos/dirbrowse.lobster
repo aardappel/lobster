@@ -13,10 +13,10 @@ root := node { "", -1, nil, [] }
 selected := root
 entries := []
 
-function fullpath(n::node):
+def fullpath(n::node):
     if(parent): fullpath(parent) + "/" + name else: name
 
-function scan(n:node):
+def scan(n:node):
     entries = []
     names, sizes := scan_folder(n.fullpath, 1024)
     if(names & sizes):
@@ -25,17 +25,17 @@ function scan(n:node):
     insertion_sort(entries) a, b:
         if((a.size < 0) == (b.size < 0)): a.name < b.name else: a.size < b.size
 
-function select(n:node):
+def select(n:node):
     selected = n
     scan(n)
 
-function unparent(n::node):
+def unparent(n::node):
     parent = nil
     for(children): unparent(_)
 
 select(root)
 
-function render_tree(n:node):
+def render_tree(n:node):
     gl_color(if(n.size < 0): color_blue else: color_black):
         text := n.name
         if(text == ""): text = "(root)"
@@ -56,7 +56,7 @@ function render_tree(n:node):
             for(n.children): render_tree(_)
             gl_translate([-indentsize, 0])
 
-function render_entries():
+def render_entries():
     for(entries) e:
         gl_color(if(e.size < 0): color_blue else: color_black):
             text := e.name
@@ -75,7 +75,7 @@ function render_entries():
             gl_text(e.name)
             gl_translate([ 0, fontsize ])
 
-function render_sizes():
+def render_sizes():
     for(entries) e:
         gl_color(color_dark_green):
             text := if(e.size < 0): "---" else: e.size + 1 + "K"

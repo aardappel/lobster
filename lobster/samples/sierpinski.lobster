@@ -5,7 +5,7 @@ include "color.lobster"
 
 directions := [ xy_0, xy_x, xy_y ]
 
-function sierpinski(depth):
+def sierpinski(depth):
     if(depth):
         gl_scale(0.5):
             for(directions) d:

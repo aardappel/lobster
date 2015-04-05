@@ -10,7 +10,7 @@ camera_yaw := 0.0
 camera_pitch := 0.0
 camera_velocity := xyz_0
 
-function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
+def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
     camera_yaw  += gl_mousedelta(0).x / mousesens
     if(dopitch):
         camera_pitch += gl_mousedelta(0).y / mousesens
@@ -24,7 +24,7 @@ function camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:floa
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
-function camera_FPS_view():
+def camera_FPS_view():
     gl_rotate_x(90) // 90: look forward rather than down
     gl_rotate_x(-camera_pitch)
     gl_rotate_z(-camera_yaw)
@@ -33,12 +33,12 @@ function camera_FPS_view():
 // an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update,
 // then still call camera_FPS_view as before:
 
-function camera_direction(v):
+def camera_direction(v):
     v = normalize(v)
     camera_yaw = atan2(v) + 90  // look along Y rather than X
     camera_pitch = arcsin(-v.z)
 
-function camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
+def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
     ws := float(gl_windowsize())
     gl_translate(ws * origin)
     sc := ws / size

@@ -12,9 +12,9 @@ fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
 camera_position = xyz { 10.0, 10.0, 10.0 }
 camera_yaw = 135
 
-function mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
+def mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
 
-function mg_mirror_y(dist, body):
+def mg_mirror_y(dist, body):
     for(2) i:
         mg_translate([ 0, i * dist * 2 - dist, 0 ], body)
 
@@ -75,7 +75,7 @@ if(true):
                         mg_cylinder()
     spaceship = mg_polygonize(256, [[1.0, 1.0, 1.0]])
 
-function model_tree(numb, branchl, narrowf, leafs):
+def model_tree(numb, branchl, narrowf, leafs):
     if(numb):
         mg_scale([ 1, 1, branchl ]):
             mg_translate(xyz_z):

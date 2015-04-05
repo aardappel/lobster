@@ -178,7 +178,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
 <img src="screenshots/shooter/tut5.jpg" />
 </figure>
 <p>Since the code is getting long, let's continue, talking purely in terms of modifications to the existing code:</p>
-<pre><code>function renderpointytriangle(pos, dir):
+<pre><code>def renderpointytriangle(pos, dir):
     gl_translate(pos):
         gl_rotate_z(dir):
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
@@ -195,7 +195,7 @@ lastenemy := gl_time()</code></pre>
         enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
-        
+
     for(enemies) e:
         playerdir := normalize(playerpos - e.pos)
         e.pos += playerdir * gl_deltatime() * enemyspeed
@@ -205,8 +205,8 @@ lastenemy := gl_time()</code></pre>
                 b.pos = xy_x * worldsize * 10
         gl_color(lerp(color_red, color_blue, div(e.hp, enemymaxhp))):
             renderpointytriangle(e.pos, playerdir)
-            
-    enemies = filter(enemies): _.hp </code></pre>
+
+    enemies = filter(enemies): _.hp</code></pre>
 <p>During the frame, we use the above code to deal with enemies, which is very similar to bullets yet again. We spawn new enemies initially once per second. To compute a spawn location, take a random angle, convert to a vector, then offset that vector to somewhere outside the screen to have them flock in from all directions.</p>
 <p>We do one special thing: we keep reducing the enemy rate subtly. This guarantees the game will get harder and harder and the player will guaranteed die eventually, it is just a matter of when.</p>
 <p>Then we loop through all enemies, compute a vector towards the player, and move the enemy towards him. Of course, now we need to do collision detection between bullets and enemies, which we do in brute force manner by checking every bullet with every enemy. If the quantity of both stays low, this is ok, but for large amounts of objects this approach will eventually get too slow, requiring bucketing of objects in a grid. For now, this is ok. We check the distance between the center of the bullet and the center of the enemy, and consider it a hit if they are a generous 1 unit apart or less. Of course, we could check exact collision with the triangle, but besides being complicated, it might not even be desirable for gameplay.</p>

@@ -1,70 +1,70 @@
 // standard functions that build on top of the builtin functions useful for almost all programs
 
-function map(xs, fun):
+def map(xs, fun):
     r := vector_reserve(xs.length)
     for(xs) x, i:
         r.push(fun(x, i))
     r
 
-function filter(xs, fun):
+def filter(xs, fun):
     r := []
     for(xs) x, i:
         if(fun(x, i)):
             r.push(x)
     r
 
-function filterindices(l, f):
+def filterindices(l, f):
     r := []
     for(l) x, i:
         if(f(x, i)):
             r.push(i)
     r
 
-function exists(xs, fun):
+def exists(xs, fun):
     for(xs) x, i:
         if(fun(x, i)):
             return true
     false
 
-function forever(fun): while(true): fun()
+def forever(fun): while(true): fun()
 
-function fold(xs, init, fun):
+def fold(xs, init, fun):
     for(xs): init = fun(init, _)
     init
 
-function reduce(xs, fun):
+def reduce(xs, fun):
     assert(xs.length)
     init := xs[0]
     for(xs.length - 1) i: init = fun(init, xs[i + 1])
     init
 
-function connect(xs, fun):
+def connect(xs, fun):
     map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
 
-function reducerev(xs, fun):
+def reducerev(xs, fun):
     assert(xs.length)
     init := xs[xs.length - 1]
     for(xs.length - 1) i: init = fun(xs[xs.length - i - 2], init)
     init
 
-function find(xs, fun):
+def find(xs, fun):
     for(xs) x, i: if(fun(x)): return i
     -1
 
-function sum(xs):     fold(xs, 0): _x + _y
-function product(xs): fold(xs, 1): _x * _y
+def sum(xs):     fold(xs, 0): _x + _y
+def product(xs): fold(xs, 1): _x * _y
 
-function zip(xs, ys): map(xs.length): [ xs[_], ys[_] ]
+def zip(xs, ys): map(xs.length): [ xs[_], ys[_] ]
 
-function reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
-function reverselist(xs): map(xs.length) i: xs[xs.length - i - 1]
+def reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
+def reverselist(xs): map(xs.length) i: xs[xs.length - i - 1]
 
-function split(l, f):
+def split(l, f):
     r := [ [], [] ]
     for(l) e: r[f(e)].push(e)
     r
 
-function qsort(xs, lt):
+def qsort(xs, lt):
     if(xs.length <= 1):
         xs
     else:
@@ -75,8 +75,8 @@ function qsort(xs, lt):
         append(append(qsort(f1, lt), [ pivot ]),
                       qsort(f2, lt))
 
-function qsort_in_place(xs, lt):
-    function rec(s, e):
+def qsort_in_place(xs, lt):
+    def rec(s, e):
         l := e - s
         if(l > 1):
             pivot := xs[s]
@@ -95,31 +95,31 @@ function qsort_in_place(xs, lt):
             rec(ep, e)
     rec(0, xs.length)
 
-function insertion_sort(xs, lt):
+def insertion_sort(xs, lt):
     for(xs) key, i: if(i):
         j := i
         while(j > 0 & lt(key, xs[j - 1])): xs[j--] = xs[j - 1]
         xs[j] = key
 
-function nest_if(c, nest, with):
+def nest_if(c, nest, with):
     if(c): nest(with)
     else: with()
 
-function return_after(v, f):
+def return_after(v, f):
     f()
     v
 
-function forbias (num, bias,  fun): for(num): fun(_ + bias)
-function forscale(num, scale, fun): for(num): fun(_ * scale)
+def forbias (num, bias,  fun): for(num): fun(_ + bias)
+def forscale(num, scale, fun): for(num): fun(_ * scale)
 
-function forrange    (a, b, fun): forbias(b - a,     a, fun)
-function forrangeincl(a, b, fun): forbias(b - a + 1, a, fun)
+def forrange    (a, b, fun): forbias(b - a,     a, fun)
+def forrangeincl(a, b, fun): forbias(b - a + 1, a, fun)
 
-function inrange(test, num, bias): test >= bias & test < bias + num
+def inrange(test, num, bias): test >= bias & test < bias + num
 
 // HOFs that work on other HOFs:
 
-function collect(hof):
+def collect(hof):
     list := []
     hof(): list.push(_)
     list
@@ -127,25 +127,25 @@ function collect(hof):
 // coroutine utility functions:
 
 // generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
-function coroutine_for(co, f):
+def coroutine_for(co, f):
     while(co.active):
         f(co.returnvalue)
         co.resume
     co.returnvalue
 
 // builtin for() made useful as a coroutine.
-function cofor(n, f):
+def cofor(n, f):
     for(n): f(_)
     n
 
 // error checking
 
-function fatal(msg):
+def fatal(msg):
     if(msg):
         print("fatal error: " + msg)
         return from program
 
-function check(val, msg):
+def check(val, msg):
     if(!val): fatal(msg)
     val
 

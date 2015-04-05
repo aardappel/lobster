@@ -41,7 +41,7 @@ private actionsound := nil
 
 private focus_id := -1
 
-private function cache_size(id, f):
+private def cache_size(id, f):
     if(!render_pass):
         e := guielem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
@@ -58,7 +58,7 @@ private function cache_size(id, f):
                 return e.size
         xy_0i   // new element inserted by event handler, do not render yet
 
-private function advance(v, f):
+private def advance(v, f):
     //allint(v)
     if(render_pass):
         f()
@@ -67,21 +67,21 @@ private function advance(v, f):
             if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y & spacing) }
             else:         xy { cursize.x + v.x + (cursize.x & spacing), max(cursize.y, v.y) }
 
-private function max_space(v):
+private def max_space(v):
     if(vertical): xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
 
-private function position(v, f):
+private def position(v, f):
     //allint(v)
     r := max_space(v) - v
     gl_translate(if(align == 1): r / 2 else: r * (align / 2), f)
 
-private function cursize_of(id, f):
+private def cursize_of(id, f):
     cache_size(id):
         cursize <- xy_0i
         f()
         cursize
 
-private function element(size, f):
+private def element(size, f):
     if(size != xy_0i):   // (note: object identity compare!) will be xy_0i if we're in the render pass and element was just deleted
         advance(size):
             position(size, f)
@@ -90,7 +90,7 @@ private function element(size, f):
             else:
                 gl_translate(xy_x * (size.x + spacing))
 
-private function block(al, sp, vert, id, f):
+private def block(al, sp, vert, id, f):
     spi := round(sp * gl_getfontsize())
     size := cursize_of(id):
         spacing <- spi
@@ -103,12 +103,12 @@ private function block(al, sp, vert, id, f):
         parent_size <- size
         f()
 
-function gui_text(text):
+def gui_text(text):
     element(cache_size(caller_id()): gl_textsize(text)):
         //print(gl_textsize(text))
         gl_text(text)
 
-function gui_image(factors, tex):
+def gui_image(factors, tex):
     size := round(factors * gl_getfontsize())
     element(size):
         gl_setshader("textured")
@@ -116,15 +116,15 @@ function gui_image(factors, tex):
         gl_rect(size)
         gl_setshader("color")
 
-function gui_divider(thickness:int):
+def gui_divider(thickness:int):
     align <- 0
     element(xy_1i * thickness):
         gl_rect(if(vertical): [ parent_size.x, thickness ] else: [ thickness, parent_size.y ])
 
-function gui_space(thickness:float):
+def gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
 
-function gui_start(size, alignh, alignv, interact, f):   // top level only
+def gui_start(size, alignh, alignv, interact, f):   // top level only
     id := caller_id()
     gl_setshader("color")
     gl_blend(1):
@@ -152,19 +152,19 @@ function gui_start(size, alignh, alignv, interact, f):   // top level only
         //assert(size_index == length(size_list))
         //print(size_index)
 
-function gui_hblock(al, sp, f): block(al, sp, false, caller_id(), f)
-function gui_vblock(al, sp, f): block(al, sp, true,  caller_id(), f)
+def gui_hblock(al, sp, f): block(al, sp, false, caller_id(), f)
+def gui_vblock(al, sp, f): block(al, sp, true,  caller_id(), f)
 
-function gui_fontscale(factor, f):
+def gui_fontscale(factor, f):
     os := gl_getfontsize()
     gl_setfontsize(round(os * factor))
     f()
     gl_setfontsize(os)
 
-function gui_color(col, f): nest_if(render_pass, function(): gl_color(col, _), f)
-function gui_blend(bli, f): nest_if(render_pass, function(): gl_blend(bli, _), f)
+def gui_color(col, f): nest_if(render_pass, def(): gl_color(col, _), f)
+def gui_blend(bli, f): nest_if(render_pass, def(): gl_blend(bli, _), f)
 
-private function around(m, draw, id, f):
+private def around(m, draw, id, f):
     size := cursize_of(id, f)
     if(size):
         size += m * 2
@@ -177,15 +177,15 @@ private function around(m, draw, id, f):
                         gl_rect([ m.x, size.y ])
                     gl_translate([ 0, size.y - m.y]):
                         gl_rect([ size.x, m.y ])
-            function forward(): gl_translate([ xy_xi, xy_yi ][vertical] * m[vertical])
+            def forward(): gl_translate([ xy_xi, xy_yi ][vertical] * m[vertical])
             forward()
             f()
             forward()
 
-function gui_margin(m, f): around(m, false, caller_id(), f)
-function gui_border(m, f): around(m, true,  caller_id(), f)
+def gui_margin(m, f): around(m, false, caller_id(), f)
+def gui_border(m, f): around(m, true,  caller_id(), f)
 
-private function overlay(stretch, id, f, g):
+private def overlay(stretch, id, f, g):
     size := cursize_of(id, f)
     if(size):
         advance(size):
@@ -196,13 +196,13 @@ private function overlay(stretch, id, f, g):
                     g(size)
             f()
 
-function gui_background(col, stretch, f):
+def gui_background(col, stretch, f):
     overlay(stretch, caller_id(), f) size:
         gl_color(col):
             gl_rect(size)
             gl_hit(size, 0)    // stop clicks from reaching whatevers beneath this
 
-private function button(id, f, do, focus):
+private def button(id, f, do, focus):
     overlay(false, id, f) size:
         if(interactive):
             hit := gl_hit(size, 0)
@@ -224,20 +224,20 @@ private function button(id, f, do, focus):
                         if(actionsound): play_sfxr(actionsound) // FIXME: wavs too
                         do()
 
-function gui_button(f, do):         button(caller_id(), f, do, nil)
-function gui_button(f, do, focus):  button(caller_id(), f, do, focus)
-function gui_button_text(text, do): button(caller_id(), function(): gui_text(text), do, nil)
+def gui_button(f, do):         button(caller_id(), f, do, nil)
+def gui_button(f, do, focus):  button(caller_id(), f, do, focus)
+def gui_button_text(text, do): button(caller_id(), def(): gui_text(text), do, nil)
 
-function gui_button_id(id:int, f, do):         button(id, f, do, nil)
-function gui_button_id(id:int, f, do, focus):  button(id, f, do, focus)
+def gui_button_id(id:int, f, do):         button(id, f, do, nil)
+def gui_button_id(id:int, f, do, focus):  button(id, f, do, focus)
 
-function gui_custombackground(f): if(render_pass): f(overalsize)
+def gui_custombackground(f): if(render_pass): f(overalsize)
 
-function gui_setclickcolors(hover, sel):
+def gui_setclickcolors(hover, sel):
     hover_color = hover
     select_color = sel
 
-function gui_setactionsound(snd):
+def gui_setactionsound(snd):
     actionsound = snd
 
 if(program_name() == "gui.lobster"): // run example

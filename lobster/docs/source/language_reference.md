@@ -69,7 +69,7 @@ args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `vector` \| `function` \| `coroutine` \|
+type = `int` \| `float` \| `string` \| `vector` \| `def` \| `coroutine` \|
 `nil` \| ident
 
 call = `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
@@ -87,7 +87,7 @@ unary = ( `-` \| `!` \| `++` \| `--` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `?.` ident \| `->` ident
 \| `++` \| `--` \| call \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `function` functiondef \|
+factor = constant \| `(` exp `)` \| constructor \| `def` functiondef \|
 `coroutine` ident call \| ident [ call ]
 
 constructor = `[` ( `super` exp [ `,` indlist( exp ) ] ) \| [ indlist( exp ) ]
@@ -338,19 +338,19 @@ It has both *named functions* and *function values*.
 Named functions can be declared at any scope level (may be local), like so:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function name(arg1, arg2): body
+def name(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `body` can either be a single expression, multiple expressions all on a single
 line separated by `;`, or, most commonly, an indentation (start of code on the
-next line further than the previous line, in this case the `function` keyword),
+next line further than the previous line, in this case the `def` keyword),
 and then any number of expressions on their own line separated by linefeeds,
 until a de-dedentation occurs (return to the indentation level of the parent, in
-this case again the `function` keyword). It is an error to de-dedent less than
+this case again the `def` keyword). It is an error to de-dedent less than
 the parent level. For example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function name(arg1, arg2):
+def name(arg1, arg2):
     exp1
     exp2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -376,7 +376,7 @@ access all fields of that vector directly, without having to prefix them with
 the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function magnitude(v::xy): sqrt(x * x + y * y)
+def magnitude(v::xy): sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, types allow the definition of multimethods, whereby all functions
@@ -384,9 +384,9 @@ of the same name and number of arguments inside the program (not necessarily
 adjacent in code, in any order) act as a single function:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function intersect(a, b): "no idea how to intersect these two!"
-function intersect(c:circle, p:xy): "point in circle"
-function intersect(c:circle, r:ray): "ray vs circle"
+def intersect(a, b): "no idea how to intersect these two!"
+def intersect(c:circle, p:xy): "point in circle"
+def intersect(c:circle, r:ray): "ray vs circle"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Calling intersect with any 2 arguments will automatically call the most
@@ -469,7 +469,7 @@ Using return, we can bypass the default return value, and return from the
 closest lexically enclosing named function, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function find(list, x):
+def find(list, x):
     for(list):
         if(x == \_):
             return true
@@ -501,7 +501,7 @@ return can specify more than one value to be returned, which can then be
 received by the multiple assignment syntax introduced above:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function m(): return 1, 2
+def m(): return 1, 2
 a, b := m()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -537,9 +537,9 @@ are already defined in lexical scope. As an example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 x, y := 0
-function f():
+def f():
     print(x + " " + y)
-function g():
+def g():
     x := 1
     y <- 1
     f()

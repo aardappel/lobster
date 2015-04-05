@@ -3,7 +3,7 @@
 include "vec.lobster"
 include "color.lobster"
 
-function branch(n, max, scale, len):
+def branch(n, max, scale, len):
     poly := [ xy_x, -xy_x, [ -scale, len ], [ scale, len ] ]
     gl_color(color { n / max, 0.8, n / max, 1 })
     gl_polygon(poly)

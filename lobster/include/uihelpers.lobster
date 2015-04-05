@@ -11,7 +11,7 @@ include "vec.lobster"
 private panoffset := xy_0
 private touchvelocity := xy_0
 
-function ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
+def ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
     if(gl_isdown(buttonname)):
         delta := gl_mousedelta(0) / scale
         panoffset -= delta
@@ -39,7 +39,7 @@ function ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
                      max(min(maxo.y, panoffset.y), mino.y) }
     panoffset
 
-function ui_inertiascroll_reset(startoffset:xy_f):
+def ui_inertiascroll_reset(startoffset:xy_f):
     panoffset = startoffset
     touchvelocity = xy_0
 
@@ -56,7 +56,7 @@ private viewsteps := 0
 private pinchfactor := 1.0
 private lastdistance := 0.0
 
-function ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin:xy_f):
+def ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin:xy_f):
     if(viewsteps == 0): viewsteps = default
     oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
     viewsteps -= gl_mousewheeldelta()
@@ -78,7 +78,7 @@ function ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, o
     //if(scale != oldscale): print(oldscale + " " + scale + " " + center + " " + panoffset)
     scale
 
-function ui_mousewheelzoom_reset():
+def ui_mousewheelzoom_reset():
     viewsteps = 0
     pinchfactor = 1
     lastdistance = 0
@@ -92,7 +92,7 @@ function ui_mousewheelzoom_reset():
 // clamp to pixel boundaries,
 // then execute any text rendering contained in f
 
-function ui_rendertextatlocalsize(localsize:float, f):
+def ui_rendertextatlocalsize(localsize:float, f):
     oldfontsize := gl_getfontsize()
     localfontsize := round(gl_scaling().x * localsize)    // font size to nearest pixel
     gl_setfontsize(localfontsize)

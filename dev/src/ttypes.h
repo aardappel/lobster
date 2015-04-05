@@ -55,7 +55,7 @@ namespace lobster
     T(T_NIL, "nil", TT_NOCHILD, NO, a, NO, b) \
     T(T_IDENT, "identifier", TT_NOCHILD, NO, a, NO, b) \
     T(T_STRUCT, "struct", TT_NOCHILD, NO, a, NO, b) \
-    T(T_FUN, "function", TT_NOCHILD, NO, a, NO, b) \
+    T(T_FUN, "def", TT_NOCHILD, NO, a, NO, b) \
     T(T_RETURN, "return", TT_NONE, YES, return_value, YES, return_function_idx) \
     T(T_IS, "is", TT_BINARY, NO, a, NO, b) \
     T(T_COROUTINE, "coroutine", TT_UNARY, NO, a, NO, b) \
