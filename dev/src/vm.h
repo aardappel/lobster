@@ -1175,16 +1175,36 @@ struct VM : VMBase
     {
         switch(op)
         {
-            case LVO_PLUS:  { Value b = POP();  _AOP(+, 2, {}); a = res;                  break; }
-            case LVO_PLUSR: { Value b = POP();  _AOP(+, 2, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_MUL:   { Value b = POP();  _AOP(*, 0, {}); a = res;                  break; }
-            case LVO_MULR:  { Value b = POP();  _AOP(*, 0, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_SUB:   { Value b = POP();  _AOP(-, 0, {}); a = res;                  break; }
-            case LVO_SUBR:  { Value b = POP();  _AOP(-, 0, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_DIV:   { Value b = POP();  _AOP(/, 1, {}); a = res;                  break; }
-            case LVO_DIVR:  { Value b = POP();  _AOP(/, 1, {}); a = res; PUSH(res.INC()); break; }
-            case LVO_MOD:   { Value b = POP(); _AIOP(%, 1);     a = res;                  break; }
-            case LVO_MODR:  { Value b = POP(); _AIOP(%, 1);     a = res; PUSH(res.INC()); break; }
+            case LVO_AADD:   { Value b = POP();  _AOP(+, 2, {}); a = res;                  break; }
+            case LVO_AADDR:  { Value b = POP();  _AOP(+, 2, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_ASUB:   { Value b = POP();  _AOP(-, 0, {}); a = res;                  break; }
+            case LVO_ASUBR:  { Value b = POP();  _AOP(-, 0, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_AMUL:   { Value b = POP();  _AOP(*, 0, {}); a = res;                  break; }
+            case LVO_AMULR:  { Value b = POP();  _AOP(*, 0, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_ADIV:   { Value b = POP();  _AOP(/, 1, {}); a = res;                  break; }
+            case LVO_ADIVR:  { Value b = POP();  _AOP(/, 1, {}); a = res; PUSH(res.INC()); break; }
+            case LVO_AMOD:   { Value b = POP(); _AIOP(%, 1);     a = res;                  break; }
+            case LVO_AMODR:  { Value b = POP(); _AIOP(%, 1);     a = res; PUSH(res.INC()); break; }
+
+            case LVO_IADD:   { Value b = POP();  _IOP(+, 2);     a = res;                  break; }
+            case LVO_IADDR:  { Value b = POP();  _IOP(+, 2);     a = res; PUSH(res.INC()); break; }
+            case LVO_ISUB:   { Value b = POP();  _IOP(-, 0);     a = res;                  break; }
+            case LVO_ISUBR:  { Value b = POP();  _IOP(-, 0);     a = res; PUSH(res.INC()); break; }
+            case LVO_IMUL:   { Value b = POP();  _IOP(*, 0);     a = res;                  break; }
+            case LVO_IMULR:  { Value b = POP();  _IOP(*, 0);     a = res; PUSH(res.INC()); break; }
+            case LVO_IDIV:   { Value b = POP();  _IOP(/, 1);     a = res;                  break; }
+            case LVO_IDIVR:  { Value b = POP();  _IOP(/, 1);     a = res; PUSH(res.INC()); break; }
+            case LVO_IMOD:   { Value b = POP();  _IOP(%, 1);     a = res;                  break; }
+            case LVO_IMODR:  { Value b = POP();  _IOP(%, 1);     a = res; PUSH(res.INC()); break; }
+
+            case LVO_FADD:   { Value b = POP();  _FOP(+, 2);     a = res;                  break; }
+            case LVO_FADDR:  { Value b = POP();  _FOP(+, 2);     a = res; PUSH(res.INC()); break; }
+            case LVO_FSUB:   { Value b = POP();  _FOP(-, 0);     a = res;                  break; }
+            case LVO_FSUBR:  { Value b = POP();  _FOP(-, 0);     a = res; PUSH(res.INC()); break; }
+            case LVO_FMUL:   { Value b = POP();  _FOP(*, 0);     a = res;                  break; }
+            case LVO_FMULR:  { Value b = POP();  _FOP(*, 0);     a = res; PUSH(res.INC()); break; }
+            case LVO_FDIV:   { Value b = POP();  _FOP(/, 1);     a = res;                  break; }
+            case LVO_FDIVR:  { Value b = POP();  _FOP(/, 1);     a = res; PUSH(res.INC()); break; }
 
             case LVO_WRITE:   { Value  b = POP();       OVERWRITE(a, b); a.DEC(); a = b; break; }
             case LVO_WRITER:  { Value &b = TOP().INC(); OVERWRITE(a, b); a.DEC(); a = b; break; }

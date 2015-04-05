@@ -46,7 +46,10 @@ enum { ILNAMES };
 #undef F
 
 #define LVALOPNAMES \
-    F(WRITE) F(WRITER) F(WRITED) F(PLUS) F(PLUSR) F(MUL) F(MULR) F(SUB) F(SUBR) F(DIV) F(DIVR) F(MOD) F(MODR) \
+    F(WRITE) F(WRITER) F(WRITED) \
+    F(AADD) F(AADDR) F(ASUB) F(ASUBR) F(AMUL) F(AMULR) F(ADIV) F(ADIVR) F(AMOD) F(AMODR) \
+    F(IADD) F(IADDR) F(ISUB) F(ISUBR) F(IMUL) F(IMULR) F(IDIV) F(IDIVR) F(IMOD) F(IMODR) \
+    F(FADD) F(FADDR) F(FSUB) F(FSUBR) F(FMUL) F(FMULR) F(FDIV) F(FDIVR) \
     F(PP) F(PPR) F(MM) F(MMR) F(PPP) F(PPPR) F(MMP) F(MMPR) 
 
 #define F(N) LVO_##N,
@@ -395,18 +398,18 @@ struct CodeGen
                 break;
             }
 
-            case T_ASSIGN: GenAssign(n->left(), LVO_WRITE, retval, n->right()); break;
+            case T_ASSIGN: GenAssign(n->left(), LVO_WRITE, retval, nullptr, n->right()); break;
 
-            case T_PLUSEQ:  GenAssign(n->left(), LVO_PLUS, retval, n->right()); break;
-            case T_MULTEQ:  GenAssign(n->left(), LVO_MUL,  retval, n->right()); break;
-            case T_MINUSEQ: GenAssign(n->left(), LVO_SUB, retval, n->right()); break;
-            case T_DIVEQ:   GenAssign(n->left(), LVO_DIV, retval, n->right()); break;
-            case T_MODEQ:   GenAssign(n->left(), LVO_MOD,  retval, n->right()); break;
+            case T_PLUSEQ:  GenAssign(n->left(), LVO_AADD, retval, n->exptype, n->right()); break;
+            case T_MINUSEQ: GenAssign(n->left(), LVO_ASUB, retval, n->exptype, n->right()); break;
+            case T_MULTEQ:  GenAssign(n->left(), LVO_AMUL, retval, n->exptype, n->right()); break;
+            case T_DIVEQ:   GenAssign(n->left(), LVO_ADIV, retval, n->exptype, n->right()); break;
+            case T_MODEQ:   GenAssign(n->left(), LVO_AMOD, retval, n->exptype, n->right()); break;
 
-            case T_POSTDECR: GenAssign(n->child(), LVO_MMP, retval); break;
-            case T_POSTINCR: GenAssign(n->child(), LVO_PPP, retval); break;
-            case T_DECR:     GenAssign(n->child(), LVO_MM,  retval); break;
-            case T_INCR:     GenAssign(n->child(), LVO_PP,  retval); break;
+            case T_POSTDECR: GenAssign(n->child(), LVO_MMP, retval, nullptr); break;
+            case T_POSTINCR: GenAssign(n->child(), LVO_PPP, retval, nullptr); break;
+            case T_DECR:     GenAssign(n->child(), LVO_MM,  retval, nullptr); break;
+            case T_INCR:     GenAssign(n->child(), LVO_PP,  retval, nullptr); break;
 
             case T_NEQ:   opc++;
             case T_EQ:    opc++;
@@ -752,8 +755,13 @@ struct CodeGen
         linenumbernodes.pop_back();
     }
 
-    void GenAssign(const Node *lval, int lvalop, int retval, const Node *rhs = nullptr)
+    void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type, const Node *rhs = nullptr)
     {
+        if (lvalop >= LVO_AADD && lvalop <= LVO_AMOD)
+        {
+            if      (type->t == V_INT)   {                             lvalop += LVO_IADD - LVO_AADD; }
+            else if (type->t == V_FLOAT) { assert(lvalop != LVO_AMOD); lvalop += LVO_FADD - LVO_AADD; }
+        }
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
         switch (lval->type)

@@ -139,6 +139,8 @@ class TypeRef
     bool operator==(const TypeRef &o) const { return *type == *o.type; };
     bool operator!=(const TypeRef &o) const { return *type != *o.type; };
     bool operator< (const TypeRef &o) const { return *type <  *o.type; };
+
+    bool Null() const { return type == nullptr; }
 };
 
 extern TypeRef type_int;
