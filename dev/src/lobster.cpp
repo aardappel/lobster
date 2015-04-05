@@ -157,14 +157,14 @@ struct CompiledProgram
 Value CompileRun(Value &source, bool stringiscode)
 {
     ValueRef fref(source);
-    string fn = stringiscode ? "string" : source.sval->str();  // fixme: datadir + sanitize?
+    string fn = stringiscode ? "string" : source.sval()->str();  // fixme: datadir + sanitize?
     SlabAlloc *parentpool = vmpool; vmpool = nullptr;
     VMBase    *parentvm   = g_vm;   g_vm = nullptr;
     try
     {
         string ret;
         CompiledProgram cp;
-        cp.Compile(fn.c_str(), stringiscode ? source.sval->str() : nullptr, 0);
+        cp.Compile(fn.c_str(), stringiscode ? source.sval()->str() : nullptr, 0);
         cp.Run(ret, fn.c_str());
         assert(!vmpool && !g_vm);
         vmpool = parentpool;

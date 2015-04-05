@@ -94,8 +94,8 @@ struct ValueParser
                 Value v = ParseFactor();
                 switch (v.type)
                 {
-                    case V_INT:   v.ival *= -1; break;
-                    case V_FLOAT: v.fval *= -1; break;
+                    case V_INT:   v.ival() *= -1; break;
+                    case V_FLOAT: v.fval() *= -1; break;
                     default: lex.Error("numeric value expected");
                 }
                 return v;
@@ -157,7 +157,7 @@ void AddReaderOps()
 {
     STARTDECL(parse_data) (Value &ins)
     {
-        Value v = ParseData(ins.sval->str());
+        Value v = ParseData(ins.sval()->str());
         ins.DEC();
         return v;
     }

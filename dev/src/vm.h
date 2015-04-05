@@ -346,7 +346,7 @@ struct VM : VMBase
                 if (desired != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    if (v.type != desired || (v.type == V_VECTOR && v.vval->type != *ip))
+                    if (v.type != desired || (v.type == V_VECTOR && v.vval()->type != *ip))
                     {
                         ip += (nargs - j) * 2;
                         goto fail;
@@ -385,7 +385,7 @@ struct VM : VMBase
     {
         for (int _sp = sp; _sp >= 0; _sp--)
             if (stack[_sp].type == V_RETIP)
-                return stack[_sp].ip - codestart;
+                return stack[_sp].ip() - codestart;
         return -1;
     }
 
@@ -401,10 +401,10 @@ struct VM : VMBase
     
     int varcleanup(string *error)
     {
-        auto dfv = POP(); VMASSERT(dfv.type == V_DEFFUN);       auto deffun = dfv.ival;
-        auto ipv = POP(); VMASSERT(ipv.type == V_FUNSTART);     ip = ipv.ip; 
-        auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs_given = nav.ival;
-        auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto retip = riv.ip;
+        auto dfv = POP(); VMASSERT(dfv.type == V_DEFFUN);       auto deffun = dfv.info();
+        auto ipv = POP(); VMASSERT(ipv.type == V_FUNSTART);     ip = ipv.ip(); 
+        auto nav = POP(); VMASSERT(nav.type == V_NARGS);        auto nargs_given = nav.info();
+        auto riv = POP(); VMASSERT(riv.type == V_RETIP);        auto retip = riv.ip();
 
         auto nargs_fun = *ip++;
         auto freevars = ip + nargs_given;
@@ -416,7 +416,7 @@ struct VM : VMBase
         {
             auto lfr = POP(); VMASSERT(lfr.type == V_LOGFUNREADSTART);
             auto lfw = POP(); VMASSERT(lfw.type == V_LOGFUNWRITESTART);
-            vml.LogFunctionExit(ipv.ip, defvars, lfw.ival);
+            vml.LogFunctionExit(ipv.ip(), defvars, lfw.info());
         }
 
         while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
@@ -762,7 +762,7 @@ struct VM : VMBase
                     Value fun = POP();
                     Require(fun, V_FUNCTION, "function call");
                     auto nargs = *ip++;
-                    FunIntro(nargs, fun.ip, -1, ip);
+                    FunIntro(nargs, fun.ip(), -1, ip);
                     break;
                 }
 
@@ -812,19 +812,19 @@ struct VM : VMBase
                     auto &iter = TOP2();
                     auto &i = TOP3();
                     assert(i.type == V_INT); 
-                    i.ival++;
+                    i.ival()++;
                     int len = 0;
                     switch (iter.type)
                     {
-                        #define PUSHITER(L, V) if (i.ival >= (len = L)) goto done; PUSH(V); break;
-                        case V_INT:    PUSHITER(iter.ival     , i);
-                        case V_VECTOR: PUSHITER(iter.vval->len, iter.vval->at(i.ival).INC());
-                        case V_STRING: PUSHITER(iter.sval->len, Value((int)((uchar *)iter.sval->str())[i.ival]));
+                        #define PUSHITER(L, V) if (i.ival() >= (len = L)) goto done; PUSH(V); break;
+                        case V_INT:    PUSHITER(iter.ival()     , i);
+                        case V_VECTOR: PUSHITER(iter.vval()->len, iter.vval()->at(i.ival()).INC());
+                        case V_STRING: PUSHITER(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]));
                         #undef PUSHITER
                         default:       Error("for: cannot iterate over argument", iter);
                     }
                     PUSH(i);
-                    FunIntro(2, body.ip, -1, forstart);
+                    FunIntro(2, body.ip(), -1, forstart);
                     break;
 
                     done:
@@ -893,20 +893,20 @@ struct VM : VMBase
                 #define GETARGS() Value b = POP(); Value a = POP()
                 #define TYPEOP(op, extras, field, errstat) Value res; errstat; BOP(op, a.field, b.field, extras);
 
-                #define _IOP(op, extras) TYPEOP(op, extras, ival, VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
-                #define _FOP(op, extras) TYPEOP(op, extras, fval, VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
-                #define _AIOP(op, extras) TYPEOP(op, extras, ival, if (a.type != V_INT || b.type != V_INT) BError(#op, a, b))
+                #define _IOP(op, extras) TYPEOP(op, extras, ival(), VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
+                #define _FOP(op, extras) TYPEOP(op, extras, fval(), VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
+                #define _AIOP(op, extras) TYPEOP(op, extras, ival(), if (a.type != V_INT || b.type != V_INT) BError(#op, a, b))
 
                 #define _AOP(op, extras, opts) Value res; for (;;) { \
                     if (a.type == V_INT) \
                     { \
-                        COP(V_INT, op, a.ival, b.ival, extras) \
-                        else COP(V_FLOAT, op, float(a.ival), b.fval, extras) \
+                        COP(V_INT, op, a.ival(), b.ival(), extras) \
+                        else COP(V_FLOAT, op, float(a.ival()), b.fval(), extras) \
                     } \
                     else if (a.type == V_FLOAT) \
                     { \
-                        COP(V_INT, op, a.fval, float(b.ival), extras) \
-                        else COP(V_FLOAT, op, a.fval, b.fval, extras) \
+                        COP(V_INT, op, a.fval(), float(b.ival()), extras) \
+                        else COP(V_FLOAT, op, a.fval(), b.fval(), extras) \
                     } \
                     if ((extras & (8 + 16)) == 0) { \
                         bool isfloat = true; \
@@ -914,9 +914,9 @@ struct VM : VMBase
                         if (len >= 0) { \
                             for (int j = 0; j < len; j++) \
                             if (isfloat) { auto bv = VectorElem<float>(b, j); if (extras&1 && bv == 0) Div0(); \
-                                           res.vval->at(j) = Value(VectorElem<float>(a, j) op bv); }\
+                                           res.vval()->at(j) = Value(VectorElem<float>(a, j) op bv); }\
                             else         { auto bv = VectorElem<int>  (b, j); if (extras&1 && bv == 0) Div0(); \
-                                           res.vval->at(j) = Value(VectorElem<int>  (a, j) op bv); }\
+                                           res.vval()->at(j) = Value(VectorElem<int>  (a, j) op bv); }\
                             VectorDec(a, res); VectorDec(b, res); \
                             break; } \
                     } \
@@ -928,15 +928,15 @@ struct VM : VMBase
                 #define ACOMPOPTS(op, extras) \
                     if ((extras & 4) && a.type == V_STRING && b.type == V_STRING) \
                     { \
-                        REFOP((*a.sval) op (*b.sval)); break; \
+                        REFOP((*a.sval()) op (*b.sval())); break; \
                     } \
                     if (extras & 8) \
                     { \
-                        REFOP(a.type == b.type && a.ref == b.ref); break; \
+                        REFOP(a.type == b.type && a.any() == b.any()); break; \
                     } \
                     if (extras & 16) \
                     { \
-                        REFOP(a.type != b.type || a.ref != b.ref); break; \
+                        REFOP(a.type != b.type || a.any() != b.any()); break; \
                     }
 
                 #define AIOP(op, extras)      { GETARGS(); _AIOP(op, extras);      PUSH(res); break; }
@@ -987,8 +987,8 @@ struct VM : VMBase
                     Value a = POP();
                     switch (a.type)
                     {
-                        case V_INT: PUSH(Value(-a.ival)); break;
-                        case V_FLOAT: PUSH(Value(-a.fval)); break;
+                        case V_INT: PUSH(Value(-a.ival())); break;
+                        case V_FLOAT: PUSH(Value(-a.fval())); break;
                         case V_VECTOR:
                         {
                             bool isfloat = true;
@@ -997,7 +997,7 @@ struct VM : VMBase
                             if (len >= 0)
                             {
                                 for (int i = 0; i < len; i++) \
-                                    res.vval->at(i) = isfloat ? Value(-VectorElem<float>(a, i))
+                                    res.vval()->at(i) = isfloat ? Value(-VectorElem<float>(a, i))
                                                               : Value(-VectorElem<int>  (a, i));
                                 VectorDec(a, res);
                                 PUSH(res);
@@ -1022,7 +1022,7 @@ struct VM : VMBase
                 {
                     Value a = POP();
                     VMASSERT(a.type == V_INT);
-                    PUSH((float)a.ival);    
+                    PUSH((float)a.ival());    
                     break;
                 }                
                 
@@ -1043,10 +1043,10 @@ struct VM : VMBase
                     { \
                         case V_VECTOR: \
                             if (!dyn) { VecType(r); } \
-                            IDXErr(i, (int)r.vval->len, r); PUSH(r.vval->at(i).INC()); break; \
+                            IDXErr(i, (int)r.vval()->len, r); PUSH(r.vval()->at(i).INC()); break; \
                         case V_NIL: if (maybe) PUSH(r); else Error("dereferencing nil"); \
-                        case V_STRING: if (dyn) { IDXErr(i, r.sval->len, r); \
-                                                  PUSH(Value((int)r.sval->str()[i])); break; } /* else fall thru */ \
+                        case V_STRING: if (dyn) { IDXErr(i, r.sval()->len, r); \
+                                                  PUSH(Value((int)r.sval()->str()[i])); break; } /* else fall thru */ \
                         default: Error(string("cannot index into type ") + BaseTypeName(r.type), r); \
                     } \
                     r.DECRT(); \
@@ -1068,7 +1068,7 @@ struct VM : VMBase
                     int i = *ip++;
                     Value coro = POP();
                     Require(coro, V_COROUTINE, "scoped local variable");
-                    PUSH(coro.cval->GetVar(i).INC());
+                    PUSH(coro.cval()->GetVar(i).INC());
                     coro.DECRT();
                     break;
                 }
@@ -1079,7 +1079,7 @@ struct VM : VMBase
                     int i = *ip++;
                     Value coro = POP();
                     Require(coro, V_COROUTINE, "scoped local variable");
-                    Value &a = coro.cval->GetVar(i);
+                    Value &a = coro.cval()->GetVar(i);
                     LvalueOp(lvalop, a);
                     coro.DECRT();
                     break;
@@ -1098,17 +1098,17 @@ struct VM : VMBase
                     Value vec = POP(); \
                     Require(vec, V_VECTOR, "vector indexed assign"); \
                     if (!dyn) { VecType(vec); } \
-                    CheckWritable(vec.vval); \
-                    IDXErr(i, (int)vec.vval->len, vec); \
-                    Value &a = vec.vval->at(i); \
+                    CheckWritable(vec.vval()); \
+                    IDXErr(i, (int)vec.vval()->len, vec); \
+                    Value &a = vec.vval()->at(i); \
                     LvalueOp(lvalop, a); \
                     vec.DECRT(); \
                     break; \
                 }
                 #define PPOP(ret, op, pre) { \
                     if (ret && !pre) PUSH(a.INC()); \
-                    if (a.type == V_INT) a.ival = a.ival op 1; \
-                    else if (a.type == V_FLOAT) a.fval = a.fval op 1; \
+                    if (a.type == V_INT) a.ival() = a.ival() op 1; \
+                    else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
                     else UError(#op, a); \
                     if (ret && pre) PUSH(a.INC()); \
                 }
@@ -1128,7 +1128,7 @@ struct VM : VMBase
                     auto x = POP();
                     auto &v = TOP();
                     VMASSERT(v.type == V_VECTOR);
-                    v.vval->push(x);
+                    v.vval()->push(x);
                     break;
                 }
 
@@ -1142,7 +1142,7 @@ struct VM : VMBase
                     auto t = *ip++;
                     auto idx = *ip++;
                     auto &v = POP().DEC();
-                    PUSH(Value(v.type == t && (t != V_VECTOR || v.vval->type == idx)));
+                    PUSH(Value(v.type == t && (t != V_VECTOR || v.vval()->type == idx)));
                     break;
                 }
 
@@ -1221,7 +1221,7 @@ struct VM : VMBase
 
     const char *ProperTypeName(const Value &v)
     {
-        return v.type == V_VECTOR && v.vval->type >= 0 ? ReverseLookupType(v.vval->type).c_str() : BaseTypeName(v.type);
+        return v.type == V_VECTOR && v.vval()->type >= 0 ? ReverseLookupType(v.vval()->type).c_str() : BaseTypeName(v.type);
     }
 
     void TTError(const string &tname, const Value &v)
@@ -1237,8 +1237,8 @@ struct VM : VMBase
         {
             if (nt == V_VECTOR)
             {
-                ot = o.vval->type;
-                nt = n.vval->type;
+                ot = o.vval()->type;
+                nt = n.vval()->type;
                 if (ot == nt) return;   // 2nd most common path
                 if (ot >= 0 && nt >= 0) return; // for now, any struct types can be exchanged
                 // the code below only does super->sub and sub->super,
@@ -1264,7 +1264,7 @@ struct VM : VMBase
         else if (ot == V_FLOAT && nt == V_INT)   // medium common
         {
             n.type = V_FLOAT;
-            n.fval = (float)n.ival;
+            n.fval() = (float)n.ival();
             return;
         }
         Error(string("can't overwrite variable of type ") + ProperTypeName(o) + " with " + ProperTypeName(n), n);
@@ -1282,7 +1282,7 @@ struct VM : VMBase
         switch (desired)
         {
             case V_ANY: return true;  // only used by native functions, not used by other callers
-            case V_FLOAT:   if (v.type == V_INT) { v = Value((float)v.ival); return true; } break;
+            case V_FLOAT:   if (v.type == V_INT) { v = Value((float)v.ival()); return true; } break;
             case V_STRING:  if (v.type != V_STRING)
                             {
                                 auto s = v.ToString(programprintprefs);
@@ -1318,8 +1318,8 @@ struct VM : VMBase
 
     bool StrOps(const Value &a, const Value &b, Value &res)
     {
-        if      (a.type == V_STRING) { string s = b.ToString(programprintprefs); res = NewString(a.sval->str(), a.sval->len, (char *)s.c_str(), (int)s.size()); a.DEC(); b.DEC(); return true; }
-        else if (b.type == V_STRING) { string s = a.ToString(programprintprefs); res = NewString((char *)s.c_str(), (int)s.size(), b.sval->str(), b.sval->len); a.DEC(); b.DEC(); return true; }
+        if      (a.type == V_STRING) { string s = b.ToString(programprintprefs); res = NewString(a.sval()->str(), a.sval()->len, (char *)s.c_str(), (int)s.size()); a.DEC(); b.DEC(); return true; }
+        else if (b.type == V_STRING) { string s = a.ToString(programprintprefs); res = NewString((char *)s.c_str(), (int)s.size(), b.sval()->str(), b.sval()->len); a.DEC(); b.DEC(); return true; }
         return false;
     }
 
@@ -1328,7 +1328,7 @@ struct VM : VMBase
     void Div0()                                                 { Error("division by zero"); }
     
     void IDXErr(int i, int n, const Value &v)                   { if (i < 0 || i >= n) Error(string("index ") + string(inttoa(i)) + " out of range " + string(inttoa(n)), v); }
-    void VecType(const Value &vec)                              { if (vec.vval->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
+    void VecType(const Value &vec)                              { if (vec.vval()->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
 
     bool AllInt(const LVector *v)
     {
@@ -1340,26 +1340,26 @@ struct VM : VMBase
 
     int GrabIndex(const Value &idx)
     {
-        if (idx.type == V_INT) return idx.ival;
+        if (idx.type == V_INT) return idx.ival();
 
         if (idx.type == V_VECTOR)
         {
             auto &v = TOP();
-            for (int i = idx.vval->len - 1; ; i--)
+            for (int i = idx.vval()->len - 1; ; i--)
             {
-                auto sidx = idx.vval->at(i);
+                auto sidx = idx.vval()->at(i);
                 if (sidx.type != V_INT)
                     Error(string("illegal vector index element of type ") + ProperTypeName(sidx), idx);
                 if (!i)
                 {
                     idx.DECRT();
-                    return sidx.ival;
+                    return sidx.ival();
                 }
                 if (v.type != V_VECTOR)
-                    Error(string("vector index of length ") + inttoa(idx.vval->len) + 
+                    Error(string("vector index of length ") + inttoa(idx.vval()->len) + 
                           " used on nested vector of depth " + inttoa(i), idx, v); 
-                IDXErr(sidx.ival, v.vval->len, v);
-                auto nv = v.vval->at(sidx.ival).INC();
+                IDXErr(sidx.ival(), v.vval()->len, v);
+                auto nv = v.vval()->at(sidx.ival()).INC();
                 v.DECRT();
                 v = nv;
             }
@@ -1376,70 +1376,69 @@ struct VM : VMBase
         int type = V_VECTOR;
         if (a.type == V_VECTOR)
         {
-            len = a.vval->len;
+            len = a.vval()->len;
             if (b.type == V_VECTOR)
             {
-                len = min(len, b.vval->len);
-                if (len && AllInt(a.vval) && AllInt(b.vval)) isfloat = false;
-                if(a.vval->len < b.vval->len || (a.vval->len == b.vval->len && a.vval->type >= 0))
+                len = min(len, b.vval()->len);
+                if (len && AllInt(a.vval()) && AllInt(b.vval())) isfloat = false;
+                if(a.vval()->len < b.vval()->len || (a.vval()->len == b.vval()->len && a.vval()->type >= 0))
                 {
-                    if (a.vval->refc == 1) { res = a; return len; } else type = a.vval->type;
+                    if (a.vval()->refc == 1) { res = a; return len; } else type = a.vval()->type;
                 }
                 else
                 {
-                    if (b.vval->refc == 1) { res = b; return len; } else type = b.vval->type;
+                    if (b.vval()->refc == 1) { res = b; return len; } else type = b.vval()->type;
                 }
             }
             else
             {
-                if (b.type == V_INT) { if (len && AllInt(a.vval)) isfloat = false; }
+                if (b.type == V_INT) { if (len && AllInt(a.vval())) isfloat = false; }
                 else if (b.type != V_FLOAT) return -1;
-                if (a.vval->refc == 1) { res = a; return len; }
-                type = a.vval->type;
+                if (a.vval()->refc == 1) { res = a; return len; }
+                type = a.vval()->type;
             }
         }
         else if (b.type == V_VECTOR)
         {
-            len = b.vval->len;
-            if (a.type == V_INT) { if (len && AllInt(b.vval)) isfloat = false; }
+            len = b.vval()->len;
+            if (a.type == V_INT) { if (len && AllInt(b.vval())) isfloat = false; }
             else if (b.type != V_FLOAT) return -1;
-            if (b.vval->refc == 1) { res = b; return len; }
-            type = b.vval->type;
+            if (b.vval()->refc == 1) { res = b; return len; }
+            type = b.vval()->type;
         }
         else
         {
             return -1;
         }
-        res.vval = NewVector(len, type);
-        res.type = V_VECTOR;
-        res.vval->len = len;    // so we can overwrite, needed for reuse
+        res = Value(NewVector(len, type));
+        res.vval()->len = len;    // so we can overwrite, needed for reuse
         return len;
     }
 
     int VectorTrim(const Value &a, int len)
     {
-        while(a.vval->len > len) a.vval->pop().DEC();
+        while(a.vval()->len > len) a.vval()->pop().DEC();
         return len;
     }
 
     void VectorDec(const Value &a, const Value &res)
     {
-        if (a.type == V_VECTOR && a.vval != res.vval) a.DEC();
+        if (a.type == V_VECTOR && a.vval() != res.vval()) a.DEC();
     }
 
     template<typename T> T VectorElem(const Value &a, int i)
     {
         switch (a.type)
         {
-            case V_FLOAT: return (T)a.fval;
-            case V_INT:   return (T)a.ival;
+            case V_FLOAT: return (T)a.fval();
+            case V_INT:   return (T)a.ival();
             case V_VECTOR:
             {
-                auto v = a.vval->at(i);
+                auto v = a.vval()->at(i);
                 switch (v.type)
                 {
-                    case V_FLOAT: return (T)v.fval;
-                    case V_INT:   return (T)v.ival;
+                    case V_FLOAT: return (T)v.fval();
+                    case V_INT:   return (T)v.ival();
                     default:
                         Error(string("can't do vector operation with vector element type ") + ProperTypeName(v), v);
                         return 0;
@@ -1491,9 +1490,9 @@ struct VM : VMBase
             switch (ro->type)
             {
                 default: VMASSERT(ro->type >= 0);  // fall thru: a struct type
-                case V_VECTOR:    v.vval->len = 0; v.vval->deleteself(); break;
-                case V_STRING:                     v.sval->deleteself(); break;
-                case V_COROUTINE:                  v.cval->deleteself(false); break;
+                case V_VECTOR:    v.vval()->len = 0; v.vval()->deleteself(); break;
+                case V_STRING:                     v.sval()->deleteself(); break;
+                case V_COROUTINE:                  v.cval()->deleteself(false); break;
             }
         }
 

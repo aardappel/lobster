@@ -70,7 +70,7 @@ void AddFont()
     {       
         extern void TestGL(); TestGL();
 
-        string piname = SanitizePath(fname.sval->str());
+        string piname = SanitizePath(fname.sval()->str());
         fname.DEC();
 
         auto faceit = loadedfaces.find(piname);
@@ -103,7 +103,7 @@ void AddFont()
     {
         if (!curface) g_vm->BuiltinError("gl_setfontsize: no current font set with gl_setfontname");
         
-        int size = max(1, fontsize.ival);
+        int size = max(1, fontsize.ival());
         int csize = min(size, maxfontsize);
 
         string fontname = curfacename;
@@ -131,7 +131,7 @@ void AddFont()
 
     STARTDECL(gl_setmaxfontsize) (Value &fontsize)
     {
-        maxfontsize = fontsize.ival;
+        maxfontsize = fontsize.ival();
         return Value(0);
     }
     ENDDECL1(gl_setmaxfontsize, "size", "I", "",
@@ -146,7 +146,7 @@ void AddFont()
         auto f = curfont;
         if (!f) { s.DEC(); return g_vm->BuiltinError("gl_text: no font size set"); }
 
-        if (!s.sval->len) return s;
+        if (!s.sval()->len) return s;
 
         float4x4 oldobject2view;
         if (curfontsize > maxfontsize)
@@ -157,7 +157,7 @@ void AddFont()
 
         SetTexture(0, f->texid);
 		texturedshader->Set();
-        f->RenderText(s.sval->str());
+        f->RenderText(s.sval()->str());
 
         if (curfontsize > maxfontsize) object2view = oldobject2view;
 
@@ -171,7 +171,7 @@ void AddFont()
         auto f = curfont;
         if (!f) { s.DEC(); return g_vm->BuiltinError("gl_textsize: no font size set"); }
 
-        auto size = f->TextSize(s.sval->str());
+        auto size = f->TextSize(s.sval()->str());
         s.DEC();
         
         if (curfontsize > maxfontsize)

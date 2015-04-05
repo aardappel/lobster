@@ -30,12 +30,12 @@ int KeyCompare(const Value &a, const Value &b, bool rec = false)
 
     switch (a.type)
     {
-        case V_INT:    return a.ival < b.ival ? -1 : a.ival > b.ival;
-        case V_FLOAT:  return a.fval < b.fval ? -1 : a.fval > b.fval;
-        case V_STRING: return strcmp(a.sval->str(), b.sval->str());
+        case V_INT:    return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
+        case V_FLOAT:  return a.fval() < b.fval() ? -1 : a.fval() > b.fval();
+        case V_STRING: return strcmp(a.sval()->str(), b.sval()->str());
 
         case V_VECTOR:
-            if (a.vval->len && b.vval->len && !rec) return KeyCompare(a.vval->at(0), b.vval->at(0), true);
+            if (a.vval()->len && b.vval()->len && !rec) return KeyCompare(a.vval()->at(0), b.vval()->at(0), true);
             // fall thru:
         default:
             g_vm->BuiltinError("binary search: illegal key type");
@@ -53,20 +53,20 @@ void AddBuiltins()
     ENDDECL1(print, "x", "A", "A",
         "output any value to the console (with linefeed). returns its argument.");
 
-    STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival; return a; } 
+    STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return a; } 
     ENDDECL1(set_print_depth, "a", "I", "", 
         "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
 
-    STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival; return a; } 
+    STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival(); return a; } 
     ENDDECL1(set_print_length, "a", "I", "", 
         "for printing / string conversion: sets max string length (default 10000)");
 
-    STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival != 0; return a; } 
+    STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival() != 0; return a; } 
     ENDDECL1(set_print_quoted, "a", "I", "", 
         "for printing / string conversion: if the top level value is a string, whether to convert it with escape codes"
         " and quotes (default false)");
 
-    STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival; return a; } 
+    STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival(); return a; } 
     ENDDECL1(set_print_decimals, "a", "I", "", 
         "for printing / string conversion: number of decimals for any floating point output (default -1, meaning all)");
 
@@ -116,9 +116,9 @@ void AddBuiltins()
 
     STARTDECL(append) (Value &v1, Value &v2)
     {
-        auto nv = g_vm->NewVector(v1.vval->len + v2.vval->len, V_VECTOR);
-        nv->append(v1.vval, 0, v1.vval->len); v1.DEC();
-        nv->append(v2.vval, 0, v2.vval->len); v2.DEC();
+        auto nv = g_vm->NewVector(v1.vval()->len + v2.vval()->len, V_VECTOR);
+        nv->append(v1.vval(), 0, v1.vval()->len); v1.DEC();
+        nv->append(v2.vval(), 0, v2.vval()->len); v2.DEC();
         return Value(nv);
     }
     ENDDECL2(append, "xs,ys", "V*V1", "V1",
@@ -126,7 +126,7 @@ void AddBuiltins()
 
     STARTDECL(vector_reserve) (Value &len)
     {
-        return Value(g_vm->NewVector(len.ival, V_VECTOR));
+        return Value(g_vm->NewVector(len.ival(), V_VECTOR));
     }
     ENDDECL1(vector_reserve, "len", "I", "V*",
         "creates a new empty vector much like [] would, except now ensures"
@@ -138,7 +138,7 @@ void AddBuiltins()
         {
             case V_INT:    return a;
             case V_VECTOR:
-            case V_STRING: { auto len = a.lobj->len; a.DECRT(); return Value(len); }
+            case V_STRING: { auto len = a.lobj()->len; a.DECRT(); return Value(len); }
             default: return g_vm->BuiltinError(string("illegal type passed to length: ") + BaseTypeName(a.type));
         }
     }
@@ -158,7 +158,7 @@ void AddBuiltins()
 
     STARTDECL(push) (Value &l, Value &x)
     {
-        l.vval->push(x);
+        l.vval()->push(x);
         return l;
     }
     ENDDECL2(push, "xs,x", "V*A1", "V1",
@@ -166,8 +166,8 @@ void AddBuiltins()
 
     STARTDECL(pop) (Value &l)
     {
-        if (!l.vval->len) { l.DEC(); g_vm->BuiltinError("pop: empty vector"); }
-        auto v = l.vval->pop();
+        if (!l.vval()->len) { l.DEC(); g_vm->BuiltinError("pop: empty vector"); }
+        auto v = l.vval()->pop();
         l.DEC();
         return v;
     }
@@ -176,8 +176,8 @@ void AddBuiltins()
 
     STARTDECL(top) (Value &l)
     {
-        if (!l.vval->len) { l.DEC(); g_vm->BuiltinError("top: empty vector"); }
-        auto v = l.vval->top();
+        if (!l.vval()->len) { l.DEC(); g_vm->BuiltinError("top: empty vector"); }
+        auto v = l.vval()->top();
         l.DEC();
         return v.INC();
     }
@@ -186,13 +186,13 @@ void AddBuiltins()
 
     STARTDECL(replace) (Value &l, Value &i, Value &a)
     {
-        if (i.ival < 0 || i.ival >= l.vval->len) g_vm->BuiltinError("replace: index out of range");
+        if (i.ival() < 0 || i.ival() >= l.vval()->len) g_vm->BuiltinError("replace: index out of range");
 
-        auto nv = g_vm->NewVector(l.vval->len, l.vval->type);
-        nv->append(l.vval, 0, l.vval->len);
+        auto nv = g_vm->NewVector(l.vval()->len, l.vval()->type);
+        nv->append(l.vval(), 0, l.vval()->len);
         l.DECRT();
 
-        Value &dest = nv->at(i.ival);
+        Value &dest = nv->at(i.ival());
         dest.DEC();
         dest = a;
 
@@ -203,9 +203,9 @@ void AddBuiltins()
 
     STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
     {
-        if (n.ival < 0 || i.ival < 0 || i.ival > l.vval->len)
+        if (n.ival() < 0 || i.ival() < 0 || i.ival() > l.vval()->len)
             g_vm->BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        l.vval->insert(a, i.ival, max(n.ival, 1));
+        l.vval()->insert(a, i.ival(), max(n.ival(), 1));
         return l;
     }
     ENDDECL4(insert, "xs,i,x,n", "VIAi", "V",
@@ -214,10 +214,10 @@ void AddBuiltins()
 
     STARTDECL(remove) (Value &l, Value &i, Value &n)
     {
-        int amount = max(n.ival, 1);
-        if (n.ival < 0 || amount > l.vval->len || i.ival < 0 || i.ival > l.vval->len - amount)
+        int amount = max(n.ival(), 1);
+        if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 || i.ival() > l.vval()->len - amount)
             g_vm->BuiltinError("remove: index or n out of range");
-        auto v = l.vval->remove(i.ival, amount);
+        auto v = l.vval()->remove(i.ival(), amount);
         l.DEC();
         return v;
     }
@@ -228,9 +228,9 @@ void AddBuiltins()
     STARTDECL(removeobj) (Value &l, Value &o)
     {
         int removed = 0;
-        for (int i = 0; i < l.vval->len; i++) if (l.vval->at(i).Equal(o, false))
+        for (int i = 0; i < l.vval()->len; i++) if (l.vval()->at(i).Equal(o, false))
         {
-            l.vval->remove(i--, 1).DEC();
+            l.vval()->remove(i--, 1).DEC();
             removed++;
         }
         o.DEC();
@@ -244,7 +244,7 @@ void AddBuiltins()
     {
         ValueRef lref(l), kref(key);
 
-        int size = l.vval->len;
+        int size = l.vval()->len;
         int i = 0;
 
         for (;;)
@@ -252,7 +252,7 @@ void AddBuiltins()
             if (!size) break;
 
             int mid = size / 2;
-            int comp = KeyCompare(key, l.vval->at(i + mid));
+            int comp = KeyCompare(key, l.vval()->at(i + mid));
 
             if (comp)
             {
@@ -263,8 +263,8 @@ void AddBuiltins()
             {
                 i += mid;
                 size = 1;
-                while (i                      && !KeyCompare(key, l.vval->at(i - 1   ))) { i--; size++; }
-                while (i + size < l.vval->len && !KeyCompare(key, l.vval->at(i + size))) {      size++; }
+                while (i                      && !KeyCompare(key, l.vval()->at(i - 1   ))) { i--; size++; }
+                while (i + size < l.vval()->len && !KeyCompare(key, l.vval()->at(i + size))) {      size++; }
                 break;
             }
         }
@@ -281,8 +281,8 @@ void AddBuiltins()
 
     STARTDECL(copy) (Value &v)
     {
-        auto nv = g_vm->NewVector(v.vval->len, v.vval->type);
-        nv->append(v.vval, 0, v.vval->len);
+        auto nv = g_vm->NewVector(v.vval()->len, v.vval()->type);
+        nv->append(v.vval(), 0, v.vval()->len);
         v.DECRT();
         return Value(nv);
     }
@@ -291,14 +291,14 @@ void AddBuiltins()
 
     STARTDECL(slice) (Value &l, Value &s, Value &e)
     {
-        int size = e.ival;
-        if (size < 0) size = l.vval->len + size;
-        int start = s.ival;
-        if (start < 0) start = l.vval->len + start;
-        if (start < 0 || start + size > (int)l.vval->len)
+        int size = e.ival();
+        if (size < 0) size = l.vval()->len + size;
+        int start = s.ival();
+        if (start < 0) start = l.vval()->len + start;
+        if (start < 0 || start + size > (int)l.vval()->len)
             g_vm->BuiltinError("slice: values out of range");
         auto nv = g_vm->NewVector(size, V_VECTOR);
-        nv->append(l.vval, start, size);
+        nv->append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
     }
@@ -309,11 +309,11 @@ void AddBuiltins()
     STARTDECL(any) (Value &v)
     {
         Value r(0, V_NIL);
-        for (int i = 0; i < v.vval->len; i++)
+        for (int i = 0; i < v.vval()->len; i++)
         {
-            if (v.vval->at(i).True())
+            if (v.vval()->at(i).True())
             {
-                r = v.vval->at(i);
+                r = v.vval()->at(i);
                 r.INC();
                 break;
             }
@@ -327,9 +327,9 @@ void AddBuiltins()
     STARTDECL(all) (Value &v)
     {
         Value r(true);
-        for (int i = 0; i < v.vval->len; i++)
+        for (int i = 0; i < v.vval()->len; i++)
         {
-            if (!v.vval->at(i).True())
+            if (!v.vval()->at(i).True())
             {
                 r = Value(false);
                 break;
@@ -343,14 +343,14 @@ void AddBuiltins()
 
     STARTDECL(substring) (Value &l, Value &s, Value &e)
     {
-        int size = e.ival;
-        if (size < 0) size = l.vval->len + size;
-        int start = s.ival;
-        if (start < 0) start = l.vval->len + start;
-        if (start < 0 || start + size > (int)l.vval->len)
+        int size = e.ival();
+        if (size < 0) size = l.sval()->len + size;
+        int start = s.ival();
+        if (start < 0) start = l.sval()->len + start;
+        if (start < 0 || start + size > (int)l.sval()->len)
             g_vm->BuiltinError("substring: values out of range");
 
-        auto ns = g_vm->NewString(l.sval->str() + start, size);
+        auto ns = g_vm->NewString(l.sval()->str() + start, size);
         l.DECRT();
         return Value(ns);
     }
@@ -361,9 +361,9 @@ void AddBuiltins()
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace)
     {
         auto v = g_vm->NewVector(0, V_VECTOR);
-        auto ws = whitespace.sval->str();
-        auto dl = delims.sval->str();
-        auto p = s.sval->str();
+        auto ws = whitespace.sval()->str();
+        auto dl = delims.sval()->str();
+        auto p = s.sval()->str();
         p += strspn(p, ws);
         auto strspn1 = [](char c, const char *set) { while (*set) if (*set == c) return 1; return 0; };
         while (*p)
@@ -390,11 +390,11 @@ void AddBuiltins()
         ValueRef vref(v);
         char buf[7];
         string s;
-        for (int i = 0; i < v.vval->len; i++)
+        for (int i = 0; i < v.vval()->len; i++)
         {
-            auto &c = v.vval->at(i);
+            auto &c = v.vval()->at(i);
             if (c.type != V_INT) g_vm->BuiltinError("unicode2string: vector contains non-int values.");
-            ToUTF8(c.ival, buf);
+            ToUTF8(c.ival(), buf);
             s += buf;
         }
         return Value(g_vm->NewString(s));
@@ -405,9 +405,9 @@ void AddBuiltins()
     STARTDECL(string2unicode) (Value &s)
     {
         ValueRef sref(s);
-        auto v = g_vm->NewVector(s.sval->len, V_VECTOR);
+        auto v = g_vm->NewVector(s.sval()->len, V_VECTOR);
         ValueRef vref((Value(v)));
-        const char *p = s.sval->str();
+        const char *p = s.sval()->str();
         while (*p)
         {
             int u = FromUTF8(p);
@@ -421,16 +421,16 @@ void AddBuiltins()
 
     STARTDECL(number2string) (Value &n, Value &b, Value &mc)
     {
-        if (b.ival < 2 || b.ival > 36 || mc.ival > 32)
+        if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
             g_vm->BuiltinError("number2string: values out of range");
 
-        uint i = (uint)n.ival;
+        uint i = (uint)n.ival();
         string s;
         const char *from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        while (i || (int)s.length() < mc.ival)
+        while (i || (int)s.length() < mc.ival())
         {
-            s.insert(0, 1, from[i % b.ival]);
-            i /= b.ival;
+            s.insert(0, 1, from[i % b.ival()]);
+            i /= b.ival();
         }
 
         return Value(g_vm->NewString(s));
@@ -439,34 +439,34 @@ void AddBuiltins()
         "converts the (unsigned version) of the input integer number to a string given the base (2..36, e.g. 16 for"
         " hex) and outputting a minimum of characters (padding with 0).");
 
-    STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval, b.fval)); } ENDDECL2(pow, "a,b", "FF", "F",
+    STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval(), b.fval())); } ENDDECL2(pow, "a,b", "FF", "F",
         "a raised to the power of b");
 
-    STARTDECL(log) (Value &a) { return Value(logf(a.fval)); } ENDDECL1(log, "a", "F", "F", 
+    STARTDECL(log) (Value &a) { return Value(logf(a.fval())); } ENDDECL1(log, "a", "F", "F", 
         "natural logaritm of a");
 
-    STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval)); } ENDDECL1(sqrt, "f", "F", "F", 
+    STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval())); } ENDDECL1(sqrt, "f", "F", "F", 
         "square root");
 
-    STARTDECL(and) (Value &a, Value &b) { return Value(a.ival & b.ival);  } ENDDECL2(and, "a,b", "II", "I",
+    STARTDECL(and) (Value &a, Value &b) { return Value(a.ival() & b.ival());  } ENDDECL2(and, "a,b", "II", "I",
         "bitwise and");
-    STARTDECL(or)  (Value &a, Value &b) { return Value(a.ival | b.ival);  } ENDDECL2(or,  "a,b", "II", "I", 
+    STARTDECL(or)  (Value &a, Value &b) { return Value(a.ival() | b.ival());  } ENDDECL2(or,  "a,b", "II", "I", 
         "bitwise or");
-    STARTDECL(xor) (Value &a, Value &b) { return Value(a.ival ^ b.ival);  } ENDDECL2(xor, "a,b", "II", "I",
+    STARTDECL(xor) (Value &a, Value &b) { return Value(a.ival() ^ b.ival());  } ENDDECL2(xor, "a,b", "II", "I",
         "bitwise exclusive or");
-    STARTDECL(not) (Value &a)           { return Value(~a.ival);          } ENDDECL1(not, "a",   "I",  "I",
+    STARTDECL(not) (Value &a)           { return Value(~a.ival());          } ENDDECL1(not, "a",   "I",  "I",
         "bitwise negation");
-    STARTDECL(shl) (Value &a, Value &b) { return Value(a.ival << b.ival); } ENDDECL2(shl, "a,b", "II", "I", 
+    STARTDECL(shl) (Value &a, Value &b) { return Value(a.ival() << b.ival()); } ENDDECL2(shl, "a,b", "II", "I", 
         "bitwise shift left");
-    STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival >> b.ival); } ENDDECL2(shr, "a,b", "II", "I", 
+    STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
     #define VECTOROP(name, op, otype) \
         if (a.type == V_VECTOR) { \
-            auto v = g_vm->NewVector(a.vval->len, a.vval->type); \
-            for (int i = 0; i < a.vval->len; i++) { \
-                auto f = a.vval->at(i); \
-                if (otype == V_FLOAT && f.type == V_INT) f = Value(float(f.ival)); \
+            auto v = g_vm->NewVector(a.vval()->len, a.vval()->type); \
+            for (int i = 0; i < a.vval()->len; i++) { \
+                auto f = a.vval()->at(i); \
+                if (otype == V_FLOAT && f.type == V_INT) f = Value(float(f.ival())); \
                 if (f.type != otype) { a.DECRT(); v->deleteself(); goto err; } \
                 v->push(Value(op)); \
             } \
@@ -478,48 +478,48 @@ void AddBuiltins()
     #define VECTOROPF(name, op) VECTOROP(name, op, V_FLOAT)
     #define VECTOROPI(name, op) VECTOROP(name, op, V_INT)
 
-    STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval))); } ENDDECL1(ceiling, "f", "F", "I",
+    STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); } ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling, int(ceilf(f.fval))); } ENDDECL1(ceiling, "v", "F]", "I]:/",
+    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling, int(ceilf(f.fval()))); } ENDDECL1(ceiling, "v", "F]", "I]:/",
         "the nearest ints >= each component of v");
 
-    STARTDECL(floor)   (Value &a) { return Value(int(floorf(a.fval))); } ENDDECL1(floor, "f", "F", "I",
+    STARTDECL(floor)   (Value &a) { return Value(int(floorf(a.fval()))); } ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor)   (Value &a) { VECTOROPF(floor, int(floorf(f.fval))); } ENDDECL1(floor, "v", "F]", "I]:/",
+    STARTDECL(floor)   (Value &a) { VECTOROPF(floor, int(floorf(f.fval()))); } ENDDECL1(floor, "v", "F]", "I]:/",
         "the nearest ints <= each component of v");
 
-    STARTDECL(int)(Value &a) { return Value(int(a.fval)); } ENDDECL1(int, "f", "F", "I",
+    STARTDECL(int)(Value &a) { return Value(int(a.fval())); } ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int)(Value &a) { VECTOROPF(int, int(f.fval)); } ENDDECL1(int, "v", "F]", "I]:/",
+    STARTDECL(int)(Value &a) { VECTOROPF(int, int(f.fval())); } ENDDECL1(int, "v", "F]", "I]:/",
         "converts a vector of floats to ints by dropping the fraction");
 
-    STARTDECL(round)   (Value &a) { return Value(int(a.fval + 0.5f)); } ENDDECL1(round, "f", "F", "I",
+    STARTDECL(round)   (Value &a) { return Value(int(a.fval() + 0.5f)); } ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int");
-    STARTDECL(round)   (Value &a) { VECTOROPF(round, int(f.fval + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
+    STARTDECL(round)   (Value &a) { VECTOROPF(round, int(f.fval() + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");
 
-    STARTDECL(fraction)(Value &a) { return Value(a.fval - floorf(a.fval)); } ENDDECL1(fraction, "f", "F", "F",
+    STARTDECL(fraction)(Value &a) { return Value(a.fval() - floorf(a.fval())); } ENDDECL1(fraction, "f", "F", "F",
         "returns the fractional part of a float: short for f - floor(f)");
-    STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval - floorf(f.fval)); } ENDDECL1(fraction, "v", "F]", "F]:/",
+    STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval() - floorf(f.fval())); } ENDDECL1(fraction, "v", "F]", "F]:/",
         "returns the fractional part of a vector of floats");
 
-    STARTDECL(float)(Value &a) { return Value(float(a.ival)); } ENDDECL1(float, "i", "I", "F",
+    STARTDECL(float)(Value &a) { return Value(float(a.ival())); } ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float)(Value &a) { VECTOROPI(float, float(f.ival)); } ENDDECL1(float, "v", "I]", "F]:/",
+    STARTDECL(float)(Value &a) { VECTOROPI(float, float(f.ival())); } ENDDECL1(float, "v", "I]", "F]:/",
         "converts a vector of ints to floats");
 
-    STARTDECL(sin) (Value &a) { return Value(sinf(a.fval * RAD)); } ENDDECL1(sin, "angle", "F", "F",
+    STARTDECL(sin) (Value &a) { return Value(sinf(a.fval() * RAD)); } ENDDECL1(sin, "angle", "F", "F",
         "the y coordinate of the normalized vector indicated by angle (in degrees)");
-    STARTDECL(cos) (Value &a) { return Value(cosf(a.fval * RAD)); } ENDDECL1(cos, "angle", "F", "F",
+    STARTDECL(cos) (Value &a) { return Value(cosf(a.fval() * RAD)); } ENDDECL1(cos, "angle", "F", "F",
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
 
-    STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval * RAD), sinf(a.fval * RAD), 0.0f)); }
+    STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval() * RAD), sinf(a.fval() * RAD), 0.0f)); }
     ENDDECL1(sincos, "angle", "F", "F]:3",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
 
-    STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval) / RAD); } ENDDECL1(arcsin, "y", "F", "F",
+    STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval()) / RAD); } ENDDECL1(arcsin, "y", "F", "F",
         "the angle (in degrees) indicated by the y coordinate projected to the unit circle");
-    STARTDECL(arccos) (Value &x) { return Value(acosf(x.fval) / RAD); } ENDDECL1(arccos, "x", "F", "F",
+    STARTDECL(arccos) (Value &x) { return Value(acosf(x.fval()) / RAD); } ENDDECL1(arccos, "x", "F", "F",
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2) (Value &vec) { auto v = ValueDecTo<float3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } 
@@ -528,7 +528,7 @@ void AddBuiltins()
 
     STARTDECL(normalize) (Value &vec)
     {
-        switch (vec.vval->len)
+        switch (vec.vval()->len)
         {
             case 2: { auto v = ValueDecTo<float2>(vec); return ToValue(v == float2_0 ? v : normalize(v)); }
             case 3: { auto v = ValueDecTo<float3>(vec); return ToValue(v == float3_0 ? v : normalize(v)); }
@@ -550,28 +550,28 @@ void AddBuiltins()
     ENDDECL2(cross, "a,b", "F]F]", "F]:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
-    STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival))); } ENDDECL1(rnd, "max", "I", "I",
+    STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival()))); } ENDDECL1(rnd, "max", "I", "I",
         "a random value [0..max).");
-    STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival))); } ENDDECL1(rnd, "max", "I]", "I]:/",
+    STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival()))); } ENDDECL1(rnd, "max", "I]", "I]:/",
         "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); } ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");
-    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
+    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival()); return Value(); } ENDDECL1(rndseed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");
 
-    STARTDECL(div) (Value &a, Value &b) { return Value(float(a.ival) / float(b.ival)); } ENDDECL2(div, "a,b", "II", "F",
+    STARTDECL(div) (Value &a, Value &b) { return Value(float(a.ival()) / float(b.ival())); } ENDDECL2(div, "a,b", "II", "F",
         "forces two ints to be divided as floats");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c)
     {
-        return Value(max(min(a.ival, c.ival), b.ival));
+        return Value(max(min(a.ival(), c.ival()), b.ival()));
     }
     ENDDECL3(clamp, "x,min,max", "III", "I",
         "forces an integer to be in the range between min and max (inclusive)");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c)
     {
-        return Value(max(min(a.fval, c.fval), b.fval));
+        return Value(max(min(a.fval(), c.fval()), b.fval()));
     }
     ENDDECL3(clamp, "x,min,max", "FFF", "F",
              "forces a float to be in the range between min and max (inclusive)");
@@ -580,17 +580,17 @@ void AddBuiltins()
     {
         switch (a.type)
         {
-            case V_INT:    return Value(a.ival >= 0 ? a.ival : -a.ival);
-            case V_FLOAT:  return Value(a.fval >= 0 ? a.fval : -a.fval);
+            case V_INT:    return Value(a.ival() >= 0 ? a.ival() : -a.ival());
+            case V_FLOAT:  return Value(a.fval() >= 0 ? a.fval() : -a.fval());
             case V_VECTOR: {
-                auto v = g_vm->NewVector(a.vval->len, a.vval->type);
-                for (int i = 0; i < a.vval->len; i++)
+                auto v = g_vm->NewVector(a.vval()->len, a.vval()->type);
+                for (int i = 0; i < a.vval()->len; i++)
                 {
-                    auto f = a.vval->at(i);
+                    auto f = a.vval()->at(i);
                     switch (f.type)
                     {
-                        case V_INT: v->push(Value(abs(f.ival))); break;
-                        case V_FLOAT: v->push(Value(fabsf(f.fval))); break;
+                        case V_INT: v->push(Value(abs(f.ival()))); break;
+                        case V_FLOAT: v->push(Value(fabsf(f.fval()))); break;
                         default: v->deleteself(); goto err;
                     }
                 }
@@ -610,12 +610,12 @@ void AddBuiltins()
         switch (x.type) \
         { \
             case V_INT: \
-                if (y.type == V_INT) return Value(x.ival op y.ival ? x.ival : y.ival); \
-                else if (y.type == V_FLOAT) return Value(x.ival op y.fval ? x.ival : y.fval); \
+                if (y.type == V_INT) return Value(x.ival() op y.ival() ? x.ival() : y.ival()); \
+                else if (y.type == V_FLOAT) return Value(x.ival() op y.fval() ? x.ival() : y.fval()); \
                 break; \
             case V_FLOAT: \
-                if (y.type == V_INT) return Value(x.fval op y.ival ? x.fval : y.ival); \
-                else if (y.type == V_FLOAT) return Value(x.fval op y.fval ? x.fval : y.fval); \
+                if (y.type == V_INT) return Value(x.fval() op y.ival() ? x.fval() : y.ival()); \
+                else if (y.type == V_FLOAT) return Value(x.fval() op y.fval() ? x.fval() : y.fval()); \
                 break; \
             case V_VECTOR: \
                 return ToValue(name(ValueDecTo<float4>(x), ValueDecTo<float4>(y))); \
@@ -635,7 +635,7 @@ void AddBuiltins()
         return ToValue(cardinalspline(ValueDecTo<float3>(z),
                                        ValueDecTo<float3>(a),
                                        ValueDecTo<float3>(b),
-                                       ValueDecTo<float3>(c), f.fval, t.fval));
+                                       ValueDecTo<float3>(c), f.fval(), t.fval()));
     }
     ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
@@ -647,10 +647,10 @@ void AddBuiltins()
         {
             switch (x.type)
             {
-                case V_FLOAT:  return Value(mix(x.fval, y.fval, f.fval));
-                case V_INT:    return Value(mix((float)x.ival, (float)y.ival, f.fval));
+                case V_FLOAT:  return Value(mix(x.fval(), y.fval(), f.fval()));
+                case V_INT:    return Value(mix((float)x.ival(), (float)y.ival(), f.fval()));
                                // should this do any size vecs?
-                case V_VECTOR: return ToValue(mix(ValueDecTo<float4>(x), ValueDecTo<float4>(y), f.fval));
+                case V_VECTOR: return ToValue(mix(ValueDecTo<float4>(x), ValueDecTo<float4>(y), f.fval()));
                 default: ;
             }
         }
@@ -663,7 +663,7 @@ void AddBuiltins()
 
     STARTDECL(resume) (Value &co, Value &ret)
     {
-        g_vm->CoResume(co.cval);
+        g_vm->CoResume(co.cval());
         return ret;
     }
     ENDDECL2(resume, "coroutine,returnvalue", "Ra%", "A",
@@ -671,7 +671,7 @@ void AddBuiltins()
 
     STARTDECL(returnvalue) (Value &co)
     {
-        Value &rv = co.cval->Current().INC();
+        Value &rv = co.cval()->Current().INC();
         co.DECRT();
         return rv;
     }
@@ -680,7 +680,7 @@ void AddBuiltins()
 
     STARTDECL(active) (Value &co)
     {
-        bool active = co.cval->active;
+        bool active = co.cval()->active;
         co.DECRT();
         return Value(active);
     }
@@ -719,7 +719,7 @@ void AddBuiltins()
 
     STARTDECL(trace_bytecode) (Value &i)
     {
-        g_vm->Trace(i.ival != 0);
+        g_vm->Trace(i.ival() != 0);
         return Value();
     }
     ENDDECL1(trace_bytecode, "on", "I", "",
@@ -737,7 +737,7 @@ void AddBuiltins()
 
     STARTDECL(set_max_stack_size) (Value &max)
     {
-        g_vm->SetMaxStack(max.ival * 1024 * 1024 / sizeof(Value));
+        g_vm->SetMaxStack(max.ival() * 1024 * 1024 / sizeof(Value));
         return max;
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "",

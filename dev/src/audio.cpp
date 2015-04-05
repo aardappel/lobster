@@ -25,7 +25,7 @@ void AddSoundOps()
 {
     STARTDECL(play_wav) (Value &ins)
     {
-        bool ok = SDLPlaySound(ins.sval->str(), false);
+        bool ok = SDLPlaySound(ins.sval()->str(), false);
         ins.DECRT();
         return Value(ok);
     }
@@ -35,7 +35,7 @@ void AddSoundOps()
 
     STARTDECL(play_sfxr) (Value &ins)
     {
-        bool ok = SDLPlaySound(ins.sval->str(), true);
+        bool ok = SDLPlaySound(ins.sval()->str(), true);
         ins.DECRT();
         return Value(ok);
     }

@@ -105,7 +105,7 @@ struct VMLog
 
         if (!lognew)
         {
-            if (logread[logi].type == V_LOGSTART && logread[logi].ip == funstart)
+            if (logread[logi].type == V_LOGSTART && logread[logi].ip() == funstart)
             {
                 logi++; // expected path: function present
                 logi += nlogvars; // skip past them, read by index
@@ -124,7 +124,7 @@ struct VMLog
         if (logwrite.back().type == V_LOGSTART)
         {
             // common case: function didn't write anything, we cull it
-            assert(logwrite.back().ip == funstart);
+            assert(logwrite.back().ip() == funstart);
             logwrite.pop_back();
         }
         else
@@ -145,7 +145,7 @@ struct VMLog
         else for (;;) switch (logread[logi].type)
         {
             case V_LOGEND:      // expected
-                assert(logread[logi].ip == funstart || !logread[logi].ip);
+                assert(logread[logi].ip() == funstart || !logread[logi].ip());
                 logi++;
             case V_LOGMARKER:   // can happen with empty log
                 return;
@@ -175,7 +175,7 @@ struct VMLog
             assert(lfr.type == V_LOGFUNREADSTART);
 
             def.DEC();
-            return logread[lfr.ival + idx];
+            return logread[lfr.ival() + idx];
         }
     }
 

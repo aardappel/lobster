@@ -20,12 +20,12 @@ using namespace lobster;
 
 void Value::DECDELETE() const
 {
-    assert(ref->refc == 0);
+    assert(ref_->refc == 0);
     switch (type)
     {
-        case V_VECTOR:    vval->deleteself();     break;
-        case V_STRING:    sval->deleteself();     break;
-        case V_COROUTINE: cval->deleteself(true); break;
+        case V_VECTOR:    vval_->deleteself();     break;
+        case V_STRING:    sval_->deleteself();     break;
+        case V_COROUTINE: cval_->deleteself(true); break;
         default:          assert(0);
     }
 }
@@ -37,15 +37,15 @@ bool Value::Equal(const Value &o, bool structural) const
 
     switch (type)
     {
-        case V_INT:         return ival == o.ival;
-        case V_FLOAT:       return fval == o.fval;
+        case V_INT:         return ival_ == o.ival_;
+        case V_FLOAT:       return fval_ == o.fval_;
 
-        case V_STRING:      return (*sval) == (*o.sval);
-        case V_VECTOR:      return vval == o.vval || (structural && vval->Equal(*o.vval));
-        case V_COROUTINE:   return cval == o.cval;
+        case V_STRING:      return (*sval_) == (*o.sval_);
+        case V_VECTOR:      return vval_ == o.vval_ || (structural && vval_->Equal(*o.vval_));
+        case V_COROUTINE:   return cval_ == o.cval_;
 
         case V_NIL:         return true;
-        case V_FUNCTION:    return ip == o.ip;
+        case V_FUNCTION:    return ip_ == o.ip_;
         case V_UNDEFINED:   return true;
         default: assert(0); return false;
     }
@@ -55,11 +55,11 @@ string Value::ToString(PrintPrefs &pp) const
 {
     switch (type)
     {
-        case V_INT:       return inttoa(ival);
-        case V_FLOAT:     return flttoa(fval, pp.decimals);
+        case V_INT:       return inttoa(ival_);
+        case V_FLOAT:     return flttoa(fval_, pp.decimals);
 
-        case V_STRING:    return sval->ToString(pp);
-        case V_VECTOR:    return vval->ToString(pp);
+        case V_STRING:    return sval_->ToString(pp);
+        case V_VECTOR:    return vval_->ToString(pp);
         case V_COROUTINE: return "(coroutine)";
 
         case V_NIL:       return "nil";
@@ -73,9 +73,9 @@ void Value::Mark()
 {
     switch (type)
     {
-        case V_STRING:    sval->Mark(); break; 
-        case V_VECTOR:    vval->Mark(); break;
-        case V_COROUTINE: cval->Mark(); break;
+        case V_STRING:    sval_->Mark(); break; 
+        case V_VECTOR:    vval_->Mark(); break;
+        case V_COROUTINE: cval_->Mark(); break;
         default:          break;
     }
 }

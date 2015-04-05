@@ -96,8 +96,8 @@ Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
 Value poptrans(Value &ret)
 {
     auto s = g_vm->Pop();
-    assert(s.type == V_STRING && s.sval->len == sizeof(transback));
-    auto tb = (transback *)s.sval->str();
+    assert(s.type == V_STRING && s.sval()->len == sizeof(transback));
+    auto tb = (transback *)s.sval()->str();
     view2object = tb->view2object;
     object2view = tb->object2view;
     s.DECRT();
@@ -109,24 +109,24 @@ float2 transangle(Value &a)
     switch (a.type)
     {
         case V_VECTOR: return ValueDecTo<float3>(a).xy();
-        case V_FLOAT:  return float2(cosf(a.fval * RAD), sinf(a.fval * RAD));
-        case V_INT:    return float2(cosf(a.ival * RAD), sinf(a.ival * RAD));
+        case V_FLOAT:  return float2(cosf(a.fval() * RAD), sinf(a.fval() * RAD));
+        case V_INT:    return float2(cosf(a.ival() * RAD), sinf(a.ival() * RAD));
         default: g_vm->BuiltinError("angle passed to rotation function must be int/float or vector"); return float2_0;
     }
 }
 
 Mesh *GetMesh(Value &i)
 {
-    auto m = meshes->Get(i.ival);
+    auto m = meshes->Get(i.ival());
     if (!m) g_vm->BuiltinError("graphics: illegal mesh id");
     return m;
 }
 
 int GetSampler(Value &i)
 {
-    if (i.ival < 0 || i.ival >= Shader::MAX_SAMPLERS)
+    if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         g_vm->BuiltinError("graphics: illegal texture unit");
-    return i.ival;
+    return i.ival();
 }
 
 void AddGraphics()
@@ -136,8 +136,8 @@ void AddGraphics()
         if (graphics_initialized)
             g_vm->BuiltinError("cannot call gl_window() twice");
 
-        screensize = int2(xs.ival, ys.ival);
-        string err = SDLInit(title.sval->str(), screensize, fullscreen.ival != 0);
+        screensize = int2(xs.ival(), ys.ival());
+        string err = SDLInit(title.sval()->str(), screensize, fullscreen.ival() != 0);
         title.DECRT();
 
         if (err.empty())
@@ -169,7 +169,7 @@ void AddGraphics()
     STARTDECL(gl_loadmaterials) (Value &fn)
     {
         TestGL();
-        auto err = LoadMaterialFile(fn.sval->str());
+        auto err = LoadMaterialFile(fn.sval()->str());
         fn.DECRT();
         return err[0] ? Value(g_vm->NewString(err)) : Value(0, V_NIL);
     }
@@ -213,7 +213,7 @@ void AddGraphics()
     STARTDECL(gl_windowtitle) (Value &s)
     {
         TestGL();
-        SDLTitle(s.sval->str());
+        SDLTitle(s.sval()->str());
         return s;
     }
     ENDDECL1(gl_windowtitle, "title", "S", "S",
@@ -230,7 +230,7 @@ void AddGraphics()
     STARTDECL(gl_cursor) (Value &on)
     {
         TestGL();
-        return Value(SDLCursor(on.ival != 0));
+        return Value(SDLCursor(on.ival() != 0));
     }
     ENDDECL1(gl_cursor, "on", "I", "I",
         "default the cursor is visible, turn off for implementing FPS like control schemes. return wether it's on.");
@@ -238,14 +238,14 @@ void AddGraphics()
     STARTDECL(gl_grab) (Value &on)
     {
         TestGL();
-        return Value(SDLGrab(on.ival != 0));
+        return Value(SDLGrab(on.ival() != 0));
     }
     ENDDECL1(gl_grab, "on", "I", "I",
         "grabs the mouse when the window is active. return wether it's on.");
 
     STARTDECL(gl_wentdown) (Value &name)
     {
-        auto ks = GetKS(name.sval->str());
+        auto ks = GetKS(name.sval()->str());
         name.DEC();
         return Value(ks.wentdown);
     }
@@ -255,7 +255,7 @@ void AddGraphics()
 
     STARTDECL(gl_wentup) (Value &name)
     {
-        auto ks = GetKS(name.sval->str());
+        auto ks = GetKS(name.sval()->str());
         name.DEC();
         return Value(ks.wentup);
     }
@@ -264,7 +264,7 @@ void AddGraphics()
 
     STARTDECL(gl_isdown) (Value &name)
     {
-        auto ks = GetKS(name.sval->str());
+        auto ks = GetKS(name.sval()->str());
         name.DEC();
         return Value(ks.isdown);
     }
@@ -291,7 +291,7 @@ void AddGraphics()
 
     STARTDECL(gl_mousepos) (Value &i)
     {
-        return ToValue(GetFinger(i.ival, false));
+        return ToValue(GetFinger(i.ival(), false));
     }
     ENDDECL1(gl_mousepos, "i", "I", "I]:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers"
@@ -299,7 +299,7 @@ void AddGraphics()
 
     STARTDECL(gl_mousedelta) (Value &i)
     {
-        return ToValue(GetFinger(i.ival, true));
+        return ToValue(GetFinger(i.ival(), true));
     }
     ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
         "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
@@ -307,7 +307,7 @@ void AddGraphics()
 
     STARTDECL(gl_localmousepos) (Value &i)
     {
-        return ToValue(localfingerpos(i.ival));
+        return ToValue(localfingerpos(i.ival()));
     }
     ENDDECL1(gl_localmousepos, "i", "I", "F]:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
@@ -315,7 +315,7 @@ void AddGraphics()
 
     STARTDECL(gl_lastpos) (Value &name, Value &on)     // need a local version of this too?
     {
-        auto p = GetKeyPos(name.sval->str(), on.ival);
+        auto p = GetKeyPos(name.sval()->str(), on.ival());
         name.DEC();
         return ToValue(p);
     }
@@ -324,7 +324,7 @@ void AddGraphics()
 
     STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
     {
-        auto p = localpos(GetKeyPos(name.sval->str(), on.ival));
+        auto p = localpos(GetKeyPos(name.sval()->str(), on.ival()));
         name.DEC();
         return ToValue(p);
     }
@@ -340,7 +340,7 @@ void AddGraphics()
 
     STARTDECL(gl_joyaxis) (Value &i)
     {
-        return Value(GetJoyAxis(i.ival));
+        return Value(GetJoyAxis(i.ival()));
     }
     ENDDECL1(gl_joyaxis, "i", "I", "F",
         "the current joystick orientation for axis i, as -1 to 1 value");
@@ -362,7 +362,7 @@ void AddGraphics()
 
     STARTDECL(gl_lasttime) (Value &name, Value &on)
     {
-        auto t = GetKeyTime(name.sval->str(), on.ival);
+        auto t = GetKeyTime(name.sval()->str(), on.ival());
         name.DEC();
         return Value(t);
     }
@@ -396,15 +396,15 @@ void AddGraphics()
     {
         TestGL();
 
-        if (vl.vval->len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
+        if (vl.vval()->len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
 
-        auto vbuf = new BasicVert[vl.vval->len];
-        for (int i = 0; i < vl.vval->len; i++) vbuf[i].pos = ValueTo<float3>(vl.vval->at(i));
+        auto vbuf = new BasicVert[vl.vval()->len];
+        for (int i = 0; i < vl.vval()->len; i++) vbuf[i].pos = ValueTo<float3>(vl.vval()->at(i));
 
         auto v1 = vbuf[1].pos - vbuf[0].pos;
         auto v2 = vbuf[2].pos - vbuf[0].pos;
         auto norm = normalize(cross(v2, v1));
-        for (int i = 0; i < vl.vval->len; i++)
+        for (int i = 0; i < vl.vval()->len; i++)
         {
             vbuf[i].norm = norm;
             vbuf[i].tc = vbuf[i].pos.xy();
@@ -412,7 +412,7 @@ void AddGraphics()
         }
 
         currentshader->Set();
-        RenderArray(polymode, vl.vval->len, "PNTC", sizeof(BasicVert), vbuf);
+        RenderArray(polymode, vl.vval()->len, "PNTC", sizeof(BasicVert), vbuf);
 
         delete[] vbuf;
 
@@ -425,18 +425,18 @@ void AddGraphics()
     {
         TestGL();
 
-        auto vbuf = new float3[segments.ival];
+        auto vbuf = new float3[segments.ival()];
 
-        float step = PI * 2 / segments.ival;
-        for (int i = 0; i < segments.ival; i++)
+        float step = PI * 2 / segments.ival();
+        for (int i = 0; i < segments.ival(); i++)
         {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
-            vbuf[i] = float3(sinf(i * step + 1) * radius.fval,
-                             cosf(i * step + 1) * radius.fval, 0);
+            vbuf[i] = float3(sinf(i * step + 1) * radius.fval(),
+                             cosf(i * step + 1) * radius.fval(), 0);
         }
 
         currentshader->Set();
-        RenderArray(polymode, segments.ival, "P", sizeof(float3), vbuf);
+        RenderArray(polymode, segments.ival(), "P", sizeof(float3), vbuf);
 
         delete[] vbuf;
 
@@ -531,12 +531,12 @@ void AddGraphics()
     STARTDECL(gl_linemode) (Value &on, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(Value((int)polymode));
-        polymode = on.ival ? PRIM_LOOP : PRIM_FAN;
+        polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }
     MIDDECL(gl_linemode) (Value &ret)
     {
-        polymode = (Primitive)g_vm->Pop().ival;
+        polymode = (Primitive)g_vm->Pop().ival();
         return ret;
     }
     ENDDECL2CONTEXIT(gl_linemode, "on,body", "IC", "A",
@@ -546,7 +546,7 @@ void AddGraphics()
     STARTDECL(gl_hit) (Value &vec, Value &i)
     {
         auto size = ValueDecTo<float3>(vec);
-        auto localmousepos = localfingerpos(i.ival);
+        auto localmousepos = localfingerpos(i.ival());
         auto hit = localmousepos.x() >= 0 &&
                    localmousepos.y() >= 0 &&
                    localmousepos.x() < size.x() &&
@@ -604,7 +604,7 @@ void AddGraphics()
         auto v2 = ValueDecTo<float3>(end);
 
         float angle = atan2f(v2.y() - v1.y(), v2.x() - v1.x());
-        float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval / 2;
+        float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval() / 2;
 
         currentshader->Set();
         RenderLine(polymode, v1, v2, v);
@@ -616,7 +616,7 @@ void AddGraphics()
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar)
     {
-        Set3DMode(fovy.fval*RAD, screensize.x() / (float)screensize.y(), znear.fval, zfar.fval);
+        Set3DMode(fovy.fval()*RAD, screensize.x() / (float)screensize.y(), znear.fval(), zfar.fval());
         return Value();
     }
     ENDDECL3(gl_perspective, "fovy,znear,zfar", "FFF", "",
@@ -638,31 +638,31 @@ void AddGraphics()
         TestGL();
 
         vector<int> idxs;
-        for (int i = 0; i < indices.vval->len; i++)
+        for (int i = 0; i < indices.vval()->len; i++)
         {
-            auto &e = indices.vval->at(i);
+            auto &e = indices.vval()->at(i);
             if (e.type != V_INT) g_vm->BuiltinError("newmesh: index list must be all integers");
-            if (e.ival < 0 || e.ival >= positions.vval->len)
+            if (e.ival() < 0 || e.ival() >= positions.vval()->len)
                 g_vm->BuiltinError("newmesh: index out of range of vertex list");
-            idxs.push_back(e.ival);
+            idxs.push_back(e.ival());
         }
         indices.DECRT();
 
-        int nverts = positions.vval->len;
+        int nverts = positions.vval()->len;
 
         BasicVert *verts = new BasicVert[nverts];
         BasicVert v = { float3_0, float3_0, float2_0, byte4_255 };
 
         for (int i = 0; i < nverts; i++)
         {
-            v.pos  = ValueTo<float3>(positions.vval->at(i), 0);
-            v.col  = i < colors.vval->len    ? quantizec(ValueTo<float4>(colors.vval->at(i), 1)) : byte4_255;
-            v.tc   = i < texcoords.vval->len ? ValueTo<float3>(texcoords.vval->at(i), 0).xy()    : v.pos.xy();
-            v.norm = i < normals.vval->len   ? ValueTo<float3>(normals.vval->at(i), 0)           : float3_0;
+            v.pos  = ValueTo<float3>(positions.vval()->at(i), 0);
+            v.col  = i < colors.vval()->len    ? quantizec(ValueTo<float4>(colors.vval()->at(i), 1)) : byte4_255;
+            v.tc   = i < texcoords.vval()->len ? ValueTo<float3>(texcoords.vval()->at(i), 0).xy()    : v.pos.xy();
+            v.norm = i < normals.vval()->len   ? ValueTo<float3>(normals.vval()->at(i), 0)           : float3_0;
             verts[i] = v;
         }
 
-        if (!normals.vval->len)
+        if (!normals.vval()->len)
         {
             // if no normals were specified, generate them. if the user really doesn't use normals and this step is
             // somehow too expensive, he can always pass in the positions vector a second time to skip it
@@ -690,7 +690,7 @@ void AddGraphics()
     {
         TestGL();
 
-        auto m = LoadIQM(fn.sval->str());
+        auto m = LoadIQM(fn.sval()->str());
         fn.DECRT();
         return Value(m ? (int)meshes->Add(m) : 0);
     }
@@ -699,7 +699,7 @@ void AddGraphics()
 
     STARTDECL(gl_deletemesh) (Value &i)
     {
-        meshes->Delete(i.ival);
+        meshes->Delete(i.ival());
         return Value();
     }
     ENDDECL1(gl_deletemesh, "i", "I", "",
@@ -725,7 +725,7 @@ void AddGraphics()
 
     STARTDECL(gl_animatemesh) (Value &i, Value &f)
     {
-        GetMesh(i)->curanim = f.fval;
+        GetMesh(i)->curanim = f.fval();
         return i;
     }
     ENDDECL2(gl_animatemesh, "i,frame", "IF", "",
@@ -744,7 +744,7 @@ void AddGraphics()
     {
         TestGL();
 
-        auto sh = LookupShader(shader.sval->str());
+        auto sh = LookupShader(shader.sval()->str());
         shader.DECRT();
 
         if (sh) currentshader = sh;
@@ -759,7 +759,7 @@ void AddGraphics()
     {
         TestGL();
 
-        int old = SetBlendMode((BlendMode)mode.ival);
+        int old = SetBlendMode((BlendMode)mode.ival());
         if (body.type != V_NIL) g_vm->Push(Value(old));
         return body;
     }
@@ -767,7 +767,7 @@ void AddGraphics()
     {
         auto m = g_vm->Pop();
         assert(m.type == V_INT);
-        SetBlendMode((BlendMode)m.ival);
+        SetBlendMode((BlendMode)m.ival());
         return ret;
     }
     ENDDECL2CONTEXIT(gl_blend, "on,body", "Ic", "A",
@@ -779,15 +779,15 @@ void AddGraphics()
         TestGL();
 
         ValueRef nameref(name);
-        auto it = texturecache.find(name.sval->str());
+        auto it = texturecache.find(name.sval()->str());
         if (it != texturecache.end())
         {
             return Value((int)it->second);
         }
 
-        uint id = CreateTextureFromFile(name.sval->str());
+        uint id = CreateTextureFromFile(name.sval()->str());
 
-        if (id) texturecache[name.sval->str()] = id;
+        if (id) texturecache[name.sval()->str()] = id;
 
         return Value((int)id);
     }
@@ -800,7 +800,7 @@ void AddGraphics()
     {
         TestGL();
 
-        SetTexture(GetSampler(i), id.ival);
+        SetTexture(GetSampler(i), id.ival());
 
         return Value();
     }
@@ -811,10 +811,10 @@ void AddGraphics()
     {
         auto m = GetMesh(mid);
 
-        if (part.ival < 0 || part.ival >= (int)m->surfs.size())
+        if (part.ival() < 0 || part.ival() >= (int)m->surfs.size())
             g_vm->BuiltinError("setmeshtexture: illegal part index");
 
-        m->surfs[part.ival]->textures[GetSampler(i)] = id.ival;
+        m->surfs[part.ival()]->textures[GetSampler(i)] = id.ival();
 
         return Value();
     }
@@ -825,18 +825,18 @@ void AddGraphics()
     {
         TestGL();
 
-        LVector *cols = mat.vval;
+        LVector *cols = mat.vval();
         int x = cols->len;
         if (x && cols->at(0).type == V_VECTOR)
         {
-            int y = cols->at(0).vval->len;
+            int y = cols->at(0).vval()->len;
             if (y)
             {
                 auto buf = new byte4[x * y];
                 memset(buf, 0, x * y * 4);
                 for (int i = 0; i < x; i++) if (cols->at(i).type == V_VECTOR)
                 {
-                    LVector *row = cols->at(i).vval;
+                    LVector *row = cols->at(i).vval();
                     for (int j = 0; j < min(y, row->len); j++)
                     {
                         buf[j * x + i] = quantizec(ValueTo<float3>(row->at(j)));
@@ -861,13 +861,13 @@ void AddGraphics()
         // this is potentially expensive, we're counting on gl_deletetexture not being needed often
         while (it != texturecache.end())
         {
-            if (it->second == uint(i.ival)) texturecache.erase(it++);
+            if (it->second == uint(i.ival())) texturecache.erase(it++);
             else ++it;
         }
 
         // the surfaces in meshes are still potentially referring to this texture,
         // but OpenGL doesn't care about illegal texture ids, so neither do we
-        DeleteTexture(i.ival);
+        DeleteTexture(i.ival());
 
         return Value();
     }
@@ -894,9 +894,9 @@ void AddGraphics()
         auto step = ValueDecTo<float3>(dist);
 
         auto oldcolor = curcolor;
-        curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { currentshader->Set(); RenderLine3D(float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval); }
-        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) { currentshader->Set(); RenderLine3D(float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval); }
-        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) { currentshader->Set(); RenderLine3D(float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval); }
+        curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { currentshader->Set(); RenderLine3D(float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval()); }
+        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) { currentshader->Set(); RenderLine3D(float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval()); }
+        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) { currentshader->Set(); RenderLine3D(float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval()); }
         curcolor = oldcolor;
 
         return Value();

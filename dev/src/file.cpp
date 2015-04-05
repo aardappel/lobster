@@ -50,10 +50,10 @@ void AddFileOps()
 {
     STARTDECL(scan_folder) (Value &fld, Value &divisor)
     {
-        string folder = SanitizePath(fld.sval->str());
+        string folder = SanitizePath(fld.sval()->str());
         fld.DEC();
 
-        if (divisor.ival <= 0) divisor.ival = 1;
+        if (divisor.ival() <= 0) divisor.ival() = 1;
 
         #ifdef WIN32
 
@@ -71,7 +71,7 @@ void AddFileOps()
                     ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
                                      fdata.nFileSizeLow;
                     AddDirItem(nlist, slist, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
-                               divisor.ival);
+                               divisor.ival());
                 }
             }
             while(FindNextFile(fh, &fdata));
@@ -98,7 +98,7 @@ void AddFileOps()
                 struct stat st;
                 stat(gl.gl_pathv[fi], &st);
 
-                AddDirItem(nlist, slist, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival);
+                AddDirItem(nlist, slist, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival());
             }
             globfree(&gl);
 
@@ -121,7 +121,7 @@ void AddFileOps()
     STARTDECL(read_file) (Value &file)
     {
         size_t sz = 0;
-        auto buf = (char *)LoadFile(file.sval->str(), &sz);
+        auto buf = (char *)LoadFile(file.sval()->str(), &sz);
         file.DEC();
         if (!buf) return Value(0, V_NIL);
         auto s = g_vm->NewString(buf, sz);
@@ -134,12 +134,12 @@ void AddFileOps()
 
     STARTDECL(write_file) (Value &file, Value &contents)
     {
-        FILE *f = OpenForWriting(file.sval->str(), true);
+        FILE *f = OpenForWriting(file.sval()->str(), true);
         file.DEC();
         size_t written = 0;
         if (f)
         {
-            written = fwrite(contents.sval->str(), contents.sval->len, 1, f);
+            written = fwrite(contents.sval()->str(), contents.sval()->len, 1, f);
             fclose(f);
         }
         contents.DEC();

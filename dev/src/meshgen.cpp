@@ -955,8 +955,8 @@ void AddMeshGen()
     STARTDECL(mg_tapered_cylinder) (Value &bot, Value &top)
     {
         auto tc = new IFTaperedCylinder();
-        tc->bot = bot.fval;
-        tc->top = top.fval;
+        tc->bot = bot.fval();
+        tc->top = top.fval();
         return AddShape(tc);
     }
     ENDDECL2(mg_tapered_cylinder, "bot,top", "FF", "",
@@ -974,7 +974,7 @@ void AddMeshGen()
     STARTDECL(mg_supertoroid) (Value &r, Value &exps)
     {
         auto t = new IFSuperToroid();
-        t->r = r.fval;
+        t->r = r.fval();
         t->exp = ValueDecTo<float3>(exps);
         return AddShape(t);
     }
@@ -997,9 +997,9 @@ void AddMeshGen()
 
     STARTDECL(mg_set_polygonreduction) (Value &polyreductionpasses, Value &epsilon, Value &maxtricornerdot)
     {
-        ::polyreductionpasses = polyreductionpasses.ival;
-        ::epsilon = epsilon.fval;
-        ::maxtricornerdot = maxtricornerdot.fval;
+        ::polyreductionpasses = polyreductionpasses.ival();
+        ::epsilon = epsilon.fval();
+        ::maxtricornerdot = maxtricornerdot.fval();
         return Value();
     }
     ENDDECL3(mg_set_polygonreduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
@@ -1010,8 +1010,8 @@ void AddMeshGen()
 
     STARTDECL(mg_set_colornoise) (Value &noiseintensity, Value &noisestretch)
     {
-        ::noisestretch = noisestretch.fval;
-        ::noiseintensity = noiseintensity.fval;
+        ::noisestretch = noisestretch.fval();
+        ::noiseintensity = noiseintensity.fval();
         return Value();
     }
     ENDDECL2(mg_set_colornoise, "noiseintensity,noisestretch", "FF", "",
@@ -1020,7 +1020,7 @@ void AddMeshGen()
 
     STARTDECL(mg_set_vertrandomize) (Value &factor)
     {
-        randomizeverts = factor.fval;
+        randomizeverts = factor.fval();
         return Value();
     }
     ENDDECL1(mg_set_vertrandomize, "factor", "F", "",
@@ -1039,9 +1039,9 @@ void AddMeshGen()
     STARTDECL(mg_polygonize) (Value &subdiv, Value &color)
     {
         vector<float3> materials;
-        for (int i = 0; i < color.vval->len; i++) materials.push_back(ValueTo<float3>(color.vval->at(i)));
+        for (int i = 0; i < color.vval()->len; i++) materials.push_back(ValueTo<float3>(color.vval()->at(i)));
         color.DECRT();
-        int mesh = polygonize_mc(root, subdiv.ival, materials);
+        int mesh = polygonize_mc(root, subdiv.ival(), materials);
         MeshGenClear();
         return Value(mesh);
     }
@@ -1089,14 +1089,14 @@ void AddMeshGen()
     {
         if (body.type != V_NIL) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
         auto v = ValueDecTo<float3>(axis);
-        currot *= float3x3(angle.fval*RAD, v);
+        currot *= float3x3(angle.fval()*RAD, v);
         return body;
     }
     MIDDECL(mg_rotate) (Value &ret)
     {
         auto s = g_vm->Pop();
-        assert(s.type == V_STRING && s.sval->len == sizeof(float3x3));
-        currot = *(float3x3 *)s.sval->str();
+        assert(s.type == V_STRING && s.sval()->len == sizeof(float3x3));
+        currot = *(float3x3 *)s.sval()->str();
         s.DECRT();
         return ret;
     }
@@ -1106,14 +1106,14 @@ void AddMeshGen()
     STARTDECL(mg_fill) (Value &fill, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(Value(curcol));
-        curcol = fill.ival & MATMASK;   // FIXME: error if doesn't fit?
+        curcol = fill.ival() & MATMASK;   // FIXME: error if doesn't fit?
         return body;
     }
     MIDDECL(mg_fill) (Value &ret)
     {
         auto fill = g_vm->Pop();
         assert(fill.type == V_INT);
-        curcol = fill.ival;
+        curcol = fill.ival();
         return ret;
     }
     ENDDECL2CONTEXIT(mg_fill, "fill,body", "Ic", "A",

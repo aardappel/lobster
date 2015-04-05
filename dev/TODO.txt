@@ -34,13 +34,10 @@
     - other hof
   - people really dislike := because they assume it means assignment.. could use a different operator?
     maybe var: = val to make it look more like regular assignment?
-  - use def instead of function to be less verbose?
 
 - typechecker
   - improve type checking doc.
-  - typecheck of super args?
   - move generic double check from parser to type checker init
-  - struct specialization with generics is still a bit clumsy.
   - why do we need .xy ? shouldn't xyz convert to xy when needed silently thru inheritance?
   - parse_data still broken, need to be passed type to parse
   - can we make the astar_node specialization less ugly?
@@ -52,6 +49,8 @@
   - the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
     called "length" anywhere, suddenly all calls to length() don't work anymore.
     Only way to fix this is to delay this decision until typechecking.
+
+  * start removing all dynamic ops from the VM and codegen
 
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
@@ -226,12 +225,8 @@ vertex_neighbors :== [
 
 - add a simple string2number function. There's already parsedata which covers everything, but it's a bit heavyweight?
 
-release version (alpha)
-- documentation, distribution, building on different platforms, examples, github?
-
 docs:
 - not clear
-  - overwriting variables of other types
   - value ... people used to doing v.x +=
   - else: if:
   - that you can make your own control structs in your own code: examples focus a bit too much on for/if

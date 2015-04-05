@@ -191,45 +191,61 @@ struct Value
 {
     ValueType type;     // FIXME: on 64bit system this should really sit in a separate array
 
+    private:
     union
     {
-        int ival;       // keep this 32bit even on 64bit for predictable results
-        float fval;     // idem, also the type that most graphics hardware works with natively
-        LString *sval;
-        LVector *vval;
-        CoRoutine *cval;
-        LenObj *lobj;
-        RefObj *ref;
-        int *ip;
+        int ival_;       // keep this 32bit even on 64bit for predictable results
+        float fval_;     // idem, also the type that most graphics hardware works with natively
+        LString *sval_;
+        LVector *vval_;
+        CoRoutine *cval_;
+        LenObj *lobj_;
+        RefObj *ref_;
+        int *ip_;
     };
+    public:
 
-    inline Value()                    : type(V_UNDEFINED), ival(0) {}
-    inline Value(int i)               : type(V_INT),       ival(i) {}
-    inline Value(int i, ValueType t)  : type(t),           ival(i) {}
-    inline Value(bool b)              : type(V_INT),       ival(b) {}
-    inline Value(float f)             : type(V_FLOAT),     fval(f) {}
-    inline Value(LString *s)          : type(V_STRING),    sval(s) {}
-    inline Value(int *i)              : type(V_FUNCTION),  ip(i)   {}
-    inline Value(int *i, ValueType t) : type(t),           ip(i)   {}
-    inline Value(LVector *v)          : type(V_VECTOR),    vval(v) {}
-    inline Value(CoRoutine *c)        : type(V_COROUTINE), cval(c) {}
-    inline Value(RefObj *r)           : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref(r) {}
+    // These asserts help track down any invalid code generation issues.
+    int        ival() const { assert(type == V_INT);        return ival_; }
+    int       &ival()       { assert(type == V_INT);        return ival_; }
+    float      fval() const { assert(type == V_FLOAT);      return fval_; }
+    float     &fval()       { assert(type == V_FLOAT);      return fval_; }
+    LString   *sval() const { assert(type == V_STRING);     return sval_; }
+    LVector   *vval() const { assert(type == V_VECTOR);     return vval_; }
+    CoRoutine *cval() const { assert(type == V_COROUTINE);  return cval_; }
+    LenObj    *lobj() const { assert(type < 0);             return lobj_; }
+    RefObj    *ref () const { assert(type < 0);             return ref_;  }
+    int       *ip()   const { assert(type >= V_FUNCTION);   return ip_;   }
+    int        info() const { assert(type >= V_NARGS);      return ival_; }
+    void      *any()  const { return ref_; }
 
-    inline bool True() const { return ival != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
+    inline Value()                    : type(V_UNDEFINED), ival_(0) {}
+    inline Value(int i)               : type(V_INT),       ival_(i) {}
+    inline Value(int i, ValueType t)  : type(t),           ival_(i) {}
+    inline Value(bool b)              : type(V_INT),       ival_(b) {}
+    inline Value(float f)             : type(V_FLOAT),     fval_(f) {}
+    inline Value(LString *s)          : type(V_STRING),    sval_(s) {}
+    inline Value(int *i)              : type(V_FUNCTION),  ip_(i)   {}
+    inline Value(int *i, ValueType t) : type(t),           ip_(i)   {}
+    inline Value(LVector *v)          : type(V_VECTOR),    vval_(v) {}
+    inline Value(CoRoutine *c)        : type(V_COROUTINE), cval_(c) {}
+    inline Value(RefObj *r)           : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref_(r) {}
+
+    inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
 
     inline Value &INC()
     {
         if (type < 0)
         {
             #ifdef _DEBUG
-            if (ref->refc > 0)  // force too many dec bugs to become apparent
+            if (ref_->refc > 0)  // force too many dec bugs to become apparent
             #endif
-            ref->refc++;
+            ref_->refc++;
         }
         return *this;
     }
 
-    inline void INCN(int n) { if (type < 0) ref->refc += n; }
+    inline void INCN(int n) { if (type < 0) ref_->refc += n; }
     
     inline const Value &DEC() const
     {
@@ -239,15 +255,15 @@ struct Value
 
     inline void DECRT() const   // we already know its a ref type
     {
-        ref->refc--;
-        if (ref->refc <= 0) DECDELETE();
+        ref_->refc--;
+        if (ref_->refc <= 0) DECDELETE();
     }
 
     int Nargs()
     {
         assert(type == V_FUNCTION);
         //assert(*ip == IL_FUNSTART);
-        return ip[1];
+        return ip_[1];
     }
 
 
@@ -533,11 +549,11 @@ template<typename T> inline T ValueTo(const Value &v, float def = 0)
         for (int i = 0; i < T::NUM_ELEMENTS; i++)
         {
             float e = def;
-            if (v.vval->len > i)
+            if (v.vval()->len > i)
             {
-                Value &c = v.vval->at(i);
-                if      (c.type == V_FLOAT) e = c.fval;
-                else if (c.type == V_INT)   e = (float)c.ival;
+                Value &c = v.vval()->at(i);
+                if      (c.type == V_FLOAT) e = c.fval();
+                else if (c.type == V_INT)   e = (float)c.ival();
                 else g_vm->BuiltinError(string("non-numeric component in vector: ") + g_vm->ProperTypeName(c));
             }
             t.set(i, e);
@@ -546,11 +562,11 @@ template<typename T> inline T ValueTo(const Value &v, float def = 0)
     }
     else if (v.type == V_FLOAT)
     {
-        return T(v.fval);
+        return T(v.fval());
     }
     else if (v.type == V_INT)
     {
-        return T((float)v.ival);
+        return T((float)v.ival());
     }
     else
     {

@@ -98,7 +98,7 @@ b2Body &GetBody(Value &id, Value &position)
 	b2Body *body = nullptr;
 	if (id.True())
 	{
-		auto other_fixture = fixtures->Get(id.ival);
+		auto other_fixture = fixtures->Get(id.ival());
 		if (other_fixture) body = other_fixture->GetBody();
 	}
 	auto wpos = ValueDecTo<float2>(position);
@@ -146,7 +146,7 @@ void AddPhysicsOps()
 	{
 		auto &body = GetBody(other_id, position);
 		auto sz = ValueDecTo<float2>(size);
-		auto r = rot.fval;
+		auto r = rot.fval();
 		b2PolygonShape shape;
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
@@ -162,7 +162,7 @@ void AddPhysicsOps()
 		b2CircleShape shape;
 		auto off = OptionalOffset(offset);
 		shape.m_p.Set(off.x, off.y);
-		shape.m_radius = radius.fval;
+		shape.m_radius = radius.fval();
 		return CreateFixture(body, shape);
 	}
 	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "VFvi", "I",
@@ -173,13 +173,13 @@ void AddPhysicsOps()
 	{
 		auto &body = GetBody(other_id, position);
 		b2PolygonShape shape;
-		auto verts = new b2Vec2[vertices.vval->len];
-    for (int i = 0; i < vertices.vval->len; i++)
+		auto verts = new b2Vec2[vertices.vval()->len];
+    for (int i = 0; i < vertices.vval()->len; i++)
     {
-        auto vert = ValueTo<float2>(vertices.vval->at(i));
+        auto vert = ValueTo<float2>(vertices.vval()->at(i));
         verts[i] = *(b2Vec2 *)&vert;
     }
-		shape.Set(verts, vertices.vval->len);
+		shape.Set(verts, vertices.vval()->len);
 		delete[] verts;
 		vertices.DECRT();
 		return CreateFixture(body, shape);
@@ -191,8 +191,8 @@ void AddPhysicsOps()
 	STARTDECL(ph_dynamic) (Value &fixture_id, Value &on)
 	{
 		CheckPhysics();
-		auto fixture = fixtures->Get(fixture_id.ival);
-		if (fixture) fixture->GetBody()->SetType(on.ival ? b2_dynamicBody : b2_staticBody);
+		auto fixture = fixtures->Get(fixture_id.ival());
+		if (fixture) fixture->GetBody()->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
 		return fixture_id;
 	}
 	ENDDECL2(ph_dynamic, "shape,on", "II", "",
@@ -201,13 +201,13 @@ void AddPhysicsOps()
 	STARTDECL(ph_deleteshape) (Value &fixture_id)
 	{
 		CheckPhysics();
-		auto fixture = fixtures->Get(fixture_id.ival);
+		auto fixture = fixtures->Get(fixture_id.ival());
 		if (fixture)
 		{
 			auto body = fixture->GetBody();
 			body->DestroyFixture(fixture);
 			if (!body->GetFixtureList()) world->DestroyBody(body);
-			fixtures->Delete(fixture_id.ival);
+			fixtures->Delete(fixture_id.ival());
 		}
 		return Value();
 	}
@@ -216,7 +216,7 @@ void AddPhysicsOps()
 
 	STARTDECL(ph_setcolor) (Value &fixture_id, Value &color)
 	{
-		auto r = GetRenderable(fixture_id.ival);
+		auto r = GetRenderable(fixture_id.ival());
 		auto c = ValueDecTo<float4>(color);
 		if (r) r->color = c;
 		return Value();
@@ -226,8 +226,8 @@ void AddPhysicsOps()
 
 	STARTDECL(ph_setshader) (Value &fixture_id, Value &shader)
 	{
-		auto r = GetRenderable(fixture_id.ival);
-		auto sh = LookupShader(shader.sval->str());
+		auto r = GetRenderable(fixture_id.ival());
+		auto sh = LookupShader(shader.sval()->str());
 		shader.DECRT();
 		if (r && sh) r->sh = sh;
 		return Value();
@@ -237,8 +237,8 @@ void AddPhysicsOps()
 
 	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex_id, Value &tex_unit)
 	{
-		auto r = GetRenderable(fixture_id.ival);
-		if (r) r->textures[GetSampler(tex_unit)] = tex_id.ival;
+		auto r = GetRenderable(fixture_id.ival());
+		if (r) r->textures[GetSampler(tex_unit)] = tex_id.ival();
 		return Value();
 	}
 	ENDDECL3(ph_settexture, "id,texid,texunit", "IIi", "",
@@ -250,9 +250,9 @@ void AddPhysicsOps()
 		CheckParticles();
 		b2ParticleGroupDef pgd;
 		b2CircleShape shape;
-		shape.m_radius = radius.fval;
+		shape.m_radius = radius.fval();
 		pgd.shape = &shape;
-		pgd.flags = type.ival;
+		pgd.flags = type.ival();
 		pgd.position = ValueDecToB2(position);
 		auto c = ValueDecTo<float3>(color);
 		pgd.color.Set(b2Color(c.x(), c.y(), c.z()));
@@ -264,7 +264,7 @@ void AddPhysicsOps()
 
 	STARTDECL(ph_initializeparticles) (Value &size)
 	{
-		CheckParticles(size.fval);
+		CheckParticles(size.fval());
 		return Value();
 	}
 	ENDDECL1(ph_initializeparticles, "radius", "F", "",
@@ -273,7 +273,7 @@ void AddPhysicsOps()
 	STARTDECL(ph_step) (Value &delta)
 	{
 		CheckPhysics();
-		world->Step(min(delta.fval, 0.1f), 8, 3);
+		world->Step(min(delta.fval(), 0.1f), 8, 3);
 		return Value();
 	}
 	ENDDECL1(ph_step, "seconds", "F", "",
@@ -345,7 +345,7 @@ void AddPhysicsOps()
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
         auto scale = fabs(object2view[0].x());
-        SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval);
+        SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval());
         particlematerial->Set();
         RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, nullptr, sizeof(byte4), colors);
         return Value();
