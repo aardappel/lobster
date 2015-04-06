@@ -601,9 +601,9 @@ struct SymbolTable
     bool ReadOnlyIdent(uint v) { assert(v < identtable.size());    return identtable[v]->constant;  }
     bool ReadOnlyType (uint v) { assert(v < structtable.size());   return structtable[v]->readonly; }
     
-    string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
-    string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
-    string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
+    const string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
+    const string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
+    const string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
     void RegisterDefaultVectorTypes()
     {

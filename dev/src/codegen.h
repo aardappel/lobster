@@ -427,8 +427,8 @@ struct CodeGen
                 if (retval)
                 {
                     // Have to check node and left because comparison ops generate ints
-                    if (n->exptype->t == V_INT && n->left()->exptype->t == V_INT) Emit(IL_IADD + opc);
-                    else if (n->exptype->t == V_FLOAT) Emit(IL_FADD + opc);
+                    if      (n->right()->exptype->t == V_INT   && n->left()->exptype->t == V_INT)   Emit(IL_IADD + opc);
+                    else if (n->right()->exptype->t == V_FLOAT && n->left()->exptype->t == V_FLOAT) Emit(IL_FADD + opc);
                     else Emit(IL_AADD + opc);
                 }
                 break;

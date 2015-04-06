@@ -79,7 +79,6 @@ struct VMBase
 
     //virtual Value EvalC(Value &cl, int nargs) = 0;
     virtual Value BuiltinError(string err) = 0;
-    virtual void BuiltinCheck(Value &v, ValueType desired, const char *name) = 0;
     virtual void Push(const Value &v) = 0;
     virtual Value Pop() = 0;
     virtual LString *NewString(const string &s) = 0;
@@ -91,7 +90,7 @@ struct VMBase
     virtual int GC() = 0;
     virtual const char *ProperTypeName(const Value &v) = 0;
     virtual int StructIdx(const string &name, size_t &nargs) = 0;
-    virtual string &ReverseLookupType(uint v) = 0;
+    virtual const string &ReverseLookupType(uint v) = 0;
     virtual void SetMaxStack(int ms) = 0;
     virtual void CoResume(CoRoutine *co) = 0;
     virtual int CallerId() = 0;
