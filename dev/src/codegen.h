@@ -36,6 +36,7 @@ namespace lobster
     F(IADD) F(ISUB) F(IMUL) F(IDIV) F(IMOD) F(ILT) F(IGT) F(ILE) F(IGE) F(IEQ) F(INE) \
     F(FADD) F(FSUB) F(FMUL) F(FDIV) F(FMOD) F(FLT) F(FGT) F(FLE) F(FGE) F(FEQ) F(FNE) \
     F(AADD) F(ASUB) F(AMUL) F(ADIV) F(AMOD) F(ALT) F(AGT) F(ALE) F(AGE) F(AEQ) F(ANE) \
+    F(SADD) F(SSUB) F(SMUL) F(SDIV) F(SMOD) F(SLT) F(SGT) F(SLE) F(SGE) F(SEQ) F(SNE) \
     F(UMINUS) F(LOGNOT) F(I2F) F(A2S) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) F(FOR) \
     F(PUSHONCE) \
     F(ISTYPE) F(CORO) F(COCL) F(COEND) \
@@ -50,6 +51,7 @@ enum { ILNAMES };
     F(AADD) F(AADDR) F(ASUB) F(ASUBR) F(AMUL) F(AMULR) F(ADIV) F(ADIVR) F(AMOD) F(AMODR) \
     F(IADD) F(IADDR) F(ISUB) F(ISUBR) F(IMUL) F(IMULR) F(IDIV) F(IDIVR) F(IMOD) F(IMODR) \
     F(FADD) F(FADDR) F(FSUB) F(FSUBR) F(FMUL) F(FMULR) F(FDIV) F(FDIVR) \
+    F(SADD) F(SADDR) \
     F(PP) F(PPR) F(MM) F(MMR) F(PPP) F(PPPR) F(MMP) F(MMPR) 
 
 #define F(N) LVO_##N,
@@ -427,8 +429,9 @@ struct CodeGen
                 if (retval)
                 {
                     // Have to check node and left because comparison ops generate ints
-                    if      (n->right()->exptype->t == V_INT   && n->left()->exptype->t == V_INT)   Emit(IL_IADD + opc);
-                    else if (n->right()->exptype->t == V_FLOAT && n->left()->exptype->t == V_FLOAT) Emit(IL_FADD + opc);
+                    if      (n->right()->exptype->t == V_INT    && n->left()->exptype->t == V_INT)    Emit(IL_IADD + opc);
+                    else if (n->right()->exptype->t == V_FLOAT  && n->left()->exptype->t == V_FLOAT)  Emit(IL_FADD + opc);
+                    else if (n->right()->exptype->t == V_STRING && n->left()->exptype->t == V_STRING) Emit(IL_SADD + opc);
                     else Emit(IL_AADD + opc);
                 }
                 break;
@@ -759,8 +762,9 @@ struct CodeGen
     {
         if (lvalop >= LVO_AADD && lvalop <= LVO_AMOD)
         {
-            if      (type->t == V_INT)   {                             lvalop += LVO_IADD - LVO_AADD; }
-            else if (type->t == V_FLOAT) { assert(lvalop != LVO_AMOD); lvalop += LVO_FADD - LVO_AADD; }
+            if      (type->t == V_INT)    {                             lvalop += LVO_IADD - LVO_AADD; }
+            else if (type->t == V_FLOAT)  { assert(lvalop != LVO_AMOD); lvalop += LVO_FADD - LVO_AADD; }
+            else if (type->t == V_STRING) { assert(lvalop == LVO_AADD); lvalop = LVO_SADD; }
         }
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
