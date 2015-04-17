@@ -117,7 +117,7 @@ bool BitmapFont::CacheChars(const char *text)
         x += advance;
     }
 
-    texid = CreateTexture(image, texw, texh, true, false);
+    texid = CreateTexture(image, int2(texw, texh), true, false);
 
     delete[] image;
 

@@ -755,6 +755,19 @@ void AddGraphics()
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
         " color / textured / phong. returns if shader could be found.");
 
+    STARTDECL(gl_setuniform) (Value &name, Value &vec)
+    {
+        TestGL();
+        auto v = ValueDecTo<float4>(vec);
+        currentshader->Activate();
+        auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), vec.vval()->len);
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL2(gl_setuniform, "name,value", "SF]", "I",
+             "set a uniform on the current shader. size of float vector must match size of uniform in the shader."
+             " returns false on error.");
+
     STARTDECL(gl_blend) (Value &mode, Value &body)
     {
         TestGL();
@@ -779,20 +792,27 @@ void AddGraphics()
         TestGL();
 
         ValueRef nameref(name);
+        uint id = 0;
+        int2 dim(0);
         auto it = texturecache.find(name.sval()->str());
         if (it != texturecache.end())
         {
-            return Value((int)it->second);
+            id = it->second;
+            goto done;
         }
 
-        uint id = CreateTextureFromFile(name.sval()->str());
+        id = CreateTextureFromFile(name.sval()->str(), dim);
 
         if (id) texturecache[name.sval()->str()] = id;
 
-        return Value((int)id);
+        done:
+        g_vm->Push(Value((int)id));
+        return ToValue(dim);
     }
-    ENDDECL1(gl_loadtexture, "name", "S", "I",
+    ENDDECL1(gl_loadtexture, "name", "S", "II]",
         "returns texture id if succesfully loaded from file name, otherwise 0."
+        " Returns the size of the loaded textures in pixels as second return value on first load (xy_i),"
+        " or (0, 0) otherwise."
         " Only loads from disk once if called again with the same name. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.");
 
@@ -843,7 +863,7 @@ void AddGraphics()
                     }
                 }
                 mat.DECRT();
-                uint id = CreateTexture((uchar *)buf, x, y);
+                uint id = CreateTexture((uchar *)buf, int2(x, y));
                 delete[] buf;
                 return Value((int)id);
             }

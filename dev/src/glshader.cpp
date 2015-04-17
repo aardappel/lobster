@@ -162,6 +162,16 @@ string LoadMaterialFile(const char *mfile)
                     else { err = "unknown uniform: " + last; goto out; }
                 }
             }
+            else if (last == "UNIFORM")
+            {
+                string &decl = accum == &vertex ? vdecl : pdecl;
+                word();
+                auto type = last;
+                word();
+                auto name = last;
+                if (type.empty() || name.empty()) { err = "uniform decl must specify type and name"; goto out; }
+                decl += "uniform " + type + " " + name + ";\n";
+            }
             else if (last == "INPUTS")
             {
                 string decl;
@@ -258,9 +268,14 @@ Shader::~Shader()
     if (vs) glDeleteShader(vs);
 }
 
-void Shader::Set()
+void Shader::Activate()
 {
     glUseProgram(program);
+}
+
+void Shader::Set()
+{
+    Activate();
 
     if (mvp_i >= 0) glUniformMatrix4fv(mvp_i, 1, false, view2clip * object2view);
     if (col_i >= 0) glUniform4fv(col_i, 1, curcolor.begin());
@@ -279,4 +294,19 @@ void Shader::SetTextures(uint *textures)
     for (int i = 0; i < MAX_SAMPLERS; i++)
         if (tex_i[i] >= 0)
             SetTexture(i, textures[i]);
+}
+
+bool Shader::SetUniform(const char *name, const float *val, size_t count)
+{
+    auto loc = glGetUniformLocation(program, name);
+    if (loc < 0) return false;
+    switch (count)
+    {
+        case 1: glUniform1fv(loc, 1, val);
+        case 2: glUniform2fv(loc, 1, val);
+        case 3: glUniform3fv(loc, 1, val);
+        case 4: glUniform4fv(loc, 1, val);
+        default: return false;
+    }
+    return true;
 }

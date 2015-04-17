@@ -34,6 +34,7 @@
     - other hof
   - people really dislike := because they assume it means assignment.. could use a different operator?
     maybe var: = val to make it look more like regular assignment?
+  - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
   - improve type checking doc.

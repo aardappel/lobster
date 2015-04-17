@@ -20,7 +20,7 @@
 #include "stb_image.h"
 
 
-uint CreateTexture(uchar *buf, int x, int y, bool clamp, bool mipmap)
+uint CreateTexture(uchar *buf, const int2 &dim, bool clamp, bool mipmap)
 {
     uint id;
     glGenTextures(1, &id);
@@ -36,7 +36,7 @@ uint CreateTexture(uchar *buf, int x, int y, bool clamp, bool mipmap)
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dim.x(), dim.y(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
 
     if (mipmap)
     {
@@ -47,7 +47,7 @@ uint CreateTexture(uchar *buf, int x, int y, bool clamp, bool mipmap)
     return id;
 }
 
-uint CreateTextureFromFile(const char *name)
+uint CreateTextureFromFile(const char *name, int2 &dim)
 {
     size_t len = 0;
     auto fbuf = LoadFile(name, &len);
@@ -56,13 +56,14 @@ uint CreateTextureFromFile(const char *name)
 
     int x, y, comp;
     auto buf = stbi_load_from_memory(fbuf, len, &x, &y, &comp, 4);
+    dim = int2(x, y);
 
     free(fbuf);
 
     if (!buf)
         return 0;
 
-    uint id = CreateTexture(buf, x, y);
+    uint id = CreateTexture(buf, dim);
 
     stbi_image_free(buf);
     return id;

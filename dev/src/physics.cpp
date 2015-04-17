@@ -323,7 +323,7 @@ void AddPhysicsOps()
 					}
 					case b2Shape::e_edge:
 					case b2Shape::e_chain:
-          case b2Shape::e_typeCount:
+                    case b2Shape::e_typeCount:
 						assert(0);
 						break;
 				}

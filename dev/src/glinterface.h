@@ -30,9 +30,13 @@ struct Shader
     ~Shader();
 
     string Compile(const char *name, const char *vscode, const char *pscode);
-    void Set();
-    void SetAnim(float3x4 *bones, int num);   // optionally, after Set()
-    void SetTextures(uint *textures); // optionally, after Set()
+    void Activate();                         // Makes shader current;
+    void Set();                              // Activate + sets common uniforms.
+    void SetAnim(float3x4 *bones, int num);  // Optionally, after Activate().
+    void SetTextures(uint *textures);        // Optionally, after Activate().
+    bool SetUniform(const char *name,        // Optionally, after Activate().
+                    const float *val,
+                    size_t count);
 };
 
 struct Textured
@@ -119,8 +123,8 @@ extern string LoadMaterialFile(const char *mfile);
 extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
 
-extern uint CreateTexture(uchar *buf, int x, int y, bool clamp = false, bool mipmap = true);
-extern uint CreateTextureFromFile(const char *name);
+extern uint CreateTexture(uchar *buf, const int2 &dim, bool clamp = false, bool mipmap = true);
+extern uint CreateTextureFromFile(const char *name, int2 &dim);
 extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();
