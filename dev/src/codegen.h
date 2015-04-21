@@ -653,7 +653,6 @@ struct CodeGen
 
             case T_CONSTRUCTOR:
             {
-                Struct *superclass = nullptr;
                 Struct *struc = nullptr;
 
                 auto vtype = n->constructor_type()->typenode();
@@ -661,7 +660,6 @@ struct CodeGen
                 {
                     struc = vtype->struc;
                     Emit(IL_NEWVEC, struc->idx, (int)struc->fields.size());
-                    superclass = struc->superclass;
                 }
                 else
                 {
@@ -679,8 +677,6 @@ struct CodeGen
 
                     Emit(IL_PUSHONCE);
                     i++;
-
-                    superclass = nullptr;
                 }
                 if (!retval) Emit(IL_POP);
                 break;

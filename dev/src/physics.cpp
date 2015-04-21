@@ -86,10 +86,13 @@ void CheckParticles(float size = 0.1f)
 	}
 }
 
+b2Vec2 Float2ToB2(const float2 &v) { return b2Vec2(v.x(), v.y()); }
+float2 B2ToFloat2(const b2Vec2 &v) { return float2(v.x, v.y); }
+
 b2Vec2 ValueDecToB2(Value &vec)
 {
 	auto v = ValueDecTo<float2>(vec);
-	return *(b2Vec2 *)&v;
+	return Float2ToB2(v);
 }
 
 b2Body &GetBody(Value &id, Value &position)
@@ -172,13 +175,13 @@ void AddPhysicsOps()
 	STARTDECL(ph_createpolygon) (Value &position, Value &vertices, Value &other_id)
 	{
 		auto &body = GetBody(other_id, position);
-		b2PolygonShape shape;
+        b2PolygonShape shape;
 		auto verts = new b2Vec2[vertices.vval()->len];
-    for (int i = 0; i < vertices.vval()->len; i++)
-    {
-        auto vert = ValueTo<float2>(vertices.vval()->at(i));
-        verts[i] = *(b2Vec2 *)&vert;
-    }
+        for (int i = 0; i < vertices.vval()->len; i++)
+        {
+            auto vert = ValueTo<float2>(vertices.vval()->at(i));
+            verts[i] = Float2ToB2(vert);
+        }
 		shape.Set(verts, vertices.vval()->len);
 		delete[] verts;
 		vertices.DECRT();
@@ -315,7 +318,7 @@ void AddPhysicsOps()
 						for (int i = 0; i < maxverts; i++)
 						{
 							auto pos = float2(sinf(i * step + 1), cosf(i * step + 1));
-							phverts[i].pos = pos * polyshape->m_radius + *(float2 *)&polyshape->m_p;
+							phverts[i].pos = pos * polyshape->m_radius + B2ToFloat2(polyshape->m_p);
 							phverts[i].norm = pos;
 						}
 						RenderArray(PRIM_FAN, maxverts, "pn", sizeof(PhVert), phverts, nullptr);

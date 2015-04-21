@@ -1,7 +1,15 @@
+# note: the way the VM works, Lobster should really be built as a 32bit binary
+# even on a 64bit system. It will work as 64bit binary, but will be inefficient
+# (use twice as much memory for Lobster runtime data).
+# Change the flag below to override this:
+#ARCHFLAGS= -m32
+ARCHFLAGS=
+
 CXXFLAGS= -O3 -fomit-frame-pointer
-override CXXFLAGS+= -m32 --std=c++0x -Wall -Wno-multichar -Wno-reorder -Wno-delete-non-virtual-dtor -DNDEBUG
+override CXXFLAGS+= $(ARCHFLAGS) --std=c++0x -Wall -Wno-multichar -Wno-reorder \
+    -Wno-delete-non-virtual-dtor -Wno-switch -DNDEBUG
 CFLAGS= -O3 -fomit-frame-pointer
-override CFLAGS+= -m32 -Wall -DNDEBUG
+override CFLAGS+= $(ARCHFLAGS) -Wall -DNDEBUG
 
 INCLUDES= `freetype-config --cflags` `sdl2-config --cflags` -I. -I../include
 LIBS= -L/usr/lib32 `freetype-config --libs` `sdl2-config --libs` -lGL

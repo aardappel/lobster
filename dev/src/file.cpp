@@ -59,55 +59,56 @@ void AddFileOps()
 
             WIN32_FIND_DATA fdata;
             HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
-            if (fh == INVALID_HANDLE_VALUE) goto fail;
-
-            auto nlist = g_vm->NewVector(0, V_VECTOR);
-            auto slist = g_vm->NewVector(0, V_VECTOR);
-
-            do
+            if (fh != INVALID_HANDLE_VALUE)
             {
-                if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
-                {
-                    ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
-                                     fdata.nFileSizeLow;
-                    AddDirItem(nlist, slist, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
-                               divisor.ival());
-                }
-            }
-            while(FindNextFile(fh, &fdata));
-            FindClose(fh);
+                auto nlist = g_vm->NewVector(0, V_VECTOR);
+                auto slist = g_vm->NewVector(0, V_VECTOR);
 
-            g_vm->Push(Value(nlist));
-            return Value(slist);
+                do
+                {
+                    if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, ".."))
+                    {
+                        ULONGLONG size = (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) | 
+                                         fdata.nFileSizeLow;
+                        AddDirItem(nlist, slist, fdata.cFileName, fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? -1 : size,
+                                   divisor.ival());
+                    }
+                }
+                while(FindNextFile(fh, &fdata));
+                FindClose(fh);
+
+                g_vm->Push(Value(nlist));
+                return Value(slist);
+            }
 
         #elif !defined(__ANDROID__)
 
             glob_t gl;
             string mask = folder + "/*";
-            if (glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) goto fail;
-
-            auto nlist = g_vm->NewVector(0, V_VECTOR);
-            auto slist = g_vm->NewVector(0, V_VECTOR);
-
-            for (size_t fi = 0; fi < gl.gl_pathc; fi++)
+            if (!glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl))
             {
-                string xFileName = gl.gl_pathv[fi];
-                bool isDir = xFileName[xFileName.length()-1] == '/';
-                if (isDir) xFileName = xFileName.substr(0, xFileName.length() - 1);
-                string cFileName = xFileName.substr(xFileName.find_last_of('/') + 1);
-                struct stat st;
-                stat(gl.gl_pathv[fi], &st);
+                auto nlist = g_vm->NewVector(0, V_VECTOR);
+                auto slist = g_vm->NewVector(0, V_VECTOR);
 
-                AddDirItem(nlist, slist, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival());
+                for (size_t fi = 0; fi < gl.gl_pathc; fi++)
+                {
+                    string xFileName = gl.gl_pathv[fi];
+                    bool isDir = xFileName[xFileName.length()-1] == '/';
+                    if (isDir) xFileName = xFileName.substr(0, xFileName.length() - 1);
+                    string cFileName = xFileName.substr(xFileName.find_last_of('/') + 1);
+                    struct stat st;
+                    stat(gl.gl_pathv[fi], &st);
+
+                    AddDirItem(nlist, slist, cFileName.c_str(), isDir ? -1 : st.st_size, divisor.ival());
+                }
+                globfree(&gl);
+
+                g_vm->Push(Value(nlist));
+                return Value(slist);
             }
-            globfree(&gl);
-
-            g_vm->Push(Value(nlist));
-            return Value(slist);
 
         #endif
 
-        fail:
         g_vm->Push(Value(0, V_NIL));
         return Value(0, V_NIL);
 

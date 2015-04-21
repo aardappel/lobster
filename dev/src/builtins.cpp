@@ -74,7 +74,7 @@ void AddBuiltins()
     {
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
-        fgets(buf, MAXSIZE, stdin);
+        if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
         buf[MAXSIZE - 1] = 0;
         for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n') { buf[i] = 0; break; }
         return Value(g_vm->NewString(buf, strlen(buf)));

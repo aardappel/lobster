@@ -419,7 +419,7 @@ struct VM : VMBase
 
         if (vml.uses_frame_state)
         {
-            auto lfr = POP(); VMASSERT(lfr.type == V_LOGFUNREADSTART);
+            auto lfr = POP(); VMASSERT(lfr.type == V_LOGFUNREADSTART); (void)lfr;
             auto lfw = POP(); VMASSERT(lfw.type == V_LOGFUNWRITESTART);
             vml.LogFunctionExit(ipv.ip(), defvars, lfw.info());
         }
@@ -833,9 +833,9 @@ struct VM : VMBase
                     break;
 
                     done:
-                    POP();        // body
-                    POP().DEC();  // iter
-                    POP();        // i
+                    (void)POP();        // body
+                    (void)POP().DEC();  // iter
+                    (void)POP();        // i
                     break;
                 }
 
