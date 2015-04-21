@@ -605,7 +605,10 @@ bool SDLCursor(bool on)
         {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
+            #if defined(WIN32) || defined(__APPLE__)
+            // This is broken on Linux, gives bogus xrel/yrel in SDL_MOUSEMOVE
             SDL_SetRelativeMouseMode(SDL_TRUE);
+            #endif
             clearfingers(false);
         }
     }
