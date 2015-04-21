@@ -38,7 +38,7 @@
         #include <GL/glext.h>
         #ifdef WIN32
             #define GLBASEEXTS \
-                GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture           )
+                GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture           , 1)
         #else
             #define GLBASEEXTS
         #endif
