@@ -387,16 +387,16 @@ void AddBuiltins()
 
     STARTDECL(unicode2string) (Value &v)
     {
-        ValueRef vref(v);
         char buf[7];
         string s;
         for (int i = 0; i < v.vval()->len; i++)
         {
             auto &c = v.vval()->at(i);
-            if (c.type != V_INT) g_vm->BuiltinError("unicode2string: vector contains non-int values.");
+            assert(c.type == V_INT);
             ToUTF8(c.ival(), buf);
             s += buf;
         }
+        v.DECRT();
         return Value(g_vm->NewString(s));
     }
     ENDDECL1(unicode2string, "us", "I]", "S",
@@ -404,17 +404,16 @@ void AddBuiltins()
 
     STARTDECL(string2unicode) (Value &s)
     {
-        ValueRef sref(s);
         auto v = g_vm->NewVector(s.sval()->len, V_VECTOR);
-        ValueRef vref((Value(v)));
         const char *p = s.sval()->str();
         while (*p)
         {
             int u = FromUTF8(p);
-            if (u < 0) return Value(0, V_NIL);
+            if (u < 0) { s.DECRT(); Value(v).DECRT(); return Value(0, V_NIL); }
             v->push(u);
         }
-        return Value(v).INC();
+        s.DECRT();
+        return Value(v);
     }
     ENDDECL1(string2unicode, "s", "S", "I]?",
         "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error");

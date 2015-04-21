@@ -329,7 +329,8 @@ def run_test_cases():
         cycle.next.loop = cycle.next
 
     cycletest()
-    assert(collect_garbage() == 4) // 2 vectors, 2 strings
+    garbage_objects := collect_garbage()
+    assert(garbage_objects == 4) // 2 vectors, 2 strings
 
     //"press enter to continue...".print
     //getline()
