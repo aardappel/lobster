@@ -68,20 +68,20 @@ struct CodeGen
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
 
+    int Pos() { return (int)code.size(); }
+
     void Emit(int i)
     {
         int l = linenumbernodes.back()->linenumber;
         int f = linenumbernodes.back()->fileidx;
         if (lineinfo.empty() || l != lineinfo.back().line || f != lineinfo.back().fileidx)
-            lineinfo.push_back(LineInfo(l, f, code.size()));
+            lineinfo.push_back(LineInfo(l, f, Pos()));
         code.push_back(i);
     }
 
     void Emit(int i, int j) { Emit(i); Emit(j); }
     void Emit(int i, int j, int k) { Emit(i); Emit(j); Emit(k); }
     void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
-
-    int Pos() { return (int)code.size(); }
 
     #define MARKL(name) auto name = Pos();
     #define SETL(name) code[name - 1] = Pos();
@@ -262,7 +262,7 @@ struct CodeGen
                 auto id = dl->left()->ident();
                 if (id->logvaridx >= 0)
                 {
-                    id->logvaridx = logvars.size();
+                    id->logvaridx = (int)logvars.size();
                     logvars.push_back(id);
                 }
                 else defs.push_back(id);
@@ -381,9 +381,9 @@ struct CodeGen
                 {
                     ids.push_back(dl->left()->ident());
                 }
-                Gen(dl, ids.size());
+                Gen(dl, (int)ids.size());
                 dl = n;
-                for (int i = ids.size() - 1; i >= 0; i--)
+                for (int i = (int)ids.size() - 1; i >= 0; i--)
                 {
                     if (n->type == T_DEF)
                     {
@@ -496,7 +496,7 @@ struct CodeGen
                     }
                     if (nf->retvals.v.size() > 1)
                     {
-                        maxretvalsupplied = nf->retvals.v.size();
+                        maxretvalsupplied = (int)nf->retvals.v.size();
                     }
                     else if (!nf->retvals.v.size() && retval)
                     { 
@@ -660,7 +660,7 @@ struct CodeGen
                 if (vtype->t == V_STRUCT)
                 {
                     struc = vtype->struc;
-                    Emit(IL_NEWVEC, struc->idx, struc->fields.size());
+                    Emit(IL_NEWVEC, struc->idx, (int)struc->fields.size());
                     superclass = struc->superclass;
                 }
                 else
@@ -726,7 +726,7 @@ struct CodeGen
 
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.id->idx);
 
-                code[loc] = code.size() - loc - 1;
+                code[loc] = Pos() - loc - 1;
 
                 Gen(n->child(), retval);
 

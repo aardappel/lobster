@@ -18,14 +18,14 @@ namespace lobster
 static const LineInfo &LookupLine(int pos, const vector<LineInfo> &_lineinfo)
 {
     const LineInfo *lineinfo = _lineinfo.data();
-    int size = _lineinfo.size();
+    auto size = _lineinfo.size();
     assert(size);
 
     for (;;)    // quick hardcoded binary search
     {
         if (size == 1) return *lineinfo;
 
-        int nsize = size / 2;
+        auto nsize = size / 2;
         if (lineinfo[nsize].bytecodestart <= pos) { lineinfo += nsize; size -= nsize; }
         else size = nsize;
     }
@@ -49,7 +49,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
 
     // FIXME: some indication of the filename, maybe with a table index?
     s += "I ";
-    s += inttoa(ip - code);
+    s += inttoa(int(ip - code));
     s += " \tL ";
     s += inttoa(li.line);
     s += " \t";
@@ -189,7 +189,7 @@ static void DisAsm(string &s, SymbolTable &st, int *code, const vector<LineInfo>
     int *ip = code;
     while (ip < code + len)
     {
-        ip = DisAsmIns(s, st, ip, code, LookupLine(ip - code, lineinfo));
+        ip = DisAsmIns(s, st, ip, code, LookupLine(int(ip - code), lineinfo));
         s += "\n";
     }
 }

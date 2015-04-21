@@ -82,8 +82,8 @@ struct VMBase
     virtual void Push(const Value &v) = 0;
     virtual Value Pop() = 0;
     virtual LString *NewString(const string &s) = 0;
-    virtual LString *NewString(const char *c, int l) = 0;
-    virtual LVector *NewVector(int n, int t) = 0;
+    virtual LString *NewString(const char *c, size_t l) = 0;
+    virtual LVector *NewVector(size_t n, int t) = 0;
     virtual int GetVectorType(int which) = 0;
     virtual void Trace(bool on) = 0;
     virtual float Time() = 0;
@@ -399,7 +399,7 @@ struct LVector : LenObj
         {
             if (i) s += ", ";
             if ((int)s.size() > pp.budget) { s += "...."; break; }
-            PrintPrefs subpp(pp.depth - 1, pp.budget - s.size(), true, pp.decimals);
+            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals);
             s += pp.depth || v[i].type >= 0 ? v[i].ToString(subpp) : "..";
         }
         s += type >= 0 ? "}" : "]";
@@ -486,7 +486,7 @@ struct CoRoutine : RefObj
         stackstart = top;
         // FIXME: assume that it fits, which is not guaranteed with recursive coros
         memcpy(stack + top, stackcopy, stackcopylen * sizeof(Value));
-        return stackcopylen;
+        return (int)stackcopylen;
     }
 
     void BackupParentVars(Value *vars)

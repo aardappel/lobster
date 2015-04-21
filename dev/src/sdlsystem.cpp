@@ -127,7 +127,7 @@ int findfinger(SDL_FingerID id, bool remove)
             // would have to delay it too
             f.used = false;
         }
-        return &f - fingers;
+        return int(&f - fingers);
     }
     if (remove) return MAXFINGERS - 1; // FIXME: this is masking a bug...
     assert(!remove);
@@ -135,7 +135,7 @@ int findfinger(SDL_FingerID id, bool remove)
     {
         f.id = id;
         f.used = true;
-        return &f - fingers;
+        return int(&f - fingers);
     }
     assert(0);
     return 0;

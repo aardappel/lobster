@@ -35,7 +35,7 @@ struct LoadedFile
     vector<Tok> gentokens;
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
-        : tokenstart(nullptr), stringsource(_ss), fileidx(fns.size()), token(T_NONE), line(1), errorline(1),
+        : tokenstart(nullptr), stringsource(_ss), fileidx((int)fns.size()), token(T_NONE), line(1), errorline(1),
           islf(false), cont(false), prevline(nullptr), prevlinetok(nullptr) /* prevlineindenttype(0) */
     {
         source = stringsource;

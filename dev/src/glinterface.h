@@ -48,12 +48,12 @@ struct Textured
 
 struct Surface : Textured
 {
-    int numidx;
+    size_t numidx;
     uint vboId;
     string name;
     Primitive prim;
 
-    Surface(int *indices, int _nidx, Primitive _prim = PRIM_TRIS);
+    Surface(int *indices, size_t _nidx, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -75,15 +75,15 @@ struct AnimVert : BasicVert // "PNTCWI"
 
 class Geometry 
 {
-    const uint vertsize;
+    const size_t vertsize;
     const char *fmt;
     uint vboId;
 
     public:
 
-    const uint nverts;
+    const size_t nverts;
 
-    Geometry(void *verts, int _nverts, int _vertsize, const char *_fmt);
+    Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt);
     ~Geometry();
 
     void RenderSetup();

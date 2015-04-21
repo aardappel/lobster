@@ -79,7 +79,7 @@ Textured::Textured()
     memset(textures, 0, sizeof(uint) * Shader::MAX_SAMPLERS);
 }
 
-Surface::Surface(int *indices, int _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
+Surface::Surface(int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
 {
     glGenBuffers(1, &vboId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
@@ -90,7 +90,7 @@ void Surface::Render(Shader *sh)
 {
     sh->SetTextures(textures);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
-    glDrawElements(GetPrimitive(prim), numidx, GL_UNSIGNED_INT, 0);
+    glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0);
 }
 
 Surface::~Surface()
@@ -98,7 +98,7 @@ Surface::~Surface()
     glDeleteBuffers(1, &vboId);
 }
 
-Geometry::Geometry(void *verts, int _nverts, int _vertsize, const char *_fmt)
+Geometry::Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
     : vertsize(_vertsize), nverts(_nverts), fmt(_fmt)
 {
     glGenBuffers(1, &vboId);
@@ -106,7 +106,7 @@ Geometry::Geometry(void *verts, int _nverts, int _vertsize, const char *_fmt)
     glBufferData(GL_ARRAY_BUFFER, nverts * vertsize, verts, GL_STATIC_DRAW);
 }
 
-void Geometry::RenderSetup() { SetAttribs(vboId, fmt, vertsize); }
+void Geometry::RenderSetup() { SetAttribs(vboId, fmt, (int)vertsize); }
 void Geometry::RenderDone()  { UnSetAttribs(fmt); }
 
 Geometry::~Geometry()

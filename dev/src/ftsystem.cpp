@@ -46,21 +46,21 @@ bool BitmapFont::CacheChars(const char *text)
         return false;
 
     auto face = (FT_Face)font->fthandle;
-    const size_t margin = 3;
+    const int margin = 3;
     texh = 0;
     texw = MaxTextureSize();
 
     int max_descent = 0, max_ascent = 0;
-    size_t space_on_line = texw - margin, lines = 1;
+    int space_on_line = texw - margin, lines = 1;
 
     for (int i : font->unicodetable)
     {
-        size_t char_index = FT_Get_Char_Index(face, i);
+        auto char_index = FT_Get_Char_Index(face, i);
 
         FT_Load_Glyph(face, char_index, FT_LOAD_DEFAULT);
         FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);    //FIXME: can we avoid doing this twice?
 
-        size_t advance = (face->glyph->metrics.horiAdvance >> 6) + margin;
+        auto advance = (face->glyph->metrics.horiAdvance >> 6) + margin;
 
         if (advance > space_on_line)
         {
@@ -75,24 +75,24 @@ bool BitmapFont::CacheChars(const char *text)
 
     height = max_ascent + max_descent;
 
-    size_t needed_image_height = (max_ascent + max_descent + margin) * lines + margin;
+    auto needed_image_height = (max_ascent + max_descent + margin) * lines + margin;
     texh = 1;
     while (texh < needed_image_height)
         texh *= 2;
 
-    uchar* image = new uchar[texh * texw * 4];
+    uchar *image = new uchar[texh * texw * 4];
     memset(image, 0, texh * texw * 4);
 
-    size_t x = margin, y = margin + max_ascent;
+    auto x = margin, y = margin + max_ascent;
 
     for (int i : font->unicodetable)
     {
-        size_t char_index = FT_Get_Char_Index(face, i);
+        auto char_index = FT_Get_Char_Index(face, i);
 
         FT_Load_Glyph(face, char_index, FT_LOAD_DEFAULT);
         FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
 
-        size_t advance = (face->glyph->metrics.horiAdvance >> 6) + margin;
+        auto advance = (face->glyph->metrics.horiAdvance >> 6) + margin;
         if (advance > texw - x)
         {
             x = margin;
@@ -202,7 +202,7 @@ OutlineFont *LoadFont(const char *name)
         if (fbuf)
         {
             FT_Face face;
-            err = FT_New_Memory_Face(library, fbuf, len, 0, &face);
+            err = FT_New_Memory_Face(library, fbuf, (FT_Long)len, 0, &face);
             if (!err) return new OutlineFont(face, fbuf);
             free(fbuf);
         }
@@ -228,7 +228,7 @@ bool OutlineFont::EnsureCharsPresent(const char *utf8str)
         if (it == unicodemap.end())
         {
             anynew = true;
-            unicodemap[uc] = unicodetable.size();
+            unicodemap[uc] = (int)unicodetable.size();
             unicodetable.push_back(uc);
         }
     }

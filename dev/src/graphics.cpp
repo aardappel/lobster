@@ -809,7 +809,7 @@ void AddGraphics()
         g_vm->Push(Value((int)id));
         return ToValue(dim);
     }
-    ENDDECL1(gl_loadtexture, "name", "S", "II]",
+    ENDDECL1(gl_loadtexture, "name", "S", "II]:2",
         "returns texture id if succesfully loaded from file name, otherwise 0."
         " Returns the size of the loaded textures in pixels as second return value on first load (xy_i),"
         " or (0, 0) otherwise."

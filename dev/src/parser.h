@@ -278,7 +278,7 @@ struct Parser
                     parse_sup();
 
                     struc = sup->CloneInto(struc);
-                    struc->idx = st.structtable.size() - 1;
+                    struc->idx = (int)st.structtable.size() - 1;
                     struc->name = sname;
                     struc->generic = false;
 
@@ -329,7 +329,7 @@ struct Parser
                             if (st.IsGeneric(field.type)) struc->generic = true;
                         }
 
-                        fieldid = sup->fields.size();
+                        fieldid = (int)sup->fields.size();
                     }
 
                     Expect(T_LEFTCURLY);
@@ -670,7 +670,7 @@ struct Parser
                                 Error("field reference must be to generic field: " + lex.sattr);
                             lex.Next();
                             dest = field.type;
-                            return &field - &fieldrefstruct->fields[0];
+                            return int(&field - &fieldrefstruct->fields[0]);
                         }
                     }
                 }

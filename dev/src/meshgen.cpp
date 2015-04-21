@@ -163,7 +163,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
 
                             if (!fi.geti())
                             {
-                                fi.seti(fcells.size());
+                                fi.seti((int)fcells.size());
                                 fcells.push_back(fcell());
                             }
 
@@ -417,7 +417,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
             int &idx = fc.edgeidx[dir];
             if (idx < 0)
             {
-                idx = edges.size();
+                idx = (int)edges.size();
 
                 auto e = fc.edges[dir];
                 assert(e);
@@ -486,7 +486,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
             if (idx < 0)
             {
-                idx = cells.size();
+                idx = (int)cells.size();
                 cells.push_back(dcell());
             }
 
@@ -494,7 +494,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
             c.accum += e.mid;
             c.col += materials[e.material];
             c.n--;
-            iverts.push_back(&idx - dcellindices);
+            iverts.push_back(int(&idx - dcellindices));
         }
 
         for (size_t t = 0; t < mctriangles.size(); t += 3)
@@ -513,7 +513,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                     {
                         c.accum /= (float)-c.n;
                         c.col /= (float)-c.n;
-                        c.n = verts.size();
+                        c.n = (int)verts.size();
                         verts.push_back(vert());
                         vert &v = verts.back();
                         v.pos = c.accum;
@@ -782,7 +782,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                     triangles[writep++] = triangles[t + i];
                 }
             }
-            int polysreduced = (triangles.size() - writep) / 3;
+            auto polysreduced = (triangles.size() - writep) / 3;
             //Output(OUTPUT_DEBUG, "reduced tris: %d\n", polysreduced);
             triangles.erase(triangles.begin() + writep, triangles.end());
 
@@ -810,7 +810,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         // TODO: this also deletes verts from the bad triangle finder, but only if tri reduction is on
         memset(vertmap, -1, verts.size() * sizeof(int));
         for (size_t t = 0; t < triangles.size(); t++) vertmap[triangles[t]]++;
-        size_t ni = 0;
+        int ni = 0;
         for (size_t i = 0; i < verts.size(); i++)
         {
             if (vertmap[i] >= 0)
@@ -884,7 +884,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     {
         // Replace triangle indices by point indices.
         triangles.clear();
-        for (size_t i = 0; i < verts.size(); i++) triangles.push_back(i);
+        for (int i = 0; i < (int)verts.size(); i++) triangles.push_back(i);
 
         SetPointSprite(1);
     }
@@ -896,7 +896,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     extern IntResourceManagerCompact<Mesh> *meshes;
     auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(vert), "PNC"));
     m->surfs.push_back(new Surface(&triangles[0], triangles.size(), pointmode ? PRIM_POINT : PRIM_TRIS));
-    return meshes->Add(m);
+    return (int)meshes->Add(m);
 }
 
 

@@ -949,8 +949,8 @@ struct TypeChecker
     {
         if (nretvals <= i)
         {
-            string nvals = inttoa(nretvals);
-            parser.Error("function " + name + " returns " + nvals + " values, " + inttoa(i + 1) + " requested", &n);
+            string nvals = inttoa((int)nretvals);
+            parser.Error("function " + name + " returns " + nvals + " values, " + inttoa((int)i + 1) + " requested", &n);
         }
     }
 

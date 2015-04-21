@@ -519,14 +519,14 @@ inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, 
 }
 
 // type T must have .pos and .norm
-template<class T> void normalize_mesh(int *idxs, int idxlen, T *verts, int vertlen, bool ignore_bad_tris = true)
+template<class T> void normalize_mesh(int *idxs, size_t idxlen, T *verts, size_t vertlen, bool ignore_bad_tris = true)
 {
-    for (int i = 0; i < vertlen; i++)
+    for (size_t i = 0; i < vertlen; i++)
     {
         verts[i].norm = float3_0;
     }
 
-    for (int t = 0; t < idxlen; t += 3)
+    for (size_t t = 0; t < idxlen; t += 3)
     {
         int v1i = idxs[t + 0];
         int v2i = idxs[t + 1];
@@ -559,7 +559,7 @@ template<class T> void normalize_mesh(int *idxs, int idxlen, T *verts, int vertl
         }
     }
 
-    for (int i = 0; i < vertlen; i++)
+    for (size_t i = 0; i < vertlen; i++)
     {
         float3 &norm = verts[i].norm;
         if (norm != float3_0)

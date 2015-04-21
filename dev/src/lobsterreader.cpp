@@ -115,7 +115,7 @@ struct ValueParser
                 size_t reqargs = 0;
                 int idx = g_vm->StructIdx(sname, reqargs);
                 if (idx < 0) lex.Error("unknown type: " + sname);
-                return ParseElems(T_RIGHTCURLY, idx, reqargs);
+                return ParseElems(T_RIGHTCURLY, idx, (int)reqargs);
             }
 
             default:

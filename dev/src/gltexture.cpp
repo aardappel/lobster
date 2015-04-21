@@ -55,7 +55,7 @@ uint CreateTextureFromFile(const char *name, int2 &dim)
         return 0;
 
     int x, y, comp;
-    auto buf = stbi_load_from_memory(fbuf, len, &x, &y, &comp, 4);
+    auto buf = stbi_load_from_memory(fbuf, (int)len, &x, &y, &comp, 4);
     dim = int2(x, y);
 
     free(fbuf);

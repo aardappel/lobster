@@ -72,7 +72,7 @@ struct VM : VMBase
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
     #define TOPPTR() (stack + sp + 1)
 
-    VM(SymbolTable &_st, int *_code, int _len, const vector<LineInfo> &_lineinfo, const char *_pn)
+    VM(SymbolTable &_st, int *_code, size_t _len, const vector<LineInfo> &_lineinfo, const char *_pn)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
           curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr), lineprofilecounts(nullptr),
           lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state),
@@ -199,11 +199,17 @@ struct VM : VMBase
         vmpool->printstats(false);
     }
 
-    const LineInfo &LookupLine(int *ip) { return lobster::LookupLine(ip - codestart, lineinfo); }
+    const LineInfo &LookupLine(int *ip) { return lobster::LookupLine(int(ip - codestart), lineinfo); }
     
     #undef new
-    LVector *NewVector(int n, int t) { return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector(n, t); }
-    LString *NewString(int l) { return new (vmpool->alloc(sizeof(LString) + l + 1)) LString(l); }
+    LVector *NewVector(size_t n, int t)
+    {
+        return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector((int)n, t);
+    }
+    LString *NewString(size_t l)
+    {
+        return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l); 
+    }
     CoRoutine *NewCoRoutine(int *rip, int *vip, CoRoutine *p)
     {
         return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p);
@@ -214,7 +220,7 @@ struct VM : VMBase
     #endif
     #endif
     
-    LString *NewString(const char *c, int l)
+    LString *NewString(const char *c, size_t l)
     {
         auto s = NewString(l);
         memcpy(s->str(), c, l);
@@ -227,7 +233,7 @@ struct VM : VMBase
         return NewString(s.c_str(), s.size());
     }
 
-    LString *NewString(const char *c1, int l1, const char *c2, int l2)
+    LString *NewString(const char *c1, size_t l1, const char *c2, size_t l2)
     {
         auto s = NewString(l1 + l2);
         memcpy(s->str(),      c1, l1);
@@ -312,15 +318,15 @@ struct VM : VMBase
 
     string ValueDBG(const Value &a)
     {
-        int found = 0;
-        int nfound = 0;
+        size_t found = 0;
+        size_t nfound = 0;
         for (size_t i = 0; i < st.identtable.size(); i++) if (a.Equal(vars[i], false)) { found = i; nfound++; }
         string s = a.ToString(debugpp);
         if (nfound == 1) s += " (" + st.ReverseLookupIdent(found) + " ?)";
         return s;
     }
 
-    string DumpVar(const Value &x, SymbolTable &st, int idx)
+    string DumpVar(const Value &x, SymbolTable &st, size_t idx)
     {
         if (x.type == V_UNDEFINED) return "";
         if (st.ReadOnlyIdent(idx)) return "";
@@ -384,7 +390,7 @@ struct VM : VMBase
     {
         for (int _sp = sp; _sp >= 0; _sp--)
             if (stack[_sp].type == V_RETIP)
-                return stack[_sp].ip() - codestart;
+                return int(stack[_sp].ip() - codestart);
         return -1;
     }
 
@@ -1425,7 +1431,7 @@ struct VM : VMBase
             }
         }
 
-        return leaks.size();
+        return (int)leaks.size();
     }
 };
 

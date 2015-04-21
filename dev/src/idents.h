@@ -126,7 +126,7 @@ struct Struct : Named
 
     int Has(SharedField *fld)
     {
-        for (auto &uf : fields) if (uf.id == fld) return &uf - &fields[0];
+        for (auto &uf : fields) if (uf.id == fld) return int(&uf - &fields[0]);
         return -1;
     }
 
@@ -341,7 +341,7 @@ struct SymbolTable
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
 
-        ident = new Ident(name, line, identtable.size(), scopelevels.back());
+        ident = new Ident(name, line, (int)identtable.size(), (int)scopelevels.back());
         ident->anonymous_arg = anonymous_arg;
 
         ident->sf_def = sf;
@@ -487,7 +487,7 @@ struct SymbolTable
         }
         else
         {
-            st = new Struct(name, structtable.size());
+            st = new Struct(name, (int)structtable.size());
             structs[name] = st;
             structtable.push_back(st);
         }
@@ -535,7 +535,7 @@ struct SymbolTable
         SharedField *fld = fields[name];
         if (!fld)
         {
-            fld = new SharedField(name, fieldtable.size());
+            fld = new SharedField(name, (int)fieldtable.size());
             fields[name] = fld;
             fieldtable.push_back(fld);
         }
@@ -550,15 +550,15 @@ struct SymbolTable
     
     SubFunction *CreateSubFunction()
     {
-        auto sf = new SubFunction(subfunctiontable.size());
+        auto sf = new SubFunction((int)subfunctiontable.size());
         subfunctiontable.push_back(sf);
         return sf;
     }
 
     Function &CreateFunction(const string &name, const string &context)
     {
-        auto fname = name.length() ? name : string("function") + inttoa(functiontable.size()) + context;
-        auto f = new Function(fname, functiontable.size(), scopelevels.size());
+        auto fname = name.length() ? name : string("function") + inttoa((int)functiontable.size()) + context;
+        auto f = new Function(fname, (int)functiontable.size(), (int)scopelevels.size());
         functiontable.push_back(f);
         return *f;
     }
@@ -598,12 +598,12 @@ struct SymbolTable
         return it != functions.end() ? it->second : nullptr;
     }
 
-    bool ReadOnlyIdent(uint v) { assert(v < identtable.size());    return identtable[v]->constant;  }
-    bool ReadOnlyType (uint v) { assert(v < structtable.size());   return structtable[v]->readonly; }
+    bool ReadOnlyIdent(size_t v) { assert(v < identtable.size());    return identtable[v]->constant;  }
+    bool ReadOnlyType (size_t v) { assert(v < structtable.size());   return structtable[v]->readonly; }
     
-    const string &ReverseLookupIdent   (uint v) const { assert(v < identtable.size());    return identtable[v]->name;    }
-    const string &ReverseLookupType    (uint v) const { assert(v < structtable.size());   return structtable[v]->name;   }
-    const string &ReverseLookupFunction(uint v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
+    const string &ReverseLookupIdent   (size_t v) const { assert(v < identtable.size());    return identtable[v]->name;    }
+    const string &ReverseLookupType    (size_t v) const { assert(v < structtable.size());   return structtable[v]->name;   }
+    const string &ReverseLookupFunction(size_t v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
     void RegisterDefaultVectorTypes()
     {

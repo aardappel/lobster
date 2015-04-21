@@ -223,7 +223,7 @@ struct ArgVector
 
     ArgVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
 
-    string GetName(int i) const
+    string GetName(size_t i) const
     {
         if (v[i].id) return ((Named *)v[i].id)->name;
 
@@ -324,7 +324,7 @@ struct NativeRegistry
     void Register(NativeFun *nf)
     {
         nf->idx = (int)nfuns.size();
-        nf->subsystemid = subsystems.size() - 1;
+        nf->subsystemid = (int)subsystems.size() - 1;
 
         auto existing = nfunlookup[nf->name];
         if (existing)

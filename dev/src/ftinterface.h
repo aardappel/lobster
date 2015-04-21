@@ -35,7 +35,7 @@ struct BitmapFont
     uint texid;
     vector<int3> positions;  
     int height;
-    size_t texh, texw;
+    int texh, texw;
     int usedcount;
 
     int size;

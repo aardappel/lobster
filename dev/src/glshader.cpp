@@ -302,11 +302,10 @@ bool Shader::SetUniform(const char *name, const float *val, size_t count)
     if (loc < 0) return false;
     switch (count)
     {
-        case 1: glUniform1fv(loc, 1, val);
-        case 2: glUniform2fv(loc, 1, val);
-        case 3: glUniform3fv(loc, 1, val);
-        case 4: glUniform4fv(loc, 1, val);
+        case 1: glUniform1fv(loc, 1, val); return true;
+        case 2: glUniform2fv(loc, 1, val); return true;
+        case 3: glUniform3fv(loc, 1, val); return true;
+        case 4: glUniform4fv(loc, 1, val); return true;
         default: return false;
     }
-    return true;
 }

@@ -189,7 +189,7 @@ bool LoadSound(const char* filename, bool sfxr)
         {
             SDL_AudioSpec wav_spec;
             Uint32 wav_len;
-            auto wav_spec_ret = SDL_LoadWAV_RW(SDL_RWFromMem(buf, len), true, &wav_spec, &snd.buf, &wav_len);
+            auto wav_spec_ret = SDL_LoadWAV_RW(SDL_RWFromMem(buf, (int)len), true, &wav_spec, &snd.buf, &wav_len);
 
             free(buf);
 
@@ -212,7 +212,7 @@ bool LoadSound(const char* filename, bool sfxr)
             if (ret)
             {
                 wav_cvt.buf = (uchar *)malloc(snd.len * wav_cvt.len_mult);
-                wav_cvt.len = snd.len;
+                wav_cvt.len = (int)snd.len;
                 memcpy(wav_cvt.buf, snd.buf, snd.len);
 
                 SDL_FreeWAV(snd.buf);
