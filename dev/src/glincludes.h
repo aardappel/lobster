@@ -43,47 +43,47 @@
             #define GLBASEEXTS
         #endif
         #define GLEXTS \
-            GLEXT(PFNGLGENBUFFERSARBPROC              , glGenBuffers              ) \
-            GLEXT(PFNGLBINDBUFFERARBPROC              , glBindBuffer              ) \
-            GLEXT(PFNGLMAPBUFFERARBPROC               , glMapBuffer               ) \
-            GLEXT(PFNGLUNMAPBUFFERARBPROC             , glUnmapBuffer             ) \
-            GLEXT(PFNGLBUFFERDATAARBPROC              , glBufferData              ) \
-            GLEXT(PFNGLBUFFERSUBDATAARBPROC           , glBufferSubData           ) \
-            GLEXT(PFNGLDELETEBUFFERSARBPROC           , glDeleteBuffers           ) \
-            GLEXT(PFNGLGETBUFFERSUBDATAARBPROC        , glGetBufferSubData        ) \
-            GLEXT(PFNGLVERTEXATTRIBPOINTERARBPROC     , glVertexAttribPointer     ) \
-            GLEXT(PFNGLENABLEVERTEXATTRIBARRAYARBPROC , glEnableVertexAttribArray ) \
-            GLEXT(PFNGLDISABLEVERTEXATTRIBARRAYARBPROC, glDisableVertexAttribArray) \
-            GLEXT(PFNGLCREATEPROGRAMPROC              , glCreateProgram           ) \
-            GLEXT(PFNGLDELETEPROGRAMPROC              , glDeleteProgram           ) \
-            GLEXT(PFNGLDELETESHADERPROC               , glDeleteShader            ) \
-            GLEXT(PFNGLUSEPROGRAMPROC                 , glUseProgram              ) \
-            GLEXT(PFNGLCREATESHADERPROC               , glCreateShader            ) \
-            GLEXT(PFNGLSHADERSOURCEPROC               , glShaderSource            ) \
-            GLEXT(PFNGLCOMPILESHADERPROC              , glCompileShader           ) \
-            GLEXT(PFNGLGETPROGRAMIVARBPROC            , glGetProgramiv            ) \
-            GLEXT(PFNGLGETSHADERIVPROC                , glGetShaderiv             ) \
-            GLEXT(PFNGLGETPROGRAMINFOLOGPROC          , glGetProgramInfoLog       ) \
-            GLEXT(PFNGLGETSHADERINFOLOGPROC           , glGetShaderInfoLog        ) \
-            GLEXT(PFNGLATTACHSHADERPROC               , glAttachShader            ) \
-            GLEXT(PFNGLLINKPROGRAMARBPROC             , glLinkProgram             ) \
-            GLEXT(PFNGLGETUNIFORMLOCATIONARBPROC      , glGetUniformLocation      ) \
-            GLEXT(PFNGLUNIFORM1FARBPROC               , glUniform1f               ) \
-            GLEXT(PFNGLUNIFORM2FARBPROC               , glUniform2f               ) \
-            GLEXT(PFNGLUNIFORM3FARBPROC               , glUniform3f               ) \
-            GLEXT(PFNGLUNIFORM4FARBPROC               , glUniform4f               ) \
-            GLEXT(PFNGLUNIFORM1FVARBPROC              , glUniform1fv              ) \
-            GLEXT(PFNGLUNIFORM2FVARBPROC              , glUniform2fv              ) \
-            GLEXT(PFNGLUNIFORM3FVARBPROC              , glUniform3fv              ) \
-            GLEXT(PFNGLUNIFORM4FVARBPROC              , glUniform4fv              ) \
-            GLEXT(PFNGLUNIFORM1IARBPROC               , glUniform1i               ) \
-            GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC        , glUniformMatrix4fv        ) \
-            GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/, glUniformMatrix3x4fv      ) \
-            GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC      , glBindAttribLocation      ) \
-            GLEXT(PFNGLGETACTIVEUNIFORMARBPROC        , glGetActiveUniform        ) \
-            GLEXT(PFNGLGENERATEMIPMAPEXTPROC          , glGenerateMipmap          ) 
+            GLEXT(PFNGLGENBUFFERSARBPROC              , glGenBuffers              , 1) \
+            GLEXT(PFNGLBINDBUFFERARBPROC              , glBindBuffer              , 1) \
+            GLEXT(PFNGLMAPBUFFERARBPROC               , glMapBuffer               , 1) \
+            GLEXT(PFNGLUNMAPBUFFERARBPROC             , glUnmapBuffer             , 1) \
+            GLEXT(PFNGLBUFFERDATAARBPROC              , glBufferData              , 1) \
+            GLEXT(PFNGLBUFFERSUBDATAARBPROC           , glBufferSubData           , 1) \
+            GLEXT(PFNGLDELETEBUFFERSARBPROC           , glDeleteBuffers           , 1) \
+            GLEXT(PFNGLGETBUFFERSUBDATAARBPROC        , glGetBufferSubData        , 1) \
+            GLEXT(PFNGLVERTEXATTRIBPOINTERARBPROC     , glVertexAttribPointer     , 1) \
+            GLEXT(PFNGLENABLEVERTEXATTRIBARRAYARBPROC , glEnableVertexAttribArray , 1) \
+            GLEXT(PFNGLDISABLEVERTEXATTRIBARRAYARBPROC, glDisableVertexAttribArray, 1) \
+            GLEXT(PFNGLCREATEPROGRAMPROC              , glCreateProgram           , 1) \
+            GLEXT(PFNGLDELETEPROGRAMPROC              , glDeleteProgram           , 1) \
+            GLEXT(PFNGLDELETESHADERPROC               , glDeleteShader            , 1) \
+            GLEXT(PFNGLUSEPROGRAMPROC                 , glUseProgram              , 1) \
+            GLEXT(PFNGLCREATESHADERPROC               , glCreateShader            , 1) \
+            GLEXT(PFNGLSHADERSOURCEPROC               , glShaderSource            , 1) \
+            GLEXT(PFNGLCOMPILESHADERPROC              , glCompileShader           , 1) \
+            GLEXT(PFNGLGETPROGRAMIVARBPROC            , glGetProgramiv            , 1) \
+            GLEXT(PFNGLGETSHADERIVPROC                , glGetShaderiv             , 1) \
+            GLEXT(PFNGLGETPROGRAMINFOLOGPROC          , glGetProgramInfoLog       , 1) \
+            GLEXT(PFNGLGETSHADERINFOLOGPROC           , glGetShaderInfoLog        , 1) \
+            GLEXT(PFNGLATTACHSHADERPROC               , glAttachShader            , 1) \
+            GLEXT(PFNGLLINKPROGRAMARBPROC             , glLinkProgram             , 1) \
+            GLEXT(PFNGLGETUNIFORMLOCATIONARBPROC      , glGetUniformLocation      , 1) \
+            GLEXT(PFNGLUNIFORM1FARBPROC               , glUniform1f               , 1) \
+            GLEXT(PFNGLUNIFORM2FARBPROC               , glUniform2f               , 1) \
+            GLEXT(PFNGLUNIFORM3FARBPROC               , glUniform3f               , 1) \
+            GLEXT(PFNGLUNIFORM4FARBPROC               , glUniform4f               , 1) \
+            GLEXT(PFNGLUNIFORM1FVARBPROC              , glUniform1fv              , 1) \
+            GLEXT(PFNGLUNIFORM2FVARBPROC              , glUniform2fv              , 1) \
+            GLEXT(PFNGLUNIFORM3FVARBPROC              , glUniform3fv              , 1) \
+            GLEXT(PFNGLUNIFORM4FVARBPROC              , glUniform4fv              , 1) \
+            GLEXT(PFNGLUNIFORM1IARBPROC               , glUniform1i               , 1) \
+            GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC        , glUniformMatrix4fv        , 1) \
+            GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/, glUniformMatrix3x4fv      , 1) \
+            GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC      , glBindAttribLocation      , 1) \
+            GLEXT(PFNGLGETACTIVEUNIFORMARBPROC        , glGetActiveUniform        , 1) \
+            GLEXT(PFNGLGENERATEMIPMAPEXTPROC          , glGenerateMipmap          , 0) 
 
-        #define GLEXT(type, name) extern type name;
+        #define GLEXT(type, name, needed) extern type name;
             GLBASEEXTS
             GLEXTS
         #undef GLEXT

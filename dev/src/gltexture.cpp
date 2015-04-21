@@ -40,8 +40,11 @@ uint CreateTexture(uchar *buf, const int2 &dim, bool clamp, bool mipmap)
 
     if (mipmap)
     {
-        glEnable(GL_TEXTURE_2D);// required on ATI for mipmapping to work?
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glEnable(GL_TEXTURE_2D);  // required on ATI for mipmapping to work?
+        #if !defined(PLATFORM_MOBILE) && !defined(__APPLE__)
+        if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
+        #endif
+            glGenerateMipmap(GL_TEXTURE_2D);
     }
 
     return id;

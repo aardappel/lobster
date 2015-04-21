@@ -252,17 +252,19 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     //   return SDLError("Unable to initialize audio");
 
     #ifdef PLATFORM_MOBILE
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     #else
-    //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    #ifdef __APPLE__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    #endif
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+        //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
+        //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        #ifdef __APPLE__
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+        #endif
+        #if defined(__APPLE__) || defined(WIN32)
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+        #endif
     #endif
 
     //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);      // set this if we're in 2D mode for speed on mobile?
@@ -273,51 +275,51 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
     Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
     #ifdef PLATFORM_MOBILE
-    landscape = screensize.x() >= screensize.y();
-    int modes = SDL_GetNumDisplayModes(0);
-    screensize = int2(0);
-    for (int i = 0; i < modes; i++)
-    {
-        SDL_DisplayMode mode;
-        SDL_GetDisplayMode(0, i, &mode);
-        Output(OUTPUT_INFO, "mode: %d %d", mode.w, mode.h);
-        if (landscape ? mode.w > screensize.x() : mode.h > screensize.y())
+        landscape = screensize.x() >= screensize.y();
+        int modes = SDL_GetNumDisplayModes(0);
+        screensize = int2(0);
+        for (int i = 0; i < modes; i++)
         {
-            screensize = int2(mode.w, mode.h);
+            SDL_DisplayMode mode;
+            SDL_GetDisplayMode(0, i, &mode);
+            Output(OUTPUT_INFO, "mode: %d %d", mode.w, mode.h);
+            if (landscape ? mode.w > screensize.x() : mode.h > screensize.y())
+            {
+                screensize = int2(mode.w, mode.h);
+            }
         }
-    }
 
-    Output(OUTPUT_INFO, inttoa(screensize.x()));
-    Output(OUTPUT_INFO, inttoa(screensize.y()));
-    Output(OUTPUT_INFO, "SDL about to create window...");
-
-    _sdl_window = SDL_CreateWindow(title,
-                                    0, 0,
-                                    screensize.x(), screensize.y(),
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
-
-    Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
-
-    if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
-
-    int ax = 0, ay = 0;
-    SDL_GetWindowSize(_sdl_window, &ax, &ay);
-    int2 actualscreensize(ax, ay);
-    //screenscalefactor = screensize.x / actualscreensize.x;  // should be 2 on retina
-    #ifdef __IOS__
-        assert(actualscreensize == screensize);
-        screensize = actualscreensize;
-    #else
-        screensize = actualscreensize;  // __ANDROID__
         Output(OUTPUT_INFO, inttoa(screensize.x()));
         Output(OUTPUT_INFO, inttoa(screensize.y()));
-    #endif
+        Output(OUTPUT_INFO, "SDL about to create window...");
+
+        _sdl_window = SDL_CreateWindow(title,
+                                        0, 0,
+                                        screensize.x(), screensize.y(),
+                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
+
+        Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
+
+        if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
+
+        int ax = 0, ay = 0;
+        SDL_GetWindowSize(_sdl_window, &ax, &ay);
+        int2 actualscreensize(ax, ay);
+        //screenscalefactor = screensize.x / actualscreensize.x;  // should be 2 on retina
+        #ifdef __IOS__
+            assert(actualscreensize == screensize);
+            screensize = actualscreensize;
+        #else
+            screensize = actualscreensize;  // __ANDROID__
+            Output(OUTPUT_INFO, inttoa(screensize.x()));
+            Output(OUTPUT_INFO, inttoa(screensize.y()));
+        #endif
     #else
-    _sdl_window = SDL_CreateWindow(title,
-                                    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                    screensize.x(), screensize.y(),
-                                    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
-                                        (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+        _sdl_window = SDL_CreateWindow(title,
+                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                        screensize.x(), screensize.y(),
+                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
+                                            (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
 
     if (!_sdl_window)

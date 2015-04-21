@@ -21,7 +21,7 @@
 #include "sdlincludes.h"
 
 #if !defined(__APPLE__) && !defined(__ANDROID__)
-#define GLEXT(type, name) type name = nullptr;
+#define GLEXT(type, name, needed) type name = nullptr;
 GLBASEEXTS GLEXTS
 #undef GLEXT
 #endif
@@ -105,7 +105,8 @@ void OpenGLInit()
     #endif
 
     #if !defined(__APPLE__) && !defined(__ANDROID__)
-    #define GLEXT(type, name) name = (type)SDL_GL_GetProcAddress(#name); if (!name) throw string("no " #name);
+    #define GLEXT(type, name, needed) \
+        name = (type)SDL_GL_GetProcAddress(#name); if (!name && needed) throw string("no " #name);
     GLBASEEXTS GLEXTS
     #undef GLEXT
     #endif
