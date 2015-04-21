@@ -67,9 +67,19 @@ future.
 
 ### Linux
 
-There is a makefile directly in the src folder, however unlike some of the other
-platforms this isn't self-contained, you'll need 32bit (!) versions of SDL 2.0
-and Freetype 2 installed.
+Make sure you have SDL 2.0.3 (or better) and Freetype 2 installed.
+
+There is a `Makefile` in `dev/src/`, go there and type `make`. Then `make
+install` will move the executable to `lobster/`. Run it from that directory to
+access the samples, e.g. `./lobster samples/pythtree.lobster`
+
+NOTE: by default this builds Lobster for your architecture, which nowadays is
+likely 64bit. Lobster's VM implementation is currently still such that doubling
+the pointer size will double the memory used by all VM objects. This is fine for
+testing, but if you ever release a lobster program where you care for
+efficiency, it should really be built as a 32bit executable, even on a 64bit
+system. This is tricky however, and I don't have an out of the box solution for
+that yet. The future plan is of course for the VM not to have this limitation.
 
 ### Android
 
