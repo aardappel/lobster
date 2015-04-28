@@ -787,7 +787,7 @@ void AddGraphics()
         "changes the blending mode to 0: off, 1: alpha blend (default), 2: additive, 3: alpha additive,"
         " 4: multiplicative. when a body is given, restores the previous mode afterwards");
 
-    STARTDECL(gl_loadtexture) (Value &name)
+    STARTDECL(gl_loadtexture) (Value &name, Value &clamp, Value &nomip, Value &nearest)
     {
         TestGL();
 
@@ -801,7 +801,12 @@ void AddGraphics()
             goto done;
         }
 
-        id = CreateTextureFromFile(name.sval()->str(), dim);
+        int tf = TF_NONE;
+        if (clamp.True())   tf |= TF_CLAMP;
+        if (nomip.True())   tf |= TF_NOMIPMAP;
+        if (nearest.True()) tf |= TF_NEAREST;
+
+        id = CreateTextureFromFile(name.sval()->str(), dim, tf);
 
         if (id) texturecache[name.sval()->str()] = id;
 
@@ -809,8 +814,9 @@ void AddGraphics()
         g_vm->Push(Value((int)id));
         return ToValue(dim);
     }
-    ENDDECL1(gl_loadtexture, "name", "S", "II]:2",
+    ENDDECL4(gl_loadtexture, "name,clamp,nomip,nearest", "Siii", "II]:2",
         "returns texture id if succesfully loaded from file name, otherwise 0."
+        " 3 optional booleans specify if you want clamping, turn of mipmapping, or nearest neighbor filtering."
         " Returns the size of the loaded textures in pixels as second return value on first load (xy_i),"
         " or (0, 0) otherwise."
         " Only loads from disk once if called again with the same name. Uses stb_image internally"

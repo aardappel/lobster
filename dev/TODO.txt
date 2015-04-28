@@ -55,7 +55,7 @@
 
   * improve the code for ternary nodes, and add unary.
     its all a bit of a hack right now, esp looping through nodes.
-  * fixme: accessing flt_ in Node could fail if 64bit aligned
+  * fixme: accessing flt_ in Node could fail if not 64bit aligned on ARM
 
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.
@@ -270,11 +270,6 @@ features:
 
 refactor:
 - vm.h is too big
-
-- LINUX: try building it on a 64bit install
-  * add -m32
-  * problems with getting an OpenGL context?
-  * unittest fails?
 
 - disadvantage to Lobster being based on immediate mode rendering is that that is quite taxing on the speed of the language, since you need so much code to just decide what to render each frame
   directions:
@@ -582,7 +577,7 @@ refactor:
 - make bytecode, not intcode, and ensure it encapsulates symbol table etc if needed
 - FIXMEs
 
-- if we're staying untyped, for memory efficiency (esp on 64bit) could convert vectors to split type & value
+- for memory efficiency (esp on 64bit) could convert vectors to split type & value
 - there some places in the code that will simply misbehave if strings or vectors have a len
   that doesn't fit a signed int, might be nice to fix this
   see (int) casts, and the any growing function in LVector

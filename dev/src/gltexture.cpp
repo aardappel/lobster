@@ -20,7 +20,7 @@
 #include "stb_image.h"
 
 
-uint CreateTexture(uchar *buf, const int2 &dim, bool clamp, bool mipmap)
+uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 {
     uint id;
     glGenTextures(1, &id);
@@ -29,28 +29,27 @@ uint CreateTexture(uchar *buf, const int2 &dim, bool clamp, bool mipmap)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, id);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mipmap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dim.x(), dim.y(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
 
-    if (mipmap)
-    {
-        glEnable(GL_TEXTURE_2D);  // required on ATI for mipmapping to work?
-        #if !defined(PLATFORM_MOBILE) && !defined(__APPLE__)
-        if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
-        #endif
-            glGenerateMipmap(GL_TEXTURE_2D);
-    }
+    if (tf & TF_NOMIPMAP) return id;
+
+    glEnable(GL_TEXTURE_2D);  // required on ATI for mipmapping to work?
+    #if !defined(PLATFORM_MOBILE) && !defined(__APPLE__)
+    if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
+    #endif
+        glGenerateMipmap(GL_TEXTURE_2D);
 
     return id;
 }
 
-uint CreateTextureFromFile(const char *name, int2 &dim)
+uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
 {
     size_t len = 0;
     auto fbuf = LoadFile(name, &len);
@@ -66,7 +65,7 @@ uint CreateTextureFromFile(const char *name, int2 &dim)
     if (!buf)
         return 0;
 
-    uint id = CreateTexture(buf, dim);
+    uint id = CreateTexture(buf, dim, tf);
 
     stbi_image_free(buf);
     return id;

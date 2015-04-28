@@ -78,8 +78,6 @@ struct VM : VMBase
           lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state),
           trace(false), trace_tail(true)
     {
-        // search for "64bit" before trying to make a 64bit build, changes may be required
-        assert(sizeof(int) == sizeof(void *));
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
         ip = codestart = _code;

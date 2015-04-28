@@ -94,14 +94,16 @@ void OpenGLInit()
     #ifndef PLATFORM_MOBILE
     //auto vers = (char *)glGetString(GL_VERSION);
     auto exts = (char *)glGetString(GL_EXTENSIONS);
-
-    if (!strstr(exts, "GL_ARB_vertex_buffer_object")) throw string("no VBOs!");
-    if (!strstr(exts, "GL_ARB_multitexture")) throw string("no multitexture!");
-    if (!strstr(exts, "GL_ARB_vertex_program") || !strstr(exts, "GL_ARB_fragment_program")) throw string("no shaders!");
-    //if (!strstr(exts, "GL_ARB_shading_language_100") || 
-    //    !strstr(exts, "GL_ARB_shader_objects") ||
-    //    !strstr(exts, "GL_ARB_vertex_shader") ||
-    //    !strstr(exts, "GL_ARB_fragment_shader")) throw string("no GLSL!");
+    if (exts)  // GL 4.x doesn't have this.
+    {
+        if (!strstr(exts, "GL_ARB_vertex_buffer_object")) throw string("no VBOs!");
+        if (!strstr(exts, "GL_ARB_multitexture")) throw string("no multitexture!");
+        if (!strstr(exts, "GL_ARB_vertex_program") || !strstr(exts, "GL_ARB_fragment_program")) throw string("no shaders!");
+        //if (!strstr(exts, "GL_ARB_shading_language_100") || 
+        //    !strstr(exts, "GL_ARB_shader_objects") ||
+        //    !strstr(exts, "GL_ARB_vertex_shader") ||
+        //    !strstr(exts, "GL_ARB_fragment_shader")) throw string("no GLSL!");
+    }
     #endif
 
     #if !defined(__APPLE__) && !defined(__ANDROID__)

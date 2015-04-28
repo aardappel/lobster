@@ -123,8 +123,10 @@ extern string LoadMaterialFile(const char *mfile);
 extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
 
-extern uint CreateTexture(uchar *buf, const int2 &dim, bool clamp = false, bool mipmap = true);
-extern uint CreateTextureFromFile(const char *name, int2 &dim);
+enum TextureFlag { TF_NONE = 0, TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4 };
+
+extern uint CreateTexture(uchar *buf, const int2 &dim, int tf = TF_NONE);
+extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
 extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();

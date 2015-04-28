@@ -231,6 +231,7 @@ struct Value
     inline Value(RefObj *r)           : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref_(r) {}
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
+                                                    // esp big endian.
 
     inline Value &INC()
     {
