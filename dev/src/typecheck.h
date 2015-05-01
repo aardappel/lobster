@@ -1454,7 +1454,7 @@ struct TypeChecker
                 {
                     auto struc = FindStructSpecialization(type->struc, n.constructor_args(), n);
                     type = &struc->thistype;
-                    //n.constructor_type()->typenode().idx = newidx;
+                    n.constructor_type()->typenode() = type;
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
