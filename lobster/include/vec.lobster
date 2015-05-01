@@ -60,6 +60,9 @@ xyzw_yi :== xyzw { 0, 1, 0, 0 }
 xyzw_zi :== xyzw { 0, 0, 1, 0 }
 xyzw_wi :== xyzw { 0, 0, 0, 1 }
 
+cardinal_directions := [ xy { 0, -1 }, xy { 1, 0 }, xy { 0, 1 }, xy { -1, 0 } ]
+diagonal_directions := [ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } ]
+
 // shorten vectors, e.g. xyz -> xy
 // FIXME: subtyping should take care of this
 def xy(v): xy { v.x, v.y }

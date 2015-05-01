@@ -69,7 +69,7 @@ def astar_space(startnode, endnode, costf, neighbors):
 // specialized to a 2D grid (specialized case of a graph)
 
 def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
-    directions := [ xy { -1, 0 }, xy { 1, 0 }, xy { 0, -1 }, xy { 0, 1 } ]
+    directions := copy(cardinal_directions)
     def astar_distance(distancef):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
@@ -77,7 +77,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
                 if(np.inrange2d(gridsize, xy_0)):
                     f(getnode(np))
     if(isocta):
-        directions = directions.append([ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } ])
+        directions = directions.append(diagonal_directions)
         astar_distance() v:
             x := abs(v.x)
             y := abs(v.y)
