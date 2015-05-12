@@ -20,11 +20,11 @@ cells := map(lssize) z:
             map(lssize) y:
                 map(lssize) x:
                     v := xyz { x, y, z }
-                    h := simplex(v / (lssize + 0.0) + 11, 6, 1, 0.55)   // generate blocks using noise
+                    h := simplex(v / float(lssize) + 11, 6, 1, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
-                    solid := h > div(z, lssize) - 0.5 & inside(v)
+                    solid := h / 1.5 > div(z, lssize) - 0.5 & inside(v)
                     // pick material with noise too:
-                    if(solid): solid = int((simplex([ x, y, z ] / (lssize + 0.0), 8, 1, 0.55) + 1) * 2) + 1
+                    if(solid): solid = int((simplex(v / float(lssize), 8, 3, 0.55) + 1) * 2) + 1
                     solid
 
 colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
@@ -37,7 +37,7 @@ while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_light_blue)
     gl_cursor(0)
-    gl_perspective(70, 1, 1000)
+    gl_perspective(70, 0.1, 1000)
     camera_FPS_update("w", "a", "s", "d", 10, 4, true)
     camera_FPS_view()
     gl_light(camera_position)
@@ -63,8 +63,12 @@ while(gl_frame()):
     // LMB places blocks & RMB removes blocks
     if(gl_wentdown("mouse1") & last_empty & inventory.length): cells[last_empty] = inventory.pop()
     if(gl_wentdown("mouse3") & first_solid): inventory.push(cells[first_solid]); cells[first_solid] = 0
-    gl_ortho()
     gl_setshader("color")
+    gl_blend(1)
+    wh := 11.7  // let's add some water!
+    gl_color([ 0.5, 0.5, 1.0, 0.5 ])
+    gl_polygon([ [1, 1, wh], [1, lssize - 1, wh], [lssize - 1, lssize - 1, wh], [lssize - 1, 1, wh] ])
+    gl_ortho()
     gl_color(color_white)
     gl_translate(gl_windowsize() / 2):
         gl_circle(5, 20)    // simplified crosshairs
