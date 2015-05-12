@@ -307,23 +307,15 @@ struct Serializer
     }
 };
 
-#ifdef WIN32
-#define snprintf _snprintf
-#endif
-
-inline char *inttoa(int i)
+template<typename T> std::string num2str(T x, int decimals = -1)
 {
-    static char _buf[100];
-    snprintf(_buf, 100, "%d", i);
-    return _buf;
-}
-
-inline char *flttoa(double f, int decimals = -1)
-{
-    static char _buf[100];
-    if (decimals < 0) snprintf(_buf, 100, "%f", f);
-    else              snprintf(_buf, 100, "%.*f", decimals, f);
-    return _buf; 
+    // stringstream gives more consistent cross-platform results than to_string().
+    std::stringstream ss;
+    // For floats:
+    if (decimals >= 0) ss << std::fixed << std::setprecision(decimals);
+    // This does not do numeric output for char/uchar, so cast those to int first.
+    ss << x;
+    return ss.str();
 }
 
 /* Accumulator: a container that is great for accumulating data like std::vector,

@@ -216,7 +216,9 @@ void AddBuiltins()
     {
         int amount = max(n.ival(), 1);
         if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 || i.ival() > l.vval()->len - amount)
-            g_vm->BuiltinError("remove: index or n out of range");
+            g_vm->BuiltinError("remove: index (" + num2str(i.ival()) + 
+                               ") or n (" + num2str(amount) +
+                               ") out of range (" + num2str(l.vval()->len) + ")");
         auto v = l.vval()->remove(i.ival(), amount);
         l.DEC();
         return v;

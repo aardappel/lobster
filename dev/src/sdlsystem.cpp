@@ -293,8 +293,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
             }
         }
 
-        Output(OUTPUT_INFO, inttoa(screensize.x()));
-        Output(OUTPUT_INFO, inttoa(screensize.y()));
+        Output(OUTPUT_INFO, "chosen resolution: %d %d", screensize.x(), screensize.y());
         Output(OUTPUT_INFO, "SDL about to create window...");
 
         _sdl_window = SDL_CreateWindow(title,
@@ -315,8 +314,7 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
             screensize = actualscreensize;
         #else
             screensize = actualscreensize;  // __ANDROID__
-            Output(OUTPUT_INFO, inttoa(screensize.x()));
-            Output(OUTPUT_INFO, inttoa(screensize.y()));
+            Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x(), screensize.y());
         #endif
     #else
         _sdl_window = SDL_CreateWindow(title,

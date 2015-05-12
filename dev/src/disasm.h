@@ -49,9 +49,9 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
 
     // FIXME: some indication of the filename, maybe with a table index?
     s += "I ";
-    s += inttoa(int(ip - code));
+    s += num2str(int(ip - code));
     s += " \tL ";
-    s += inttoa(li.line);
+    s += num2str(li.line);
     s += " \t";
     s += ilnames[*ip];
     s += " ";
@@ -70,13 +70,13 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
         case IL_LOGREAD:
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             break;
 
         case IL_RETURN:
         {
             auto id = *ip++;
-            s += id >= 0 ? st.functiontable[id]->name.c_str() : inttoa(id);
+            s += id >= 0 ? st.functiontable[id]->name : num2str(id);
             break;
         }
 
@@ -86,11 +86,11 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             auto nargs = *ip++;
             auto id = *ip++;
             auto bc = *ip++;
-            s += inttoa(nargs);
+            s += num2str(nargs);
             s += " ";
             s += st.functiontable[id]->name;
             s += " ";
-            s += inttoa(bc);
+            s += num2str(bc);
             break;
         }
 
@@ -100,7 +100,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             auto nargs = *ip++;
             s += t >= 0 ? st.ReverseLookupType(t).c_str() : "vector";
             s += " ";
-            s += inttoa(nargs);
+            s += num2str(nargs);
             break;
         }
 
@@ -109,7 +109,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             int a = *ip++;
             s += natreg.nfuns[a]->name;
             s += " ";
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             break;
         }
 
@@ -125,7 +125,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_PUSHFLD:
         case IL_PUSHFLDM:
         case IL_PUSHLOC:
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             break;
 
         case IL_LVALIDX:
@@ -133,7 +133,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             break;
 
         case IL_PUSHFLT:
-            s += flttoa(*(float *)ip);
+            s += num2str(*(float *)ip);
             ip++;
             break;
 
@@ -152,21 +152,21 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             s += "=> ";
             while (n--) { s += st.ReverseLookupIdent(*ip++); s += " "; }
             n = *ip++;
-            if (n) { s += "(log = "; s += inttoa(n); s += ")"; }
+            if (n) { s += "(log = "; s += num2str(n); s += ")"; }
             break;
         }
 
         case IL_ISTYPE:
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             s += " ";
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             break;
 
         case IL_CORO:
         {
-            s += inttoa(*ip++);
+            s += num2str(*ip++);
             int n = *ip++;
-            for (int i = 0; i < n; i++) { s += " v"; s += inttoa(*ip++); }
+            for (int i = 0; i < n; i++) { s += " v"; s += num2str(*ip++); }
             break;
         }
 
@@ -174,9 +174,9 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         {
             auto n = *ip++;
             auto nargs = *ip++;
-            s += inttoa(n);
+            s += num2str(n);
             s += " ";
-            s += inttoa(nargs);
+            s += num2str(nargs);
             ip += (nargs * 2 + 1) * n;
         }
     }

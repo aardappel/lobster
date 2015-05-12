@@ -834,7 +834,7 @@ struct Parser
     {
         if (f.retvals && f.retvals != nrv)
             Error(string("all return statements of this function must return the same amount of return values."
-                         " previously: ") + inttoa(f.retvals));
+                         " previously: ") + num2str(f.retvals));
         f.retvals = nrv;
     }
 
@@ -970,7 +970,7 @@ struct Parser
     {
         auto clnargs = funval->ClosureArgs();
         if (clnargs > maxargs)
-            Error(string("body has ") + inttoa(clnargs - maxargs) + " parameters too many", funval);
+            Error("body has " + num2str(clnargs - maxargs) + " parameters too many", funval);
         return funval;
     }
 
@@ -1059,7 +1059,7 @@ struct Parser
             if (f->nargs() == nargs) 
                 return f;
 
-        Error("no version of function " + idname + " takes " + inttoa(nargs) + " arguments", errnode);
+        Error("no version of function " + idname + " takes " + num2str(nargs) + " arguments", errnode);
         return nullptr;
     }
 

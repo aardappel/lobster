@@ -209,8 +209,8 @@ inline string Dump(const Node &n, int indent)
 {
     switch (n.type)
     {
-        case T_INT:   return inttoa(n.integer());
-        case T_FLOAT: return flttoa(n.flt());
+        case T_INT:   return num2str(n.integer());
+        case T_FLOAT: return num2str(n.flt());
         case T_STR:   return string("\"") + n.str() + "\"";
         case T_NIL:   return "nil";
 

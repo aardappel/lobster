@@ -111,7 +111,7 @@ struct TypeChecker
             case 0: return "1st";
             case 1: return "2nd";
             case 2: return "3rd";
-            default: return inttoa(i + 1) + string("th");
+            default: return num2str(i + 1) + string("th");
         }
     }
 
@@ -949,8 +949,7 @@ struct TypeChecker
     {
         if (nretvals <= i)
         {
-            string nvals = inttoa((int)nretvals);
-            parser.Error("function " + name + " returns " + nvals + " values, " + inttoa((int)i + 1) + " requested", &n);
+            parser.Error("function " + name + " returns " + num2str(nretvals) + " values, " + num2str(i + 1) + " requested", &n);
         }
     }
 

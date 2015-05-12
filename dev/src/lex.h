@@ -333,7 +333,7 @@ struct Lex : LoadedFile
                         p++;
                         int val = 0;
                         while (isxdigit(*p)) val = (val << 4) | HexDigit(*p++);
-                        sattr = inttoa(val);
+                        sattr = num2str(val);
                         return T_INT;
                     }
                     while (isdigit(*p) || (*p=='.' && !isalpha(*(p + 1)))) p++;
@@ -343,7 +343,7 @@ struct Lex : LoadedFile
 
                 if (c == '.') return T_DOT;
 
-                auto tok = c <= ' ' ? string("[ascii ") + inttoa(c) + "]" : string("") + (char)c;
+                auto tok = c <= ' ' ? "[ascii " + num2str(c) + "]" : string("") + (char)c;
                 Error("illegal token: " + tok);
                 return T_NONE;
             }
@@ -409,7 +409,7 @@ struct Lex : LoadedFile
             if (sattr.size() > 4) Error("character constant too long");
             int ival = 0;
             for (auto c : sattr) ival = (ival << 8) + c;
-            sattr = inttoa(ival);
+            sattr = num2str(ival);
             return T_INT;
         };
     };
@@ -434,7 +434,7 @@ struct Lex : LoadedFile
     string Location(int fidx, int line)
     {
         return (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
-              "(" + inttoa(line >= 0 ? line : errorline) + ")";
+              "(" + num2str(line >= 0 ? line : errorline) + ")";
     }
 
     void Error(string err, int fidx = -1, int line = -1)

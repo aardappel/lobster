@@ -344,7 +344,7 @@ void AddPhysicsOps()
         CheckPhysics();
         if (!particlesystem) return Value();
 
-        //Output(OUTPUT_DEBUG, (string("rendering particles: ") + inttoa(particlesystem->GetParticleCount())).c_str());
+        //Output(OUTPUT_DEBUG, "rendering particles: %d", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
         auto scale = fabs(object2view[0].x());

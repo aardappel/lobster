@@ -107,7 +107,7 @@ void AddFont()
         int csize = min(size, maxfontsize);
 
         string fontname = curfacename;
-        fontname += inttoa(csize);
+        fontname += num2str(csize);
 
         auto fontelem = fontcache.find(fontname);
         if (fontelem != fontcache.end())

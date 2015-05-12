@@ -42,6 +42,8 @@
 #include <functional>
 
 #include <sstream>
+#include <iostream>
+#include <iomanip>
 
 using namespace std;
 

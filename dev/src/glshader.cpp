@@ -46,7 +46,7 @@ string GLSLError(uint obj, bool isprogram, const char *source)
         int i = 0;
         if (source) for (;;)
         {
-            err += inttoa(++i);
+            err += num2str(++i);
             err += ": ";
             const char *next = strchr(source, '\n');
             if (next) { err += string(source, next - source + 1); source = next + 1; }
@@ -192,7 +192,7 @@ string LoadMaterialFile(const char *mfile)
                         goto out;
                     }
                     last = last.substr(0, pos - last.c_str());
-                    string d = string(" vec") + inttoa(comp) + " " + last + ";\n";
+                    string d = " vec" + num2str(comp) + " " + last + ";\n";
                     if (accum == &vertex) vdecl += "attribute" + d;
                     else { d = "varying" + d; vdecl += d; pdecl += d; }
                 }
@@ -254,7 +254,7 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
 
     for (int i = 0; i < MAX_SAMPLERS; i++)
     {
-        tex_i[i] = glGetUniformLocation(program, (string("tex") + inttoa(i)).c_str());
+        tex_i[i] = glGetUniformLocation(program, ("tex" + num2str(i)).c_str());
         if (tex_i[i] >= 0) glUniform1i(tex_i[i], i); 
     }
 
