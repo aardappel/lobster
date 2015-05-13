@@ -409,7 +409,9 @@ struct LVector : LenObj
 
     bool Equal(LVector &o)
     {
-        for (int i = 0; i < len; i++) if (!v[i].Equal(o.v[i], true)) return false;
+        for (int i = 0; i < len; i++)
+            if (!v[i].Equal(o.v[i], true))
+                return false;
         return true;
     }
 

@@ -1036,32 +1036,9 @@ struct VM : VMBase
 
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 
-                #define PUSHDEREF(i, dyn, maybe) \
-                { \
-                    Value r = POP(); \
-                    switch (r.type) \
-                    { \
-                        case V_VECTOR: \
-                            if (!dyn) { VecType(r); } \
-                            IDXErr(i, (int)r.vval()->len, r); PUSH(r.vval()->at(i).INC()); break; \
-                        case V_NIL: if (maybe) PUSH(r); else Error("dereferencing nil"); \
-                        case V_STRING: if (dyn) { IDXErr(i, r.sval()->len, r); \
-                                                  PUSH(Value((int)r.sval()->str()[i])); break; } /* else fall thru */ \
-                        default: Error(string("cannot index into type ") + BaseTypeName(r.type), r); \
-                    } \
-                    r.DECRT(); \
-                    break; \
-                }
-
-                case IL_PUSHFLD:  { int i = *ip++; PUSHDEREF(i, false, false); }
-                case IL_PUSHFLDM: { int i = *ip++; PUSHDEREF(i, false, true); }
-
-                case IL_PUSHIDX:
-                {
-                    Value idx = POP();
-                    int i = GrabIndex(idx);
-                    PUSHDEREF(i, true, false);
-                }
+                case IL_PUSHFLD:  PushDeref(*ip++, false, false); break;
+                case IL_PUSHFLDM: PushDeref(*ip++, false, true); break;
+                case IL_PUSHIDX:  PushDeref(GrabIndex(POP()), true, false); break;
 
                 case IL_PUSHLOC:
                 {
@@ -1085,34 +1062,6 @@ struct VM : VMBase
                     break;
                 }
 
-                #define WRITEDEREFOP(dyn) { \
-                    int lvalop = *ip++; \
-                    int i; \
-                    if (dyn) { \
-                        Value idx = POP(); \
-                        i = GrabIndex(idx); \
-                    } \
-                    else { \
-                        i = *ip++; \
-                    } \
-                    Value vec = POP(); \
-                    Require(vec, V_VECTOR, "vector indexed assign"); \
-                    if (!dyn) { VecType(vec); } \
-                    CheckWritable(vec.vval()); \
-                    IDXErr(i, (int)vec.vval()->len, vec); \
-                    Value &a = vec.vval()->at(i); \
-                    LvalueOp(lvalop, a); \
-                    vec.DECRT(); \
-                    break; \
-                }
-                #define PPOP(ret, op, pre) { \
-                    if (ret && !pre) PUSH(a.INC()); \
-                    if (a.type == V_INT) a.ival() = a.ival() op 1; \
-                    else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
-                    else UError(#op, a); \
-                    if (ret && pre) PUSH(a.INC()); \
-                }
-                
                 case IL_LVALVAR:   
                 {
                     int lvalop = *ip++; 
@@ -1120,8 +1069,30 @@ struct VM : VMBase
                     break; \
                 }
 
-                case IL_LVALIDX: WRITEDEREFOP(true);
-                case IL_LVALFLD: WRITEDEREFOP(false);
+                case IL_LVALIDX:
+                case IL_LVALFLD:
+                { 
+                    int lvalop = *ip++; 
+                    int i; 
+                    if (opc == IL_LVALIDX)
+                    {
+                        Value idx = POP(); 
+                        i = GrabIndex(idx); 
+                    } 
+                    else
+                    {
+                        i = *ip++; 
+                    } 
+                    Value vec = POP(); 
+                    Require(vec, V_VECTOR, "vector indexed assign"); 
+                    if (opc == IL_LVALFLD) { VecType(vec); }
+                    CheckWritable(vec.vval()); 
+                    IDXErr(i, (int)vec.vval()->len, vec); 
+                    Value &a = vec.vval()->at(i); 
+                    LvalueOp(lvalop, a); 
+                    vec.DECRT(); 
+                    break; 
+                }
 
                 case IL_PUSHONCE:
                 {
@@ -1171,6 +1142,33 @@ struct VM : VMBase
         }
     }
 
+    void PushDeref(int i, bool dyn, bool maybe) 
+    { 
+        Value r = POP(); 
+        switch (r.type) 
+        { 
+            case V_VECTOR: 
+                if (!dyn) { VecType(r); } 
+                IDXErr(i, (int)r.vval()->len, r); PUSH(r.vval()->at(i).INC());
+                break;
+            case V_NIL:
+                if (maybe) PUSH(r);
+                else Error("dereferencing nil");
+                break;
+            case V_STRING:
+                if (dyn)
+                {
+                    IDXErr(i, r.sval()->len, r); 
+                    PUSH(Value((int)r.sval()->str()[i]));
+                    break;
+                }
+                /* else fall thru */ 
+            default:
+                Error(string("cannot index into type ") + BaseTypeName(r.type), r); 
+        } 
+        r.DECRT(); 
+    }
+
     void LvalueOp(int op, Value &a)
     {
         switch(op)
@@ -1213,6 +1211,14 @@ struct VM : VMBase
             // LVO_WRITED is only there because OVERWRITE causes problems with rec functions,
             // and its not needed for defines anyway
                     
+            #define PPOP(ret, op, pre) { \
+                if (ret && !pre) PUSH(a.INC()); \
+                if (a.type == V_INT) a.ival() = a.ival() op 1; \
+                else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
+                else UError(#op, a); \
+                if (ret && pre) PUSH(a.INC()); \
+            }
+                
             case LVO_PP: 
             case LVO_PPR:  { PPOP(op == LVO_PPR,  +, true);  break; }
             case LVO_MM: 
@@ -1226,19 +1232,6 @@ struct VM : VMBase
                 Error("bytecode format problem (lvalue): " + num2str(op));
         }
     }
-
-    //FIXME:
-    #undef WRITEDEREFOP
-    #undef PUSHDEREF
-    #undef WRITEDEREF
-    #undef CMPFAILRES
-    #undef BOP
-    #undef COP
-    #undef GETARGS
-    #undef BERROR
-    #undef UERROR
-    #undef IOP
-    #undef OP
 
     const char *ProperTypeName(const Value &v)
     {
@@ -1256,11 +1249,11 @@ struct VM : VMBase
             Error(string("can't write to object of value type ") + ProperTypeName(Value(v)));
     }
 
-    void UError(const char *op, const Value &a)                 { Error(string("unary operator ")  + op + " cannot operate on " + ProperTypeName(a), a); }
-    void Div0()                                                 { Error("division by zero"); }
+    void UError(const char *op, const Value &a) { Error(string("unary operator ")  + op + " cannot operate on " + ProperTypeName(a), a); }
+    void Div0()                                 { Error("division by zero"); }
     
-    void IDXErr(int i, int n, const Value &v)                   { if (i < 0 || i >= n) Error("index " + num2str(i) + " out of range " + num2str(n), v); }
-    void VecType(const Value &vec)                              { if (vec.vval()->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
+    void IDXErr(int i, int n, const Value &v)   { if (i < 0 || i >= n) Error("index " + num2str(i) + " out of range " + num2str(n), v); }
+    void VecType(const Value &vec)              { if (vec.vval()->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
 
     bool AllInt(const LVector *v)
     {
@@ -1387,11 +1380,6 @@ struct VM : VMBase
 
     int StructIdx(const string &name, size_t &nargs) { return st.StructIdx(name, nargs); }
     virtual const string &ReverseLookupType(uint v) { return st.ReverseLookupType(v); }
-
-    #undef PUSH
-    #undef TOP
-    #undef POP
-    #undef TOPPTR
 
     void Trace(bool on) { trace = on; }
     float Time() { return (float)SecondsSinceStart(); }

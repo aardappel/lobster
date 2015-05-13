@@ -455,7 +455,7 @@ void AddBuiltins()
         "bitwise or");
     STARTDECL(xor) (Value &a, Value &b) { return Value(a.ival() ^ b.ival());  } ENDDECL2(xor, "a,b", "II", "I",
         "bitwise exclusive or");
-    STARTDECL(not) (Value &a)           { return Value(~a.ival());          } ENDDECL1(not, "a",   "I",  "I",
+    STARTDECL(not) (Value &a)           { return Value(~a.ival());            } ENDDECL1(not, "a",   "I",  "I",
         "bitwise negation");
     STARTDECL(shl) (Value &a, Value &b) { return Value(a.ival() << b.ival()); } ENDDECL2(shl, "a,b", "II", "I", 
         "bitwise shift left");
