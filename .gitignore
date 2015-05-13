@@ -1,7 +1,10 @@
 *.o
 *~
 /dev/src/lobster
+
 *.suo
+*.vcxproj.user
+
 *.lbc
 
 .DS_Store
