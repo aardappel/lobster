@@ -55,8 +55,8 @@ string Value::ToString(PrintPrefs &pp) const
 {
     switch (type)
     {
-        case V_INT:       return num2str(ival_);
-        case V_FLOAT:     return num2str(fval_, pp.decimals);
+        case V_INT:       return to_string(ival_);
+        case V_FLOAT:     return to_string_decimals(fval_, pp.decimals);
 
         case V_STRING:    return sval_->ToString(pp);
         case V_VECTOR:    return vval_->ToString(pp);

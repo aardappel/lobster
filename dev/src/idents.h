@@ -557,7 +557,7 @@ struct SymbolTable
 
     Function &CreateFunction(const string &name, const string &context)
     {
-        auto fname = name.length() ? name : "function" + num2str(functiontable.size()) + context;
+        auto fname = name.length() ? name : "function" + to_string(functiontable.size()) + context;
         auto f = new Function(fname, (int)functiontable.size(), (int)scopelevels.size());
         functiontable.push_back(f);
         return *f;

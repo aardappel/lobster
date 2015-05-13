@@ -307,15 +307,20 @@ struct Serializer
     }
 };
 
-template<typename T> std::string num2str(T x, int decimals = -1)
+// Special case for to_string to get exact float formatting we need
+template<typename T> std::string to_string_decimals(T x, int decimals = -1)
 {
-    // stringstream gives more consistent cross-platform results than to_string().
+    // stringstream gives more consistent cross-platform results than to_string() for floats.
     std::stringstream ss;
     // For floats:
     if (decimals >= 0) ss << std::fixed << std::setprecision(decimals);
-    // This does not do numeric output for char/uchar, so cast those to int first.
     ss << x;
-    return ss.str();
+    auto s = ss.str();
+    // Apparently there's no way to set the minimum number of digits to output.
+    // For this string to be recognizable as a float it needs to have a . in it.
+    // FIXME: this is terribly clumsy, is there a better way?
+    if (s.find('.') == string::npos) s += ".0";
+    return s;
 }
 
 /* Accumulator: a container that is great for accumulating data like std::vector,

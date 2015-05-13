@@ -245,7 +245,7 @@ struct VM : VMBase
         if (trace_tail) err = trace_output + err;
 
         const LineInfo &li = LookupLine(ip - 1);  // error is usually in the byte before the current ip
-        auto s = string(st.filenames[li.fileidx]) + "(" + num2str(li.line) + "): VM error: " + err;
+        auto s = string(st.filenames[li.fileidx]) + "(" + to_string(li.line) + "): VM error: " + err;
         if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && TOP().type != V_DEFFUN)
@@ -275,7 +275,7 @@ struct VM : VMBase
             {
                 s += "\nin block";
             }
-            s += " -> " + st.filenames[li.fileidx] + "(" + num2str(li.line) + ")";
+            s += " -> " + st.filenames[li.fileidx] + "(" + to_string(li.line) + ")";
 
             s += locals;
         }
@@ -465,7 +465,7 @@ struct VM : VMBase
                 // able to choose what values we find useful.
                 // In the future, this code can become an assert, when the type system specializes every HOF call.
 
-                // Error("function value called with " + num2str(nargs_given) + " arguments, but declared with only " + num2str(nargs_fun));
+                // Error("function value called with " + to_string(nargs_given) + " arguments, but declared with only " + to_string(nargs_fun));
 
                 // Instead, simply discard superfluous args:
                 for (; nargs_given > nargs_fun; nargs_given--) POP().DEC();
@@ -686,7 +686,7 @@ struct VM : VMBase
                     if (!trace_tail) trace_output.clear();
                     DisAsmIns(trace_output, st, ip, codestart, LookupLine(ip));
                     trace_output += " [";
-                    trace_output += num2str(sp + 1);
+                    trace_output += to_string(sp + 1);
                     trace_output += "] - ";
                     if (sp >= 0) trace_output += TOP().ToString(debugpp);
                     if (sp >= 1) { trace_output += " "; trace_output += TOP2().ToString(debugpp); }
@@ -1137,7 +1137,7 @@ struct VM : VMBase
                 }
 
                 default:
-                    Error("bytecode format problem: " + num2str(opc));
+                    Error("bytecode format problem: " + to_string(opc));
             }
         }
     }
@@ -1229,7 +1229,7 @@ struct VM : VMBase
             case LVO_MMPR: { PPOP(op == LVO_MMPR, -, false); break; }
 
             default:
-                Error("bytecode format problem (lvalue): " + num2str(op));
+                Error("bytecode format problem (lvalue): " + to_string(op));
         }
     }
 
@@ -1252,7 +1252,7 @@ struct VM : VMBase
     void UError(const char *op, const Value &a) { Error(string("unary operator ")  + op + " cannot operate on " + ProperTypeName(a), a); }
     void Div0()                                 { Error("division by zero"); }
     
-    void IDXErr(int i, int n, const Value &v)   { if (i < 0 || i >= n) Error("index " + num2str(i) + " out of range " + num2str(n), v); }
+    void IDXErr(int i, int n, const Value &v)   { if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v); }
     void VecType(const Value &vec)              { if (vec.vval()->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
 
     bool AllInt(const LVector *v)
@@ -1281,8 +1281,8 @@ struct VM : VMBase
                     return sidx.ival();
                 }
                 if (v.type != V_VECTOR)
-                    Error("vector index of length " + num2str(idx.vval()->len) + 
-                          " used on nested vector of depth " + num2str(i), idx, v); 
+                    Error("vector index of length " + to_string(idx.vval()->len) + 
+                          " used on nested vector of depth " + to_string(i), idx, v); 
                 IDXErr(sidx.ival(), v.vval()->len, v);
                 auto nv = v.vval()->at(sidx.ival()).INC();
                 v.DECRT();

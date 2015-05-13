@@ -121,7 +121,7 @@ struct RefObj : DynAlloc
         refc = cycles++;
     }
 
-    string CycleStr() { return "_" + num2str(refc) + "_"; }
+    string CycleStr() { return "_" + to_string(refc) + "_"; }
 };
 
 struct LenObj : RefObj

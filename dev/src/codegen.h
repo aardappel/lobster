@@ -328,8 +328,8 @@ struct CodeGen
         auto &f = *sf.parent;
         GenArgs(args, &sf.args, nargs);
         if (f.nargs() != nargs)
-            parser.Error("call to function " + f.name + " needs " + num2str(f.nargs()) +
-                         " arguments, " + num2str(nargs) + " given", errnode);
+            parser.Error("call to function " + f.name + " needs " + to_string(f.nargs()) +
+                         " arguments, " + to_string(nargs) + " given", errnode);
         Emit(f.multimethod ? IL_CALLMULTI : IL_CALL,
              nargs,
              f.idx,
