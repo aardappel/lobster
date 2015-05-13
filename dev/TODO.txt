@@ -37,6 +37,7 @@
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
+  - can we avoid .length giving errors with variables initialized to [] before a push etc?
   - improve type checking doc.
   - move generic double check from parser to type checker init
   - why do we need .xy ? shouldn't xyz convert to xy when needed silently thru inheritance?

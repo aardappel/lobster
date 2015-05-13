@@ -599,7 +599,6 @@ struct SymbolTable
     }
 
     bool ReadOnlyIdent(size_t v) { assert(v < identtable.size());    return identtable[v]->constant;  }
-    bool ReadOnlyType (size_t v) { assert(v < structtable.size());   return structtable[v]->readonly; }
     
     const string &ReverseLookupIdent   (size_t v) const { assert(v < identtable.size());    return identtable[v]->name;    }
     const string &ReverseLookupType    (size_t v) const { assert(v < structtable.size());   return structtable[v]->name;   }

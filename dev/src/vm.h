@@ -240,6 +240,8 @@ struct VM : VMBase
         return s;
     }
 
+    // This function is now way less important than it was when the language was still dynamically typed.
+    // But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
     Value Error(string err, const Value &a = Value(0, V_MAXVMTYPES), const Value &b = Value(0, V_MAXVMTYPES))
     {
         if (trace_tail) err = trace_output + err;
@@ -289,7 +291,6 @@ struct VM : VMBase
 
         FinalStackVarsCleanup();
 
-        //Output(OUTPUT_DEBUG, "%s", s.c_str());
         throw s;
     }
 
@@ -638,15 +639,6 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    void Require(const Value &v, ValueType t, const char *op) // FIXME: make this a macro so we don't pass this extra string
-    {
-        if (v.type != t)
-        {
-            Error(string("type error: ") + op + " requires value of type " + BaseTypeName(t) + 
-                  ", instead found " + ProperTypeName(v), v);
-        }
-    }
-
     void EndEval(string &evalret)
     {
         evalret = TOP().ToString(programprintprefs);
@@ -709,9 +701,7 @@ struct VM : VMBase
                 byteprofilecounts[ip - codestart]++;
             #endif
 
-            int opc = *ip++;
-
-            switch (opc)
+            switch (*ip++)
             {
                 case IL_PUSHUNDEF: PUSH(Value()); break;
                 case IL_PUSHINT:   PUSH(Value(*ip++)); break;
@@ -762,7 +752,7 @@ struct VM : VMBase
                 case IL_CALLV:
                 {
                     Value fun = POP();
-                    Require(fun, V_FUNCTION, "function call");
+                    VMASSERT(fun.type == V_FUNCTION);
                     auto nargs = *ip++;
                     FunIntro(nargs, fun.ip(), -1, ip);
                     break;
@@ -823,7 +813,7 @@ struct VM : VMBase
                         case V_VECTOR: PUSHITER(iter.vval()->len, iter.vval()->at(i.ival()).INC());
                         case V_STRING: PUSHITER(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]));
                         #undef PUSHITER
-                        default:       Error("for: cannot iterate over argument", iter);
+                        default: VMASSERT(0);
                     }
                     PUSH(i);
                     FunIntro(2, body.ip(), -1, forstart);
@@ -840,8 +830,7 @@ struct VM : VMBase
                 {
                     auto nf = natreg.nfuns[*ip++];
                     int n = *ip++;
-                    if (n > (int)nf->args.v.size())
-                        Error("native function \"" + nf->name + "\" called with too many arguments");
+                    VMASSERT(n == (int)nf->args.v.size());
                     Value v;
                     switch (nf->args.v.size())
                     {
@@ -858,7 +847,8 @@ struct VM : VMBase
                         #undef ARG
                     }
                     PUSH(v);
-                    #ifdef _DEBUG   // see if any builtin function is lying about what type it returns
+                    #ifdef _DEBUG
+                        // see if any builtin function is lying about what type it returns
                         // other function types return intermediary values that don't correspond to final return values
                         if (nf->ncm == NCM_NONE)
                         { 
@@ -996,9 +986,9 @@ struct VM : VMBase
                             int len = VectorLoop(a, Value(1), res, isfloat);
                             if (len >= 0)
                             {
-                                for (int i = 0; i < len; i++) \
+                                for (int i = 0; i < len; i++)
                                     res.vval()->at(i) = isfloat ? Value(-VectorElem<float>(a, i))
-                                                              : Value(-VectorElem<int>  (a, i));
+                                                                : Value(-VectorElem<int>  (a, i));
                                 VectorDec(a, res);
                                 PUSH(res);
                                 break;
@@ -1006,7 +996,7 @@ struct VM : VMBase
                             // fall tru
                         }
 
-                        default: UError("-", a);
+                        default: VMASSERT(false);
                     }
                     break;
                 }
@@ -1036,15 +1026,15 @@ struct VM : VMBase
 
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 
-                case IL_PUSHFLD:  PushDeref(*ip++, false, false); break;
-                case IL_PUSHFLDM: PushDeref(*ip++, false, true); break;
-                case IL_PUSHIDX:  PushDeref(GrabIndex(POP()), true, false); break;
+                case IL_PUSHFLD:
+                case IL_PUSHFLDM: PushDeref(*ip++); break;
+                case IL_PUSHIDX:  PushDeref(GrabIndex(POP())); break;
 
                 case IL_PUSHLOC:
                 {
                     int i = *ip++;
                     Value coro = POP();
-                    Require(coro, V_COROUTINE, "scoped local variable");
+                    VMASSERT(coro.type == V_COROUTINE);
                     PUSH(coro.cval()->GetVar(i).INC());
                     coro.DECRT();
                     break;
@@ -1055,7 +1045,7 @@ struct VM : VMBase
                     int lvalop = *ip++;
                     int i = *ip++;
                     Value coro = POP();
-                    Require(coro, V_COROUTINE, "scoped local variable");
+                    VMASSERT(coro.type == V_COROUTINE);
                     Value &a = coro.cval()->GetVar(i);
                     LvalueOp(lvalop, a);
                     coro.DECRT();
@@ -1066,33 +1056,11 @@ struct VM : VMBase
                 {
                     int lvalop = *ip++; 
                     LvalueOp(lvalop, vars[*ip++]);
-                    break; \
+                    break;
                 }
 
-                case IL_LVALIDX:
-                case IL_LVALFLD:
-                { 
-                    int lvalop = *ip++; 
-                    int i; 
-                    if (opc == IL_LVALIDX)
-                    {
-                        Value idx = POP(); 
-                        i = GrabIndex(idx); 
-                    } 
-                    else
-                    {
-                        i = *ip++; 
-                    } 
-                    Value vec = POP(); 
-                    Require(vec, V_VECTOR, "vector indexed assign"); 
-                    if (opc == IL_LVALFLD) { VecType(vec); }
-                    CheckWritable(vec.vval()); 
-                    IDXErr(i, (int)vec.vval()->len, vec); 
-                    Value &a = vec.vval()->at(i); 
-                    LvalueOp(lvalop, a); 
-                    vec.DECRT(); 
-                    break; 
-                }
+                case IL_LVALIDX: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
+                case IL_LVALFLD: { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
 
                 case IL_PUSHONCE:
                 {
@@ -1137,36 +1105,41 @@ struct VM : VMBase
                 }
 
                 default:
-                    Error("bytecode format problem: " + to_string(opc));
+                    Error("bytecode format problem: " + to_string(*--ip));
             }
         }
     }
 
-    void PushDeref(int i, bool dyn, bool maybe) 
+    void PushDeref(int i) 
     { 
         Value r = POP(); 
         switch (r.type) 
         { 
-            case V_VECTOR: 
-                if (!dyn) { VecType(r); } 
-                IDXErr(i, (int)r.vval()->len, r); PUSH(r.vval()->at(i).INC());
+            case V_VECTOR:
+                IDXErr(i, r.vval()->len, r);
+                PUSH(r.vval()->at(i).INC());
                 break;
-            case V_NIL:
-                if (maybe) PUSH(r);
-                else Error("dereferencing nil");
+            case V_NIL:  // only used with ?.
+                PUSH(r);
                 break;
             case V_STRING:
-                if (dyn)
-                {
-                    IDXErr(i, r.sval()->len, r); 
-                    PUSH(Value((int)r.sval()->str()[i]));
-                    break;
-                }
-                /* else fall thru */ 
+                IDXErr(i, r.sval()->len, r); 
+                PUSH(Value((int)r.sval()->str()[i]));
+                break;
             default:
-                Error(string("cannot index into type ") + BaseTypeName(r.type), r); 
+                VMASSERT(false); 
         } 
         r.DECRT(); 
+    }
+
+    void LvalueObj(int lvalop, int i)
+    {
+        Value vec = POP();
+        VMASSERT(vec.type == V_VECTOR);
+        IDXErr(i, (int)vec.vval()->len, vec);
+        Value &a = vec.vval()->at(i);
+        LvalueOp(lvalop, a);
+        vec.DECRT();
     }
 
     void LvalueOp(int op, Value &a)
@@ -1215,7 +1188,7 @@ struct VM : VMBase
                 if (ret && !pre) PUSH(a.INC()); \
                 if (a.type == V_INT) a.ival() = a.ival() op 1; \
                 else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
-                else UError(#op, a); \
+                else VMASSERT(false); \
                 if (ret && pre) PUSH(a.INC()); \
             }
                 
@@ -1238,22 +1211,12 @@ struct VM : VMBase
         return v.type == V_VECTOR && v.vval()->type >= 0 ? ReverseLookupType(v.vval()->type).c_str() : BaseTypeName(v.type);
     }
 
-    void TTError(const string &tname, const Value &v)
-    {
-        Error("function/constructor requires argument of type " + tname + ", instead got " + ProperTypeName(v), v);
-    }
+    void Div0() { Error("division by zero"); } 
 
-    void CheckWritable(LVector *v)
+    void IDXErr(int i, int n, const Value &v)
     {
-        if (v->type >= 0 && st.ReadOnlyType(v->type))
-            Error(string("can't write to object of value type ") + ProperTypeName(Value(v)));
+        if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
     }
-
-    void UError(const char *op, const Value &a) { Error(string("unary operator ")  + op + " cannot operate on " + ProperTypeName(a), a); }
-    void Div0()                                 { Error("division by zero"); }
-    
-    void IDXErr(int i, int n, const Value &v)   { if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v); }
-    void VecType(const Value &vec)              { if (vec.vval()->type < 0) Error("cannot use field dereferencing on untyped vector", vec); }
 
     bool AllInt(const LVector *v)
     {
@@ -1273,16 +1236,13 @@ struct VM : VMBase
             for (int i = idx.vval()->len - 1; ; i--)
             {
                 auto sidx = idx.vval()->at(i);
-                if (sidx.type != V_INT)
-                    Error(string("illegal vector index element of type ") + ProperTypeName(sidx), idx);
+                VMASSERT(sidx.type == V_INT);
                 if (!i)
                 {
                     idx.DECRT();
                     return sidx.ival();
                 }
-                if (v.type != V_VECTOR)
-                    Error("vector index of length " + to_string(idx.vval()->len) + 
-                          " used on nested vector of depth " + to_string(i), idx, v); 
+                VMASSERT(v.type == V_VECTOR);
                 IDXErr(sidx.ival(), v.vval()->len, v);
                 auto nv = v.vval()->at(sidx.ival()).INC();
                 v.DECRT();
@@ -1290,7 +1250,7 @@ struct VM : VMBase
             }
         }
 
-        Error(string("index of type int or vector of int required, instead found: ") + ProperTypeName(idx), idx);
+        VMASSERT(0);
         return 0;
     }
 
@@ -1365,7 +1325,7 @@ struct VM : VMBase
                     case V_FLOAT: return (T)v.fval();
                     case V_INT:   return (T)v.ival();
                     default:
-                        Error(string("can't do vector operation with vector element type ") + ProperTypeName(v), v);
+                        VMASSERT(0);
                         return 0;
                 }
             }

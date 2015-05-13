@@ -953,6 +953,12 @@ struct TypeChecker
         }
     }
 
+    void CheckReadOnly(Node &n)
+    {
+        if (n.type == T_DOT && n.left()->exptype->t == V_STRUCT && n.left()->exptype->struc->readonly)
+            TypeError("cannot write to field of value: " + n.left()->exptype->struc->name, n);
+    }
+
     void TypeCheck(Node *&n_ptr, TType parent_type)
     {
         Node &n = *n_ptr;
@@ -1014,6 +1020,7 @@ struct TypeChecker
             case T_DIVEQ:
             case T_MODEQ:
             {
+                CheckReadOnly(*n.left());
                 type = n.left()->exptype;
                 if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, false))
                 {
@@ -1074,6 +1081,7 @@ struct TypeChecker
             case T_DECR:  
             case T_INCR:
             {
+                CheckReadOnly(*n.child());
                 type = n.child()->exptype;
                 if (!type->Numeric())
                     TypeError("numeric", type, n, nullptr);
@@ -1154,6 +1162,7 @@ struct TypeChecker
             }
 
             case T_ASSIGN:
+                CheckReadOnly(*n.left());
                 if (n.left()->type != T_INDEX) AssignFlowDemote(*n.left(), n.right()->exptype, true);
                 SubType(n.right(), n.left()->exptype, "right", n);
                 if (n.left()->type != T_INDEX) AssignFlowPromote(*n.left(), n.right()->exptype);
