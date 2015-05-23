@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Wouter's Entropy Coder
+// Wouter's Entropy Coder: apparently I re-invented adaptive Shannon-Fano.
 //
-// identical compression performance to huffman, and absolutely tiny code, one function for both compression and
-// decompression adaptive, so should work well even for tiny buffers
-// one of the vectors passed in is the input, the other the output (and exactly one of the two should be empty
-// initially)
+// similar compression performance to huffman, and absolutely tiny code, one function for both compression and
+// decompression. Adaptive, so should work well even for tiny buffers.
+// One of the vectors passed in is the input, the other the output (and exactly one of the two should be empty
+// initially).
 // not the fastest possible implementation (only 40MB/sec for either compression or decompression on a modern pc), 
 // but should be sufficient for many uses
 //
@@ -29,42 +29,42 @@
 // incompatability of the data format with 32bit builds
 // the vector<unsigned int> may require endian-swapping if used cross platform (hey, didn't little endian win? :P)
 
-void WEntropyCoder(vector<unsigned char> &uncompressed, vector<unsigned int> &compressed)
+template<bool compress> void WEntropyCoder(vector<unsigned char> &uncompressed, vector<unsigned int> &compressed)
 {
-    bool compress = uncompressed.size() != 0;
     assert(uncompressed.size() <= 0xFFFFFFFF);  // just in case, for 64bit builds
-    const int NSYM = 256;   // to change this, we'd have to read from something other than vector<uchar>
-    unsigned int freq[NSYM];
-    int ch[NSYM], si[NSYM];
-    for (int i = 0; i < NSYM; i++) { freq[i] = 1; ch[i] = si[i] = i; }
+    const int NSYM = 256;     // To change this, we'd have to read from something other than vector<uchar>
+    int symbol[NSYM];         // The symbol in this slot. Adaptively sorted by frequency.
+    unsigned int freq[NSYM];  // Its frequency.
+    int sym_idx[NSYM];        // Lookup symbol -> index into the above two arrays.
+    for (int i = 0; i < NSYM; i++) { freq[i] = 1; symbol[i] = sym_idx[i] = i; }
 
     unsigned int len = compress ? (unsigned int)uncompressed.size() : compressed[0];
     if (compress) compressed.push_back(len);    // original size always stored as first element
-    unsigned int ci = 0;
+    unsigned int compr_idx = 0;
     unsigned int bits = 0;
     int nbits = 0;
 
     for (unsigned int i = 0; i < len; i++)
     {
-        int start = 0, size = NSYM;
-        unsigned int tf = i + NSYM;
-        while (size > 1)
+        int start = 0, range = NSYM;
+        unsigned int total_freq = i + NSYM;
+        while (range > 1)
         {
-            unsigned int af = 0;
+            unsigned int acc_freq = 0;
             int j = start;
-            do af += freq[j++]; while (af + freq[j] / 2 < tf / 2);
+            do acc_freq += freq[j++]; while (acc_freq + freq[j] / 2 < total_freq / 2);
             unsigned int bit = 0;
             if (compress)
             {
-                if (si[uncompressed[i]] < j) bit = 1;
+                if (sym_idx[uncompressed[i]] < j) bit = 1;
             }
             else
             {
-                if (!nbits) { bits = compressed[++ci]; nbits = sizeof(unsigned int) * 8; }
+                if (!nbits) { bits = compressed[++compr_idx]; nbits = sizeof(unsigned int) * 8; }
                 bit = bits & 1;
             }
-            if (bit) { tf = af; assert(j - start < size); size = j - start; }
-            else     { tf -= af; size -= j - start; start = j; }
+            if (bit) { total_freq = acc_freq; assert(j - start < range); range = j - start; }
+            else     { total_freq -= acc_freq; range -= j - start; start = j; }
             if (compress)
             {
                 bits |= bit << nbits;
@@ -76,14 +76,14 @@ void WEntropyCoder(vector<unsigned char> &uncompressed, vector<unsigned int> &co
                 nbits--;
             }
         }
-        if (!compress) uncompressed.push_back((unsigned char)ch[start]);
-        assert(size == 1 && uncompressed[i] == ch[start]);   
+        if (!compress) uncompressed.push_back((unsigned char)symbol[start]);
+        assert(range == 1 && uncompressed[i] == symbol[start]);
         freq[start]++;
         while (start && freq[start - 1] < freq[start])
         {
-            swap(si[ch[start - 1]], si[ch[start]]);
+            swap(sym_idx[symbol[start - 1]], sym_idx[symbol[start]]);
             swap(freq[start - 1], freq[start]);
-            swap(ch[start - 1], ch[start]);
+            swap(symbol[start - 1], symbol[start]);
             start--;
         }
     }

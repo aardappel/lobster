@@ -798,19 +798,18 @@ void AddGraphics()
         if (it != texturecache.end())
         {
             id = it->second;
-            goto done;
         }
+        else
+        {
+            int tf = TF_NONE;
+            if (clamp.True())   tf |= TF_CLAMP;
+            if (nomip.True())   tf |= TF_NOMIPMAP;
+            if (nearest.True()) tf |= TF_NEAREST;
 
-        int tf = TF_NONE;
-        if (clamp.True())   tf |= TF_CLAMP;
-        if (nomip.True())   tf |= TF_NOMIPMAP;
-        if (nearest.True()) tf |= TF_NEAREST;
+            id = CreateTextureFromFile(name.sval()->str(), dim, tf);
 
-        id = CreateTextureFromFile(name.sval()->str(), dim, tf);
-
-        if (id) texturecache[name.sval()->str()] = id;
-
-        done:
+            if (id) texturecache[name.sval()->str()] = id;
+        }
         g_vm->Push(Value((int)id));
         return ToValue(dim);
     }

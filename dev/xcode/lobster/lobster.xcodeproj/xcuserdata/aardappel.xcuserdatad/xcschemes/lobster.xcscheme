@@ -50,6 +50,7 @@
       debugDocumentVersioning = "YES"
       allowLocationSimulation = "YES">
       <PathRunnable
+         runnableDebuggingMode = "0"
          FilePath = "/Users/aardappel/lobster/lobster/lobster">
       </PathRunnable>
       <MacroExpansion>
@@ -65,10 +66,6 @@
          <CommandLineArgument
             argument = "tapdefense.lobster"
             isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-t"
-            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--debug"
@@ -116,7 +113,8 @@
       useCustomWorkingDirectory = "NO"
       buildConfiguration = "Release"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3331455617596B6100D488CC"

@@ -1529,7 +1529,10 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = ../../include;
-				WARNING_CFLAGS = "-Wno-multichar";
+				WARNING_CFLAGS = (
+					"-Wno-multichar",
+					"-Wno-array-bounds",
+				);
 			};
 			name = Debug;
 		};
@@ -1569,7 +1572,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = ../../include;
-				WARNING_CFLAGS = "-Wno-multichar";
+				WARNING_CFLAGS = (
+					"-Wno-multichar",
+					"-Wno-array-bounds",
+				);
 			};
 			name = Release;
 		};
