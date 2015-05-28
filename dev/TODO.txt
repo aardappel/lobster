@@ -301,6 +301,8 @@ refactor:
   maybe we can allow multiple windows to start? can make objects that hold window+context+all other graphics state, and allow each VM to open 1, or even multiple per vm
   if that approach doesn't work, can make a debugger that is a webserver inside the lobster exe, as that's nice and cross platform.
   But better to try multiple windows first, that be good for threading and other features anyway.
+  Actually a web-server based debugging interface might be good, use e.g. this:
+  http://runtimelegend.com/tech/webserver/
 
 - find a better solution for vec.lobster/allint(), the type system should support this?
 

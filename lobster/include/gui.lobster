@@ -231,6 +231,9 @@ def gui_button_text(text, do): button(caller_id(), def(): gui_text(text), do, ni
 def gui_button_id(id:int, f, do):         button(id, f, do, nil)
 def gui_button_id(id:int, f, do, focus):  button(id, f, do, focus)
 
+def gui_button_id_text(id:int, text, do):         button(id, def(): gui_text(text), do, nil)
+def gui_button_id_text(id:int, text, do, focus):  button(id, def(): gui_text(text), do, focus)
+
 def gui_custombackground(f): if(render_pass): f(overalsize)
 
 def gui_setclickcolors(hover, sel):
