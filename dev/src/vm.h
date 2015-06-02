@@ -829,8 +829,6 @@ struct VM : VMBase
                 case IL_BCALL:
                 {
                     auto nf = natreg.nfuns[*ip++];
-                    ip++;  // FIXME: nargs not used
-                    VMASSERT(n == (int)nf->args.v.size());
                     Value v;
                     switch (nf->args.v.size())
                     {

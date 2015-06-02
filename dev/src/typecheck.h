@@ -688,7 +688,7 @@ struct TypeChecker
             freevar.type = freevar.id->type;  // Specialized to current value.
         }
 
-        // Output without types, since those are yet to be overwritten.
+        // Output without arg types, since those are yet to be overwritten.
         Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(*sf, false).c_str());
 
         return sf;

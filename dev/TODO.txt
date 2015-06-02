@@ -37,6 +37,14 @@
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
+  - bug with local calls not adding free variables thru call-chain
+  - should make it so that staticly know false if-then doesn't typecheck that branch
+    this makes the type system even more powerful
+    thing is, we can't cull the code in typechecker because of cloning
+    we also can't let untypechecked code reach the codegen
+    so we should have at least a mini-optimizer that guarantees these get culled first.
+  - must be able to derive type from default in struct def
+  - must be able to specify default in specialization types
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
   - improve type checking doc.
   - move generic double check from parser to type checker init

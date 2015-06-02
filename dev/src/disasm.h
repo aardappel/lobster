@@ -108,8 +108,6 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         {
             int a = *ip++;
             s += natreg.nfuns[a]->name;
-            s += " ";
-            s += to_string(*ip++);
             break;
         }
 

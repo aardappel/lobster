@@ -483,7 +483,7 @@ struct CodeGen
                     auto lastarg = GenArgs(n->ncall_args(), nullptr, nargs);
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
-                        Emit(IL_BCALL, nf->idx, nargs);
+                        Emit(IL_BCALL, nf->idx);
                         if (lastarg->type != T_NIL) // FIXME: this will not work if its a var with nil value
                         {
                             Emit(IL_CALLVCOND, 0);
@@ -492,7 +492,7 @@ struct CodeGen
                     }
                     else
                     {
-                        Emit(IL_BCALL, nf->idx, nargs);
+                        Emit(IL_BCALL, nf->idx);
                     }
                     if (nf->retvals.v.size() > 1)
                     {
