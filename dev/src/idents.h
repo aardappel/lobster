@@ -365,30 +365,10 @@ struct SymbolTable
         if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, type_any, true));
         return ident;
     }
-        
-    Ident *LookupMaybe(const string &name)
-    {
-        auto ident = Lookup(name);
-        if (!ident) return nullptr;
-        
-        if (defsubfunctionstack.size() && ident->sf_def != defsubfunctionstack.back())
-        {
-            // This is a free variable, record it in all parents up to the definition point.
-            // Note that this not entirely correct: we should use the call-graph, not lexical scope.
-            // This only matters in practice for two local functions calling eachother that have disjoint sets.
-            for (int i = (int)defsubfunctionstack.size() - 1; i >= 0; i--)
-            {
-                auto sf = defsubfunctionstack[i];
-                if (ident->sf_def == sf) break;  // Found the definition.
-                sf->freevars.Add(Arg(ident, type_any, true));
-            }
-        }
-        return ident;  
-    }
 
     Ident *LookupUse(const string &name, Lex &lex)
     {
-        auto id = LookupMaybe(name);
+        auto id = Lookup(name);
         if (!id)
             lex.Error("unknown identifier: " + name);
         return id;  

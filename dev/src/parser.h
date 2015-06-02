@@ -1040,7 +1040,7 @@ struct Parser
         }
 
         auto args = ParseFunArgs(coroutine, firstarg);
-        auto id = st.LookupMaybe(idname);
+        auto id = st.Lookup(idname);
         if (id)
             return new Node(lex, T_DYNCALL, new IdRef(lex, id),
                                             new Node(lex, T_DYNINFO,

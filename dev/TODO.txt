@@ -37,7 +37,7 @@
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
-  - bug with local calls not adding free variables thru call-chain
+  - should constants be excluded from freevars to reduce clutter?
   - should make it so that staticly know false if-then doesn't typecheck that branch
     this makes the type system even more powerful
     thing is, we can't cull the code in typechecker because of cloning
@@ -173,6 +173,8 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
+
+- add lowercase/uppercase as builtins
 
 - allow random number generator to be selected
 

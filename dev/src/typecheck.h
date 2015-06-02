@@ -622,21 +622,11 @@ struct TypeChecker
                 assert(!f.anonymous || sf->freevarchecked);
                 for (auto &freevar : sf->freevars.v)
                 {
-                    if (f.anonymous)
-                    {
-                        // cases where these might not be equal:
-                        // - if the original freevar wasn't bound yet:
-                        //if (freevar.type->t == V_VAR) UnifyVar(freevar.id->type, freevar.type);
-                        // - in the case of a dynamic scope assignment? FIXME: make a test case for this.
-                        // is it easier to just overwrite the freevar by the one in the id in all cases? does that work?
-
-                        assert(ExactType(freevar.type, freevar.id->type));
-                        (void)freevar;
-                    }
-                    else  // Named function.
-                    {
-                        freevar.type = freevar.id->type;  // Specialized to current value.
-                    }
+                    // Specialized to current value.
+                    // These types should already be equal in almost all cases, except when a freevar wasn't in
+                    // the call-chain when PreSpecializeFunction was called on this function.
+                    // There may be other cases, such as the freevar being a T_VAR, or thru dynamic scope assignment.
+                    freevar.type = freevar.id->type;
                 }
                 Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
             }
@@ -654,6 +644,15 @@ struct TypeChecker
             }
             if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
             function_def_node.sf() = sf;
+
+            for (auto &freevar : sf->freevars.v)
+            {
+                // New freevars may have been added during the function def typecheck above.
+                // In case their types differ from the flow-sensitive value at the callsite (here),
+                // we want to override them.
+                freevar.type = freevar.id->type;
+            }
+
             return sf->returntypes[0];
         }
     }
@@ -685,7 +684,10 @@ struct TypeChecker
         // Copy freevars.
         for (auto &freevar : sf->freevars.v)
         {
-            freevar.type = freevar.id->type;  // Specialized to current value.
+            // Specialized to current value.
+            // Since this is not the call-site, it is possible that some freevar here is not in the call-chain
+            // yet, and thus probably "any" instead of the right type. This gets fixed in TypeCheckCall()
+            freevar.type = freevar.id->type;
         }
 
         // Output without arg types, since those are yet to be overwritten.
@@ -959,6 +961,27 @@ struct TypeChecker
             TypeError("cannot write to field of value: " + n.left()->exptype->struc->name, n);
     }
 
+    void CheckFreeVariable(Ident &id)
+    {
+        // This is a free variable, record it in all parents up to the definition point.
+        for (int i = (int)scopes.size() - 1; i >= 0; i--)
+        {
+            auto sf = scopes[i].sf;
+            // Check if we arrived at the definition point.
+            // Since this function may have been cloned since, we also accept any specialization.
+            if (id.sf_def == sf ||
+                (id.sf_def && id.sf_def->parent == sf->parent && !sf->parent->multimethod))
+                break;
+            // We use the id's type, not the flow sensitive type, just in case there's multiple uses of the var.
+            // this will get corrected after the call this is part of.
+            if (sf->freevars.Add(Arg(&id, id.type, true)))
+            {
+                //Output(OUTPUT_DEBUG, "freevar added: %s (%s) in %s",
+                //       id.name.c_str(), TypeName(id.type).c_str(), sf->parent->name.c_str());
+            }
+        }
+    }
+
     void TypeCheck(Node *&n_ptr, TType parent_type)
     {
         Node &n = *n_ptr;
@@ -1100,6 +1123,7 @@ struct TypeChecker
 
             case T_IDENT:
                 type = n.ident()->type;
+                CheckFreeVariable(*n.ident());
                 UseFlow(n);
                 break;
 

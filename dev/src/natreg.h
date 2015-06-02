@@ -242,12 +242,13 @@ struct ArgVector
         }
    }
 
-    void Add(const Arg &in)
+    bool Add(const Arg &in)
     {
         for (auto &arg : v)
             if (arg.id == in.id)
-                return;
+                return false;
         v.push_back(in);
+        return true;
     }
 };
 
