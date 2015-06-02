@@ -440,6 +440,34 @@ void AddBuiltins()
         "converts the (unsigned version) of the input integer number to a string given the base (2..36, e.g. 16 for"
         " hex) and outputting a minimum of characters (padding with 0).");
 
+    STARTDECL(lowercase) (Value &s)
+    {
+        auto ns = g_vm->NewString(s.sval()->str(), s.sval()->len);
+        for (auto p = ns->str(); *p; p++)
+        {
+            // This is unicode-safe, since all unicode chars are in bytes >= 128
+            if (*p >= 'A' && *p <= 'Z') *p += 'a' - 'A';
+        }
+        s.DECRT();
+        return Value(ns);
+    }
+    ENDDECL1(lowercase, "s", "S", "S",
+             "converts a UTF-8 string from any case to lower case, affecting only A-Z");
+
+    STARTDECL(uppercase) (Value &s)
+    {
+        auto ns = g_vm->NewString(s.sval()->str(), s.sval()->len);
+        for (auto p = ns->str(); *p; p++)
+        {
+            // This is unicode-safe, since all unicode chars are in bytes >= 128
+            if (*p >= 'a' && *p <= 'z') *p -= 'a' - 'A';
+        }
+        s.DECRT();
+        return Value(ns);
+    }
+    ENDDECL1(lowercase, "s", "S", "S",
+             "converts a UTF-8 string from any case to upper case, affecting only a-z");
+
     STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval(), b.fval())); } ENDDECL2(pow, "a,b", "FF", "F",
         "a raised to the power of b");
 
