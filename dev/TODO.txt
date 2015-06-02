@@ -44,7 +44,6 @@
     we also can't let untypechecked code reach the codegen
     so we should have at least a mini-optimizer that guarantees these get culled first.
   - must be able to derive type from default in struct def
-  - must be able to specify default in specialization types
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
   - improve type checking doc.
   - move generic double check from parser to type checker init
@@ -173,6 +172,8 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
+
+- builtin inrange/inrange2d
 
 - allow random number generator to be selected
 

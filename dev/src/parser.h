@@ -247,15 +247,16 @@ struct Parser
                     sup = &st.StructUse(sname, lex);
                 };
 
-                vector<TypeRef> spectypes;
+                vector<pair<TypeRef, Node *>> spectypes;
                 auto parse_specializers = [&] ()
                 {
                     if (IsNext(T_LEFTPAREN))
                     {
                         for (;;)
                         {
-                            spectypes.push_back(nullptr);
-                            ParseType(spectypes.back(), false);
+                            spectypes.push_back(make_pair(nullptr, nullptr));
+                            ParseType(spectypes.back().first, false);
+                            spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                             if (IsNext(T_RIGHTPAREN)) break;
                             Expect(T_COMMA);
                         }
@@ -268,7 +269,9 @@ struct Parser
                     if (field.flags == AF_ANYTYPE)
                     {
                         if (i >= spectypes.size()) Error("too many type specializers");
-                        field.type = spectypes[i++];
+                        auto &p = spectypes[i++];
+                        field.type = p.first;
+                        if (p.second) field.defaultval = p.second;
                     }
                 };
 
