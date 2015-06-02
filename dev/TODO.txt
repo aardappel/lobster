@@ -174,8 +174,6 @@
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
-- add lowercase/uppercase as builtins
-
 - allow random number generator to be selected
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):

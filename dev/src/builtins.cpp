@@ -465,7 +465,7 @@ void AddBuiltins()
         s.DECRT();
         return Value(ns);
     }
-    ENDDECL1(lowercase, "s", "S", "S",
+    ENDDECL1(uppercase, "s", "S", "S",
              "converts a UTF-8 string from any case to upper case, affecting only a-z");
 
     STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval(), b.fval())); } ENDDECL2(pow, "a,b", "FF", "F",

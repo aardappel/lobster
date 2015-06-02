@@ -44,7 +44,6 @@ struct VM : VMBase
     size_t codelen;
     int *codestart;
     size_t *byteprofilecounts;
-    size_t *lineprofilecounts;
     
     SymbolTable &st;
 
@@ -74,7 +73,7 @@ struct VM : VMBase
 
     VM(SymbolTable &_st, int *_code, size_t _len, const vector<LineInfo> &_lineinfo, const char *_pn)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
-          curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr), lineprofilecounts(nullptr),
+          curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr),
           lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state),
           trace(false), trace_tail(true)
     {
@@ -91,9 +90,7 @@ struct VM : VMBase
         
         #ifdef VM_PROFILER
             byteprofilecounts = new size_t[codelen];
-            lineprofilecounts = new size_t[lineinfo.size()];
             memset(byteprofilecounts, 0, sizeof(size_t) * codelen);
-            memset(lineprofilecounts, 0, sizeof(size_t) * lineinfo.size());
         #endif
 
         vml.LogInit();
@@ -113,7 +110,6 @@ struct VM : VMBase
         if (vars)  delete[] vars;
 
         if (byteprofilecounts) delete[] byteprofilecounts;
-        if (lineprofilecounts) delete[] lineprofilecounts;
 
         if (vmpool)
         {
@@ -651,6 +647,7 @@ struct VM : VMBase
         
         #ifdef VM_PROFILER
             size_t total = 0;
+            vector<size_t> lineprofilecounts(lineinfo.size());
             for (size_t i = 0; i < codelen; i++)
             {
                 auto &li = LookupLine(codestart + i); // FIXME: can do faster
@@ -658,12 +655,26 @@ struct VM : VMBase
                 lineprofilecounts[j] += byteprofilecounts[i];
                 total += byteprofilecounts[i];  // FIXME: will overflow
             }
+            vector<pair<LineInfo, size_t>> uniques;
             for (auto &li : lineinfo)
             {
                 size_t c = lineprofilecounts[&li - &lineinfo[0]];
-                if(c > total / 100)
-                    Output(OUTPUT_INFO, "%s(%d): %.1f %%", st.filenames[li.fileidx].c_str(), li.line,
-                                                             c * 100.0f / total);
+                if (c > total / 100)
+                {
+                    for (auto &u : uniques) if (u.first.line == li.line && u.first.fileidx == li.fileidx)
+                    {
+                        u.second += c;
+                        goto done; 
+                    }
+                    uniques.push_back(make_pair(li, c));
+                    done:;
+                }
+            }
+            for (auto &u : uniques)
+            {
+                Output(OUTPUT_INFO, "%s(%d): %.1f %%", st.filenames[u.first.fileidx].c_str(), u.first.line,
+                       u.second * 100.0f / total);
+
             }
         #endif
     }
