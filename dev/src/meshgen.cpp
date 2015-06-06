@@ -1065,7 +1065,7 @@ void AddMeshGen()
         curorig = ValueDecTo<float3>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "Vc", "A",
+    ENDDECL2CONTEXIT(mg_translate, "vec,body", "VC?", "A",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1081,7 +1081,7 @@ void AddMeshGen()
         cursize = ValueDecTo<float3>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "Vc", "A",
+    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "VC?", "A",
         "non-unimformly scales the current coordinate system using individual factors per axis. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1100,7 +1100,7 @@ void AddMeshGen()
         s.DECRT();
         return ret;
     }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "VFc", "A",
+    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "VFC?", "A",
         "rotates using axis/angle. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_fill) (Value &fill, Value &body)
@@ -1116,7 +1116,7 @@ void AddMeshGen()
         curcol = fill.ival();
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_fill, "fill,body", "Ic", "A",
+    ENDDECL2CONTEXIT(mg_fill, "fill,body", "IC?", "A",
         "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts them (carves)."
         " when a body is given, restores the previous fill mode afterwards."
         " Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");

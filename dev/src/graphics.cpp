@@ -163,7 +163,7 @@ void AddGraphics()
 
         return Value(0, V_NIL);
     }
-    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIIi", "s",
+    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIII?", "S?",
         "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
 
     STARTDECL(gl_loadmaterials) (Value &fn)
@@ -173,7 +173,7 @@ void AddGraphics()
         fn.DECRT();
         return err[0] ? Value(g_vm->NewString(err)) : Value(0, V_NIL);
     }
-    ENDDECL1(gl_loadmaterials, "filename", "S", "s",
+    ENDDECL1(gl_loadmaterials, "filename", "S", "S?",
         "loads an additional materials file (shader/default.materials is already loaded by default by gl_window())."
         " returns error string if any problems, nil otherwise.");
 
@@ -389,7 +389,7 @@ void AddGraphics()
         curcolor = ValueDecTo<float4>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "Vc", "A",
+    ENDDECL2CONTEXIT(gl_color, "col,body", "VC?", "A",
         "sets the current color. when a body is given, restores the previous color afterwards");
 
     STARTDECL(gl_polygon) (Value &vl)
@@ -454,7 +454,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_x, "angle,body", "Ac", "A",
+    ENDDECL2CONTEXIT(gl_rotate_x, "angle,body", "AC?", "A",
         "rotates the yz plane around the x axis. angle can also be a 2D vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -467,7 +467,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "Ac", "A",
+    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "AC?", "A",
         "rotates the xz plane around the y axis. angle can also be a 2D vector."
         " when a body is given, restores the previous transform afterwards");
 
@@ -480,7 +480,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "Ac", "A",
+    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "AC?", "A",
         "rotates the xy plane around the z axis (used in 2D). angle can also be a 2D vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -493,7 +493,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "Vc", "A",
+    ENDDECL2CONTEXIT(gl_translate, "vec,body", "VC?", "A",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -506,7 +506,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "Ac", "A",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "AC?", "A",
         "scales the current coordinate system using a numerical factor (or a vector for individual factors per axis)."
         " when a body is given, restores the previous transform afterwards");
 
@@ -783,7 +783,7 @@ void AddGraphics()
         SetBlendMode((BlendMode)m.ival());
         return ret;
     }
-    ENDDECL2CONTEXIT(gl_blend, "on,body", "Ic", "A",
+    ENDDECL2CONTEXIT(gl_blend, "on,body", "IC?", "A",
         "changes the blending mode to 0: off, 1: alpha blend (default), 2: additive, 3: alpha additive,"
         " 4: multiplicative. when a body is given, restores the previous mode afterwards");
 
@@ -813,7 +813,7 @@ void AddGraphics()
         g_vm->Push(Value((int)id));
         return ToValue(dim);
     }
-    ENDDECL4(gl_loadtexture, "name,clamp,nomip,nearest", "Siii", "II]:2",
+    ENDDECL4(gl_loadtexture, "name,clamp,nomip,nearest", "SI?I?I?", "II]:2",
         "returns texture id if succesfully loaded from file name, otherwise 0."
         " 3 optional booleans specify if you want clamping, turn of mipmapping, or nearest neighbor filtering."
         " Returns the size of the loaded textures in pixels as second return value on first load (xy_i),"

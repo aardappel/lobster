@@ -1193,6 +1193,13 @@ struct TypeChecker
                 type = n.left()->exptype;
                 break;
 
+            case T_DEFAULTVAL:
+                // This is used only as a default value for native call arguments.
+                // The variable makes it equal to whatever the function expects, then codegen can use that type
+                // to generate a correct value.
+                type = NewTypeVar();
+                break;
+
             case T_NATCALL:
             {
                 auto nf = n.ncall_id()->nf();
@@ -1210,7 +1217,6 @@ struct TypeChecker
                             if (!ConvertsTo(list->head()->exptype, arg.type, true)) goto nomatch;
                             list = list->tail();
                         }
-                        // TODO: list possible alternatives, also in error below.
                         if (nf) NatCallError("arguments match more than one overload of ", cnf, n);
                         nf = cnf;
                         n.ncall_id()->nf() = nf;
@@ -1225,12 +1231,12 @@ struct TypeChecker
                 {
                     auto &arg = nf->args.v[i];
                     auto argtype = arg.type;
-                    if (argtype->t == V_NILABLE)
+                    if (argtype->t == V_NILABLE && argtype->sub->Numeric() && list->head()->type != T_DEFAULTVAL)
                     {
                         // This is somewhat of a hack, because we conflate V_NILABLE with being optional for 
                         // native functions, but we don't want numeric types to be nilable.
-                        auto subt = argtype->Element();
-                        if (subt->Numeric()) argtype = subt;
+                        // Codegen has a special case for T_DEFAULTVAL however.
+                        argtype = argtype->sub;
                     }
                     switch (arg.flags)
                     {
@@ -1403,7 +1409,7 @@ struct TypeChecker
 
             case T_IF:
             {
-                if (n.if_branches()->right()->type != T_NIL)
+                if (n.if_branches()->right()->type != T_DEFAULTVAL)
                 {
                     auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), nullptr);
                     auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), nullptr);

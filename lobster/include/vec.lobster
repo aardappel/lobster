@@ -77,9 +77,6 @@ def vecfromyawpitch(yaw, pitch, move, strafe):
     (sincos(yaw - 90/* start from Y rather than X axis */) *
         cos(pitch) - xyz_z * sin(pitch)) * move + sincos(yaw) * strafe
 
-def inrange2d(test, num, bias): test.x.inrange(num.x, bias.x) &
-                                test.y.inrange(num.y, bias.y)
-
 def rotate2D(v, angle):
     s := sin(-angle)
     c := cos(-angle)

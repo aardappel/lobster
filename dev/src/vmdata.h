@@ -543,19 +543,19 @@ struct CoRoutine : RefObj
     }
 };
 
-template<typename T> inline T ValueTo(const Value &v, float def = 0)
+template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
 {
     if (v.type == V_VECTOR)
     {
         T t;
         for (int i = 0; i < T::NUM_ELEMENTS; i++)
         {
-            float e = def;
+            T::CTYPE e = def;
             if (v.vval()->len > i)
             {
                 Value &c = v.vval()->at(i);
-                if      (c.type == V_FLOAT) e = c.fval();
-                else if (c.type == V_INT)   e = (float)c.ival();
+                if      (c.type == V_FLOAT) e = (T::CTYPE)c.fval();
+                else if (c.type == V_INT)   e = (T::CTYPE)c.ival();
                 else g_vm->BuiltinError(string("non-numeric component in vector: ") + g_vm->ProperTypeName(c));
             }
             t.set(i, e);
@@ -564,11 +564,11 @@ template<typename T> inline T ValueTo(const Value &v, float def = 0)
     }
     else if (v.type == V_FLOAT)
     {
-        return T(v.fval());
+        return T((T::CTYPE)v.fval());
     }
     else if (v.type == V_INT)
     {
-        return T((float)v.ival());
+        return T((T::CTYPE)v.ival());
     }
     else
     {
@@ -576,7 +576,7 @@ template<typename T> inline T ValueTo(const Value &v, float def = 0)
     }
 }
 
-template<typename T> inline T ValueDecTo(const Value &v, float def = 0)
+template<typename T> inline T ValueDecTo(const Value &v, typename T::CTYPE def = 0)
 {
     auto r = ValueTo<T>(v, def);
     v.DEC();

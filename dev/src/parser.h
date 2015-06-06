@@ -991,11 +991,7 @@ struct Parser
                     auto &type = arg.type;
                     if (type->t == V_NILABLE)
                     {
-                        *ai = new Node(lex, T_LIST, type->sub->t == V_INT
-                                       ? (Node *)new IntConst(lex, 0) 
-                                       : (type->sub->t == V_FLOAT 
-                                            ? (Node *)new FltConst(lex, 0.0)
-                                            : (Node *)new TypeNode(lex, T_NIL)), nullptr);
+                        *ai = new Node(lex, T_LIST, new Node(lex, T_DEFAULTVAL, nullptr, nullptr), nullptr);
                     }
                     else
                     {

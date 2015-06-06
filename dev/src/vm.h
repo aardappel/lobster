@@ -43,7 +43,7 @@ struct VM : VMBase
     
     size_t codelen;
     int *codestart;
-    size_t *byteprofilecounts;
+    uint64_t *byteprofilecounts;
     
     SymbolTable &st;
 
@@ -89,8 +89,8 @@ struct VM : VMBase
         #endif
         
         #ifdef VM_PROFILER
-            byteprofilecounts = new size_t[codelen];
-            memset(byteprofilecounts, 0, sizeof(size_t) * codelen);
+            byteprofilecounts = new uint64_t[codelen];
+            memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
         #endif
 
         vml.LogInit();
@@ -646,35 +646,48 @@ struct VM : VMBase
         VMASSERT(!curcoroutine);
         
         #ifdef VM_PROFILER
-            size_t total = 0;
-            vector<size_t> lineprofilecounts(lineinfo.size());
+            Output(OUTPUT_INFO, "Profiler statistics:");
+            uint64_t total = 0;
+            auto fraction = 200;  // Line needs at least 0.5% to be counted.
+            vector<uint64_t> lineprofilecounts(lineinfo.size());
             for (size_t i = 0; i < codelen; i++)
             {
                 auto &li = LookupLine(codestart + i); // FIXME: can do faster
                 size_t j = &li - &lineinfo[0];
                 lineprofilecounts[j] += byteprofilecounts[i];
-                total += byteprofilecounts[i];  // FIXME: will overflow
+                total += byteprofilecounts[i];
             }
-            vector<pair<LineInfo, size_t>> uniques;
+            struct LineRange { LineInfo li; int lastline; uint64_t count; };
+            vector<LineRange> uniques;
             for (auto &li : lineinfo)
             {
-                size_t c = lineprofilecounts[&li - &lineinfo[0]];
-                if (c > total / 100)
+                uint64_t c = lineprofilecounts[&li - &lineinfo[0]];
+                if (c > total / fraction) uniques.push_back(LineRange{ li, li.line, c });
+            }
+            std::sort(uniques.begin(), uniques.end(), [&] (const LineRange &a, const LineRange &b) {
+                return a.li.fileidx != b.li.fileidx ? a.li.fileidx < b.li.fileidx : a.li.line < b.li.line;
+            });
+            for (auto it = uniques.begin(); it != uniques.end();) 
+            {
+                if (it != uniques.begin())
                 {
-                    for (auto &u : uniques) if (u.first.line == li.line && u.first.fileidx == li.fileidx)
+                    auto pit = it - 1;
+                    if (it->li.fileidx == pit->li.fileidx &&
+                        ((it->li.line == pit->lastline) ||
+                         (it->li.line == pit->lastline + 1 && pit->lastline++)))
                     {
-                        u.second += c;
-                        goto done; 
+                        pit->count += it->count;
+                        it = uniques.erase(it);
+                        continue;
                     }
-                    uniques.push_back(make_pair(li, c));
-                    done:;
                 }
+                ++it;
             }
             for (auto &u : uniques)
             {
-                Output(OUTPUT_INFO, "%s(%d): %.1f %%", st.filenames[u.first.fileidx].c_str(), u.first.line,
-                       u.second * 100.0f / total);
-
+                Output(OUTPUT_INFO, "%s(%d%s): %.1f %%", st.filenames[u.li.fileidx].c_str(), u.li.line,
+                       u.lastline != u.li.line ? ("-" + to_string(u.lastline)).c_str() : "",
+                       u.count * 100.0f / total);
             }
         #endif
     }

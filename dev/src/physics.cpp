@@ -154,7 +154,7 @@ void AddPhysicsOps()
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
 	}
-	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "VVvfi", "I",
+	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "VVV?F?I?", "I",
         "creates a physical box shape in the world at position, with size the half-extends around the center,"
         " offset from the center if needed, at a particular rotation (in degrees)."
         " attachto is a previous physical object to attach this one to, to become a combined physical body.");
@@ -168,7 +168,7 @@ void AddPhysicsOps()
 		shape.m_radius = radius.fval();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "VFvi", "I",
+	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "VFV?I?", "I",
         "creates a physical circle shape in the world at position, with the given radius, offset from the center if"
         " needed. attachto is a previous physical object to attach this one to, to become a combined physical body.");
 
@@ -187,7 +187,7 @@ void AddPhysicsOps()
 		vertices.DECRT();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "VVi", "I",
+	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "VVI?", "I",
         "creates a polygon circle shape in the world at position, with the given list of vertices."
         " attachto is a previous physical object to attach this one to, to become a combined physical body.");
 
@@ -244,7 +244,7 @@ void AddPhysicsOps()
 		if (r) r->textures[GetSampler(tex_unit)] = tex_id.ival();
 		return Value();
 	}
-	ENDDECL3(ph_settexture, "id,texid,texunit", "IIi", "",
+	ENDDECL3(ph_settexture, "id,texid,texunit", "III?", "",
         "sets a shape (or 0 for particles) to be rendered with a particular texture"
         " (assigned to a texture unit, default 0).");
 
@@ -262,7 +262,7 @@ void AddPhysicsOps()
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();
 	}
-	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "VFVi", "",
+	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "VFVI?", "",
         "creates a circle filled with particles. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_initializeparticles) (Value &size)

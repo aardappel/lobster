@@ -74,7 +74,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
                 np := n.state + delta
-                if(np.inrange2d(gridsize, xy_0)):
+                if(np.inrange(gridsize)):
                     f(getnode(np))
     if(isocta):
         directions = append(directions, diagonal_directions)

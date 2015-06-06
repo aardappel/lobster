@@ -338,6 +338,8 @@ struct CodeGen
         return max(f.retvals, 1);
     };
 
+    void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
+
     void Gen(const Node *n, int retval)
     {
         linenumbernodes.push_back(n);
@@ -349,9 +351,21 @@ struct CodeGen
         switch(n->type)
         {
             case T_INT:   if (retval) { Emit(IL_PUSHINT, n->integer()); }; break;
-            case T_FLOAT: if (retval) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = (float)n->flt(); Emit(i2f.i); }; break; 
+            case T_FLOAT: if (retval) { GenFloat((float)n->flt()); }; break;
             case T_STR:   if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str(); *p; p++) Emit(*p); Emit(0); }; break;
             case T_NIL:   if (retval) { Emit(IL_PUSHNIL); break; }
+
+            case T_DEFAULTVAL:
+            {
+                assert(n->exptype->t == V_NILABLE);  // Optional args are indicated by being nillable.
+                switch (n->exptype->sub->t)
+                {
+                    case V_INT: Emit(IL_PUSHINT, 0); break;
+                    case V_FLOAT: GenFloat(0); break;
+                    default: Emit(IL_PUSHNIL); break;
+                }
+                break;
+            }
 
             case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->ident()->idx); }; break;
 
@@ -484,7 +498,7 @@ struct CodeGen
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx);
-                        if (lastarg->type != T_NIL) // FIXME: this will not work if its a var with nil value
+                        if (lastarg->type != T_DEFAULTVAL) // FIXME: this will not work if its a var with nil value
                         {
                             Emit(IL_CALLVCOND, 0);
                             Emit(IL_CONT1, nf->idx);
@@ -607,7 +621,7 @@ struct CodeGen
             case T_IF:
             {
                 Gen(n->if_condition(), 1);
-                bool has_else = n->if_branches()->right()->type != T_NIL;
+                bool has_else = n->if_branches()->right()->type != T_DEFAULTVAL;
                 // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
                 Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
                 MARKL(loc);

@@ -115,8 +115,6 @@ def forscale(num, scale, fun): for(num): fun(_ * scale)
 def forrange    (a, b, fun): forbias(b - a,     a, fun)
 def forrangeincl(a, b, fun): forbias(b - a + 1, a, fun)
 
-def inrange(test, num, bias): test >= bias & test < bias + num
-
 // HOFs that work on other HOFs:
 
 def collect(hof):

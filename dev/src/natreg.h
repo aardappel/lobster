@@ -177,8 +177,6 @@ template<typename T> struct Typed
     {
         char t = *tid++;
         flags = AF_NONE;
-        bool optional = false;
-        if (t >= 'a' && t <= 'z') { optional = true; t -= 'a' - 'A'; }  // Deprecated, use '?'
         switch (t)
         {
             case 'I': type = type_int; break;
@@ -204,11 +202,6 @@ template<typename T> struct Typed
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
                 default: assert(0);
             }
-        }
-        if (optional)
-        {
-            typestorage.push_back(Type());
-            type = type->Wrap(&typestorage.back(), V_NILABLE);
         }
     }
 };

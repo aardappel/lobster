@@ -54,20 +54,20 @@ void AddBuiltins()
         "output any value to the console (with linefeed). returns its argument.");
 
     STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return a; } 
-    ENDDECL1(set_print_depth, "a", "I", "", 
+    ENDDECL1(set_print_depth, "A?", "I", "", 
         "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
 
     STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival(); return a; } 
-    ENDDECL1(set_print_length, "a", "I", "", 
+    ENDDECL1(set_print_length, "A?", "I", "", 
         "for printing / string conversion: sets max string length (default 10000)");
 
     STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival() != 0; return a; } 
-    ENDDECL1(set_print_quoted, "a", "I", "", 
+    ENDDECL1(set_print_quoted, "A?", "I", "", 
         "for printing / string conversion: if the top level value is a string, whether to convert it with escape codes"
         " and quotes (default false)");
 
     STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival(); return a; } 
-    ENDDECL1(set_print_decimals, "a", "I", "", 
+    ENDDECL1(set_print_decimals, "A?", "I", "", 
         "for printing / string conversion: number of decimals for any floating point output (default -1, meaning all)");
 
     STARTDECL(getline) ()
@@ -90,7 +90,7 @@ void AddBuiltins()
         (void)e;
         return Value();
     }
-    ENDDECL3(if, "cond,then,else", "ACc", "A",
+    ENDDECL3(if, "cond,then,else", "ACC?", "A",
         "evaluates then or else depending on cond, else is optional");
 
     STARTDECL(while) (Value &c, Value &b)
@@ -208,7 +208,7 @@ void AddBuiltins()
         l.vval()->insert(a, i.ival(), max(n.ival(), 1));
         return l;
     }
-    ENDDECL4(insert, "xs,i,x,n", "VIAi", "V",
+    ENDDECL4(insert, "xs,i,x,n", "VIAI?", "V",
         "inserts n copies (default 1) of x into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
@@ -223,7 +223,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL3(remove, "xs,i,n", "VIi", "A1",
+    ENDDECL3(remove, "xs,i,n", "VII?", "A1",
         "remove element(s) at index i, following elements shift down. pass the number of elements to remove"
         " as an optional argument, default 1. returns the first element removed.");
 
@@ -323,7 +323,7 @@ void AddBuiltins()
         v.DECRT();
         return r;
     }
-    ENDDECL1(any, "xs", "V", "a1",
+    ENDDECL1(any, "xs", "V", "A1?",
         "returns the first true element of the vector, or nil");
 
     STARTDECL(all) (Value &v)
@@ -605,6 +605,23 @@ void AddBuiltins()
     ENDDECL3(clamp, "x,min,max", "FFF", "F",
              "forces a float to be in the range between min and max (inclusive)");
 
+    STARTDECL(inrange) (Value &x, Value &range, Value &bias)
+    {
+        return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
+    }
+    ENDDECL3(inrange, "x,range,bias", "III?", "I",
+             "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
+
+    STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv)
+    {
+        auto x     = ValueDecTo<int2>(xv);
+        auto range = ValueDecTo<int2>(rangev);
+        auto bias  = ValueDecTo<int2>(biasv);
+        return Value(x >= bias && x < bias + range);
+    }
+    ENDDECL3(inrange, "x,range,bias", "I]:2I]:2I]:2?", "I",
+             "checks if a 2d integer vector is >= bias and < bias + range. Bias defaults to 0.");
+
     STARTDECL(abs) (Value &a)
     {
         switch (a.type)
@@ -695,7 +712,7 @@ void AddBuiltins()
         g_vm->CoResume(co.cval());
         return ret;
     }
-    ENDDECL2(resume, "coroutine,returnvalue", "Ra%", "A",
+    ENDDECL2(resume, "coroutine,returnvalue", "RA%?", "A",
         "resumes execution of a coroutine, passing a value back or nil");
 
     STARTDECL(returnvalue) (Value &co)

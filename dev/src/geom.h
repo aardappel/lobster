@@ -44,6 +44,7 @@ template<typename T, int N> class vec
     public:
 
     enum { NUM_ELEMENTS = N };
+    typedef T CTYPE;
     
     vec()
     { 

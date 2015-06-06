@@ -53,6 +53,7 @@ namespace lobster
     T(T_FLOAT, "floating point literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_STR, "string literal", TT_NOCHILD, NO, a, NO, b) \
     T(T_NIL, "nil", TT_NOCHILD, NO, a, NO, b) \
+    T(T_DEFAULTVAL, "default value", TT_NOCHILD, NO, a, NO, b) \
     T(T_IDENT, "identifier", TT_NOCHILD, NO, a, NO, b) \
     T(T_STRUCT, "struct", TT_NOCHILD, NO, a, NO, b) \
     T(T_FUN, "def", TT_NOCHILD, NO, a, NO, b) \

@@ -192,7 +192,7 @@ struct Node : AST
 
     int ClosureArgs()
     {
-        return type == T_NIL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
+        return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
     }
 };
 
