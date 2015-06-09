@@ -18,134 +18,148 @@ namespace lobster
 // Enum used both for token and node types
 
 #define TTYPES_LIST \
-    T(T_NONE, "invalid_token", TT_NONE, NO, a, NO, b) \
+    T0(T_NONE, "invalid_token", 0) \
     \
     /* These are used both as tokens and node types */ \
-    T(T_PLUS, "+", TT_BINARY, NO, a, NO, b) \
-    T(T_MINUS, "-", TT_BINARY, NO, a, NO, b) \
-    T(T_MULT, "*", TT_BINARY, NO, a, NO, b) \
-    T(T_DIV, "/", TT_BINARY, NO, a, NO, b) \
-    T(T_MOD, "%", TT_BINARY, NO, a, NO, b) \
-    T(T_PLUSEQ, "+=", TT_BINARY, NO, a, NO, b) \
-    T(T_MINUSEQ, "-=", TT_BINARY, NO, a, NO, b) \
-    T(T_MULTEQ, "*=", TT_BINARY, NO, a, NO, b) \
-    T(T_DIVEQ, "/=", TT_BINARY, NO, a, NO, b) \
-    T(T_MODEQ, "%=", TT_BINARY, NO, a, NO, b) \
-    T(T_AND, "&", TT_BINARY, NO, a, NO, b) \
-    T(T_OR, "|", TT_BINARY, NO, a, NO, b) \
-    T(T_NOT, "~", TT_UNARY, NO, a, NO, b) \
-    T(T_INCR, "++", TT_UNARY, NO, a, NO, b) \
-    T(T_DECR, "--", TT_UNARY, NO, a, NO, b) \
-    T(T_EQ, "==", TT_BINARY, NO, a, NO, b) \
-    T(T_NEQ, "!=", TT_BINARY, NO, a, NO, b) \
-    T(T_LT, "<", TT_BINARY, NO, a, NO, b) \
-    T(T_GT, ">", TT_BINARY, NO, a, NO, b) \
-    T(T_LTEQ, "<=", TT_BINARY, NO, a, NO, b) \
-    T(T_GTEQ, ">=", TT_BINARY, NO, a, NO, b) \
-    T(T_ASSIGN, "=", TT_BINARY, NO, a, NO, b) \
-    T(T_DYNASSIGN, "<-", TT_BINARY, NO, a, NO, b) \
-    T(T_LOGASSIGN, "?=", TT_BINARY, NO, a, NO, b) \
-    T(T_DEF, ":=", TT_TERNARY, NO, a, NO, b) \
-    T(T_DOT, ".", TT_BINARY, NO, a, NO, b) \
-    T(T_DOTMAYBE, "?.", TT_BINARY, NO, a, NO, b) \
-    T(T_CODOT, "->", TT_BINARY, NO, a, NO, b) \
-    T(T_INT, "integer literal", TT_NOCHILD, NO, a, NO, b) \
-    T(T_FLOAT, "floating point literal", TT_NOCHILD, NO, a, NO, b) \
-    T(T_STR, "string literal", TT_NOCHILD, NO, a, NO, b) \
-    T(T_NIL, "nil", TT_NOCHILD, NO, a, NO, b) \
-    T(T_DEFAULTVAL, "default value", TT_NOCHILD, NO, a, NO, b) \
-    T(T_IDENT, "identifier", TT_NOCHILD, NO, a, NO, b) \
-    T(T_STRUCT, "struct", TT_NOCHILD, NO, a, NO, b) \
-    T(T_FUN, "def", TT_NOCHILD, NO, a, NO, b) \
-    T(T_RETURN, "return", TT_NONE, YES, return_value, YES, return_function_idx) \
-    T(T_IS, "is", TT_BINARY, NO, a, NO, b) \
-    T(T_COROUTINE, "coroutine", TT_UNARY, NO, a, NO, b) \
+    T0(T_PLUS, "+", 2) \
+    T0(T_MINUS, "-", 2) \
+    T0(T_MULT, "*", 2) \
+    T0(T_DIV, "/", 2) \
+    T0(T_MOD, "%", 2) \
+    T0(T_PLUSEQ, "+=", 2) \
+    T0(T_MINUSEQ, "-=", 2) \
+    T0(T_MULTEQ, "*=", 2) \
+    T0(T_DIVEQ, "/=", 2) \
+    T0(T_MODEQ, "%=", 2) \
+    T0(T_AND, "&", 2) \
+    T0(T_OR, "|", 2) \
+    T0(T_NOT, "~", 1) \
+    T0(T_INCR, "++", 1) \
+    T0(T_DECR, "--", 1) \
+    T0(T_EQ, "==", 2) \
+    T0(T_NEQ, "!=", 2) \
+    T0(T_LT, "<", 2) \
+    T0(T_GT, ">", 2) \
+    T0(T_LTEQ, "<=", 2) \
+    T0(T_GTEQ, ">=", 2) \
+    T0(T_ASSIGN, "=", 2) \
+    T0(T_DYNASSIGN, "<-", 2) \
+    T0(T_LOGASSIGN, "?=", 2) \
+    T0(T_DEF, ":=", 3) \
+    T0(T_DOT, ".", 2) \
+    T0(T_DOTMAYBE, "?.", 2) \
+    T0(T_CODOT, "->", 2) \
+    T0(T_INT, "integer literal", 0) \
+    T0(T_FLOAT, "floating point literal", 0) \
+    T0(T_STR, "string literal", 0) \
+    T0(T_NIL, "nil", 0) \
+    T0(T_DEFAULTVAL, "default value", 0) \
+    T0(T_IDENT, "identifier", 0) \
+    T0(T_STRUCT, "struct", 0) \
+    T0(T_FUN, "def", 0) \
+    T2(T_RETURN, "return", 2, return_value, return_function_idx) \
+    T0(T_IS, "is", 2) \
+    T0(T_COROUTINE, "coroutine", 1) \
     \
     /* These are used ONLY as node types: */ \
-    T(T_TYPE, "type", TT_NOCHILD, NO, a, NO, b) \
-    T(T_STRUCTDEF, "struct definition", TT_NONE, YES, struct_id, NO, b) \
-    T(T_FIELD, "field", TT_NOCHILD, NO, a, NO, b) \
-    T(T_COCLOSURE, "coroutine yield", TT_NOCHILD, NO, a, NO, b) \
-    T(T_NATIVE, "native function", TT_NOCHILD, NO, a, NO, b) \
-    T(T_NATCALL, "native call", TT_NONE, YES, ncall_id, YES, ncall_args) \
-    T(T_CALL, "call", TT_NONE, YES, call_function, YES, call_args) \
-    T(T_DYNCALL, "dynamic call", TT_NONE, YES, dcall_fval, YES, dcall_info) \
-    T(T_DYNINFO, "dynamic info", TT_NONE, YES, dcall_function, YES, dcall_args) \
-    T(T_LIST, "list", TT_NONE, YES, head, YES, tail) \
-    T(T_ASSIGNLIST, "assign list", TT_BINARY, NO, a, NO, b) \
-    T(T_MULTIRET, "multiple return", TT_NONE, YES, headexp, YES, tailexps) \
-    T(T_SEQ, "statements", TT_BINARY, NO, a, NO, b) \
-    T(T_INDEX, "indexing operation", TT_BINARY, NO, a, NO, b) \
-    T(T_POSTINCR, "++", TT_UNARY, NO, a, NO, b) \
-    T(T_POSTDECR, "--", TT_UNARY, NO, a, NO, b) \
-    T(T_UMINUS, "-", TT_UNARY, NO, a, NO, b) \
-    T(T_I2F, "tofloat", TT_UNARY, NO, a, NO, b) \
-    T(T_A2S, "tostring", TT_UNARY, NO, a, NO, b) \
-    T(T_CONSTRUCTOR, "constructor", TT_NONE, YES, constructor_args, YES, constructor_type) \
-    T(T_IF, "if", TT_NONE, YES, if_condition, YES, if_branches) \
-    T(T_BRANCHES, "if branch", TT_BINARY, NO, a, NO, b) \
-    T(T_WHILE, "while", TT_NONE, YES, while_condition, YES, while_body) \
-    T(T_FOR, "for", TT_NONE, YES, for_iter, YES, for_body) \
-    T(T_FORLOOPVAR, "for loop variable", TT_NOCHILD, NO, a, NO, b) \
+    T0(T_TYPE, "type", 0) \
+    T1(T_STRUCTDEF, "struct definition", 1, struct_id) \
+    T0(T_FIELD, "field", 0) \
+    T0(T_COCLOSURE, "coroutine yield", 0) \
+    T0(T_NATIVE, "native function", 0) \
+    T2(T_NATCALL, "native call", 2, ncall_id, ncall_args) \
+    T2(T_CALL, "call", 2, call_function, call_args) \
+    T3(T_DYNCALL, "dynamic call", 3, dcall_fval, dcall_function, dcall_args) \
+    T2(T_LIST, "list", 2, head, tail) \
+    T0(T_ASSIGNLIST, "assign list", 2) \
+    T2(T_MULTIRET, "multiple return", 2, headexp, tailexps) \
+    T0(T_SEQ, "statements", 2) \
+    T0(T_INDEX, "indexing operation", 2) \
+    T0(T_POSTINCR, "++", 1) \
+    T0(T_POSTDECR, "--", 1) \
+    T0(T_UMINUS, "-", 1) \
+    T0(T_I2F, "tofloat", 1) \
+    T0(T_A2S, "tostring", 1) \
+    T2(T_CONSTRUCTOR, "constructor", 2, constructor_args, constructor_type) \
+    T3(T_IF, "if", 3, if_condition, if_then, if_else) \
+    T2(T_WHILE, "while", 2, while_condition, while_body) \
+    T2(T_FOR, "for", 2, for_iter, for_body) \
+    T0(T_FORLOOPVAR, "for loop variable", 0) \
     \
     /* These are used ONLY as tokens: */ \
-    T(T_LINEFEED, "linefeed", TT_NONE, NO, a, NO, b) \
-    T(T_ENDOFINCLUDE, "end of include", TT_NONE, NO, a, NO, b) \
-    T(T_ENDOFFILE, "end of file", TT_NONE, NO, a, NO, b) \
-    T(T_INDENT, "indentation", TT_NONE, NO, a, NO, b) \
-    T(T_DEDENT, "de-indentation", TT_NONE, NO, a, NO, b) \
-    T(T_LEFTPAREN, "(", TT_NONE, NO, a, NO, b) \
-    T(T_RIGHTPAREN, ")", TT_NONE, NO, a, NO, b) \
-    T(T_LEFTBRACKET, "[", TT_NONE, NO, a, NO, b) \
-    T(T_RIGHTBRACKET, "]", TT_NONE, NO, a, NO, b) \
-    T(T_LEFTCURLY, "{", TT_NONE, NO, a, NO, b) \
-    T(T_RIGHTCURLY, "}", TT_NONE, NO, a, NO, b) \
-    T(T_SEMICOLON, ";", TT_NONE, NO, a, NO, b) \
-    T(T_AT, "@", TT_NONE, NO, a, NO, b) \
-    T(T_QUESTIONMARK, "?", TT_NONE, NO, a, NO, b) \
-    T(T_COMMA, ",", TT_NONE, NO, a, NO, b) \
-    T(T_COLON, ":", TT_NONE, NO, a, NO, b) \
-    T(T_DEFCONST, ":==", TT_NONE, NO, a, NO, b) \
-    T(T_DEFTYPEIN, "::=", TT_NONE, NO, a, NO, b) \
-    T(T_TYPEIN, "::", TT_NONE, NO, a, NO, b) \
-    T(T_VALUE, "value", TT_NONE, NO, a, NO, b) \
-    T(T_INCLUDE, "include", TT_NONE, NO, a, NO, b) \
-    T(T_INTTYPE, "int", TT_NONE, NO, a, NO, b) \
-    T(T_FLOATTYPE, "float", TT_NONE, NO, a, NO, b) \
-    T(T_STRTYPE, "string", TT_NONE, NO, a, NO, b) \
-    T(T_VECTTYPE, "vector", TT_NONE, NO, a, NO, b) \
-    T(T_FROM, "from", TT_NONE, NO, a, NO, b) \
-    T(T_PROGRAM, "program", TT_NONE, NO, a, NO, b) \
-    T(T_PRIVATE, "private", TT_NONE, NO, a, NO, b) \
-    T(T_ENUM, "enum", TT_NONE, NO, a, NO, b) \
+    T0(T_LINEFEED, "linefeed", 0) \
+    T0(T_ENDOFINCLUDE, "end of include", 0) \
+    T0(T_ENDOFFILE, "end of file", 0) \
+    T0(T_INDENT, "indentation", 0) \
+    T0(T_DEDENT, "de-indentation", 0) \
+    T0(T_LEFTPAREN, "(", 0) \
+    T0(T_RIGHTPAREN, ")", 0) \
+    T0(T_LEFTBRACKET, "[", 0) \
+    T0(T_RIGHTBRACKET, "]", 0) \
+    T0(T_LEFTCURLY, "{", 0) \
+    T0(T_RIGHTCURLY, "}", 0) \
+    T0(T_SEMICOLON, ";", 0) \
+    T0(T_AT, "@", 0) \
+    T0(T_QUESTIONMARK, "?", 0) \
+    T0(T_COMMA, ",", 0) \
+    T0(T_COLON, ":", 0) \
+    T0(T_DEFCONST, ":==", 0) \
+    T0(T_DEFTYPEIN, "::=", 0) \
+    T0(T_TYPEIN, "::", 0) \
+    T0(T_VALUE, "value", 0) \
+    T0(T_INCLUDE, "include", 0) \
+    T0(T_INTTYPE, "int", 0) \
+    T0(T_FLOATTYPE, "float", 0) \
+    T0(T_STRTYPE, "string", 0) \
+    T0(T_VECTTYPE, "vector", 0) \
+    T0(T_FROM, "from", 0) \
+    T0(T_PROGRAM, "program", 0) \
+    T0(T_PRIVATE, "private", 0) \
+    T0(T_ENUM, "enum", 0) \
 
 enum TType
 {
-    #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) ENUM,
-    TTYPES_LIST
-    #undef T
+    #define T0(ENUM, STR, CAT) ENUM,
+    #define T1(ENUM, STR, CAT, ONE) ENUM,
+    #define T2(ENUM, STR, CAT, ONE, TWO) ENUM,
+    #define T3(ENUM, STR, CAT, ONE, TWO, THREE) ENUM,
+        TTYPES_LIST
+    #undef T0
+    #undef T1
+    #undef T2
+    #undef T3
 };
 
 inline const char *TName(TType t)
 {
     static const char *names[] =
     {
-        #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) STR,
-        TTYPES_LIST
-        #undef T
+        #define T0(ENUM, STR, CAT) STR,
+        #define T1(ENUM, STR, CAT, ONE) STR,
+        #define T2(ENUM, STR, CAT, ONE, TWO) STR,
+        #define T3(ENUM, STR, CAT, ONE, TWO, THREE) STR,
+            TTYPES_LIST
+        #undef T0
+        #undef T1
+        #undef T2
+        #undef T3
     };
     return names[t];
 }
 
-enum TTypeCategory { TT_NONE, TT_NOCHILD, TT_UNARY, TT_BINARY, TT_TERNARY };
-
-inline TTypeCategory TCat(TType t)
+inline char TArity(TType t)
 {
-    static TTypeCategory cats[] =
+    static char cats[] =
     {
-        #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) CAT,
-        TTYPES_LIST
-        #undef T
+        #define T0(ENUM, STR, CAT) CAT,
+        #define T1(ENUM, STR, CAT, ONE) CAT,
+        #define T2(ENUM, STR, CAT, ONE, TWO) CAT,
+        #define T3(ENUM, STR, CAT, ONE, TWO, THREE) CAT,
+            TTYPES_LIST
+        #undef T0
+        #undef T1
+        #undef T2
+        #undef T3
     };
     return cats[t];
 }

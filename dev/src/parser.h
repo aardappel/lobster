@@ -365,7 +365,7 @@ struct Parser
                     struc->predeclaration = true;
                 }
 
-                AddTail(tail, new Node(lex, T_STRUCTDEF, new StRef(lex, struc), nullptr));
+                AddTail(tail, (Node *)new Unary(lex, T_STRUCTDEF, new StRef(lex, struc)));
                 break;
             }
 
@@ -961,7 +961,7 @@ struct Parser
                 auto e = ParseUnary();
                 if (t == T_INCR || t == T_DECR) Modify(e);
                 if (t == T_MINUS) t = T_UMINUS;
-                return new Node(lex, t, e, nullptr);
+                return (Node *)new Unary(lex, t, e);
             }
 
             default:
@@ -991,7 +991,7 @@ struct Parser
                     auto &type = arg.type;
                     if (type->t == V_NILABLE)
                     {
-                        *ai = new Node(lex, T_LIST, new Node(lex, T_DEFAULTVAL, nullptr, nullptr), nullptr);
+                        *ai = new Node(lex, T_LIST, (Node *)new AST(lex, T_DEFAULTVAL), nullptr);
                     }
                     else
                     {
@@ -1006,10 +1006,9 @@ struct Parser
             // TODO: worth deleting the garbage list nodes this creates?
             if (nf->name == "if")
             {
-                return new Node(lex, T_IF, args->head(),
-                                           new Node(lex, T_BRANCHES,
-                                               MaxClosureArgCheck(args->tail()->head(), 0),
-                                               MaxClosureArgCheck(args->tail()->tail()->head(), 0)));
+                return (Node *)new Ternary(lex, T_IF, args->head(),
+                                           MaxClosureArgCheck(args->tail()->head(), 0),
+                                           MaxClosureArgCheck(args->tail()->tail()->head(), 0));
             }
             else if (nf->name == "while")
             {
@@ -1041,10 +1040,9 @@ struct Parser
         auto args = ParseFunArgs(coroutine, firstarg);
         auto id = st.Lookup(idname);
         if (id)
-            return new Node(lex, T_DYNCALL, new IdRef(lex, id),
-                                            new Node(lex, T_DYNINFO,
-                                                new FunRef(lex, (SubFunction *)nullptr),
-                                                args));
+            return (Node *)new Ternary(lex, T_DYNCALL, new IdRef(lex, id),
+                                                       new FunRef(lex, (SubFunction *)nullptr),
+                                                       args);
 
         auto n = new Node(lex, T_CALL, new FunRef(lex, (SubFunction *)nullptr), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
@@ -1146,17 +1144,14 @@ struct Parser
             case T_INCR:
             case T_DECR:
                 Modify(n);
-                n = new Node(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n, nullptr);
+                n = (Node *)new Unary(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n);
                 lex.Next();
                 return n;
 
             case T_LEFTPAREN:   // only for dyn calls
             {
                 auto args = ParseFunArgs(false, nullptr);
-                n = new Node(lex, T_DYNCALL, n,
-                                             new Node(lex, T_DYNINFO,
-                                                 new FunRef(lex, (SubFunction *)nullptr), 
-                                                 args));
+                n = (Node *)new Ternary(lex, T_DYNCALL, n, new FunRef(lex, (SubFunction *)nullptr), args);
                 break;
             }
 
@@ -1235,8 +1230,8 @@ struct Parser
                 lex.Next();
                 string idname = lex.sattr;
                 Expect(T_IDENT);
-                return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname), nullptr,
-                                idname, nullptr, true), nullptr);
+                return (Node *)new Unary(lex, T_COROUTINE,
+                                         ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true));
             }
 
             case T_FLOATTYPE:

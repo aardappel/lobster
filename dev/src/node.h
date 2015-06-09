@@ -45,38 +45,55 @@ struct AST : SlabAllocatedSmall
     }
 };
 
-struct IntConst : AST { int integer_;      IntConst(Lex &lex, int i)            : AST(lex, T_INT), integer_(i) {}; };  // T_INT
-struct FltConst : AST { double flt_;       FltConst(Lex &lex, double f)         : AST(lex, T_FLOAT), flt_(f) {}; };  // T_FLOAT
-struct StrConst : AST { char *str_;        StrConst(Lex &lex, const string &s)  : AST(lex, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };  // T_STR
-struct IdRef    : AST { Ident *ident_;     IdRef   (Lex &lex, Ident *id)        : AST(lex, T_IDENT), ident_(id) {} }; // T_IDENT
-struct StRef    : AST { Struct *st_;       StRef   (Lex &lex, Struct *st)       : AST(lex, T_STRUCT), st_(st) {} };  // T_STRUCT
-struct FldRef   : AST { SharedField *fld_; FldRef  (Lex &lex, SharedField *fld) : AST(lex, T_FIELD), fld_(fld) {} };  // T_FIELD
-struct FunRef   : AST { SubFunction *sf_;  FunRef  (Lex &lex, SubFunction *sf)  : AST(lex, T_FUN), sf_(sf) {} };  // T_FUN
-struct NatRef   : AST { NativeFun *nf_;    NatRef  (Lex &lex, NativeFun *nf)    : AST(lex, T_NATIVE), nf_(nf) {} };  // T_NATIVE
+struct IntConst : AST { int integer_;      IntConst(Lex &lex, int i)            : AST(lex, T_INT), integer_(i) {}; };
+struct FltConst : AST { double flt_;       FltConst(Lex &lex, double f)         : AST(lex, T_FLOAT), flt_(f) {}; };
+struct StrConst : AST { char *str_;        StrConst(Lex &lex, const string &s)  : AST(lex, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };
+struct IdRef    : AST { Ident *ident_;     IdRef   (Lex &lex, Ident *id)        : AST(lex, T_IDENT), ident_(id) {} };
+struct StRef    : AST { Struct *st_;       StRef   (Lex &lex, Struct *st)       : AST(lex, T_STRUCT), st_(st) {} };
+struct FldRef   : AST { SharedField *fld_; FldRef  (Lex &lex, SharedField *fld) : AST(lex, T_FIELD), fld_(fld) {} };
+struct FunRef   : AST { SubFunction *sf_;  FunRef  (Lex &lex, SubFunction *sf)  : AST(lex, T_FUN), sf_(sf) {} };
+struct NatRef   : AST { NativeFun *nf_;    NatRef  (Lex &lex, NativeFun *nf)    : AST(lex, T_NATIVE), nf_(nf) {} };
 struct TypeNode : AST { TypeRef type_;     TypeNode(Lex &lex, TType t)          : AST(lex, t) {} };  // T_TYPE, T_NIL
+
+struct Unary : AST
+{
+    protected:
+    Node *a_;
+    public:
+
+    Unary(Lex &lex, TType t, AST *a) : AST(lex, t), a_((Node *)a)
+    {
+        assert(TArity(t) >= 1);
+    }
+}; 
 
 struct Ternary : AST
 {
+    //protected:
     Node *a_, *b_, *c_;
+    public:
+
     Ternary(Lex &lex, TType t, AST *a, AST *b, AST *c) : AST(lex, t), a_((Node *)a), b_((Node *)b), c_((Node *)c)
     {
-        assert(TCat(t) == TT_TERNARY);
+        assert(TArity(t) == 3);
     }
 };
 
 // Inverted subtyping: rather than have most of the compiler deal with the AST base type (which would require a ton
-// of virtual methods or casts to access the subtypes), we make Node (the most common occurring subtype) the
-// type we use, and give it accessors that can read all fields of all other subtypes, protected by an assert.
-// This is safe, fast, and memory efficient.
-struct Node : AST
+// of virtual methods or casts to access the subtypes), we make Node (the most common occurring subtype, a binary
+// tree node) the type we use, and give it ACCs that can read all fields of all other subtypes, protected by an
+// assert. This is safe, fast, and memory efficient.
+
+struct Node : Unary
 {
     private:
-    Node *a_, *b_;
+    Node *b_;
     public:
 
-    Node(Lex &lex, TType t, AST *a, AST *b) : AST(lex, t), a_((Node *)a), b_((Node *)b) {};
-
-    int NumChildren()  const { return TCat(type) == TT_NOCHILD ? 0 : TCat(type) == TT_TERNARY ? 3 : 2; }
+    Node(Lex &lex, TType t, AST *a, AST *b) : Unary(lex, t, (Node *)a), b_((Node *)b)
+    {
+        assert(TArity(t) == 2);
+    };
 
     int integer()       const { assert(type == T_INT);    return ((const IntConst *)this)->integer_; }
     double flt()        const { assert(type == T_FLOAT);  return ((const FltConst *)this)->flt_; }
@@ -93,31 +110,35 @@ struct Node : AST
     TypeRef  typenode() const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
     TypeRef &typenode()       { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
 
-    Node * a() const { assert(TCat(type) != TT_NOCHILD); return a_; }
-    Node *&a()       { assert(TCat(type) != TT_NOCHILD); return a_; }
-    Node * b() const { assert(TCat(type) != TT_NOCHILD); return b_; }
-    Node *&b()       { assert(TCat(type) != TT_NOCHILD); return b_; }
-    Node * c() const { assert(TCat(type) == TT_TERNARY); return ((Ternary *)this)->c_; }
-    Node *&c()       { assert(TCat(type) == TT_TERNARY); return ((Ternary *)this)->c_; }
+    Node * a() const { return TArity(type) > 0 ? a_ : nullptr; }
+    Node * b() const { return TArity(type) > 1 ? b_ : nullptr; }
+    Node * c() const { return TArity(type) > 2 ? ((Ternary *)this)->c_ : nullptr; }
+    Node *&aref()    { assert(TArity(type) > 0); return a_; }
+    Node *&bref()    { assert(TArity(type) > 1); return b_; }
+    Node *&cref()    { assert(TArity(type) > 2); return ((Ternary *)this)->c_; }
 
-    Node * left()  const { assert(TCat(type) >= TT_BINARY); return a_; }
-    Node *&left()        { assert(TCat(type) >= TT_BINARY); return a_; }
-    Node * right() const { assert(TCat(type) >= TT_BINARY); return b_; }
-    Node *&right()       { assert(TCat(type) >= TT_BINARY); return b_; }
+    Node * left()  const { assert(TArity(type) >= 2); return a_; }
+    Node *&left()        { assert(TArity(type) >= 2); return a_; }
+    Node * right() const { assert(TArity(type) >= 2); return b_; }
+    Node *&right()       { assert(TArity(type) >= 2); return b_; }
 
-    Node * child() const { assert(TCat(type) == TT_UNARY); return a_; }
-    Node *&child()       { assert(TCat(type) == TT_UNARY); return a_; }
+    Node * child() const { assert(TArity(type) == 1); return a_; }
+    Node *&child()       { assert(TArity(type) == 1); return a_; }
 
-    #define GEN_ACCESSOR_NO(ENUM, NAME, AB)
-    #define GEN_ACCESSOR_YES(ENUM, NAME, AB) \
+    #define ACCESSOR(ENUM, NAME, AB) \
               Node *&NAME()       { assert(type == ENUM); return AB; } \
         const Node * NAME() const { assert(type == ENUM); return AB; }
-    #define T(ENUM, STR, CAT, HASLEFT, LEFT, HASRIGHT, RIGHT) GEN_ACCESSOR_##HASLEFT(ENUM, LEFT, a_) \
-                                                              GEN_ACCESSOR_##HASRIGHT(ENUM, RIGHT, b_)
-    TTYPES_LIST
-    #undef T
-    #undef GEN_ACCESSOR_NO
-    #undef GEN_ACCESSOR_YES
+    #define T0(ENUM, STR, CAT)
+    #define T1(ENUM, STR, CAT, ONE)             ACCESSOR(ENUM, ONE, a_)
+    #define T2(ENUM, STR, CAT, ONE, TWO)        ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_)
+    #define T3(ENUM, STR, CAT, ONE, TWO, THREE) ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_) \
+                                                                        ACCESSOR(ENUM, THREE, ((Ternary *)this)->c_)
+        TTYPES_LIST
+    #undef T0
+    #undef T1
+    #undef T2
+    #undef T3
+    #undef ACCESSOR
 
     ~Node()
     {
@@ -126,23 +147,21 @@ struct Node : AST
             parserpool->dealloc_sized(str());
         }
         else
-        {   
-            auto nc = NumChildren();
+        {
             // This looks odd, since it calls delete on potentially the incorrect type, but the implementation
             // is dealloc_small which knows the correct size.
-            if (nc > 0 && a()) delete a();
-            if (nc > 1 && b()) delete b();
-            if (nc > 2 && c()) delete c();
+            if (a()) delete a();
+            if (b()) delete b();
+            if (c()) delete c();
         }
     }
 
     Node *Clone()
     {
         auto n = (Node *)parserpool->clone_obj_small_unknown(this);
-        auto nc = NumChildren();
-        if (nc > 0 && a()) n->a() = a()->Clone();
-        if (nc > 1 && b()) n->b() = b()->Clone();
-        if (nc > 2 && c()) n->c() = c()->Clone();
+        if (a()) n->aref() = a()->Clone();
+        if (b()) n->bref() = b()->Clone();
+        if (c()) n->cref() = c()->Clone();
         if (type == T_STR)
         {
             n->str() = parserpool->alloc_string_sized(str());
@@ -153,11 +172,10 @@ struct Node : AST
     int Count()
     {
         if (!this) return 0;
-        auto nc = NumChildren();
         int count = 1;
-        if (nc > 0 && a()) count += a()->Count();
-        if (nc > 1 && b()) count += b()->Count();
-        if (nc > 2 && c()) count += c()->Count();
+        if (a()) count += a()->Count();
+        if (b()) count += b()->Count();
+        if (c()) count += c()->Count();
         return count;
     }
 
@@ -232,18 +250,17 @@ inline string Dump(const Node &n, int indent)
             bool ml = false;
             auto indenb = indent - (n.type == T_LIST) * 2;
 
-            auto nc = n.NumChildren();
-            if (nc > 0 && n.a()) { as = Dump(*n.a(), indent + 2); DumpType(*n.a(), as); if (as[0] == ' ') ml = true; }
-            if (nc > 1 && n.b()) { bs = Dump(*n.b(), indenb + 2); DumpType(*n.b(), bs); if (bs[0] == ' ') ml = true; }
-            if (nc > 2 && n.c()) { cs = Dump(*n.c(), indenb + 2); DumpType(*n.c(), cs); if (cs[0] == ' ') ml = true; }
+            if (n.a()) { as = Dump(*n.a(), indent + 2); DumpType(*n.a(), as); if (as[0] == ' ') ml = true; }
+            if (n.b()) { bs = Dump(*n.b(), indenb + 2); DumpType(*n.b(), bs); if (bs[0] == ' ') ml = true; }
+            if (n.c()) { cs = Dump(*n.c(), indenb + 2); DumpType(*n.c(), cs); if (cs[0] == ' ') ml = true; }
 
             if (as.size() + bs.size() + cs.size() > 60) ml = true;
 
             if (ml)
             {
-                if (nc > 0 && n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
-                if (nc > 1 && n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
-                if (nc > 2 && n.c()) { if (cs[0] != ' ') cs = string(indenb + 2, ' ') + cs; }
+                if (n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
+                if (n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
+                if (n.c()) { if (cs[0] != ' ') cs = string(indenb + 2, ' ') + cs; }
                 if (n.type == T_LIST)
                 {
                     s = "";
@@ -253,15 +270,15 @@ inline string Dump(const Node &n, int indent)
                     s = string(indent, ' ') + s;
                     if (n.a()) s += "\n";
                 }
-                if (nc > 0 && n.a()) s += as;
-                if (nc > 1 && n.b()) s += "\n" + bs;
-                if (nc > 2 && n.c()) s += "\n" + cs;
+                if (n.a()) s += as;
+                if (n.b()) s += "\n" + bs;
+                if (n.c()) s += "\n" + cs;
                 return s;
             }
             else
             {
-                if (nc > 1 && n.b()) return nc > 2 && n.c() ? "(" + s + " " + as + " " + bs + " " + cs + ")"
-                                                            : "(" + s + " " + as + " " + bs + ")";
+                if (n.b()) return n.c() ? "(" + s + " " + as + " " + bs + " " + cs + ")"
+                                        : "(" + s + " " + as + " " + bs + ")";
                 else return "(" + s + " " + as + ")";
             }
         }

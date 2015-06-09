@@ -61,10 +61,6 @@
 
   * start removing all dynamic ops from the VM and codegen
 
-  * improve the code for ternary nodes, and add unary.
-    its all a bit of a hack right now, esp looping through nodes.
-  * fixme: accessing flt_ in Node could fail if not 64bit aligned on ARM
-
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.
     Can this ever happen? can we guarantee it doesn't? Or for now just force a specialization if it has demotes?
@@ -173,8 +169,6 @@
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
-- builtin inrange/inrange2d
-
 - allow random number generator to be selected
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
@@ -197,6 +191,9 @@ vertex_neighbors :== [
 - [float] / int does int division, which is wrong
 
 - add support for http://vallentinsource.com/opengl/debug-output
+
+- might be fun to see how hard it is to write an integration for http://lighttable.com/
+  which could be used as a debugger and maybe for live-coding.
 
 - Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki
 

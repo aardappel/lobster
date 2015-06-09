@@ -249,13 +249,13 @@ struct TypeChecker
             case V_FLOAT:
                 if (type->t == V_INT)
                 {
-                    a = new Node(lex, T_I2F, a, nullptr);
+                    a = (Node *)new Unary(lex, T_I2F, a);
                     a->exptype = type_float;
                     return;
                 }
                 break;
             case V_STRING:
-                a = new Node(lex, T_A2S, a, nullptr);
+                a = (Node *)new Unary(lex, T_A2S, a);
                 a->exptype = type_string;
                 return;
             case V_FUNCTION:
@@ -992,18 +992,26 @@ struct TypeChecker
             case T_STRUCTDEF:
                 return;
 
+            // Clumsy code, but this pre-specializes for all occurences except being the dcall_function arg.
+            case T_DYNCALL:
+                if (n.dcall_fval()->type == T_FUN) n.dcall_fval()->sf() = PreSpecializeFunction(n.dcall_fval()->sf());
+                break;
             case T_FUN:
-                type = n.sf()
-                    ? &(parent_type == T_DYNINFO
-                        ? n.sf()
-                        : (n.sf() = PreSpecializeFunction(n.sf())))->thistype
-                    : type_any;
+                if (n.sf())
+                {
+                    if (parent_type != T_DYNCALL) n.sf() = PreSpecializeFunction(n.sf());
+                    type = &n.sf()->thistype;
+                }
+                else
+                {
+                    type = type_any;
+                }
                 return;
 
             case T_LIST:
                 // Flatten the TypeCheck recursion a bit
                 for (Node *stats = &n; stats; stats = stats->b())
-                    TypeCheck(stats->a(), T_LIST);
+                    TypeCheck(stats->aref(), T_LIST);
                 return;
 
             case T_OR:
@@ -1012,10 +1020,9 @@ struct TypeChecker
                 return;
         }
 
-        auto nc = n.NumChildren();
-        if (nc > 0 && n.a()) TypeCheck(n.a(), n.type);
-        if (nc > 1 && n.b()) TypeCheck(n.b(), n.type);
-        if (nc > 2 && n.c()) TypeCheck(n.c(), n.type);
+        if (n.a()) TypeCheck(n.aref(), n.type);
+        if (n.b()) TypeCheck(n.bref(), n.type);
+        if (n.c()) TypeCheck(n.cref(), n.type);
 
         switch (n.type)
         {
@@ -1352,9 +1359,7 @@ struct TypeChecker
             }
 
             case T_DYNCALL:
-                type = TypeCheckDynCall(*n.dcall_fval(),
-                                        n.dcall_info()->dcall_args(),
-                                        n.dcall_info()->dcall_function());
+                type = TypeCheckDynCall(*n.dcall_fval(), n.dcall_args(), n.dcall_function());
                 break;
 
             case T_RETURN:
@@ -1409,20 +1414,20 @@ struct TypeChecker
 
             case T_IF:
             {
-                if (n.if_branches()->right()->type != T_DEFAULTVAL)
+                if (n.if_else()->type != T_DEFAULTVAL)
                 {
-                    auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), nullptr);
-                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_branches()->right(), nullptr);
+                    auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
                     // FIXME: we would want to allow coercions here, but we can't do so without changing
                     // these closure to a T_DYNCALL or inlining them
                     // bad, because currently even if(a) 1 else: 1.0 doesn't work.
                     type = Union(tleft, tright, false);
-                    SubTypeT(tleft, type, *n.if_branches()->left(), "then branch", nullptr);
-                    SubTypeT(tright, type, *n.if_branches()->right(), "else branch", nullptr);
+                    SubTypeT(tleft, type, *n.if_then(), "then branch", nullptr);
+                    SubTypeT(tright, type, *n.if_else(), "else branch", nullptr);
                 }
                 else
                 {
-                    TypeCheckBranch(true, *n.if_condition(), *n.if_branches()->left(), nullptr);
+                    TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
                     // No else: this currently returns either the condition or the branch value.
                     type = type_any;
                 }
@@ -1595,8 +1600,6 @@ struct TypeChecker
             case T_FUN:
             case T_NATIVE:
             case T_LIST:
-            case T_BRANCHES:
-            case T_DYNINFO:
             case T_STRUCT:
                 break;
 

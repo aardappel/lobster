@@ -529,14 +529,14 @@ struct CodeGen
 
                     if (n->dcall_fval()->exptype->t == V_YIELD)
                     {
-                        GenArgs(n->dcall_info()->dcall_args(), nullptr, nargs);
+                        GenArgs(n->dcall_args(), nullptr, nargs);
                         if (!nargs) Emit(IL_PUSHNIL);
                         Emit(IL_YIELD);
                     }
                     else
                     {
                         auto sf = n->dcall_fval()->exptype->sf;
-                        auto spec_sf = n->dcall_info()->dcall_function()->sf();
+                        auto spec_sf = n->dcall_function()->sf();
                         // FIXME: in the future, we can make a special case for istype calls.
                         if (sf && !sf->parent->istype)
                         {
@@ -546,7 +546,7 @@ struct CodeGen
                             // side effect, usually it is an ident which will result in no code (retval = 0).
                             Gen(n->dcall_fval(), 0);
                             // We can now turn this into a normal call.
-                            maxretvalsupplied = GenCall(*sf, n->dcall_info()->dcall_args(), n, nargs);
+                            maxretvalsupplied = GenCall(*sf, n->dcall_args(), n, nargs);
                         }
                         else
                         {
@@ -562,7 +562,7 @@ struct CodeGen
                                 }
                             }
 
-                            GenArgs(n->dcall_info()->dcall_args(), nullptr, nargs);
+                            GenArgs(n->dcall_args(), nullptr, nargs);
                             Gen(n->dcall_fval(), 1);
                             Emit(IL_CALLV, nargs);
                         }
@@ -621,17 +621,17 @@ struct CodeGen
             case T_IF:
             {
                 Gen(n->if_condition(), 1);
-                bool has_else = n->if_branches()->right()->type != T_DEFAULTVAL;
+                bool has_else = n->if_else()->type != T_DEFAULTVAL;
                 // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
                 Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
                 MARKL(loc);
-                GenInlineScope(n->if_branches()->left(), retval);
+                GenInlineScope(n->if_then(), retval);
                 if (has_else)
                 {
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
-                    GenInlineScope(n->if_branches()->right(), retval);
+                    GenInlineScope(n->if_else(), retval);
                     SETL(loc2);
                 }
                 else
