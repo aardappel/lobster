@@ -62,7 +62,6 @@ struct CodeGen
 {
     vector<int> &code;
     vector<LineInfo> &lineinfo;
-    Lex &lex;
     Parser &parser;
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
@@ -72,10 +71,9 @@ struct CodeGen
 
     void Emit(int i)
     {
-        int l = linenumbernodes.back()->linenumber;
-        int f = linenumbernodes.back()->fileidx;
-        if (lineinfo.empty() || l != lineinfo.back().line || f != lineinfo.back().fileidx)
-            lineinfo.push_back(LineInfo(l, f, Pos()));
+        auto ln = linenumbernodes.back()->line;
+        if (lineinfo.empty() || !(ln == lineinfo.back()))
+            lineinfo.push_back(LineInfo(ln, Pos()));
         code.push_back(i);
     }
 
@@ -87,7 +85,7 @@ struct CodeGen
     #define SETL(name) code[name - 1] = Pos();
 
     CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo)
-        : code(_code), lineinfo(_lineinfo), lex(_p.lex), parser(_p), st(_st)
+        : code(_code), lineinfo(_lineinfo), parser(_p), st(_st)
     {
         // Create list of subclasses, to help in creation of dispatch tables.
         for (auto struc : st.structtable)
@@ -104,7 +102,7 @@ struct CodeGen
         Emit(IL_JUMP, 0);
         MARKL(fundefjump);
         for (auto f : parser.st.functiontable)
-            if (f->subf->typechecked)
+            if (f->subf && f->subf->typechecked)
                 GenFunction(*f);
         SETL(fundefjump);
 

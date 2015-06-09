@@ -302,6 +302,9 @@
     <ClInclude Include="..\src\ttypes.h">
       <Filter>compiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\optimizer.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\lobster.cpp">

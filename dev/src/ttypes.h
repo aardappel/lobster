@@ -85,6 +85,7 @@ namespace lobster
     T2(T_WHILE, "while", 2, while_condition, while_body) \
     T2(T_FOR, "for", 2, for_iter, for_body) \
     T0(T_FORLOOPVAR, "for loop variable", 0) \
+    T0(T_EMPTY, "empty", 0) \
     \
     /* These are used ONLY as tokens: */ \
     T0(T_LINEFEED, "linefeed", 0) \

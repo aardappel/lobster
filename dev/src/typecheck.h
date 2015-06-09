@@ -4,7 +4,6 @@ namespace lobster
 
 struct TypeChecker
 {
-    Lex &lex;
     Parser &parser;
     SymbolTable &st;
 
@@ -20,7 +19,7 @@ struct TypeChecker
     };
     vector<FlowItem> flowstack;
 
-    TypeChecker(Parser &_p, SymbolTable &_st) : lex(_p.lex), parser(_p), st(_st)
+    TypeChecker(Parser &_p, SymbolTable &_st) : parser(_p), st(_st)
     {
         st.RegisterDefaultVectorTypes();
         for (auto &struc : st.structtable)
@@ -133,7 +132,7 @@ struct TypeChecker
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
             auto &scope = *it;
-            err += "\n  in " + parser.lex.Location(scope.call_context->fileidx, scope.call_context->linenumber) + ": ";
+            err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
             err += SignatureWithFreeVars(*scope.sf);
             for (Node *list = scope.sf->body; list; list = list->tail())
             {
@@ -249,13 +248,13 @@ struct TypeChecker
             case V_FLOAT:
                 if (type->t == V_INT)
                 {
-                    a = (Node *)new Unary(lex, T_I2F, a);
+                    a = (Node *)new Unary(a->line, T_I2F, a);
                     a->exptype = type_float;
                     return;
                 }
                 break;
             case V_STRING:
-                a = (Node *)new Unary(lex, T_A2S, a);
+                a = (Node *)new Unary(a->line, T_A2S, a);
                 a->exptype = type_string;
                 return;
             case V_FUNCTION:
@@ -559,19 +558,31 @@ struct TypeChecker
         sf->freevarchecked = true;
         return sf;
     }
-
+    
     TypeRef TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node)
     {
         Function &f = *csf->parent;
         if (f.multimethod)
         {
-            // Simplistic: typechecked with actual argument types.
-            // Should attempt static picking as well, if static pick succeeds, specialize.
-            // FIXME: no need to repeat this on every call.
-            for (auto sf = f.subf; sf; sf = sf->next) TypeCheckFunctionDef(*sf, &function_def_node);
-            TypeRef type = f.subf->returntypes[0];
-            for (auto sf = f.subf->next; sf; sf = sf->next) type = Union(type, sf->returntypes[0], false);
-            return type;
+            if (!f.subf->numcallers)
+            {
+                // Simplistic: typechecked with actual argument types.
+                // Should attempt static picking as well, if static pick succeeds, specialize.
+                for (auto sf = f.subf; sf; sf = sf->next)
+                {
+                    sf->numcallers++;
+                    TypeCheckFunctionDef(*sf, &function_def_node);
+                }
+                f.multimethodretval = f.subf->returntypes[0];
+                for (auto sf = f.subf->next; sf; sf = sf->next)
+                {
+                    // Lift this limit?
+                    if (sf->returntypes.size() != 1)
+                        TypeError("multi-methods can currently return only 1 value.", function_def_node);
+                    f.multimethodretval = Union(f.multimethodretval, sf->returntypes[0], false);
+                }
+            }
+            return f.multimethodretval;
         }
         else
         {
@@ -632,6 +643,7 @@ struct TypeChecker
             }
             match:
             // Here we have a SubFunction witch matching specialized types.
+            sf->numcallers++;
             // First check all the manually typed args.
             int i = 0;
             for (Node *list = call_args; list && i < f.nargs(); i++, list = list->tail())
@@ -1283,9 +1295,7 @@ struct TypeChecker
                             assert(0);
                             TypeError("function passed to " + nf->name + " cannot take any arguments", n);
                         }
-                        auto fake_function_def = (Node *)new FunRef(parser.lex, sf);
-                        fake_function_def->linenumber = n.linenumber;
-                        fake_function_def->fileidx = n.fileidx;
+                        auto fake_function_def = (Node *)new FunRef(n.line, sf);
                         TypeCheckCall(sf, args, *fake_function_def);
                         assert(sf == fake_function_def->sf());
                         delete fake_function_def;
@@ -1428,6 +1438,7 @@ struct TypeChecker
                 else
                 {
                     TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                    SubType(n.if_else(), type_function_nil, "else", n);  // bind the var in T_DEFAULTVAL
                     // No else: this currently returns either the condition or the branch value.
                     type = type_any;
                 }
@@ -1446,10 +1457,10 @@ struct TypeChecker
             case T_FOR:
             {
                 // We create temp arg nodes just for typechecking this:
-                auto args = new Node(lex, T_LIST,
-                                new AST(lex, T_FORLOOPVAR),
-                                new Node(lex, T_LIST,
-                                    new AST(lex, T_FORLOOPVAR),
+                auto args = new Node(n.line, T_LIST,
+                                new AST(n.line, T_FORLOOPVAR),
+                                new Node(n.line, T_LIST,
+                                    new AST(n.line, T_FORLOOPVAR),
                                     nullptr));
                 auto itertype = n.for_iter()->exptype;
                 if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;

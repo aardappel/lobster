@@ -15,12 +15,20 @@
 namespace lobster
 {
 
-struct LoadedFile
+struct Line
+{
+    int line;
+    int fileidx;
+
+    Line(int _line, int _fileidx) : line(_line), fileidx(_fileidx) {}
+
+    bool operator==(const Line &o) const { return line == o.line && fileidx == o.fileidx; }
+};
+
+struct LoadedFile : Line
 {
     char *p, *linestart, *tokenstart, *source, *stringsource;
-    int fileidx;
     TType token;
-    int line;
     int errorline;  // line before, if current token crossed a line
     bool islf;
     bool cont;
@@ -35,7 +43,7 @@ struct LoadedFile
     vector<Tok> gentokens;
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
-        : tokenstart(nullptr), stringsource(_ss), fileidx((int)fns.size()), token(T_NONE), line(1), errorline(1),
+        : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss), token(T_NONE), errorline(1),
           islf(false), cont(false), prevline(nullptr), prevlinetok(nullptr) /* prevlineindenttype(0) */
     {
         source = stringsource;
@@ -431,15 +439,14 @@ struct Lex : LoadedFile
         return TName(t);
     }
 
-    string Location(int fidx, int line)
+    string Location(const Line &ln)
     {
-        return (fidx >= 0 ? filenames[fidx] : filenames[fileidx]) +
-              "(" + to_string(line >= 0 ? line : errorline) + ")";
+        return filenames[ln.fileidx] + "(" + to_string(ln.line) + ")";
     }
 
-    void Error(string err, int fidx = -1, int line = -1)
+    void Error(string err, const Line *ln = nullptr)
     {
-        err = Location(fidx, line) + ": error: " + err;
+        err = Location(ln ? *ln : Line(errorline, fileidx)) + ": error: " + err;
         //Output(OUTPUT_DEBUG, "%s", err.c_str());
         throw err;
     }

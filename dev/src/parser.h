@@ -44,8 +44,7 @@ struct Parser
 
     void Error(string err, const Node *what = nullptr)
     {
-        if (what) lex.Error(err, what->fileidx, what->linenumber);
-        else      lex.Error(err);
+        lex.Error(err, what ? &what->line : nullptr);
     }
 
     void Parse()

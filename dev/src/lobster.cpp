@@ -44,19 +44,19 @@ namespace lobster
     const Type g_type_function_null(V_FUNCTION);             TypeRef type_function_null = &g_type_function_null;
     const Type g_type_function_cocl(V_YIELD);                TypeRef type_function_cocl = &g_type_function_cocl;
     const Type g_type_coroutine    (V_COROUTINE);            TypeRef type_coroutine = &g_type_coroutine;
+    const Type g_type_function_nil (V_NILABLE,
+                                    &*type_function_null);   TypeRef type_function_nil = &g_type_function_nil;
 }
 
 #include "ttypes.h"
 #include "lex.h"
-
 #include "idents.h"
-
 #include "node.h"
 #include "parser.h"
 #include "typecheck.h"
+#include "optimizer.h"
 #include "codegen.h"
 #include "disasm.h"
-
 #include "vm.h"
 
 using namespace lobster;
@@ -81,6 +81,8 @@ struct CompiledProgram
         parser.Parse();
 
         TypeChecker tc(parser, st);
+        
+        Optimizer opt(parser, st, 100);
 
         if (flags & PARSEDUMP)
         {

@@ -35,25 +35,20 @@ struct AST : SlabAllocatedSmall
 
     TypeRef exptype;
 
-    int linenumber;
-    int fileidx;
+    Line line;
 
-    AST(Lex &lex, TType _t) : type(_t)
-    {
-        linenumber = lex.errorline;
-        fileidx = lex.fileidx;
-    }
+    AST(Line &_line, TType _t) : line(_line), type(_t) {}
 };
 
-struct IntConst : AST { int integer_;      IntConst(Lex &lex, int i)            : AST(lex, T_INT), integer_(i) {}; };
-struct FltConst : AST { double flt_;       FltConst(Lex &lex, double f)         : AST(lex, T_FLOAT), flt_(f) {}; };
-struct StrConst : AST { char *str_;        StrConst(Lex &lex, const string &s)  : AST(lex, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };
-struct IdRef    : AST { Ident *ident_;     IdRef   (Lex &lex, Ident *id)        : AST(lex, T_IDENT), ident_(id) {} };
-struct StRef    : AST { Struct *st_;       StRef   (Lex &lex, Struct *st)       : AST(lex, T_STRUCT), st_(st) {} };
-struct FldRef   : AST { SharedField *fld_; FldRef  (Lex &lex, SharedField *fld) : AST(lex, T_FIELD), fld_(fld) {} };
-struct FunRef   : AST { SubFunction *sf_;  FunRef  (Lex &lex, SubFunction *sf)  : AST(lex, T_FUN), sf_(sf) {} };
-struct NatRef   : AST { NativeFun *nf_;    NatRef  (Lex &lex, NativeFun *nf)    : AST(lex, T_NATIVE), nf_(nf) {} };
-struct TypeNode : AST { TypeRef type_;     TypeNode(Lex &lex, TType t)          : AST(lex, t) {} };  // T_TYPE, T_NIL
+struct IntConst : AST { int integer_;      IntConst(Line &ln, int i)            : AST(ln, T_INT), integer_(i) {}; };
+struct FltConst : AST { double flt_;       FltConst(Line &ln, double f)         : AST(ln, T_FLOAT), flt_(f) {}; };
+struct StrConst : AST { char *str_;        StrConst(Line &ln, const string &s)  : AST(ln, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };
+struct IdRef    : AST { Ident *ident_;     IdRef   (Line &ln, Ident *id)        : AST(ln, T_IDENT), ident_(id) {} };
+struct StRef    : AST { Struct *st_;       StRef   (Line &ln, Struct *st)       : AST(ln, T_STRUCT), st_(st) {} };
+struct FldRef   : AST { SharedField *fld_; FldRef  (Line &ln, SharedField *fld) : AST(ln, T_FIELD), fld_(fld) {} };
+struct FunRef   : AST { SubFunction *sf_;  FunRef  (Line &ln, SubFunction *sf)  : AST(ln, T_FUN), sf_(sf) {} };
+struct NatRef   : AST { NativeFun *nf_;    NatRef  (Line &ln, NativeFun *nf)    : AST(ln, T_NATIVE), nf_(nf) {} };
+struct TypeNode : AST { TypeRef type_;     TypeNode(Line &ln, TType t)          : AST(ln, t) {} };  // T_TYPE, T_NIL
 
 struct Unary : AST
 {
@@ -61,7 +56,7 @@ struct Unary : AST
     Node *a_;
     public:
 
-    Unary(Lex &lex, TType t, AST *a) : AST(lex, t), a_((Node *)a)
+    Unary(Line &ln, TType t, AST *a) : AST(ln, t), a_((Node *)a)
     {
         assert(TArity(t) >= 1);
     }
@@ -73,7 +68,7 @@ struct Ternary : AST
     Node *a_, *b_, *c_;
     public:
 
-    Ternary(Lex &lex, TType t, AST *a, AST *b, AST *c) : AST(lex, t), a_((Node *)a), b_((Node *)b), c_((Node *)c)
+    Ternary(Line &ln, TType t, AST *a, AST *b, AST *c) : AST(ln, t), a_((Node *)a), b_((Node *)b), c_((Node *)c)
     {
         assert(TArity(t) == 3);
     }
@@ -90,7 +85,7 @@ struct Node : Unary
     Node *b_;
     public:
 
-    Node(Lex &lex, TType t, AST *a, AST *b) : Unary(lex, t, (Node *)a), b_((Node *)b)
+    Node(Line &ln, TType t, AST *a, AST *b) : Unary(ln, t, (Node *)a), b_((Node *)b)
     {
         assert(TArity(t) == 2);
     };
