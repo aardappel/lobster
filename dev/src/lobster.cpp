@@ -48,6 +48,12 @@ namespace lobster
                                     &*type_function_null);   TypeRef type_function_nil = &g_type_function_nil;
 }
 
+#include "bytecode_generated.h"
+
+// FlatBuffers takes care of backwards compatibility of all metadata, but not the actual bytecode.
+// This needs to be bumped each time we make changes to the format.
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 1;
+
 #include "ttypes.h"
 #include "lex.h"
 #include "idents.h"
@@ -56,18 +62,18 @@ namespace lobster
 #include "typecheck.h"
 #include "optimizer.h"
 #include "codegen.h"
+
 #include "disasm.h"
 #include "vm.h"
 
 using namespace lobster;
 
 const char *fileheader = "\xA5\x74\xEF\x19";
+const int fileheaderlen = 4;
 
 struct CompiledProgram
 {
-    vector<int> code;
-    vector<LineInfo> linenumbers;
-    SymbolTable st;
+    vector<uchar> bytecode;
 
     enum CompileFlags
     {
@@ -77,6 +83,8 @@ struct CompiledProgram
 
     void Compile(const char *fn, char *stringsource, int flags)
     {
+        SymbolTable st;
+
         Parser parser(fn, st, stringsource);
         parser.Parse();
 
@@ -95,7 +103,11 @@ struct CompiledProgram
             }
         }
 
+        vector<int> code;
+        vector<bytecode::LineInfo> linenumbers;
         CodeGen cg(parser, st, code, linenumbers);
+
+        st.Serialize(code, linenumbers, bytecode);
 
         if (flags & DISASM)
         {
@@ -103,7 +115,7 @@ struct CompiledProgram
             if (f)
             {
                 string s;
-                DisAsm(s, st, &code[0], linenumbers, code.size());
+                DisAsm(s, bytecode.data());
                 fputs(s.c_str(), f);
                 fclose(f);
             }
@@ -114,17 +126,16 @@ struct CompiledProgram
 
     void Save(const char *bcf)
     {
-        Serializer ser(nullptr);
-        st.Serialize(ser, code, linenumbers);
-
-        vector<uint> out;
-        WEntropyCoder<true>(ser.wbuf, out);
+        vector<uchar> out;
+        WEntropyCoder<true>(bytecode.data(), bytecode.size(), bytecode.size(), out);
 
         FILE *f = OpenForWriting(bcf, true);
         if (f)
         {
-            fwrite(fileheader, 4, 1, f);
-            fwrite(out.data(), out.size(), sizeof(uint), f);
+            fwrite(fileheader, fileheaderlen, 1, f);
+            auto len = (uint)bytecode.size();
+            fwrite(&len, sizeof(uint), 1, f);  // FIXME: not endianness-safe
+            fwrite(out.data(), out.size(), 1, f);
             fclose(f);
         }
     }
@@ -134,24 +145,23 @@ struct CompiledProgram
         size_t bclen = 0;
         uchar *bc = LoadFile(bcf, &bclen);
         if (!bc) return false;
-        if (memcmp(fileheader, bc, 4)) { free(bc); throw string("bytecode file corrupt: ") + bcf; }
 
-        vector<uint> in;
-        in.assign((uint *)(bc + 4), (uint *)(bc + bclen));  // FIXME: better without copy
+        if (memcmp(fileheader, bc, fileheaderlen)) { free(bc); throw string("bytecode file corrupt: ") + bcf; }
+        uint origlen = *(uint *)(bc + fileheaderlen);
+        bytecode.clear();
+        WEntropyCoder<false>(bc + fileheaderlen + sizeof(uint), bclen - fileheaderlen - sizeof(uint), origlen, bytecode);
+
         free(bc);
 
-        vector<uchar> decomp;
-        WEntropyCoder<false>(decomp, in);
-
-        Serializer ser(decomp.data());
-        st.Serialize(ser, code, linenumbers);
-
-        return true;
+        flatbuffers::Verifier verifier(bytecode.data(), bytecode.size());
+        auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
+        assert(ok);
+        return ok;
     }
 
     void Run(string &evalret, const char *programname)
     {
-        VM vm(st, &code[0], code.size(), linenumbers, programname);
+        VM vm(programname, bytecode.data());
         vm.EvalProgram(evalret);
     }
 };

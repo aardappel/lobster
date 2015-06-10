@@ -15,7 +15,7 @@
 namespace lobster
 {
 
-struct Named : Serializable
+struct Named
 {
     string name;
     int idx;
@@ -23,12 +23,6 @@ struct Named : Serializable
 
     Named() : idx(-1), isprivate(false) {}
     Named(const string &_name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
-
-    void Serialize(Serializer &ser)
-    {
-        ser(name);
-        ser(idx);
-    }
 };
 
 struct SubFunction;

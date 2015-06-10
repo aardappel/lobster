@@ -15,23 +15,25 @@
 namespace lobster
 {
 
-static const LineInfo &LookupLine(int pos, const vector<LineInfo> &_lineinfo)
+static const bytecode::LineInfo *LookupLine(const int *ip, const int *code, const bytecode::BytecodeFile *bcf)
 {
-    const LineInfo *lineinfo = _lineinfo.data();
-    auto size = _lineinfo.size();
+    auto lineinfo = bcf->lineinfo();
+    int pos = int(ip - code);
+    int start = 0;
+    auto size = lineinfo->size();
     assert(size);
 
     for (;;)    // quick hardcoded binary search
     {
-        if (size == 1) return *lineinfo;
+        if (size == 1) return lineinfo->Get(start);
 
         auto nsize = size / 2;
-        if (lineinfo[nsize].bytecodestart <= pos) { lineinfo += nsize; size -= nsize; }
+        if (lineinfo->Get(start + nsize)->bytecodestart() <= pos) { start += nsize; size -= nsize; }
         else size = nsize;
     }
 }
 
-static void LvalDisAsm(string &s, int *&ip)
+static void LvalDisAsm(string &s, const int *&ip)
 {
     #define F(N) #N,
     static const char *lvonames[] = { LVALOPNAMES };
@@ -41,17 +43,19 @@ static void LvalDisAsm(string &s, int *&ip)
     s += " ";
 }
 
-static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const LineInfo &li)
+static const int *DisAsmIns(string &s, const int *ip, const int *code, const bytecode::BytecodeFile *bcf)
 {
     #define F(N) #N,
     static const char *ilnames[] = { ILNAMES };
     #undef F
 
+    auto li = LookupLine(ip, code, bcf);
+
     // FIXME: some indication of the filename, maybe with a table index?
     s += "I ";
     s += to_string(int(ip - code));
     s += " \tL ";
-    s += to_string(li.line);
+    s += to_string(li->line());
     s += " \t";
     s += ilnames[*ip];
     s += " ";
@@ -76,7 +80,8 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_RETURN:
         {
             auto id = *ip++;
-            s += id >= 0 ? st.functiontable[id]->name : to_string(id);
+            ip++;  // retvals
+            s += id >= 0 ? bcf->functions()->Get(id)->name()->c_str() : to_string(id);
             break;
         }
 
@@ -88,7 +93,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
             auto bc = *ip++;
             s += to_string(nargs);
             s += " ";
-            s += st.functiontable[id]->name;
+            s += bcf->functions()->Get(id)->name()->c_str();
             s += " ";
             s += to_string(bc);
             break;
@@ -98,7 +103,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         {
             auto t = *ip++;
             auto nargs = *ip++;
-            s += t >= 0 ? st.ReverseLookupType(t).c_str() : "vector";
+            s += t >= 0 ? bcf->structs()->Get(t)->name()->c_str() : "vector";
             s += " ";
             s += to_string(nargs);
             break;
@@ -114,7 +119,7 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_LVALVAR:
             LvalDisAsm(s, ip);
         case IL_PUSHVAR:
-            s += st.ReverseLookupIdent(*ip++);
+            s += bcf->idents()->Get(*ip++)->name()->c_str();
             break;
 
         case IL_LVALFLD:
@@ -145,10 +150,10 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
         case IL_FUNSTART:
         {
             int n = *ip++;
-            while (n--) { s += st.ReverseLookupIdent(*ip++); s += " "; }
+            while (n--) { s += bcf->idents()->Get(*ip++)->name()->c_str(); s += " "; }
             n = *ip++; 
             s += "=> ";
-            while (n--) { s += st.ReverseLookupIdent(*ip++); s += " "; }
+            while (n--) { s += bcf->idents()->Get(*ip++)->name()->c_str(); s += " "; }
             n = *ip++;
             if (n) { s += "(log = "; s += to_string(n); s += ")"; }
             break;
@@ -182,12 +187,17 @@ static int *DisAsmIns(string &s, SymbolTable &st, int *ip, int *code, const Line
     return ip;
 }
 
-static void DisAsm(string &s, SymbolTable &st, int *code, const vector<LineInfo> &lineinfo, size_t len)
+static void DisAsm(string &s, const uchar *bytecode_buffer)
 {
-    int *ip = code;
+    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
+    assert(FLATBUFFERS_LITTLEENDIAN);
+    auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
+    auto len = bcf->bytecode()->Length();
+
+    const int *ip = code;
     while (ip < code + len)
     {
-        ip = DisAsmIns(s, st, ip, code, LookupLine(int(ip - code), lineinfo));
+        ip = DisAsmIns(s, ip, code, bcf);
         s += "\n";
     }
 }

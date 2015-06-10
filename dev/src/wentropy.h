@@ -23,61 +23,49 @@
 //
 // uses std::vector and std::swap as its only external dependencies for simplicity, but could made to not rely on them
 // relatively easily.
-//
-// by design, it is limited to compress max 4GB at once.
-// replace unsigned int in the code below by size_t to allow it to compress larger files in 64bit mode, at the cost of
-// incompatability of the data format with 32bit builds
-// the vector<unsigned int> may require endian-swapping if used cross platform (hey, didn't little endian win? :P)
 
-template<bool compress> void WEntropyCoder(vector<unsigned char> &uncompressed, vector<unsigned int> &compressed)
+template<bool compress> void WEntropyCoder(const unsigned char *in,
+                                           size_t inlen,    // Size of input.
+                                           size_t origlen,  // Uncompressed size.
+                                           vector<unsigned char> &out)
 {
-    assert(uncompressed.size() <= 0xFFFFFFFF);  // just in case, for 64bit builds
-    const int NSYM = 256;     // To change this, we'd have to read from something other than vector<uchar>
+    const int NSYM = 256;     // To change this, we'd have to read from something other than unsigned chars
     int symbol[NSYM];         // The symbol in this slot. Adaptively sorted by frequency.
-    unsigned int freq[NSYM];  // Its frequency.
+    size_t freq[NSYM];        // Its frequency.
     int sym_idx[NSYM];        // Lookup symbol -> index into the above two arrays.
     for (int i = 0; i < NSYM; i++) { freq[i] = 1; symbol[i] = sym_idx[i] = i; }
-
-    unsigned int len = compress ? (unsigned int)uncompressed.size() : compressed[0];
-    if (compress) compressed.push_back(len);    // original size always stored as first element
-    unsigned int compr_idx = 0;
-    unsigned int bits = 0;
+    size_t compr_idx = 0;
+    unsigned char bits = 0;
     int nbits = 0;
 
-    for (unsigned int i = 0; i < len; i++)
+    for (size_t i = 0; i < origlen; i++)
     {
         int start = 0, range = NSYM;
-        unsigned int total_freq = i + NSYM;
+        size_t total_freq = i + NSYM;
         while (range > 1)
         {
-            unsigned int acc_freq = 0;
+            size_t acc_freq = 0;
             int j = start;
             do acc_freq += freq[j++]; while (acc_freq + freq[j] / 2 < total_freq / 2);
-            unsigned int bit = 0;
+            unsigned char bit = 0;
             if (compress)
             {
-                if (sym_idx[uncompressed[i]] < j) bit = 1;
-            }
-            else
-            {
-                if (!nbits) { bits = compressed[++compr_idx]; nbits = sizeof(unsigned int) * 8; }
-                bit = bits & 1;
-            }
-            if (bit) { total_freq = acc_freq; assert(j - start < range); range = j - start; }
-            else     { total_freq -= acc_freq; range -= j - start; start = j; }
-            if (compress)
-            {
+                if (sym_idx[in[i]] < j) bit = 1;
                 bits |= bit << nbits;
-                if (++nbits == sizeof(unsigned int) * 8) { compressed.push_back(bits); bits = 0; nbits = 0; }
+                if (++nbits == 8) { out.push_back(bits); bits = 0; nbits = 0; }
             }
             else
             {
+                if (!nbits) { assert(compr_idx < inlen); bits = in[compr_idx++]; nbits = 8; }
+                bit = bits & 1;
                 bits >>= 1;
                 nbits--;
             }
+            if (bit) { total_freq = acc_freq; assert(j - start < range); range = j - start; }
+            else     { total_freq -= acc_freq; range -= j - start; start = j; }
         }
-        if (!compress) uncompressed.push_back((unsigned char)symbol[start]);
-        assert(range == 1 && uncompressed[i] == symbol[start]);
+        if (!compress) out.push_back((unsigned char)symbol[start]);
+        assert(range == 1 && (!compress || in[i] == symbol[start]));
         freq[start]++;
         while (start && freq[start - 1] < freq[start])
         {
@@ -87,6 +75,8 @@ template<bool compress> void WEntropyCoder(vector<unsigned char> &uncompressed, 
             start--;
         }
     }
-    if (compress) compressed.push_back(bits);
+    if (compress) out.push_back(bits);
+    else assert(compr_idx == inlen);
+    (void)inlen;
 }
 

@@ -249,6 +249,7 @@
     <ClInclude Include="..\include\Box2D\Particle\b2StackQueue.h" />
     <ClInclude Include="..\include\Box2D\Particle\b2VoronoiDiagram.h" />
     <ClInclude Include="..\include\Box2D\Rope\b2Rope.h" />
+    <ClInclude Include="..\src\bytecode_generated.h" />
     <ClInclude Include="..\src\codegen.h" />
     <ClInclude Include="..\src\disasm.h" />
     <ClInclude Include="..\src\ftinterface.h" />
@@ -605,6 +606,7 @@
     <None Include="..\..\lobster\samples\pythtree.lobster" />
     <None Include="..\..\lobster\samples\tests\tctest.lobster" />
     <None Include="..\..\lobster\shaders\default.materials" />
+    <None Include="..\src\bytecode.fbs" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

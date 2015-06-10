@@ -19,21 +19,6 @@ struct NativeFun;
 struct SymbolTable;
 struct Node;
 
-struct LineInfo : Line, Serializable  // FIXME: don't use inheritance for Serializable
-{
-    int bytecodestart;
-
-    LineInfo(const Line &ln, int b) : Line(ln),  bytecodestart(b)  {}
-    LineInfo() : LineInfo(Line(-1, -1), -1) {}
-
-    void Serialize(Serializer &ser)
-    {
-        ser(line);
-        ser(fileidx);
-        ser(bytecodestart);
-    }
-};
-
 struct SubFunction;
 
 struct Ident : Named
@@ -60,18 +45,16 @@ struct Ident : Named
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
-    void Serialize(Serializer &ser)
-    {
-        Named::Serialize(ser);
-        ser(line);
-        ser(static_constant);
-    }
-    
     void Assign(Lex &lex)
     {
         single_assignment = false;
         if (constant)
             lex.Error("variable " + name + " is constant");
+    }
+
+    flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb)
+    {
+        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant);
     }
 };
 
@@ -116,12 +99,6 @@ struct Struct : Named
           vectortype(type_vector_any) {}
     Struct() : Struct("", 0) {}
 
-    void Serialize(Serializer &ser)
-    {
-        Named::Serialize(ser);
-        ser(readonly);
-    }
-
     int Has(SharedField *fld)
     {
         for (auto &uf : fields) if (uf.id == fld) return int(&uf - &fields[0]);
@@ -154,6 +131,11 @@ struct Struct : Named
     void Resolve(Field &field)
     {
         if (field.fieldref >= 0) field.type = fields[field.fieldref].type;
+    }
+
+    flatbuffers::Offset<bytecode::Struct> Serialize(flatbuffers::FlatBufferBuilder &fbb)
+    {
+        return bytecode::CreateStruct(fbb, fbb.CreateString(name), idx, (int)fields.size());
     }
 };
 
@@ -258,12 +240,9 @@ struct Function : Named
         assert(false);
     }
 
-
-    void Serialize(Serializer &ser)
+    flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb)
     {
-        Named::Serialize(ser);
-        ser(bytecodestart);
-        ser(retvals);
+        return bytecode::CreateFunction(fbb, fbb.CreateString(name));
     }
 };
 
@@ -496,16 +475,6 @@ struct SymbolTable
         return *st;
     }
 
-    int StructIdx(const string &name, size_t &nargs) // FIXME: this is inefficient, used by parse_data()
-    {
-        for (auto s : structtable) if (s->name == name) 
-        {
-            nargs = s->fields.size();
-            return s->idx;
-        }
-        return -1;
-    }
-
     bool IsSuperTypeOrSame(const Struct *sup, const Struct *sub)
     {
         for (auto t = sub; t; t = t->superclass)
@@ -604,6 +573,8 @@ struct SymbolTable
         // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
         if (default_vector_types.size()) return;  // Already initialized.
         static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
+        default_vector_types.push_back(nullptr);
+        default_vector_types.push_back(nullptr);
         for (auto name = default_vector_type_names; *name; name++)
         {
             Struct *t = nullptr;
@@ -620,25 +591,37 @@ struct SymbolTable
         return u->t == V_STRUCT && u->struc->generic;
     }
 
-    Struct *GetVectorType(int which) { assert(which >= 2); return default_vector_types[which - 2]; }
-    
-    void Serialize(Serializer &ser, vector<int> &code, vector<LineInfo> &linenumbers)
+    void Serialize(vector<int> &code, vector<bytecode::LineInfo> &linenumbers, vector<uchar> &bytecode)
     {
-        auto curvers = __DATE__; // __TIME__;
-        string vers = curvers;
-        ser(vers);
-        if (ser.rbuf && vers != curvers) throw string("cannot load bytecode from a different version of the compiler");
+        flatbuffers::FlatBufferBuilder fbb;
 
-        ser(uses_frame_state);
+        vector<flatbuffers::Offset<flatbuffers::String>> fns;
+        for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
 
-        ser(identtable);
-        ser(functiontable);
-        ser(structtable);
-        ser(fieldtable);
+        vector<flatbuffers::Offset<bytecode::Function>> functions;
+        for (auto f : functiontable) functions.push_back(f->Serialize(fbb));
 
-        ser(code);
-        ser(filenames);
-        ser(linenumbers);
+        vector<flatbuffers::Offset<bytecode::Struct>> structs;
+        for (auto s : structtable) structs.push_back(s->Serialize(fbb));
+
+        vector<flatbuffers::Offset<bytecode::Ident>> idents;
+        for (auto i : identtable) idents.push_back(i->Serialize(fbb));
+
+        vector<int> vtypes;
+        for (auto s : default_vector_types) vtypes.push_back(s ? s->idx : -1);
+
+        auto bcf = bytecode::CreateBytecodeFile(fbb, LOBSTER_BYTECODE_FORMAT_VERSION,
+                                                     fbb.CreateVector(code),
+                                                     fbb.CreateVectorOfStructs(linenumbers),
+                                                     fbb.CreateVector(fns),
+                                                     fbb.CreateVector(functions),
+                                                     fbb.CreateVector(structs),
+                                                     fbb.CreateVector(idents),
+                                                     fbb.CreateVector(vtypes),
+                                                     uses_frame_state);
+        fbb.Finish(bcf);
+
+        bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };
 

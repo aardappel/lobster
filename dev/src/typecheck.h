@@ -1354,7 +1354,7 @@ struct TypeChecker
                     }
                     if (flen >= 2 && flen <= 4 && type->t == V_VECTOR && type->sub->Numeric())
                     {
-                        auto struc = st.GetVectorType(flen);
+                        auto struc = st.default_vector_types[flen];
                         if (struc) type = StructTypeFromVector(type, struc);
                     }
                 }

@@ -112,10 +112,10 @@ struct ValueParser
                 string sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);
-                size_t reqargs = 0;
+                int reqargs = 0;
                 int idx = g_vm->StructIdx(sname, reqargs);
                 if (idx < 0) lex.Error("unknown type: " + sname);
-                return ParseElems(T_RIGHTCURLY, idx, (int)reqargs);
+                return ParseElems(T_RIGHTCURLY, idx, reqargs);
             }
 
             default:

@@ -61,7 +61,7 @@ enum { LVALOPNAMES };
 struct CodeGen 
 {
     vector<int> &code;
-    vector<LineInfo> &lineinfo;
+    vector<bytecode::LineInfo> &lineinfo;
     Parser &parser;
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
@@ -71,9 +71,9 @@ struct CodeGen
 
     void Emit(int i)
     {
-        auto ln = linenumbernodes.back()->line;
-        if (lineinfo.empty() || !(ln == lineinfo.back()))
-            lineinfo.push_back(LineInfo(ln, Pos()));
+        auto &ln = linenumbernodes.back()->line;
+        if (lineinfo.empty() || ln.line != lineinfo.back().line() || ln.fileidx != lineinfo.back().fileidx())
+            lineinfo.push_back(bytecode::LineInfo(ln.line, ln.fileidx, Pos()));
         code.push_back(i);
     }
 
@@ -84,7 +84,7 @@ struct CodeGen
     #define MARKL(name) auto name = Pos();
     #define SETL(name) code[name - 1] = Pos();
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<LineInfo> &_lineinfo)
+    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<bytecode::LineInfo> &_lineinfo)
         : code(_code), lineinfo(_lineinfo), parser(_p), st(_st)
     {
         // Create list of subclasses, to help in creation of dispatch tables.
@@ -712,7 +712,7 @@ struct CodeGen
                 int fid = n->return_function_idx()->integer();
                 if (n->return_value()) Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1);
                 else Emit(IL_PUSHUNDEF);
-                Emit(IL_RETURN, fid);
+                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1);
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }

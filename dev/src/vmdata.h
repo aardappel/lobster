@@ -89,8 +89,8 @@ struct VMBase
     virtual float Time() = 0;
     virtual int GC() = 0;
     virtual const char *ProperTypeName(const Value &v) = 0;
-    virtual int StructIdx(const string &name, size_t &nargs) = 0;
-    virtual const string &ReverseLookupType(uint v) = 0;
+    virtual int StructIdx(const string &name, int &nargs) = 0;
+    virtual const char *ReverseLookupType(uint v) = 0;
     virtual void SetMaxStack(int ms) = 0;
     virtual void CoResume(CoRoutine *co) = 0;
     virtual int CallerId() = 0;
@@ -200,7 +200,7 @@ struct Value
         CoRoutine *cval_;
         LenObj *lobj_;
         RefObj *ref_;
-        int *ip_;
+        const int *ip_;
     };
     public:
 
@@ -214,21 +214,21 @@ struct Value
     CoRoutine *cval() const { assert(type == V_COROUTINE);  return cval_; }
     LenObj    *lobj() const { assert(type < 0);             return lobj_; }
     RefObj    *ref () const { assert(type < 0);             return ref_;  }
-    int       *ip()   const { assert(type >= V_FUNCTION);   return ip_;   }
+    const int *ip()   const { assert(type >= V_FUNCTION);   return ip_;   }
     int        info() const { assert(type >= V_NARGS);      return ival_; }
     void      *any()  const { return ref_; }
 
-    inline Value()                    : type(V_UNDEFINED), ival_(0) {}
-    inline Value(int i)               : type(V_INT),       ival_(i) {}
-    inline Value(int i, ValueType t)  : type(t),           ival_(i) {}
-    inline Value(bool b)              : type(V_INT),       ival_(b) {}
-    inline Value(float f)             : type(V_FLOAT),     fval_(f) {}
-    inline Value(LString *s)          : type(V_STRING),    sval_(s) {}
-    inline Value(int *i)              : type(V_FUNCTION),  ip_(i)   {}
-    inline Value(int *i, ValueType t) : type(t),           ip_(i)   {}
-    inline Value(LVector *v)          : type(V_VECTOR),    vval_(v) {}
-    inline Value(CoRoutine *c)        : type(V_COROUTINE), cval_(c) {}
-    inline Value(RefObj *r)           : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref_(r) {}
+    inline Value()                          : type(V_UNDEFINED), ival_(0) {}
+    inline Value(int i)                     : type(V_INT),       ival_(i) {}
+    inline Value(int i, ValueType t)        : type(t),           ival_(i) {}
+    inline Value(bool b)                    : type(V_INT),       ival_(b) {}
+    inline Value(float f)                   : type(V_FLOAT),     fval_(f) {}
+    inline Value(LString *s)                : type(V_STRING),    sval_(s) {}
+    inline Value(const int *i)              : type(V_FUNCTION),  ip_(i)   {}
+    inline Value(const int *i, ValueType t) : type(t),           ip_(i)   {}
+    inline Value(LVector *v)                : type(V_VECTOR),    vval_(v) {}
+    inline Value(CoRoutine *c)              : type(V_COROUTINE), cval_(c) {}
+    inline Value(RefObj *r)                 : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref_(r) {}
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
                                                     // esp big endian.
@@ -395,7 +395,7 @@ struct LVector : LenObj
             CycleDone(pp.cycles);
         }
 
-        string s = type >= 0 ? g_vm->ReverseLookupType(type) + "{" : "[";
+        string s = type >= 0 ? g_vm->ReverseLookupType(type) + string("{") : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
@@ -434,11 +434,11 @@ struct CoRoutine : RefObj
     int stackstart;     // when currently running, otherwise -1
     Value *stackcopy;
     size_t stackcopylen, stackcopymax;
-    int *returnip;
-    int *varip;
+    const int *returnip;
+    const int *varip;
     CoRoutine *parent;
 
-    CoRoutine(int _ss, int *_rip, int *_vip, CoRoutine *_p)
+    CoRoutine(int _ss, const int *_rip, const int *_vip, CoRoutine *_p)
         : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           returnip(_rip), varip(_vip), parent(_p) {}
 
@@ -458,7 +458,7 @@ struct CoRoutine : RefObj
         stackcopylen = newlen;
     }
 
-    int Suspend(int top, Value *stack, int *&rip, CoRoutine *&curco)
+    int Suspend(int top, Value *stack, const int *&rip, CoRoutine *&curco)
     {
         assert(stackstart >= 0);
 
@@ -477,7 +477,7 @@ struct CoRoutine : RefObj
         return ss;
     }
 
-    int Resume(int top, Value *stack, int *&rip, CoRoutine *p)
+    int Resume(int top, Value *stack, const int *&rip, CoRoutine *p)
     {
         assert(stackstart < 0);
 

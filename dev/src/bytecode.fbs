@@ -1,0 +1,48 @@
+namespace bytecode;
+
+struct LineInfo
+{
+    line:int;
+    fileidx:int;
+    bytecodestart:int;
+}
+
+table Function
+{
+    name:string;
+}
+
+table Struct
+{
+    name:string;
+    idx:int;
+    nfields:int;
+}
+
+table Ident
+{
+    name:string;
+    readonly:bool;
+}
+
+table BytecodeFile
+{
+    bytecode_version:int;  // The format of bytecode may change.
+    bytecode:[int];
+
+    lineinfo:[LineInfo];
+    filenames:[string];
+
+    functions:[Function];
+    structs:[Struct];
+    idents:[Ident];
+
+    default_vector_types:[int];
+
+    uses_frame_state:bool;
+}
+
+root_type BytecodeFile;
+
+file_identifier "LBCF";
+file_extension "lbc";

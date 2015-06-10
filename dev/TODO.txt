@@ -1,3 +1,5 @@
+- move Error() to symboltable, remove dependence on Lex.
+
 - upgrade other platforms to SDL 2.0.3 too
 
 - syntax overhaul.

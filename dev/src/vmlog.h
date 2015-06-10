@@ -17,7 +17,7 @@ struct VMLog
     bool uses_frame_state;
     vector<Value> logread, logwrite;
     size_t logi;
-    int *lognew;
+    const int *lognew;
 
     VM &vm;
 
@@ -93,7 +93,7 @@ struct VMLog
         }
     }
 
-    size_t LogFunctionEntry(int *funstart, int nlogvars)
+    size_t LogFunctionEntry(const int *funstart, int nlogvars)
     {
         assert(uses_frame_state);
 
@@ -119,7 +119,7 @@ struct VMLog
         return lws;
     }
 
-    void LogFunctionExit(int *funstart, int *logvars, int logfunwritestart)
+    void LogFunctionExit(const int *funstart, const int *logvars, int logfunwritestart)
     {
         if (logwrite.back().type == V_LOGSTART)
         {

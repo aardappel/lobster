@@ -35,24 +35,21 @@ struct VM : VMBase
         STACKMARGIN     =   1 * 1024  // *8 bytes each, max by which the stack could possibly grow in a single call
     }; 
 
-    int *ip;
+    const int *ip;
 
     CoRoutine *curcoroutine;
 
     Value *vars;
     
     size_t codelen;
-    int *codestart;
+    const int *codestart;
+    vector<int> codebigendian;
     uint64_t *byteprofilecounts;
     
-    SymbolTable &st;
+    const bytecode::BytecodeFile *bcf;
 
-
-    const vector<LineInfo> &lineinfo;
-    #ifdef _DEBUG
-        int currentline;
-        int maxsp;
-    #endif
+    int currentline;
+    int maxsp;
 
     PrintPrefs debugpp;
 
@@ -71,22 +68,35 @@ struct VM : VMBase
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
     #define TOPPTR() (stack + sp + 1)
 
-    VM(SymbolTable &_st, int *_code, size_t _len, const vector<LineInfo> &_lineinfo, const char *_pn)
+    VM(const char *_pn, const uchar *bytecode_buffer)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
-          curcoroutine(nullptr), vars(nullptr), st(_st), codelen(_len), byteprofilecounts(nullptr),
-          lineinfo(_lineinfo), debugpp(2, 50, true, -1), programname(_pn), vml(*this, st.uses_frame_state),
+          curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr), 
+          bcf(bytecode::GetBytecodeFile(bytecode_buffer)),
+          currentline(-1), maxsp(-1),
+          debugpp(2, 50, true, -1), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
           trace(false), trace_tail(true)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
-        ip = codestart = _code;
-        vars = new Value[st.identtable.size()];
-        stack = new Value[stacksize = INITSTACKSIZE];
 
-        #ifdef _DEBUG
-            currentline = -1;
-            maxsp = -1;
-        #endif
+        if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
+            throw "bytecode is from a different version of Lobster";
+
+        codelen = bcf->bytecode()->Length();
+        if (FLATBUFFERS_LITTLEENDIAN)
+        {
+            // We can use the buffer directly.
+            codestart = (const int *)bcf->bytecode()->Data();
+        }
+        else
+        {
+            for (uint i = 0; i < codelen; i++) codebigendian.push_back(bcf->bytecode()->Get(i));
+            codestart = codebigendian.data();
+        }
+        ip = codestart;
+
+        vars = new Value[bcf->idents()->size()];
+        stack = new Value[stacksize = INITSTACKSIZE];
         
         #ifdef VM_PROFILER
             byteprofilecounts = new uint64_t[codelen];
@@ -94,8 +104,6 @@ struct VM : VMBase
         #endif
 
         vml.LogInit();
-
-        st.RegisterDefaultVectorTypes();
 
         assert(g_vm == nullptr);
         g_vm = this;
@@ -120,7 +128,7 @@ struct VM : VMBase
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
-    int GetVectorType(int which) { return st.GetVectorType(which)->idx; }
+    int GetVectorType(int which) { return bcf->default_vector_types()->Get(which); }
 
     static bool _LeakSorter(void *va, void *vb)
     {
@@ -192,8 +200,6 @@ struct VM : VMBase
                 
         vmpool->printstats(false);
     }
-
-    const LineInfo &LookupLine(int *ip) { return lobster::LookupLine(int(ip - codestart), lineinfo); }
     
     #undef new
     LVector *NewVector(size_t n, int t)
@@ -204,7 +210,7 @@ struct VM : VMBase
     {
         return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l); 
     }
-    CoRoutine *NewCoRoutine(int *rip, int *vip, CoRoutine *p)
+    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p)
     {
         return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p);
     }
@@ -242,8 +248,8 @@ struct VM : VMBase
     {
         if (trace_tail) err = trace_output + err;
 
-        const LineInfo &li = LookupLine(ip - 1);  // error is usually in the byte before the current ip
-        auto s = string(st.filenames[li.fileidx]) + "(" + to_string(li.line) + "): VM error: " + err;
+        auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
+        auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
         if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && TOP().type != V_DEFFUN)
@@ -264,25 +270,25 @@ struct VM : VMBase
             string locals;
             int deffun = varcleanup(s.length() < 10000 ? &locals : nullptr);
 
-            const LineInfo &li = LookupLine(ip - 1);
+            auto li = LookupLine(ip - 1, codestart, bcf);
             if (deffun >= 0)
             {
-                s += "\nin function: " + st.ReverseLookupFunction(deffun);
+                s += string("\nin function: ") + bcf->functions()->Get(deffun)->name()->c_str();
             }
             else
             {
                 s += "\nin block";
             }
-            s += " -> " + st.filenames[li.fileidx] + "(" + to_string(li.line) + ")";
+            s += string(" -> ") + bcf->filenames()->Get(li->fileidx())->c_str() + "(" + to_string(li->line()) + ")";
 
             s += locals;
         }
 
         s += "\nglobals:";
 
-        for (size_t i = 0; i < st.identtable.size(); i++)
+        for (size_t i = 0; i < bcf->idents()->size(); i++)
         {
-            s += DumpVar(vars[i], st, i);
+            s += DumpVar(vars[i], i);
         }
 
         FinalStackVarsCleanup();
@@ -315,20 +321,20 @@ struct VM : VMBase
     {
         size_t found = 0;
         size_t nfound = 0;
-        for (size_t i = 0; i < st.identtable.size(); i++) if (a.Equal(vars[i], false)) { found = i; nfound++; }
+        for (size_t i = 0; i < bcf->idents()->size(); i++) if (a.Equal(vars[i], false)) { found = i; nfound++; }
         string s = a.ToString(debugpp);
-        if (nfound == 1) s += " (" + st.ReverseLookupIdent(found) + " ?)";
+        if (nfound == 1) s += string(" (") + bcf->idents()->Get(found)->name()->c_str() + " ?)";
         return s;
     }
 
-    string DumpVar(const Value &x, SymbolTable &st, size_t idx)
+    string DumpVar(const Value &x, size_t idx)
     {
         if (x.type == V_UNDEFINED) return "";
-        if (st.ReadOnlyIdent(idx)) return "";
-        return "\n   " + st.ReverseLookupIdent(idx) + " = " + x.ToString(debugpp);
+        if (bcf->idents()->Get(idx)->readonly()) return "";
+        return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(debugpp);
     }
 
-    void EvalMulti(int nargs, int *ip, int definedfunction, int *retip)
+    void EvalMulti(int nargs, const int *ip, int definedfunction, const int *retip)
     {
         VMASSERT(*ip == IL_FUNMULTI);
         ip++;
@@ -366,7 +372,7 @@ struct VM : VMBase
             argtypes += ProperTypeName(stack[sp - nargs + j + 1]);
             if (j < nargs - 1) argtypes += ", ";
         }
-        Error("the call " + st.ReverseLookupFunction(definedfunction) + "(" + argtypes +
+        Error(string("the call ") + bcf->functions()->Get(definedfunction)->name()->c_str() + "(" + argtypes +
               ") did not match any function variants");
     }
 
@@ -374,7 +380,7 @@ struct VM : VMBase
     {
         VMASSERT(sp < 0);
 
-        for (size_t i = 0; i < st.identtable.size(); i++) vars[i].DEC();
+        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].DEC();
 
         #ifdef _DEBUG
             Output(OUTPUT_INFO, "stack at its highest was: %d", maxsp);
@@ -419,9 +425,9 @@ struct VM : VMBase
             vml.LogFunctionExit(ipv.ip(), defvars, lfw.info());
         }
 
-        while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
+        while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], i); vars[i].DEC();
                                                                                                 vars[i] = POP(); }
-        while (nargs_given--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], st, i); vars[i].DEC();
+        while (nargs_given--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], i); vars[i].DEC();
                                                                                                 vars[i] = POP(); } 
 
         ip = retip;
@@ -429,7 +435,7 @@ struct VM : VMBase
         return deffun;
     }
 
-    void FunIntro(int nargs_given, int *newip, int definedfunction, int *retip)
+    void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip)
     {
         ip = newip;
 
@@ -527,7 +533,7 @@ struct VM : VMBase
             if (sp < 0)
             {
                 if (towhere >= 0)
-                    Error("\"return from " + st.ReverseLookupFunction(towhere) + "\" outside of function");
+                    Error(string("\"return from ") + bcf->functions()->Get(towhere)->name()->c_str() + "\" outside of function");
                 bottom = true;
                 break;
             }
@@ -540,7 +546,7 @@ struct VM : VMBase
         return bottom;
     }
 
-    void CoNonRec(int *varip)
+    void CoNonRec(const int *varip)
     {
         // probably could be skipped in a "release" mode
         for (auto co = curcoroutine; co; co = co->parent) if (co->varip == varip)
@@ -555,7 +561,7 @@ struct VM : VMBase
 
     void CoNew()
     {
-        int *returnip = codestart + *ip++;
+        const int *returnip = codestart + *ip++;
         CoNonRec(ip);
         curcoroutine = NewCoRoutine(returnip, ip, curcoroutine);
         curcoroutine->BackupParentVars(vars);
@@ -564,7 +570,7 @@ struct VM : VMBase
         PUSH(Value(curcoroutine));
     }
 
-    void CoDone(int *retip)
+    void CoDone(const int *retip)
     {
         int newtop = curcoroutine->Suspend(sp + 1, stack, retip, curcoroutine);
         ip = retip;
@@ -585,7 +591,7 @@ struct VM : VMBase
         co->active = false;
     }
 
-    void CoYield(int *retip)
+    void CoYield(const int *retip)
     {
         assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
 
@@ -649,32 +655,36 @@ struct VM : VMBase
             Output(OUTPUT_INFO, "Profiler statistics:");
             uint64_t total = 0;
             auto fraction = 200;  // Line needs at least 0.5% to be counted.
-            vector<uint64_t> lineprofilecounts(lineinfo.size());
+            vector<uint64_t> lineprofilecounts(bcf->lineinfo()->size());
             for (size_t i = 0; i < codelen; i++)
             {
-                auto &li = LookupLine(codestart + i); // FIXME: can do faster
-                size_t j = &li - &lineinfo[0];
+                auto li = LookupLine(codestart + i, codestart, bcf); // FIXME: can do faster
+                size_t j = li - bcf->lineinfo()->Get(0);
                 lineprofilecounts[j] += byteprofilecounts[i];
                 total += byteprofilecounts[i];
             }
-            struct LineRange { LineInfo li; int lastline; uint64_t count; };
+            struct LineRange { int line, lastline, fileidx; uint64_t count; };
             vector<LineRange> uniques;
-            for (auto &li : lineinfo)
+            for (uint i = 0; i < bcf->lineinfo()->size(); i++)
             {
-                uint64_t c = lineprofilecounts[&li - &lineinfo[0]];
-                if (c > total / fraction) uniques.push_back(LineRange{ li, li.line, c });
+                uint64_t c = lineprofilecounts[i];
+                if (c > total / fraction)
+                {
+                    auto li = bcf->lineinfo()->Get(i);
+                    uniques.push_back(LineRange{ li->line(), li->line(), li->fileidx(), c });
+                }
             }
             std::sort(uniques.begin(), uniques.end(), [&] (const LineRange &a, const LineRange &b) {
-                return a.li.fileidx != b.li.fileidx ? a.li.fileidx < b.li.fileidx : a.li.line < b.li.line;
+                return a.fileidx != b.fileidx ? a.fileidx < b.fileidx : a.line < b.line;
             });
             for (auto it = uniques.begin(); it != uniques.end();) 
             {
                 if (it != uniques.begin())
                 {
                     auto pit = it - 1;
-                    if (it->li.fileidx == pit->li.fileidx &&
-                        ((it->li.line == pit->lastline) ||
-                         (it->li.line == pit->lastline + 1 && pit->lastline++)))
+                    if (it->fileidx == pit->fileidx &&
+                        ((it->line == pit->lastline) ||
+                         (it->line == pit->lastline + 1 && pit->lastline++)))
                     {
                         pit->count += it->count;
                         it = uniques.erase(it);
@@ -685,8 +695,8 @@ struct VM : VMBase
             }
             for (auto &u : uniques)
             {
-                Output(OUTPUT_INFO, "%s(%d%s): %.1f %%", st.filenames[u.li.fileidx].c_str(), u.li.line,
-                       u.lastline != u.li.line ? ("-" + to_string(u.lastline)).c_str() : "",
+                Output(OUTPUT_INFO, "%s(%d%s): %.1f %%", bcf->filenames()->Get(u.fileidx)->c_str(), u.line,
+                       u.lastline != u.line ? ("-" + to_string(u.lastline)).c_str() : "",
                        u.count * 100.0f / total);
             }
         #endif
@@ -700,7 +710,7 @@ struct VM : VMBase
                 if (trace)
                 {
                     if (!trace_tail) trace_output.clear();
-                    DisAsmIns(trace_output, st, ip, codestart, LookupLine(ip));
+                    DisAsmIns(trace_output, ip, codestart, bcf);
                     trace_output += " [";
                     trace_output += to_string(sp + 1);
                     trace_output += "] - ";
@@ -803,8 +813,7 @@ struct VM : VMBase
                 case IL_RETURN:
                 {
                     int df = *ip++;
-                    int nrv = 1;
-                    if (df >= 0) nrv = st.functiontable[df]->retvals;   // TODO: could encode this in the instruction
+                    int nrv = *ip++;
                     if(FunOut(df, nrv)) return EndEval(evalret); 
                     break;
                 }
@@ -1230,7 +1239,7 @@ struct VM : VMBase
 
     const char *ProperTypeName(const Value &v)
     {
-        return v.type == V_VECTOR && v.vval()->type >= 0 ? ReverseLookupType(v.vval()->type).c_str() : BaseTypeName(v.type);
+        return v.type == V_VECTOR && v.vval()->type >= 0 ? ReverseLookupType(v.vval()->type) : BaseTypeName(v.type);
     }
 
     void Div0() { Error("division by zero"); } 
@@ -1358,18 +1367,36 @@ struct VM : VMBase
     }
 
     void Push(const Value &v) { PUSH(v); }
+
     Value Pop() { return POP(); }
 
-    int StructIdx(const string &name, size_t &nargs) { return st.StructIdx(name, nargs); }
-    virtual const string &ReverseLookupType(uint v) { return st.ReverseLookupType(v); }
+    int StructIdx(const string &name, int &nargs)  // FIXME: this is inefficient, used by parse_data()
+    {
+        for (uint i = 0; i < bcf->structs()->size(); i++)
+        {
+            auto s = bcf->structs()->Get(i);
+            if (s->name()->c_str() == name)
+            {
+                nargs = s->nfields();
+                return s->idx();
+            }
+        }
+        return -1;
+    }
+
+    virtual const char *ReverseLookupType(uint v)
+    {
+        return bcf->structs()->Get(v)->name()->c_str();
+    }
 
     void Trace(bool on) { trace = on; }
+
     float Time() { return (float)SecondsSinceStart(); }
 
     int GC()    // shouldn't really be used, but just in case
     {
         for (int i = 0; i <= sp; i++) stack[i].Mark();
-        for (size_t i = 0; i < st.identtable.size(); i++) vars[i].Mark();
+        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].Mark();
         vml.LogMark();
 
         vector<void *> objs;
