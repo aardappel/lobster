@@ -15,9 +15,9 @@
 namespace lobster
 {
 
-    // This will spin up a new VM, run the code, and tear it down again.
-    extern void RunBytecode(string &evalret, const char *programname, const uchar *bytecode);
-
-    extern void DisAsm(string &s, const uchar *bytecode_buffer);
+extern void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string *parsedump = nullptr);
+extern bool VerifyBytecode(const vector<uchar> &bytecode);
+extern void RegisterBuiltins();
+extern void DumpBuiltins(bool justnames);
 
 }

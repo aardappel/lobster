@@ -251,11 +251,13 @@
     <ClInclude Include="..\include\Box2D\Rope\b2Rope.h" />
     <ClInclude Include="..\src\bytecode_generated.h" />
     <ClInclude Include="..\src\codegen.h" />
+    <ClInclude Include="..\src\compiler.h" />
     <ClInclude Include="..\src\disasm.h" />
     <ClInclude Include="..\src\ftinterface.h" />
     <ClInclude Include="..\src\geom.h" />
     <ClInclude Include="..\src\glincludes.h" />
     <ClInclude Include="..\src\idents.h" />
+    <ClInclude Include="..\src\il.h" />
     <ClInclude Include="..\src\lex.h" />
     <ClInclude Include="..\src\mctables.h" />
     <ClInclude Include="..\src\natreg.h" />
@@ -569,10 +571,11 @@
     <ClCompile Include="..\src\glshader.cpp" />
     <ClCompile Include="..\src\gltexture.cpp" />
     <ClCompile Include="..\src\graphics.cpp" />
-    <ClCompile Include="..\src\lobster.cpp">
+    <ClCompile Include="..\src\compiler.cpp">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\src\lobsterreader.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
@@ -594,6 +597,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
     </ClCompile>
+    <ClCompile Include="..\src\vm.cpp" />
     <ClCompile Include="..\src\vmdata.cpp" />
   </ItemGroup>
   <ItemGroup>

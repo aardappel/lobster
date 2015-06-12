@@ -187,7 +187,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const byt
     return ip;
 }
 
-static void DisAsm(string &s, const uchar *bytecode_buffer)
+void DisAsm(string &s, const uchar *bytecode_buffer)
 {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
     assert(FLATBUFFERS_LITTLEENDIAN);
