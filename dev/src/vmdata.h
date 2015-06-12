@@ -550,12 +550,12 @@ template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
         T t;
         for (int i = 0; i < T::NUM_ELEMENTS; i++)
         {
-            T::CTYPE e = def;
+            typename T::CTYPE e = def;
             if (v.vval()->len > i)
             {
                 Value &c = v.vval()->at(i);
-                if      (c.type == V_FLOAT) e = (T::CTYPE)c.fval();
-                else if (c.type == V_INT)   e = (T::CTYPE)c.ival();
+                if      (c.type == V_FLOAT) e = (typename T::CTYPE)c.fval();
+                else if (c.type == V_INT)   e = (typename T::CTYPE)c.ival();
                 else g_vm->BuiltinError(string("non-numeric component in vector: ") + g_vm->ProperTypeName(c));
             }
             t.set(i, e);
@@ -564,11 +564,11 @@ template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
     }
     else if (v.type == V_FLOAT)
     {
-        return T((T::CTYPE)v.fval());
+        return T((typename T::CTYPE)v.fval());
     }
     else if (v.type == V_INT)
     {
-        return T((T::CTYPE)v.ival());
+        return T((typename T::CTYPE)v.ival());
     }
     else
     {
