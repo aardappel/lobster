@@ -108,7 +108,12 @@ void OpenGLInit()
 
     #if !defined(__APPLE__) && !defined(__ANDROID__)
     #define GLEXT(type, name, needed) \
-        name = (type)SDL_GL_GetProcAddress(#name); if (!name && needed) throw string("no " #name);
+        { \
+            union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
+            funcast.proc = SDL_GL_GetProcAddress(#name); \
+            name = funcast.fun; \
+            if (!name && needed) throw string("no " #name); \
+        }
     GLBASEEXTS GLEXTS
     #undef GLEXT
     #endif

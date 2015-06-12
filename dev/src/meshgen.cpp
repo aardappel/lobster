@@ -1120,6 +1120,6 @@ void AddMeshGen()
         "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts them (carves)."
         " when a body is given, restores the previous fill mode afterwards."
         " Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
-};
+}
 
 AutoRegister __amg("meshgen", AddMeshGen);

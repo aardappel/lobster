@@ -26,7 +26,7 @@ BitmapFont::~BitmapFont()
     if (texid) DeleteTexture(texid);
 }
 
-BitmapFont::BitmapFont(OutlineFont *_font, int _size) : texid(0), usedcount(1), font(_font), size(_size)
+BitmapFont::BitmapFont(OutlineFont *_font, int _size) : texid(0), height(0), texh(0), texw(0), usedcount(1), size(_size), font(_font)
 {
 }
 
@@ -50,7 +50,8 @@ bool BitmapFont::CacheChars(const char *text)
     texh = 0;
     texw = MaxTextureSize();
 
-    int max_descent = 0, max_ascent = 0;
+    int max_descent = 0;
+    int max_ascent = 0;
     int space_on_line = texw - margin, lines = 1;
 
     for (int i : font->unicodetable)

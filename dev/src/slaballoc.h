@@ -110,7 +110,7 @@ class SlabAlloc
 
     void putinbuckets(char *start, char *end, int b, int size)
     {
-        assert(sizeof(DLNodeRaw) <= size);
+        assert((int)sizeof(DLNodeRaw) <= size);
         for (end -= size; start<=end; start += size)
         {
             reuse[b].InsertAfterThis((DLNodeRaw *)start);

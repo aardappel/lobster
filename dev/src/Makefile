@@ -26,7 +26,9 @@ OBJS= \
 	glsystem.o \
 	gltexture.o \
 	graphics.o \
-	lobster.o \
+	compiler.o \
+        vm.o \
+        main.o \
 	lobsterreader.o \
 	meshgen.o \
 	platform.o \

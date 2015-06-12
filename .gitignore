@@ -21,3 +21,13 @@
 /dev/android/assets/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Debug/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Release/
+
+/dev/CMakeCache.txt
+/dev/CMakeFiles/
+/dev/Makefile
+/dev/cmake_install.cmake
+/dev/CMakeLists.txt.user
+/dev/Lobster.cbp
+
+/lobster/lobster_linux
+

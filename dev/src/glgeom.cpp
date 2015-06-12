@@ -99,7 +99,7 @@ Surface::~Surface()
 }
 
 Geometry::Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
-    : vertsize(_vertsize), nverts(_nverts), fmt(_fmt)
+    : vertsize(_vertsize), fmt(_fmt), vboId(0), nverts(_nverts)
 {
     glGenBuffers(1, &vboId);
     glBindBuffer(GL_ARRAY_BUFFER, vboId);

@@ -168,9 +168,9 @@ struct SubFunction
 
     SubFunction(int _idx)
         : idx(_idx),
-          parent(nullptr), args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
+          args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           coyieldsave(0, nullptr),
-          body(nullptr), next(nullptr), subbytecodestart(0),
+          body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), iscoroutine(false), numcallers(0),
           thistype(V_FUNCTION, this)
     {

@@ -37,7 +37,7 @@ struct AST : SlabAllocatedSmall
 
     Line line;
 
-    AST(Line &_line, TType _t) : line(_line), type(_t) {}
+    AST(Line &_line, TType _t) : type(_t), line(_line) {}
 };
 
 struct IntConst : AST { int integer_;      IntConst(Line &ln, int i)            : AST(ln, T_INT), integer_(i) {}; };

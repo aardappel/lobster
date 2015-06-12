@@ -78,7 +78,6 @@ int main(int argc, char* argv[])
 
     if (sizeof(void *) != sizeof(int))
     {
-        assert(0);
         Output(OUTPUT_WARN, "WARNING: Lobster has been compiled in 64bit mode, which doubles memory usage, "
                "and should only be used for testing. Make sure to use a 32bit build for release.");
     }
