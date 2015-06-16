@@ -15,12 +15,15 @@ Lexical definition
 -   Whitespace is space, tab, carriage return, nested comments delimited by `/*`
     and `*/` or single line comments starting with `//`
 
--   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= == !=
-    < > <= >= <- = := :== ! ? ?. . ->`
+-   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
+    != < > <= >= <- = := :== ! ? ?. . ->`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
     `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g. `\xFF` is the
-    character with value 255).
+    character with value 255). Alternatively, strings can be enclosed in
+    triple-quotes (`"""`) and may then contain any characters verbatim,
+    including new-lines, quotes, and escape codes (which are all left
+    untouched).
 
 -   Numbers consisting of a series of digits to indicate an integer constant
     (e.g. `123`) or hex digits with a leading `0x` (e.g. `0xABADCAFE`) or digits
@@ -69,8 +72,8 @@ args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `vector` \| `def` \| `coroutine` \|
-`nil` \| ident
+type = `int` \| `float` \| `string` \| `vector` \| `def` \| `coroutine` \| `nil`
+\| ident
 
 call = `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
 
@@ -159,8 +162,8 @@ same object in memory, and thus changes can be observed from each).
 User Defined Types
 ------------------
 
-The `struct` and `value` keywords allow you to define a user defined type.
-For example, from `vec.lobster`:
+The `struct` and `value` keywords allow you to define a user defined type. For
+example, from `vec.lobster`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 value xy { x, y }
@@ -174,13 +177,12 @@ small objects such as the one in this example, and can be used to enforce a more
 functional style of programming.
 
 You specify a list of fields betweeb `{` and `}`. The above example has no types
-specified, which makes it a generic type, more about the [type system][11].
+specified, which makes it a generic type, more about the [type
+system](<type_checker.html>).
 
-[11]: <type_checker.html>
-
-Optionally, you specify a supertype, which has the effect of adding all
-the fields of the supertype to the current type, thus making it an extension of
-the former.
+Optionally, you specify a supertype, which has the effect of adding all the
+fields of the supertype to the current type, thus making it an extension of the
+former.
 
 You construct values of these types you use a similar syntax:
 
@@ -343,11 +345,11 @@ def name(arg1, arg2): body
 
 `body` can either be a single expression, multiple expressions all on a single
 line separated by `;`, or, most commonly, an indentation (start of code on the
-next line further than the previous line, in this case the `def` keyword),
-and then any number of expressions on their own line separated by linefeeds,
-until a de-dedentation occurs (return to the indentation level of the parent, in
-this case again the `def` keyword). It is an error to de-dedent less than
-the parent level. For example:
+next line further than the previous line, in this case the `def` keyword), and
+then any number of expressions on their own line separated by linefeeds, until a
+de-dedentation occurs (return to the indentation level of the parent, in this
+case again the `def` keyword). It is an error to de-dedent less than the parent
+level. For example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def name(arg1, arg2):
@@ -737,9 +739,7 @@ Built-in Functions
 Built-in functions are not strictly part of the language, but since Lobster
 relegates so much core functionality to them, it is useful to have a look how
 the important ones work. For a complete list, please refer to the [built-in
-function reference][1].
-
-[1]: <builtin_functions_reference.html>
+function reference](<builtin_functions_reference.html>).
 
 ### Control Structures
 
@@ -792,6 +792,4 @@ run the body and restore the previous transform afterwards.
 Type Checking
 -------------
 
-This has its own document, [here][2].
-
-[2]: <type_checker.html>
+This has its own document, [here](<type_checker.html>).

@@ -370,6 +370,29 @@ struct Lex : LoadedFile
         char c = 0;
         sattr = "";
 
+        // Check if its a multi-line constant.
+        if (initial == '\"' && p[0] == '\"' && p[1] == '\"')
+        {
+            p += 2;
+            for (;;)
+            {
+                if (p[0] == '\"' && p[1] == '\"' && p[2] == '\"')
+                {
+                    p += 3;
+                    return T_STR;
+                }
+                else if (!*p)
+                {
+                    Error("end of file found in multi-line string constant");
+                }
+                else
+                {
+                    sattr += *p++;
+                }
+            }
+        }
+
+        // Regular string or character constant.
         while ((c = *p++) != initial) switch (c)
         {
             case 0:
