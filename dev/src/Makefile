@@ -5,13 +5,12 @@
 #ARCHFLAGS= -m32
 ARCHFLAGS=
 
-CXXFLAGS= -O3 -fomit-frame-pointer
-override CXXFLAGS+= $(ARCHFLAGS) --std=c++0x -Wall -Wno-multichar -Wno-reorder \
-    -Wno-delete-non-virtual-dtor -Wno-switch -DNDEBUG
-CFLAGS= -O3 -fomit-frame-pointer
-override CFLAGS+= $(ARCHFLAGS) -Wall -DNDEBUG
+CXXFLAGS= -O3
+override CXXFLAGS+= $(ARCHFLAGS) --std=c++0x -Wall -pedantic -Wno-switch
+CFLAGS= -O3
+override CFLAGS+= $(ARCHFLAGS) -Wall
 
-INCLUDES= `freetype-config --cflags` `sdl2-config --cflags` -I. -I../include
+INCLUDES= -I. -I../include
 LIBS= -L/usr/lib32 `freetype-config --libs` `sdl2-config --libs` -lGL
 
 OBJS= \
