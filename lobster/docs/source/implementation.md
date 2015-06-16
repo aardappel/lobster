@@ -12,7 +12,7 @@ Building Lobster
 
 Lobster uses recent C++11 features (auto, lambda, range-for), so will need
 Visual Studio 2012 (the free desktop edition will do), Xcode 4.6, or a recent
-GCC to be compiled.
+GCC (4.8.2 or newer) to be compiled.
 
 Lobster uses OpenGL, SDL 2.0 and FreeType. Currently for Windows/OS X/iOS
 SDL/Freetype precompiled libs are supplied with the project, so should compile
@@ -21,16 +21,16 @@ out of the box with no further external dependencies.
 All source code and other files related to building Lobster for all platforms
 sit in the `dev` folder, which is usually parallel to the main lobster folder.
 
-Lobster must be build in 32bit mode on all platforms. For a high speed
+Lobster is ideally built in 32bit mode on all platforms. For a high speed
 interpreter, sizes of data are a bit more critical than most programs, and while
-mobile platforms are still stuck in the 32bit era, this uniformity is helpful.
+mobile platforms are still default to 32bit, this uniformity is helpful.
 
 ### Windows
 
 This platform is definitely best supported and easiest to use for now. Open up
 `dev\lobster\lobster.sln` with Visual Studio. The project is set up to build
 lobster.exe in the main lobster folder, and will be ready for use as described
-either from the [command line][1] or [notepad++][2].
+either from the [command line][1] or [Notepad++][2] / SublimeText.
 
 [1]: <command_line_usage.html>
 
@@ -44,9 +44,8 @@ Building for either one is easy using the single Xcode project (in
 `lobster` target) placed in the main lobster folder much like Windows.
 
 To develop Lobster code on OS X, easiest probably is to use the command line
-version (use the -c option to tell it it's not running from an app bundle). Many
-OS X editors support running a command line compiler, e.g. Komodo Edit with
-Tools -\> Run Command.
+version. Many OS X editors support running a command line compiler, e.g.
+SublimeText, or Komodo Edit with Tools -\> Run Command.
 
 Alternatively, you could add your lobster source (and extra data it might need)
 to the Xcode project, and add it to the build rules such that these are copied
@@ -57,11 +56,7 @@ Distribution is currently a bit clumsier. You'll need to run lobster to produce
 a bytecode file (see [command line][3]), then make a copy of the bundle, and
 stick the bytecode file (+data) in the Resource location, and you should have
 something that can be distributed to users. For iOS you can compile using the OS
-X exe, then run that same bytecode using the iOS exe. Versioning of the Lobster
-bytecode is currently very simplistic and tied to the day the exe was compiled,
-so if iOS exe complains that it can't read the bytecode, make sure the OS X exe
-you used to produce it was compiled on the same day. This will improve in the
-future.
+X exe, then run that same bytecode using the iOS exe.
 
 [3]: <command_line_usage.html>
 
@@ -80,6 +75,11 @@ testing, but if you ever release a lobster program where you care for
 efficiency, it should really be built as a 32bit executable, even on a 64bit
 system. This is tricky however, and I don't have an out of the box solution for
 that yet. The future plan is of course for the VM not to have this limitation.
+
+### CMake
+
+You can now also build with CMake (on Linux, and possibly other platforms).
+`cmake .` in the `dev/` folder, followed by `make` should work.
 
 ### Android
 
@@ -156,7 +156,7 @@ void MyNativeOps()
 {
     STARTDECL(add) (Value &x, Value &y)
     {
-        return Value(x.ival + y.ival);
+        return Value(x.ival() + y.ival());
     }
     ENDDECL2(add, "x,y", "II", "I", "adds two integers.");
 
@@ -171,20 +171,20 @@ these functions succesfully, in particular with the `Value` type (see
 `vmbase.h`), which is a union of all possible lobster types. If you specify
 specific types (such as `I` for `int`, `F` for `float`, `S` for `string`, `V`
 for `vector`, `C` for a `function` value, `R` for a `coroutine` and `A` for any
-type, lowercase of any of them for an optional value that will be `nil` if not
-specified) in the declaration, then the `Value` will already have been
-typechecked and guaranteed to be that type, such that you can directly access
-the component (e.g. `.ival`) of the union without checking the type.
+type in the declaration, then the `Value` will already have been typechecked and
+guaranteed to be that type, such that you can directly access the component
+(e.g. `.ival()`) without checking the type (you'll get an assert if you get this
+wrong).
 
 As you can see, even the help text is included in the declaration, so everything
 related to the function is in one location.
 
 Important is dealing with reference counting, all of your
 string/vector/coroutine arguments will have the proper reference count before
-your function is called, and if you're not returning this value, you need to
-decrement them when you're done with them (look for functions that use these
-types as an example). If you fail to do this, the person writing Lobster code in
-your dialect will get memory leaks he can't fix.
+your function is called, and if you're not returning/reusing this value, you
+need to decrement them when you're done with them (look for functions that use
+these types as an example). If you fail to do this, the person writing Lobster
+code in your dialect will get memory leaks he can't fix.
 
 In designing your extension library, if you intend to add a lot of functions, it
 is a good idea to choose a small prefix (similar to `gl_` for all the graphics
@@ -217,8 +217,8 @@ You should be able to stick the remaining code somewhere in your project and
 have it compile. I might make this easier in the future by making this part of
 the code a separate library.
 
-For now, look at lobster.cpp for an example of how to call scripts from your
-code base (replace `main()` with something else). You'll want to add your own
+For now, look at `main.cpp` for an example of how to call scripts from your code
+base (replace `main()` with something else). You'll want to add your own
 functionality as native functions as described in the previous section.
 
 Some of Lobster relies on it's own math library (`geom.h`), but it should be
