@@ -58,8 +58,7 @@ private def cache_size(id, f):
                 return e.size
         xy_0i   // new element inserted by event handler, do not render yet
 
-private def advance(v, f):
-    //allint(v)
+private def advance(v:xy_i, f):
     if(render_pass):
         f()
     else:
@@ -70,8 +69,7 @@ private def advance(v, f):
 private def max_space(v):
     if(vertical): xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
 
-private def position(v, f):
-    //allint(v)
+private def position(v:xy_i, f):
     r := max_space(v) - v
     gl_translate(if(align == 1): r / 2 else: r * (align / 2), f)
 

@@ -68,8 +68,6 @@ diagonal_directions := [ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } 
 def xy(v): xy { v.x, v.y }
 def xyz(v): xyz { v.x, v.y, v.z }
 
-def allint(v): for(v): assert(_ is int)    // FIXME: should probably be a language feature
-
 def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
 

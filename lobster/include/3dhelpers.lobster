@@ -30,6 +30,10 @@ def camera_FPS_view():
     gl_rotate_z(-camera_yaw)
     gl_translate(-camera_position)
 
+def camera_forward_vector(): vecfromyawpitch(camera_yaw, camera_pitch, 1.0, 0.0)
+def camera_up_vector(): vecfromyawpitch(camera_yaw, camera_pitch + 90, 1.0, 0.0)
+def camera_left_vector(): vecfromyawpitch(camera_yaw, camera_pitch, 0.0, 1.0)
+
 // an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update,
 // then still call camera_FPS_view as before:
 

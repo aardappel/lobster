@@ -207,7 +207,7 @@ string ParseMaterialFile(char *mbuf)
     }
 
     finish();
-    return "";
+    return err;
 }
 
 string LoadMaterialFile(const char *mfile)

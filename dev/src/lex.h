@@ -376,18 +376,23 @@ struct Lex : LoadedFile
             p += 2;
             for (;;)
             {
-                if (p[0] == '\"' && p[1] == '\"' && p[2] == '\"')
+                switch (c = *p++)
                 {
-                    p += 3;
-                    return T_STR;
-                }
-                else if (!*p)
-                {
-                    Error("end of file found in multi-line string constant");
-                }
-                else
-                {
-                    sattr += *p++;
+                    case '\0':
+                        Error("end of file found in multi-line string constant");
+                        break;
+                    case '\"':
+                        if (p[0] == '\"' && p[1] == '\"')
+                        {
+                            p += 3;
+                            return T_STR;
+                        }
+                        break;
+                    case '\r':  // Don't want these in our string constants.
+                        break;
+                    default:
+                        sattr += c;
+                        break;
                 }
             }
         }
