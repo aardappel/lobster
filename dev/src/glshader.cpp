@@ -75,11 +75,8 @@ uint CompileGLSLShader(GLenum type, uint program, const GLchar *source, string &
     return 0;
 }
 
-string LoadMaterialFile(const char *mfile)
+string ParseMaterialFile(char *mbuf)
 {
-    auto mbuf = (char *)LoadFile(mfile);
-    if (!mbuf) return string("cannot load material file: ") + mfile;
-
     auto p = mbuf;
 
     string err;
@@ -133,13 +130,13 @@ string LoadMaterialFile(const char *mfile)
 
         if (!last.empty())
         {
-            if      (last == "VERTEXFUNCTIONS") { if (finish()) goto out; vfunctions.clear(); accum = &vfunctions; }
-            else if (last == "PIXELFUNCTIONS")  { if (finish()) goto out; pfunctions.clear(); accum = &pfunctions; }
-            else if (last == "VERTEX")          {                         vertex.clear();     accum = &vertex;     }
-            else if (last == "PIXEL")           {                         pixel.clear();      accum = &pixel;      }
+            if      (last == "VERTEXFUNCTIONS") { if (finish()) return err; vfunctions.clear(); accum = &vfunctions; }
+            else if (last == "PIXELFUNCTIONS")  { if (finish()) return err; pfunctions.clear(); accum = &pfunctions; }
+            else if (last == "VERTEX")          {                           vertex.clear();     accum = &vertex;     }
+            else if (last == "PIXEL")           {                           pixel.clear();      accum = &pixel;      }
             else if (last == "SHADER")
             {
-                if (finish()) goto out;
+                if (finish()) return err;
                 word();
                 shader = last;
                 vdecl.clear();
@@ -159,7 +156,7 @@ string LoadMaterialFile(const char *mfile)
                     else if (last == "light1") decl += "uniform vec3 light1;\n";
                     else if (last == "bones")  decl += "uniform vec4 bones[240];\n";   // FIXME: configurable
                     else if (strstr(last.c_str(), "tex")) decl += "uniform sampler2D " + last + ";\n";
-                    else { err = "unknown uniform: " + last; goto out; }
+                    else return "unknown uniform: " + last; 
                 }
             }
             else if (last == "UNIFORM")
@@ -169,7 +166,7 @@ string LoadMaterialFile(const char *mfile)
                 auto type = last;
                 word();
                 auto name = last;
-                if (type.empty() || name.empty()) { err = "uniform decl must specify type and name"; goto out; }
+                if (type.empty() || name.empty()) return "uniform decl must specify type and name";
                 decl += "uniform " + type + " " + name + ";\n";
             }
             else if (last == "INPUTS")
@@ -182,14 +179,12 @@ string LoadMaterialFile(const char *mfile)
                     auto pos = strstr(last.c_str(), ":");
                     if (!pos)
                     {
-                        err = "input " + last + " doesn't specify number of components, e.g. anormal:3";
-                        goto out;
+                        return "input " + last + " doesn't specify number of components, e.g. anormal:3";
                     }
                     int comp = atoi(pos + 1);
                     if (comp <= 0 || comp > 4)
                     {
-                        err = "input " + last + " can only use 1..4 components";
-                        goto out;
+                        return "input " + last + " can only use 1..4 components";
                     }
                     last = last.substr(0, pos - last.c_str());
                     string d = " vec" + to_string(comp) + " " + last + ";\n";
@@ -199,22 +194,28 @@ string LoadMaterialFile(const char *mfile)
             }
             else
             {
-                if (!accum) { err = "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " + string(start); goto out; }
+                if (!accum) return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " + string(start);
                 *accum += start;
                 *accum += "\n";
             }
         }
 
         if (eof) break;
+        *end = '\n';
 
         p = end + 1;
     }
 
     finish();
+    return "";
+}
 
-    out:
+string LoadMaterialFile(const char *mfile)
+{
+    auto mbuf = (char *)LoadFile(mfile);
+    if (!mbuf) return string("cannot load material file: ") + mfile;
+    auto err = ParseMaterialFile(mbuf);
     free(mbuf);
-
     return err;
 }
 

@@ -120,6 +120,7 @@ extern int SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 
 extern string LoadMaterialFile(const char *mfile);
+extern string ParseMaterialFile(char *mfile);
 extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
 

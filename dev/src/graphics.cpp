@@ -166,15 +166,17 @@ void AddGraphics()
     ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIII?", "S?",
         "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
 
-    STARTDECL(gl_loadmaterials) (Value &fn)
+    STARTDECL(gl_loadmaterials) (Value &fn, Value &isinline)
     {
         TestGL();
-        auto err = LoadMaterialFile(fn.sval()->str());
+        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->str()) 
+                                   : LoadMaterialFile(fn.sval()->str());
         fn.DECRT();
         return err[0] ? Value(g_vm->NewString(err)) : Value(0, V_NIL);
     }
-    ENDDECL1(gl_loadmaterials, "filename", "S", "S?",
+    ENDDECL2(gl_loadmaterials, "materialdefs,inline", "SI?", "S?",
         "loads an additional materials file (shader/default.materials is already loaded by default by gl_window())."
+        " if inline is true, materialdefs is not a filename, but the actual materials."
         " returns error string if any problems, nil otherwise.");
 
     STARTDECL(gl_frame) ()
