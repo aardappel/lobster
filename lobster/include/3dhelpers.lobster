@@ -18,7 +18,7 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
 
     move   := gl_isdown(upkey) - gl_isdown(downkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
-    friction := 20
+    friction :== 20
     velspeed := min(1.0, friction * gl_deltatime())
     dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
@@ -31,8 +31,8 @@ def camera_FPS_view():
     gl_translate(-camera_position)
 
 def camera_forward_vector(): vecfromyawpitch(camera_yaw, camera_pitch, 1.0, 0.0)
-def camera_up_vector(): vecfromyawpitch(camera_yaw, camera_pitch + 90, 1.0, 0.0)
-def camera_left_vector(): vecfromyawpitch(camera_yaw, camera_pitch, 0.0, 1.0)
+def camera_up_vector():      vecfromyawpitch(camera_yaw, camera_pitch + 90, 1.0, 0.0)
+def camera_left_vector():    vecfromyawpitch(camera_yaw, camera_pitch, 0.0, 1.0)
 
 // an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update,
 // then still call camera_FPS_view as before:

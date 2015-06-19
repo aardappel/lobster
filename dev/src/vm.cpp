@@ -1404,7 +1404,7 @@ struct VM : VMBase
 
     void Trace(bool on) { trace = on; }
 
-    float Time() { return (float)SecondsSinceStart(); }
+    double Time() { return SecondsSinceStart(); }
 
     int GC()    // shouldn't really be used, but just in case
     {

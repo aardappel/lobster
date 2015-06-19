@@ -38,7 +38,7 @@ struct KeyState : UpDown
 {
     UpDown lastframe;
 
-    int lasttime[2];
+    double lasttime[2];
     int2 lastpos[2];
 
     KeyState()
@@ -61,7 +61,9 @@ int mousewheeldelta = 0;
 
 int skipmousemotion = 3;
 
-int frametime = 0, lastmillis = 0, frames = 0, starttime = 0;
+double frametime = 0, lasttime = 0;
+uint64_t timefreq = 0, timestart = 0;
+int frames = 0;
 
 int screenscalefactor = 1;  // FIXME: remove this
 
@@ -100,7 +102,7 @@ void updatebutton(string &name, bool on, int posfinger)
     {
         ks->wentup = true;
     }
-    ks->lasttime[on] = lastmillis;
+    ks->lasttime[on] = lasttime;
     ks->lastpos[on] = fingers[posfinger].mousepos;
 }
 
@@ -358,11 +360,15 @@ string SDLInit(const char *title, int2 &screensize, bool fullscreen)
         };
     };
 
-    starttime = SDL_GetTicks();
-    lastmillis = starttime - 16;    // ensure first frame doesn't get a crazy delta
+    timestart = SDL_GetPerformanceCounter();
+    timefreq = SDL_GetPerformanceFrequency();
+
+    lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
     return "";
 }
+
+double GetSeconds() { return (double)(SDL_GetPerformanceCounter() - timestart) / (double)timefreq; }
 
 void SDLShutdown()
 {
@@ -375,15 +381,10 @@ void SDLShutdown()
 
 bool SDLFrame(int2 &screensize)
 {
-    for (;;)
-    {
-        int millis = SDL_GetTicks();
-        frametime = millis-lastmillis;
-        if (frametime < 10) { SDL_Delay(1); continue; }
-        lastmillis = millis;
-        frames++;
-        break;
-    }
+    auto millis = GetSeconds();
+    frametime = millis - lasttime;
+    lasttime = millis;
+    frames++;
 
     for (auto &it : keymap) it.second.FrameReset();
 
@@ -555,9 +556,8 @@ bool SDLFrame(int2 &screensize)
     return closebutton;
 }
 
-float Time(int lastmillis) { return (lastmillis-starttime)/1000.0f; }
-float SDLTime() { return Time(lastmillis); }
-float SDLDeltaTime() { return frametime/1000.0f; }
+double SDLTime() { return lasttime; }
+double SDLDeltaTime() { return frametime; }
 
 UpDown GetKS(const char *name)
 {
@@ -574,10 +574,10 @@ UpDown GetKS(const char *name)
     #endif
 }
 
-float GetKeyTime(const char *name, int on)
+double GetKeyTime(const char *name, int on)
 {
     auto ks = keymap.find(name);
-    return ks == keymap.end() ? -3600 : Time(ks->second.lasttime[on]);
+    return ks == keymap.end() ? -3600 : ks->second.lasttime[on];
 }
 
 int2 GetKeyPos(const char *name, int on)

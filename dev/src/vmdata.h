@@ -86,7 +86,7 @@ struct VMBase
     virtual LVector *NewVector(size_t n, int t) = 0;
     virtual int GetVectorType(int which) = 0;
     virtual void Trace(bool on) = 0;
-    virtual float Time() = 0;
+    virtual double Time() = 0;
     virtual int GC() = 0;
     virtual const char *ProperTypeName(const Value &v) = 0;
     virtual int StructIdx(const string &name, int &nargs) = 0;

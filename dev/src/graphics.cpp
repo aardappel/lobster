@@ -349,14 +349,14 @@ void AddGraphics()
 
     STARTDECL(gl_deltatime) ()
     {
-        return Value(SDLDeltaTime());
+        return Value((float)SDLDeltaTime());
     }
     ENDDECL0(gl_deltatime, "", "", "F",
         "seconds since the last frame, updated only once per frame");
 
     STARTDECL(gl_time) ()
     {
-        return Value(SDLTime());
+        return Value((float)SDLTime());
     }
     ENDDECL0(gl_time, "", "", "F",
         "seconds since the start of the OpenGL subsystem, updated only once per frame (use seconds_elapsed()"
@@ -366,7 +366,7 @@ void AddGraphics()
     {
         auto t = GetKeyTime(name.sval()->str(), on.ival());
         name.DEC();
-        return Value(t);
+        return Value((float)t);
     }
     ENDDECL2(gl_lasttime, "name,down", "SI", "F",
         "time key/mousebutton/finger last went down (true) or up (false)");

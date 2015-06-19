@@ -749,7 +749,7 @@ void AddBuiltins()
 
     STARTDECL(seconds_elapsed) ()
     {
-        return Value(g_vm->Time());
+        return Value((float)g_vm->Time());
     }
     ENDDECL0(seconds_elapsed, "", "", "F",
         "seconds since program start as a float, unlike gl_time() it is calculated every time it is called");
