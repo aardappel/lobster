@@ -21,15 +21,17 @@ struct Shader
 {
     enum { MAX_SAMPLERS = 3 };
 
-    uint vs, ps, program;
+    uint vs, ps, cs, program;
 
     int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, bones_i;
 
-    Shader() : vs(0), ps(0), program(0) {}
+    Shader() : vs(0), ps(0), cs(0), program(0) {}
 
     ~Shader();
 
     string Compile(const char *name, const char *vscode, const char *pscode);
+    string Compile(const char *name, const char *comcode);
+    void Link(const char *name);
     void Activate();                         // Makes shader current;
     void Set();                              // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);  // Optionally, after Activate().
@@ -123,6 +125,9 @@ extern string LoadMaterialFile(const char *mfile);
 extern string ParseMaterialFile(char *mfile);
 extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
+
+extern void DispatchCompute(const int3 &groups);
+extern void SetImageTexture(uint textureunit, uint id, bool read);
 
 enum TextureFlag { TF_NONE = 0, TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4 };
 

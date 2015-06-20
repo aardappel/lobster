@@ -81,19 +81,8 @@ string ParseMaterialFile(char *mbuf)
 
     string err;
     string last;
-    string vfunctions, pfunctions, vertex, pixel, vdecl, pdecl, shader;
+    string vfunctions, pfunctions, cfunctions, vertex, pixel, compute, vdecl, pdecl, csdecl, shader;
     string *accum = nullptr;
-
-    string header;
-    #ifdef PLATFORM_MOBILE
-    header += "#ifdef GL_ES\nprecision highp float;\n#endif\n";
-    #else
-    //#ifdef __APPLE__
-    header += "#version 120\n";
-    //#else
-    //header += "#version 130\n";
-    //#endif
-    #endif
 
     auto word = [&]()
     {
@@ -107,10 +96,30 @@ string ParseMaterialFile(char *mbuf)
     {
         if (!shader.empty())
         {
+
             auto sh = new Shader();
-            err = sh->Compile(shader.c_str(),
-                              (header + vdecl + vfunctions + "void main()\n{\n" + vertex + "}\n").c_str(),
-                              (header + pdecl + pfunctions + "void main()\n{\n" + pixel  + "}\n").c_str());
+            if (compute.length())
+            {
+                auto header = "#version 430\n";
+                err = sh->Compile(shader.c_str(),
+                                  (header + csdecl + cfunctions + "void main()\n{\n" + compute + "}\n").c_str());
+            }
+            else
+            {
+                string header;
+                #ifdef PLATFORM_MOBILE
+                    header += "#ifdef GL_ES\nprecision highp float;\n#endif\n";
+                #else
+                    //#ifdef __APPLE__
+                    header += "#version 120\n";
+                    //#else
+                    //header += "#version 130\n";
+                    //#endif
+                #endif
+                err = sh->Compile(shader.c_str(),
+                                  (header + vdecl + vfunctions + "void main()\n{\n" + vertex + "}\n").c_str(),
+                                  (header + pdecl + pfunctions + "void main()\n{\n" + pixel + "}\n").c_str());
+            }
             if (!err.empty())
                 return true;
             shadermap[shader] = sh;
@@ -130,10 +139,12 @@ string ParseMaterialFile(char *mbuf)
 
         if (!last.empty())
         {
-            if      (last == "VERTEXFUNCTIONS") { if (finish()) return err; vfunctions.clear(); accum = &vfunctions; }
-            else if (last == "PIXELFUNCTIONS")  { if (finish()) return err; pfunctions.clear(); accum = &pfunctions; }
-            else if (last == "VERTEX")          {                           vertex.clear();     accum = &vertex;     }
-            else if (last == "PIXEL")           {                           pixel.clear();      accum = &pixel;      }
+            if      (last == "VERTEXFUNCTIONS")  { if (finish()) return err; vfunctions.clear(); accum = &vfunctions; }
+            else if (last == "PIXELFUNCTIONS")   { if (finish()) return err; pfunctions.clear(); accum = &pfunctions; }
+            else if (last == "COMPUTEFUNCTIONS") { if (finish()) return err; cfunctions.clear(); accum = &cfunctions; }
+            else if (last == "VERTEX")           {                           vertex.clear();     accum = &vertex;     }
+            else if (last == "PIXEL")            {                           pixel.clear();      accum = &pixel;      }
+            else if (last == "COMPUTE")          {                           compute.clear();    accum = &compute;    }
             else if (last == "SHADER")
             {
                 if (finish()) return err;
@@ -141,11 +152,12 @@ string ParseMaterialFile(char *mbuf)
                 shader = last;
                 vdecl.clear();
                 pdecl.clear();
+                csdecl.clear();
                 accum = nullptr;
             }
             else if (last == "UNIFORMS")
             {
-                string &decl = accum == &vertex ? vdecl : pdecl;
+                string &decl = accum == &compute ? csdecl : (accum == &vertex ? vdecl : pdecl);
                 for (;;)
                 {
                     word();
@@ -155,13 +167,19 @@ string ParseMaterialFile(char *mbuf)
                     else if (last == "camera") decl += "uniform vec3 camera;\n";
                     else if (last == "light1") decl += "uniform vec3 light1;\n";
                     else if (last == "bones")  decl += "uniform vec4 bones[240];\n";   // FIXME: configurable
-                    else if (strstr(last.c_str(), "tex")) decl += "uniform sampler2D " + last + ";\n";
+                    else if (strstr(last.c_str(), "tex"))
+                    {
+                        if (accum == &compute) decl += "layout(binding = 0, rgba8) writeonly ";  // FIXME: also for other units.
+                        decl += "uniform ";
+                        decl += accum == &compute ? "image2D" : "sampler2D";
+                        decl += " " + last + ";\n";
+                    }
                     else return "unknown uniform: " + last; 
                 }
             }
             else if (last == "UNIFORM")
             {
-                string &decl = accum == &vertex ? vdecl : pdecl;
+                string &decl = accum == &compute ? csdecl : (accum == &vertex ? vdecl : pdecl);
                 word();
                 auto type = last;
                 word();
@@ -191,6 +209,14 @@ string ParseMaterialFile(char *mbuf)
                     if (accum == &vertex) vdecl += "attribute" + d;
                     else { d = "varying" + d; vdecl += d; pdecl += d; }
                 }
+            }
+            else if (last == "LAYOUT")
+            {
+                word();
+                auto xs = last;
+                word();
+                auto ys = last;
+                csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ") in;\n";
             }
             else
             {
@@ -236,6 +262,26 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     glBindAttribLocation(program, 4, "aweights");
     glBindAttribLocation(program, 5, "aindices");
 
+    Link(name);
+
+    return "";
+}
+
+string Shader::Compile(const char *name, const char *cscode)
+{
+    program = glCreateProgram();
+
+    string err;
+    cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
+    if (!cs) return string("couldn't compile compute shader: ") + name + "\n" + err;
+
+    Link(name);
+
+    return "";
+}
+
+void Shader::Link(const char *name)
+{
     glLinkProgram(program);
     GLint status;
     glGetProgramiv(program, GL_LINK_STATUS, &status);
@@ -256,10 +302,8 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     for (int i = 0; i < MAX_SAMPLERS; i++)
     {
         tex_i[i] = glGetUniformLocation(program, ("tex" + to_string(i)).c_str());
-        if (tex_i[i] >= 0) glUniform1i(tex_i[i], i); 
+        if (tex_i[i] >= 0) glUniform1i(tex_i[i], i);
     }
-
-    return "";
 }
 
 Shader::~Shader()
@@ -267,6 +311,7 @@ Shader::~Shader()
     if (program) glDeleteProgram(program);
     if (ps) glDeleteShader(ps);
     if (vs) glDeleteShader(vs);
+    if (cs) glDeleteShader(cs);
 }
 
 void Shader::Activate()
@@ -309,4 +354,11 @@ bool Shader::SetUniform(const char *name, const float *val, size_t count)
         case 4: glUniform4fv(loc, 1, val); return true;
         default: return false;
     }
+}
+
+void DispatchCompute(const int3 &groups)
+{
+    #ifndef PLATFORM_MOBILE
+    if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+    #endif
 }

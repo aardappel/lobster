@@ -81,7 +81,9 @@
             GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/, glUniformMatrix3x4fv      , 1) \
             GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC      , glBindAttribLocation      , 1) \
             GLEXT(PFNGLGETACTIVEUNIFORMARBPROC        , glGetActiveUniform        , 1) \
-            GLEXT(PFNGLGENERATEMIPMAPEXTPROC          , glGenerateMipmap          , 0) 
+            GLEXT(PFNGLGENERATEMIPMAPEXTPROC          , glGenerateMipmap          , 0) \
+            GLEXT(PFNGLDISPATCHCOMPUTEPROC            , glDispatchCompute         , 0) \
+            GLEXT(PFNGLBINDIMAGETEXTUREPROC           , glBindImageTexture        , 0)
 
         #define GLEXT(type, name, needed) extern type name;
             GLBASEEXTS

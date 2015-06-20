@@ -770,6 +770,17 @@ void AddGraphics()
              "set a uniform on the current shader. size of float vector must match size of uniform in the shader."
              " returns false on error.");
 
+    STARTDECL(gl_dispatchcompute) (Value &groups)
+    {
+        TestGL();
+
+        DispatchCompute(ValueDecTo<int3>(groups));
+
+        return Value();
+    }
+    ENDDECL1(gl_dispatchcompute, "groups", "I]", "",
+             "dispatches the currently set compute shader in groups of sizes of the specified x/y/z values.");
+
     STARTDECL(gl_blend) (Value &mode, Value &body)
     {
         TestGL();
@@ -848,6 +859,17 @@ void AddGraphics()
     ENDDECL4(gl_setmeshtexture, "meshid,part,i,textureid", "IIII", "",
         "sets texture unit i to texture id for a mesh and part (0 if not a multi-part mesh)");
 
+    STARTDECL(gl_setimagetexture) (Value &i, Value &id, Value &readonly)
+    {
+        TestGL();
+
+        SetImageTexture(GetSampler(i), id.ival(), readonly.True());
+
+        return Value();
+    }
+    ENDDECL3(gl_setimagetexture, "i,id,readonly", "III", "",
+             "sets image unit i to texture id (for use with compute)");
+
     STARTDECL(gl_createtexture) (Value &mat)
     {
         TestGL();
@@ -881,6 +903,26 @@ void AddGraphics()
     }
     ENDDECL1(gl_createtexture, "matrix", "F]]]", "I",
         "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array");
+
+    STARTDECL(gl_createblanktexture) (Value &sz, Value &col)
+    {
+        TestGL();
+
+        auto size = ValueDecTo<int2>(sz);
+        auto color = quantizec(ValueDecTo<float4>(col));
+
+        auto buf = new byte4[size.x() * size.y()];
+        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
+        {
+            buf[y * size.x() + x] = color;
+        }
+        uint id = CreateTexture((uchar *)buf, size);
+        delete[] buf;
+
+        return Value((int)id);
+    }
+    ENDDECL2(gl_createblanktexture, "size,color", "I]F]", "I",
+             "creates a blank texture (for use with e.g. compute shaders), returns texture id");
 
     STARTDECL(gl_deletetexture) (Value &i)
     {
