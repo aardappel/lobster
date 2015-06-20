@@ -17,6 +17,8 @@
 #include "sdlincludes.h"
 #include "sdlinterface.h"
 
+#include "glinterface.h"
+
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;
 
@@ -639,4 +641,22 @@ uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
     return buf;
 }
 
+bool ScreenShot(const char *filename, const int2 &screensize)
+{
+    SDL_Surface *surf = SDL_CreateRGBSurface(0, screensize.x(), screensize.y(), 24,
+                                             0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    if (!surf) return false;
 
+    auto pixels = ReadPixels(int2(0), screensize, false);
+    SDL_LockSurface(surf);
+    for (int i = 0; i < screensize.y(); i++)
+        memcpy(((char *)surf->pixels) + surf->pitch * i,
+               pixels + 3 * screensize.x() * (screensize.y() - i - 1),
+               screensize.x() * 3);
+    SDL_UnlockSurface(surf);
+    delete[] pixels;
+
+    bool ok = !SDL_SaveBMP(surf, filename);
+    SDL_FreeSurface(surf);
+    return ok;
+}

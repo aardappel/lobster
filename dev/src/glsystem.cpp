@@ -78,6 +78,13 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar)
     view2clip *= float4x4(float4(1, -1, 1, 1)); // FIXME?
 }
 
+uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha)
+{
+    uchar *pixels = new uchar[(3 + (int)alpha) * size.x() * size.y()];
+    glReadPixels(pos.x(), pos.y(), size.x(), size.y(), alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    return pixels;
+}
+
 void OpenGLFrameStart(const int2 &screensize)
 {
     glViewport(0, 0, screensize.x(), screensize.y());

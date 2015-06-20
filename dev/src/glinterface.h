@@ -137,6 +137,8 @@ extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id);
 extern int MaxTextureSize();
 
+extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
+
 extern void RenderArray(Primitive prim, int count, const char *fmt, 
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);

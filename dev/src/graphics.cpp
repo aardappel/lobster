@@ -973,6 +973,16 @@ void AddGraphics()
     ENDDECL3(gl_debug_grid, "num,dist,thickness", "VVF", "",
         "renders a grid in space for debugging purposes. num is the amount of lines in all 3 directions,"
         " and dist their spacing. thickness of the lines in the same units");
+
+    STARTDECL(gl_screenshot) (Value &fn)
+    {
+        bool ok = ScreenShot(fn.sval()->str(), screensize);
+        fn.DECRT();
+        return Value(ok);
+    }
+    ENDDECL1(gl_screenshot, "filename", "S", "I",
+             "saves a screenshot, returns true if succesful");
+
 }
 
 AutoRegister __ag("graphics", AddGraphics);
