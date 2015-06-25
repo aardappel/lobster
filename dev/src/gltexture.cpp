@@ -36,7 +36,8 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dim.x(), dim.y(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+    glTexImage2D(GL_TEXTURE_2D, 0, tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8, dim.x(), dim.y(), 0, GL_RGBA,
+                 tf & TF_FLOAT ? GL_FLOAT : GL_UNSIGNED_BYTE, buf);
 
     if (tf & TF_NOMIPMAP) return id;
 
@@ -51,6 +52,8 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 
 uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
 {
+    tf = tf & ~TF_FLOAT;  // Not supported yet.
+
     size_t len = 0;
     auto fbuf = LoadFile(name, &len);
     if (!fbuf)
@@ -79,10 +82,12 @@ void SetTexture(uint textureunit, uint id)
     glBindTexture(GL_TEXTURE_2D, id);
 }
 
-void SetImageTexture(uint textureunit, uint id, bool read)
+void SetImageTexture(uint textureunit, uint id, int tf)
 {
     if (glBindImageTexture)
-        glBindImageTexture(textureunit, id, 0, GL_FALSE, 0, read ? GL_READ_ONLY : GL_WRITE_ONLY, GL_RGBA8);
+        glBindImageTexture(textureunit, id, 0, GL_FALSE, 0,
+                           tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
+                           tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
 }
 
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards

@@ -381,15 +381,19 @@ struct Lex : LoadedFile
                     case '\0':
                         Error("end of file found in multi-line string constant");
                         break;
+                    case '\r':  // Don't want these in our string constants.
+                        break;
+                    case '\n':
+                        line++;
+                        sattr += c;
+                        break;
                     case '\"':
                         if (p[0] == '\"' && p[1] == '\"')
                         {
                             p += 3;
                             return T_STR;
                         }
-                        break;
-                    case '\r':  // Don't want these in our string constants.
-                        break;
+                        // FALL-THRU:
                     default:
                         sattr += c;
                         break;

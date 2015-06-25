@@ -125,10 +125,9 @@ cy := normalize(cx.cross(cam.d))*.5135
 
 set_max_stack_size(128)
 
-c := map(w): map(h): xyz_0
+c := map(h): map(w): xyz_0
 
 samples := 0
-
 
 def onesample():
     starttime := seconds_elapsed()
@@ -143,7 +142,7 @@ def onesample():
             d = normalize(d)
             r := radiance(Ray { cam.o+d*140, d },0)
             // Camera rays are pushed ^^^^^ forward to start in interior
-            c[x][h-y-1] += r
+            c[h-y-1][x] += r
     samples++
     c2 := map(c): map(_): map(_): pow(clamp(_ / samples, 0, 1),1/2.2)
     print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
@@ -157,10 +156,9 @@ while(gl_frame()):
     gl_clear(color_black)
     tex := onesample()
     gl_setprimitivetexture(0, tex)
-    gl_scale(gl_windowsize())
     gl_blend(0)
     gl_setshader("textured")
-    gl_rect(xy_1)
+    gl_rect(gl_windowsize())
     gl_deletetexture(tex)
 
 

@@ -167,9 +167,15 @@ string ParseMaterialFile(char *mbuf)
                     else if (last == "camera") decl += "uniform vec3 camera;\n";
                     else if (last == "light1") decl += "uniform vec3 light1;\n";
                     else if (last == "bones")  decl += "uniform vec4 bones[240];\n";   // FIXME: configurable
-                    else if (strstr(last.c_str(), "tex"))
+                    else if (!strncmp(last.c_str(), "tex", 3))
                     {
-                        if (accum == &compute) decl += "layout(binding = 0, rgba8) writeonly ";  // FIXME: also for other units.
+                        if (accum == &compute)
+                        {
+                            auto unit = atoi(last.c_str() + 3);
+                            bool floatingp = unit >= 1;  // FIXME: total hack. need to be able to specify this.
+                            decl += "layout(binding = " + to_string(unit) + ", " +
+                                    (floatingp ? "rgba32f" : "rgba8") + ") ";
+                        }
                         decl += "uniform ";
                         decl += accum == &compute ? "image2D" : "sampler2D";
                         decl += " " + last + ";\n";
@@ -360,5 +366,26 @@ void DispatchCompute(const int3 &groups)
 {
     #ifndef PLATFORM_MOBILE
     if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+    #endif
+}
+
+// Simple function for getting some shader storage attached to a shader. Should ideally be split up for more
+// flexibility.
+bool ShaderStorage(const float *data, size_t len, const char *shadername, const char *uniformblockname)
+{
+    #ifndef PLATFORM_MOBILE
+    auto sh = LookupShader(shadername);
+    if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase) return false;
+    GLuint ssbo = 0;
+    glGenBuffers(1, &ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * len , data, GL_DYNAMIC_COPY);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    sh->Activate();
+    auto idx = glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname);
+    GLuint ssbo_binding_point_index = 0;
+    glShaderStorageBlockBinding(sh->program, idx, ssbo_binding_point_index);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ssbo_binding_point_index, ssbo);
+    return true;
     #endif
 }

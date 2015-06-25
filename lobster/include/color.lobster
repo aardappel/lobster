@@ -37,3 +37,15 @@ color_springgreen :== color { 0,   1,   0.5, 1 }
 color_dodgerblue  :== color { 0,   0.5, 1,   1 }
 color_pink_violet :== color { 1,   0,   0.5, 1 }
 color_blue_violet :== color { 0.5, 0,   1,   1 }
+
+
+// texture format constants
+
+texture_format_none      :== 0
+texture_format_clamp     :== 1
+texture_format_nomipmap  :== 2
+texture_format_nearest   :== 4
+texture_format_float     :== 8
+texture_format_writeonly :== 16
+texture_format_readwrite :== 32
+

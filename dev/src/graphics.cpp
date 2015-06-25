@@ -800,7 +800,7 @@ void AddGraphics()
         "changes the blending mode to 0: off, 1: alpha blend (default), 2: additive, 3: alpha additive,"
         " 4: multiplicative. when a body is given, restores the previous mode afterwards");
 
-    STARTDECL(gl_loadtexture) (Value &name, Value &clamp, Value &nomip, Value &nearest)
+    STARTDECL(gl_loadtexture) (Value &name, Value &tf)
     {
         TestGL();
 
@@ -814,21 +814,16 @@ void AddGraphics()
         }
         else
         {
-            int tf = TF_NONE;
-            if (clamp.True())   tf |= TF_CLAMP;
-            if (nomip.True())   tf |= TF_NOMIPMAP;
-            if (nearest.True()) tf |= TF_NEAREST;
-
-            id = CreateTextureFromFile(name.sval()->str(), dim, tf);
+            id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
 
             if (id) texturecache[name.sval()->str()] = id;
         }
         g_vm->Push(Value((int)id));
         return ToValue(dim);
     }
-    ENDDECL4(gl_loadtexture, "name,clamp,nomip,nearest", "SI?I?I?", "II]:2",
+    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "II]:2",
         "returns texture id if succesfully loaded from file name, otherwise 0."
-        " 3 optional booleans specify if you want clamping, turn of mipmapping, or nearest neighbor filtering."
+        " see color.lobster for texture format."
         " Returns the size of the loaded textures in pixels as second return value on first load (xy_i),"
         " or (0, 0) otherwise."
         " Only loads from disk once if called again with the same name. Uses stb_image internally"
@@ -859,70 +854,82 @@ void AddGraphics()
     ENDDECL4(gl_setmeshtexture, "meshid,part,i,textureid", "IIII", "",
         "sets texture unit i to texture id for a mesh and part (0 if not a multi-part mesh)");
 
-    STARTDECL(gl_setimagetexture) (Value &i, Value &id, Value &readonly)
+    STARTDECL(gl_setimagetexture) (Value &i, Value &id, Value &tf)
     {
         TestGL();
 
-        SetImageTexture(GetSampler(i), id.ival(), readonly.True());
+        SetImageTexture(GetSampler(i), id.ival(), tf.ival());
 
         return Value();
     }
-    ENDDECL3(gl_setimagetexture, "i,id,readonly", "III", "",
-             "sets image unit i to texture id (for use with compute)");
+    ENDDECL3(gl_setimagetexture, "i,id,textureformat", "III", "",
+             "sets image unit i to texture id (for use with compute)."
+             " texture format must be the sames as what you specified in gl_loadtexture/gl_createtexture,"
+             " with optionally writeonly/readwrite flags.");
 
-    STARTDECL(gl_createtexture) (Value &mat)
+    STARTDECL(gl_createtexture) (Value &matv, Value &tf)
     {
         TestGL();
 
-        LVector *cols = mat.vval();
-        int x = cols->len;
-        if (x && cols->at(0).type == V_VECTOR)
+        LVector *mat = matv.vval();
+        int ys = mat->len;
+        if (ys && mat->at(0).type == V_VECTOR)
         {
-            int y = cols->at(0).vval()->len;
-            if (y)
+            int xs = mat->at(0).vval()->len;
+            if (xs)
             {
-                auto buf = new byte4[x * y];
-                memset(buf, 0, x * y * 4);
-                for (int i = 0; i < x; i++) if (cols->at(i).type == V_VECTOR)
+                auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+                auto buf = new uchar[xs * ys * sz];
+                memset(buf, 0, xs * ys * sz);
+                for (int i = 0; i < ys; i++) if (mat->at(i).type == V_VECTOR)
                 {
-                    LVector *row = cols->at(i).vval();
-                    for (int j = 0; j < min(y, row->len); j++)
+                    LVector *row = mat->at(i).vval();
+                    for (int j = 0; j < min(xs, row->len); j++)
                     {
-                        buf[j * x + i] = quantizec(ValueTo<float3>(row->at(j)));
+                        float4 col = ValueTo<float4>(row->at(j));
+                        auto idx = i * xs + j;
+                        if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
+                        else                      ((byte4  *)buf)[idx] = quantizec(col);
                     }
                 }
-                mat.DECRT();
-                uint id = CreateTexture((uchar *)buf, int2(x, y));
+                matv.DECRT();
+
+                uint id = CreateTexture(buf, int2(xs, ys), tf.ival());
                 delete[] buf;
                 return Value((int)id);
             }
         }
 
-        mat.DECRT();
+        matv.DECRT();
         return Value(0);
     }
-    ENDDECL1(gl_createtexture, "matrix", "F]]]", "I",
-        "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array");
+    ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "I",
+        "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array."
+        " see color.lobster for texture format");
 
-    STARTDECL(gl_createblanktexture) (Value &sz, Value &col)
+    STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf)
     {
         TestGL();
 
-        auto size = ValueDecTo<int2>(sz);
-        auto color = quantizec(ValueDecTo<float4>(col));
+        auto size = ValueDecTo<int2>(size_);
+        auto color = ValueDecTo<float4>(col);
 
-        auto buf = new byte4[size.x() * size.y()];
+        auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto buf = new uchar[size.x() * size.y() * sz];
         for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
         {
-            buf[y * size.x() + x] = color;
+            auto idx = y * size.x() + x;
+            if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = color;
+            else                      ((byte4  *)buf)[idx] = quantizec(color);
         }
-        uint id = CreateTexture((uchar *)buf, size);
+        uint id = CreateTexture(buf, size, tf.ival());
         delete[] buf;
 
         return Value((int)id);
     }
-    ENDDECL2(gl_createblanktexture, "size,color", "I]F]", "I",
-             "creates a blank texture (for use with e.g. compute shaders), returns texture id");
+    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "I",
+             "creates a blank texture (for use with e.g. compute shaders), returns texture id."
+             " see color.lobster for texture format");
 
     STARTDECL(gl_deletetexture) (Value &i)
     {

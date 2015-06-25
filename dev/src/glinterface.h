@@ -127,9 +127,16 @@ extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
-extern void SetImageTexture(uint textureunit, uint id, bool read);
+extern void SetImageTexture(uint textureunit, uint id, int tf);
 
-enum TextureFlag { TF_NONE = 0, TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4 };
+// These must correspond to the constants in color.lobster
+enum TextureFlag
+{
+    TF_NONE = 0,
+    TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4,
+    TF_FLOAT = 8,                           // rgba32f instead of rgba8
+    TF_WRITEONLY = 16, TF_READWRITE = 32    // Default is readonly.
+};
 
 extern uint CreateTexture(uchar *buf, const int2 &dim, int tf = TF_NONE);
 extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
