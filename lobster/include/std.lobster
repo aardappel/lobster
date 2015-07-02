@@ -59,6 +59,8 @@ def zip(xs, ys): map(xs.length): [ xs[_], ys[_] ]
 def reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
 def reverselist(xs): map(xs.length) i: xs[xs.length - i - 1]
 
+def flatten(xs): fold(xs, []): append(_a, _b)
+
 def split(l, f):
     r := [ [], [] ]
     for(l) e: r[f(e)].push(e)

@@ -38,7 +38,7 @@ struct Shader
     void SetTextures(uint *textures);        // Optionally, after Activate().
     bool SetUniform(const char *name,        // Optionally, after Activate().
                     const float *val,
-                    size_t count);
+                    size_t components, size_t elements = 1);
 };
 
 struct Textured
@@ -128,6 +128,7 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, uint id, int tf);
+extern bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo);
 
 // These must correspond to the constants in color.lobster
 enum TextureFlag

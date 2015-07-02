@@ -770,6 +770,37 @@ void AddGraphics()
              "set a uniform on the current shader. size of float vector must match size of uniform in the shader."
              " returns false on error.");
 
+    STARTDECL(gl_setuniformarray) (Value &name, Value &vec)
+    {
+        TestGL();
+        vector<float4> vals(vec.vval()->len);
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueTo<float4>(vec.vval()->at(i));
+        vec.DECRT();
+        currentshader->Activate();
+        auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4, vals.size());
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL2(gl_setuniformarray, "name,value", "SF]]", "I",
+             "set a uniform on the current shader. uniform in the shader must be an array of vec4."
+             " returns false on error.");
+
+    STARTDECL(gl_uniformbufferobject) (Value &name, Value &vec, Value &ssbo)
+    {
+        TestGL();
+        vector<float4> vals(vec.vval()->len);
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueTo<float4>(vec.vval()->at(i));
+        vec.DECRT();
+        auto ok = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(), name.sval()->str(), ssbo.True());
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL3(gl_uniformbufferobject, "name,value,ssbo", "SF]]I?", "I",
+             "creates a uniform buffer object, and attaches it to the current shader at the given uniform block name."
+             " uniforms in the shader must be all vec4s, or an array of them."
+             " ssbo indicates if you want a shader storage block instead."
+             " returns false on error.");
+
     STARTDECL(gl_dispatchcompute) (Value &groups)
     {
         TestGL();

@@ -348,16 +348,16 @@ void Shader::SetTextures(uint *textures)
             SetTexture(i, textures[i]);
 }
 
-bool Shader::SetUniform(const char *name, const float *val, size_t count)
+bool Shader::SetUniform(const char *name, const float *val, size_t components, size_t elements)
 {
     auto loc = glGetUniformLocation(program, name);
     if (loc < 0) return false;
-    switch (count)
+    switch (components)
     {
-        case 1: glUniform1fv(loc, 1, val); return true;
-        case 2: glUniform2fv(loc, 1, val); return true;
-        case 3: glUniform3fv(loc, 1, val); return true;
-        case 4: glUniform4fv(loc, 1, val); return true;
+        case 1: glUniform1fv(loc, elements, val); return true;
+        case 2: glUniform2fv(loc, elements, val); return true;
+        case 3: glUniform3fv(loc, elements, val); return true;
+        case 4: glUniform4fv(loc, elements, val); return true;
         default: return false;
     }
 }
@@ -369,23 +369,30 @@ void DispatchCompute(const int3 &groups)
     #endif
 }
 
-// Simple function for getting some shader storage attached to a shader. Should ideally be split up for more
+// Simple function for getting some uniform / shader storage attached to a shader. Should ideally be split up for more
 // flexibility.
-bool ShaderStorage(const float *data, size_t len, const char *shadername, const char *uniformblockname)
+bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
 {
-    #ifndef PLATFORM_MOBILE
-    auto sh = LookupShader(shadername);
-    if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase) return false;
-    GLuint ssbo = 0;
-    glGenBuffers(1, &ssbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * len , data, GL_DYNAMIC_COPY);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    sh->Activate();
-    auto idx = glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname);
-    GLuint ssbo_binding_point_index = 0;
-    glShaderStorageBlockBinding(sh->program, idx, ssbo_binding_point_index);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ssbo_binding_point_index, ssbo);
-    return true;
+    #ifdef PLATFORM_MOBILE
+        return false;
+    #else
+        if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
+                   !glUniformBlockBinding || !glGetUniformBlockIndex) return false;
+        auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
+        GLuint bo = 0;
+        glGenBuffers(1, &bo);
+        glBindBuffer(type, bo);
+        glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW);
+        glBindBuffer(type, 0);
+        sh->Activate();
+        auto idx = ssbo ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
+                        : glGetUniformBlockIndex(sh->program, uniformblockname);
+        if (idx == GL_INVALID_INDEX) return false;
+        GLuint bo_binding_point_index = 1;  // FIXME: how do we allocate these properly?
+        glBindBufferBase(type, bo_binding_point_index, bo);
+        if (ssbo) glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index);
+        else      glUniformBlockBinding      (sh->program, idx, bo_binding_point_index);
+        return true;
     #endif
 }
+

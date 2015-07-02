@@ -86,6 +86,8 @@
             GLEXT(PFNGLBINDIMAGETEXTUREPROC           , glBindImageTexture         , 0) \
             GLEXT(PFNGLGETPROGRAMRESOURCEINDEXPROC    , glGetProgramResourceIndex  , 0) \
             GLEXT(PFNGLSHADERSTORAGEBLOCKBINDINGPROC  , glShaderStorageBlockBinding, 0) \
+            GLEXT(PFNGLGETUNIFORMBLOCKINDEXPROC       , glGetUniformBlockIndex     , 0) \
+            GLEXT(PFNGLUNIFORMBLOCKBINDINGPROC        , glUniformBlockBinding      , 0) \
             GLEXT(PFNGLBINDBUFFERBASEPROC             , glBindBufferBase           , 0)
 
         #define GLEXT(type, name, needed) extern type name;

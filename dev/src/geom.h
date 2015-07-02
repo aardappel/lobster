@@ -62,7 +62,8 @@ template<typename T, int N> class vec
     vec(T x, T y, T z)      { assert(N == 3); c[0] = x; c[1] = y; c[2] = z; }
     vec(T x, T y)           { assert(N == 2); c[0] = x; c[1] = y; }
 
-    const T *begin() const { return c; }    
+    const T *data()  const { return c; }
+    const T *begin() const { return c; }
     const T *end()   const { return c + N; }
 
     T x() const {                return c[0]; }
