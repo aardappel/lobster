@@ -71,7 +71,7 @@ void AddFont()
         extern void TestGL(); TestGL();
 
         string piname = SanitizePath(fname.sval()->str());
-        fname.DEC();
+        fname.DECRT();
 
         auto faceit = loadedfaces.find(piname);
         if (faceit != loadedfaces.end())
@@ -144,7 +144,7 @@ void AddFont()
     STARTDECL(gl_text) (Value &s)
     {
         auto f = curfont;
-        if (!f) { s.DEC(); return g_vm->BuiltinError("gl_text: no font size set"); }
+        if (!f) { s.DECRT(); return g_vm->BuiltinError("gl_text: no font size set"); }
 
         if (!s.sval()->len) return s;
 
@@ -169,10 +169,10 @@ void AddFont()
     STARTDECL(gl_textsize) (Value &s)
     {
         auto f = curfont;
-        if (!f) { s.DEC(); return g_vm->BuiltinError("gl_textsize: no font size set"); }
+        if (!f) { s.DECRT(); return g_vm->BuiltinError("gl_textsize: no font size set"); }
 
         auto size = f->TextSize(s.sval()->str());
-        s.DEC();
+        s.DECRT();
         
         if (curfontsize > maxfontsize)
         {

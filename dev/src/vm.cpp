@@ -1363,7 +1363,7 @@ struct VM : VMBase
 
     void VectorDec(const Value &a, const Value &res)
     {
-        if (a.type == V_VECTOR && a.vval() != res.vval()) a.DEC();
+        if (a.type == V_VECTOR && a.vval() != res.vval()) a.DECRT();
     }
 
     template<typename T> T VectorElem(const Value &a, int i)

@@ -248,7 +248,7 @@ void AddGraphics()
     STARTDECL(gl_wentdown) (Value &name)
     {
         auto ks = GetKS(name.sval()->str());
-        name.DEC();
+        name.DECRT();
         return Value(ks.wentdown);
     }
     ENDDECL1(gl_wentdown, "name", "S", "I",
@@ -258,7 +258,7 @@ void AddGraphics()
     STARTDECL(gl_wentup) (Value &name)
     {
         auto ks = GetKS(name.sval()->str());
-        name.DEC();
+        name.DECRT();
         return Value(ks.wentup);
     }
     ENDDECL1(gl_wentup, "name", "S", "I",
@@ -267,7 +267,7 @@ void AddGraphics()
     STARTDECL(gl_isdown) (Value &name)
     {
         auto ks = GetKS(name.sval()->str());
-        name.DEC();
+        name.DECRT();
         return Value(ks.isdown);
     }
     ENDDECL1(gl_isdown, "name", "S", "I",
@@ -318,7 +318,7 @@ void AddGraphics()
     STARTDECL(gl_lastpos) (Value &name, Value &on)     // need a local version of this too?
     {
         auto p = GetKeyPos(name.sval()->str(), on.ival());
-        name.DEC();
+        name.DECRT();
         return ToValue(p);
     }
     ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
@@ -327,7 +327,7 @@ void AddGraphics()
     STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
     {
         auto p = localpos(GetKeyPos(name.sval()->str(), on.ival()));
-        name.DEC();
+        name.DECRT();
         return ToValue(p);
     }
     ENDDECL2(gl_locallastpos, "name,down", "SI", "F]:2",
@@ -365,7 +365,7 @@ void AddGraphics()
     STARTDECL(gl_lasttime) (Value &name, Value &on)
     {
         auto t = GetKeyTime(name.sval()->str(), on.ival());
-        name.DEC();
+        name.DECRT();
         return Value((float)t);
     }
     ENDDECL2(gl_lasttime, "name,down", "SI", "F",

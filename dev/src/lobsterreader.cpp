@@ -158,7 +158,7 @@ void AddReaderOps()
     STARTDECL(parse_data) (Value &ins)
     {
         Value v = ParseData(ins.sval()->str());
-        ins.DEC();
+        ins.DECRT();
         return v;
     }
     ENDDECL1(parse_data, "stringdata", "S", "AS?",

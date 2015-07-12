@@ -255,6 +255,7 @@ struct Value
 
     inline void DECRT() const   // we already know its a ref type
     {
+        assert(type < 0);
         ref_->refc--;
         if (ref_->refc <= 0) DECDELETE();
     }

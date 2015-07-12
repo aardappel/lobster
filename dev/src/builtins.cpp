@@ -117,8 +117,8 @@ void AddBuiltins()
     STARTDECL(append) (Value &v1, Value &v2)
     {
         auto nv = g_vm->NewVector(v1.vval()->len + v2.vval()->len, V_VECTOR);
-        nv->append(v1.vval(), 0, v1.vval()->len); v1.DEC();
-        nv->append(v2.vval(), 0, v2.vval()->len); v2.DEC();
+        nv->append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
+        nv->append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
         return Value(nv);
     }
     ENDDECL2(append, "xs,ys", "V*V*1", "V1",
@@ -166,9 +166,9 @@ void AddBuiltins()
 
     STARTDECL(pop) (Value &l)
     {
-        if (!l.vval()->len) { l.DEC(); g_vm->BuiltinError("pop: empty vector"); }
+        if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("pop: empty vector"); }
         auto v = l.vval()->pop();
-        l.DEC();
+        l.DECRT();
         return v;
     }
     ENDDECL1(pop, "xs", "V*", "A1",
@@ -176,9 +176,9 @@ void AddBuiltins()
 
     STARTDECL(top) (Value &l)
     {
-        if (!l.vval()->len) { l.DEC(); g_vm->BuiltinError("top: empty vector"); }
+        if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("top: empty vector"); }
         auto v = l.vval()->top();
-        l.DEC();
+        l.DECRT();
         return v.INC();
     }
     ENDDECL1(top, "xs", "V*", "A1",
@@ -220,7 +220,7 @@ void AddBuiltins()
                                ") or n (" + to_string(amount) +
                                ") out of range (" + to_string(l.vval()->len) + ")");
         auto v = l.vval()->remove(i.ival(), amount);
-        l.DEC();
+        l.DECRT();
         return v;
     }
     ENDDECL3(remove, "xs,i,n", "V*II?", "A1",
@@ -236,7 +236,7 @@ void AddBuiltins()
             removed++;
         }
         o.DEC();
-        l.DEC();
+        l.DECRT();
         return Value(removed);
     }
     ENDDECL2(removeobj, "xs,obj", "V*A1", "I",
@@ -265,7 +265,7 @@ void AddBuiltins()
             {
                 i += mid;
                 size = 1;
-                while (i                      && !KeyCompare(key, l.vval()->at(i - 1   ))) { i--; size++; }
+                while (i                        && !KeyCompare(key, l.vval()->at(i - 1   ))) { i--; size++; }
                 while (i + size < l.vval()->len && !KeyCompare(key, l.vval()->at(i + size))) {      size++; }
                 break;
             }
@@ -757,11 +757,10 @@ void AddBuiltins()
     STARTDECL(assert) (Value &c)
     {
         if (!c.True()) g_vm->BuiltinError("assertion failed");
-        c.DEC();
-        return Value();
+        return c;
     }
     ENDDECL1(assert, "condition", "A*", "",
-        "halts the program with an assertion failure if passed false");
+        "halts the program with an assertion failure if passed false. returns its input");
 
     STARTDECL(trace_bytecode) (Value &i)
     {

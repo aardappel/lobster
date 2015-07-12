@@ -51,7 +51,7 @@ void AddFileOps()
     STARTDECL(scan_folder) (Value &fld, Value &divisor)
     {
         string folder = SanitizePath(fld.sval()->str());
-        fld.DEC();
+        fld.DECRT();
 
         if (divisor.ival() <= 0) divisor.ival() = 1;
 
@@ -123,7 +123,7 @@ void AddFileOps()
     {
         size_t sz = 0;
         auto buf = (char *)LoadFile(file.sval()->str(), &sz);
-        file.DEC();
+        file.DECRT();
         if (!buf) return Value(0, V_NIL);
         auto s = g_vm->NewString(buf, sz);
         free(buf);
@@ -136,14 +136,14 @@ void AddFileOps()
     STARTDECL(write_file) (Value &file, Value &contents)
     {
         FILE *f = OpenForWriting(file.sval()->str(), true);
-        file.DEC();
+        file.DECRT();
         size_t written = 0;
         if (f)
         {
             written = fwrite(contents.sval()->str(), contents.sval()->len, 1, f);
             fclose(f);
         }
-        contents.DEC();
+        contents.DECRT();
         return Value(written == 1);
     }
     ENDDECL2(write_file, "file,contents", "SS", "I",
