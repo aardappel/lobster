@@ -19,7 +19,7 @@ enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 struct Shader
 {
-    enum { MAX_SAMPLERS = 3 };
+    enum { MAX_SAMPLERS = 4 };
 
     uint vs, ps, cs, program;
 

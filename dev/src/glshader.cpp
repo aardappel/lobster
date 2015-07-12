@@ -153,6 +153,9 @@ string ParseMaterialFile(char *mbuf)
                 vdecl.clear();
                 pdecl.clear();
                 csdecl.clear();
+                vertex.clear();
+                pixel.clear();
+                compute.clear();
                 accum = nullptr;
             }
             else if (last == "UNIFORMS")
@@ -374,6 +377,7 @@ void DispatchCompute(const int3 &groups)
 bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
 {
     #ifdef PLATFORM_MOBILE
+        // UBO's are in ES 3.0
         return false;
     #else
         if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
