@@ -229,19 +229,33 @@ template<typename T> struct RandomNumberGenerator
     float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
 };
 
-// Special case for to_string to get exact float formatting we need
-template<typename T> std::string to_string_decimals(T x, int decimals = -1)
+// Special case for to_string to get exact float formatting we need.
+template<typename T> std::string to_string_float(T x, int decimals = -1)
 {
-    // stringstream gives more consistent cross-platform results than to_string() for floats.
+    // stringstream gives more consistent cross-platform results than to_string() for floats, and can
+    // at least be configured to turn scientific notation off.
     std::stringstream ss;
-    // For floats:
-    if (decimals >= 0) ss << std::fixed << std::setprecision(decimals);
+    // Suppress scientific notation.
+    ss << std::fixed;
+    // There's no way to tell it to just output however many decimals are actually significant, sigh.
+    // Once you turn on fixed, it will default to 5 or 6, depending on platform, for both float and double.
+    // So we set our own more useful defaults:
+    size_t default_precision = sizeof(T) == sizeof(float) ? 6 : 12;
+    ss << std::setprecision(decimals <= 0 ? default_precision : decimals);
     ss << x;
     auto s = ss.str();
-    // Apparently there's no way to set the minimum number of digits to output.
-    // For this string to be recognizable as a float it needs to have a . in it.
-    // FIXME: this is terribly clumsy, is there a better way?
-    if (s.find('.') == string::npos) s += ".0";
+    if (decimals <= 0)
+    {
+        // First trim whatever lies beyond the precision to avoid garbage digits.
+        size_t max_significant = default_precision;
+        max_significant += 2;  // "0."
+        if (s[0] == '-') max_significant++;
+        if (s.length() > max_significant) s.erase(max_significant);
+        // Now strip unnecessary trailing zeroes.
+        while (s.back() == '0') s.pop_back();
+        // If there were only zeroes, keep at least 1.
+        if (s.back() == '.') s.push_back('0');
+    }
     return s;
 }
 
