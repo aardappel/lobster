@@ -110,7 +110,7 @@ struct Parser
                 {
                     // FIXME: this never makes anything const if def->right() is another T_DEF
                     auto id = def->left()->ident();
-                    id->static_constant = id->single_assignment && def->right()->IsConst();
+                    id->static_constant = id->single_assignment && def->right()->IsConstInit();
                     break;
                 }
             }

@@ -65,7 +65,9 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string
     parser.Parse();
 
     TypeChecker tc(parser, st);
-        
+    
+    // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen rely
+    // on it culling const if-thens and other things.
     Optimizer opt(parser, st, 100);
 
     if (parsedump) *parsedump = parser.DumpAll();

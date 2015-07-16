@@ -120,6 +120,21 @@ def run_test_cases():
         assert((g(): 1) == 1)
         assert((g(): "a") == "a")
 
+    def compile_time_if(x):
+        if(x is int | x is float):
+            // The division is a type error if x is a string.
+            // But it compiles anyway since this if is compile-time constant,
+            // and the type checker ignores this branch.
+            // Would be an error in a C++ template, and most other statically typed languages,
+            // because they don't cull code without the optimizer.
+            1 / x
+        else:
+            // Also note the return type is just the else branch in the string case,
+            // it doesn't need to make a type union between the branches anymore.
+            x
+    assert(compile_time_if(1) is int)
+    assert(compile_time_if("") is string)
+
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
 
@@ -286,7 +301,7 @@ def run_test_cases():
     ff, gg = 8, 9
     assert(ff == 8 & gg == 9)
     def multiret():
-        if(false): return 4, 5
+        if(sin(0)): return 4, 5
         return 6, 7
     hh, ii := multiret()
     assert(hh == 6 & ii == 7)

@@ -174,7 +174,8 @@ struct Node : Unary
         return count;
     }
 
-    bool IsConst()      // used to see if a var is worth outputting in a stacktrace
+    // Used to see if a var is worth outputting in a stacktrace.
+    bool IsConstInit()
     {
         switch (type)
         {
@@ -191,7 +192,7 @@ struct Node : Unary
             {
                 for (Node *n = constructor_args(); n; n = n->tail())
                 {
-                    if (!n->head()->IsConst()) return false;
+                    if (!n->head()->IsConstInit()) return false;
                 }
                 return true;
             }
@@ -203,6 +204,33 @@ struct Node : Unary
         }
     }
 
+    // Used by type-checker to and optimizer.
+    // Returns a V_UNDEFINED if not const, otherwise a value that gives the correct True().
+    // Also sets correct scalar values.
+    Value ConstVal()
+    {
+        switch (type)
+        {
+            case T_INT:   return Value(integer());
+            case T_FLOAT: return Value((float)flt());
+            case T_NIL:   return Value(nullptr, V_NIL);
+            case T_IS:    return Value((int)(a()->exptype == b()->exptype));
+            case T_NOT:
+            {
+                auto cv = a()->ConstVal();
+                return cv.type == V_UNDEFINED ? cv : Value(!cv.True());
+            }
+            case T_AND:
+            case T_OR:
+            {
+                auto cv = a()->ConstVal();
+                return cv.type == V_UNDEFINED ||  cv.True() == (type == T_OR) ? cv : b()->ConstVal();
+            }
+            // TODO: support more? strings?
+            default:      return Value();
+        }
+    }
+    
     int ClosureArgs()
     {
         return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());

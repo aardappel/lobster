@@ -7,15 +7,16 @@ struct Optimizer
     Parser &parser;
     SymbolTable &st;
     bool changes_this_pass;
+    size_t total_changes;
     Value constant;
     Node *dummy_node;
     
     Optimizer(Parser &_p, SymbolTable &_st, int maxpasses)
-        : parser(_p), st(_st), changes_this_pass(false), dummy_node(nullptr)
+        : parser(_p), st(_st), changes_this_pass(true), total_changes(0), dummy_node(nullptr)
     {
         //dummy_node = NewNode(T_EMPTY, type_any);
-        
-        for (int i = 0; i < maxpasses; i++)
+        int i = 0;
+        for (; changes_this_pass && i < maxpasses; i++)
         {
             changes_this_pass = false;
             Optimize(parser.root);
@@ -26,18 +27,17 @@ struct Optimizer
                     for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) Optimize(sf->body);
                 }
             }
-            
-            if (!changes_this_pass) break;
         }
+        Output(OUTPUT_INFO, "optimizer: %d passes, %d optimizations", i, total_changes);
+        assert(i);  // Must run at least one pass.
     }
     
-    void Changed() { changes_this_pass = true; }
+    void Changed() { changes_this_pass = true; total_changes++; }
     
     Node *NewNode(Node *context, TType t, TypeRef type, Node *a = nullptr, Node *b = nullptr)
     {
         auto n = new Node(context->line, t, a, b);
         n->exptype = type;
-        Changed();
         return n;
     }
     
@@ -45,36 +45,30 @@ struct Optimizer
     {
         auto n = (Node *)new Ternary(context->line, t, a, b, c);
         n->exptype = type;
-        Changed();
         return n;
     }
 
-    bool IsConst(Node &n)
-    {
-        switch (n.type)
-        {
-            case T_INT:   constant = Value(n.integer());    return true;
-            case T_FLOAT: constant = Value((float)n.flt()); return true;
-            case T_NIL:   constant = Value(nullptr, V_NIL); return true;
-            default: return false;
-        }
-    }
-    
     void Optimize(Node *&n_ptr)
     {
         Node &n = *n_ptr;
-        
-        if (n.a()) Optimize(n.aref());
-        if (n.b()) Optimize(n.bref());
-        if (n.c()) Optimize(n.cref());
-        
+
         switch (n.type)
         {
+            case T_LIST:
+                // Flatten the Optimize recursion a bit
+                for (Node *stats = &n; stats; stats = stats->b()) Optimize(stats->aref());
+                return;
+                
             case T_IF:
-                if (IsConst(*n.if_condition()))
+            {
+                Optimize(n.if_condition());
+                auto cv = n.if_condition()->ConstVal();
+                if (cv.type != V_UNDEFINED)
                 {
+                    Changed();
                     auto branch = constant.True() ? n.if_then() : n.if_else();
                     auto other  = constant.True() ? n.if_else() : n.if_then();
+                    Optimize(branch);
                     if (branch->type != T_DEFAULTVAL)
                     {
                         n_ptr = NewTernary(branch, T_DYNCALL, branch->sf()->returntypes[0], branch, branch, nullptr);
@@ -83,9 +77,28 @@ struct Optimizer
                     {
                         n_ptr = branch;
                     }
-                    if (other) other->sf()->parent->DeleteSubFunction(other->sf());
+                    if (!other->sf()->typechecked)
+                    {
+                        // Typechecker did not typecheck this function for use in this if-then, but neither did any
+                        // other instances, so it can be removed.
+                        other->sf()->parent->DeleteSubFunction(other->sf());
+                    }
                 }
-                break;
+                else
+                {
+                    Optimize(n.if_then());
+                    Optimize(n.if_else());
+                }
+                return;
+            }
+        }
+        
+        if (n.a()) Optimize(n.aref());
+        if (n.b()) Optimize(n.bref());
+        if (n.c()) Optimize(n.cref());
+        
+        switch (n.type)
+        {
         }
     }
 };

@@ -1022,14 +1022,60 @@ struct TypeChecker
 
             case T_LIST:
                 // Flatten the TypeCheck recursion a bit
-                for (Node *stats = &n; stats; stats = stats->b())
-                    TypeCheck(stats->aref(), T_LIST);
+                for (Node *stats = &n; stats; stats = stats->b()) TypeCheck(stats->aref(), T_LIST);
                 return;
 
             case T_OR:
             case T_AND:
                 TypeCheckAndOr(n_ptr, false, parent_type);
                 return;
+
+            case T_IF:
+            {
+                TypeCheck(n.if_condition(), n.type);
+                auto cv = n.if_condition()->ConstVal();
+                if (n.if_else()->type != T_DEFAULTVAL)
+                {
+                    if (cv.type == V_UNDEFINED)  // Not constant.
+                    {
+                        TypeCheck(n.if_then(), n.type);
+                        TypeCheck(n.if_else(), n.type);
+                        auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                        auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
+                        // FIXME: we would want to allow coercions here, but we can't do so without changing
+                        // these closure to a T_DYNCALL or inlining them
+                        // bad, because currently even if(a) 1 else: 1.0 doesn't work.
+                        type = Union(tleft, tright, false);
+                        SubTypeT(tleft, type, *n.if_then(), "then branch", nullptr);
+                        SubTypeT(tright, type, *n.if_else(), "else branch", nullptr);
+                    }
+                    else if (cv.True())  // Ignore the else part, optimizer guaranteed to cull it.
+                    {
+                        TypeCheck(n.if_then(), n.type);
+                        type = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                    }
+                    else  // Ignore the then part, optimizer guaranteed to cull it.
+                    {
+                        TypeCheck(n.if_else(), n.type);
+                        type = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
+                    }
+                }
+                else
+                {
+                    if (cv.type == V_UNDEFINED || cv.True())  // Not constant, or true.
+                    {
+                        TypeCheck(n.if_then(), n.type);
+                        TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                        // No else: this currently returns either the condition or the branch value.
+                    }
+                    // else constant == false: this if-then will get optimized out entirely, ignore it.
+                    // bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
+                    TypeCheck(n.if_else(), n.type);
+                    SubType(n.if_else(), type_function_nil, "else", n);
+                    type = type_any;
+                }
+                return;
+            }
         }
 
         if (n.a()) TypeCheck(n.aref(), n.type);
@@ -1422,29 +1468,6 @@ struct TypeChecker
                 break;
             }
 
-            case T_IF:
-            {
-                if (n.if_else()->type != T_DEFAULTVAL)
-                {
-                    auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
-                    auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
-                    // FIXME: we would want to allow coercions here, but we can't do so without changing
-                    // these closure to a T_DYNCALL or inlining them
-                    // bad, because currently even if(a) 1 else: 1.0 doesn't work.
-                    type = Union(tleft, tright, false);
-                    SubTypeT(tleft, type, *n.if_then(), "then branch", nullptr);
-                    SubTypeT(tright, type, *n.if_else(), "else branch", nullptr);
-                }
-                else
-                {
-                    TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
-                    SubType(n.if_else(), type_function_nil, "else", n);  // bind the var in T_DEFAULTVAL
-                    // No else: this currently returns either the condition or the branch value.
-                    type = type_any;
-                }
-                break;
-            }
-
             case T_WHILE:
             {
                 TypeCheckDynCall(*n.while_condition(), nullptr);
@@ -1481,7 +1504,6 @@ struct TypeChecker
                 break;
 
             case T_IS:
-                // FIXME If the typecheck fails statically, we can replace this node with false
                 type = type_int;
                 break;
 

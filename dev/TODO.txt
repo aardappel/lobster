@@ -1,4 +1,5 @@
-- move Error() to symboltable, remove dependence on Lex.
+- make a script that tests all existing lobster code at once.
+  - could add a special command-line flag to terminate graphical apps after N frames.
 
 - upgrade other platforms to SDL 2.0.3 too
 
@@ -36,15 +37,13 @@
     - other hof
   - people really dislike := because they assume it means assignment.. could use a different operator?
     maybe var: = val to make it look more like regular assignment?
+    Though maybe Go will help make this syntax more popular. It really is rather ideal.
+    One thing that could be better is default const.
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
+  - IL_ISTYPE currently is broken!
   - should constants be excluded from freevars to reduce clutter?
-  - should make it so that staticly know false if-then doesn't typecheck that branch
-    this makes the type system even more powerful
-    thing is, we can't cull the code in typechecker because of cloning
-    we also can't let untypechecked code reach the codegen
-    so we should have at least a mini-optimizer that guarantees these get culled first.
   - must be able to derive type from default in struct def
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
   - improve type checking doc.
@@ -60,6 +59,7 @@
   - the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
     called "length" anywhere, suddenly all calls to length() don't work anymore.
     Only way to fix this is to delay this decision until typechecking.
+  - add more cases to typecheck if-then optimisation.
 
   * start removing all dynamic ops from the VM and codegen
 
@@ -104,8 +104,9 @@
 
   * for function call nodes, as spec as to which subf they call, or none in specific
 
-  * compile time optimize if-thens, should reduce total cloning quite a bit, example
-    astar_2dgrid isocta
+  * We compile time optimize if-thens for contstants, but this does not include cases that would
+    need constant propagation, like astar_2dgrid isocta.
+    Should reduce total cloning quite even further.
     issue: how can you do this with arguments that may be constant for the first call, but you
     don't know how many calls there will be yet?
     -> maybe we should analyze the if-then to be constant, but don't actually cull the code, leave
@@ -117,7 +118,25 @@
        We already specialize on nilable/non-nillable, and specializing on booleans sounds attractive,
        though we don't generally want to specialize on ints or other values, unless we made a special
        annotation for it.
-    Once we have conditional typechecking for if(a is b), we can extend it to propagated constansts.
+       We can stick an int value in the V_INT union for Type, and ignore it pretty much everywhere
+       except for specialization.
+       This does mean a lot more type allocations (one for every constant in the code, could hash).
+       The type should propagate automatically.
+       We'd have to be very careful about propagation, i.e. typechecking 1+a getting the type of 1.
+       - any such combinations come almost always from Union(), so the amount of cases should be controllable.
+         Also: variable binding.
+         x.push(1) could make x a vector of 1's, and subsequent push of 2 doesn't fix that.'
+       - also if someone writes 1+1, we'd have to eval that in the type checker.. we'd end up duplicating
+         a bunch of functionality of the optimizer.. though that code is shared in ConstVal().
+         In fact, if we expand that function, the optimizer can use it generically to optimize code,
+         and doesn't have to repeat that code.
+         Even better, the type checker can use it for generic typing, and reduce its code as well.
+         Only downside is that its a bit more cpu intensive, since there is a double switch for each
+         node, and worse, additional recursion which is only useful if it returns true.'
+       Also must check there are no direct comparisons against type_int.
+       We'd need a special value to mean not const (e.g. 0x80000000) which in this case is fine
+       instead of an extra boolean.
+       Then we check these values when we check for specializations.
 
   * problem cases we side-stepped for now:
     - need a better solution than replace() for assigning to read-only structs
@@ -167,6 +186,8 @@
       fields, in which case we can represent any unions as long as there is space:
       STRUCT_ANY, idx1, STRUCT_ANY, idx2, STRUCT, idx3
       would be a union between 3 struct types.
+      Simpler, we could bloat up the current union to allow 2 sub types, then any could simply be a union of
+      those, and it would even work recursively.
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
