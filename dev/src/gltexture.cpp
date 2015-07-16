@@ -36,8 +36,18 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8, dim.x(), dim.y(), 0, GL_RGBA,
-                 tf & TF_FLOAT ? GL_FLOAT : GL_UNSIGNED_BYTE, buf);
+    auto format = GL_RGBA8;
+    auto component = GL_UNSIGNED_BYTE;
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
+        if (tf & TF_FLOAT)
+        {
+            format = GL_RGBA32F;
+            componentn = GL_FLOAT;
+        }
+    #else
+        assert(false);  // buf points to float data, which we don't support.
+    #endif
+    glTexImage2D(GL_TEXTURE_2D, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
 
     if (tf & TF_NOMIPMAP) return id;
 
@@ -84,10 +94,14 @@ void SetTexture(uint textureunit, uint id)
 
 void SetImageTexture(uint textureunit, uint id, int tf)
 {
-    if (glBindImageTexture)
-        glBindImageTexture(textureunit, id, 0, GL_FALSE, 0,
-                           tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
-                           tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
+        if (glBindImageTexture)
+            glBindImageTexture(textureunit, id, 0, GL_FALSE, 0,
+                               tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
+                               tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
+    #else
+        assert(false);
+    #endif
 }
 
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards

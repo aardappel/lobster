@@ -278,15 +278,19 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
 
 string Shader::Compile(const char *name, const char *cscode)
 {
-    program = glCreateProgram();
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
+        program = glCreateProgram();
 
-    string err;
-    cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
-    if (!cs) return string("couldn't compile compute shader: ") + name + "\n" + err;
+        string err;
+        cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
+        if (!cs) return string("couldn't compile compute shader: ") + name + "\n" + err;
 
-    Link(name);
+        Link(name);
 
-    return "";
+        return "";
+    #else
+        return "compute shaders not supported";
+    #endif
 }
 
 void Shader::Link(const char *name)
@@ -367,8 +371,10 @@ bool Shader::SetUniform(const char *name, const float *val, size_t components, s
 
 void DispatchCompute(const int3 &groups)
 {
-    #ifndef PLATFORM_MOBILE
-    if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
+        if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+    #else
+        assert(false);
     #endif
 }
 
@@ -376,10 +382,7 @@ void DispatchCompute(const int3 &groups)
 // flexibility.
 bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
 {
-    #ifdef PLATFORM_MOBILE
-        // UBO's are in ES 3.0
-        return false;
-    #else
+    #if !defined(__APPLE__) && !defined(__ANDROID__)
         if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
                    !glUniformBlockBinding || !glGetUniformBlockIndex) return false;
         auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
@@ -397,6 +400,9 @@ bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *
         if (ssbo) glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index);
         else      glUniformBlockBinding      (sh->program, idx, bo_binding_point_index);
         return true;
+    #else
+        // UBO's are in ES 3.0, not sure why OS X doesn't have them
+        return false;
     #endif
 }
 
