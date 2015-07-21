@@ -1067,6 +1067,10 @@ struct VM : VMBase
                     a.DEC();
                     break;
                 }
+                    
+                case IL_A2A:
+                    // For now, this is a no-op. In the future, this will box the given value.
+                    break;
 
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 

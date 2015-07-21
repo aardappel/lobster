@@ -42,14 +42,18 @@
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
-  - IL_ISTYPE currently is broken!
+  - runtime type representation
+    - IL_ISTYPE currently is broken!
+    - parse_data still broken, need to be passed type to parse
+      - should first have codegen hash and add all types referenced by bytecode to a FlatBuffer of types.
+      - can make V_INT etc the first entries into that table so they correspond to their constant
+      - a type is then an index into that table.
   - should constants be excluded from freevars to reduce clutter?
   - must be able to derive type from default in struct def
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
   - improve type checking doc.
   - move generic double check from parser to type checker init
   - why do we need .xy ? shouldn't xyz convert to xy when needed silently thru inheritance?
-  - parse_data still broken, need to be passed type to parse
   - can we make the astar_node specialization less ugly?
   - currently can't typecheck fibonacci, need return type decl
   - cdrl.lobster
@@ -104,7 +108,7 @@
 
   * for function call nodes, as spec as to which subf they call, or none in specific
 
-  * We compile time optimize if-thens for contstants, but this does not include cases that would
+  * We compile time optimize if-thens for constants, but this does not include cases that would
     need constant propagation, like astar_2dgrid isocta.
     Should reduce total cloning quite even further.
     issue: how can you do this with arguments that may be constant for the first call, but you
@@ -232,17 +236,10 @@ vertex_neighbors :== [
 
 - the "ERROR: XAudio2: XAudio2Create() failed at initialization" is apparently happening on all sorts of cheap laptops, including Win7 & 8. SDL folk don't seem to want to fix, it, maybe I should
 
-
-
 - Android APK file loading?
 - make sure graphics doesn't rely on any globals anymore, otherwise restarting graphics on Android is a pain
 
-- try and build for asm.js?
-
 - supposedly on OS X error window OK button is not clickable?
-- it be nice to have shaders as strings within a lobster program? special syntax for multi-line strings?
-- way to set custom uniforms?
-- way to affect texture sampling.. nearest neighbor etc.
 
 - we could easily also allow { instead of : for blocks (with matching }), to appease the C syntax people.
   - maybe enforce that within a file only one or the other is used?

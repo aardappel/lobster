@@ -121,7 +121,7 @@ void AddBuiltins()
         nv->append(v2.vval(), 0, v2.vval()->len); v2.DEC();
         return Value(nv);
     }
-    ENDDECL2(append, "xs,ys", "V*V1", "V1",
+    ENDDECL2(append, "xs,ys", "V*V*1", "V1",
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (Value &len)
@@ -171,7 +171,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL1(pop, "xs", "V", "A1",
+    ENDDECL1(pop, "xs", "V*", "A1",
         "removes last element from vector and returns it");
 
     STARTDECL(top) (Value &l)
@@ -181,7 +181,7 @@ void AddBuiltins()
         l.DEC();
         return v.INC();
     }
-    ENDDECL1(top, "xs", "V", "A1",
+    ENDDECL1(top, "xs", "V*", "A1",
         "returns last element from vector");
 
     STARTDECL(replace) (Value &l, Value &i, Value &a)
@@ -198,7 +198,7 @@ void AddBuiltins()
 
         return Value(nv);
     }
-    ENDDECL3(replace, "xs,i,x", "VIA1", "V1",
+    ENDDECL3(replace, "xs,i,x", "V*IA1", "V1",
         "returns a copy of a vector with the element at i replaced by x");
 
     STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
@@ -208,7 +208,7 @@ void AddBuiltins()
         l.vval()->insert(a, i.ival(), max(n.ival(), 1));
         return l;
     }
-    ENDDECL4(insert, "xs,i,x,n", "VIAI?", "V",
+    ENDDECL4(insert, "xs,i,x,n", "V*IAI?", "V1",
         "inserts n copies (default 1) of x into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
@@ -223,7 +223,7 @@ void AddBuiltins()
         l.DEC();
         return v;
     }
-    ENDDECL3(remove, "xs,i,n", "VII?", "A1",
+    ENDDECL3(remove, "xs,i,n", "V*II?", "A1",
         "remove element(s) at index i, following elements shift down. pass the number of elements to remove"
         " as an optional argument, default 1. returns the first element removed.");
 
@@ -239,7 +239,7 @@ void AddBuiltins()
         l.DEC();
         return Value(removed);
     }
-    ENDDECL2(removeobj, "xs,obj", "VA", "I",
+    ENDDECL2(removeobj, "xs,obj", "V*A1", "I",
         "remove all elements equal to obj (==), returns amount of elements removed.");
 
     STARTDECL(binarysearch) (Value &l, Value &key)
@@ -274,7 +274,7 @@ void AddBuiltins()
         g_vm->Push(Value(size));
         return Value(i);
     }
-    ENDDECL2(binarysearch, "xs,key", "VA", "II",
+    ENDDECL2(binarysearch, "xs,key", "V*A", "II",
         "does a binary search for key in a sorted vector, returns as first return value how many matches were found,"
         " and as second the index in the array where the matches start (so you can read them, overwrite them,"
         " or remove them), or if none found, where the key could be inserted such that the vector stays sorted."
@@ -288,7 +288,7 @@ void AddBuiltins()
         v.DECRT();
         return Value(nv);
     }
-    ENDDECL1(copy, "xs", "V", "V1",
+    ENDDECL1(copy, "xs", "V*", "V1",
         "makes a shallow copy of vector/object.");
 
     STARTDECL(slice) (Value &l, Value &s, Value &e)
@@ -305,7 +305,7 @@ void AddBuiltins()
         return Value(nv);
     }
     ENDDECL3(slice,
-        "xs,start,size", "VII", "V1", "returns a sub-vector of size elements from index start."
+        "xs,start,size", "V*II", "V1", "returns a sub-vector of size elements from index start."
         " start & size can be negative to indicate an offset from the vector length.");
 
     STARTDECL(any) (Value &v)
@@ -323,7 +323,7 @@ void AddBuiltins()
         v.DECRT();
         return r;
     }
-    ENDDECL1(any, "xs", "V", "A1?",
+    ENDDECL1(any, "xs", "V*", "A1?",
         "returns the first true element of the vector, or nil");
 
     STARTDECL(all) (Value &v)
@@ -340,7 +340,7 @@ void AddBuiltins()
         v.DECRT();
         return r;
     }
-    ENDDECL1(all, "xs", "V", "I",
+    ENDDECL1(all, "xs", "V*", "I",
         "returns wether all elements of the vector are true values");
 
     STARTDECL(substring) (Value &l, Value &s, Value &e)
@@ -649,7 +649,7 @@ void AddBuiltins()
         a.DECRT();
         return g_vm->BuiltinError("abs() needs a numerical value or numerical vector");
     }
-    ENDDECL1(abs, "x", "A", "A1",
+    ENDDECL1(abs, "x", "A*", "A1",
         "absolute value of int/float/vector");
 
     #define MINMAX(op,name) \
@@ -760,7 +760,7 @@ void AddBuiltins()
         c.DEC();
         return Value();
     }
-    ENDDECL1(assert, "condition", "A", "",
+    ENDDECL1(assert, "condition", "A*", "",
         "halts the program with an assertion failure if passed false");
 
     STARTDECL(trace_bytecode) (Value &i)

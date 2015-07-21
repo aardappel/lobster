@@ -195,7 +195,7 @@ struct TypeChecker
         if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub->t)
         {
-            case V_ANY:       return true;
+            case V_ANY:       return coercions;
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_STRING:    return coercions;
@@ -242,7 +242,7 @@ struct TypeChecker
     void SubType(Node *&a, TypeRef sub, const char *argname, const char *context)
     {
         TypeRef type = a->exptype;
-        if (ConvertsTo(type, sub, false)) { a->exptype = type; return; }
+        if (ConvertsTo(type, sub, false)) return;
         switch (sub->t)
         {
             case V_FLOAT:
@@ -256,6 +256,10 @@ struct TypeChecker
             case V_STRING:
                 a = (Node *)new Unary(a->line, T_A2S, a);
                 a->exptype = type_string;
+                return;
+            case V_ANY:
+                a = (Node *)new Unary(a->line, T_A2A, a);
+                a->exptype = type_any;
                 return;
             case V_FUNCTION:
                 if (type->IsFunction() && sub->sf)
@@ -1303,31 +1307,31 @@ struct TypeChecker
                         // Codegen has a special case for T_DEFAULTVAL however.
                         argtype = argtype->sub;
                     }
-                    switch (arg.flags)
+                    
+                    if (arg.flags & NF_SUBARG1)
                     {
-                        case NF_SUBARG1:
-                            SubType(list->head(),
-                                    nf->args.v[0].type->t == V_VECTOR && argtype->t != V_VECTOR
-                                        ? VectorStructElement(argtypes[0])
-                                        : argtypes[0],
-                                    ArgName(i).c_str(),
-                                    nf->name.c_str());
-                            break;
-
-                        case NF_ANYVAR:
-                            if (argtype->t == V_VECTOR) argtype = NewTypeVar()->Wrap(NewType());
-                            else if (argtype->t == V_ANY) argtype = NewTypeVar();
-                            else assert(0);
-                            break;
-
-                        case NF_CORESUME:
-                        {
-                            // Specialized typechecking for resume()
-                            assert(argtypes[0]->t == V_COROUTINE);  
-                            auto sf = argtypes[0]->sf;
-                            SubType(list->head(), sf->coresumetype, "resume value", *list->head());
-                        }
+                        SubType(list->head(),
+                                nf->args.v[0].type->t == V_VECTOR && argtype->t != V_VECTOR
+                                    ? VectorStructElement(argtypes[0])
+                                    : argtypes[0],
+                                ArgName(i).c_str(),
+                                nf->name.c_str());
                     }
+                    if (arg.flags & NF_ANYVAR)
+                    {
+                        if (argtype->t == V_VECTOR) argtype = NewTypeVar()->Wrap(NewType());
+                        else if (argtype->t == V_ANY) argtype = NewTypeVar();
+                        else assert(0);
+                    }
+
+                    if (arg.flags & NF_CORESUME)
+                    {
+                        // Specialized typechecking for resume()
+                        assert(argtypes[0]->t == V_COROUTINE);  
+                        auto sf = argtypes[0]->sf;
+                        SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                    }
+                    
                     SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
                     auto actualtype = list->head()->exptype;
                     if (actualtype->IsFunction())
@@ -1387,6 +1391,7 @@ struct TypeChecker
                             type = ret.type->t == V_VECTOR ? NewTypeVar()->Wrap(NewType()) : NewTypeVar();
                             break;
                         default:
+                            assert(ret.flags == AF_NONE);
                             type = ret.type; 
                             break;
                     }
@@ -1638,6 +1643,7 @@ struct TypeChecker
 
             case T_I2F:
             case T_A2S:
+            case T_A2A:
                 // These have been added by another specialization.
                 // We could check if they still apply, but even more robust is just to remove them,
                 // and let them be regenerated if need be.

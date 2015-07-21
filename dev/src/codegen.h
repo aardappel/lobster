@@ -420,6 +420,11 @@ struct CodeGen
                 if (retval) Emit(IL_A2S);
                 break;
 
+            case T_A2A:
+                Gen(n->child(), retval);
+                if (retval) Emit(IL_A2A);
+                break;
+                
             case T_FUN:
                 if (retval) 
                 {

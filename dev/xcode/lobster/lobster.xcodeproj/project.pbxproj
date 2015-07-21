@@ -48,6 +48,7 @@
 		3342B7A71B2B4CE500FA2F0B /* vm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79F1B2B4CE500FA2F0B /* vm.cpp */; };
 		3342B7A81B2B4CE500FA2F0B /* vm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79F1B2B4CE500FA2F0B /* vm.cpp */; };
 		3342B7A91B2B4CE500FA2F0B /* vm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79F1B2B4CE500FA2F0B /* vm.cpp */; };
+		33632F5F1B5DD16B00550981 /* bytecode.fbs in Resources */ = {isa = PBXBuildFile; fileRef = 33632F5E1B5DD16B00550981 /* bytecode.fbs */; };
 		3381CB28162371AB0069B2E8 /* builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CAB6162340540069B2E8 /* builtins.cpp */; };
 		3381CB29162371AB0069B2E8 /* file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABA162340540069B2E8 /* file.cpp */; };
 		3381CB2A162371AB0069B2E8 /* graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CABE162340540069B2E8 /* graphics.cpp */; };
@@ -328,6 +329,7 @@
 		335BD085175BAE68002064AE /* pythtree.lobster */ = {isa = PBXFileReference; lastKnownFileType = text; name = pythtree.lobster; path = ../../../lobster/samples/pythtree.lobster; sourceTree = "<group>"; };
 		33625C931A15A7B2005B131F /* ttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ttypes.h; sourceTree = "<group>"; };
 		33625C941A15A7B2005B131F /* typecheck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = typecheck.h; sourceTree = "<group>"; };
+		33632F5E1B5DD16B00550981 /* bytecode.fbs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bytecode.fbs; sourceTree = "<group>"; };
 		33718B521B24CB5500CA3C2E /* optimizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = optimizer.h; sourceTree = "<group>"; };
 		3381CAB6162340540069B2E8 /* builtins.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtins.cpp; sourceTree = "<group>"; };
 		3381CAB8162340540069B2E8 /* codegen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = codegen.h; sourceTree = "<group>"; };
@@ -737,6 +739,7 @@
 				3342B79F1B2B4CE500FA2F0B /* vm.cpp */,
 				3342B7A01B2B4CE500FA2F0B /* vmlog.h */,
 				3342B79A1B2B4CE500FA2F0B /* bytecode_generated.h */,
+				33632F5E1B5DD16B00550981 /* bytecode.fbs */,
 			);
 			name = compiler;
 			sourceTree = "<group>";
@@ -1181,6 +1184,7 @@
 				33EABE5715DAECA100C1590D /* icon.iconset in Resources */,
 				33F7F3EC1723738E005B7988 /* shaders in Resources */,
 				3395E3FE1766886400E06FCE /* icon57.png in Resources */,
+				33632F5F1B5DD16B00550981 /* bytecode.fbs in Resources */,
 				3395E4001766886B00E06FCE /* icon114.png in Resources */,
 				3395E4021766887900E06FCE /* icon72.png in Resources */,
 				3395E4041766888000E06FCE /* icon144.png in Resources */,

@@ -80,6 +80,7 @@ namespace lobster
     T0(T_UMINUS, "-", 1) \
     T0(T_I2F, "tofloat", 1) \
     T0(T_A2S, "tostring", 1) \
+    T0(T_A2A, "toany", 1) \
     T2(T_CONSTRUCTOR, "constructor", 2, constructor_args, constructor_type) \
     T3(T_IF, "if", 3, if_condition, if_then, if_else) \
     T2(T_WHILE, "while", 2, while_condition, while_body) \
