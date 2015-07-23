@@ -371,11 +371,11 @@ struct CodeGen
 
             case T_ASSIGN: GenAssign(n->left(), LVO_WRITE, retval, nullptr, n->right()); break;
 
-            case T_PLUSEQ:  GenAssign(n->left(), LVO_AADD, retval, n->exptype, n->right()); break;
-            case T_MINUSEQ: GenAssign(n->left(), LVO_ASUB, retval, n->exptype, n->right()); break;
-            case T_MULTEQ:  GenAssign(n->left(), LVO_AMUL, retval, n->exptype, n->right()); break;
-            case T_DIVEQ:   GenAssign(n->left(), LVO_ADIV, retval, n->exptype, n->right()); break;
-            case T_MODEQ:   GenAssign(n->left(), LVO_AMOD, retval, n->exptype, n->right()); break;
+            case T_PLUSEQ:  GenAssign(n->left(), LVO_IADD, retval, n->exptype, n->right()); break;
+            case T_MINUSEQ: GenAssign(n->left(), LVO_ISUB, retval, n->exptype, n->right()); break;
+            case T_MULTEQ:  GenAssign(n->left(), LVO_IMUL, retval, n->exptype, n->right()); break;
+            case T_DIVEQ:   GenAssign(n->left(), LVO_IDIV, retval, n->exptype, n->right()); break;
+            case T_MODEQ:   GenAssign(n->left(), LVO_IMOD, retval, n->exptype, n->right()); break;
 
             case T_POSTDECR: GenAssign(n->child(), LVO_MMP, retval, nullptr); break;
             case T_POSTINCR: GenAssign(n->child(), LVO_PPP, retval, nullptr); break;
@@ -401,7 +401,23 @@ struct CodeGen
                     if      (n->right()->exptype->t == V_INT    && n->left()->exptype->t == V_INT)    Emit(IL_IADD + opc);
                     else if (n->right()->exptype->t == V_FLOAT  && n->left()->exptype->t == V_FLOAT)  Emit(IL_FADD + opc);
                     else if (n->right()->exptype->t == V_STRING && n->left()->exptype->t == V_STRING) Emit(IL_SADD + opc);
-                    else Emit(IL_AADD + opc);
+                    else
+                    {
+                        if (opc >= 9)  // EQ/NEQ
+                        {
+                            Emit(IL_AEQ + opc - 9);
+                        }
+                        else
+                        {
+                            TypeRef sub;
+                            if      (n->exptype->t == V_VECTOR) sub = n->exptype->sub;
+                            else if (n->exptype->t == V_STRUCT) sub = n->exptype->struc->vectortype->sub;
+                            else assert(false);
+                            if      (sub->t == V_INT)    Emit(IL_IVADD + opc);
+                            else if (sub->t == V_FLOAT)  Emit(IL_FVADD + opc);
+                            else assert(false);
+                        }
+                    }
                 }
                 break;
 
@@ -730,11 +746,21 @@ struct CodeGen
 
     void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type, const Node *rhs = nullptr)
     {
-        if (lvalop >= LVO_AADD && lvalop <= LVO_AMOD)
+        if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD)
         {
-            if      (type->t == V_INT)    {                             lvalop += LVO_IADD - LVO_AADD; }
-            else if (type->t == V_FLOAT)  { assert(lvalop != LVO_AMOD); lvalop += LVO_FADD - LVO_AADD; }
-            else if (type->t == V_STRING) { assert(lvalop == LVO_AADD); lvalop = LVO_SADD; }
+            if      (type->t == V_INT)    {                                                            }
+            else if (type->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD; }
+            else if (type->t == V_STRING) { assert(lvalop == LVO_IADD); lvalop = LVO_SADD; }
+            else
+            {
+                TypeRef sub;
+                if      (type->t == V_VECTOR) sub = type->sub;
+                else if (type->t == V_STRUCT) sub = type->struc->vectortype->sub;
+                else assert(false);
+                if      (sub->t == V_INT)    {                             lvalop += LVO_IVADD - LVO_IADD; }
+                else if (sub->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += LVO_FVADD - LVO_IADD; }
+                else assert(false);
+            }
         }
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
@@ -744,7 +770,7 @@ struct CodeGen
             case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right(), lvalop, false); break;
             case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->ident()->idx); break;
             case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); Emit(IL_LVALIDX, lvalop); break;
-            default:    parser.Error("lvalue required", lval);
+            default:      parser.Error("lvalue required", lval);
         }
     }
 
