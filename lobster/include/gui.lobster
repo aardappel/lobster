@@ -71,7 +71,7 @@ private def max_space(v):
 
 private def position(v:xy_i, f):
     r := max_space(v) - v
-    gl_translate(if(align == 1): r / 2 else: r * (align / 2), f)
+    gl_translate(float(if(align == 1): r / 2 else: r * (align / 2)), f)
 
 private def cursize_of(id, f):
     cache_size(id):
@@ -111,13 +111,13 @@ def gui_image(factors, tex):
     element(size):
         gl_setshader("textured")
         gl_setprimitivetexture(0, tex)
-        gl_rect(size)
+        gl_rect(float(size))
         gl_setshader("color")
 
 def gui_divider(thickness:int):
     align <- 0
     element(xy_1i * thickness):
-        gl_rect(if(vertical): [ parent_size.x, thickness ] else: [ thickness, parent_size.y ])
+        gl_rect(float(if(vertical): [ parent_size.x, thickness ] else: [ thickness, parent_size.y ]))
 
 def gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
@@ -169,13 +169,13 @@ private def around(m, draw, id, f):
         advance(size):
             if(draw):
                 position(size): // FIXME: clean this up
-                    gl_rect([ size.x, m.y ])
-                    gl_rect([ m.x, size.y ])
-                    gl_translate([ size.x - m.x, 0]):
-                        gl_rect([ m.x, size.y ])
-                    gl_translate([ 0, size.y - m.y]):
-                        gl_rect([ size.x, m.y ])
-            def forward(): gl_translate([ xy_xi, xy_yi ][vertical] * m[vertical])
+                    gl_rect(float([ size.x, m.y ]))
+                    gl_rect(float([ m.x, size.y ]))
+                    gl_translate(float([ size.x - m.x, 0])):
+                        gl_rect(float([ m.x, size.y ]))
+                    gl_translate([ 0.0, size.y - m.y]):
+                        gl_rect(float([ size.x, m.y ]))
+            def forward(): gl_translate([ xy_x, xy_y ][vertical] * m[vertical])
             forward()
             f()
             forward()
@@ -197,21 +197,21 @@ private def overlay(stretch, id, f, g):
 def gui_background(col, stretch, f):
     overlay(stretch, caller_id(), f) size:
         gl_color(col):
-            gl_rect(size)
-            gl_hit(size, 0)    // stop clicks from reaching whatevers beneath this
+            gl_rect(float(size))
+            gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
 
 private def button(id, f, do, focus):
     overlay(false, id, f) size:
         if(interactive):
-            hit := gl_hit(size, 0)
+            hit := gl_hit(float(size), 0)
             if(hit | (focus_id == id & gl_touchscreen())):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
                 gl_color(hover_color):
-                    gl_rect(size)
+                    gl_rect(float(size))
                 if(hit):
                     if(gl_isdown("mouse1")):
                         gl_color(select_color):
-                            gl_rect(size)
+                            gl_rect(float(size))
                     up := gl_wentup("mouse1")
                     if(focus & focus_id != id & (up | !gl_touchscreen())):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen

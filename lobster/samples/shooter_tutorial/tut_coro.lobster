@@ -8,7 +8,7 @@ def menu(lastscore, highscore, frame):
     forever():
         frame()
         msg := "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
-        gl_translate((gl_windowsize() - gl_textsize(msg)) / 2):
+        gl_translate(float(gl_windowsize() - gl_textsize(msg)) / 2):
             gl_text(msg)
         if(gl_wentdown("space")):
             mode = coroutine level(highscore)
@@ -90,14 +90,14 @@ def level(highscore, frame):
 
     while(playerhealth > 0):
         frame()
-        gl_translate(gl_windowsize() / 2.0):
+        gl_translate(float(gl_windowsize()) / 2.0):
             scale := gl_windowsize().y / worldsize
             gl_scale(scale)
 
             dir := xy_f { gl_isdown("d") - gl_isdown("a"),
                           gl_isdown("s") - gl_isdown("w") }
             newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-            if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
+            if(!any(abs(newpos) > float(gl_windowsize()) / scale / 2)):
                 playerpos = newpos
 
             tomouse := normalize(gl_localmousepos(0) - playerpos)

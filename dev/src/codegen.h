@@ -109,7 +109,6 @@ struct CodeGen
         }
     } sfcomparator;
 
-
     bool GenFunction(Function &f)
     {
         if (f.bytecodestart > 0 || f.istype) return false;
@@ -245,19 +244,6 @@ struct CodeGen
         Emit(IL_FUNEND);
 
         linenumbernodes.pop_back();
-    }
-
-    void GenInlineScope(const Node *cl, int retval)
-    {
-        // FIXME: should NOT need a call here, vars need to be moved to outer scope
-        // FIXME: is it guaranteed that someone can't call if(a,b,c) ? do we want to allow it?
-        assert(cl->type == T_FUN);
-        auto sf = cl->sf();
-        int nargs = 0;
-        auto returned = GenCall(*sf, nullptr, sf->body, nargs);
-        assert(returned == 1);
-        (void)returned;
-        if (!retval) Emit(IL_POP);  // FIXME: always the case with while body
     }
 
     void GenFixup(const SubFunction *sf)
@@ -397,7 +383,7 @@ struct CodeGen
                 Gen(n->right(), retval);
                 if (retval)
                 {
-                    // Have to check node and left because comparison ops generate ints
+                    // Have to check right and left because comparison ops generate ints for node overall.
                     if      (n->right()->exptype->t == V_INT    && n->left()->exptype->t == V_INT)    Emit(IL_IADD + opc);
                     else if (n->right()->exptype->t == V_FLOAT  && n->left()->exptype->t == V_FLOAT)  Emit(IL_FADD + opc);
                     else if (n->right()->exptype->t == V_STRING && n->left()->exptype->t == V_STRING) Emit(IL_SADD + opc);
@@ -423,7 +409,25 @@ struct CodeGen
 
             case T_UMINUS:
                 Gen(n->child(), retval);
-                if (retval) Emit(IL_UMINUS);
+                if (retval)
+                {
+                    auto type = n->child()->exptype;
+                    switch (type->t)
+                    {
+                        case V_INT: Emit(IL_IUMINUS); break;
+                        case V_FLOAT: Emit(IL_FUMINUS); break;
+                        case V_STRUCT: 
+                        case V_VECTOR:
+                        {
+                            auto elem = type->t == V_VECTOR
+                                        ? type->Element()->t 
+                                        : type->struc->vectortype->Element()->t;
+                            Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
+                            break;
+                        }
+                        default: assert(false);
+                    }
+                }
                 break;
 
             case T_I2F:
@@ -601,13 +605,13 @@ struct CodeGen
                 // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
                 Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
                 MARKL(loc);
-                GenInlineScope(n->if_then(), retval);
+                Gen(n->if_then(), retval);
                 if (has_else)
                 {
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
-                    GenInlineScope(n->if_else(), retval);
+                    Gen(n->if_else(), retval);
                     SETL(loc2);
                 }
                 else
@@ -620,10 +624,10 @@ struct CodeGen
             case T_WHILE:
             {
                 MARKL(loopback);
-                GenInlineScope(n->while_condition(), 1);
+                Gen(n->while_condition(), 1);
                 Emit(IL_JUMPFAIL, 0);
                 MARKL(jumpout);
-                GenInlineScope(n->while_body(), 0);
+                Gen(n->while_body(), 0);
                 Emit(IL_JUMP, loopback);
                 SETL(jumpout);
                 Dummy(retval);
@@ -634,7 +638,7 @@ struct CodeGen
             {
                 Emit(IL_PUSHINT, -1);   // i
                 Gen(n->for_iter(), 1);
-                Gen(n->for_body(), 1);  // FIXME: inline this somehow.
+                Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
                 Emit(IL_PUSHUNDEF);     // body retval
                 Emit(IL_FOR);
                 Dummy(retval);

@@ -23,7 +23,7 @@ while(gl_frame()):
     scale := gl_windowsize().y / 25
     gl_scale(scale)
     forxy(gl_windowsize() / scale) v:
-        gl_translate(v):
+        gl_translate(float(v)):
             if(rnd(3)):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
                 if(rnd(2)):
                     endcap_line(xy_0, xy_1, 0.25)

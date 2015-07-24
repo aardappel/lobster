@@ -42,7 +42,7 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
         if (tf & TF_FLOAT)
         {
             format = GL_RGBA32F;
-            componentn = GL_FLOAT;
+            component = GL_FLOAT;
         }
     #else
         assert(false);  // buf points to float data, which we don't support.

@@ -391,7 +391,7 @@ void AddGraphics()
         curcolor = ValueDecTo<float4>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "VC?", "A",
+    ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "A",
         "sets the current color. when a body is given, restores the previous color afterwards");
 
     STARTDECL(gl_polygon) (Value &vl)
@@ -495,7 +495,7 @@ void AddGraphics()
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "VC?", "A",
+    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F]C?", "A",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -568,7 +568,7 @@ void AddGraphics()
         */
         return Value(size == lastframehitsize && hit);
     }
-    ENDDECL2(gl_hit, "vec,i", "VI", "I",
+    ENDDECL2(gl_hit, "vec,i", "F]I", "I",
         "wether the mouse/finger is inside of the rectangle specified in terms of the current transform"
         " (for touch screens only if the corresponding gl_isdown is true). Only true if the last rectangle for"
         " which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases"
@@ -578,24 +578,12 @@ void AddGraphics()
     {
         TestGL();
 
-        auto v = ValueTo<float3>(vec);
-
-        static float tempquad_rect[20] =
-        {
-            0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1,
-            0, 0, 0, 1, 1,
-            0, 0, 0, 1, 0,
-        };
-        tempquad_rect[ 6] = tempquad_rect[11] = v.y();
-        tempquad_rect[10] = tempquad_rect[15] = v.x();
-
         currentshader->Set();
-        RenderArray(polymode, 4, "PT", sizeof(float) * 5, tempquad_rect);
+        RenderRect(polymode, ValueTo<float2>(vec));
 
         return vec;
     }
-    ENDDECL1(gl_rect, "vec", "A]", "F]",   // FIXME: we'd prefer a numeric type
+    ENDDECL1(gl_rect, "vec", "F]", "F]",
         "renders a rectangle of the given size. returns the argument.");
 
     STARTDECL(gl_line) (Value &start, Value &end, Value &thickness)

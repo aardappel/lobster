@@ -24,16 +24,16 @@ def square(pos, size, depth):
             width := if(i): size[dir] - split else: split
             square(pos + dirs[dir] * split * i, dirs[dir] * width + dirs[1 - dir] * size[1 - dir], depth + 1)
     else:
-        gl_translate(pos):
+        gl_translate(float(pos)):
             gl_color(color_black)
-            gl_rect(size)
+            gl_rect(float(size))
             //col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.7 + 0.3
             //col[colorconstant] = 0.7
             col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.15 + 0.75
             range := max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
             col[colorconstant] = rndfloat() * range + (1 - range)
             gl_color(col)
-            gl_rect(size - xy_1i * 2)
+            gl_rect(float(size - xy_1i * 2))
 
 seed := 342342432
 

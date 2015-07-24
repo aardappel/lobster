@@ -313,11 +313,13 @@ struct VM : VMBase
 
     void VMAssert(bool ok, const char *what) 
     {
-        if (!ok) Error(string("VM internal assertion failure: ") + what); 
+        if (!ok)
+            Error(string("VM internal assertion failure: ") + what); 
     }
     void VMAssert(bool ok, const char *what, const Value &a, const Value &b) 
     {
-        if (!ok) Error(string("VM internal assertion failure: ") + what, a, b); 
+        if (!ok)
+            Error(string("VM internal assertion failure: ") + what, a, b); 
     }
 
     #ifdef _DEBUG
@@ -326,8 +328,8 @@ struct VM : VMBase
         #define VMASSERT(test)             VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test)
         #define VMASSERTVALUES(test, a, b) VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b)
     #else
-        #define VMASSERT(test)
-        #define VMASSERTVALUES(test, a, b)
+        #define VMASSERT(test)             (void)(test)
+        #define VMASSERTVALUES(test, a, b) (void)(test); (void)(a); (void)(b)
     #endif
 
     string ValueDBG(const Value &a)
@@ -347,13 +349,13 @@ struct VM : VMBase
         return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(debugpp);
     }
 
-    void EvalMulti(int nargs, const int *ip, int definedfunction, const int *retip)
+    void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip)
     {
-        VMASSERT(*ip == IL_FUNMULTI);
-        ip++;
+        VMASSERT(*mip == IL_FUNMULTI);
+        mip++;
 
-        auto nsubf = *ip++;
-        auto table_nargs = *ip++;
+        auto nsubf = *mip++;
+        auto table_nargs = *mip++;
         VMASSERT(nargs == table_nargs);
         (void)table_nargs;
         for (int i = 0; i < nsubf; i++)
@@ -361,20 +363,20 @@ struct VM : VMBase
             // TODO: rather than going thru all args, only go thru those that have types
             for (int j = 0; j < nargs; j++)
             {
-                int desired = *ip++;
+                int desired = *mip++;
                 if (desired != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    if (v.type != desired || (v.type == V_VECTOR && v.vval()->type != *ip))
+                    if (v.type != desired || (v.type == V_VECTOR && v.vval()->type != *mip))
                     {
-                        ip += (nargs - j) * 2;
+                        mip += (nargs - j) * 2;
                         goto fail;
                     }
                 }
-                ip++;
+                mip++;
             }
 
-            return FunIntro(nargs, codestart + *ip, definedfunction, retip);
+            return FunIntro(nargs, codestart + *mip, definedfunction, retip);
 
             fail:;
         }
@@ -1024,34 +1026,24 @@ struct VM : VMBase
                 case IL_SEQ:  SOP(==);
                 case IL_SNE:  SOP(!=);
 
-                case IL_UMINUS:
-                {
-                    Value a = POP();
-                    switch (a.type)
-                    {
-                        case V_INT: PUSH(Value(-a.ival())); break;
-                        case V_FLOAT: PUSH(Value(-a.fval())); break;
-                        case V_VECTOR:
-                        {
-                            bool isfloat = true;
-                            Value res;
-                            int len = VectorLoop(a, Value(1), res, isfloat);
-                            if (len >= 0)
-                            {
-                                for (int i = 0; i < len; i++)
-                                    res.vval()->at(i) = isfloat ? Value(-VectorElem<float>(a, i))
-                                                                : Value(-VectorElem<int>  (a, i));
-                                VectorDec(a, res);
-                                PUSH(res);
-                                break;
-                            }
-                            // fall tru
-                        }
+                case IL_IUMINUS: { Value a = POP(); PUSH(Value(-a.ival())); break; }
+                case IL_FUMINUS: { Value a = POP(); PUSH(Value(-a.fval())); break; }
 
-                        default: VMASSERT(false);
-                    }
-                    break;
-                }
+                #define VUMINUS(isfloat, type) { \
+                    Value a = POP(); \
+                    Value res; \
+                    int len = VectorLoop(a, Value((type)1), res, isfloat); \
+                    if (len >= 0) \
+                    { \
+                        for (int i = 0; i < len; i++) res.vval()->at(i) = Value(-VectorElem<type>(a, i)); \
+                        VectorDec(a, res); \
+                        PUSH(res); \
+                        break; \
+                    } \
+                    VMASSERT(false); \
+                    break; }
+                case IL_IVUMINUS: VUMINUS(false, int)
+                case IL_FVUMINUS: VUMINUS(true, float)
 
                 case IL_LOGNOT:
                 {

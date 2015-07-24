@@ -995,11 +995,11 @@ void AddMeshGen()
         "a superquadric that allows you to specify exponents and sizes in all 6 directions independently for maximum"
         " modelling possibilities");
 
-    STARTDECL(mg_set_polygonreduction) (Value &polyreductionpasses, Value &epsilon, Value &maxtricornerdot)
+    STARTDECL(mg_set_polygonreduction) (Value &_polyreductionpasses, Value &_epsilon, Value &_maxtricornerdot)
     {
-        ::polyreductionpasses = polyreductionpasses.ival();
-        ::epsilon = epsilon.fval();
-        ::maxtricornerdot = maxtricornerdot.fval();
+        polyreductionpasses = _polyreductionpasses.ival();
+        epsilon = _epsilon.fval();
+        maxtricornerdot = _maxtricornerdot.fval();
         return Value();
     }
     ENDDECL3(mg_set_polygonreduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
@@ -1008,10 +1008,10 @@ void AddMeshGen()
         " triangles must be to be reduced, use 0.98 as a good tradeoff, lower to get more compression. maxtricornerdot"
         " avoid very thin triangles, use 0.95 as a good tradeoff, up to 0.99 to get more compression");
 
-    STARTDECL(mg_set_colornoise) (Value &noiseintensity, Value &noisestretch)
+    STARTDECL(mg_set_colornoise) (Value &_noiseintensity, Value &_noisestretch)
     {
-        ::noisestretch = noisestretch.fval();
-        ::noiseintensity = noiseintensity.fval();
+        noisestretch = _noisestretch.fval();
+        noiseintensity = _noiseintensity.fval();
         return Value();
     }
     ENDDECL2(mg_set_colornoise, "noiseintensity,noisestretch", "FF", "",

@@ -204,33 +204,6 @@ struct Node : Unary
         }
     }
 
-    // Used by type-checker to and optimizer.
-    // Returns a V_UNDEFINED if not const, otherwise a value that gives the correct True().
-    // Also sets correct scalar values.
-    Value ConstVal()
-    {
-        switch (type)
-        {
-            case T_INT:   return Value(integer());
-            case T_FLOAT: return Value((float)flt());
-            case T_NIL:   return Value(nullptr, V_NIL);
-            case T_IS:    return Value((int)(a()->exptype == b()->exptype));
-            case T_NOT:
-            {
-                auto cv = a()->ConstVal();
-                return cv.type == V_UNDEFINED ? cv : Value(!cv.True());
-            }
-            case T_AND:
-            case T_OR:
-            {
-                auto cv = a()->ConstVal();
-                return cv.type == V_UNDEFINED ||  cv.True() == (type == T_OR) ? cv : b()->ConstVal();
-            }
-            // TODO: support more? strings?
-            default:      return Value();
-        }
-    }
-    
     int ClosureArgs()
     {
         return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());

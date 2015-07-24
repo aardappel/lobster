@@ -6,13 +6,13 @@ struct Optimizer
 {
     Parser &parser;
     SymbolTable &st;
+    TypeChecker &tc;
     bool changes_this_pass;
     size_t total_changes;
-    Value constant;
     Node *dummy_node;
     
-    Optimizer(Parser &_p, SymbolTable &_st, int maxpasses)
-        : parser(_p), st(_st), changes_this_pass(true), total_changes(0), dummy_node(nullptr)
+    Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc, int maxpasses)
+        : parser(_p), st(_st), tc(_tc), changes_this_pass(true), total_changes(0), dummy_node(nullptr)
     {
         //dummy_node = NewNode(T_EMPTY, type_any);
         int i = 0;
@@ -62,26 +62,23 @@ struct Optimizer
             case T_IF:
             {
                 Optimize(n.if_condition());
-                auto cv = n.if_condition()->ConstVal();
+                auto cv = tc.ConstVal(*n.if_condition());
                 if (cv.type != V_UNDEFINED)
                 {
                     Changed();
-                    auto branch = constant.True() ? n.if_then() : n.if_else();
-                    auto other  = constant.True() ? n.if_else() : n.if_then();
+                    auto branch = cv.True() ? n.if_then() : n.if_else();
+                    auto other  = cv.True() ? n.if_else() : n.if_then();
                     Optimize(branch);
-                    if (branch->type != T_DEFAULTVAL)
+                    n_ptr = branch;
+                    if (other->type != T_DEFAULTVAL)
                     {
-                        n_ptr = NewTernary(branch, T_DYNCALL, branch->sf()->returntypes[0], branch, branch, nullptr);
-                    }
-                    else
-                    {
-                        n_ptr = branch;
-                    }
-                    if (!other->sf()->typechecked)
-                    {
-                        // Typechecker did not typecheck this function for use in this if-then, but neither did any
-                        // other instances, so it can be removed.
-                        other->sf()->parent->DeleteSubFunction(other->sf());
+                        auto sf = other->call_function()->sf();
+                        if (!sf->typechecked)
+                        {
+                            // Typechecker did not typecheck this function for use in this if-then, but neither did any
+                            // other instances, so it can be removed.
+                            sf->parent->DeleteSubFunction(sf);
+                        }
                     }
                 }
                 else
@@ -97,9 +94,11 @@ struct Optimizer
         if (n.b()) Optimize(n.bref());
         if (n.c()) Optimize(n.cref());
         
+        /*
         switch (n.type)
         {
         }
+        */
     }
 };
     

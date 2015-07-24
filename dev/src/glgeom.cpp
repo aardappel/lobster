@@ -188,3 +188,17 @@ void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, floa
     RenderLine(PRIM_FAN, v1, v2, side);
 }
 
+void RenderRect(Primitive prim, const float2 &v)
+{
+    static float tempquad_rect[20] =
+    {
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 1,
+        0, 0, 0, 1, 0,
+    };
+    tempquad_rect[ 6] = tempquad_rect[11] = v.y();
+    tempquad_rect[10] = tempquad_rect[15] = v.x();
+
+    RenderArray(prim, 4, "PT", sizeof(float) * 5, tempquad_rect);
+}

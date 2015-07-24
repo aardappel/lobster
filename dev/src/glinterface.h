@@ -151,6 +151,7 @@ extern void RenderArray(Primitive prim, int count, const char *fmt,
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
 extern void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
+extern void RenderRect(Primitive prim, const float2 &v);
 
 extern Mesh *LoadIQM(const char *filename);
 

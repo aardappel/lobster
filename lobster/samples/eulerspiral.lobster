@@ -12,7 +12,7 @@ angle := 0.0
 while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
-    origin := gl_windowsize() / 2.0
+    origin := float(gl_windowsize()) / 2.0
     gl_translate(origin)
     scale := ui_mousewheelorpinchzoom(1.3, 5, 10, 25, origin)
     gl_scale(scale)

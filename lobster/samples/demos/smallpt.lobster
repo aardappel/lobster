@@ -158,7 +158,7 @@ while(gl_frame()):
     gl_setprimitivetexture(0, tex)
     gl_blend(0)
     gl_setshader("textured")
-    gl_rect(gl_windowsize())
+    gl_rect(float(gl_windowsize()))
     gl_deletetexture(tex)
 
 

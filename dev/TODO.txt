@@ -1,6 +1,9 @@
 - make a script that tests all existing lobster code at once.
   - could add a special command-line flag to terminate graphical apps after N frames.
 
+- have to build freetype and sdl from source with 2015 before we can switch to its toolset.
+- try to build android/ios from VS.
+
 - upgrade other platforms to SDL 2.0.3 too
 
 - syntax overhaul.
@@ -197,6 +200,9 @@
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
 - allow random number generator to be selected
+
+- add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function
+  correctly at high fps.
 
 - this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
 

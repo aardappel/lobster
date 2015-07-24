@@ -11,7 +11,7 @@ worldsize :== xy { 60.0, 40.0 }
 ph_initialize([ 0.0, -10.0 ])
 ph_createbox([ 0, 1 ], [ 40, 1 ])  // floor
 
-numboxes := 0
+boxtime := 0.0
 
 while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)
@@ -23,5 +23,6 @@ while(gl_frame() & !gl_wentdown("escape")):
     ph_render()
 
     // spawn tumbling boxes
-    if(numboxes++ < 5000):
+    if(gl_time() > boxtime & gl_time() < 500):
+        boxtime += 0.1  // spawn 10 boxes per second
         ph_dynamic(ph_createbox([ rnd(50) - 25, rnd(50) + 2 ], [ 0.5, 0.5 ]), true)

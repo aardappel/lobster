@@ -151,8 +151,8 @@ struct Lex : LoadedFile
             if (indent > 0)
             {
                 if (prevline)
-                    for (const char *p = linestart; p < tokenstart && prevline < prevlinetok; p++, prevline++)
-                        if (*p != *prevline)
+                    for (const char *indentp = linestart; indentp < tokenstart && prevline < prevlinetok; indentp++, prevline++)
+                        if (*indentp != *prevline)
                             Error("adjacent lines do not start with the same sequence of spaces and/or tabs");
 
                 prevline = linestart;

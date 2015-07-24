@@ -598,14 +598,14 @@ struct SymbolTable
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
 
-        vector<flatbuffers::Offset<bytecode::Function>> functions;
-        for (auto f : functiontable) functions.push_back(f->Serialize(fbb));
+        vector<flatbuffers::Offset<bytecode::Function>> functionoffsets;
+        for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
 
-        vector<flatbuffers::Offset<bytecode::Struct>> structs;
-        for (auto s : structtable) structs.push_back(s->Serialize(fbb));
+        vector<flatbuffers::Offset<bytecode::Struct>> structoffsets;
+        for (auto s : structtable) structoffsets.push_back(s->Serialize(fbb));
 
-        vector<flatbuffers::Offset<bytecode::Ident>> idents;
-        for (auto i : identtable) idents.push_back(i->Serialize(fbb));
+        vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
+        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb));
 
         vector<int> vtypes;
         for (auto s : default_vector_types) vtypes.push_back(s ? s->idx : -1);
@@ -614,9 +614,9 @@ struct SymbolTable
                                                      fbb.CreateVector(code),
                                                      fbb.CreateVectorOfStructs(linenumbers),
                                                      fbb.CreateVector(fns),
-                                                     fbb.CreateVector(functions),
-                                                     fbb.CreateVector(structs),
-                                                     fbb.CreateVector(idents),
+                                                     fbb.CreateVector(functionoffsets),
+                                                     fbb.CreateVector(structoffsets),
+                                                     fbb.CreateVector(identoffsets),
                                                      fbb.CreateVector(vtypes),
                                                      uses_frame_state);
         fbb.Finish(bcf);

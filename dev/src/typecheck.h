@@ -195,7 +195,7 @@ struct TypeChecker
         if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub->t)
         {
-            case V_ANY:       return coercions;
+            case V_ANY:       return true; //coercions;
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_STRING:    return coercions;
@@ -277,13 +277,15 @@ struct TypeChecker
                             arg.type = ss->args.v[i].type;
                         }
                         // Note this has the args in reverse: function args are contravariant.
-                        if (!ConvertsTo(ss->args.v[i].type, arg.type, false)) goto error;
+                        if (!ConvertsTo(ss->args.v[i].type, arg.type, false))
+                            goto error;
                         i++;
                     }
                     TypeCheckFunctionDef(*sf, sf->body);
                     // Covariant again.
                     if (sf->returntypes.size() != ss->returntypes.size() ||
-                        !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false)) break;
+                        !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false))
+                            break;
                     assert(ss->returntypes.size() == 1);  // Parser only parses one ret type for function types.
                     return;
                 }
@@ -298,6 +300,38 @@ struct TypeChecker
         if (!ConvertsTo(type, sub, false)) TypeError(TypeName(sub).c_str(), type, n, argname, context);
     }
 
+    // Used by type-checker to and optimizer.
+    // Returns a V_UNDEFINED if not const, otherwise a value that gives the correct True().
+    // Also sets correct scalar values.
+    Value ConstVal(const Node &n)
+    {
+        switch (n.type)
+        {
+            case T_INT:   return Value(n.integer());
+            case T_FLOAT: return Value((float)n.flt());
+            case T_NIL:   return Value(nullptr, V_NIL);
+            case T_IS:
+            {
+                if (n.left()->exptype == n.right()->exptype) return Value(true);
+                if (!ConvertsTo(n.right()->exptype, n.left()->exptype, false)) return Value(false);
+                return Value();
+            }
+            case T_NOT:
+            {
+                auto cv = ConstVal(*n.child());
+                return cv.type == V_UNDEFINED ? cv : Value(!cv.True());
+            }
+            case T_AND:
+            case T_OR:
+            {
+                auto cv = ConstVal(*n.left());
+                return cv.type == V_UNDEFINED ||  cv.True() == (n.type == T_OR) ? cv : ConstVal(*n.right());
+            }
+            // TODO: support more? strings?
+            default:      return Value();
+        }
+    }
+
     TypeRef StructTypeFromVector(TypeRef vectortype, const Struct *struc)
     {
         for (struc = struc->first->next; struc; struc = struc->next)
@@ -310,9 +344,11 @@ struct TypeChecker
         return vectortype;
     }
 
-    bool MathCheckVector(TypeRef &type, TypeRef ltype, TypeRef rtype, bool flipalso)
+    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right, bool flipalso)
     {
-        // Special purpose check for vector * scalar etc, needs to be improved further.
+        TypeRef ltype = left->exptype;
+        TypeRef rtype = right->exptype; 
+        // Special purpose check for vector * scalar etc.
         if (rtype->Numeric())
         {
             TypeRef vtype;
@@ -327,8 +363,17 @@ struct TypeChecker
 
             if (vtype->Numeric())
             {
-                type = vtype->t == V_INT && rtype->t == V_INT ? type_vector_int : type_vector_float;
-                // Recover struct type if possible.
+                if (vtype->t == V_INT)
+                {
+                    type = type_vector_int;
+                    if (rtype->t == V_FLOAT) return false;  // Don't implicitly convert int vectors to float.
+                }
+                else
+                {
+                    type = type_vector_float;
+                    if (rtype->t == V_INT) SubType(right, type_float, "right", *right);
+                }
+                 // Recover struct type if possible.
                 if (ltype->t == V_STRUCT) type = StructTypeFromVector(type, ltype->struc);
                 return true;
             }
@@ -337,13 +382,13 @@ struct TypeChecker
         if (flipalso)
         {
             // Now check scalar * vector instead.
-            return MathCheckVector(type, rtype, ltype, false);
+            return MathCheckVector(type, right, left, false);
         }
 
         return false;
     }
 
-    const char *MathCheck(TypeRef &type, const Node &n, TType op, bool &unionchecked)
+    const char *MathCheck(TypeRef &type, Node &n, TType op, bool &unionchecked)
     {
         if (op == T_MOD)
         {
@@ -353,10 +398,7 @@ struct TypeChecker
         {
             if (!type->Numeric() && type->t != V_VECTOR && type->t != V_STRUCT)
             {
-                auto ltype = n.left()->exptype;
-                auto rtype = n.right()->exptype;
-                
-                if (MathCheckVector(type, ltype, rtype, true))
+                if (MathCheckVector(type, n.left(), n.right(), true))
                 {
                     unionchecked = true;
                     return nullptr;
@@ -364,12 +406,23 @@ struct TypeChecker
 
                 if (op == T_PLUS)
                 {
-                    if (type->t != V_STRING && 
-                        // Anything nilable can be added to a string, but only on one side:
-                        (type->t != V_NILABLE ||
-                         type->sub->t != V_STRING ||
-                         (ltype->t == V_NILABLE && rtype->t == V_NILABLE)))
+                    auto ltype = n.left()->exptype;
+                    if (type->t == V_STRING)
+                    {
+                    }
+                    else if (
+                        // Anything nilable can be added to a string, but only on the right (because of +=):
+                        (type->t == V_NILABLE &&
+                         type->sub->t == V_STRING &&
+                         ltype->t == V_STRING))
+                    {
+                        // Special case: make sure the overal type is string, not string?.
+                        type = type_string;
+                    }
+                    else
+                    {
                         return "numeric/string/vector/struct";
+                    }
                 }
                 else
                 {
@@ -380,7 +433,7 @@ struct TypeChecker
         return nullptr;
     }
 
-    void MathError(TypeRef &type, const Node &n, TType op, bool &unionchecked)
+    void MathError(TypeRef &type, Node &n, TType op, bool &unionchecked)
     {
         auto err = MathCheck(type, n, op, unionchecked);
         if (err)
@@ -396,7 +449,7 @@ struct TypeChecker
         }
     }
 
-    SubFunction *TopScope(vector<Scope> &scopes) { return scopes.empty() ? nullptr : scopes.back().sf; }
+    SubFunction *TopScope(vector<Scope> &_scopes) { return _scopes.empty() ? nullptr : _scopes.back().sf; }
 
     void RetVal(Node *a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
     {
@@ -774,16 +827,17 @@ struct TypeChecker
             SubTypeT(ftype, type_function_null, fval, "function value", "function call");
             // If this magically succeeds, its because ftype was a variable, likely from a nil function value.
             // If so, we don't care, because this will never get executed at runtime?
+            // (happens with "focus" in gui.lobster button())
             return type_any;
         }
     }
 
-    TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node &fval, Node *args)
+    TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node *&bodycall, TType parent_type)
     {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        auto type = TypeCheckDynCall(fval, args);
+        TypeCheck(bodycall, parent_type);
         CleanUpFlow(flowstart);
-        return type;
+        return bodycall->exptype;
     }
 
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type)
@@ -1036,50 +1090,76 @@ struct TypeChecker
 
             case T_IF:
             {
-                TypeCheck(n.if_condition(), n.type);
-                auto cv = n.if_condition()->ConstVal();
+                TypeCheck(n.if_condition(), T_IF);
+                auto cv = ConstVal(*n.if_condition());
                 if (n.if_else()->type != T_DEFAULTVAL)
                 {
                     if (cv.type == V_UNDEFINED)  // Not constant.
                     {
-                        TypeCheck(n.if_then(), n.type);
-                        TypeCheck(n.if_else(), n.type);
-                        auto tleft = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
-                        auto tright = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
-                        // FIXME: we would want to allow coercions here, but we can't do so without changing
-                        // these closure to a T_DYNCALL or inlining them
-                        // bad, because currently even if(a) 1 else: 1.0 doesn't work.
+                        auto tleft = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
+                        auto tright = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
                         type = Union(tleft, tright, false);
-                        SubTypeT(tleft, type, *n.if_then(), "then branch", nullptr);
-                        SubTypeT(tright, type, *n.if_else(), "else branch", nullptr);
+                        // These will potentially make either body from T_CALL into some coercion.
+						SubType(n.if_then(), type, "then branch", n);
+                        SubType(n.if_else(), type, "else branch", n);
                     }
                     else if (cv.True())  // Ignore the else part, optimizer guaranteed to cull it.
                     {
-                        TypeCheck(n.if_then(), n.type);
-                        type = TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                        type = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                     }
                     else  // Ignore the then part, optimizer guaranteed to cull it.
                     {
-                        TypeCheck(n.if_else(), n.type);
-                        type = TypeCheckBranch(false, *n.if_condition(), *n.if_else(), nullptr);
+                        type = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
                     }
                 }
                 else
                 {
                     if (cv.type == V_UNDEFINED || cv.True())  // Not constant, or true.
                     {
-                        TypeCheck(n.if_then(), n.type);
-                        TypeCheckBranch(true, *n.if_condition(), *n.if_then(), nullptr);
+                        TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                         // No else: this currently returns either the condition or the branch value.
                     }
                     // else constant == false: this if-then will get optimized out entirely, ignore it.
                     // bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
-                    TypeCheck(n.if_else(), n.type);
+                    TypeCheck(n.if_else(), T_IF);
                     SubType(n.if_else(), type_function_nil, "else", n);
                     type = type_any;
                 }
                 return;
             }
+
+            case T_WHILE:
+            {
+                TypeCheck(n.while_condition(), T_WHILE);
+                TypeCheckBranch(true, *n.while_condition()->call_function()->sf()->body->head(), n.while_body(), T_WHILE);
+                // Currently always return V_UNDEFINED
+                type = type_any;
+                return;
+            }
+
+            case T_FOR:
+            {
+                TypeCheck(n.for_iter(), T_FOR);
+                auto itertype = n.for_iter()->exptype;
+                if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;
+                else if (itertype->t == V_VECTOR) itertype = itertype->Element();
+                else if (itertype->t == V_STRUCT) itertype = itertype->struc->vectortype->Element();
+                else TypeError("for can only iterate over int/string/vector/struct, not: " + TypeName(itertype), n);
+                auto args = n.for_body()->call_args();
+                if (args)
+                {
+                    args->head()->exptype = itertype;
+                    if (args->tail()) args->tail()->head()->exptype = type_int;
+                }
+                TypeCheck(n.for_body(), T_FOR);
+                // Currently always return V_UNDEFINED
+                type = type_any;
+                return;
+            }
+
+            case T_FORLOOPVAR:
+                // Ignore, they've already been assigned a type in T_FOR.
+                return;
         }
 
         if (n.a()) TypeCheck(n.aref(), n.type);
@@ -1114,7 +1194,7 @@ struct TypeChecker
             {
                 CheckReadOnly(*n.left());
                 type = n.left()->exptype;
-                if (!MathCheckVector(type, n.left()->exptype, n.right()->exptype, false))
+                if (!MathCheckVector(type, n.left(), n.right(), false))
                 {
                     bool unionchecked = false;
                     MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
@@ -1149,7 +1229,7 @@ struct TypeChecker
                         {
                             type = type_vector_int;
                         }
-                        else if (MathCheckVector(type, n.left()->exptype, n.right()->exptype, false))
+                        else if (MathCheckVector(type, n.left(), n.right(), false))
                         {
                             type = type_vector_int;
                             break; // don't do SubTypeLR since type already verified and `u` not appropriate anyway.
@@ -1470,37 +1550,6 @@ struct TypeChecker
                     type = type_any;
                     RetVal(n_ptr, sf, 0, &type);
                 }
-                break;
-            }
-
-            case T_WHILE:
-            {
-                TypeCheckDynCall(*n.while_condition(), nullptr);
-                TypeCheckBranch(true, *n.while_condition()->sf()->body->head(), *n.while_body(), nullptr);
-                // Currently always return V_UNDEFINED
-                type = type_any;
-                break;
-            }
-
-            case T_FOR:
-            {
-                // We create temp arg nodes just for typechecking this:
-                auto args = new Node(n.line, T_LIST,
-                                new AST(n.line, T_FORLOOPVAR),
-                                new Node(n.line, T_LIST,
-                                    new AST(n.line, T_FORLOOPVAR),
-                                    nullptr));
-                auto itertype = n.for_iter()->exptype;
-                if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;
-                else if (itertype->t == V_VECTOR) itertype = itertype->Element();
-                else if (itertype->t == V_STRUCT) itertype = itertype->struc->vectortype->Element();
-                else TypeError("for can only iterate over int/string/vector/struct, not: " + TypeName(itertype), n);
-                args->head()->exptype = itertype;
-                args->tail()->head()->exptype = type_int;
-                TypeCheckDynCall(*n.for_body(), args);
-                delete args;
-                // Currently always return V_UNDEFINED
-                type = type_any;
                 break;
             }
 

@@ -968,12 +968,19 @@ struct Parser
         }
     }
 
-    Node *MaxClosureArgCheck(Node *funval, int maxargs)
+    Node *BuiltinControlClosure(Node *funval, int maxargs)
     {
         auto clnargs = funval->ClosureArgs();
         if (clnargs > maxargs)
             Error("body has " + to_string(clnargs - maxargs) + " parameters too many", funval);
-        return funval;
+
+        if (funval->type == T_DEFAULTVAL) return funval;
+
+        return new Node(lex, T_CALL, funval, clnargs > 0
+            ? new Node(lex, T_LIST,
+                new AST(lex, T_FORLOOPVAR),
+                clnargs > 1 ? new Node(lex, T_LIST, new AST(lex, T_FORLOOPVAR), nullptr) : nullptr)
+            : nullptr);
     }
 
     Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg, bool coroutine)
@@ -1006,16 +1013,16 @@ struct Parser
             if (nf->name == "if")
             {
                 return (Node *)new Ternary(lex, T_IF, args->head(),
-                                           MaxClosureArgCheck(args->tail()->head(), 0),
-                                           MaxClosureArgCheck(args->tail()->tail()->head(), 0));
+                                           BuiltinControlClosure(args->tail()->head(), 0),
+                                           BuiltinControlClosure(args->tail()->tail()->head(), 0));
             }
             else if (nf->name == "while")
             {
-                return new Node(lex, T_WHILE, MaxClosureArgCheck(args->head(), 0), MaxClosureArgCheck(args->tail()->head(), 0));
+                return new Node(lex, T_WHILE, BuiltinControlClosure(args->head(), 0), BuiltinControlClosure(args->tail()->head(), 0));
             }
             else if (nf->name == "for")
             {
-                return new Node(lex, T_FOR, args->head(), MaxClosureArgCheck(args->tail()->head(), 2));
+                return new Node(lex, T_FOR, args->head(), BuiltinControlClosure(args->tail()->head(), 2));
             }
 
             return new Node(lex, T_NATCALL, new NatRef(lex, nf), args);

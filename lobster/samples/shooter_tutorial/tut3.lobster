@@ -12,14 +12,14 @@ while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(gl_windowsize() / 2.0)
+    gl_translate(float(gl_windowsize()) / 2.0)
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { gl_isdown("d") - gl_isdown("a"),
                   gl_isdown("s") - gl_isdown("w") }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) > gl_windowsize() / scale / 2)):
+    if(!any(abs(newpos) > float(gl_windowsize()) / scale / 2)):
         playerpos = newpos
 
     gl_translate(playerpos):

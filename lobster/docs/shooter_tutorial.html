@@ -49,7 +49,7 @@ worldsize := 20.0
 while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     gl_clear(color_black)
     gl_color(color_white)
-    gl_translate(gl_windowsize() / 2.0)
+    gl_translate(float(gl_windowsize()) / 2.0)
     gl_scale(gl_windowsize().y / worldsize)
     gl_circle(1, 6)</code></pre>
 <p>What changed: first, we pulled in two more standard lobster includes. <code>color.lobster</code> gives us convenient color presets, useful for the <code>gl_clear</code> we already had, and now we set <code>gl_color</code> to determine the default color to draw with.</p>
@@ -79,14 +79,14 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(gl_windowsize() / 2.0)
+    gl_translate(float(gl_windowsize()) / 2.0)
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
                   gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) &gt; gl_windowsize() / scale / 2)):
+    if(!any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2)):
         playerpos = newpos
 
     gl_translate(playerpos):
@@ -128,14 +128,14 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(gl_windowsize() / 2.0)
+    gl_translate(float(gl_windowsize()) / 2.0)
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
                   gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) &gt; gl_windowsize() / scale / 2)):
+    if(!any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2)):
         playerpos = newpos
 
     tomouse := normalize(gl_localmousepos(0) - playerpos)
@@ -229,7 +229,7 @@ highscore := 0
 playing := false</code></pre>
 <p>inside our frame, we then test our <code>playing</code> variable, and when true, run the game code we were running before, and if false, display the in-between screen, which simply says:</p>
 <pre><code>        msg := &quot;press space to play!&quot;
-        gl_translate((gl_windowsize() - gl_textsize(msg)) / 2):
+        gl_translate(float(gl_windowsize() - gl_textsize(msg)) / 2):
             gl_text(msg)
         if(gl_wentdown(&quot;space&quot;)):
             score = 0
