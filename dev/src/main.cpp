@@ -18,6 +18,7 @@
 #include "vm.h"
 
 #include "sdlincludes.h"    // FIXME: this makes SDL not modular, but without it it will miss the SDLMain indirection
+#include "sdlinterface.h"
 
 #include "wentropy.h"
 
@@ -103,6 +104,7 @@ int main(int argc, char* argv[])
             else if (a == "--debug")     { min_output_level = OUTPUT_DEBUG; }
             else if (a == "--gen-builtins-html")  { DumpBuiltins(false); return 0; }
             else if (a == "--gen-builtins-names") { DumpBuiltins(true);  return 0; }
+            else if (a == "--non-interactive-test") { SDLTestMode(); }
             else if (a == "-c") {}  // deprecated, remove this one, not needed anymore.
             else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }  // process identifier supplied by OS X
             else throw string("unknown command line argument: ") + argv[arg];

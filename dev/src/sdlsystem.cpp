@@ -73,6 +73,7 @@ bool fullscreen = false;
 bool cursor = true;
 bool landscape = true;
 bool minimized = false;
+bool testmode = false;
 
 const int MAXAXES = 8;
 float joyaxes[MAXAXES] = { 0 };
@@ -555,7 +556,7 @@ bool SDLFrame(int2 &screensize)
     }
     */
 
-    return closebutton;
+    return closebutton || (testmode && frames == 2 /* has rendered one full frame */);
 }
 
 double SDLTime() { return lasttime; }
@@ -660,3 +661,5 @@ bool ScreenShot(const char *filename, const int2 &screensize)
     SDL_FreeSurface(surf);
     return ok;
 }
+
+void SDLTestMode() { testmode = true; }
