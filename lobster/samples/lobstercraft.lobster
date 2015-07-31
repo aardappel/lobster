@@ -29,7 +29,7 @@ cells := map(lssize) z:
 
 colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
 nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
-nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: map(s) c: map(3) i: and(c, shl(1, 2 - i)) != 0
+nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: map(s) c: map(3) i: float(and(c, shl(1, 2 - i)) != 0)
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 

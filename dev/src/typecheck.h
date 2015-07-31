@@ -95,10 +95,19 @@ struct TypeChecker
     string Signature(const SubFunction &sf, bool withtype = true) { return sf.parent->name + Signature(sf.args.v, withtype); }
     string Signature(const NativeFun &nf)                         { return nf.name         + Signature(nf.args.v); }
 
-    string SignatureWithFreeVars(const SubFunction &sf, bool withtype = true)
+    string SignatureWithFreeVars(const SubFunction &sf, set<Ident *> *already_seen, bool withtype = true)
     {
         string s = Signature(sf, withtype) + " { ";
-        for (auto &freevar : sf.freevars.v) if (freevar.type->t != V_FUNCTION) s += TypedArg(freevar) + " ";
+        for (auto &freevar : sf.freevars.v)
+        {
+            if (freevar.type->t != V_FUNCTION &&
+                !freevar.id->static_constant &&
+                (!already_seen || already_seen->find(freevar.id) == already_seen->end()))
+            {
+                s += TypedArg(freevar) + " ";
+                if (already_seen) already_seen->insert(freevar.id);
+            }
+        }
         s += "}";
         return s;
     }
@@ -129,11 +138,12 @@ struct TypeChecker
 
     void TypeError(string err, const Node &n)
     {
+        set<Ident *> already_seen;
         for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
         {
             auto &scope = *it;
             err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
-            err += SignatureWithFreeVars(*scope.sf);
+            err += SignatureWithFreeVars(*scope.sf, &already_seen);
             for (Node *list = scope.sf->body; list; list = list->tail())
             {
                 for (auto dl = list->head(); dl->type == T_DEF; dl = dl->right())
@@ -195,7 +205,7 @@ struct TypeChecker
         if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub->t)
         {
-            case V_ANY:       return true; //coercions;
+            case V_ANY:       return coercions;
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_STRING:    return coercions;
@@ -451,19 +461,30 @@ struct TypeChecker
 
     SubFunction *TopScope(vector<Scope> &_scopes) { return _scopes.empty() ? nullptr : _scopes.back().sf; }
 
-    void RetVal(Node *a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
+    void RetVal(Node *&a, SubFunction *sf, size_t i, TypeRef *exacttype = nullptr)
     {
         if (!sf) return;
         if (i >= sf->returntypes.size())
         {
+            if (sf->fixedreturntype) TypeError("number of returned value must correspond to declared return type", *a);
             assert(i == sf->returntypes.size());
             sf->returntypes.push_back(exacttype ? *exacttype : a->exptype);
         }
         else
         {
-            if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
-            else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
-            else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
+            if (sf->fixedreturntype)
+            {
+                auto argname = "return value";
+                if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, argname);
+                else if (a) SubType(a, sf->returntypes[i], argname, *a);
+                else SubTypeT(type_any, sf->returntypes[i], *a, argname);
+            }
+            else
+            {
+                if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
+                else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
+                else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
+            }
         }
     }
 
@@ -471,7 +492,7 @@ struct TypeChecker
     {
         if (sf.typechecked) return;
         
-        Output(OUTPUT_DEBUG, "function start: %s", SignatureWithFreeVars(sf).c_str());
+        Output(OUTPUT_DEBUG, "function start: %s", SignatureWithFreeVars(sf, nullptr).c_str());
 
         Scope scope;
         scope.sf = &sf;
@@ -504,7 +525,7 @@ struct TypeChecker
         }
 
         // FIXME: this would not be able to typecheck recursive functions with multiret.
-        sf.returntypes[0] = NewTypeVar();
+        if (!sf.fixedreturntype) sf.returntypes[0] = NewTypeVar();
         sf.coresumetype = sf.iscoroutine ? NewTypeVar() : type_any;
 
         auto start_promoted_vars = flowstack.size();
@@ -796,7 +817,7 @@ struct TypeChecker
 
                 // What yield returns to returnvalue()
                 auto type = args ? args->head()->exptype : type_any;
-                RetVal(nullptr, sf, 0, &type);
+                RetVal(sf->body, sf, 0, &type);
 
                 // Now collect all ids between coroutine and yield, so that we can save these in the VM
                 bool foundstart = false;

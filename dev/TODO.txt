@@ -51,6 +51,15 @@
       - should first have codegen hash and add all types referenced by bytecode to a FlatBuffer of types.
       - can make V_INT etc the first entries into that table so they correspond to their constant
       - a type is then an index into that table.
+  - with explicit conversion to any, there's now a lot of situations where an any gets generated, that is then
+    subsequently ignored, causing unnecessary heap allocation.
+	we should either:
+	- mark functions (and if-thens, and other places where unions happen) explicitly as ignoring their return val,
+	  so we can generate pops for values as needed before they are returned.
+    - or perculate desired types thru the type-check recursion.
+	  this can do more powerful typechecking, e.g. it can avoid the functions in "poweruptable" to have to specify
+	  a return type.
+	- we could have a specific void (or nil) return type that causes values to be deleted and ignored.
   - should constants be excluded from freevars to reduce clutter?
   - must be able to derive type from default in struct def
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
@@ -59,7 +68,6 @@
   - why do we need .xy ? shouldn't xyz convert to xy when needed silently thru inheritance?
   - can we make the astar_node specialization less ugly?
   - currently can't typecheck fibonacci, need return type decl
-  - cdrl.lobster
   - struct pre-declaration can trip up IsGeneric.
   - should fields be allowed to have types of generic structs? can be a bit confusing that the containing
     struct becomes generic because of it but doesn't look generic.
@@ -69,6 +77,11 @@
   - add more cases to typecheck if-then optimisation.
 
   * start removing all dynamic ops from the VM and codegen
+
+  * if you typecheck a function with a supertype, then a subtype is able to reuse it. But if the return value
+    is now also this supertype you have a contravariance problem. Either must not reuse the function (but only
+	if the return type is affected?) or subtitute the subtype somehow..
+	This is affected by the order of source code, so can give weird errors.
 
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.
@@ -146,6 +159,7 @@
        Then we check these values when we check for specializations.
 
   * problem cases we side-stepped for now:
+    - we don't do flow-analysis for v[i] or v[i].f etc, is that possible?
     - need a better solution than replace() for assigning to read-only structs
     - from the previous astar_2dgrid:
         distancef := function(v): ...

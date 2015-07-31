@@ -473,7 +473,7 @@ void AddNoise()
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version
         return Value(simplexNoise(octaves.ival(), persistence.fval(), scale.fval(), v));
     }
-    ENDDECL4(simplex, "pos,octaves,scale,persistence", "VIFF", "F",
+    ENDDECL4(simplex, "pos,octaves,scale,persistence", "F]IFF", "F",
         "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8),"
         " a scale (try 1), and persistence from one octave to the next (try 0.5)");
 }

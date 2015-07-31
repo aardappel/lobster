@@ -572,7 +572,7 @@ void AddBuiltins()
     ENDDECL2(dot,   "a,b", "F]F]", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
-    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "a", "A]", "F",
+    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "v", "F]", "F",
         "the geometric length of a vector");
 
     STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); }
@@ -621,6 +621,16 @@ void AddBuiltins()
     }
     ENDDECL3(inrange, "x,range,bias", "I]:2I]:2I]:2?", "I",
              "checks if a 2d integer vector is >= bias and < bias + range. Bias defaults to 0.");
+
+    STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv)
+    {
+        auto x     = ValueDecTo<float2>(xv);
+        auto range = ValueDecTo<float2>(rangev);
+        auto bias  = ValueDecTo<float2>(biasv);
+        return Value(x >= bias && x < bias + range);
+    }
+    ENDDECL3(inrange, "x,range,bias", "F]:2F]:2F]:2?", "I",
+        "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(abs) (Value &a)
     {
@@ -689,23 +699,18 @@ void AddBuiltins()
 
     STARTDECL(lerp) (Value &x, Value &y, Value &f)
     {
-        if (x.type == y.type)
-        {
-            switch (x.type)
-            {
-                case V_FLOAT:  return Value(mix(x.fval(), y.fval(), f.fval()));
-                case V_INT:    return Value(mix((float)x.ival(), (float)y.ival(), f.fval()));
-                               // should this do any size vecs?
-                case V_VECTOR: return ToValue(mix(ValueDecTo<float4>(x), ValueDecTo<float4>(y), f.fval()));
-                default: ;
-            }
-        }
-        g_vm->BuiltinError("illegal arguments passed to lerp()");
-        return Value();
+        return Value(mix(x.fval(), y.fval(), f.fval()));
     }
-    ENDDECL3(lerp, "x,y,f", "AAF", "A1",
-        "linearly interpolates between x and y (float/int/vector) with factor f [0..1]");
+    ENDDECL3(lerp, "x,y,f", "FFF", "F",
+        "linearly interpolates between x and y with factor f [0..1]");
 
+    STARTDECL(lerp) (Value &x, Value &y, Value &f)
+    {
+        auto numelems = x.vval()->len;
+        return ToValue(mix(ValueDecTo<float4>(x), ValueDecTo<float4>(y), f.fval()), numelems);
+    }
+    ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
+        "linearly interpolates between x and y vectors with factor f [0..1]");
 
     STARTDECL(resume) (Value &co, Value &ret)
     {

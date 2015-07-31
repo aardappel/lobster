@@ -64,7 +64,7 @@ def ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin
     viewscale := pow(rate, viewsteps)
     center := float(gl_mousepos(0))
     if(gl_isdown("mouse1") & gl_isdown("mouse11")):
-        dist := magnitude(gl_mousepos(0) - gl_mousepos(1))
+        dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
         center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
         if(lastdistance):
             pinchfactor *= dist / lastdistance

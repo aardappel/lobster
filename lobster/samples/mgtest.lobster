@@ -16,7 +16,7 @@ def mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
 
 def mg_mirror_y(dist, body):
     for(2) i:
-        mg_translate([ 0, i * dist * 2 - dist, 0 ], body)
+        mg_translate([ 0.0, i * dist * 2.0 - dist, 0.0 ], body)
 
 mg_set_colornoise(0.5, 1)
 aspoints := false
@@ -28,36 +28,36 @@ if(!aspoints):
 
 gun := 0
 if(true):
-    mg_rotate(xyz_y, 90):
+    mg_rotate(xyz_y, 90.0):
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
-            mg_supertoroid(3, [3, 3, 5])
-    mg_translate([ 0, -1.3, 2 ]):
+            mg_supertoroid(3.0, [3.0, 3.0, 5.0])
+    mg_translate([ 0.0, -1.3, 2.0 ]):
         mg_scalevec([ 0.5, 0.5, 3.5 ]):
-            mg_rotate(xyz_x, 20):
+            mg_rotate(xyz_x, 20.0):
                 mg_superquadric([ 3.0, 3.0, 3.0 ])
-    mg_translate([ 0, -8, 4 ]):
+    mg_translate([ 0.0, -8.0, 4.0 ]):
         mg_scalevec([ 0.5, 0.5, 2.5 ]):
-            mg_rotate(xyz_x, 30):
+            mg_rotate(xyz_x, 30.0):
                 mg_superquadric([ 3.0, 3.0, 3.0 ])
-    mg_translate([ 0, -5.5, -3 ]):
+    mg_translate([ 0.0, -5.5, -3.0 ]):
         mg_scalevec([ 1.5, 2.5, 6.5 ]):
-            mg_rotate(xyz_x, -20):
+            mg_rotate(xyz_x, -20.0):
                 mg_superquadric([ 5.0, 5.0, 100.0 ])
-    mg_translate([ 0, 2, 4.2 ]):
-        mg_scalevec([ 2, 10, 3 ]):
+    mg_translate([ 0.0, 2.0, 4.2 ]):
+        mg_scalevec([ 2.0, 10.0, 3.0 ]):
             mg_superquadric([ 3.0, 100.0, 3.0 ])
-    mg_translate([ 0, 14, 5 ]):
-        mg_scalevec([ 1, 1, 3 ]):
-            mg_rotate(xyz_x, 90):
+    mg_translate([ 0.0, 14.0, 5.0 ]):
+        mg_scalevec([ 1.0, 1.0, 3.0 ]):
+            mg_rotate(xyz_x, 90.0):
                 mg_cylinder()
-    gun = mg_polygonize(256, [[1.0, 1.0, 1.0]])
+    gun = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
 
 spaceship := 0
 if(true):
-    mg_superquadric_non_uniform([ 1, 2, 2], [ 2, 2, 2], [ 2, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
-    mg_superquadric_non_uniform([ 2, 1.5, 1], [ 2, 1.5, 2], [ 4, 1, 0.7 ], [ 0.7, 1, 0.4 ])
-    mg_translate([ 1, 0, 0.4 ]):
-        mg_superquadric_non_uniform([ 2, 2, 1 ], [ 2, 2, 2 ], [ 1, 0.5, 0.4 ], [ 0.5, 0.5, 0.5 ])
+    mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 2.0, 2.0, 2.0 ], [ 2.0, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
+    mg_superquadric_non_uniform([ 2.0, 1.5, 1.0 ], [ 2.0, 1.5, 2.0 ], [ 4.0, 1.0, 0.7 ], [ 0.7, 1.0, 0.4 ])
+    mg_translate([ 1.0, 0.0, 0.4 ]):
+        mg_superquadric_non_uniform([ 2.0, 2.0, 1.0 ], [ 2.0, 2.0, 2.0 ], [ 1.0, 0.5, 0.4 ], [ 0.5, 0.5, 0.5 ])
     mg_mirror_y(1.5):
         mg_translate(xyz_x):
             mg_scalevec([ 1.3, 0.2, 0.2 ]):
@@ -68,12 +68,12 @@ if(true):
                 mg_superquadric([ 100.0, 2.0, 2.0 ])
     mg_mirror_y(1):
         mg_translate(xyz_x * -0.6):
-            mg_superquadric_non_uniform([ 1, 2, 2 ], [ 1, 2, 2 ], [ 1.5, 0.5, 0.5 ], [ 0.01, 0.5, 0.5 ])
+            mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 1.0, 2.0, 2.0 ], [ 1.5, 0.5, 0.5 ], [ 0.01, 0.5, 0.5 ])
             mg_fill(0):
                 mg_scalevec([ 0.35, 0.35, 0.35 ]):
-                    mg_rotate(xyz_y, 90):
+                    mg_rotate(xyz_y, 90.0):
                         mg_cylinder()
-    spaceship = mg_polygonize(256, [[1.0, 1.0, 1.0]])
+    spaceship = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
 
 def model_tree(numb, branchl, narrowf, leafs):
     if(numb):
@@ -152,5 +152,5 @@ while(gl_frame()):
 
         gl_setshader("color")
 
-    gl_debug_grid([20, 20, 0], xyz_1, 0.005)
+    gl_debug_grid([ 20, 20, 0 ], xyz_1, 0.005)
 

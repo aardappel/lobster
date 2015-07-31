@@ -584,9 +584,10 @@ template<typename T> inline T ValueDecTo(const Value &v, typename T::CTYPE def =
     return r;
 }
 
-template <typename T> inline Value ToValue(const T &vec)
+template <typename T> inline Value ToValue(const T &vec, int maxelems = 4)
 {
-    auto v = g_vm->NewVector(T::NUM_ELEMENTS, g_vm->GetVectorType(T::NUM_ELEMENTS));
+    auto numelems = min(maxelems, (int)T::NUM_ELEMENTS);
+    auto v = g_vm->NewVector(numelems, g_vm->GetVectorType(numelems));
     for (auto a : vec) v->push(Value(a));
     return Value(v);
 }

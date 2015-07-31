@@ -978,7 +978,7 @@ void AddMeshGen()
         t->exp = ValueDecTo<float3>(exps);
         return AddShape(t);
     }
-    ENDDECL2(mg_supertoroid, "R,exponents", "FV", "",
+    ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
         "a super toroid. R is the distance from the origin to the center of the ring.");
 
     STARTDECL(mg_superquadric_non_uniform) (Value &posexps, Value &negexps, Value &posscale, Value &negscale)
@@ -991,7 +991,7 @@ void AddMeshGen()
 
         return AddShape(sq);
     }
-    ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "VVVV", "",
+    ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F]F]F]F]", "",
         "a superquadric that allows you to specify exponents and sizes in all 6 directions independently for maximum"
         " modelling possibilities");
 
@@ -1045,7 +1045,7 @@ void AddMeshGen()
         MeshGenClear();
         return Value(mesh);
     }
-    ENDDECL2(mg_polygonize, "subdiv,colors", "IV", "I",
+    ENDDECL2(mg_polygonize, "subdiv,colors", "IF]]", "I",
         "returns a generated mesh (id 1..) from past mg_ commands."
         " subdiv determines detail and amount of polygons (relative to the largest dimension of the model),"
         " try 30.. 300 depending on the subject."
@@ -1065,7 +1065,7 @@ void AddMeshGen()
         curorig = ValueDecTo<float3>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "VC?", "A",
+    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "A",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1081,7 +1081,7 @@ void AddMeshGen()
         cursize = ValueDecTo<float3>(g_vm->Pop());
         return ret;
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "VC?", "A",
+    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "A",
         "non-unimformly scales the current coordinate system using individual factors per axis. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1100,7 +1100,7 @@ void AddMeshGen()
         s.DECRT();
         return ret;
     }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "VFC?", "A",
+    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F]FC?", "A",
         "rotates using axis/angle. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_fill) (Value &fill, Value &body)

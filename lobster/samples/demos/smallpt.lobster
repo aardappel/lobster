@@ -116,8 +116,8 @@ def radiance(r:Ray, depth):
             radiance(reflRay,depth)*Re+radiance(Ray { x, tdir },depth)*Tr
     obj.e + f*temp
 
-w := 128
-h := 96
+w := 64
+h := 48
 
 cam := Ray { xyz { 50.0,50.0,290.0 }, normalize(xyz { 0.0,-0.042612,-1.0 }) } // cam pos, dir
 cx := xyz_x * (w*.5135/h)
@@ -145,7 +145,7 @@ def onesample():
             c[h-y-1][x] += r
     samples++
     c2 := map(c): map(_): map(_): pow(clamp(_ / samples, 0, 1),1/2.2)
-    print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
+    //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_windowtitle("smallpt: " + samples + " samples computed")
     gl_createtexture(c2)
 
@@ -158,7 +158,7 @@ while(gl_frame()):
     gl_setprimitivetexture(0, tex)
     gl_blend(0)
     gl_setshader("textured")
-    gl_rect(float(gl_windowsize()))
+    gl_rect(xy_f { w, h })
     gl_deletetexture(tex)
 
 

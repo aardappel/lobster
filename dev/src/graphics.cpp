@@ -420,7 +420,7 @@ void AddGraphics()
 
         return vl;
     }
-    ENDDECL1(gl_polygon, "vertlist", "V", "V",
+    ENDDECL1(gl_polygon, "vertlist", "F]]", "A1",
         "renders a polygon using the list of points given. returns the argument.");
 
     STARTDECL(gl_circle) (Value &radius, Value &segments)
@@ -601,7 +601,7 @@ void AddGraphics()
 
         return Value();
     }
-    ENDDECL3(gl_line, "start,end,thickness", "VVF", "",
+    ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",
         "renders a line with the given thickness");
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar)
@@ -671,7 +671,7 @@ void AddGraphics()
 
         return Value((int)meshes->Add(m));
     }
-    ENDDECL5(gl_newmesh, "indices,positions,colors,texcoords,normals", "VVVVV", "I",
+    ENDDECL5(gl_newmesh, "indices,positions,colors,texcoords,normals", "I]F]]F]]F]]F]]", "I",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " you may specify [] to get defaults for colors (white) / texcoords (position x & y) /"
         " normals (generated from adjacent triangles)");
@@ -996,7 +996,7 @@ void AddGraphics()
 
         return Value();
     }
-    ENDDECL3(gl_debug_grid, "num,dist,thickness", "VVF", "",
+    ENDDECL3(gl_debug_grid, "num,dist,thickness", "I]F]F", "",
         "renders a grid in space for debugging purposes. num is the amount of lines in all 3 directions,"
         " and dist their spacing. thickness of the lines in the same units");
 

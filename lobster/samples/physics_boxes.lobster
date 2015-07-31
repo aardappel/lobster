@@ -9,7 +9,7 @@ fatal(gl_window("Physics demo : boxes", 1024, 768))
 worldsize :== xy { 60.0, 40.0 }
 
 ph_initialize([ 0.0, -10.0 ])
-ph_createbox([ 0, 1 ], [ 40, 1 ])  // floor
+ph_createbox([ 0.0, 1.0 ], [ 40.0, 1.0 ])  // floor
 
 boxtime := 0.0
 
@@ -25,4 +25,4 @@ while(gl_frame() & !gl_wentdown("escape")):
     // spawn tumbling boxes
     if(gl_time() > boxtime & gl_time() < 500):
         boxtime += 0.1  // spawn 10 boxes per second
-        ph_dynamic(ph_createbox([ rnd(50) - 25, rnd(50) + 2 ], [ 0.5, 0.5 ]), true)
+        ph_dynamic(ph_createbox([ rnd(50) - 25.0, rnd(50) + 2.0 ], [ 0.5, 0.5 ]), true)

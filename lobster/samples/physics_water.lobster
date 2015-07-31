@@ -13,13 +13,13 @@ ph_initialize([ 0.0, -10.0 ])
 ph_initializeparticles(0.15)
 ph_setshader(0, "color_attr_particle")
 
-ph_setcolor(ph_createbox([   0, 1 ], [ 20, 1 ]), color_grey) // floor
-ph_setcolor(ph_createbox([ -20, 7 ], [  1, 7 ]), color_grey) // wall
-ph_setcolor(ph_createbox([  20, 7 ], [  1, 7 ]), color_grey) // wall
+ph_setcolor(ph_createbox([   0.0, 1.0 ], [ 20.0, 1.0 ]), color_grey) // floor
+ph_setcolor(ph_createbox([ -20.0, 7.0 ], [  1.0, 7.0 ]), color_grey) // wall
+ph_setcolor(ph_createbox([  20.0, 7.0 ], [  1.0, 7.0 ]), color_grey) // wall
 
-for(5): ph_dynamic(ph_createbox([ 0, 10 + _ * 2 ], [ 1, 1 ]), true)
+for(5): ph_dynamic(ph_createbox([ 0.0, 10.0 + _ * 2.0 ], [ 1.0, 1.0 ]), true)
 
-ph_createparticlecircle([ 0, 5 ], 7, color_light_red, ph_colormixingparticle)
+ph_createparticlecircle([ 0.0, 5.0 ], 7.0, color_light_red, ph_colormixingparticle)
 
 while(gl_frame() & !gl_wentdown("escape")):
     gl_clear(color_black)

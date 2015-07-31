@@ -521,12 +521,11 @@ struct Parser
 
         sf->SetParent(f, f.subf);
 
-        auto istype = name && IsNext(T_DEFCONST);
-        if (istype)
+        if (name && IsNext(T_DEFCONST))
         {
             if (f.istype || f.subf->next)
                 Error("redefinition of function type: " + *name);
-            f.istype = istype;
+            f.istype = true;
             sf->typechecked = true;
 
             // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
@@ -536,19 +535,15 @@ struct Parser
                 if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
             }
 
-            if (IsNext(T_LEFTPAREN))
-            {
-                // Special case for ANY, since we have no way to specify such a type, and we only need here.
-                Expect(T_RIGHTPAREN);
-                sf->returntypes[0] = type_any;
-            }
-            else
-            {
-                ParseType(sf->returntypes[0], false);
-            }
+            ParseType(sf->returntypes[0], false, nullptr, true);
         }
         else
         {
+            if (IsNext(T_CODOT))  // Return type decl.
+            {
+                sf->fixedreturntype = true;
+                ParseType(sf->returntypes[0], false, nullptr, true);
+            }
             if (!expfunval) Expect(T_COLON);
         }
 
@@ -630,7 +625,7 @@ struct Parser
         return parserpool->alloc_obj_small<Type>();
     }
 
-    int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr)
+    int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr, bool allowany = false)
     {
         switch(lex.token)
         {
@@ -692,6 +687,15 @@ struct Parser
                 break;
             }
 
+            case T_LEFTPAREN:
+                if (allowany) 
+                {
+                    lex.Next();
+                    Expect(T_RIGHTPAREN);
+                    dest = type_any;
+                    break;
+                }
+                // FALL-THRU:
             default:
                 Error("illegal type syntax: " + lex.TokStr());
         }

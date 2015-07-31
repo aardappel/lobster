@@ -63,9 +63,6 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
     heuristic state:
         distancef(state - endnode.state)
 
-def astar_space(startnode, endnode, costf, neighbors):
-    astar_graph(startnode, endnode, costf, def(v): magnitude(v), neighbors)
-
 // specialized to a 2D grid (specialized case of a graph)
 
 def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
