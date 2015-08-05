@@ -205,7 +205,7 @@ struct TypeChecker
         if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
         switch (sub->t)
         {
-            case V_ANY:       return coercions;
+            case V_ANY:       return coercions || !IsScalar(type->t);
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_STRING:    return coercions;
@@ -268,7 +268,7 @@ struct TypeChecker
                 a->exptype = type_string;
                 return;
             case V_ANY:
-                a = (Node *)new Unary(a->line, T_A2A, a);
+                if (IsScalar(type->t)) a = (Node *)new Unary(a->line, T_A2A, a);
                 a->exptype = type_any;
                 return;
             case V_FUNCTION:

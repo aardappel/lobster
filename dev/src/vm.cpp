@@ -1435,7 +1435,7 @@ struct VM : VMBase
             switch (ro->type)
             {
                 default: VMASSERT(ro->type >= 0);  // fall thru: a struct type
-                case V_VECTOR:    v.vval()->len = 0; v.vval()->deleteself(); break;
+                case V_VECTOR:  v.vval()->len = 0; v.vval()->deleteself(); break;
                 case V_STRING:                     v.sval()->deleteself(); break;
                 case V_COROUTINE:                  v.cval()->deleteself(false); break;
             }

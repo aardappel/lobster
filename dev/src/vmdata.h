@@ -18,15 +18,17 @@ namespace lobster {
 
 enum ValueType
 {
-    V_MINVMTYPES = -7,
-    V_STRUCT = -6,      // [typechecker only] an alias for V_VECTOR
-    V_CYCLEDONE = -5,
-    V_VALUEBUF = -4,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
+    V_MINVMTYPES = -9,
+    V_STRUCT = -8,      // [typechecker only] an alias for V_VECTOR
+    V_CYCLEDONE = -7,
+    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
+    V_BOXEDFLOAT = -5,
+    V_BOXEDINT = -4,
     V_COROUTINE = -3,
     V_STRING = -2,      // refc types are negative
     V_VECTOR = -1,
     V_INT = 0,          // quickest check for most common type
-    V_FLOAT = 1, 
+    V_FLOAT = 1,
     V_FUNCTION,
     V_YIELD,
     V_NIL,
@@ -44,7 +46,7 @@ inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
-        "struct", "<cycle>", "<value_buffer>", "coroutine", "string", "vector", 
+        "struct", "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "vector", 
         "int", "float", "function", "yield_function", "nil", "undefined", "nilable", "any", "variable",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
@@ -53,6 +55,8 @@ inline const char *BaseTypeName(ValueType t)
         return "<internal-error-type>";
     return typenames[t - V_MINVMTYPES - 1];
 }
+
+inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
 
 struct Value;
 struct LString;
@@ -193,14 +197,19 @@ struct Value
     private:
     union
     {
+        // Unboxed values.
         int ival_;       // keep this 32bit even on 64bit for predictable results
         float fval_;     // idem, also the type that most graphics hardware works with natively
+        const int *ip_;  // FIXME: can make this into reference value
+
+        // Reference values (includes NULL if nillable version).
         LString *sval_;
         LVector *vval_;
         CoRoutine *cval_;
+
+        // Generic reference access.
         LenObj *lobj_;
         RefObj *ref_;
-        const int *ip_;
     };
     public:
 
