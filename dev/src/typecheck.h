@@ -354,7 +354,7 @@ struct TypeChecker
         return vectortype;
     }
 
-    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right, bool flipalso)
+    bool MathCheckVector(TypeRef &type, Node *&left, Node *&right)
     {
         TypeRef ltype = left->exptype;
         TypeRef rtype = right->exptype; 
@@ -389,12 +389,6 @@ struct TypeChecker
             }
         }
 
-        if (flipalso)
-        {
-            // Now check scalar * vector instead.
-            return MathCheckVector(type, right, left, false);
-        }
-
         return false;
     }
 
@@ -408,7 +402,7 @@ struct TypeChecker
         {
             if (!type->Numeric() && type->t != V_VECTOR && type->t != V_STRUCT)
             {
-                if (MathCheckVector(type, n.left(), n.right(), true))
+                if (MathCheckVector(type, n.left(), n.right()))
                 {
                     unionchecked = true;
                     return nullptr;
@@ -1226,7 +1220,7 @@ struct TypeChecker
             {
                 CheckReadOnly(*n.left());
                 type = n.left()->exptype;
-                if (!MathCheckVector(type, n.left(), n.right(), false))
+                if (!MathCheckVector(type, n.left(), n.right()))
                 {
                     bool unionchecked = false;
                     MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
@@ -1261,7 +1255,7 @@ struct TypeChecker
                         {
                             type = type_vector_int;
                         }
-                        else if (MathCheckVector(type, n.left(), n.right(), false))
+                        else if (MathCheckVector(type, n.left(), n.right()))
                         {
                             type = type_vector_int;
                             break; // don't do SubTypeLR since type already verified and `u` not appropriate anyway.

@@ -235,8 +235,6 @@ vertex_neighbors :== [
       [ [ -1, 0 ]:xy, 3 ] ]
 ]
 
-- [float] / int does int division, which is wrong
-
 - add support for http://vallentinsource.com/opengl/debug-output
 
 - might be fun to see how hard it is to write an integration for http://lighttable.com/

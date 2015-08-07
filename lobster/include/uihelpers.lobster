@@ -96,7 +96,7 @@ def ui_rendertextatlocalsize(localsize:float, f):
     oldfontsize := gl_getfontsize()
     localfontsize := round(gl_scaling().x * localsize)    // font size to nearest pixel
     gl_setfontsize(localfontsize)
-    gl_scale(1 / gl_scaling()):   // get back to pixel scale
+    gl_scale(xy_1 / gl_scaling()):   // get back to pixel scale
         gl_translate(-fraction(gl_origin() + 0.5) + 0.5) // translate to nearest pixel
         f()
     gl_setfontsize(oldfontsize)

@@ -938,8 +938,8 @@ struct VM : VMBase
                     int len = VectorLoop(a, b, res, isfloat); \
                     if (len >= 0) { \
                         for (int j = 0; j < len; j++) \
-                        { auto bv = VectorElem<type>(b, j); if (extras&1 && bv == 0) Div0(); \
-                          res.vval()->at(j) = Value(VectorElem<type>(a, j) op bv); }\
+                        { auto bv = VectorElem<type>(b, j, isfloat); if (extras&1 && bv == 0) Div0(); \
+                          res.vval()->at(j) = Value(VectorElem<type>(a, j, isfloat) op bv); }\
                         VectorDec(a, res); VectorDec(b, res); \
                         break; } \
                     VMASSERTVALUES(false, a, b); \
@@ -1035,7 +1035,7 @@ struct VM : VMBase
                     int len = VectorLoop(a, Value((type)1), res, isfloat); \
                     if (len >= 0) \
                     { \
-                        for (int i = 0; i < len; i++) res.vval()->at(i) = Value(-VectorElem<type>(a, i)); \
+                        for (int i = 0; i < len; i++) res.vval()->at(i) = Value(-VectorElem<type>(a, i, isfloat)); \
                         VectorDec(a, res); \
                         PUSH(res); \
                         break; \
@@ -1306,42 +1306,29 @@ struct VM : VMBase
     int VectorLoop(const Value &a, const Value &b, Value &res, bool isfloat)
     {
         // note: not doing DEC() on the reused vectors is ok because VectorElem will error on not float/int
-        int len;
+        VMASSERT(a.type == V_VECTOR);
+
         int type = V_VECTOR;
-        if (a.type == V_VECTOR)
+        int len = a.vval()->len;
+        if (b.type == V_VECTOR)
         {
-            len = a.vval()->len;
-            if (b.type == V_VECTOR)
+            len = min(len, b.vval()->len);
+            if(a.vval()->len < b.vval()->len || (a.vval()->len == b.vval()->len && a.vval()->type >= 0))
             {
-                len = min(len, b.vval()->len);
-                if(a.vval()->len < b.vval()->len || (a.vval()->len == b.vval()->len && a.vval()->type >= 0))
-                {
-                    if (a.vval()->refc == 1) { res = a; return len; } else type = a.vval()->type;
-                }
-                else
-                {
-                    if (b.vval()->refc == 1) { res = b; return len; } else type = b.vval()->type;
-                }
+                if (a.vval()->refc == 1) { res = a; return len; } else type = a.vval()->type;
             }
             else
             {
-                VMASSERT(isfloat ? b.type == V_FLOAT : b.type == V_INT);
-                if (a.vval()->refc == 1) { res = a; return len; }
-                type = a.vval()->type;
+                if (b.vval()->refc == 1) { res = b; return len; } else type = b.vval()->type;
             }
-        }
-        else if (b.type == V_VECTOR)
-        {
-            len = b.vval()->len;
-            VMASSERT(isfloat ? a.type == V_FLOAT : a.type == V_INT);
-            if (b.vval()->refc == 1) { res = b; return len; }
-            type = b.vval()->type;
         }
         else
         {
-            VMASSERT(false);
-            len = -1;
+            VMASSERT(isfloat ? b.type == V_FLOAT : b.type == V_INT);
+            if (a.vval()->refc == 1) { res = a; return len; }
+            type = a.vval()->type;
         }
+
         res = Value(NewVector(len, type));
         res.vval()->len = len;    // so we can overwrite, needed for reuse
         return len;
@@ -1358,19 +1345,19 @@ struct VM : VMBase
         if (a.type == V_VECTOR && a.vval() != res.vval()) a.DECRT();
     }
 
-    template<typename T> T VectorElem(const Value &a, int i)
+    template<typename T> T VectorElem(const Value &a, int i, bool isfloat)
     {
         switch (a.type)
         {
-            case V_FLOAT: return (T)a.fval();
-            case V_INT:   return (T)a.ival();
+            case V_FLOAT: VMASSERT(isfloat);  return (T)a.fval();
+            case V_INT:   VMASSERT(!isfloat); return (T)a.ival();
             case V_VECTOR:
             {
                 auto v = a.vval()->at(i);
                 switch (v.type)
                 {
-                    case V_FLOAT: return (T)v.fval();
-                    case V_INT:   return (T)v.ival();
+                    case V_FLOAT: VMASSERT(isfloat);  return (T)v.fval();
+                    case V_INT:   VMASSERT(!isfloat); return (T)v.ival();
                     default:
                         VMASSERT(0);
                         return 0;
