@@ -104,6 +104,13 @@ struct Type
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 
     bool IsFunction() const { return t == V_FUNCTION && sf; }
+
+    bool HasVariable() const  // FIXME: does this cover all cases?
+    {
+        return t == V_VAR ||
+              (t == V_VECTOR && sub->t == V_VAR) ||
+              (t == V_NILABLE && sub->t == V_VAR);
+    }
 };
 
 extern const Type g_type_any;

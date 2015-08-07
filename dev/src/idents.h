@@ -161,7 +161,7 @@ struct SubFunction
 
     int subbytecodestart;
 
-    bool typechecked, freevarchecked, iscoroutine, fixedreturntype;
+    bool typechecked, freevarchecked, iscoroutine, mustspecialize, fixedreturntype;
     int numcallers;
 
     Type thistype;       // convenient place to store the type corresponding to this
@@ -171,7 +171,8 @@ struct SubFunction
           args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
           coyieldsave(0, nullptr),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
-          typechecked(false), freevarchecked(false), iscoroutine(false), fixedreturntype(false), numcallers(0),
+          typechecked(false), freevarchecked(false), iscoroutine(false), mustspecialize(false),
+          fixedreturntype(false), numcallers(0),
           thistype(V_FUNCTION, this)
     {
         returntypes.push_back(type_any);  // functions always have at least 1 return value.

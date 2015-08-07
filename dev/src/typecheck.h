@@ -540,7 +540,17 @@ struct TypeChecker
         Node *last = nullptr;
         for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
         assert(last);
-        if (last->head()->type != T_RETURN) RetVal(last->head(), &sf, 0);
+        if (last->head()->type != T_RETURN || last->head()->return_function_idx()->integer() != sf.parent->idx) 
+            RetVal(last->head(), &sf, 0);
+
+        for (auto type : sf.returntypes) if (type->HasVariable())
+        {
+            // If this function return something with a variable in it, then it likely will get bound by the
+            // caller. If the function then gets reused without specialization, it will get the wrong return type,
+            // so we force specialization for subsequent calls of this function.
+            // FIXME: check in which cases this is typically true, since its expensive if done without reason.
+            sf.mustspecialize = true;
+        }
 
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
@@ -668,7 +678,7 @@ struct TypeChecker
             // First see any args are untyped, this means we must specialize.
             for (auto &arg : csf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
             // If we didn't find any such args, and we also don't have any freevars, we don't specialize.
-            if (!csf->freevars.v.size()) goto match;
+            if (!csf->freevars.v.size() && !csf->mustspecialize) goto match;
             
             specialize:
             {
@@ -677,7 +687,7 @@ struct TypeChecker
                 if (sf->typechecked)
                 {
                     // Check if any existing specializations match.
-                    for (sf = f.subf; sf; sf = sf->next) if (sf->typechecked)
+                    for (sf = f.subf; sf; sf = sf->next) if (sf->typechecked && !sf->mustspecialize)
                     {
                         int i = 0;
                         for (Node *list = call_args; list && i < f.nargs(); list = list->tail())
@@ -1192,7 +1202,8 @@ struct TypeChecker
             case T_INT:   type = type_int; break;
             case T_FLOAT: type = type_float; break;
             case T_STR:   type = type_string; break;
-            case T_NIL:   type = n.typenode()->t != V_ANY ? n.typenode() : NewTypeVar()->Wrap(NewType(), V_NILABLE); break;
+            case T_NIL:   type = n.typenode()->t != V_ANY ? n.typenode() : NewTypeVar()->Wrap(NewType(), V_NILABLE);
+                          break;
 
             case T_PLUS:
             case T_MINUS:
