@@ -399,8 +399,9 @@ struct CodeGen
                             if      (n->exptype->t == V_VECTOR) sub = n->exptype->sub;
                             else if (n->exptype->t == V_STRUCT) sub = n->exptype->struc->vectortype->sub;
                             else assert(false);
-                            if      (sub->t == V_INT)    Emit(IL_IVADD + opc);
-                            else if (sub->t == V_FLOAT)  Emit(IL_FVADD + opc);
+                            bool withscalar = IsScalar(n->right()->exptype->t);
+                            if      (sub->t == V_INT)    Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
+                            else if (sub->t == V_FLOAT)  Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
                             else assert(false);
                         }
                     }
@@ -761,8 +762,9 @@ struct CodeGen
                 if      (type->t == V_VECTOR) sub = type->sub;
                 else if (type->t == V_STRUCT) sub = type->struc->vectortype->sub;
                 else assert(false);
-                if      (sub->t == V_INT)    {                             lvalop += LVO_IVADD - LVO_IADD; }
-                else if (sub->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += LVO_FVADD - LVO_IADD; }
+                bool withscalar = IsScalar(rhs->exptype->t);
+                if      (sub->t == V_INT)    {                             lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD; }
+                else if (sub->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD; }
                 else assert(false);
             }
         }
