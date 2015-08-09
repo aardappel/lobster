@@ -227,6 +227,14 @@ struct VM : VMBase
     {
         return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p);
     }
+    BoxedInt *NewInt(int i)
+    {
+        return new (vmpool->alloc(sizeof(BoxedInt))) BoxedInt(i); 
+    }
+    BoxedFloat *NewFloat(float f)
+    {
+        return new (vmpool->alloc(sizeof(BoxedFloat))) BoxedFloat(f); 
+    }
     #ifdef WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
@@ -1101,9 +1109,21 @@ struct VM : VMBase
                     break;
                 }
                     
-                case IL_A2A:
-                    // For now, this is a no-op. In the future, this will box the given value.
+                case IL_I2A:
+                {
+                    Value i = POP();
+                    VMTYPEEQ(i, V_INT);
+                    PUSH(NewInt(i.ival()));
                     break;
+                }
+
+                case IL_F2A:
+                {
+                    Value f = POP();
+                    VMTYPEEQ(f, V_FLOAT);
+                    PUSH(NewFloat(f.fval()));
+                    break;
+                }
 
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 

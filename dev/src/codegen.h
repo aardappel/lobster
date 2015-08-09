@@ -443,7 +443,15 @@ struct CodeGen
 
             case T_A2A:
                 Gen(n->child(), retval);
-                if (retval) Emit(IL_A2A);
+                if (retval)
+                {
+                    switch (n->child()->exptype->t)
+                    {
+                        case V_INT:   Emit(IL_I2A); break;
+                        case V_FLOAT: Emit(IL_F2A); break;
+                        default: assert(0);
+                    }
+                }
                 break;
                 
             case T_FUN:

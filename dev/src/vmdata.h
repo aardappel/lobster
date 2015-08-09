@@ -127,6 +127,22 @@ struct RefObj : DynAlloc
     }
 
     string CycleStr() { return "_" + to_string(refc) + "_"; }
+
+    void Mark() { if (refc > 0) refc = -refc; }
+};
+
+struct BoxedInt : RefObj
+{
+    int val;
+
+    BoxedInt(int _v) : RefObj(V_BOXEDINT), val(_v) {}
+};
+
+struct BoxedFloat : RefObj
+{
+    float val;
+
+    BoxedFloat(float _v) : RefObj(V_BOXEDFLOAT), val(_v) {}
 };
 
 struct LenObj : RefObj
@@ -179,8 +195,6 @@ struct LString : LenObj
 
     char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-    void Mark() { if (refc > 0) refc = -refc; }
-
     void deleteself() { vmpool->dealloc(this, sizeof(LString) + len + 1); }
 
     bool operator==(LString &o) { return strcmp(str(), o.str()) == 0; }
@@ -218,6 +232,10 @@ struct Value
         LVector *vval_;
         CoRoutine *cval_;
 
+        // Boxed scalars (never NULL)
+        BoxedInt *bival_;
+        BoxedFloat *bfval_;
+
         // Generic reference access.
         LenObj *lobj_;
         RefObj *ref_;
@@ -225,30 +243,35 @@ struct Value
     public:
 
     // These asserts help track down any invalid code generation issues.
-    int        ival() const { TYPE_ASSERT(type == V_INT);        return ival_; }
-    int       &ival()       { TYPE_ASSERT(type == V_INT);        return ival_; }
-    float      fval() const { TYPE_ASSERT(type == V_FLOAT);      return fval_; }
-    float     &fval()       { TYPE_ASSERT(type == V_FLOAT);      return fval_; }
-    LString   *sval() const { TYPE_ASSERT(type == V_STRING);     return sval_; }
-    LVector   *vval() const { TYPE_ASSERT(type == V_VECTOR);     return vval_; }
-    CoRoutine *cval() const { TYPE_ASSERT(type == V_COROUTINE);  return cval_; }
-    LenObj    *lobj() const { TYPE_ASSERT(type < 0);             return lobj_; }
-    RefObj    *ref () const { TYPE_ASSERT(type < 0);             return ref_;  }
-    const int *ip()   const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;   }
-    int        info() const { TYPE_ASSERT(type >= V_NARGS);      return ival_; }
-    void      *any()  const { return ref_; }
+    int         ival () const { TYPE_ASSERT(type == V_INT);        return ival_;  }
+    int        &ival ()       { TYPE_ASSERT(type == V_INT);        return ival_;  }
+    float       fval () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;  }
+    float      &fval ()       { TYPE_ASSERT(type == V_FLOAT);      return fval_;  }
+    LString    *sval () const { TYPE_ASSERT(type == V_STRING);     return sval_;  }
+    BoxedInt   *bival() const { TYPE_ASSERT(type == V_BOXEDINT);   return bival_; }
+    BoxedFloat *bfval() const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_; }
+    LVector    *vval () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;  }
+    CoRoutine  *cval () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;  }
+    LenObj     *lobj () const { TYPE_ASSERT(type < 0);             return lobj_;  }
+    RefObj     *ref  () const { TYPE_ASSERT(type < 0);             return ref_;   }
+    const int  *ip   () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;    }
+    int         info () const { TYPE_ASSERT(type >= V_NARGS);      return ival_;  }
+    void       *any  () const { return ref_; }
 
-    inline Value()                          : TYPE_INIT(V_UNDEFINED) ival_(0) {}
-    inline Value(int i)                     : TYPE_INIT(V_INT)       ival_(i) {}
-    inline Value(int i, ValueType t)        : TYPE_INIT(t)           ival_(i) { (void)t; }
-    inline Value(bool b)                    : TYPE_INIT(V_INT)       ival_(b) {}
-    inline Value(float f)                   : TYPE_INIT(V_FLOAT)     fval_(f) {}
-    inline Value(LString *s)                : TYPE_INIT(V_STRING)    sval_(s) {}
-    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)  ip_(i)   {}
-    inline Value(const int *i, ValueType t) : TYPE_INIT(t)           ip_(i)   { (void)t; }
-    inline Value(LVector *v)                : TYPE_INIT(V_VECTOR)    vval_(v) {}
-    inline Value(CoRoutine *c)              : TYPE_INIT(V_COROUTINE) cval_(c) {}
+    inline Value()                          : TYPE_INIT(V_UNDEFINED)  ival_(0)   {}
+    inline Value(int i)                     : TYPE_INIT(V_INT)        ival_(i)   {}
+    inline Value(int i, ValueType t)        : TYPE_INIT(t)            ival_(i)   { (void)t; }
+    inline Value(bool b)                    : TYPE_INIT(V_INT)        ival_(b)   {}
+    inline Value(float f)                   : TYPE_INIT(V_FLOAT)      fval_(f)   {}
+    inline Value(LString *s)                : TYPE_INIT(V_STRING)     sval_(s)   {}
+    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)   ip_(i)     {}
+    inline Value(const int *i, ValueType t) : TYPE_INIT(t)            ip_(i)     { (void)t; }
+    inline Value(BoxedInt *bi)              : TYPE_INIT(V_BOXEDINT)   bival_(bi) {}
+    inline Value(BoxedFloat *bf)            : TYPE_INIT(V_BOXEDFLOAT) bfval_(bf) {}
+    inline Value(LVector *v)                : TYPE_INIT(V_VECTOR)     vval_(v)   {}
+    inline Value(CoRoutine *c)              : TYPE_INIT(V_COROUTINE)  cval_(c)   {}
     inline Value(RefObj *r)                 : TYPE_INIT(r->type >= 0 ? V_VECTOR : (ValueType)r->type) ref_(r) {}
+
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
                                                     // esp big endian.
