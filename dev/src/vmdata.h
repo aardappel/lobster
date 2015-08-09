@@ -14,7 +14,7 @@
 
 namespace lobster {
 
-#define LOG_ENABLED 1
+#define RTT_ENABLED 1
 
 enum ValueType
 {
@@ -42,6 +42,9 @@ enum ValueType
     V_MAXVMTYPES
 };
 
+inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
+inline bool IsRef(ValueType t) { return t < 0; }
+
 inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
@@ -55,8 +58,6 @@ inline const char *BaseTypeName(ValueType t)
         return "<internal-error-type>";
     return typenames[t - V_MINVMTYPES - 1];
 }
-
-inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
 
 struct Value;
 struct LString;
@@ -190,9 +191,19 @@ struct LString : LenObj
     bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
 };
 
+#if RTT_ENABLED
+#define TYPE_ASSERT(cond) assert(cond)
+#define TYPE_INIT(t) type(t),
+#else
+#define TYPE_ASSERT(cond) ((void)0)
+#define TYPE_INIT(t)
+#endif
+
 struct Value
 {
-    ValueType type;     // FIXME: on 64bit system this should really sit in a separate array
+    #if RTT_ENABLED
+    ValueType type;
+    #endif
 
     private:
     union
@@ -214,64 +225,66 @@ struct Value
     public:
 
     // These asserts help track down any invalid code generation issues.
-    int        ival() const { assert(type == V_INT);        return ival_; }
-    int       &ival()       { assert(type == V_INT);        return ival_; }
-    float      fval() const { assert(type == V_FLOAT);      return fval_; }
-    float     &fval()       { assert(type == V_FLOAT);      return fval_; }
-    LString   *sval() const { assert(type == V_STRING);     return sval_; }
-    LVector   *vval() const { assert(type == V_VECTOR);     return vval_; }
-    CoRoutine *cval() const { assert(type == V_COROUTINE);  return cval_; }
-    LenObj    *lobj() const { assert(type < 0);             return lobj_; }
-    RefObj    *ref () const { assert(type < 0);             return ref_;  }
-    const int *ip()   const { assert(type >= V_FUNCTION);   return ip_;   }
-    int        info() const { assert(type >= V_NARGS);      return ival_; }
+    int        ival() const { TYPE_ASSERT(type == V_INT);        return ival_; }
+    int       &ival()       { TYPE_ASSERT(type == V_INT);        return ival_; }
+    float      fval() const { TYPE_ASSERT(type == V_FLOAT);      return fval_; }
+    float     &fval()       { TYPE_ASSERT(type == V_FLOAT);      return fval_; }
+    LString   *sval() const { TYPE_ASSERT(type == V_STRING);     return sval_; }
+    LVector   *vval() const { TYPE_ASSERT(type == V_VECTOR);     return vval_; }
+    CoRoutine *cval() const { TYPE_ASSERT(type == V_COROUTINE);  return cval_; }
+    LenObj    *lobj() const { TYPE_ASSERT(type < 0);             return lobj_; }
+    RefObj    *ref () const { TYPE_ASSERT(type < 0);             return ref_;  }
+    const int *ip()   const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;   }
+    int        info() const { TYPE_ASSERT(type >= V_NARGS);      return ival_; }
     void      *any()  const { return ref_; }
 
-    inline Value()                          : type(V_UNDEFINED), ival_(0) {}
-    inline Value(int i)                     : type(V_INT),       ival_(i) {}
-    inline Value(int i, ValueType t)        : type(t),           ival_(i) {}
-    inline Value(bool b)                    : type(V_INT),       ival_(b) {}
-    inline Value(float f)                   : type(V_FLOAT),     fval_(f) {}
-    inline Value(LString *s)                : type(V_STRING),    sval_(s) {}
-    inline Value(const int *i)              : type(V_FUNCTION),  ip_(i)   {}
-    inline Value(const int *i, ValueType t) : type(t),           ip_(i)   {}
-    inline Value(LVector *v)                : type(V_VECTOR),    vval_(v) {}
-    inline Value(CoRoutine *c)              : type(V_COROUTINE), cval_(c) {}
-    inline Value(RefObj *r)                 : type(r->type >= 0 ? V_VECTOR : (ValueType)r->type), ref_(r) {}
+    inline Value()                          : TYPE_INIT(V_UNDEFINED) ival_(0) {}
+    inline Value(int i)                     : TYPE_INIT(V_INT)       ival_(i) {}
+    inline Value(int i, ValueType t)        : TYPE_INIT(t)           ival_(i) { (void)t; }
+    inline Value(bool b)                    : TYPE_INIT(V_INT)       ival_(b) {}
+    inline Value(float f)                   : TYPE_INIT(V_FLOAT)     fval_(f) {}
+    inline Value(LString *s)                : TYPE_INIT(V_STRING)    sval_(s) {}
+    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)  ip_(i)   {}
+    inline Value(const int *i, ValueType t) : TYPE_INIT(t)           ip_(i)   { (void)t; }
+    inline Value(LVector *v)                : TYPE_INIT(V_VECTOR)    vval_(v) {}
+    inline Value(CoRoutine *c)              : TYPE_INIT(V_COROUTINE) cval_(c) {}
+    inline Value(RefObj *r)                 : TYPE_INIT(r->type >= 0 ? V_VECTOR : (ValueType)r->type) ref_(r) {}
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
                                                     // esp big endian.
 
-    inline Value &INC()
+    inline Value &INCRT()
     {
-        if (type < 0)
-        {
-            #ifdef _DEBUG
-            if (ref_->refc > 0)  // force too many dec bugs to become apparent
-            #endif
-            ref_->refc++;
-        }
+        TYPE_ASSERT(IsRef(type));
+        #ifdef _DEBUG
+        if (ref_->refc > 0)  // force too many dec bugs to become apparent
+        #endif
+        ref_->refc++;
         return *this;
     }
 
-    inline void INCN(int n) { if (type < 0) ref_->refc += n; }
-    
-    inline const Value &DEC() const
+    inline Value &INC()
     {
-        if (type < 0) DECRT();
-        return *this;
+        return IsRef(type) ? INCRT() : *this;
     }
 
     inline void DECRT() const   // we already know its a ref type
     {
-        assert(type < 0);
+        TYPE_ASSERT(IsRef(type));
         ref_->refc--;
         if (ref_->refc <= 0) DECDELETE();
     }
 
+    inline const Value &DEC() const
+    {
+        if (IsRef(type)) DECRT();
+        return *this;
+    }
+
+
     int Nargs()
     {
-        assert(type == V_FUNCTION);
+        TYPE_ASSERT(type == V_FUNCTION);
         //assert(*ip == IL_FUNSTART);
         return ip_[1];
     }
@@ -369,8 +382,8 @@ struct LVector : LenObj
         if (len + n > maxl) resize(max(len + n, maxl ? maxl * 2 : 4));   
         memmove(v + i + n, v + i, sizeof(Value) * (len - i));
         len++;
-        for (int j = 0; j < n; j++) v[i + j] = val;
-        val.INCN(n - 1);
+        for (int j = 0; j < n; j++) { v[i + j] = val; val.INC(); }
+        val.DEC();
     }
 
     Value remove(int i, int n)
@@ -411,7 +424,7 @@ struct LVector : LenObj
             if (i) s += ", ";
             if ((int)s.size() > pp.budget) { s += "...."; break; }
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals);
-            s += pp.depth || v[i].type >= 0 ? v[i].ToString(subpp) : "..";
+            s += pp.depth || !IsRef(v[i].type) ? v[i].ToString(subpp) : "..";
         }
         s += type >= 0 ? "}" : "]";
         return s;

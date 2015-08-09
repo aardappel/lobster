@@ -1,6 +1,3 @@
-- make a script that tests all existing lobster code at once.
-  - could add a special command-line flag to terminate graphical apps after N frames.
-
 - have to build freetype and sdl from source with 2015 before we can switch to its toolset.
 - try to build android/ios from VS.
 
@@ -29,14 +26,37 @@
     - could allow function calls without () ?
       would also solve the lack of space after if()
       does not solve else:if
+	  (actually, Python also has a : after else, so maybe that problem doesn't need to be solved).
+	  might be nice for other calls too, i.e. you can write "print x" as a statement.
+	  We'd only allow this for single argument functions, so as to not have floating commas, or
+	  exps without separation? or just allow anyway?
+	  This is actually analogous to closure args, where >1 arg needs ().
+	  Only issue is the lack of uniformity again, though we already have some such cases, again for is
+	  allowed to be written for(list) (x): currently. So with this new syntax it can also be written
+	  for list (x): or the existing for(list) x: or even for list x:
+	  Could also require a keyword for all function args, and drop the : when no args, so we get:
+	  if a then ... else ...
+	  for list do x: ...
+	  color color_black do ...
+	  the fun part about that is that it simply becomes a keyworded syntax irrespective of wether the arguments
+	  are function values or not, solving the floating comma question.
+	  Problem is now we need to know if something is a function arg again to allow the short function syntax.
+	- have seperate syntax for regular function calls and calls that take function arguments.
+	  basically, say that if a function takes a function argument, it is a control structure, and control
+	  structures have their own syntax.
+	  What would this syntax be?
+	  presumably it drops the (), which would make if/while equal to Python.
+	  but for list x: doesn't work very well, and neither does hof arg1, arg2, arg2 (a, b):
+	  Also means we must have already parsed the hof to be able to recognize it as such, yet we don't know its
+	  type, so how do we know is a hof?
     - keep it as-is.
     most frequent indentations, in this order:
-    - if
-    - function
-    - else
-    - for
-    - while
-    - map
+    - if       454
+    - function 184
+    - for      190
+    - else     140
+    - map       72
+    - while     52
     - other hof
   - people really dislike := because they assume it means assignment.. could use a different operator?
     maybe var: = val to make it look more like regular assignment?

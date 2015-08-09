@@ -1227,64 +1227,64 @@ struct VM : VMBase
     {
         switch(op)
         {
-            case LVO_IVVADD:  { Value b = POP();  _IVOP(+, 0, false); a = res;                  break; }
-            case LVO_IVVADDR: { Value b = POP();  _IVOP(+, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_IVVSUB:  { Value b = POP();  _IVOP(-, 0, false); a = res;                  break; }
-            case LVO_IVVSUBR: { Value b = POP();  _IVOP(-, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_IVVMUL:  { Value b = POP();  _IVOP(*, 0, false); a = res;                  break; }
-            case LVO_IVVMULR: { Value b = POP();  _IVOP(*, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_IVVDIV:  { Value b = POP();  _IVOP(/, 1, false); a = res;                  break; }
-            case LVO_IVVDIVR: { Value b = POP();  _IVOP(/, 1, false); a = res; PUSH(res.INC()); break; }
+            case LVO_IVVADD:  { Value b = POP();  _IVOP(+, 0, false); a = res;                    break; }
+            case LVO_IVVADDR: { Value b = POP();  _IVOP(+, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVSUB:  { Value b = POP();  _IVOP(-, 0, false); a = res;                    break; }
+            case LVO_IVVSUBR: { Value b = POP();  _IVOP(-, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVMUL:  { Value b = POP();  _IVOP(*, 0, false); a = res;                    break; }
+            case LVO_IVVMULR: { Value b = POP();  _IVOP(*, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVDIV:  { Value b = POP();  _IVOP(/, 1, false); a = res;                    break; }
+            case LVO_IVVDIVR: { Value b = POP();  _IVOP(/, 1, false); a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_FVVADD:  { Value b = POP();  _FVOP(+, 0, false); a = res;                  break; }
-            case LVO_FVVADDR: { Value b = POP();  _FVOP(+, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_FVVSUB:  { Value b = POP();  _FVOP(-, 0, false); a = res;                  break; }
-            case LVO_FVVSUBR: { Value b = POP();  _FVOP(-, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_FVVMUL:  { Value b = POP();  _FVOP(*, 0, false); a = res;                  break; }
-            case LVO_FVVMULR: { Value b = POP();  _FVOP(*, 0, false); a = res; PUSH(res.INC()); break; }
-            case LVO_FVVDIV:  { Value b = POP();  _FVOP(/, 1, false); a = res;                  break; }
-            case LVO_FVVDIVR: { Value b = POP();  _FVOP(/, 1, false); a = res; PUSH(res.INC()); break; }
+            case LVO_FVVADD:  { Value b = POP();  _FVOP(+, 0, false); a = res;                    break; }
+            case LVO_FVVADDR: { Value b = POP();  _FVOP(+, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVSUB:  { Value b = POP();  _FVOP(-, 0, false); a = res;                    break; }
+            case LVO_FVVSUBR: { Value b = POP();  _FVOP(-, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVMUL:  { Value b = POP();  _FVOP(*, 0, false); a = res;                    break; }
+            case LVO_FVVMULR: { Value b = POP();  _FVOP(*, 0, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVDIV:  { Value b = POP();  _FVOP(/, 1, false); a = res;                    break; }
+            case LVO_FVVDIVR: { Value b = POP();  _FVOP(/, 1, false); a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_IVSADD:  { Value b = POP();  _IVOP(+, 0, true);  a = res;                  break; }
-            case LVO_IVSADDR: { Value b = POP();  _IVOP(+, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_IVSSUB:  { Value b = POP();  _IVOP(-, 0, true);  a = res;                  break; }
-            case LVO_IVSSUBR: { Value b = POP();  _IVOP(-, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_IVSMUL:  { Value b = POP();  _IVOP(*, 0, true);  a = res;                  break; }
-            case LVO_IVSMULR: { Value b = POP();  _IVOP(*, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_IVSDIV:  { Value b = POP();  _IVOP(/, 1, true);  a = res;                  break; }
-            case LVO_IVSDIVR: { Value b = POP();  _IVOP(/, 1, true);  a = res; PUSH(res.INC()); break; }
+            case LVO_IVSADD:  { Value b = POP();  _IVOP(+, 0, true);  a = res;                    break; }
+            case LVO_IVSADDR: { Value b = POP();  _IVOP(+, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSSUB:  { Value b = POP();  _IVOP(-, 0, true);  a = res;                    break; }
+            case LVO_IVSSUBR: { Value b = POP();  _IVOP(-, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSMUL:  { Value b = POP();  _IVOP(*, 0, true);  a = res;                    break; }
+            case LVO_IVSMULR: { Value b = POP();  _IVOP(*, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSDIV:  { Value b = POP();  _IVOP(/, 1, true);  a = res;                    break; }
+            case LVO_IVSDIVR: { Value b = POP();  _IVOP(/, 1, true);  a = res; PUSH(res.INCRT()); break; }
                                                                       
-            case LVO_FVSADD:  { Value b = POP();  _FVOP(+, 0, true);  a = res;                  break; }
-            case LVO_FVSADDR: { Value b = POP();  _FVOP(+, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_FVSSUB:  { Value b = POP();  _FVOP(-, 0, true);  a = res;                  break; }
-            case LVO_FVSSUBR: { Value b = POP();  _FVOP(-, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_FVSMUL:  { Value b = POP();  _FVOP(*, 0, true);  a = res;                  break; }
-            case LVO_FVSMULR: { Value b = POP();  _FVOP(*, 0, true);  a = res; PUSH(res.INC()); break; }
-            case LVO_FVSDIV:  { Value b = POP();  _FVOP(/, 1, true);  a = res;                  break; }
-            case LVO_FVSDIVR: { Value b = POP();  _FVOP(/, 1, true);  a = res; PUSH(res.INC()); break; }
+            case LVO_FVSADD:  { Value b = POP();  _FVOP(+, 0, true);  a = res;                    break; }
+            case LVO_FVSADDR: { Value b = POP();  _FVOP(+, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSSUB:  { Value b = POP();  _FVOP(-, 0, true);  a = res;                    break; }
+            case LVO_FVSSUBR: { Value b = POP();  _FVOP(-, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSMUL:  { Value b = POP();  _FVOP(*, 0, true);  a = res;                    break; }
+            case LVO_FVSMULR: { Value b = POP();  _FVOP(*, 0, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSDIV:  { Value b = POP();  _FVOP(/, 1, true);  a = res;                    break; }
+            case LVO_FVSDIVR: { Value b = POP();  _FVOP(/, 1, true);  a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_IADD:    { Value b = POP();  _IOP(+, 0);         a = res;                  break; }
-            case LVO_IADDR:   { Value b = POP();  _IOP(+, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_ISUB:    { Value b = POP();  _IOP(-, 0);         a = res;                  break; }
-            case LVO_ISUBR:   { Value b = POP();  _IOP(-, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_IMUL:    { Value b = POP();  _IOP(*, 0);         a = res;                  break; }
-            case LVO_IMULR:   { Value b = POP();  _IOP(*, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_IDIV:    { Value b = POP();  _IOP(/, 1);         a = res;                  break; }
-            case LVO_IDIVR:   { Value b = POP();  _IOP(/, 1);         a = res; PUSH(res.INC()); break; }
-            case LVO_IMOD:    { Value b = POP();  _IOP(%, 1);         a = res;                  break; }
-            case LVO_IMODR:   { Value b = POP();  _IOP(%, 1);         a = res; PUSH(res.INC()); break; }
+            case LVO_IADD:    { Value b = POP();  _IOP(+, 0);         a = res;                    break; }
+            case LVO_IADDR:   { Value b = POP();  _IOP(+, 0);         a = res; PUSH(res);         break; }
+            case LVO_ISUB:    { Value b = POP();  _IOP(-, 0);         a = res;                    break; }
+            case LVO_ISUBR:   { Value b = POP();  _IOP(-, 0);         a = res; PUSH(res);         break; }
+            case LVO_IMUL:    { Value b = POP();  _IOP(*, 0);         a = res;                    break; }
+            case LVO_IMULR:   { Value b = POP();  _IOP(*, 0);         a = res; PUSH(res);         break; }
+            case LVO_IDIV:    { Value b = POP();  _IOP(/, 1);         a = res;                    break; }
+            case LVO_IDIVR:   { Value b = POP();  _IOP(/, 1);         a = res; PUSH(res);         break; }
+            case LVO_IMOD:    { Value b = POP();  _IOP(%, 1);         a = res;                    break; }
+            case LVO_IMODR:   { Value b = POP();  _IOP(%, 1);         a = res; PUSH(res);         break; }
+                                                                                                  
+            case LVO_FADD:    { Value b = POP();  _FOP(+, 0);         a = res;                    break; }
+            case LVO_FADDR:   { Value b = POP();  _FOP(+, 0);         a = res; PUSH(res);         break; }
+            case LVO_FSUB:    { Value b = POP();  _FOP(-, 0);         a = res;                    break; }
+            case LVO_FSUBR:   { Value b = POP();  _FOP(-, 0);         a = res; PUSH(res);         break; }
+            case LVO_FMUL:    { Value b = POP();  _FOP(*, 0);         a = res;                    break; }
+            case LVO_FMULR:   { Value b = POP();  _FOP(*, 0);         a = res; PUSH(res);         break; }
+            case LVO_FDIV:    { Value b = POP();  _FOP(/, 1);         a = res;                    break; }
+            case LVO_FDIVR:   { Value b = POP();  _FOP(/, 1);         a = res; PUSH(res);         break; }
                                                                      
-            case LVO_FADD:    { Value b = POP();  _FOP(+, 0);         a = res;                  break; }
-            case LVO_FADDR:   { Value b = POP();  _FOP(+, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_FSUB:    { Value b = POP();  _FOP(-, 0);         a = res;                  break; }
-            case LVO_FSUBR:   { Value b = POP();  _FOP(-, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_FMUL:    { Value b = POP();  _FOP(*, 0);         a = res;                  break; }
-            case LVO_FMULR:   { Value b = POP();  _FOP(*, 0);         a = res; PUSH(res.INC()); break; }
-            case LVO_FDIV:    { Value b = POP();  _FOP(/, 1);         a = res;                  break; }
-            case LVO_FDIVR:   { Value b = POP();  _FOP(/, 1);         a = res; PUSH(res.INC()); break; }
-                                                                     
-            case LVO_SADD:    { Value b = POP();  _SCAT();            a = res;                  break; }
-            case LVO_SADDR:   { Value b = POP();  _SCAT();            a = res; PUSH(res.INC()); break; }
+            case LVO_SADD:    { Value b = POP();  _SCAT();            a = res;                    break; }
+            case LVO_SADDR:   { Value b = POP();  _SCAT();            a = res; PUSH(res.INCRT()); break; }
 
             case LVO_WRITE:   { Value  b = POP();       a.DEC(); a = b; break; }
             case LVO_WRITER:  { Value &b = TOP().INC(); a.DEC(); a = b; break; }
@@ -1293,11 +1293,11 @@ struct VM : VMBase
             // and its not needed for defines anyway
                     
             #define PPOP(ret, op, pre) { \
-                if (ret && !pre) PUSH(a.INC()); \
+                if (ret && !pre) PUSH(a); \
                 if (a.type == V_INT) a.ival() = a.ival() op 1; \
                 else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
                 else VMASSERT(false); \
-                if (ret && pre) PUSH(a.INC()); \
+                if (ret && pre) PUSH(a); \
             }
                 
             case LVO_PP: 
