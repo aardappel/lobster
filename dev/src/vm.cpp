@@ -1292,22 +1292,28 @@ struct VM : VMBase
             // LVO_WRITED is only there because OVERWRITE causes problems with rec functions,
             // and its not needed for defines anyway
                     
-            #define PPOP(ret, op, pre) { \
+            #define PPOP(ret, op, pre, accessor) { \
                 if (ret && !pre) PUSH(a); \
-                if (a.type == V_INT) a.ival() = a.ival() op 1; \
-                else if (a.type == V_FLOAT) a.fval() = a.fval() op 1; \
-                else VMASSERT(false); \
+                a.accessor() = a.accessor() op 1; \
                 if (ret && pre) PUSH(a); \
             }
                 
-            case LVO_PP: 
-            case LVO_PPR:  { PPOP(op == LVO_PPR,  +, true);  break; }
-            case LVO_MM: 
-            case LVO_MMR:  { PPOP(op == LVO_MMR,  -, true);  break; }
-            case LVO_PPP: 
-            case LVO_PPPR: { PPOP(op == LVO_PPPR, +, false); break; }
-            case LVO_MMP:
-            case LVO_MMPR: { PPOP(op == LVO_MMPR, -, false); break; }
+            case LVO_IPP: 
+            case LVO_IPPR:  { PPOP(op == LVO_IPPR,  +, true,  ival);  break; }
+            case LVO_IMM: 
+            case LVO_IMMR:  { PPOP(op == LVO_IMMR,  -, true,  ival);  break; }
+            case LVO_IPPP: 
+            case LVO_IPPPR: { PPOP(op == LVO_IPPPR, +, false, ival); break; }
+            case LVO_IMMP:
+            case LVO_IMMPR: { PPOP(op == LVO_IMMPR, -, false, ival); break; }
+            case LVO_FPP: 
+            case LVO_FPPR:  { PPOP(op == LVO_FPPR,  +, true,  fval);  break; }
+            case LVO_FMM: 
+            case LVO_FMMR:  { PPOP(op == LVO_FMMR,  -, true,  fval);  break; }
+            case LVO_FPPP: 
+            case LVO_FPPPR: { PPOP(op == LVO_FPPPR, +, false, fval); break; }
+            case LVO_FMMP:
+            case LVO_FMMPR: { PPOP(op == LVO_FMMPR, -, false, fval); break; }
 
             default:
                 Error("bytecode format problem (lvalue): " + to_string(op));

@@ -363,10 +363,10 @@ struct CodeGen
             case T_DIVEQ:   GenAssign(n->left(), LVO_IDIV, retval, n->exptype, n->right()); break;
             case T_MODEQ:   GenAssign(n->left(), LVO_IMOD, retval, n->exptype, n->right()); break;
 
-            case T_POSTDECR: GenAssign(n->child(), LVO_MMP, retval, nullptr); break;
-            case T_POSTINCR: GenAssign(n->child(), LVO_PPP, retval, nullptr); break;
-            case T_DECR:     GenAssign(n->child(), LVO_MM,  retval, nullptr); break;
-            case T_INCR:     GenAssign(n->child(), LVO_PP,  retval, nullptr); break;
+            case T_POSTDECR: GenAssign(n->child(), LVO_IMMP, retval, n->exptype); break;
+            case T_POSTINCR: GenAssign(n->child(), LVO_IPPP, retval, n->exptype); break;
+            case T_DECR:     GenAssign(n->child(), LVO_IMM,  retval, n->exptype); break;
+            case T_INCR:     GenAssign(n->child(), LVO_IPP,  retval, n->exptype); break;
 
             case T_NEQ:   opc++;
             case T_EQ:    opc++;
@@ -767,6 +767,11 @@ struct CodeGen
                 else if (sub->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD; }
                 else assert(false);
             }
+        }
+        else if (lvalop >= LVO_IPP && lvalop <= LVO_IMMP)
+        {
+            if (type->t == V_FLOAT) lvalop += LVO_FPP - LVO_IPP;
+            else assert(type->t == V_INT);
         }
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
