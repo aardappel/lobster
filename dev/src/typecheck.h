@@ -1406,6 +1406,8 @@ struct TypeChecker
                 {
                     auto &arg = nf->args.v[i];
                     auto argtype = arg.type;
+                    bool typed = false;
+
                     if (argtype->t == V_NILABLE && argtype->sub->Numeric() && list->head()->type != T_DEFAULTVAL)
                     {
                         // This is somewhat of a hack, because we conflate V_NILABLE with being optional for 
@@ -1422,7 +1424,9 @@ struct TypeChecker
                                     : argtypes[0],
                                 ArgName(i).c_str(),
                                 nf->name.c_str());
+                        typed = true;
                     }
+
                     if (arg.flags & NF_ANYVAR)
                     {
                         if (argtype->t == V_VECTOR) argtype = NewTypeVar()->Wrap(NewType());
@@ -1436,9 +1440,11 @@ struct TypeChecker
                         assert(argtypes[0]->t == V_COROUTINE);  
                         auto sf = argtypes[0]->sf;
                         SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                        typed = true;
                     }
                     
-                    SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
+                    if (!typed) SubType(list->head(), argtype, ArgName(i).c_str(), nf->name.c_str());
+
                     auto actualtype = list->head()->exptype;
                     if (actualtype->IsFunction())
                     {
