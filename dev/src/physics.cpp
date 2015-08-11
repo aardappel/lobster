@@ -91,7 +91,7 @@ float2 B2ToFloat2(const b2Vec2 &v) { return float2(v.x, v.y); }
 
 b2Vec2 ValueDecToB2(Value &vec)
 {
-	auto v = ValueDecTo<float2>(vec);
+	auto v = ValueDecToF<2>(vec);
 	return Float2ToB2(v);
 }
 
@@ -104,7 +104,7 @@ b2Body &GetBody(Value &id, Value &position)
 		auto other_fixture = fixtures->Get(id.ival());
 		if (other_fixture) body = other_fixture->GetBody();
 	}
-	auto wpos = ValueDecTo<float2>(position);
+	auto wpos = ValueDecToF<2>(position);
 	if (!body)
 	{
 		b2BodyDef bd;
@@ -139,7 +139,7 @@ void AddPhysicsOps()
 {
 	STARTDECL(ph_initialize) (Value &gravity)
 	{
-		InitPhysics(ValueDecTo<float2>(gravity));
+		InitPhysics(ValueDecToF<2>(gravity));
 		return Value();
 	}
 	ENDDECL1(ph_initialize, "gravityvector", "F]", "",
@@ -148,7 +148,7 @@ void AddPhysicsOps()
 	STARTDECL(ph_createbox) (Value &position, Value &size, Value &offset, Value &rot, Value &other_id)
 	{
 		auto &body = GetBody(other_id, position);
-		auto sz = ValueDecTo<float2>(size);
+		auto sz = ValueDecToF<2>(size);
 		auto r = rot.fval();
 		b2PolygonShape shape;
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
@@ -179,7 +179,7 @@ void AddPhysicsOps()
 		auto verts = new b2Vec2[vertices.vval()->len];
         for (int i = 0; i < vertices.vval()->len; i++)
         {
-            auto vert = ValueTo<float2>(vertices.vval()->at(i));
+            auto vert = ValueToF<2>(vertices.vval()->at(i));
             verts[i] = Float2ToB2(vert);
         }
 		shape.Set(verts, vertices.vval()->len);
@@ -220,7 +220,7 @@ void AddPhysicsOps()
 	STARTDECL(ph_setcolor) (Value &fixture_id, Value &color)
 	{
 		auto r = GetRenderable(fixture_id.ival());
-		auto c = ValueDecTo<float4>(color);
+		auto c = ValueDecToF<4>(color);
 		if (r) r->color = c;
 		return Value();
 	}
@@ -257,7 +257,7 @@ void AddPhysicsOps()
 		pgd.shape = &shape;
 		pgd.flags = type.ival();
 		pgd.position = ValueDecToB2(position);
-		auto c = ValueDecTo<float3>(color);
+		auto c = ValueDecToF<3>(color);
 		pgd.color.Set(b2Color(c.x(), c.y(), c.z()));
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();

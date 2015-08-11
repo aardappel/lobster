@@ -469,7 +469,7 @@ void AddNoise()
 {
     STARTDECL(simplex) (Value &pos, Value &octaves, Value &scale, Value &persistence)
     {
-        auto v = ValueDecTo<float4>(pos, 0);
+        auto v = ValueDecToF<4>(pos);
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version
         return Value(simplexNoise(octaves.ival(), persistence.fval(), scale.fval(), v));
     }

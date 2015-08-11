@@ -576,7 +576,7 @@ void AddBuiltins()
     STARTDECL(arccos) (Value &x) { return Value(acosf(x.fval()) / RAD); } ENDDECL1(arccos, "x", "F", "F",
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
-    STARTDECL(atan2) (Value &vec) { auto v = ValueDecTo<float3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } 
+    STARTDECL(atan2) (Value &vec) { auto v = ValueDecToF<3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } 
     ENDDECL1(atan2, "vec",  "F]" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
 
@@ -584,23 +584,23 @@ void AddBuiltins()
     {
         switch (vec.vval()->len)
         {
-            case 2: { auto v = ValueDecTo<float2>(vec); return ToValue(v == float2_0 ? v : normalize(v)); }
-            case 3: { auto v = ValueDecTo<float3>(vec); return ToValue(v == float3_0 ? v : normalize(v)); }
-            case 4: { auto v = ValueDecTo<float4>(vec); return ToValue(v == float4_0 ? v : normalize(v)); }
+            case 2: { auto v = ValueDecToF<2>(vec); return ToValue(v == float2_0 ? v : normalize(v)); }
+            case 3: { auto v = ValueDecToF<3>(vec); return ToValue(v == float3_0 ? v : normalize(v)); }
+            case 4: { auto v = ValueDecToF<4>(vec); return ToValue(v == float4_0 ? v : normalize(v)); }
             default: return g_vm->BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
     }
     ENDDECL1(normalize, "vec",  "F]" , "F]:/",
         "returns a vector of unit length");
 
-    STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecTo<float4>(a), ValueDecTo<float4>(b))); }
+    STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecToF<4>(a), ValueDecToF<4>(b))); }
     ENDDECL2(dot,   "a,b", "F]F]", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
-    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecTo<float4>(a))); } ENDDECL1(magnitude, "v", "F]", "F",
+    STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecToF<4>(a))); } ENDDECL1(magnitude, "v", "F]", "F",
         "the geometric length of a vector");
 
-    STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecTo<float3>(a), ValueDecTo<float3>(b))); }
+    STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecToF<3>(a), ValueDecToF<3>(b))); }
     ENDDECL2(cross, "a,b", "F]F]", "F]:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
@@ -639,9 +639,9 @@ void AddBuiltins()
 
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv)
     {
-        auto x     = ValueDecTo<int2>(xv);
-        auto range = ValueDecTo<int2>(rangev);
-        auto bias  = biasv.True() ? ValueDecTo<int2>(biasv) : int2_0;
+        auto x     = ValueDecToI<2>(xv);
+        auto range = ValueDecToI<2>(rangev);
+        auto bias  = biasv.True() ? ValueDecToI<2>(biasv) : int2_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "I]:2I]:2I]:2?", "I",
@@ -649,9 +649,9 @@ void AddBuiltins()
 
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv)
     {
-        auto x     = ValueDecTo<float2>(xv);
-        auto range = ValueDecTo<float2>(rangev);
-        auto bias  = ValueDecTo<float2>(biasv);
+        auto x     = ValueDecToF<2>(xv);
+        auto range = ValueDecToF<2>(rangev);
+        auto bias  = ValueDecToF<2>(biasv);
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "F]:2F]:2F]:2?", "I",
@@ -716,10 +716,10 @@ void AddBuiltins()
 
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t)
     {
-        return ToValue(cardinalspline(ValueDecTo<float3>(z),
-                                       ValueDecTo<float3>(a),
-                                       ValueDecTo<float3>(b),
-                                       ValueDecTo<float3>(c), f.fval(), t.fval()));
+        return ToValue(cardinalspline(ValueDecToF<3>(z),
+                                      ValueDecToF<3>(a),
+                                      ValueDecToF<3>(b),
+                                      ValueDecToF<3>(c), f.fval(), t.fval()));
     }
     ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
@@ -735,7 +735,7 @@ void AddBuiltins()
     STARTDECL(lerp) (Value &x, Value &y, Value &f)
     {
         auto numelems = x.vval()->len;
-        return ToValue(mix(ValueDecTo<float4>(x), ValueDecTo<float4>(y), f.fval()), numelems);
+        return ToValue(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
     }
     ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
         "linearly interpolates between x and y vectors with factor f [0..1]");

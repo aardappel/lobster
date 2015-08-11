@@ -589,44 +589,32 @@ struct CoRoutine : RefObj
     }
 };
 
-template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
+template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
 {
-    if (v.type == V_VECTOR)
-    {
-        T t;
-        for (int i = 0; i < T::NUM_ELEMENTS; i++)
-        {
-            typename T::CTYPE e = def;
-            if (v.vval()->len > i)
-            {
-                Value &c = v.vval()->at(i);
-                if      (c.type == V_FLOAT) e = (typename T::CTYPE)c.fval();
-                else if (c.type == V_INT)   e = (typename T::CTYPE)c.ival();
-                else g_vm->BuiltinError(string("non-numeric component in vector: ") + g_vm->ProperTypeName(c));
-            }
-            t.set(i, e);
-        }
-        return t;
-    }
-
-    else if (v.type == V_FLOAT)
-    {
-        return T((typename T::CTYPE)v.fval());
-    }
-    else if (v.type == V_INT)
-    {
-        return T((typename T::CTYPE)v.ival());
-    }
-    else
-    {
-        g_vm->BuiltinError(string("argument to builtin must be a vector/int/float: ") + g_vm->ProperTypeName(v));
-        return (T)def;
-    }
+    TYPE_ASSERT(v.type == V_VECTOR);
+    vec<float,N> t;
+    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).fval() : def);
+    return t;
 }
 
-template<typename T> inline T ValueDecTo(const Value &v, typename T::CTYPE def = 0)
+template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
 {
-    auto r = ValueTo<T>(v, def);
+    TYPE_ASSERT(v.type == V_VECTOR);
+    vec<int, N> t;
+    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).ival() : def);
+    return t;
+}
+
+template<int N> inline vec<float,N> ValueDecToF(const Value &v, float def = 0)
+{
+    auto r = ValueToF<N>(v, def);
+    v.DEC();
+    return r;
+}
+
+template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0)
+{
+    auto r = ValueToI<N>(v, def);
     v.DEC();
     return r;
 }

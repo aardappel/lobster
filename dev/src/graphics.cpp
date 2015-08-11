@@ -363,7 +363,7 @@ void AddGraphics()
     STARTDECL(gl_clear) (Value &col)
     {
         TestGL();
-        ClearFrameBuffer(ValueDecTo<float3>(col));
+        ClearFrameBuffer(ValueDecToF<3>(col));
         return Value();
     }
     ENDDECL1(gl_clear, "col", "F]", "",
@@ -372,12 +372,12 @@ void AddGraphics()
     STARTDECL(gl_color) (Value &col, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(ToValue(curcolor));  // FIXME: maybe more efficient as an int
-        curcolor = ValueDecTo<float4>(col);
+        curcolor = ValueDecToF<4>(col);
         return body;
     }
     MIDDECL(gl_color) (Value &ret)
     {
-        curcolor = ValueDecTo<float4>(g_vm->Pop());
+        curcolor = ValueDecToF<4>(g_vm->Pop());
         return ret;
     }
     ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "A",
@@ -390,7 +390,7 @@ void AddGraphics()
         if (vl.vval()->len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
 
         auto vbuf = new BasicVert[vl.vval()->len];
-        for (int i = 0; i < vl.vval()->len; i++) vbuf[i].pos = ValueTo<float3>(vl.vval()->at(i));
+        for (int i = 0; i < vl.vval()->len; i++) vbuf[i].pos = ValueToF<3>(vl.vval()->at(i));
 
         auto v1 = vbuf[1].pos - vbuf[0].pos;
         auto v2 = vbuf[2].pos - vbuf[0].pos;
@@ -438,7 +438,7 @@ void AddGraphics()
 
     STARTDECL(gl_rotate_x) (Value &angle, Value &body)
     {
-        auto a = ValueDecTo<float2>(angle);
+        auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationX(a), rotationX(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_x) (Value &ret)
@@ -451,7 +451,7 @@ void AddGraphics()
 
     STARTDECL(gl_rotate_y) (Value &angle, Value &body)
     {
-        auto a = ValueDecTo<float2>(angle);
+        auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationY(a), rotationY(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_y) (Value &ret)
@@ -464,7 +464,7 @@ void AddGraphics()
 
     STARTDECL(gl_rotate_z) (Value &angle, Value &body)
     {
-        auto a = ValueDecTo<float2>(angle);
+        auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_z) (Value &ret)
@@ -477,7 +477,7 @@ void AddGraphics()
 
     STARTDECL(gl_translate) (Value &vec, Value &body)
     {
-        auto v = ValueDecTo<float3>(vec);
+        auto v = ValueDecToF<3>(vec);
         return pushtrans(translation(v), translation(-v), body);
     }
     MIDDECL(gl_translate) (Value &ret)
@@ -503,7 +503,7 @@ void AddGraphics()
 
     STARTDECL(gl_scale) (Value &vec, Value &body)
     {
-        auto v = ValueDecTo<float3>(vec);
+        auto v = ValueDecToF<3>(vec);
         return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) (Value &ret)
@@ -549,7 +549,7 @@ void AddGraphics()
 
     STARTDECL(gl_hit) (Value &vec, Value &i)
     {
-        auto size = ValueDecTo<float3>(vec);
+        auto size = ValueDecToF<3>(vec);
         auto localmousepos = localfingerpos(i.ival());
         auto hit = localmousepos.x() >= 0 &&
                    localmousepos.y() >= 0 &&
@@ -581,7 +581,7 @@ void AddGraphics()
         TestGL();
 
         currentshader->Set();
-        RenderRect(polymode, ValueTo<float2>(vec));
+        RenderRect(polymode, ValueToF<2>(vec));
 
         return vec;
     }
@@ -592,8 +592,8 @@ void AddGraphics()
     {
         TestGL();
 
-        auto v1 = ValueDecTo<float3>(start);
-        auto v2 = ValueDecTo<float3>(end);
+        auto v1 = ValueDecToF<3>(start);
+        auto v2 = ValueDecToF<3>(end);
 
         float angle = atan2f(v2.y() - v1.y(), v2.x() - v1.x());
         float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval() / 2;
@@ -647,10 +647,10 @@ void AddGraphics()
 
         for (int i = 0; i < nverts; i++)
         {
-            v.pos  = ValueTo<float3>(positions.vval()->at(i), 0);
-            v.col  = i < colors.vval()->len    ? quantizec(ValueTo<float4>(colors.vval()->at(i), 1)) : byte4_255;
-            v.tc   = i < texcoords.vval()->len ? ValueTo<float3>(texcoords.vval()->at(i), 0).xy()    : v.pos.xy();
-            v.norm = i < normals.vval()->len   ? ValueTo<float3>(normals.vval()->at(i), 0)           : float3_0;
+            v.pos  = ValueToF<3>(positions.vval()->at(i), 0);
+            v.col  = i < colors.vval()->len    ? quantizec(ValueToF<4>(colors.vval()->at(i), 1)) : byte4_255;
+            v.tc   = i < texcoords.vval()->len ? ValueToF<3>(texcoords.vval()->at(i), 0).xy()    : v.pos.xy();
+            v.norm = i < normals.vval()->len   ? ValueToF<3>(normals.vval()->at(i), 0)           : float3_0;
             verts[i] = v;
         }
 
@@ -750,7 +750,7 @@ void AddGraphics()
     STARTDECL(gl_setuniform) (Value &name, Value &vec)
     {
         TestGL();
-        auto v = ValueDecTo<float4>(vec);
+        auto v = ValueDecToF<4>(vec);
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), vec.vval()->len);
         name.DECRT();
@@ -764,7 +764,7 @@ void AddGraphics()
     {
         TestGL();
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueTo<float4>(vec.vval()->at(i));
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->at(i));
         vec.DECRT();
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4, vals.size());
@@ -779,7 +779,7 @@ void AddGraphics()
     {
         TestGL();
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueTo<float4>(vec.vval()->at(i));
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->at(i));
         vec.DECRT();
         auto ok = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(), name.sval()->str(), ssbo.True());
         name.DECRT();
@@ -795,7 +795,7 @@ void AddGraphics()
     {
         TestGL();
 
-        DispatchCompute(ValueDecTo<int3>(groups));
+        DispatchCompute(ValueDecToI<3>(groups));
 
         return Value();
     }
@@ -907,7 +907,7 @@ void AddGraphics()
                     LVector *row = mat->at(i).vval();
                     for (int j = 0; j < min(xs, row->len); j++)
                     {
-                        float4 col = ValueTo<float4>(row->at(j));
+                        float4 col = ValueToF<4>(row->at(j));
                         auto idx = i * xs + j;
                         if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
                         else                      ((byte4  *)buf)[idx] = quantizec(col);
@@ -932,8 +932,8 @@ void AddGraphics()
     {
         TestGL();
 
-        auto size = ValueDecTo<int2>(size_);
-        auto color = ValueDecTo<float4>(col);
+        auto size = ValueDecToI<2>(size_);
+        auto color = ValueDecToF<4>(col);
 
         auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[size.x() * size.y() * sz];
@@ -974,7 +974,7 @@ void AddGraphics()
     STARTDECL(gl_light) (Value &pos)
     {
         Light l;
-        l.pos = object2view * float4(ValueDecTo<float3>(pos), 1);
+        l.pos = object2view * float4(ValueDecToF<3>(pos), 1);
         lights.push_back(l);
         return Value();
     }
@@ -987,8 +987,8 @@ void AddGraphics()
         TestGL();
 
         float3 cp = view2object[3].xyz();
-        auto m = ValueDecTo<float3>(num);
-        auto step = ValueDecTo<float3>(dist);
+        auto m = float3(ValueDecToI<3>(num));
+        auto step = ValueDecToF<3>(dist);
 
         auto oldcolor = curcolor;
         curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { currentshader->Set(); RenderLine3D(float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval()); }

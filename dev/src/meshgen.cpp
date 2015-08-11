@@ -965,7 +965,7 @@ void AddMeshGen()
     STARTDECL(mg_superquadric) (Value &exps)
     {
         auto sq = new IFSuperQuadric();
-        sq->exp = ValueDecTo<float3>(exps);
+        sq->exp = ValueDecToF<3>(exps);
         return AddShape(sq);
     }
     ENDDECL1(mg_superquadric, "exponents", "F]", "",
@@ -975,7 +975,7 @@ void AddMeshGen()
     {
         auto t = new IFSuperToroid();
         t->r = r.fval();
-        t->exp = ValueDecTo<float3>(exps);
+        t->exp = ValueDecToF<3>(exps);
         return AddShape(t);
     }
     ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
@@ -984,10 +984,10 @@ void AddMeshGen()
     STARTDECL(mg_superquadric_non_uniform) (Value &posexps, Value &negexps, Value &posscale, Value &negscale)
     {
         auto sq = new IFSuperQuadricNonUniform();
-        sq->exppos   = ValueDecTo<float3>(posexps);
-        sq->expneg   = ValueDecTo<float3>(negexps);
-        sq->scalepos = max(float3(0.01f), ValueDecTo<float3>(posscale));
-        sq->scaleneg = max(float3(0.01f), ValueDecTo<float3>(negscale));
+        sq->exppos   = ValueDecToF<3>(posexps);
+        sq->expneg   = ValueDecToF<3>(negexps);
+        sq->scalepos = max(float3(0.01f), ValueDecToF<3>(posscale));
+        sq->scaleneg = max(float3(0.01f), ValueDecToF<3>(negscale));
 
         return AddShape(sq);
     }
@@ -1039,7 +1039,7 @@ void AddMeshGen()
     STARTDECL(mg_polygonize) (Value &subdiv, Value &color)
     {
         vector<float3> materials;
-        for (int i = 0; i < color.vval()->len; i++) materials.push_back(ValueTo<float3>(color.vval()->at(i)));
+        for (int i = 0; i < color.vval()->len; i++) materials.push_back(ValueToF<3>(color.vval()->at(i)));
         color.DECRT();
         int mesh = polygonize_mc(root, subdiv.ival(), materials);
         MeshGenClear();
@@ -1055,14 +1055,14 @@ void AddMeshGen()
     STARTDECL(mg_translate) (Value &vec, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(ToValue(curorig));
-        auto v = ValueDecTo<float3>(vec);
+        auto v = ValueDecToF<3>(vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
         return body;
     }
     MIDDECL(mg_translate) (Value &ret)
     {
-        curorig = ValueDecTo<float3>(g_vm->Pop());
+        curorig = ValueDecToF<3>(g_vm->Pop());
         return ret;
     }
     ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "A",
@@ -1072,13 +1072,13 @@ void AddMeshGen()
     STARTDECL(mg_scalevec) (Value &vec, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(ToValue(cursize));
-        auto v = ValueDecTo<float3>(vec);
+        auto v = ValueDecToF<3>(vec);
         cursize *= v;
         return body;
     }
     MIDDECL(mg_scalevec) (Value &ret)
     {
-        cursize = ValueDecTo<float3>(g_vm->Pop());
+        cursize = ValueDecToF<3>(g_vm->Pop());
         return ret;
     }
     ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "A",
@@ -1088,7 +1088,7 @@ void AddMeshGen()
     STARTDECL(mg_rotate) (Value &axis, Value &angle, Value &body)
     {
         if (body.type != V_NIL) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
-        auto v = ValueDecTo<float3>(axis);
+        auto v = ValueDecToF<3>(axis);
         currot *= float3x3(angle.fval()*RAD, v);
         return body;
     }
