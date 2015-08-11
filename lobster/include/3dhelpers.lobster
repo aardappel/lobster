@@ -25,9 +25,9 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
 def camera_FPS_view():
-    gl_rotate_x(90) // 90: look forward rather than down
-    gl_rotate_x(-camera_pitch)
-    gl_rotate_z(-camera_yaw)
+    gl_rotate_x(sincos(90)) // 90: look forward rather than down
+    gl_rotate_x(sincos(-camera_pitch))
+    gl_rotate_z(sincos(-camera_yaw))
     gl_translate(-camera_position)
 
 def camera_forward_vector(): vecfromyawpitch(camera_yaw, camera_pitch, 1.0, 0.0)

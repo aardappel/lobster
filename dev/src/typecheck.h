@@ -199,22 +199,23 @@ struct TypeChecker
         return hasvar;
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions)
+    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true, bool genericany = false)
     {
+        // FIXME: does ConversTo need to be called again upon unify? can we do without unify at all?
         if (sub == type) return true;
-        if (type->t == V_VAR) return ConvertsTo(UnifyVar(sub, type), sub, coercions);
+        if (type->t == V_VAR) return !unifications || ConvertsTo(UnifyVar(sub, type), sub, coercions, unifications, genericany);
         switch (sub->t)
         {
-            case V_ANY:       return coercions || !IsScalar(type->t);
-            case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions);
+            case V_ANY:       return genericany || coercions || !IsScalar(type->t);
+            case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions, unifications, genericany);
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_STRING:    return coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NILABLE:   return type->t == V_NIL ||
-                                     (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false)) ||
-                                     (!type->Numeric() && ConvertsTo(type, sub->Element(), false));
-            case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false)) ||
-                                      (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false)));
+                                     (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
+                                     (!type->Numeric() && ConvertsTo(type, sub->Element(), false, unifications, genericany));
+            case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
+                                      (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false, unifications, genericany)));
             case V_STRUCT:    return type->t == V_STRUCT && st.IsSuperTypeOrSame(sub->struc, type->struc);
             case V_COROUTINE: return type->t == V_COROUTINE && (sub->sf == type->sf || !sub->sf);
         }
@@ -1389,12 +1390,13 @@ struct TypeChecker
                         Node *list = n.ncall_args();
                         for (auto &arg : cnf->args.v)
                         {
-                            if (!ConvertsTo(list->head()->exptype, arg.type, true)) goto nomatch;
+                            if (!ConvertsTo(list->head()->exptype, arg.type, arg.type->t != V_STRING, false, true)) goto nomatch;
                             list = list->tail();
                         }
-                        if (nf) NatCallError("arguments match more than one overload of ", cnf, n);
+                        //if (nf) NatCallError("arguments match more than one overload of ", cnf, n);
                         nf = cnf;
                         n.ncall_id()->nf() = nf;
+                        break;
                         nomatch:;
                     }
                     if (!nf) NatCallError("arguments match no overloads of ", n.ncall_id()->nf(), n);
@@ -1424,7 +1426,7 @@ struct TypeChecker
                                     : argtypes[0],
                                 ArgName(i).c_str(),
                                 nf->name.c_str());
-                        typed = true;
+                        typed = true;  // Stop these generic params being turned into any by SubType below.
                     }
 
                     if (arg.flags & NF_ANYVAR)
@@ -1440,6 +1442,13 @@ struct TypeChecker
                         assert(argtypes[0]->t == V_COROUTINE);  
                         auto sf = argtypes[0]->sf;
                         SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                        if (list->head()->exptype->t == V_VAR)
+                        {
+                            // No value supplied to resume, and none expected at yield either.
+                            // nil will be supplied, so make type reflect that.
+                            Type nil(V_NILABLE, &*NewTypeVar());
+                            UnifyVar(TypeRef(&nil), list->head()->exptype);
+                        }
                         typed = true;
                     }
                     

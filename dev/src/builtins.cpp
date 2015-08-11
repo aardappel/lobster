@@ -23,24 +23,52 @@ using namespace lobster;
 
 static RandomNumberGenerator<MersenneTwister> rnd;
 
-int KeyCompare(const Value &a, const Value &b, bool rec = false)
+static int IntCompare(const Value &a, const Value &b)
 {
-    if (a.type != b.type)
-        g_vm->BuiltinError("binary search: key type doesn't match type of vector elements");
+    return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
+}
 
-    switch (a.type)
+static int FloatCompare(const Value &a, const Value &b)
+{
+    return a.fval() < b.fval() ? -1 : a.fval() > b.fval();
+}
+
+static int StringCompare(const Value &a, const Value &b)
+{
+    return strcmp(a.sval()->str(), b.sval()->str());
+}
+
+template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
+{
+    ValueRef lref(l), kref(key);
+
+    int size = l.vval()->len;
+    int i = 0;
+
+    for (;;)
     {
-        case V_INT:    return a.ival() < b.ival() ? -1 : a.ival() > b.ival();
-        case V_FLOAT:  return a.fval() < b.fval() ? -1 : a.fval() > b.fval();
-        case V_STRING: return strcmp(a.sval()->str(), b.sval()->str());
+        if (!size) break;
 
-        case V_VECTOR:
-            if (a.vval()->len && b.vval()->len && !rec) return KeyCompare(a.vval()->at(0), b.vval()->at(0), true);
-            // fall thru:
-        default:
-            g_vm->BuiltinError("binary search: illegal key type");
-            return 0;
+        int mid = size / 2;
+        int comp = comparefun(key, l.vval()->at(i + mid));
+
+        if (comp)
+        {
+            if (comp < 0) size = mid;
+            else { mid++; i += mid; size -= mid; }
+        }
+        else
+        {
+            i += mid;
+            size = 1;
+            while (i                        && !comparefun(key, l.vval()->at(i - 1   ))) { i--; size++; }
+            while (i + size < l.vval()->len && !comparefun(key, l.vval()->at(i + size))) {      size++; }
+            break;
+        }
     }
+
+    g_vm->Push(Value(size));
+    return Value(i);
 }
 
 void AddBuiltins()
@@ -134,16 +162,28 @@ void AddBuiltins()
 
     STARTDECL(length) (Value &a)
     {
-        switch (a.type)
-        {
-            case V_INT:    return a;
-            case V_VECTOR:
-            case V_STRING: { auto len = a.lobj()->len; a.DECRT(); return Value(len); }
-            default: return g_vm->BuiltinError(string("illegal type passed to length: ") + BaseTypeName(a.type));
-        }
+        return a;
     }
-    ENDDECL1(length, "xs", "A", "I",
-        "length of vector/string/int");
+    ENDDECL1(length, "x", "I", "I",
+        "length of int (identity function, useful in combination with string/vector version)");
+
+    STARTDECL(length) (Value &a)
+    {
+        auto len = a.lobj()->len;
+        a.DECRT();
+        return Value(len);
+    }
+    ENDDECL1(length, "s", "S", "I",
+        "length of string");
+
+    STARTDECL(length) (Value &a)
+    {
+        auto len = a.lobj()->len;
+        a.DECRT();
+        return Value(len);
+    }
+    ENDDECL1(length, "xs", "V*", "I",
+        "length of vector");
 
     STARTDECL(equal) (Value &a, Value &b)
     {
@@ -208,7 +248,7 @@ void AddBuiltins()
         l.vval()->insert(a, i.ival(), max(n.ival(), 1));
         return l;
     }
-    ENDDECL4(insert, "xs,i,x,n", "V*IAI?", "V1",
+    ENDDECL4(insert, "xs,i,x,n", "V*IA1I?", "V1",
         "inserts n copies (default 1) of x into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
@@ -244,42 +284,27 @@ void AddBuiltins()
 
     STARTDECL(binarysearch) (Value &l, Value &key)
     {
-        ValueRef lref(l), kref(key);
-
-        int size = l.vval()->len;
-        int i = 0;
-
-        for (;;)
-        {
-            if (!size) break;
-
-            int mid = size / 2;
-            int comp = KeyCompare(key, l.vval()->at(i + mid));
-
-            if (comp)
-            {
-                if (comp < 0) size = mid;
-                else { mid++; i += mid; size -= mid; }
-            }
-            else
-            {
-                i += mid;
-                size = 1;
-                while (i                        && !KeyCompare(key, l.vval()->at(i - 1   ))) { i--; size++; }
-                while (i + size < l.vval()->len && !KeyCompare(key, l.vval()->at(i + size))) {      size++; }
-                break;
-            }
-        }
-
-        g_vm->Push(Value(size));
-        return Value(i);
+        return BinarySearch(l, key, IntCompare);
     }
-    ENDDECL2(binarysearch, "xs,key", "V*A", "II",
+    ENDDECL2(binarysearch, "xs,key", "I]I", "II",
         "does a binary search for key in a sorted vector, returns as first return value how many matches were found,"
         " and as second the index in the array where the matches start (so you can read them, overwrite them,"
         " or remove them), or if none found, where the key could be inserted such that the vector stays sorted."
-        " As key you can use a int/float/string value, or if you use a vector, the first element of it will be used"
-        " as the search key (allowing you to model a set/map/multiset/multimap using this one function). ");
+        " This overload is for int vectors and keys.");
+
+    STARTDECL(binarysearch) (Value &l, Value &key)
+    {
+        return BinarySearch(l, key, FloatCompare);
+    }
+    ENDDECL2(binarysearch, "xs,key", "F]F", "II",
+        "float version.");
+
+    STARTDECL(binarysearch) (Value &l, Value &key)
+    {
+        return BinarySearch(l, key, StringCompare);
+    }
+    ENDDECL2(binarysearch, "xs,key", "S]S", "II",
+        "string version.");
 
     STARTDECL(copy) (Value &v)
     {
@@ -616,7 +641,7 @@ void AddBuiltins()
     {
         auto x     = ValueDecTo<int2>(xv);
         auto range = ValueDecTo<int2>(rangev);
-        auto bias  = ValueDecTo<int2>(biasv);
+        auto bias  = biasv.True() ? ValueDecTo<int2>(biasv) : int2_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "I]:2I]:2I]:2?", "I",
@@ -662,29 +687,32 @@ void AddBuiltins()
     ENDDECL1(abs, "x", "A*", "A1",
         "absolute value of int/float/vector");
 
-    #define MINMAX(op,name) \
-        switch (x.type) \
-        { \
-            case V_INT: \
-                if (y.type == V_INT) return Value(x.ival() op y.ival() ? x.ival() : y.ival()); \
-                else if (y.type == V_FLOAT) return Value(x.ival() op y.fval() ? x.ival() : y.fval()); \
-                break; \
-            case V_FLOAT: \
-                if (y.type == V_INT) return Value(x.fval() op y.ival() ? x.fval() : y.ival()); \
-                else if (y.type == V_FLOAT) return Value(x.fval() op y.fval() ? x.fval() : y.fval()); \
-                break; \
-            case V_VECTOR: \
-                return ToValue(name(ValueDecTo<float4>(x), ValueDecTo<float4>(y))); \
-            default: ; \
+    #define VECBINOP(name,access) \
+        if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name ## "() arguments must be equal length"); \
+        auto v = g_vm->NewVector(x.vval()->len, x.vval()->type); \
+        for (int i = 0; i < x.vval()->len; i++) { \
+            v->push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
         } \
-        return g_vm->BuiltinError("illegal arguments to min/max");
+        x.DECRT(); y.DECRT(); \
+        return Value(v);
 
-    STARTDECL(min) (Value &x, Value &y) { MINMAX(<,min) } ENDDECL2(min, "x,y", "A*A1", "A1",
-        "smallest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
-    STARTDECL(max) (Value &x, Value &y) { MINMAX(>,max) } ENDDECL2(max, "x,y", "A*A1", "A1",
-        "largest of 2 int/float values. Also works on vectors of int/float up to 4 components, returns a vector of float.");
+    STARTDECL(min) (Value &x, Value &y) { return Value(min(x.ival(), y.ival())); } ENDDECL2(min, "x,y", "II", "I",
+        "smallest of 2 integers.");
+    STARTDECL(min) (Value &x, Value &y) { return Value(min(x.fval(), y.fval())); } ENDDECL2(min, "x,y", "FF", "F",
+        "smallest of 2 floats.");
+    STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,ival) } ENDDECL2(min, "x,y", "I]I]", "I]:/",
+        "smallest components of 2 int vectors");
+    STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,fval) } ENDDECL2(min, "x,y", "F]F]", "F]:/",
+        "smallest components of 2 float vectors");
 
-    #undef MINMAX
+    STARTDECL(max) (Value &x, Value &y) { return Value(max(x.ival(), y.ival())); } ENDDECL2(max, "x,y", "II", "I",
+        "largest of 2 integers.");
+    STARTDECL(max) (Value &x, Value &y) { return Value(max(x.fval(), y.fval())); } ENDDECL2(max, "x,y", "FF", "F",
+        "largest of 2 floats.");
+    STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,ival) } ENDDECL2(max, "x,y", "I]I]", "I]:/",
+        "largest components of 2 int vectors");
+    STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,fval) } ENDDECL2(max, "x,y", "F]F]", "F]:/",
+        "largest components of 2 float vectors");
 
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t)
     {
@@ -715,6 +743,8 @@ void AddBuiltins()
     STARTDECL(resume) (Value &co, Value &ret)
     {
         g_vm->CoResume(co.cval());
+        // By the time CoResume returns, we're now back in the context of co, meaning that the return value below
+        // is what is returned from yield.
         return ret;
     }
     ENDDECL2(resume, "coroutine,returnvalue", "RA%?", "A",

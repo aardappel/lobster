@@ -104,17 +104,6 @@ Value poptrans(Value &ret)
     return ret;
 }
 
-float2 transangle(Value &a)
-{
-    switch (a.type)
-    {
-        case V_VECTOR: return ValueDecTo<float3>(a).xy();
-        case V_FLOAT:  return float2(cosf(a.fval() * RAD), sinf(a.fval() * RAD));
-        case V_INT:    return float2(cosf(a.ival() * RAD), sinf(a.ival() * RAD));
-        default: g_vm->BuiltinError("angle passed to rotation function must be int/float or vector"); return float2_0;
-    }
-}
-
 Mesh *GetMesh(Value &i)
 {
     auto m = meshes->Get(i.ival());
@@ -449,42 +438,42 @@ void AddGraphics()
 
     STARTDECL(gl_rotate_x) (Value &angle, Value &body)
     {
-        auto a = transangle(angle);
+        auto a = ValueDecTo<float2>(angle);
         return pushtrans(rotationX(a), rotationX(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_x) (Value &ret)
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_x, "angle,body", "AC?", "A",
-        "rotates the yz plane around the x axis. angle can also be a 2D vector. when a body is given,"
-        " restores the previous transform afterwards");
+    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F]:2C?", "A",
+        "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
+        " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_y) (Value &angle, Value &body)
     {
-        auto a = transangle(angle);
+        auto a = ValueDecTo<float2>(angle);
         return pushtrans(rotationY(a), rotationY(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_y) (Value &ret)
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "AC?", "A",
-        "rotates the xz plane around the y axis. angle can also be a 2D vector."
+    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F]:2C?", "A",
+        "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_z) (Value &angle, Value &body)
     {
-        auto a = transangle(angle);
+        auto a = ValueDecTo<float2>(angle);
         return pushtrans(rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_z) (Value &ret)
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "AC?", "A",
-        "rotates the xy plane around the z axis (used in 2D). angle can also be a 2D vector. when a body is given,"
-        " restores the previous transform afterwards");
+    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F]:2C?", "A",
+        "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector as angle."
+        " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_translate) (Value &vec, Value &body)
     {
@@ -499,17 +488,30 @@ void AddGraphics()
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
-    STARTDECL(gl_scale) (Value &vec, Value &body)
+    STARTDECL(gl_scale) (Value &f, Value &body)
     {
-        auto v = ValueDecTo<float3>(vec, 1);
+        auto v = f.fval() * float3_1;
         return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) (Value &ret)
     {
         return poptrans(ret);
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "AC?", "A",
-        "scales the current coordinate system using a numerical factor (or a vector for individual factors per axis)."
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FC?", "A",
+        "scales the current coordinate system using a numerical factor."
+        " when a body is given, restores the previous transform afterwards");
+
+    STARTDECL(gl_scale) (Value &vec, Value &body)
+    {
+        auto v = ValueDecTo<float3>(vec);
+        return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
+    }
+    MIDDECL(gl_scale) (Value &ret)
+    {
+        return poptrans(ret);
+    }
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F]C?", "A",
+        "scales the current coordinate system using a vector."
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_origin) ()

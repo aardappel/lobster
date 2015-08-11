@@ -35,6 +35,7 @@ def run_test_cases():
 
     assert(tf("") == 8)
 
+    /*
     direct := [1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0", nil, true]
     parsed, err := parse_data("" + direct)
     //print(parsed)
@@ -42,6 +43,7 @@ def run_test_cases():
     if(err):
         print(err)
     assert(equal(parsed, direct))
+    */
 
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert(equal(string2unicode(unicode2string(unicodetests)), unicodetests))

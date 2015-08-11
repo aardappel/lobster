@@ -1,3 +1,7 @@
+ValueTo
+#optional -> ParseData
+
+
 - have to build freetype and sdl from source with 2015 before we can switch to its toolset.
 - try to build android/ios from VS.
 
@@ -97,6 +101,10 @@
   - add more cases to typecheck if-then optimisation.
 
   * start removing all dynamic ops from the VM and codegen
+
+  * new unification is not as powerful as the old one, since we can't bind vars to vars and have them both unified
+    later.
+	-> thus, can remove the if-check in UnifyVar too
 
   * if you typecheck a function with a supertype, then a subtype is able to reuse it. But if the return value
     is now also this supertype you have a contravariance problem. Either must not reuse the function (but only
@@ -261,6 +269,9 @@ vertex_neighbors :== [
   which could be used as a debugger and maybe for live-coding.
 
 - Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki
+
+- in VM stack traces, linenumbers for blocks if/then etc often refer to 1 beyond the last line of their body,
+  which is unhelpful. Should see which instruction they refer to, and which node generates that lineinfo.
 
 - should redo gui.lobster to take all args in virtual float coords, not some in float font relative coords and some
   in pixels.

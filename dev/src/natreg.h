@@ -133,7 +133,7 @@ class TypeRef
         return *this;
     }
 
-    const Type &operator*() const { return *type; };
+    const Type &operator*()  const { return *type; }
     const Type *operator->() const { return type; }
 
     // Must compare Type instances by value.

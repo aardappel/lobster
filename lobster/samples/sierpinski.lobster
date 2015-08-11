@@ -19,5 +19,5 @@ fatal(gl_window("sierpinski", 512, 512))
 while(gl_frame()):
     if(gl_wentdown("escape")): return
     gl_clear(color_black)
-    gl_scale(gl_windowsize())
+    gl_scale(float(gl_windowsize()))
     sierpinski(7)

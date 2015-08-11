@@ -608,6 +608,7 @@ template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
         }
         return t;
     }
+
     else if (v.type == V_FLOAT)
     {
         return T((typename T::CTYPE)v.fval());
@@ -618,7 +619,8 @@ template<typename T> inline T ValueTo(const Value &v, typename T::CTYPE def = 0)
     }
     else
     {
-        return T(def);
+        g_vm->BuiltinError(string("argument to builtin must be a vector/int/float: ") + g_vm->ProperTypeName(v));
+        return (T)def;
     }
 }
 
