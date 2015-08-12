@@ -86,7 +86,7 @@ struct VM : VMBase
           curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr), 
           bcf(bytecode::GetBytecodeFile(bytecode_buffer)),
           currentline(-1), maxsp(-1),
-          debugpp(2, 50, true, -1), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
+          debugpp(2, 50, true, -1, true), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
           trace(false), trace_tail(true)
     {
         assert(vmpool == nullptr);

@@ -62,12 +62,12 @@ struct Optimizer
             case T_IF:
             {
                 Optimize(n.if_condition());
-                auto cv = tc.ConstVal(*n.if_condition());
-                if (cv.type != V_UNDEFINED)
+                Value cval;
+                if (tc.ConstVal(*n.if_condition(), cval))
                 {
                     Changed();
-                    auto branch = cv.True() ? n.if_then() : n.if_else();
-                    auto other  = cv.True() ? n.if_else() : n.if_then();
+                    auto branch = cval.True() ? n.if_then() : n.if_else();
+                    auto other  = cval.True() ? n.if_else() : n.if_then();
                     Optimize(branch);
                     n_ptr = branch;
                     if (other->type != T_DEFAULTVAL)

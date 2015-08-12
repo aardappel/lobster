@@ -314,32 +314,35 @@ struct TypeChecker
     // Used by type-checker to and optimizer.
     // Returns a V_UNDEFINED if not const, otherwise a value that gives the correct True().
     // Also sets correct scalar values.
-    Value ConstVal(const Node &n)
+    bool ConstVal(const Node &n, Value &val)
     {
         switch (n.type)
         {
-            case T_INT:   return Value(n.integer());
-            case T_FLOAT: return Value((float)n.flt());
-            case T_NIL:   return Value(nullptr, V_NIL);
+            case T_INT:   val = Value(n.integer());    return true;
+            case T_FLOAT: val = Value((float)n.flt()); return true;
+            case T_NIL:   val = Value(nullptr, V_NIL); return true;
             case T_IS:
             {
-                if (n.left()->exptype == n.right()->exptype) return Value(true);
-                if (!ConvertsTo(n.right()->exptype, n.left()->exptype, false)) return Value(false);
-                return Value();
+                if (n.left()->exptype == n.right()->exptype)                   { val = Value(true);  return true; }
+                if (!ConvertsTo(n.right()->exptype, n.left()->exptype, false)) { val = Value(false); return true; }
+                return false;
             }
             case T_NOT:
             {
-                auto cv = ConstVal(*n.child());
-                return cv.type == V_UNDEFINED ? cv : Value(!cv.True());
+                auto isconst = ConstVal(*n.child(), val);
+                val = Value(!val.True());
+                return isconst;
             }
             case T_AND:
             case T_OR:
             {
-                auto cv = ConstVal(*n.left());
-                return cv.type == V_UNDEFINED ||  cv.True() == (n.type == T_OR) ? cv : ConstVal(*n.right());
+                auto isconst = ConstVal(*n.left(), val);
+                if (!isconst) return false;
+                return val.True() == (n.type == T_OR) ? true : ConstVal(*n.right(), val);
             }
             // TODO: support more? strings?
-            default:      return Value();
+            default: 
+                return false;
         }
     }
 
@@ -1117,10 +1120,11 @@ struct TypeChecker
             case T_IF:
             {
                 TypeCheck(n.if_condition(), T_IF);
-                auto cv = ConstVal(*n.if_condition());
+                Value cval;
+                bool isconst = ConstVal(*n.if_condition(), cval);
                 if (n.if_else()->type != T_DEFAULTVAL)
                 {
-                    if (cv.type == V_UNDEFINED)  // Not constant.
+                    if (!isconst)
                     {
                         auto tleft = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                         auto tright = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
@@ -1129,7 +1133,7 @@ struct TypeChecker
 						SubType(n.if_then(), type, "then branch", n);
                         SubType(n.if_else(), type, "else branch", n);
                     }
-                    else if (cv.True())  // Ignore the else part, optimizer guaranteed to cull it.
+                    else if (cval.True())  // Ignore the else part, optimizer guaranteed to cull it.
                     {
                         type = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                     }
@@ -1140,7 +1144,7 @@ struct TypeChecker
                 }
                 else
                 {
-                    if (cv.type == V_UNDEFINED || cv.True())  // Not constant, or true.
+                    if (!isconst || cval.True())
                     {
                         TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                         // No else: this currently returns either the condition or the branch value.

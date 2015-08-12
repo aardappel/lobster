@@ -1054,7 +1054,7 @@ void AddMeshGen()
 
     STARTDECL(mg_translate) (Value &vec, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(ToValue(curorig));
+        if (body.True()) g_vm->Push(ToValue(curorig));
         auto v = ValueDecToF<3>(vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
@@ -1071,7 +1071,7 @@ void AddMeshGen()
 
     STARTDECL(mg_scalevec) (Value &vec, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(ToValue(cursize));
+        if (body.True()) g_vm->Push(ToValue(cursize));
         auto v = ValueDecToF<3>(vec);
         cursize *= v;
         return body;
@@ -1087,7 +1087,7 @@ void AddMeshGen()
 
     STARTDECL(mg_rotate) (Value &axis, Value &angle, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
+        if (body.True()) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
         auto v = ValueDecToF<3>(axis);
         currot *= float3x3(angle.fval()*RAD, v);
         return body;
@@ -1095,7 +1095,8 @@ void AddMeshGen()
     MIDDECL(mg_rotate) (Value &ret)
     {
         auto s = g_vm->Pop();
-        assert(s.type == V_STRING && s.sval()->len == sizeof(float3x3));
+        TYPE_ASSERT(s.type == V_STRING);
+        assert(s.sval()->len == sizeof(float3x3));
         currot = *(float3x3 *)s.sval()->str();
         s.DECRT();
         return ret;
@@ -1105,14 +1106,14 @@ void AddMeshGen()
 
     STARTDECL(mg_fill) (Value &fill, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(Value(curcol));
+        if (body.True()) g_vm->Push(Value(curcol));
         curcol = fill.ival() & MATMASK;   // FIXME: error if doesn't fit?
         return body;
     }
     MIDDECL(mg_fill) (Value &ret)
     {
         auto fill = g_vm->Pop();
-        assert(fill.type == V_INT);
+        TYPE_ASSERT(fill.type == V_INT);
         curcol = fill.ival();
         return ret;
     }

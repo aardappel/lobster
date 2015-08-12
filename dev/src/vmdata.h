@@ -71,16 +71,17 @@ struct PrintPrefs
     bool quoted;
     int decimals;
     int cycles;
+    bool anymark;
 
-    PrintPrefs(int _depth, int _budget, bool _quoted, int _decimals)
-        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1) {}
+    PrintPrefs(int _depth, int _budget, bool _quoted, int _decimals, bool _anymark)
+        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1), anymark(_anymark) {}
 };
 
 struct VMBase
 {
     PrintPrefs programprintprefs;
 
-    VMBase() : programprintprefs(10, 10000, false, -1) {}
+    VMBase() : programprintprefs(10, 10000, false, -1, false) {}
 
     //virtual Value EvalC(Value &cl, int nargs) = 0;
     virtual Value BuiltinError(string err) = 0;
@@ -446,7 +447,7 @@ struct LVector : LenObj
         {
             if (i) s += ", ";
             if ((int)s.size() > pp.budget) { s += "...."; break; }
-            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals);
+            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
             s += pp.depth || !IsRef(v[i].type) ? v[i].ToString(subpp) : "..";
         }
         s += type >= 0 ? "}" : "]";

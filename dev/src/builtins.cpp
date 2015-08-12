@@ -419,7 +419,7 @@ void AddBuiltins()
         for (int i = 0; i < v.vval()->len; i++)
         {
             auto &c = v.vval()->at(i);
-            assert(c.type == V_INT);
+            TYPE_ASSERT(c.type == V_INT);
             ToUTF8(c.ival(), buf);
             s += buf;
         }
@@ -515,51 +515,44 @@ void AddBuiltins()
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
-    #define VECTOROP(name, op, otype) \
-        if (a.type == V_VECTOR) { \
-            auto v = g_vm->NewVector(a.vval()->len, a.vval()->type); \
-            for (int i = 0; i < a.vval()->len; i++) { \
-                auto f = a.vval()->at(i); \
-                if (otype == V_FLOAT && f.type == V_INT) f = Value(float(f.ival())); \
-                if (f.type != otype) { a.DECRT(); v->deleteself(); goto err; } \
-                v->push(Value(op)); \
-            } \
-            a.DECRT(); \
-            return Value(v); \
+    #define VECTOROP(op) \
+        TYPE_ASSERT(a.type == V_VECTOR); \
+        auto v = g_vm->NewVector(a.vval()->len, a.vval()->type); \
+        for (int i = 0; i < a.vval()->len; i++) { \
+            auto f = a.vval()->at(i); \
+            v->push(Value(op)); \
         } \
-        err: g_vm->BuiltinError(#name " requires numeric vector argument"); \
-        return Value();
-    #define VECTOROPF(name, op) VECTOROP(name, op, V_FLOAT)
-    #define VECTOROPI(name, op) VECTOROP(name, op, V_INT)
+        a.DECRT(); \
+        return Value(v);
 
     STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); } ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROPF(ceiling, int(ceilf(f.fval()))); } ENDDECL1(ceiling, "v", "F]", "I]:/",
+    STARTDECL(ceiling) (Value &a) { VECTOROP(int(ceilf(f.fval()))); } ENDDECL1(ceiling, "v", "F]", "I]:/",
         "the nearest ints >= each component of v");
 
     STARTDECL(floor)   (Value &a) { return Value(int(floorf(a.fval()))); } ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor)   (Value &a) { VECTOROPF(floor, int(floorf(f.fval()))); } ENDDECL1(floor, "v", "F]", "I]:/",
+    STARTDECL(floor)   (Value &a) { VECTOROP(int(floorf(f.fval()))); } ENDDECL1(floor, "v", "F]", "I]:/",
         "the nearest ints <= each component of v");
 
     STARTDECL(int)(Value &a) { return Value(int(a.fval())); } ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int)(Value &a) { VECTOROPF(int, int(f.fval())); } ENDDECL1(int, "v", "F]", "I]:/",
+    STARTDECL(int)(Value &a) { VECTOROP(int(f.fval())); } ENDDECL1(int, "v", "F]", "I]:/",
         "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round)   (Value &a) { return Value(int(a.fval() + 0.5f)); } ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int");
-    STARTDECL(round)   (Value &a) { VECTOROPF(round, int(f.fval() + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
+    STARTDECL(round)   (Value &a) { VECTOROP(int(f.fval() + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");
 
     STARTDECL(fraction)(Value &a) { return Value(a.fval() - floorf(a.fval())); } ENDDECL1(fraction, "f", "F", "F",
         "returns the fractional part of a float: short for f - floor(f)");
-    STARTDECL(fraction)(Value &a) { VECTOROPF(fraction, f.fval() - floorf(f.fval())); } ENDDECL1(fraction, "v", "F]", "F]:/",
+    STARTDECL(fraction)(Value &a) { VECTOROP(f.fval() - floorf(f.fval())); } ENDDECL1(fraction, "v", "F]", "F]:/",
         "returns the fractional part of a vector of floats");
 
     STARTDECL(float)(Value &a) { return Value(float(a.ival())); } ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float)(Value &a) { VECTOROPI(float, float(f.ival())); } ENDDECL1(float, "v", "I]", "F]:/",
+    STARTDECL(float)(Value &a) { VECTOROP(float(f.ival())); } ENDDECL1(float, "v", "I]", "F]:/",
         "converts a vector of ints to floats");
 
     STARTDECL(sin) (Value &a) { return Value(sinf(a.fval() * RAD)); } ENDDECL1(sin, "angle", "F", "F",
@@ -606,7 +599,7 @@ void AddBuiltins()
 
     STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival()))); } ENDDECL1(rnd, "max", "I", "I",
         "a random value [0..max).");
-    STARTDECL(rnd) (Value &a) { VECTOROPI(rnd, rnd(max(1, f.ival()))); } ENDDECL1(rnd, "max", "I]", "I]:/",
+    STARTDECL(rnd) (Value &a) { VECTOROP(rnd(max(1, f.ival()))); } ENDDECL1(rnd, "max", "I]", "I]:/",
         "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); } ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");
@@ -657,35 +650,14 @@ void AddBuiltins()
     ENDDECL3(inrange, "x,range,bias", "F]:2F]:2F]:2?", "I",
         "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.");
 
-    STARTDECL(abs) (Value &a)
-    {
-        switch (a.type)
-        {
-            case V_INT:    return Value(a.ival() >= 0 ? a.ival() : -a.ival());
-            case V_FLOAT:  return Value(a.fval() >= 0 ? a.fval() : -a.fval());
-            case V_VECTOR: {
-                auto v = g_vm->NewVector(a.vval()->len, a.vval()->type);
-                for (int i = 0; i < a.vval()->len; i++)
-                {
-                    auto f = a.vval()->at(i);
-                    switch (f.type)
-                    {
-                        case V_INT: v->push(Value(abs(f.ival()))); break;
-                        case V_FLOAT: v->push(Value(fabsf(f.fval()))); break;
-                        default: v->deleteself(); goto err;
-                    }
-                }
-                a.DECRT();
-                return Value(v);
-            }
-            default: break;
-        }
-        err:
-        a.DECRT();
-        return g_vm->BuiltinError("abs() needs a numerical value or numerical vector");
-    }
-    ENDDECL1(abs, "x", "A*", "A1",
-        "absolute value of int/float/vector");
+    STARTDECL(abs) (Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
+        "absolute value of an integer");
+    STARTDECL(abs) (Value &a) { return Value(fabsf(a.fval())); } ENDDECL1(abs, "x", "F", "F",
+        "absolute value of a float");
+    STARTDECL(abs) (Value &a) { VECTOROP(abs(f.ival())); } ENDDECL1(abs, "x", "I]", "I]:/",
+        "absolute value of an int vector");
+    STARTDECL(abs) (Value &a) { VECTOROP(fabsf(f.fval())); } ENDDECL1(abs, "x", "F]", "F]:/",
+        "absolute value of a float vector");
 
     #define VECBINOP(name,access) \
         if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name ## "() arguments must be equal length"); \

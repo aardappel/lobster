@@ -1,7 +1,3 @@
-ValueTo
-#optional -> ParseData
-
-
 - have to build freetype and sdl from source with 2015 before we can switch to its toolset.
 - try to build android/ios from VS.
 

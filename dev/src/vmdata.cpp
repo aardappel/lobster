@@ -64,8 +64,8 @@ string Value::ToString(PrintPrefs &pp) const
         case V_INT:        return to_string(ival_);
         case V_FLOAT:      return to_string_float(fval_, pp.decimals);
 
-        case V_BOXEDINT:   return "#" + to_string(bival_->val);
-        case V_BOXEDFLOAT: return "#" + to_string_float(bfval_->val, pp.decimals);
+        case V_BOXEDINT:   { auto s = to_string(bival_->val);                    return pp.anymark ? "#" + s : s; }
+        case V_BOXEDFLOAT: { auto s = to_string_float(bfval_->val, pp.decimals); return pp.anymark ? "#" + s : s; }
 
         case V_STRING:     return sval_->ToString(pp);
         case V_VECTOR:     return vval_->ToString(pp);

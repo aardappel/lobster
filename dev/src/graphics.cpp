@@ -81,7 +81,7 @@ struct transback { float4x4 view2object; float4x4 object2view; };
 
 Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
 {
-    if (body.type != V_NIL)
+    if (body.True())
     {
         transback tb;
         tb.view2object = view2object;
@@ -96,7 +96,8 @@ Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
 Value poptrans(Value &ret)
 {
     auto s = g_vm->Pop();
-    assert(s.type == V_STRING && s.sval()->len == sizeof(transback));
+    TYPE_ASSERT(s.type == V_STRING);
+    assert(s.sval()->len == sizeof(transback));
     auto tb = (transback *)s.sval()->str();
     view2object = tb->view2object;
     object2view = tb->object2view;
@@ -371,7 +372,7 @@ void AddGraphics()
 
     STARTDECL(gl_color) (Value &col, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(ToValue(curcolor));  // FIXME: maybe more efficient as an int
+        if (body.True()) g_vm->Push(ToValue(curcolor));  // FIXME: maybe more efficient as an int
         curcolor = ValueDecToF<4>(col);
         return body;
     }
@@ -534,7 +535,7 @@ void AddGraphics()
 
     STARTDECL(gl_linemode) (Value &on, Value &body)
     {
-        if (body.type != V_NIL) g_vm->Push(Value((int)polymode));
+        if (body.True()) g_vm->Push(Value((int)polymode));
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }
@@ -633,7 +634,6 @@ void AddGraphics()
         for (int i = 0; i < indices.vval()->len; i++)
         {
             auto &e = indices.vval()->at(i);
-            if (e.type != V_INT) g_vm->BuiltinError("newmesh: index list must be all integers");
             if (e.ival() < 0 || e.ival() >= positions.vval()->len)
                 g_vm->BuiltinError("newmesh: index out of range of vertex list");
             idxs.push_back(e.ival());
@@ -807,13 +807,13 @@ void AddGraphics()
         TestGL();
 
         int old = SetBlendMode((BlendMode)mode.ival());
-        if (body.type != V_NIL) g_vm->Push(Value(old));
+        if (body.True()) g_vm->Push(Value(old));
         return body;
     }
     MIDDECL(gl_blend) (Value &ret)
     {
         auto m = g_vm->Pop();
-        assert(m.type == V_INT);
+        TYPE_ASSERT(m.type == V_INT);
         SetBlendMode((BlendMode)m.ival());
         return ret;
     }
@@ -894,38 +894,28 @@ void AddGraphics()
 
         LVector *mat = matv.vval();
         int ys = mat->len;
-        if (ys && mat->at(0).type == V_VECTOR)
+        int xs = mat->at(0).vval()->len;
+        auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto buf = new uchar[xs * ys * sz];
+        memset(buf, 0, xs * ys * sz);
+        for (int i = 0; i < ys; i++)
         {
-            int xs = mat->at(0).vval()->len;
-            if (xs)
+            LVector *row = mat->at(i).vval();
+            for (int j = 0; j < min(xs, row->len); j++)
             {
-                auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-                auto buf = new uchar[xs * ys * sz];
-                memset(buf, 0, xs * ys * sz);
-                for (int i = 0; i < ys; i++) if (mat->at(i).type == V_VECTOR)
-                {
-                    LVector *row = mat->at(i).vval();
-                    for (int j = 0; j < min(xs, row->len); j++)
-                    {
-                        float4 col = ValueToF<4>(row->at(j));
-                        auto idx = i * xs + j;
-                        if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
-                        else                      ((byte4  *)buf)[idx] = quantizec(col);
-                    }
-                }
-                matv.DECRT();
-
-                uint id = CreateTexture(buf, int2(xs, ys), tf.ival());
-                delete[] buf;
-                return Value((int)id);
+                float4 col = ValueToF<4>(row->at(j));
+                auto idx = i * xs + j;
+                if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
+                else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-
         matv.DECRT();
-        return Value(0);
+        uint id = CreateTexture(buf, int2(xs, ys), tf.ival());
+        delete[] buf;
+        return Value((int)id);
     }
     ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "I",
-        "creates a texture from a 2d array of color vectors, returns texture id, or 0 if not a proper 2D array."
+        "creates a texture from a 2d array of color vectors, returns texture id."
         " see color.lobster for texture format");
 
     STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf)
