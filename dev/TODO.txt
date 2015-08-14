@@ -1,3 +1,6 @@
+V_FUNCTION -> any?
+V_UNDEFINED used at runtime.. should probably be NIL instead. should NIL be a reference type?
+
 - have to build freetype and sdl from source with 2015 before we can switch to its toolset.
 - try to build android/ios from VS.
 

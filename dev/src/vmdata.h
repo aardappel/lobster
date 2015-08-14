@@ -110,9 +110,11 @@ extern SlabAlloc *vmpool;
 
 struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 {
-    int type;       // 0.. for typed vectors (can't grow), ValueType if negative
+    int rtype;       // 0.. for typed vectors (can't grow), ValueType if negative
 
-    DynAlloc(int _t) : type(_t) {}
+    DynAlloc(int _t) : rtype(_t) {}
+
+    ValueType Type() const { return rtype < 0 ? (ValueType)rtype : V_VECTOR; }
 };
 
 struct RefObj : DynAlloc
@@ -123,13 +125,16 @@ struct RefObj : DynAlloc
 
     void CycleDone(int &cycles)
     {
-        type = V_CYCLEDONE;
+        rtype = V_CYCLEDONE;
         refc = cycles++;
     }
 
-    string CycleStr() { return "_" + to_string(refc) + "_"; }
+    string CycleStr() const { return "_" + to_string(refc) + "_"; }
 
-    void Mark() { if (refc > 0) refc = -refc; }
+    void DECDELETE();
+    bool Equal(const RefObj *o, bool structural) const;
+    string ToString(PrintPrefs &pp) const;
+    void Mark();
 };
 
 struct BoxedInt : RefObj
@@ -163,7 +168,7 @@ struct LString : LenObj
     {
         if (pp.cycles >= 0)
         {
-            if (type == V_CYCLEDONE) return CycleStr(); 
+            if (rtype == V_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
         string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
@@ -207,7 +212,7 @@ struct LString : LenObj
 };
 
 #if RTT_ENABLED
-#define TYPE_ASSERT(cond) assert(cond)
+#define TYPE_ASSERT(cond) if(!(cond)) { g_vm->BuiltinError("type verification failed: " ## #cond); }
 #define TYPE_INIT(t) type(t),
 #else
 #define TYPE_ASSERT(cond) ((void)0)
@@ -253,8 +258,8 @@ struct Value
     BoxedFloat *bfval() const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_; }
     LVector    *vval () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;  }
     CoRoutine  *cval () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;  }
-    LenObj     *lobj () const { TYPE_ASSERT(type < 0);             return lobj_;  }
-    RefObj     *ref  () const { TYPE_ASSERT(type < 0);             return ref_;   }
+    LenObj     *lobj () const { TYPE_ASSERT(IsRef(type));          return lobj_;  }
+    RefObj     *ref  () const { TYPE_ASSERT(IsRef(type));          return ref_;   }
     const int  *ip   () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;    }
     int         info () const { TYPE_ASSERT(type >= V_NARGS);      return ival_;  }
     void       *any  () const { return ref_; }
@@ -271,7 +276,7 @@ struct Value
     inline Value(BoxedFloat *bf)            : TYPE_INIT(V_BOXEDFLOAT) bfval_(bf) {}
     inline Value(LVector *v)                : TYPE_INIT(V_VECTOR)     vval_(v)   {}
     inline Value(CoRoutine *c)              : TYPE_INIT(V_COROUTINE)  cval_(c)   {}
-    inline Value(RefObj *r)                 : TYPE_INIT(r->type >= 0 ? V_VECTOR : (ValueType)r->type) ref_(r) {}
+    inline Value(RefObj *r)                 : TYPE_INIT(r->Type())    ref_(r)    {}
 
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
@@ -296,7 +301,7 @@ struct Value
     {
         TYPE_ASSERT(IsRef(type));
         ref_->refc--;
-        if (ref_->refc <= 0) DECDELETE();
+        if (ref_->refc <= 0) ref_->DECDELETE();
     }
 
     inline const Value &DEC() const
@@ -313,13 +318,9 @@ struct Value
         return ip_[1];
     }
 
-
-    void DECDELETE() const;
-
-    bool Equal(const Value &o, bool structural) const;
-
-    string ToString(PrintPrefs &pp) const;
-    void Mark();
+    string ToString(ValueType vtype, PrintPrefs &pp) const;
+    bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
+    void Mark(ValueType vtype);
 };
 
 struct ValueRef
@@ -434,30 +435,33 @@ struct LVector : LenObj
         len += amount;
     }
 
+    ValueType ElemType(int i) const { return v[i].type; }
+
     string ToString(PrintPrefs &pp)
     {
         if (pp.cycles >= 0)
         {
-            if (type == V_CYCLEDONE) return CycleStr(); 
+            if (rtype == V_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
 
-        string s = type >= 0 ? g_vm->ReverseLookupType(type) + string("{") : "[";
+        string s = rtype >= 0 ? g_vm->ReverseLookupType(rtype) + string("{") : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
             if ((int)s.size() > pp.budget) { s += "...."; break; }
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
-            s += pp.depth || !IsRef(v[i].type) ? v[i].ToString(subpp) : "..";
+            s += pp.depth || !IsRef(v[i].type) ? v[i].ToString(ElemType(i), subpp) : "..";
         }
-        s += type >= 0 ? "}" : "]";
+        s += rtype >= 0 ? "}" : "]";
         return s;
     }
 
-    bool Equal(LVector &o)
+    bool Equal(const LVector &o)
     {
+        if (len != o.len) return false;
         for (int i = 0; i < len; i++)
-            if (!v[i].Equal(o.v[i], true))
+            if (!v[i].Equal(ElemType(i), o.v[i], o.ElemType(i), true))
                 return false;
         return true;
     }
@@ -469,9 +473,8 @@ struct LVector : LenObj
 
     void Mark()
     {
-        if (refc < 0) return;
-        refc = -refc;
-        for (int i = 0; i < len; i++) v[i].Mark();
+        for (int i = 0; i < len; i++)
+            v[i].Mark(ElemType(i));
     }
 };
 
@@ -582,11 +585,13 @@ struct CoRoutine : RefObj
         vmpool->dealloc(this, sizeof(CoRoutine));
     }
 
+    ValueType ElemType(size_t i) { return stackcopy[i].type; }
+
     void Mark()
     {
-        if (refc < 0) return;
-        refc = -refc;
-        if (stackstart < 0) for (size_t i = 0; i < stackcopylen; i++) stackcopy[i].Mark();
+        if (stackstart < 0)
+            for (size_t i = 0; i < stackcopylen; i++)
+                stackcopy[i].Mark(ElemType(i));
     }
 };
 

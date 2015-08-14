@@ -187,7 +187,7 @@ struct VMLog
 
     void LogMark()
     {
-        for (auto &v : logread) v.Mark();
-        for (auto &v : logwrite) v.Mark();
+        for (auto &v : logread) v.Mark(v.type);
+        for (auto &v : logwrite) v.Mark(v.type);
     }
 };

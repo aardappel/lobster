@@ -270,6 +270,7 @@ struct TypeChecker
                 return;
             case V_ANY:
                 if (IsScalar(type->t)) a = (Node *)new Unary(a->line, T_A2A, a);
+                // FIXME: V_FUNCTION?
                 a->exptype = type_any;
                 return;
             case V_FUNCTION:
@@ -470,19 +471,19 @@ struct TypeChecker
         }
         else
         {
-            if (sf->fixedreturntype)
+            //if (sf->fixedreturntype)
             {
                 auto argname = "return value";
                 if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, argname);
                 else if (a) SubType(a, sf->returntypes[i], argname, *a);
                 else SubTypeT(type_any, sf->returntypes[i], *a, argname);
-            }
+            }/*
             else
             {
                 if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
                 else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
                 else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
-            }
+            }*/
         }
     }
 

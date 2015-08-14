@@ -149,9 +149,9 @@ struct VM : VMBase
         auto b = (LVector *)vb;
         return a->refc != b->refc
         ? a->refc > b->refc
-        : (a->type != b->type
-           ? a->type > b->type 
-           : (a->type == V_VECTOR
+        : (a->rtype != b->rtype
+           ? a->rtype > b->rtype 
+           : (a->rtype == V_VECTOR
               ? a->len > b->len 
               : false));
     }
@@ -159,7 +159,7 @@ struct VM : VMBase
     void DumpLeaks()
     {
         vector<void *> leaks;
-        vmpool->findleaks(leaks);
+        vmpool->findleaks([&](void *p) { leaks.push_back(p); });
 
         if (!leaks.empty())
         {
@@ -178,7 +178,7 @@ struct VM : VMBase
                 for (auto p : leaks)
                 {
                     auto vec = (LVector *)p;
-                    switch(vec->type)
+                    switch(vec->rtype)
                     {
                         case V_CYCLEDONE:
                         case V_VALUEBUF:
@@ -200,7 +200,7 @@ struct VM : VMBase
                                     
                         default:
                         {
-                            assert(vec->type >= V_VECTOR);
+                            assert(vec->rtype >= V_VECTOR);
                             fputs((vec->CycleStr() + " = " + vec->ToString(leakpp) + "\n").c_str(), leakf);
                             break;
                         }
@@ -345,8 +345,9 @@ struct VM : VMBase
     {
         size_t found = 0;
         size_t nfound = 0;
-        for (size_t i = 0; i < bcf->idents()->size(); i++) if (a.Equal(vars[i], false)) { found = i; nfound++; }
-        string s = a.ToString(debugpp);
+        for (size_t i = 0; i < bcf->idents()->size(); i++)
+            if (a.Equal(a.type, vars[i], vars[i].type, false)) { found = i; nfound++; }
+        string s = a.ToString(a.type, debugpp);
         if (nfound == 1) s += string(" (") + bcf->idents()->Get(found)->name()->c_str() + " ?)";
         return s;
     }
@@ -355,7 +356,7 @@ struct VM : VMBase
     {
         if (x.type == V_UNDEFINED) return "";
         if (bcf->idents()->Get(idx)->readonly()) return "";
-        return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(debugpp);
+        return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(x.type, debugpp);
     }
 
     void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip)
@@ -376,7 +377,7 @@ struct VM : VMBase
                 if (desired != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    if (v.type != desired || (v.type == V_VECTOR && v.vval()->type != *mip))
+                    if (v.type != desired || (v.type == V_VECTOR && v.vval()->rtype != *mip))
                     {
                         mip += (nargs - j) * 2;
                         goto fail;
@@ -667,7 +668,8 @@ struct VM : VMBase
 
     void EndEval(string &evalret)
     {
-        evalret = TOP().ToString(programprintprefs);
+        auto last = TOP();
+        evalret = last.ToString(last.type, programprintprefs);
         POP().DEC();
         TempCleanup();
         FinalStackVarsCleanup();
@@ -738,8 +740,8 @@ struct VM : VMBase
                     trace_output += " [";
                     trace_output += to_string(sp + 1);
                     trace_output += "] - ";
-                    if (sp >= 0) trace_output += TOP().ToString(debugpp);
-                    if (sp >= 1) { trace_output += " "; trace_output += TOP2().ToString(debugpp); }
+                    if (sp >= 0) { auto x = TOP();  trace_output += x.ToString(x.type, debugpp); }
+                    if (sp >= 1) { auto x = TOP2(); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
                     if (trace_tail)
                     {
                         trace_output += "\n";
@@ -1104,7 +1106,7 @@ struct VM : VMBase
                 case IL_A2S:
                 {
                     Value a = POP();
-                    PUSH(NewString(a.ToString(programprintprefs)));   
+                    PUSH(NewString(a.ToString(a.type, programprintprefs)));   
                     a.DEC();
                     break;
                 }
@@ -1182,7 +1184,7 @@ struct VM : VMBase
                     auto t = *ip++;
                     auto idx = *ip++;
                     auto &v = POP().DEC();
-                    PUSH(Value(v.type == t && (t != V_VECTOR || v.vval()->type == idx)));
+                    PUSH(Value(v.type == t && (t != V_VECTOR || v.vval()->rtype == idx)));
                     break;
                 }
 
@@ -1342,7 +1344,7 @@ struct VM : VMBase
 
     const char *ProperTypeName(const Value &v)
     {
-        return v.type == V_VECTOR && v.vval()->type >= 0 ? ReverseLookupType(v.vval()->type) : BaseTypeName(v.type);
+        return v.type == V_VECTOR && v.vval()->rtype >= 0 ? ReverseLookupType(v.vval()->rtype) : BaseTypeName(v.type);
     }
 
     void Div0() { Error("division by zero"); } 
@@ -1391,20 +1393,20 @@ struct VM : VMBase
         {
             VMTYPEEQ(b, V_VECTOR);
             len = min(len, b.vval()->len);
-            if(a.vval()->len < b.vval()->len || (a.vval()->len == b.vval()->len && a.vval()->type >= 0))
+            if(a.vval()->len < b.vval()->len || (a.vval()->len == b.vval()->len && a.vval()->rtype >= 0))
             {
-                if (a.vval()->refc == 1) { res = a; return len; } else type = a.vval()->type;
+                if (a.vval()->refc == 1) { res = a; return len; } else type = a.vval()->rtype;
             }
             else
             {
-                if (b.vval()->refc == 1) { res = b; return len; } else type = b.vval()->type;
+                if (b.vval()->refc == 1) { res = b; return len; } else type = b.vval()->rtype;
             }
         }
         else
         {
             VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT);
             if (a.vval()->refc == 1) { res = a; return len; }
-            type = a.vval()->type;
+            type = a.vval()->rtype;
         }
 
         res = Value(NewVector(len, type));
@@ -1446,30 +1448,28 @@ struct VM : VMBase
 
     int GC()    // shouldn't really be used, but just in case
     {
-        for (int i = 0; i <= sp; i++) stack[i].Mark();
-        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].Mark();
+        for (int i = 0; i <= sp; i++) stack[i].Mark(stack[i].type);
+        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].Mark(vars[i].type);
         vml.LogMark();
 
-        vector<void *> objs;
-        vector<void *> leaks;
-        vmpool->findleaks(objs); // FIXME: inefficient sticking them in a vector first
-
-        for (auto p : objs)
-        {
+        vector<RefObj *> leaks;
+        int total = 0;
+        vmpool->findleaks([&](void *p) {
+            total++;
             auto r = (RefObj *)p;
-            if (r->type == V_VALUEBUF) continue;
+            if (r->rtype == V_VALUEBUF) return;
             if (r->refc > 0) leaks.push_back(r);
             r->refc = -r->refc;
-        }
+        });
 
         for (auto p : leaks)
         {
             auto ro = (RefObj *)p;
             ro->refc = 0;
             Value v(ro);
-            switch (ro->type)
+            switch (ro->rtype)
             {
-                default: VMASSERT(ro->type >= 0);  // fall thru: a struct type
+                default: VMASSERT(ro->rtype >= 0);  // fall thru: a struct type
                 case V_VECTOR:  v.vval()->len = 0; v.vval()->deleteself(); break;
                 case V_STRING:                     v.sval()->deleteself(); break;
                 case V_COROUTINE:                  v.cval()->deleteself(false); break;

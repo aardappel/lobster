@@ -364,7 +364,7 @@ class SlabAlloc
 
     // for diagnostics and GC
 
-    void findleaks(vector<void *> &leaks)
+    template<typename T> void findleaks(T leakcallback)
     {
         loopdllist(usedpages, h)
         {
@@ -386,7 +386,7 @@ class SlabAlloc
             {
                 if (!h->isfree[i])
                 {
-                    leaks.push_back(((char *)(h+1))+i*h->size);
+                    leakcallback(((char *)(h+1))+i*h->size);
                 }
             }
 
@@ -394,7 +394,7 @@ class SlabAlloc
             h->isfree = nullptr;
         }
 
-        loopdllist(largeallocs, n) leaks.push_back(n + 1);
+        loopdllist(largeallocs, n) leakcallback(n + 1);
     }
 
     void printstats(bool full = false)

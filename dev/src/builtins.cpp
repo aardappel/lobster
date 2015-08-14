@@ -75,7 +75,7 @@ void AddBuiltins()
 {
     STARTDECL(print) (Value &a)
     {
-        Output(OUTPUT_PROGRAM, a.ToString(g_vm->programprintprefs).c_str());
+        Output(OUTPUT_PROGRAM, a.ref()->ToString(g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A",
@@ -138,9 +138,8 @@ void AddBuiltins()
         (void)body;
         return Value();
     }
-    ENDDECL2(for, "iter,body", "AC", "I",
-        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments,"
-        " returns number of evaluations that returned true");
+    ENDDECL2(for, "iter,body", "AC", "",
+        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments");
 
     STARTDECL(append) (Value &v1, Value &v2)
     {
@@ -187,9 +186,9 @@ void AddBuiltins()
 
     STARTDECL(equal) (Value &a, Value &b)
     {
-        bool eq = a.Equal(b, true);
-        a.DEC();
-        b.DEC();
+        bool eq = a.ref()->Equal(b.ref(), true);
+        a.DECRT();
+        b.DECRT();
         return Value(eq);
     }
     ENDDECL2(equal, "a,b", "AA", "I",
@@ -228,7 +227,7 @@ void AddBuiltins()
     {
         if (i.ival() < 0 || i.ival() >= l.vval()->len) g_vm->BuiltinError("replace: index out of range");
 
-        auto nv = g_vm->NewVector(l.vval()->len, l.vval()->type);
+        auto nv = g_vm->NewVector(l.vval()->len, l.vval()->rtype);
         nv->append(l.vval(), 0, l.vval()->len);
         l.DECRT();
 
@@ -270,10 +269,14 @@ void AddBuiltins()
     STARTDECL(removeobj) (Value &l, Value &o)
     {
         int removed = 0;
-        for (int i = 0; i < l.vval()->len; i++) if (l.vval()->at(i).Equal(o, false))
+        for (int i = 0; i < l.vval()->len; i++)
         {
-            l.vval()->remove(i--, 1).DEC();
-            removed++;
+            auto e = l.vval()->at(i);
+            if (e.Equal(e.type, o, o.type, false))
+            {
+                l.vval()->remove(i--, 1).DEC();
+                removed++;
+            }
         }
         o.DEC();
         l.DECRT();
@@ -308,7 +311,7 @@ void AddBuiltins()
 
     STARTDECL(copy) (Value &v)
     {
-        auto nv = g_vm->NewVector(v.vval()->len, v.vval()->type);
+        auto nv = g_vm->NewVector(v.vval()->len, v.vval()->rtype);
         nv->append(v.vval(), 0, v.vval()->len);
         v.DECRT();
         return Value(nv);
@@ -517,7 +520,7 @@ void AddBuiltins()
 
     #define VECTOROP(op) \
         TYPE_ASSERT(a.type == V_VECTOR); \
-        auto v = g_vm->NewVector(a.vval()->len, a.vval()->type); \
+        auto v = g_vm->NewVector(a.vval()->len, a.vval()->rtype); \
         for (int i = 0; i < a.vval()->len; i++) { \
             auto f = a.vval()->at(i); \
             v->push(Value(op)); \
@@ -661,7 +664,7 @@ void AddBuiltins()
 
     #define VECBINOP(name,access) \
         if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name ## "() arguments must be equal length"); \
-        auto v = g_vm->NewVector(x.vval()->len, x.vval()->type); \
+        auto v = g_vm->NewVector(x.vval()->len, x.vval()->rtype); \
         for (int i = 0; i < x.vval()->len; i++) { \
             v->push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
         } \

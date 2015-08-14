@@ -395,9 +395,11 @@ struct CodeGen
                         }
                         else
                         {
+                            // If this is a comparison op, be sure to use the child type.
+                            TypeRef vectype = opc >= 5 ? n->left()->exptype : n->exptype;
                             TypeRef sub;
-                            if      (n->exptype->t == V_VECTOR) sub = n->exptype->sub;
-                            else if (n->exptype->t == V_STRUCT) sub = n->exptype->struc->vectortype->sub;
+                            if      (vectype->t == V_VECTOR) sub = vectype->sub;
+                            else if (vectype->t == V_STRUCT) sub = vectype->struc->vectortype->sub;
                             else assert(false);
                             bool withscalar = IsScalar(n->right()->exptype->t);
                             if      (sub->t == V_INT)    Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
