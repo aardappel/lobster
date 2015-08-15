@@ -60,10 +60,14 @@ bool RefObj::Equal(const RefObj *o, bool structural) const
 
 bool Value::Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const
 {
-    return vtype == otype && IsRef(vtype)
-        ? ref_->Equal(o.ref_, structural)
-        : ival_ == o.ival_;   // Bitwise compare for scalars etc.
-        // FIXME: V_FUNCTION? check all non-ref types.
+    if (vtype != otype) return false;
+    switch (vtype)
+    {
+        case V_INT: return ival_ == o.ival_;
+        case V_FLOAT: return fval_ == o.fval_;
+        case V_FUNCTION: return ip_ == o.ip_;
+        default: return ref()->Equal(o.ref_, structural);
+    }
 }
 
 string RefObj::ToString(PrintPrefs &pp) const

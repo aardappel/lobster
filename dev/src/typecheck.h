@@ -254,8 +254,8 @@ struct TypeChecker
 
     void MakeAny(Node *&a)
     {
+        if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
         if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_A2A, a);
-        // FIXME: V_FUNCTION?
         a->exptype = type_any;
     }
 
