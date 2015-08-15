@@ -16,7 +16,7 @@ namespace lobster {
 
 #define RTT_ENABLED 1
 
-enum ValueType
+enum ValueType : char
 {
     V_MINVMTYPES = -9,
     V_STRUCT = -8,      // [typechecker only] an alias for V_VECTOR
@@ -451,7 +451,7 @@ struct LVector : LenObj
             if (i) s += ", ";
             if ((int)s.size() > pp.budget) { s += "...."; break; }
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
-            s += pp.depth || !IsRef(v[i].type) ? v[i].ToString(ElemType(i), subpp) : "..";
+            s += pp.depth || !IsRef(ElemType(i)) ? v[i].ToString(ElemType(i), subpp) : "..";
         }
         s += rtype >= 0 ? "}" : "]";
         return s;

@@ -78,8 +78,17 @@ void AddBuiltins()
         Output(OUTPUT_PROGRAM, a.ref()->ToString(g_vm->programprintprefs).c_str());
         return a;
     }
-    ENDDECL1(print, "x", "A", "A",
+    ENDDECL1(print, "x", "A", "A1",
         "output any value to the console (with linefeed). returns its argument.");
+
+    STARTDECL(string) (Value &a)
+    {
+        auto str = g_vm->NewString(a.ref()->ToString(g_vm->programprintprefs));
+        a.DECRT();
+        return str;
+    }
+    ENDDECL1(string, "x", "A", "S",
+        "convert any value to string");
 
     STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return a; } 
     ENDDECL1(set_print_depth, "A?", "I", "", 

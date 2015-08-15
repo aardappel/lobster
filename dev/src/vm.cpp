@@ -197,7 +197,21 @@ struct VM : VMBase
                             fputs((co->CycleStr() + " = coroutine\n").c_str(), leakf);
                             break;
                         }
+
+                        case V_BOXEDINT:
+                        {
+                            auto bi = (BoxedInt *)vec;
+                            fputs((bi->CycleStr() + " = " + to_string(bi->val) + "\n").c_str(), leakf);
+                            break;
+                        }
                                     
+                        case V_BOXEDFLOAT:
+                        {
+                            auto bf = (BoxedFloat *)vec;
+                            fputs((bf->CycleStr() + " = " + to_string_float(bf->val) + "\n").c_str(), leakf);
+                            break;
+                        }
+
                         default:
                         {
                             assert(vec->rtype >= V_VECTOR);

@@ -15,7 +15,7 @@ TODO:
 
 */
 
-private struct guielem { id:string, size:xy_i }
+private struct guielem { id:int, size:xy_i }
 
 private cursize := xy_0i
 
@@ -101,7 +101,7 @@ private def block(al, sp, vert, id, f):
         parent_size <- size
         f()
 
-def gui_text(text):
+def gui_text(text:string):
     element(cache_size(caller_id()): gl_textsize(text)):
         //print(gl_textsize(text))
         gl_text(text)

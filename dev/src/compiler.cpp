@@ -215,7 +215,7 @@ void AddCompiler()  // it knows how to call itself!
     {
         return CompileRun(filename, true);
     }
-    ENDDECL1(compile_run_code, "code", "S", "AA",
+    ENDDECL1(compile_run_code, "code", "S", "SS?",
         "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
         " the argument is a string of code. returns the return value of the program as a string,"
         " with an error string as second return value, or nil if none. using parse_data(),"
@@ -226,7 +226,7 @@ void AddCompiler()  // it knows how to call itself!
     {
         return CompileRun(filename, false);
     }
-    ENDDECL1(compile_run_file, "filename", "S", "AA",
+    ENDDECL1(compile_run_file, "filename", "S", "SS?",
         "same as compile_run_code(), only now you pass a filename.");
 }
 

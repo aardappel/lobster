@@ -1269,6 +1269,7 @@ struct Parser
 
             case T_FLOATTYPE:
             case T_INTTYPE:
+            case T_STRTYPE:
             {
                 // These are also used as built-in functions, so allow them to function as identifier for calls
                 string idname = lex.sattr;

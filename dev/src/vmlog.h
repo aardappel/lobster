@@ -175,7 +175,7 @@ struct VMLog
             assert(lfr.type == V_LOGFUNREADSTART);
 
             def.DEC();
-            return logread[lfr.ival() + idx];
+            return logread[lfr.info() + idx];
         }
     }
 

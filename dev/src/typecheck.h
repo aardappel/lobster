@@ -209,7 +209,7 @@ struct TypeChecker
             case V_ANY:       return genericany || coercions || !IsScalar(type->t);
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions, unifications, genericany);
             case V_FLOAT:     return type->t == V_INT && coercions;
-            case V_STRING:    return coercions;
+            case V_STRING:    return false; //coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NILABLE:   return type->t == V_NIL ||
                                      (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
@@ -244,6 +244,21 @@ struct TypeChecker
         return a == b;  // Not inlined for documentation purposes.
     }
 
+    void MakeString(Node *&a)
+    {
+        assert(a->exptype->t != V_STRING);
+        MakeAny(a);  // Could instead make a T_I2S etc, but string() goes thru any also.
+        a = (Node *)new Unary(a->line, T_A2S, a);
+        a->exptype = type_string;
+    }
+
+    void MakeAny(Node *&a)
+    {
+        if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_A2A, a);
+        // FIXME: V_FUNCTION?
+        a->exptype = type_any;
+    }
+
     void SubTypeLR(TypeRef sub, Node &n) { SubType(n.left(), sub, "left", n); SubType(n.right(), sub, "right", n); }
 
     void SubType(Node *&a, TypeRef sub, const char *argname, const Node &context)
@@ -264,14 +279,8 @@ struct TypeChecker
                     return;
                 }
                 break;
-            case V_STRING:
-                a = (Node *)new Unary(a->line, T_A2S, a);
-                a->exptype = type_string;
-                return;
             case V_ANY:
-                if (IsScalar(type->t)) a = (Node *)new Unary(a->line, T_A2A, a);
-                // FIXME: V_FUNCTION?
-                a->exptype = type_any;
+                MakeAny(a);
                 return;
             case V_FUNCTION:
                 if (type->IsFunction() && sub->sf)
@@ -397,7 +406,7 @@ struct TypeChecker
         return false;
     }
 
-    const char *MathCheck(TypeRef &type, Node &n, TType op, bool &unionchecked)
+    const char *MathCheck(TypeRef &type, Node &n, TType op, bool &unionchecked, bool typechangeallowed)
     {
         if (op == T_MOD)
         {
@@ -416,17 +425,24 @@ struct TypeChecker
                 if (op == T_PLUS)
                 {
                     auto ltype = n.left()->exptype;
-                    if (type->t == V_STRING)
+                    auto rtype = n.right()->exptype;
+                    if (ltype->t == V_STRING)
                     {
+                        if (rtype->t != V_STRING)
+                        {
+                            // Anything can be added to a string on the right (because of +=).
+                            MakeString(n.right());
+                            // Make sure the overal type is string.
+                            type = type_string;
+                            unionchecked = true;
+                        }
                     }
-                    else if (
-                        // Anything nilable can be added to a string, but only on the right (because of +=):
-                        (type->t == V_NILABLE &&
-                         type->sub->t == V_STRING &&
-                         ltype->t == V_STRING))
+                    else if (rtype->t == V_STRING && ltype->t != V_STRING && typechangeallowed)
                     {
-                        // Special case: make sure the overal type is string, not string?.
+                        // Only if not in a +=
+                        MakeString(n.left());
                         type = type_string;
+                        unionchecked = true;
                     }
                     else
                     {
@@ -442,13 +458,15 @@ struct TypeChecker
         return nullptr;
     }
 
-    void MathError(TypeRef &type, Node &n, TType op, bool &unionchecked)
+    void MathError(TypeRef &type, Node &n, TType op, bool &unionchecked, bool typechangeallowed)
     {
-        auto err = MathCheck(type, n, op, unionchecked);
+        auto err = MathCheck(type, n, op, unionchecked, typechangeallowed);
         if (err)
         {
-            if (MathCheck(n.left()->exptype, n, op, unionchecked)) TypeError(err, n.left()->exptype, n, "left");
-            if (MathCheck(n.right()->exptype, n, op, unionchecked)) TypeError(err, n.right()->exptype, n, "right");
+            if (MathCheck(n.left()->exptype, n, op, unionchecked, typechangeallowed))
+                TypeError(err, n.left()->exptype, n, "left");
+            if (MathCheck(n.right()->exptype, n, op, unionchecked, typechangeallowed))
+                TypeError(err, n.right()->exptype, n, "right");
             TypeError(string("can\'t use \"") +
                       TName(n.type) + 
                       "\" on " + 
@@ -1213,7 +1231,7 @@ struct TypeChecker
             {
                 type = Union(n.left(), n.right(), true);
                 bool unionchecked = false;
-                MathError(type, n, n.type, unionchecked);
+                MathError(type, n, n.type, unionchecked, true);
                 if (!unionchecked) SubTypeLR(type, n);
                 break;
             }
@@ -1229,8 +1247,8 @@ struct TypeChecker
                 if (!MathCheckVector(type, n.left(), n.right()))
                 {
                     bool unionchecked = false;
-                    MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked);
-                    SubType(n.right(), type, "right", n);
+                    MathError(type, n, TType(n.type - T_PLUSEQ + T_PLUS), unionchecked, false);
+                    if (!unionchecked) SubType(n.right(), type, "right", n);
                 }
                 break;
             }
