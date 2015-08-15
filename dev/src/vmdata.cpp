@@ -18,18 +18,21 @@
 
 using namespace lobster;
 
-void RefObj::DECDELETE()
+void RefObj::DECDELETE(bool deref)
 {
     assert(refc == 0);
-    switch (rtype)
+    switch (typeoff)
     {
-        case V_STRING:     ((LString *)this)->deleteself(); break;
-        case V_COROUTINE:  ((CoRoutine *)this)->deleteself(true); break;
-        case V_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
-        case V_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
-        default:           assert(rtype >= 0);
-                           // FALL-THRU:
-        case V_VECTOR:     ((LVector *)this)->deleteself(); break;
+        case TYPE_ELEM_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
+        case TYPE_ELEM_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
+        case TYPE_ELEM_STRING:     ((LString *)this)->deleteself(); break;
+        case TYPE_ELEM_COROUTINE:  ((CoRoutine *)this)->deleteself(deref); break;
+        default:
+        {
+            assert(IsVector(BaseType()));
+            ((LVector *)this)->deleteself(deref);
+            break;
+        }
     }
 }
 
@@ -41,20 +44,20 @@ bool RefObj::Equal(const RefObj *o, bool structural) const
     if (!this || !o)
         return false;
 
-    if (rtype != o->rtype)
+    if (typeoff != o->typeoff)
         return false;
 
-    switch (rtype)
+    switch (typeoff)
     {
-        case V_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
-        case V_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
-
-        case V_STRING:      return *((LString *)this) == *((LString *)o);
-        default: assert(rtype >= 0);
-                 if (rtype < 0) return false;
-                 // FALL-THRU:
-        case V_VECTOR:      return structural && ((LVector *)this)->Equal(*(LVector *)o);
-        case V_COROUTINE:   return false;
+        case TYPE_ELEM_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
+        case TYPE_ELEM_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
+        case TYPE_ELEM_STRING:      return *((LString *)this) == *((LString *)o);
+        case TYPE_ELEM_COROUTINE:   return false;
+        default:
+        {
+            assert(IsVector(BaseType()));
+            return structural && ((LVector *)this)->Equal(*(LVector *)o);
+        }
     }
 }
 
@@ -74,17 +77,19 @@ string RefObj::ToString(PrintPrefs &pp) const
 {
     if (!this) return "nil";
 
-    switch (rtype)
+    switch (typeoff)
     {
-        case V_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
-        case V_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
+        case TYPE_ELEM_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
+        case TYPE_ELEM_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
 
-        case V_STRING:     return ((LString *)this)->ToString(pp);
-        case V_VECTOR:     return ((LVector *)this)->ToString(pp);
-        case V_COROUTINE:  return "(coroutine)";
-
-        default:           return rtype < 0 ? string("(") + BaseTypeName(Type()) + ")"
-                                            : ((LVector *)this)->ToString(pp);
+        case TYPE_ELEM_STRING:     return ((LString *)this)->ToString(pp);
+        case TYPE_ELEM_COROUTINE:  return "(coroutine)";
+        default:
+        {
+            auto ti = TypeInfo();
+            if (IsVector((ValueType)ti[0])) return ((LVector *)this)->ToString(pp);
+            return string("(") + BaseTypeName(BaseType()) + ")";
+        }
     }
 }
 
@@ -113,10 +118,10 @@ void RefObj::Mark()
     if (refc < 0) return;
     assert(refc);
     refc = -refc;
-    switch (rtype)
+    auto ti = TypeInfo();
+    switch ((ValueType)ti[0])
     {
-        default: if (rtype < 0) break;
-                 // FALL-THRU:
+        case V_STRUCT:
         case V_VECTOR:     ((LVector   *)this)->Mark(); break;
         case V_COROUTINE:  ((CoRoutine *)this)->Mark(); break;
     }

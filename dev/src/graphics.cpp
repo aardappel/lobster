@@ -276,14 +276,14 @@ void AddGraphics()
 
     STARTDECL(gl_windowsize) ()
     {
-        return ToValue(screensize);
+        return ToValueI(screensize);
     }
     ENDDECL0(gl_windowsize, "", "", "I]:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
     STARTDECL(gl_mousepos) (Value &i)
     {
-        return ToValue(GetFinger(i.ival(), false));
+        return ToValueI(GetFinger(i.ival(), false));
     }
     ENDDECL1(gl_mousepos, "i", "I", "I]:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional fingers"
@@ -291,7 +291,7 @@ void AddGraphics()
 
     STARTDECL(gl_mousedelta) (Value &i)
     {
-        return ToValue(GetFinger(i.ival(), true));
+        return ToValueI(GetFinger(i.ival(), true));
     }
     ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
         "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
@@ -299,7 +299,7 @@ void AddGraphics()
 
     STARTDECL(gl_localmousepos) (Value &i)
     {
-        return ToValue(localfingerpos(i.ival()));
+        return ToValueF(localfingerpos(i.ival()));
     }
     ENDDECL1(gl_localmousepos, "i", "I", "F]:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
@@ -309,7 +309,7 @@ void AddGraphics()
     {
         auto p = GetKeyPos(name.sval()->str(), on.ival());
         name.DECRT();
-        return ToValue(p);
+        return ToValueI(p);
     }
     ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
@@ -318,7 +318,7 @@ void AddGraphics()
     {
         auto p = localpos(GetKeyPos(name.sval()->str(), on.ival()));
         name.DECRT();
-        return ToValue(p);
+        return ToValueF(p);
     }
     ENDDECL2(gl_locallastpos, "name,down", "SI", "F]:2",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or up (false)");
@@ -372,7 +372,7 @@ void AddGraphics()
 
     STARTDECL(gl_color) (Value &col, Value &body)
     {
-        if (body.True()) g_vm->Push(ToValue(curcolor));  // FIXME: maybe more efficient as an int
+        if (body.True()) g_vm->Push(ToValueF(curcolor));  // FIXME: maybe more efficient as an int
         curcolor = ValueDecToF<4>(col);
         return body;
     }
@@ -518,7 +518,7 @@ void AddGraphics()
     STARTDECL(gl_origin) ()
     {
         auto pos = float2(object2view[3].x(), object2view[3].y());
-        return ToValue(pos);
+        return ToValueF(pos);
     }
     ENDDECL0(gl_origin, "", "", "F]:2",
         "returns a vector representing the current transform origin in pixels."
@@ -527,7 +527,7 @@ void AddGraphics()
     STARTDECL(gl_scaling) ()
     {
         auto sc = float2(object2view[0].x(), object2view[1].y());
-        return ToValue(sc);
+        return ToValueF(sc);
     }
     ENDDECL0(gl_scaling, "", "", "F]:2",
         "returns a vector representing the current transform scale in pixels."
@@ -700,7 +700,7 @@ void AddGraphics()
     STARTDECL(gl_meshparts) (Value &i)
     {
         auto m = GetMesh(i);
-        auto v = g_vm->NewVector(m->surfs.size(), V_VECTOR);
+        auto v = g_vm->NewVector(m->surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m->surfs) v->push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }
@@ -840,7 +840,7 @@ void AddGraphics()
             if (id) texturecache[name.sval()->str()] = id;
         }
         g_vm->Push(Value((int)id));
-        return ToValue(dim);
+        return ToValueI(dim);
     }
     ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "II]:2",
         "returns texture id if succesfully loaded from file name, otherwise 0."

@@ -16,16 +16,16 @@ namespace lobster {
 
 #define RTT_ENABLED 1
 
-enum ValueType : char
+enum ValueType
 {
     V_MINVMTYPES = -9,
-    V_STRUCT = -8,      // [typechecker only] an alias for V_VECTOR
-    V_CYCLEDONE = -7,
-    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
-    V_BOXEDFLOAT = -5,
-    V_BOXEDINT = -4,
-    V_COROUTINE = -3,
-    V_STRING = -2,      // refc types are negative
+    V_CYCLEDONE = -8,
+    V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
+    V_BOXEDFLOAT = -6,
+    V_BOXEDINT = -5,
+    V_COROUTINE = -4,
+    V_STRING = -3,      // refc types are negative
+    V_STRUCT = -2,
     V_VECTOR = -1,
     V_INT = 0,          // quickest check for most common type
     V_FLOAT = 1,
@@ -36,6 +36,7 @@ enum ValueType : char
     V_NILABLE,          // [typechecker only] a value that may be nil or a reference type.
     V_ANY,              // [typechecker only] any other type.
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
+    V_TYPEID,           // [typechecker only] a typetable offset.
     // used in function calling, if they appear as a value in a program, that's a bug
     V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
@@ -43,14 +44,15 @@ enum ValueType : char
 };
 
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
-inline bool IsRef(ValueType t) { return t < 0; }
+inline bool IsRef(ValueType t)    { return t < 0; }
+inline bool IsVector(ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
 
 inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
-        "struct", "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "vector", 
-        "int", "float", "function", "yield_function", "nil", "undefined", "nilable", "any", "variable",
+        "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
+        "int", "float", "function", "yield_function", "nil", "undefined", "nilable", "any", "variable", "typeid",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
@@ -58,6 +60,25 @@ inline const char *BaseTypeName(ValueType t)
         return "<internal-error-type>";
     return typenames[t - V_MINVMTYPES - 1];
 }
+
+enum type_elem_t : int   // Strongly typed element of typetable.
+{
+    // These must correspond to typetable init in Codegen constructor.
+    TYPE_ELEM_INT,
+    TYPE_ELEM_FLOAT,
+    TYPE_ELEM_BOXEDINT,
+    TYPE_ELEM_BOXEDFLOAT,
+    TYPE_ELEM_STRING,
+    TYPE_ELEM_COROUTINE,
+    TYPE_ELEM_ANY,
+    TYPE_ELEM_CYCLEDONE,
+    TYPE_ELEM_VALUEBUF,
+    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
+    TYPE_ELEM_VECTOR_OF_STRING = 13,
+
+    TYPE_ELEM_FIXED_OFFSET_END = 15
+};
 
 struct Value;
 struct LString;
@@ -89,19 +110,21 @@ struct VMBase
     virtual Value Pop() = 0;
     virtual LString *NewString(const string &s) = 0;
     virtual LString *NewString(const char *c, size_t l) = 0;
-    virtual LVector *NewVector(size_t n, int t) = 0;
-    virtual int GetVectorType(int which) = 0;
+    virtual LVector *NewVector(size_t n, type_elem_t t) = 0;
+    virtual type_elem_t GetIntVectorType(int which) = 0;
+    virtual type_elem_t GetFloatVectorType(int which) = 0;
     virtual void Trace(bool on) = 0;
     virtual double Time() = 0;
     virtual int GC() = 0;
     virtual const char *ProperTypeName(const Value &v) = 0;
-    virtual int StructIdx(const string &name, int &nargs) = 0;
+    virtual type_elem_t StructTypeInfo(const string &name, int &nargs) = 0;
     virtual const char *ReverseLookupType(uint v) = 0;
     virtual void SetMaxStack(int ms) = 0;
     virtual void CoResume(CoRoutine *co) = 0;
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
+    virtual const type_elem_t *TypeInfo(type_elem_t offset) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -110,28 +133,29 @@ extern SlabAlloc *vmpool;
 
 struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 {
-    int rtype;       // 0.. for typed vectors (can't grow), ValueType if negative
+    type_elem_t typeoff;    // offset into the VM's typetable
 
-    DynAlloc(int _t) : rtype(_t) {}
+    DynAlloc(type_elem_t _t) : typeoff(_t) { assert(_t >= 0); }
 
-    ValueType Type() const { return rtype < 0 ? (ValueType)rtype : V_VECTOR; }
+    const type_elem_t *TypeInfo() const { return g_vm->TypeInfo(typeoff); }
+    ValueType BaseType() const { return (ValueType)*g_vm->TypeInfo(typeoff); }
 };
 
 struct RefObj : DynAlloc
 {
     int refc;
 
-    RefObj(int _t) : DynAlloc(_t), refc(1) {}
+    RefObj(type_elem_t _t) : DynAlloc(_t), refc(1) {}
 
     void CycleDone(int &cycles)
     {
-        rtype = V_CYCLEDONE;
+        typeoff = TYPE_ELEM_CYCLEDONE;
         refc = cycles++;
     }
 
     string CycleStr() const { return "_" + to_string(refc) + "_"; }
 
-    void DECDELETE();
+    void DECDELETE(bool deref);
     bool Equal(const RefObj *o, bool structural) const;
     string ToString(PrintPrefs &pp) const;
     void Mark();
@@ -141,26 +165,26 @@ struct BoxedInt : RefObj
 {
     int val;
 
-    BoxedInt(int _v) : RefObj(V_BOXEDINT), val(_v) {}
+    BoxedInt(int _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}
 };
 
 struct BoxedFloat : RefObj
 {
     float val;
 
-    BoxedFloat(float _v) : RefObj(V_BOXEDFLOAT), val(_v) {}
+    BoxedFloat(float _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
 };
 
 struct LenObj : RefObj
 {
     int len;    // has to match the Value integer type, since we allow the length to be obtained
 
-    LenObj(int _t, int _l) : RefObj(_t), len(_l) {}
+    LenObj(type_elem_t _t, int _l) : RefObj(_t), len(_l) {}
 };
 
 struct LString : LenObj
 {
-    LString(int _l) : LenObj(V_STRING, _l) {}
+    LString(int _l) : LenObj(TYPE_ELEM_STRING, _l) {}
 
     char *str() { return (char *)(this + 1); }
 
@@ -168,7 +192,7 @@ struct LString : LenObj
     {
         if (pp.cycles >= 0)
         {
-            if (rtype == V_CYCLEDONE) return CycleStr(); 
+            if (typeoff == TYPE_ELEM_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
         string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
@@ -231,7 +255,7 @@ struct Value
         // Unboxed values.
         int ival_;       // keep this 32bit even on 64bit for predictable results
         float fval_;     // idem, also the type that most graphics hardware works with natively
-        const int *ip_;  // FIXME: can make this into reference value
+        const int *ip_;  // Never gets converted to any, so no boxed version available.
 
         // Reference values (includes NULL if nillable version).
         LString *sval_;
@@ -256,27 +280,22 @@ struct Value
     LString    *sval () const { TYPE_ASSERT(type == V_STRING);     return sval_;  }
     BoxedInt   *bival() const { TYPE_ASSERT(type == V_BOXEDINT);   return bival_; }
     BoxedFloat *bfval() const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_; }
-    LVector    *vval () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;  }
+    LVector    *vval () const { TYPE_ASSERT(IsVector(type));       return vval_;  }
     CoRoutine  *cval () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;  }
     LenObj     *lobj () const { TYPE_ASSERT(IsRef(type));          return lobj_;  }
     RefObj     *ref  () const { TYPE_ASSERT(IsRef(type));          return ref_;   }
     const int  *ip   () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;    }
     int         info () const { TYPE_ASSERT(type >= V_NARGS);      return ival_;  }
     void       *any  () const { return ref_; }
-
-    inline Value()                          : TYPE_INIT(V_UNDEFINED)  ival_(0)   {}
-    inline Value(int i)                     : TYPE_INIT(V_INT)        ival_(i)   {}
-    inline Value(int i, ValueType t)        : TYPE_INIT(t)            ival_(i)   { (void)t; }
-    inline Value(bool b)                    : TYPE_INIT(V_INT)        ival_(b)   {}
-    inline Value(float f)                   : TYPE_INIT(V_FLOAT)      fval_(f)   {}
-    inline Value(LString *s)                : TYPE_INIT(V_STRING)     sval_(s)   {}
-    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)   ip_(i)     {}
-    inline Value(const int *i, ValueType t) : TYPE_INIT(t)            ip_(i)     { (void)t; }
-    inline Value(BoxedInt *bi)              : TYPE_INIT(V_BOXEDINT)   bival_(bi) {}
-    inline Value(BoxedFloat *bf)            : TYPE_INIT(V_BOXEDFLOAT) bfval_(bf) {}
-    inline Value(LVector *v)                : TYPE_INIT(V_VECTOR)     vval_(v)   {}
-    inline Value(CoRoutine *c)              : TYPE_INIT(V_COROUTINE)  cval_(c)   {}
-    inline Value(RefObj *r)                 : TYPE_INIT(r->Type())    ref_(r)    {}
+                                                                       
+    inline Value()                          : TYPE_INIT(V_UNDEFINED)   ival_(0)   {}
+    inline Value(int i)                     : TYPE_INIT(V_INT)         ival_(i)   {}
+    inline Value(int i, ValueType t)        : TYPE_INIT(t)             ival_(i)   { (void)t; }
+    inline Value(bool b)                    : TYPE_INIT(V_INT)         ival_(b)   {}
+    inline Value(float f)                   : TYPE_INIT(V_FLOAT)       fval_(f)   {}
+    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)    ip_(i)     {}
+    inline Value(const int *i, ValueType t) : TYPE_INIT(t)             ip_(i)     { (void)t; }
+    inline Value(RefObj *r)                 : TYPE_INIT(r->BaseType()) ref_(r)    {}
 
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
@@ -301,7 +320,7 @@ struct Value
     {
         TYPE_ASSERT(IsRef(type));
         ref_->refc--;
-        if (ref_->refc <= 0) ref_->DECDELETE();
+        if (ref_->refc <= 0) ref_->DECDELETE(true);
     }
 
     inline const Value &DEC() const
@@ -334,7 +353,7 @@ struct ValueRef
 inline Value *AllocSubBuf(size_t size)
 {
     auto mem = (void **)vmpool->alloc(size * sizeof(Value) + sizeof(void *));
-    *((int *)mem) = V_VALUEBUF;    // DynAlloc header, padded to pointer size if needed
+    *((type_elem_t *)mem) = TYPE_ELEM_VALUEBUF;    // DynAlloc header, padded to pointer size if needed
     mem++;
     return (Value *)mem;
 }
@@ -355,7 +374,7 @@ struct LVector : LenObj
     int maxl;
     int initiallen;
 
-    LVector(int _size, int _t) : LenObj(_t, 0), maxl(_size), initiallen(_size)
+    LVector(int _size, type_elem_t _t) : LenObj(_t, 0), maxl(_size), initiallen(_size)
     {
         v = (Value *)(this + 1);
     }
@@ -368,9 +387,9 @@ struct LVector : LenObj
         DeallocSubBuf(v, maxl);
     }
 
-    void deleteself()
+    void deleteself(bool deref)
     {
-        DeRef();
+        if (deref) DeRef();
         deallocbuf();
         vmpool->dealloc(this, sizeof(LVector) + sizeof(Value) * initiallen);
     }
@@ -441,11 +460,12 @@ struct LVector : LenObj
     {
         if (pp.cycles >= 0)
         {
-            if (rtype == V_CYCLEDONE) return CycleStr(); 
+            if (typeoff == TYPE_ELEM_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
 
-        string s = rtype >= 0 ? g_vm->ReverseLookupType(rtype) + string("{") : "[";
+        auto ti = TypeInfo();
+        string s = ti[0] == V_STRUCT ? g_vm->ReverseLookupType(ti[1]) + string("{") : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
@@ -453,7 +473,7 @@ struct LVector : LenObj
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
             s += pp.depth || !IsRef(ElemType(i)) ? v[i].ToString(ElemType(i), subpp) : "..";
         }
-        s += rtype >= 0 ? "}" : "]";
+        s += ti[0] == V_STRUCT ? "}" : "]";
         return s;
     }
 
@@ -489,7 +509,7 @@ struct CoRoutine : RefObj
     CoRoutine *parent;
 
     CoRoutine(int _ss, const int *_rip, const int *_vip, CoRoutine *_p)
-        : RefObj(V_COROUTINE), active(true), stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
+        : RefObj(TYPE_ELEM_COROUTINE), active(true), stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           returnip(_rip), varip(_vip), parent(_p) {}
 
     Value &Current()
@@ -597,7 +617,6 @@ struct CoRoutine : RefObj
 
 template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
 {
-    TYPE_ASSERT(v.type == V_VECTOR);
     vec<float,N> t;
     for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).fval() : def);
     return t;
@@ -605,7 +624,6 @@ template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
 
 template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
 {
-    TYPE_ASSERT(v.type == V_VECTOR);
     vec<int, N> t;
     for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).ival() : def);
     return t;
@@ -625,11 +643,19 @@ template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0)
     return r;
 }
 
-template <typename T> inline Value ToValue(const T &vec, int maxelems = 4)
+template <int N> inline Value ToValueI(const vec<int, N> &vec, int maxelems = 4)
 {
-    auto numelems = min(maxelems, (int)T::NUM_ELEMENTS);
-    auto v = g_vm->NewVector(numelems, g_vm->GetVectorType(numelems));
-    for (auto a : vec) v->push(Value(a));
+    auto numelems = min(maxelems, N);
+    auto v = g_vm->NewVector(numelems, g_vm->GetIntVectorType(numelems));
+    for (int i = 0; i < numelems; i++) v->push(Value(vec[i]));
+    return Value(v);
+}
+
+template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 4)
+{
+    auto numelems = min(maxelems, N);
+    auto v = g_vm->NewVector(numelems, g_vm->GetFloatVectorType(numelems));
+    for (int i = 0; i < numelems; i++) v->push(Value(vec[i]));
     return Value(v);
 }
 

@@ -43,7 +43,8 @@ static void LvalDisAsm(string &s, const int *&ip)
     s += " ";
 }
 
-static const int *DisAsmIns(string &s, const int *ip, const int *code, const bytecode::BytecodeFile *bcf)
+static const int *DisAsmIns(string &s, const int *ip, const int *code, const type_elem_t *typetable,
+                            const bytecode::BytecodeFile *bcf)
 {
     #define F(N) #N,
     static const char *ilnames[] = { ILNAMES };
@@ -74,6 +75,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const byt
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
         case IL_LOGREAD:
+        case IL_ISTYPE:
             s += to_string(*ip++);
             break;
 
@@ -101,9 +103,9 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const byt
 
         case IL_NEWVEC:
         {
-            auto t = *ip++;
+            auto ti = typetable + *ip++;
             auto nargs = *ip++;
-            s += t >= 0 ? bcf->structs()->Get(t)->name()->c_str() : "vector";
+            s += ti[0] == V_STRUCT ? bcf->structs()->Get(ti[1])->name()->c_str() : "vector";
             s += " ";
             s += to_string(nargs);
             break;
@@ -159,12 +161,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const byt
             break;
         }
 
-        case IL_ISTYPE:
-            s += to_string(*ip++);
-            s += " ";
-            s += to_string(*ip++);
-            break;
-
         case IL_CORO:
         {
             s += to_string(*ip++);
@@ -192,12 +188,13 @@ void DisAsm(string &s, const uchar *bytecode_buffer)
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
+    auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     auto len = bcf->bytecode()->Length();
 
     const int *ip = code;
     while (ip < code + len)
     {
-        ip = DisAsmIns(s, ip, code, bcf);
+        ip = DisAsmIns(s, ip, code, typetable, bcf);
         s += "\n";
     }
 }

@@ -38,24 +38,26 @@ struct ValueParser
             Value(lo).DECRT();
     }
 
-    Value Parse()
+    Value Parse(type_elem_t typeoff)
     {
-        Value v = ParseFactor();
+        Value v = ParseFactor(typeoff);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
         return v;
     }
 
-    Value ParseElems(TType end, int type, int numelems = -1)
+    Value ParseElems(TType end, type_elem_t typeoff, int numelems = -1)
     {
         Gobble(T_LINEFEED);
         vector<Value> elems;
+        auto ti = g_vm->TypeInfo(typeoff);
+
         if (lex.token == end) lex.Next();
         else
         {
-            for (;;)
+            for (int i = 0;; i++)
             {
-                auto x = ParseFactor();
+                auto x = ParseFactor(ti[0] == V_VECTOR ? ti[1] : ti[i + 2]);  // FIXME: error checking :)
                 if ((int)elems.size() == numelems) x.DEC();
                 else elems.push_back(x);
                 bool haslf = lex.token == T_LINEFEED;
@@ -71,13 +73,13 @@ struct ValueParser
         if (numelems >= 0 && (int)elems.size() < numelems)
             lex.Error("not enough constructor initializers");
 
-        auto vec = g_vm->NewVector(elems.size(), type);
+        auto vec = g_vm->NewVector(elems.size(), typeoff);
         allocated.push_back(vec);
         for (auto &e : elems) vec->push(e.INC());
         return Value(vec);
     }
 
-    Value ParseFactor()
+    Value ParseFactor(type_elem_t typeoff)
     {
         switch (lex.token)
         {
@@ -91,7 +93,7 @@ struct ValueParser
             case T_MINUS:
             {
                 lex.Next(); 
-                Value v = ParseFactor();
+                Value v = ParseFactor(typeoff);
                 switch (v.type)
                 {
                     case V_INT:   v.ival() *= -1; break;
@@ -104,7 +106,7 @@ struct ValueParser
             case T_LEFTBRACKET:
             {
                 lex.Next();
-                return ParseElems(T_RIGHTBRACKET, -1);
+                return ParseElems(T_RIGHTBRACKET, typeoff);
             }
 
             case T_IDENT:
@@ -113,9 +115,9 @@ struct ValueParser
                 lex.Next();
                 Expect(T_LEFTCURLY);
                 int reqargs = 0;
-                int idx = g_vm->StructIdx(sname, reqargs);
-                if (idx < 0) lex.Error("unknown type: " + sname);
-                return ParseElems(T_RIGHTCURLY, idx, reqargs);
+                auto ti = g_vm->StructTypeInfo(sname, reqargs);
+                if (ti < 0) lex.Error("unknown type: " + sname);
+                return ParseElems(T_RIGHTCURLY, ti, reqargs);
             }
 
             default:
@@ -138,12 +140,12 @@ struct ValueParser
     }
 };
 
-static Value ParseData(char *inp)
+static Value ParseData(type_elem_t typeoff, char *inp)
 {
     try
     {
         ValueParser parser(inp);
-        g_vm->Push(parser.Parse().INC());
+        g_vm->Push(parser.Parse(typeoff).INC());
         return Value(0, V_NIL);
     }
     catch (string &s)
@@ -155,13 +157,13 @@ static Value ParseData(char *inp)
 
 void AddReaderOps()
 {
-    STARTDECL(parse_data) (Value &ins)
+    STARTDECL(parse_data) (Value &type, Value &ins)
     {
-        Value v = ParseData(ins.sval()->str());
+        Value v = ParseData((type_elem_t)type.ival(), ins.sval()->str());
         ins.DECRT();
         return v;
     }
-    ENDDECL1(parse_data, "stringdata", "S", "AS?",
+    ENDDECL2(parse_data, "typeid,stringdata", "TS", "AS?",
         "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data"
         " structure to a string) back into a data structure. supports int/float/string/vector and structs."
         " structs will be forced to be compatible with their current definitions, i.e. too many elements will be"

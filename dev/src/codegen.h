@@ -17,12 +17,15 @@ namespace lobster
 
 struct CodeGen 
 {
-    vector<int> &code;
-    vector<bytecode::LineInfo> &lineinfo;
+    vector<int> code;
+    vector<bytecode::LineInfo> lineinfo;
     Parser &parser;
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
+    
+    vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
+    map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
 
     int Pos() { return (int)code.size(); }
 
@@ -41,9 +44,66 @@ struct CodeGen
     #define MARKL(name) auto name = Pos();
     #define SETL(name) code[name - 1] = Pos();
 
-    CodeGen(Parser &_p, SymbolTable &_st, vector<int> &_code, vector<bytecode::LineInfo> &_lineinfo)
-        : code(_code), lineinfo(_lineinfo), parser(_p), st(_st)
+    // Make a table for use as VM runtime type.
+    type_elem_t GetTypeTableOffset(TypeRef type)
     {
+        vector<type_elem_t> tt;
+        tt.push_back((type_elem_t)type->t);
+
+        switch (type->t)
+        {
+            case V_VECTOR:
+                tt.push_back(GetTypeTableOffset(type->sub));
+                break;
+
+            case V_STRUCT:
+                if (type->struc->typeinfo >= 0)
+                    return type->struc->typeinfo;
+
+                type->struc->typeinfo = (type_elem_t)type_table.size();
+                tt.push_back((type_elem_t)type->struc->idx);
+                // Reserve space, so other types can be added afterwards safely.
+                type_table.insert(type_table.end(), type->struc->fields.size() + 2, (type_elem_t)0);
+
+                for (auto &field : type->struc->fields)
+                {
+                    tt.push_back(GetTypeTableOffset(field.type));
+                }
+
+                std::copy(tt.begin(), tt.end(), type_table.begin() + type->struc->typeinfo);
+                return type->struc->typeinfo;
+        }
+        // For everything that's not a struct:
+        auto it = type_lookup.find(tt);
+        if (it != type_lookup.end()) return it->second;
+        auto offset = (type_elem_t)type_table.size();
+        type_lookup[tt] = offset;
+        type_table.insert(type_table.end(), tt.begin(), tt.end());
+        return offset;
+    }
+
+    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st)
+    {
+        // Pre-load some types into the table, must correspond to order of type_elem_t enums.
+                                                    GetTypeTableOffset(type_int);
+                                                    GetTypeTableOffset(type_float);
+        Type type_boxedint(V_BOXEDINT);             GetTypeTableOffset(&type_boxedint);
+        Type type_boxedfloat(V_BOXEDFLOAT);         GetTypeTableOffset(&type_boxedfloat);
+                                                    GetTypeTableOffset(type_string);
+                                                    GetTypeTableOffset(type_coroutine);
+                                                    GetTypeTableOffset(type_any);
+        Type type_cycledone(V_CYCLEDONE);           GetTypeTableOffset(&type_cycledone);
+        Type type_valuebuf(V_VALUEBUF);             GetTypeTableOffset(&type_valuebuf);
+                                                    GetTypeTableOffset(type_vector_int);
+                                                    GetTypeTableOffset(type_vector_float);
+        Type type_vec_str(V_VECTOR, &*type_string); GetTypeTableOffset(&type_vec_str);
+        assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
+
+        for (auto type : st.default_int_vector_types)
+            vint_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
+        for (auto type : st.default_float_vector_types)
+            vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
+
         // Create list of subclasses, to help in creation of dispatch tables.
         for (auto struc : st.structtable)
         {
@@ -145,27 +205,20 @@ struct CodeGen
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs)
             {
-                auto gendispatch = [&] (int override_j, int override_idx)
+                auto gendispatch = [&] (int override_j, TypeRef override_type)
                 {
+                    Output(OUTPUT_DEBUG, "dispatch %s", f.name.c_str());
                     for (int j = 0; j < f.nargs(); j++)
                     {
-                        if (j == override_j)
-                        {
-                            Emit(V_VECTOR, override_idx);
-                        }
-                        else
-                        {
-                            auto arg = sf->args.v[j];
-                            // FIXME: this probably doesn't cover all cases anymore..
-                            if (arg.type->t == V_STRUCT) Emit(V_VECTOR, arg.type->struc->idx); 
-                            else Emit(arg.type->t, -1);
-                        }
+                        auto type = j == override_j ? override_type : sf->args.v[j].type;
+                        Output(OUTPUT_DEBUG, "arg %d: %s", j, TypeName(type).c_str());
+                        Emit(GetTypeTableOffset(type));
                     }
                     Emit(sf->subbytecodestart);
                     numentries++;
                 };
                 // Generate regular dispatch entry.
-                gendispatch(-1, -1);
+                gendispatch(-1, nullptr);
                 // See if this entry contains super-types and generate additional entries.
                 for (int j = 0; j < f.nargs(); j++)
                 {
@@ -181,7 +234,7 @@ struct CodeGen
                                 // Only check this arg, not all arg, which is reasonable.
                                 if (*osf->args.v[j].type == subs->thistype) goto skip;
                             }
-                            gendispatch(j, subs->idx);
+                            gendispatch(j, &subs->thistype);
                             // FIXME: We should also call it on subtypes of subs.
                             skip:;
                         }
@@ -251,13 +304,13 @@ struct CodeGen
         if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
     }
 
-    const Node *GenArgs(const Node *list, const ArgVector *args, int &nargs)
+    const Node *GenArgs(const Node *list, const ArgVector *args, int &nargs, const Node *parent = nullptr)
     {
         // Skip unused args, this may happen for dynamic calls.
         const Node *lastarg = nullptr;
         for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
         {
-            Gen(list->head(), 1);
+            Gen(list->head(), 1, parent);
             lastarg = list->head();
             nargs++;
         }
@@ -281,7 +334,7 @@ struct CodeGen
 
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
 
-    void Gen(const Node *n, int retval)
+    void Gen(const Node *n, int retval, const Node *parent = nullptr)
     {
         linenumbernodes.push_back(n);
         // by default, the cases below only deal with 0 or 1 retvals,
@@ -485,7 +538,7 @@ struct CodeGen
                     auto nf = n->ncall_id()->nf();
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
-                    auto lastarg = GenArgs(n->ncall_args(), nullptr, nargs);
+                    auto lastarg = GenArgs(n->ncall_args(), nullptr, nargs, n);
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx);
@@ -651,26 +704,33 @@ struct CodeGen
                 Gen(n->for_iter(), 1);
                 Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
                 Emit(IL_PUSHUNDEF);     // body retval
-                Emit(IL_FOR);
+                auto type = n->for_iter()->exptype;
+                switch (type->t)
+                {
+                    case V_INT: Emit(IL_IFOR); break;
+                    case V_STRING: Emit(IL_SFOR); break;
+                    case V_VECTOR: Emit(IL_VFOR); break;
+                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR); Emit(IL_VFOR); break;
+                    default: assert(false);
+                }
                 Dummy(retval);
                 break;
             }
 
             case T_CONSTRUCTOR:
             {
-                Struct *struc = nullptr;
-
-                auto vtype = n->constructor_type()->typenode();
+                auto vtype = n->exptype;
                 if (vtype->t == V_STRUCT)
                 {
-                    struc = vtype->struc;
-                    Emit(IL_NEWVEC, struc->idx, (int)struc->fields.size());
+                    auto offset = GetTypeTableOffset(vtype);
+                    Emit(IL_NEWVEC, offset, (int)vtype->struc->fields.size());
                 }
                 else
                 {
+                    assert(vtype->t == V_VECTOR);
                     int nargs = 0;
                     for (const Node *it = n->constructor_args(); it; it = it->tail()) nargs++;
-                    Emit(IL_NEWVEC, V_VECTOR, nargs);
+                    Emit(IL_NEWVEC, GetTypeTableOffset(vtype), nargs);
                 }
 
                 int i = 0;
@@ -690,12 +750,12 @@ struct CodeGen
             case T_IS:
             {
                 Gen(n->left(), retval);
-                auto t = n->right()->typenode()->t;
-                // FIXME: this probably dpesn't cover all cases anymore
+                // If the value was a scalar, then it always results in a compile time type check, which means
+                // this T_IS would have been optimized out. Which means from here on we can assume its a ref.
+                assert(!IsScalar(n->left()->exptype->t));
                 if (retval)
                 {
-                    if (t == V_STRUCT) Emit(IL_ISTYPE, V_VECTOR, n->right()->typenode()->struc->idx);
-                    else Emit(IL_ISTYPE, t, -1);
+                    Emit(IL_ISTYPE, GetTypeTableOffset(n->right()->typenode()));
                 }
                 break;
             }
@@ -735,6 +795,22 @@ struct CodeGen
                 SETL(loc);
 
                 if (!retval) Emit(IL_POP);
+                break;
+            }
+
+            case T_TYPEOF:
+            {
+                if (n->child())
+                {
+                    Emit(IL_PUSHINT, GetTypeTableOffset(n->child()->type == T_IDENT
+                                                        ? n->child()->exptype
+                                                        : n->child()->typenode()));
+                }
+                else
+                {
+                    if (!parent || parent->type != T_NATCALL) parser.Error("typeof return out of call context", n);
+                    Emit(IL_PUSHINT, GetTypeTableOffset(parent->exptype));
+                }
                 break;
             }
 

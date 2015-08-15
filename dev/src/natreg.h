@@ -155,6 +155,7 @@ extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
 extern TypeRef type_function_nil;
 extern TypeRef type_coroutine;
+extern TypeRef type_typeid;
 
 enum ArgFlags { AF_NONE = 0, NF_EXPFUNVAL = 1, AF_ANYTYPE = 2, NF_SUBARG1 = 4, NF_ANYVAR = 8, NF_CORESUME = 16 };
 
@@ -188,6 +189,7 @@ template<typename T> struct Typed
             case 'C': type = type_function_null; break;
             case 'R': type = type_coroutine; break;
             case 'A': type = type_any; break;
+            case 'T': type = type_typeid; break;
             default:  assert(0);
         }
         while (*tid && !isalpha(*tid))

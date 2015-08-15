@@ -54,6 +54,7 @@ const Type g_type_vector_float(V_VECTOR, &*type_float); TypeRef type_vector_floa
 const Type g_type_function_null(V_FUNCTION);            TypeRef type_function_null = &g_type_function_null;
 const Type g_type_function_cocl(V_YIELD);               TypeRef type_function_cocl = &g_type_function_cocl;
 const Type g_type_coroutine(V_COROUTINE);               TypeRef type_coroutine = &g_type_coroutine;
+const Type g_type_typeid(V_TYPEID);                     TypeRef type_typeid = &g_type_typeid;
 const Type g_type_function_nil(V_NILABLE,
                                 &*type_function_null);  TypeRef type_function_nil = &g_type_function_nil;
 
@@ -72,11 +73,9 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string
 
     if (parsedump) *parsedump = parser.DumpAll();
 
-    vector<int> code;
-    vector<bytecode::LineInfo> linenumbers;
-    CodeGen cg(parser, st, code, linenumbers);
+    CodeGen cg(parser, st);
 
-    st.Serialize(code, linenumbers, bytecode);
+    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets, cg.lineinfo, bytecode);
 
     //parserpool->printstats();
 }

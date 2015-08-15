@@ -88,15 +88,17 @@ struct Struct : Named
     bool generic;
     bool predeclaration;
 
-    Type thistype;       // convenient place to store the type corresponding to this
-    TypeRef vectortype;  // What kind of vector this can be demoted to.
+    Type thistype;         // convenient place to store the type corresponding to this.
+    TypeRef vectortype;    // What kind of vector this can be demoted to.
+    type_elem_t typeinfo;  // Runtime type. 
 
     Struct(const string &_name, int _idx)
         : Named(_name, _idx), next(nullptr), first(this), superclass(nullptr),
           firstsubclass(nullptr), nextsubclass(nullptr),
           readonly(false), generic(false), predeclaration(false),
           thistype(V_STRUCT, this),
-          vectortype(type_vector_any) {}
+          vectortype(type_vector_any),
+          typeinfo((type_elem_t)-1) {}
     Struct() : Struct("", 0) {}
 
     int Has(SharedField *fld)
@@ -294,7 +296,7 @@ struct SymbolTable
     vector<pair<TypeRef, Ident *>> withstack;
     vector<size_t> withstacklevels;
 
-    vector<Struct *> default_vector_types;
+    vector<TypeRef> default_int_vector_types, default_float_vector_types;
 
     bool uses_frame_state;
 
@@ -569,20 +571,31 @@ struct SymbolTable
     const string &ReverseLookupType    (size_t v) const { assert(v < structtable.size());   return structtable[v]->name;   }
     const string &ReverseLookupFunction(size_t v) const { assert(v < functiontable.size()); return functiontable[v]->name; }
 
+    void RegisterTypeVector(vector<TypeRef> &sv, const char **names, bool isint)
+    {
+        if (sv.size()) return;  // Already initialized.
+        sv.push_back(nullptr);
+        sv.push_back(nullptr);
+        for (auto name = names; *name; name++)
+        {
+            // Can't use stucts.find, since all are out of scope.
+            for (auto struc : structtable) if (struc->name == *name)
+            {
+                sv.push_back(&struc->thistype);
+                goto found;
+            }
+            sv.push_back(isint ? type_vector_int : type_vector_float);
+            found:;
+        }
+    }
+
     void RegisterDefaultVectorTypes()
     {
         // TODO: this isn't great hardcoded in the compiler, would be better if it was declared in lobster code
-        if (default_vector_types.size()) return;  // Already initialized.
-        static const char *default_vector_type_names[] = { "xy", "xyz", "xyzw", nullptr };
-        default_vector_types.push_back(nullptr);
-        default_vector_types.push_back(nullptr);
-        for (auto name = default_vector_type_names; *name; name++)
-        {
-            Struct *t = nullptr;
-            // linear search because we may not have the map available if called from a VM loaded from bytecode.
-            for (auto s : structtable) if (s->name == *name) { t = s; break; }
-            default_vector_types.push_back(t);
-        }
+        static const char *default_int_vector_type_names[]   = { "xy_i", "xyz_i", "xyzw_i", nullptr };
+        static const char *default_float_vector_type_names[] = { "xy_f", "xyz_f", "xyzw_f", nullptr };
+        RegisterTypeVector(default_int_vector_types, default_int_vector_type_names, true);
+        RegisterTypeVector(default_float_vector_types, default_float_vector_type_names, false);
     }
 
     bool IsGeneric(TypeRef type)
@@ -592,7 +605,12 @@ struct SymbolTable
         return u->t == V_STRUCT && u->struc->generic;
     }
 
-    void Serialize(vector<int> &code, vector<bytecode::LineInfo> &linenumbers, vector<uchar> &bytecode)
+    void Serialize(vector<int> &code,
+                   vector<type_elem_t> &typetable,
+                   vector<type_elem_t> &vint_typeoffsets,
+                   vector<type_elem_t> &vfloat_typeoffsets,
+                   vector<bytecode::LineInfo> &linenumbers,
+                   vector<uchar> &bytecode)
     {
         flatbuffers::FlatBufferBuilder fbb;
 
@@ -608,17 +626,16 @@ struct SymbolTable
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb));
 
-        vector<int> vtypes;
-        for (auto s : default_vector_types) vtypes.push_back(s ? s->idx : -1);
-
         auto bcf = bytecode::CreateBytecodeFile(fbb, LOBSTER_BYTECODE_FORMAT_VERSION,
                                                      fbb.CreateVector(code),
+                                                     fbb.CreateVector((vector<int> &)typetable),
                                                      fbb.CreateVectorOfStructs(linenumbers),
                                                      fbb.CreateVector(fns),
                                                      fbb.CreateVector(functionoffsets),
                                                      fbb.CreateVector(structoffsets),
                                                      fbb.CreateVector(identoffsets),
-                                                     fbb.CreateVector(vtypes),
+                                                     fbb.CreateVector((vector<int> &)vint_typeoffsets),
+                                                     fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
                                                      uses_frame_state);
         fbb.Finish(bcf);
 

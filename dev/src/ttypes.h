@@ -59,6 +59,7 @@ namespace lobster
     T0(T_FUN, "def", 0) \
     T2(T_RETURN, "return", 2, return_value, return_function_idx) \
     T0(T_IS, "is", 2) \
+    T0(T_TYPEOF, "typeof", 1) \
     T0(T_COROUTINE, "coroutine", 1) \
     \
     /* These are used ONLY as node types: */ \

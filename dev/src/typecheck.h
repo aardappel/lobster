@@ -209,6 +209,7 @@ struct TypeChecker
             case V_ANY:       return genericany || coercions || !IsScalar(type->t);
             case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions, unifications, genericany);
             case V_FLOAT:     return type->t == V_INT && coercions;
+            case V_INT:       return type->t == V_TYPEID;
             case V_STRING:    return false; //coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NILABLE:   return type->t == V_NIL ||
@@ -255,6 +256,7 @@ struct TypeChecker
     void MakeAny(Node *&a)
     {
         if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
+        if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
         if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_A2A, a);
         a->exptype = type_any;
     }
@@ -397,7 +399,10 @@ struct TypeChecker
                     type = type_vector_float;
                     if (rtype->t == V_INT) SubType(right, type_float, "right", *right);
                 }
-                 // Recover struct type if possible.
+                // Recover struct type if possible.
+                // We don't rely on default_int_vector_types etc here, since we also want other
+                // numeric vectors to be preserved, e.g. "color"
+                // At run-time, the left argument is type preserving, the right is not.
                 if (ltype->t == V_STRUCT) type = StructTypeFromVector(type, ltype->struc);
                 return true;
             }
@@ -1549,8 +1554,8 @@ struct TypeChecker
                     }
                     if (flen >= 2 && flen <= 4 && type->t == V_VECTOR && type->sub->Numeric())
                     {
-                        auto struc = st.default_vector_types[flen];
-                        if (struc) type = StructTypeFromVector(type, struc);
+                        type = type->sub->t == V_INT ? st.default_int_vector_types[flen]
+                                                     : st.default_float_vector_types[flen];
                     }
                 }
                 break;
@@ -1648,7 +1653,6 @@ struct TypeChecker
                 {
                     auto struc = FindStructSpecialization(type->struc, n.constructor_args(), n);
                     type = &struc->thistype;
-                    n.constructor_type()->typenode() = type;
                 }
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
@@ -1746,6 +1750,10 @@ struct TypeChecker
                 type = ct;
                 break;
             }
+
+            case T_TYPEOF:
+                type = type_typeid;
+                break;
 
             case T_MULTIRET:
             case T_FUN:

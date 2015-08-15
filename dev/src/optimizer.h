@@ -88,17 +88,26 @@ struct Optimizer
                 }
                 return;
             }
+
         }
         
         if (n.a()) Optimize(n.aref());
         if (n.b()) Optimize(n.bref());
         if (n.c()) Optimize(n.cref());
         
-        /*
         switch (n.type)
         {
+            case T_IS:
+            {
+                Value cval;
+                if (tc.ConstVal(n, cval))
+                {
+                    Changed();
+                    n_ptr = (Node *)new IntConst(n.line, cval.ival());
+                }
+                break;
+            }
         }
-        */
     }
 };
     

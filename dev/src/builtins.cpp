@@ -71,6 +71,13 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
     return Value(i);
 }
 
+type_elem_t GetVectType(type_elem_t available, type_elem_t existing)
+{
+    auto ti = g_vm->TypeInfo(existing);
+    // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
+    return ti[0] != V_STRUCT || available < 0 ? existing : available;
+}
+
 void AddBuiltins()
 {
     STARTDECL(print) (Value &a)
@@ -152,7 +159,8 @@ void AddBuiltins()
 
     STARTDECL(append) (Value &v1, Value &v2)
     {
-        auto nv = g_vm->NewVector(v1.vval()->len + v2.vval()->len, V_VECTOR);
+        assert(v1.vval()->typeoff == v2.vval()->typeoff);  // FIXME: need to guarantee this in typechecking
+        auto nv = g_vm->NewVector(v1.vval()->len + v2.vval()->len, v1.vval()->typeoff);
         nv->append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
         nv->append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
         return Value(nv);
@@ -160,13 +168,14 @@ void AddBuiltins()
     ENDDECL2(append, "xs,ys", "V*V*1", "V1",
         "creates a new vector by appending all elements of 2 input vectors");
 
-    STARTDECL(vector_reserve) (Value &len)
+    STARTDECL(vector_reserve) (Value &type, Value &len)
     {
-        return Value(g_vm->NewVector(len.ival(), V_VECTOR));
+        return Value(g_vm->NewVector(len.ival(), (type_elem_t)type.ival()));
     }
-    ENDDECL1(vector_reserve, "len", "I", "V*",
+    ENDDECL2(vector_reserve, "typeid,len", "TI", "V*",
         "creates a new empty vector much like [] would, except now ensures"
-        " it will have space for len push() operations without having to reallocate.");
+        " it will have space for len push() operations without having to reallocate."
+        " pass \"typeof return\" as typeid.");
 
     STARTDECL(length) (Value &a)
     {
@@ -236,7 +245,7 @@ void AddBuiltins()
     {
         if (i.ival() < 0 || i.ival() >= l.vval()->len) g_vm->BuiltinError("replace: index out of range");
 
-        auto nv = g_vm->NewVector(l.vval()->len, l.vval()->rtype);
+        auto nv = g_vm->NewVector(l.vval()->len, l.vval()->typeoff);
         nv->append(l.vval(), 0, l.vval()->len);
         l.DECRT();
 
@@ -320,7 +329,7 @@ void AddBuiltins()
 
     STARTDECL(copy) (Value &v)
     {
-        auto nv = g_vm->NewVector(v.vval()->len, v.vval()->rtype);
+        auto nv = g_vm->NewVector(v.vval()->len, v.vval()->typeoff);
         nv->append(v.vval(), 0, v.vval()->len);
         v.DECRT();
         return Value(nv);
@@ -336,7 +345,7 @@ void AddBuiltins()
         if (start < 0) start = l.vval()->len + start;
         if (start < 0 || start + size > (int)l.vval()->len)
             g_vm->BuiltinError("slice: values out of range");
-        auto nv = g_vm->NewVector(size, V_VECTOR);
+        auto nv = g_vm->NewVector(size, l.vval()->typeoff);
         nv->append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
@@ -399,7 +408,7 @@ void AddBuiltins()
 
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace)
     {
-        auto v = g_vm->NewVector(0, V_VECTOR);
+        auto v = g_vm->NewVector(0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->str();
         auto dl = delims.sval()->str();
         auto p = s.sval()->str();
@@ -443,7 +452,7 @@ void AddBuiltins()
 
     STARTDECL(string2unicode) (Value &s)
     {
-        auto v = g_vm->NewVector(s.sval()->len, V_VECTOR);
+        auto v = g_vm->NewVector(s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         const char *p = s.sval()->str();
         while (*p)
         {
@@ -527,15 +536,19 @@ void AddBuiltins()
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
-    #define VECTOROP(op) \
-        TYPE_ASSERT(a.type == V_VECTOR); \
-        auto v = g_vm->NewVector(a.vval()->len, a.vval()->rtype); \
+    #define GETVECTYPE(accessor) GetVectType(len <= 4 ? g_vm->accessor(len) : (type_elem_t)-1, a.vval()->typeoff)
+        
+    #define VECTOROPT(op, typeoff) \
+        TYPE_ASSERT(IsVector(a.type)); \
+        auto len = a.vval()->len; \
+        auto v = g_vm->NewVector(len, typeoff); \
         for (int i = 0; i < a.vval()->len; i++) { \
             auto f = a.vval()->at(i); \
             v->push(Value(op)); \
         } \
         a.DECRT(); \
         return Value(v);
+    #define VECTOROP(op) VECTOROPT(op, a.vval()->typeoff)
 
     STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); } ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
@@ -549,7 +562,7 @@ void AddBuiltins()
 
     STARTDECL(int)(Value &a) { return Value(int(a.fval())); } ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int)(Value &a) { VECTOROP(int(f.fval())); } ENDDECL1(int, "v", "F]", "I]:/",
+    STARTDECL(int)(Value &a) { VECTOROPT(int(f.fval()), GETVECTYPE(GetIntVectorType)); } ENDDECL1(int, "v", "F]", "I]:/",
         "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round)   (Value &a) { return Value(int(a.fval() + 0.5f)); } ENDDECL1(round, "f", "F", "I",
@@ -564,7 +577,7 @@ void AddBuiltins()
 
     STARTDECL(float)(Value &a) { return Value(float(a.ival())); } ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float)(Value &a) { VECTOROP(float(f.ival())); } ENDDECL1(float, "v", "I]", "F]:/",
+    STARTDECL(float)(Value &a) { VECTOROPT(float(f.ival()), GETVECTYPE(GetFloatVectorType)); } ENDDECL1(float, "v", "I]", "F]:/",
         "converts a vector of ints to floats");
 
     STARTDECL(sin) (Value &a) { return Value(sinf(a.fval() * RAD)); } ENDDECL1(sin, "angle", "F", "F",
@@ -572,7 +585,7 @@ void AddBuiltins()
     STARTDECL(cos) (Value &a) { return Value(cosf(a.fval() * RAD)); } ENDDECL1(cos, "angle", "F", "F",
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
 
-    STARTDECL(sincos) (Value &a) { return ToValue(float3(cosf(a.fval() * RAD), sinf(a.fval() * RAD), 0.0f)); }
+    STARTDECL(sincos) (Value &a) { return ToValueF(float3(cosf(a.fval() * RAD), sinf(a.fval() * RAD), 0.0f)); }
     ENDDECL1(sincos, "angle", "F", "F]:3",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
 
@@ -589,9 +602,9 @@ void AddBuiltins()
     {
         switch (vec.vval()->len)
         {
-            case 2: { auto v = ValueDecToF<2>(vec); return ToValue(v == float2_0 ? v : normalize(v)); }
-            case 3: { auto v = ValueDecToF<3>(vec); return ToValue(v == float3_0 ? v : normalize(v)); }
-            case 4: { auto v = ValueDecToF<4>(vec); return ToValue(v == float4_0 ? v : normalize(v)); }
+            case 2: { auto v = ValueDecToF<2>(vec); return ToValueF(v == float2_0 ? v : normalize(v)); }
+            case 3: { auto v = ValueDecToF<3>(vec); return ToValueF(v == float3_0 ? v : normalize(v)); }
+            case 4: { auto v = ValueDecToF<4>(vec); return ToValueF(v == float4_0 ? v : normalize(v)); }
             default: return g_vm->BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
     }
@@ -605,7 +618,7 @@ void AddBuiltins()
     STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecToF<4>(a))); } ENDDECL1(magnitude, "v", "F]", "F",
         "the geometric length of a vector");
 
-    STARTDECL(cross) (Value &a, Value &b) { return ToValue(cross(ValueDecToF<3>(a), ValueDecToF<3>(b))); }
+    STARTDECL(cross) (Value &a, Value &b) { return ToValueF(cross(ValueDecToF<3>(a), ValueDecToF<3>(b))); }
     ENDDECL2(cross, "a,b", "F]F]", "F]:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
@@ -671,9 +684,11 @@ void AddBuiltins()
     STARTDECL(abs) (Value &a) { VECTOROP(fabsf(f.fval())); } ENDDECL1(abs, "x", "F]", "F]:/",
         "absolute value of a float vector");
 
+    // FIXME: need to guarantee this assert in typechecking
     #define VECBINOP(name,access) \
         if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name ## "() arguments must be equal length"); \
-        auto v = g_vm->NewVector(x.vval()->len, x.vval()->rtype); \
+        assert(x.vval()->typeoff == y.vval()->typeoff); \
+        auto v = g_vm->NewVector(x.vval()->len, x.vval()->typeoff); \
         for (int i = 0; i < x.vval()->len; i++) { \
             v->push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
         } \
@@ -700,10 +715,10 @@ void AddBuiltins()
 
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t)
     {
-        return ToValue(cardinalspline(ValueDecToF<3>(z),
-                                      ValueDecToF<3>(a),
-                                      ValueDecToF<3>(b),
-                                      ValueDecToF<3>(c), f.fval(), t.fval()));
+        return ToValueF(cardinalspline(ValueDecToF<3>(z),
+                                       ValueDecToF<3>(a),
+                                       ValueDecToF<3>(b),
+                                       ValueDecToF<3>(c), f.fval(), t.fval()));
     }
     ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
@@ -719,7 +734,7 @@ void AddBuiltins()
     STARTDECL(lerp) (Value &x, Value &y, Value &f)
     {
         auto numelems = x.vval()->len;
-        return ToValue(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
+        return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
     }
     ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
         "linearly interpolates between x and y vectors with factor f [0..1]");

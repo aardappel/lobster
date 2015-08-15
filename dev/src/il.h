@@ -14,7 +14,10 @@
 
 // FlatBuffers takes care of backwards compatibility of all metadata, but not the actual bytecode.
 // This needs to be bumped each time we make changes to the format.
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 1;
+
+namespace lobster
+{
+    const int LOBSTER_BYTECODE_FORMAT_VERSION = 2;
 
 #define ILNAMES \
     F(PUSHINT) \
@@ -43,7 +46,8 @@ const int LOBSTER_BYTECODE_FORMAT_VERSION = 1;
     F(FVSADD) F(FVSSUB) F(FVSMUL) F(FVSDIV) F(FVSMOD) F(FVSLT) F(FVSGT) F(FVSLE) F(FVSGE) \
     F(AEQ) F(ANE) \
     F(IUMINUS) F(FUMINUS) F(IVUMINUS) F(FVUMINUS) \
-    F(LOGNOT) F(I2F) F(A2S) F(I2A) F(F2A) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) F(FOR) \
+    F(LOGNOT) F(I2F) F(A2S) F(I2A) F(F2A) F(JUMPFAIL) F(JUMPFAILR) F(JUMPNOFAIL) F(JUMPNOFAILR) F(RETURN) \
+    F(IFOR) F(SFOR) F(VFOR) \
     F(PUSHONCE) \
     F(ISTYPE) F(CORO) F(COCL) F(COEND) \
     F(LOGREAD)
@@ -59,9 +63,6 @@ const int LOBSTER_BYTECODE_FORMAT_VERSION = 1;
     F(SADD)   F(SADDR) \
     F(IPP) F(IPPR) F(IMM) F(IMMR) F(IPPP) F(IPPPR) F(IMMP) F(IMMPR) \
     F(FPP) F(FPPR) F(FMM) F(FMMR) F(FPPP) F(FPPPR) F(FMMP) F(FMMPR)
-
-namespace lobster
-{
 
 #define F(N) IL_##N,
     enum { ILNAMES };

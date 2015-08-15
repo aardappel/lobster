@@ -312,7 +312,6 @@ struct Lex : LoadedFile
                 {
                     while (isalnum(*p) || *p == '_' || *p < 0) p++;
                     sattr = string(tokenstart, p);
-                    // add any new keywords also to TokStr below
                     if      (sattr == "nil")       return T_NIL;
                     else if (sattr == "true")    { sattr = "1"; return T_INT; }
                     else if (sattr == "false")   { sattr = "0"; return T_INT; }
@@ -331,6 +330,7 @@ struct Lex : LoadedFile
                     else if (sattr == "private")   return T_PRIVATE;
                     else if (sattr == "coroutine") return T_COROUTINE;
                     else if (sattr == "enum")      return T_ENUM;
+                    else if (sattr == "typeof")    return T_TYPEOF;
                     else return T_IDENT;
                 }
 

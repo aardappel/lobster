@@ -13,21 +13,21 @@ def run_test_cases():
     value testa { a:int }
     value testb : testa { b:int }
 
-    def tf(x:int, y): 1
+    def tf(x:int, y:int): 1
     def tf(x:string, y:float): 2
     def tf(x:string, y:int): 3
-    def tf(x:testa, y): 4
-    def tf(x:testb, y): 9
+    def tf(x:testa, y:int): 4
+    def tf(x:testb, y:string): 9
     def tf(x:testb, y:float): 5
     def tf(x:testb, y:int): 6
-    def tf(x, y): 7
+    def tf(x:string, y:string): 7
 
     def tf(x): 8
 
+    assert(tf(testa { 0 }, 0) == 4)
     assert(tf(1, 0) == 1)
     assert(tf("", 0.0) == 2)
     assert(tf("", 0) == 3)
-    assert(tf(testa { 0 }, 0) == 4)
     assert(tf(testb { 0, 0 }, "") == 9)
     assert(tf(testb { 0, 0 }, 0.0) == 5)
     assert(tf(testb { 0, 0 }, 0) == 6)
@@ -136,6 +136,8 @@ def run_test_cases():
             x
     assert(compile_time_if(1) is int)
     assert(compile_time_if("") is string)
+
+    assert(typeof int == 0)  // Always the first one added to the typetable.
 
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
@@ -348,6 +350,8 @@ def run_test_cases():
     cycletest()
     garbage_objects := collect_garbage()
     assert(garbage_objects == 4) // 2 vectors, 2 strings
+    garbage_objects = collect_garbage()
+    assert(!garbage_objects)
 
     //"press enter to continue...".print
     //getline()

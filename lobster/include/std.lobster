@@ -1,7 +1,7 @@
 // standard functions that build on top of the builtin functions useful for almost all programs
 
 def map(xs, fun):
-    r := vector_reserve(xs.length)
+    r := vector_reserve(typeof return, xs.length)
     for(xs) x, i:
         r.push(fun(x, i))
     r

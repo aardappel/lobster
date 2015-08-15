@@ -135,35 +135,41 @@ inline flatbuffers::Offset<Ident> CreateIdent(flatbuffers::FlatBufferBuilder &_f
 struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t bytecode_version() const { return GetField<int32_t>(4, 0); }
   const flatbuffers::Vector<int32_t> *bytecode() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(6); }
-  const flatbuffers::Vector<const LineInfo *> *lineinfo() const { return GetPointer<const flatbuffers::Vector<const LineInfo *> *>(8); }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *filenames() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(10); }
-  const flatbuffers::Vector<flatbuffers::Offset<Function>> *functions() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Function>> *>(12); }
-  const flatbuffers::Vector<flatbuffers::Offset<Struct>> *structs() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Struct>> *>(14); }
-  const flatbuffers::Vector<flatbuffers::Offset<Ident>> *idents() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Ident>> *>(16); }
-  const flatbuffers::Vector<int32_t> *default_vector_types() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(18); }
-  uint8_t uses_frame_state() const { return GetField<uint8_t>(20, 0); }
+  const flatbuffers::Vector<int32_t> *typetable() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(8); }
+  const flatbuffers::Vector<const LineInfo *> *lineinfo() const { return GetPointer<const flatbuffers::Vector<const LineInfo *> *>(10); }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *filenames() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(12); }
+  const flatbuffers::Vector<flatbuffers::Offset<Function>> *functions() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Function>> *>(14); }
+  const flatbuffers::Vector<flatbuffers::Offset<Struct>> *structs() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Struct>> *>(16); }
+  const flatbuffers::Vector<flatbuffers::Offset<Ident>> *idents() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Ident>> *>(18); }
+  const flatbuffers::Vector<int32_t> *default_int_vector_types() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(20); }
+  const flatbuffers::Vector<int32_t> *default_float_vector_types() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(22); }
+  uint8_t uses_frame_state() const { return GetField<uint8_t>(24, 0); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, 4 /* bytecode_version */) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 6 /* bytecode */) &&
            verifier.Verify(bytecode()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* lineinfo */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* typetable */) &&
+           verifier.Verify(typetable()) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 10 /* lineinfo */) &&
            verifier.Verify(lineinfo()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 10 /* filenames */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 12 /* filenames */) &&
            verifier.Verify(filenames()) &&
            verifier.VerifyVectorOfStrings(filenames()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 12 /* functions */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 14 /* functions */) &&
            verifier.Verify(functions()) &&
            verifier.VerifyVectorOfTables(functions()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 14 /* structs */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 16 /* structs */) &&
            verifier.Verify(structs()) &&
            verifier.VerifyVectorOfTables(structs()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 16 /* idents */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 18 /* idents */) &&
            verifier.Verify(idents()) &&
            verifier.VerifyVectorOfTables(idents()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 18 /* default_vector_types */) &&
-           verifier.Verify(default_vector_types()) &&
-           VerifyField<uint8_t>(verifier, 20 /* uses_frame_state */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 20 /* default_int_vector_types */) &&
+           verifier.Verify(default_int_vector_types()) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 22 /* default_float_vector_types */) &&
+           verifier.Verify(default_float_vector_types()) &&
+           VerifyField<uint8_t>(verifier, 24 /* uses_frame_state */) &&
            verifier.EndTable();
   }
 };
@@ -173,17 +179,19 @@ struct BytecodeFileBuilder {
   flatbuffers::uoffset_t start_;
   void add_bytecode_version(int32_t bytecode_version) { fbb_.AddElement<int32_t>(4, bytecode_version, 0); }
   void add_bytecode(flatbuffers::Offset<flatbuffers::Vector<int32_t>> bytecode) { fbb_.AddOffset(6, bytecode); }
-  void add_lineinfo(flatbuffers::Offset<flatbuffers::Vector<const LineInfo *>> lineinfo) { fbb_.AddOffset(8, lineinfo); }
-  void add_filenames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> filenames) { fbb_.AddOffset(10, filenames); }
-  void add_functions(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Function>>> functions) { fbb_.AddOffset(12, functions); }
-  void add_structs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Struct>>> structs) { fbb_.AddOffset(14, structs); }
-  void add_idents(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Ident>>> idents) { fbb_.AddOffset(16, idents); }
-  void add_default_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_vector_types) { fbb_.AddOffset(18, default_vector_types); }
-  void add_uses_frame_state(uint8_t uses_frame_state) { fbb_.AddElement<uint8_t>(20, uses_frame_state, 0); }
+  void add_typetable(flatbuffers::Offset<flatbuffers::Vector<int32_t>> typetable) { fbb_.AddOffset(8, typetable); }
+  void add_lineinfo(flatbuffers::Offset<flatbuffers::Vector<const LineInfo *>> lineinfo) { fbb_.AddOffset(10, lineinfo); }
+  void add_filenames(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> filenames) { fbb_.AddOffset(12, filenames); }
+  void add_functions(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Function>>> functions) { fbb_.AddOffset(14, functions); }
+  void add_structs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Struct>>> structs) { fbb_.AddOffset(16, structs); }
+  void add_idents(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Ident>>> idents) { fbb_.AddOffset(18, idents); }
+  void add_default_int_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types) { fbb_.AddOffset(20, default_int_vector_types); }
+  void add_default_float_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types) { fbb_.AddOffset(22, default_float_vector_types); }
+  void add_uses_frame_state(uint8_t uses_frame_state) { fbb_.AddElement<uint8_t>(24, uses_frame_state, 0); }
   BytecodeFileBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   BytecodeFileBuilder &operator=(const BytecodeFileBuilder &);
   flatbuffers::Offset<BytecodeFile> Finish() {
-    auto o = flatbuffers::Offset<BytecodeFile>(fbb_.EndTable(start_, 9));
+    auto o = flatbuffers::Offset<BytecodeFile>(fbb_.EndTable(start_, 11));
     return o;
   }
 };
@@ -191,20 +199,24 @@ struct BytecodeFileBuilder {
 inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(flatbuffers::FlatBufferBuilder &_fbb,
    int32_t bytecode_version = 0,
    flatbuffers::Offset<flatbuffers::Vector<int32_t>> bytecode = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int32_t>> typetable = 0,
    flatbuffers::Offset<flatbuffers::Vector<const LineInfo *>> lineinfo = 0,
    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> filenames = 0,
    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Function>>> functions = 0,
    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Struct>>> structs = 0,
    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Ident>>> idents = 0,
-   flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_vector_types = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types = 0,
+   flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types = 0,
    uint8_t uses_frame_state = 0) {
   BytecodeFileBuilder builder_(_fbb);
-  builder_.add_default_vector_types(default_vector_types);
+  builder_.add_default_float_vector_types(default_float_vector_types);
+  builder_.add_default_int_vector_types(default_int_vector_types);
   builder_.add_idents(idents);
   builder_.add_structs(structs);
   builder_.add_functions(functions);
   builder_.add_filenames(filenames);
   builder_.add_lineinfo(lineinfo);
+  builder_.add_typetable(typetable);
   builder_.add_bytecode(bytecode);
   builder_.add_bytecode_version(bytecode_version);
   builder_.add_uses_frame_state(uses_frame_state);

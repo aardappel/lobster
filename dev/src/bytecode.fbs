@@ -29,6 +29,7 @@ table BytecodeFile
 {
     bytecode_version:int;  // The format of bytecode may change.
     bytecode:[int];
+	typetable:[int];
 
     lineinfo:[LineInfo];
     filenames:[string];
@@ -37,7 +38,8 @@ table BytecodeFile
     structs:[Struct];
     idents:[Ident];
 
-    default_vector_types:[int];
+    default_int_vector_types:[int];
+    default_float_vector_types:[int];
 
     uses_frame_state:bool;
 }

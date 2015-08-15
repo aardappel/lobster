@@ -1054,7 +1054,7 @@ void AddMeshGen()
 
     STARTDECL(mg_translate) (Value &vec, Value &body)
     {
-        if (body.True()) g_vm->Push(ToValue(curorig));
+        if (body.True()) g_vm->Push(ToValueF(curorig));
         auto v = ValueDecToF<3>(vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
@@ -1071,7 +1071,7 @@ void AddMeshGen()
 
     STARTDECL(mg_scalevec) (Value &vec, Value &body)
     {
-        if (body.True()) g_vm->Push(ToValue(cursize));
+        if (body.True()) g_vm->Push(ToValueF(cursize));
         auto v = ValueDecToF<3>(vec);
         cursize *= v;
         return body;

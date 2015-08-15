@@ -1,5 +1,3 @@
-V_UNDEFINED used at runtime.. should probably be NIL instead. should NIL be a reference type?
-
 - have to build freetype and sdl from source with 2015 before we can switch to its toolset.
 - try to build android/ios from VS.
 
@@ -68,11 +66,38 @@ V_UNDEFINED used at runtime.. should probably be NIL instead. should NIL be a re
 
 - typechecker
   - runtime type representation
-    - IL_ISTYPE currently is broken!
     - parse_data still broken, need to be passed type to parse
       - should first have codegen hash and add all types referenced by bytecode to a FlatBuffer of types.
       - can make V_INT etc the first entries into that table so they correspond to their constant
       - a type is then an index into that table.
+	- multimethod dispatch is broken. it now requires full types on all args to match (no more any on args,
+	  no more catch all case)
+	- V_UNDEFINED used at runtime, though has the same role as V_NIL: without the type tag, it becomes nullptr.
+	- You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
+	  gets the wrong type set.
+	- Need to have a permanent solution for 64bit, since True() is unsafe.
+	  - If True() is the only thing, could require it to be passed the type, though that's both inefficient
+	    a lot of extra work.
+	  - Could make all ints/floats 64bit on 64bit systems. That will require a lot of casting/type changes thruout
+	    the code though.
+	  - Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+	    pointers in 32bit).
+		This would generally be good, since using less memory in 64bit could be quite a speedup.
+		Problem is, there's no super elegant way of doing this.
+		- could track all allocations in the allocator, but means also tracking "large" allocs individually,
+		  finding these in the table will slow things down, and means code can't run with the base allocator anymore.
+		- simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
+		  in it and towards it are offsets, this can work.
+		  Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
+		  as iOS whenever it goes full 64bit.
+		  Also means we can't use the base allocator anymore.
+		- Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
+		  though for small objects.
+		- Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
+		  no support for this.
+		  Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
+		  and then use that incrementally. Means we must have our own large block allocator however.
+		  On Windows VirtualAlloc can do the same.
   - with explicit conversion to any, there's now a lot of situations where an any gets generated, that is then
     subsequently ignored, causing unnecessary heap allocation.
 	we should either:

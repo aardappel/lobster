@@ -1278,6 +1278,28 @@ struct Parser
                 return IdentFactor(idname);
             }
 
+            case T_TYPEOF:  // "return", ident or type.
+            {
+                lex.Next();
+                if (lex.token == T_RETURN)
+                {
+                    lex.Next();
+                    return (Node *)new Unary(lex, T_TYPEOF, nullptr);
+                }
+                if (lex.token == T_IDENT)
+                {
+                    auto id = st.Lookup(lex.sattr);
+                    if (id)
+                    {
+                        lex.Next();
+                        return (Node *)new Unary(lex, T_TYPEOF, (Node *)new IdRef(lex, id));
+                    }
+                }
+                auto tn = new TypeNode(lex, T_TYPE);
+                ParseType(tn->type_, false);
+                return (Node *)new Unary(lex, T_TYPEOF, (Node *)tn);
+            }
+
             case T_IDENT:
             {
                 string idname = lex.sattr;
