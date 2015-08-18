@@ -86,8 +86,8 @@ string RefObj::ToString(PrintPrefs &pp) const
         case TYPE_ELEM_COROUTINE:  return "(coroutine)";
         default:
         {
-            auto ti = TypeInfo();
-            if (IsVector((ValueType)ti[0])) return ((LVector *)this)->ToString(pp);
+            auto &ti = GetTypeInfo();
+            if (IsVector((ValueType)ti.t)) return ((LVector *)this)->ToString(pp);
             return string("(") + BaseTypeName(BaseType()) + ")";
         }
     }
@@ -95,20 +95,15 @@ string RefObj::ToString(PrintPrefs &pp) const
 
 string Value::ToString(ValueType vtype, PrintPrefs &pp) const
 {
+    if (IsRef(vtype)) return ref_ ? ref_->ToString(pp) : "nil";
+
     switch (vtype)
     {
         case V_INT:        return to_string(ival_);                   
         case V_FLOAT:      return to_string_float(fval_, pp.decimals);
-
-        case V_STRING:     return sval_->ToString(pp);
-        case V_VECTOR:     return vval_->ToString(pp);
-        case V_COROUTINE:  return "(coroutine)";
-
-        case V_NIL:        return "nil";
         case V_FUNCTION:   return "<FUNCTION>";
         case V_UNDEFINED:  return "<UNDEFINED>";
-        default:           return IsRef(vtype) ? ref_->ToString(pp)
-                                               : string("(") + BaseTypeName(vtype) + ")";
+        default:           return string("(") + BaseTypeName(vtype) + ")";
     }
 }
 
@@ -118,8 +113,8 @@ void RefObj::Mark()
     if (refc < 0) return;
     assert(refc);
     refc = -refc;
-    auto ti = TypeInfo();
-    switch ((ValueType)ti[0])
+    auto &ti = GetTypeInfo();
+    switch (ti.vt())
     {
         case V_STRUCT:
         case V_VECTOR:     ((LVector   *)this)->Mark(); break;
@@ -129,5 +124,5 @@ void RefObj::Mark()
 
 void Value::Mark(ValueType vtype)
 {
-    if (IsRef(vtype)) ref_->Mark();
+    if (IsRef(vtype) && ref_) ref_->Mark();
 }

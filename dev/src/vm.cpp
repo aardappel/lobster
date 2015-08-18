@@ -147,7 +147,7 @@ struct VM : VMBase
         }
     }
 
-    const type_elem_t *TypeInfo(type_elem_t offset) { return typetable + offset; }
+    const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
     type_elem_t GetIntVectorType(int which) { return (type_elem_t)bcf->default_int_vector_types()->Get(which); }
@@ -393,8 +393,8 @@ struct VM : VMBase
                 if (desired != TYPE_ELEM_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    auto ti = typetable + desired;
-                    if (v.type != ti[0] || (IsRef(v.type) && v.ref()->typeoff != desired))
+                    auto &ti = GetTypeInfo(desired);
+                    if (v.type != ti.t || (IsRef(v.type) && v.ref()->typeoff != desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -1360,8 +1360,8 @@ struct VM : VMBase
     {
         if (IsRef(v.type))
         {
-            auto ti = typetable + v.ref()->typeoff;
-            if (ti[0] == V_STRUCT) return ReverseLookupType(ti[1]);
+            auto &ti = GetTypeInfo(v.ref()->typeoff);
+            if (ti.t == V_STRUCT) return ReverseLookupType(ti.sub);
         }
         return BaseTypeName(v.type);
     }

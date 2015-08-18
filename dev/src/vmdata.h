@@ -57,7 +57,10 @@ inline const char *BaseTypeName(ValueType t)
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
+    {
+        assert(false);
         return "<internal-error-type>";
+    }
     return typenames[t - V_MINVMTYPES - 1];
 }
 
@@ -78,6 +81,18 @@ enum type_elem_t : int   // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_STRING = 13,
 
     TYPE_ELEM_FIXED_OFFSET_END = 15
+};
+
+struct TypeInfo
+{
+    type_elem_t t;
+    type_elem_t sub;
+    type_elem_t elems[1];
+
+    ValueType vt() const { return (ValueType)t; }
+
+    TypeInfo() = delete;
+    TypeInfo(const TypeInfo &) = delete;
 };
 
 struct Value;
@@ -124,7 +139,7 @@ struct VMBase
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
-    virtual const type_elem_t *TypeInfo(type_elem_t offset) = 0;
+    virtual const TypeInfo &GetTypeInfo(type_elem_t offset) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -137,8 +152,8 @@ struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so
 
     DynAlloc(type_elem_t _t) : typeoff(_t) { assert(_t >= 0); }
 
-    const type_elem_t *TypeInfo() const { return g_vm->TypeInfo(typeoff); }
-    ValueType BaseType() const { return (ValueType)*g_vm->TypeInfo(typeoff); }
+    const TypeInfo &GetTypeInfo() const { return g_vm->GetTypeInfo(typeoff); }
+    ValueType BaseType() const { return g_vm->GetTypeInfo(typeoff).vt(); }
 };
 
 struct RefObj : DynAlloc
@@ -457,7 +472,12 @@ struct LVector : LenObj
         len += amount;
     }
 
-    ValueType ElemType(int i) const { return v[i].type; }
+    ValueType ElemType(int i) const
+    {
+        auto &ti = GetTypeInfo();
+        auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.sub : ti.elems[i]);
+        return (ValueType)(sti.t == V_NILABLE ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
+    }
 
     string ToString(PrintPrefs &pp)
     {
@@ -467,8 +487,8 @@ struct LVector : LenObj
             CycleDone(pp.cycles);
         }
 
-        auto ti = TypeInfo();
-        string s = ti[0] == V_STRUCT ? g_vm->ReverseLookupType(ti[1]) + string("{") : "[";
+        auto &ti = GetTypeInfo();
+        string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.sub) + string("{") : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
@@ -476,7 +496,7 @@ struct LVector : LenObj
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
             s += pp.depth || !IsRef(ElemType(i)) ? v[i].ToString(ElemType(i), subpp) : "..";
         }
-        s += ti[0] == V_STRUCT ? "}" : "]";
+        s += ti.t == V_STRUCT ? "}" : "]";
         return s;
     }
 

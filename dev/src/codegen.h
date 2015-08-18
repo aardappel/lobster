@@ -52,6 +52,7 @@ struct CodeGen
 
         switch (type->t)
         {
+            case V_NILABLE:
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;

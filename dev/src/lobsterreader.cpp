@@ -50,7 +50,7 @@ struct ValueParser
     {
         Gobble(T_LINEFEED);
         vector<Value> elems;
-        auto ti = g_vm->TypeInfo(typeoff);
+        auto &ti = g_vm->GetTypeInfo(typeoff);
 
         if (lex.token == end) lex.Next();
         else
@@ -63,7 +63,7 @@ struct ValueParser
                 }
                 else
                 {
-                    elems.push_back(ParseFactor(ti[0] == V_VECTOR ? ti[1] : ti[elems.size() + 2]));
+                    elems.push_back(ParseFactor(ti.t == V_VECTOR ? ti.sub : ti.elems[elems.size()]));
                 }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
@@ -77,7 +77,7 @@ struct ValueParser
         {
             while ((int)elems.size() < numelems)
             {
-                switch (ti[elems.size() + 2])
+                switch (ti.elems[elems.size()])
                 {
                     case V_INT:     elems.push_back(Value(0)); break;
                     case V_FLOAT:   elems.push_back(Value(0.0f)); break;
@@ -107,8 +107,8 @@ struct ValueParser
 
     Value ParseFactor(type_elem_t typeoff)
     {
-        auto ti = g_vm->TypeInfo(typeoff);
-        auto vt = (ValueType)ti[0];
+        auto &ti = g_vm->GetTypeInfo(typeoff);
+        auto vt = ti.vt();
 
         // TODO: also support boxed parsing as V_ANY.
         // means boxing int/float, deducing runtime type for V_VECTOR, and finding the existing struct.
@@ -175,7 +175,7 @@ struct ValueParser
                 lex.Next();
                 Expect(T_LEFTCURLY);
                 string name;
-                int nargs = g_vm->StructTypeInfo(ti[1], name);
+                int nargs = g_vm->StructTypeInfo(ti.sub, name);
                 if (name != sname) lex.Error("struct type " + name + " required, " + sname + " given");
                 return ParseElems(T_RIGHTCURLY, typeoff, nargs);
             }

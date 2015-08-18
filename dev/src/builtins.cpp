@@ -73,9 +73,9 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
 
 type_elem_t GetVectType(type_elem_t available, type_elem_t existing)
 {
-    auto ti = g_vm->TypeInfo(existing);
+    auto &ti = g_vm->GetTypeInfo(existing);
     // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
-    return ti[0] != V_STRUCT || available < 0 ? existing : available;
+    return ti.t != V_STRUCT || available < 0 ? existing : available;
 }
 
 void AddBuiltins()
