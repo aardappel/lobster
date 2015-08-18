@@ -148,4 +148,3 @@ def fatal(msg):
 def check(val, msg):
     if(!val): fatal(msg)
     val
-

@@ -69,7 +69,7 @@ bool Value::Equal(ValueType vtype, const Value &o, ValueType otype, bool structu
         case V_INT: return ival_ == o.ival_;
         case V_FLOAT: return fval_ == o.fval_;
         case V_FUNCTION: return ip_ == o.ip_;
-        default: return ref()->Equal(o.ref_, structural);
+        default: return refnil()->Equal(o.ref_, structural);
     }
 }
 

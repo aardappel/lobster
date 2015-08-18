@@ -144,7 +144,7 @@ void AddBuiltins()
         (void)b;
         return Value();
     }
-    ENDDECL2(while, "cond,body", "C@C", "A",
+    ENDDECL2(while, "cond,do", "C@C", "A",
         "evaluates body while cond (converted to a function) holds true, returns last body value");
 
     STARTDECL(for) (Value &iter, Value &body)
@@ -154,7 +154,7 @@ void AddBuiltins()
         (void)body;
         return Value();
     }
-    ENDDECL2(for, "iter,body", "AC", "",
+    ENDDECL2(for, "iter,do", "AC", "",
         "iterates over int/vector/string, body may take [ element [ , index ] ] arguments");
 
     STARTDECL(append) (Value &v1, Value &v2)
@@ -204,9 +204,9 @@ void AddBuiltins()
 
     STARTDECL(equal) (Value &a, Value &b)
     {
-        bool eq = a.ref()->Equal(b.ref(), true);
-        a.DECRT();
-        b.DECRT();
+        bool eq = a.refnil()->Equal(b.refnil(), true);
+        a.DECRTNIL();
+        b.DECRTNIL();
         return Value(eq);
     }
     ENDDECL2(equal, "a,b", "AA", "I",
@@ -405,6 +405,24 @@ void AddBuiltins()
     ENDDECL3(substring, "s,start,size", "SII", "S", 
         "returns a substring of size characters from index start."
         " start & size can be negative to indicate an offset from the string length.");
+
+    STARTDECL(string2int) (Value &s)
+    {
+        auto i = atoi(s.sval()->str());
+        s.DECRT();
+        return Value(i);
+    }
+    ENDDECL1(string2int, "s", "S", "I",
+        "converts a string to an int. returns 0 if no numeric data could be parsed");
+
+    STARTDECL(string2float) (Value &s)
+    {
+        auto f = (float)atof(s.sval()->str());
+        s.DECRT();
+        return Value(f);
+    }
+    ENDDECL1(string2float, "s", "S", "F",
+        "converts a string to a float. returns 0.0 if no numeric data could be parsed");
 
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace)
     {

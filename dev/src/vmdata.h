@@ -117,7 +117,7 @@ struct VMBase
     virtual double Time() = 0;
     virtual int GC() = 0;
     virtual const char *ProperTypeName(const Value &v) = 0;
-    virtual type_elem_t StructTypeInfo(const string &name, int &nargs) = 0;
+    virtual int StructTypeInfo(type_elem_t idx, string &name) = 0;
     virtual const char *ReverseLookupType(uint v) = 0;
     virtual void SetMaxStack(int ms) = 0;
     virtual void CoResume(CoRoutine *co) = 0;
@@ -273,20 +273,21 @@ struct Value
     public:
 
     // These asserts help track down any invalid code generation issues.
-    int         ival () const { TYPE_ASSERT(type == V_INT);        return ival_;  }
-    int        &ival ()       { TYPE_ASSERT(type == V_INT);        return ival_;  }
-    float       fval () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;  }
-    float      &fval ()       { TYPE_ASSERT(type == V_FLOAT);      return fval_;  }
-    LString    *sval () const { TYPE_ASSERT(type == V_STRING);     return sval_;  }
-    BoxedInt   *bival() const { TYPE_ASSERT(type == V_BOXEDINT);   return bival_; }
-    BoxedFloat *bfval() const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_; }
-    LVector    *vval () const { TYPE_ASSERT(IsVector(type));       return vval_;  }
-    CoRoutine  *cval () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;  }
-    LenObj     *lobj () const { TYPE_ASSERT(IsRef(type));          return lobj_;  }
-    RefObj     *ref  () const { TYPE_ASSERT(IsRef(type));          return ref_;   }
-    const int  *ip   () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;    }
-    int         info () const { TYPE_ASSERT(type >= V_NARGS);      return ival_;  }
-    void       *any  () const { return ref_; }
+    int         ival  () const { TYPE_ASSERT(type == V_INT);                return ival_;  }
+    int        &ival  ()       { TYPE_ASSERT(type == V_INT);                return ival_;  }
+    float       fval  () const { TYPE_ASSERT(type == V_FLOAT);              return fval_;  }
+    float      &fval  ()       { TYPE_ASSERT(type == V_FLOAT);              return fval_;  }
+    LString    *sval  () const { TYPE_ASSERT(type == V_STRING);             return sval_;  }
+    BoxedInt   *bival () const { TYPE_ASSERT(type == V_BOXEDINT);           return bival_; }
+    BoxedFloat *bfval () const { TYPE_ASSERT(type == V_BOXEDFLOAT);         return bfval_; }
+    LVector    *vval  () const { TYPE_ASSERT(IsVector(type));               return vval_;  }
+    CoRoutine  *cval  () const { TYPE_ASSERT(type == V_COROUTINE);          return cval_;  }
+    LenObj     *lobj  () const { TYPE_ASSERT(IsRef(type));                  return lobj_;  }
+    RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));                  return ref_;   }
+    RefObj     *refnil() const { TYPE_ASSERT(IsRef(type) || type == V_NIL); return ref_;   }
+    const int  *ip    () const { TYPE_ASSERT(type >= V_FUNCTION);           return ip_;    }
+    int         info  () const { TYPE_ASSERT(type >= V_NARGS);              return ival_;  }
+    void       *any   () const { return ref_; }
                                                                        
     inline Value()                          : TYPE_INIT(V_UNDEFINED)   ival_(0)   {}
     inline Value(int i)                     : TYPE_INIT(V_INT)         ival_(i)   {}
@@ -322,6 +323,8 @@ struct Value
         ref_->refc--;
         if (ref_->refc <= 0) ref_->DECDELETE(true);
     }
+
+    inline void DECRTNIL() const { if (ref_) DECRT(); }
 
     inline const Value &DEC() const
     {

@@ -1432,19 +1432,11 @@ struct VM : VMBase
 
     Value Pop() { return POP(); }
 
-    type_elem_t StructTypeInfo(const string &name, int &nargs)  // FIXME: this is inefficient, used by parse_data()
+    int StructTypeInfo(type_elem_t idx, string &name)
     {
-        for (uint i = 0; i < bcf->structs()->size(); i++)
-        {
-            auto s = bcf->structs()->Get(i);
-            if (s->name()->c_str() == name)
-            {
-                nargs = s->nfields();
-                assert(0);  // Have to store type info for all structs?
-                return (type_elem_t)-1; //s->idx();
-            }
-        }
-        return (type_elem_t)-1;
+        auto s = bcf->structs()->Get(idx);
+        name = s->name()->c_str();
+        return s->nfields();
     }
 
     virtual const char *ReverseLookupType(uint v)

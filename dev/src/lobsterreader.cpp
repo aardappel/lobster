@@ -46,7 +46,7 @@ struct ValueParser
         return v;
     }
 
-    Value ParseElems(TType end, type_elem_t typeoff, int numelems = -1)
+    Value ParseElems(TType end, type_elem_t typeoff, int numelems = -1)  // Vector or struct.
     {
         Gobble(T_LINEFEED);
         vector<Value> elems;
@@ -55,11 +55,16 @@ struct ValueParser
         if (lex.token == end) lex.Next();
         else
         {
-            for (int i = 0;; i++)
+            for (;;)
             {
-                auto x = ParseFactor(ti[0] == V_VECTOR ? ti[1] : ti[i + 2]);  // FIXME: error checking :)
-                if ((int)elems.size() == numelems) x.DEC();
-                else elems.push_back(x);
+                if ((int)elems.size() == numelems)
+                {
+                    ParseFactor(TYPE_ELEM_ANY).DECRT();  // Ignore the value.
+                }
+                else
+                {
+                    elems.push_back(ParseFactor(ti[0] == V_VECTOR ? ti[1] : ti[elems.size() + 2]));
+                }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
                 if (lex.token == end) break;
@@ -68,10 +73,19 @@ struct ValueParser
             lex.Next();
         }
 
-        // FIXME: improve error.
-        // There's no default value possible for non-nillables, so we can't provide a default value here.
-        if (numelems >= 0 && (int)elems.size() < numelems)
-            lex.Error("not enough constructor initializers");
+        if (numelems >= 0)
+        {
+            while ((int)elems.size() < numelems)
+            {
+                switch (ti[elems.size() + 2])
+                {
+                    case V_INT:     elems.push_back(Value(0)); break;
+                    case V_FLOAT:   elems.push_back(Value(0.0f)); break;
+                    case V_NILABLE: elems.push_back(Value(0, V_NIL)); break;
+                    default:        lex.Error("no default value possible for missing struct elements");
+                }
+            }
+        }
 
         auto vec = g_vm->NewVector(elems.size(), typeoff);
         allocated.push_back(vec);
@@ -79,45 +93,91 @@ struct ValueParser
         return Value(vec);
     }
 
+    void ExpectType(ValueType given, ValueType needed)
+    {
+        if (given != needed)
+        {
+            lex.Error(string("type ") +
+                      BaseTypeName(needed) +
+                      " required, " +
+                      BaseTypeName(given) +
+                      " given");
+        }
+    }
+
     Value ParseFactor(type_elem_t typeoff)
     {
+        auto ti = g_vm->TypeInfo(typeoff);
+        auto vt = (ValueType)ti[0];
+
+        // TODO: also support boxed parsing as V_ANY.
+        // means boxing int/float, deducing runtime type for V_VECTOR, and finding the existing struct.
+
         switch (lex.token)
         {
-            case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return Value(i); }
-            case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return Value((float)f); }
-            case T_STR:   { string s = lex.sattr;               lex.Next(); auto str = g_vm->NewString(s);
-                                                                            allocated.push_back(str);
-                                                                            return Value(str); }     
-            case T_NIL:   {                                     lex.Next(); return Value(0, V_NIL); }
+            case T_INT:
+            { 
+                ExpectType(V_INT, vt);
+                int i = atoi(lex.sattr.c_str());
+                lex.Next();
+                return Value(i);
+            }
+
+            case T_FLOAT:
+            {
+                ExpectType(V_FLOAT, vt);
+                double f = atof(lex.sattr.c_str());
+                lex.Next();
+                return Value((float)f);
+            }
+
+            case T_STR:
+            {
+                ExpectType(V_STRING, vt);
+                string s = lex.sattr;
+                lex.Next();
+                auto str = g_vm->NewString(s);
+                allocated.push_back(str);
+                return Value(str);
+            }
+
+            case T_NIL:
+            {
+                ExpectType(V_NILABLE, vt);
+                lex.Next();
+                return Value(0, V_NIL);
+            }
 
             case T_MINUS:
             {
                 lex.Next(); 
                 Value v = ParseFactor(typeoff);
-                switch (v.type)
+                switch (typeoff)
                 {
-                    case V_INT:   v.ival() *= -1; break;
-                    case V_FLOAT: v.fval() *= -1; break;
-                    default: lex.Error("numeric value expected");
+                    case TYPE_ELEM_INT:   v.ival() *= -1; break;
+                    case TYPE_ELEM_FLOAT: v.fval() *= -1; break;
+                    default: lex.Error("unary minus: numeric value expected");
                 }
                 return v;
             }
 
             case T_LEFTBRACKET:
             {
+                ExpectType(V_VECTOR, vt);
                 lex.Next();
                 return ParseElems(T_RIGHTBRACKET, typeoff);
             }
 
             case T_IDENT:
             {
+                ExpectType(V_STRUCT, vt);
                 string sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);
-                int reqargs = 0;
-                auto ti = g_vm->StructTypeInfo(sname, reqargs);
-                if (ti < 0) lex.Error("unknown type: " + sname);
-                return ParseElems(T_RIGHTCURLY, ti, reqargs);
+                string name;
+                int nargs = g_vm->StructTypeInfo(ti[1], name);
+                if (name != sname) lex.Error("struct type " + name + " required, " + sname + " given");
+                return ParseElems(T_RIGHTCURLY, typeoff, nargs);
             }
 
             default:
@@ -163,11 +223,11 @@ void AddReaderOps()
         ins.DECRT();
         return v;
     }
-    ENDDECL2(parse_data, "typeid,stringdata", "TS", "AS?",
+    ENDDECL2(parse_data, "typeid,stringdata", "TS", "A1?S?",
         "parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data"
         " structure to a string) back into a data structure. supports int/float/string/vector and structs."
         " structs will be forced to be compatible with their current definitions, i.e. too many elements will be"
-        " truncated, missing elements will be set to nil, and unknown type means downgrade to vector."
+        " truncated, missing elements will be set to 0/nil if possible."
         " useful for simple file formats. returns the value and an error string as second return value"
         " (or nil if no error)");
 }

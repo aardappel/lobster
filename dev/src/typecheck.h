@@ -1517,23 +1517,29 @@ struct TypeChecker
                     switch (ret.flags)
                     {
                         case NF_SUBARG1:
+                            type = argtypes[0];
+
+                            if (nf->args.v[0].type->t == V_TYPEID)
+                            {
+                                auto tin = n.ncall_args()->head();
+                                assert(tin->type == T_TYPEOF);
+                                if (tin->child()) type = tin->child()->exptype;
+                            }
+
                             if (ret.type->t == V_NILABLE)
                             {
-                                type = argtypes[0]->Wrap(NewType(), V_NILABLE);
+                                if (!IsRef(type->t)) TypeError("1st argument to " + nf->name + " can't be scalar", n);
+                                type = type->Wrap(NewType(), V_NILABLE);
                             }
                             else if (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR)
                             {
-                                type = VectorStructElement(argtypes[0]);
+                                type = VectorStructElement(type);
                             }
                             else if (nf->args.v[0].type->t == V_COROUTINE)
                             {
-                                auto sf = argtypes[0]->sf;
+                                auto sf = type->sf;
                                 assert(sf);
                                 type = sf->returntypes[0];  // in theory it is possible this hasn't been generated yet..
-                            }
-                            else
-                            {
-                                type = argtypes[0];
                             }
                             break;
                         case NF_ANYVAR: 

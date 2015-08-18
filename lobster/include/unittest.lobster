@@ -35,15 +35,14 @@ def run_test_cases():
 
     assert(tf("") == 8)
 
-    /*
-    direct := [1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0", nil, true]
-    parsed, err := parse_data("" + direct)
+    struct parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
+    direct := parsetest { 1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0", [ 0, -64 ], nil, true }
+    parsed, err := parse_data(typeof direct, "" + direct)
     //print(parsed)
     //print(direct)
     if(err):
         print(err)
     assert(equal(parsed, direct))
-    */
 
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert(equal(string2unicode(unicode2string(unicodetests)), unicodetests))
