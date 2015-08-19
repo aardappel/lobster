@@ -55,7 +55,7 @@ const Type g_type_function_null(V_FUNCTION);            TypeRef type_function_nu
 const Type g_type_function_cocl(V_YIELD);               TypeRef type_function_cocl = &g_type_function_cocl;
 const Type g_type_coroutine(V_COROUTINE);               TypeRef type_coroutine = &g_type_coroutine;
 const Type g_type_typeid(V_TYPEID);                     TypeRef type_typeid = &g_type_typeid;
-const Type g_type_function_nil(V_NILABLE,
+const Type g_type_function_nil(V_NIL,
                                 &*type_function_null);  TypeRef type_function_nil = &g_type_function_nil;
 
 void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string *parsedump = nullptr)
@@ -153,12 +153,12 @@ void DumpBuiltins(bool justnames)
             for (auto &a : nf->args.v)
             {
                 fprintf(f, "%s%s%s<font color=\"#666666\">%s</font>%s",
-                    a.type->t == V_NILABLE ? " [" : "",
+                    a.type->t == V_NIL ? " [" : "",
                     i ? ", " : "",
                     nf->args.GetName(i).c_str(),
                     a.type->t == V_ANY ? "" : (string(":") + 
-                        TypeName(a.type->t == V_NILABLE ? a.type->Element() : a.type)).c_str(),
-                    a.type->t == V_NILABLE ? "]" : ""
+                        TypeName(a.type->t == V_NIL ? a.type->Element() : a.type)).c_str(),
+                    a.type->t == V_NIL ? "]" : ""
                 );
                 i++;
             }
@@ -197,13 +197,13 @@ Value CompileRun(Value &source, bool stringiscode)
         vmpool = parentpool;
         g_vm = parentvm;
         g_vm->Push(Value(g_vm->NewString(ret)));
-        return Value(0, V_NIL);
+        return Value();
     }
     catch (string &s)
     {
         vmpool = parentpool;
         g_vm = parentvm;
-        g_vm->Push(Value(0, V_NIL));
+        g_vm->Push(Value());
         return Value(g_vm->NewString(s));
     }
 }

@@ -474,7 +474,7 @@ void AddBuiltins()
         while (*p)
         {
             int u = FromUTF8(p);
-            if (u < 0) { s.DECRT(); Value(v).DECRT(); return Value(0, V_NIL); }
+            if (u < 0) { s.DECRT(); Value(v).DECRT(); return Value(); }
             v->Push(u);
         }
         s.DECRT();

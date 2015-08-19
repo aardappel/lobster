@@ -80,7 +80,7 @@ struct ValueParser
                 {
                     case V_INT:     elems.push_back(Value(0)); break;
                     case V_FLOAT:   elems.push_back(Value(0.0f)); break;
-                    case V_NILABLE: elems.push_back(Value(0, V_NIL)); break;
+                    case V_NIL:     elems.push_back(Value()); break;
                     default:        lex.Error("no default value possible for missing struct elements");
                 }
             }
@@ -144,9 +144,9 @@ struct ValueParser
 
             case T_NIL:
             {
-                ExpectType(V_NILABLE, vt);
+                ExpectType(V_NIL, vt);
                 lex.Next();
-                return Value(0, V_NIL);
+                return Value();
             }
 
             case T_MINUS:
@@ -207,11 +207,11 @@ static Value ParseData(type_elem_t typeoff, char *inp)
     {
         ValueParser parser(inp);
         g_vm->Push(parser.Parse(typeoff));
-        return Value(0, V_NIL);
+        return Value();
     }
     catch (string &s)
     {
-        g_vm->Push(Value(0, V_NIL));
+        g_vm->Push(Value());
         return Value(g_vm->NewString(s));
     }
 }

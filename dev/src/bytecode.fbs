@@ -23,6 +23,7 @@ table Ident
 {
     name:string;
     readonly:bool;
+	global:bool;
 }
 
 table BytecodeFile

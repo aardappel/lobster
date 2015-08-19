@@ -54,7 +54,7 @@ struct Ident : Named
 
     flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb)
     {
-        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant);
+        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, !sf_def);
     }
 };
 
@@ -260,7 +260,7 @@ inline string TypeName(TypeRef type)
         case V_FUNCTION: return type->sf // || type->sf->anonymous
             ? type->sf->parent->name
             : "function";
-        case V_NILABLE: return type->Element()->t == V_VAR
+        case V_NIL: return type->Element()->t == V_VAR
             ? "nil"
             : TypeName(type->Element()) + "?";
         case V_VAR: return type->sub

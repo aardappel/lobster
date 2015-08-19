@@ -23,7 +23,6 @@ namespace lobster
     F(PUSHINT) \
     F(PUSHFLT) \
     F(PUSHSTR) \
-    F(PUSHUNDEF) \
     F(PUSHNIL) \
     F(PUSHFUN) \
     F(PUSHVAR) F(LVALVAR) \

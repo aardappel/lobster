@@ -101,11 +101,13 @@ inline flatbuffers::Offset<Struct> CreateStruct(flatbuffers::FlatBufferBuilder &
 struct Ident FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *name() const { return GetPointer<const flatbuffers::String *>(4); }
   uint8_t readonly() const { return GetField<uint8_t>(6, 0); }
+  uint8_t global() const { return GetField<uint8_t>(8, 0); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 4 /* name */) &&
            verifier.Verify(name()) &&
            VerifyField<uint8_t>(verifier, 6 /* readonly */) &&
+           VerifyField<uint8_t>(verifier, 8 /* global */) &&
            verifier.EndTable();
   }
 };
@@ -115,19 +117,22 @@ struct IdentBuilder {
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) { fbb_.AddOffset(4, name); }
   void add_readonly(uint8_t readonly) { fbb_.AddElement<uint8_t>(6, readonly, 0); }
+  void add_global(uint8_t global) { fbb_.AddElement<uint8_t>(8, global, 0); }
   IdentBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   IdentBuilder &operator=(const IdentBuilder &);
   flatbuffers::Offset<Ident> Finish() {
-    auto o = flatbuffers::Offset<Ident>(fbb_.EndTable(start_, 2));
+    auto o = flatbuffers::Offset<Ident>(fbb_.EndTable(start_, 3));
     return o;
   }
 };
 
 inline flatbuffers::Offset<Ident> CreateIdent(flatbuffers::FlatBufferBuilder &_fbb,
    flatbuffers::Offset<flatbuffers::String> name = 0,
-   uint8_t readonly = 0) {
+   uint8_t readonly = 0,
+   uint8_t global = 0) {
   IdentBuilder builder_(_fbb);
   builder_.add_name(name);
+  builder_.add_global(global);
   builder_.add_readonly(readonly);
   return builder_.Finish();
 }

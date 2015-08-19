@@ -109,8 +109,8 @@ void AddFileOps()
 
         #endif
 
-        g_vm->Push(Value(0, V_NIL));
-        return Value(0, V_NIL);
+        g_vm->Push(Value());
+        return Value();
 
     }
     ENDDECL2(scan_folder, "folder,divisor", "SI", "S]?I]?",
@@ -124,7 +124,7 @@ void AddFileOps()
         size_t sz = 0;
         auto buf = (char *)LoadFile(file.sval()->str(), &sz);
         file.DECRT();
-        if (!buf) return Value(0, V_NIL);
+        if (!buf) return Value();
         auto s = g_vm->NewString(buf, sz);
         free(buf);
         return Value(s);

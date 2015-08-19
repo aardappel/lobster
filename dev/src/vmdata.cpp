@@ -95,14 +95,13 @@ string RefObj::ToString(PrintPrefs &pp) const
 
 string Value::ToString(ValueType vtype, PrintPrefs &pp) const
 {
-    if (IsRef(vtype)) return ref_ ? ref_->ToString(pp) : "nil";
+    if (IsRefNil(vtype)) return ref_ ? ref_->ToString(pp) : "nil";
 
     switch (vtype)
     {
         case V_INT:        return to_string(ival_);                   
         case V_FLOAT:      return to_string_float(fval_, pp.decimals);
         case V_FUNCTION:   return "<FUNCTION>";
-        case V_UNDEFINED:  return "<UNDEFINED>";
         default:           return string("(") + BaseTypeName(vtype) + ")";
     }
 }

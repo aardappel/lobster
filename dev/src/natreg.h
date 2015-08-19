@@ -35,7 +35,7 @@ struct Type
 
     union
     {
-        const Type *sub; // V_VECTOR | V_NILABLE | V_VAR
+        const Type *sub; // V_VECTOR | V_NIL | V_VAR
         Named *named;    // V_FUNCTION | V_COROUTINE | V_STRUCT 
         SubFunction *sf; // V_FUNCTION | V_COROUTINE
         Struct *struc;   // V_STRUCT
@@ -75,7 +75,7 @@ struct Type
         switch (t)
         {
             case V_VECTOR:
-            case V_NILABLE:
+            case V_NIL:
                 return *sub < *o.sub;
             case V_FUNCTION:
             case V_STRUCT:
@@ -97,7 +97,7 @@ struct Type
         return dest;
     }
 
-    bool Wrapped() const { return t == V_VECTOR || t == V_NILABLE; }
+    bool Wrapped() const { return t == V_VECTOR || t == V_NIL; }
 
     const Type *UnWrapped() const { return Wrapped() ? sub : this; }
 
@@ -109,7 +109,7 @@ struct Type
     {
         return t == V_VAR ||
               (t == V_VECTOR && sub->t == V_VAR) ||
-              (t == V_NILABLE && sub->t == V_VAR);
+              (t == V_NIL    && sub->t == V_VAR);
     }
 };
 
@@ -202,7 +202,7 @@ template<typename T> struct Typed
                 case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
                 case '%': flags = ArgFlags(flags | NF_CORESUME); break;
                 case ']': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back()); break;
-                case '?': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back(), V_NILABLE); break;
+                case '?': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back(), V_NIL); break;
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
                 default: assert(0);
             }

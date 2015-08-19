@@ -27,13 +27,11 @@ enum ValueType
     V_STRING = -3,      // refc types are negative
     V_STRUCT = -2,
     V_VECTOR = -1,
-    V_INT = 0,          // quickest check for most common type
-    V_FLOAT = 1,
+    V_NIL = 0,          // VM: null reference, Type checker: a type that may be nil or a reference type.
+    V_INT,
+    V_FLOAT,
     V_FUNCTION,
     V_YIELD,
-    V_NIL,
-    V_UNDEFINED,        // used for unitialized values or functions returning "void".
-    V_NILABLE,          // [typechecker only] a value that may be nil or a reference type.
     V_ANY,              // [typechecker only] any other type.
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
@@ -44,8 +42,8 @@ enum ValueType
 };
 
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
-inline bool IsRef   (ValueType t) { return t < 0; }
-inline bool IsRefNil(ValueType t) { return t < 0 || t == V_NILABLE; }
+inline bool IsRef   (ValueType t) { return t <  V_NIL; }
+inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
 inline bool IsVector(ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
 
 inline const char *BaseTypeName(ValueType t)
@@ -53,7 +51,7 @@ inline const char *BaseTypeName(ValueType t)
     static const char *typenames[] =
     {
         "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
-        "int", "float", "function", "yield_function", "nil", "undefined", "nilable", "any", "variable", "typeid",
+        "nil", "int", "float", "function", "yield_function", "any", "variable", "typeid",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
@@ -308,14 +306,14 @@ struct Value
     int         info  () const { TYPE_ASSERT(type >= V_NARGS);              return ival_;  }
     void       *any   () const { return ref_; }
                                                                        
-    inline Value()                          : TYPE_INIT(V_UNDEFINED)   ival_(0)   {}
-    inline Value(int i)                     : TYPE_INIT(V_INT)         ival_(i)   {}
-    inline Value(int i, ValueType t)        : TYPE_INIT(t)             ival_(i)   { (void)t; }
-    inline Value(bool b)                    : TYPE_INIT(V_INT)         ival_(b)   {}
-    inline Value(float f)                   : TYPE_INIT(V_FLOAT)       fval_(f)   {}
-    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)    ip_(i)     {}
-    inline Value(const int *i, ValueType t) : TYPE_INIT(t)             ip_(i)     { (void)t; }
-    inline Value(RefObj *r)                 : TYPE_INIT(r->BaseType()) ref_(r)    {}
+    inline Value()                          : TYPE_INIT(V_NIL)         ref_(nullptr) {}
+    inline Value(int i)                     : TYPE_INIT(V_INT)         ival_(i)      {}
+    inline Value(int i, ValueType t)        : TYPE_INIT(t)             ival_(i)      { (void)t; }
+    inline Value(bool b)                    : TYPE_INIT(V_INT)         ival_(b)      {}
+    inline Value(float f)                   : TYPE_INIT(V_FLOAT)       fval_(f)      {}
+    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)    ip_(i)        {}
+    inline Value(const int *i, ValueType t) : TYPE_INIT(t)             ip_(i)        { (void)t; }
+    inline Value(RefObj *r)                 : TYPE_INIT(r->BaseType()) ref_(r)       {}
 
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
@@ -328,6 +326,8 @@ struct Value
         return *this;
     }
 
+    inline Value &INCRTNIL() { if (ref_) INCRT(); return *this; }
+        
     inline Value &INC()
     {
         return IsRef(type) ? INCRT() : *this;
@@ -477,7 +477,7 @@ struct LVector : LenObj
     {
         auto &ti = GetTypeInfo();
         auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.sub : ti.elems[i]);
-        return (ValueType)(sti.t == V_NILABLE ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
+        return (ValueType)(sti.t == V_NIL ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
     }
 
     string ToString(PrintPrefs &pp)

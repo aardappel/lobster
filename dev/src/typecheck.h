@@ -212,8 +212,8 @@ struct TypeChecker
             case V_INT:       return type->t == V_TYPEID;
             case V_STRING:    return false; //coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
-            case V_NILABLE:   return type->t == V_NIL ||
-                                     (type->t == V_NILABLE && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
+            case V_NIL:       return type->t == V_NIL ||
+                                     (type->t == V_NIL && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
                                      (!type->Numeric() && ConvertsTo(type, sub->Element(), false, unifications, genericany));
             case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
                                       (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false, unifications, genericany)));
@@ -324,7 +324,7 @@ struct TypeChecker
     }
 
     // Used by type-checker to and optimizer.
-    // Returns a V_UNDEFINED if not const, otherwise a value that gives the correct True().
+    // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
     bool ConstVal(const Node &n, Value &val)
     {
@@ -916,7 +916,7 @@ struct TypeChecker
                 break;
 
             default:
-                if (iftrue && type->t == V_NILABLE) CheckFlowTypeIdOrDot(condition, type->Element());
+                if (iftrue && type->t == V_NIL) CheckFlowTypeIdOrDot(condition, type->Element());
                 break;
         }
     }
@@ -954,7 +954,7 @@ struct TypeChecker
     void AssignFlowPromote(Node &left, TypeRef right)
     {
         if ((left.exptype->t == V_ANY && right->t != V_ANY) ||
-            (left.exptype->t == V_NILABLE && right->t != V_NILABLE))
+            (left.exptype->t == V_NIL && right->t != V_NIL))
         {
             CheckFlowTypeIdOrDot(left, right);
         }
@@ -1055,7 +1055,7 @@ struct TypeChecker
         {
             TypeCheck(n_ptr, parent_type);
             auto type = n.exptype;
-            if (type->t == V_NILABLE && only_true_type) return type->Element();
+            if (type->t == V_NIL && only_true_type) return type->Element();
             return type;
         }
 
@@ -1186,7 +1186,7 @@ struct TypeChecker
             {
                 TypeCheck(n.while_condition(), T_WHILE);
                 TypeCheckBranch(true, *n.while_condition()->call_function()->sf()->body->head(), n.while_body(), T_WHILE);
-                // Currently always return V_UNDEFINED
+                // Currently always return V_NIL
                 type = type_any;
                 return;
             }
@@ -1206,7 +1206,7 @@ struct TypeChecker
                     if (args->tail()) args->tail()->head()->exptype = type_int;
                 }
                 TypeCheck(n.for_body(), T_FOR);
-                // Currently always return V_UNDEFINED
+                // Currently always return V_NIL
                 type = type_any;
                 return;
             }
@@ -1225,7 +1225,7 @@ struct TypeChecker
             case T_INT:   type = type_int; break;
             case T_FLOAT: type = type_float; break;
             case T_STR:   type = type_string; break;
-            case T_NIL:   type = n.typenode()->t != V_ANY ? n.typenode() : NewTypeVar()->Wrap(NewType(), V_NILABLE);
+            case T_NIL:   type = n.typenode()->t != V_ANY ? n.typenode() : NewTypeVar()->Wrap(NewType(), V_NIL);
                           break;
 
             case T_PLUS:
@@ -1273,7 +1273,7 @@ struct TypeChecker
                     if (n.type == T_EQ || n.type == T_NEQ)
                     {
                         // pointer comparison
-                        if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NILABLE)
+                        if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NIL)
                             TypeError("numeric/string/vector/struct", u, n, nullptr);
                     }
                     else
@@ -1438,9 +1438,9 @@ struct TypeChecker
                     auto argtype = arg.type;
                     bool typed = false;
 
-                    if (argtype->t == V_NILABLE && argtype->sub->Numeric() && list->head()->type != T_DEFAULTVAL)
+                    if (argtype->t == V_NIL && argtype->sub->Numeric() && list->head()->type != T_DEFAULTVAL)
                     {
-                        // This is somewhat of a hack, because we conflate V_NILABLE with being optional for 
+                        // This is somewhat of a hack, because we conflate V_NIL with being optional for 
                         // native functions, but we don't want numeric types to be nilable.
                         // Codegen has a special case for T_DEFAULTVAL however.
                         argtype = argtype->sub;
@@ -1474,7 +1474,7 @@ struct TypeChecker
                         {
                             // No value supplied to resume, and none expected at yield either.
                             // nil will be supplied, so make type reflect that.
-                            Type nil(V_NILABLE, &*NewTypeVar());
+                            Type nil(V_NIL, &*NewTypeVar());
                             UnifyVar(TypeRef(&nil), list->head()->exptype);
                         }
                         typed = true;
@@ -1526,10 +1526,10 @@ struct TypeChecker
                                 if (tin->child()) type = tin->child()->exptype;
                             }
 
-                            if (ret.type->t == V_NILABLE)
+                            if (ret.type->t == V_NIL)
                             {
                                 if (!IsRef(type->t)) TypeError("1st argument to " + nf->name + " can't be scalar", n);
-                                type = type->Wrap(NewType(), V_NILABLE);
+                                type = type->Wrap(NewType(), V_NIL);
                             }
                             else if (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR)
                             {
@@ -1674,7 +1674,7 @@ struct TypeChecker
             case T_DOTMAYBE:
             {
                 auto smtype = n.left()->exptype;
-                auto stype = n.type == T_DOTMAYBE && smtype->t == V_NILABLE
+                auto stype = n.type == T_DOTMAYBE && smtype->t == V_NIL
                              ? smtype->Element()
                              : smtype;
                 if (stype->t != V_STRUCT)
@@ -1684,8 +1684,8 @@ struct TypeChecker
                 auto fieldidx = struc->Has(sf);
                 if (fieldidx < 0) TypeError("type " + struc->name + " has no field named " + sf->name, n);
                 auto &uf = struc->fields[fieldidx];
-                type = n.type == T_DOTMAYBE && smtype->t == V_NILABLE && uf.type->t != V_NILABLE
-                       ? uf.type->Wrap(NewType(), V_NILABLE)
+                type = n.type == T_DOTMAYBE && smtype->t == V_NIL && uf.type->t != V_NIL
+                       ? uf.type->Wrap(NewType(), V_NIL)
                        : uf.type;
                 n.right()->exptype = stype;  // Store struct type here for codegen.
                 UseFlow(n);

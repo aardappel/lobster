@@ -726,7 +726,7 @@ struct Parser
         if (IsNext(T_QUESTIONMARK))
         {
             if (dest->Numeric()) Error("numeric types can\'t be made nilable");
-            dest = dest->Wrap(NewType(), V_NILABLE);
+            dest = dest->Wrap(NewType(), V_NIL);
         }
 
         if (withtype && dest->t != V_STRUCT) Error(":: must be used with a struct type");
@@ -1022,7 +1022,7 @@ struct Parser
                 if (!*ai)
                 {
                     auto &type = arg.type;
-                    if (type->t == V_NILABLE)
+                    if (type->t == V_NIL)
                     {
                         *ai = new Node(lex, T_LIST, (Node *)new AST(lex, T_DEFAULTVAL), nullptr);
                     }
@@ -1216,7 +1216,7 @@ struct Parser
                 if (IsNext(T_COLON))
                 {
                     ParseType(n->type_, false);
-                    n->type_ = n->type_->Wrap(NewType(), V_NILABLE);
+                    n->type_ = n->type_->Wrap(NewType(), V_NIL);
                 }
                 return (Node *)n;
             }

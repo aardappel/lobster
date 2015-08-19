@@ -72,7 +72,6 @@
       - a type is then an index into that table.
 	- multimethod dispatch is broken. it now requires full types on all args to match (no more any on args,
 	  no more catch all case)
-	- V_UNDEFINED used at runtime, though has the same role as V_NIL: without the type tag, it becomes nullptr.
 	- You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
 	  gets the wrong type set.
 	- Need to have a permanent solution for 64bit, since True() is unsafe.

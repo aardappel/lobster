@@ -297,10 +297,7 @@ struct VM : VMBase
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && TOP().type != V_DEFFUN)
         {
-            if (TOP().type != V_UNDEFINED)
-            {
-                s += "\n   stack: " + ValueDBG(TOP());
-            }
+            s += "\n   stack: " + ValueDBG(TOP());
             POP().DEC();
         }
 
@@ -331,7 +328,7 @@ struct VM : VMBase
 
         for (size_t i = 0; i < bcf->idents()->size(); i++)
         {
-            s += DumpVar(vars[i], i);
+            s += DumpVar(vars[i], i, true);
         }
 
         FinalStackVarsCleanup();
@@ -368,10 +365,10 @@ struct VM : VMBase
         return a.ToString(a.type, debugpp);
     }
 
-    string DumpVar(const Value &x, size_t idx)
+    string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
     {
-        if (x.type == V_UNDEFINED) return "";
-        if (bcf->idents()->Get(idx)->readonly()) return "";
+        auto id = bcf->idents()->Get(idx);
+        if (id->readonly() || id->global() != dumpglobals) return "";
         return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(x.type, debugpp);
     }
 
@@ -470,10 +467,20 @@ struct VM : VMBase
             vml.LogFunctionExit(ipv.ip(), defvars, lfw.info());
         }
 
-        while (ndef--)  { auto i = *--defvars;  if (error) (*error) += DumpVar(vars[i], i); vars[i].DEC();
-                                                                                                vars[i] = POP(); }
-        while (nargs_given--) { auto i = *--freevars; if (error) (*error) += DumpVar(vars[i], i); vars[i].DEC();
-                                                                                                vars[i] = POP(); } 
+        while (ndef--)
+        {
+            auto i = *--defvars; 
+            if (error) (*error) += DumpVar(vars[i], i, false);
+            vars[i].DEC();
+            vars[i] = POP();
+        }
+        while (nargs_given--)
+        {
+            auto i = *--freevars;
+            if (error) (*error) += DumpVar(vars[i], i, false);
+            vars[i].DEC();
+            vars[i] = POP();
+        } 
 
         ip = retip;
 
@@ -646,7 +653,7 @@ struct VM : VMBase
         {
             auto &var = vars[curcoroutine->varip[i]];
             PUSH(var);
-            //var.type = V_UNDEFINED;
+            //var.type = V_NIL;
             var = curcoroutine->stackcopy[i - 1];
         }
 
@@ -783,10 +790,9 @@ struct VM : VMBase
 
             switch (*ip++)
             {
-                case IL_PUSHUNDEF: PUSH(Value()); break;
                 case IL_PUSHINT:   PUSH(Value(*ip++)); break;
                 case IL_PUSHFLT:   PUSH(Value(*(float *)ip)); ip++; break;
-                case IL_PUSHNIL:   PUSH(Value(0, V_NIL)); break;
+                case IL_PUSHNIL:   PUSH(Value()); break;
 
                 case IL_PUSHFUN:
                 {
@@ -928,7 +934,7 @@ struct VM : VMBase
                             {
                                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                                 auto u = nf->retvals.v[i].type->t;
-                                VMASSERT(t == u || u == V_ANY || u == V_NILABLE || (u == V_VECTOR && t == V_STRUCT));   
+                                VMASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
                             }
                         }
                     #endif
@@ -1324,9 +1330,11 @@ struct VM : VMBase
             case LVO_SADD:    { Value b = POP();  _SCAT();            a = res;                    break; }
             case LVO_SADDR:   { Value b = POP();  _SCAT();            a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_WRITE:   { Value  b = POP();       a.DEC(); a = b; break; }
-            case LVO_WRITER:  { Value &b = TOP().INC(); a.DEC(); a = b; break; }
-                    
+            case LVO_WRITE:     { Value  b = POP();                          a = b; break; }
+            case LVO_WRITER:    { Value &b = TOP();                          a = b; break; }
+            case LVO_WRITEREF:  { Value  b = POP();            a.DECRTNIL(); a = b; break; }
+            case LVO_WRITERREF: { Value &b = TOP().INCRTNIL(); a.DECRTNIL(); a = b; break; }
+
             #define PPOP(ret, op, pre, accessor) { \
                 if (ret && !pre) PUSH(a); \
                 a.accessor() = a.accessor() op 1; \

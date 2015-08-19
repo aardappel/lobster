@@ -52,7 +52,7 @@ struct CodeGen
 
         switch (type->t)
         {
-            case V_NILABLE:
+            case V_NIL:
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;
@@ -144,7 +144,7 @@ struct CodeGen
     {
     }
 
-    void Dummy(int retval) { while (retval--) Emit(IL_PUSHUNDEF); }
+    void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
 
     void BodyGen(Node *n)
     {
@@ -352,7 +352,7 @@ struct CodeGen
 
             case T_DEFAULTVAL:
             {
-                assert(n->exptype->t == V_NILABLE);  // Optional args are indicated by being nillable.
+                assert(n->exptype->t == V_NIL);  // Optional args are indicated by being nillable.
                 switch (n->exptype->sub->t)
                 {
                     case V_INT: Emit(IL_PUSHINT, 0); break;
@@ -386,9 +386,11 @@ struct CodeGen
             {
                 auto dl = n;
                 vector<Ident *> ids;
+                vector<bool> isref;
                 for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
                 {
                     ids.push_back(dl->left()->ident());
+                    isref.push_back(IsRefNil(dl->left()->exptype->t));
                 }
                 Gen(dl, (int)ids.size());
                 dl = n;
@@ -398,14 +400,19 @@ struct CodeGen
                     {
                         if (ids[i]->logvaridx >= 0) Emit(IL_LOGREAD, ids[i]->logvaridx);
                     }
-                    Emit(IL_LVALVAR, LVO_WRITE, ids[i]->idx);
+                    Emit(IL_LVALVAR, isref[i] ? LVO_WRITEREF : LVO_WRITE, ids[i]->idx);
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
                 Dummy(retval);
                 break;
             }
 
-            case T_ASSIGN: GenAssign(n->left(), LVO_WRITE, retval, nullptr, n->right()); break;
+            case T_ASSIGN:
+                GenAssign(n->left(),
+                          IsRefNil(n->left()->exptype->t) ? LVO_WRITEREF : LVO_WRITE, retval,
+                          nullptr,
+                          n->right());
+                break;
 
             case T_PLUSEQ:  GenAssign(n->left(), LVO_IADD, retval, n->exptype, n->right()); break;
             case T_MINUSEQ: GenAssign(n->left(), LVO_ISUB, retval, n->exptype, n->right()); break;
@@ -700,7 +707,7 @@ struct CodeGen
                 Emit(IL_PUSHINT, -1);   // i
                 Gen(n->for_iter(), 1);
                 Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
-                Emit(IL_PUSHUNDEF);     // body retval
+                Emit(IL_PUSHNIL);     // body retval
                 auto type = n->for_iter()->exptype;
                 switch (type->t)
                 {
@@ -761,7 +768,7 @@ struct CodeGen
             {
                 int fid = n->return_function_idx()->integer();
                 if (n->return_value()) Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1);
-                else Emit(IL_PUSHUNDEF);
+                else Emit(IL_PUSHNIL);
                 Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1);
                 // retval==true is nonsensical here, but can't enforce
                 break;
