@@ -161,8 +161,8 @@ void AddBuiltins()
     {
         assert(v1.vval()->typeoff == v2.vval()->typeoff);  // FIXME: need to guarantee this in typechecking
         auto nv = g_vm->NewVector(v1.vval()->len + v2.vval()->len, v1.vval()->typeoff);
-        nv->append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
-        nv->append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
+        nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
+        nv->Append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
         return Value(nv);
     }
     ENDDECL2(append, "xs,ys", "V*V*1", "V1",
@@ -215,7 +215,7 @@ void AddBuiltins()
 
     STARTDECL(push) (Value &l, Value &x)
     {
-        l.vval()->push(x);
+        l.vval()->Push(x);
         return l;
     }
     ENDDECL2(push, "xs,x", "V*A1", "V1",
@@ -224,7 +224,7 @@ void AddBuiltins()
     STARTDECL(pop) (Value &l)
     {
         if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("pop: empty vector"); }
-        auto v = l.vval()->pop();
+        auto v = l.vval()->Pop();
         l.DECRT();
         return v;
     }
@@ -234,9 +234,9 @@ void AddBuiltins()
     STARTDECL(top) (Value &l)
     {
         if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("top: empty vector"); }
-        auto v = l.vval()->top();
+        auto v = l.vval()->Top();
         l.DECRT();
-        return v.INC();
+        return v;
     }
     ENDDECL1(top, "xs", "V*", "A1",
         "returns last element from vector");
@@ -246,7 +246,7 @@ void AddBuiltins()
         if (i.ival() < 0 || i.ival() >= l.vval()->len) g_vm->BuiltinError("replace: index out of range");
 
         auto nv = g_vm->NewVector(l.vval()->len, l.vval()->typeoff);
-        nv->append(l.vval(), 0, l.vval()->len);
+        nv->Append(l.vval(), 0, l.vval()->len);
         l.DECRT();
 
         Value &dest = nv->at(i.ival());
@@ -262,7 +262,7 @@ void AddBuiltins()
     {
         if (n.ival() < 0 || i.ival() < 0 || i.ival() > l.vval()->len)
             g_vm->BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        l.vval()->insert(a, i.ival(), max(n.ival(), 1));
+        l.vval()->Insert(a, i.ival(), max(n.ival(), 1));
         return l;
     }
     ENDDECL4(insert, "xs,i,x,n", "V*IA1I?", "V1",
@@ -276,7 +276,7 @@ void AddBuiltins()
             g_vm->BuiltinError("remove: index (" + to_string(i.ival()) + 
                                ") or n (" + to_string(amount) +
                                ") out of range (" + to_string(l.vval()->len) + ")");
-        auto v = l.vval()->remove(i.ival(), amount);
+        auto v = l.vval()->Remove(i.ival(), amount);
         l.DECRT();
         return v;
     }
@@ -292,7 +292,7 @@ void AddBuiltins()
             auto e = l.vval()->at(i);
             if (e.Equal(e.type, o, o.type, false))
             {
-                l.vval()->remove(i--, 1).DEC();
+                l.vval()->Remove(i--, 1).DEC();
                 removed++;
             }
         }
@@ -330,7 +330,7 @@ void AddBuiltins()
     STARTDECL(copy) (Value &v)
     {
         auto nv = g_vm->NewVector(v.vval()->len, v.vval()->typeoff);
-        nv->append(v.vval(), 0, v.vval()->len);
+        nv->Append(v.vval(), 0, v.vval()->len);
         v.DECRT();
         return Value(nv);
     }
@@ -346,7 +346,7 @@ void AddBuiltins()
         if (start < 0 || start + size > (int)l.vval()->len)
             g_vm->BuiltinError("slice: values out of range");
         auto nv = g_vm->NewVector(size, l.vval()->typeoff);
-        nv->append(l.vval(), start, size);
+        nv->Append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
     }
@@ -356,21 +356,20 @@ void AddBuiltins()
 
     STARTDECL(any) (Value &v)
     {
-        Value r(0, V_NIL);
+        Value r(false);
         for (int i = 0; i < v.vval()->len; i++)
         {
             if (v.vval()->at(i).True())
             {
-                r = v.vval()->at(i);
-                r.INC();
+                r = Value(true);
                 break;
             }
         }
         v.DECRT();
         return r;
     }
-    ENDDECL1(any, "xs", "V*", "A1?",
-        "returns the first true element of the vector, or nil");
+    ENDDECL1(any, "xs", "V*", "I",
+        "returns wether any elements of the vector are true values");
 
     STARTDECL(all) (Value &v)
     {
@@ -437,7 +436,7 @@ void AddBuiltins()
             auto delim = p + strcspn(p, dl);
             auto end = delim;
             while (end > p && strspn1(end[-1], ws)) end--;
-            v->push(g_vm->NewString(p, end - p));
+            v->Push(g_vm->NewString(p, end - p));
             p = delim + strspn(delim, dl);
             p += strspn(p, ws);
         }
@@ -476,7 +475,7 @@ void AddBuiltins()
         {
             int u = FromUTF8(p);
             if (u < 0) { s.DECRT(); Value(v).DECRT(); return Value(0, V_NIL); }
-            v->push(u);
+            v->Push(u);
         }
         s.DECRT();
         return Value(v);
@@ -562,7 +561,7 @@ void AddBuiltins()
         auto v = g_vm->NewVector(len, typeoff); \
         for (int i = 0; i < a.vval()->len; i++) { \
             auto f = a.vval()->at(i); \
-            v->push(Value(op)); \
+            v->Push(Value(op)); \
         } \
         a.DECRT(); \
         return Value(v);
@@ -708,7 +707,7 @@ void AddBuiltins()
         assert(x.vval()->typeoff == y.vval()->typeoff); \
         auto v = g_vm->NewVector(x.vval()->len, x.vval()->typeoff); \
         for (int i = 0; i < x.vval()->len; i++) { \
-            v->push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
+            v->Push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
         } \
         x.DECRT(); y.DECRT(); \
         return Value(v);

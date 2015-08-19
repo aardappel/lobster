@@ -44,7 +44,8 @@ enum ValueType
 };
 
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
-inline bool IsRef(ValueType t)    { return t < 0; }
+inline bool IsRef   (ValueType t) { return t < 0; }
+inline bool IsRefNil(ValueType t) { return t < 0 || t == V_NILABLE; }
 inline bool IsVector(ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
 
 inline const char *BaseTypeName(ValueType t)
@@ -162,6 +163,9 @@ struct RefObj : DynAlloc
 
     RefObj(type_elem_t _t) : DynAlloc(_t), refc(1) {}
 
+    void Inc() { refc++; }
+    void Dec() { refc--; if (refc <= 0) DECDELETE(true); }
+
     void CycleDone(int &cycles)
     {
         typeoff = TYPE_ELEM_CYCLEDONE;
@@ -240,7 +244,7 @@ struct LString : LenObj
 
     char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-    void deleteself() { vmpool->dealloc(this, sizeof(LString) + len + 1); }
+    void DeleteSelf() { vmpool->dealloc(this, sizeof(LString) + len + 1); }
 
     bool operator==(LString &o) { return strcmp(str(), o.str()) == 0; }
     bool operator!=(LString &o) { return strcmp(str(), o.str()) != 0; }
@@ -320,10 +324,7 @@ struct Value
     inline Value &INCRT()
     {
         TYPE_ASSERT(IsRef(type));
-        #ifdef _DEBUG
-        if (ref_->refc > 0)  // force too many dec bugs to become apparent
-        #endif
-        ref_->refc++;
+        ref_->Inc();
         return *this;
     }
 
@@ -335,8 +336,7 @@ struct Value
     inline void DECRT() const   // we already know its a ref type
     {
         TYPE_ASSERT(IsRef(type));
-        ref_->refc--;
-        if (ref_->refc <= 0) ref_->DECDELETE(true);
+        ref_->Dec();
     }
 
     inline void DECRTNIL() const { if (ref_) DECRT(); }
@@ -399,56 +399,57 @@ struct LVector : LenObj
 
     ~LVector() { assert(0); }   // destructed by DECREF
 
-    void deallocbuf()
+    void DeallocBuf()
     {
         if (v == (Value *)(this + 1)) return;
         DeallocSubBuf(v, maxl);
     }
 
-    void deleteself(bool deref)
+    void DeleteSelf(bool deref)
     {
         if (deref) DeRef();
-        deallocbuf();
+        DeallocBuf();
         vmpool->dealloc(this, sizeof(LVector) + sizeof(Value) * initiallen);
     }
 
-    void resize(int newmax)
+    void Resize(int newmax)
     {
         // FIXME: check overflow
         auto mem = AllocSubBuf(newmax);
         if (len) memcpy(mem, v, sizeof(Value) * len);
-        deallocbuf();
+        DeallocBuf();
         maxl = newmax;
         v = (Value *)mem;
     }
 
-    void push(const Value &val)
+    void Push(const Value &val)
     {
-        if (len == maxl) resize(maxl ? maxl * 2 : 4);
+        if (len == maxl) Resize(maxl ? maxl * 2 : 4);
         v[len++] = val;
     }
 
-    Value pop()
+    Value Pop()
     {
         return v[--len];
     }
 
-    Value &top() const
+    Value &Top() const
     {
+        if (IsRef(ElemType(len - 1))) v[len - 1].INCRT();
         return v[len - 1];
     }
     
-    void insert(Value &val, int i, int n)
+    void Insert(Value &val, int i, int n)
     {
         assert(n > 0 && i >= 0 && i <= len); // note: insertion right at the end is legal, hence <= 
-        if (len + n > maxl) resize(max(len + n, maxl ? maxl * 2 : 4));   
+        if (len + n > maxl) Resize(max(len + n, maxl ? maxl * 2 : 4));   
         memmove(v + i + n, v + i, sizeof(Value) * (len - i));
         len++;
         for (int j = 0; j < n; j++) { v[i + j] = val; val.INC(); }
         val.DEC();
     }
 
-    Value remove(int i, int n)
+    Value Remove(int i, int n)
     { 
         assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
         auto x = v[i];
@@ -464,9 +465,9 @@ struct LVector : LenObj
         return v[i];
     }
 
-    void append(LVector *from, int start, int amount)
+    void Append(LVector *from, int start, int amount)
     {
-        if (len + amount > maxl) resize(len + amount);  // FIXME: check overflow
+        if (len + amount > maxl) Resize(len + amount);  // FIXME: check overflow
         memcpy(v + len, from->v + start, sizeof(Value) * amount);
         for (int i = 0; i < amount; i++) v[len + i].INC();
         len += amount;
@@ -617,7 +618,7 @@ struct CoRoutine : RefObj
         return *stackcopy;
     }
 
-    void deleteself(bool deref)
+    void DeleteSelf(bool deref)
     {
         assert(stackstart < 0);
         if (stackcopy)
@@ -670,7 +671,7 @@ template <int N> inline Value ToValueI(const vec<int, N> &vec, int maxelems = 4)
 {
     auto numelems = min(maxelems, N);
     auto v = g_vm->NewVector(numelems, g_vm->GetIntVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->push(Value(vec[i]));
+    for (int i = 0; i < numelems; i++) v->Push(Value(vec[i]));
     return Value(v);
 }
 
@@ -678,7 +679,7 @@ template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 
 {
     auto numelems = min(maxelems, N);
     auto v = g_vm->NewVector(numelems, g_vm->GetFloatVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->push(Value(vec[i]));
+    for (int i = 0; i < numelems; i++) v->Push(Value(vec[i]));
     return Value(v);
 }
 

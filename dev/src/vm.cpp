@@ -1143,7 +1143,8 @@ struct VM : VMBase
 
                 case IL_PUSHFLD:
                 case IL_PUSHFLDM: PushDeref(*ip++); break;
-                case IL_PUSHIDX:  PushDeref(GrabIndex(POP())); break;
+                case IL_PUSHIDXI: PushDeref(POP().ival()); break;
+                case IL_PUSHIDXV: PushDeref(GrabIndex(POP())); break;
 
                 case IL_PUSHLOC:
                 {
@@ -1174,15 +1175,16 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_LVALIDX: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
-                case IL_LVALFLD: { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
+                case IL_LVALIDXI: { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); break; }
+                case IL_LVALIDXV: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
+                case IL_LVALFLD:  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
 
                 case IL_PUSHONCE:
                 {
                     auto x = POP();
                     auto &v = TOP();
                     TYPE_ASSERT(IsVector(v.type));
-                    v.vval()->push(x);
+                    v.vval()->Push(x);
                     break;
                 }
 
@@ -1324,9 +1326,6 @@ struct VM : VMBase
 
             case LVO_WRITE:   { Value  b = POP();       a.DEC(); a = b; break; }
             case LVO_WRITER:  { Value &b = TOP().INC(); a.DEC(); a = b; break; }
-            case LVO_WRITED:  { Value  b = POP();       a.DEC(); a = b; break; }
-            // LVO_WRITED is only there because OVERWRITE causes problems with rec functions,
-            // and its not needed for defines anyway
                     
             #define PPOP(ret, op, pre, accessor) { \
                 if (ret && !pre) PUSH(a); \
@@ -1375,30 +1374,22 @@ struct VM : VMBase
 
     int GrabIndex(const Value &idx)
     {
-        if (idx.type == V_INT) return idx.ival();
-
-        if (IsVector(idx.type))
+        auto &v = TOP();
+        for (int i = idx.vval()->len - 1; ; i--)
         {
-            auto &v = TOP();
-            for (int i = idx.vval()->len - 1; ; i--)
+            auto sidx = idx.vval()->at(i);
+            VMTYPEEQ(sidx, V_INT);
+            if (!i)
             {
-                auto sidx = idx.vval()->at(i);
-                VMTYPEEQ(sidx, V_INT);
-                if (!i)
-                {
-                    idx.DECRT();
-                    return sidx.ival();
-                }
-                TYPE_ASSERT(IsVector(v.type));
-                IDXErr(sidx.ival(), v.vval()->len, v);
-                auto nv = v.vval()->at(sidx.ival()).INC();
-                v.DECRT();
-                v = nv;
+                idx.DECRT();
+                return sidx.ival();
             }
+            TYPE_ASSERT(IsVector(v.type));
+            IDXErr(sidx.ival(), v.vval()->len, v);
+            auto nv = v.vval()->at(sidx.ival()).INCRT();
+            v.DECRT();
+            v = nv;
         }
-
-        VMASSERT(0);
-        return 0;
     }
 
     int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar)

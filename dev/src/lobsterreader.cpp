@@ -34,8 +34,7 @@ struct ValueParser
 
     ~ValueParser()
     {
-        for (auto lo : allocated)
-            Value(lo).DECRT();
+        for (auto lo : allocated) lo->Dec();
     }
 
     Value Parse(type_elem_t typeoff)
@@ -88,8 +87,9 @@ struct ValueParser
         }
 
         auto vec = g_vm->NewVector(elems.size(), typeoff);
+        vec->Inc();
         allocated.push_back(vec);
-        for (auto &e : elems) vec->push(e.INC());
+        for (auto &e : elems) vec->Push(e);
         return Value(vec);
     }
 
@@ -137,6 +137,7 @@ struct ValueParser
                 string s = lex.sattr;
                 lex.Next();
                 auto str = g_vm->NewString(s);
+                str->Inc();
                 allocated.push_back(str);
                 return Value(str);
             }
@@ -205,7 +206,7 @@ static Value ParseData(type_elem_t typeoff, char *inp)
     try
     {
         ValueParser parser(inp);
-        g_vm->Push(parser.Parse(typeoff).INC());
+        g_vm->Push(parser.Parse(typeoff));
         return Value(0, V_NIL);
     }
     catch (string &s)

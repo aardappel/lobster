@@ -25,12 +25,12 @@ void RefObj::DECDELETE(bool deref)
     {
         case TYPE_ELEM_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
         case TYPE_ELEM_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
-        case TYPE_ELEM_STRING:     ((LString *)this)->deleteself(); break;
-        case TYPE_ELEM_COROUTINE:  ((CoRoutine *)this)->deleteself(deref); break;
+        case TYPE_ELEM_STRING:     ((LString *)this)->DeleteSelf(); break;
+        case TYPE_ELEM_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
         default:
         {
             assert(IsVector(BaseType()));
-            ((LVector *)this)->deleteself(deref);
+            ((LVector *)this)->DeleteSelf(deref);
             break;
         }
     }

@@ -133,7 +133,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += to_string(*ip++);
             break;
 
-        case IL_LVALIDX:
+        case IL_LVALIDXI:
+        case IL_LVALIDXV:
             LvalDisAsm(s, ip);
             break;
 

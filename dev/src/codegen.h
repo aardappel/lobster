@@ -373,7 +373,7 @@ struct CodeGen
             case T_INDEX:
                 Gen(n->left(), retval);
                 Gen(n->right(), retval);
-                if (retval) Emit(IL_PUSHIDX);
+                if (retval) Emit(n->right()->exptype->t == V_INT ? IL_PUSHIDXI : IL_PUSHIDXV);
                 break;
 
             case T_CODOT:
@@ -397,12 +397,8 @@ struct CodeGen
                     if (n->type == T_DEF)
                     {
                         if (ids[i]->logvaridx >= 0) Emit(IL_LOGREAD, ids[i]->logvaridx);
-                        Emit(IL_LVALVAR, LVO_WRITED, ids[i]->idx);
                     }
-                    else
-                    {
-                        Emit(IL_LVALVAR, LVO_WRITE, ids[i]->idx);
-                    }
+                    Emit(IL_LVALVAR, LVO_WRITE, ids[i]->idx);
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
                 Dummy(retval);
@@ -867,7 +863,9 @@ struct CodeGen
             case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;
             case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right(), lvalop, false); break;
             case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->ident()->idx); break;
-            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); Emit(IL_LVALIDX, lvalop); break;
+            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1);
+                          Emit(lval->right()->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV, lvalop);
+                          break;
             default:      parser.Error("lvalue required", lval);
         }
     }

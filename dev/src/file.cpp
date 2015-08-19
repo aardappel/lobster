@@ -37,13 +37,13 @@ using namespace lobster;
 
 void AddDirItem(LVector *nlist, LVector *slist, const char *filename, int64_t size, int divisor)
 {
-    nlist->push(Value(g_vm->NewString(filename, strlen(filename))));
+    nlist->Push(Value(g_vm->NewString(filename, strlen(filename))));
     if (size >= 0)
     {
         size /= divisor;
         if (size > 0x7FFFFFFF) size = 0x7FFFFFFF;
     }
-    slist->push(Value(int(size)));
+    slist->Push(Value(int(size)));
 }
 
 void AddFileOps()
