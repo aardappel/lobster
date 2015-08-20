@@ -247,6 +247,16 @@ struct ArgVector
         v.push_back(in);
         return true;
     }
+    
+    bool NoParensEligible()
+    {
+        if (v.size() < 2) return false;
+        for (size_t i = 1; i < v.size(); i++)
+        {
+            if (v[i].type->t != V_FUNCTION) return false;
+        }
+        return true;
+    }
 };
 
 struct BuiltinPtr
@@ -302,7 +312,8 @@ struct NativeFun : Named
             retvals.v[i].Set(rets, typestorage);
         }
     }
-
+    
+    bool NoParensEligible() { return !overloads && args.NoParensEligible(); }
 };
 
 struct NativeRegistry

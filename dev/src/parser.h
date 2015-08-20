@@ -734,14 +734,15 @@ struct Parser
         return -1;
     }
 
-    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", ArgVector *args = nullptr)
+    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", ArgVector *args = nullptr,
+                       bool noparens = false)
     {
         if (derefarg)
         {
             CheckArg(args, 0, fname);
             if (IsNext(T_LEFTPAREN))
             {
-                return new Node(lex, T_LIST, derefarg, ParseFunArgsRec(false, false, args, 1, fname));
+                return new Node(lex, T_LIST, derefarg, ParseFunArgsRec(false, false, args, 1, fname, noparens));
             }
             else
             {
@@ -750,16 +751,17 @@ struct Parser
         }
         else
         {
-            Expect(T_LEFTPAREN);
-            return ParseFunArgsRec(coroutine, false, args, 0, fname);
+            if (!noparens) Expect(T_LEFTPAREN);
+            return ParseFunArgsRec(coroutine, false, args, 0, fname, noparens);
         }
     }
 
-    Node *ParseFunArgsRec(bool coroutine, bool needscomma, ArgVector *args, size_t thisarg, const char *fname)
+    Node *ParseFunArgsRec(bool coroutine, bool needscomma, ArgVector *args, size_t thisarg, const char *fname,
+                          bool noparens)
     {
-        if (IsNext(T_RIGHTPAREN))
+        if (!noparens && IsNext(T_RIGHTPAREN))
         {
-            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
+            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname, false);
         }
         if (needscomma) Expect(T_COMMA);
         Node *arg = nullptr;
@@ -774,7 +776,9 @@ struct Parser
             arg = ParseExp();
         }
 
-        return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, true, args, thisarg + 1, fname));
+        return new Node(lex, T_LIST, arg, noparens
+                        ? ParseTrailingFunctionValues(coroutine, args, thisarg, fname, true)
+                        : ParseFunArgsRec(coroutine, true, args, thisarg + 1, fname, noparens));
     }
 
     void CheckArg(ArgVector *args, size_t thisarg, const char *fname)
@@ -782,9 +786,11 @@ struct Parser
         if (args && thisarg == args->v.size()) Error("too many arguments passed to function " + string(fname));
     }
 
-    Node *ParseTrailingFunctionValues(bool coroutine, ArgVector *args, size_t thisarg, const char *fname)
+    Node *ParseTrailingFunctionValues(bool coroutine, ArgVector *args, size_t thisarg, const char *fname,
+                                      bool follownoparens)
     {
-        if (args && thisarg + 1 < args->v.size()) trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
+        if (args && thisarg + 1 < args->v.size())
+            trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
 
         auto name = args && thisarg < args->v.size() ? args->GetName(thisarg) : "";
 
@@ -796,6 +802,7 @@ struct Parser
                 break;
 
             case T_IDENT:
+                if (follownoparens) break;
                 // skip if this function value starts with an ID that's equal to the parents next
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
@@ -804,6 +811,7 @@ struct Parser
                 break;
             
             case T_LEFTPAREN:
+                if (follownoparens) break;
                 e = ParseFunction(nullptr, false, true, true, false, name);
                 break;
         }
@@ -829,7 +837,7 @@ struct Parser
             if (lex.token == T_IDENT && args->GetName(thisarg) == lex.sattr)
             {
                 lex.Next();
-                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
+                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname, false);
             }
             else
             {
@@ -1010,11 +1018,12 @@ struct Parser
             : nullptr);
     }
 
-    Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg, bool coroutine)
+    Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg, bool coroutine,
+                            bool noparens = false)
     {
         if (nf)
         {
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &nf->args);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &nf->args, noparens);
 
             Node **ai = &args;
             for (auto &arg : nf->args.v)
@@ -1062,14 +1071,14 @@ struct Parser
             for (auto fi = f->sibf; fi; fi = fi->sibf) 
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
 
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &bestf->subf->args);
+            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &bestf->subf->args, noparens);
             auto nargs = CountList(args);
 
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
 
             return new Node(lex, T_CALL, new FunRef(lex, f->subf), args);
         }
-
+        
         auto args = ParseFunArgs(coroutine, firstarg);
         auto id = st.Lookup(idname);
         if (id)
@@ -1380,14 +1389,26 @@ struct Parser
                 }
                 else
                 {
-                    Ident *id = nullptr;
-                    auto fld = st.LookupWithStruct(idname, lex, id);
-                    if (fld)
+                    auto nf = natreg.FindNative(idname);
+                    auto f = st.FindFunction(idname);
+                    if ((nf && nf->NoParensEligible()) ||
+                         (f && f->NoParensEligible()))  // Function call without ()
                     {
-                        return new Node(lex, T_DOT, new IdRef(lex, id), new FldRef(lex, fld));
+                        // TODO: would be good to limit it to functions with 1 parameter of any type followed
+                        // by 0 or more function value parameters.
+                        return ParseFunctionCall(f, nf, idname, nullptr, false, true);
                     }
+                    else
+                    {
+                        Ident *id = nullptr;
+                        auto fld = st.LookupWithStruct(idname, lex, id);
+                        if (fld)
+                        {
+                            return new Node(lex, T_DOT, new IdRef(lex, id), new FldRef(lex, fld));
+                        }
 
-                    return (Node *)new IdRef(lex, st.LookupUse(idname, lex));
+                        return (Node *)new IdRef(lex, st.LookupUse(idname, lex));
+                    }
                 }
         }
     }

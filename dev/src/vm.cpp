@@ -1124,8 +1124,9 @@ struct VM : VMBase
                 case IL_A2S:
                 {
                     Value a = POP();
-                    PUSH(NewString(a.ToString(a.type, programprintprefs)));   
-                    a.DEC();
+                    TYPE_ASSERT(IsRefNil(a.type));
+                    PUSH(NewString(a.ToString(a.type, programprintprefs)));
+                    a.DECRTNIL();
                     break;
                 }
                     

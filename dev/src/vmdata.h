@@ -512,7 +512,9 @@ struct LVector : LenObj
 
     void DeRef()
     {
-        for (int i = 0; i < len; i++) v[i].DEC();
+        for (int i = 0; i < len; i++)
+            if (IsRef(ElemType(i)))
+                v[i].DECRTNIL();
     }
 
     void Mark()
