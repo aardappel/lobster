@@ -16,8 +16,16 @@
 #include "glinterface.h"
 #include "ftinterface.h"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#define USE_FREETYPE
+
+#ifdef USE_FREETYPE
+    #include <ft2build.h>
+    #include FT_FREETYPE_H
+#else
+    #define STB_TRUETYPE_IMPLEMENTATION
+    #define STBTT_STATIC
+    #include "stb/stb_truetype.h"
+#endif
 
 #include "unicode.h"
 

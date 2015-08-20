@@ -21,6 +21,9 @@
 /dev/android/assets/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Debug/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Release/
+/dev/android/obj/
+/dev/android/libs/
+/dev/android/Android-VS/x86/
 
 /dev/CMakeCache.txt
 /dev/CMakeFiles/
@@ -30,4 +33,3 @@
 /dev/Lobster.cbp
 
 /lobster/lobster_linux
-

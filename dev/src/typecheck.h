@@ -813,7 +813,7 @@ struct TypeChecker
         }
 
         // Output without arg types, since those are yet to be overwritten.
-        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(*sf, false).c_str());
+        Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(*sf, nullptr, false).c_str());
 
         return sf;
     }

@@ -10,3 +10,4 @@ APP_CFLAGS += -Wno-multichar
 NDK_TOOLCHAIN_VERSION := 4.8
 #NDK_TOOLCHAIN_VERSION := clang
 APP_CPPFLAGS += -std=c++11 -fexceptions
+APP_STL := c++_static

@@ -566,7 +566,7 @@ UpDown GetKS(const char *name)
 {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return UpDown();
-    #if PLATFORM_MOBILE
+    #ifdef PLATFORM_MOBILE
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly
         // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,

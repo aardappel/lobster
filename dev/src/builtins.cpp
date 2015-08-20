@@ -703,7 +703,7 @@ void AddBuiltins()
 
     // FIXME: need to guarantee this assert in typechecking
     #define VECBINOP(name,access) \
-        if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name ## "() arguments must be equal length"); \
+        if (x.vval()->len != y.vval()->len) g_vm->BuiltinError(#name "() arguments must be equal length"); \
         assert(x.vval()->typeoff == y.vval()->typeoff); \
         auto v = g_vm->NewVector(x.vval()->len, x.vval()->typeoff); \
         for (int i = 0; i < x.vval()->len; i++) { \

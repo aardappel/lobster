@@ -17,7 +17,8 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-#include "stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 
 
 uint CreateTexture(uchar *buf, const int2 &dim, int tf)
@@ -36,7 +37,7 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-    auto format = GL_RGBA8;
+    auto format = GL_RGBA;
     auto component = GL_UNSIGNED_BYTE;
     #if !defined(__APPLE__) && !defined(__ANDROID__)
         if (tf & TF_FLOAT)

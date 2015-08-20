@@ -10,7 +10,8 @@ LOBSTER_PATH := ../../..
 LOCAL_C_INCLUDES := $(SDL_PATH)/include $(LOBSTER_PATH)/src $(LOCAL_PATH)/$(LOBSTER_PATH)/include
 
 LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
-	$(LOBSTER_PATH)/src/lobster.cpp \
+	$(LOBSTER_PATH)/src/main.cpp \
+    $(LOBSTER_PATH)/src/compiler.cpp \
 	$(LOBSTER_PATH)/src/audio.cpp \
 	$(LOBSTER_PATH)/src/builtins.cpp \
 	$(LOBSTER_PATH)/src/file.cpp \
@@ -29,11 +30,12 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	$(LOBSTER_PATH)/src/sdlsystem.cpp \
 	$(LOBSTER_PATH)/src/simplex.cpp \
 	$(LOBSTER_PATH)/src/stdafx.cpp \
-	$(LOBSTER_PATH)/src/vmdata.cpp \
-	$(LOBSTER_PATH)/lib/stb_image.c
+	$(LOBSTER_PATH)/src/vmdata.cpp
 
 LOCAL_SHARED_LIBRARIES := SDL2
 LOCAL_STATIC_LIBRARIES := freetype2-static
+
+LOCAL_CFLAGS := -std=c++11 -Wno-enum-compare
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 

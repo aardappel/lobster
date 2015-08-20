@@ -1,20 +1,34 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lobster", "lobster.vcxproj", "{EB07932C-0AC4-4962-B691-713B05E36832}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Android-VS", "..\android\Android-VS\Android-VS.vcxproj", "{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
 		Debug|Win32 = Debug|Win32
+		Release|ARM = Release|ARM
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB07932C-0AC4-4962-B691-713B05E36832}.Debug|ARM.ActiveCfg = Debug|Win32
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Debug|Win32.ActiveCfg = Debug|Win32
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Debug|Win32.Build.0 = Debug|Win32
+		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|ARM.ActiveCfg = Release|Win32
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|Win32.ActiveCfg = Release|Win32
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|Win32.Build.0 = Release|Win32
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|ARM.ActiveCfg = Debug|ARM
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|ARM.Build.0 = Debug|ARM
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|Win32.ActiveCfg = Debug|x86
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|Win32.Build.0 = Debug|x86
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|ARM.ActiveCfg = Release|ARM
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|ARM.Build.0 = Release|ARM
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|Win32.ActiveCfg = Release|x86
+		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|Win32.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

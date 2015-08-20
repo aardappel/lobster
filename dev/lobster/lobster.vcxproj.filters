@@ -17,9 +17,6 @@
     <Filter Include="engine\opengl">
       <UniqueIdentifier>{45aa5d69-5709-4057-9efa-3f9bc0593b9a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="engine\opengl\image">
-      <UniqueIdentifier>{2ff8d0da-3fc3-4149-8dcf-06490528dfd9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="engine\sdl">
       <UniqueIdentifier>{f646f806-efbc-446b-a9ec-a2873df29ff5}</UniqueIdentifier>
     </Filter>
@@ -100,9 +97,6 @@
     </ClInclude>
     <ClInclude Include="..\src\sdlinterface.h">
       <Filter>engine\sdl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\stb_image.h">
-      <Filter>engine\opengl\image</Filter>
     </ClInclude>
     <ClInclude Include="..\src\platform.h">
       <Filter>base</Filter>
@@ -333,9 +327,6 @@
     </ClCompile>
     <ClCompile Include="..\src\file.cpp">
       <Filter>compiler\builtins</Filter>
-    </ClCompile>
-    <ClCompile Include="..\lib\stb_image.c">
-      <Filter>engine\opengl\image</Filter>
     </ClCompile>
     <ClCompile Include="..\src\lobsterreader.cpp">
       <Filter>compiler\builtins</Filter>
