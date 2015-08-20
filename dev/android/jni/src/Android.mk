@@ -35,7 +35,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 LOCAL_SHARED_LIBRARIES := SDL2
 LOCAL_STATIC_LIBRARIES := freetype2-static
 
-LOCAL_CFLAGS := -std=c++11 -Wno-enum-compare
+LOCAL_CFLAGS := -std=c++11
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 

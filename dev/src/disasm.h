@@ -103,9 +103,9 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
 
         case IL_NEWVEC:
         {
-            auto ti = typetable + *ip++;
+            auto &ti = *(TypeInfo *)(typetable + *ip++);
             auto nargs = *ip++;
-            s += ti[0] == V_STRUCT ? bcf->structs()->Get(ti[1])->name()->c_str() : "vector";
+            s += ti.vt() == V_STRUCT ? bcf->structs()->Get(ti.sub)->name()->c_str() : "vector";
             s += " ";
             s += to_string(nargs);
             break;

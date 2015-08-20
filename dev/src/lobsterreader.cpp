@@ -62,7 +62,7 @@ struct ValueParser
                 }
                 else
                 {
-                    elems.push_back(ParseFactor(ti.t == V_VECTOR ? ti.sub : ti.elems[elems.size()]));
+                    elems.push_back(ParseFactor(ti.vt() == V_VECTOR ? ti.sub : ti.elems[elems.size()]));
                 }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();

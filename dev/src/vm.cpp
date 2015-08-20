@@ -391,7 +391,7 @@ struct VM : VMBase
                 {
                     Value &v = stack[sp - nargs + j + 1];
                     auto &ti = GetTypeInfo(desired);
-                    if (v.type != ti.t || (IsRef(v.type) && v.ref()->typeoff != desired))
+                    if (v.type != ti.vt() || (IsRef(v.type) && v.ref()->typeoff != desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -1374,7 +1374,7 @@ struct VM : VMBase
         if (IsRef(v.type))
         {
             auto &ti = GetTypeInfo(v.ref()->typeoff);
-            if (ti.t == V_STRUCT) return ReverseLookupType(ti.sub);
+            if (ti.vt() == V_STRUCT) return ReverseLookupType(ti.sub);
         }
         return BaseTypeName(v.type);
     }

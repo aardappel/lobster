@@ -476,8 +476,8 @@ struct LVector : LenObj
     ValueType ElemType(int i) const
     {
         auto &ti = GetTypeInfo();
-        auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.sub : ti.elems[i]);
-        return (ValueType)(sti.t == V_NIL ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
+        auto &sti = g_vm->GetTypeInfo(ti.vt() == V_VECTOR ? ti.sub : ti.elems[i]);
+        return (ValueType)(sti.vt() == V_NIL ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
     }
 
     string ToString(PrintPrefs &pp)
@@ -489,7 +489,7 @@ struct LVector : LenObj
         }
 
         auto &ti = GetTypeInfo();
-        string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.sub) + string("{") : "[";
+        string s = ti.vt() == V_STRUCT ? g_vm->ReverseLookupType(ti.sub) + string("{") : "[";
         for (int i = 0; i < len; i++)
         {
             if (i) s += ", ";
@@ -497,7 +497,7 @@ struct LVector : LenObj
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
             s += pp.depth || !IsRef(ElemType(i)) ? v[i].ToString(ElemType(i), subpp) : "..";
         }
-        s += ti.t == V_STRUCT ? "}" : "]";
+        s += ti.vt() == V_STRUCT ? "}" : "]";
         return s;
     }
 
