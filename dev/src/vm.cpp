@@ -1148,9 +1148,9 @@ struct VM : VMBase
                 case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
 
                 case IL_PUSHFLD:
-                case IL_PUSHFLDM: PushDeref(*ip++); break;
-                case IL_PUSHIDXI: PushDeref(POP().ival()); break;
-                case IL_PUSHIDXV: PushDeref(GrabIndex(POP())); break;
+                case IL_PUSHFLDM: PushDerefField(*ip++); break;
+                case IL_PUSHIDXI: PushDerefIdx(POP().ival()); break;
+                case IL_PUSHIDXV: PushDerefIdx(GrabIndex(POP())); break;
 
                 case IL_PUSHLOC:
                 {
@@ -1234,18 +1234,24 @@ struct VM : VMBase
         }
     }
 
-    void PushDeref(int i) 
+    void PushDerefField(int i) 
     { 
         Value r = POP(); 
-        switch (r.type) 
-        { 
+        if (!r.ref()) { PUSH(r); return; }  // ?.
+        PUSH(r.vval()->at(i).INC());
+        r.DECRT(); 
+    }
+
+    void PushDerefIdx(int i) 
+    { 
+        Value r = POP();
+        if (!r.ref()) { PUSH(r); return; }  // ?.
+        switch (r.ref()->BaseType()) 
+        {
+            case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
-            case V_STRUCT:
                 IDXErr(i, r.vval()->len, r);
                 PUSH(r.vval()->at(i).INC());
-                break;
-            case V_NIL:  // only used with ?.
-                PUSH(r);
                 break;
             case V_STRING:
                 IDXErr(i, r.sval()->len, r); 

@@ -253,7 +253,7 @@ struct LString : LenObj
 };
 
 #if RTT_ENABLED
-#define TYPE_ASSERT(cond) if(!(cond)) { g_vm->BuiltinError("type verification failed: " ## #cond); }
+#define TYPE_ASSERT(cond) if(!(cond)) { g_vm->BuiltinError("type verification failed: " #cond); }
 #define TYPE_INIT(t) type(t),
 #else
 #define TYPE_ASSERT(cond) ((void)0)
