@@ -1,15 +1,15 @@
-% Notepad++ as Lobster IDE
+---
+title: Notepad++ as Lobster IDE
+---
 
 Running Lobster programs from within the editor
 -----------------------------------------------
 
--   Install [Notepad++][2] (default install) and the NppExec plugin
-    ([download][1], unzip the .dll and other files into the plugins folder of
-    where you installed Notepad++).
-
-[1]: <http://sourceforge.net/projects/npp-plugins/files/NppExec/>
-
-[2]: <http://notepad-plus-plus.org/>
+-   Install [Notepad++](<http://notepad-plus-plus.org/>) (default install) and
+    the NppExec plugin
+    ([download](<http://sourceforge.net/projects/npp-plugins/files/NppExec/>),
+    unzip the .dll and other files into the plugins folder of where you
+    installed Notepad++).
 
 -   Open menu Plugins -\> NppExec -\> Execute and enter:
 
@@ -23,19 +23,17 @@ Running Lobster programs from within the editor
 -   Load some lobster code. pressing `F6` and then "ok" should run it. Next time
     press `Ctrl+F6` to bypass the dialog.
 
-
+-   NOTE: running from within Notepad++ doesn't work for programs that do
+    console input thru e.g. `getline()`. Output (thru `print()`) does work, but
+    is sometimes delayed. Graphical programs work well.
 
 Editing
 -------
 
 By default, Notepad++ comes set up insert tabs into your code, which is against
-the Lobster [style guide][3], and can result in errors if you modify the
-existing examples. In Settings -\> Preferences -\> Language Menu / Tab Settings
-you can change this.
-
-[3]: <style_guide.html>
-
-
+the Lobster [style guide](<style_guide.html>), and can result in errors if you
+modify the existing examples. In Settings -\> Preferences -\> Language Menu /
+Tab Settings you can change this.
 
 Error Highlighting
 ------------------
@@ -57,24 +55,20 @@ Error Highlighting
     compile errors, the second for runtime errors, and the third for the
     stacktrace part of runtime errors.
 
-
-
 Syntax Highlighting
 -------------------
 
--   Language -\> Define your language.., then Import... and choose
-    `notepadpp_udl_lobster.xml` file in docs directory.
+-   NOTE: this file currently only seems to work with a dark background theme,
+    so be sure to choose in menu Settings -\> Style Configurator under "Select
+    Theme" something like Zenburn first.
+
+-   Language -\> Define your language.., then Import... and choose the
+    `docs/notepad++/notepadpp_udl_lobster.xml` file.
 
 -   Save As... "`lobster`"
 
 -   It should now show `.lobster` files with correct highlighting, or you can
-    set it explicitly from the Language menu
-
--   The colors were chosen to work well with "Zenburn" (Settings -\> Style
-    Configurator), you may need to change them if you use a bright background
-    instead.
-
-
+    set it explicitly from the Language menu.
 
 Optionally
 ----------

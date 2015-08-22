@@ -253,7 +253,8 @@ struct ArgVector
         if (v.size() < 2) return false;
         for (size_t i = 1; i < v.size(); i++)
         {
-            if (v[i].type->t != V_FUNCTION) return false;
+            auto type = v[i].type;
+            if (type->t != V_FUNCTION && (type->t != V_NIL || type->sub->t != V_FUNCTION)) return false;
         }
         return true;
     }

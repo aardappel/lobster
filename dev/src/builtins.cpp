@@ -98,20 +98,20 @@ void AddBuiltins()
         "convert any value to string");
 
     STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return a; } 
-    ENDDECL1(set_print_depth, "A?", "I", "", 
+    ENDDECL1(set_print_depth, "depth", "I", "", 
         "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
 
     STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival(); return a; } 
-    ENDDECL1(set_print_length, "A?", "I", "", 
+    ENDDECL1(set_print_length, "len", "I", "", 
         "for printing / string conversion: sets max string length (default 10000)");
 
     STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival() != 0; return a; } 
-    ENDDECL1(set_print_quoted, "A?", "I", "", 
+    ENDDECL1(set_print_quoted, "quoted", "I", "", 
         "for printing / string conversion: if the top level value is a string, whether to convert it with escape codes"
         " and quotes (default false)");
 
     STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival(); return a; } 
-    ENDDECL1(set_print_decimals, "A?", "I", "", 
+    ENDDECL1(set_print_decimals, "decimals", "I", "", 
         "for printing / string conversion: number of decimals for any floating point output (default -1, meaning all)");
 
     STARTDECL(getline) ()
