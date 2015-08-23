@@ -5,8 +5,8 @@ include "color.lobster"
 
 fatal(gl_window("hypocycloid", 1024, 768))
 
-while(gl_frame()):
-    if(gl_wentdown("escape")): return
+while gl_frame():
+    if gl_wentdown("escape"): return
     gl_clear(color_black)
     gl_translate(float(gl_windowsize()) / 2.0)
     gl_scale(gl_windowsize().y / 4.0)
@@ -14,5 +14,5 @@ while(gl_frame()):
     pts := map(360 * 4 + 1) a:
         fold(5, xy_0) p, i:
             p + sincos(a / 4.0 * pow(3, i)).xy * pow(0.4 + scalechange, i)
-    gl_linemode(1):
+    gl_linemode 1:
         gl_polygon(pts)

@@ -8,7 +8,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while(gl_frame() & !gl_wentdown("escape")):
+while gl_frame() & !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -19,8 +19,8 @@ while(gl_frame() & !gl_wentdown("escape")):
     dir := xy_f { gl_isdown("d") - gl_isdown("a"),
                   gl_isdown("s") - gl_isdown("w") }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) > float(gl_windowsize()) / scale / 2)):
+    if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
         playerpos = newpos
 
-    gl_translate(playerpos):
+    gl_translate playerpos:
         gl_circle(1, 6)

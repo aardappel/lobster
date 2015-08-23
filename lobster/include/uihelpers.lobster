@@ -12,7 +12,7 @@ private panoffset := xy_0
 private touchvelocity := xy_0
 
 def ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
-    if(gl_isdown(buttonname)):
+    if gl_isdown(buttonname):
         delta := float(gl_mousedelta(0)) / scale
         panoffset -= delta
         // mild amount of dampening/smoothing from previous frames:
@@ -20,9 +20,9 @@ def ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
     else:
         panoffset -= touchvelocity * gl_deltatime()
         speed := touchvelocity.magnitude()
-        if(speed > 0):
+        if speed > 0:
             reduction := gl_deltatime() / scale * 1000
-            if(reduction < speed):
+            if reduction < speed:
                 speed -= reduction
                 touchvelocity = touchvelocity.normalize() * speed
             else:
@@ -57,13 +57,13 @@ private pinchfactor := 1.0
 private lastdistance := 0.0
 
 def ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin:xy_f):
-    if(viewsteps == 0): viewsteps = default
+    if viewsteps == 0: viewsteps = default
     oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
     viewsteps -= gl_mousewheeldelta()
     viewsteps = max(min(viewsteps, maxs), mins)
     viewscale := pow(rate, viewsteps)
     center := float(gl_mousepos(0))
-    if(gl_isdown("mouse1") & gl_isdown("mouse11")):
+    if gl_isdown("mouse1") & gl_isdown("mouse11"):
         dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
         center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
         if(lastdistance):
@@ -96,7 +96,7 @@ def ui_rendertextatlocalsize(localsize:float, f):
     oldfontsize := gl_getfontsize()
     localfontsize := round(gl_scaling().x * localsize)    // font size to nearest pixel
     gl_setfontsize(localfontsize)
-    gl_scale(xy_1 / gl_scaling()):   // get back to pixel scale
+    gl_scale xy_1 / gl_scaling():   // get back to pixel scale
         gl_translate(-fraction(gl_origin() + 0.5) + 0.5) // translate to nearest pixel
         f()
     gl_setfontsize(oldfontsize)

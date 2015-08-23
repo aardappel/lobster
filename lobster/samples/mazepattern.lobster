@@ -16,16 +16,16 @@ def endcap_line(a, b, thickness):
     extension := (a - b) * thickness * sqrt(2) / 4
     gl_line(a + extension, b - extension, thickness)
 
-while(gl_frame()):
-    if(gl_wentdown("escape")): return
+while gl_frame():
+    if gl_wentdown("escape"): return
     gl_clear(color_black)
     rndseed(0)
     scale := gl_windowsize().y / 25
     gl_scale(scale)
     forxy(gl_windowsize() / scale) v:
-        gl_translate(float(v)):
-            if(rnd(3)):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
-                if(rnd(2)):
+        gl_translate float(v):
+            if rnd(3):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
+                if rnd(2):
                     endcap_line(xy_0, xy_1, 0.25)
                 else:
                     endcap_line(xy_x, xy_y, 0.25)

@@ -106,10 +106,10 @@ their underlying type:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 a := nil      // a is a nilable of unknown type
-if(..):
+if ..:
     a = "foo" // a is a nilable string
 a += "bar"    // error: + not defined for nil
-if(a):        // guaranteed not be nil inside block
+if a:         // guaranteed not be nil inside block
     a += "!"  // ok: a is of type string here
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -135,8 +135,8 @@ and can be avoided:
     type that doesn't need to be checked.
 
 The flow based analysis generally understand logical expressions, so if you
-write `if(!a):` instead, you'll be able to access `a` in the `else` block, but
-not in the `then` block. Similarly, if you write `if (a & f(a)):` then `a` is
+write `if !a:` instead, you'll be able to access `a` in the `else` block, but
+not in the `then` block. Similarly, if you write `if a & f(a):` then `a` is
 available as non-nil both as argument to `f` *and* in the following block.
 
 De-referencing nillables as in `o & o.f` is so common that there's a shorthand
@@ -170,7 +170,7 @@ the code, thanks to the information that a conditional provides.
 Another example of this is the `is` operator:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if(a is xyz): a.x
+if a is xyz: a.x
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can access fields of `xyz` regardless of what type `a` had outside this
@@ -180,7 +180,7 @@ Assignment can work similar to conditionals:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 a := nil
-if(..): a = xyz_0
+if ..: a = xyz_0
 a.x        // error
 a = xyz_0  // a is guaranteed non-nil below
 a.x        // ok
@@ -197,13 +197,14 @@ such that this is already obvious to the type system.
 
 Compile-time if-then's.
 -----------------------
+
 The flow-based type-checking above gives branches more specific types. But we
 can do even better: if the condition is statically known, we can avoid
 type-checking alltogether:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def compile_time_if(x):
-    if(x is int | x is float):
+    if x is int | x is float:
         1 / x
     else:
         x
@@ -211,24 +212,25 @@ assert(compile_time_if(1) is int)
 assert(compile_time_if("") is string)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The division would be a type error if x is a string, but it compiles anyway since this
-if is compile-time constant, and the type checker ignores this branch.
+The division would be a type error if x is a string, but it compiles anyway
+since this if is compile-time constant, and the type checker ignores this
+branch.
 
-If you're used to dynamic languages, you might think: what's the fuss?
-This would be a compile error in almost all statically typed languages,
-since they don't cull code before the optimizer. For example with C++ templates
-can't handle this situation, and that's already more powerful than most
-forms of generics.
+If you're used to dynamic languages, you might think: what's the fuss? This
+would be a compile error in almost all statically typed languages, since they
+don't cull code before the optimizer. For example with C++ templates can't
+handle this situation, and that's already more powerful than most forms of
+generics.
 
-Also note the return type is just the else branch in the string case,
-it doesn't need to make a type union between the branches anymore.
+Also note the return type is just the else branch in the string case, it doesn't
+need to make a type union between the branches anymore.
 
 This is powerful, because it allows you to write generic functions that do
 subtly different things depending on the input, with no overhead from the
 conditional, and the ability to operate differently on each case.
 
-You can do something similar with multi-methods, but that may require more
-code or may be less efficient.
+You can do something similar with multi-methods, but that may require more code
+or may be less efficient.
 
 Generic objects
 ---------------

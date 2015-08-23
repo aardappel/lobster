@@ -40,17 +40,17 @@ def run_test_cases():
     parsed, err := parse_data(typeof direct, "" + direct)
     //print(parsed)
     //print(direct)
-    if(err):
-        print(err)
-    assert(equal(parsed, direct))
+    if err:
+        print err
+    assert equal(parsed, direct)
 
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
-    assert(equal(string2unicode(unicode2string(unicodetests)), unicodetests))
+    assert equal(string2unicode(unicode2string(unicodetests)), unicodetests)
 
     compres1, comperr1 := compile_run_code("1 + 2")
-    if(comperr1):
-        print(comperr1)
-    assert(compres1 == "3")
+    if comperr1:
+        print comperr1
+    assert compres1 == "3"
 
     /*
     // this test makes it dependent on this file even in shipping builds, so off by default
@@ -64,8 +64,8 @@ def run_test_cases():
         x := 1
         y := 1
         def f():
-            assert(x == 1)
-            assert(y == 2)
+            assert x == 1
+            assert y == 2
         def g():
             x := 2
             y <- 2
@@ -73,9 +73,9 @@ def run_test_cases():
         g()
     scopetest()
     a := 0
-    assert(a++ + ++a + a-- + --a == 4)
+    assert a++ + ++a + a-- + --a == 4
     b := [0]
-    assert(b[0]++ + ++b[0] + b[0]-- + --b[0] == 4)
+    assert b[0]++ + ++b[0] + b[0]-- + --b[0] == 4
 
 
     testvector := [ 3, 9, 5, 4, 1, 3, 9, 5, 4, 1 ]
@@ -86,25 +86,25 @@ def run_test_cases():
     sorted3 := copy(testvector)
     sorted3.qsort_in_place(): _a < _b
 
-    assert(equal(sorted1, [1,1,3,3,4,4,5,5,9,9]))
-    assert(equal(sorted1, sorted2))
-    assert(equal(sorted1, sorted3))
+    assert equal(sorted1, [1,1,3,3,4,4,5,5,9,9])
+    assert equal(sorted1, sorted2)
+    assert equal(sorted1, sorted3)
 
     found, findex := sorted1.binarysearch(1)
-    assert(found == 2 & findex == 0)
+    assert found == 2 & findex == 0
     found, findex = sorted1.binarysearch(9)
-    assert(found == 2 & findex == 8)
+    assert found == 2 & findex == 8
     found, findex = sorted1.binarysearch(3)
-    assert(found == 2 & findex == 2)
+    assert found == 2 & findex == 2
 
-    assert(44 == sum(testvector))
-    assert(264 == sum(testvector.map(): _ * _))
+    assert 44 == sum(testvector)
+    assert 264 == sum(testvector.map(): _ * _)
 
 
     def factorial(n): 1 > n | factorial(n - 1) * n
-    assert(7.factorial == 5040)
+    assert 7.factorial == 5040
 
-    assert(((def(f): f(4))(def(x): x * x)) == 16)
+    assert 16 == ((def(f): f(4)) (def(x): x * x))
 
 
     // ////////////////////////////////////////////////////////////////////////
@@ -118,11 +118,11 @@ def run_test_cases():
             // Here, the def passed to h appears the same each time, but it has a freevar f that is different.
             h():
                 f()
-        assert((g(): 1) == 1)
-        assert((g(): "a") == "a")
+        assert 1 == (g(): 1)
+        assert "a" == (g(): "a")
 
     def compile_time_if(x):
-        if(x is int | x is float):
+        if x is int | x is float:
             // The division is a type error if x is a string.
             // But it compiles anyway since this if is compile-time constant,
             // and the type checker ignores this branch.
@@ -133,10 +133,10 @@ def run_test_cases():
             // Also note the return type is just the else branch in the string case,
             // it doesn't need to make a type union between the branches anymore.
             x
-    assert(compile_time_if(1) is int)
-    assert(compile_time_if("") is string)
+    assert compile_time_if(1) is int
+    assert compile_time_if("") is string
 
-    assert(typeof int == 0)  // Always the first one added to the typetable.
+    assert typeof int == 0  // Always the first one added to the typetable.
 
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
@@ -180,15 +180,15 @@ def run_test_cases():
 
     world := worldsize.y.map() y: worldsize.x.map() x:
         c := initworld[y][x]
-        if(c == 'S'): startpos = xy { x, y }
-        if(c == 'E'): endpos   = xy { x, y }
+        if c == 'S': startpos = xy { x, y }
+        if c == 'E': endpos   = xy { x, y }
         pathingcell { xy { x, y }, false, c }
 
     path :=
         astar_2dgrid(false, worldsize, world[startpos], world[endpos], def(): world[_]) (n, nn::pathingcell):
             (c == '#' & -1) | (c == '/' & 5) | 1
 
-    assert(path.length == 27)
+    assert path.length == 27
 
     for(path) n:
         n.path = true
@@ -199,7 +199,7 @@ def run_test_cases():
                  (n.open   & "O") |
                  unicode2string([ n.c ]))
 
-    assert(equal(astar_result, expected_result))
+    assert equal(astar_result, expected_result)
 
 
     // ////////////////////////////////////////////////////////////////////////
@@ -217,7 +217,7 @@ def run_test_cases():
             "eat",
             def(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
             def(s):
-                if(s[bread] > 0): s[bread]-- else: s[pizza]--
+                if s[bread] > 0: s[bread]-- else: s[pizza]--
                 s[hungry]--
         }
     ]
@@ -228,10 +228,10 @@ def run_test_cases():
         endcondition s:
             s[hungry] <= 0
 
-    assert(goap_path.length == 9)
+    assert goap_path.length == 9
     goap_path.pop()
-    assert(equal(goap_path.map(): _.delta?.name | "",
-        ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"]))
+    assert equal(goap_path.map(): _.delta?.name | "",
+        ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"])
 
 
     // ////////////////////////////////////////////////////////////////////////
@@ -242,37 +242,37 @@ def run_test_cases():
         1337
 
     def myfor(n, f):
-        for(n): f(_)
+        for n: f(_)
         0
 
     co1 := coroutine mycoro()   // out of nested HOFs
     co2 := coroutine myfor(4)   // out of a simple function
 
     def interleave(co1, co2, f):   // test using 2 at once
-        while(co1.active | co2.active):
-            if(co1.active):
+        while co1.active | co2.active:
+            if co1.active:
                 f(co1.returnvalue)
                 co1.resume
-            if(co2.active):
+            if co2.active:
                 f(co2.returnvalue)
                 co2.resume
 
     //interleave(co1, co2): print(_)
 
-    assert(equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ]))
-    assert(!co1.active)
-    assert(!co2.active)
-    assert(co1.returnvalue == 1337)
+    assert equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ])
+    assert !co1.active
+    assert !co2.active
+    assert co1.returnvalue == 1337
 
     def pass_thru(co, f):
-        coroutine_for(co): f(_)
+        coroutine_for co: f(_)
 
     co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
     sum := 0
-    while(co3.active):       // we currently can't use coroutine_for here, will be a runtime error (nesting)
+    while co3.active:       // we currently can't use coroutine_for here, will be a runtime error (nesting)
         sum += co3.returnvalue
         co3.resume
-    assert(sum == 45)
+    assert sum == 45
 
     // Access variables inside coroutines from the outside:
     def loctest(f):
@@ -282,37 +282,37 @@ def run_test_cases():
             f()
 
     co4 := coroutine loctest()
-    assert(co4->a + co4->i + co4->b == 3)
+    assert co4->a + co4->i + co4->b == 3
 
     // Even functions that don't yield are cool:
     def conoyield(f): 1
     co5 := coroutine conoyield()
-    assert(co5.returnvalue == 1)
+    assert co5.returnvalue == 1
 
     // ////////////////////////////////////////////////////////////////////////
     // misc test
 
     aa := 5
     aa %= 2
-    assert(aa == 1)
+    assert aa == 1
 
     // multiple return values
     bb, cc, dd, ee := 1     // all set to 1
-    assert(bb == 1 & bb == cc & dd == ee)
+    assert bb == 1 & bb == cc & dd == ee
     ff, gg := 2, 3
-    assert(ff == 2 & gg == 3)
+    assert ff == 2 & gg == 3
     ff, gg = 8, 9
-    assert(ff == 8 & gg == 9)
+    assert ff == 8 & gg == 9
     def multiret():
-        if(sin(0)): return 4, 5
+        if sin(0): return 4, 5
         return 6, 7
     hh, ii := multiret()
-    assert(hh == 6 & ii == 7)
+    assert hh == 6 & ii == 7
     hh = multiret()
-    assert(hh == 6)
+    assert hh == 6
     def multiretpassthru(): return multiret()  // doesn't work without the return!
     jj, kk := multiretpassthru()
-    assert(jj == 6 & kk == 7)
+    assert jj == 6 & kk == 7
 
     // non-local named returns: limited form of exception handling
     def nlr1():
@@ -320,20 +320,20 @@ def run_test_cases():
         2
     def nlr2():
         return 1 from nlr1
-    assert(nlr1() == 1)
+    assert nlr1() == 1
 
     def recursive_exceptions(n):
         try():
-            if(n): recursive_exceptions(n - 1)
-            else: throw(0)
+            if n: recursive_exceptions(n - 1)
+            else: throw 0
         catch v:
-            assert(v == n)
-            throw(n + 1)
+            assert v == n
+            throw n + 1
     try():
         recursive_exceptions(10)
 
     starttime := seconds_elapsed()
-    1000.for():
+    for 1000:
         7.factorial
         testvector.fold(0): _x + _y
 
@@ -343,14 +343,14 @@ def run_test_cases():
         struct cyclist { name:string, loop:cyclist?, next:cyclist? }
         cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
         cycle.loop = cycle
-        assert(cycle.next)
+        assert cycle.next
         cycle.next.loop = cycle.next
 
     cycletest()
     garbage_objects := collect_garbage()
-    assert(garbage_objects == 4) // 2 vectors, 2 strings
+    assert garbage_objects == 4 // 2 vectors, 2 strings
     garbage_objects = collect_garbage()
-    assert(!garbage_objects)
+    assert !garbage_objects
 
     //"press enter to continue...".print
     //getline()

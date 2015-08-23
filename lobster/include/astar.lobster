@@ -23,13 +23,13 @@ def astar_clear(n::astar_node):
 def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
     n := startnode | nil
-    while(n & !endcondition(n)):
+    while n & !endcondition(n):
         openlist.removeobj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
-            if(!nn.closed):
+            if !nn.closed:
                 G := n.G + cost
-                if((!nn.open & openlist.push(nn)) | G < nn.G):
+                if ((!nn.open & openlist.push(nn)) | G < nn.G):
                     nn.open = true
                     nn.delta = delta
                     nn.previous = n
@@ -38,10 +38,10 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
                     nn.F = G + nn.H
         n = nil
         for(openlist) c:
-            if(!n | c.F < n.F | (c.F == n.F & c.H < n.H)):
+            if !n | c.F < n.F | (c.F == n.F & c.H < n.H):
                 n = c
     path := []
-    while(n):
+    while n:
         path.push(n)
         n = n.previous
     path
@@ -58,7 +58,7 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
     generatenewstates n, f:
         neighbors(n) nn:
             cost := costf(n, nn)
-            if(cost > 0):
+            if cost > 0:
                 f(nn.state - n.state, cost, nn)
     heuristic state:
         distancef(state - endnode.state)
@@ -71,9 +71,9 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
                 np := n.state + delta
-                if(np.inrange(gridsize)):
+                if np.inrange(gridsize):
                     f(getnode(np))
-    if(isocta):
+    if isocta:
         directions = append(directions, diagonal_directions)
         astar_distance() v:
             x := abs(v.x)
@@ -103,8 +103,8 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
     astar_generic(existingnodes[0]):
         endcondition(_.state)
     generatenewstates n, f:
-        goapactions.for() act:
-            if(act.precondition(n.state)):
+        for(goapactions) act:
+            if act.precondition(n.state):
                 nstate := n.state.copy
                 act.effect(nstate)
                 i := existingnodes.find(): equal(_.state, nstate)

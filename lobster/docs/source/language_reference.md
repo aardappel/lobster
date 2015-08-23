@@ -34,7 +34,7 @@ Lexical definition
     for the first character).
 
 -   Keywords: `nil true false return from struct value include int float string
-    vector function super is program private coroutine enum`
+    vector def super is program private coroutine enum`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -55,8 +55,8 @@ program = stats end\_of\_file
 
 stats = topexp … linefeed
 
-topexp = `include` string\_constant \| [ `private` ] ( ident functiondef \|
-struct \| vardef \| enumdef ) \| expstat
+topexp = `include` string\_constant \| [ `private` ] ( `def` ident functiondef
+\| struct \| vardef \| enumdef ) \| expstat
 
 struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
@@ -93,8 +93,8 @@ deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `?.` ident \| `->` ident
 factor = constant \| `(` exp `)` \| constructor \| `def` functiondef \|
 `coroutine` ident call \| ident [ call ]
 
-constructor = `[` ( `super` exp [ `,` indlist( exp ) ] ) \| [ indlist( exp ) ]
-`]` [ `:` type ]
+constructor = `[` [ indlist( exp ) ] `]` [ `::` type ] \| ident `{` [ indlist(
+exp ) ]  `}`
 
 constant = numeric\_constant \| string\_constant \| character\_constant \| `nil`
 \| `true` \| `false`
@@ -106,58 +106,60 @@ list(e) = e ... `,`
 Types
 -----
 
-Lobster is dynamically typed, and any variable, argument or vector element can
-be a value of one of the following types:
+Lobster is statically typed, and any variable, argument or vector element can be
+a value of one of the following types:
 
--   `int` : a 32bit signed integer. Constructed using:
+-   Scalar types:
 
-    -   integer constants : `123`
+    -   `int` : a 32bit signed integer. Constructed using:
 
-    -   hexadecimal constants : `0xABADCAFE`
+        -   integer constants : `123`
 
-    -   character constants : `'A'` (65)
+        -   hexadecimal constants : `0xABADCAFE`
 
-    -   default boolean values `true` and `false` (same as `1` and `0`)
+        -   character constants : `'A'` (65)
 
--   `float` : 32bit IEEE floating point number
+        -   default boolean values `true` and `false` (same as `1` and `0`)
 
--   `string` : a vector of byte sized elements, generally used to store text,
-    but can store any byte array. The recommended format for text is UTF-8,
-    though this is not enforced; indexing and size operations act on bytes. To
-    properly manipulate unicode symbols, UTF-8 strings can be converted to
-    vectors of uncompressed unicode values using the built-in functions
-    string2unicode and unicode2string. Immutable: can be indexed into for
-    reading but not writing.
+    -   `float` : 32bit IEEE floating point number
 
--   `vector` : a dynamically sized array of any Lobster values, constructed with
-    square brackets surrounding 0 or more comma separated values, e.g. `[ 1,
-    "hello", [] ]`. May be dereferenced for reading/writing using indices (e.g.
-    `a[0]`). Vectors may be typed by being suffixed by `: type`, which in the
-    case of builtin types will require all elements to be of that type, or in
-    the case of user defined types they can additionally be indexed by field
-    names as opposed to just numeric indices (see `struct` / `value` below).
+    -   a function values, can be called just like normal functions. See below.
 
--   `nil` : a type with just one value, generally meant to indicate the absence
-    of a value.
+-   Reference values:
 
--   `function` : a function value, can be called just like a normal function.
-    See below.
+    -   `string` : a vector of byte sized elements, generally used to store
+        text, but can store any byte array. The recommended format for text is
+        UTF-8, though this is not enforced; indexing and size operations act on
+        bytes. To properly manipulate unicode symbols, UTF-8 strings can be
+        converted to vectors of uncompressed unicode values using the built-in
+        functions string2unicode and unicode2string. Immutable: can be indexed
+        into for reading but not writing.
 
--   `coroutine` : a special object that contains a suspended computation, see
-    the section on coroutines below.
+    -   `vector` : a dynamically sized array of any Lobster values, constructed
+        with square brackets surrounding 0 or more comma separated values, e.g.
+        `[ 1, 2, 3 ]`. May be dereferenced for reading/writing using indices
+        (e.g. `a[0]`). Vectors may be typed by being suffixed by `: type`, which
+        will require all elements to be of that type
 
--   undefined : a special value used for unitialized variables and functions
-    that don't return a value. There are no legal operations on this type of
-    value, attempting to use one will result in a runtime error.
+    -   `struct` / `value` : a user defined data structure similar to a
+        `vector`, see below.
+
+    -   `coroutine` : a special object that contains a suspended computation,
+        see the section on coroutines below.
+
+    -   `nil` : a special value of any reference type above, that indicates the
+        absence of a legal value. `nil` is only allowed if the type is
+        "nilable", for more on that see the document on type checking,
+        [here](<type_checker.html>).
 
 Lobster does not have a separate boolean type. Instead, for boolean tests such
 as the `! & |` operators (see below) or the builtin function `if`, the values `0
 0.0 nil` (which includes the keyword `false`) are all considered to be false,
 and all other values are true.
 
-The `vector` and `coroutine` types are the only mutable objects (can change
-after creation), and have reference semantics (multiple values can refer to the
-same object in memory, and thus changes can be observed from each).
+The `vector` / `struct` and `coroutine` types are the only mutable objects (can
+change after creation), and have reference semantics (multiple values can refer
+to the same object in memory, and thus changes can be observed from each).
 
 User Defined Types
 ------------------
@@ -176,7 +178,7 @@ be modified (assigned to) after it has been constructed. This makes sense for
 small objects such as the one in this example, and can be used to enforce a more
 functional style of programming.
 
-You specify a list of fields betweeb `{` and `}`. The above example has no types
+You specify a list of fields between `{` and `}`. The above example has no types
 specified, which makes it a generic type, more about the [type
 system](<type_checker.html>).
 
@@ -227,7 +229,7 @@ variable to not have been declared yet in this scope:
 a := 1
 b :== 1
 enum x = 1, y, z
-c \<- 1
+c <- 1
 d, e := 1, 2
 f, g := 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -264,7 +266,7 @@ You may even use a vector as index, e.g.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mat := [ [ 1, 2 ],  [ 3, 4 ] ]
 pos := [ 0, 1 ]
-print(mat[pos])
+print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This prints `3`, and is a convenient shortcut for `mat[pos.y][pos.x]`. Note how
@@ -282,7 +284,7 @@ unless *all* values involved were `int`. The type of the shortest vector (or
 left hand side if both equal) is preserved in the result:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[ 1, 2, 3 ] * xy { 4, 5.5 } // results in xy { 4.0, 11.0 }
+[ 1, 2, 3 ] * xy { 4, 5.5 }  // results in xy { 4.0, 11.0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,
@@ -360,14 +362,6 @@ def name(arg1, arg2):
 The return value of a function is always that of the last expression evaluated,
 or given by `return` (see below).
 
-Functions can be called as part of an expression with a similar syntax to its
-definition, e.g. `name(1, 2)`. Alternatively, you may use the `.` notation to
-place the first argument ahead of the call, for example `1.name(2)`. If you are
-using the `.` notation with a function that has just one argument, the `()` may
-be omitted, `v.length` being a common example. You are encouraged to only do
-this for simple functions that return a property of the argument, and don't
-modify the argument.
-
 Arguments can be just an argument name (which will be available as a lexically
 scoped local variable inside body), or a typed name (e.g. `s:string`). Types
 will be checked at run-time, and cause the incoming value to either be converted
@@ -398,6 +392,25 @@ by the arguments from left to right. If no function satisfies the argument
 types, this is a run-time error (the above example will never have a runtime
 error, since at least one function always matches).
 
+### Function calls
+
+Functions can be called as part of an expression with a similar syntax to its
+definition, e.g. `name(1, 2)`. Alternatively, you may use the `.` notation to
+place the first argument ahead of the call, for example `1.name(2)`. If you are
+using the `.` notation with a function that has just one argument, the `()` may
+be omitted, `v.length` being a common example. You are encouraged to only do
+this for simple functions that return a property of the argument, and don't
+modify the argument.
+
+Optionally, you may also call functions without any parentheses at all, e.g.
+`print "hi!"`. This is only allowed for known functions (that are not ambiguous
+with variables) that have 1 expression argument (followed by any amount of
+function value arguments that don't take arguments themselves, see below). It is
+up to the programmer to use good judgement on when to use this, the recommended
+use case is for calls used as statements (no nesting) that don't cause
+additional parentheses to be needed elsewhere. In case of doubt, use the
+standard call syntax.
+
 ### Function Values
 
 You can also create anonymous (nameless) functions as values. In the most
@@ -420,13 +433,14 @@ for(10) (i): print(i)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here, the function `for` is called with 2 arguments, the first is `10`, and the
-second is the function value `function(i): print(i)`. Lobster allows two more
+second is the function value `function(i): print(i)`. Lobster allows three more
 levels of further simplification of the syntax if the arguments do not contain
 type annotations:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 for(10) i: print(i)
 for(10): print(_)
+for 10: print _
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can leave out the parentheses, and you may use anonymous arguments, which
@@ -435,6 +449,9 @@ arguments for you. If you use multiple such arguments (e.g. `_a` and `_b`), they
 will become arguments in lexical order, irrespective of what order they appear
 in the body. Using anonymous variables is only recommended for very simple
 function bodies.
+
+As mentioned above, you may drop the parentheses entirely if the body doesn't
+have any argument declarations.
 
 This style of syntax is intended to make each function that takes a function as
 argument (a *higher order function*) have the convenient syntax of a control
@@ -447,7 +464,7 @@ As an example of how to pass more than one function value, let's see an example
 for `if`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-nat := if(a < 0): 0 else: a
+nat := if a < 0: 0 else: a
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here we see that all except the first function value must be preceded by the
@@ -455,10 +472,10 @@ name of the argument they're specifying. In Lobster, `else` is not a keyword, it
 simply is the name of the 3rd argument of `if`. Similarly, with indentation:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if(a < 0):
-    print("negative numbers are scary!")
+if a < 0:
+    print "negative numbers are scary!"
 else:
-    print("a = " + a)
+    print "a = " + a
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Writing your own functions that take function values is the key to getting the
@@ -472,8 +489,8 @@ closest lexically enclosing named function, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def find(list, x):
-    for(list):
-        if(x == \_):
+    for list:
+        if x == _:
             return true
     false
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -540,7 +557,7 @@ are already defined in lexical scope. As an example:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 x, y := 0
 def f():
-    print(x + " " + y)
+    print x + " " + y
 def g():
     x := 1
     y <- 1
@@ -640,8 +657,8 @@ still iterate a coroutine further, you can call `co.active`. Putting that
 together, a typical loop to exhaust a coroutine looks like:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-while(co.active):
-    print(co.returnvalue)
+while co.active:
+    print co.returnvalue
     co.resume
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -760,7 +777,7 @@ otherwise.
 syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-while(a < 10): a++
+while a < 10: a++
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 That looks perfectly normal, but one thing should stand out: while takes not

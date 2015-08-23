@@ -247,8 +247,6 @@ struct Function : Named
     {
         return bytecode::CreateFunction(fbb, fbb.CreateString(name));
     }
-    
-    bool NoParensEligible() { return !multimethod && subf->args.NoParensEligible(); }
 };
 
 inline string TypeName(TypeRef type)

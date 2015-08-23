@@ -119,6 +119,7 @@ namespace lobster
     T0(T_PROGRAM, "program", 0) \
     T0(T_PRIVATE, "private", 0) \
     T0(T_ENUM, "enum", 0) \
+    T0(T_CALL_NOPARENS, "callnp", 0)
 
 enum TType
 {

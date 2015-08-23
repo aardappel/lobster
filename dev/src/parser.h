@@ -27,6 +27,8 @@ struct Parser
     struct ForwardFunctionCall { string idname; size_t maxscopelevel; Node *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
 
+    vector<TType> expparents;
+
     Parser(const char *_src, SymbolTable &_st, char *_stringsource)
         : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st)
     {
@@ -309,7 +311,7 @@ struct Parser
                 {
                     spectypes.push_back(make_pair(nullptr, nullptr));
                     ParseType(spectypes.back().first, false);
-                    spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                    spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp(T_STRUCTDEF) : nullptr;
                     if (IsNext(T_RIGHTPAREN)) break;
                     Expect(T_COMMA);
                 }
@@ -418,7 +420,7 @@ struct Parser
                     fieldref = ParseType(type, false, struc);
                 }
                 bool generic = st.IsGeneric(type) && fieldref < 0;
-                Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                Node *defaultval = IsNext(T_ASSIGN) ? ParseExp(T_STRUCTDEF) : nullptr;
                 struc->fields.push_back(Field(&sfield, type, generic, fieldref, defaultval));
                 if (generic) struc->generic = true;
             }, T_RIGHTCURLY);
@@ -448,7 +450,7 @@ struct Parser
         if (lex.token == T_DEF || dynscope || constant || logvar)
         {
             lex.Next();
-            auto e = ParseExp();
+            auto e = ParseExp(T_DEF);
             auto id = dynscope
                         ? st.LookupDynScopeRedef(idname, lex)
                         : st.LookupDef(idname, lex.errorline, lex, false, true);
@@ -466,7 +468,7 @@ struct Parser
             auto tn = new TypeNode(lex, T_TYPE);
             ParseType(tn->type_, withtype);
             Expect(T_ASSIGN);
-            auto e = ParseExp();
+            auto e = ParseExp(T_DEF);
             auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
             if (isprivate) id->isprivate = true;
             return (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, tn);
@@ -502,12 +504,13 @@ struct Parser
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
 
-        return ParseFunction(&idname, isprivate, true, true, false, "");
+        return ParseFunction(&idname, isprivate, true, true, "");
     }
 
     Node *ParseFunction(const string *name,
-                        bool isprivate, bool parens, bool parseargs, bool expfunval,
-                        const string &context)
+                        bool isprivate, bool parens, bool parseargs,
+                        const string &context,
+                        bool expfunval = false, TType expfunvalparent = T_FUN)
     {
         st.ScopeStart();
 
@@ -592,7 +595,7 @@ struct Parser
         {
             if (expfunval)
             {
-                sf->body = new Node(lex, T_LIST, ParseExp(), nullptr);
+                sf->body = new Node(lex, T_LIST, ParseExp(expfunvalparent), nullptr);
             }
             else if (IsNext(T_INDENT))
             {
@@ -759,26 +762,38 @@ struct Parser
     Node *ParseFunArgsRec(bool coroutine, bool needscomma, ArgVector *args, size_t thisarg, const char *fname,
                           bool noparens)
     {
+        
         if (!noparens && IsNext(T_RIGHTPAREN))
         {
-            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname, false);
+            if (expparents.back() == T_CALL_NOPARENS)
+            {
+                // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
+                return nullptr;
+            }
+            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
         }
+
         if (needscomma) Expect(T_COMMA);
         Node *arg = nullptr;
 
         CheckArg(args, thisarg, fname);
+
+        auto parent = noparens ? T_CALL_NOPARENS : T_CALL;
         if (args && args->v[thisarg].flags == NF_EXPFUNVAL)
         {
-            arg = ParseFunction(nullptr, false, false, false, true, args->GetName(thisarg));
+            arg = ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true, parent);
         }
         else
         {
-            arg = ParseExp();
+            arg = ParseExp(parent);
         }
 
-        return new Node(lex, T_LIST, arg, noparens
-                        ? ParseTrailingFunctionValues(coroutine, args, thisarg, fname, true)
-                        : ParseFunArgsRec(coroutine, true, args, thisarg + 1, fname, noparens));
+        if (noparens)
+            return new Node(lex, T_LIST, arg, lex.token == T_COLON
+                ? ParseTrailingFunctionValues(coroutine, args, thisarg + 1, fname)
+                : nullptr);
+        else
+            return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, !noparens, args, thisarg + 1, fname, noparens));
     }
 
     void CheckArg(ArgVector *args, size_t thisarg, const char *fname)
@@ -786,8 +801,7 @@ struct Parser
         if (args && thisarg == args->v.size()) Error("too many arguments passed to function " + string(fname));
     }
 
-    Node *ParseTrailingFunctionValues(bool coroutine, ArgVector *args, size_t thisarg, const char *fname,
-                                      bool follownoparens)
+    Node *ParseTrailingFunctionValues(bool coroutine, ArgVector *args, size_t thisarg, const char *fname)
     {
         if (args && thisarg + 1 < args->v.size())
             trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
@@ -798,21 +812,19 @@ struct Parser
         switch (lex.token)
         {
             case T_COLON:
-                e = ParseFunction(nullptr, false, false, false, false, name);
+                e = ParseFunction(nullptr, false, false, false, name);
                 break;
 
             case T_IDENT:
-                if (follownoparens) break;
                 // skip if this function value starts with an ID that's equal to the parents next
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
                 if (trailingkeywordedfunctionvaluestack.empty() || 
                     trailingkeywordedfunctionvaluestack.back() != lex.sattr)
-                    e = ParseFunction(nullptr, false, false, true, false, name);
+                    e = ParseFunction(nullptr, false, false, true, name);
                 break;
             
             case T_LEFTPAREN:
-                if (follownoparens) break;
-                e = ParseFunction(nullptr, false, true, true, false, name);
+                e = ParseFunction(nullptr, false, true, true, name);
                 break;
         }
 
@@ -837,7 +849,7 @@ struct Parser
             if (lex.token == T_IDENT && args->GetName(thisarg) == lex.sattr)
             {
                 lex.Next();
-                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname, false);
+                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
             }
             else
             {
@@ -914,13 +926,13 @@ struct Parser
             return new Node(lex, T_RETURN, rv, new IntConst(lex, fid));
         }
 
-        auto e = ParseExp();
+        auto e = ParseExp(T_LIST);
 
         while (IsNext(T_SEMICOLON))
         {
             if (IsNext(T_LINEFEED))
                 Error("\';\' is not a statement terminator");  // specialized error for all the C-style language users
-            e = new Node(lex, T_SEQ, e, ParseExp());
+            e = new Node(lex, T_SEQ, e, ParseExp(T_LIST));
         }
 
         return e;
@@ -932,8 +944,10 @@ struct Parser
             e->ident()->Assign(lex);
     }
 
-    Node *ParseExp()
+    Node *ParseExp(TType parent)
     {
+        expparents.push_back(parent);
+
         auto e = ParseOpExp();
 
         switch (lex.token)
@@ -950,10 +964,11 @@ struct Parser
                     Error("illegal left hand side of assignment");
                 Modify(e);
                 lex.Next();
-                e = new Node(lex, type, e, ParseExp());
+                e = new Node(lex, type, e, ParseExp(type));
             }
         }
 
+        expparents.pop_back();
         return e;
     }
 
@@ -1178,7 +1193,7 @@ struct Parser
             case T_LEFTBRACKET:
             {
                 lex.Next();
-                n = new Node(lex, T_INDEX, n, ParseExp());
+                n = new Node(lex, T_INDEX, n, ParseExp(T_INDEX));
                 Expect(T_RIGHTBRACKET);
                 break;
             }
@@ -1233,7 +1248,7 @@ struct Parser
             case T_LEFTPAREN:
             {
                 lex.Next();
-                auto n = ParseExp();
+                auto n = ParseExp(T_LEFTPAREN);
                 Expect(T_RIGHTPAREN);
                 return n;
             }
@@ -1246,13 +1261,13 @@ struct Parser
                 Node **tail = &list;
                 ParseVector([this, &tail] ()
                 {
-                    AddTail(tail, this->ParseExp());
+                    AddTail(tail, this->ParseExp(T_CONSTRUCTOR));
                 }, T_RIGHTBRACKET);
 
                 auto tn = new TypeNode(lex, T_TYPE);
                 tn->type_ = type_vector_any;
 
-                if (IsNext(T_COLON))
+                if (IsNext(T_TYPEIN))
                 {
                     ParseType(tn->type_, false);
                     tn->type_ = tn->type_->Wrap(NewType());
@@ -1264,7 +1279,7 @@ struct Parser
             case T_FUN:
             {
                 lex.Next();
-                return ParseFunction(nullptr, false, true, true, false, "");
+                return ParseFunction(nullptr, false, true, true, "");
             }
 
             case T_COROUTINE:
@@ -1324,11 +1339,13 @@ struct Parser
 
     Node *IdentFactor(const string &idname)
     {
+        auto nf = natreg.FindNative(idname);
+        auto f = st.FindFunction(idname);
+
         switch (lex.token)
         {
             case T_LEFTPAREN:
-                return ParseFunctionCall(st.FindFunction(idname), natreg.FindNative(idname),
-                                         idname, nullptr, false);
+                return ParseFunctionCall(f, nf, idname, nullptr, false);
             
             case T_LEFTCURLY:
             {
@@ -1347,7 +1364,7 @@ struct Parser
                             auto field = struc.Has(fld);
                             if (field < 0) Error("unknown field: " + id);
                             if (exps[field]) Error("field initialized twice: " + id);
-                            exps[field] = ParseExp();
+                            exps[field] = ParseExp(T_CONSTRUCTOR);
                             return;
                         }
                         else  // Undo
@@ -1360,7 +1377,7 @@ struct Parser
                     // An initializer without a tag. Find first field without a default thats not set yet.
                     for (size_t i = 0; i < exps.size(); i++) if (!exps[i] && !struc.fields[i].defaultval)
                     {
-                        exps[i] = ParseExp();
+                        exps[i] = ParseExp(T_CONSTRUCTOR);
                         return;
                     }
                     Error("too many initializers for: " + struc.name);
@@ -1389,13 +1406,9 @@ struct Parser
                 }
                 else
                 {
-                    auto nf = natreg.FindNative(idname);
-                    auto f = st.FindFunction(idname);
-                    if ((nf && nf->NoParensEligible()) ||
-                         (f && f->NoParensEligible()))  // Function call without ()
+                    auto id = st.Lookup(idname);
+                    if (!id && (nf || f))  // Function call without ()
                     {
-                        // TODO: would be good to limit it to functions with 1 parameter of any type followed
-                        // by 0 or more function value parameters.
                         return ParseFunctionCall(f, nf, idname, nullptr, false, true);
                     }
                     else

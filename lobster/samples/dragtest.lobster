@@ -7,9 +7,9 @@ fatal(gl_window("event animation & mouse drag test", 1024, 1024))
 
 lines := []
 
-while(gl_frame()):
+while gl_frame():
 
-    if(gl_wentdown("escape")): return
+    if gl_wentdown("escape"): return
 
     gl_clear(color_black)
     gl_color(color_white)
@@ -18,10 +18,10 @@ while(gl_frame()):
     // note how we can track a drag operation conveniently thanks to gl_lastpos
     start := float(gl_lastpos("mouse1", true))
     cur := float(gl_mousepos(0))
-    if (magnitude(start - cur) > 1):  // a click is not a drag
-        if(gl_isdown("mouse1")):      // show feedback
+    if magnitude(start - cur) > 1:  // a click is not a drag
+        if gl_isdown("mouse1"):      // show feedback
             gl_line(start, cur, 1)
-        if(gl_wentup("mouse1")):      // store line
+        if gl_wentup("mouse1"):      // store line
             lines.push([start, float(gl_lastpos("mouse1", false))])
             // note how we use the mouse up position, which may be != cur
 
@@ -35,7 +35,7 @@ while(gl_frame()):
     for(2) down:
         gl_color(down & color_green | color_blue)
         clicktime := gl_time() - gl_lasttime("mouse1", down)
-        if (clicktime < 1):
-            gl_translate(float(gl_lastpos("mouse1", down))):
-                gl_linemode(1):
+        if  clicktime < 1:
+            gl_translate float(gl_lastpos("mouse1", down)):
+                gl_linemode 1:
                     gl_circle(clicktime * 20, 10)

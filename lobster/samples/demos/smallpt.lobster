@@ -32,14 +32,14 @@ def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     b := op.dot(r.d)
     det := b*b-op.dot(op)+rad*rad
     //print(op + " " + b + " " + det)
-    if(det<0): return 0.0
+    if det<0: return 0.0
     det = sqrt(det)
     t := b-det
-    if(t>eps):
+    if t>eps:
         t
     else:
         t=b+det
-        if(t>eps): t else: 0.0
+        if t>eps: t else: 0.0
 
 // made the radiusses of some spheres smaller compared to the original (and some other adjustments), as we use floats,
 // not doubles. walls may look rounder :)
@@ -64,19 +64,19 @@ def radiance(r:Ray, depth):
     def intersectray(r:Ray):
         for(spheres) s, i:
             d := s.intersect(r)
-            if(d != 0 & d<t):
+            if d != 0 & d<t:
                 t = d
                 id = i
         return id >= 0
-    if(!intersectray(r)): return xyz_0 // if miss, return black
+    if !intersectray(r): return xyz_0 // if miss, return black
     obj := spheres[id]        // the hit object
     x := r.o+r.d*t
     n := normalize(x-obj.p)
-    nl := if(n.dot(r.d)<0): n else: n*-1
+    nl := if n.dot(r.d)<0: n else: n*-1
     f := obj.c
-    p := if(f.x>f.y & f.x>f.z): f.x else: if(f.y>f.z): f.y else: f.z // max refl
-    if(++depth>5): if(rndfloat()<p): f = f*(1/p) else: return obj.e  //R.R.
-    if(obj.refl == DIFF):                  // Ideal DIFFUSE reflection
+    p := if f.x>f.y & f.x>f.z: f.x else: if f.y>f.z: f.y else: f.z // max refl
+    if ++depth>5: if rndfloat()<p: f = f*(1/p) else: return obj.e  //R.R.
+    if obj.refl == DIFF:                  // Ideal DIFFUSE reflection
         r1 := 360*rndfloat()
         r2 := rndfloat()
         r2s := sqrt(r2)
@@ -85,30 +85,30 @@ def radiance(r:Ray, depth):
         v := w.cross(u)
         d := normalize(u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2))
         return obj.e + f * radiance(Ray { x, d },depth)
-    else: if(obj.refl == SPEC):            // Ideal SPECULAR reflection
+    else: if obj.refl == SPEC:            // Ideal SPECULAR reflection
         return obj.e + f * radiance(Ray { x, r.d-n*2*n.dot(r.d) },depth)
     reflRay := Ray {x, r.d-n*2*n.dot(r.d)}     // Ideal dielectric REFRACTION
     into := n.dot(nl)>0                // Ray from outside going in?
     nc := 1.0
     nt := 1.5
-    nnt := if(into): nc/nt else: nt/nc
+    nnt := if into: nc/nt else: nt/nc
     ddn := r.d.dot(nl)
     cos2t := 1-nnt*nnt*(1-ddn*ddn)
-    if(cos2t<0):    // Total internal reflection
+    if cos2t<0:    // Total internal reflection
         return obj.e + f*radiance(reflRay,depth)
-    tdir := normalize(r.d*nnt - n*((if(into): 1 else: -1)*(ddn*nnt+sqrt(cos2t))))
+    tdir := normalize(r.d*nnt - n*((if into: 1 else: -1)*(ddn*nnt+sqrt(cos2t))))
     a := nt-nc
     b := nt+nc
     R0 := a*a/(b*b)
-    c := 1-(if(into): -ddn else: tdir.dot(n))
+    c := 1-(if into: -ddn else: tdir.dot(n))
     Re := R0+(1-R0)*c*c*c*c*c
     Tr := 1-Re
     P := .25+.5*Re
     RP := Re/P
     TP := Tr/(1-P)
     temp :=
-        if(depth>2):
-            if(rndfloat()<P):
+        if depth>2:
+            if rndfloat()<P:
                 radiance(reflRay,depth)*RP  // Russian roulette
             else:
                 radiance(Ray { x, tdir },depth)*TP
@@ -134,9 +134,9 @@ def onesample():
     for(h) y:                       // Loop over image rows
         for(w) x:                           // Loop cols
             r1 := 2*rndfloat()                  // removed the 2x2 subpixel sampling, its slow enough as it is :)
-            dx := if(r1<1): sqrt(r1)-1 else: 1-sqrt(2-r1)
+            dx := if r1<1: sqrt(r1)-1 else: 1-sqrt(2-r1)
             r2 := 2*rndfloat()
-            dy := if(r2<1): sqrt(r2)-1 else: 1-sqrt(2-r2)
+            dy := if r2<1: sqrt(r2)-1 else: 1-sqrt(2-r2)
             d := cx*( ( (1 + dx)/2 + x)/w - .5) +
                  cy*( ( (1 + dy)/2 + y)/h - .5) + cam.d
             d = normalize(d)
@@ -144,15 +144,15 @@ def onesample():
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[h-y-1][x] += r
     samples++
-    c2 := map(c): map(_): map(_): pow(clamp(_ / samples, 0, 1),1/2.2)
+    c2 := map c: map _: map _: pow(clamp(_ / samples, 0, 1),1/2.2)
     //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_windowtitle("smallpt: " + samples + " samples computed")
     gl_createtexture(c2)
 
 fatal(gl_window("smallpt in lobster!", w, h))
 
-while(gl_frame()):
-    if(gl_wentdown("escape")): return
+while gl_frame():
+    if gl_wentdown("escape"): return
     gl_clear(color_black)
     tex := onesample()
     gl_setprimitivetexture(0, tex)

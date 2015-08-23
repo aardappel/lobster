@@ -32,33 +32,33 @@ highscore := 0
 playing := false
 
 def renderpointytriangle(pos, dir):
-    gl_translate(pos):
-        gl_rotate_z(dir):
+    gl_translate pos:
+        gl_rotate_z dir:
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
 
-while(gl_frame() & !gl_wentdown("escape")):
+while gl_frame() & !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 
-    if(playing):
-        gl_translate(float(gl_windowsize()) / 2.0):
+    if playing:
+        gl_translate float(gl_windowsize()) / 2.0:
             scale := gl_windowsize().y / worldsize
             gl_scale(scale)
 
             dir := xy_f { gl_isdown("d") - gl_isdown("a"),
                           gl_isdown("s") - gl_isdown("w") }
             newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-            if(!any(abs(newpos) > float(gl_windowsize()) / scale / 2)):
+            if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
                 playerpos = newpos
 
             tomouse := normalize(gl_localmousepos(0) - playerpos)
 
-            if(lastenemy < gl_time()):
+            if lastenemy < gl_time():
                 enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
                 lastenemy += enemyrate
                 enemyrate *= 0.999
 
-            if(lastbullet < gl_time()):
+            if lastbullet < gl_time():
                 bullets.push(bullet { playerpos, tomouse })
                 lastbullet += firerate
 
@@ -67,43 +67,43 @@ while(gl_frame() & !gl_wentdown("escape")):
                 playerdir := normalize(playervec)
                 e.pos += playerdir * gl_deltatime() * enemyspeed
                 for(bullets) b:
-                    if(magnitude(b.pos - e.pos) < 1):
+                    if magnitude(b.pos - e.pos) < 1:
                         e.hp--
                         if(e.hp <= 0):
                             e.hp = 0
                             score++
                         b.pos = xy_x * worldsize * 10
-                if(magnitude(playervec) < 1):
+                if magnitude(playervec) < 1:
                     playerhealth -= gl_deltatime() * 50
-                    if(playerhealth <= 0):
+                    if playerhealth <= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)
                         playing = false
-                gl_color(lerp(color_red, color_blue, div(e.hp, enemymaxhp))):
+                gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
                     renderpointytriangle(e.pos, playerdir)
 
             enemies = filter(enemies): _.hp
 
             for(bullets) b:
                 b.pos += b.dir * gl_deltatime() * bulletspeed
-                gl_translate(b.pos):
-                    gl_color(color_yellow):
+                gl_translate b.pos:
+                    gl_color color_yellow:
                         gl_circle(0.2, 20)
 
             bullets = filter(bullets) b:
                 magnitude(b.pos) < worldsize * 2
 
-            gl_translate(gl_localmousepos(0)):
-                gl_linemode(1):
-                    gl_color(color_grey):
+            gl_translate gl_localmousepos(0):
+                gl_linemode 1:
+                    gl_color color_grey:
                         gl_circle(0.5, 20)
 
             renderpointytriangle(playerpos, tomouse)
     else:
         msg := "press space to play!"
-        gl_translate(float(gl_windowsize() - gl_textsize(msg)) / 2):
+        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
             gl_text(msg)
-        if(gl_wentdown("space")):
+        if gl_wentdown("space"):
             score = 0
             playerhealth = 100.0
             playerpos = xy_0

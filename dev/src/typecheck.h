@@ -213,21 +213,6 @@ struct TypeChecker
         }
     }
 
-    /*
-    void UnifyVar2Var(const Type *const &type, const Type *sub)
-    {
-        // Vars can't unify with eachother, so try to merge them by overwriting the TypeRef (not the type!).
-        if (type->t != sub->t) return;
-        switch (sub->t)
-        {
-            case V_VAR: ((const Type *&)type) = sub;
-                break;  // Overwrite pointer!
-            case V_VECTOR: UnifyVar2Var(type->sub, sub->sub); break;
-            case V_NIL: UnifyVar2Var(type->sub, sub->sub); break;
-        }
-    }
-    */
-
     bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true, bool genericany = false)
     {
         if (sub == type) return true;
@@ -301,11 +286,8 @@ struct TypeChecker
     }
     void SubType(Node *&a, TypeRef sub, const char *argname, const char *context)
     {
-        if (ConvertsTo(a->exptype, sub, false))
-        {
-            //UnifyVar2Var(&*a->exptype, &*sub);
-            return;
-        }
+        if (ConvertsTo(a->exptype, sub, false)) return;
+
         switch (sub->t)
         {
             case V_FLOAT:

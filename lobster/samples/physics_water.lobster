@@ -17,17 +17,17 @@ ph_setcolor(ph_createbox([   0.0, 1.0 ], [ 20.0, 1.0 ]), color_grey) // floor
 ph_setcolor(ph_createbox([ -20.0, 7.0 ], [  1.0, 7.0 ]), color_grey) // wall
 ph_setcolor(ph_createbox([  20.0, 7.0 ], [  1.0, 7.0 ]), color_grey) // wall
 
-for(5): ph_dynamic(ph_createbox([ 0.0, 10.0 + _ * 2.0 ], [ 1.0, 1.0 ]), true)
+for 5: ph_dynamic(ph_createbox([ 0.0, 10.0 + _ * 2.0 ], [ 1.0, 1.0 ]), true)
 
 ph_createparticlecircle([ 0.0, 5.0 ], 7.0, color_light_red, ph_colormixingparticle)
 
-while(gl_frame() & !gl_wentdown("escape")):
+while gl_frame() & !gl_wentdown("escape"):
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
     camera_2d_worldspace(worldsize, xy { 0.5, 1 }, xy { 1.0, -1.0 })
 
-    if(gl_isdown("mouse1")):
+    if gl_isdown("mouse1"):
         ph_createparticlecircle(gl_localmousepos(0), 0.5, color_light_blue, ph_colormixingparticle)
 
     ph_step(gl_deltatime())

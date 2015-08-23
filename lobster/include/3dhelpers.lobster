@@ -12,7 +12,7 @@ camera_velocity := xyz_0
 
 def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
     camera_yaw  += gl_mousedelta(0).x / mousesens
-    if(dopitch):
+    if dopitch:
         camera_pitch += gl_mousedelta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 

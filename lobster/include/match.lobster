@@ -67,7 +67,7 @@ def matched(f):    // return the sub-sequence matched by f as vector or string
 def match(x):     match_elem(): x == _
 def match_not(x): match_elem(): x != _
 
-def match_any(f): while(f()): nil
+def match_any(f): while f(): nil
 
 def match_sequence(s:string): match_sequence(string2unicode(s))
 def match_sequence(v:vector): guard(): !exists(v): !match(_)

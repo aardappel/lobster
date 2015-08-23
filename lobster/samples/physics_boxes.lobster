@@ -13,7 +13,7 @@ ph_createbox([ 0.0, 1.0 ], [ 40.0, 1.0 ])  // floor
 
 boxtime := 0.0
 
-while(gl_frame() & !gl_wentdown("escape")):
+while gl_frame() & !gl_wentdown("escape"):
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
@@ -23,6 +23,6 @@ while(gl_frame() & !gl_wentdown("escape")):
     ph_render()
 
     // spawn tumbling boxes
-    if(gl_time() > boxtime & gl_time() < 500):
+    if gl_time() > boxtime & gl_time() < 500:
         boxtime += 0.1  // spawn 10 boxes per second
         ph_dynamic(ph_createbox([ rnd(50) - 25.0, rnd(50) + 2.0 ], [ 0.5, 0.5 ]), true)

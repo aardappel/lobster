@@ -5,7 +5,7 @@ include "vec.lobster"
 include "color.lobster"
 include "3dhelpers.lobster"
 
-print("generating models... this may take some time!")
+print "generating models... this may take some time!"
 
 fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
 
@@ -21,13 +21,13 @@ def mg_mirror_y(dist, body):
 mg_set_colornoise(0.5, 1)
 aspoints := false
 mg_set_pointmode(aspoints)
-if(!aspoints):
+if !aspoints:
     mg_set_polygonreduction(100, 0.98, 0.95)
     mg_set_vertrandomize(0)
 
 
 gun := 0
-if(true):
+if true:
     mg_rotate(xyz_y, 90.0):
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
             mg_supertoroid(3.0, [3.0, 3.0, 5.0])
@@ -53,7 +53,7 @@ if(true):
     gun = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
 
 spaceship := 0
-if(true):
+if true:
     mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 2.0, 2.0, 2.0 ], [ 2.0, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
     mg_superquadric_non_uniform([ 2.0, 1.5, 1.0 ], [ 2.0, 1.5, 2.0 ], [ 4.0, 1.0, 0.7 ], [ 0.7, 1.0, 0.4 ])
     mg_translate([ 1.0, 0.0, 0.4 ]):
@@ -76,7 +76,7 @@ if(true):
     spaceship = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
 
 def model_tree(numb, branchl, narrowf, leafs):
-    if(numb):
+    if numb:
         mg_scale([ 1, 1, branchl ]):
             mg_translate(xyz_z):
                 mg_tapered_cylinder(1, narrowf)
@@ -98,7 +98,7 @@ density := 120
 
 trees := []
 
-if(true):
+if true:
     model_tree(10, 1.5, 0.75, 12)
     trees.push(mg_polygonize(density, [[0.7, 0.6, 0.5], [0.6, 1.0, 0.6]]))
 
@@ -108,14 +108,14 @@ if(true):
     model_tree(9, 2.0, 0.7, 15)
     trees.push(mg_polygonize(density, [[0.6, 0.5, 0.4], [0.5, 0.7, 0.5]]))
 
-print("vertcount: gun " + gl_meshsize(gun))
-print("vertcount: ship " + gl_meshsize(spaceship))
-for(trees): print("vertcount: tree1 " + gl_meshsize(_))
+print "vertcount: gun " + gl_meshsize(gun)
+print "vertcount: ship " + gl_meshsize(spaceship)
+for trees: print("vertcount: tree1 " + gl_meshsize(_))
 
-print(seconds_elapsed())
+print seconds_elapsed()
 
-while(gl_frame()):
-    if(gl_wentdown("escape")): return
+while gl_frame():
+    if gl_wentdown("escape"): return
 
     gl_windowtitle("meshgen test: " + gl_deltatime())
 
@@ -132,14 +132,14 @@ while(gl_frame()):
     //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
 
     rndseed(0)
-    gl_blend(0):
+    gl_blend 0:
         gl_setshader(aspoints & "phong_particle" | "phong")
 
-        if(spaceship):
+        if spaceship:
             gl_translate(xy_1 * 10):
                 gl_rendermesh(spaceship)
 
-        if(gun):
+        if gun:
             gl_translate(xy_1 * 20):
                 gl_scale(0.1):
                     gl_rendermesh(gun)

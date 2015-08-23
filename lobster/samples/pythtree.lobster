@@ -10,7 +10,7 @@ def branch(n, max, scale, len):
     gl_color(color { 0.3, 0.1, 0, 0.7 })
     for(2) i:
         gl_line(poly[i], poly[3 - i], 0.2)
-    if(n < max):
+    if n < max:
         gl_translate([ 0.0, len ])
         gl_scale(scale)
         for(2) i:
@@ -19,8 +19,8 @@ def branch(n, max, scale, len):
 
 fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 
-while(gl_frame()):
-    if(gl_wentdown("escape")): return
+while gl_frame():
+    if gl_wentdown("escape"): return
     gl_clear(color_grey)
     rndseed(0)
     gl_translate(float(gl_windowsize()) / xy { 2.0, 1.0 })

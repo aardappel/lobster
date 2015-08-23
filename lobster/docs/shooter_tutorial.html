@@ -26,7 +26,7 @@
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
+while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
     gl_clear([ 0.0, 0.0, 0.0, 1.0 ])</code></pre>
 <p><code>gl_window</code> is our graphics initialization routine, and is the first thing we need to do before we can access any other graphics functionality. We specify a title and a size, though note that these are merely suggestions: on desktop platforms the user may resize/maximize our window, and on mobile platforms they just determine landscape vs portrait orientation, whereas the resolution is determined by the device itself.</p>
 <p><code>gl_window</code> returns an error string if something goes wrong (and things can go wrong, behind the scenes this call boots up an OpenGL engine including compiling shaders and what not), and <code>fatal</code> is a utility function defined in <code>std.lobster</code> that we're including that will quit the program and show the error string if available.</p>
@@ -46,7 +46,7 @@ fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 worldsize := 20.0
 
-while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
+while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
     gl_translate(float(gl_windowsize()) / 2.0)
@@ -75,7 +75,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
+while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -86,7 +86,7 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
                   gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2)):
+    if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
         playerpos = newpos
 
     gl_translate(playerpos):
@@ -124,7 +124,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
+while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -135,31 +135,31 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
     dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
                   gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if(!any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2)):
+    if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
         playerpos = newpos
 
     tomouse := normalize(gl_localmousepos(0) - playerpos)
 
-    if(lastbullet &lt; gl_time()):
+    if lastbullet &lt; gl_time():
         bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
 
     for(bullets) b:
         b.pos += b.dir * gl_deltatime() * bulletspeed
-        gl_translate(b.pos):
-            gl_color(color_yellow):
+        gl_translate b.pos:
+            gl_color color_yellow:
                 gl_circle(0.2, 20)
 
     bullets = filter(bullets) b:
         magnitude(b.pos) &lt; worldsize * 2
 
-    gl_translate(gl_localmousepos(0)):
-        gl_linemode(1):
-            gl_color(color_grey):
+    gl_translate gl_localmousepos(0):
+        gl_linemode 1:
+            gl_color color_grey:
                 gl_circle(0.5, 20)
 
-    gl_translate(playerpos):
-        gl_rotate_z(tomouse):
+    gl_translate playerpos:
+        gl_rotate_z tomouse:
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
 <p>To be able to shoot, first we have to worry about giving our player an orientation. We compute that in the vector <code>tomouse</code> which we get by substracting the player position from the mouse position (what we want to shoot towards). Something funny is going on here though, as the name <code>gl_localmousepos</code> may indicate: normally mouse positions are in pixels, but those we can't compare against the player position, which is in world coordinates! <code>gl_localmousepos</code> however gives us the mouse position relative to the current transform, which is world coordinates (as specified by the <code>gl_translate</code> and <code>gl_scale</code> above). We then normalize this vector to make it easier to use, as we don't care about the original length of this vector.</p>
 <p>To make the players orientation visual, we first render the player differently: rather than a simple circle, we render him as a pointy triangle, to make it clear what direction he's looking at. That's the <code>gl_polygon</code> at the end with 3 explicit coordinates (relative to the playerpos, which has now become our coordinate system origin thanks to <code>gl_translate</code>). Additionally, we insert a <code>gl_rotate_z</code> command to make the pointy part of the triangle always look towards the mouse cursor. The <code>z</code> is because if we rotate around the z axis, we end up rotating the xy plane, which is what we look at in 2D. The argument to <code>gl_rotate_z</code> can either be a vector (as used here) or an angle in degrees. Vectors are generally awesomer.</p>
@@ -179,8 +179,8 @@ while(gl_frame() &amp; !gl_wentdown(&quot;escape&quot;)):
 </figure>
 <p>Since the code is getting long, let's continue, talking purely in terms of modifications to the existing code:</p>
 <pre><code>def renderpointytriangle(pos, dir):
-    gl_translate(pos):
-        gl_rotate_z(dir):
+    gl_translate pos:
+        gl_rotate_z dir:
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])</code></pre>
 <p>First, let's take the code for rendering the player and put it in it's own function, since we'll be needing it for enemies too. Call instead of the original code with <code>renderpointytriangle(playerpos, tomouse)</code></p>
 <pre><code>struct enemy { pos:xy_f, hp:int }
@@ -191,7 +191,7 @@ enemymaxhp :== 5
 enemies := []
 lastenemy := gl_time()</code></pre>
 <p>We can set up enemies analogous to bullets. Of course, we could share some of this functionality between them, but let's not complicate matters for now. Add this to the declarations.</p>
-<pre><code>    if(lastenemy &lt; gl_time()):
+<pre><code>    if lastenemy &lt; gl_time():
         enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
@@ -200,13 +200,13 @@ lastenemy := gl_time()</code></pre>
         playerdir := normalize(playerpos - e.pos)
         e.pos += playerdir * gl_deltatime() * enemyspeed
         for(bullets) b:
-            if(magnitude(b.pos - e.pos) &lt; 1):
+            if magnitude(b.pos - e.pos) &lt; 1:
                 e.hp = max(e.hp - 1, 0)
                 b.pos = xy_x * worldsize * 10
-        gl_color(lerp(color_red, color_blue, div(e.hp, enemymaxhp))):
+        gl_color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
             renderpointytriangle(e.pos, playerdir)
 
-    enemies = filter(enemies): _.hp</code></pre>
+    enemies = filter enemies: _.hp</code></pre>
 <p>During the frame, we use the above code to deal with enemies, which is very similar to bullets yet again. We spawn new enemies initially once per second. To compute a spawn location, take a random angle, convert to a vector, then offset that vector to somewhere outside the screen to have them flock in from all directions.</p>
 <p>We do one special thing: we keep reducing the enemy rate subtly. This guarantees the game will get harder and harder and the player will guaranteed die eventually, it is just a matter of when.</p>
 <p>Then we loop through all enemies, compute a vector towards the player, and move the enemy towards him. Of course, now we need to do collision detection between bullets and enemies, which we do in brute force manner by checking every bullet with every enemy. If the quantity of both stays low, this is ok, but for large amounts of objects this approach will eventually get too slow, requiring bucketing of objects in a grid. For now, this is ok. We check the distance between the center of the bullet and the center of the enemy, and consider it a hit if they are a generous 1 unit apart or less. Of course, we could check exact collision with the triangle, but besides being complicated, it might not even be desirable for gameplay.</p>
@@ -229,9 +229,9 @@ highscore := 0
 playing := false</code></pre>
 <p>inside our frame, we then test our <code>playing</code> variable, and when true, run the game code we were running before, and if false, display the in-between screen, which simply says:</p>
 <pre><code>        msg := &quot;press space to play!&quot;
-        gl_translate(float(gl_windowsize() - gl_textsize(msg)) / 2):
+        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
             gl_text(msg)
-        if(gl_wentdown(&quot;space&quot;)):
+        if gl_wentdown(&quot;space&quot;):
             score = 0
             playerhealth = 100.0
             playerpos = xy_0
@@ -245,9 +245,9 @@ playing := false</code></pre>
 <p>To show the current state to the player, we use the simple:</p>
 <pre><code>    gl_text(&quot;health: &quot; + ceiling(playerhealth) + &quot; - score: &quot; + score + &quot; - highscore: &quot; + highscore)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible regardless of wether the player is in-game or not, for simplicity. <code>ceiling</code> is useful since we'll be calculating the player's health in float, but want to show only the whole numbers. <code>ceiling</code> here is better than <code>truncate</code>, since we only want to show <code>0</code> when the player is truely dead.</p>
-<pre><code>                if(magnitude(playervec) &lt; 1):
+<pre><code>                if magnitude(playervec) &lt; 1:
                     playerhealth -= gl_deltatime() * 50
-                    if(playerhealth &lt;= 0):
+                    if playerhealth &lt;= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)
                         playing = false</code></pre>
@@ -264,7 +264,7 @@ playing := false</code></pre>
 <li><p>Game structure: different levels the player can try to beat, permanent upgrades the player can buy, etc.</p></li>
 </ul>
 <h3 id="advanced-topics-coroutines">8: Advanced Topics: Coroutines</h3>
-<p>If you look at the finished code of tut6.lobster, you can notice one problem with game programming: we ended up with a lot of global variables, even for such an absolutely simple game. If a game gets more complicated, this growing set of globals will make our game hard to maintain, and error prone. Just look at the code above that follows <code>if(gl_wentdown(&quot;space&quot;)):</code> in the menu code: we need to carefully reset each global that matters for the game, and if we forget one, we have a bug. Generally, the less local variable access is, the harder code is to follow.</p>
+<p>If you look at the finished code of tut6.lobster, you can notice one problem with game programming: we ended up with a lot of global variables, even for such an absolutely simple game. If a game gets more complicated, this growing set of globals will make our game hard to maintain, and error prone. Just look at the code above that follows <code>if gl_wentdown(&quot;space&quot;):</code> in the menu code: we need to carefully reset each global that matters for the game, and if we forget one, we have a bug. Generally, the less local variable access is, the harder code is to follow.</p>
 <p>So how do we get rid of all these globals? We could stick all these variables in objects. And while that potentially improves some things (we can now initialize all state related to one level in a single object, guaranteeing simulatuous initialization), in the end we've replaced our globals with a single global that holds... more globals. Just because we hide things in an object doesn't make them less global, if there's only one copy of the variable and it is used everywhere then it is effectively global. The code hasn't really improved.</p>
 <p>Another trick to get rid of globals is to pass things as arguments instead. But looking at the code, there are no opportunities for doing so, since we'd there's no easy way to pass all these values from one frame to the next, unless we stick them all in one object like before.</p>
 <p>And this is really hinting at a deeper problem with games and global state: we have so much global state because <em>we need to remember what we were doing from one frame to the next</em>. Essentially, our programming language gives us great tools to sequence actions (control structures) within a frame, but not across frames. For example, a <code>for</code> loop is very convenient, because it allows us to specify &quot;do this 10 times&quot;, and we don't have to worry about keeping track of where we are, and all data related to the loop is <em>local</em>. Now you might want to say &quot;do this for the next 10 frames&quot;, and you'll have no help from the language, you need to keep track of where you are in your iteration manually, and worse, the state related to the loop needs to survive the frame loop, which means it has to be... <em>global</em>.</p>

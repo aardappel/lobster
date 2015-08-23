@@ -369,7 +369,8 @@ struct VM : VMBase
     {
         auto id = bcf->idents()->Get(idx);
         if (id->readonly() || id->global() != dumpglobals) return "";
-        return string("\n   ") + bcf->idents()->Get(idx)->name()->c_str() + " = " + x.ToString(x.type, debugpp);
+        string name = id->name()->c_str();
+        return "\n   " + name + " = " + x.ToString(x.type, debugpp);
     }
 
     void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip)

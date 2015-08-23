@@ -1,3 +1,5 @@
+- tut_coro.lobster crashes
+
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.
 

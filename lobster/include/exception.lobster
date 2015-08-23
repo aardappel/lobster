@@ -13,12 +13,12 @@ def throw(v):
 
 // convenience function: empty catch
 def try(body):
-    try(body): _
+    try body: _
 
 // convenience function: ensure cleanup function "finally" always gets called regardless of wether
 // an exception passes thru body
 def protect(body, finally):
     try(body) v:
         finally()
-        throw(v)
+        throw v
     finally()

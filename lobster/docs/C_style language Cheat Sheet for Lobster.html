@@ -116,12 +116,12 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td>if(a): b else: c</td>
+<td>if a: b else: c</td>
 <td>if (a) b; else c</td>
 <td></td>
 </tr>
 <tr>
-<td>if(a):<br>
+<td>if a:<br>
 &nbsp; &nbsp; b<br>
 &nbsp; &nbsp; c<br>
 else:<br>
@@ -131,18 +131,18 @@ else:<br>
 <td></td>
 </tr>
 <tr>
-<td>for(m) i: print(i)</td>
+<td>for(m) i: print i</td>
 <td>for (int i = 0; i &lt; m; i++) print(i);</td>
 <td></td>
 </tr>
 <tr>
-<td>for(m): print(_)</td>
+<td>for m: print _</td>
 <td>for (int i = 0; i &lt; m; i++) print(i);</td>
 <td></td>
 </tr>
 <tr>
 <td>for(m) i:<br>
-&nbsp; &nbsp; print(i)</td>
+&nbsp; &nbsp; print i</td>
 <td>for (int i = 0; i &lt; m; i++)<br>
 {<br>
 &nbsp; &nbsp; print(i);<br>
@@ -150,18 +150,18 @@ else:<br>
 <td></td>
 </tr>
 <tr>
-<td>while(a): b</td>
+<td>while a: b</td>
 <td>while (a) b;</td>
 <td></td>
 </tr>
 <tr>
-<td>collectwhile(a): b</td>
+<td>collectwhile a: b</td>
 <td>var list = new List();<br>
 while (a) list.Add(b);</td>
 <td></td>
 </tr>
 <tr>
-<td>for(list) a: print(a)</td>
+<td>for(list) a: print a</td>
 <td>foreach (var a in list) print(a);</td>
 <td></td>
 </tr>
@@ -176,19 +176,19 @@ foreach(var x in list) r.Add(x * x);</td>
 <td>r := map(list) x: x * x</td>
 <td>var r = list.ConvertAll(x =&gt; x * x);</td>
 <td>C# and pretty much all programming languages except for
-Java can nowadays use some form of lambdas that are similar but not
+Java (&lt; 8) can nowadays use some form of lambdas that are similar but not
 quite as powerful as the ones in Lobster (for example, you can't use
 "return" to break out of a loop).</td>
 </tr>
 <tr>
-<td>r := filter(list): _ &gt; 0</td>
+<td>r := filter list: _ &gt; 0</td>
 <td>var r = new List();<br>
 foreach (var x in list) if (x
 &gt; 0) r.Add(x);</td>
 <td></td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">r := exists(list): _ &gt; 0</td>
+<td style="white-space: nowrap;">r := exists list: _ &gt; 0</td>
 <td style="white-space: nowrap;">var r = false;<br>
 foreach (var x in list) if (x
 &gt; 0) { r = true; break; }</td>
@@ -213,15 +213,15 @@ version</big></td>
 version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
-<tr>
+<tr><td>def&nbsp;name(a:int, b:int): a + b</td><td>int name(int a, int b) { return a + b; }</td><td></td></tr><tr>
 <td>def&nbsp;name(a, b): a + b</td>
-<td>int name(int a, int b) { return a + b; }</td>
-<td>of course, the Lobster version is not restricted to int, you can call it with any combination of types that work with +</td>
+<td>T&nbsp;name&lt;T&gt;(T a, T b) { return a + b; }</td>
+<td><br></td>
 </tr>
 <tr>
 <td>def&nbsp;name(a, b):<br>
 &nbsp; &nbsp; a + b</td>
-<td>int name(int a, int b)<br>
+<td>T&nbsp;name&lt;T&gt;(T a, T b)<br>
 {<br>
 &nbsp; &nbsp; return a + b;<br>
 }</td>
@@ -295,14 +295,14 @@ effectively "folding" the list into a single value.</td>
 <td>anonymous arguments in lexical order, see language reference</td>
 </tr>
 <tr>
-<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print(a)<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>var r = fold(list, 0, (a, b) =&gt;<br>{<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
 <td>note how in most languages lambda syntax becomes messy when you
 want to use them with a larger body, and looking very different from
 builtin control structures.</td>
 </tr>
 <tr>
-<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; if(a &lt; 0): return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
+<td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; if a &lt; 0: return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>/* not possible */</td>
 <td>another way in which lambdas in most languages differ from Lobster:
 you cannot return/break
@@ -311,7 +311,7 @@ Lobster, they function just like real constrol structures would. By
 default, return returns from the lexically enclosing named function.</td>
 </tr>
 <tr>
-<td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if(something): return 1 from f<br>&nbsp; &nbsp; 0</td>
+<td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if something: return 1 from f<br>&nbsp; &nbsp; 0</td>
 <td>int f()<br>{<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g()<br>{<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
 <td>return even allows you to specify which function to return from,
 which in other languages you can do with exception handling. In fact,
@@ -329,7 +329,7 @@ return/from (implemented in exception.lobster).</td>
 
 
 <tr>
-<td>a := 0<br>def&nbsp;g(): print(a) // 1<br>def&nbsp;f():<br>
+<td>a := 0<br>def&nbsp;g(): print a&nbsp; // 1<br>def&nbsp;f():<br>
 &nbsp; &nbsp; a &lt;- 1<br>
 &nbsp; &nbsp; g()</td>
 <td>int a = 0;<br>void g() { print(a); } // 1<br>void f()<br>
