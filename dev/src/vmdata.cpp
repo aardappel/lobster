@@ -125,3 +125,26 @@ void Value::Mark(ValueType vtype)
 {
     if (IsRef(vtype) && ref_) ref_->Mark();
 }
+
+string TypeInfo::Debug(bool rec) const
+{
+    string s = BaseTypeName(vt());
+    if (vt() == V_VECTOR || vt() == V_NIL)
+    {
+        s += "[" + g_vm->GetTypeInfo(sub).Debug(false) + "]";
+    }
+    else if (vt() == V_STRUCT)
+    {
+        string sname;
+        auto nargs = g_vm->StructTypeInfo(sub, sname);
+        s += ":" + sname;
+        if (rec)
+        {
+            s += "{";
+            for (int i = 0; i < nargs; i++)
+                s += g_vm->GetTypeInfo(elems[i]).Debug(false) + ",";
+            s += "}";
+        }
+    }
+    return s;
+}

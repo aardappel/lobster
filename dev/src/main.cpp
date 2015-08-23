@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
             else if (a == "--disasm")    { disasm = true; }
             else if (a == "--verbose")   { min_output_level = OUTPUT_INFO; }
             else if (a == "--debug")     { min_output_level = OUTPUT_DEBUG; }
+            else if (a == "--silent")    { min_output_level = OUTPUT_ERROR; }
             else if (a == "--gen-builtins-html")  { DumpBuiltins(false); return 0; }
             else if (a == "--gen-builtins-names") { DumpBuiltins(true);  return 0; }
             else if (a == "--non-interactive-test") { SDLTestMode(); }

@@ -73,6 +73,10 @@ struct CodeGen
 
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->struc->typeinfo);
                 return type->struc->typeinfo;
+
+            default:
+                assert(type->t <= V_ANY);  // Shouldn't be in a runtime-type.
+                break;
         }
         // For everything that's not a struct:
         auto it = type_lookup.find(tt);

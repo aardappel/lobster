@@ -186,28 +186,60 @@ struct TypeChecker
     {
         auto var = NewType();
         *var = Type(V_VAR);
+        var->sub = var;  // Vars store a cycle of all vars its been unified with, starting with itself.
         return var;
     }
 
-    TypeRef UnifyVar(TypeRef type, TypeRef hasvar)
+    void UnifyVar(TypeRef type, TypeRef hasvar)
     {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no side-effects on
         // non-V_VAR Type instances.
         assert(hasvar->t == V_VAR);
-        if (type->t != V_VAR || type != hasvar) *(Type *)&*hasvar = *type;
-        return hasvar;
+        if (type->t == V_VAR)
+        {
+            swap((Type *&)hasvar->sub, (Type *&)type->sub);  // Combine two cyclic linked lists.. elegant!
+        }
+        else
+        {
+            auto v = hasvar;
+            do  // Loop thru all vars in unification cycle.
+            {
+                auto next = v->sub;
+                *(Type *)&*v = *type;  // Overwrite Type struct!
+                v = next;
+            }
+            while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
+        }
     }
+
+    /*
+    void UnifyVar2Var(const Type *const &type, const Type *sub)
+    {
+        // Vars can't unify with eachother, so try to merge them by overwriting the TypeRef (not the type!).
+        if (type->t != sub->t) return;
+        switch (sub->t)
+        {
+            case V_VAR: ((const Type *&)type) = sub;
+                break;  // Overwrite pointer!
+            case V_VECTOR: UnifyVar2Var(type->sub, sub->sub); break;
+            case V_NIL: UnifyVar2Var(type->sub, sub->sub); break;
+        }
+    }
+    */
 
     bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true, bool genericany = false)
     {
-        // FIXME: does ConversTo need to be called again upon unify? can we do without unify at all?
         if (sub == type) return true;
-        if (type->t == V_VAR) return !unifications || ConvertsTo(UnifyVar(sub, type), sub, coercions, unifications, genericany);
+        if (type->t == V_VAR)
+        {
+            if (unifications) UnifyVar(sub, type);
+            return true;
+        }
         switch (sub->t)
         {
             case V_ANY:       return genericany || coercions || !IsScalar(type->t);
-            case V_VAR:       return ConvertsTo(type, UnifyVar(type, sub), coercions, unifications, genericany);
+            case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_INT:       return type->t == V_TYPEID;
             case V_STRING:    return false; //coercions;
@@ -269,12 +301,15 @@ struct TypeChecker
     }
     void SubType(Node *&a, TypeRef sub, const char *argname, const char *context)
     {
-        TypeRef type = a->exptype;
-        if (ConvertsTo(type, sub, false)) return;
+        if (ConvertsTo(a->exptype, sub, false))
+        {
+            //UnifyVar2Var(&*a->exptype, &*sub);
+            return;
+        }
         switch (sub->t)
         {
             case V_FLOAT:
-                if (type->t == V_INT)
+                if (a->exptype->t == V_INT)
                 {
                     a = (Node *)new Unary(a->line, T_I2F, a);
                     a->exptype = type_float;
@@ -285,10 +320,10 @@ struct TypeChecker
                 MakeAny(a);
                 return;
             case V_FUNCTION:
-                if (type->IsFunction() && sub->sf)
+                if (a->exptype->IsFunction() && sub->sf)
                 {
                     // See if these functions can be made compatible. Specialize and typecheck if needed.
-                    auto sf = type->sf;
+                    auto sf = a->exptype->sf;
                     auto ss = sub->sf;
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     int i = 0;
@@ -315,7 +350,7 @@ struct TypeChecker
                 break;
         }
         error:
-        TypeError(TypeName(sub).c_str(), type, *a, argname, context);
+        TypeError(TypeName(sub).c_str(), a->exptype, *a, argname, context);
     }
 
     void SubTypeT(TypeRef type, TypeRef sub, const Node &n, const char *argname, const char *context = nullptr)

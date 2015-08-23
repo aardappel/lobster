@@ -92,6 +92,8 @@ struct TypeInfo
 
     TypeInfo() = delete;
     TypeInfo(const TypeInfo &) = delete;
+
+    string Debug(bool rec = true) const;
 };
 
 struct Value;
@@ -426,6 +428,7 @@ struct LVector : LenObj
     {
         if (len == maxl) Resize(maxl ? maxl * 2 : 4);
         v[len++] = val;
+        ElemType(len - 1);  // FIXME: just for testing, triggers type check
     }
 
     Value Pop()
@@ -477,7 +480,14 @@ struct LVector : LenObj
     {
         auto &ti = GetTypeInfo();
         auto &sti = g_vm->GetTypeInfo(ti.vt() == V_VECTOR ? ti.sub : ti.elems[i]);
-        return (ValueType)(sti.vt() == V_NIL ? g_vm->GetTypeInfo(sti.sub).t : sti.t);
+        auto vt = sti.vt();
+        if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.sub).vt();
+        if(vt != v[i].type && v[i].type != V_NIL && !(vt == V_VECTOR && v[i].type == V_STRUCT))  // FIXME: for testing
+        {
+            Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(v[i].type));
+            assert(false);
+        }
+        return vt;
     }
 
     string ToString(PrintPrefs &pp)

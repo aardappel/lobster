@@ -122,10 +122,6 @@
 
   * start removing all dynamic ops from the VM and codegen
 
-  * new unification is not as powerful as the old one, since we can't bind vars to vars and have them both unified
-    later.
-	-> thus, can remove the if-check in UnifyVar too
-
   * if you typecheck a function with a supertype, then a subtype is able to reuse it. But if the return value
     is now also this supertype you have a contravariance problem. Either must not reuse the function (but only
 	if the return type is affected?) or subtitute the subtype somehow..

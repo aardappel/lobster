@@ -28,11 +28,11 @@ extern string SanitizePath(const char *path);
 
 enum OutputType
 {
-    OUTPUT_DEBUG,    // temp spam, should eventually be removed.
-    OUTPUT_INFO,     // output that helps understanding what the code is doing when not under a debugger
-    OUTPUT_WARN,     // non-critical issues, e.g. SDL errors.
-    OUTPUT_ERROR,    // compiler & vm errors, program terminates after this
-    OUTPUT_PROGRAM,  // output by the Lobster code, should always be shown
+    OUTPUT_DEBUG,    // temp spam, should eventually be removed, shown only at --debug
+    OUTPUT_INFO,     // output that helps understanding what the code is doing when not under a debugger, shown with --verbose.
+    OUTPUT_WARN,     // non-critical issues, e.g. SDL errors. This level shown by default.
+    OUTPUT_PROGRAM,  // output by the Lobster code.
+    OUTPUT_ERROR,    // compiler & vm errors, program terminates after this. Only thing shown at --silent.
 };
 
 extern OutputType min_output_level;  // defaults to showing OUTPUT_WARN and up.

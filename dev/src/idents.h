@@ -265,9 +265,6 @@ inline string TypeName(TypeRef type)
         case V_NIL: return type->Element()->t == V_VAR
             ? "nil"
             : TypeName(type->Element()) + "?";
-        case V_VAR: return type->sub
-            ? TypeName(type->sub) + "*"
-            : BaseTypeName(type->t);
         case V_COROUTINE: return type->sf
             ? "coroutine(" + type->sf->parent->name + ")"
             : "coroutine";

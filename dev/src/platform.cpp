@@ -206,8 +206,8 @@ void Output(OutputType ot, const char *msg, ...)
             case OUTPUT_DEBUG:   __android_log_vprint(ANDROID_LOG_DEBUG, tag, msg, args); break;
             case OUTPUT_INFO:    __android_log_vprint(ANDROID_LOG_INFO,  tag, msg, args); break;
             case OUTPUT_WARN:    __android_log_vprint(ANDROID_LOG_WARN,  tag, msg, args); break;
-            case OUTPUT_ERROR:   __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
             case OUTPUT_PROGRAM: __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
+            case OUTPUT_ERROR:   __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
         }
     #elif defined(WIN32)
         char buf[1024 * 16];

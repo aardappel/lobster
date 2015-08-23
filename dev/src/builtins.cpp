@@ -71,8 +71,12 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
     return Value(i);
 }
 
-type_elem_t GetVectType(type_elem_t available, type_elem_t existing)
+// int <-> float
+type_elem_t SwapVectType(type_elem_t available, type_elem_t existing)
 {
+    if (existing == TYPE_ELEM_VECTOR_OF_FLOAT) return TYPE_ELEM_VECTOR_OF_INT;
+    if (existing == TYPE_ELEM_VECTOR_OF_INT) return TYPE_ELEM_VECTOR_OF_FLOAT;
+    // Structs:
     auto &ti = g_vm->GetTypeInfo(existing);
     // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
     return ti.vt() != V_STRUCT || available < 0 ? existing : available;
@@ -553,7 +557,7 @@ void AddBuiltins()
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
-    #define GETVECTYPE(accessor) GetVectType(len <= 4 ? g_vm->accessor(len) : (type_elem_t)-1, a.vval()->typeoff)
+    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor(len) : (type_elem_t)-1, a.vval()->typeoff)
         
     #define VECTOROPT(op, typeoff) \
         TYPE_ASSERT(IsVector(a.type)); \
@@ -579,12 +583,12 @@ void AddBuiltins()
 
     STARTDECL(int)(Value &a) { return Value(int(a.fval())); } ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int)(Value &a) { VECTOROPT(int(f.fval()), GETVECTYPE(GetIntVectorType)); } ENDDECL1(int, "v", "F]", "I]:/",
+    STARTDECL(int)(Value &a) { VECTOROPT(int(f.fval()), SWAPVECTYPE(GetIntVectorType)); } ENDDECL1(int, "v", "F]", "I]:/",
         "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round)   (Value &a) { return Value(int(a.fval() + 0.5f)); } ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int");
-    STARTDECL(round)   (Value &a) { VECTOROP(int(f.fval() + 0.5f)); } ENDDECL1(round, "v", "F]", "I]:/",
+    STARTDECL(round)   (Value &a) { VECTOROPT(int(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); } ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");
 
     STARTDECL(fraction)(Value &a) { return Value(a.fval() - floorf(a.fval())); } ENDDECL1(fraction, "f", "F", "F",
@@ -594,7 +598,7 @@ void AddBuiltins()
 
     STARTDECL(float)(Value &a) { return Value(float(a.ival())); } ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float)(Value &a) { VECTOROPT(float(f.ival()), GETVECTYPE(GetFloatVectorType)); } ENDDECL1(float, "v", "I]", "F]:/",
+    STARTDECL(float)(Value &a) { VECTOROPT(float(f.ival()), SWAPVECTYPE(GetFloatVectorType)); } ENDDECL1(float, "v", "I]", "F]:/",
         "converts a vector of ints to floats");
 
     STARTDECL(sin) (Value &a) { return Value(sinf(a.fval() * RAD)); } ENDDECL1(sin, "angle", "F", "F",
