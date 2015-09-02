@@ -43,6 +43,11 @@ static void LvalDisAsm(string &s, const int *&ip)
     s += " ";
 }
 
+static const char *IdName(const bytecode::BytecodeFile *bcf, int i)
+{
+    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->c_str();
+}
+
 static const int *DisAsmIns(string &s, const int *ip, const int *code, const type_elem_t *typetable,
                             const bytecode::BytecodeFile *bcf)
 {
@@ -121,7 +126,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_LVALVAR:
             LvalDisAsm(s, ip);
         case IL_PUSHVAR:
-            s += bcf->idents()->Get(*ip++)->name()->c_str();
+            s += to_string(*ip) + ":";  // REMOVEME
+            s += IdName(bcf, *ip++);
             break;
 
         case IL_LVALFLD:
@@ -153,10 +159,10 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_FUNSTART:
         {
             int n = *ip++;
-            while (n--) { s += bcf->idents()->Get(*ip++)->name()->c_str(); s += " "; }
+            while (n--) { s += IdName(bcf, *ip++); s += " "; }
             n = *ip++; 
             s += "=> ";
-            while (n--) { s += bcf->idents()->Get(*ip++)->name()->c_str(); s += " "; }
+            while (n--) { s += IdName(bcf, *ip++); s += " "; }
             n = *ip++;
             if (n) { s += "(log = "; s += to_string(n); s += ")"; }
             break;

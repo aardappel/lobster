@@ -19,6 +19,7 @@ struct CodeGen
 {
     vector<int> code;
     vector<bytecode::LineInfo> lineinfo;
+    vector<bytecode::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
@@ -108,6 +109,8 @@ struct CodeGen
             vint_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
         for (auto type : st.default_float_vector_types)
             vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
+
+        for (auto sid : st.specidents) sids.push_back(bytecode::SpecIdent(sid->id->idx, GetTypeTableOffset(sid->type)));
 
         // Create list of subclasses, to help in creation of dispatch tables.
         for (auto struc : st.structtable)
@@ -263,21 +266,22 @@ struct CodeGen
             assert(0);
         }
 
-        vector<Ident *> defs;
-        vector<Ident *> logvars;
+        vector<SpecIdent *> defs;
+        vector<SpecIdent *> logvars;
         // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order stays the same
         for (auto topl = sf.body; topl; topl = topl->tail())
         {
             size_t logmultiassignstart = logvars.size();
             for (auto dl = topl->head(); dl->type == T_DEF; dl = dl->right())
             {
+                auto sid = dl->left()->sid();
                 auto id = dl->left()->ident();
                 if (id->logvaridx >= 0)
                 {
                     id->logvaridx = (int)logvars.size();
-                    logvars.push_back(id);
+                    logvars.push_back(sid);
                 }
-                else defs.push_back(id);
+                else defs.push_back(sid);
             }
             // order of multi-assign initializers is reversed on the stack
             reverse(logvars.begin() + logmultiassignstart, logvars.end());
@@ -287,14 +291,12 @@ struct CodeGen
 
         Emit(IL_FUNSTART);
         Emit((int)sf.args.v.size()); 
-        for (auto arg : sf.args.v) Emit(arg.id->idx);
+        for (auto &arg : sf.args.v) Emit(arg.sid->idx);
         // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus optimize function calls
         Emit((int)(defs.size() + logvars.size()));
         for (auto id : defs) Emit(id->idx);
         for (auto id : logvars) Emit(id->idx);
         Emit((int)logvars.size());
-
-        //for (auto idn : scope) GenTypeCheck(idn->ident->idx, idn->exptype);
 
         if (sf.body) BodyGen(sf.body);
         else Dummy(true);
@@ -366,7 +368,7 @@ struct CodeGen
                 break;
             }
 
-            case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->ident()->idx); }; break;
+            case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->sid()->idx); }; break;
 
             case T_DOT:
             case T_DOTMAYBE:
@@ -382,29 +384,27 @@ struct CodeGen
 
             case T_CODOT:
                 Gen(n->left(), retval);
-                if (retval) Emit(IL_PUSHLOC, n->right()->ident()->idx);
+                if (retval) Emit(IL_PUSHLOC, n->right()->sid()->idx);
                 break;
 
             case T_DEF:
             case T_ASSIGNLIST:
             {
                 auto dl = n;
-                vector<Ident *> ids;
-                vector<bool> isref;
+                vector<Node *> defs;
                 for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
                 {
-                    ids.push_back(dl->left()->ident());
-                    isref.push_back(IsRefNil(dl->left()->exptype->t));
+                    defs.push_back(dl->left());
                 }
-                Gen(dl, (int)ids.size());
+                Gen(dl, (int)defs.size());
                 dl = n;
-                for (int i = (int)ids.size() - 1; i >= 0; i--)
+                for (int i = (int)defs.size() - 1; i >= 0; i--)
                 {
                     if (n->type == T_DEF)
                     {
-                        if (ids[i]->logvaridx >= 0) Emit(IL_LOGREAD, ids[i]->logvaridx);
+                        if (defs[i]->ident()->logvaridx >= 0) Emit(IL_LOGREAD, defs[i]->ident()->logvaridx);
                     }
-                    Emit(IL_LVALVAR, isref[i] ? LVO_WRITEREF : LVO_WRITE, ids[i]->idx);
+                    Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE, defs[i]->sid()->idx);
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
                 Dummy(retval);
@@ -793,7 +793,7 @@ struct CodeGen
                 // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
                 // each function
 
-                for (auto &arg : sf->coyieldsave.v) Emit(arg.id->idx);
+                for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
 
                 code[loc] = Pos() - loc - 1;
 
@@ -871,9 +871,9 @@ struct CodeGen
         if (rhs) Gen(rhs, 1);
         switch (lval->type)
         {
-            case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->ident()->idx); break;
+            case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->sid()->idx); break;
             case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right(), lvalop, false); break;
-            case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->ident()->idx); break;
+            case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->sid()->idx); break;
             case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1);
                           Emit(lval->right()->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV, lvalop);
                           break;

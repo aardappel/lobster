@@ -151,7 +151,7 @@ struct TypeChecker
                     auto id = dl->left()->ident();
                     //if (id->type->t != V_ANY)
                     {
-                        err += ", " + id->name + ":" + TypeName(id->type);
+                        err += ", " + id->name + ":" + TypeName(id->cursid->type);
                     }
                 }
             }
@@ -511,20 +511,18 @@ struct TypeChecker
         }
         else
         {
-            //if (sf->fixedreturntype)
-            {
-                auto argname = "return value";
-                if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, argname);
-                else if (a) SubType(a, sf->returntypes[i], argname, *a);
-                else SubTypeT(type_any, sf->returntypes[i], *a, argname);
-            }/*
-            else
-            {
-                if (exacttype) sf->returntypes[i] = Union(*exacttype, sf->returntypes[i], false);
-                else if (a) sf->returntypes[i] = Union(a->exptype, sf->returntypes[i], false);
-                else sf->returntypes[i] = type_any;  // FIXME: this allows "return" followed by "return 1" ?
-            }*/
+            auto argname = "return value";
+            if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, argname);
+            else if (a) SubType(a, sf->returntypes[i], argname, *a);
+            else SubTypeT(type_any, sf->returntypes[i], *a, argname);  // FIXME: this allows "return" followed by "return 1" ?
         }
+    }
+
+    SpecIdent *NewSid(Ident *id, TypeRef type)
+    {
+        auto sid = new SpecIdent(id, type, st.specidents.size());
+        st.specidents.push_back(sid);
+        return sid;
     }
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context)
@@ -541,27 +539,23 @@ struct TypeChecker
 
         sf.typechecked = true;
 
-        auto backup_args = sf.args;
-        auto backup_locals = sf.locals;
-        int i = 0;
-        for (auto &arg : sf.args.v)
-        {
-            // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
-            backup_args.v[i].type = arg.id->type;
+        for (auto &fv : sf.freevars.v) fv.sid = fv.id->cursid;
+        for (auto &dyn : sf.dynscoperedefs.v) dyn.sid = dyn.id->cursid;
 
-            // FIXME: these idents are shared between clones. That will work for now, 
-            // but will become an issue when we want to store values non-uniformly (i.e. different sizes).
-            arg.id->type = arg.type;
-            i++;
-        }
-        // Same for locals
-        i = 0;
-        for (auto &local : sf.locals.v)
+        auto backup_vars = [&](ArgVector &in, ArgVector &backup)
         {
-            backup_locals.v[i].type = local.id->type;
-            //local.id->type = local.type;  // not needed, will be set inside body
-            i++;
-        }
+            int i = 0;
+            for (auto &arg : in.v)
+            {
+                // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
+                backup.v[i].sid = arg.id->cursid;
+                arg.id->cursid = arg.sid = NewSid(arg.id, arg.type);
+                i++;
+            }
+        };
+
+        auto backup_args = sf.args; backup_vars(sf.args, backup_args);
+        auto backup_locals = sf.locals; backup_vars(sf.locals, backup_locals);
 
         // FIXME: this would not be able to typecheck recursive functions with multiret.
         if (!sf.fixedreturntype) sf.returntypes[0] = NewTypeVar();
@@ -573,8 +567,8 @@ struct TypeChecker
 
         CleanUpFlow(start_promoted_vars);
 
-        for (auto &back : backup_args.v) back.id->type = back.type;
-        for (auto &back : backup_locals.v) back.id->type = back.type;
+        for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
+        for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
 
         Node *last = nullptr;
         for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
@@ -664,12 +658,19 @@ struct TypeChecker
         }
     }
     
-    bool FreeVarsSameAsCurrent(SubFunction *sf)
+    bool FreeVarsSameAsCurrent(SubFunction *sf, bool prespecialize)
     {
         for (auto &freevar : sf->freevars.v)
         {
             //auto atype = Promote(freevar.id->type);
-            if (!ExactType(freevar.type, freevar.id->type)) return false;
+            if (freevar.sid != freevar.id->cursid || !ExactType(freevar.type, freevar.id->cursid->type))
+            {
+                (void)prespecialize;
+                assert(prespecialize ||
+                       freevar.sid == freevar.id->cursid ||
+                       (freevar.sid && freevar.id->cursid));
+                return false;
+            }
             //if (atype->t == V_FUNCTION) return false;
         }
         return true;
@@ -734,7 +735,7 @@ struct TypeChecker
                             auto &arg = sf->args.v[i++];
                             if (arg.flags == AF_ANYTYPE && !ExactType(list->head()->exptype, arg.type)) goto fail;
                         }
-                        if (FreeVarsSameAsCurrent(sf)) goto match;
+                        if (FreeVarsSameAsCurrent(sf, false)) goto match;
                         fail:;
                     }
                     // No fit. Specialize existing function, or its clone.
@@ -758,14 +759,8 @@ struct TypeChecker
 
                 // This must be the correct freevar specialization.
                 assert(!f.anonymous || sf->freevarchecked);
-                for (auto &freevar : sf->freevars.v)
-                {
-                    // Specialized to current value.
-                    // These types should already be equal in almost all cases, except when a freevar wasn't in
-                    // the call-chain when PreSpecializeFunction was called on this function.
-                    // There may be other cases, such as the freevar being a T_VAR, or thru dynamic scope assignment.
-                    freevar.type = freevar.id->type;
-                }
+                assert(!sf->freevars.v.size());
+
                 Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
             }
             match:
@@ -789,13 +784,13 @@ struct TypeChecker
                 // New freevars may have been added during the function def typecheck above.
                 // In case their types differ from the flow-sensitive value at the callsite (here),
                 // we want to override them.
-                freevar.type = freevar.id->type;
+                freevar.type = freevar.id->cursid->type;
             }
 
             return sf->returntypes[0];
         }
     }
-    
+
     SubFunction *PreSpecializeFunction(SubFunction *hsf)
     {
         // Don't pre-specialize named functions, because this is not their call-site.
@@ -809,7 +804,7 @@ struct TypeChecker
             // See if there's an existing match.
             for (; sf; sf = sf->next) if (sf->freevarchecked)
             {
-                if (FreeVarsSameAsCurrent(sf)) return sf;
+                if (FreeVarsSameAsCurrent(sf, true)) return sf;
             }
             
             sf = CloneFunction(hsf);
@@ -820,14 +815,7 @@ struct TypeChecker
             sf->freevarchecked = true;
         }
         
-        // Copy freevars.
-        for (auto &freevar : sf->freevars.v)
-        {
-            // Specialized to current value.
-            // Since this is not the call-site, it is possible that some freevar here is not in the call-chain
-            // yet, and thus probably "any" instead of the right type. This gets fixed in TypeCheckCall()
-            freevar.type = freevar.id->type;
-        }
+        assert(!sf->freevars.v.size());
 
         // Output without arg types, since those are yet to be overwritten.
         Output(OUTPUT_DEBUG, "pre-specialization: %s", SignatureWithFreeVars(*sf, nullptr, false).c_str());
@@ -877,9 +865,11 @@ struct TypeChecker
                     if (!foundstart) continue;
 
                     for (auto &arg : ssf->args.v) sf->coyieldsave.Add(arg);
-                    for (auto &loc : ssf->locals.v) sf->coyieldsave.Add(Arg(loc.id, loc.id->type, false));
+                    for (auto &loc : ssf->locals.v) sf->coyieldsave.Add(Arg(loc.id, loc.sid, loc.sid->type, false));
                     for (auto &dyn : ssf->dynscoperedefs.v) sf->coyieldsave.Add(dyn);
                 }
+
+                for (auto &cys : sf->coyieldsave.v) cys.sid = cys.id->cursid;
 
                 return sf->coresumetype;
             }
@@ -1103,7 +1093,12 @@ struct TypeChecker
 
     void CheckFreeVariable(Ident &id)
     {
-        // This is a free variable, record it in all parents up to the definition point.
+        // If this is a free variable, record it in all parents up to the definition point.
+        // FIXME: this is technically not the same as a "free variable" in the literature,
+        // since HOFs get marked with freevars of their functionvalue this way.
+        // This is benign, since the HOF will be specialized to the function value anyway,
+        // but would be good to clean up.
+        // We currently don't have an easy way to test for lexically enclosing functions.
         for (int i = (int)scopes.size() - 1; i >= 0; i--)
         {
             auto sf = scopes[i].sf;
@@ -1114,7 +1109,7 @@ struct TypeChecker
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses of the var.
             // this will get corrected after the call this is part of.
-            if (sf->freevars.Add(Arg(&id, id.type, true)))
+            if (sf->freevars.Add(Arg(&id, id.cursid, id.cursid->type, true)))
             {
                 //Output(OUTPUT_DEBUG, "freevar added: %s (%s) in %s",
                 //       id.name.c_str(), TypeName(id.type).c_str(), sf->parent->name.c_str());
@@ -1231,6 +1226,101 @@ struct TypeChecker
             case T_FORLOOPVAR:
                 // Ignore, they've already been assigned a type in T_FOR.
                 return;
+
+            case T_CODOT:
+            {
+                TypeCheck(n.left(), n.type);
+                // Leave right ident untypechecked.
+
+                SubType(n.left(), type_coroutine, "coroutine", n);
+                auto sf = n.left()->exptype->sf;
+                Arg *uarg = nullptr;
+                auto &name = n.right()->ident()->name;  // This ident is not necessarily the right one.
+                for (auto &arg : sf->coyieldsave.v) if (arg.id->name == name)
+                {
+                    if (uarg) TypeError("multiple coroutine variables named: " + name, n);
+                    uarg = &arg;
+                }
+                if (!uarg) TypeError("no coroutine variables named: " + name, n);
+                n.right()->ident() = uarg->id;
+                n.right()->sid() = uarg->sid;
+                n.right()->exptype = type = uarg->type;
+                return;
+            }
+
+            case T_DEF:
+            case T_ASSIGNLIST:
+            {
+                auto dl = &n;
+                vector<Node *> idnodes;
+                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
+                {
+                    idnodes.push_back(dl->left());
+                    if (dl->type == T_ASSIGNLIST)
+                    {
+                        TypeCheck(dl->left(), T_ASSIGNLIST);
+                    }
+                    else
+                    {
+                        auto id = dl->left()->ident();
+                        if (!id->cursid)
+                        {
+                            assert(!id->sf_def);  // Must be a global;
+                            id->cursid = NewSid(id, type_any);
+                        }
+                    }
+                }
+                TypeCheck(dl, n.type);
+                size_t i = 0;
+                for (auto idn : idnodes)
+                {
+                    if (!dl) parser.Error("right hand side does not return enough values", &n);
+                    auto type = dl->exptype;
+                    switch (dl->type)
+                    {
+                        case T_CALL:
+                        {
+                            auto sf = dl->call_function()->sf();
+                            CheckReturnValues(sf->returntypes.size(), i, sf->parent->name, n);
+                            type = sf->returntypes[i];
+                            break;
+                        }
+
+                        case T_NATCALL:
+                        {
+                            if (i)  // For the 0th value, we prefer the existing type, see T_NATCALL below.
+                            {
+                                auto nf = dl->ncall_id()->nf();
+                                CheckReturnValues(nf->retvals.v.size(), i, nf->name, n);
+                                assert(nf->retvals.v[i].flags == AF_NONE);  // See T_NATCALL below.
+                                type = nf->retvals.v[i].type;
+                            }
+                            break;
+                        }
+
+                        case T_MULTIRET:
+                            type = dl->headexp()->exptype;
+                            dl = dl->tailexps();
+                            break;
+                    }
+                    if (n.type == T_DEF)
+                    {
+                        if (n.c()) type = n.c()->typenode();
+                        idn->exptype = type;
+                        auto id = idn->ident();
+                        id->cursid->type = type;
+                        idn->sid() = id->cursid;
+                        Output(OUTPUT_DEBUG, "var: %s:%s", id->name.c_str(), TypeName(type).c_str());
+                    }
+                    else
+                    {
+                        AssignFlowDemote(*idn, type, false);
+                        SubTypeT(type, idn->exptype, n, "right");
+                    }
+                    i++;
+                }
+                return;
+            }
         }
 
         if (n.a()) TypeCheck(n.aref(), n.type);
@@ -1343,66 +1433,13 @@ struct TypeChecker
             }
 
             case T_IDENT:
-                type = n.ident()->type;
-                CheckFreeVariable(*n.ident());
-                UseFlow(n);
-                break;
-
-            case T_DEF:
-            case T_ASSIGNLIST:
             {
-                auto dl = &n;
-                vector<Node *> ids;
-                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
-                {
-                    ids.push_back(dl->left());
-                }
-                size_t i = 0;
-                for (auto id : ids)
-                {
-                    if (!dl) parser.Error("right hand side does not return enough values", &n);
-                    auto type = dl->exptype;
-                    switch (dl->type)
-                    {
-                        case T_CALL:
-                        {
-                            auto sf = dl->call_function()->sf();
-                            CheckReturnValues(sf->returntypes.size(), i, sf->parent->name, n);
-                            type = sf->returntypes[i];
-                            break;
-                        }
-
-                        case T_NATCALL:
-                        {
-                            if (i)  // For the 0th value, we prefer the existing type, see T_NATCALL below.
-                            {
-                                auto nf = dl->ncall_id()->nf();
-                                CheckReturnValues(nf->retvals.v.size(), i, nf->name, n);
-                                assert(nf->retvals.v[i].flags == AF_NONE);  // See T_NATCALL below.
-                                type = nf->retvals.v[i].type;
-                            }
-                            break;
-                        }
-
-                        case T_MULTIRET:
-                            type = dl->headexp()->exptype;
-                            dl = dl->tailexps();
-                            break;
-                    }
-                    if (n.type == T_DEF)
-                    {
-                        if (n.c()) type = n.c()->typenode();
-                        id->exptype = type;
-                        id->ident()->type = type;
-                        Output(OUTPUT_DEBUG, "var: %s:%s", id->ident()->name.c_str(), TypeName(type).c_str());
-                    }
-                    else
-                    {
-                        AssignFlowDemote(*id, type, false);
-                        SubTypeT(type, id->exptype, n, "right");
-                    }
-                    i++;
-                }
+                auto id = n.ident();
+                assert(id->cursid);
+                type = id->cursid->type;
+                n.sid() = id->cursid;
+                CheckFreeVariable(*id);
+                UseFlow(n);
                 break;
             }
 
@@ -1709,23 +1746,6 @@ struct TypeChecker
                 break;
             }
 
-            case T_CODOT:
-            {
-                SubType(n.left(), type_coroutine, "coroutine", n);
-                auto sf = n.left()->exptype->sf;
-                Arg *uarg = nullptr;
-                auto &name = n.right()->ident()->name;  // This ident is not necessarily the right one.
-                for (auto &arg : sf->coyieldsave.v) if (arg.id->name == name)
-                {
-                    if (uarg) TypeError("multiple coroutine variables named: " + name, n);
-                    uarg = &arg;
-                }
-                if (!uarg) TypeError("no coroutine variables named: " + name, n);
-                n.right()->ident() = uarg->id;
-                n.right()->exptype = type = uarg->type;
-                break;
-            }
-
             case T_INDEX:
             {
                 auto vtype = n.left()->exptype;
@@ -1807,16 +1827,38 @@ struct TypeChecker
     
     void Stats()
     {
+        if (min_output_level > OUTPUT_INFO) return;
+
         int origsf = 0, multisf = 0, clonesf = 0;
         int orignodes = 0, clonenodes = 0;
+        typedef pair<int, Function *> Pair;
+        vector<Pair> funstats;
+        for (auto f : st.functiontable) funstats.push_back(make_pair(0, f));
         for (auto sf : st.subfunctiontable)
         {
             if (sf->parent->multimethod) { multisf++; orignodes += sf->body->Count(); }
             else if (!sf->next)          { origsf++;  orignodes += sf->body->Count(); }
-            else                         { clonesf++; clonenodes += sf->body->Count(); }
+            else
+            {
+                clonesf++;
+                auto count = sf->body->Count();
+                clonenodes += count;
+                funstats[sf->parent->idx].first += count;
+            }
         }
-        Output(OUTPUT_DEBUG, "SF count: multi: %d, orig: %d, cloned: %d", multisf, origsf, clonesf);
-        Output(OUTPUT_DEBUG, "Node count: orig: %d, cloned: %d", orignodes, clonenodes);
+        Output(OUTPUT_INFO, "SF count: multi: %d, orig: %d, cloned: %d", multisf, origsf, clonesf);
+        Output(OUTPUT_INFO, "Node count: orig: %d, cloned: %d", orignodes, clonenodes);
+        sort(funstats.begin(), funstats.end(), [](const Pair &a, const Pair &b) { return a.first > b.first; });
+        for (auto &p : funstats) if (p.first > orignodes / 50)
+        {
+            auto &pos = p.second->subf->body->line;
+            Output(OUTPUT_INFO, "Most clones: %s (%s:%d) -> %d nodes accross %d clones (+1 orig)",
+                   p.second->name.c_str(),
+                   st.filenames[pos.fileidx].c_str(),
+                   pos.line,
+                   p.first,
+                   p.second->NumSubf() - 1);
+        }
     }
 };
 

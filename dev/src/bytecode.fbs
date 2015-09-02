@@ -26,9 +26,15 @@ table Ident
 	global:bool;
 }
 
+struct SpecIdent
+{
+	ididx:int;
+	typeidx:int;
+}
+
 table BytecodeFile
 {
-    bytecode_version:int;  // The format of bytecode may change.
+    bytecode_version:int;  // The format of bytecode/typetable may change.
     bytecode:[int];
 	typetable:[int];
 
@@ -38,6 +44,7 @@ table BytecodeFile
     functions:[Function];
     structs:[Struct];
     idents:[Ident];
+	specidents:[SpecIdent];
 
     default_int_vector_types:[int];
     default_float_vector_types:[int];

@@ -116,7 +116,7 @@ struct VM : VMBase
         }
         ip = codestart;
 
-        vars = new Value[bcf->idents()->size()];
+        vars = new Value[bcf->specidents()->size()];
         stack = new Value[stacksize = INITSTACKSIZE];
         
         #ifdef VM_PROFILER
@@ -326,7 +326,7 @@ struct VM : VMBase
 
         s += "\nglobals:";
 
-        for (size_t i = 0; i < bcf->idents()->size(); i++)
+        for (size_t i = 0; i < bcf->specidents()->size(); i++)
         {
             s += DumpVar(vars[i], i, true);
         }
@@ -367,8 +367,10 @@ struct VM : VMBase
 
     string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
     {
-        auto id = bcf->idents()->Get(idx);
+        auto sid = bcf->specidents()->Get(idx);
+        auto id = bcf->idents()->Get(sid->ididx());
         if (id->readonly() || id->global() != dumpglobals) return "";
+        //auto &ti = GetTypeInfo(sid->typeidx());
         string name = id->name()->c_str();
         return "\n   " + name + " = " + x.ToString(x.type, debugpp);
     }
@@ -423,7 +425,7 @@ struct VM : VMBase
     {
         VMASSERT(sp < 0);
 
-        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].DEC();
+        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].DEC();
 
         #ifdef _DEBUG
             Output(OUTPUT_INFO, "stack at its highest was: %d", maxsp);
@@ -1458,7 +1460,7 @@ struct VM : VMBase
     int GC()    // shouldn't really be used, but just in case
     {
         for (int i = 0; i <= sp; i++) stack[i].Mark(stack[i].type);
-        for (size_t i = 0; i < bcf->idents()->size(); i++) vars[i].Mark(vars[i].type);
+        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(vars[i].type);
         vml.LogMark();
 
         vector<RefObj *> leaks;

@@ -43,12 +43,19 @@ struct AST : SlabAllocatedSmall
 struct IntConst : AST { int integer_;      IntConst(Line &ln, int i)            : AST(ln, T_INT), integer_(i) {}; };
 struct FltConst : AST { double flt_;       FltConst(Line &ln, double f)         : AST(ln, T_FLOAT), flt_(f) {}; };
 struct StrConst : AST { char *str_;        StrConst(Line &ln, const string &s)  : AST(ln, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };
-struct IdRef    : AST { Ident *ident_;     IdRef   (Line &ln, Ident *id)        : AST(ln, T_IDENT), ident_(id) {} };
 struct StRef    : AST { Struct *st_;       StRef   (Line &ln, Struct *st)       : AST(ln, T_STRUCT), st_(st) {} };
 struct FldRef   : AST { SharedField *fld_; FldRef  (Line &ln, SharedField *fld) : AST(ln, T_FIELD), fld_(fld) {} };
 struct FunRef   : AST { SubFunction *sf_;  FunRef  (Line &ln, SubFunction *sf)  : AST(ln, T_FUN), sf_(sf) {} };
 struct NatRef   : AST { NativeFun *nf_;    NatRef  (Line &ln, NativeFun *nf)    : AST(ln, T_NATIVE), nf_(nf) {} };
 struct TypeNode : AST { TypeRef type_;     TypeNode(Line &ln, TType t)          : AST(ln, t) {} };  // T_TYPE, T_NIL
+
+struct IdRef : AST
+{
+    Ident *ident_; 
+    SpecIdent *sid_;
+
+    IdRef(Line &ln, Ident *id) : AST(ln, T_IDENT), ident_(id), sid_(nullptr) {}
+};
 
 struct Unary : AST
 {
@@ -96,6 +103,8 @@ struct Node : Unary
     char *&str()              { assert(type == T_STR);    return ((      StrConst *)this)->str_; }
     Ident * ident()     const { assert(type == T_IDENT);  return ((const IdRef *)this)->ident_; }
     Ident *&ident()           { assert(type == T_IDENT);  return ((      IdRef *)this)->ident_; }
+    SpecIdent * sid()   const { assert(type == T_IDENT);  return ((const IdRef *)this)->sid_; }
+    SpecIdent *&sid()         { assert(type == T_IDENT);  return ((      IdRef *)this)->sid_; }
     Struct *st()        const { assert(type == T_STRUCT); return ((const StRef *)this)->st_; }
     SharedField *fld()  const { assert(type == T_FIELD);  return ((const FldRef *)this)->fld_; }
     NativeFun * nf()    const { assert(type == T_NATIVE); return ((const NatRef *)this)->nf_; }

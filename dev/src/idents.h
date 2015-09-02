@@ -21,6 +21,8 @@ struct Node;
 
 struct SubFunction;
 
+struct SpecIdent;
+
 struct Ident : Named
 {
     int line;
@@ -28,7 +30,7 @@ struct Ident : Named
     
     Ident *prev;
 
-    SubFunction *sf_def;    // Where it is defined, including anonymous functions.
+    SubFunction *sf_def;    // Where it is defined, including anonymous functions. nullptr if global.
     
     bool single_assignment;
     bool constant;
@@ -37,12 +39,13 @@ struct Ident : Named
 
     int logvaridx;
 
-    TypeRef type;
+    SpecIdent *cursid;
 
     Ident(const string &_name, int _l, int _idx, size_t _sc)
         : Named(_name, _idx), line(_l), 
           scope(_sc), prev(nullptr), sf_def(nullptr),
-          single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1) {}
+          single_assignment(true), constant(false), static_constant(false), anonymous_arg(false), logvaridx(-1),
+          cursid(nullptr) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Assign(Lex &lex)
@@ -58,19 +61,28 @@ struct Ident : Named
     }
 };
 
+struct SpecIdent
+{
+    Ident *id;
+    TypeRef type;
+    int idx;
+
+    SpecIdent(Ident *_id, TypeRef _type, int _idx) : id(_id), type(_type), idx(_idx) {}
+};
+
 struct SharedField : Named  // Only still needed because we have no idea which struct it refers to at parsing time.
 {
     SharedField(const string &_name, int _idx) : Named(_name, _idx) {}
     SharedField() : SharedField("", 0) {}
 };
 
-struct Field : Typed<SharedField>
+struct Field : Typed<SharedField, void>
 {
     int fieldref;
     Node *defaultval;  // Not deleted, possibly referred to by multiple structs.
 
     Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
-        : Typed(_id, _type, _generic),
+        : Typed(_id, nullptr, _type, _generic),
           fieldref(_fieldref), defaultval(_defaultval) {}
 };
 
@@ -189,10 +201,10 @@ struct SubFunction
 
     void CloneIds(SubFunction &o)
     {
-        args = o.args;
-        locals = o.locals;
-        dynscoperedefs = o.dynscoperedefs;
-        freevars = o.freevars;
+        args = o.args;                     args.ResetSid();
+        locals = o.locals;                 locals.ResetSid();
+        dynscoperedefs = o.dynscoperedefs; dynscoperedefs.ResetSid();
+        // Don't clone freevars, these will be accumulated in the new copy anew.
     }
 
     ~SubFunction()
@@ -230,6 +242,13 @@ struct Function : Named
     ~Function() { if (subf) delete subf; }
 
     int nargs() { return (int)subf->args.v.size(); }
+
+    int NumSubf()
+    {
+        int sum = 0;
+        for (auto sf = subf; sf; sf = sf->next) sum++;
+        return sum;
+    }
     
     void DeleteSubFunction(SubFunction *sf)
     {
@@ -275,6 +294,7 @@ struct SymbolTable
     map<string, Ident *> idents;
     vector<Ident *> identtable;
     vector<Ident *> identstack;
+    vector<SpecIdent *> specidents; 
 
     map<string, Struct *> structs;
     vector<Struct *> structtable;
@@ -305,6 +325,7 @@ struct SymbolTable
     ~SymbolTable()
     {
         for (auto id : identtable)    delete id;
+        for (auto sid : specidents)   delete sid;
         for (auto st : structtable)   delete st;
         for (auto f  : functiontable) delete f;
         for (auto f  : fieldtable)    delete f;
@@ -337,7 +358,7 @@ struct SymbolTable
         ident->anonymous_arg = anonymous_arg;
 
         ident->sf_def = sf;
-        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, type_any, true));
+        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, nullptr, type_any, true));
 
         if (existing_ident)
         {
@@ -353,8 +374,10 @@ struct SymbolTable
     Ident *LookupDynScopeRedef(const string &name, Lex &lex)
     {
         auto ident = Lookup(name);
-        if (!ident) lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size()) defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, type_any, true));
+        if (!ident)
+            lex.Error("lhs of <- must refer to existing variable: " + name);
+        if (defsubfunctionstack.size())
+            defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, nullptr, type_any, true));
         return ident;
     }
 
@@ -607,6 +630,7 @@ struct SymbolTable
                    vector<type_elem_t> &vint_typeoffsets,
                    vector<type_elem_t> &vfloat_typeoffsets,
                    vector<bytecode::LineInfo> &linenumbers,
+                   vector<bytecode::SpecIdent> &sids,
                    vector<uchar> &bytecode)
     {
         flatbuffers::FlatBufferBuilder fbb;
@@ -631,6 +655,7 @@ struct SymbolTable
                                                      fbb.CreateVector(functionoffsets),
                                                      fbb.CreateVector(structoffsets),
                                                      fbb.CreateVector(identoffsets),
+                                                     fbb.CreateVectorOfStructs(sids),
                                                      fbb.CreateVector((vector<int> &)vint_typeoffsets),
                                                      fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
                                                      uses_frame_state);

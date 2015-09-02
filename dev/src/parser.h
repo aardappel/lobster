@@ -765,7 +765,7 @@ struct Parser
         
         if (!noparens && IsNext(T_RIGHTPAREN))
         {
-            if (expparents.back() == T_CALL_NOPARENS)
+            if (expparents.size() && expparents.back() == T_CALL_NOPARENS)
             {
                 // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
                 return nullptr;

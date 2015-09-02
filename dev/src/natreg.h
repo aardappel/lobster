@@ -159,16 +159,17 @@ extern TypeRef type_typeid;
 
 enum ArgFlags { AF_NONE = 0, NF_EXPFUNVAL = 1, AF_ANYTYPE = 2, NF_SUBARG1 = 4, NF_ANYVAR = 8, NF_CORESUME = 16 };
 
-template<typename T> struct Typed
+template<typename T1, typename T2> struct Typed
 {
     TypeRef type;
     ArgFlags flags;
     char fixed_len;
-    T *id;
+    T1 *id;
+    T2 *sid;
 
-    Typed() : flags(AF_NONE), fixed_len(0), id(nullptr) {}
-    Typed(const Typed<T> &o) : type(o.type), flags(o.flags), fixed_len(o.fixed_len), id(o.id) {}
-    Typed(T *_id, TypeRef _type, bool generic) : fixed_len(0), id(_id) { SetType(_type, generic); }
+    Typed() : flags(AF_NONE), fixed_len(0), id(nullptr), sid(nullptr) {}
+    Typed(const Typed<T1, T2> &o) : type(o.type), flags(o.flags), fixed_len(o.fixed_len), id(o.id), sid(o.sid) {}
+    Typed(T1 *_id, T2 *_sid, TypeRef _type, bool generic) : fixed_len(0), id(_id), sid(_sid) { SetType(_type, generic); }
 
     void SetType(TypeRef _type, bool generic)
     {
@@ -211,7 +212,8 @@ template<typename T> struct Typed
 };
 
 struct Ident;
-typedef Typed<Ident> Arg;
+struct SpecIdent;
+typedef Typed<Ident, SpecIdent> Arg;
 
 struct ArgVector
 {
@@ -246,6 +248,11 @@ struct ArgVector
                 return false;
         v.push_back(in);
         return true;
+    }
+
+    void ResetSid()
+    {
+        for (auto &a : v) a.sid = nullptr;
     }
 };
 

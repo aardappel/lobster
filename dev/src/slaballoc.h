@@ -364,6 +364,13 @@ class SlabAlloc
 
     // for diagnostics and GC
 
+    size_t count_small_allocs()
+    {
+        size_t sum = 0;
+        loopdllist(usedpages, h) sum += h->refc;
+        return sum;
+    }
+
     template<typename T> void findleaks(T leakcallback)
     {
         loopdllist(usedpages, h)
