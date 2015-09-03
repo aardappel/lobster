@@ -159,23 +159,31 @@ extern TypeRef type_typeid;
 
 enum ArgFlags { AF_NONE = 0, NF_EXPFUNVAL = 1, AF_ANYTYPE = 2, NF_SUBARG1 = 4, NF_ANYVAR = 8, NF_CORESUME = 16 };
 
-template<typename T1, typename T2> struct Typed
+struct Ident;
+struct SpecIdent;
+
+struct Typed
 {
     TypeRef type;
     ArgFlags flags;
-    char fixed_len;
-    T1 *id;
-    T2 *sid;
 
-    Typed() : flags(AF_NONE), fixed_len(0), id(nullptr), sid(nullptr) {}
-    Typed(const Typed<T1, T2> &o) : type(o.type), flags(o.flags), fixed_len(o.fixed_len), id(o.id), sid(o.sid) {}
-    Typed(T1 *_id, T2 *_sid, TypeRef _type, bool generic) : fixed_len(0), id(_id), sid(_sid) { SetType(_type, generic); }
+    Typed() : flags(AF_NONE) {}
+    Typed(const Typed &o) : type(o.type), flags(o.flags) {}
+    Typed(TypeRef _type, bool generic) { SetType(_type, generic); }
 
     void SetType(TypeRef _type, bool generic)
     {
         type = _type;
         flags = generic ? AF_ANYTYPE : AF_NONE;
     }
+};
+
+struct Narg : Typed
+{
+    char fixed_len;
+
+    Narg() : Typed(), fixed_len(0) {}
+    Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len) {}
 
     void Set(const char *&tid, list<Type> &typestorage)
     {
@@ -211,21 +219,24 @@ template<typename T1, typename T2> struct Typed
     }
 };
 
-struct Ident;
-struct SpecIdent;
-typedef Typed<Ident, SpecIdent> Arg;
-
-struct ArgVector
+struct GenericArgs
 {
-    vector<Arg> v;
+    virtual string GetName(size_t i) const = 0;
+    virtual const Typed *GetType(size_t i) const = 0;
+    virtual size_t size() const = 0;
+};
+
+struct NargVector : GenericArgs
+{
+    vector<Narg> v;
     const char *idlist;
 
-    ArgVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
+    NargVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
 
+    size_t size() const { return v.size(); }
+    const Typed *GetType(size_t i) const { return &v[i]; }
     string GetName(size_t i) const
     {
-        if (v[i].id) return ((Named *)v[i].id)->name;
-
         auto ids = idlist;
         for (;;)
         {
@@ -239,20 +250,6 @@ struct ArgVector
             if (!i--) return string(ids, idend); 
             ids = idend + 1;
         }
-   }
-
-    bool Add(const Arg &in)
-    {
-        for (auto &arg : v)
-            if (arg.id == in.id)
-                return false;
-        v.push_back(in);
-        return true;
-    }
-
-    void ResetSid()
-    {
-        for (auto &a : v) a.sid = nullptr;
     }
 };
 
@@ -276,7 +273,7 @@ struct NativeFun : Named
 {
     BuiltinPtr fun;
 
-    ArgVector args, retvals;
+    NargVector args, retvals;
 
     NativeCallMode ncm;
     Value (*cont1)(Value &);
@@ -305,7 +302,7 @@ struct NativeFun : Named
 
         for (int i = 0; i < nretvalues; i++)
         {
-            retvals.v.push_back(Arg());
+            retvals.v.push_back(Narg());
             retvals.v[i].Set(rets, typestorage);
         }
     }

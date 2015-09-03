@@ -76,19 +76,32 @@ struct SharedField : Named  // Only still needed because we have no idea which s
     SharedField() : SharedField("", 0) {}
 };
 
-struct Field : Typed<SharedField, void>
+struct Field : Typed
 {
+    SharedField *id;
     int fieldref;
     Node *defaultval;  // Not deleted, possibly referred to by multiple structs.
 
+    Field() : Typed(), id(nullptr), fieldref(-1), defaultval(nullptr) {}
     Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
-        : Typed(_id, nullptr, _type, _generic),
+        : Typed(_type, _generic), id(_id),
           fieldref(_fieldref), defaultval(_defaultval) {}
+};
+
+struct FieldVector : GenericArgs
+{
+    vector<Field> v;
+
+    FieldVector(int nargs) : v(nargs) {}
+
+    size_t size() const { return v.size(); }
+    const Typed *GetType(size_t i) const { return &v[i]; }
+    string GetName(size_t i) const { return v[i].id->name; }
 };
 
 struct Struct : Named
 {
-    vector<Field> fields; 
+    FieldVector fields; 
 
     Struct *next, *first;
 
@@ -105,7 +118,7 @@ struct Struct : Named
     type_elem_t typeinfo;  // Runtime type. 
 
     Struct(const string &_name, int _idx)
-        : Named(_name, _idx), next(nullptr), first(this), superclass(nullptr),
+        : Named(_name, _idx), fields(0), next(nullptr), first(this), superclass(nullptr),
           firstsubclass(nullptr), nextsubclass(nullptr),
           readonly(false), generic(false), predeclaration(false),
           thistype(V_STRUCT, this),
@@ -115,7 +128,7 @@ struct Struct : Named
 
     int Has(SharedField *fld)
     {
-        for (auto &uf : fields) if (uf.id == fld) return int(&uf - &fields[0]);
+        for (auto &uf : fields.v) if (uf.id == fld) return int(&uf - &fields.v[0]);
         return -1;
     }
 
@@ -144,12 +157,47 @@ struct Struct : Named
 
     void Resolve(Field &field)
     {
-        if (field.fieldref >= 0) field.type = fields[field.fieldref].type;
+        if (field.fieldref >= 0) field.type = fields.v[field.fieldref].type;
     }
 
     flatbuffers::Offset<bytecode::Struct> Serialize(flatbuffers::FlatBufferBuilder &fbb)
     {
         return bytecode::CreateStruct(fbb, fbb.CreateString(name), idx, (int)fields.size());
+    }
+};
+
+struct Arg : Typed
+{
+    Ident *id;
+    SpecIdent *sid;
+
+    Arg() : Typed(), id(nullptr), sid(nullptr) {}
+    Arg(const Arg &o) : Typed(o), id(o.id), sid(o.sid) {}
+    Arg(Ident *_id, SpecIdent *_sid, TypeRef _type, bool generic) : id(_id), sid(_sid) { SetType(_type, generic); }
+};
+
+struct ArgVector : GenericArgs
+{
+    vector<Arg> v;
+
+    ArgVector(int nargs) : v(nargs) {}
+
+    size_t size() const { return v.size(); }
+    const Typed *GetType(size_t i) const { return &v[i]; }
+    string GetName(size_t i) const { return v[i].id->name; }
+
+    bool Add(const Arg &in)
+    {
+        for (auto &arg : v)
+            if (arg.id == in.id)
+                return false;
+        v.push_back(in);
+        return true;
+    }
+
+    void ResetSid()
+    {
+        for (auto &a : v) a.sid = nullptr;
     }
 };
 
@@ -182,8 +230,7 @@ struct SubFunction
 
     SubFunction(int _idx)
         : idx(_idx),
-          args(0, nullptr), locals(0, nullptr), dynscoperedefs(0, nullptr), freevars(0, nullptr),
-          coyieldsave(0, nullptr),
+          args(0), locals(0), dynscoperedefs(0), freevars(0), coyieldsave(0),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), iscoroutine(false), mustspecialize(false),
           fixedreturntype(false), numcallers(0),
@@ -234,7 +281,7 @@ struct Function : Named
 
     Function(const string &_name, int _idx, int _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
-       multimethod(false), anonymous(false), istype(false), orig_args(0, nullptr),
+       multimethod(false), anonymous(false), istype(false), orig_args(0),
        scopelevel(_sl), retvals(0)
     {
     }

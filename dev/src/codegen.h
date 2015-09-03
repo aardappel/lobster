@@ -67,7 +67,7 @@ struct CodeGen
                 // Reserve space, so other types can be added afterwards safely.
                 type_table.insert(type_table.end(), type->struc->fields.size() + 2, (type_elem_t)0);
 
-                for (auto &field : type->struc->fields)
+                for (auto &field : type->struc->fields.v)
                 {
                     tt.push_back(GetTypeTableOffset(field.type));
                 }

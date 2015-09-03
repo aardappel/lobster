@@ -351,7 +351,7 @@ struct Parser
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
 
-            for (auto &field : struc->fields)
+            for (auto &field : struc->fields.v)
             {
                 // We don't reset AF_ANYTYPE here, because its used to know which fields to select
                 // a specialization on.
@@ -368,7 +368,7 @@ struct Parser
                 for (; st; st = st->next)
                 {
                     for (size_t i = 0; i < st->fields.size(); i++)
-                        if (st->fields[i].type != struc->fields[i].type)
+                        if (st->fields.v[i].type != struc->fields.v[i].type)
                             goto fail;
                     goto done;
                     fail:;
@@ -395,10 +395,10 @@ struct Parser
             {
                 struc->superclass = sup;
 
-                for (auto &fld : sup->fields)
+                for (auto &fld : sup->fields.v)
                 {
-                    struc->fields.push_back(fld);
-                    auto &field = struc->fields.back();
+                    struc->fields.v.push_back(fld);
+                    auto &field = struc->fields.v.back();
                     // FIXME: must check if this type is a subtype if old type isn't V_ANY
                     if (spectypes.size()) specialize_field(field);
                     if (st.IsGeneric(field.type)) struc->generic = true;
@@ -421,12 +421,12 @@ struct Parser
                 }
                 bool generic = st.IsGeneric(type) && fieldref < 0;
                 Node *defaultval = IsNext(T_ASSIGN) ? ParseExp(T_STRUCTDEF) : nullptr;
-                struc->fields.push_back(Field(&sfield, type, generic, fieldref, defaultval));
+                struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
                 if (generic) struc->generic = true;
             }, T_RIGHTCURLY);
             // Loop thru a second time, because this type may have become generic just now, and may refer
             // to itself.
-            for (auto &field : struc->fields)
+            for (auto &field : struc->fields.v)
             {
                 if (st.IsGeneric(field.type) && field.fieldref < 0) field.flags = AF_ANYTYPE;
             }
@@ -685,7 +685,7 @@ struct Parser
             {
                 if (fieldrefstruct)
                 {
-                    for (auto &field : fieldrefstruct->fields)
+                    for (auto &field : fieldrefstruct->fields.v)
                     {
                         if (field.id->name == lex.sattr)
                         {
@@ -693,7 +693,7 @@ struct Parser
                                 Error("field reference must be to generic field: " + lex.sattr);
                             lex.Next();
                             dest = field.type;
-                            return int(&field - &fieldrefstruct->fields[0]);
+                            return int(&field - &fieldrefstruct->fields.v[0]);
                         }
                     }
                 }
@@ -737,7 +737,7 @@ struct Parser
         return -1;
     }
 
-    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", ArgVector *args = nullptr,
+    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "", GenericArgs *args = nullptr,
                        bool noparens = false)
     {
         if (derefarg)
@@ -759,7 +759,7 @@ struct Parser
         }
     }
 
-    Node *ParseFunArgsRec(bool coroutine, bool needscomma, ArgVector *args, size_t thisarg, const char *fname,
+    Node *ParseFunArgsRec(bool coroutine, bool needscomma, GenericArgs *args, size_t thisarg, const char *fname,
                           bool noparens)
     {
         
@@ -779,7 +779,7 @@ struct Parser
         CheckArg(args, thisarg, fname);
 
         auto parent = noparens ? T_CALL_NOPARENS : T_CALL;
-        if (args && args->v[thisarg].flags == NF_EXPFUNVAL)
+        if (args && args->GetType(thisarg)->flags == NF_EXPFUNVAL)
         {
             arg = ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true, parent);
         }
@@ -796,17 +796,17 @@ struct Parser
             return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, !noparens, args, thisarg + 1, fname, noparens));
     }
 
-    void CheckArg(ArgVector *args, size_t thisarg, const char *fname)
+    void CheckArg(GenericArgs *args, size_t thisarg, const char *fname)
     {
-        if (args && thisarg == args->v.size()) Error("too many arguments passed to function " + string(fname));
+        if (args && thisarg == args->size()) Error("too many arguments passed to function " + string(fname));
     }
 
-    Node *ParseTrailingFunctionValues(bool coroutine, ArgVector *args, size_t thisarg, const char *fname)
+    Node *ParseTrailingFunctionValues(bool coroutine, GenericArgs *args, size_t thisarg, const char *fname)
     {
-        if (args && thisarg + 1 < args->v.size())
+        if (args && thisarg + 1 < args->size())
             trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
 
-        auto name = args && thisarg < args->v.size() ? args->GetName(thisarg) : "";
+        auto name = args && thisarg < args->size() ? args->GetName(thisarg) : "";
 
         Node *e = nullptr;
         switch (lex.token)
@@ -828,7 +828,7 @@ struct Parser
                 break;
         }
 
-        if (args && thisarg + 1 < args->v.size()) trailingkeywordedfunctionvaluestack.pop_back();
+        if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.pop_back();
 
         if (!e)
         {
@@ -843,7 +843,7 @@ struct Parser
         Node *tail = nullptr;
 
         bool islf = lex.token == T_LINEFEED;
-        if (args && thisarg < args->v.size() && (lex.token == T_IDENT || islf))
+        if (args && thisarg < args->size() && (lex.token == T_IDENT || islf))
         {
             if (islf) lex.Next();
             if (lex.token == T_IDENT && args->GetName(thisarg) == lex.sattr)
@@ -1375,7 +1375,7 @@ struct Parser
                         }
                     }
                     // An initializer without a tag. Find first field without a default thats not set yet.
-                    for (size_t i = 0; i < exps.size(); i++) if (!exps[i] && !struc.fields[i].defaultval)
+                    for (size_t i = 0; i < exps.size(); i++) if (!exps[i] && !struc.fields.v[i].defaultval)
                     {
                         exps[i] = ParseExp(T_CONSTRUCTOR);
                         return;
@@ -1389,8 +1389,8 @@ struct Parser
                 {
                     if (!exps[i])
                     {
-                        if (struc.fields[i].defaultval) exps[i] = struc.fields[i].defaultval->Clone();
-                        else Error("field not initialized: " + struc.fields[i].id->name);
+                        if (struc.fields.v[i].defaultval) exps[i] = struc.fields.v[i].defaultval->Clone();
+                        else Error("field not initialized: " + struc.fields.v[i].id->name);
                     }
                     AddTail(tail, exps[i]);
                 }

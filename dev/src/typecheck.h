@@ -25,7 +25,7 @@ struct TypeChecker
         for (auto &struc : st.structtable)
         {
             if (!struc->generic) ComputeStructVectorType(struc);
-            if (struc->superclass) for (auto &field : struc->fields)
+            if (struc->superclass) for (auto &field : struc->fields.v)
             {
                 // If this type refers to the super struct type, make it refer to this type instead.
                 // There may be corner cases where this is not what you want, but generally you do.
@@ -46,13 +46,13 @@ struct TypeChecker
     {
         if (struc->fields.size())
         {
-            TypeRef vectortype = struc->fields[0].type;
+            TypeRef vectortype = struc->fields.v[0].type;
             for (size_t i = 1; i < struc->fields.size(); i++)
             {
                 // FIXME: Can't use Union here since it will bind variables
                 //vectortype = Union(vectortype, struc->fields[i].type, false);
                 // use simplified alternative:
-                if (!ExactType(struc->fields[i].type, vectortype)) vectortype = type_any;
+                if (!ExactType(struc->fields.v[i].type, vectortype)) vectortype = type_any;
             }
             struc->vectortype = vectortype->Wrap(NewType());
         }
@@ -72,41 +72,42 @@ struct TypeChecker
 
     Type *NewType() { return parser.NewType(); }
 
-    template<typename T> string TypedArg(const T &arg, bool withtype = true)
+    string TypedArg(const GenericArgs &args, size_t i, bool withtype = true)
     {
-        string s = arg.id ? arg.id->name : "arg";  // FIXME: use ArgVector::GetName here instead
-        if (arg.type->t != V_ANY && withtype) s += ":" + TypeName(arg.type);
+        string s = args.GetName(i);
+        if (args.GetType(i)->type->t != V_ANY && withtype) s += ":" + TypeName(args.GetType(i)->type);
         return s;
     }
 
-    template<typename T> string Signature(const vector<T> &v, bool withtype = true)
+    string Signature(const GenericArgs &args, bool withtype = true)
     {
         string s = "(";
-        int i = 0;
-        for (auto &arg : v)
+        for (size_t i = 0; i < args.size(); i++)
         {
-            if (i++) s += ", ";
-            s += TypedArg(arg, withtype);
+            if (i) s += ", ";
+            s += TypedArg(args, i, withtype);
         }
         return s + ")"; 
     }
 
     string Signature(const Struct &struc)                         { return struc.name      + Signature(struc.fields); }
-    string Signature(const SubFunction &sf, bool withtype = true) { return sf.parent->name + Signature(sf.args.v, withtype); }
-    string Signature(const NativeFun &nf)                         { return nf.name         + Signature(nf.args.v); }
+    string Signature(const SubFunction &sf, bool withtype = true) { return sf.parent->name + Signature(sf.args, withtype); }
+    string Signature(const NativeFun &nf)                         { return nf.name         + Signature(nf.args); }
 
     string SignatureWithFreeVars(const SubFunction &sf, set<Ident *> *already_seen, bool withtype = true)
     {
         string s = Signature(sf, withtype) + " { ";
+        size_t i = 0;
         for (auto &freevar : sf.freevars.v)
         {
             if (freevar.type->t != V_FUNCTION &&
                 !freevar.id->static_constant &&
                 (!already_seen || already_seen->find(freevar.id) == already_seen->end()))
             {
-                s += TypedArg(freevar) + " ";
+                s += TypedArg(sf.freevars, i) + " ";
                 if (already_seen) already_seen->insert(freevar.id);
             }
+            i++;
         }
         s += "}";
         return s;
@@ -614,7 +615,7 @@ struct TypeChecker
             int i = 0;
             for (auto &type : argtypes)
             {
-                auto &field = struc->fields[i++];
+                auto &field = struc->fields.v[i++];
                 if (field.flags == AF_ANYTYPE && !ExactType(type, field.type)) goto fail;
             }
             return struc;  // Found a match.
@@ -1717,7 +1718,7 @@ struct TypeChecker
                 int i = 0;
                 for (auto list = n.constructor_args(); list; list = list->tail())
                 {
-                    TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields[i].type : type->Element();
+                    TypeRef elemtype = type->t == V_STRUCT ? type->struc->fields.v[i].type : type->Element();
                     SubType(list->head(), elemtype, ArgName(i).c_str(), n);
                     i++;
                 }
@@ -1737,7 +1738,7 @@ struct TypeChecker
                 auto sf = n.right()->fld();
                 auto fieldidx = struc->Has(sf);
                 if (fieldidx < 0) TypeError("type " + struc->name + " has no field named " + sf->name, n);
-                auto &uf = struc->fields[fieldidx];
+                auto &uf = struc->fields.v[fieldidx];
                 type = n.type == T_DOTMAYBE && smtype->t == V_NIL && uf.type->t != V_NIL
                        ? uf.type->Wrap(NewType(), V_NIL)
                        : uf.type;
@@ -1759,7 +1760,7 @@ struct TypeChecker
                     case V_STRUCT:
                     {
                         auto &struc = *itype->struc;
-                        for (auto &field : struc.fields)
+                        for (auto &field : struc.fields.v)
                         {
                             if (field.type->t != V_INT) TypeError("int field", field.type, n, "index");
                             if (vtype->t != V_VECTOR) TypeError("nested vector", vtype, n, "container");
