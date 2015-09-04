@@ -1181,10 +1181,10 @@ struct TypeChecker
                 }
                 else
                 {
+                    // No else: this always returns nil.
                     if (!isconst || cval.True())
                     {
                         TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
-                        // No else: this currently returns either the condition or the branch value.
                     }
                     // else constant == false: this if-then will get optimized out entirely, ignore it.
                     // bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.

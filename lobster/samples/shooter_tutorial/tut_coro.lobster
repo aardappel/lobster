@@ -117,7 +117,7 @@ def level(highscore, frame):
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_setfontname("data/fonts/US101/US101.TTF") & gl_setfontsize(32), "can\'t load font!")
-trace_bytecode(1)
+
 while gl_frame() & !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)

@@ -89,7 +89,7 @@ struct VM : VMBase
           bcf(bytecode::GetBytecodeFile(bytecode_buffer)),
           currentline(-1), maxsp(-1),
           debugpp(2, 50, true, -1, true), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
-          trace(false), trace_tail(true)
+          trace(false), trace_tail(false)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
@@ -971,8 +971,8 @@ struct VM : VMBase
                 #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
 
                 #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.vval()->at(i).fval() : (T)a.vval()->at(i).ival())
-                #define _VOP(op, extras, T, isfloat, withscalar) Value res; { \
-                    int len = VectorLoop(a, b, res, withscalar); \
+                #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
+                    int len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT : a.vval()->typeoff); \
                     for (int j = 0; j < len; j++) \
                     { \
                         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.vval()->at(j), isfloat ? V_FLOAT : V_INT); \
@@ -984,23 +984,27 @@ struct VM : VMBase
                     VectorDec(a, res); \
                     if (!withscalar) VectorDec(b, res); \
                 } 
-                #define _IVOP(op, extras, withscalar) _VOP(op, extras, int, false, withscalar)
-                #define _FVOP(op, extras, withscalar) _VOP(op, extras, float, true, withscalar)
+                #define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, int, false, withscalar, icomp)
+                #define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, float, true, withscalar, fcomp)
                     
                 #define _SCAT()  Value res; REFOP(NewString(a.sval()->str(), a.sval()->len, b.sval()->str(), b.sval()->len))
                 #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
 
                 #define ACOMPEN(op, andor) { GETARGS(); Value res; REFOP(a.type op b.type andor a.any() op b.any()); PUSH(res); break; }
 
-
-                #define IOP(op, extras)   { GETARGS(); _IOP(op, extras);         PUSH(res); break; }
-                #define FOP(op, extras)   { GETARGS(); _FOP(op, extras);         PUSH(res); break; }
-                #define IVVOP(op, extras) { GETARGS(); _IVOP(op, extras, false); PUSH(res); break; }
-                #define FVVOP(op, extras) { GETARGS(); _FVOP(op, extras, false); PUSH(res); break; }
-                #define IVSOP(op, extras) { GETARGS(); _IVOP(op, extras, true);  PUSH(res); break; }
-                #define FVSOP(op, extras) { GETARGS(); _FVOP(op, extras, true);  PUSH(res); break; }
-                #define SOP(op)           { GETARGS(); _SOP(op);                 PUSH(res); break; }
-                #define SCAT()            { GETARGS(); _SCAT();                  PUSH(res); break; }
+                                           
+                #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); break; }
+                #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); break; }
+                #define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); break; }
+                #define IVVOPC(op, extras) { GETARGS(); _IVOP(op, extras, false, true);  PUSH(res); break; }
+                #define FVVOP(op, extras)  { GETARGS(); _FVOP(op, extras, false, false); PUSH(res); break; }
+                #define FVVOPC(op, extras) { GETARGS(); _FVOP(op, extras, false, true);  PUSH(res); break; }
+                #define IVSOP(op, extras)  { GETARGS(); _IVOP(op, extras, true, false);  PUSH(res); break; }
+                #define IVSOPC(op, extras) { GETARGS(); _IVOP(op, extras, true, true);   PUSH(res); break; }
+                #define FVSOP(op, extras)  { GETARGS(); _FVOP(op, extras, true, false);  PUSH(res); break; }
+                #define FVSOPC(op, extras) { GETARGS(); _FVOP(op, extras, true, true);   PUSH(res); break; }
+                #define SOP(op)            { GETARGS(); _SOP(op);                        PUSH(res); break; }
+                #define SCAT()             { GETARGS(); _SCAT();                         PUSH(res); break; }
 
                 // +  += I F Vif S
                 // -  -= I F Vif 
@@ -1030,10 +1034,10 @@ struct VM : VMBase
                 case IL_FVVSUB: FVVOP(-,  0);
                 case IL_FVVMUL: FVVOP(*,  0);
                 case IL_FVVDIV: FVVOP(/,  1);
-                case IL_FVVLT:  FVVOP(<,  0);
-                case IL_FVVGT:  FVVOP(>,  0);
-                case IL_FVVLE:  FVVOP(<=, 0);
-                case IL_FVVGE:  FVVOP(>=, 0);
+                case IL_FVVLT:  FVVOPC(<,  0);
+                case IL_FVVGT:  FVVOPC(>,  0);
+                case IL_FVVLE:  FVVOPC(<=, 0);
+                case IL_FVVGE:  FVVOPC(>=, 0);
 
                 case IL_IVSADD: IVSOP(+,  0);
                 case IL_IVSSUB: IVSOP(-,  0);
@@ -1047,10 +1051,10 @@ struct VM : VMBase
                 case IL_FVSSUB: FVSOP(-,  0);
                 case IL_FVSMUL: FVSOP(*,  0);
                 case IL_FVSDIV: FVSOP(/,  1);
-                case IL_FVSLT:  FVSOP(<,  0);
-                case IL_FVSGT:  FVSOP(>,  0);
-                case IL_FVSLE:  FVSOP(<=, 0);
-                case IL_FVSGE:  FVSOP(>=, 0);
+                case IL_FVSLT:  FVSOPC(<,  0);
+                case IL_FVSGT:  FVSOPC(>,  0);
+                case IL_FVSLE:  FVSOPC(<=, 0);
+                case IL_FVSGE:  FVSOPC(>=, 0);
 
                 case IL_AEQ:   ACOMPEN(==, &&);
                 case IL_ANE:   ACOMPEN(!=, ||);
@@ -1092,7 +1096,7 @@ struct VM : VMBase
                 #define VUMINUS(isfloat, type) { \
                     Value a = POP(); \
                     Value res; \
-                    int len = VectorLoop(a, Value((type)1), res, true); \
+                    int len = VectorLoop(a, Value((type)1), res, true, a.vval()->typeoff); \
                     if (len >= 0) \
                     { \
                         for (int i = 0; i < len; i++) \
@@ -1198,10 +1202,11 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_JUMPFAIL:    { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip;          }               break; }
-                case IL_JUMPFAILR:   { auto x = POP(); auto nip = *ip++; if (!x      .True()) { ip = codestart + nip; PUSH(x); } else x.DEC(); break; }
-                case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;          }               break; }
-                case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x); } else x.DEC(); break; }
+                case IL_JUMPFAIL:    { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip;                }               break; }
+                case IL_JUMPFAILR:   { auto x = POP(); auto nip = *ip++; if (!x      .True()) { ip = codestart + nip; PUSH(x);       } else x.DEC(); break; }
+                case IL_JUMPFAILN:   { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip; PUSH(Value()); }               break; }
+                case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;                }               break; }
+                case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x);       } else x.DEC(); break; }
 
                 case IL_ISTYPE:
                 {
@@ -1281,64 +1286,64 @@ struct VM : VMBase
     {
         switch(op)
         {
-            case LVO_IVVADD:  { Value b = POP();  _IVOP(+, 0, false); a = res;                    break; }
-            case LVO_IVVADDR: { Value b = POP();  _IVOP(+, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVVSUB:  { Value b = POP();  _IVOP(-, 0, false); a = res;                    break; }
-            case LVO_IVVSUBR: { Value b = POP();  _IVOP(-, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVVMUL:  { Value b = POP();  _IVOP(*, 0, false); a = res;                    break; }
-            case LVO_IVVMULR: { Value b = POP();  _IVOP(*, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVVDIV:  { Value b = POP();  _IVOP(/, 1, false); a = res;                    break; }
-            case LVO_IVVDIVR: { Value b = POP();  _IVOP(/, 1, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVADD:  { Value b = POP();  _IVOP(+, 0, false, false); a = res;                    break; }
+            case LVO_IVVADDR: { Value b = POP();  _IVOP(+, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVSUB:  { Value b = POP();  _IVOP(-, 0, false, false); a = res;                    break; }
+            case LVO_IVVSUBR: { Value b = POP();  _IVOP(-, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVMUL:  { Value b = POP();  _IVOP(*, 0, false, false); a = res;                    break; }
+            case LVO_IVVMULR: { Value b = POP();  _IVOP(*, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVVDIV:  { Value b = POP();  _IVOP(/, 1, false, false); a = res;                    break; }
+            case LVO_IVVDIVR: { Value b = POP();  _IVOP(/, 1, false, false); a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_FVVADD:  { Value b = POP();  _FVOP(+, 0, false); a = res;                    break; }
-            case LVO_FVVADDR: { Value b = POP();  _FVOP(+, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVVSUB:  { Value b = POP();  _FVOP(-, 0, false); a = res;                    break; }
-            case LVO_FVVSUBR: { Value b = POP();  _FVOP(-, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVVMUL:  { Value b = POP();  _FVOP(*, 0, false); a = res;                    break; }
-            case LVO_FVVMULR: { Value b = POP();  _FVOP(*, 0, false); a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVVDIV:  { Value b = POP();  _FVOP(/, 1, false); a = res;                    break; }
-            case LVO_FVVDIVR: { Value b = POP();  _FVOP(/, 1, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVADD:  { Value b = POP();  _FVOP(+, 0, false, false); a = res;                    break; }
+            case LVO_FVVADDR: { Value b = POP();  _FVOP(+, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVSUB:  { Value b = POP();  _FVOP(-, 0, false, false); a = res;                    break; }
+            case LVO_FVVSUBR: { Value b = POP();  _FVOP(-, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVMUL:  { Value b = POP();  _FVOP(*, 0, false, false); a = res;                    break; }
+            case LVO_FVVMULR: { Value b = POP();  _FVOP(*, 0, false, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVVDIV:  { Value b = POP();  _FVOP(/, 1, false, false); a = res;                    break; }
+            case LVO_FVVDIVR: { Value b = POP();  _FVOP(/, 1, false, false); a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_IVSADD:  { Value b = POP();  _IVOP(+, 0, true);  a = res;                    break; }
-            case LVO_IVSADDR: { Value b = POP();  _IVOP(+, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVSSUB:  { Value b = POP();  _IVOP(-, 0, true);  a = res;                    break; }
-            case LVO_IVSSUBR: { Value b = POP();  _IVOP(-, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVSMUL:  { Value b = POP();  _IVOP(*, 0, true);  a = res;                    break; }
-            case LVO_IVSMULR: { Value b = POP();  _IVOP(*, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_IVSDIV:  { Value b = POP();  _IVOP(/, 1, true);  a = res;                    break; }
-            case LVO_IVSDIVR: { Value b = POP();  _IVOP(/, 1, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSADD:  { Value b = POP();  _IVOP(+, 0, true, false); a = res;                    break; }
+            case LVO_IVSADDR: { Value b = POP();  _IVOP(+, 0, true, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSSUB:  { Value b = POP();  _IVOP(-, 0, true, false); a = res;                    break; }
+            case LVO_IVSSUBR: { Value b = POP();  _IVOP(-, 0, true, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSMUL:  { Value b = POP();  _IVOP(*, 0, true, false); a = res;                    break; }
+            case LVO_IVSMULR: { Value b = POP();  _IVOP(*, 0, true, false); a = res; PUSH(res.INCRT()); break; }
+            case LVO_IVSDIV:  { Value b = POP();  _IVOP(/, 1, true, false); a = res;                    break; }
+            case LVO_IVSDIVR: { Value b = POP();  _IVOP(/, 1, true, false); a = res; PUSH(res.INCRT()); break; }
                                                                       
-            case LVO_FVSADD:  { Value b = POP();  _FVOP(+, 0, true);  a = res;                    break; }
-            case LVO_FVSADDR: { Value b = POP();  _FVOP(+, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVSSUB:  { Value b = POP();  _FVOP(-, 0, true);  a = res;                    break; }
-            case LVO_FVSSUBR: { Value b = POP();  _FVOP(-, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVSMUL:  { Value b = POP();  _FVOP(*, 0, true);  a = res;                    break; }
-            case LVO_FVSMULR: { Value b = POP();  _FVOP(*, 0, true);  a = res; PUSH(res.INCRT()); break; }
-            case LVO_FVSDIV:  { Value b = POP();  _FVOP(/, 1, true);  a = res;                    break; }
-            case LVO_FVSDIVR: { Value b = POP();  _FVOP(/, 1, true);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSADD:  { Value b = POP();  _FVOP(+, 0, true, false);  a = res;                    break; }
+            case LVO_FVSADDR: { Value b = POP();  _FVOP(+, 0, true, false);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSSUB:  { Value b = POP();  _FVOP(-, 0, true, false);  a = res;                    break; }
+            case LVO_FVSSUBR: { Value b = POP();  _FVOP(-, 0, true, false);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSMUL:  { Value b = POP();  _FVOP(*, 0, true, false);  a = res;                    break; }
+            case LVO_FVSMULR: { Value b = POP();  _FVOP(*, 0, true, false);  a = res; PUSH(res.INCRT()); break; }
+            case LVO_FVSDIV:  { Value b = POP();  _FVOP(/, 1, true, false);  a = res;                    break; }
+            case LVO_FVSDIVR: { Value b = POP();  _FVOP(/, 1, true, false);  a = res; PUSH(res.INCRT()); break; }
 
-            case LVO_IADD:    { Value b = POP();  _IOP(+, 0);         a = res;                    break; }
-            case LVO_IADDR:   { Value b = POP();  _IOP(+, 0);         a = res; PUSH(res);         break; }
-            case LVO_ISUB:    { Value b = POP();  _IOP(-, 0);         a = res;                    break; }
-            case LVO_ISUBR:   { Value b = POP();  _IOP(-, 0);         a = res; PUSH(res);         break; }
-            case LVO_IMUL:    { Value b = POP();  _IOP(*, 0);         a = res;                    break; }
-            case LVO_IMULR:   { Value b = POP();  _IOP(*, 0);         a = res; PUSH(res);         break; }
-            case LVO_IDIV:    { Value b = POP();  _IOP(/, 1);         a = res;                    break; }
-            case LVO_IDIVR:   { Value b = POP();  _IOP(/, 1);         a = res; PUSH(res);         break; }
-            case LVO_IMOD:    { Value b = POP();  _IOP(%, 1);         a = res;                    break; }
-            case LVO_IMODR:   { Value b = POP();  _IOP(%, 1);         a = res; PUSH(res);         break; }
-                                                                                                  
-            case LVO_FADD:    { Value b = POP();  _FOP(+, 0);         a = res;                    break; }
-            case LVO_FADDR:   { Value b = POP();  _FOP(+, 0);         a = res; PUSH(res);         break; }
-            case LVO_FSUB:    { Value b = POP();  _FOP(-, 0);         a = res;                    break; }
-            case LVO_FSUBR:   { Value b = POP();  _FOP(-, 0);         a = res; PUSH(res);         break; }
-            case LVO_FMUL:    { Value b = POP();  _FOP(*, 0);         a = res;                    break; }
-            case LVO_FMULR:   { Value b = POP();  _FOP(*, 0);         a = res; PUSH(res);         break; }
-            case LVO_FDIV:    { Value b = POP();  _FOP(/, 1);         a = res;                    break; }
-            case LVO_FDIVR:   { Value b = POP();  _FOP(/, 1);         a = res; PUSH(res);         break; }
-                                                                     
-            case LVO_SADD:    { Value b = POP();  _SCAT();            a = res;                    break; }
-            case LVO_SADDR:   { Value b = POP();  _SCAT();            a = res; PUSH(res.INCRT()); break; }
+            case LVO_IADD:    { Value b = POP();  _IOP(+, 0);                a = res;                    break; }
+            case LVO_IADDR:   { Value b = POP();  _IOP(+, 0);                a = res; PUSH(res);         break; }
+            case LVO_ISUB:    { Value b = POP();  _IOP(-, 0);                a = res;                    break; }
+            case LVO_ISUBR:   { Value b = POP();  _IOP(-, 0);                a = res; PUSH(res);         break; }
+            case LVO_IMUL:    { Value b = POP();  _IOP(*, 0);                a = res;                    break; }
+            case LVO_IMULR:   { Value b = POP();  _IOP(*, 0);                a = res; PUSH(res);         break; }
+            case LVO_IDIV:    { Value b = POP();  _IOP(/, 1);                a = res;                    break; }
+            case LVO_IDIVR:   { Value b = POP();  _IOP(/, 1);                a = res; PUSH(res);         break; }
+            case LVO_IMOD:    { Value b = POP();  _IOP(%, 1);                a = res;                    break; }
+            case LVO_IMODR:   { Value b = POP();  _IOP(%, 1);                a = res; PUSH(res);         break; }
+                                                                                                         
+            case LVO_FADD:    { Value b = POP();  _FOP(+, 0);                a = res;                    break; }
+            case LVO_FADDR:   { Value b = POP();  _FOP(+, 0);                a = res; PUSH(res);         break; }
+            case LVO_FSUB:    { Value b = POP();  _FOP(-, 0);                a = res;                    break; }
+            case LVO_FSUBR:   { Value b = POP();  _FOP(-, 0);                a = res; PUSH(res);         break; }
+            case LVO_FMUL:    { Value b = POP();  _FOP(*, 0);                a = res;                    break; }
+            case LVO_FMULR:   { Value b = POP();  _FOP(*, 0);                a = res; PUSH(res);         break; }
+            case LVO_FDIV:    { Value b = POP();  _FOP(/, 1);                a = res;                    break; }
+            case LVO_FDIVR:   { Value b = POP();  _FOP(/, 1);                a = res; PUSH(res);         break; }
+                                                                            
+            case LVO_SADD:    { Value b = POP();  _SCAT();                   a = res;                    break; }
+            case LVO_SADDR:   { Value b = POP();  _SCAT();                   a = res; PUSH(res.INCRT()); break; }
 
             case LVO_WRITE:     { Value  b = POP();                          a = b; break; }
             case LVO_WRITER:    { Value &b = TOP();                          a = b; break; }
@@ -1410,7 +1415,7 @@ struct VM : VMBase
         }
     }
 
-    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar)
+    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, type_elem_t desttype)
     {
         TYPE_ASSERT(IsVector(a.type));
         int len = a.vval()->len;
@@ -1419,15 +1424,15 @@ struct VM : VMBase
             TYPE_ASSERT(IsVector(b.type));
             if (b.vval()->len != len) Error("vectors operation: vector must be same length", a, b);
 
-            if (a.vval()->refc == 1) { res = a; return len; }
-            if (b.vval()->refc == 1) { res = b; b.vval()->typeoff = a.vval()->typeoff; return len; }
+            if (a.vval()->refc == 1) { res = a; a.vval()->typeoff = desttype; return len; }
+            if (b.vval()->refc == 1) { res = b; b.vval()->typeoff = desttype; return len; }
         }
         else
         {
             if (a.vval()->refc == 1) { res = a; return len; }
         }
 
-        res = Value(NewVector(len, a.vval()->typeoff));
+        res = Value(NewVector(len, desttype));
         res.vval()->len = len;
         return len;
     }

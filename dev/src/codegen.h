@@ -674,12 +674,11 @@ struct CodeGen
             {
                 Gen(n->if_condition(), 1);
                 bool has_else = n->if_else()->type != T_DEFAULTVAL;
-                // FIXME: if we need a dummy return value, it needs to be type compatible, otherwise refcount issues
-                Emit(!has_else && retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
+                Emit(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, 0);
                 MARKL(loc);
-                Gen(n->if_then(), retval);
                 if (has_else)
                 {
+                    Gen(n->if_then(), retval);
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
@@ -688,6 +687,8 @@ struct CodeGen
                 }
                 else
                 {
+                    Gen(n->if_then(), false);
+                    Dummy(retval);  // This potentially generates a pop/push combo, but important we return nil.
                     SETL(loc);
                 }
                 break;

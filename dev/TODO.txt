@@ -16,6 +16,8 @@
     maybe var: = val to make it look more like regular assignment?
     Though maybe Go will help make this syntax more popular. It really is rather ideal.
     One thing that could be better is default const.
+	Informal poll on fb: 12 like :=, but 15 like var/const a lot better. Almost noone likes Python's way.
+	Could allow both, like Go.
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
