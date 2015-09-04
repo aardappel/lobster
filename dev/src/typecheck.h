@@ -191,6 +191,14 @@ struct TypeChecker
         return var;
     }
 
+    TypeRef NewNilTypeVar()
+    {
+        auto nil = NewType();
+        *nil = Type(V_NIL);
+        nil->sub = &*NewTypeVar();
+        return nil;
+    }
+
     void UnifyVar(TypeRef type, TypeRef hasvar)
     {
         // Typically Type is const, but this is the one place we overwrite them.
@@ -236,7 +244,9 @@ struct TypeChecker
             case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
                                       (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false, unifications, genericany)));
             case V_STRUCT:    return type->t == V_STRUCT && st.IsSuperTypeOrSame(sub->struc, type->struc);
-            case V_COROUTINE: return type->t == V_COROUTINE && (sub->sf == type->sf || !sub->sf);
+            case V_COROUTINE: return type->t == V_COROUTINE &&
+                                     (sub->sf == type->sf ||
+                                      (!sub->sf && ConvertsTo(type->sf->coresumetype, NewNilTypeVar(), false)));
         }
         return false;
     }
@@ -1261,7 +1271,7 @@ struct TypeChecker
                     {
                         TypeCheck(dl->left(), T_ASSIGNLIST);
                     }
-                    else
+                    else  // T_DEF
                     {
                         auto id = dl->left()->ident();
                         if (!id->cursid)
@@ -1269,6 +1279,9 @@ struct TypeChecker
                             assert(!id->sf_def);  // Must be a global;
                             id->cursid = NewSid(id, type_any);
                         }
+                        // We have to use a variable here because the init exp may be a function call that causes this
+                        // variable to be used/assigned.
+                        id->cursid->type = n.c() ? n.c()->typenode() : NewTypeVar();
                     }
                 }
                 TypeCheck(dl, n.type);
@@ -1307,9 +1320,11 @@ struct TypeChecker
                     if (n.type == T_DEF)
                     {
                         if (n.c()) type = n.c()->typenode();
-                        idn->exptype = type;
                         auto id = idn->ident();
-                        id->cursid->type = type;
+                        // Must SubType here rather than assignment, since id->cursid->type is var that may have
+                        // been bound by the initializer already.
+                        SubTypeT(type, id->cursid->type, n, "initializer");
+                        idn->exptype = type;
                         idn->sid() = id->cursid;
                         Output(OUTPUT_DEBUG, "var: %s:%s", id->name.c_str(), TypeName(type).c_str());
                     }
@@ -1524,13 +1539,20 @@ struct TypeChecker
                         // Specialized typechecking for resume()
                         assert(argtypes[0]->t == V_COROUTINE);  
                         auto sf = argtypes[0]->sf;
-                        SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                        if (sf)
+                        {
+                            SubType(list->head(), sf->coresumetype, "resume value", *list->head());
+                        }
+                        else
+                        {
+                            if (list->head()->type != T_DEFAULTVAL)
+                                TypeError("cannot resume a generic coroutine type with an argument", n);
+                        }
                         if (list->head()->exptype->t == V_VAR)
                         {
                             // No value supplied to resume, and none expected at yield either.
                             // nil will be supplied, so make type reflect that.
-                            Type nil(V_NIL, &*NewTypeVar());
-                            UnifyVar(TypeRef(&nil), list->head()->exptype);
+                            UnifyVar(NewNilTypeVar(), list->head()->exptype);
                         }
                         typed = true;
                     }

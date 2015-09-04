@@ -1,5 +1,3 @@
-- tut_coro.lobster crashes
-
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.
 
@@ -80,12 +78,6 @@
 
   * explicit function types are currently a bit broken regarding return types, since if you don't care and
     specify any, a lot of functions will fail if they return ints etc.
-
-  * you can currently do:
-    x := f()
-	def f(): x = 1; ""
-	since the type of x is still any while the lhs is being type checked.
-	used with "mode" in tut_coro.lobster
 
   * see if we want to do something about the explosive cloning caused by gui.lobster
     we may want to use an explicit function type for situations like this, since we do want most HOFs to inline.

@@ -18,13 +18,15 @@ namespace lobster {
 
 enum ValueType
 {
-    V_MINVMTYPES = -9,
+    // refc types are negative
+    V_MINVMTYPES = -10,
+    V_ANY = -9,         // [typechecker only] any other reference type.
     V_CYCLEDONE = -8,
     V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_BOXEDFLOAT = -6,
     V_BOXEDINT = -5,
     V_COROUTINE = -4,
-    V_STRING = -3,      // refc types are negative
+    V_STRING = -3,
     V_STRUCT = -2,
     V_VECTOR = -1,
     V_NIL = 0,          // VM: null reference, Type checker: a type that may be nil or a reference type.
@@ -32,7 +34,6 @@ enum ValueType
     V_FLOAT,
     V_FUNCTION,
     V_YIELD,
-    V_ANY,              // [typechecker only] any other type.
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
     // used in function calling, if they appear as a value in a program, that's a bug
@@ -41,17 +42,18 @@ enum ValueType
     V_MAXVMTYPES
 };
 
-inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
-inline bool IsRef   (ValueType t) { return t <  V_NIL; }
-inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
-inline bool IsVector(ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
+inline bool IsScalar (ValueType t) { return t == V_INT || t == V_FLOAT; }
+inline bool IsRef    (ValueType t) { return t <  V_NIL; }
+inline bool IsRefNil (ValueType t) { return t <= V_NIL; }
+inline bool IsVector (ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
+inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 
 inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
-        "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
-        "nil", "int", "float", "function", "yield_function", "any", "variable", "typeid",
+        "any", "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
+        "nil", "int", "float", "function", "yield_function", "variable", "typeid",
         "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
@@ -163,8 +165,18 @@ struct RefObj : DynAlloc
 
     RefObj(type_elem_t _t) : DynAlloc(_t), refc(1) {}
 
-    void Inc() { refc++; }
-    void Dec() { refc--; if (refc <= 0) DECDELETE(true); }
+    void Inc()
+    {
+        refc++;
+        //Output(OUTPUT_INFO, "INC to %d for %s", refc, ToString(g_vm->programprintprefs).c_str());
+    }
+
+    void Dec()
+    {
+        refc--;
+        //Output(OUTPUT_INFO, "DEC to %d for %s", refc, ToString(g_vm->programprintprefs).c_str());
+        if (refc <= 0) DECDELETE(true);
+    }
 
     void CycleDone(int &cycles)
     {

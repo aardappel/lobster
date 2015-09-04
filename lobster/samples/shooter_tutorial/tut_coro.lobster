@@ -2,7 +2,7 @@ include "std.lobster"
 include "vec.lobster"
 include "color.lobster"
 
-mode := coroutine menu(0, 0)
+mode:coroutine = coroutine menu(0, 0)
 
 def menu(lastscore, highscore, frame):
     forever():

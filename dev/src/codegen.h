@@ -76,7 +76,7 @@ struct CodeGen
                 return type->struc->typeinfo;
 
             default:
-                assert(type->t <= V_ANY);  // Shouldn't be in a runtime-type.
+                assert(IsRuntime(type->t));
                 break;
         }
         // For everything that's not a struct:
@@ -170,7 +170,7 @@ struct CodeGen
                 auto ta = a->args.v[i].type;
                 auto tb = b->args.v[i].type;
 
-                if (ta != tb) return ta < tb;
+                if (ta != tb) return !(ta < tb);  // V_ANY must be last.
             }
             cg->parser.Error("function signature overlap for " + f->name, nullptr);
             return false;
