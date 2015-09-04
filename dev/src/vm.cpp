@@ -148,6 +148,11 @@ struct VM : VMBase
     }
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
+    const TypeInfo &GetVarTypeInfo(int varidx)
+    {
+        return  *(TypeInfo *)(typetable + bcf->specidents()->Get(varidx)->typeidx());
+    }
+
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
     type_elem_t GetIntVectorType(int which) { return (type_elem_t)bcf->default_int_vector_types()->Get(which); }
@@ -512,35 +517,7 @@ struct VM : VMBase
         }
 
         auto nargs_fun = *ip++;
-        if (nargs_given != nargs_fun)
-        {
-            // This only ever happens when called from IL_CALLV, for IL_CALL, these two are are guaranteed to be equal by the parser.
-            if (nargs_given > nargs_fun)
-            {
-                // This used to be an error, since the only uses of this were in builtin functions like for/map,
-                // but since map is now not a builtin anymore, we support superfluous args on all dynamic calls.
-                // This is actually nice functionality, since very similarly to multiple return values, we should be
-                // able to choose what values we find useful.
-                // In the future, this code can become an assert, when the type system specializes every HOF call.
-
-                // Error("function value called with " + to_string(nargs_given) + " arguments, but declared with only " + to_string(nargs_fun));
-
-                // Instead, simply discard superfluous args:
-                for (; nargs_given > nargs_fun; nargs_given--) POP().DEC();
-            }
-            else
-            {
-                // nargs_given < nargs_fun currently may still happen when a body is declared with more parameters than it needs:
-                // hof_supplies_no_args() x: x + 1
-                // Here, x would resolve to undefined and lead to a runtime error.
-                // more typically, this happens with the _ var:
-                // hof_supplies_one_arg(): _ + hof_supplies_no_args(): _
-                // This actually works as expected. This usuage used to work for if/while/for and will likely be disabled
-                // for all other hofs as well with typechecking, so this will become an assert instead.
-
-                // assert(0);
-            }
-        }
+        VMASSERT(nargs_given == nargs_fun);
         
         for (int i = 0; i < nargs_given; i++) swap(vars[ip[i]], stack[sp - nargs_given + i + 1]);
         ip += nargs_fun;
@@ -553,8 +530,6 @@ struct VM : VMBase
             // you want to be able to use the old value until a new one gets defined, as in a <- a + 1.
             // clearing it would save the INC and a DEC when it eventually gets overwritten,
             // so maybe we can at some point distinguish between vars that are used with DS and those that are not.
-            // for recursive functions it can be problematic with TTOVERWRITE check, but we fixed this temp by using
-            // a separate instruction for assign + def
             PUSH(vars[*ip++].INC());
         }
         auto nlogvars = *ip++;
@@ -680,7 +655,7 @@ struct VM : VMBase
         curcoroutine = co;
 
         // must be, since those vars got backed up in it before
-        VMASSERT(curcoroutine->stackcopymax >= (size_t)*curcoroutine->varip);
+        VMASSERT(curcoroutine->stackcopymax >=  *curcoroutine->varip);
         curcoroutine->stackcopylen = *curcoroutine->varip;
         //curcoroutine->BackupParentVars(vars);
 
@@ -894,9 +869,9 @@ struct VM : VMBase
                     i.ival()++; \
                     int len = 0; \
                     if (i.ival() >= (len = (L))) goto D; \
-                    PUSH(V); \
-                    PUSH(i); \
-                    FunIntro(2, body.ip(), -1, forstart); \
+                    int nargs = body.ip()[1]; \
+                    if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
+                    FunIntro(nargs, body.ip(), -1, forstart); \
                     break; \
                     D: \
                     (void)POP(); /* body */ \

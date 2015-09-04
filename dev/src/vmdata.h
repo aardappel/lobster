@@ -143,6 +143,7 @@ struct VMBase
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
     virtual const TypeInfo &GetTypeInfo(type_elem_t offset) = 0;
+    virtual const TypeInfo &GetVarTypeInfo(int varidx) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -494,11 +495,13 @@ struct LVector : LenObj
         auto &sti = g_vm->GetTypeInfo(ti.vt() == V_VECTOR ? ti.sub : ti.elems[i]);
         auto vt = sti.vt();
         if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.sub).vt();
+        #if RTT_ENABLED
         if(vt != v[i].type && v[i].type != V_NIL && !(vt == V_VECTOR && v[i].type == V_STRUCT))  // FIXME: for testing
         {
             Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(v[i].type));
             assert(false);
         }
+        #endif
         return vt;
     }
 
@@ -551,7 +554,7 @@ struct CoRoutine : RefObj
     bool active;        // goes to false when it has hit the end of the coroutine instead of a yield
     int stackstart;     // when currently running, otherwise -1
     Value *stackcopy;
-    size_t stackcopylen, stackcopymax;
+    int stackcopylen, stackcopymax;
     const int *returnip;
     const int *varip;
     CoRoutine *parent;
@@ -566,7 +569,7 @@ struct CoRoutine : RefObj
         return stackcopy[stackcopylen - 1];
     }
 
-    void Resize(size_t newlen)
+    void Resize(int newlen)
     {
         if (newlen > stackcopymax)
         {
@@ -607,7 +610,7 @@ struct CoRoutine : RefObj
         stackstart = top;
         // FIXME: assume that it fits, which is not guaranteed with recursive coros
         memcpy(stack + top, stackcopy, stackcopylen * sizeof(Value));
-        return (int)stackcopylen;
+        return stackcopylen;
     }
 
     void BackupParentVars(Value *vars)
@@ -622,6 +625,14 @@ struct CoRoutine : RefObj
         }
     }
 
+    Value &AccessVar(int savedvaridx)
+    {
+        assert(stackstart < 0);
+        // variables are always saved on top of the stack before the stackcopy gets made, so they are
+        // last, followed by the retval (thus -1).
+        return stackcopy[stackcopylen - *varip + savedvaridx - 1];
+    }
+
     Value &GetVar(int ididx)
     {
         if (stackstart >= 0)
@@ -632,8 +643,7 @@ struct CoRoutine : RefObj
         {
             if (varip[i] == ididx)
             {
-                // -1 because of i's base, -1 because of retval on top of stack
-                return stackcopy[stackcopylen - *varip + i - 1 - 1];
+                return AccessVar(i - 1);
             }
         }
         // this one should be really rare, since parser already only allows lexically contained vars for that function,
@@ -647,19 +657,41 @@ struct CoRoutine : RefObj
         assert(stackstart < 0);
         if (stackcopy)
         {
-            if (deref) for (size_t i = 0; i < stackcopylen; i++) stackcopy[i].DEC();
+            if (deref) for (int i = 0; i < stackcopylen; i++) stackcopy[i].DEC();
             DeallocSubBuf(stackcopy, stackcopymax);
         }
         vmpool->dealloc(this, sizeof(CoRoutine));
     }
 
-    ValueType ElemType(size_t i) { return stackcopy[i].type; }
+    ValueType ElemType(int i)
+    {
+        assert(i < *varip);
+        auto varidx = varip[i + 1];
+        auto &ti = g_vm->GetVarTypeInfo(varidx);
+        auto vt = ti.vt();
+        if (vt == V_NIL) vt = g_vm->GetTypeInfo(ti.sub).vt();
+        #if RTT_ENABLED
+        auto &var = AccessVar(i);
+        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_STRUCT))  // FIXME: for testing
+        {
+            Output(OUTPUT_INFO, "coro elem %s != %s", ti.Debug().c_str(), BaseTypeName(var.type));
+            assert(false);
+        }
+        #endif
+        return vt;
+    }
 
     void Mark()
     {
+        #if RTT_ENABLED
         if (stackstart < 0)
-            for (size_t i = 0; i < stackcopylen; i++)
-                stackcopy[i].Mark(ElemType(i));
+            for (int i = 0; i < stackcopylen; i++)
+                stackcopy[i].Mark(stackcopy[i].type);
+        #else
+        // FIXME!
+        // ElemType(i) refers to the ith variable, not the ith stackcopy element.
+        g_vm->BuiltinError("internal: can\'t GC coroutines");
+        #endif
     }
 };
 

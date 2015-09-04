@@ -291,10 +291,13 @@ void AddBuiltins()
     STARTDECL(removeobj) (Value &l, Value &o)
     {
         int removed = 0;
+        auto &ti = l.vval()->GetTypeInfo();
+        if (ti.vt() != V_VECTOR) g_vm->BuiltinError("cannot removeobj from struct");  // FIXME: better at compile time.
+        auto vt = g_vm->GetTypeInfo(ti.sub).vt();
         for (int i = 0; i < l.vval()->len; i++)
         {
             auto e = l.vval()->at(i);
-            if (e.Equal(e.type, o, o.type, false))
+            if (e.Equal(vt, o, vt, false))
             {
                 l.vval()->Remove(i--, 1).DEC();
                 removed++;

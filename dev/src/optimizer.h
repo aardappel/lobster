@@ -16,6 +16,7 @@ struct Optimizer
     {
         //dummy_node = NewNode(T_EMPTY, type_any);
         int i = 0;
+        maxpasses = max(1, maxpasses);  // MUST run at least 1 pass, to guarantee certain unwanted code is gone.
         for (; changes_this_pass && i < maxpasses; i++)
         {
             changes_this_pass = false;
@@ -59,7 +60,7 @@ struct Optimizer
                 for (Node *stats = &n; stats; stats = stats->b()) Optimize(stats->aref());
                 return;
                 
-            case T_IF:
+            case T_IF:  // This optimzation MUST run, since it deletes untypechecked code.
             {
                 Optimize(n.if_condition());
                 Value cval;
@@ -107,6 +108,27 @@ struct Optimizer
                 }
                 break;
             }
+
+            case T_DYNCALL:  // This optimization MUST run, to remove redundant arguments.
+            {
+                auto ftype = n.dcall_fval()->exptype;
+                if (ftype->IsFunction())
+                {
+                    auto sf = ftype->sf;
+                    int i = 0;
+                    for (auto list = &n.dcall_args(); *list; list = &(*list)->tail())
+                    {
+                        if (i++ == sf->parent->nargs())
+                        {
+                            delete *list;
+                            *list = nullptr;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+
         }
     }
 };

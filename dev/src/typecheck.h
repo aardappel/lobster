@@ -834,7 +834,7 @@ struct TypeChecker
         return sf;
     }
 
-    TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode = nullptr)
+    TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode)
     {
         auto ftype = fval.exptype;
         if (ftype->IsFunction())
@@ -844,12 +844,11 @@ struct TypeChecker
 
             if (Parser::CountList(args) < sf->parent->nargs())
                 TypeError("function value called with too few arguments", fval);
-            // In the case of too many args, TypeCheckCall will ignore them (and codegen also).
+            // In the case of too many args, TypeCheckCall will ignore them (and optimizer will remove them).
 
-            auto &fnode = fspecnode ? *fspecnode : fval;
-            auto type = TypeCheckCall(sf, args, fnode);
-            auto nsf = fnode.sf();
-            fnode.exptype = fval.exptype = &nsf->thistype;
+            auto type = TypeCheckCall(sf, args, *fspecnode);
+            auto nsf = fspecnode->sf();
+            fspecnode->exptype = fval.exptype = &nsf->thistype;
             return type;
         }
         else if (ftype->t == V_YIELD)
@@ -895,10 +894,7 @@ struct TypeChecker
             // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
             // For now, just error.
-            SubTypeT(ftype, type_function_null, fval, "function value", "function call");
-            // If this magically succeeds, its because ftype was a variable, likely from a nil function value.
-            // If so, we don't care, because this will never get executed at runtime?
-            // (happens with "focus" in gui.lobster button())
+            TypeError("cannot infer type of function in call", fval);
             return type_any;
         }
     }

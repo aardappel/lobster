@@ -201,7 +201,7 @@ def gui_background(col, stretch, f):
             gl_rect(float(size))
             gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
 
-private def button(id, f, do, focus):
+private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
         if interactive:
             hit := gl_hit(float(size), 0)
@@ -214,27 +214,27 @@ private def button(id, f, do, focus):
                         gl_color(select_color):
                             gl_rect(float(size))
                     up := gl_wentup("mouse1")
-                    if focus & focus_id != id & (up | !gl_touchscreen()):
+                    if dofocus & focus_id != id & (up | !gl_touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
-                        focus()
+                        focusf()
                     else: if up:
                         if actionsound: play_sfxr(actionsound) // FIXME: wavs too
                         do()
 
-def gui_button(f, do):                   button(caller_id(), f, do, nil)
-def gui_button(f, do, focus):            button(caller_id(), f, do, focus)
-def gui_button_id(id:int, f, do):        button(id,          f, do, nil)
-def gui_button_id(id:int, f, do, focus): button(id,          f, do, focus)
+def gui_button(f, do):                   button(caller_id(), f, do, false): nil
+def gui_button(f, do, focus):            button(caller_id(), f, do, true, focus)
+def gui_button_id(id:int, f, do):        button(id,          f, do, false): nil
+def gui_button_id(id:int, f, do, focus): button(id,          f, do, true, focus)
 
-def gui_button_text   (        text, do):         button(caller_id(), def(): gui_text(text), do, nil)
-def gui_button_id_text(id:int, text, do):         button(id,          def(): gui_text(text), do, nil)
-def gui_button_id_text(id:int, text, do, focus):  button(id,          def(): gui_text(text), do, focus)
+def gui_button_text   (        text, do):         button(caller_id(), def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do):         button(id,          def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do, focus):  button(id,          def(): gui_text(text), do, true, focus)
 
-def gui_button_image   (        size, tex, do):         button(caller_id(), def(): gui_image(size, tex), do, nil)
-def gui_button_id_image(id:int, size, tex, do):         button(id,          def(): gui_image(size, tex), do, nil)
-def gui_button_id_image(id:int, size, tex, do, focus):  button(id,          def(): gui_image(size, tex), do, focus)
+def gui_button_image   (        size, tex, do):         button(caller_id(), def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do):         button(id,          def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do, focus):  button(id,          def(): gui_image(size, tex), do, true, focus)
 
 
 def gui_custombackground(f): if render_pass: f(overalsize)

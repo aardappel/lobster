@@ -311,11 +311,11 @@ struct CodeGen
         if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
     }
 
-    const Node *GenArgs(const Node *list, const ArgVector *args, int &nargs, const Node *parent = nullptr)
+    const Node *GenArgs(const Node *list, int &nargs, const Node *parent = nullptr)
     {
         // Skip unused args, this may happen for dynamic calls.
         const Node *lastarg = nullptr;
-        for (; list && (!args || nargs < (int)args->v.size()); list = list->tail())
+        for (; list; list = list->tail())
         {
             Gen(list->head(), 1, parent);
             lastarg = list->head();
@@ -327,7 +327,7 @@ struct CodeGen
     int GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
     {
         auto &f = *sf.parent;
-        GenArgs(args, &sf.args, nargs);
+        GenArgs(args, nargs);
         if (f.nargs() != nargs)
             parser.Error("call to function " + f.name + " needs " + to_string(f.nargs()) +
                          " arguments, " + to_string(nargs) + " given", errnode);
@@ -546,7 +546,8 @@ struct CodeGen
                     auto nf = n->ncall_id()->nf();
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
-                    auto lastarg = GenArgs(n->ncall_args(), nullptr, nargs, n);
+                    auto lastarg = GenArgs(n->ncall_args(), nargs, n);
+                    assert(nargs == (int)nf->args.size());
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx);
@@ -581,18 +582,26 @@ struct CodeGen
 
                     if (n->dcall_fval()->exptype->t == V_YIELD)
                     {
-                        GenArgs(n->dcall_args(), nullptr, nargs);
-                        if (!nargs) Emit(IL_PUSHNIL);
+                        if (n->dcall_args())
+                        {
+                            GenArgs(n->dcall_args(), nargs);
+                            assert(nargs == 1);
+                        }
+                        else
+                        {
+                            Emit(IL_PUSHNIL);
+                        }
                         Emit(IL_YIELD);
                     }
                     else
                     {
                         auto sf = n->dcall_fval()->exptype->sf;
                         auto spec_sf = n->dcall_function()->sf();
+                        (void)spec_sf;
+                        assert(sf && sf == spec_sf);
                         // FIXME: in the future, we can make a special case for istype calls.
-                        if (sf && !sf->parent->istype)
+                        if (!sf->parent->istype)
                         {
-                            assert(sf == spec_sf);
                             // We statically know which function this is calling, which means that we don't have
                             // to need function value, but we generate code for it for the rare case it contains a
                             // side effect, usually it is an ident which will result in no code (retval = 0).
@@ -602,19 +611,8 @@ struct CodeGen
                         }
                         else
                         {
-                            // Fully dynamic call.
-                            if (!sf)
-                            {
-                                // Don't support these in typechecked mode
-                                if (!spec_sf)   // FIXME: if spec_sf is set, this is a call to nil function value.
-                                    // e.g. focus in gui.lobster
-                                {
-                                    Output(OUTPUT_DEBUG, "dyncall: %s", Dump(*n, 0).c_str());
-                                    assert(0);
-                                }
-                            }
-
-                            GenArgs(n->dcall_args(), nullptr, nargs);
+                            GenArgs(n->dcall_args(), nargs);
+                            assert(nargs == (int)sf->args.size());
                             Gen(n->dcall_fval(), 1);
                             Emit(IL_CALLV, nargs);
                         }
@@ -790,10 +788,8 @@ struct CodeGen
                 assert(n->exptype->t == V_COROUTINE);
                 auto sf = n->exptype->sf;
 
+                // TODO: we shouldn't need to store this table for each call, instead do it once for each function
                 Emit(0); // count
-                // TODO: we shouldn't need to compute and store this table for each call, instead do it once for
-                // each function
-
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
 
                 code[loc] = Pos() - loc - 1;
