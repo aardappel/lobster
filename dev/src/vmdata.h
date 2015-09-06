@@ -19,9 +19,10 @@ namespace lobster {
 enum ValueType
 {
     // refc types are negative
-    V_MINVMTYPES = -10,
-    V_ANY = -9,         // [typechecker only] any other reference type.
-    V_CYCLEDONE = -8,
+    V_MINVMTYPES = -11,
+    V_ANY = -10,         // [typechecker only] any other reference type.
+    V_CYCLEDONE = -9,
+    V_STACKFRAMEBUF = -8,
     V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_BOXEDFLOAT = -6,
     V_BOXEDINT = -5,
@@ -36,8 +37,7 @@ enum ValueType
     V_YIELD,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
-    // used in function calling, if they appear as a value in a program, that's a bug
-    V_RETIP, V_FUNSTART, V_NARGS, V_DEFFUN,
+    // used in log, if they appear as a value in a program, that's a bug
     V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
     V_MAXVMTYPES
 };
@@ -52,9 +52,9 @@ inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
-        "any", "<cycle>", "<value_buffer>", "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
+        "any", "<cycle>", "<value_buffer>", "<stackframe_buffer>",
+        "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
         "nil", "int", "float", "function", "yield_function", "variable", "typeid",
-        "<retip>", "<funstart>", "<nargs>", "<deffun>", 
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
@@ -77,11 +77,12 @@ enum type_elem_t : int   // Strongly typed element of typetable.
     TYPE_ELEM_ANY,
     TYPE_ELEM_CYCLEDONE,
     TYPE_ELEM_VALUEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
-    TYPE_ELEM_VECTOR_OF_STRING = 13,
+    TYPE_ELEM_STACKFRAMEBUF,
+    TYPE_ELEM_VECTOR_OF_INT = 10,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 12,
+    TYPE_ELEM_VECTOR_OF_STRING = 14,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 15
+    TYPE_ELEM_FIXED_OFFSET_END = 16
 };
 
 struct TypeInfo
@@ -318,7 +319,7 @@ struct Value
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));                  return ref_;   }
     RefObj     *refnil() const { TYPE_ASSERT(IsRef(type) || type == V_NIL); return ref_;   }
     const int  *ip    () const { TYPE_ASSERT(type >= V_FUNCTION);           return ip_;    }
-    int         info  () const { TYPE_ASSERT(type >= V_NARGS);              return ival_;  }
+    int         logip () const { TYPE_ASSERT(type >= V_LOGSTART);           return ival_;  }
     void       *any   () const { return ref_; }
                                                                        
     inline Value()                          : TYPE_INIT(V_NIL)         ref_(nullptr) {}
@@ -383,19 +384,19 @@ struct ValueRef
     ~ValueRef() { v.DEC(); }
 };
 
-inline Value *AllocSubBuf(size_t size)
+template<typename T> inline T *AllocSubBuf(size_t size, type_elem_t type)
 {
-    auto mem = (void **)vmpool->alloc(size * sizeof(Value) + sizeof(void *));
-    *((type_elem_t *)mem) = TYPE_ELEM_VALUEBUF;    // DynAlloc header, padded to pointer size if needed
+    auto mem = (void **)vmpool->alloc(size * sizeof(T) + sizeof(void *));
+    *((type_elem_t *)mem) = type;    // DynAlloc header, padded to pointer size if needed
     mem++;
-    return (Value *)mem;
+    return (T *)mem;
 }
 
-inline void DeallocSubBuf(Value *v, size_t size)
+template<typename T> inline void DeallocSubBuf(T *v, size_t size)
 {
     auto mem = (void **)v;
     mem--;
-    vmpool->dealloc(mem, size * sizeof(Value) + sizeof(void *));
+    vmpool->dealloc(mem, size * sizeof(T) + sizeof(void *));
 }
 
 struct LVector : LenObj
@@ -430,11 +431,11 @@ struct LVector : LenObj
     void Resize(int newmax)
     {
         // FIXME: check overflow
-        auto mem = AllocSubBuf(newmax);
+        auto mem = AllocSubBuf<Value>(newmax, TYPE_ELEM_VALUEBUF);
         if (len) memcpy(mem, v, sizeof(Value) * len);
         DeallocBuf();
         maxl = newmax;
-        v = (Value *)mem;
+        v = mem;
     }
 
     void Push(const Value &val)
@@ -549,18 +550,37 @@ struct LVector : LenObj
     }
 };
 
+struct StackFrame
+{
+    const int *retip;
+    const int *funstart;
+    int definedfunction;
+    int spstart;
+    size_t logfunwritestart;
+};
+
 struct CoRoutine : RefObj
 {
     bool active;        // goes to false when it has hit the end of the coroutine instead of a yield
+
     int stackstart;     // when currently running, otherwise -1
     Value *stackcopy;
     int stackcopylen, stackcopymax;
+
+    int stackframestart;  // when currently running, otherwise -1
+    StackFrame *stackframescopy;
+    int stackframecopylen, stackframecopymax;
+    int top_at_suspend;
+
     const int *returnip;
     const int *varip;
     CoRoutine *parent;
 
-    CoRoutine(int _ss, const int *_rip, const int *_vip, CoRoutine *_p)
-        : RefObj(TYPE_ELEM_COROUTINE), active(true), stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
+    CoRoutine(int _ss, int _sfs, const int *_rip, const int *_vip, CoRoutine *_p)
+        : RefObj(TYPE_ELEM_COROUTINE), active(true),
+          stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
+          stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0), stackframecopymax(0),
+          top_at_suspend(-1),
           returnip(_rip), varip(_vip), parent(_p) {}
 
     Value &Current()
@@ -574,12 +594,22 @@ struct CoRoutine : RefObj
         if (newlen > stackcopymax)
         {
             if (stackcopy) DeallocSubBuf(stackcopy, stackcopymax);
-            stackcopy = AllocSubBuf(stackcopymax = newlen);
+            stackcopy = AllocSubBuf<Value>(stackcopymax = newlen, TYPE_ELEM_VALUEBUF);
         }
         stackcopylen = newlen;
     }
 
-    int Suspend(int top, Value *stack, const int *&rip, CoRoutine *&curco)
+    void ResizeFrames(int newlen)
+    {
+        if (newlen > stackframecopymax)
+        {
+            if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
+            stackframescopy = AllocSubBuf<StackFrame>(stackframecopymax = newlen, TYPE_ELEM_STACKFRAMEBUF);
+        }
+        stackframecopylen = newlen;
+    }
+
+    int Suspend(int top, Value *stack, vector<StackFrame> &stackframes, const int *&rip, CoRoutine *&curco)
     {
         assert(stackstart >= 0);
 
@@ -589,16 +619,21 @@ struct CoRoutine : RefObj
         curco = parent;
         parent = nullptr;
 
-        int newlen = top - stackstart;
-        Resize(newlen);
-        memcpy(stackcopy, stack + stackstart, stackcopylen * sizeof(Value));
+        ResizeFrames((int)stackframes.size() - stackframestart);
+        memcpy(stackframescopy, stackframes.data() + stackframestart, stackframecopylen * sizeof(StackFrame));
+        stackframes.erase(stackframes.begin() + stackframestart, stackframes.end());
+        stackframestart = -1;
 
+        top_at_suspend = top;
+
+        Resize(top - stackstart);
+        memcpy(stackcopy, stack + stackstart, stackcopylen * sizeof(Value));
         int ss = stackstart;
         stackstart = -1;
         return ss;
     }
 
-    int Resume(int top, Value *stack, const int *&rip, CoRoutine *p)
+    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, const int *&rip, CoRoutine *p)
     {
         assert(stackstart < 0);
 
@@ -606,6 +641,14 @@ struct CoRoutine : RefObj
 
         assert(!parent);
         parent = p;
+
+        stackframestart = (int)stackframes.size();
+        int topdelta = (top + stackcopylen) - top_at_suspend;
+        if (topdelta)
+        {
+            for (int i = 0; i < stackframecopylen; i++) stackframescopy[i].spstart += topdelta;
+        }
+        stackframes.insert(stackframes.end(), stackframescopy, stackframescopy + stackframecopylen);
 
         stackstart = top;
         // FIXME: assume that it fits, which is not guaranteed with recursive coros
@@ -660,6 +703,7 @@ struct CoRoutine : RefObj
             if (deref) for (int i = 0; i < stackcopylen; i++) stackcopy[i].DEC();
             DeallocSubBuf(stackcopy, stackcopymax);
         }
+        if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
         vmpool->dealloc(this, sizeof(CoRoutine));
     }
 

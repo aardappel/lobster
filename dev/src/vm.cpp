@@ -50,6 +50,8 @@ struct VM : VMBase
 
     const int *ip;
 
+    vector<StackFrame> stackframes;
+
     CoRoutine *curcoroutine;
 
     Value *vars;
@@ -195,6 +197,7 @@ struct VM : VMBase
                     {
                         case TYPE_ELEM_CYCLEDONE:
                         case TYPE_ELEM_VALUEBUF:
+                        case TYPE_ELEM_STACKFRAMEBUF:
                             break;
                                     
                         case TYPE_ELEM_STRING:
@@ -252,7 +255,8 @@ struct VM : VMBase
     }
     CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p)
     {
-        return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */, rip, vip, p);
+        return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */,
+                                                                (int)stackframes.size(), rip, vip, p);
     }
     BoxedInt *NewInt(int i)
     {
@@ -300,7 +304,7 @@ struct VM : VMBase
         auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
         if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
-        while (sp >= 0 && TOP().type != V_DEFFUN)
+        while (sp >= 0 && sp != stackframes.back().spstart)
         {
             s += "\n   stack: " + ValueDBG(TOP());
             POP().DEC();
@@ -310,7 +314,7 @@ struct VM : VMBase
         {
             TempCleanup();
 
-            if (sp < 0) break;
+            if (!stackframes.size()) break;
         
             string locals;
             int deffun = varcleanup(s.length() < 10000 ? &locals : nullptr);
@@ -428,7 +432,7 @@ struct VM : VMBase
 
     void FinalStackVarsCleanup()
     {
-        VMASSERT(sp < 0);
+        VMASSERT(sp < 0 && !stackframes.size());
 
         for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].DEC();
 
@@ -439,17 +443,15 @@ struct VM : VMBase
     
     int CallerId()
     {
-        for (int _sp = sp; _sp >= 0; _sp--)
-            if (stack[_sp].type == V_RETIP)
-                return int(stack[_sp].ip() - codestart);
-        return -1;
+        return stackframes.size() ? stackframes.back().retip - codestart : -1;
     }
 
     void LogFrame() { vml.LogFrame(); }
 
     void TempCleanup()
     {
-        while (sp >= 0 && TOP().type != V_DEFFUN) {
+        while (sp >= 0 && sp != stackframes.back().spstart)
+        {
             // only if from a return or error thats has tempories above it, and if returning thru a control structure
             POP().DEC();
         }
@@ -457,22 +459,19 @@ struct VM : VMBase
     
     int varcleanup(string *error)
     {
-        auto dfv = POP(); VMTYPEEQ(dfv, V_DEFFUN);       auto deffun = dfv.info();
-        auto ipv = POP(); VMTYPEEQ(ipv, V_FUNSTART);     ip = ipv.ip(); 
-        auto nav = POP(); VMTYPEEQ(nav, V_NARGS);        auto nargs_given = nav.info();
-        auto riv = POP(); VMTYPEEQ(riv, V_RETIP);        auto retip = riv.ip();
+        auto &stf = stackframes.back();
 
-        auto nargs_fun = *ip++;
-        auto freevars = ip + nargs_given;
-        ip += nargs_fun;
+        ip = stf.funstart;
+
+        auto nargs = *ip++;
+        auto freevars = ip + nargs;
+        ip += nargs;
         auto ndef = *ip++;
         auto defvars = ip + ndef;
 
         if (vml.uses_frame_state)
         {
-            auto lfr = POP(); VMTYPEEQ(lfr, V_LOGFUNREADSTART); (void)lfr;
-            auto lfw = POP(); VMTYPEEQ(lfw, V_LOGFUNWRITESTART);
-            vml.LogFunctionExit(ipv.ip(), defvars, lfw.info());
+            vml.LogFunctionExit(stf.funstart, defvars, stf.logfunwritestart);
         }
 
         while (ndef--)
@@ -482,7 +481,7 @@ struct VM : VMBase
             vars[i].DEC();
             vars[i] = POP();
         }
-        while (nargs_given--)
+        while (nargs--)
         {
             auto i = *--freevars;
             if (error) (*error) += DumpVar(vars[i], i, false);
@@ -490,7 +489,11 @@ struct VM : VMBase
             vars[i] = POP();
         } 
 
-        ip = retip;
+        ip = stf.retip;
+
+        auto deffun = stf.definedfunction;
+
+        stackframes.pop_back();
 
         return deffun;
     }
@@ -534,17 +537,13 @@ struct VM : VMBase
         }
         auto nlogvars = *ip++;
 
-        if (vml.uses_frame_state)
-        {
-            PUSH(Value((int)vml.LogFunctionEntry(funstart, nlogvars), V_LOGFUNWRITESTART));
-            PUSH(Value((int)vml.logi - nlogvars, V_LOGFUNREADSTART));
-        }
-
-        // FIXME: can we reduce the amount of this? -> stick it in a struct on a seperate stack?
-        PUSH(Value(retip, V_RETIP)); 
-        PUSH(Value(nargs_given, V_NARGS)); 
-        PUSH(Value(funstart, V_FUNSTART));
-        PUSH(Value(definedfunction, V_DEFFUN)); // we assume that V_DEFFUN marks the top of the stackframe elsewhere
+        stackframes.push_back(StackFrame());
+        auto &stf = stackframes.back();
+        stf.logfunwritestart = vml.uses_frame_state ? vml.LogFunctionEntry(funstart, nlogvars) : 0;
+        stf.retip = retip; 
+        stf.funstart = funstart;
+        stf.definedfunction = definedfunction;
+        stf.spstart = sp;
 
         #ifdef _DEBUG
             if (sp > maxsp) maxsp = sp;
@@ -554,13 +553,14 @@ struct VM : VMBase
     bool FunOut(int towhere, int nrv)
     {
         bool bottom = false;
-        //Value ret = POP();
+
         sp -= nrv;
         auto rvs = TOPPTR();
+
         for(;;)
         {
             TempCleanup();
-            if (sp < 0)
+            if (!stackframes.size())
             {
                 if (towhere >= 0)
                     Error(string("\"return from ") + bcf->functions()->Get(towhere)->name()->c_str() + "\" outside of function");
@@ -570,9 +570,10 @@ struct VM : VMBase
             int deffun = varcleanup(nullptr);
             if(towhere == -1 || towhere == deffun) break;
         }
-        //PUSH(ret);
+
         memcpy(TOPPTR(), rvs, nrv * sizeof(Value));
         sp += nrv;
+
         return bottom;
     }
 
@@ -602,7 +603,7 @@ struct VM : VMBase
 
     void CoDone(const int *retip)
     {
-        int newtop = curcoroutine->Suspend(sp + 1, stack, retip, curcoroutine);
+        int newtop = curcoroutine->Suspend(sp + 1, stack, stackframes, retip, curcoroutine);
         ip = retip;
         sp = newtop - 1; // top of stack is now coro value from create or resume
     }
@@ -650,7 +651,7 @@ struct VM : VMBase
         PUSH(Value(co));    // this will be the return value for the corresponding yield, and holds the ref for gc
 
         CoNonRec(co->varip);
-        sp += co->Resume(sp + 1, stack, ip, curcoroutine);
+        sp += co->Resume(sp + 1, stack, stackframes, ip, curcoroutine);
 
         curcoroutine = co;
 
@@ -1449,7 +1450,7 @@ struct VM : VMBase
         {
             total++;
             auto r = (RefObj *)p;
-            if (r->typeoff == TYPE_ELEM_VALUEBUF) return;
+            if (r->typeoff == TYPE_ELEM_VALUEBUF || r->typeoff == TYPE_ELEM_STACKFRAMEBUF) return;
             if (r->refc > 0) leaks.push_back(r);
             r->refc = -r->refc;
         });

@@ -75,6 +75,12 @@ struct CodeGen
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->struc->typeinfo);
                 return type->struc->typeinfo;
 
+            case V_VAR:
+                // This can happen with an empty [] vector that was never bound to anything.
+                // Should be benign to use any, since it is never accessed anywhere.
+                // FIXME: would be even better to check this case before codegen, since this may mask bugs.
+                return GetTypeTableOffset(type_any);
+
             default:
                 assert(IsRuntime(type->t));
                 break;
@@ -100,6 +106,7 @@ struct CodeGen
                                                     GetTypeTableOffset(type_any);
         Type type_cycledone(V_CYCLEDONE);           GetTypeTableOffset(&type_cycledone);
         Type type_valuebuf(V_VALUEBUF);             GetTypeTableOffset(&type_valuebuf);
+        Type type_stackframebuf(V_STACKFRAMEBUF);   GetTypeTableOffset(&type_stackframebuf);
                                                     GetTypeTableOffset(type_vector_int);
                                                     GetTypeTableOffset(type_vector_float);
         Type type_vec_str(V_VECTOR, &*type_string); GetTypeTableOffset(&type_vec_str);
@@ -359,7 +366,7 @@ struct CodeGen
             case T_DEFAULTVAL:
             {
                 assert(n->exptype->t == V_NIL);  // Optional args are indicated by being nillable.
-                switch (n->exptype->sub->t)
+                if (retval) switch (n->exptype->sub->t)
                 {
                     case V_INT: Emit(IL_PUSHINT, 0); break;
                     case V_FLOAT: GenFloat(0); break;

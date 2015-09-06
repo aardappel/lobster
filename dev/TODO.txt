@@ -1,3 +1,5 @@
+- check in logfunwritestart doesn't collide with coroutines.
+
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.
 
