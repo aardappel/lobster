@@ -40,8 +40,6 @@ static int StringCompare(const Value &a, const Value &b)
 
 template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
 {
-    ValueRef lref(l), kref(key);
-
     int size = l.vval()->len;
     int i = 0;
 
@@ -312,7 +310,9 @@ void AddBuiltins()
 
     STARTDECL(binarysearch) (Value &l, Value &key)
     {
-        return BinarySearch(l, key, IntCompare);
+        auto r = BinarySearch(l, key, IntCompare);
+        l.DECRT();
+        return r;
     }
     ENDDECL2(binarysearch, "xs,key", "I]I", "II",
         "does a binary search for key in a sorted vector, returns as first return value how many matches were found,"
@@ -322,14 +322,19 @@ void AddBuiltins()
 
     STARTDECL(binarysearch) (Value &l, Value &key)
     {
-        return BinarySearch(l, key, FloatCompare);
+        auto r = BinarySearch(l, key, FloatCompare);
+        l.DECRT();
+        return r;
     }
     ENDDECL2(binarysearch, "xs,key", "F]F", "II",
         "float version.");
 
     STARTDECL(binarysearch) (Value &l, Value &key)
     {
-        return BinarySearch(l, key, StringCompare);
+        auto r = BinarySearch(l, key, StringCompare);
+        l.DECRT();
+        key.DECRT();
+        return r;
     }
     ENDDECL2(binarysearch, "xs,key", "S]S", "II",
         "string version.");

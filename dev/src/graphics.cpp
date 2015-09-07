@@ -825,7 +825,6 @@ void AddGraphics()
     {
         TestGL();
 
-        ValueRef nameref(name);
         uint id = 0;
         int2 dim(0);
         auto it = texturecache.find(name.sval()->str());
@@ -839,6 +838,7 @@ void AddGraphics()
 
             if (id) texturecache[name.sval()->str()] = id;
         }
+        name.DECRT();
         g_vm->Push(Value((int)id));
         return ToValueI(dim);
     }

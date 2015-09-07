@@ -183,7 +183,6 @@ void DumpBuiltins(bool justnames)
 
 Value CompileRun(Value &source, bool stringiscode)
 {
-    ValueRef fref(source);
     string fn = stringiscode ? "string" : source.sval()->str();  // fixme: datadir + sanitize?
     SlabAlloc *parentpool = vmpool; vmpool = nullptr;
     VMBase    *parentvm   = g_vm;   g_vm = nullptr;
@@ -196,6 +195,7 @@ Value CompileRun(Value &source, bool stringiscode)
         assert(!vmpool && !g_vm);
         vmpool = parentpool;
         g_vm = parentvm;
+        source.DECRT();
         g_vm->Push(Value(g_vm->NewString(ret)));
         return Value();
     }
@@ -203,6 +203,7 @@ Value CompileRun(Value &source, bool stringiscode)
     {
         vmpool = parentpool;
         g_vm = parentvm;
+        source.DECRT();
         g_vm->Push(Value());
         return Value(g_vm->NewString(s));
     }

@@ -376,14 +376,6 @@ struct Value
     void Mark(ValueType vtype);
 };
 
-struct ValueRef
-{
-    const Value &v;
-
-    ValueRef(const Value &_v) : v(_v) {}
-    ~ValueRef() { v.DEC(); }
-};
-
 template<typename T> inline T *AllocSubBuf(size_t size, type_elem_t type)
 {
     auto mem = (void **)vmpool->alloc(size * sizeof(T) + sizeof(void *));
@@ -756,14 +748,14 @@ template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
 template<int N> inline vec<float,N> ValueDecToF(const Value &v, float def = 0)
 {
     auto r = ValueToF<N>(v, def);
-    v.DEC();
+    v.DECRT();
     return r;
 }
 
 template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0)
 {
     auto r = ValueToI<N>(v, def);
-    v.DEC();
+    v.DECRT();
     return r;
 }
 
