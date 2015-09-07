@@ -48,7 +48,7 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
         if (!size) break;
 
         int mid = size / 2;
-        int comp = comparefun(key, l.vval()->at(i + mid));
+        int comp = comparefun(key, l.vval()->At(i + mid));
 
         if (comp)
         {
@@ -59,8 +59,8 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
         {
             i += mid;
             size = 1;
-            while (i                        && !comparefun(key, l.vval()->at(i - 1   ))) { i--; size++; }
-            while (i + size < l.vval()->len && !comparefun(key, l.vval()->at(i + size))) {      size++; }
+            while (i                        && !comparefun(key, l.vval()->At(i - 1   ))) { i--; size++; }
+            while (i + size < l.vval()->len && !comparefun(key, l.vval()->At(i + size))) {      size++; }
             break;
         }
     }
@@ -251,9 +251,8 @@ void AddBuiltins()
         nv->Append(l.vval(), 0, l.vval()->len);
         l.DECRT();
 
-        Value &dest = nv->at(i.ival());
-        dest.DEC();
-        dest = a;
+        nv->Dec(i.ival());
+        nv->At(i.ival()) = a;
 
         return Value(nv);
     }
@@ -278,7 +277,7 @@ void AddBuiltins()
             g_vm->BuiltinError("remove: index (" + to_string(i.ival()) + 
                                ") or n (" + to_string(amount) +
                                ") out of range (" + to_string(l.vval()->len) + ")");
-        auto v = l.vval()->Remove(i.ival(), amount);
+        auto v = l.vval()->Remove(i.ival(), amount, 1);
         l.DECRT();
         return v;
     }
@@ -294,10 +293,10 @@ void AddBuiltins()
         auto vt = g_vm->GetTypeInfo(ti.sub).vt();
         for (int i = 0; i < l.vval()->len; i++)
         {
-            auto e = l.vval()->at(i);
+            auto e = l.vval()->At(i);
             if (e.Equal(vt, o, vt, false))
             {
-                l.vval()->Remove(i--, 1).DEC();
+                l.vval()->Remove(i--, 1, 0);
                 removed++;
             }
         }
@@ -371,7 +370,7 @@ void AddBuiltins()
         Value r(false);
         for (int i = 0; i < v.vval()->len; i++)
         {
-            if (v.vval()->at(i).True())
+            if (v.vval()->At(i).True())
             {
                 r = Value(true);
                 break;
@@ -388,7 +387,7 @@ void AddBuiltins()
         Value r(true);
         for (int i = 0; i < v.vval()->len; i++)
         {
-            if (!v.vval()->at(i).True())
+            if (!v.vval()->At(i).True())
             {
                 r = Value(false);
                 break;
@@ -468,7 +467,7 @@ void AddBuiltins()
         string s;
         for (int i = 0; i < v.vval()->len; i++)
         {
-            auto &c = v.vval()->at(i);
+            auto &c = v.vval()->At(i);
             TYPE_ASSERT(c.type == V_INT);
             ToUTF8(c.ival(), buf);
             s += buf;
@@ -572,7 +571,7 @@ void AddBuiltins()
         auto len = a.vval()->len; \
         auto v = g_vm->NewVector(len, typeoff); \
         for (int i = 0; i < a.vval()->len; i++) { \
-            auto f = a.vval()->at(i); \
+            auto f = a.vval()->At(i); \
             v->Push(Value(op)); \
         } \
         a.DECRT(); \
@@ -719,7 +718,7 @@ void AddBuiltins()
         assert(x.vval()->typeoff == y.vval()->typeoff); \
         auto v = g_vm->NewVector(x.vval()->len, x.vval()->typeoff); \
         for (int i = 0; i < x.vval()->len; i++) { \
-            v->Push(Value(name(x.vval()->at(i).access(), y.vval()->at(i).access()))); \
+            v->Push(Value(name(x.vval()->At(i).access(), y.vval()->At(i).access()))); \
         } \
         x.DECRT(); y.DECRT(); \
         return Value(v);

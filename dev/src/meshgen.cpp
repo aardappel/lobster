@@ -1039,7 +1039,7 @@ void AddMeshGen()
     STARTDECL(mg_polygonize) (Value &subdiv, Value &color)
     {
         vector<float3> materials;
-        for (int i = 0; i < color.vval()->len; i++) materials.push_back(ValueToF<3>(color.vval()->at(i)));
+        for (int i = 0; i < color.vval()->len; i++) materials.push_back(ValueToF<3>(color.vval()->At(i)));
         color.DECRT();
         int mesh = polygonize_mc(root, subdiv.ival(), materials);
         MeshGenClear();

@@ -391,7 +391,7 @@ void AddGraphics()
         if (vl.vval()->len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
 
         auto vbuf = new BasicVert[vl.vval()->len];
-        for (int i = 0; i < vl.vval()->len; i++) vbuf[i].pos = ValueToF<3>(vl.vval()->at(i));
+        for (int i = 0; i < vl.vval()->len; i++) vbuf[i].pos = ValueToF<3>(vl.vval()->At(i));
 
         auto v1 = vbuf[1].pos - vbuf[0].pos;
         auto v2 = vbuf[2].pos - vbuf[0].pos;
@@ -633,7 +633,7 @@ void AddGraphics()
         vector<int> idxs;
         for (int i = 0; i < indices.vval()->len; i++)
         {
-            auto &e = indices.vval()->at(i);
+            auto &e = indices.vval()->At(i);
             if (e.ival() < 0 || e.ival() >= positions.vval()->len)
                 g_vm->BuiltinError("newmesh: index out of range of vertex list");
             idxs.push_back(e.ival());
@@ -647,10 +647,10 @@ void AddGraphics()
 
         for (int i = 0; i < nverts; i++)
         {
-            v.pos  = ValueToF<3>(positions.vval()->at(i), 0);
-            v.col  = i < colors.vval()->len    ? quantizec(ValueToF<4>(colors.vval()->at(i), 1)) : byte4_255;
-            v.tc   = i < texcoords.vval()->len ? ValueToF<3>(texcoords.vval()->at(i), 0).xy()    : v.pos.xy();
-            v.norm = i < normals.vval()->len   ? ValueToF<3>(normals.vval()->at(i), 0)           : float3_0;
+            v.pos  = ValueToF<3>(positions.vval()->At(i), 0);
+            v.col  = i < colors.vval()->len    ? quantizec(ValueToF<4>(colors.vval()->At(i), 1)) : byte4_255;
+            v.tc   = i < texcoords.vval()->len ? ValueToF<3>(texcoords.vval()->At(i), 0).xy()    : v.pos.xy();
+            v.norm = i < normals.vval()->len   ? ValueToF<3>(normals.vval()->At(i), 0)           : float3_0;
             verts[i] = v;
         }
 
@@ -764,7 +764,7 @@ void AddGraphics()
     {
         TestGL();
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->at(i));
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->At(i));
         vec.DECRT();
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4, vals.size());
@@ -779,7 +779,7 @@ void AddGraphics()
     {
         TestGL();
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->at(i));
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToF<4>(vec.vval()->At(i));
         vec.DECRT();
         auto ok = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(), name.sval()->str(), ssbo.True());
         name.DECRT();
@@ -894,16 +894,16 @@ void AddGraphics()
 
         LVector *mat = matv.vval();
         int ys = mat->len;
-        int xs = mat->at(0).vval()->len;
+        int xs = mat->At(0).vval()->len;
         auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[xs * ys * sz];
         memset(buf, 0, xs * ys * sz);
         for (int i = 0; i < ys; i++)
         {
-            LVector *row = mat->at(i).vval();
+            LVector *row = mat->At(i).vval();
             for (int j = 0; j < min(xs, row->len); j++)
             {
-                float4 col = ValueToF<4>(row->at(j));
+                float4 col = ValueToF<4>(row->At(j));
                 auto idx = i * xs + j;
                 if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
                 else                      ((byte4  *)buf)[idx] = quantizec(col);

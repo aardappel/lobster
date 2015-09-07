@@ -882,7 +882,7 @@ struct VM : VMBase
                 }
 
                 case IL_IFOR: FORLOOP(iter.ival(), i, donei);
-                case IL_VFOR: FORLOOP(iter.vval()->len, iter.vval()->at(i.ival()).INC(), donev);
+                case IL_VFOR: FORLOOP(iter.vval()->len, iter.vval()->AtInc(i.ival()), donev);
                 case IL_SFOR: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), dones);
 
                 case IL_BCALL:
@@ -946,16 +946,16 @@ struct VM : VMBase
                 #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
                 #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
 
-                #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.vval()->at(i).fval() : (T)a.vval()->at(i).ival())
+                #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.vval()->At(i).fval() : (T)a.vval()->At(i).ival())
                 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
                     int len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT : a.vval()->typeoff); \
                     for (int j = 0; j < len; j++) \
                     { \
-                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.vval()->at(j), isfloat ? V_FLOAT : V_INT); \
+                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.vval()->At(j), isfloat ? V_FLOAT : V_INT); \
                         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
                         if (extras&1 && bv == 0) Div0(); \
-                        VMTYPEEQ(a.vval()->at(j), isfloat ? V_FLOAT : V_INT); \
-                        res.vval()->at(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
+                        VMTYPEEQ(a.vval()->At(j), isfloat ? V_FLOAT : V_INT); \
+                        res.vval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
                     } \
                     VectorDec(a, res); \
                     if (!withscalar) VectorDec(b, res); \
@@ -1077,8 +1077,8 @@ struct VM : VMBase
                     { \
                         for (int i = 0; i < len; i++) \
                         { \
-                            VMTYPEEQ(a.vval()->at(i), isfloat ? V_FLOAT : V_INT); \
-                            res.vval()->at(i) = Value(-_VELEM(a, i, isfloat, type)); \
+                            VMTYPEEQ(a.vval()->At(i), isfloat ? V_FLOAT : V_INT); \
+                            res.vval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
                         } \
                         VectorDec(a, res); \
                         PUSH(res); \
@@ -1223,7 +1223,7 @@ struct VM : VMBase
     { 
         Value r = POP(); 
         if (!r.ref()) { PUSH(r); return; }  // ?.
-        PUSH(r.vval()->at(i).INC());
+        PUSH(r.vval()->AtInc(i));
         r.DECRT(); 
     }
 
@@ -1236,7 +1236,7 @@ struct VM : VMBase
             case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
                 IDXErr(i, r.vval()->len, r);
-                PUSH(r.vval()->at(i).INC());
+                PUSH(r.vval()->AtInc(i));
                 break;
             case V_STRING:
                 IDXErr(i, r.sval()->len, r); 
@@ -1253,7 +1253,7 @@ struct VM : VMBase
         Value vec = POP();
         TYPE_ASSERT(IsVector(vec.type));
         IDXErr(i, (int)vec.vval()->len, vec);
-        Value &a = vec.vval()->at(i);
+        Value &a = vec.vval()->At(i);
         LvalueOp(lvalop, a);
         vec.DECRT();
     }
@@ -1376,7 +1376,7 @@ struct VM : VMBase
         auto &v = TOP();
         for (int i = idx.vval()->len - 1; ; i--)
         {
-            auto sidx = idx.vval()->at(i);
+            auto sidx = idx.vval()->At(i);
             VMTYPEEQ(sidx, V_INT);
             if (!i)
             {
@@ -1385,7 +1385,7 @@ struct VM : VMBase
             }
             TYPE_ASSERT(IsVector(v.type));
             IDXErr(sidx.ival(), v.vval()->len, v);
-            auto nv = v.vval()->at(sidx.ival()).INCRT();
+            auto nv = v.vval()->At(sidx.ival()).INCRT();
             v.DECRT();
             v = nv;
         }

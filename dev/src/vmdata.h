@@ -337,12 +337,13 @@ struct Value
 
     inline Value &INCRT()
     {
-        TYPE_ASSERT(IsRef(type));
+        TYPE_ASSERT(IsRef(type) && ref_);
         ref_->Inc();
         return *this;
     }
 
     inline Value &INCRTNIL() { if (ref_) INCRT(); return *this; }
+    inline Value &INCTYPE(ValueType t) { return IsRefNil(t) ? INCRTNIL() : *this; }
         
     inline Value &INC()
     {
@@ -351,11 +352,12 @@ struct Value
 
     inline void DECRT() const   // we already know its a ref type
     {
-        TYPE_ASSERT(IsRef(type));
+        TYPE_ASSERT(IsRef(type) && ref_);
         ref_->Dec();
     }
 
     inline void DECRTNIL() const { if (ref_) DECRT(); }
+    inline void DECTYPE(ValueType t) const { if (IsRefNil(t)) DECRTNIL(); }
 
     inline const Value &DEC() const
     {
@@ -394,7 +396,7 @@ template<typename T> inline void DeallocSubBuf(T *v, size_t size)
 struct LVector : LenObj
 {
     private:
-    Value *v;   // use at()
+    Value *v;   // use At()
     
     public:
     int maxl;
@@ -458,20 +460,30 @@ struct LVector : LenObj
         val.DEC();
     }
 
-    Value Remove(int i, int n)
+    Value Remove(int i, int n, int decfrom)
     { 
         assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
         auto x = v[i];
-        for (int j = 1; j < n; j++) v[i + j].DEC();
+        for (int j = decfrom; j < n; j++) Dec(i + j);
         memmove(v + i, v + i + n, sizeof(Value) * (len - i - n));
         len -= n;
         return x;
     }
 
-    Value &at(int i) const
+    Value &At(int i) const
     {
         assert(i < len);
         return v[i];
+    }
+
+    Value &AtInc(int i) const
+    {
+        return At(i).INCTYPE(ElemType(i));
+    }
+
+    void Dec(int i)
+    {
+        At(i).DECTYPE(ElemType(i));
     }
 
     void Append(LVector *from, int start, int amount)
@@ -734,14 +746,14 @@ struct CoRoutine : RefObj
 template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
 {
     vec<float,N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).fval() : def);
+    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->At(i).fval() : def);
     return t;
 }
 
 template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
 {
     vec<int, N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->at(i).ival() : def);
+    for (int i = 0; i < N; i++) t.set(i, v.vval()->len > i ? v.vval()->At(i).ival() : def);
     return t;
 }
 

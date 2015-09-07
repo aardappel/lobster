@@ -179,7 +179,7 @@ void AddPhysicsOps()
 		auto verts = new b2Vec2[vertices.vval()->len];
         for (int i = 0; i < vertices.vval()->len; i++)
         {
-            auto vert = ValueToF<2>(vertices.vval()->at(i));
+            auto vert = ValueToF<2>(vertices.vval()->At(i));
             verts[i] = Float2ToB2(vert);
         }
 		shape.Set(verts, vertices.vval()->len);
