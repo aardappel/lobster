@@ -208,16 +208,11 @@ struct BoxedFloat : RefObj
     BoxedFloat(float _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
 };
 
-struct LenObj : RefObj
+struct LString : RefObj
 {
     int len;    // has to match the Value integer type, since we allow the length to be obtained
 
-    LenObj(type_elem_t _t, int _l) : RefObj(_t), len(_l) {}
-};
-
-struct LString : LenObj
-{
-    LString(int _l) : LenObj(TYPE_ELEM_STRING, _l) {}
+    LString(int _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
 
     char *str() { return (char *)(this + 1); }
 
@@ -300,7 +295,6 @@ struct Value
         BoxedFloat *bfval_;
 
         // Generic reference access.
-        LenObj *lobj_;
         RefObj *ref_;
     };
     public:
@@ -315,7 +309,6 @@ struct Value
     BoxedFloat *bfval () const { TYPE_ASSERT(type == V_BOXEDFLOAT);         return bfval_; }
     LVector    *vval  () const { TYPE_ASSERT(IsVector(type));               return vval_;  }
     CoRoutine  *cval  () const { TYPE_ASSERT(type == V_COROUTINE);          return cval_;  }
-    LenObj     *lobj  () const { TYPE_ASSERT(IsRef(type));                  return lobj_;  }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));                  return ref_;   }
     RefObj     *refnil() const { TYPE_ASSERT(IsRef(type) || type == V_NIL); return ref_;   }
     const int  *ip    () const { TYPE_ASSERT(type >= V_FUNCTION);           return ip_;    }
@@ -393,8 +386,31 @@ template<typename T> inline void DeallocSubBuf(T *v, size_t size)
     vmpool->dealloc(mem, size * sizeof(T) + sizeof(void *));
 }
 
-struct LVector : LenObj
+/*
+
+// Would be great to be able to use this type, as it would save 16bytes on Lvector (and LVector could forego
+// initial size. But it means duplicating all vector ops in the VM, and many other things.
+
+struct LStruct : RefObj
 {
+    LStruct(type_elem_t _t) : RefObj(_t) {}
+
+    int Len() { return (int)GetTypeInfo().sub; }
+    Value *Elems() { return (Value *)(this + 1); }
+
+    Value &At(int i)
+    {
+        assert(i < Len());
+        return Elems()[i];
+    }
+};
+
+*/
+
+struct LVector : RefObj
+{
+    int len;    // has to match the Value integer type, since we allow the length to be obtained
+
     private:
     Value *v;   // use At()
     
@@ -402,7 +418,7 @@ struct LVector : LenObj
     int maxl;
     int initiallen;
 
-    LVector(int _size, type_elem_t _t) : LenObj(_t, 0), maxl(_size), initiallen(_size)
+    LVector(int _size, type_elem_t _t) : RefObj(_t), len(0), maxl(_size), initiallen(_size)
     {
         v = (Value *)(this + 1);
     }

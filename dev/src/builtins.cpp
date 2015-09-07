@@ -188,7 +188,7 @@ void AddBuiltins()
 
     STARTDECL(length) (Value &a)
     {
-        auto len = a.lobj()->len;
+        auto len = a.sval()->len;
         a.DECRT();
         return Value(len);
     }
@@ -197,7 +197,7 @@ void AddBuiltins()
 
     STARTDECL(length) (Value &a)
     {
-        auto len = a.lobj()->len;
+        auto len = a.vval()->len;
         a.DECRT();
         return Value(len);
     }
