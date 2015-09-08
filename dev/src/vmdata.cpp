@@ -20,36 +20,30 @@ namespace lobster {
 
 int ElemObj::Len() const
 {
-    auto &ti = GetTypeInfo();
-    if (ti.t == V_VECTOR) return ((LVector *)this)->len;
-    assert(ti.t == V_STRUCT);
-    return g_vm->StructLen(typeoff);
+    if (ti->t == V_VECTOR) return ((LVector *)this)->len;
+    assert(ti->t == V_STRUCT);
+    return g_vm->StructLen(ti);
 }
 
 Value &ElemObj::At(int i) const
 {
-    auto &ti = GetTypeInfo();
-    if (ti.t == V_VECTOR) return ((LVector *)this)->At(i);
-    assert(ti.t == V_STRUCT);
+    if (ti->t == V_VECTOR) return ((LVector *)this)->At(i);
+    assert(ti->t == V_STRUCT);
     return ((LStruct *)this)->At(i);
 };
 
 void RefObj::DECDELETE(bool deref)
 {
     assert(refc == 0);
-    switch (typeoff)
+    switch (ti->t)
     {
-        case TYPE_ELEM_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
-        case TYPE_ELEM_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
-        case TYPE_ELEM_STRING:     ((LString *)this)->DeleteSelf(); break;
-        case TYPE_ELEM_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
-        default:
-        {
-            auto &ti = GetTypeInfo();
-            if (ti.t == V_VECTOR) return ((LVector *)this)->DeleteSelf(deref);
-            assert(ti.t == V_STRUCT);
-            return ((LStruct *)this)->DeleteSelf(deref);
-        }
+        case V_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
+        case V_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
+        case V_STRING:     ((LString *)this)->DeleteSelf(); break;
+        case V_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
+        case V_VECTOR:     ((LVector *)this)->DeleteSelf(deref); break;
+        case V_STRUCT:     ((LStruct *)this)->DeleteSelf(deref); break;
+        default:           assert(false);
     }
 }
 
@@ -61,20 +55,18 @@ bool RefObj::Equal(const RefObj *o, bool structural) const
     if (!this || !o)
         return false;
 
-    if (typeoff != o->typeoff)
+    if (ti != o->ti)
         return false;
 
-    switch (typeoff)
+    switch (ti->t)
     {
-        case TYPE_ELEM_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
-        case TYPE_ELEM_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
-        case TYPE_ELEM_STRING:      return *((LString *)this) == *((LString *)o);
-        case TYPE_ELEM_COROUTINE:   return false;
-        default:
-        {
-            assert(IsVector(BaseType()));
-            return structural && ((ElemObj *)this)->Equal(*(ElemObj *)o);
-        }
+        case V_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
+        case V_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
+        case V_STRING:      return *((LString *)this) == *((LString *)o);
+        case V_COROUTINE:   return false;
+        case V_VECTOR:
+        case V_STRUCT:      return structural && ((ElemObj *)this)->Equal(*(ElemObj *)o);
+        default:            assert(0); return false;
     }
 }
 
@@ -94,19 +86,16 @@ string RefObj::ToString(PrintPrefs &pp) const
 {
     if (!this) return "nil";
 
-    switch (typeoff)
+    switch (ti->t)
     {
-        case TYPE_ELEM_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
-        case TYPE_ELEM_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
+        case V_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
+        case V_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
 
-        case TYPE_ELEM_STRING:     return ((LString *)this)->ToString(pp);
-        case TYPE_ELEM_COROUTINE:  return "(coroutine)";
-        default:
-        {
-            auto &ti = GetTypeInfo();
-            if (IsVector((ValueType)ti.t)) return ((ElemObj *)this)->ToString(pp);
-            return string("(") + BaseTypeName(BaseType()) + ")";
-        }
+        case V_STRING:     return ((LString *)this)->ToString(pp);
+        case V_COROUTINE:  return "(coroutine)";
+        case V_VECTOR:
+        case V_STRUCT:     return ((ElemObj *)this)->ToString(pp);
+        default:           return string("(") + BaseTypeName(ti->t) + ")";
     }
 }
 
@@ -129,8 +118,7 @@ void RefObj::Mark()
     if (refc < 0) return;
     assert(refc);
     refc = -refc;
-    auto &ti = GetTypeInfo();
-    switch (ti.t)
+    switch (ti->t)
     {
         case V_STRUCT:
         case V_VECTOR:     ((ElemObj   *)this)->Mark(); break;
@@ -143,24 +131,23 @@ void Value::Mark(ValueType vtype)
     if (IsRef(vtype) && ref_) ref_->Mark();
 }
 
-string TypeInfoDebug(type_elem_t offset, bool rec)
+string TypeInfo::Debug(bool rec) const
 {
-    auto &ti = g_vm->GetTypeInfo(offset);
-    string s = BaseTypeName(ti.t);
-    if (ti.t == V_VECTOR || ti.t == V_NIL)
+    string s = BaseTypeName(t);
+    if (t == V_VECTOR || t == V_NIL)
     {
-        s += "[" + TypeInfoDebug(ti.subt, false) + "]";
+        s += "[" + g_vm->GetTypeInfo(subt)->Debug(false) + "]";
     }
-    else if (ti.t == V_STRUCT)
+    else if (t == V_STRUCT)
     {
-        auto nargs = g_vm->StructLen(offset);
-        auto sname = g_vm->StructName(offset);
+        auto nargs = g_vm->StructLen(this);
+        auto sname = g_vm->StructName(this);
         s += ":" + sname;
         if (rec)
         {
             s += "{";
             for (int i = 0; i < nargs; i++)
-                s += TypeInfoDebug(ti.elems[i], false) + ",";
+                s += g_vm->GetTypeInfo(elems[i])->Debug(false) + ",";
             s += "}";
         }
     }

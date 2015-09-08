@@ -97,9 +97,9 @@ struct TypeInfo
 
     TypeInfo() = delete;
     TypeInfo(const TypeInfo &) = delete;
-};
 
-string TypeInfoDebug(type_elem_t offset, bool rec = true);
+    string Debug(bool rec = true) const;
+};
 
 struct Value;
 struct LString;
@@ -133,9 +133,9 @@ struct VMBase
     virtual Value Pop() = 0;
     virtual LString *NewString(const string &s) = 0;
     virtual LString *NewString(const char *c, size_t l) = 0;
-    virtual ElemObj *NewVector(int initial, int max, type_elem_t t) = 0;
-    virtual type_elem_t GetIntVectorType(int which) = 0;
-    virtual type_elem_t GetFloatVectorType(int which) = 0;
+    virtual ElemObj *NewVector(int initial, int max, const TypeInfo *ti) = 0;
+    virtual const TypeInfo *GetIntVectorType(int which) = 0;
+    virtual const TypeInfo *GetFloatVectorType(int which) = 0;
     virtual void Trace(bool on) = 0;
     virtual double Time() = 0;
     virtual int GC() = 0;
@@ -146,10 +146,10 @@ struct VMBase
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
-    virtual const TypeInfo &GetTypeInfo(type_elem_t offset) = 0;
-    virtual int StructLen(type_elem_t offset) = 0;
-    virtual string StructName(type_elem_t offset) = 0;
-    virtual type_elem_t GetVarTypeInfo(int varidx) = 0;
+    virtual const TypeInfo *GetTypeInfo(type_elem_t offset) = 0;
+    virtual int StructLen(const TypeInfo *ti) = 0;
+    virtual string StructName(const TypeInfo *ti) = 0;
+    virtual const TypeInfo *GetVarTypeInfo(int varidx) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -158,19 +158,16 @@ extern SlabAlloc *vmpool;
 
 struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 {
-    type_elem_t typeoff;    // offset into the VM's typetable
+    const TypeInfo *ti;    // offset into the VM's typetable
 
-    DynAlloc(type_elem_t _t) : typeoff(_t) { assert(_t >= 0); }
-
-    const TypeInfo &GetTypeInfo() const { return g_vm->GetTypeInfo(typeoff); }
-    ValueType BaseType() const { return g_vm->GetTypeInfo(typeoff).t; }
+    DynAlloc(const TypeInfo *_ti) : ti(_ti) {}
 };
 
 struct RefObj : DynAlloc
 {
     int refc;
 
-    RefObj(type_elem_t _t) : DynAlloc(_t), refc(1) {}
+    RefObj(const TypeInfo *_ti) : DynAlloc(_ti), refc(1) {}
 
     void Inc()
     {
@@ -187,7 +184,7 @@ struct RefObj : DynAlloc
 
     void CycleDone(int &cycles)
     {
-        typeoff = TYPE_ELEM_CYCLEDONE;
+        ti = g_vm->GetTypeInfo(TYPE_ELEM_CYCLEDONE);
         refc = cycles++;
     }
 
@@ -203,21 +200,21 @@ struct BoxedInt : RefObj
 {
     int val;
 
-    BoxedInt(int _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}
+    BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
 };
 
 struct BoxedFloat : RefObj
 {
     float val;
 
-    BoxedFloat(float _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
+    BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
 };
 
 struct LString : RefObj
 {
     int len;    // has to match the Value integer type, since we allow the length to be obtained
 
-    LString(int _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
+    LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
 
     char *str() { return (char *)(this + 1); }
 
@@ -225,7 +222,7 @@ struct LString : RefObj
     {
         if (pp.cycles >= 0)
         {
-            if (typeoff == TYPE_ELEM_CYCLEDONE) return CycleStr(); 
+            if (ti->t == V_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
         string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
@@ -331,7 +328,7 @@ struct Value
     inline Value(float f)                   : TYPE_INIT(V_FLOAT)       fval_(f)      {}
     inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)    ip_(i)        {}
     inline Value(const int *i, ValueType t) : TYPE_INIT(t)             ip_(i)        { (void)t; }
-    inline Value(RefObj *r)                 : TYPE_INIT(r->BaseType()) ref_(r)       {}
+    inline Value(RefObj *r)                 : TYPE_INIT(r->ti->t)      ref_(r)       {}
 
     inline bool True() const { return ival_ != 0; } // FIXME: not safe on 64bit systems unless we make ival 64bit also
                                                     // esp big endian.
@@ -378,24 +375,24 @@ struct Value
     void Mark(ValueType vtype);
 };
 
-template<typename T> inline T *AllocSubBuf(size_t size, type_elem_t type)
+template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo *ti)
 {
-    auto mem = (void **)vmpool->alloc(size * sizeof(T) + sizeof(void *));
-    *((type_elem_t *)mem) = type;    // DynAlloc header, padded to pointer size if needed
+    auto mem = (const TypeInfo **)vmpool->alloc(size * sizeof(T) + sizeof(TypeInfo *));
+    *mem = ti;  // DynAlloc header.
     mem++;
     return (T *)mem;
 }
 
 template<typename T> inline void DeallocSubBuf(T *v, size_t size)
 {
-    auto mem = (void **)v;
+    auto mem = (TypeInfo **)v;
     mem--;
-    vmpool->dealloc(mem, size * sizeof(T) + sizeof(void *));
+    vmpool->dealloc(mem, size * sizeof(T) + sizeof(TypeInfo *));
 }
 
 struct ElemObj : RefObj
 {
-    ElemObj(type_elem_t _t) : RefObj(_t) {}
+    ElemObj(const TypeInfo *_ti) : RefObj(_ti) {}
 
     int Len() const;
 
@@ -413,14 +410,13 @@ struct ElemObj : RefObj
 
     ValueType ElemType(int i) const
     {
-        auto &ti = GetTypeInfo();
-        auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.subt : ti.elems[i]);
-        auto vt = sti.t;
-        if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.subt).t;
+        auto sti = g_vm->GetTypeInfo(ti->t == V_VECTOR ? ti->subt : ti->elems[i]);
+        auto vt = sti->t;
+        if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti->subt)->t;
         #if RTT_ENABLED
         if(vt != At(i).type && At(i).type != V_NIL && !(vt == V_VECTOR && At(i).type == V_STRUCT))  // FIXME: for testing
         {
-            Output(OUTPUT_INFO, "elemtype of %s != %s", TypeInfoDebug(typeoff).c_str(), BaseTypeName(At(i).type));
+            Output(OUTPUT_INFO, "elemtype of %s != %s", ti->Debug().c_str(), BaseTypeName(At(i).type));
             assert(false);
         }
         #endif
@@ -471,12 +467,11 @@ struct ElemObj : RefObj
     {
         if (pp.cycles >= 0)
         {
-            if (typeoff == TYPE_ELEM_CYCLEDONE) return CycleStr(); 
+            if (ti->t == V_CYCLEDONE) return CycleStr(); 
             CycleDone(pp.cycles);
         }
 
-        auto &ti = GetTypeInfo();
-        string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.structidx) + string("{") : "[";
+        string s = ti->t == V_STRUCT ? g_vm->ReverseLookupType(ti->structidx) + string("{") : "[";
         for (int i = 0; i < Len(); i++)
         {
             if (i) s += ", ";
@@ -484,16 +479,16 @@ struct ElemObj : RefObj
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
             s += pp.depth || !IsRef(ElemType(i)) ? At(i).ToString(ElemType(i), subpp) : "..";
         }
-        s += ti.t == V_STRUCT ? "}" : "]";
+        s += ti->t == V_STRUCT ? "}" : "]";
         return s;
     }
 };
 
 struct LStruct : ElemObj
 {
-    LStruct(type_elem_t _t) : ElemObj(_t) {}
+    LStruct(const TypeInfo *_ti) : ElemObj(_ti) {}
 
-    int Len() const { return g_vm->StructLen(typeoff); }
+    int Len() const { return g_vm->StructLen(ti); }
     Value *Elems() const { return (Value *)(this + 1); }
 
     Value &At(int i) const
@@ -519,9 +514,9 @@ struct LVector : ElemObj
     public:
     int maxl;
 
-    LVector(int _initial, int _max, type_elem_t _t) : ElemObj(_t), len(_initial), maxl(_max)
+    LVector(int _initial, int _max, const TypeInfo *_ti) : ElemObj(_ti), len(_initial), maxl(_max)
     {
-        v = maxl ? AllocSubBuf<Value>(maxl, TYPE_ELEM_VALUEBUF) : nullptr;
+        v = maxl ? AllocSubBuf<Value>(maxl, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF)) : nullptr;
     }
 
     ~LVector() { assert(0); }   // destructed by DECREF
@@ -541,7 +536,7 @@ struct LVector : ElemObj
     void Resize(int newmax)
     {
         // FIXME: check overflow
-        auto mem = AllocSubBuf<Value>(newmax, TYPE_ELEM_VALUEBUF);
+        auto mem = AllocSubBuf<Value>(newmax, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
         if (len) memcpy(mem, v, sizeof(Value) * len);
         DeallocBuf();
         maxl = newmax;
@@ -628,7 +623,7 @@ struct CoRoutine : RefObj
     CoRoutine *parent;
 
     CoRoutine(int _ss, int _sfs, const int *_rip, const int *_vip, CoRoutine *_p)
-        : RefObj(TYPE_ELEM_COROUTINE), active(true),
+        : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_COROUTINE)), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0), stackframecopymax(0),
           top_at_suspend(-1),
@@ -645,7 +640,7 @@ struct CoRoutine : RefObj
         if (newlen > stackcopymax)
         {
             if (stackcopy) DeallocSubBuf(stackcopy, stackcopymax);
-            stackcopy = AllocSubBuf<Value>(stackcopymax = newlen, TYPE_ELEM_VALUEBUF);
+            stackcopy = AllocSubBuf<Value>(stackcopymax = newlen, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
         }
         stackcopylen = newlen;
     }
@@ -655,7 +650,8 @@ struct CoRoutine : RefObj
         if (newlen > stackframecopymax)
         {
             if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
-            stackframescopy = AllocSubBuf<StackFrame>(stackframecopymax = newlen, TYPE_ELEM_STACKFRAMEBUF);
+            stackframescopy = AllocSubBuf<StackFrame>(stackframecopymax = newlen,
+                                                      g_vm->GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF));
         }
         stackframecopylen = newlen;
     }
@@ -762,15 +758,14 @@ struct CoRoutine : RefObj
     {
         assert(i < *varip);
         auto varidx = varip[i + 1];
-        auto toffset = g_vm->GetVarTypeInfo(varidx);
-        auto &ti = g_vm->GetTypeInfo(toffset);
-        auto vt = ti.t;
-        if (vt == V_NIL) vt = g_vm->GetTypeInfo(ti.subt).t;
+        auto vti = g_vm->GetVarTypeInfo(varidx);
+        auto vt = vti->t;
+        if (vt == V_NIL) vt = g_vm->GetTypeInfo(vti->subt)->t;
         #if RTT_ENABLED
         auto &var = AccessVar(i);
         if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_STRUCT))  // FIXME: for testing
         {
-            Output(OUTPUT_INFO, "coro elem %s != %s", TypeInfoDebug(toffset).c_str(), BaseTypeName(var.type));
+            Output(OUTPUT_INFO, "coro elem %s != %s", vti->Debug().c_str(), BaseTypeName(var.type));
             assert(false);
         }
         #endif

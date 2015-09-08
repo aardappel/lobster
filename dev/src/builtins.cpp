@@ -70,20 +70,20 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
 }
 
 // int <-> float
-type_elem_t SwapVectType(type_elem_t available, type_elem_t existing)
+const TypeInfo *SwapVectType(const TypeInfo *available, const TypeInfo *existing)
 {
-    if (existing == TYPE_ELEM_VECTOR_OF_FLOAT) return TYPE_ELEM_VECTOR_OF_INT;
-    if (existing == TYPE_ELEM_VECTOR_OF_INT) return TYPE_ELEM_VECTOR_OF_FLOAT;
+    // FIXME: this is slow, cache these.
+    if (existing == g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT);
+    if (existing == g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT);
     // Structs:
-    auto &ti = g_vm->GetTypeInfo(existing);
     // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
-    return ti.t != V_STRUCT || available < 0 ? existing : available;
+    return existing->t != V_STRUCT || !available ? existing : available;
 }
 
 void RealVector(Value &v)
 {
     // FIXME: need to guarantee this in typechecking
-    if (g_vm->GetTypeInfo(v.eval()->typeoff).t != V_VECTOR)
+    if (v.eval()->ti->t != V_VECTOR)
         g_vm->BuiltinError("vector operation cannot use struct");
 }
 
@@ -169,8 +169,8 @@ void AddBuiltins()
     STARTDECL(append) (Value &v1, Value &v2)
     {
         RealVector(v1);
-        auto type = v1.eval()->typeoff;
-        assert (type == v2.eval()->typeoff);  // FIXME: need to guarantee this in typechecking
+        auto type = v1.eval()->ti;
+        assert(type == v2.eval()->ti);  // FIXME: need to guarantee this in typechecking
 
         auto nv = (LVector *)g_vm->NewVector(0, v1.eval()->Len() + v2.eval()->Len(), type);
         nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
@@ -182,7 +182,7 @@ void AddBuiltins()
 
     STARTDECL(vector_reserve) (Value &type, Value &len)
     {
-        return Value(g_vm->NewVector(0, len.ival(), (type_elem_t)type.ival()));
+        return Value(g_vm->NewVector(0, len.ival(), g_vm->GetTypeInfo((type_elem_t)type.ival())));
     }
     ENDDECL2(vector_reserve, "typeid,len", "TI", "V*",
         "creates a new empty vector much like [] would, except now ensures"
@@ -261,7 +261,7 @@ void AddBuiltins()
         auto len = l.eval()->Len();
         if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
 
-        auto nv = g_vm->NewVector(len, len, l.eval()->typeoff);
+        auto nv = g_vm->NewVector(len, len, l.eval()->ti);
         if (len) nv->Init(&l.eval()->At(0), len, true);
         l.DECRT();
 
@@ -305,7 +305,7 @@ void AddBuiltins()
     {
         RealVector(l);
         int removed = 0;
-        auto vt = g_vm->GetTypeInfo(l.vval()->GetTypeInfo().subt).t;
+        auto vt = g_vm->GetTypeInfo(l.vval()->ti->subt)->t;
         for (int i = 0; i < l.vval()->len; i++)
         {
             auto e = l.vval()->At(i);
@@ -356,7 +356,7 @@ void AddBuiltins()
     STARTDECL(copy) (Value &v)
     {
         auto len = v.eval()->Len();
-        auto nv = g_vm->NewVector(len, len, v.eval()->typeoff);
+        auto nv = g_vm->NewVector(len, len, v.eval()->ti);
         if (len) nv->Init(&v.eval()->At(0), len, true);
         v.DECRT();
         return Value(nv);
@@ -373,7 +373,7 @@ void AddBuiltins()
         if (start < 0) start = l.eval()->Len() + start;
         if (start < 0 || start + size > (int)l.eval()->Len())
             g_vm->BuiltinError("slice: values out of range");
-        auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->typeoff);
+        auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->ti);
         nv->Append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
@@ -453,7 +453,7 @@ void AddBuiltins()
 
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace)
     {
-        auto v = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto v = (LVector *)g_vm->NewVector(0, 0, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
         auto ws = whitespace.sval()->str();
         auto dl = delims.sval()->str();
         auto p = s.sval()->str();
@@ -497,7 +497,7 @@ void AddBuiltins()
 
     STARTDECL(string2unicode) (Value &s)
     {
-        auto v = (LVector *)g_vm->NewVector(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
+        auto v = (LVector *)g_vm->NewVector(0, s.sval()->len, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
         const char *p = s.sval()->str();
         while (*p)
         {
@@ -581,19 +581,19 @@ void AddBuiltins()
     STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
         "bitwise shift right");
 
-    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor(len) : (type_elem_t)-1, a.eval()->typeoff)
+    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor(len) : nullptr, a.eval()->ti)
         
-    #define VECTOROPT(op, typeoff) \
+    #define VECTOROPT(op, typeinfo) \
         TYPE_ASSERT(IsVector(a.type)); \
         auto len = a.eval()->Len(); \
-        auto v = g_vm->NewVector(len, len, typeoff); \
+        auto v = g_vm->NewVector(len, len, typeinfo); \
         for (int i = 0; i < a.eval()->Len(); i++) { \
             auto f = a.eval()->At(i); \
             v->At(i) = Value(op); \
         } \
         a.DECRT(); \
         return Value(v);
-    #define VECTOROP(op) VECTOROPT(op, a.eval()->typeoff)
+    #define VECTOROP(op) VECTOROPT(op, a.eval()->ti)
 
     STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); } ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
@@ -733,8 +733,8 @@ void AddBuiltins()
     #define VECBINOP(name,access) \
         auto len = x.eval()->Len(); \
         if (len != y.eval()->Len()) g_vm->BuiltinError(#name "() arguments must be equal length"); \
-        auto type = x.eval()->typeoff; \
-        assert(type == y.eval()->typeoff); \
+        auto type = x.eval()->ti; \
+        assert(type == y.eval()->ti); \
         auto v = g_vm->NewVector(len, len, type); \
         for (int i = 0; i < x.eval()->Len(); i++) { \
             v->At(i) = Value(name(x.eval()->At(i).access(), y.eval()->At(i).access())); \

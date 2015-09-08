@@ -700,7 +700,7 @@ void AddGraphics()
     STARTDECL(gl_meshparts) (Value &i)
     {
         auto m = GetMesh(i);
-        auto v = (LVector *)g_vm->NewVector(0, m->surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
+        auto v = (LVector *)g_vm->NewVector(0, m->surfs.size(), g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
         for (auto s : m->surfs) v->Push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }

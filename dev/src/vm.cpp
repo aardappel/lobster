@@ -150,13 +150,28 @@ struct VM : VMBase
         }
     }
 
-    const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
-    type_elem_t GetVarTypeInfo(int varidx) { return (type_elem_t)bcf->specidents()->Get(varidx)->typeidx(); }
+    const TypeInfo *GetTypeInfo(type_elem_t offset)
+    {
+        return (TypeInfo *)(typetable + offset);
+    }
+    const TypeInfo *GetVarTypeInfo(int varidx)
+    {
+        return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
+    }
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
-    type_elem_t GetIntVectorType(int which) { return (type_elem_t)bcf->default_int_vector_types()->Get(which); }
-    type_elem_t GetFloatVectorType(int which) { return (type_elem_t)bcf->default_float_vector_types()->Get(which); }
+
+    const TypeInfo *GetIntVectorType(int which)
+    {
+        auto i = bcf->default_int_vector_types()->Get(which);
+        return i < 0 ? nullptr : GetTypeInfo((type_elem_t)i);
+    }
+    const TypeInfo *GetFloatVectorType(int which)
+    {
+        auto i = bcf->default_float_vector_types()->Get(which);
+        return i < 0 ? nullptr : GetTypeInfo((type_elem_t)i);
+    }
 
     static bool _LeakSorter(void *va, void *vb)
     {
@@ -164,8 +179,8 @@ struct VM : VMBase
         auto b = (RefObj *)vb;
         return a->refc != b->refc
         ? a->refc > b->refc
-        : (a->typeoff != b->typeoff
-           ? a->typeoff > b->typeoff
+        : (a->ti != b->ti
+           ? a->ti > b->ti
            : false);
     }
 
@@ -191,47 +206,49 @@ struct VM : VMBase
                 for (auto p : leaks)
                 {
                     auto vec = (ElemObj *)p;
-                    switch(vec->typeoff)
+                    switch(vec->ti->t)
                     {
-                        case TYPE_ELEM_CYCLEDONE:
-                        case TYPE_ELEM_VALUEBUF:
-                        case TYPE_ELEM_STACKFRAMEBUF:
+                        case V_CYCLEDONE:
+                        case V_VALUEBUF:
+                        case V_STACKFRAMEBUF:
                             break;
                                     
-                        case TYPE_ELEM_STRING:
+                        case V_STRING:
                         {
                             auto str = (LString *)vec;
                             fputs((str->CycleStr() + " = " + str->ToString(leakpp) + "\n").c_str(), leakf);
                             break;
                         }
 
-                        case TYPE_ELEM_COROUTINE:
+                        case V_COROUTINE:
                         {
                             auto co = (CoRoutine *)vec;
                             fputs((co->CycleStr() + " = coroutine\n").c_str(), leakf);
                             break;
                         }
 
-                        case TYPE_ELEM_BOXEDINT:
+                        case V_BOXEDINT:
                         {
                             auto bi = (BoxedInt *)vec;
                             fputs((bi->CycleStr() + " = " + to_string(bi->val) + "\n").c_str(), leakf);
                             break;
                         }
                                     
-                        case TYPE_ELEM_BOXEDFLOAT:
+                        case V_BOXEDFLOAT:
                         {
                             auto bf = (BoxedFloat *)vec;
                             fputs((bf->CycleStr() + " = " + to_string_float(bf->val) + "\n").c_str(), leakf);
                             break;
                         }
 
-                        default:
+                        case V_VECTOR:
+                        case V_STRUCT:
                         {
-                            assert(IsVector(vec->BaseType()));
                             fputs((vec->CycleStr() + " = " + vec->ToString(leakpp) + "\n").c_str(), leakf);
                             break;
                         }
+
+                        default: assert(false);
                     }
                 }
                         
@@ -243,13 +260,12 @@ struct VM : VMBase
     }
     
     #undef new
-    ElemObj *NewVector(int initial, int max, type_elem_t t)
+    ElemObj *NewVector(int initial, int max, const TypeInfo *ti)
     {
-        auto &ti = GetTypeInfo(t);
-        if (ti.t == V_VECTOR)
-            return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, t);
-        assert(ti.t == V_STRUCT && max == initial && max == StructLen(t));
-        return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(t);
+        if (ti->t == V_VECTOR)
+            return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, ti);
+        assert(ti->t == V_STRUCT && max == initial && max == StructLen(ti));
+        return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(ti);
     }
     LString *NewString(size_t l)
     {
@@ -381,7 +397,6 @@ struct VM : VMBase
         auto sid = bcf->specidents()->Get(idx);
         auto id = bcf->idents()->Get(sid->ididx());
         if (id->readonly() || id->global() != dumpglobals) return "";
-        //auto &ti = GetTypeInfo(sid->typeidx());
         string name = id->name()->c_str();
         return "\n   " + name + " = " + x.ToString(x.type, debugpp);
     }
@@ -400,12 +415,11 @@ struct VM : VMBase
             // TODO: rather than going thru all args, only go thru those that have types
             for (int j = 0; j < nargs; j++)
             {
-                auto desired = (type_elem_t)*mip++;
-                if (desired != TYPE_ELEM_ANY)
+                auto desired = GetTypeInfo((type_elem_t)*mip++);
+                if (desired->t != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    auto &ti = GetTypeInfo(desired);
-                    if (v.type != ti.t || (IsRef(v.type) && v.ref()->typeoff != desired))
+                    if (v.type != desired->t || (IsRef(v.type) && v.ref()->ti != desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -440,7 +454,7 @@ struct VM : VMBase
         {
             auto sid = bcf->specidents()->Get(i);
             //Output(OUTPUT_INFO, "destructing: %s", bcf->idents()->Get(sid->ididx())->name()->c_str());
-            vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx()).t);
+            vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx())->t);
         }
 
         #ifdef _DEBUG
@@ -935,7 +949,7 @@ struct VM : VMBase
                 {
                     auto type = (type_elem_t)*ip++;
                     auto len = *ip++;
-                    auto vec = NewVector(len, len, type);
+                    auto vec = NewVector(len, len, GetTypeInfo(type));
                     if (len) vec->Init(TOPPTR() - len, len, false);
                     POPN(len);
                     PUSH(Value(vec));
@@ -957,7 +971,7 @@ struct VM : VMBase
 
                 #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
                 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-                    int len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT : a.eval()->typeoff); \
+                    int len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) : a.eval()->ti); \
                     for (int j = 0; j < len; j++) \
                     { \
                         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
@@ -1081,7 +1095,7 @@ struct VM : VMBase
                 #define VUMINUS(isfloat, type) { \
                     Value a = POP(); \
                     Value res; \
-                    int len = VectorLoop(a, Value((type)1), res, true, a.eval()->typeoff); \
+                    int len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
                     if (len >= 0) \
                     { \
                         for (int i = 0; i < len; i++) \
@@ -1190,7 +1204,7 @@ struct VM : VMBase
                     auto &v = POP();
                     TYPE_ASSERT(IsRef(v.type));  // Optimizer guarantees we don't have to deal with scalars.
                     v.DECRT();
-                    PUSH(v.ref()->typeoff == to);
+                    PUSH(v.ref()->ti == GetTypeInfo(to));
                     break;
                 }
 
@@ -1231,7 +1245,7 @@ struct VM : VMBase
     { 
         Value r = POP();
         if (!r.ref()) { PUSH(r); return; }  // ?.
-        switch (r.ref()->BaseType()) 
+        switch (r.ref()->ti->t) 
         {
             case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
@@ -1358,8 +1372,8 @@ struct VM : VMBase
     {
         if (IsRef(v.type))
         {
-            auto &ti = GetTypeInfo(v.ref()->typeoff);
-            if (ti.t == V_STRUCT) return ReverseLookupType(ti.structidx);
+            auto ti = v.ref()->ti;
+            if (ti->t == V_STRUCT) return ReverseLookupType(ti->structidx);
         }
         return BaseTypeName(v.type);
     }
@@ -1391,7 +1405,7 @@ struct VM : VMBase
         }
     }
 
-    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, type_elem_t desttype)
+    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, const TypeInfo *desttype)
     {
         TYPE_ASSERT(IsVector(a.type));
         int len = a.eval()->Len();
@@ -1409,14 +1423,14 @@ struct VM : VMBase
 
     Value Pop() { return POP(); }
 
-    int StructLen(type_elem_t offset)
+    int StructLen(const TypeInfo *ti)
     {
-        return bcf->structs()->Get(GetTypeInfo(offset).structidx)->nfields();
+        return bcf->structs()->Get(ti->structidx)->nfields();
     }
 
-    string StructName(type_elem_t offset)
+    string StructName(const TypeInfo *ti)
     {
-        return bcf->structs()->Get(GetTypeInfo(offset).structidx)->name()->c_str();
+        return bcf->structs()->Get(ti->structidx)->name()->c_str();
     }
 
     virtual const char *ReverseLookupType(uint v)
@@ -1440,7 +1454,8 @@ struct VM : VMBase
         {
             total++;
             auto r = (RefObj *)p;
-            if (r->typeoff == TYPE_ELEM_VALUEBUF || r->typeoff == TYPE_ELEM_STACKFRAMEBUF) return;
+            if (r->ti == GetTypeInfo(TYPE_ELEM_VALUEBUF) || 
+                r->ti == GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF)) return;
             if (r->refc > 0) leaks.push_back(r);
             r->refc = -r->refc;
         });
