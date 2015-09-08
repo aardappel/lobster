@@ -1060,12 +1060,11 @@ void AddMeshGen()
         curorig += currot * (v * cursize);
         return body;
     }
-    MIDDECL(mg_translate) (Value &ret)
+    MIDDECL(mg_translate) ()
     {
         curorig = ValueDecToF<3>(g_vm->Pop());
-        return ret;
     }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "A",
+    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1076,12 +1075,11 @@ void AddMeshGen()
         cursize *= v;
         return body;
     }
-    MIDDECL(mg_scalevec) (Value &ret)
+    MIDDECL(mg_scalevec) ()
     {
         cursize = ValueDecToF<3>(g_vm->Pop());
-        return ret;
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "A",
+    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -1092,16 +1090,15 @@ void AddMeshGen()
         currot *= float3x3(angle.fval()*RAD, v);
         return body;
     }
-    MIDDECL(mg_rotate) (Value &ret)
+    MIDDECL(mg_rotate) ()
     {
         auto s = g_vm->Pop();
         TYPE_ASSERT(s.type == V_STRING);
         assert(s.sval()->len == sizeof(float3x3));
         currot = *(float3x3 *)s.sval()->str();
         s.DECRT();
-        return ret;
     }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F]FC?", "A",
+    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F]FC?", "",
         "rotates using axis/angle. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_fill) (Value &fill, Value &body)
@@ -1110,14 +1107,13 @@ void AddMeshGen()
         curcol = fill.ival() & MATMASK;   // FIXME: error if doesn't fit?
         return body;
     }
-    MIDDECL(mg_fill) (Value &ret)
+    MIDDECL(mg_fill) ()
     {
         auto fill = g_vm->Pop();
         TYPE_ASSERT(fill.type == V_INT);
         curcol = fill.ival();
-        return ret;
     }
-    ENDDECL2CONTEXIT(mg_fill, "fill,body", "IC?", "A",
+    ENDDECL2CONTEXIT(mg_fill, "fill,body", "IC?", "",
         "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts them (carves)."
         " when a body is given, restores the previous fill mode afterwards."
         " Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");

@@ -99,6 +99,8 @@ void AddBuiltins()
 
     STARTDECL(string) (Value &a)
     {
+        if (a.ref() && a.ref()->ti == g_vm->GetTypeInfo(TYPE_ELEM_STRING)) return a;
+
         auto str = g_vm->NewString(a.ref()->ToString(g_vm->programprintprefs));
         a.DECRT();
         return str;
@@ -106,20 +108,20 @@ void AddBuiltins()
     ENDDECL1(string, "x", "A", "S",
         "convert any value to string");
 
-    STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return a; } 
+    STARTDECL(set_print_depth) (Value &a) { g_vm->programprintprefs.depth = a.ival(); return Value(); } 
     ENDDECL1(set_print_depth, "depth", "I", "", 
         "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
 
-    STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival(); return a; } 
+    STARTDECL(set_print_length) (Value &a) { g_vm->programprintprefs.budget = a.ival(); return Value(); } 
     ENDDECL1(set_print_length, "len", "I", "", 
         "for printing / string conversion: sets max string length (default 10000)");
 
-    STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival() != 0; return a; } 
+    STARTDECL(set_print_quoted) (Value &a) { g_vm->programprintprefs.quoted = a.ival() != 0; return Value(); } 
     ENDDECL1(set_print_quoted, "quoted", "I", "", 
         "for printing / string conversion: if the top level value is a string, whether to convert it with escape codes"
         " and quotes (default false)");
 
-    STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival(); return a; } 
+    STARTDECL(set_print_decimals) (Value &a) { g_vm->programprintprefs.decimals = a.ival(); return Value(); } 
     ENDDECL1(set_print_decimals, "decimals", "I", "", 
         "for printing / string conversion: number of decimals for any floating point output (default -1, meaning all)");
 
@@ -840,7 +842,7 @@ void AddBuiltins()
         if (!c.True()) g_vm->BuiltinError("assertion failed");
         return c;
     }
-    ENDDECL1(assert, "condition", "A*", "",
+    ENDDECL1(assert, "condition", "A*", "A1",
         "halts the program with an assertion failure if passed false. returns its input");
 
     STARTDECL(trace_bytecode) (Value &i)
@@ -864,7 +866,7 @@ void AddBuiltins()
     STARTDECL(set_max_stack_size) (Value &max)
     {
         g_vm->SetMaxStack(max.ival() * 1024 * 1024 / sizeof(Value));
-        return max;
+        return Value();
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "",
         "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");

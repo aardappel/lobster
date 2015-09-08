@@ -198,7 +198,7 @@ void AddPhysicsOps()
 		if (fixture) fixture->GetBody()->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
 		return fixture_id;
 	}
-	ENDDECL2(ph_dynamic, "shape,on", "II", "",
+	ENDDECL2(ph_dynamic, "shape,on", "II", "I",
         "makes a shape dynamic (on = true) or not. returns shape.");
 
 	STARTDECL(ph_deleteshape) (Value &fixture_id)

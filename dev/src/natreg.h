@@ -157,7 +157,17 @@ extern TypeRef type_function_nil;
 extern TypeRef type_coroutine;
 extern TypeRef type_typeid;
 
-enum ArgFlags { AF_NONE = 0, NF_EXPFUNVAL = 1, AF_ANYTYPE = 2, NF_SUBARG1 = 4, NF_ANYVAR = 8, NF_CORESUME = 16 };
+enum ArgFlags
+{
+    AF_NONE = 0,
+    NF_EXPFUNVAL = 1,
+    AF_ANYTYPE = 2,
+    NF_SUBARG1 = 4,
+    NF_SUBARG2 = 8,
+    NF_SUBARG3 = 16,
+    NF_ANYVAR = 32,
+    NF_CORESUME = 64
+};
 
 struct Ident;
 struct SpecIdent;
@@ -207,6 +217,8 @@ struct Narg : Typed
             {
                 case 0: break;
                 case '1': flags = ArgFlags(flags | NF_SUBARG1); break;
+                case '2': flags = ArgFlags(flags | NF_SUBARG2); break;
+                case '3': flags = ArgFlags(flags | NF_SUBARG3); break;
                 case '*': flags = ArgFlags(flags | NF_ANYVAR); break;
                 case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
                 case '%': flags = ArgFlags(flags | NF_CORESUME); break;
@@ -276,7 +288,7 @@ struct NativeFun : Named
     NargVector args, retvals;
 
     NativeCallMode ncm;
-    Value (*cont1)(Value &);
+    void (*cont1)();
 
     const char *idlist;
     const char *help;
@@ -286,7 +298,7 @@ struct NativeFun : Named
     NativeFun *overloads, *first;
 
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids, const char *rets, int nargs,
-              const char *_help, NativeCallMode _ncm, Value(*_cont1)(Value &), list<Type> &typestorage)
+              const char *_help, NativeCallMode _ncm, void (*_cont1)(), list<Type> &typestorage)
         : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm), cont1(_cont1),
           help(_help), subsystemid(-1), overloads(nullptr), first(this)
     {
@@ -375,7 +387,7 @@ struct AutoRegister
 
 #define STARTDECL(name) { struct ___##name { static Value s_##name
 
-#define MIDDECL(name) static Value mid_##name
+#define MIDDECL(name) static void mid_##name
 
 #define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
     BuiltinPtr bp; bp.f##field = &___##name::s_##name; \

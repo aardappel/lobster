@@ -72,7 +72,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_PUSHFUN:
         case IL_CALLV:
         case IL_CALLVCOND:
-        case IL_DUP:
         case IL_CONT1:
         case IL_JUMP:
         case IL_JUMPFAIL:

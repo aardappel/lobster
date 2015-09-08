@@ -28,6 +28,8 @@ struct CodeGen
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
 
+    vector<TypeRef> temptypestack;
+
     int Pos() { return (int)code.size(); }
 
     void Emit(int i)
@@ -105,7 +107,6 @@ struct CodeGen
                                                     GetTypeTableOffset(type_string);
                                                     GetTypeTableOffset(type_coroutine);
                                                     GetTypeTableOffset(type_any);
-        Type type_cycledone(V_CYCLEDONE);           GetTypeTableOffset(&type_cycledone);
         Type type_valuebuf(V_VALUEBUF);             GetTypeTableOffset(&type_valuebuf);
         Type type_stackframebuf(V_STACKFRAMEBUF);   GetTypeTableOffset(&type_stackframebuf);
                                                     GetTypeTableOffset(type_vector_int);
@@ -344,7 +345,10 @@ struct CodeGen
              f.idx,
              f.multimethod ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf);
-        return max(f.retvals, 1);
+        auto nretvals = max(f.retvals, 1);
+        assert(nretvals == (int)sf.returntypes.size());
+        for (int i = 1; i < nretvals; i++) temptypestack.push_back(sf.returntypes[i]);
+        return nretvals;
     };
 
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
@@ -354,7 +358,10 @@ struct CodeGen
         linenumbernodes.push_back(n);
         // by default, the cases below only deal with 0 or 1 retvals,
         // set this to > 1 to indicate extra values on the stack need to be dealt with
+        // the top of temptypestack always contains the same number of types.
         int maxretvalsupplied = 1;
+        temptypestack.push_back(n->exptype);
+
         int opc = 0;
 
         switch(n->type)
@@ -512,7 +519,7 @@ struct CodeGen
                 if (retval) Emit(IL_A2S);
                 break;
 
-            case T_A2A:
+            case T_E2A:
                 Gen(n->child(), retval);
                 if (retval)
                 {
@@ -524,7 +531,12 @@ struct CodeGen
                     }
                 }
                 break;
-                
+
+            case T_E2N:
+                Gen(n->child(), 0);
+                Dummy(retval);
+                break;
+
             case T_FUN:
                 if (retval) 
                 {
@@ -572,6 +584,8 @@ struct CodeGen
                     if (nf->retvals.v.size() > 1)
                     {
                         maxretvalsupplied = (int)nf->retvals.v.size();
+                        temptypestack.pop_back();
+                        for (auto &rv : nf->retvals.v) temptypestack.push_back(rv.type);
                     }
                     else if (!nf->retvals.v.size() && retval)
                     { 
@@ -626,7 +640,7 @@ struct CodeGen
                         }
                     }
                 }
-                if (!retval) Emit(IL_POP);
+                if (!retval) Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);  // FIXME: does not work for multiret?
                 break;
             }  
 
@@ -641,10 +655,12 @@ struct CodeGen
 
             case T_MULTIRET:
                 maxretvalsupplied = 0;
+                temptypestack.pop_back();
                 assert(retval);
                 for (; n; n = n->tailexps())
                 {
                     Gen(n->headexp(), true);
+                    temptypestack.push_back(n->headexp()->exptype);
                     maxretvalsupplied++;
                 }
                 break;
@@ -693,8 +709,8 @@ struct CodeGen
                 }
                 else
                 {
-                    Gen(n->if_then(), false);
-                    Dummy(retval);  // This potentially generates a pop/push combo, but important we return nil.
+                    // If retval, then this will generate nil thru T_E2N
+                    Gen(n->if_then(), retval);
                     SETL(loc);
                 }
                 break;
@@ -753,7 +769,7 @@ struct CodeGen
                     assert(vtype->t == V_VECTOR);
                 }
                 Emit(IL_NEWVEC, offset, i);
-                if (!retval) Emit(IL_POP);
+                if (!retval) Emit(IL_POPREF);
                 break;
             }
 
@@ -802,7 +818,7 @@ struct CodeGen
                 Emit(IL_COEND);
                 SETL(loc);
 
-                if (!retval) Emit(IL_POP);
+                if (!retval) Emit(IL_POPREF);
                 break;
             }
 
@@ -829,16 +845,26 @@ struct CodeGen
 
         if (maxretvalsupplied == 1) // if we generate just 0/1 value, it can be copied into multiple vars if needed
         {
-            while (retval > 1) { Emit(IL_DUP, 0); retval--; }
+            for (; retval > 1; retval--)
+            {
+                Emit(IsRefNil(temptypestack.back()->t) ? IL_DUPREF : IL_DUP);
+            }
         }
-        else if(retval < maxretvalsupplied) // if the caller doesn't want all return values, just pop em
+        else if(maxretvalsupplied > retval) // if the caller doesn't want all return values, just pop em
         {
-            while (maxretvalsupplied > retval && retval > 0) { Emit(IL_POP); maxretvalsupplied--; }
+            while (maxretvalsupplied > retval && retval > 0)
+            {
+                Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
+                temptypestack.pop_back();
+                maxretvalsupplied--;
+            }
         }
         else if (retval > maxretvalsupplied)    // only happens if both are > 1
         {
             parser.Error("expression does not supply that many return values", n);
         }
+
+        for (; maxretvalsupplied; maxretvalsupplied--) temptypestack.pop_back();
 
         linenumbernodes.pop_back();
     }

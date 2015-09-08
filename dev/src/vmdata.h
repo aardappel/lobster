@@ -19,9 +19,8 @@ namespace lobster {
 enum ValueType : int
 {
     // refc types are negative
-    V_MINVMTYPES = -11,
-    V_ANY = -10,         // [typechecker only] any other reference type.
-    V_CYCLEDONE = -9,
+    V_MINVMTYPES = -10,
+    V_ANY = -9,         // [typechecker only] any other reference type.
     V_STACKFRAMEBUF = -8,
     V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_BOXEDFLOAT = -6,
@@ -52,7 +51,7 @@ inline const char *BaseTypeName(ValueType t)
 {
     static const char *typenames[] =
     {
-        "any", "<cycle>", "<value_buffer>", "<stackframe_buffer>",
+        "any", "<value_buffer>", "<stackframe_buffer>",
         "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
         "nil", "int", "float", "function", "yield_function", "variable", "typeid",
         "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
@@ -75,14 +74,13 @@ enum type_elem_t : int   // Strongly typed element of typetable.
     TYPE_ELEM_STRING,
     TYPE_ELEM_COROUTINE,
     TYPE_ELEM_ANY,
-    TYPE_ELEM_CYCLEDONE,
     TYPE_ELEM_VALUEBUF,
     TYPE_ELEM_STACKFRAMEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 10,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 12,
-    TYPE_ELEM_VECTOR_OF_STRING = 14,
+    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
+    TYPE_ELEM_VECTOR_OF_STRING = 13,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 16
+    TYPE_ELEM_FIXED_OFFSET_END = 15
 };
 
 struct TypeInfo
@@ -186,11 +184,10 @@ struct RefObj : DynAlloc
 
     void CycleDone(int &cycles)
     {
-        ti = g_vm->GetTypeInfo(TYPE_ELEM_CYCLEDONE);
-        refc = cycles++;
+        refc = -cycles++;
     }
 
-    string CycleStr() const { return "_" + to_string(refc) + "_"; }
+    string CycleStr() const { return "_" + to_string(-refc) + "_"; }
 
     void DECDELETE(bool deref);
     bool Equal(const RefObj *o, bool structural) const;
@@ -224,7 +221,7 @@ struct LString : RefObj
     {
         if (pp.cycles >= 0)
         {
-            if (ti->t == V_CYCLEDONE) return CycleStr(); 
+            if (refc < 0) return CycleStr(); 
             CycleDone(pp.cycles);
         }
         string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
@@ -469,7 +466,7 @@ struct ElemObj : RefObj
     {
         if (pp.cycles >= 0)
         {
-            if (ti->t == V_CYCLEDONE) return CycleStr(); 
+            if (refc < 0) return CycleStr(); 
             CycleDone(pp.cycles);
         }
 
@@ -482,6 +479,7 @@ struct ElemObj : RefObj
             s += pp.depth || !IsRef(ElemType(i)) ? At(i).ToString(ElemType(i), subpp) : "..";
         }
         s += ti->t == V_STRUCT ? "}" : "]";
+
         return s;
     }
 };

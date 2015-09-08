@@ -91,7 +91,7 @@ struct VM : VMBase
           bcf(bytecode::GetBytecodeFile(bytecode_buffer)),
           currentline(-1), maxsp(-1),
           debugpp(2, 50, true, -1, true), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
-          trace(false), trace_tail(false)
+          trace(false), trace_tail(true)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
@@ -186,7 +186,7 @@ struct VM : VMBase
 
         if (!leaks.empty())
         {
-            Output(OUTPUT_WARN,
+            Output(OUTPUT_ERROR,
                 "LEAKS FOUND (this indicates cycles in your object graph, or a bug in Lobster, details in leaks.txt)");
                     
             FILE *leakf = OpenForWriting("leaks.txt", false);
@@ -203,7 +203,6 @@ struct VM : VMBase
                     auto vec = (ElemObj *)p;
                     switch(vec->ti->t)
                     {
-                        case V_CYCLEDONE:
                         case V_VALUEBUF:
                         case V_STACKFRAMEBUF:
                             break;
@@ -468,6 +467,7 @@ struct VM : VMBase
     {
         while (sp >= 0 && sp != stackframes.back().spstart)
         {
+            assert(sp > stackframes.back().spstart);  // Can't have too few.
             // only if from a return or error thats has tempories above it, and if returning thru a control structure
             POP().DEC();
         }
@@ -843,13 +843,6 @@ struct VM : VMBase
                     CoYield(ip);
                     break;
 
-                case IL_DUP:
-                {
-                    int from = sp - *ip++;
-                    PUSH(stack[from].INC());
-                    break;
-                }
-
                 case IL_FUNSTART:
                     VMASSERT(0);
 
@@ -871,8 +864,9 @@ struct VM : VMBase
                 case IL_CONT1:
                 {
                     auto nf = natreg.nfuns[*ip++];
-                    auto ret = nf->cont1(POP());
-                    PUSH(ret);
+                    POP().DEC();  // return value from body.
+                    nf->cont1();
+                    PUSH(Value());
                     break;
                 }
 
@@ -920,7 +914,7 @@ struct VM : VMBase
                         #undef ARG
                     }
                     PUSH(v);
-                    #ifdef _DEBUG
+                    #ifdef RTT_ENABLED
                         // see if any builtin function is lying about what type it returns
                         // other function types return intermediary values that don't correspond to final return values
                         if (nf->ncm == NCM_NONE)
@@ -929,8 +923,9 @@ struct VM : VMBase
                             {
                                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                                 auto u = nf->retvals.v[i].type->t;
-                                VMASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
+                                TYPE_ASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
                             }
+                            TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
                         }
                     #endif
                     break;
@@ -951,9 +946,11 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_POP:
-                    POP().DEC();
-                    break;
+                case IL_POP:    POP();            break;
+                case IL_POPREF: POP().DECRTNIL(); break;
+
+                case IL_DUP:    { auto x = TOP();            PUSH(x); break; }
+                case IL_DUPREF: { auto x = TOP().INCRTNIL(); PUSH(x); break; }
 
                 #define REFOP(exp) { res = exp; a.DEC(); b.DEC(); }
                 #define COP(t) if (b.type == t) { VMASSERTVALUES(false, a, b); }

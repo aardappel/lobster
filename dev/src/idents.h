@@ -277,7 +277,8 @@ struct Function : Named
     ArgVector orig_args; // Store the original types the function was declared with, before specialization.
 
     int scopelevel;
-    int retvals;
+    int retvals;       // 0 for anonymous functions, and for named functions to indicate no return has happened yet.
+                       // 0 implies 1, all function return at least 1 value.
 
     Function(const string &_name, int _idx, int _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),

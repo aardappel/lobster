@@ -285,7 +285,13 @@ struct TypeChecker
     {
         if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
         if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
-        if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_A2A, a);
+        if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_E2A, a);
+        a->exptype = type_any;
+    }
+
+    void MakeNil(Node *&a)
+    {
+        a = (Node *)new Unary(a->line, T_E2N, a);
         a->exptype = type_any;
     }
 
@@ -712,13 +718,17 @@ struct TypeChecker
                     sf->numcallers++;
                     TypeCheckFunctionDef(*sf, &function_def_node);
                 }
+                // FIXME: Don't need to do this on every call.
                 f.multimethodretval = f.subf->returntypes[0];
                 for (auto sf = f.subf->next; sf; sf = sf->next)
                 {
-                    // Lift this limit?
+                    // FIXME: Lift these limits?
                     if (sf->returntypes.size() != 1)
                         TypeError("multi-methods can currently return only 1 value.", function_def_node);
-                    f.multimethodretval = Union(f.multimethodretval, sf->returntypes[0], false);
+                    if (!ConvertsTo(sf->returntypes[0], f.multimethodretval, false))
+                        TypeError("multi-method " + f.name + " has inconsistent return value types: " +
+                                  TypeName(sf->returntypes[0]) + " and " + TypeName(f.multimethodretval),
+                                  *call_args);
                 }
             }
             return f.multimethodretval;
@@ -1191,6 +1201,7 @@ struct TypeChecker
                     if (!isconst || cval.True())
                     {
                         TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
+                        MakeNil(n.if_then());
                     }
                     // else constant == false: this if-then will get optimized out entirely, ignore it.
                     // bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
@@ -1512,15 +1523,20 @@ struct TypeChecker
                         argtype = argtype->sub;
                     }
                     
-                    if (arg.flags & NF_SUBARG1)
+                    int flag = NF_SUBARG1;
+                    for (int sa = 0; sa < 3; sa++)
                     {
-                        SubType(list->head(),
-                                nf->args.v[0].type->t == V_VECTOR && argtype->t != V_VECTOR
-                                    ? VectorStructElement(argtypes[0])
-                                    : argtypes[0],
-                                ArgName(i).c_str(),
-                                nf->name.c_str());
-                        typed = true;  // Stop these generic params being turned into any by SubType below.
+                        if (arg.flags & flag)
+                        {
+                            SubType(list->head(),
+                                    nf->args.v[sa].type->t == V_VECTOR && argtype->t != V_VECTOR
+                                        ? VectorStructElement(argtypes[sa])
+                                        : argtypes[sa],
+                                    ArgName(i).c_str(),
+                                    nf->name.c_str());
+                            typed = true;  // Stop these generic params being turned into any by SubType below.
+                        }
+                        flag *= 2;
                     }
 
                     if (arg.flags & NF_ANYVAR)
@@ -1587,13 +1603,19 @@ struct TypeChecker
                 {
                     // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
                     auto &ret = nf->retvals.v[0];
+                    int sa = 0;
                     switch (ret.flags)
                     {
+                        case NF_SUBARG3: sa++;
+                        case NF_SUBARG2: sa++;
                         case NF_SUBARG1:
-                            type = argtypes[0];
+                        {
+                            type = argtypes[sa];
+                            auto nftype = nf->args.v[sa].type;
 
-                            if (nf->args.v[0].type->t == V_TYPEID)
+                            if (nftype->t == V_TYPEID)
                             {
+                                assert(!sa);  // assumes always first.
                                 auto tin = n.ncall_args()->head();
                                 assert(tin->type == T_TYPEOF);
                                 if (tin->child()) type = tin->child()->exptype;
@@ -1601,20 +1623,22 @@ struct TypeChecker
 
                             if (ret.type->t == V_NIL)
                             {
-                                if (!IsRef(type->t)) TypeError("1st argument to " + nf->name + " can't be scalar", n);
+                                if (!IsRef(type->t))
+                                    TypeError("argument " + to_string(sa + 1) + " to " + nf->name + " can't be scalar", n);
                                 type = type->Wrap(NewType(), V_NIL);
                             }
-                            else if (nf->args.v[0].type->t == V_VECTOR && ret.type->t != V_VECTOR)
+                            else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR)
                             {
                                 type = VectorStructElement(type);
                             }
-                            else if (nf->args.v[0].type->t == V_COROUTINE)
+                            else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION)
                             {
                                 auto sf = type->sf;
                                 assert(sf);
                                 type = sf->returntypes[0];  // in theory it is possible this hasn't been generated yet..
                             }
                             break;
+                        }
                         case NF_ANYVAR: 
                             type = ret.type->t == V_VECTOR ? NewTypeVar()->Wrap(NewType()) : NewTypeVar();
                             break;
@@ -1826,7 +1850,8 @@ struct TypeChecker
 
             case T_I2F:
             case T_A2S:
-            case T_A2A:
+            case T_E2A:
+            case T_E2N:
                 // These have been added by another specialization.
                 // We could check if they still apply, but even more robust is just to remove them,
                 // and let them be regenerated if need be.

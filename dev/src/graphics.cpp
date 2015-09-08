@@ -93,7 +93,7 @@ Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
     return body;
 }
 
-Value poptrans(Value &ret)
+void poptrans()
 {
     auto s = g_vm->Pop();
     TYPE_ASSERT(s.type == V_STRING);
@@ -102,7 +102,6 @@ Value poptrans(Value &ret)
     view2object = tb->view2object;
     object2view = tb->object2view;
     s.DECRT();
-    return ret;
 }
 
 Mesh *GetMesh(Value &i)
@@ -376,12 +375,11 @@ void AddGraphics()
         curcolor = ValueDecToF<4>(col);
         return body;
     }
-    MIDDECL(gl_color) (Value &ret)
+    MIDDECL(gl_color) ()
     {
         curcolor = ValueDecToF<4>(g_vm->Pop());
-        return ret;
     }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "A",
+    ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "",
         "sets the current color. when a body is given, restores the previous color afterwards");
 
     STARTDECL(gl_polygon) (Value &vl)
@@ -442,11 +440,11 @@ void AddGraphics()
         auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationX(a), rotationX(a * float2(1, -1)), body);
     }
-    MIDDECL(gl_rotate_x) (Value &ret)
+    MIDDECL(gl_rotate_x) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F]:2C?", "A",
+    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F]:2C?", "",
         "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -455,11 +453,11 @@ void AddGraphics()
         auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationY(a), rotationY(a * float2(1, -1)), body);
     }
-    MIDDECL(gl_rotate_y) (Value &ret)
+    MIDDECL(gl_rotate_y) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F]:2C?", "A",
+    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F]:2C?", "",
         "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -468,11 +466,11 @@ void AddGraphics()
         auto a = ValueDecToF<2>(angle);
         return pushtrans(rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
-    MIDDECL(gl_rotate_z) (Value &ret)
+    MIDDECL(gl_rotate_z) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F]:2C?", "A",
+    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F]:2C?", "",
         "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -481,11 +479,11 @@ void AddGraphics()
         auto v = ValueDecToF<3>(vec);
         return pushtrans(translation(v), translation(-v), body);
     }
-    MIDDECL(gl_translate) (Value &ret)
+    MIDDECL(gl_translate) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F]C?", "A",
+    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F]C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -494,11 +492,11 @@ void AddGraphics()
         auto v = f.fval() * float3_1;
         return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
-    MIDDECL(gl_scale) (Value &ret)
+    MIDDECL(gl_scale) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FC?", "A",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FC?", "",
         "scales the current coordinate system using a numerical factor."
         " when a body is given, restores the previous transform afterwards");
 
@@ -507,11 +505,11 @@ void AddGraphics()
         auto v = ValueDecToF<3>(vec);
         return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
-    MIDDECL(gl_scale) (Value &ret)
+    MIDDECL(gl_scale) ()
     {
-        return poptrans(ret);
+        poptrans();
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F]C?", "A",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F]C?", "",
         "scales the current coordinate system using a vector."
         " when a body is given, restores the previous transform afterwards");
 
@@ -539,12 +537,11 @@ void AddGraphics()
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }
-    MIDDECL(gl_linemode) (Value &ret)
+    MIDDECL(gl_linemode) ()
     {
         polymode = (Primitive)g_vm->Pop().ival();
-        return ret;
     }
-    ENDDECL2CONTEXIT(gl_linemode, "on,body", "IC", "A",
+    ENDDECL2CONTEXIT(gl_linemode, "on,body", "IC", "",
         "set line mode (true == on). when a body is given,"
         " restores the previous mode afterwards");
 
@@ -718,7 +715,7 @@ void AddGraphics()
     STARTDECL(gl_animatemesh) (Value &i, Value &f)
     {
         GetMesh(i)->curanim = f.fval();
-        return i;
+        return Value();
     }
     ENDDECL2(gl_animatemesh, "i,frame", "IF", "",
         "set the frame for animated mesh i");
@@ -727,7 +724,7 @@ void AddGraphics()
     {
         TestGL();
         GetMesh(i)->Render(currentshader);
-        return i;
+        return Value();
     }
     ENDDECL1(gl_rendermesh, "i", "I", "",
         "renders the specified mesh");
@@ -811,14 +808,13 @@ void AddGraphics()
         if (body.True()) g_vm->Push(Value(old));
         return body;
     }
-    MIDDECL(gl_blend) (Value &ret)
+    MIDDECL(gl_blend) ()
     {
         auto m = g_vm->Pop();
         TYPE_ASSERT(m.type == V_INT);
         SetBlendMode((BlendMode)m.ival());
-        return ret;
     }
-    ENDDECL2CONTEXIT(gl_blend, "on,body", "IC?", "A",
+    ENDDECL2CONTEXIT(gl_blend, "on,body", "IC?", "",
         "changes the blending mode to 0: off, 1: alpha blend (default), 2: additive, 3: alpha additive,"
         " 4: multiplicative. when a body is given, restores the previous mode afterwards");
 
