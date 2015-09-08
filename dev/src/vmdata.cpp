@@ -22,7 +22,7 @@ int ElemObj::Len() const
 {
     if (ti->t == V_VECTOR) return ((LVector *)this)->len;
     assert(ti->t == V_STRUCT);
-    return g_vm->StructLen(ti);
+    return ti->len;
 }
 
 Value &ElemObj::At(int i) const
@@ -140,13 +140,12 @@ string TypeInfo::Debug(bool rec) const
     }
     else if (t == V_STRUCT)
     {
-        auto nargs = g_vm->StructLen(this);
         auto sname = g_vm->StructName(this);
         s += ":" + sname;
         if (rec)
         {
             s += "{";
-            for (int i = 0; i < nargs; i++)
+            for (int i = 0; i < len; i++)
                 s += g_vm->GetTypeInfo(elems[i])->Debug(false) + ",";
             s += "}";
         }

@@ -176,10 +176,9 @@ struct ValueParser
                 string sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);
-                int nargs = g_vm->StructLen(ti);
                 auto name = g_vm->StructName(ti);
                 if (name != sname) lex.Error("struct type " + name + " required, " + sname + " given");
-                return ParseElems(T_RIGHTCURLY, typeoff, nargs);
+                return ParseElems(T_RIGHTCURLY, typeoff, ti->len);
             }
 
             default:

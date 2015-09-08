@@ -93,6 +93,7 @@ struct TypeInfo
         type_elem_t subt;  // V_VECTOR | V_NIL
         int structidx;     // V_STRUCT
     };
+    int len;               // V_STRUCT
     type_elem_t elems[1];  // V_STRUCT
 
     TypeInfo() = delete;
@@ -147,7 +148,6 @@ struct VMBase
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
     virtual const TypeInfo *GetTypeInfo(type_elem_t offset) = 0;
-    virtual int StructLen(const TypeInfo *ti) = 0;
     virtual string StructName(const TypeInfo *ti) = 0;
     virtual const TypeInfo *GetVarTypeInfo(int varidx) = 0;
 };
@@ -488,7 +488,7 @@ struct LStruct : ElemObj
 {
     LStruct(const TypeInfo *_ti) : ElemObj(_ti) {}
 
-    int Len() const { return g_vm->StructLen(ti); }
+    int Len() const { return ti->len; }
     Value *Elems() const { return (Value *)(this + 1); }
 
     Value &At(int i) const

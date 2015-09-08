@@ -264,7 +264,7 @@ struct VM : VMBase
     {
         if (ti->t == V_VECTOR)
             return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, ti);
-        assert(ti->t == V_STRUCT && max == initial && max == StructLen(ti));
+        assert(ti->t == V_STRUCT && max == initial && max == ti->len);
         return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(ti);
     }
     LString *NewString(size_t l)
@@ -1422,11 +1422,6 @@ struct VM : VMBase
     void Push(const Value &v) { PUSH(v); }
 
     Value Pop() { return POP(); }
-
-    int StructLen(const TypeInfo *ti)
-    {
-        return bcf->structs()->Get(ti->structidx)->nfields();
-    }
 
     string StructName(const TypeInfo *ti)
     {
