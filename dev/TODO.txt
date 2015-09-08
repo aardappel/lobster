@@ -75,6 +75,10 @@
 
   * start removing all dynamic ops from the VM and codegen
 
+  * Annotate builtin ops that truely want a vector, not a struct substitute.
+
+  * returning an [int] from vector < ops is both incorrect and wasteful
+
   * what gets collected in "freevars" for each function is overly broad for HOFs, see CheckFreeVariable.
     This is benign, but would be nice to clean up.
 

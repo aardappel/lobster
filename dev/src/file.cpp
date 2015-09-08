@@ -61,8 +61,8 @@ void AddFileOps()
             HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
             if (fh != INVALID_HANDLE_VALUE)
             {
-                auto nlist = g_vm->NewVector(0, TYPE_ELEM_VECTOR_OF_STRING);
-                auto slist = g_vm->NewVector(0, TYPE_ELEM_VECTOR_OF_INT);
+                auto nlist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+                auto slist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
                 do
                 {
@@ -87,8 +87,8 @@ void AddFileOps()
             string mask = folder + "/*";
             if (!glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl))
             {
-                auto nlist = g_vm->NewVector(0, TYPE_ELEM_VECTOR_OF_STRING);
-                auto slist = g_vm->NewVector(0, TYPE_ELEM_VECTOR_OF_INT);
+                auto nlist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+                auto slist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
                 for (size_t fi = 0; fi < gl.gl_pathc; fi++)
                 {

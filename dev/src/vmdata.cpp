@@ -16,7 +16,23 @@
 
 #include "vmdata.h"
 
-using namespace lobster;
+namespace lobster {
+
+int ElemObj::Len() const
+{
+    auto &ti = GetTypeInfo();
+    if (ti.t == V_VECTOR) return ((LVector *)this)->len;
+    assert(ti.t == V_STRUCT);
+    return g_vm->StructLen(typeoff);
+}
+
+Value &ElemObj::At(int i) const
+{
+    auto &ti = GetTypeInfo();
+    if (ti.t == V_VECTOR) return ((LVector *)this)->At(i);
+    assert(ti.t == V_STRUCT);
+    return ((LStruct *)this)->At(i);
+};
 
 void RefObj::DECDELETE(bool deref)
 {
@@ -29,9 +45,10 @@ void RefObj::DECDELETE(bool deref)
         case TYPE_ELEM_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
         default:
         {
-            assert(IsVector(BaseType()));
-            ((LVector *)this)->DeleteSelf(deref);
-            break;
+            auto &ti = GetTypeInfo();
+            if (ti.t == V_VECTOR) return ((LVector *)this)->DeleteSelf(deref);
+            assert(ti.t == V_STRUCT);
+            return ((LStruct *)this)->DeleteSelf(deref);
         }
     }
 }
@@ -56,7 +73,7 @@ bool RefObj::Equal(const RefObj *o, bool structural) const
         default:
         {
             assert(IsVector(BaseType()));
-            return structural && ((LVector *)this)->Equal(*(LVector *)o);
+            return structural && ((ElemObj *)this)->Equal(*(ElemObj *)o);
         }
     }
 }
@@ -87,7 +104,7 @@ string RefObj::ToString(PrintPrefs &pp) const
         default:
         {
             auto &ti = GetTypeInfo();
-            if (IsVector((ValueType)ti.t)) return ((LVector *)this)->ToString(pp);
+            if (IsVector((ValueType)ti.t)) return ((ElemObj *)this)->ToString(pp);
             return string("(") + BaseTypeName(BaseType()) + ")";
         }
     }
@@ -113,10 +130,10 @@ void RefObj::Mark()
     assert(refc);
     refc = -refc;
     auto &ti = GetTypeInfo();
-    switch (ti.vt())
+    switch (ti.t)
     {
         case V_STRUCT:
-        case V_VECTOR:     ((LVector   *)this)->Mark(); break;
+        case V_VECTOR:     ((ElemObj   *)this)->Mark(); break;
         case V_COROUTINE:  ((CoRoutine *)this)->Mark(); break;
     }
 }
@@ -126,25 +143,28 @@ void Value::Mark(ValueType vtype)
     if (IsRef(vtype) && ref_) ref_->Mark();
 }
 
-string TypeInfo::Debug(bool rec) const
+string TypeInfoDebug(type_elem_t offset, bool rec)
 {
-    string s = BaseTypeName(vt());
-    if (vt() == V_VECTOR || vt() == V_NIL)
+    auto &ti = g_vm->GetTypeInfo(offset);
+    string s = BaseTypeName(ti.t);
+    if (ti.t == V_VECTOR || ti.t == V_NIL)
     {
-        s += "[" + g_vm->GetTypeInfo(sub).Debug(false) + "]";
+        s += "[" + TypeInfoDebug(ti.subt, false) + "]";
     }
-    else if (vt() == V_STRUCT)
+    else if (ti.t == V_STRUCT)
     {
-        string sname;
-        auto nargs = g_vm->StructTypeInfo(sub, sname);
+        auto nargs = g_vm->StructLen(offset);
+        auto sname = g_vm->StructName(offset);
         s += ":" + sname;
         if (rec)
         {
             s += "{";
             for (int i = 0; i < nargs; i++)
-                s += g_vm->GetTypeInfo(elems[i]).Debug(false) + ",";
+                s += TypeInfoDebug(ti.elems[i], false) + ",";
             s += "}";
         }
     }
     return s;
 }
+
+}  // namespace lobster

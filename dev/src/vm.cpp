@@ -83,6 +83,7 @@ struct VM : VMBase
     #define TOP2() (stack[sp - 1])
     #define TOP3() (stack[sp - 2])
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
+    #define POPN(n) (sp -= (n))
     #define TOPPTR() (stack + sp + 1)
 
     VM(const char *_pn, const uchar *bytecode_buffer)
@@ -150,10 +151,7 @@ struct VM : VMBase
     }
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
-    const TypeInfo &GetVarTypeInfo(int varidx)
-    {
-        return  *(TypeInfo *)(typetable + bcf->specidents()->Get(varidx)->typeidx());
-    }
+    type_elem_t GetVarTypeInfo(int varidx) { return (type_elem_t)bcf->specidents()->Get(varidx)->typeidx(); }
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname; }
@@ -162,8 +160,8 @@ struct VM : VMBase
 
     static bool _LeakSorter(void *va, void *vb)
     {
-        auto a = (LVector *)va;
-        auto b = (LVector *)vb;
+        auto a = (RefObj *)va;
+        auto b = (RefObj *)vb;
         return a->refc != b->refc
         ? a->refc > b->refc
         : (a->typeoff != b->typeoff
@@ -192,7 +190,7 @@ struct VM : VMBase
                         
                 for (auto p : leaks)
                 {
-                    auto vec = (LVector *)p;
+                    auto vec = (ElemObj *)p;
                     switch(vec->typeoff)
                     {
                         case TYPE_ELEM_CYCLEDONE:
@@ -245,9 +243,13 @@ struct VM : VMBase
     }
     
     #undef new
-    LVector *NewVector(size_t n, type_elem_t t)
+    ElemObj *NewVector(int initial, int max, type_elem_t t)
     {
-        return new (vmpool->alloc(sizeof(LVector) + sizeof(Value) * n)) LVector((int)n, t);
+        auto &ti = GetTypeInfo(t);
+        if (ti.t == V_VECTOR)
+            return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, t);
+        assert(ti.t == V_STRUCT && max == initial && max == StructLen(t));
+        return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(t);
     }
     LString *NewString(size_t l)
     {
@@ -403,7 +405,7 @@ struct VM : VMBase
                 {
                     Value &v = stack[sp - nargs + j + 1];
                     auto &ti = GetTypeInfo(desired);
-                    if (v.type != ti.vt() || (IsRef(v.type) && v.ref()->typeoff != desired))
+                    if (v.type != ti.t || (IsRef(v.type) && v.ref()->typeoff != desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -434,7 +436,12 @@ struct VM : VMBase
     {
         VMASSERT(sp < 0 && !stackframes.size());
 
-        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].DEC();
+        for (size_t i = 0; i < bcf->specidents()->size(); i++)
+        {
+            auto sid = bcf->specidents()->Get(i);
+            //Output(OUTPUT_INFO, "destructing: %s", bcf->idents()->Get(sid->ididx())->name()->c_str());
+            vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx()).t);
+        }
 
         #ifdef _DEBUG
             Output(OUTPUT_INFO, "stack at its highest was: %d", maxsp);
@@ -882,7 +889,7 @@ struct VM : VMBase
                 }
 
                 case IL_IFOR: FORLOOP(iter.ival(), i, donei);
-                case IL_VFOR: FORLOOP(iter.vval()->len, iter.vval()->AtInc(i.ival()), donev);
+                case IL_VFOR: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donev);
                 case IL_SFOR: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), dones);
 
                 case IL_BCALL:
@@ -927,8 +934,10 @@ struct VM : VMBase
                 case IL_NEWVEC:
                 {
                     auto type = (type_elem_t)*ip++;
-                    VMASSERT(IsVector((ValueType)*(typetable + type)));
-                    auto vec = NewVector(*ip++, type);
+                    auto len = *ip++;
+                    auto vec = NewVector(len, len, type);
+                    if (len) vec->Init(TOPPTR() - len, len, false);
+                    POPN(len);
                     PUSH(Value(vec));
                     break;
                 }
@@ -946,19 +955,19 @@ struct VM : VMBase
                 #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
                 #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
 
-                #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.vval()->At(i).fval() : (T)a.vval()->At(i).ival())
+                #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
                 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-                    int len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT : a.vval()->typeoff); \
+                    int len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT : a.eval()->typeoff); \
                     for (int j = 0; j < len; j++) \
                     { \
-                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.vval()->At(j), isfloat ? V_FLOAT : V_INT); \
+                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
                         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
                         if (extras&1 && bv == 0) Div0(); \
-                        VMTYPEEQ(a.vval()->At(j), isfloat ? V_FLOAT : V_INT); \
-                        res.vval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
+                        VMTYPEEQ(a.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
+                        res.eval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
                     } \
-                    VectorDec(a, res); \
-                    if (!withscalar) VectorDec(b, res); \
+                    a.DECRT(); \
+                    if (!withscalar) b.DECRT(); \
                 } 
                 #define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, int, false, withscalar, icomp)
                 #define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, float, true, withscalar, fcomp)
@@ -1072,15 +1081,15 @@ struct VM : VMBase
                 #define VUMINUS(isfloat, type) { \
                     Value a = POP(); \
                     Value res; \
-                    int len = VectorLoop(a, Value((type)1), res, true, a.vval()->typeoff); \
+                    int len = VectorLoop(a, Value((type)1), res, true, a.eval()->typeoff); \
                     if (len >= 0) \
                     { \
                         for (int i = 0; i < len; i++) \
                         { \
-                            VMTYPEEQ(a.vval()->At(i), isfloat ? V_FLOAT : V_INT); \
-                            res.vval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
+                            VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
+                            res.eval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
                         } \
-                        VectorDec(a, res); \
+                        a.DECRT(); \
                         PUSH(res); \
                         break; \
                     } \
@@ -1169,15 +1178,6 @@ struct VM : VMBase
                 case IL_LVALIDXV: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
                 case IL_LVALFLD:  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
 
-                case IL_PUSHONCE:
-                {
-                    auto x = POP();
-                    auto &v = TOP();
-                    TYPE_ASSERT(IsVector(v.type));
-                    v.vval()->Push(x);
-                    break;
-                }
-
                 case IL_JUMPFAIL:    { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip;                }               break; }
                 case IL_JUMPFAILR:   { auto x = POP(); auto nip = *ip++; if (!x      .True()) { ip = codestart + nip; PUSH(x);       } else x.DEC(); break; }
                 case IL_JUMPFAILN:   { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip; PUSH(Value()); }               break; }
@@ -1223,7 +1223,7 @@ struct VM : VMBase
     { 
         Value r = POP(); 
         if (!r.ref()) { PUSH(r); return; }  // ?.
-        PUSH(r.vval()->AtInc(i));
+        PUSH(r.eval()->AtInc(i));
         r.DECRT(); 
     }
 
@@ -1235,8 +1235,8 @@ struct VM : VMBase
         {
             case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
-                IDXErr(i, r.vval()->len, r);
-                PUSH(r.vval()->AtInc(i));
+                IDXErr(i, r.eval()->Len(), r);
+                PUSH(r.eval()->AtInc(i));
                 break;
             case V_STRING:
                 IDXErr(i, r.sval()->len, r); 
@@ -1252,8 +1252,8 @@ struct VM : VMBase
     {
         Value vec = POP();
         TYPE_ASSERT(IsVector(vec.type));
-        IDXErr(i, (int)vec.vval()->len, vec);
-        Value &a = vec.vval()->At(i);
+        IDXErr(i, (int)vec.eval()->Len(), vec);
+        Value &a = vec.eval()->At(i);
         LvalueOp(lvalop, a);
         vec.DECRT();
     }
@@ -1359,7 +1359,7 @@ struct VM : VMBase
         if (IsRef(v.type))
         {
             auto &ti = GetTypeInfo(v.ref()->typeoff);
-            if (ti.vt() == V_STRUCT) return ReverseLookupType(ti.sub);
+            if (ti.t == V_STRUCT) return ReverseLookupType(ti.structidx);
         }
         return BaseTypeName(v.type);
     }
@@ -1374,9 +1374,9 @@ struct VM : VMBase
     int GrabIndex(const Value &idx)
     {
         auto &v = TOP();
-        for (int i = idx.vval()->len - 1; ; i--)
+        for (int i = idx.eval()->Len() - 1; ; i--)
         {
-            auto sidx = idx.vval()->At(i);
+            auto sidx = idx.eval()->At(i);
             VMTYPEEQ(sidx, V_INT);
             if (!i)
             {
@@ -1384,8 +1384,8 @@ struct VM : VMBase
                 return sidx.ival();
             }
             TYPE_ASSERT(IsVector(v.type));
-            IDXErr(sidx.ival(), v.vval()->len, v);
-            auto nv = v.vval()->At(sidx.ival()).INCRT();
+            IDXErr(sidx.ival(), v.eval()->Len(), v);
+            auto nv = v.eval()->At(sidx.ival()).INCRT();
             v.DECRT();
             v = nv;
         }
@@ -1394,39 +1394,29 @@ struct VM : VMBase
     int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, type_elem_t desttype)
     {
         TYPE_ASSERT(IsVector(a.type));
-        int len = a.vval()->len;
+        int len = a.eval()->Len();
         if (!withscalar)
         {
             TYPE_ASSERT(IsVector(b.type));
-            if (b.vval()->len != len) Error("vectors operation: vector must be same length", a, b);
-
-            if (a.vval()->refc == 1) { res = a; a.vval()->typeoff = desttype; return len; }
-            if (b.vval()->refc == 1) { res = b; b.vval()->typeoff = desttype; return len; }
-        }
-        else
-        {
-            if (a.vval()->refc == 1) { res = a; return len; }
+            if (b.eval()->Len() != len) Error("vectors operation: vector must be same length", a, b);
         }
 
-        res = Value(NewVector(len, desttype));
-        res.vval()->len = len;
+        res = Value(NewVector(len, len, desttype));
         return len;
-    }
-
-    void VectorDec(const Value &a, const Value &res)
-    {
-        if (a.vval() != res.vval()) a.DECRT();
     }
 
     void Push(const Value &v) { PUSH(v); }
 
     Value Pop() { return POP(); }
 
-    int StructTypeInfo(type_elem_t idx, string &name)
+    int StructLen(type_elem_t offset)
     {
-        auto s = bcf->structs()->Get(idx);
-        name = s->name()->c_str();
-        return s->nfields();
+        return bcf->structs()->Get(GetTypeInfo(offset).structidx)->nfields();
+    }
+
+    string StructName(type_elem_t offset)
+    {
+        return bcf->structs()->Get(GetTypeInfo(offset).structidx)->name()->c_str();
     }
 
     virtual const char *ReverseLookupType(uint v)

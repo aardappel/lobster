@@ -110,7 +110,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         {
             auto &ti = *(TypeInfo *)(typetable + *ip++);
             auto nargs = *ip++;
-            s += ti.vt() == V_STRUCT ? bcf->structs()->Get(ti.sub)->name()->c_str() : "vector";
+            s += ti.t == V_STRUCT ? bcf->structs()->Get(ti.structidx)->name()->c_str() : "vector";
             s += " ";
             s += to_string(nargs);
             break;

@@ -176,13 +176,13 @@ void AddPhysicsOps()
 	{
 		auto &body = GetBody(other_id, position);
         b2PolygonShape shape;
-		auto verts = new b2Vec2[vertices.vval()->len];
-        for (int i = 0; i < vertices.vval()->len; i++)
+		auto verts = new b2Vec2[vertices.eval()->Len()];
+        for (int i = 0; i < vertices.eval()->Len(); i++)
         {
-            auto vert = ValueToF<2>(vertices.vval()->At(i));
+            auto vert = ValueToF<2>(vertices.eval()->At(i));
             verts[i] = Float2ToB2(vert);
         }
-		shape.Set(verts, vertices.vval()->len);
+		shape.Set(verts, vertices.eval()->Len());
 		delete[] verts;
 		vertices.DECRT();
 		return CreateFixture(body, shape);

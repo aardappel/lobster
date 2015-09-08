@@ -733,30 +733,25 @@ struct CodeGen
 
             case T_CONSTRUCTOR:
             {
+                int i = 0;
+                // FIXME: a malicious script can exploit this for a stack overflow.
+                for (auto cn = n->constructor_args(); cn; cn = cn->tail())
+                {
+                    assert(cn->type == T_LIST);
+                    Gen(cn->head(), 1);
+                    i++;
+                }
                 auto vtype = n->exptype;
+                auto offset = GetTypeTableOffset(vtype);
                 if (vtype->t == V_STRUCT)
                 {
-                    auto offset = GetTypeTableOffset(vtype);
-                    Emit(IL_NEWVEC, offset, (int)vtype->struc->fields.size());
+                    assert((int)vtype->struc->fields.size() == i);
                 }
                 else
                 {
                     assert(vtype->t == V_VECTOR);
-                    int nargs = 0;
-                    for (const Node *it = n->constructor_args(); it; it = it->tail()) nargs++;
-                    Emit(IL_NEWVEC, GetTypeTableOffset(vtype), nargs);
                 }
-
-                int i = 0;
-                for (auto cn = n->constructor_args(); cn; cn = cn->tail())
-                {
-                    assert(cn->type == T_LIST);
-
-                    Gen(cn->head(), 1);
-
-                    Emit(IL_PUSHONCE);
-                    i++;
-                }
+                Emit(IL_NEWVEC, offset, i);
                 if (!retval) Emit(IL_POP);
                 break;
             }
