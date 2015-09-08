@@ -59,7 +59,6 @@ struct VM : VMBase
     size_t codelen;
     const int *codestart;
     vector<int> codebigendian;
-    const type_elem_t *typetable;
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts;
     
@@ -150,10 +149,6 @@ struct VM : VMBase
         }
     }
 
-    const TypeInfo *GetTypeInfo(type_elem_t offset)
-    {
-        return (TypeInfo *)(typetable + offset);
-    }
     const TypeInfo *GetVarTypeInfo(int varidx)
     {
         return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());

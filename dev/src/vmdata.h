@@ -125,8 +125,11 @@ struct PrintPrefs
 struct VMBase
 {
     PrintPrefs programprintprefs;
+    const type_elem_t *typetable;
 
-    VMBase() : programprintprefs(10, 10000, false, -1, false) {}
+    VMBase() : programprintprefs(10, 10000, false, -1, false), typetable(nullptr) {}
+
+    const TypeInfo *GetTypeInfo(type_elem_t offset) { return (TypeInfo *)(typetable + offset); }
 
     //virtual Value EvalC(Value &cl, int nargs) = 0;
     virtual Value BuiltinError(string err) = 0;
@@ -147,7 +150,6 @@ struct VMBase
     virtual int CallerId() = 0;
     virtual const char *GetProgramName() = 0;
     virtual void LogFrame() = 0;
-    virtual const TypeInfo *GetTypeInfo(type_elem_t offset) = 0;
     virtual string StructName(const TypeInfo *ti) = 0;
     virtual const TypeInfo *GetVarTypeInfo(int varidx) = 0;
 };
