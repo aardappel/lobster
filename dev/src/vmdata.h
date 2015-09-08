@@ -72,15 +72,14 @@ enum type_elem_t : int   // Strongly typed element of typetable.
     TYPE_ELEM_BOXEDINT,
     TYPE_ELEM_BOXEDFLOAT,
     TYPE_ELEM_STRING,
-    TYPE_ELEM_COROUTINE,
     TYPE_ELEM_ANY,
     TYPE_ELEM_VALUEBUF,
     TYPE_ELEM_STACKFRAMEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
-    TYPE_ELEM_VECTOR_OF_STRING = 13,
+    TYPE_ELEM_VECTOR_OF_INT = 8,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 10,
+    TYPE_ELEM_VECTOR_OF_STRING = 12,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 15
+    TYPE_ELEM_FIXED_OFFSET_END = 14
 };
 
 struct TypeInfo
@@ -89,11 +88,11 @@ struct TypeInfo
     union
     {
         type_elem_t subt;  // V_VECTOR | V_NIL
-        int structidx;     // V_STRUCT
+        struct { int structidx; int len; type_elem_t elems[1]; };    // V_STRUCT
+        int sfidx;  // V_FUNCTION;
+        struct { int cofunidx; type_elem_t yieldtype; };  // V_COROUTINE
     };
-    int len;               // V_STRUCT
-    type_elem_t elems[1];  // V_STRUCT
-
+    
     TypeInfo() = delete;
     TypeInfo(const TypeInfo &) = delete;
 
@@ -340,11 +339,6 @@ struct Value
 
     inline Value &INCRTNIL() { if (ref_) INCRT(); return *this; }
     inline Value &INCTYPE(ValueType t) { return IsRefNil(t) ? INCRTNIL() : *this; }
-        
-    inline Value &INC()
-    {
-        return IsRef(type) ? INCRT() : *this;
-    }
 
     inline void DECRT() const   // we already know its a ref type
     {
@@ -533,6 +527,8 @@ struct LVector : ElemObj
         vmpool->dealloc_small(this);
     }
 
+    const TypeInfo *ElemTypeInfo() const { return g_vm->GetTypeInfo(ti->subt); }
+
     void Resize(int newmax)
     {
         // FIXME: check overflow
@@ -547,7 +543,6 @@ struct LVector : ElemObj
     {
         if (len == maxl) Resize(maxl ? maxl * 2 : 4);
         v[len++] = val;
-        ElemType(len - 1);  // FIXME: just for testing, triggers type check
     }
 
     Value Pop()
@@ -557,18 +552,16 @@ struct LVector : ElemObj
 
     Value &Top() const
     {
-        if (IsRef(ElemType(len - 1))) v[len - 1].INCRT();
-        return v[len - 1];
+        return v[len - 1].INCTYPE(ElemTypeInfo()->t);
     }
     
-    void Insert(Value &val, int i, int n)
+    void Insert(Value &val, int i)
     {
-        assert(n > 0 && i >= 0 && i <= len); // note: insertion right at the end is legal, hence <= 
-        if (len + n > maxl) Resize(max(len + n, maxl ? maxl * 2 : 4));   
-        memmove(v + i + n, v + i, sizeof(Value) * (len - i));
+        assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <= 
+        if (len + 1 > maxl) Resize(max(len + 1, maxl ? maxl * 2 : 4));   
+        memmove(v + i + 1, v + i, sizeof(Value) * (len - i));
         len++;
-        for (int j = 0; j < n; j++) { v[i + j] = val; val.INC(); }
-        val.DEC();
+        v[i] = val;
     }
 
     Value Remove(int i, int n, int decfrom)
@@ -591,7 +584,10 @@ struct LVector : ElemObj
     {
         if (len + amount > maxl) Resize(len + amount);  // FIXME: check overflow
         memcpy(v + len, from->v + start, sizeof(Value) * amount);
-        for (int i = 0; i < amount; i++) v[len + i].INC();
+        if (IsRefNil(from->ElemTypeInfo()->t))
+        {
+            for (int i = 0; i < amount; i++) v[len + i].INCRTNIL();
+        }
         len += amount;
     }
 };
@@ -622,8 +618,8 @@ struct CoRoutine : RefObj
     const int *varip;
     CoRoutine *parent;
 
-    CoRoutine(int _ss, int _sfs, const int *_rip, const int *_vip, CoRoutine *_p)
-        : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_COROUTINE)), active(true),
+    CoRoutine(int _ss, int _sfs, const int *_rip, const int *_vip, CoRoutine *_p, const TypeInfo *cti)
+        : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0), stackframecopymax(0),
           top_at_suspend(-1),
@@ -632,7 +628,7 @@ struct CoRoutine : RefObj
     Value &Current()
     {
         if (stackstart >= 0) g_vm->BuiltinError("cannot get value of active coroutine");
-        return stackcopy[stackcopylen - 1];
+        return stackcopy[stackcopylen - 1].INCTYPE(g_vm->GetTypeInfo(ti->yieldtype)->t);
     }
 
     void Resize(int newlen)

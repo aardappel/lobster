@@ -125,7 +125,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_LVALVAR:
             LvalDisAsm(s, ip);
         case IL_PUSHVAR:
-            s += to_string(*ip) + ":";  // REMOVEME
+        case IL_PUSHVARREF:
+            //s += to_string(*ip) + ":";
             s += IdName(bcf, *ip++);
             break;
 
@@ -170,6 +171,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_CORO:
         {
             s += to_string(*ip++);
+            ip++;  // typeinfo
             int n = *ip++;
             for (int i = 0; i < n; i++) { s += " v"; s += to_string(*ip++); }
             break;

@@ -265,10 +265,11 @@ struct VM : VMBase
     {
         return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l); 
     }
-    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p)
+    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo *cti)
     {
+        assert(cti->t == V_COROUTINE);
         return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */,
-                                                                (int)stackframes.size(), rip, vip, p);
+                                                                (int)stackframes.size(), rip, vip, p, cti);
     }
     BoxedInt *NewInt(int i)
     {
@@ -544,12 +545,13 @@ struct VM : VMBase
         auto ndef = *ip++;
         for (int i = 0; i < ndef; i++)
         {
-            // for most locals, this just saves an undefined, only in recursive cases it has an actual value.
+            // for most locals, this just saves an nil, only in recursive cases it has an actual value.
             // The reason we don't clear the var after backing it up is that in the DS case,
             // you want to be able to use the old value until a new one gets defined, as in a <- a + 1.
             // clearing it would save the INC and a DEC when it eventually gets overwritten,
             // so maybe we can at some point distinguish between vars that are used with DS and those that are not.
-            PUSH(vars[*ip++].INC());
+            auto varidx = *ip++;
+            PUSH(vars[varidx].INCTYPE(GetVarTypeInfo(varidx)->t));
         }
         auto nlogvars = *ip++;
 
@@ -609,8 +611,9 @@ struct VM : VMBase
     void CoNew()
     {
         const int *returnip = codestart + *ip++;
+        auto ctidx = (type_elem_t)*ip++;
         CoNonRec(ip);
-        curcoroutine = NewCoRoutine(returnip, ip, curcoroutine);
+        curcoroutine = NewCoRoutine(returnip, ip, curcoroutine, GetTypeInfo(ctidx));
         curcoroutine->BackupParentVars(vars);
         int nvars = *ip++;
         ip += nvars;
@@ -1144,7 +1147,8 @@ struct VM : VMBase
                     break;
                 }
 
-                case IL_PUSHVAR:   PUSH(vars[*ip++].INC()); break;
+                case IL_PUSHVAR:    PUSH(vars[*ip++]); break;
+                case IL_PUSHVARREF: PUSH(vars[*ip++].INCRTNIL()); break;
 
                 case IL_PUSHFLD:
                 case IL_PUSHFLDM: PushDerefField(*ip++); break;
@@ -1156,7 +1160,8 @@ struct VM : VMBase
                     int i = *ip++;
                     Value coro = POP();
                     VMTYPEEQ(coro, V_COROUTINE);
-                    PUSH(coro.cval()->GetVar(i).INC());
+                    PUSH(coro.cval()->GetVar(i));
+                    TOP().INCTYPE(GetVarTypeInfo(i)->t);
                     coro.DECRT();
                     break;
                 }

@@ -60,16 +60,43 @@ struct CodeGen
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;
 
+            case V_FUNCTION:
+                tt.push_back((type_elem_t)type->sf->idx);
+                break;
+
+            case V_COROUTINE:
+                if (type->sf)
+                {
+                    if (type->sf->cotypeinfo >= 0)
+                        return type->sf->cotypeinfo;
+
+                    type->sf->cotypeinfo = (type_elem_t)type_table.size();
+                    // Reserve space, so other types can be added afterwards safely.
+                    type_table.insert(type_table.end(), 3, (type_elem_t)0);
+
+                    tt.push_back((type_elem_t)type->sf->idx);
+                    tt.push_back(GetTypeTableOffset(type->sf->returntypes[0]));
+
+                    std::copy(tt.begin(), tt.end(), type_table.begin() + type->sf->cotypeinfo);
+                    return type->sf->cotypeinfo;
+                }
+                else
+                {
+                    tt.push_back((type_elem_t)-1);
+                    tt.push_back(TYPE_ELEM_ANY);
+                }
+                break;
+
             case V_STRUCT:
                 if (type->struc->typeinfo >= 0)
                     return type->struc->typeinfo;
 
                 type->struc->typeinfo = (type_elem_t)type_table.size();
-                tt.push_back((type_elem_t)type->struc->idx);
-                tt.push_back((type_elem_t)type->struc->fields.size());
                 // Reserve space, so other types can be added afterwards safely.
                 type_table.insert(type_table.end(), type->struc->fields.size() + 3, (type_elem_t)0);
 
+                tt.push_back((type_elem_t)type->struc->idx);
+                tt.push_back((type_elem_t)type->struc->fields.size());
                 for (auto &field : type->struc->fields.v)
                 {
                     tt.push_back(GetTypeTableOffset(field.type));
@@ -88,7 +115,7 @@ struct CodeGen
                 assert(IsRuntime(type->t));
                 break;
         }
-        // For everything that's not a struct:
+        // For everything that's not a struct / know coroutine:
         auto it = type_lookup.find(tt);
         if (it != type_lookup.end()) return it->second;
         auto offset = (type_elem_t)type_table.size();
@@ -105,7 +132,6 @@ struct CodeGen
         Type type_boxedint(V_BOXEDINT);             GetTypeTableOffset(&type_boxedint);
         Type type_boxedfloat(V_BOXEDFLOAT);         GetTypeTableOffset(&type_boxedfloat);
                                                     GetTypeTableOffset(type_string);
-                                                    GetTypeTableOffset(type_coroutine);
                                                     GetTypeTableOffset(type_any);
         Type type_valuebuf(V_VALUEBUF);             GetTypeTableOffset(&type_valuebuf);
         Type type_stackframebuf(V_STACKFRAMEBUF);   GetTypeTableOffset(&type_stackframebuf);
@@ -383,7 +409,12 @@ struct CodeGen
                 break;
             }
 
-            case T_IDENT:  if (retval) { Emit(IL_PUSHVAR, n->sid()->idx); }; break;
+            case T_IDENT:
+                if (retval)
+                {
+                    Emit(IsRefNil(n->sid()->type->t) ? IL_PUSHVARREF : IL_PUSHVAR, n->sid()->idx);
+                };
+                break;
 
             case T_DOT:
             case T_DOTMAYBE:
@@ -804,14 +835,15 @@ struct CodeGen
                 Emit(IL_CORO, 0);
                 MARKL(loc);
 
-                assert(n->exptype->t == V_COROUTINE);
+                assert(n->exptype->t == V_COROUTINE && n->exptype->sf);
+
+                Emit(GetTypeTableOffset(n->exptype));
+
                 auto sf = n->exptype->sf;
 
                 // TODO: we shouldn't need to store this table for each call, instead do it once for each function
-                Emit(0); // count
+                Emit((int)sf->coyieldsave.v.size());
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
-
-                code[loc] = Pos() - loc - 1;
 
                 Gen(n->child(), retval);
 

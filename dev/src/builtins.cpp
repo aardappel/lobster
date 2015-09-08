@@ -275,16 +275,16 @@ void AddBuiltins()
     ENDDECL3(replace, "xs,i,x", "V*IA1", "V1",
         "returns a copy of a vector with the element at i replaced by x");
 
-    STARTDECL(insert) (Value &l, Value &i, Value &a, Value &n)
+    STARTDECL(insert) (Value &l, Value &i, Value &a)
     {
         RealVector(l);
-        if (n.ival() < 0 || i.ival() < 0 || i.ival() > l.vval()->len)
+        if (i.ival() < 0 || i.ival() > l.vval()->len)
             g_vm->BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        l.vval()->Insert(a, i.ival(), max(n.ival(), 1));
+        l.vval()->Insert(a, i.ival());
         return l;
     }
-    ENDDECL4(insert, "xs,i,x,n", "V*IA1I?", "V1",
-        "inserts n copies (default 1) of x into a vector at index i, existing elements shift upward,"
+    ENDDECL3(insert, "xs,i,x", "V*IA1", "V1",
+        "inserts a value into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
     STARTDECL(remove) (Value &l, Value &i, Value &n)
@@ -800,7 +800,7 @@ void AddBuiltins()
 
     STARTDECL(returnvalue) (Value &co)
     {
-        Value &rv = co.cval()->Current().INC();
+        Value &rv = co.cval()->Current();
         co.DECRT();
         return rv;
     }

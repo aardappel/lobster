@@ -213,8 +213,10 @@ struct SubFunction
     ArgVector freevars;        // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
 
+    bool iscoroutine;
     ArgVector coyieldsave;
     TypeRef coresumetype;
+    type_elem_t cotypeinfo;
 
     Node *body;
 
@@ -223,16 +225,17 @@ struct SubFunction
 
     int subbytecodestart;
 
-    bool typechecked, freevarchecked, iscoroutine, mustspecialize, fixedreturntype;
+    bool typechecked, freevarchecked, mustspecialize, fixedreturntype;
     int numcallers;
 
     Type thistype;       // convenient place to store the type corresponding to this
 
     SubFunction(int _idx)
         : idx(_idx),
-          args(0), locals(0), dynscoperedefs(0), freevars(0), coyieldsave(0),
+          args(0), locals(0), dynscoperedefs(0), freevars(0),
+          iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
-          typechecked(false), freevarchecked(false), iscoroutine(false), mustspecialize(false),
+          typechecked(false), freevarchecked(false), mustspecialize(false),
           fixedreturntype(false), numcallers(0),
           thistype(V_FUNCTION, this)
     {

@@ -133,7 +133,8 @@ struct VMLog
             logvars -= nlogvars;
             for (int i = 0; i < nlogvars; i++)
             {
-                logwrite[i + logfunwritestart + 1] = vm.vars[*logvars++].INC();
+                auto varidx = *logvars++;
+                logwrite[i + logfunwritestart + 1] = vm.vars[varidx].INCTYPE(vm.GetVarTypeInfo(varidx)->t);
             }
             logwrite.push_back(Value(funstart, V_LOGEND));
         }
