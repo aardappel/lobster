@@ -495,14 +495,14 @@ struct VM : VMBase
         {
             auto i = *--defvars; 
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DEC();
+            vars[i].DECTYPE(GetVarTypeInfo(i)->t);
             vars[i] = POP();
         }
         while (nargs--)
         {
             auto i = *--freevars;
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DEC();
+            vars[i].DECTYPE(GetVarTypeInfo(i)->t);
             vars[i] = POP();
         } 
 
@@ -679,7 +679,7 @@ struct VM : VMBase
         curcoroutine->stackcopylen = *curcoroutine->varip;
         //curcoroutine->BackupParentVars(vars);
 
-        POP().DEC();    // previous current value
+        POP().DECTYPE(GetTypeInfo(curcoroutine->ti->yieldtype)->t);    // previous current value
 
         for (int i = *curcoroutine->varip; i > 0; i--)
         {
@@ -873,7 +873,7 @@ struct VM : VMBase
                     break;
                 }
 
-                #define FORLOOP(L, V, D) { \
+                #define FORLOOP(L, V, D, iterref) { \
                     auto forstart = ip - 1; \
                     POP().DEC(); /* body retval */ \
                     auto &body = TOP(); \
@@ -889,14 +889,15 @@ struct VM : VMBase
                     break; \
                     D: \
                     (void)POP(); /* body */ \
-                    (void)POP().DEC(); /* iter */ \
+                    if (iterref) TOP().DECRT(); \
+                    (void)POP(); /* iter */ \
                     (void)POP(); /* i */ \
                     break; \
                 }
 
-                case IL_IFOR: FORLOOP(iter.ival(), i, donei);
-                case IL_VFOR: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donev);
-                case IL_SFOR: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), dones);
+                case IL_IFOR: FORLOOP(iter.ival(), i, donei, false);
+                case IL_VFOR: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donev, true);
+                case IL_SFOR: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), dones, true);
 
                 case IL_BCALL:
                 {
@@ -955,7 +956,7 @@ struct VM : VMBase
                 case IL_DUP:    { auto x = TOP();            PUSH(x); break; }
                 case IL_DUPREF: { auto x = TOP().INCRTNIL(); PUSH(x); break; }
 
-                #define REFOP(exp) { res = exp; a.DEC(); b.DEC(); }
+                #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
                 #define COP(t) if (b.type == t) { VMASSERTVALUES(false, a, b); }
                 #define GETARGS() Value b = POP(); Value a = POP()
                 #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
@@ -1110,7 +1111,15 @@ struct VM : VMBase
                 case IL_LOGNOT:
                 {
                     Value a = POP();
-                    PUSH(!a.DEC().True());    
+                    PUSH(!a.True());
+                    break;
+                }
+                case IL_LOGNOTREF:
+                {
+                    Value a = POP();
+                    bool b = a.True();
+                    PUSH(!b);
+                    if (b) a.DECRT();
                     break;
                 }
 

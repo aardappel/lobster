@@ -719,7 +719,7 @@ struct CodeGen
             case T_NOT:
             {
                 Gen(n->child(), retval);
-                if (retval) Emit(IL_LOGNOT);
+                if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
                 break;
             }
 
