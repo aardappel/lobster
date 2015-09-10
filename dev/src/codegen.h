@@ -377,6 +377,8 @@ struct CodeGen
         return nretvals;
     };
 
+    int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
+
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
 
     void Gen(const Node *n, int retval, const Node *parent = nullptr)
@@ -568,6 +570,11 @@ struct CodeGen
                 Dummy(retval);
                 break;
 
+            case T_E2B:
+                Gen(n->child(), retval);
+                if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_E2BREF : IL_E2B);
+                break;
+
             case T_FUN:
                 if (retval) 
                 {
@@ -699,7 +706,7 @@ struct CodeGen
             case T_AND:
             {
                 Gen(n->left(), 1);
-                Emit(retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
+                Emit(JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, n->left()->exptype), 0);
                 MARKL(loc);
                 Gen(n->right(), retval);
                 SETL(loc);
@@ -709,7 +716,7 @@ struct CodeGen
             case T_OR:
             {
                 Gen(n->left(), 1);
-                Emit(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, 0);
+                Emit(JumpRef(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, n->left()->exptype), 0);
                 MARKL(loc);
                 Gen(n->right(), retval);
                 SETL(loc);
@@ -727,7 +734,7 @@ struct CodeGen
             {
                 Gen(n->if_condition(), 1);
                 bool has_else = n->if_else()->type != T_DEFAULTVAL;
-                Emit(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, 0);
+                Emit(JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, n->if_condition()->exptype), 0);
                 MARKL(loc);
                 if (has_else)
                 {
@@ -751,7 +758,7 @@ struct CodeGen
             {
                 MARKL(loopback);
                 Gen(n->while_condition(), 1);
-                Emit(IL_JUMPFAIL, 0);
+                Emit(JumpRef(IL_JUMPFAIL, n->while_condition()->exptype), 0);
                 MARKL(jumpout);
                 Gen(n->while_body(), 0);
                 Emit(IL_JUMP, loopback);

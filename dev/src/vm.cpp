@@ -1156,6 +1156,21 @@ struct VM : VMBase
                     break;
                 }
 
+                case IL_E2B:
+                {
+                    Value a = POP();
+                    PUSH(a.True());    
+                    break;
+                }   
+
+                case IL_E2BREF:
+                {
+                    Value a = POP();
+                    PUSH(a.True());
+                    a.DECRTNIL();
+                    break;
+                }  
+
                 case IL_PUSHVAR:    PUSH(vars[*ip++]); break;
                 case IL_PUSHVARREF: PUSH(vars[*ip++].INCRTNIL()); break;
 
@@ -1198,11 +1213,16 @@ struct VM : VMBase
                 case IL_LVALIDXV: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
                 case IL_LVALFLD:  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
 
-                case IL_JUMPFAIL:    { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip;                }               break; }
-                case IL_JUMPFAILR:   { auto x = POP(); auto nip = *ip++; if (!x      .True()) { ip = codestart + nip; PUSH(x);       } else x.DEC(); break; }
-                case IL_JUMPFAILN:   { auto x = POP(); auto nip = *ip++; if (!x.DEC().True()) { ip = codestart + nip; PUSH(Value()); }               break; }
-                case IL_JUMPNOFAIL:  { auto x = POP(); auto nip = *ip++; if ( x.DEC().True()) { ip = codestart + nip;                }               break; }
-                case IL_JUMPNOFAILR: { auto x = POP(); auto nip = *ip++; if ( x      .True()) { ip = codestart + nip; PUSH(x);       } else x.DEC(); break; }
+                case IL_JUMPFAIL:       { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip;                }                    break; }
+                case IL_JUMPFAILR:      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       }                    break; }
+                case IL_JUMPFAILN:      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    break; }
+                case IL_JUMPNOFAIL:     { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip;                }                    break; }
+                case IL_JUMPNOFAILR:    { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       }                    break; }
+                case IL_JUMPFAILREF:    { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip;                }                    break; }
+                case IL_JUMPFAILRREF:   { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); break; }
+                case IL_JUMPFAILNREF:   { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    break; }
+                case IL_JUMPNOFAILREF:  { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if ( x.True()) { ip = codestart + nip;                }                    break; }
+                case IL_JUMPNOFAILRREF: { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); break; }
 
                 case IL_ISTYPE:
                 {

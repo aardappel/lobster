@@ -295,6 +295,12 @@ struct TypeChecker
         a->exptype = type_any;
     }
 
+    void MakeBool(Node *&a)
+    {
+        a = (Node *)new Unary(a->line, T_E2B, a);
+        a->exptype = type_int;
+    }
+
     void SubTypeLR(TypeRef sub, Node &n) { SubType(n.left(), sub, "left", n); SubType(n.right(), sub, "right", n); }
 
     void SubType(Node *&a, TypeRef sub, const char *argname, const Node &context)
@@ -939,6 +945,10 @@ struct TypeChecker
                 CheckFlowTypeChangesSub(!iftrue, *condition.child());
                 break;
 
+            case T_E2B:
+                CheckFlowTypeChangesSub(iftrue, *condition.child());
+                break;
+
             default:
                 if (iftrue && type->t == V_NIL) CheckFlowTypeIdOrDot(condition, type->Element());
                 break;
@@ -956,7 +966,8 @@ struct TypeChecker
                 if (iftrue == (condition.type == T_AND))
                 {
                     // This is a bit clumsy, but allows for a chain of &'s without allowing mixed operators
-                    if (condition.left()->type == condition.type)
+                    if (condition.left()->type == condition.type ||
+                        (condition.left()->type == T_E2B && condition.left()->child()->type == condition.type))
                     {
                         CheckFlowTypeChanges(iftrue, *condition.left());
                     }
@@ -966,6 +977,10 @@ struct TypeChecker
                     }
                     CheckFlowTypeChangesSub(iftrue, *condition.right());
                 }
+                break;
+
+            case T_E2B:
+                CheckFlowTypeChanges(iftrue, *condition.child());
                 break;
 
             default:
@@ -1088,9 +1103,23 @@ struct TypeChecker
         auto tright = TypeCheckAndOr(n.right(), only_true_type, n.type);
         CleanUpFlow(flowstart);
 
-        n.exptype = only_true_type && n.type == T_AND
-            ? tright
-            : Union(tleft, tright, false);
+        if (only_true_type && n.type == T_AND)
+        {
+            n.exptype = tright;
+        }
+        else
+        {
+            n.exptype = Union(tleft, tright, false);
+            if (n.exptype->t == V_ANY)
+            {
+                // Special case: we may have just merged scalar and reference types, and unlike elsewhere, we don't
+                // want to box the scalars to make everything references, since typically they are just tested and
+                // thrown away. Instead, we force all values to bools.
+                MakeBool(n.left());
+                MakeBool(n.right());
+                n.exptype = type_int;
+            }
+        }
         return n.exptype;
     }
 
@@ -1852,6 +1881,7 @@ struct TypeChecker
             case T_A2S:
             case T_E2A:
             case T_E2N:
+            case T_E2B:
                 // These have been added by another specialization.
                 // We could check if they still apply, but even more robust is just to remove them,
                 // and let them be regenerated if need be.
