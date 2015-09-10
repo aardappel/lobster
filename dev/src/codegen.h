@@ -450,7 +450,9 @@ struct CodeGen
                 {
                     if (n->type == T_DEF)
                     {
-                        if (defs[i]->ident()->logvaridx >= 0) Emit(IL_LOGREAD, defs[i]->ident()->logvaridx);
+                        if (defs[i]->ident()->logvaridx >= 0)
+                            Emit(IsRefNil(defs[i]->exptype->t) ? IL_LOGREADREF : IL_LOGREAD,
+                                 defs[i]->ident()->logvaridx);
                     }
                     Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE, defs[i]->sid()->idx);
                 }

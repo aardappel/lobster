@@ -54,7 +54,7 @@ namespace lobster
     F(RETURN) \
     F(IFOR) F(SFOR) F(VFOR) \
     F(ISTYPE) F(CORO) F(COCL) F(COEND) \
-    F(LOGREAD)
+    F(LOGREAD) F(LOGREADREF)
 
 #define LVALOPNAMES \
     F(WRITE)  F(WRITER)  F(WRITEREF) F(WRITERREF) \

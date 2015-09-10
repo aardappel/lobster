@@ -15,7 +15,13 @@
 struct VMLog
 {
     bool uses_frame_state;
-    vector<Value> logread, logwrite;
+    struct LogValue  // FIXME: there's probably a less lazy way to store this.
+    {
+        Value v;
+        ValueType t;
+        LogValue(const Value &_v, ValueType _t) : v(_v), t(_t) {}
+    };
+    vector<LogValue> logread, logwrite;
     size_t logi;
     const int *lognew;
 
@@ -28,13 +34,13 @@ struct VMLog
         if (uses_frame_state)
         {
             // get the logs in a good state before the first frame
-            logread.push_back(Value(0, V_LOGMARKER));
-            logread.push_back(Value(0, V_LOGEND));
-            logread.push_back(Value(0, V_LOGMARKER));
+            logread.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
+            logread.push_back(LogValue(Value(0, V_LOGEND), V_LOGEND));
+            logread.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
             logi = 1;
 
-            logwrite.push_back(Value(0, V_LOGMARKER));
-            logwrite.push_back(Value(0, V_LOGEND));
+            logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
+            logwrite.push_back(LogValue(Value(0, V_LOGEND), V_LOGEND));
         }
     }
 
@@ -42,17 +48,17 @@ struct VMLog
     {
         if (uses_frame_state)
         {
-            while (logread[logi].type == V_LOGSTART) LogSkipNestedFuns();
+            while (logread[logi].t == V_LOGSTART) LogSkipNestedFuns();
 
             // the start of whatever called this frame
-            assert(logwrite.back().type == V_LOGSTART);
+            assert(logwrite.back().t == V_LOGSTART);
             logwrite.pop_back();
 
             // always bookend the log with markers, so we can blindly look ahead/behind
-            logwrite.push_back(Value(0, V_LOGMARKER));
+            logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
             logwrite.swap(logread);
             logwrite.clear();
-            logwrite.push_back(Value(0, V_LOGMARKER));
+            logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
             logi = 1;
             lognew = nullptr;
 
@@ -64,10 +70,10 @@ struct VMLog
                     {
                         switch (logread[i].type)
                         {
-                        case V_LOGSTART: printf(" ("); break;
-                        case V_LOGEND: printf(")"); break;
-                        case V_LOGMARKER: assert(0); break;
-                        default: printf(" %s", logread[i].ToString(pp).c_str()); break;
+                            case V_LOGSTART: printf(" ("); break;
+                            case V_LOGEND: printf(")"); break;
+                            case V_LOGMARKER: assert(0); break;
+                            default: printf(" %s", logread[i].ToString(pp).c_str()); break;
                         }
                     }
                     printf("\n");
@@ -82,12 +88,12 @@ struct VMLog
         int nest = 1;
         while (nest)
         {
-            switch (logread[logi].type)
+            switch (logread[logi].t)
             {
                 case V_LOGSTART: nest++; break;
                 case V_LOGEND: nest--; break;
                 case V_LOGMARKER: assert(0); break;
-                default: logread[logi].DEC(); break;
+                default: logread[logi].v.DECTYPE(logread[logi].t); break;
             }
             logi++;
         }
@@ -99,13 +105,13 @@ struct VMLog
 
         size_t lws = logwrite.size();
 
-        logwrite.push_back(Value(funstart, V_LOGSTART));
+        logwrite.push_back(LogValue(Value(funstart, V_LOGSTART), V_LOGSTART));
 
-        for (int i = 0; i < nlogvars; i++) logwrite.push_back(Value());
+        for (int i = 0; i < nlogvars; i++) logwrite.push_back(LogValue(Value(), V_NIL));
 
         if (!lognew)
         {
-            if (logread[logi].type == V_LOGSTART && logread[logi].ip() == funstart)
+            if (logread[logi].t == V_LOGSTART && logread[logi].v.ip() == funstart)
             {
                 logi++; // expected path: function present
                 logi += nlogvars; // skip past them, read by index
@@ -121,10 +127,10 @@ struct VMLog
 
     void LogFunctionExit(const int *funstart, const int *logvars, int logfunwritestart)
     {
-        if (logwrite.back().type == V_LOGSTART)
+        if (logwrite.back().t == V_LOGSTART)
         {
             // common case: function didn't write anything, we cull it
-            assert(logwrite.back().ip() == funstart);
+            assert(logwrite.back().v.ip() == funstart);
             logwrite.pop_back();
         }
         else
@@ -134,19 +140,20 @@ struct VMLog
             for (int i = 0; i < nlogvars; i++)
             {
                 auto varidx = *logvars++;
-                logwrite[i + logfunwritestart + 1] = vm.vars[varidx].INCTYPE(vm.GetVarTypeInfo(varidx)->t);
+                auto vt = vm.GetVarTypeInfo(varidx)->t;
+                logwrite[i + logfunwritestart + 1] = LogValue(vm.vars[varidx].INCTYPE(vt), vt);
             }
-            logwrite.push_back(Value(funstart, V_LOGEND));
+            logwrite.push_back(LogValue(Value(funstart, V_LOGEND), V_LOGEND));
         }
 
         if (lognew)
         {
             if (lognew == funstart) lognew = nullptr;
         }
-        else for (;;) switch (logread[logi].type)
+        else for (;;) switch (logread[logi].t)
         {
             case V_LOGEND:      // expected
-                assert(logread[logi].ip() == funstart || !logread[logi].ip());
+                assert(logread[logi].v.ip() == funstart || !logread[logi].v.ip());
                 logi++;
             case V_LOGMARKER:   // can happen with empty log
                 return;
@@ -157,13 +164,13 @@ struct VMLog
 
             default:            // should not happen
                 assert(0);
-                logread[logi].DEC();
+                logread[logi].v.DECTYPE(logread[logi].t);
                 logi++;
                 break;
         }
     }
 
-    Value LogGet(Value def, int idx)
+    Value LogGet(Value def, int idx, bool isref)
     {  
         assert(uses_frame_state);
         if (lognew)
@@ -172,23 +179,22 @@ struct VMLog
         }
         else
         {
-            Value &lfr = vm.stack[vm.sp - 5];   // depends upon what's written in FunIntro
-            assert(lfr.type == V_LOGFUNREADSTART);
+            auto lfr = vm.stackframes.back().logfunreadstart;
 
-            def.DEC();
-            return logread[lfr.logip() + idx];
+            if (isref) def.DECRTNIL();
+            return logread[lfr + idx].v;
         }
     }
 
     void LogCleanup()
     {
-        for (auto &v : logread) v.DEC();
-        for (auto &v : logwrite) v.DEC();
+        for (auto &v : logread) v.v.DECTYPE(v.t);
+        for (auto &v : logwrite) v.v.DECTYPE(v.t);
     }
 
     void LogMark()
     {
-        for (auto &v : logread) v.Mark(v.type);
-        for (auto &v : logwrite) v.Mark(v.type);
+        for (auto &v : logread) v.v.Mark(v.t);
+        for (auto &v : logwrite) v.v.Mark(v.t);
     }
 };

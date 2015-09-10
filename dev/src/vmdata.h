@@ -37,7 +37,7 @@ enum ValueType : int
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
     // used in log, if they appear as a value in a program, that's a bug
-    V_LOGSTART, V_LOGEND, V_LOGMARKER, V_LOGFUNWRITESTART, V_LOGFUNREADSTART,
+    V_LOGSTART, V_LOGEND, V_LOGMARKER,
     V_MAXVMTYPES
 };
 
@@ -54,7 +54,7 @@ inline const char *BaseTypeName(ValueType t)
         "any", "<value_buffer>", "<stackframe_buffer>",
         "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector", 
         "nil", "int", "float", "function", "yield_function", "variable", "typeid",
-        "<logstart>", "<logend>", "<logmarker>", "<logfunwritestart>", "<logfunreadstart>"
+        "<logstart>", "<logend>", "<logmarker>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES)
     {
@@ -599,6 +599,7 @@ struct StackFrame
     int definedfunction;
     int spstart;
     size_t logfunwritestart;
+    size_t logfunreadstart;
 };
 
 struct CoRoutine : RefObj

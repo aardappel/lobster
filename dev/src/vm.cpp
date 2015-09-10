@@ -557,7 +557,15 @@ struct VM : VMBase
 
         stackframes.push_back(StackFrame());
         auto &stf = stackframes.back();
-        stf.logfunwritestart = vml.uses_frame_state ? vml.LogFunctionEntry(funstart, nlogvars) : 0;
+        if (vml.uses_frame_state)
+        {
+            stf.logfunwritestart = vml.LogFunctionEntry(funstart, nlogvars);
+            stf.logfunreadstart = vml.logi - nlogvars;
+        }
+        else
+        {
+            stf.logfunwritestart = stf.logfunreadstart = 0;
+        }
         stf.retip = retip; 
         stf.funstart = funstart;
         stf.definedfunction = definedfunction;
@@ -1249,7 +1257,13 @@ struct VM : VMBase
                 case IL_LOGREAD:
                 {
                     auto val = POP();
-                    PUSH(vml.LogGet(val, *ip++));
+                    PUSH(vml.LogGet(val, *ip++, false));
+                    break;
+                }
+                case IL_LOGREADREF:
+                {
+                    auto val = POP();
+                    PUSH(vml.LogGet(val, *ip++, true));
                     break;
                 }
 

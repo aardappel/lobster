@@ -85,6 +85,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_JUMPNOFAILREF:
         case IL_JUMPNOFAILRREF:
         case IL_LOGREAD:
+        case IL_LOGREADREF:
         case IL_ISTYPE:
             s += to_string(*ip++);
             break;
