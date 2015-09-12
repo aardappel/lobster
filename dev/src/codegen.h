@@ -359,7 +359,7 @@ struct CodeGen
         return lastarg;
     };
 
-    int GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
+    void GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
     {
         auto &f = *sf.parent;
         GenArgs(args, nargs);
@@ -373,8 +373,7 @@ struct CodeGen
         GenFixup(&sf);
         auto nretvals = max(f.retvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
-        for (int i = 1; i < nretvals; i++) temptypestack.push_back(sf.returntypes[i]);
-        return nretvals;
+        for (int i = 0; i < nretvals; i++) temptypestack.push_back(sf.returntypes[i]);
     };
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
@@ -383,12 +382,11 @@ struct CodeGen
 
     void Gen(const Node *n, int retval, const Node *parent = nullptr)
     {
+        // The cases below generate no retvals if retval==0, otherwise they generate however many they can
+        // irrespective of retval, optionally record that in temptypestack for the more complex
+        // cases. Then at the end of this function the two get matched up.
+
         linenumbernodes.push_back(n);
-        // by default, the cases below only deal with 0 or 1 retvals,
-        // set this to > 1 to indicate extra values on the stack need to be dealt with
-        // the top of temptypestack always contains the same number of types.
-        int maxretvalsupplied = 1;
-        temptypestack.push_back(n->exptype);
 
         int opc = 0;
 
@@ -623,20 +621,17 @@ struct CodeGen
                     }
                     if (nf->retvals.v.size() > 1)
                     {
-                        maxretvalsupplied = (int)nf->retvals.v.size();
-                        temptypestack.pop_back();
                         for (auto &rv : nf->retvals.v) temptypestack.push_back(rv.type);
                     }
                     else if (!nf->retvals.v.size() && retval)
                     { 
                         // can't make this an error since these functions are often called as the last thing in a
                         // function, requiring a return value
-                        //Error("builtin function call returns nothing", n); 
                     }
                 }
                 else if (n->type == T_CALL)
                 {
-                    maxretvalsupplied = GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs);
+                    GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs);
                 }
                 else
                 {
@@ -669,7 +664,7 @@ struct CodeGen
                             // side effect, usually it is an ident which will result in no code (retval = 0).
                             Gen(n->dcall_fval(), 0);
                             // We can now turn this into a normal call.
-                            maxretvalsupplied = GenCall(*sf, n->dcall_args(), n, nargs);
+                            GenCall(*sf, n->dcall_args(), n, nargs);
                         }
                         else
                         {
@@ -680,7 +675,21 @@ struct CodeGen
                         }
                     }
                 }
-                if (!retval) Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);  // FIXME: does not work for multiret?
+                if (!retval)
+                {
+                    if (temptypestack.size())
+                    {
+                        while (temptypestack.size())
+                        {
+                            Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
+                            temptypestack.pop_back();
+                        }
+                    }
+                    else
+                    {
+                        Emit(IsRefNil(n->exptype->t) ? IL_POPREF : IL_POP);
+                    }
+                }
                 break;
             }  
 
@@ -694,14 +703,14 @@ struct CodeGen
                 break;
 
             case T_MULTIRET:
-                maxretvalsupplied = 0;
-                temptypestack.pop_back();
                 assert(retval);
-                for (; n; n = n->tailexps())
+                for (auto ni = n; ni; ni = ni->tailexps())
                 {
-                    Gen(n->headexp(), true);
-                    temptypestack.push_back(n->headexp()->exptype);
-                    maxretvalsupplied++;
+                    Gen(ni->headexp(), true);
+                }
+                for (auto ni = n; ni; ni = ni->tailexps())
+                {
+                    temptypestack.push_back(ni->headexp()->exptype);
                 }
                 break;
 
@@ -883,29 +892,38 @@ struct CodeGen
                 assert(0);
         }
 
-
-        if (maxretvalsupplied == 1) // if we generate just 0/1 value, it can be copied into multiple vars if needed
+        if (retval)  // If 0, the above code already made sure to not generate value(s).
         {
-            for (; retval > 1; retval--)
+            if (temptypestack.empty())  // default case, 1 value
             {
-                Emit(IsRefNil(temptypestack.back()->t) ? IL_DUPREF : IL_DUP);
+                temptypestack.push_back(n->exptype);
             }
-        }
-        else if(maxretvalsupplied > retval) // if the caller doesn't want all return values, just pop em
-        {
-            while (maxretvalsupplied > retval && retval > 0)
+
+            if (temptypestack.size() == 1) // if we generate just 1 value, it can be copied into multiple vars if needed
             {
-                Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
-                temptypestack.pop_back();
-                maxretvalsupplied--;
+                for (; retval > 1; retval--)
+                {
+                    temptypestack.push_back(temptypestack.back());
+                    Emit(IsRefNil(temptypestack.back()->t) ? IL_DUPREF : IL_DUP);
+                }
             }
-        }
-        else if (retval > maxretvalsupplied)    // only happens if both are > 1
-        {
-            parser.Error("expression does not supply that many return values", n);
+            else if((int)temptypestack.size() > retval) // if the caller doesn't want all return values, just pop em
+            {
+                while ((int)temptypestack.size() > retval)
+                {
+                    Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
+                    temptypestack.pop_back();
+                }
+            }
+            else if ((int)temptypestack.size() < retval)    // only happens if both are > 1
+            {
+                parser.Error("expression does not supply that many return values", n);
+            }
+
+            while (temptypestack.size()) temptypestack.pop_back();
         }
 
-        for (; maxretvalsupplied; maxretvalsupplied--) temptypestack.pop_back();
+        assert(temptypestack.empty());
 
         linenumbernodes.pop_back();
     }
