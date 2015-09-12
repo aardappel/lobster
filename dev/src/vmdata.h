@@ -690,7 +690,10 @@ struct CoRoutine : RefObj
         int topdelta = (top + stackcopylen) - top_at_suspend;
         if (topdelta)
         {
-            for (int i = 0; i < stackframecopylen; i++) stackframescopy[i].spstart += topdelta;
+            for (int i = 0; i < stackframecopylen; i++)
+            {
+                stackframescopy[i].spstart += topdelta;
+            }
         }
         stackframes.insert(stackframes.end(), stackframescopy, stackframescopy + stackframecopylen);
 

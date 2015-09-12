@@ -1,7 +1,16 @@
 - codegen for T_CALL with multiret?
 - const TypeInfo &
 
-- check in logfunwritestart doesn't collide with coroutines.
+- how to deal with refcounting temporaries.
+  - switch to a register machine
+    - tons of changes in VM & codegen
+	- may be a better fit for future compilation to LLVM/C++
+  - have a typed stack just for temp values
+    - not good for speed in the long run
+  - in codegen, track what temps are active statically, and associate that info with every call, such
+    that it can be used to tear down the temps when needed.
+	- need to do this only for calls that can cause a non-local return, though given that it can be a bitmask,
+	  it can also be stored unconditionally.
 
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.
