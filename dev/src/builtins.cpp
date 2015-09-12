@@ -70,20 +70,20 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun)
 }
 
 // int <-> float
-const TypeInfo *SwapVectType(const TypeInfo *available, const TypeInfo *existing)
+const TypeInfo &SwapVectType(const TypeInfo *available, const TypeInfo &existing)
 {
     // FIXME: this is slow, cache these.
-    if (existing == g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT);
-    if (existing == g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT);
+    if (&existing == &g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT);
+    if (&existing == &g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT)) return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT);
     // Structs:
     // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
-    return existing->t != V_STRUCT || !available ? existing : available;
+    return existing.t != V_STRUCT || !available ? existing : *available;
 }
 
 void RealVector(Value &v)
 {
     // FIXME: need to guarantee this in typechecking
-    if (v.eval()->ti->t != V_VECTOR)
+    if (v.eval()->ti.t != V_VECTOR)
         g_vm->BuiltinError("vector operation cannot use struct");
 }
 
@@ -99,7 +99,7 @@ void AddBuiltins()
 
     STARTDECL(string) (Value &a)
     {
-        if (a.ref() && a.ref()->ti == g_vm->GetTypeInfo(TYPE_ELEM_STRING)) return a;
+        if (a.ref() && &a.ref()->ti == &g_vm->GetTypeInfo(TYPE_ELEM_STRING)) return a;
 
         auto str = g_vm->NewString(a.ref()->ToString(g_vm->programprintprefs));
         a.DECRT();
@@ -171,8 +171,8 @@ void AddBuiltins()
     STARTDECL(append) (Value &v1, Value &v2)
     {
         RealVector(v1);
-        auto type = v1.eval()->ti;
-        assert(type == v2.eval()->ti);  // FIXME: need to guarantee this in typechecking
+        auto &type = v1.eval()->ti;
+        assert(&type == &v2.eval()->ti);  // FIXME: need to guarantee this in typechecking
 
         auto nv = (LVector *)g_vm->NewVector(0, v1.eval()->Len() + v2.eval()->Len(), type);
         nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
@@ -307,7 +307,7 @@ void AddBuiltins()
     {
         RealVector(l);
         int removed = 0;
-        auto vt = g_vm->GetTypeInfo(l.vval()->ti->subt)->t;
+        auto vt = g_vm->GetTypeInfo(l.vval()->ti.subt).t;
         for (int i = 0; i < l.vval()->len; i++)
         {
             auto e = l.vval()->At(i);
@@ -735,8 +735,8 @@ void AddBuiltins()
     #define VECBINOP(name,access) \
         auto len = x.eval()->Len(); \
         if (len != y.eval()->Len()) g_vm->BuiltinError(#name "() arguments must be equal length"); \
-        auto type = x.eval()->ti; \
-        assert(type == y.eval()->ti); \
+        auto &type = x.eval()->ti; \
+        assert(&type == &y.eval()->ti); \
         auto v = g_vm->NewVector(len, len, type); \
         for (int i = 0; i < x.eval()->Len(); i++) { \
             v->At(i) = Value(name(x.eval()->At(i).access(), y.eval()->At(i).access())); \

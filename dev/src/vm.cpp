@@ -149,7 +149,7 @@ struct VM : VMBase
         }
     }
 
-    const TypeInfo *GetVarTypeInfo(int varidx)
+    const TypeInfo &GetVarTypeInfo(int varidx)
     {
         return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
     }
@@ -160,12 +160,12 @@ struct VM : VMBase
     const TypeInfo *GetIntVectorType(int which)
     {
         auto i = bcf->default_int_vector_types()->Get(which);
-        return i < 0 ? nullptr : GetTypeInfo((type_elem_t)i);
+        return i < 0 ? nullptr : &GetTypeInfo((type_elem_t)i);
     }
     const TypeInfo *GetFloatVectorType(int which)
     {
         auto i = bcf->default_float_vector_types()->Get(which);
-        return i < 0 ? nullptr : GetTypeInfo((type_elem_t)i);
+        return i < 0 ? nullptr : &GetTypeInfo((type_elem_t)i);
     }
 
     static bool _LeakSorter(void *va, void *vb)
@@ -174,8 +174,8 @@ struct VM : VMBase
         auto b = (RefObj *)vb;
         return a->refc != b->refc
         ? a->refc > b->refc
-        : (a->ti != b->ti
-           ? a->ti > b->ti
+        : (&a->ti != &b->ti
+           ? &a->ti > &b->ti
            : false);
     }
 
@@ -201,7 +201,7 @@ struct VM : VMBase
                 for (auto p : leaks)
                 {
                     auto vec = (ElemObj *)p;
-                    switch(vec->ti->t)
+                    switch(vec->ti.t)
                     {
                         case V_VALUEBUF:
                         case V_STACKFRAMEBUF:
@@ -254,20 +254,20 @@ struct VM : VMBase
     }
     
     #undef new
-    ElemObj *NewVector(int initial, int max, const TypeInfo *ti)
+    ElemObj *NewVector(int initial, int max, const TypeInfo &ti)
     {
-        if (ti->t == V_VECTOR)
+        if (ti.t == V_VECTOR)
             return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, ti);
-        assert(ti->t == V_STRUCT && max == initial && max == ti->len);
+        assert(ti.t == V_STRUCT && max == initial && max == ti.len);
         return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(ti);
     }
     LString *NewString(size_t l)
     {
         return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l); 
     }
-    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo *cti)
+    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo &cti)
     {
-        assert(cti->t == V_COROUTINE);
+        assert(cti.t == V_COROUTINE);
         return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */,
                                                                 (int)stackframes.size(), rip, vip, p, cti);
     }
@@ -410,11 +410,11 @@ struct VM : VMBase
             // TODO: rather than going thru all args, only go thru those that have types
             for (int j = 0; j < nargs; j++)
             {
-                auto desired = GetTypeInfo((type_elem_t)*mip++);
-                if (desired->t != V_ANY)
+                auto &desired = GetTypeInfo((type_elem_t)*mip++);
+                if (desired.t != V_ANY)
                 {
                     Value &v = stack[sp - nargs + j + 1];
-                    if (v.type != desired->t || (IsRef(v.type) && v.ref()->ti != desired))
+                    if (v.type != desired.t || (IsRef(v.type) && &v.ref()->ti != &desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -449,7 +449,7 @@ struct VM : VMBase
         {
             auto sid = bcf->specidents()->Get(i);
             //Output(OUTPUT_INFO, "destructing: %s", bcf->idents()->Get(sid->ididx())->name()->c_str());
-            vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx())->t);
+            vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx()).t);
         }
 
         #ifdef _DEBUG
@@ -495,14 +495,14 @@ struct VM : VMBase
         {
             auto i = *--defvars; 
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DECTYPE(GetVarTypeInfo(i)->t);
+            vars[i].DECTYPE(GetVarTypeInfo(i).t);
             vars[i] = POP();
         }
         while (nargs--)
         {
             auto i = *--freevars;
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DECTYPE(GetVarTypeInfo(i)->t);
+            vars[i].DECTYPE(GetVarTypeInfo(i).t);
             vars[i] = POP();
         } 
 
@@ -551,7 +551,7 @@ struct VM : VMBase
             // clearing it would save the INC and a DEC when it eventually gets overwritten,
             // so maybe we can at some point distinguish between vars that are used with DS and those that are not.
             auto varidx = *ip++;
-            PUSH(vars[varidx].INCTYPE(GetVarTypeInfo(varidx)->t));
+            PUSH(vars[varidx].INCTYPE(GetVarTypeInfo(varidx).t));
         }
         auto nlogvars = *ip++;
 
@@ -687,7 +687,7 @@ struct VM : VMBase
         curcoroutine->stackcopylen = *curcoroutine->varip;
         //curcoroutine->BackupParentVars(vars);
 
-        POP().DECTYPE(GetTypeInfo(curcoroutine->ti->yieldtype)->t);    // previous current value
+        POP().DECTYPE(GetTypeInfo(curcoroutine->ti.yieldtype).t);    // previous current value
 
         for (int i = *curcoroutine->varip; i > 0; i--)
         {
@@ -1193,7 +1193,7 @@ struct VM : VMBase
                     Value coro = POP();
                     VMTYPEEQ(coro, V_COROUTINE);
                     PUSH(coro.cval()->GetVar(i));
-                    TOP().INCTYPE(GetVarTypeInfo(i)->t);
+                    TOP().INCTYPE(GetVarTypeInfo(i).t);
                     coro.DECRT();
                     break;
                 }
@@ -1238,7 +1238,7 @@ struct VM : VMBase
                     auto &v = POP();
                     TYPE_ASSERT(IsRef(v.type));  // Optimizer guarantees we don't have to deal with scalars.
                     v.DECRT();
-                    PUSH(v.ref()->ti == GetTypeInfo(to));
+                    PUSH(&v.ref()->ti == &GetTypeInfo(to));
                     break;
                 }
 
@@ -1285,7 +1285,7 @@ struct VM : VMBase
     { 
         Value r = POP();
         if (!r.ref()) { PUSH(r); return; }  // ?.
-        switch (r.ref()->ti->t) 
+        switch (r.ref()->ti.t) 
         {
             case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
@@ -1412,8 +1412,8 @@ struct VM : VMBase
     {
         if (IsRef(v.type))
         {
-            auto ti = v.ref()->ti;
-            if (ti->t == V_STRUCT) return ReverseLookupType(ti->structidx);
+            auto &ti = v.ref()->ti;
+            if (ti.t == V_STRUCT) return ReverseLookupType(ti.structidx);
         }
         return BaseTypeName(v.type);
     }
@@ -1445,7 +1445,7 @@ struct VM : VMBase
         }
     }
 
-    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, const TypeInfo *desttype)
+    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, const TypeInfo &desttype)
     {
         TYPE_ASSERT(IsVector(a.type));
         int len = a.eval()->Len();
@@ -1463,9 +1463,9 @@ struct VM : VMBase
 
     Value Pop() { return POP(); }
 
-    string StructName(const TypeInfo *ti)
+    string StructName(const TypeInfo &ti)
     {
-        return bcf->structs()->Get(ti->structidx)->name()->c_str();
+        return bcf->structs()->Get(ti.structidx)->name()->c_str();
     }
 
     virtual const char *ReverseLookupType(uint v)
@@ -1489,8 +1489,8 @@ struct VM : VMBase
         {
             total++;
             auto r = (RefObj *)p;
-            if (r->ti == GetTypeInfo(TYPE_ELEM_VALUEBUF) || 
-                r->ti == GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF)) return;
+            if (&r->ti == &GetTypeInfo(TYPE_ELEM_VALUEBUF) || 
+                &r->ti == &GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF)) return;
             if (r->refc > 0) leaks.push_back(r);
             r->refc = -r->refc;
         });

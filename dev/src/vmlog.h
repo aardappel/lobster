@@ -140,7 +140,7 @@ struct VMLog
             for (int i = 0; i < nlogvars; i++)
             {
                 auto varidx = *logvars++;
-                auto vt = vm.GetVarTypeInfo(varidx)->t;
+                auto vt = vm.GetVarTypeInfo(varidx).t;
                 logwrite[i + logfunwritestart + 1] = LogValue(vm.vars[varidx].INCTYPE(vt), vt);
             }
             logwrite.push_back(LogValue(Value(funstart, V_LOGEND), V_LOGEND));

@@ -1,16 +1,20 @@
 - codegen for T_CALL with multiret?
-- const TypeInfo &
 
 - how to deal with refcounting temporaries.
   - switch to a register machine
     - tons of changes in VM & codegen
 	- may be a better fit for future compilation to LLVM/C++
+	- registers would have to be stored as part of the var array to allow uniform indexing.
+	- would need a set of reusable ref and non-ref vars.
+	- would need to track which ones are active, and generate caller-save info in the call instruction.
+	  - when unwinding, these can get destructed because of the related var type info.
   - have a typed stack just for temp values
     - not good for speed in the long run
   - in codegen, track what temps are active statically, and associate that info with every call, such
     that it can be used to tear down the temps when needed.
 	- need to do this only for calls that can cause a non-local return, though given that it can be a bitmask,
 	  it can also be stored unconditionally.
+  - it only typically happens with for, could solve that problem seperately, then disallow everything else?
 
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.

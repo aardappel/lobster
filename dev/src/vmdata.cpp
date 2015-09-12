@@ -20,22 +20,22 @@ namespace lobster {
 
 int ElemObj::Len() const
 {
-    if (ti->t == V_VECTOR) return ((LVector *)this)->len;
-    assert(ti->t == V_STRUCT);
-    return ti->len;
+    if (ti.t == V_VECTOR) return ((LVector *)this)->len;
+    assert(ti.t == V_STRUCT);
+    return ti.len;
 }
 
 Value &ElemObj::At(int i) const
 {
-    if (ti->t == V_VECTOR) return ((LVector *)this)->At(i);
-    assert(ti->t == V_STRUCT);
+    if (ti.t == V_VECTOR) return ((LVector *)this)->At(i);
+    assert(ti.t == V_STRUCT);
     return ((LStruct *)this)->At(i);
 };
 
 void RefObj::DECDELETE(bool deref)
 {
     assert(refc == 0);
-    switch (ti->t)
+    switch (ti.t)
     {
         case V_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
         case V_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
@@ -55,10 +55,10 @@ bool RefObj::Equal(const RefObj *o, bool structural) const
     if (!this || !o)
         return false;
 
-    if (ti != o->ti)
+    if (&ti != &o->ti)
         return false;
 
-    switch (ti->t)
+    switch (ti.t)
     {
         case V_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
         case V_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
@@ -86,7 +86,7 @@ string RefObj::ToString(PrintPrefs &pp) const
 {
     if (!this) return "nil";
 
-    switch (ti->t)
+    switch (ti.t)
     {
         case V_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
         case V_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
@@ -95,7 +95,7 @@ string RefObj::ToString(PrintPrefs &pp) const
         case V_COROUTINE:  return "(coroutine)";
         case V_VECTOR:
         case V_STRUCT:     return ((ElemObj *)this)->ToString(pp);
-        default:           return string("(") + BaseTypeName(ti->t) + ")";
+        default:           return string("(") + BaseTypeName(ti.t) + ")";
     }
 }
 
@@ -118,7 +118,7 @@ void RefObj::Mark()
     if (refc < 0) return;
     assert(refc);
     refc = -refc;
-    switch (ti->t)
+    switch (ti.t)
     {
         case V_STRUCT:
         case V_VECTOR:     ((ElemObj   *)this)->Mark(); break;
@@ -136,17 +136,17 @@ string TypeInfo::Debug(bool rec) const
     string s = BaseTypeName(t);
     if (t == V_VECTOR || t == V_NIL)
     {
-        s += "[" + g_vm->GetTypeInfo(subt)->Debug(false) + "]";
+        s += "[" + g_vm->GetTypeInfo(subt).Debug(false) + "]";
     }
     else if (t == V_STRUCT)
     {
-        auto sname = g_vm->StructName(this);
+        auto sname = g_vm->StructName(*this);
         s += ":" + sname;
         if (rec)
         {
             s += "{";
             for (int i = 0; i < len; i++)
-                s += g_vm->GetTypeInfo(elems[i])->Debug(false) + ",";
+                s += g_vm->GetTypeInfo(elems[i]).Debug(false) + ",";
             s += "}";
         }
     }
