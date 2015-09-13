@@ -599,6 +599,7 @@ struct StackFrame
     const int *funstart;
     int definedfunction;
     int spstart;
+    int tempmask;
     size_t logfunwritestart;
     size_t logfunreadstart;
 };

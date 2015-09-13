@@ -28,7 +28,7 @@ struct CodeGen
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
 
-    vector<TypeRef> temptypestack;
+    vector<TypeRef> rettypes, temptypestack;
 
     int Pos() { return (int)code.size(); }
 
@@ -336,10 +336,32 @@ struct CodeGen
         if (sf.body) BodyGen(sf.body);
         else Dummy(true);
 
+        TakeTemp(1);
+        assert(temptypestack.empty());
+
         Emit(IL_FUNEND);
 
         linenumbernodes.pop_back();
     }
+
+    void EmitTempInfo(const Node *callnode)
+    {
+        int i = 0;
+        uint mask = 0;
+        for (auto type : temptypestack)
+        {
+            if (IsRefNil(type->t))
+            {
+                // FIXME: this is pretty lame, but hopefully rare. stopgap measure.
+                if (i >= 32) parser.Error("internal error: too many temporaries at function call site", callnode);
+                mask |= 1 << i;
+            }
+            i++;
+        }
+        Emit((int)mask);
+    }
+
+    void TakeTemp(int n) { temptypestack.erase(temptypestack.end() - n, temptypestack.end()); }
 
     void GenFixup(const SubFunction *sf)
     {
@@ -352,7 +374,7 @@ struct CodeGen
         const Node *lastarg = nullptr;
         for (; list; list = list->tail())
         {
-            Gen(list->head(), 1, parent);
+            Gen(list->head(), 1, false, parent);
             lastarg = list->head();
             nargs++;
         }
@@ -366,25 +388,29 @@ struct CodeGen
         if (f.nargs() != nargs)
             parser.Error("call to function " + f.name + " needs " + to_string(f.nargs()) +
                          " arguments, " + to_string(nargs) + " given", errnode);
+        TakeTemp(nargs);
         Emit(f.multimethod ? IL_CALLMULTI : IL_CALL,
              nargs,
              f.idx,
              f.multimethod ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf);
+        EmitTempInfo(args);
         auto nretvals = max(f.retvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
-        for (int i = 0; i < nretvals; i++) temptypestack.push_back(sf.returntypes[i]);
+        for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
     };
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
 
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
 
-    void Gen(const Node *n, int retval, const Node *parent = nullptr)
+    void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr)
     {
         // The cases below generate no retvals if retval==0, otherwise they generate however many they can
-        // irrespective of retval, optionally record that in temptypestack for the more complex
+        // irrespective of retval, optionally record that in rettypes for the more complex
         // cases. Then at the end of this function the two get matched up.
+
+        auto tempstartsize = temptypestack.size();
 
         linenumbernodes.push_back(n);
 
@@ -418,18 +444,22 @@ struct CodeGen
 
             case T_DOT:
             case T_DOTMAYBE:
-                Gen(n->left(), retval);
+                Gen(n->left(), retval, true);
                 if (retval) GenFieldAccess(n->right(), -1, n->type == T_DOTMAYBE);
                 break;
 
             case T_INDEX:
                 Gen(n->left(), retval);
                 Gen(n->right(), retval);
-                if (retval) Emit(n->right()->exptype->t == V_INT ? IL_PUSHIDXI : IL_PUSHIDXV);
+                if (retval)
+                {
+                    TakeTemp(2);
+                    Emit(n->right()->exptype->t == V_INT ? IL_PUSHIDXI : IL_PUSHIDXV);
+                }
                 break;
 
             case T_CODOT:
-                Gen(n->left(), retval);
+                Gen(n->left(), retval, true);
                 if (retval) Emit(IL_PUSHLOC, n->right()->sid()->idx);
                 break;
 
@@ -452,6 +482,7 @@ struct CodeGen
                             Emit(IsRefNil(defs[i]->exptype->t) ? IL_LOGREADREF : IL_LOGREAD,
                                  defs[i]->ident()->logvaridx);
                     }
+                    TakeTemp(1);
                     Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE, defs[i]->sid()->idx);
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
@@ -492,6 +523,7 @@ struct CodeGen
                 Gen(n->right(), retval);
                 if (retval)
                 {
+                    TakeTemp(2);
                     // Have to check right and left because comparison ops generate ints for node overall.
                     if      (n->right()->exptype->t == V_INT    && n->left()->exptype->t == V_INT)    Emit(IL_IADD + opc);
                     else if (n->right()->exptype->t == V_FLOAT  && n->left()->exptype->t == V_FLOAT)  Emit(IL_FADD + opc);
@@ -520,7 +552,7 @@ struct CodeGen
                 break;
 
             case T_UMINUS:
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval)
                 {
                     auto type = n->child()->exptype;
@@ -543,17 +575,17 @@ struct CodeGen
                 break;
 
             case T_I2F:
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval) Emit(IL_I2F);
                 break;
 
             case T_A2S:
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval) Emit(IL_A2S);
                 break;
 
             case T_E2A:
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval)
                 {
                     switch (n->child()->exptype->t)
@@ -571,7 +603,7 @@ struct CodeGen
                 break;
 
             case T_E2B:
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_E2BREF : IL_E2B);
                 break;
 
@@ -605,6 +637,7 @@ struct CodeGen
                     // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
                     // instruction?
                     auto lastarg = GenArgs(n->ncall_args(), nargs, n);
+                    TakeTemp(nargs);
                     assert(nargs == (int)nf->args.size());
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
@@ -612,6 +645,7 @@ struct CodeGen
                         if (lastarg->type != T_DEFAULTVAL) // FIXME: this will not work if its a var with nil value
                         {
                             Emit(IL_CALLVCOND, 0);
+                            EmitTempInfo(n);
                             Emit(IL_CONT1, nf->idx);
                         }
                     }
@@ -621,7 +655,7 @@ struct CodeGen
                     }
                     if (nf->retvals.v.size() > 1)
                     {
-                        for (auto &rv : nf->retvals.v) temptypestack.push_back(rv.type);
+                        for (auto &rv : nf->retvals.v) rettypes.push_back(rv.type);
                     }
                     else if (!nf->retvals.v.size() && retval)
                     { 
@@ -642,6 +676,7 @@ struct CodeGen
                         if (n->dcall_args())
                         {
                             GenArgs(n->dcall_args(), nargs);
+                            TakeTemp(nargs);
                             assert(nargs == 1);
                         }
                         else
@@ -671,18 +706,20 @@ struct CodeGen
                             GenArgs(n->dcall_args(), nargs);
                             assert(nargs == (int)sf->args.size());
                             Gen(n->dcall_fval(), 1);
+                            TakeTemp(nargs + 1);
                             Emit(IL_CALLV, nargs);
+                            EmitTempInfo(n);
                         }
                     }
                 }
                 if (!retval)
                 {
-                    if (temptypestack.size())
+                    if (rettypes.size())
                     {
-                        while (temptypestack.size())
+                        while (rettypes.size())
                         {
-                            Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
-                            temptypestack.pop_back();
+                            Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
+                            rettypes.pop_back();
                         }
                     }
                     else
@@ -698,68 +735,73 @@ struct CodeGen
                 break;
 
             case T_SEQ:
-                Gen(n->left(), false);
-                Gen(n->right(), retval);
+                Gen(n->left(), 0);
+                Gen(n->right(), retval, true);
                 break;
 
             case T_MULTIRET:
+            {
                 assert(retval);
+                int na = 0;
                 for (auto ni = n; ni; ni = ni->tailexps())
                 {
-                    Gen(ni->headexp(), true);
+                    Gen(ni->headexp(), 1);
+                    na++;
                 }
+                TakeTemp(na);
                 for (auto ni = n; ni; ni = ni->tailexps())
                 {
-                    temptypestack.push_back(ni->headexp()->exptype);
+                    rettypes.push_back(ni->headexp()->exptype);
                 }
                 break;
+            }
 
             case T_AND:
             {
-                Gen(n->left(), 1);
+                Gen(n->left(), 1, true);
                 Emit(JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, n->left()->exptype), 0);
                 MARKL(loc);
-                Gen(n->right(), retval);
+                Gen(n->right(), retval, true);
                 SETL(loc);
                 break;
             }
 
             case T_OR:
             {
-                Gen(n->left(), 1);
+                Gen(n->left(), 1, true);
                 Emit(JumpRef(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, n->left()->exptype), 0);
                 MARKL(loc);
-                Gen(n->right(), retval);
+                Gen(n->right(), retval, true);
                 SETL(loc);
                 break;
             }
 
             case T_NOT:
             {
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
                 if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
                 break;
             }
 
             case T_IF:
             {
-                Gen(n->if_condition(), 1);
+                Gen(n->if_condition(), 1, true);
                 bool has_else = n->if_else()->type != T_DEFAULTVAL;
                 Emit(JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, n->if_condition()->exptype), 0);
                 MARKL(loc);
                 if (has_else)
                 {
-                    Gen(n->if_then(), retval);
+                    Gen(n->if_then(), retval, true);
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
-                    Gen(n->if_else(), retval);
+                    Gen(n->if_else(), retval, true);
                     SETL(loc2);
                 }
                 else
                 {
                     // If retval, then this will generate nil thru T_E2N
-                    Gen(n->if_then(), retval);
+                    Gen(n->if_then(), retval, true);
                     SETL(loc);
                 }
                 break;
@@ -768,7 +810,7 @@ struct CodeGen
             case T_WHILE:
             {
                 MARKL(loopback);
-                Gen(n->while_condition(), 1);
+                Gen(n->while_condition(), 1, true);
                 Emit(JumpRef(IL_JUMPFAIL, n->while_condition()->exptype), 0);
                 MARKL(jumpout);
                 Gen(n->while_body(), 0);
@@ -781,6 +823,7 @@ struct CodeGen
             case T_FOR:
             {
                 Emit(IL_PUSHINT, -1);   // i
+                temptypestack.push_back(type_int);
                 Gen(n->for_iter(), 1);
                 Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
                 Emit(IL_PUSHNIL);     // body retval
@@ -793,6 +836,8 @@ struct CodeGen
                     case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR); Emit(IL_VFOR); break;
                     default: assert(false);
                 }
+                EmitTempInfo(n);
+                TakeTemp(3);
                 Dummy(retval);
                 break;
             }
@@ -807,6 +852,7 @@ struct CodeGen
                     Gen(cn->head(), 1);
                     i++;
                 }
+                TakeTemp(i);
                 auto vtype = n->exptype;
                 auto offset = GetTypeTableOffset(vtype);
                 if (vtype->t == V_STRUCT)
@@ -824,7 +870,7 @@ struct CodeGen
 
             case T_IS:
             {
-                Gen(n->left(), retval);
+                Gen(n->left(), retval, true);
                 // If the value was a scalar, then it always results in a compile time type check, which means
                 // this T_IS would have been optimized out. Which means from here on we can assume its a ref.
                 assert(!IsScalar(n->left()->exptype->t));
@@ -838,7 +884,7 @@ struct CodeGen
             case T_RETURN:
             {
                 int fid = n->return_function_idx()->integer();
-                if (n->return_value()) Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1);
+                if (n->return_value()) Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1, true);
                 else Emit(IL_PUSHNIL);
                 Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1);
                 // retval==true is nonsensical here, but can't enforce
@@ -863,7 +909,7 @@ struct CodeGen
                 Emit((int)sf->coyieldsave.v.size());
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
 
-                Gen(n->child(), retval);
+                Gen(n->child(), retval, true);
 
                 Emit(IL_COEND);
                 SETL(loc);
@@ -892,38 +938,45 @@ struct CodeGen
                 assert(0);
         }
 
+        assert(tempstartsize == temptypestack.size());
+        (void)tempstartsize;
+
         if (retval)  // If 0, the above code already made sure to not generate value(s).
         {
-            if (temptypestack.empty())  // default case, 1 value
+            if (rettypes.empty())  // default case, 1 value
             {
-                temptypestack.push_back(n->exptype);
+                rettypes.push_back(n->exptype);
             }
 
-            if (temptypestack.size() == 1) // if we generate just 1 value, it can be copied into multiple vars if needed
+            if (rettypes.size() == 1) // if we generate just 1 value, it can be copied into multiple vars if needed
             {
                 for (; retval > 1; retval--)
                 {
-                    temptypestack.push_back(temptypestack.back());
-                    Emit(IsRefNil(temptypestack.back()->t) ? IL_DUPREF : IL_DUP);
+                    rettypes.push_back(rettypes.back());
+                    Emit(IsRefNil(rettypes.back()->t) ? IL_DUPREF : IL_DUP);
                 }
             }
-            else if((int)temptypestack.size() > retval) // if the caller doesn't want all return values, just pop em
+            else if((int)rettypes.size() > retval) // if the caller doesn't want all return values, just pop em
             {
-                while ((int)temptypestack.size() > retval)
+                while ((int)rettypes.size() > retval)
                 {
-                    Emit(IsRefNil(temptypestack.back()->t) ? IL_POPREF : IL_POP);
-                    temptypestack.pop_back();
+                    Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
+                    rettypes.pop_back();
                 }
             }
-            else if ((int)temptypestack.size() < retval)    // only happens if both are > 1
+            else if ((int)rettypes.size() < retval)    // only happens if both are > 1
             {
                 parser.Error("expression does not supply that many return values", n);
             }
 
-            while (temptypestack.size()) temptypestack.pop_back();
+            while (rettypes.size())
+            {
+                if (!taketemp) temptypestack.push_back(rettypes.back());
+                rettypes.pop_back();
+            }
         }
 
-        assert(temptypestack.empty());
+        assert(rettypes.empty());
 
         linenumbernodes.pop_back();
     }
@@ -953,13 +1006,14 @@ struct CodeGen
             else assert(type->t == V_INT);
         }
         if (retval) lvalop++;
-        if (rhs) Gen(rhs, 1);
+        int na = 0;
+        if (rhs) { Gen(rhs, 1); na++; }
         switch (lval->type)
         {
-            case T_IDENT: Emit(IL_LVALVAR, lvalop, lval->sid()->idx); break;
-            case T_DOT:   Gen(lval->left(), 1); GenFieldAccess(lval->right(), lvalop, false); break;
-            case T_CODOT: Gen(lval->left(), 1); Emit(IL_LVALLOC, lvalop, lval->right()->sid()->idx); break;
-            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1);
+            case T_IDENT: TakeTemp(na); Emit(IL_LVALVAR, lvalop, lval->sid()->idx); break;
+            case T_DOT:   Gen(lval->left(), 1); TakeTemp(na + 1); GenFieldAccess(lval->right(), lvalop, false); break;
+            case T_CODOT: Gen(lval->left(), 1); TakeTemp(na + 1); Emit(IL_LVALLOC, lvalop, lval->right()->sid()->idx); break;
+            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); TakeTemp(na + 2);
                           Emit(lval->right()->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV, lvalop);
                           break;
             default:      parser.Error("lvalue required", lval);

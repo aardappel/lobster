@@ -79,8 +79,7 @@ struct VM : VMBase
 
     #define PUSH(v) (stack[++sp] = (v))
     #define TOP() (stack[sp])
-    #define TOP2() (stack[sp - 1])
-    #define TOP3() (stack[sp - 2])
+    #define TOPM(n) (stack[sp - n])
     #define POP() (stack[sp--]) // (sp < 0 ? 0/(sp + 1) : stack[sp--])
     #define POPN(n) (sp -= (n))
     #define TOPPTR() (stack + sp + 1)
@@ -317,20 +316,20 @@ struct VM : VMBase
         auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
         if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
         if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
-        while (sp >= 0 && sp != stackframes.back().spstart)
+        while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
         {
             s += "\n   stack: " + ValueDBG(TOP());
-            POP().DEC();
+            POP();  // We don't DEC() here, as we can't know what type it is.
+                    // This is ok, as we ignore leaks in case of an error anyway.
         }
 
         for (;;)
         {
-            TempCleanup();
-
             if (!stackframes.size()) break;
         
             string locals;
-            int deffun = varcleanup(s.length() < 10000 ? &locals : nullptr);
+            int deffun = stackframes.back().definedfunction;
+            varcleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
 
             auto li = LookupLine(ip - 1, codestart, bcf);
             if (deffun >= 0)
@@ -396,7 +395,7 @@ struct VM : VMBase
         return "\n   " + name + " = " + x.ToString(x.type, debugpp);
     }
 
-    void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip)
+    void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask)
     {
         VMASSERT(*mip == IL_FUNMULTI);
         mip++;
@@ -426,7 +425,7 @@ struct VM : VMBase
                 }
             }
 
-            return FunIntro(nargs, codestart + *mip, definedfunction, retip);
+            return FunIntro(nargs, codestart + *mip, definedfunction, retip, tempmask);
 
             fail:;
         }
@@ -463,20 +462,12 @@ struct VM : VMBase
     }
 
     void LogFrame() { vml.LogFrame(); }
-
-    void TempCleanup()
-    {
-        while (sp >= 0 && sp != stackframes.back().spstart)
-        {
-            assert(sp > stackframes.back().spstart);  // Can't have too few.
-            // only if from a return or error thats has tempories above it, and if returning thru a control structure
-            POP().DEC();
-        }
-    }
     
-    int varcleanup(string *error)
+    int varcleanup(string *error, int towhere)
     {
         auto &stf = stackframes.back();
+
+        assert(sp == stf.spstart);
 
         ip = stf.funstart;
 
@@ -508,14 +499,28 @@ struct VM : VMBase
 
         ip = stf.retip;
 
-        auto deffun = stf.definedfunction;
+        bool lastunwind = towhere == -1 || towhere == stf.definedfunction;
+        auto tempmask = stf.tempmask;
 
         stackframes.pop_back();
 
-        return deffun;
+        if (!lastunwind)
+        {
+            int usp = -1;
+            if (stackframes.size()) { usp = stackframes.back().spstart; assert(usp <= sp); }
+            if (tempmask)
+            {
+                for (uint i = 0; i < (uint)min(32, sp - usp); i++)
+                    if (((uint)tempmask) & (1u << i))
+                        stack[usp + 1 + i].DECRTNIL();
+            }
+            sp = usp;
+        }
+
+        return lastunwind;
     }
 
-    void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip)
+    void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip, int tempmask)
     {
         ip = newip;
 
@@ -570,6 +575,7 @@ struct VM : VMBase
         stf.funstart = funstart;
         stf.definedfunction = definedfunction;
         stf.spstart = sp;
+        stf.tempmask = tempmask;
 
         #ifdef _DEBUG
             if (sp > maxsp) maxsp = sp;
@@ -585,7 +591,6 @@ struct VM : VMBase
 
         for(;;)
         {
-            TempCleanup();
             if (!stackframes.size())
             {
                 if (towhere >= 0)
@@ -593,8 +598,7 @@ struct VM : VMBase
                 bottom = true;
                 break;
             }
-            int deffun = varcleanup(nullptr);
-            if(towhere == -1 || towhere == deffun) break;
+            if(varcleanup(nullptr, towhere)) break;
         }
 
         memcpy(TOPPTR(), rvs, nrv * sizeof(Value));
@@ -704,7 +708,7 @@ struct VM : VMBase
         auto last = TOP();
         evalret = last.ToString(last.type, programprintprefs);
         POP().DEC();
-        TempCleanup();
+        assert(sp == -1);
         FinalStackVarsCleanup();
         vml.LogCleanup();
         DumpLeaks();
@@ -773,8 +777,8 @@ struct VM : VMBase
                     trace_output += " [";
                     trace_output += to_string(sp + 1);
                     trace_output += "] - ";
-                    if (sp >= 0) { auto x = TOP();  trace_output += x.ToString(x.type, debugpp); }
-                    if (sp >= 1) { auto x = TOP2(); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
+                    if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
+                    if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
                     if (trace_tail)
                     {
                         trace_output += "\n";
@@ -825,7 +829,8 @@ struct VM : VMBase
                     auto nargs = *ip++;
                     auto fvar = *ip++;
                     auto fun = *ip++;
-                    FunIntro(nargs, codestart + fun, fvar, ip);
+                    auto tm = *ip++;
+                    FunIntro(nargs, codestart + fun, fvar, ip, tm);
                     break;
                 }
 
@@ -834,19 +839,21 @@ struct VM : VMBase
                     auto nargs = *ip++;
                     auto fvar = *ip++;
                     auto fun = *ip++;
-                    EvalMulti(nargs, codestart + fun, fvar, ip);
+                    auto tm = *ip++;
+                    EvalMulti(nargs, codestart + fun, fvar, ip, tm);
                     break;
                 }
 
                 case IL_CALLVCOND:
                     // FIXME: don't need to check for function value again below if false
-                    if (TOP().type != V_FUNCTION) { ip++; break; }
+                    if (TOP().type != V_FUNCTION) { ip += 2; break; }
                 case IL_CALLV:
                 {
                     Value fun = POP();
                     VMTYPEEQ(fun, V_FUNCTION);
                     auto nargs = *ip++;
-                    FunIntro(nargs, fun.ip(), -1, ip);
+                    auto tm = *ip++;
+                    FunIntro(nargs, fun.ip(), -1, ip, tm);
                     break;
                 }
 
@@ -883,17 +890,18 @@ struct VM : VMBase
 
                 #define FORLOOP(L, V, D, iterref) { \
                     auto forstart = ip - 1; \
+                    auto tm = *ip++; \
                     POP().DEC(); /* body retval */ \
                     auto &body = TOP(); \
-                    auto &iter = TOP2(); \
-                    auto &i = TOP3(); \
+                    auto &iter = TOPM(1); \
+                    auto &i = TOPM(2); \
                     assert(i.type == V_INT); \
                     i.ival()++; \
                     int len = 0; \
                     if (i.ival() >= (len = (L))) goto D; \
                     int nargs = body.ip()[1]; \
                     if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
-                    FunIntro(nargs, body.ip(), -1, forstart); \
+                    FunIntro(nargs, body.ip(), -1, forstart, tm); \
                     break; \
                     D: \
                     (void)POP(); /* body */ \

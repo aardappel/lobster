@@ -68,10 +68,11 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
 
     switch(*ip++)
     {
+        case IL_IFOR:
+        case IL_VFOR:
+        case IL_SFOR:
         case IL_PUSHINT:
         case IL_PUSHFUN:
-        case IL_CALLV:
-        case IL_CALLVCOND:
         case IL_CONT1:
         case IL_JUMP:
         case IL_JUMPFAIL:
@@ -98,17 +99,27 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             break;
         }
 
+        case IL_CALLV:
+        case IL_CALLVCOND:
+            s += to_string(*ip++);
+            s += " m:";
+            s += to_string(*ip++);
+            break;
+
         case IL_CALL:
         case IL_CALLMULTI:
         {
             auto nargs = *ip++;
             auto id = *ip++;
             auto bc = *ip++;
+            auto tm = *ip++;
             s += to_string(nargs);
             s += " ";
             s += bcf->functions()->Get(id)->name()->c_str();
             s += " ";
             s += to_string(bc);
+            s += " m:";
+            s += to_string(tm);
             break;
         }
 
