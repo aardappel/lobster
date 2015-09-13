@@ -350,13 +350,6 @@ struct Value
     inline void DECRTNIL() const { if (ref_) DECRT(); }
     inline void DECTYPE(ValueType t) const { if (IsRefNil(t)) DECRTNIL(); }
 
-    inline const Value &DEC() const
-    {
-        if (IsRef(type)) DECRT();
-        return *this;
-    }
-
-
     int Nargs()
     {
         TYPE_ASSERT(type == V_FUNCTION);
@@ -749,7 +742,7 @@ struct CoRoutine : RefObj
         assert(stackstart < 0);
         if (stackcopy)
         {
-            if (deref) for (int i = 0; i < stackcopylen; i++) stackcopy[i].DEC();
+            if (deref) for (int i = 0; i < stackcopylen; i++) stackcopy[i].DECTYPE(stackcopy[i].type);
             DeallocSubBuf(stackcopy, stackcopymax);
         }
         if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);

@@ -71,6 +71,9 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_IFOR:
         case IL_VFOR:
         case IL_SFOR:
+        case IL_IFORREF:
+        case IL_VFORREF:
+        case IL_SFORREF:
         case IL_PUSHINT:
         case IL_PUSHFUN:
         case IL_CONT1:
@@ -88,6 +91,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_LOGREAD:
         case IL_LOGREADREF:
         case IL_ISTYPE:
+        case IL_EXIT:
             s += to_string(*ip++);
             break;
 
@@ -95,6 +99,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         {
             auto id = *ip++;
             ip++;  // retvals
+            ip++;  // rettype
             s += id >= 0 ? bcf->functions()->Get(id)->name()->c_str() : to_string(id);
             break;
         }

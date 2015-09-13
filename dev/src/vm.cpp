@@ -308,18 +308,18 @@ struct VM : VMBase
 
     // This function is now way less important than it was when the language was still dynamically typed.
     // But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
-    Value Error(string err, const Value &a = Value(0, V_MAXVMTYPES), const Value &b = Value(0, V_MAXVMTYPES))
+    Value Error(string err, const Value *a = nullptr, const Value *b = nullptr)
     {
         if (trace_tail) err = trace_output + err;
 
         auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
         auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
-        if (a.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(a);
-        if (b.type != V_MAXVMTYPES) s += "\n   arg: " + ValueDBG(b);
+        if (a) s += "\n   arg: " + ValueDBG(*a);
+        if (b) s += "\n   arg: " + ValueDBG(*b);
         while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
         {
             s += "\n   stack: " + ValueDBG(TOP());
-            POP();  // We don't DEC() here, as we can't know what type it is.
+            POP();  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
         }
 
@@ -367,19 +367,23 @@ struct VM : VMBase
     void VMAssert(bool ok, const char *what, const Value &a, const Value &b) 
     {
         if (!ok)
-            Error(string("VM internal assertion failure: ") + what, a, b); 
+            Error(string("VM internal assertion failure: ") + what, &a, &b); 
     }
 
-    #ifdef _DEBUG
+    #if defined(_DEBUG) && RTT_ENABLED
         #define STRINGIFY(x) #x
         #define TOSTRING(x) STRINGIFY(x)
-        #define VMASSERT(test)             VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test)
-        #define VMASSERTVALUES(test, a, b) VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b)
+        #define VMASSERT(test)             { VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test); }
+        #define VMASSERTVALUES(test, a, b) { VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b); }
     #else
-        #define VMASSERT(test)             (void)(test)
-        #define VMASSERTVALUES(test, a, b) (void)(test); (void)(a); (void)(b)
+        #define VMASSERT(test)             { (void)(test); }
+        #define VMASSERTVALUES(test, a, b) { (void)(a); (void)(b); }
     #endif
-    #define VMTYPEEQ(val, vt) VMASSERT((val).type == (vt))
+    #if RTT_ENABLED
+        #define VMTYPEEQ(val, vt) VMASSERT((val).type == (vt))
+    #else
+        #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
+    #endif
 
     string ValueDBG(const Value &a)
     {
@@ -703,11 +707,10 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    void EndEval(string &evalret)
+    void EndEval(string &evalret, Value &ret, ValueType vt)
     {
-        auto last = TOP();
-        evalret = last.ToString(last.type, programprintprefs);
-        POP().DEC();
+        evalret = ret.ToString(vt, programprintprefs);
+        ret.DECTYPE(vt);
         assert(sp == -1);
         FinalStackVarsCleanup();
         vml.LogCleanup();
@@ -846,7 +849,7 @@ struct VM : VMBase
 
                 case IL_CALLVCOND:
                     // FIXME: don't need to check for function value again below if false
-                    if (TOP().type != V_FUNCTION) { ip += 2; break; }
+                    if (!TOP().True()) { ip += 2; break; }
                 case IL_CALLV:
                 {
                     Value fun = POP();
@@ -872,26 +875,43 @@ struct VM : VMBase
                 {
                     int df = *ip++;
                     int nrv = *ip++;
-                    if(FunOut(df, nrv)) return EndEval(evalret); 
+                    int tidx = *ip++;
+                    if(FunOut(df, nrv))
+                    {
+                        assert(nrv == 1);
+                        return EndEval(evalret, POP(), GetTypeInfo((type_elem_t)tidx).t); 
+                    }
                     break;
                 }
 
                 case IL_EXIT:
-                    return EndEval(evalret);
+                {
+                    int tidx = *ip++;
+                    return EndEval(evalret, POP(), GetTypeInfo((type_elem_t)tidx).t);
+                }
 
                 case IL_CONT1:
                 {
                     auto nf = natreg.nfuns[*ip++];
-                    POP().DEC();  // return value from body.
+                    POP();  // return value from body.
+                    nf->cont1();
+                    PUSH(Value());
+                    break;
+                }
+                case IL_CONT1REF:
+                {
+                    auto nf = natreg.nfuns[*ip++];
+                    POP().DECRTNIL();  // return value from body.
                     nf->cont1();
                     PUSH(Value());
                     break;
                 }
 
-                #define FORLOOP(L, V, D, iterref) { \
+                #define FORLOOP(L, V, D, iterref, bodyref) { \
                     auto forstart = ip - 1; \
                     auto tm = *ip++; \
-                    POP().DEC(); /* body retval */ \
+                    auto bodyret = POP(); \
+                    if (bodyref) bodyret.DECRTNIL(); \
                     auto &body = TOP(); \
                     auto &iter = TOPM(1); \
                     auto &i = TOPM(2); \
@@ -911,9 +931,12 @@ struct VM : VMBase
                     break; \
                 }
 
-                case IL_IFOR: FORLOOP(iter.ival(), i, donei, false);
-                case IL_VFOR: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donev, true);
-                case IL_SFOR: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), dones, true);
+                case IL_IFOR:    FORLOOP(iter.ival(), i, doneis, false, false);
+                case IL_IFORREF: FORLOOP(iter.ival(), i, doneir, false, true);
+                case IL_VFOR:    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donevs, true, false);
+                case IL_VFORREF: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donevr, true, true);
+                case IL_SFOR:    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), doness, true, false);
+                case IL_SFORREF: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), donesr, true, true);
 
                 case IL_BCALL:
                 {
@@ -934,7 +957,7 @@ struct VM : VMBase
                         #undef ARG
                     }
                     PUSH(v);
-                    #ifdef RTT_ENABLED
+                    #if RTT_ENABLED
                         // see if any builtin function is lying about what type it returns
                         // other function types return intermediary values that don't correspond to final return values
                         if (nf->ncm == NCM_NONE)
@@ -973,7 +996,6 @@ struct VM : VMBase
                 case IL_DUPREF: { auto x = TOP().INCRTNIL(); PUSH(x); break; }
 
                 #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
-                #define COP(t) if (b.type == t) { VMASSERTVALUES(false, a, b); }
                 #define GETARGS() Value b = POP(); Value a = POP()
                 #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
                     if (extras & 1 && b.field == 0) Div0(); res = a.field op b.field;
@@ -986,7 +1008,7 @@ struct VM : VMBase
                     int len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) : a.eval()->ti); \
                     for (int j = 0; j < len; j++) \
                     { \
-                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT); else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
+                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
                         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
                         if (extras&1 && bv == 0) Div0(); \
                         VMTYPEEQ(a.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
@@ -1001,7 +1023,7 @@ struct VM : VMBase
                 #define _SCAT()  Value res; REFOP(NewString(a.sval()->str(), a.sval()->len, b.sval()->str(), b.sval()->len))
                 #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
 
-                #define ACOMPEN(op, andor) { GETARGS(); Value res; REFOP(a.type op b.type andor a.any() op b.any()); PUSH(res); break; }
+                #define ACOMPEN(op) { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); break; }
 
                                            
                 #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); break; }
@@ -1067,8 +1089,8 @@ struct VM : VMBase
                 case IL_FVSLE:  FVSOPC(<=, 0);
                 case IL_FVSGE:  FVSOPC(>=, 0);
 
-                case IL_AEQ:   ACOMPEN(==, &&);
-                case IL_ANE:   ACOMPEN(!=, ||);
+                case IL_AEQ:   ACOMPEN(==);
+                case IL_ANE:   ACOMPEN(!=);
                     
                 case IL_IADD: IOP(+,  0);
                 case IL_ISUB: IOP(-,  0);
@@ -1243,9 +1265,8 @@ struct VM : VMBase
                 case IL_ISTYPE:
                 {
                     auto to = (type_elem_t)*ip++;
-                    auto &v = POP();
-                    TYPE_ASSERT(IsRef(v.type));  // Optimizer guarantees we don't have to deal with scalars.
-                    v.DECRT();
+                    auto &v = POP(); 
+                    v.DECRTNIL();  // Optimizer guarantees we don't have to deal with scalars.
                     PUSH(&v.ref()->ti == &GetTypeInfo(to));
                     break;
                 }
@@ -1430,7 +1451,7 @@ struct VM : VMBase
 
     void IDXErr(int i, int n, const Value &v)
     {
-        if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
+        if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), &v);
     }
 
     int GrabIndex(const Value &idx)
@@ -1460,7 +1481,7 @@ struct VM : VMBase
         if (!withscalar)
         {
             TYPE_ASSERT(IsVector(b.type));
-            if (b.eval()->Len() != len) Error("vectors operation: vector must be same length", a, b);
+            if (b.eval()->Len() != len) Error("vectors operation: vector must be same length", &a, &b);
         }
 
         res = Value(NewVector(len, len, desttype));

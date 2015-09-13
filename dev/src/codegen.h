@@ -167,7 +167,8 @@ struct CodeGen
         SETL(fundefjump);
 
         BodyGen(parser.root);
-        Emit(IL_EXIT);
+
+        Emit(IL_EXIT, GetTypeTableOffset(Parser::LastInList(parser.root)->head()->exptype));
 
         linenumbernodes.pop_back();
 
@@ -642,11 +643,12 @@ struct CodeGen
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
                         Emit(IL_BCALL, nf->idx);
-                        if (lastarg->type != T_DEFAULTVAL) // FIXME: this will not work if its a var with nil value
+                        if (lastarg->type != T_DEFAULTVAL)
                         {
                             Emit(IL_CALLVCOND, 0);
                             EmitTempInfo(n);
-                            Emit(IL_CONT1, nf->idx);
+                            assert(lastarg->exptype->t == V_FUNCTION);
+                            Emit(IsRefNil(lastarg->exptype->sf->returntypes[0]->t) ? IL_CONT1REF : IL_CONT1, nf->idx);
                         }
                     }
                     else
@@ -828,12 +830,13 @@ struct CodeGen
                 Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
                 Emit(IL_PUSHNIL);     // body retval
                 auto type = n->for_iter()->exptype;
+                auto isref = (int)IsRefNil(n->for_body()->exptype->t);
                 switch (type->t)
                 {
-                    case V_INT: Emit(IL_IFOR); break;
-                    case V_STRING: Emit(IL_SFOR); break;
-                    case V_VECTOR: Emit(IL_VFOR); break;
-                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR); Emit(IL_VFOR); break;
+                    case V_INT:    Emit(IL_IFOR + isref); break;
+                    case V_STRING: Emit(IL_SFOR + isref); break;
+                    case V_VECTOR: Emit(IL_VFOR + isref); break;
+                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR); Emit(IL_VFOR + isref); break;
                     default: assert(false);
                 }
                 EmitTempInfo(n);
@@ -884,9 +887,12 @@ struct CodeGen
             case T_RETURN:
             {
                 int fid = n->return_function_idx()->integer();
-                if (n->return_value()) Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1, true);
+                if (n->return_value())
+                {
+                    Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1, true);
+                }
                 else Emit(IL_PUSHNIL);
-                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1);
+                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1, GetTypeTableOffset(n->exptype));
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }

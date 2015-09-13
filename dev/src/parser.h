@@ -496,6 +496,14 @@ struct Parser
         return c;
     }
 
+    static Node *LastInList(Node *n)
+    {
+        Node *last = nullptr;
+        for (auto l = n; l; l = l->tail()) last = l;
+        assert(last);
+        return last;
+    }
+
     Node *ParseNamedFunctionDefinition(bool isprivate = false)
     {
         string idname = lex.sattr;

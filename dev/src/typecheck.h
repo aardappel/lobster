@@ -593,9 +593,7 @@ struct TypeChecker
         for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
         for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
 
-        Node *last = nullptr;
-        for (auto topl = sf.body; topl; topl = topl->tail()) last = topl;
-        assert(last);
+        Node *last = Parser::LastInList(sf.body);
         if (last->head()->type != T_RETURN || last->head()->return_function_idx()->integer() != sf.parent->idx) 
             RetVal(last->head(), &sf, 0);
 
@@ -1730,12 +1728,14 @@ struct TypeChecker
                 }
                 if (n.return_value())
                 {
+                    type = n.return_value()->exptype;
                     if (n.return_value()->type == T_MULTIRET)
                     {
                         int i = 0;
                         for (auto mr = n.return_value(); mr; mr = mr->tailexps())
                         {
                             RetVal(mr->headexp(), sf, i++);
+                            if (!i) type = mr->headexp()->exptype;
                         }
                     }
                     else if (n.return_value()->type == T_CALL &&
@@ -1750,7 +1750,6 @@ struct TypeChecker
                     {
                         RetVal(n.return_value(), sf, 0);
                     }
-                    type = n.return_value()->exptype;
                 }
                 else
                 {

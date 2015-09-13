@@ -317,12 +317,11 @@ void AddBuiltins()
                 removed++;
             }
         }
-        o.DEC();
         l.DECRT();
-        return Value(removed);
+        return o;
     }
-    ENDDECL2(removeobj, "xs,obj", "V*A1", "I",
-        "remove all elements equal to obj (==), returns amount of elements removed.");
+    ENDDECL2(removeobj, "xs,obj", "V*A1", "A2",
+        "remove all elements equal to obj (==), returns obj.");
 
     STARTDECL(binarysearch) (Value &l, Value &key)
     {
