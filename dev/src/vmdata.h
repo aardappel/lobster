@@ -150,6 +150,7 @@ struct VMBase
     virtual void LogFrame() = 0;
     virtual string StructName(const TypeInfo &ti) = 0;
     virtual const TypeInfo &GetVarTypeInfo(int varidx) = 0;
+    virtual void CoVarCleanup(CoRoutine *co) = 0;
 };
 
 // the 2 globals that make up the current VM instance
@@ -672,6 +673,18 @@ struct CoRoutine : RefObj
         return ss;
     }
 
+    void AdjustStackFrames(int top)
+    {
+        int topdelta = (top + stackcopylen) - top_at_suspend;
+        if (topdelta)
+        {
+            for (int i = 0; i < stackframecopylen; i++)
+            {
+                stackframescopy[i].spstart += topdelta;
+            }
+        }
+    }
+
     int Resume(int top, Value *stack, vector<StackFrame> &stackframes, const int *&rip, CoRoutine *p)
     {
         assert(stackstart < 0);
@@ -682,14 +695,7 @@ struct CoRoutine : RefObj
         parent = p;
 
         stackframestart = (int)stackframes.size();
-        int topdelta = (top + stackcopylen) - top_at_suspend;
-        if (topdelta)
-        {
-            for (int i = 0; i < stackframecopylen; i++)
-            {
-                stackframescopy[i].spstart += topdelta;
-            }
-        }
+        AdjustStackFrames(top);
         stackframes.insert(stackframes.end(), stackframescopy, stackframescopy + stackframecopylen);
 
         stackstart = top;
@@ -742,9 +748,30 @@ struct CoRoutine : RefObj
         assert(stackstart < 0);
         if (stackcopy)
         {
-            if (deref) for (int i = 0; i < stackcopylen; i++) stackcopy[i].DECTYPE(stackcopy[i].type);
+            stackcopy[--stackcopylen].DECTYPE(g_vm->GetTypeInfo(ti.yieldtype).t);
+            if (active)
+            {
+                if (deref)
+                {
+                    for (int i = *varip; i > 0; i--)
+                    {
+                        auto &vti = g_vm->GetVarTypeInfo(varip[i]);
+                        stackcopy[--stackcopylen].DECTYPE(vti.t);
+                    }
+
+                    top_at_suspend -= *varip + 1;
+
+                    // This calls Resume() to get the rest back onto the stack, then unwinds it.
+                    g_vm->CoVarCleanup(this);
+                }
+            }
+            else
+            {
+               assert(!stackcopylen);
+            }
             DeallocSubBuf(stackcopy, stackcopymax);
         }
+
         if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
         vmpool->dealloc(this, sizeof(CoRoutine));
     }

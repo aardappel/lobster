@@ -282,11 +282,13 @@ def run_test_cases():
             f()
 
     co4 := coroutine loctest()
+    assert co4.active
     assert co4->a + co4->i + co4->b == 3
 
     // Even functions that don't yield are cool:
     def conoyield(f): 1
     co5 := coroutine conoyield()
+    assert !co5.active
     assert co5.returnvalue == 1
 
     // ////////////////////////////////////////////////////////////////////////

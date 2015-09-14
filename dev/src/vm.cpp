@@ -310,7 +310,7 @@ struct VM : VMBase
     // But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
     Value Error(string err, const Value *a = nullptr, const Value *b = nullptr)
     {
-        if (trace_tail) err = trace_output + err;
+        if (trace_tail) throw trace_output + err;
 
         auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
         auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
@@ -329,7 +329,7 @@ struct VM : VMBase
         
             string locals;
             int deffun = stackframes.back().definedfunction;
-            varcleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
+            VarCleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
 
             auto li = LookupLine(ip - 1, codestart, bcf);
             if (deffun >= 0)
@@ -466,8 +466,8 @@ struct VM : VMBase
     }
 
     void LogFrame() { vml.LogFrame(); }
-    
-    int varcleanup(string *error, int towhere)
+
+    int VarCleanup(string *error, int towhere)
     {
         auto &stf = stackframes.back();
 
@@ -510,15 +510,14 @@ struct VM : VMBase
 
         if (!lastunwind)
         {
-            int usp = -1;
-            if (stackframes.size()) { usp = stackframes.back().spstart; assert(usp <= sp); }
+            auto untilsp = stackframes.size() ? stackframes.back().spstart : -1;
             if (tempmask)
             {
-                for (uint i = 0; i < (uint)min(32, sp - usp); i++)
+                for (uint i = 0; i < (uint)min(32, sp - untilsp); i++)
                     if (((uint)tempmask) & (1u << i))
-                        stack[usp + 1 + i].DECRTNIL();
+                        stack[untilsp + 1 + i].DECRTNIL();
             }
-            sp = usp;
+            sp = untilsp;
         }
 
         return lastunwind;
@@ -602,13 +601,36 @@ struct VM : VMBase
                 bottom = true;
                 break;
             }
-            if(varcleanup(nullptr, towhere)) break;
+            if(VarCleanup(nullptr, towhere)) break;
         }
 
         memcpy(TOPPTR(), rvs, nrv * sizeof(Value));
         sp += nrv;
 
         return bottom;
+    }
+
+    void CoVarCleanup(CoRoutine *co)
+    {
+        // Convenient way to copy everything back onto the stack.
+        const int *tip = nullptr;
+        auto copylen = co->Resume(sp + 1, stack, stackframes, tip, nullptr);
+        auto startsp = sp;
+        sp += copylen;
+
+        for (int i = co->stackframecopylen - 1; i >= 0 ; i--)
+        {
+            auto &stf = stackframes.back();
+
+            // FIXME: guarantee this statically.
+            if (stf.spstart != sp)
+                g_vm->BuiltinError("internal: can\'t have tempories above a yield.");
+
+            VarCleanup(nullptr, !i ? stf.definedfunction : -2);
+        }
+
+        assert(sp == startsp);
+        (void)startsp;
     }
 
     void CoNonRec(const int *varip)

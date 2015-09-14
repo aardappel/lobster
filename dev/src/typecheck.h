@@ -1711,6 +1711,13 @@ struct TypeChecker
             case T_RETURN:
             {
                 auto fid = n.return_function_idx()->integer();
+
+                for (int i = (int)scopes.size() - 1; i >= 0; i--)
+                {
+                    if (scopes[i].sf->parent->idx == fid) break;
+                    if (scopes[i].sf->iscoroutine) TypeError("cannot return out of coroutine", n);
+                }
+
                 if (fid < 0) break;  // return from program
 
                 auto sf = TopScope(named_scopes);
