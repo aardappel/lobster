@@ -128,7 +128,7 @@ void RefObj::Mark()
 
 void Value::Mark(ValueType vtype)
 {
-    if (IsRef(vtype) && ref_) ref_->Mark();
+    if (IsRefNil(vtype) && ref_) ref_->Mark();
 }
 
 string TypeInfo::Debug(bool rec) const

@@ -1539,8 +1539,16 @@ struct VM : VMBase
 
     int GC()    // shouldn't really be used, but just in case
     {
-        for (int i = 0; i <= sp; i++) stack[i].Mark(stack[i].type);
-        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(vars[i].type/*GetVarTypeInfo(i).t*/);
+        for (int i = 0; i <= sp; i++)
+        {
+            //stack[i].Mark(?);
+
+            // TODO: we could actually walk the stack here and recover correct types, but it is so easy to avoid
+            // this error that that may not be worth it.
+            if (stack[i].True())  // Typically all nil
+                Error("collect_garbage() must be called from a top level function");
+        }
+        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(GetVarTypeInfo(i).t);
         vml.LogMark();
 
         vector<RefObj *> leaks;
