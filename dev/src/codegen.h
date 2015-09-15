@@ -396,6 +396,13 @@ struct CodeGen
              f.multimethod ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf);
         EmitTempInfo(args);
+        if (f.multimethod)
+        {
+            for (const Node *list = args; list; list = list->tail())
+            {
+                Emit(GetTypeTableOffset(list->head()->exptype));
+            }
+        }
         auto nretvals = max(f.retvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
         for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);

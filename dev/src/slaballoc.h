@@ -371,6 +371,15 @@ class SlabAlloc
         return sum;
     }
 
+    bool pointer_is_in_allocator(void *p)
+    {
+        for (auto b = blocks; b; b = (void **)*b)
+        {
+            if (p > b && p <= ((char *)b) + PAGEBLOCKSIZE) return true;
+        }
+        return false;
+    }
+
     template<typename T> void findleaks(T leakcallback)
     {
         loopdllist(usedpages, h)

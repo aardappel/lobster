@@ -22,6 +22,8 @@
   - runtime type representation
 	- multimethod dispatch is broken. it now requires full types on all args to match (no more any on args,
 	  no more catch all case)
+	  - also, need to disallow nilable types for args that are being dispatched on, since if the runtime value
+	    is ever nil, we can't choose a method. That, or have a way to have a method that works on nil alone.
 	- You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
 	  gets the wrong type set.
 	- Need to have a permanent solution for 64bit, since True() is unsafe.

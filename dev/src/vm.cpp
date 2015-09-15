@@ -308,17 +308,18 @@ struct VM : VMBase
 
     // This function is now way less important than it was when the language was still dynamically typed.
     // But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
-    Value Error(string err, const Value *a = nullptr, const Value *b = nullptr)
+    Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr)
     {
-        if (trace_tail) throw trace_output + err;
+        if (trace_tail && trace_output.length()) throw trace_output + err;
 
         auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
         auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
-        if (a) s += "\n   arg: " + ValueDBG(*a);
-        if (b) s += "\n   arg: " + ValueDBG(*b);
+        if (a) s += "\n   arg: " + ValueDBG(a);
+        if (b) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
         {
-            s += "\n   stack: " + ValueDBG(TOP());
+            s += "\n   stack: " + to_string_hex((int)TOP().any());  // Sadly can't print this properly.
+            if (vmpool->pointer_is_in_allocator(TOP().any())) s += ", maybe: " + TOP().ref()->ToString(debugpp);
             POP();  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
         }
@@ -364,20 +365,18 @@ struct VM : VMBase
         if (!ok)
             Error(string("VM internal assertion failure: ") + what); 
     }
-    void VMAssert(bool ok, const char *what, const Value &a, const Value &b) 
+    void VMAssert(bool ok, const char *what, const RefObj *a, const RefObj *b) 
     {
         if (!ok)
-            Error(string("VM internal assertion failure: ") + what, &a, &b); 
+            Error(string("VM internal assertion failure: ") + what, a, b); 
     }
 
     #if defined(_DEBUG) && RTT_ENABLED
         #define STRINGIFY(x) #x
         #define TOSTRING(x) STRINGIFY(x)
         #define VMASSERT(test)             { VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test); }
-        #define VMASSERTVALUES(test, a, b) { VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test, a, b); }
     #else
-        #define VMASSERT(test)             { (void)(test); }
-        #define VMASSERTVALUES(test, a, b) { (void)(a); (void)(b); }
+        #define VMASSERT(test)             {}
     #endif
     #if RTT_ENABLED
         #define VMTYPEEQ(val, vt) VMASSERT((val).type == (vt))
@@ -385,9 +384,9 @@ struct VM : VMBase
         #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
     #endif
 
-    string ValueDBG(const Value &a)
+    string ValueDBG(const RefObj *a)
     {
-        return a.ToString(a.type, debugpp);
+        return a->ToString(debugpp);
     }
 
     string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
@@ -396,7 +395,7 @@ struct VM : VMBase
         auto id = bcf->idents()->Get(sid->ididx());
         if (id->readonly() || id->global() != dumpglobals) return "";
         string name = id->name()->c_str();
-        return "\n   " + name + " = " + x.ToString(x.type, debugpp);
+        return "\n   " + name + " = " + x.ToString(GetVarTypeInfo(idx).t, debugpp);
     }
 
     void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask)
@@ -416,8 +415,11 @@ struct VM : VMBase
                 auto &desired = GetTypeInfo((type_elem_t)*mip++);
                 if (desired.t != V_ANY)
                 {
-                    Value &v = stack[sp - nargs + j + 1];
-                    if (v.type != desired.t || (IsRef(v.type) && &v.ref()->ti != &desired))
+                    auto &given = GetTypeInfo((type_elem_t)retip[j]);
+                    // Have to check the actual value, since given may be a supertype.
+                    // FIXME: this is slow.
+                    if ((given.t != desired.t && given.t != V_ANY) ||
+                        (IsRef(given.t) && &stack[sp - nargs + j + 1].ref()->ti != &desired))
                     {
                         mip += nargs - j;  // Includes the code starting point.
                         goto fail;
@@ -429,6 +431,8 @@ struct VM : VMBase
                 }
             }
 
+            retip += nargs;
+
             return FunIntro(nargs, codestart + *mip, definedfunction, retip, tempmask);
 
             fail:;
@@ -437,7 +441,9 @@ struct VM : VMBase
         string argtypes;
         for (int j = 0; j < nargs; j++)
         {
-            argtypes += ProperTypeName(stack[sp - nargs + j + 1]);
+            auto &ti = GetTypeInfo((type_elem_t)retip[j]);
+            Value &v = stack[sp - nargs + j + 1];
+            argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti : ti);
             if (j < nargs - 1) argtypes += ", ";
         }
         Error(string("the call ") + bcf->functions()->Get(definedfunction)->name()->c_str() + "(" + argtypes +
@@ -802,8 +808,10 @@ struct VM : VMBase
                     trace_output += " [";
                     trace_output += to_string(sp + 1);
                     trace_output += "] - ";
+                    #if RTT_ENABLED
                     if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
                     if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
+                    #endif
                     if (trace_tail)
                     {
                         trace_output += "\n";
@@ -937,7 +945,7 @@ struct VM : VMBase
                     auto &body = TOP(); \
                     auto &iter = TOPM(1); \
                     auto &i = TOPM(2); \
-                    assert(i.type == V_INT); \
+                    TYPE_ASSERT(i.type == V_INT); \
                     i.ival()++; \
                     int len = 0; \
                     if (i.ival() >= (len = (L))) goto D; \
@@ -1022,8 +1030,8 @@ struct VM : VMBase
                 #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
                     if (extras & 1 && b.field == 0) Div0(); res = a.field op b.field;
 
-                #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERTVALUES(a.type == V_INT && b.type == V_INT, a, b))
-                #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERTVALUES(a.type == V_FLOAT && b.type == V_FLOAT, a, b))
+                #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERT(a.type == V_INT && b.type == V_INT))
+                #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERT(a.type == V_FLOAT && b.type == V_FLOAT))
 
                 #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
                 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
@@ -1195,7 +1203,7 @@ struct VM : VMBase
                 {
                     Value a = POP();
                     TYPE_ASSERT(IsRefNil(a.type));
-                    PUSH(NewString(a.ToString(a.type, programprintprefs)));
+                    PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti.t : V_NIL, programprintprefs)));
                     a.DECRTNIL();
                     break;
                 }
@@ -1340,11 +1348,11 @@ struct VM : VMBase
         {
             case V_STRUCT:  // Struct::vectortype
             case V_VECTOR:
-                IDXErr(i, r.eval()->Len(), r);
+                IDXErr(i, r.eval()->Len(), r.eval());
                 PUSH(r.eval()->AtInc(i));
                 break;
             case V_STRING:
-                IDXErr(i, r.sval()->len, r); 
+                IDXErr(i, r.sval()->len, r.sval()); 
                 PUSH(Value((int)r.sval()->str()[i]));
                 break;
             default:
@@ -1357,7 +1365,7 @@ struct VM : VMBase
     {
         Value vec = POP();
         TYPE_ASSERT(IsVector(vec.type));
-        IDXErr(i, (int)vec.eval()->Len(), vec);
+        IDXErr(i, (int)vec.eval()->Len(), vec.eval());
         Value &a = vec.eval()->At(i);
         LvalueOp(lvalop, a);
         vec.DECRT();
@@ -1459,21 +1467,22 @@ struct VM : VMBase
         }
     }
 
-    const char *ProperTypeName(const Value &v)
+    string ProperTypeName(const TypeInfo &ti)
     {
-        if (IsRef(v.type))
+        switch (ti.t)
         {
-            auto &ti = v.ref()->ti;
-            if (ti.t == V_STRUCT) return ReverseLookupType(ti.structidx);
+            case V_STRUCT: return ReverseLookupType(ti.structidx);
+            case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
+            case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
         }
-        return BaseTypeName(v.type);
+        return BaseTypeName(ti.t);
     }
 
     void Div0() { Error("division by zero"); } 
 
-    void IDXErr(int i, int n, const Value &v)
+    void IDXErr(int i, int n, const RefObj *v)
     {
-        if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), &v);
+        if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
     }
 
     int GrabIndex(const Value &idx)
@@ -1489,7 +1498,7 @@ struct VM : VMBase
                 return sidx.ival();
             }
             TYPE_ASSERT(IsVector(v.type));
-            IDXErr(sidx.ival(), v.eval()->Len(), v);
+            IDXErr(sidx.ival(), v.eval()->Len(), v.eval());
             auto nv = v.eval()->At(sidx.ival()).INCRT();
             v.DECRT();
             v = nv;
@@ -1503,7 +1512,7 @@ struct VM : VMBase
         if (!withscalar)
         {
             TYPE_ASSERT(IsVector(b.type));
-            if (b.eval()->Len() != len) Error("vectors operation: vector must be same length", &a, &b);
+            if (b.eval()->Len() != len) Error("vectors operation: vector must be same length", a.eval(), b.eval());
         }
 
         res = Value(NewVector(len, len, desttype));
@@ -1531,7 +1540,7 @@ struct VM : VMBase
     int GC()    // shouldn't really be used, but just in case
     {
         for (int i = 0; i <= sp; i++) stack[i].Mark(stack[i].type);
-        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(vars[i].type);
+        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(vars[i].type/*GetVarTypeInfo(i).t*/);
         vml.LogMark();
 
         vector<RefObj *> leaks;

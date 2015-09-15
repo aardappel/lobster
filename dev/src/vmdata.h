@@ -14,13 +14,17 @@
 
 namespace lobster {
 
+#ifdef _DEBUG
 #define RTT_ENABLED 1
+#else
+#define RTT_ENABLED 1
+#endif
 
 enum ValueType : int
 {
     // refc types are negative
     V_MINVMTYPES = -10,
-    V_ANY = -9,         // [typechecker only] any other reference type.
+    V_ANY = -9,         // any other reference type.
     V_STACKFRAMEBUF = -8,
     V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, Value not allowed to refer to this
     V_BOXEDFLOAT = -6,
@@ -141,7 +145,7 @@ struct VMBase
     virtual void Trace(bool on) = 0;
     virtual double Time() = 0;
     virtual int GC() = 0;
-    virtual const char *ProperTypeName(const Value &v) = 0;
+    virtual string ProperTypeName(const TypeInfo &ti) = 0;
     virtual const char *ReverseLookupType(uint v) = 0;
     virtual void SetMaxStack(int ms) = 0;
     virtual void CoResume(CoRoutine *co) = 0;

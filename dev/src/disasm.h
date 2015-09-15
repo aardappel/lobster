@@ -66,7 +66,9 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
     s += ilnames[*ip];
     s += " ";
 
-    switch(*ip++)
+    int opc = *ip++;
+
+    switch(opc)
     {
         case IL_IFOR:
         case IL_VFOR:
@@ -118,6 +120,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             auto id = *ip++;
             auto bc = *ip++;
             auto tm = *ip++;
+            if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
             s += to_string(nargs);
             s += " ";
             s += bcf->functions()->Get(id)->name()->c_str();
