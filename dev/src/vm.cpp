@@ -353,8 +353,6 @@ struct VM : VMBase
             s += DumpVar(vars[i], i, true);
         }
 
-        FinalStackVarsCleanup();
-
         throw s;
     }
 
@@ -496,14 +494,14 @@ struct VM : VMBase
         {
             auto i = *--defvars; 
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DECTYPE(GetVarTypeInfo(i).t);
+            else vars[i].DECTYPE(GetVarTypeInfo(i).t);
             vars[i] = POP();
         }
         while (nargs--)
         {
             auto i = *--freevars;
             if (error) (*error) += DumpVar(vars[i], i, false);
-            vars[i].DECTYPE(GetVarTypeInfo(i).t);
+            else vars[i].DECTYPE(GetVarTypeInfo(i).t);
             vars[i] = POP();
         } 
 
@@ -517,7 +515,7 @@ struct VM : VMBase
         if (!lastunwind)
         {
             auto untilsp = stackframes.size() ? stackframes.back().spstart : -1;
-            if (tempmask)
+            if (tempmask && !error)
             {
                 for (uint i = 0; i < (uint)min(32, sp - untilsp); i++)
                     if (((uint)tempmask) & (1u << i))

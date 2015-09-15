@@ -17,7 +17,7 @@ namespace lobster {
 #ifdef _DEBUG
 #define RTT_ENABLED 1
 #else
-#define RTT_ENABLED 1
+#define RTT_ENABLED 0
 #endif
 
 enum ValueType : int
@@ -800,15 +800,14 @@ struct CoRoutine : RefObj
 
     void Mark()
     {
-        #if RTT_ENABLED
-        if (stackstart < 0)
-            for (int i = 0; i < stackcopylen; i++)
-                stackcopy[i].Mark(stackcopy[i].type);
-        #else
         // FIXME!
         // ElemType(i) refers to the ith variable, not the ith stackcopy element.
+        /*
+        if (stackstart < 0)
+            for (int i = 0; i < stackcopylen; i++)
+                stackcopy[i].Mark(?);
+        */
         g_vm->BuiltinError("internal: can\'t GC coroutines");
-        #endif
     }
 };
 

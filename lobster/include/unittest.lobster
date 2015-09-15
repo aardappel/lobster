@@ -237,59 +237,62 @@ def run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // coroutines test
 
-    def mycoro(f):
-        forrange(3, 6): f(_)
-        1337
+    // FIXME: sticking these in a block for now, because collect_garbage() below
+    // can't handle coroutines yet.
+    block():
+        def mycoro(f):
+            forrange(3, 6): f(_)
+            1337
 
-    def myfor(n, f):
-        for n: f(_)
-        0
+        def myfor(n, f):
+            for n: f(_)
+            0
 
-    co1 := coroutine mycoro()   // out of nested HOFs
-    co2 := coroutine myfor(4)   // out of a simple function
+        co1 := coroutine mycoro()   // out of nested HOFs
+        co2 := coroutine myfor(4)   // out of a simple function
 
-    def interleave(co1, co2, f):   // test using 2 at once
-        while co1.active | co2.active:
-            if co1.active:
-                f(co1.returnvalue)
-                co1.resume
-            if co2.active:
-                f(co2.returnvalue)
-                co2.resume
+        def interleave(co1, co2, f):   // test using 2 at once
+            while co1.active | co2.active:
+                if co1.active:
+                    f(co1.returnvalue)
+                    co1.resume
+                if co2.active:
+                    f(co2.returnvalue)
+                    co2.resume
 
-    //interleave(co1, co2): print(_)
+        //interleave(co1, co2): print(_)
 
-    assert equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ])
-    assert !co1.active
-    assert !co2.active
-    assert co1.returnvalue == 1337
+        assert equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ])
+        assert !co1.active
+        assert !co2.active
+        assert co1.returnvalue == 1337
 
-    def pass_thru(co, f):
-        coroutine_for co: f(_)
+        def pass_thru(co, f):
+            coroutine_for co: f(_)
 
-    co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
-    sum := 0
-    while co3.active:       // we currently can't use coroutine_for here, will be a runtime error (nesting)
-        sum += co3.returnvalue
-        co3.resume
-    assert sum == 45
+        co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
+        sum := 0
+        while co3.active:       // we currently can't use coroutine_for here, will be a runtime error (nesting)
+            sum += co3.returnvalue
+            co3.resume
+        assert sum == 45
 
-    // Access variables inside coroutines from the outside:
-    def loctest(f):
-        a := 1
-        for(10) i:
-            b := 2
-            f()
+        // Access variables inside coroutines from the outside:
+        def loctest(f):
+            a := 1
+            for(10) i:
+                b := 2
+                f()
 
-    co4 := coroutine loctest()
-    assert co4.active
-    assert co4->a + co4->i + co4->b == 3
+        co4 := coroutine loctest()
+        assert co4.active
+        assert co4->a + co4->i + co4->b == 3
 
-    // Even functions that don't yield are cool:
-    def conoyield(f): 1
-    co5 := coroutine conoyield()
-    assert !co5.active
-    assert co5.returnvalue == 1
+        // Even functions that don't yield are cool:
+        def conoyield(f): 1
+        co5 := coroutine conoyield()
+        assert !co5.active
+        assert co5.returnvalue == 1
 
     // ////////////////////////////////////////////////////////////////////////
     // misc test

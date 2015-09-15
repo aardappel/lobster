@@ -62,7 +62,7 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
 int main(int argc, char* argv[])
 {
     #ifdef WIN32
-        _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     #endif
 
     Output(OUTPUT_INFO, "Lobster running...");
@@ -182,6 +182,10 @@ int main(int argc, char* argv[])
             Output(OUTPUT_PROGRAM, "press <ENTER> to continue:\n");
             getchar();
         }
+
+        #ifdef WIN32
+            _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
+        #endif
     }
 
     extern void GraphicsShutDown(); GraphicsShutDown();
