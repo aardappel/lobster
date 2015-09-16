@@ -935,7 +935,7 @@ struct VM : VMBase
                     break;
                 }
 
-                #define FORLOOP(L, V, D, iterref, bodyref) { \
+                #define FORLOOP(L, V, iterref, bodyref) { \
                     auto forstart = ip - 1; \
                     auto tm = *ip++; \
                     auto bodyret = POP(); \
@@ -946,12 +946,12 @@ struct VM : VMBase
                     TYPE_ASSERT(i.type == V_INT); \
                     i.ival()++; \
                     int len = 0; \
-                    if (i.ival() >= (len = (L))) goto D; \
+                    if (i.ival() < (len = (L))) { \
                     int nargs = body.ip()[1]; \
                     if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
                     FunIntro(nargs, body.ip(), -1, forstart, tm); \
                     break; \
-                    D: \
+                    } \
                     (void)POP(); /* body */ \
                     if (iterref) TOP().DECRT(); \
                     (void)POP(); /* iter */ \
@@ -959,12 +959,12 @@ struct VM : VMBase
                     break; \
                 }
 
-                case IL_IFOR:    FORLOOP(iter.ival(), i, doneis, false, false);
-                case IL_IFORREF: FORLOOP(iter.ival(), i, doneir, false, true);
-                case IL_VFOR:    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donevs, true, false);
-                case IL_VFORREF: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), donevr, true, true);
-                case IL_SFOR:    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), doness, true, false);
-                case IL_SFORREF: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), donesr, true, true);
+                case IL_IFOR:    FORLOOP(iter.ival(), i, false, false);
+                case IL_IFORREF: FORLOOP(iter.ival(), i, false, true);
+                case IL_VFOR:    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false);
+                case IL_VFORREF: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true);
+                case IL_SFOR:    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false);
+                case IL_SFORREF: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true);
 
                 case IL_BCALL:
                 {
