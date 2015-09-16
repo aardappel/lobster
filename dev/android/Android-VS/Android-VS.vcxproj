@@ -57,6 +57,12 @@
     <NMakeCleanCommandLine>"$(VS_NdkRoot)\ndk-build.cmd" -j8 clean</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <NMakeBuildCommandLine>"$(VS_NdkRoot)\ndk-build.cmd" -j8</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>"$(VS_NdkRoot)\ndk-build.cmd" -j8 -B</NMakeReBuildCommandLine>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <NMakeBuildCommandLine>"$(VS_NdkRoot)\ndk-build.cmd" -j8</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>"$(VS_NdkRoot)\ndk-build.cmd" -j8 -B</NMakeReBuildCommandLine>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
   </ItemDefinitionGroup>
