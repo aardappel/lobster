@@ -18,7 +18,7 @@
 #include "natreg.h"
 
 #include "glinterface.h"
-#include "ftinterface.h"
+#include "fontrenderer.h"
 
 using namespace lobster;
 

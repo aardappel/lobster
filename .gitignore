@@ -24,6 +24,7 @@
 /dev/android/obj/
 /dev/android/libs/
 /dev/android/Android-VS/x86/
+/dev/android/Android-VS/ARM/
 
 /dev/CMakeCache.txt
 /dev/CMakeFiles/

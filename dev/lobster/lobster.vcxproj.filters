@@ -48,6 +48,9 @@
     <Filter Include="common">
       <UniqueIdentifier>{5b6e2421-9663-4999-a2ce-f1589fbbd7ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\freetype\lib">
+      <UniqueIdentifier>{6c69c45a-266d-4003-8fff-321d02c73363}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -88,9 +91,6 @@
     </ClInclude>
     <ClInclude Include="..\src\glinterface.h">
       <Filter>engine\opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ftinterface.h">
-      <Filter>engine\freetype</Filter>
     </ClInclude>
     <ClInclude Include="..\src\sdlincludes.h">
       <Filter>engine\sdl</Filter>
@@ -314,6 +314,9 @@
     <ClInclude Include="..\src\vm.h">
       <Filter>dvm</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\fontrenderer.h">
+      <Filter>engine\freetype</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -342,9 +345,6 @@
     </ClCompile>
     <ClCompile Include="..\src\gltexture.cpp">
       <Filter>engine\opengl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\ftsystem.cpp">
-      <Filter>engine\freetype</Filter>
     </ClCompile>
     <ClCompile Include="..\src\sdlsystem.cpp">
       <Filter>engine\sdl</Filter>
@@ -546,6 +546,72 @@
     </ClCompile>
     <ClCompile Include="..\src\compiler.cpp">
       <Filter>compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\autofit\autofit.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\basepic.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftapi.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftbase.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftbbox.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftbitmap.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftdbgmem.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftdebug.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftglyph.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftinit.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftpic.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftstroke.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftsynth.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\base\ftsystem.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\cff\cff.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\pshinter\pshinter.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\psnames\psnames.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\raster\raster.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\sfnt\sfnt.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\smooth\smooth.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\freetype\src\truetype\truetype.c">
+      <Filter>engine\freetype\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\fontrenderer.cpp">
+      <Filter>engine\freetype</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
