@@ -364,17 +364,17 @@ struct Parser
             {
                 // This points to a generic version of the superclass of this class.
                 // See if we can find a matching specialization instead.
-                auto st = struc->superclass->next;
-                for (; st; st = st->next)
+                auto sti = struc->superclass->next;
+                for (; sti; sti = sti->next)
                 {
-                    for (size_t i = 0; i < st->fields.size(); i++)
-                        if (st->fields.v[i].type != struc->fields.v[i].type)
+                    for (size_t i = 0; i < sti->fields.size(); i++)
+                        if (sti->fields.v[i].type != struc->fields.v[i].type)
                             goto fail;
                     goto done;
                     fail:;
                 }
                 done:
-                struc->superclass = st;  // Either a match or nullptr.
+                struc->superclass = sti;  // Either a match or nullptr.
             }
         }
         else if (lex.token == T_COLON || lex.token == T_LEFTCURLY)

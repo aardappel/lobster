@@ -51,6 +51,9 @@
     <Filter Include="engine\freetype\lib">
       <UniqueIdentifier>{6c69c45a-266d-4003-8fff-321d02c73363}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\sdl\lib">
+      <UniqueIdentifier>{ceede79e-9bbf-4425-882c-b61e3e4917bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -103,183 +106,6 @@
     </ClInclude>
     <ClInclude Include="..\src\wentropy.h">
       <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\b2BroadPhase.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\b2Collision.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\b2Distance.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\b2DynamicTree.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\b2TimeOfImpact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2ChainShape.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2CircleShape.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2EdgeShape.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2PolygonShape.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Collision\Shapes\b2Shape.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2BlockAllocator.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2Draw.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2FreeList.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2GrowableStack.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2IntrusiveList.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2Math.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2Settings.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2SlabAllocator.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2StackAllocator.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2Stat.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2Timer.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2TrackedBlock.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2Body.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2ContactManager.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2Fixture.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2Island.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2TimeStep.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2World.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\b2WorldCallbacks.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndCircleContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ChainAndPolygonContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2CircleContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2Contact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2ContactSolver.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndCircleContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2EdgeAndPolygonContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2PolygonAndCircleContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Contacts\b2PolygonContact.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2DistanceJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2FrictionJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2GearJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2Joint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2MotorJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2MouseJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2PrismaticJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2PulleyJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2RevoluteJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2RopeJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WeldJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Dynamics\Joints\b2WheelJoint.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2Particle.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2ParticleGroup.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2ParticleSystem.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2StackQueue.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2VoronoiDiagram.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Rope\b2Rope.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Box2D.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Common\b2GrowableBuffer.h">
-      <Filter>engine\physics\Box2D</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Box2D\Particle\b2ParticleAssembly.h">
-      <Filter>engine\physics\Box2D</Filter>
     </ClInclude>
     <ClInclude Include="..\src\typecheck.h">
       <Filter>compiler</Filter>
@@ -612,6 +438,393 @@
     </ClCompile>
     <ClCompile Include="..\src\fontrenderer.cpp">
       <Filter>engine\freetype</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\SDL_yuv_sw.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_assert.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\atomic\SDL_atomic.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_audio.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_audiocvt.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_audiodev.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_audiotypecvt.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_blendfillrect.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_blendline.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_blendpoint.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_0.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_1.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_A.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_auto.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_copy.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_N.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_blit_slow.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_bmp.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_clipboard.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_clipboardevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\cpuinfo\SDL_cpuinfo.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\SDL_d3dmath.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\haptic\windows\SDL_dinputhaptic.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_dinputjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\directsound\SDL_directsound.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\disk\SDL_diskaudio.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_drawline.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_drawpoint.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_dropevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\dummy\SDL_dummyaudio.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\dynapi\SDL_dynapi.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_egl.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_error.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_events.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_fillrect.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\SDL_gamecontroller.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_gesture.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_getenv.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\haptic\SDL_haptic.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_hints.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_iconv.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\SDL_joystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_keyboard.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_log.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_malloc.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_mixer.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_mmjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_mouse.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\dummy\SDL_nullevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\dummy\SDL_nullframebuffer.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\dummy\SDL_nullvideo.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_pixels.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\power\SDL_power.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_qsort.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_quit.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_rect.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\SDL_render.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d\SDL_render_d3d.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\direct3d11\SDL_render_d3d11.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\opengl\SDL_render_gl.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\opengles2\SDL_render_gles2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_render_sw.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_RLEaccel.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\software\SDL_rotate.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\file\SDL_rwops.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\opengl\SDL_shaders_gl.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\opengles2\SDL_shaders_gles2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_shape.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\atomic\SDL_spinlock.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_stdlib.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_stretch.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\stdlib\SDL_string.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_surface.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\generic\SDL_syscond.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\filesystem\windows\SDL_sysfilesystem.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\loadso\windows\SDL_sysloadso.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\windows\SDL_sysmutex.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\power\windows\SDL_syspower.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\windows\SDL_syssem.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\windows\SDL_systhread.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\timer\windows\SDL_systimer.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\windows\SDL_systls.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\thread\SDL_thread.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\timer\SDL_timer.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_touch.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_video.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\SDL_wave.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\events\SDL_windowevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\core\windows\SDL_windows.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsclipboard.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsevents.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsframebuffer.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\haptic\windows\SDL_windowshaptic.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_windowsjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowskeyboard.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsmessagebox.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsmodes.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsmouse.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsopengl.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsopengles.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsshape.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsvideo.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowswindow.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\winmm\SDL_winmm.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\xaudio2\SDL_xaudio2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\core\windows\SDL_xinput.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\haptic\windows\SDL_xinputhaptic.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\windows\SDL_xinputjoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\render\SDL_yuv_mmx.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_tan.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_sin.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_scalbn.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_floor.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_fabs.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_cos.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_copysign.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\s_atan.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\k_tan.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\k_sin.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\k_rem_pio2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\k_cos.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_sqrt.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_pow.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_rem_pio2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_log.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\libm\e_atan2.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\main\windows\SDL_windows_main.c">
+      <Filter>engine\sdl\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
