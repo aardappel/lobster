@@ -39,15 +39,15 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 
     auto format = GL_RGBA;
     auto component = GL_UNSIGNED_BYTE;
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
-        if (tf & TF_FLOAT)
-        {
+    if (tf & TF_FLOAT)
+    {
+        #if !defined(__APPLE__) && !defined(__ANDROID__)
             format = GL_RGBA32F;
             component = GL_FLOAT;
-        }
-    #else
-        assert(false);  // buf points to float data, which we don't support.
-    #endif
+        #else
+            assert(false);  // buf points to float data, which we don't support.
+        #endif
+    }
     glTexImage2D(GL_TEXTURE_2D, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
 
     if (tf & TF_NOMIPMAP) return id;
