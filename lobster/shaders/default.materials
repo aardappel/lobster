@@ -73,7 +73,7 @@ SHADER phong_particle
         inormal = anormal;
         icol = acolor;
         ipos = apos.xyz;
-        gl_PointSize = 60 / gl_Position.w;  // FIXME: properly compute size
+        gl_PointSize = 60.0 / gl_Position.w;  // FIXME: properly compute size
     PIXEL
         INPUTS inormal:3 ipos:3 icol:4
         UNIFORMS col camera light1

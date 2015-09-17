@@ -663,3 +663,4 @@ bool ScreenShot(const char *filename, const int2 &screensize)
 }
 
 void SDLTestMode() { testmode = true; }
+

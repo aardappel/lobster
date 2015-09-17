@@ -116,9 +116,6 @@ int main(int argc, char* argv[])
             fn = argv[arg];
         }
 
-        #ifdef __ANDROID__
-            fn = "pythtree.lobster";  // FIXME: temp solution
-        #endif
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif

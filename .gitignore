@@ -27,6 +27,8 @@
 /dev/android/VS/LobsterAndroid/Tegra-Android/Release/
 /dev/android/obj/
 /dev/android/libs/
+/dev/android/bin/
+/dev/android/gen/
 /dev/android/Android-VS/x86/
 /dev/android/Android-VS/ARM/
 /dev/lobster/ARM/

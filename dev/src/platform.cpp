@@ -38,11 +38,11 @@
 
 #ifdef __ANDROID__
 #include <android/log.h>
-#include <android/asset_manager.h>
-// FIXME:
+#endif
+
 #include "sdlincludes.h"
 #include "sdlinterface.h"
-#endif
+
 
 string datadir;  // main dir to load files relative to, on windows this is where lobster.exe resides,
                  // on apple platforms it's the Resource folder in the bundle
@@ -120,61 +120,10 @@ string SanitizePath(const char *path)
     return r;
 }
 
-/*
-uchar *LoadFileAndroid(const char *relfilename, size_t *lenret)
-{
-    // FIXME: a mode other than AASSET_MODE_BUFFER may involve less copying?
-    // FIXME: no native activity!
-    auto activity = (jobject)SDL_AndroidGetActivity();
-    auto file = AAssetManager_open(activity->assetManager, relfilename, AASSET_MODE_BUFFER);
-    if (!file) return nullptr;
-    auto len = AAsset_getLength(file);
-    auto buf = (uchar *)malloc(len + 1);
-    if (!buf) { AAsset_close(file); return nullptr; }
-    buf[len] = 0;
-    memcpy(buf, AAsset_getBuffer(file), len);
-    AAsset_close(file);
-    if (lenret) *lenret = len;
-    return buf;
-}
-*/
-
 uchar *LoadFilePlatform(const char *absfilename, size_t *lenret)
 {
-    #ifdef __ANDROID__
-        Output(OUTPUT_DEBUG, absfilename);
-        return SDLLoadFile(absfilename, lenret);
-
-        // FIXME: apk loading not working, just stick a temp src in here for now
-        auto src = strstr(absfilename, ".lobster") ?
-            "print(gl_window(\"hypocycloid\", 1024, 768))\n"
-            "while(gl_frame()):\n"
-            "    if(gl_wentdown(\"escape\")): return\n"
-            "    gl_clear([0, 0, 0, 0])\n"
-            "    gl_translate(gl_windowsize() / 2.0)\n"
-            "    gl_scale(gl_windowsize()[1] / 4.0)\n"
-            "    scalechange := sin(gl_time() * 50) * 0.2\n"
-            "    pts := map(360 * 4 + 1) a:\n"
-            "        p := [ 0, 0 ]\n"
-            "        for(5) i:\n"
-            "            p += sincos(a / 4.0 * pow(3, i)) * pow(0.4 + scalechange, i)\n"
-            "        p\n"
-            "    gl_linemode(1):\n"
-            "        gl_polygon(pts)\n"
-            :
-            "SHADER color\n"
-            "    VERTEX\n"
-            "        INPUTS apos:4\n"
-            "        UNIFORMS mvp\n"
-            "        gl_Position = mvp * apos;\n"
-            "    PIXEL\n"
-            "        UNIFORMS col\n"
-            "        gl_FragColor = col;\n";
-        if (lenret) *lenret = strlen(src);
-        return (uchar *)strdup(src);
-    #else
-        return loadfile(absfilename, lenret);
-    #endif
+    return SDLLoadFile(absfilename, lenret);
+    //return loadfile(absfilename, lenret);
 }
 
 uchar *LoadFile(const char *relfilename, size_t *lenret)

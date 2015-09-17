@@ -18,8 +18,8 @@
 <p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, and reusing.</p>
 <p>Lobster has been released under the Apache 2 open source license.</p>
 <h2 id="building-lobster">Building Lobster</h2>
-<p>Lobster uses recent C++11 features (auto, lambda, range-for), so will need Visual Studio 2012 (the free desktop edition will do), Xcode 4.6, or a recent GCC (4.8.2 or newer) to be compiled.</p>
-<p>Lobster uses OpenGL, SDL 2.0 and FreeType. Currently for Windows/OS X/iOS SDL/Freetype precompiled libs are supplied with the project, so should compile out of the box with no further external dependencies.</p>
+<p>Lobster uses recent C++11 features (auto, lambda, range-for), so will need Visual Studio 2015 (the free community edition will do), Xcode 4.6, or a recent GCC (4.8.2 or newer) to be compiled.</p>
+<p>Lobster uses OpenGL, SDL 2.0 and FreeType, these are included, so should compile out of the box with no further external dependencies.</p>
 <p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder, which is usually parallel to the main lobster folder.</p>
 <p>Lobster is ideally built in 32bit mode on all platforms. For a high speed interpreter, sizes of data are a bit more critical than most programs, and while mobile platforms are still default to 32bit, this uniformity is helpful.</p>
 <h3 id="windows">Windows</h3>
@@ -36,7 +36,43 @@
 <h3 id="cmake">CMake</h3>
 <p>You can now also build with CMake (on Linux, and possibly other platforms). <code>cmake .</code> in the <code>dev/</code> folder, followed by <code>make</code> should work.</p>
 <h3 id="android">Android</h3>
-<p>I've made a preliminary port to Android which worked at that time, but hasn't been updated in a while. Will get back to making this work more smoothly soon.</p>
+<p>You must have the following installed:</p>
+<ul>
+<li><p><a href="https://developer.android.com/sdk/installing/index.html?pkg=tools">Android SDK</a> (standalone, Android Studio not necessary).</p></li>
+<li><p><a href="https://developer.android.com/ndk/downloads/index.html">Android NDK</a>.</p></li>
+<li><p><a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Java SDK</a> (needed by Ant, and for keytool.exe)</p></li>
+<li><p><a href="http://ant.apache.org/">Ant</a> (Windows users may prefer <a href="https://code.google.com/p/winant/">WinAnt</a>).</p></li>
+<li><p><a href="https://www.python.org/downloads/">Python</a> (2.7).</p></li>
+</ul>
+<p>If the above are not installed correctly, and <em>their tools are not in your path</em>, the steps below will not work.</p>
+<p>Now, in a shell / command prompt, cd to <code>dev/android/</code> in your lobster directory.</p>
+<p>Make sure that the <code>assets/</code> directory contains your Lobster distribution files, see the section below.</p>
+<p>First run:</p>
+<pre><code>android update project -p .</code></pre>
+<p>This will update the Ant settings to point to your SDK. You should have to do this only once.</p>
+<p>Then build Lobster into a .apk using:</p>
+<pre><code>python -B build_all_android.py -j4 -S -k debug.keystore -K android -P debugkey.txt</code></pre>
+<p>(Windows users: there’s a convenient <code>build.bat</code> that does the same).</p>
+<p>If this gives any errors indicating missing programs, check the what you installed above.</p>
+<p>If this gives C++ compilation errors, please email me, or better yet, open an issue on <a href="https://github.com/aardappel/lobster/issues">github</a>.</p>
+<p><code>dev/android/apks/</code> should now contain a .apk file.</p>
+<p>The Python script above comes from <a href="https://google.github.io/fplutil/">FPLUtil</a>, and has lots of options that allow you to check devices, run, sign your apk, which you’ll need to release to the play store (in particular, you’ll need to generate your own certifcate using keytool, and replace the above arguments). To see more, run:</p>
+<pre><code>python -B build_all_android.py --help</code></pre>
+<p>Install .apk on an attached Android device (note, emulators are not recommended, since Lobster is graphic heavy):</p>
+<pre><code>adb install -r apks\app.apk</code></pre>
+<p>If this fails, make sure you can see the device using <code>adb devices</code>. If nothing shows up, that’s likely because the device has not been put in developer mode, or not using usb for debugging, etc.</p>
+<p>You can now run it by tapping its icon on the device.</p>
+<p>If it doesn’t run, run this to see what the problem is:</p>
+<pre><code>adb logcat -s &quot;SDL&quot;,&quot;lobster&quot;</code></pre>
+<p>In particular, look for messages showing files it can’t load.</p>
+<h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
+<p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
+<ul>
+<li><p><code>default.lbc</code> (this is the Lobster bytecode file you obtain from compiling your program with the <code>-b</code> option).</p></li>
+<li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything).</p></li>
+<li><p><code>mypath/myfile.png</code> (for any file references in your Lobster code like <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
+</ul>
+<p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk.</p>
 <h2 id="extending-lobster">Extending Lobster</h2>
 <p>Besides using Lobster as a stand-alone programming language as-is, there are 2 ways of extending Lobster, by adding your code to Lobster, or adding Lobster to your project.</p>
 <p>Note that unlike other scripting languages, Lobster has been designed as a stand-alone language first, rather than a plug-in scripting system (more like Python and Ruby, not like Lua and UnrealScript). You use Lobster code as your &quot;main program&quot;, with the &quot;engine&quot; being the library you call into. Most game engines are the opposite: the engine code is the main program, and the scripting language is being called into. For that reason, adding your own code to Lobster is by the far the preferable way of building an application that uses Lobster, and will generally be a much more productive environment.</p>

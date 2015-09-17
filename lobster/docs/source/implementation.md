@@ -1,6 +1,6 @@
 ---
 title: The Lobster C++ Implementation
-...
+---
 
 This document gives hints on how to work with the Lobster C++ code in terms of
 building, extending, and reusing.
@@ -11,11 +11,10 @@ Building Lobster
 ----------------
 
 Lobster uses recent C++11 features (auto, lambda, range-for), so will need
-Visual Studio 2012 (the free desktop edition will do), Xcode 4.6, or a recent
+Visual Studio 2015 (the free community edition will do), Xcode 4.6, or a recent
 GCC (4.8.2 or newer) to be compiled.
 
-Lobster uses OpenGL, SDL 2.0 and FreeType. Currently for Windows/OS X/iOS
-SDL/Freetype precompiled libs are supplied with the project, so should compile
+Lobster uses OpenGL, SDL 2.0 and FreeType, these are included, so should compile
 out of the box with no further external dependencies.
 
 All source code and other files related to building Lobster for all platforms
@@ -30,11 +29,8 @@ mobile platforms are still default to 32bit, this uniformity is helpful.
 This platform is definitely best supported and easiest to use for now. Open up
 `dev\lobster\lobster.sln` with Visual Studio. The project is set up to build
 lobster.exe in the main lobster folder, and will be ready for use as described
-either from the [command line][1] or [Notepad++][2] / SublimeText.
-
-[1]: <command_line_usage.html>
-
-[2]: <notepadpp_ide.html>
+either from the [command line](<command_line_usage.html>) or
+[Notepad++](<notepadpp_ide.html>) / SublimeText.
 
 ### OS X & iOS
 
@@ -53,12 +49,11 @@ to the Resource location in the bundle, then running from Xcode with the main
 lobster file as command line argument.
 
 Distribution is currently a bit clumsier. You'll need to run lobster to produce
-a bytecode file (see [command line][3]), then make a copy of the bundle, and
-stick the bytecode file (+data) in the Resource location, and you should have
-something that can be distributed to users. For iOS you can compile using the OS
-X exe, then run that same bytecode using the iOS exe.
-
-[3]: <command_line_usage.html>
+a bytecode file (see [command line](<command_line_usage.html>)), then make a
+copy of the bundle, and stick the bytecode file (+data) in the Resource
+location, and you should have something that can be distributed to users. For
+iOS you can compile using the OS X exe, then run that same bytecode using the
+iOS exe.
 
 ### Linux
 
@@ -83,8 +78,107 @@ You can now also build with CMake (on Linux, and possibly other platforms).
 
 ### Android
 
-I've made a preliminary port to Android which worked at that time, but hasn't
-been updated in a while. Will get back to making this work more smoothly soon.
+You must have the following installed:
+
+-   [Android
+    SDK](<https://developer.android.com/sdk/installing/index.html?pkg=tools>)
+    (standalone, Android Studio not necessary).
+
+-   [Android NDK](<https://developer.android.com/ndk/downloads/index.html>).
+
+-   [Java
+    SDK](<http://www.oracle.com/technetwork/java/javase/downloads/index.html>)
+    (needed by Ant, and for keytool.exe)
+
+-   [Ant](<http://ant.apache.org/>) (Windows users may prefer
+    [WinAnt](<https://code.google.com/p/winant/>)).
+
+-   [Python](<https://www.python.org/downloads/>) (2.7).
+
+If the above are not installed correctly, and *their tools are not in your
+path*, the steps below will not work.
+
+Now, in a shell / command prompt, cd to `dev/android/` in your lobster
+directory.
+
+Make sure that the `assets/` directory contains your Lobster distribution files,
+see the section below.
+
+First run:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+android update project -p .
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This will update the Ant settings to point to your SDK. You should have to do
+this only once.
+
+Then build Lobster into a .apk using:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+python -B build_all_android.py -j4 -S -k debug.keystore -K android -P debugkey.txt
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(Windows users: there’s a convenient `build.bat` that does the same).
+
+If this gives any errors indicating missing programs, check the what you
+installed above.
+
+If this gives C++ compilation errors, please email me, or better yet, open an
+issue on [github](<https://github.com/aardappel/lobster/issues>).
+
+`dev/android/apks/` should now contain a .apk file.
+
+The Python script above comes from
+[FPLUtil](<https://google.github.io/fplutil/>), and has lots of options that
+allow you to check devices, run, sign your apk, which you’ll need to release to
+the play store (in particular, you’ll need to generate your own certifcate using
+keytool, and replace the above arguments). To see more, run:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+python -B build_all_android.py --help
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Install .apk on an attached Android device (note, emulators are not recommended,
+since Lobster is graphic heavy):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+adb install -r apks\app.apk
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If this fails, make sure you can see the device using `adb devices`. If nothing
+shows up, that’s likely because the device has not been put in developer mode,
+or not using usb for debugging, etc.
+
+You can now run it by tapping its icon on the device.
+
+If it doesn’t run, run this to see what the problem is:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+adb logcat -s "SDL","lobster"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In particular, look for messages showing files it can’t load.
+
+Distributing Lobster programs.
+------------------------------
+
+While the above instructions will build you the lobster executable, to
+distribute a Lobster program to others, you will need to distribution files.
+These must be (including correct paths):
+
+-   `default.lbc` (this is the Lobster bytecode file you obtain from compiling
+    your program with the `-b` option).
+
+-   `shaders/default.materials` (these are the minimum shader definitions needed
+    for to render anything).
+
+-   `mypath/myfile.png` (for any file references in your Lobster code like
+    `gl_loadtexture(”mypath/myfile.png”)` ).
+
+Where you place these files depends on the platform, on Windows / Linux it is
+next to the lobster executable, on OS X / iOS it is the application bundle under
+Contents, on Android it’s under assets in the .apk.
 
 Extending Lobster
 -----------------
@@ -132,11 +226,9 @@ fashion, in the Visual Studio project you can see all things added to Lobster in
     language in one step by simply removing the engine folder from the project.
 
 You can always run Lobster with the `-r` option to get an overview of all
-functions currently added to the system (the current list is [here][4]). To
-add/remove functionality is generally as easy as adding/removing the
-corresponding `.cpp` file.
-
-[4]: <builtin_functions_reference.html>
+functions currently added to the system (the current list is
+[here](<builtin_functions_reference.html>)). To add/remove functionality is
+generally as easy as adding/removing the corresponding `.cpp` file.
 
 Lobster uses some macros to allow you to define a native function in one
 location without declarations needed elsewhere. To learn how to write your own
