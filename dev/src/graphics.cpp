@@ -273,6 +273,14 @@ void AddGraphics()
     ENDDECL0(gl_touchscreen, "", "", "I",
         "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)");
 
+    STARTDECL(gl_dpi) (Value &screen)
+    {
+        return Value(SDLScreenDPI(screen.ival()));
+    }
+    ENDDECL1(gl_dpi, "screen", "I", "I",
+        "the DPI of the screen. always returns a value for screen 0, any other screens may return 0"
+        " to indicate the screen doesn\'t exist");
+
     STARTDECL(gl_windowsize) ()
     {
         return ToValueI(screensize);

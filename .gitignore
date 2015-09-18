@@ -29,6 +29,7 @@
 /dev/android/libs/
 /dev/android/bin/
 /dev/android/gen/
+/dev/android/apks/
 /dev/android/Android-VS/x86/
 /dev/android/Android-VS/ARM/
 /dev/lobster/ARM/

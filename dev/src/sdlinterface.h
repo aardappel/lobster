@@ -53,3 +53,5 @@ extern uchar *SDLLoadFile(const char *absfilename, size_t *len);
 extern bool ScreenShot(const char *filename, const int2 &screensize);
 
 extern void SDLTestMode();
+
+extern int SDLScreenDPI(int screen);

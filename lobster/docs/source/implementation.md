@@ -116,7 +116,7 @@ this only once.
 Then build Lobster into a .apk using:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-python -B build_all_android.py -j4 -S -k debug.keystore -K android -P debugkey.txt
+python -B build_all_android.py -j4 -f NDK_DEBUG=0 -S -k debug.keystore -K android -P debugkey.txt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 (Windows users: there’s a convenient `build.bat` that does the same).
@@ -150,7 +150,8 @@ If this fails, make sure you can see the device using `adb devices`. If nothing
 shows up, that’s likely because the device has not been put in developer mode,
 or not using usb for debugging, etc.
 
-You can now run it by tapping its icon on the device.
+You can now run it by tapping its icon on the device (it’s called LobsterApp by
+default)
 
 If it doesn’t run, run this to see what the problem is:
 
@@ -159,6 +160,21 @@ adb logcat -s "SDL","lobster"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In particular, look for messages showing files it can’t load.
+
+Things to change if you want to release your app in the Google Play store:
+
+-   Generate your own signing key with `keytool`, and substitute the `-k -K -P`
+    parameters above. Make sure to also delete any old debug copy of the app
+    from your device, or you’ll get a signture mismatch error.
+
+-   Change LobsterApp to something else in `res/values/strings.xml`.
+
+-   Change the .png files in `res/` with your own application icon.
+
+-   You may want to change the package name from `com.strlen.lobster` to your
+    own. This needs to be done in 3 places, `AndroidManifest.xml`, and
+    `src/com/strlen/lobster/LobsterActivity.java` (both at the top of that file
+    and the directory path itself!).
 
 Distributing Lobster programs.
 ------------------------------

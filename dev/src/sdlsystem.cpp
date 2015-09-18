@@ -124,7 +124,7 @@ void clearfingers(bool delta)
 
 int findfinger(SDL_FingerID id, bool remove)
 {
-    for (auto &f : fingers) if (f.id == id)
+    for (auto &f : fingers) if (f.id == id && f.used)
     {
         if (remove)
         {
@@ -664,3 +664,12 @@ bool ScreenShot(const char *filename, const int2 &screensize)
 
 void SDLTestMode() { testmode = true; }
 
+int SDLScreenDPI(int screen)
+{
+    int screens = max(1, SDL_GetNumVideoDisplays());
+    float ddpi = 200;  // Reasonable default just in case screen 0 gives an error.
+    SDL_GetDisplayDPI(screen, &ddpi, nullptr, nullptr);
+    return screen >= screens
+           ? 0  // Screen not present.
+           : (int)(ddpi + 0.5f);
+}

@@ -1293,9 +1293,12 @@ struct VM : VMBase
                 case IL_ISTYPE:
                 {
                     auto to = (type_elem_t)*ip++;
-                    auto &v = POP(); 
-                    v.DECRTNIL();  // Optimizer guarantees we don't have to deal with scalars.
-                    PUSH(&v.ref()->ti == &GetTypeInfo(to));
+                    auto v = POP(); 
+                    auto &ti = GetTypeInfo(to);
+                    // Optimizer guarantees we don't have to deal with scalars.
+                    if (v.refnil()) PUSH(&v.ref()->ti == &ti);
+                    else PUSH(ti.t == V_NIL);
+                    v.DECRTNIL();
                     break;
                 }
 

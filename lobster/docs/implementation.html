@@ -51,7 +51,7 @@
 <pre><code>android update project -p .</code></pre>
 <p>This will update the Ant settings to point to your SDK. You should have to do this only once.</p>
 <p>Then build Lobster into a .apk using:</p>
-<pre><code>python -B build_all_android.py -j4 -S -k debug.keystore -K android -P debugkey.txt</code></pre>
+<pre><code>python -B build_all_android.py -j4 -f NDK_DEBUG=0 -S -k debug.keystore -K android -P debugkey.txt</code></pre>
 <p>(Windows users: there’s a convenient <code>build.bat</code> that does the same).</p>
 <p>If this gives any errors indicating missing programs, check the what you installed above.</p>
 <p>If this gives C++ compilation errors, please email me, or better yet, open an issue on <a href="https://github.com/aardappel/lobster/issues">github</a>.</p>
@@ -61,10 +61,17 @@
 <p>Install .apk on an attached Android device (note, emulators are not recommended, since Lobster is graphic heavy):</p>
 <pre><code>adb install -r apks\app.apk</code></pre>
 <p>If this fails, make sure you can see the device using <code>adb devices</code>. If nothing shows up, that’s likely because the device has not been put in developer mode, or not using usb for debugging, etc.</p>
-<p>You can now run it by tapping its icon on the device.</p>
+<p>You can now run it by tapping its icon on the device (it’s called LobsterApp by default)</p>
 <p>If it doesn’t run, run this to see what the problem is:</p>
 <pre><code>adb logcat -s &quot;SDL&quot;,&quot;lobster&quot;</code></pre>
 <p>In particular, look for messages showing files it can’t load.</p>
+<p>Things to change if you want to release your app in the Google Play store:</p>
+<ul>
+<li><p>Generate your own signing key with <code>keytool</code>, and substitute the <code>-k -K -P</code> parameters above. Make sure to also delete any old debug copy of the app from your device, or you’ll get a signture mismatch error.</p></li>
+<li><p>Change LobsterApp to something else in <code>res/values/strings.xml</code>.</p></li>
+<li><p>Change the .png files in <code>res/</code> with your own application icon.</p></li>
+<li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
+</ul>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>

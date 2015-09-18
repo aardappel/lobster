@@ -238,8 +238,7 @@ struct TypeChecker
             case V_INT:       return type->t == V_TYPEID;
             case V_STRING:    return false; //coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
-            case V_NIL:       return type->t == V_NIL ||
-                                     (type->t == V_NIL && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
+            case V_NIL:       return (type->t == V_NIL && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
                                      (!type->Numeric() && ConvertsTo(type, sub->Element(), false, unifications, genericany));
             case V_VECTOR:    return ((type->t == V_VECTOR && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
                                       (type->t == V_STRUCT && ConvertsTo(type->struc->vectortype, sub, false, unifications, genericany)));
@@ -375,8 +374,11 @@ struct TypeChecker
             case T_NIL:   val = Value(nullptr, V_NIL); return true;
             case T_IS:
             {
-                if (n.left()->exptype == n.right()->exptype)                   { val = Value(true);  return true; }
+                if (n.left()->exptype == n.right()->exptype ||
+                    n.right()->exptype->t == V_ANY)                            { val = Value(true);  return true; }
                 if (!ConvertsTo(n.right()->exptype, n.left()->exptype, false)) { val = Value(false); return true; }
+                // This means it is always a reference type, since int/float/function don't convert
+                // into anything without coercion.
                 return false;
             }
             case T_NOT:
