@@ -1,3 +1,9 @@
+# NOTE: this file is DEPRECATED, use the cmake file in the parent directory instead:
+# cmake . && make -j8
+
+# this file requires SDL and FreeType libs to be previously installed, whereas the
+# cmake file is self-contained.
+
 # note: the way the VM works, Lobster should really be built as a 32bit binary
 # even on a 64bit system. It will work as 64bit binary, but will be inefficient
 # (use twice as much memory for Lobster runtime data).
@@ -18,7 +24,7 @@ OBJS= \
 	builtins.o \
 	file.o \
 	font.o \
-	ftsystem.o \
+	fontrenderer.o \
 	glgeom.o \
 	glloadiqm.o \
 	glshader.o \
@@ -26,8 +32,8 @@ OBJS= \
 	gltexture.o \
 	graphics.o \
 	compiler.o \
-        vm.o \
-        main.o \
+    vm.o \
+    main.o \
 	lobsterreader.o \
 	meshgen.o \
 	platform.o \

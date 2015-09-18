@@ -259,7 +259,7 @@ template<typename T> string to_string_float(T x, int decimals = -1)
     return s;
 }
 
-inline string to_string_hex(int x)
+inline string to_string_hex(size_t x)
 {
     stringstream ss;
     ss << "0x" << std::hex << x;

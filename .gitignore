@@ -10,6 +10,7 @@
 *.iobj
 *.ipdb
 *.lib
+*.a
 
 .DS_Store
 *.xcodeproj/
@@ -41,4 +42,12 @@
 /dev/CMakeLists.txt.user
 /dev/Lobster.cbp
 
+/dev/external/SDL/CMakeFiles/
+/dev/external/SDL/Makefile
+/dev/external/SDL/SDL2.spec
+/dev/external/SDL/sdl2-config
+/dev/external/SDL/sdl2.pc
+
 /lobster/lobster_linux
+/lobster/lobster_cmake
+

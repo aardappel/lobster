@@ -318,7 +318,7 @@ struct VM : VMBase
         if (b) s += "\n   arg: " + ValueDBG(b);
         while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
         {
-            s += "\n   stack: " + to_string_hex((int)TOP().any());  // Sadly can't print this properly.
+            s += "\n   stack: " + to_string_hex((size_t)TOP().any());  // Sadly can't print this properly.
             if (vmpool->pointer_is_in_allocator(TOP().any())) s += ", maybe: " + TOP().ref()->ToString(debugpp);
             POP();  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
