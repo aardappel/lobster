@@ -29,12 +29,16 @@
 <p>To develop Lobster code on OS X, easiest probably is to use the command line version. Many OS X editors support running a command line compiler, e.g. SublimeText, or Komodo Edit with Tools -&gt; Run Command.</p>
 <p>Alternatively, you could add your lobster source (and extra data it might need) to the Xcode project, and add it to the build rules such that these are copied to the Resource location in the bundle, then running from Xcode with the main lobster file as command line argument.</p>
 <p>Distribution is currently a bit clumsier. You'll need to run lobster to produce a bytecode file (see <a href="command_line_usage.html">command line</a>), then make a copy of the bundle, and stick the bytecode file (+data) in the Resource location, and you should have something that can be distributed to users. For iOS you can compile using the OS X exe, then run that same bytecode using the iOS exe.</p>
-<h3 id="linux">Linux</h3>
-<p>Make sure you have SDL 2.0.3 (or better) and Freetype 2 installed.</p>
-<p>There is a <code>Makefile</code> in <code>dev/src/</code>, go there and type <code>make</code>. Then <code>make install</code> will move the executable to <code>lobster/</code>. Run it from that directory to access the samples, e.g. <code>./lobster samples/pythtree.lobster</code></p>
+<h3 id="cmake-linux">CMake / Linux</h3>
+<p>You can build with CMake on Linux (and possibly other platforms, untested):</p>
+<pre><code>cd dev
+cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j4</code></pre>
+<p>It creates in <code>lobster/lobster_cmake</code>. Run it from that directory to access the samples, e.g. <code>./lobster_cmake samples/pythtree.lobster</code></p>
 <p>NOTE: by default this builds Lobster for your architecture, which nowadays is likely 64bit. Lobster's VM implementation is currently still such that doubling the pointer size will double the memory used by all VM objects. This is fine for testing, but if you ever release a lobster program where you care for efficiency, it should really be built as a 32bit executable, even on a 64bit system. This is tricky however, and I don't have an out of the box solution for that yet. The future plan is of course for the VM not to have this limitation.</p>
-<h3 id="cmake">CMake</h3>
-<p>You can now also build with CMake (on Linux, and possibly other platforms). <code>cmake .</code> in the <code>dev/</code> folder, followed by <code>make</code> should work.</p>
+<h3 id="linux">Linux</h3>
+<p>Use CMake as mentioned above.</p>
+<p>There is still a Makefile if for some reason that works better, but it is deprecated, as it requires SDL 2.0.4 (or better) and Freetype 2 libraries to already be installed to build, whereas the cmake file is self-contained.</p>
+<p>The <code>Makefile</code> is in <code>dev/src/</code>, go there and type <code>make</code>. Then <code>make install</code> will move the executable to <code>lobster/</code>.</p>
 <h3 id="android">Android</h3>
 <p>You must have the following installed:</p>
 <ul>

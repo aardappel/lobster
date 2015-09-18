@@ -55,13 +55,17 @@ location, and you should have something that can be distributed to users. For
 iOS you can compile using the OS X exe, then run that same bytecode using the
 iOS exe.
 
-### Linux
+### CMake / Linux
 
-Make sure you have SDL 2.0.3 (or better) and Freetype 2 installed.
+You can build with CMake on Linux (and possibly other platforms, untested):
 
-There is a `Makefile` in `dev/src/`, go there and type `make`. Then `make
-install` will move the executable to `lobster/`. Run it from that directory to
-access the samples, e.g. `./lobster samples/pythtree.lobster`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cd dev
+cmake -DCMAKE_BUILD_TYPE=Release && make -j4
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It creates in `lobster/lobster_cmake`. Run it from that directory to access the
+samples, e.g. `./lobster_cmake samples/pythtree.lobster`
 
 NOTE: by default this builds Lobster for your architecture, which nowadays is
 likely 64bit. Lobster's VM implementation is currently still such that doubling
@@ -71,10 +75,16 @@ efficiency, it should really be built as a 32bit executable, even on a 64bit
 system. This is tricky however, and I don't have an out of the box solution for
 that yet. The future plan is of course for the VM not to have this limitation.
 
-### CMake
+### Linux
 
-You can now also build with CMake (on Linux, and possibly other platforms).
-`cmake .` in the `dev/` folder, followed by `make` should work.
+Use CMake as mentioned above.
+
+There is still a Makefile if for some reason that works better, but it is
+deprecated, as it requires SDL 2.0.4 (or better) and Freetype 2 libraries to
+already be installed to build, whereas the cmake file is self-contained.
+
+The `Makefile` is in `dev/src/`, go there and type `make`. Then `make install`
+will move the executable to `lobster/`.
 
 ### Android
 
