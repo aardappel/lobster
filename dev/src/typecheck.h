@@ -235,7 +235,7 @@ struct TypeChecker
             case V_ANY:       return genericany || coercions || !IsScalar(type->t);
             case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
-            case V_INT:       return type->t == V_TYPEID;
+            case V_INT:       return type->t == V_TYPEID && coercions;
             case V_STRING:    return false; //coercions;
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NIL:       return (type->t == V_NIL && ConvertsTo(type->Element(), sub->Element(), false, unifications, genericany)) ||
@@ -296,8 +296,20 @@ struct TypeChecker
 
     void MakeBool(Node *&a)
     {
-        a = (Node *)new Unary(a->line, T_E2B, a);
+        if (a->exptype->t != V_INT) a = (Node *)new Unary(a->line, T_E2B, a);
         a->exptype = type_int;
+    }
+
+    void MakeInt(Node *&a)
+    {
+        a = (Node *)new Unary(a->line, T_T2I, a);
+        a->exptype = type_int;
+    }
+
+    void MakeFloat(Node *&a)
+    {
+        a = (Node *)new Unary(a->line, T_I2F, a);
+        a->exptype = type_float;
     }
 
     void SubTypeLR(TypeRef sub, Node &n) { SubType(n.left(), sub, "left", n); SubType(n.right(), sub, "right", n); }
@@ -315,14 +327,20 @@ struct TypeChecker
             case V_FLOAT:
                 if (a->exptype->t == V_INT)
                 {
-                    a = (Node *)new Unary(a->line, T_I2F, a);
-                    a->exptype = type_float;
+                    MakeFloat(a);
                     return;
                 }
                 break;
             case V_ANY:
                 MakeAny(a);
                 return;
+            case V_INT:
+                if (a->exptype->t == V_TYPEID)
+                {
+                    MakeInt(a);
+                    return;
+                }
+                break;
             case V_FUNCTION:
                 if (a->exptype->IsFunction() && sub->sf)
                 {
@@ -545,7 +563,7 @@ struct TypeChecker
 
     SpecIdent *NewSid(Ident *id, TypeRef type)
     {
-        auto sid = new SpecIdent(id, type, st.specidents.size());
+        auto sid = new SpecIdent(id, type, (int)st.specidents.size());
         st.specidents.push_back(sid);
         return sid;
     }
@@ -1088,11 +1106,16 @@ struct TypeChecker
         // and the overal type should be the union of b and c.
         // Or a? | b, which should also be the union of a and b.
 
-        Node &n = *n_ptr;
-
-        if (n.type != T_AND && n.type != T_OR)
+        if (n_ptr->type != T_AND && n_ptr->type != T_OR)
         {
             TypeCheck(n_ptr, parent_type);
+        }
+
+        Node &n = *n_ptr;
+
+        // We check again, since TypeCheck may have removed a coercion op.
+        if (n.type != T_AND && n.type != T_OR)
+        {
             auto type = n.exptype;
             if (type->t == V_NIL && only_true_type) return type->Element();
             return type;
@@ -1896,6 +1919,7 @@ struct TypeChecker
             case T_E2A:
             case T_E2N:
             case T_E2B:
+            case T_T2I:
                 // These have been added by another specialization.
                 // We could check if they still apply, but even more robust is just to remove them,
                 // and let them be regenerated if need be.

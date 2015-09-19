@@ -705,7 +705,7 @@ void AddGraphics()
     STARTDECL(gl_meshparts) (Value &i)
     {
         auto m = GetMesh(i);
-        auto v = (LVector *)g_vm->NewVector(0, m->surfs.size(), g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
+        auto v = (LVector *)g_vm->NewVector(0, (int)m->surfs.size(), g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
         for (auto s : m->surfs) v->Push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }
@@ -773,7 +773,7 @@ void AddGraphics()
         for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToF<4>(vec.eval()->At(i));
         vec.DECRT();
         currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4, vals.size());
+        auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4, (int)vals.size());
         name.DECRT();
         return Value(ok);
     }

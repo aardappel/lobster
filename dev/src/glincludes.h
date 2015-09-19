@@ -27,8 +27,8 @@
     #ifdef __ANDROID__
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>    
-    #else   // WIN32 & Linux
-        #ifdef WIN32
+    #else   // _WIN32 & Linux
+        #ifdef _WIN32
             #define VC_EXTRALEAN
             #define WIN32_LEAN_AND_MEAN
             #define NOMINMAX
@@ -36,7 +36,7 @@
         #endif
         #include <GL/gl.h>
         #include <GL/glext.h>
-        #ifdef WIN32
+        #ifdef _WIN32
             #define GLBASEEXTS \
                 GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture            , 1)
         #else

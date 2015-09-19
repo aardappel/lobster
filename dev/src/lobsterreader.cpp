@@ -86,7 +86,7 @@ struct ValueParser
             }
         }
 
-        auto vec = g_vm->NewVector(elems.size(), elems.size(), ti);
+        auto vec = g_vm->NewVector((int)elems.size(), (int)elems.size(), ti);
         vec->Inc();
         allocated.push_back(vec);
         int i = 0;
@@ -156,8 +156,8 @@ struct ValueParser
                 Value v = ParseFactor(typeoff);
                 switch (typeoff)
                 {
-                    case TYPE_ELEM_INT:   v.ival() *= -1; break;
-                    case TYPE_ELEM_FLOAT: v.fval() *= -1; break;
+                    case TYPE_ELEM_INT:   v.setival(v.ival() * -1); break;
+                    case TYPE_ELEM_FLOAT: v.setfval(v.fval() * -1); break;
                     default: lex.Error("unary minus: numeric value expected");
                 }
                 return v;

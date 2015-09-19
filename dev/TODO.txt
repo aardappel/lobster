@@ -14,27 +14,27 @@
     maybe var: = val to make it look more like regular assignment?
     Though maybe Go will help make this syntax more popular. It really is rather ideal.
     One thing that could be better is default const.
-	Informal poll on fb: 12 like :=, but 15 like var/const a lot better. Almost noone likes Python's way.
-	Could allow both, like Go.
+    Informal poll on fb: 12 like :=, but 15 like var/const a lot better. Almost noone likes Python's way.
+    Could allow both, like Go.
   - http://rigaux.org/language-study/syntax-across-languages.html
 
 - typechecker
   - runtime type representation
-	- multimethod dispatch is broken. it now requires full types on all args to match (no more any on args,
-	  no more catch all case)
-	  - also, need to disallow nilable types for args that are being dispatched on, since if the runtime value
-	    is ever nil, we can't choose a method. That, or have a way to have a method that works on nil alone.
-	- You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
-	  gets the wrong type set.
+    - multimethod dispatch is broken. it now requires full types on all args to match (no more any on args,
+      no more catch all case)
+      - also, need to disallow nilable types for args that are being dispatched on, since if the runtime value
+        is ever nil, we can't choose a method. That, or have a way to have a method that works on nil alone.
+    - You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
+      gets the wrong type set.
   - with explicit conversion to any, there's now a lot of situations where an any gets generated, that is then
     subsequently ignored, causing unnecessary heap allocation.
-	we should either:
-	- mark functions (and if-thens, and other places where unions happen) explicitly as ignoring their return val,
-	  so we can generate pops for values as needed before they are returned.
+    we should either:
+    - mark functions (and if-thens, and other places where unions happen) explicitly as ignoring their return val,
+      so we can generate pops for values as needed before they are returned.
     - or perculate desired types thru the type-check recursion.
-	  this can do more powerful typechecking, e.g. it can avoid the functions in "poweruptable" to have to specify
-	  a return type.
-	- we could have a specific void (or nil) return type that causes values to be deleted and ignored.
+      this can do more powerful typechecking, e.g. it can avoid the functions in "poweruptable" to have to specify
+      a return type.
+    - we could have a specific void (or nil) return type that causes values to be deleted and ignored.
   - should constants be excluded from freevars to reduce clutter?
   - must be able to derive type from default in struct def
   - can we avoid .length giving errors with variables initialized to [] before a push etc?
@@ -50,34 +50,36 @@
     Only way to fix this is to delay this decision until typechecking.
   - add more cases to typecheck if-then optimisation.
 
-- Need to have a permanent solution for 64bit, since True() is unsafe.
-    - Lazy: Wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently
-	- Could make all ints/floats 64bit on 64bit systems. That will require a lot of casting/type changes thruout
-	  the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
-	  choose wether they think they need 64bit per project.
-	  Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
-	  -> don't want to have to maintain 2 versions of all the libs we use, so first switch to build all from source.
-	  - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
-	- If True() is the only thing, could require it to be passed the type, though that's both inefficient
-	  a lot of extra work.
-	- Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
-	  pointers in 32bit).
-	  This would generally be good, since using less memory in 64bit could be quite a speedup.
-	  Problem is, there's no super elegant way of doing this.
-	- could track all allocations in the allocator, but means also tracking "large" allocs individually,
-		finding these in the table will slow things down, and means code can't run with the base allocator anymore.
-	- simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
-		in it and towards it are offsets, this can work.
-		Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
-		as iOS whenever it goes full 64bit.
-		Also means we can't use the base allocator anymore.
-	- Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
-		though for small objects.
-	- Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
-		no support for this.
-		Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
-		and then use that incrementally. Means we must have our own large block allocator however.
-		On Windows VirtualAlloc can do the same.
+- A better solution for 64bit builds.
+  Currently uses twice as much memory and stores scalars as int64_t & double, but the rest of the vm
+  still reads them as int/float. This at least works, but is not optimal (compiler has to generate
+  conversion instructions, and the extra precision goes unused). We could:
+  - Be lazy: Wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently
+  - Could make the rest of the vm also read the native type instead of int/float.
+    That will require a lot of casting/type changes thruout
+    the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
+    choose wether they think they need 64bit on a per project basis.
+    Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
+    -> don't want to have to maintain 2 versions of all the libs we use, so first switch to build all from source.
+    - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
+  - Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+    pointers in 32bit).
+    This would generally be good, since using less memory in 64bit could be quite a speedup.
+    Problem is, there's no super elegant way of doing this.
+    - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
+      no support for this.
+      Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
+      and then use that incrementally. Means we must have our own large block allocator however.
+      On Windows VirtualAlloc can do the same.
+    - could track all allocations in the allocator, but means also tracking "large" allocs individually,
+      finding these in the table will slow things down, and means code can't run with the base allocator anymore.
+    - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
+      in it and towards it are offsets, this can work.
+      Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
+      as iOS whenever it goes full 64bit.
+      Also means we can't use the base allocator anymore.
+    - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
+      though for small objects.
 
   * Annotate builtin ops that truely want a vector, not a struct substitute.
 
@@ -97,8 +99,8 @@
 
   * if you typecheck a function with a supertype, then a subtype is able to reuse it. But if the return value
     is now also this supertype you have a contravariance problem. Either must not reuse the function (but only
-	if the return type is affected?) or subtitute the subtype somehow..
-	This is affected by the order of source code, so can give weird errors.
+    if the return type is affected?) or subtitute the subtype somehow..
+    This is affected by the order of source code, so can give weird errors.
 
   * flow sensitive checking does not work if part is skipped because a function has already been typechecked and
     is reused (same args and freevars), so should apply same demotes.

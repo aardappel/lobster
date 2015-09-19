@@ -540,6 +540,7 @@ struct CodeGen
                     {
                         if (opc >= 9)  // EQ/NEQ
                         {
+                            assert(IsRefNil(n->left()->exptype->t) && IsRefNil(n->right()->exptype->t));
                             Emit(IL_AEQ + opc - 9);
                         }
                         else
@@ -613,6 +614,11 @@ struct CodeGen
             case T_E2B:
                 Gen(n->child(), retval, true);
                 if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_E2BREF : IL_E2B);
+                break;
+
+            case T_T2I:
+                Gen(n->child(), retval, true);
+                // No actual opcode needed, this node is purely to store correct types.
                 break;
 
             case T_FUN:

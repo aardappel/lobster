@@ -125,7 +125,7 @@ struct VMLog
         return lws;
     }
 
-    void LogFunctionExit(const int *funstart, const int *logvars, int logfunwritestart)
+    void LogFunctionExit(const int *funstart, const int *logvars, size_t logfunwritestart)
     {
         if (logwrite.back().t == V_LOGSTART)
         {

@@ -387,22 +387,22 @@ class SlabAlloc
             h->isfree = (char *)calloc(numobjs(h->size), 1);
         }
 
-        for (int i = 0; i<MAXBUCKETS; i++)
+        for (int i = 0; i < MAXBUCKETS; i++)
         {
             loopdllist(reuse[i], n)
             {
                 PageHeader *page = ppage(n);
-                page->isfree[(((char *)n)-((char *)(page+1)))/(i*ALIGN)] = 1;
+                page->isfree[(((char *)n) - ((char *)(page + 1))) / (i * ALIGN)] = 1;
             }
         }
 
         loopdllist(usedpages, h)
         {
-            for (int i = 0; i<numobjs(h->size); i++)
+            for (int i = 0; i < numobjs(h->size); i++)
             {
                 if (!h->isfree[i])
                 {
-                    leakcallback(((char *)(h+1))+i*h->size);
+                    leakcallback(((char *)(h + 1)) + i * h->size);
                 }
             }
 
@@ -430,7 +430,7 @@ class SlabAlloc
                     if (full || num)
                     {
                         Output(OUTPUT_INFO, "bucket %d -> freelist %lu (%lu k), %lld total allocs",
-                                            i*ALIGN, ulong(num), ulong(waste), stats[i]);
+                                            i*ALIGN, num, waste, stats[i]);
                     }
                 }
             #endif
@@ -445,7 +445,7 @@ class SlabAlloc
         {
             Output(OUTPUT_INFO, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live,"
                          " %lld total allocs made, %lld big allocs made",
-                         ulong(totalwaste), numfree, numused, numlarge, totalallocs, statbig);
+                         totalwaste, numfree, numused, numlarge, totalallocs, statbig);
         }
     }
 };

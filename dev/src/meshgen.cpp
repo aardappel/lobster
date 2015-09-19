@@ -889,8 +889,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         SetPointSprite(1);
     }
 
-    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", ulong(verts.size()),
-           ulong(edges.size()), ulong(triangles.size() / 3), ulong(mctriangles.size() / 3), ulong(fcells.size()),
+    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", verts.size(),
+           edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(),
            targetgridsize);
 
     extern IntResourceManagerCompact<Mesh> *meshes;

@@ -105,8 +105,8 @@ string Value::ToString(ValueType vtype, PrintPrefs &pp) const
 
     switch (vtype)
     {
-        case V_INT:        return to_string(ival_);                   
-        case V_FLOAT:      return to_string_float(fval_, pp.decimals);
+        case V_INT:        return to_string(ival());                   
+        case V_FLOAT:      return to_string_float(fval(), pp.decimals);
         case V_FUNCTION:   return "<FUNCTION>";
         default:           return string("(") + BaseTypeName(vtype) + ")";
     }

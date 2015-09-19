@@ -25,7 +25,7 @@
     #ifdef __ANDROID__
         #include "SDL_config_android.h"
     #else
-        #ifdef WIN32
+        #ifdef _WIN32
             #include "SDL_config_windows.h"
         #else
             #include "SDL_config.h"

@@ -22,7 +22,7 @@ struct SlabAllocatedSmall
     void *operator new(size_t size, int, const char *, int) { return parserpool->alloc_small(size); }
     void operator delete(void *p)                           { parserpool->dealloc_small(p); };
     void operator delete(void *p, int, const char *, int)   { parserpool->dealloc_small(p); }
-    #ifdef WIN32
+    #ifdef _WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
     #endif

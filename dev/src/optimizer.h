@@ -73,12 +73,14 @@ struct Optimizer
                     n_ptr = branch;
                     if (other->type != T_DEFAULTVAL)
                     {
-                        auto sf = other->call_function()->sf();
+                        if (other->type == T_E2N) other = other->child();
+                        auto &sf = other->call_function()->sf();
                         if (!sf->typechecked)
                         {
                             // Typechecker did not typecheck this function for use in this if-then, but neither did any
                             // other instances, so it can be removed.
                             sf->parent->DeleteSubFunction(sf);
+                            sf = nullptr;
                         }
                     }
                 }
@@ -104,6 +106,7 @@ struct Optimizer
                 if (tc.ConstVal(n, cval))
                 {
                     Changed();
+                    // FIXME: if the LHS has side-effects, then this is incorrect!
                     n_ptr = (Node *)new IntConst(n.line, cval.ival());
                 }
                 break;

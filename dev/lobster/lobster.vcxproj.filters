@@ -54,6 +54,9 @@
     <Filter Include="engine\sdl\lib">
       <UniqueIdentifier>{ceede79e-9bbf-4425-882c-b61e3e4917bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\sdl\headers">
+      <UniqueIdentifier>{76604ffb-3ab0-46f1-a9a5-53ee081964e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -142,6 +145,246 @@
     </ClInclude>
     <ClInclude Include="..\src\fontrenderer.h">
       <Filter>engine\freetype</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\begin_code.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\close_code.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_assert.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_atomic.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_audio.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_bits.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_blendmode.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_clipboard.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_android.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_iphoneos.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_macosx.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_minimal.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_pandora.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_psp.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_windows.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_winrt.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_wiz.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_copying.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_cpuinfo.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_egl.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_endian.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_error.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_events.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_filesystem.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_gamecontroller.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_gesture.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_haptic.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_hints.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_joystick.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_keyboard.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_keycode.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_loadso.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_log.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_main.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_messagebox.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_mouse.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_mutex.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_name.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengl.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengl_glext.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles2.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles2_gl2.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles2_gl2ext.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles2_gl2platform.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_opengles2_khrplatform.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_pixels.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_platform.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_power.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_quit.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_rect.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_render.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_revision.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_rwops.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_scancode.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_shape.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_stdinc.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_surface.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_system.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_syswm.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_assert.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_common.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_compare.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_crc32.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_font.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_fuzzer.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_harness.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_images.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_log.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_md5.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_random.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_thread.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_timer.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_touch.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_types.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_version.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_video.h">
+      <Filter>engine\sdl\headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

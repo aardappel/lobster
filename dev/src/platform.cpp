@@ -17,7 +17,7 @@
 #include "stdafx.h"
 #include <stdarg.h>
 
-#ifdef WIN32
+#ifdef _WIN32
     #define VC_EXTRALEAN
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
@@ -158,7 +158,7 @@ void Output(OutputType ot, const char *msg, ...)
             case OUTPUT_PROGRAM: __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
             case OUTPUT_ERROR:   __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
         }
-    #elif defined(WIN32)
+    #elif defined(_WIN32)
         char buf[1024 * 16];
         vsnprintf(buf, sizeof(buf), msg, args);
         buf[sizeof(buf) - 1] = 0;
@@ -190,7 +190,7 @@ void MsgBox(const char *err)
     #endif
 }
 
-#ifndef WIN32   // emulate QPC on *nix, thanks Lee
+#ifndef _WIN32   // emulate QPC on *nix, thanks Lee
     struct LARGE_INTEGER
     {
         long long int QuadPart;
@@ -230,7 +230,7 @@ void ConditionalBreakpoint(bool shouldbreak)
 {
     if (shouldbreak)
     {
-        #ifdef WIN32
+        #ifdef _WIN32
             __debugbreak();
         #elif __GCC__
             __builtin_trap();

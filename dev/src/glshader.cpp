@@ -355,7 +355,7 @@ void Shader::SetTextures(uint *textures)
             SetTexture(i, textures[i]);
 }
 
-bool Shader::SetUniform(const char *name, const float *val, size_t components, size_t elements)
+bool Shader::SetUniform(const char *name, const float *val, int components, int elements)
 {
     auto loc = glGetUniformLocation(program, name);
     if (loc < 0) return false;

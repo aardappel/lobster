@@ -38,7 +38,7 @@ struct Shader
     void SetTextures(uint *textures);        // Optionally, after Activate().
     bool SetUniform(const char *name,        // Optionally, after Activate().
                     const float *val,
-                    size_t components, size_t elements = 1);
+                    int components, int elements = 1);
 };
 
 struct Textured

@@ -19,7 +19,7 @@
 
 #include "stdint.h"
 
-#ifdef WIN32
+#ifdef _WIN32
     #define VC_EXTRALEAN
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
@@ -53,9 +53,9 @@ void AddFileOps()
         string folder = SanitizePath(fld.sval()->str());
         fld.DECRT();
 
-        if (divisor.ival() <= 0) divisor.ival() = 1;
+        if (divisor.ival() <= 0) divisor.setival(1);
 
-        #ifdef WIN32
+        #ifdef _WIN32
 
             WIN32_FIND_DATA fdata;
             HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);

@@ -61,7 +61,7 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
 
 int main(int argc, char* argv[])
 {
-    #ifdef WIN32
+    #ifdef _WIN32
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     #endif
 
@@ -76,12 +76,6 @@ int main(int argc, char* argv[])
     #else
         false;
     #endif
-
-    if (sizeof(void *) != sizeof(int))
-    {
-        Output(OUTPUT_WARN, "WARNING: Lobster has been compiled in 64bit mode, which doubles memory usage, "
-               "and should only be used for testing. Make sure to use a 32bit build for release.");
-    }
 
     try
     {
@@ -180,7 +174,7 @@ int main(int argc, char* argv[])
             getchar();
         }
 
-        #ifdef WIN32
+        #ifdef _WIN32
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
     }

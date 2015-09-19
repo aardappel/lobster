@@ -869,6 +869,15 @@ void AddBuiltins()
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "",
         "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
+
+    STARTDECL(reference_count) (Value &x)
+    {
+        auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
+        x.DECRTNIL();
+        return Value(refc);
+    }
+    ENDDECL1(reference_count, "val", "A", "I",
+        "get the reference count of any value. for compiler debugging, mostly");
 }
 
 AutoRegister __abi("builtins", AddBuiltins);

@@ -11,6 +11,8 @@
 *.ipdb
 *.lib
 *.a
+*.pdb
+*.ilk
 
 .DS_Store
 *.xcodeproj/

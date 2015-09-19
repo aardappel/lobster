@@ -265,12 +265,12 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
         #ifdef __APPLE__
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-        #elif defined(WIN32)
+        #elif defined(_WIN32)
             //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
             //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
             //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
         #endif
-        #if defined(__APPLE__) || defined(WIN32)
+        #if defined(__APPLE__) || defined(_WIN32)
             SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
             SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
         #endif
@@ -610,7 +610,7 @@ bool SDLCursor(bool on)
         {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
-            #if defined(WIN32) || defined(__APPLE__)
+            #if defined(_WIN32) || defined(__APPLE__)
             // This is broken on Linux, gives bogus xrel/yrel in SDL_MOUSEMOVE
             SDL_SetRelativeMouseMode(SDL_TRUE);
             #endif

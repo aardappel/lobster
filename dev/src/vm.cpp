@@ -199,45 +199,22 @@ struct VM : VMBase
                         
                 for (auto p : leaks)
                 {
-                    auto vec = (ElemObj *)p;
-                    switch(vec->ti.t)
+                    auto ro = (RefObj *)p;
+                    switch(ro->ti.t)
                     {
                         case V_VALUEBUF:
                         case V_STACKFRAMEBUF:
                             break;
-                                    
+
                         case V_STRING:
-                        {
-                            auto str = (LString *)vec;
-                            fputs((str->CycleStr() + " = " + str->ToString(leakpp) + "\n").c_str(), leakf);
-                            break;
-                        }
-
                         case V_COROUTINE:
-                        {
-                            auto co = (CoRoutine *)vec;
-                            fputs((co->CycleStr() + " = coroutine\n").c_str(), leakf);
-                            break;
-                        }
-
                         case V_BOXEDINT:
-                        {
-                            auto bi = (BoxedInt *)vec;
-                            fputs((bi->CycleStr() + " = " + to_string(bi->val) + "\n").c_str(), leakf);
-                            break;
-                        }
-                                    
                         case V_BOXEDFLOAT:
-                        {
-                            auto bf = (BoxedFloat *)vec;
-                            fputs((bf->CycleStr() + " = " + to_string_float(bf->val) + "\n").c_str(), leakf);
-                            break;
-                        }
-
                         case V_VECTOR:
                         case V_STRUCT:
                         {
-                            fputs((vec->CycleStr() + " = " + vec->ToString(leakpp) + "\n").c_str(), leakf);
+                            auto s = ro->ToString(leakpp);
+                            fputs((ro->CycleStr() + " = " + s + "\n").c_str(), leakf);
                             break;
                         }
 
@@ -278,7 +255,7 @@ struct VM : VMBase
     {
         return new (vmpool->alloc(sizeof(BoxedFloat))) BoxedFloat(f); 
     }
-    #ifdef WIN32
+    #ifdef _WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
     #endif
@@ -389,11 +366,11 @@ struct VM : VMBase
 
     string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
     {
-        auto sid = bcf->specidents()->Get(idx);
+        auto sid = bcf->specidents()->Get((uint)idx);
         auto id = bcf->idents()->Get(sid->ididx());
         if (id->readonly() || id->global() != dumpglobals) return "";
         string name = id->name()->c_str();
-        return "\n   " + name + " = " + x.ToString(GetVarTypeInfo(idx).t, debugpp);
+        return "\n   " + name + " = " + x.ToString(GetVarTypeInfo((int)idx).t, debugpp);
     }
 
     void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask)
@@ -454,7 +431,7 @@ struct VM : VMBase
 
         for (size_t i = 0; i < bcf->specidents()->size(); i++)
         {
-            auto sid = bcf->specidents()->Get(i);
+            auto sid = bcf->specidents()->Get((uint)i);
             //Output(OUTPUT_INFO, "destructing: %s", bcf->idents()->Get(sid->ididx())->name()->c_str());
             vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx()).t);
         }
@@ -466,7 +443,7 @@ struct VM : VMBase
     
     int CallerId()
     {
-        return stackframes.size() ? stackframes.back().retip - codestart : -1;
+        return stackframes.size() ? (int)(stackframes.back().retip - codestart) : -1;
     }
 
     void LogFrame() { vml.LogFrame(); }
@@ -944,7 +921,7 @@ struct VM : VMBase
                     auto &iter = TOPM(1); \
                     auto &i = TOPM(2); \
                     TYPE_ASSERT(i.type == V_INT); \
-                    i.ival()++; \
+                    i.setival(i.ival() + 1); \
                     int len = 0; \
                     if (i.ival() < (len = (L))) { \
                     int nargs = body.ip()[1]; \
@@ -1442,7 +1419,7 @@ struct VM : VMBase
 
             #define PPOP(ret, op, pre, accessor) { \
                 if (ret && !pre) PUSH(a); \
-                a.accessor() = a.accessor() op 1; \
+                a.set##accessor(a.accessor() op 1); \
                 if (ret && pre) PUSH(a); \
             }
                 
@@ -1549,7 +1526,7 @@ struct VM : VMBase
             if (stack[i].True())  // Typically all nil
                 Error("collect_garbage() must be called from a top level function");
         }
-        for (size_t i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(GetVarTypeInfo(i).t);
+        for (uint i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(GetVarTypeInfo(i).t);
         vml.LogMark();
 
         vector<RefObj *> leaks;
