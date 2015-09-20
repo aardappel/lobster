@@ -256,7 +256,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
     //if (!sfxr_init())
     //   return SDLError("Unable to initialize audio");
 
-    #ifdef PLATFORM_MOBILE
+    #ifdef PLATFORM_ES2
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     #else
         //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
@@ -283,7 +283,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
 
     Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
-    #ifdef PLATFORM_MOBILE
+    #ifdef PLATFORM_ES2
         landscape = screensize.x() >= screensize.y();
         int modes = SDL_GetNumDisplayModes(0);
         screensize = int2(0);
@@ -424,7 +424,7 @@ bool SDLFrame(int2 &screensize)
         }
 
         // This #ifdef is needed, because on e.g. OS X we'd otherwise get SDL_FINGERDOWN in addition to SDL_MOUSEBUTTONDOWN on laptop touch pads.
-        #ifdef PLATFORM_MOBILE
+        #ifdef PLATFORM_TOUCH
 
         // FIXME: if we're in cursor==0 mode, only update delta, not position
         case SDL_FINGERDOWN:
@@ -566,7 +566,7 @@ UpDown GetKS(const char *name)
 {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return UpDown();
-    #ifdef PLATFORM_MOBILE
+    #ifdef PLATFORM_TOUCH
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly
         // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,
@@ -668,7 +668,9 @@ int SDLScreenDPI(int screen)
 {
     int screens = max(1, SDL_GetNumVideoDisplays());
     float ddpi = 200;  // Reasonable default just in case screen 0 gives an error.
+    #ifndef EMSCRIPTEN
     SDL_GetDisplayDPI(screen, &ddpi, nullptr, nullptr);
+    #endif
     return screen >= screens
            ? 0  // Screen not present.
            : (int)(ddpi + 0.5f);

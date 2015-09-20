@@ -186,6 +186,29 @@ Things to change if you want to release your app in the Google Play store:
     `src/com/strlen/lobster/LobsterActivity.java` (both at the top of that file
     and the directory path itself!).
 
+### Emscripten / JavaScript
+
+There’s preliminary support to build this, but I haven’t seen it run succesfully
+yet.
+
+You need the [emscripten
+toolchain](<https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html>)
+installed, as well as GNU make (on windows that means installing
+[this](<http://gnuwin32.sourceforge.net/packages/make.htm>)).
+
+Before you build, gather your lobster distribution files (see below) and place
+them in `dev/emscripten/assets`. They will be automatically picked up by the
+build process this way.
+
+To build, go to `dev/emscripten`, and type `make -j4`. This should produce a
+lobster.[js\|html\|data] in the same directory (the latter containing whatever
+you placed in `assets`).
+
+You can now run it with `emrun --browser firefox lobster.html` or similar. Note
+that just loading up the html in your browser directly may not work because of
+security restrictions. Alternatively place the files on a webserver, and load
+from there.
+
 Distributing Lobster programs.
 ------------------------------
 
@@ -204,7 +227,8 @@ These must be (including correct paths):
 
 Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under
-Contents, on Android it’s under assets in the .apk.
+Contents, on Android it’s under assets in the .apk, and with emscripten there’s
+an assets directory also.
 
 Extending Lobster
 -----------------

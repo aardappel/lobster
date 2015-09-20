@@ -75,8 +75,8 @@ template<bool compress> void WEntropyCoder(const unsigned char *in,
             start--;
         }
     }
-    if (compress) out.push_back(bits);
-    else assert(compr_idx == inlen);
+    if (compress) { if (nbits) out.push_back(bits); }
+    else { assert(compr_idx == inlen); }
     (void)inlen;
 }
 

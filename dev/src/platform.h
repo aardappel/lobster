@@ -50,7 +50,10 @@ extern double SecondsSinceStart();
 
 extern void ConditionalBreakpoint(bool shouldbreak);
 
+#if defined(__IOS__) || defined(__ANDROID__) || defined(EMSCRIPTEN)
+    #define PLATFORM_ES2
+#endif
+
 #if defined(__IOS__) || defined(__ANDROID__)
-    // This assumes OpenGL ES + touch screen as opposed to Desktop GL + mouse.
-    #define PLATFORM_MOBILE
+    #define PLATFORM_TOUCH
 #endif

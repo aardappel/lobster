@@ -150,7 +150,7 @@ Mesh::~Mesh()
 
 void SetPointSprite(float size)
 {
-    #ifdef PLATFORM_MOBILE
+    #ifdef PLATFORM_ES2
         // glEnable(GL_POINT_SPRITE_OES);
         // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
         //glPointSize(size); // FIXME: set thru uniform

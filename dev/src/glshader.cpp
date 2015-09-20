@@ -107,7 +107,7 @@ string ParseMaterialFile(char *mbuf)
             else
             {
                 string header;
-                #ifdef PLATFORM_MOBILE
+                #ifdef PLATFORM_ES2
                     header += "#ifdef GL_ES\nprecision highp float;\n#endif\n";
                 #else
                     //#ifdef __APPLE__
@@ -278,7 +278,7 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
 
 string Shader::Compile(const char *name, const char *cscode)
 {
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         program = glCreateProgram();
 
         string err;
@@ -371,7 +371,7 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
 
 void DispatchCompute(const int3 &groups)
 {
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
+    #ifndef PLATFORM_ES2
         if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
     #else
         assert(false);
@@ -382,7 +382,7 @@ void DispatchCompute(const int3 &groups)
 // flexibility.
 bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
 {
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
                    !glUniformBlockBinding || !glGetUniformBlockIndex) return false;
         auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;

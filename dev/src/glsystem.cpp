@@ -20,7 +20,7 @@
 
 #include "sdlincludes.h"
 
-#if !defined(__APPLE__) && !defined(__ANDROID__)
+#if !defined(PLATFORM_ES2) && !defined(__APPLE__)
 #define GLEXT(type, name, needed) type name = nullptr;
 GLBASEEXTS GLEXTS
 #undef GLEXT
@@ -98,7 +98,7 @@ void OpenGLFrameStart(const int2 &screensize)
 
 void OpenGLInit()
 {
-    #ifndef PLATFORM_MOBILE
+    #ifndef PLATFORM_ES2
     //auto vers = (char *)glGetString(GL_VERSION);
     auto exts = (char *)glGetString(GL_EXTENSIONS);
     if (exts)  // GL 4.x doesn't have this.
@@ -113,7 +113,7 @@ void OpenGLInit()
     }
     #endif
 
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
     #define GLEXT(type, name, needed) \
         { \
             union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
@@ -125,7 +125,7 @@ void OpenGLInit()
     #undef GLEXT
     #endif
 
-    #ifndef PLATFORM_MOBILE
+    #ifndef PLATFORM_ES2
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);

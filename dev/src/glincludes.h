@@ -24,9 +24,9 @@
         #include <OpenGL/gl.h>
     #endif
 #else
-    #ifdef __ANDROID__
+    #if defined(__ANDROID__) || defined(EMSCRIPTEN)
         #include <GLES2/gl2.h>
-        #include <GLES2/gl2ext.h>    
+        #include <GLES2/gl2ext.h>
     #else   // _WIN32 & Linux
         #ifdef _WIN32
             #define VC_EXTRALEAN

@@ -76,6 +76,12 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j4</code></pre>
 <li><p>Change the .png files in <code>res/</code> with your own application icon.</p></li>
 <li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
 </ul>
+<h3 id="emscripten-javascript">Emscripten / JavaScript</h3>
+<p>There’s preliminary support to build this, but I haven’t seen it run succesfully yet.</p>
+<p>You need the <a href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten toolchain</a> installed, as well as GNU make (on windows that means installing <a href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>
+<p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
+<p>To build, go to <code>dev/emscripten</code>, and type <code>make -j4</code>. This should produce a lobster.[js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
+<p>You can now run it with <code>emrun --browser firefox lobster.html</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place the files on a webserver, and load from there.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>
@@ -83,7 +89,7 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j4</code></pre>
 <li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything).</p></li>
 <li><p><code>mypath/myfile.png</code> (for any file references in your Lobster code like <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
 </ul>
-<p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk.</p>
+<p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk, and with emscripten there’s an assets directory also.</p>
 <h2 id="extending-lobster">Extending Lobster</h2>
 <p>Besides using Lobster as a stand-alone programming language as-is, there are 2 ways of extending Lobster, by adding your code to Lobster, or adding Lobster to your project.</p>
 <p>Note that unlike other scripting languages, Lobster has been designed as a stand-alone language first, rather than a plug-in scripting system (more like Python and Ruby, not like Lua and UnrealScript). You use Lobster code as your &quot;main program&quot;, with the &quot;engine&quot; being the library you call into. Most game engines are the opposite: the engine code is the main program, and the scripting language is being called into. For that reason, adding your own code to Lobster is by the far the preferable way of building an application that uses Lobster, and will generally be a much more productive environment.</p>

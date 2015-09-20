@@ -264,7 +264,7 @@ void AddGraphics()
 
     STARTDECL(gl_touchscreen) ()
     {
-        #ifdef PLATFORM_MOBILE
+        #ifdef PLATFORM_TOUCH
             return Value(true);
         #else
             return Value(false);
@@ -563,7 +563,7 @@ void AddGraphics()
                    localmousepos.y() < size.y();
         if (hit) lasthitsize = size;
         /*
-        #ifdef PLATFORM_MOBILE
+        #ifdef PLATFORM_TOUCH
         // Inefficient for fingers other than 0, which is going to be rare. 
         auto ks = i ? GetKS((string("mouse1") + (char)('0' + i)).c_str()) : GetKS("mouse1");
         // On mobile, if the finger just went down, we wont have meaningfull lastframehitsize, so if the

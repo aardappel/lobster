@@ -41,7 +41,7 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
     auto component = GL_UNSIGNED_BYTE;
     if (tf & TF_FLOAT)
     {
-        #if !defined(__APPLE__) && !defined(__ANDROID__)
+        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
             format = GL_RGBA32F;
             component = GL_FLOAT;
         #else
@@ -53,7 +53,7 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
     if (tf & TF_NOMIPMAP) return id;
 
     glEnable(GL_TEXTURE_2D);  // required on ATI for mipmapping to work?
-    #if !defined(PLATFORM_MOBILE) && !defined(__APPLE__)
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
     if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
     #endif
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -95,7 +95,7 @@ void SetTexture(uint textureunit, uint id)
 
 void SetImageTexture(uint textureunit, uint id, int tf)
 {
-    #if !defined(__APPLE__) && !defined(__ANDROID__)
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glBindImageTexture)
             glBindImageTexture(textureunit, id, 0, GL_FALSE, 0,
                                tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
