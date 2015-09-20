@@ -37,6 +37,11 @@
 /dev/android/Android-VS/ARM/
 /dev/lobster/ARM/
 
+/dev/emscripten/assets/
+/dev/emscripten/*.js
+/dev/emscripten/*.html
+/dev/emscripten/*.data
+
 /dev/CMakeCache.txt
 /dev/CMakeFiles/
 /dev/Makefile

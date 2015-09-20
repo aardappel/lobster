@@ -128,8 +128,10 @@ struct VMBase
 {
     PrintPrefs programprintprefs;
     const type_elem_t *typetable;
+    string evalret;
 
     VMBase() : programprintprefs(10, 10000, false, -1, false), typetable(nullptr) {}
+    virtual ~VMBase() {}
 
     const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
 
@@ -155,6 +157,7 @@ struct VMBase
     virtual string StructName(const TypeInfo &ti) = 0;
     virtual const TypeInfo &GetVarTypeInfo(int varidx) = 0;
     virtual void CoVarCleanup(CoRoutine *co) = 0;
+    virtual void OneMoreFrame() = 0;
 };
 
 // the 2 globals that make up the current VM instance

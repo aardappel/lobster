@@ -129,9 +129,11 @@ struct VM : VMBase
 
         assert(g_vm == nullptr);
         g_vm = this;
+
+        EvalProgram();
     }
 
-    ~VM()
+    virtual ~VM()
     {
         assert(g_vm == this);
         g_vm = nullptr;
@@ -146,6 +148,14 @@ struct VM : VMBase
             delete vmpool;
             vmpool = nullptr;
         }
+    }
+
+    void OneMoreFrame()
+    {
+        // We just landed back into the VM after being suspended inside a gl_frame() call.
+        // Emulate the return of gl_frame():
+        PUSH(Value(1));  // We're not terminating yet.
+        EvalProgram();   // Continue execution as if nothing happened.
     }
 
     const TypeInfo &GetVarTypeInfo(int varidx)
@@ -710,7 +720,7 @@ struct VM : VMBase
         // the builtin call takes care of the return value
     }
 
-    void EndEval(string &evalret, Value &ret, ValueType vt)
+    void EndEval(Value &ret, ValueType vt)
     {
         evalret = ret.ToString(vt, programprintprefs);
         ret.DECTYPE(vt);
@@ -771,7 +781,7 @@ struct VM : VMBase
         #endif
     }
 
-    void EvalProgram(string &evalret)
+    void EvalProgram()
     {
         for (;;)
         {
@@ -884,7 +894,7 @@ struct VM : VMBase
                     if(FunOut(df, nrv))
                     {
                         assert(nrv == 1);
-                        return EndEval(evalret, POP(), GetTypeInfo((type_elem_t)tidx).t); 
+                        return EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t); 
                     }
                     break;
                 }
@@ -892,7 +902,7 @@ struct VM : VMBase
                 case IL_EXIT:
                 {
                     int tidx = *ip++;
-                    return EndEval(evalret, POP(), GetTypeInfo((type_elem_t)tidx).t);
+                    return EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
                 }
 
                 case IL_CONT1:
@@ -1552,10 +1562,9 @@ struct VM : VMBase
     }
 };
 
-void RunBytecode(string &evalret, const char *programname, const uchar *bytecode)
+void RunBytecode(const char *programname, const uchar *bytecode)
 {
-    VM vm(programname, bytecode);
-    vm.EvalProgram(evalret);
+    new VM(programname, bytecode);  // Sets up g_vm
 }
 
 }  // namespace lobster

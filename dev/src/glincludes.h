@@ -24,7 +24,7 @@
         #include <OpenGL/gl.h>
     #endif
 #else
-    #if defined(__ANDROID__) || defined(EMSCRIPTEN)
+    #if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>
     #else   // _WIN32 & Linux

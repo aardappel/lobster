@@ -81,7 +81,7 @@ void AddFileOps()
                 return Value(slist);
             }
 
-        #elif !defined(__ANDROID__) && !defined(EMSCRIPTEN)
+        #elif !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
 
             glob_t gl;
             string mask = folder + "/*";

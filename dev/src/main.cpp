@@ -16,11 +16,16 @@
 
 #include "compiler.h"
 #include "vm.h"
+#include "vmdata.h"
 
 #include "sdlincludes.h"    // FIXME: this makes SDL not modular, but without it it will miss the SDLMain indirection
 #include "sdlinterface.h"
 
 #include "wentropy.h"
+
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
 
 using namespace lobster;
 
@@ -57,6 +62,23 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
     free(bc);
 
     return VerifyBytecode(bytecode);
+}
+
+void one_frame_callback()
+{
+    try
+    {
+        g_vm->OneMoreFrame();
+    }
+    catch (string &s)
+    {
+        if (s != "SUSPEND-VM-MAINLOOP")
+        {
+            // An actual error.
+            Output(OUTPUT_ERROR, s.c_str());
+            throw s;
+        }
+    }
 }
 
 int main(int argc, char* argv[])
@@ -161,11 +183,36 @@ int main(int argc, char* argv[])
             }
         }
 
-        string ret;
-        RunBytecode(ret, fn ? StripDirPart(fn).c_str() : "", bytecode.data());
+        #ifdef __EMSCRIPTEN__
+        try
+        {
+        #endif
+
+        RunBytecode(fn ? StripDirPart(fn).c_str() : "", bytecode.data());
+
+        #ifdef __EMSCRIPTEN__
+        }
+        catch (string &s)
+        {
+            if (s == "SUSPEND-VM-MAINLOOP")
+            {
+                // emscripten requires that we don't control the main loop.
+                // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
+                // Install the one-frame callback:
+                emscripten_set_main_loop(one_frame_callback, 60, 1);
+                // Return from main() here (!) since we don't actually want to run any shutdown code yet.
+                return 0;
+            }
+            // An actual error.
+            throw s;
+        }
+        #endif
+
+        delete g_vm;
     }
     catch (string &s)
     {
+        if (g_vm) delete g_vm;
         Output(OUTPUT_ERROR, s.c_str());
         if (from_bundle) MsgBox(s.c_str());
         if (wait)

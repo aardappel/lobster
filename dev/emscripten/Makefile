@@ -8,7 +8,9 @@ CC= emcc
 
 OPTLEVEL= -O1
 CXXFLAGS= $(OPTLEVEL)
-override CXXFLAGS+= -s USE_SDL=2 -std=c++11 -Wall -pedantic -Wno-switch -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
+# apparently exception catching is slow, but we need them for the moment.
+override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++11 -Wall -pedantic -Wno-switch \
+                    -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
 override CFLAGS+= -Wall
 

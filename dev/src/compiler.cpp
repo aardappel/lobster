@@ -188,10 +188,11 @@ Value CompileRun(Value &source, bool stringiscode)
     VMBase    *parentvm   = g_vm;   g_vm = nullptr;
     try
     {
-        string ret;
         vector<uchar> bytecode;
         Compile(fn.c_str(), stringiscode ? source.sval()->str() : nullptr, bytecode);
-        RunBytecode(ret, fn.c_str(), bytecode.data());
+        RunBytecode(fn.c_str(), bytecode.data());
+        auto ret = g_vm->evalret;
+        delete g_vm;
         assert(!vmpool && !g_vm);
         vmpool = parentpool;
         g_vm = parentvm;
@@ -201,6 +202,7 @@ Value CompileRun(Value &source, bool stringiscode)
     }
     catch (string &s)
     {
+        if (g_vm) delete g_vm;
         vmpool = parentpool;
         g_vm = parentvm;
         source.DECRT();

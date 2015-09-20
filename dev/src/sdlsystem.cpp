@@ -556,7 +556,15 @@ bool SDLFrame(int2 &screensize)
     }
     */
 
-    return closebutton || (testmode && frames == 2 /* has rendered one full frame */);
+    bool shouldclose = closebutton || (testmode && frames == 2 /* has rendered one full frame */);
+
+    #ifdef __EMSCRIPTEN__
+        // Here we have to something hacky: emscripten requires us to not take over the main loop.
+        // So we use this exception to suspend the VM right inside the gl_frame() call.
+        if (!shouldclose) throw "SUSPEND-VM-MAINLOOP";
+    #endif
+
+    return shouldclose;
 }
 
 double SDLTime() { return lasttime; }
@@ -668,7 +676,7 @@ int SDLScreenDPI(int screen)
 {
     int screens = max(1, SDL_GetNumVideoDisplays());
     float ddpi = 200;  // Reasonable default just in case screen 0 gives an error.
-    #ifndef EMSCRIPTEN
+    #ifndef __EMSCRIPTEN__
     SDL_GetDisplayDPI(screen, &ddpi, nullptr, nullptr);
     #endif
     return screen >= screens

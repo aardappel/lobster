@@ -204,10 +204,10 @@ To build, go to `dev/emscripten`, and type `make -j4`. This should produce a
 lobster.[js\|html\|data] in the same directory (the latter containing whatever
 you placed in `assets`).
 
-You can now run it with `emrun --browser firefox lobster.html` or similar. Note
-that just loading up the html in your browser directly may not work because of
-security restrictions. Alternatively place the files on a webserver, and load
-from there.
+You can now run it with `emrun --browser firefox lobster.html --verbose` or
+similar. Note that just loading up the html in your browser directly may not
+work because of security restrictions. Alternatively place the files on a
+webserver, and load from there.
 
 Distributing Lobster programs.
 ------------------------------

@@ -183,6 +183,12 @@
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
+- create easy way to build Lobster as console-only language.
+
+- improve emscriptem port.
+  - will need to solve the main loop problem somehow:
+    https://kripken.github.io/emscripten-site/docs/porting/emscripten-runtime-environment.html
+
 - allow random number generator to be selected
 
 - add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function
