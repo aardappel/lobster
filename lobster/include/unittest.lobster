@@ -20,7 +20,7 @@ def run_test_cases():
     def tf(x:testb, y:string): 9
     def tf(x:testb, y:float): 5
     def tf(x:testb, y:int): 6
-    def tf(x:string, y:string): 7
+    def tf(x, y): 7
 
     def tf(x): 8
 
