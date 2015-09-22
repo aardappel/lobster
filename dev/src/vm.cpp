@@ -96,7 +96,7 @@ struct VM : VMBase
         vmpool = new SlabAlloc();
 
         if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
-            throw "bytecode is from a different version of Lobster";
+            throw string("bytecode is from a different version of Lobster");
 
         codelen = bcf->bytecode()->Length();
         if (FLATBUFFERS_LITTLEENDIAN)

@@ -68,6 +68,8 @@ void one_frame_callback()
 {
     try
     {
+        printf("g_vm: %x `%s`\n", (int)g_vm, g_vm->evalret.c_str());
+        assert(g_vm);
         g_vm->OneMoreFrame();
     }
     catch (string &s)
@@ -199,8 +201,9 @@ int main(int argc, char* argv[])
                 // emscripten requires that we don't control the main loop.
                 // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
                 // Install the one-frame callback:
-                emscripten_set_main_loop(one_frame_callback, 60, 1);
+                emscripten_set_main_loop(one_frame_callback, 0, false);
                 // Return from main() here (!) since we don't actually want to run any shutdown code yet.
+                assert(g_vm);
                 return 0;
             }
             // An actual error.

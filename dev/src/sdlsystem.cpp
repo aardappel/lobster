@@ -561,7 +561,7 @@ bool SDLFrame(int2 &screensize)
     #ifdef __EMSCRIPTEN__
         // Here we have to something hacky: emscripten requires us to not take over the main loop.
         // So we use this exception to suspend the VM right inside the gl_frame() call.
-        if (!shouldclose) throw "SUSPEND-VM-MAINLOOP";
+        if (!shouldclose) throw string("SUSPEND-VM-MAINLOOP");
     #endif
 
     return shouldclose;
