@@ -183,11 +183,10 @@
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
 
-- create easy way to build Lobster as console-only language.
+- remove last cases of RenderArraySlow
+  - cache for text VBOs, and cache for arbitrary polygons, cleared if not used in a frame.
 
-- improve emscriptem port.
-  - will need to solve the main loop problem somehow:
-    https://kripken.github.io/emscripten-site/docs/porting/emscripten-runtime-environment.html
+- create easy way to build Lobster as console-only language.
 
 - allow random number generator to be selected
 

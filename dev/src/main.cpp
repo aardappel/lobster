@@ -64,13 +64,26 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
     return VerifyBytecode(bytecode);
 }
 
+void Exit()
+{
+    extern void GraphicsShutDown(); GraphicsShutDown();
+
+    #ifdef __EMSCRIPTEN__
+        emscripten_force_exit(0);
+    #endif
+
+    exit(0); // Needed at least on iOS to forcibly shut down the wrapper main()
+}
+
 void one_frame_callback()
 {
     try
     {
-        printf("g_vm: %x `%s`\n", (int)g_vm, g_vm->evalret.c_str());
+        extern bool GraphicsFrameStart(); GraphicsFrameStart();
         assert(g_vm);
         g_vm->OneMoreFrame();
+        // If this returns, we didn't hit a gl_frame() again and exited normally.
+        Exit();
     }
     catch (string &s)
     {
@@ -78,7 +91,7 @@ void one_frame_callback()
         {
             // An actual error.
             Output(OUTPUT_ERROR, s.c_str());
-            throw s;
+            Exit();
         }
     }
 }
@@ -185,14 +198,14 @@ int main(int argc, char* argv[])
             }
         }
 
-        #ifdef __EMSCRIPTEN__
+        #ifdef USE_MAIN_LOOP_CALLBACK
         try
         {
         #endif
 
-        RunBytecode(fn ? StripDirPart(fn).c_str() : "", bytecode.data());
+        RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode));
 
-        #ifdef __EMSCRIPTEN__
+        #ifdef USE_MAIN_LOOP_CALLBACK
         }
         catch (string &s)
         {
@@ -201,13 +214,21 @@ int main(int argc, char* argv[])
                 // emscripten requires that we don't control the main loop.
                 // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
                 // Install the one-frame callback:
+                #ifdef __EMSCRIPTEN__
                 emscripten_set_main_loop(one_frame_callback, 0, false);
                 // Return from main() here (!) since we don't actually want to run any shutdown code yet.
                 assert(g_vm);
                 return 0;
+                #else
+                // Emulate this behavior so we can debug it.
+                while (g_vm->evalret == "") one_frame_callback();
+                #endif
             }
-            // An actual error.
-            throw s;
+            else
+            {
+                // An actual error.
+                throw s;
+            }
         }
         #endif
 
@@ -229,11 +250,7 @@ int main(int argc, char* argv[])
         #endif
     }
 
-    extern void GraphicsShutDown(); GraphicsShutDown();
-
-    #ifdef __IOS__
-        exit(0); // to forcibly shut down the wrapper main()
-    #endif
+    Exit();
 
     return 0;
 }

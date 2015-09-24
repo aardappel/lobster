@@ -29,9 +29,10 @@ cells := map(lssize) z:
 
 colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
 nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
-nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: map(s) c: map(3) i: float(and(c, shl(1, 2 - i)) != 0)
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
+
+nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: gl_newpoly(map(s) c: map(3) i: float(and(c, shl(1, 2 - i)) != 0))
 
 while gl_frame():
     if gl_wentdown("escape"): return
@@ -51,7 +52,7 @@ while gl_frame():
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
                     gl_color(colors[e - 1])
                     gl_translate float(v):
-                        gl_polygon(nbpolys[i])  // draw face
+                        gl_rendermesh(nbpolys[i])  // draw face
     first_solid := nil  // find the first solid and last empty block we're looking at
     last_empty := nil
     camvec := vecfromyawpitch(camera_yaw, camera_pitch, 1, 0)

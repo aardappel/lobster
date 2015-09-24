@@ -68,28 +68,41 @@ void GraphicsShutDown()  // should be safe to call even if it wasn't initialized
     #endif
 }
 
+bool GraphicsFrameStart()
+{
+    extern void CullFonts(); CullFonts();
+
+    bool cb = SDLFrame(screensize);
+
+    lastframehitsize = lasthitsize;
+    lasthitsize = float3_0;
+
+    OpenGLFrameStart(screensize);
+    Set2DMode(screensize);
+
+    currentshader = colorshader;
+
+    g_vm->LogFrame();
+
+    return cb;
+}
+
 void TestGL()
 {
     if (!graphics_initialized)
         g_vm->BuiltinError("graphics system not initialized yet, call gl_window() first");
 }
 
-float2 localpos(const int2 &pos) { return (view2object * float4(float3(float2(pos), 0), 1)).xyz().xy(); }
+float2 localpos(const int2 &pos) { return (otransforms.view2object * float4(float3(float2(pos), 0), 1)).xyz().xy(); }
 float2 localfingerpos(int i) { return localpos(GetFinger(i, false)); }
-
-struct transback { float4x4 view2object; float4x4 object2view; };
 
 Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
 {
     if (body.True())
     {
-        transback tb;
-        tb.view2object = view2object;
-        tb.object2view = object2view;
-        g_vm->Push(Value(g_vm->NewString((char *)&tb, sizeof(transback))));
+        g_vm->Push(Value(g_vm->NewString((char *)&otransforms, sizeof(objecttransforms))));
     }
-    object2view *= forward;
-    view2object = backward * view2object;
+    AppendTransform(forward, backward);
     return body;
 }
 
@@ -97,10 +110,8 @@ void poptrans()
 {
     auto s = g_vm->Pop();
     TYPE_ASSERT(s.type == V_STRING);
-    assert(s.sval()->len == sizeof(transback));
-    auto tb = (transback *)s.sval()->str();
-    view2object = tb->view2object;
-    object2view = tb->object2view;
+    assert(s.sval()->len == sizeof(objecttransforms));
+    otransforms = *(objecttransforms *)s.sval()->str();
     s.DECRT();
 }
 
@@ -116,6 +127,31 @@ int GetSampler(Value &i)
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         g_vm->BuiltinError("graphics: illegal texture unit");
     return i.ival();
+}
+
+Mesh *CreatePolygon(Value &vl)
+{
+    TestGL();
+
+    if (vl.eval()->Len() < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
+
+    auto vbuf = new BasicVert[vl.eval()->Len()];
+    for (int i = 0; i < vl.eval()->Len(); i++) vbuf[i].pos = ValueToF<3>(vl.eval()->At(i));
+
+    auto v1 = vbuf[1].pos - vbuf[0].pos;
+    auto v2 = vbuf[2].pos - vbuf[0].pos;
+    auto norm = normalize(cross(v2, v1));
+    for (int i = 0; i < vl.eval()->Len(); i++)
+    {
+        vbuf[i].norm = norm;
+        vbuf[i].tc = vbuf[i].pos.xy();
+        vbuf[i].col = byte4_255;
+    }
+
+    auto m = new Mesh(new Geometry(vbuf, vl.eval()->Len(), sizeof(BasicVert), "PNTC"), polymode);
+
+    delete[] vbuf;
+    return m;
 }
 
 void AddGraphics()
@@ -172,19 +208,14 @@ void AddGraphics()
     {
         TestGL();
 
-        extern void CullFonts(); CullFonts();
+        #ifdef USE_MAIN_LOOP_CALLBACK
+            // Here we have to something hacky: emscripten requires us to not take over the main loop.
+            // So we use this exception to suspend the VM right inside the gl_frame() call.
+            // FIXME: do this at the start of the frame instead?
+            throw string("SUSPEND-VM-MAINLOOP");
+        #endif
 
-        bool cb = SDLFrame(screensize);
-
-        lastframehitsize = lasthitsize;
-        lasthitsize = float3_0;
-
-        OpenGLFrameStart(screensize);
-        Set2DMode(screensize);
-
-        currentshader = colorshader;
-
-        g_vm->LogFrame();
+        auto cb = GraphicsFrameStart();
 
         return Value(!cb);
     }
@@ -392,51 +423,21 @@ void AddGraphics()
 
     STARTDECL(gl_polygon) (Value &vl)
     {
-        TestGL();
-
-        if (vl.eval()->Len() < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
-
-        auto vbuf = new BasicVert[vl.eval()->Len()];
-        for (int i = 0; i < vl.eval()->Len(); i++) vbuf[i].pos = ValueToF<3>(vl.eval()->At(i));
-
-        auto v1 = vbuf[1].pos - vbuf[0].pos;
-        auto v2 = vbuf[2].pos - vbuf[0].pos;
-        auto norm = normalize(cross(v2, v1));
-        for (int i = 0; i < vl.eval()->Len(); i++)
-        {
-            vbuf[i].norm = norm;
-            vbuf[i].tc = vbuf[i].pos.xy();
-            vbuf[i].col = byte4_255;
-        }
-
+        auto m = CreatePolygon(vl);
         currentshader->Set();
-        RenderArray(polymode, vl.eval()->Len(), "PNTC", sizeof(BasicVert), vbuf);
-
-        delete[] vbuf;
-
+        m->Render(currentshader);
+        delete m;
         return vl;
     }
     ENDDECL1(gl_polygon, "vertlist", "F]]", "A1",
-        "renders a polygon using the list of points given. returns the argument.");
+        "renders a polygon using the list of points given. returns the argument."
+        " warning: gl_polygon creates a new mesh every time, gl_newpoly/gl_rendermesh is faster.");
 
     STARTDECL(gl_circle) (Value &radius, Value &segments)
     {
         TestGL();
 
-        auto vbuf = new float3[segments.ival()];
-
-        float step = PI * 2 / segments.ival();
-        for (int i = 0; i < segments.ival(); i++)
-        {
-            // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
-            vbuf[i] = float3(sinf(i * step + 1) * radius.fval(),
-                             cosf(i * step + 1) * radius.fval(), 0);
-        }
-
-        currentshader->Set();
-        RenderArray(polymode, segments.ival(), "P", sizeof(float3), vbuf);
-
-        delete[] vbuf;
+        RenderCircle(currentshader, polymode, max(segments.ival(), 3), radius.fval());
 
         return Value();
     }
@@ -510,7 +511,7 @@ void AddGraphics()
 
     STARTDECL(gl_scale) (Value &vec, Value &body)
     {
-        auto v = ValueDecToF<3>(vec);
+        auto v = ValueDecToF<3>(vec, 1);
         return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) ()
@@ -523,7 +524,7 @@ void AddGraphics()
 
     STARTDECL(gl_origin) ()
     {
-        auto pos = float2(object2view[3].x(), object2view[3].y());
+        auto pos = float2(otransforms.object2view[3].x(), otransforms.object2view[3].y());
         return ToValueF(pos);
     }
     ENDDECL0(gl_origin, "", "", "F]:2",
@@ -532,7 +533,7 @@ void AddGraphics()
 
     STARTDECL(gl_scaling) ()
     {
-        auto sc = float2(object2view[0].x(), object2view[1].y());
+        auto sc = float2(otransforms.object2view[0].x(), otransforms.object2view[1].y());
         return ToValueF(sc);
     }
     ENDDECL0(gl_scaling, "", "", "F]:2",
@@ -586,8 +587,7 @@ void AddGraphics()
     {
         TestGL();
 
-        currentshader->Set();
-        RenderRect(polymode, ValueToF<2>(vec));
+        RenderQuad(currentshader, polymode, float4x4(float4(ValueToF<2>(vec), 1)));
 
         return vec;
     }
@@ -598,15 +598,10 @@ void AddGraphics()
     {
         TestGL();
 
-        auto v1 = ValueDecToF<3>(start);
-        auto v2 = ValueDecToF<3>(end);
+        auto v1 = ValueDecToF<2>(start);
+        auto v2 = ValueDecToF<2>(end);
 
-        float angle = atan2f(v2.y() - v1.y(), v2.x() - v1.x());
-        float3 v = float3(sinf(angle), -cosf(angle), 0) * thickness.fval() / 2;
-
-        currentshader->Set();
-        RenderLine(polymode, v1, v2, v);
-
+        RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
         return Value();
     }
     ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",
@@ -682,6 +677,17 @@ void AddGraphics()
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " you may specify [] to get defaults for colors (white) / texcoords (position x & y) /"
         " normals (generated from adjacent triangles)");
+
+    STARTDECL(gl_newpoly) (Value &positions)
+    {
+        auto m = CreatePolygon(positions);
+        positions.DECRT();
+        return Value((int)meshes->Add(m));
+    }
+    ENDDECL1(gl_newpoly, "positions", "F]]", "I",
+        "creates a mesh out of a loop of points, much like gl_polygon."
+        " gl_linemode determines how this gets drawn (fan or loop)."
+        " returns mesh id");
 
     STARTDECL(gl_newmesh_iqm) (Value &fn)
     {
@@ -969,7 +975,7 @@ void AddGraphics()
     STARTDECL(gl_light) (Value &pos)
     {
         Light l;
-        l.pos = object2view * float4(ValueDecToF<3>(pos), 1);
+        l.pos = otransforms.object2view * float4(ValueDecToF<3>(pos), 1);
         lights.push_back(l);
         return Value();
     }
@@ -981,14 +987,14 @@ void AddGraphics()
     {
         TestGL();
 
-        float3 cp = view2object[3].xyz();
+        float3 cp = otransforms.view2object[3].xyz();
         auto m = float3(ValueDecToI<3>(num));
         auto step = ValueDecToF<3>(dist);
 
         auto oldcolor = curcolor;
-        curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { currentshader->Set(); RenderLine3D(float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval()); }
-        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) { currentshader->Set(); RenderLine3D(float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval()); }
-        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) { currentshader->Set(); RenderLine3D(float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval()); }
+        curcolor = float4(0, 1, 0, 1); for (float z = 0; z <= m.z(); z += step.x()) for (float x = 0; x <= m.x(); x += step.x()) { RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y(), z), cp, thickness.fval()); }
+        curcolor = float4(1, 0, 0, 1); for (float z = 0; z <= m.z(); z += step.y()) for (float y = 0; y <= m.y(); y += step.y()) { RenderLine3D(currentshader, float3(0, y, z), float3(m.x(), y, z), cp, thickness.fval()); }
+        curcolor = float4(0, 0, 1, 1); for (float y = 0; y <= m.y(); y += step.z()) for (float x = 0; x <= m.x(); x += step.z()) { RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z()), cp, thickness.fval()); }
         curcolor = oldcolor;
 
         return Value();

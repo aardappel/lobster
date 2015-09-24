@@ -175,7 +175,7 @@ void BitmapFont::RenderText(const char *text)
         x += advance;
     }
 
-    RenderArray(PRIM_TRIS, len * 6, "PT", sizeof(PT), vbuf, ibuf);
+    RenderArraySlow(PRIM_TRIS, len * 6, len * 4, "PT", sizeof(PT), vbuf, ibuf);
 
     delete[] ibuf;
     delete[] vbuf;

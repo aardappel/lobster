@@ -96,12 +96,14 @@ struct Mesh
 {
     Geometry *geom;
     vector<Surface *> surfs;
+    Primitive prim;  // If surfs is empty, this determines how to draw the verts.
 
     int numframes, numbones;
     float3x4 *mats;
     float curanim;
 
-    Mesh(Geometry *_g) : geom(_g), numframes(0), numbones(0), mats(nullptr), curanim(0) {}
+    Mesh(Geometry *_g, Primitive _prim = PRIM_FAN)
+        : geom(_g), prim(_prim), numframes(0), numbones(0), mats(nullptr), curanim(0) {}
     ~Mesh();
 
     void Render(Shader *sh);
@@ -120,6 +122,8 @@ extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void ClearFrameBuffer(const float3 &c);
 extern int SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
+
+extern void AppendTransform(const float4x4 &forward, const float4x4 &backward);
 
 extern string LoadMaterialFile(const char *mfile);
 extern string ParseMaterialFile(char *mfile);
@@ -147,19 +151,35 @@ extern int MaxTextureSize();
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
 
-extern void RenderArray(Primitive prim, int count, const char *fmt, 
+extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, 
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
-extern void RenderLine(Primitive prim, const float3 &v1, const float3 &v2, const float3 &side);
-extern void RenderLine3D(const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
-extern void RenderRect(Primitive prim, const float2 &v);
+extern void RenderLine2D(Shader *sh, Primitive prim, const float2 &v1, const float2 &v2, float thickness);
+extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
+extern void RenderQuad(Shader *sh, Primitive prim, const float4x4 &trans);
+extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
 
 extern Mesh *LoadIQM(const char *filename);
 
 extern float4x4 view2clip;
-extern float4x4 object2view;
-extern float4x4 view2object;
+
+struct objecttransforms
+{
+    float4x4 view2object;
+    float4x4 object2view;
+
+    objecttransforms() : view2object(1), object2view(1) {}
+};
+
+extern objecttransforms otransforms;
 
 extern vector<Light> lights;
 
 extern float4 curcolor;
 
+template<typename F> void Transform2D(const float4x4 &mat, F body)  // 2D, since this skips view2object needed for lighting.
+{
+    auto oldobject2view = otransforms.object2view;
+    otransforms.object2view *= mat;
+    body();
+    otransforms.object2view = oldobject2view;
+}

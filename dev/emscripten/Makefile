@@ -3,10 +3,8 @@
 CXX= emcc
 CC= emcc
 
-# FIXME: at -O2 and above get: AssertionError: Failed to run llvm optimizations:
-# https://github.com/kripken/emscripten/issues/3644
-
-OPTLEVEL= -g4
+# use -g4 for maximum debug info.
+OPTLEVEL= -g4 -O2
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
 override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++11 -Wall -pedantic -Wno-switch \
@@ -79,8 +77,9 @@ $(CPPOBJS): CXXFLAGS += $(INCLUDES)
 
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
+# add -s ASSERTIONS=2 when troubleshooting.
 lobster: $(COBJS) $(CPPOBJS)
-	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -o lobster.html --preload-file assets@/ -s DEMANGLE_SUPPORT=1 -s ASSERTIONS=2 --emrun
+	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -o lobster.html --preload-file assets@/ -s DEMANGLE_SUPPORT=1 --emrun
 
 install: all
 	cp lobster ../../lobster/

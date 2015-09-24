@@ -62,6 +62,7 @@ struct VM : VMBase
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts;
     
+    vector<uchar> bytecode_buffer;
     const bytecode::BytecodeFile *bcf;
 
     int currentline;
@@ -69,7 +70,7 @@ struct VM : VMBase
 
     PrintPrefs debugpp;
 
-    const char *programname;
+    string programname;
 
     VMLog vml;
 
@@ -84,19 +85,22 @@ struct VM : VMBase
     #define POPN(n) (sp -= (n))
     #define TOPPTR() (stack + sp + 1)
 
-    VM(const char *_pn, const uchar *bytecode_buffer)
+    VM(const char *_pn, vector<uchar> &&_bytecode_buffer)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
-          curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr), 
-          bcf(bytecode::GetBytecodeFile(bytecode_buffer)),
+          curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr),
+          bytecode_buffer(std::move(_bytecode_buffer)),
+          bcf(nullptr),
           currentline(-1), maxsp(-1),
-          debugpp(2, 50, true, -1, true), programname(_pn), vml(*this, bcf->uses_frame_state() != 0),
+          debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
           trace(false), trace_tail(true)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
 
+        bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
         if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
             throw string("bytecode is from a different version of Lobster");
+        vml.uses_frame_state = bcf->uses_frame_state() != 0;
 
         codelen = bcf->bytecode()->Length();
         if (FLATBUFFERS_LITTLEENDIAN)
@@ -129,8 +133,6 @@ struct VM : VMBase
 
         assert(g_vm == nullptr);
         g_vm = this;
-
-        EvalProgram();
     }
 
     virtual ~VM()
@@ -164,7 +166,7 @@ struct VM : VMBase
     }
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
-    const char *GetProgramName() { return programname; }
+    const char *GetProgramName() { return programname.c_str(); }
 
     const TypeInfo *GetIntVectorType(int which)
     {
@@ -223,7 +225,7 @@ struct VM : VMBase
                         case V_VECTOR:
                         case V_STRUCT:
                         {
-                            auto s = ro->ToString(leakpp);
+                            auto s = RefToString(ro, leakpp);
                             fputs((ro->CycleStr() + " = " + s + "\n").c_str(), leakf);
                             break;
                         }
@@ -306,7 +308,7 @@ struct VM : VMBase
         while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
         {
             s += "\n   stack: " + to_string_hex((size_t)TOP().any());  // Sadly can't print this properly.
-            if (vmpool->pointer_is_in_allocator(TOP().any())) s += ", maybe: " + TOP().ref()->ToString(debugpp);
+            if (vmpool->pointer_is_in_allocator(TOP().any())) s += ", maybe: " + RefToString(TOP().ref(), debugpp);
             POP();  // We don't DEC here, as we can't know what type it is.
                     // This is ok, as we ignore leaks in case of an error anyway.
         }
@@ -371,7 +373,7 @@ struct VM : VMBase
 
     string ValueDBG(const RefObj *a)
     {
-        return a->ToString(debugpp);
+        return RefToString(a, debugpp);
     }
 
     string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
@@ -1562,9 +1564,10 @@ struct VM : VMBase
     }
 };
 
-void RunBytecode(const char *programname, const uchar *bytecode)
+void RunBytecode(const char *programname, vector<uchar> &&bytecode)
 {
-    new VM(programname, bytecode);  // Sets up g_vm
+    new VM(programname, std::move(bytecode));  // Sets up g_vm
+    g_vm->EvalProgram();
 }
 
 }  // namespace lobster

@@ -27,10 +27,15 @@ GLBASEEXTS GLEXTS
 #endif
 
 float4x4 view2clip(1);
-float4x4 object2view(1);
-float4x4 view2object(1);
+objecttransforms otransforms;
 
 vector<Light> lights;
+
+void AppendTransform(const float4x4 &forward, const float4x4 &backward)
+{
+    otransforms.object2view *= forward;
+    otransforms.view2object = backward * otransforms.view2object;
+}
 
 int SetBlendMode(BlendMode mode)
 {
@@ -60,8 +65,7 @@ void Set2DMode(const int2 &screensize)
     glDisable(GL_CULL_FACE);  
     glDisable(GL_DEPTH_TEST);
 
-    object2view = float4x4_1;
-    view2object = float4x4_1;
+    otransforms = objecttransforms();
 
     view2clip = orthoGL(0, (float)screensize.x(), (float)screensize.y(), 0, 1, -1); // left handed coordinate system
 }
@@ -71,8 +75,7 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);  
 
-    object2view = float4x4_1;
-    view2object = float4x4_1;
+    otransforms = objecttransforms();
 
     view2clip = perspectiveFov(fovy, ratio, znear, zfar, 1);
     view2clip *= float4x4(float4(1, -1, 1, 1)); // FIXME?

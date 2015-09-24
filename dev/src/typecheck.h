@@ -1948,12 +1948,12 @@ struct TypeChecker
         for (auto f : st.functiontable) funstats.push_back(make_pair(0, f));
         for (auto sf : st.subfunctiontable)
         {
-            if (sf->parent->multimethod) { multisf++; orignodes += sf->body->Count(); }
-            else if (!sf->next)          { origsf++;  orignodes += sf->body->Count(); }
+            if (sf->parent->multimethod) { multisf++; orignodes += CountNodes(sf->body); }
+            else if (!sf->next)          { origsf++;  orignodes += CountNodes(sf->body); }
             else
             {
                 clonesf++;
-                auto count = sf->body->Count();
+                auto count = CountNodes(sf->body);
                 clonenodes += count;
                 funstats[sf->parent->idx].first += count;
             }

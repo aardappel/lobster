@@ -286,7 +286,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
     #ifdef PLATFORM_ES2
         landscape = screensize.x() >= screensize.y();
         int modes = SDL_GetNumDisplayModes(0);
-        screensize = int2(0);
+        screensize = int2(1280, 720);
         for (int i = 0; i < modes; i++)
         {
             SDL_DisplayMode mode;
@@ -395,9 +395,15 @@ bool SDLFrame(int2 &screensize)
     clearfingers(true);
 
     if (minimized)
+    {
         SDL_Delay(10);  // save CPU/battery
+    }
     else
+    {
+        #ifndef __EMSCRIPTEN__
         SDL_GL_SwapWindow(_sdl_window);
+        #endif
+    }
 
     //SDL_Delay(1000);
 
@@ -481,8 +487,15 @@ bool SDLFrame(int2 &screensize)
             break;
 
         case SDL_MOUSEWHEEL:
-            mousewheeldelta += event.wheel.y;
+        {
+            if (event.wheel.which == SDL_TOUCH_MOUSEID) break;  // Emulated scrollwheel on touch devices?
+            auto y = event.wheel.y;
+            #ifdef __EMSCRIPTEN__
+                y = y > 0 ? 1 : -1;  // For some reason, it defaults to 10 / -10 ??
+            #endif
+            mousewheeldelta += event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -y : y;
             break;
+        }
 
         #endif
 
@@ -556,15 +569,7 @@ bool SDLFrame(int2 &screensize)
     }
     */
 
-    bool shouldclose = closebutton || (testmode && frames == 2 /* has rendered one full frame */);
-
-    #ifdef __EMSCRIPTEN__
-        // Here we have to something hacky: emscripten requires us to not take over the main loop.
-        // So we use this exception to suspend the VM right inside the gl_frame() call.
-        if (!shouldclose) throw string("SUSPEND-VM-MAINLOOP");
-    #endif
-
-    return shouldclose;
+    return closebutton || (testmode && frames == 2 /* has rendered one full frame */);
 }
 
 double SDLTime() { return lasttime; }

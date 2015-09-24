@@ -27,7 +27,7 @@ struct VMLog
 
     VM &vm;
 
-    VMLog(VM &_vm, bool _ufs) : uses_frame_state(_ufs), logi(0), lognew(nullptr), vm(_vm) {}
+    VMLog(VM &_vm) : uses_frame_state(false), logi(0), lognew(nullptr), vm(_vm) {}
 
     void LogInit()
     {

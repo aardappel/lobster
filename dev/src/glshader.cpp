@@ -336,11 +336,11 @@ void Shader::Set()
 {
     Activate();
 
-    if (mvp_i >= 0) glUniformMatrix4fv(mvp_i, 1, false, view2clip * object2view);
+    if (mvp_i >= 0) glUniformMatrix4fv(mvp_i, 1, false, view2clip * otransforms.object2view);
     if (col_i >= 0) glUniform4fv(col_i, 1, curcolor.begin());
 
-    if (light1_i >= 0 && lights.size() > 0) glUniform3fv(light1_i, 1, (view2object * lights[0].pos).begin());
-    if (camera_i >= 0) glUniform3fv(camera_i, 1, view2object[3].begin());
+    if (light1_i >= 0 && lights.size() > 0) glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin());
+    if (camera_i >= 0) glUniform3fv(camera_i, 1, otransforms.view2object[3].begin());
 }
 
 void Shader::SetAnim(float3x4 *bones, int num)

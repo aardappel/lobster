@@ -77,11 +77,10 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j4</code></pre>
 <li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
 </ul>
 <h3 id="emscripten-javascript">Emscripten / JavaScript</h3>
-<p>There’s preliminary support to build this, but I haven’t seen it run succesfully yet.</p>
 <p>You need the <a href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten toolchain</a> installed, as well as GNU make (on windows that means installing <a href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>
 <p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
 <p>To build, go to <code>dev/emscripten</code>, and type <code>make -j4</code>. This should produce a lobster.[js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
-<p>You can now run it with <code>emrun --browser firefox lobster.html</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place the files on a webserver, and load from there.</p>
+<p>You can now run it with <code>emrun --browser firefox lobster.html --verbose</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>

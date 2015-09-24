@@ -47,25 +47,25 @@ void RefObj::DECDELETE(bool deref)
     }
 }
 
-bool RefObj::Equal(const RefObj *o, bool structural) const
+bool RefEqual(const RefObj *a, const RefObj *b, bool structural)
 {
-    if (this == o)
+    if (a == b)
         return true;
 
-    if (!this || !o)
+    if (!a || !b)
         return false;
 
-    if (&ti != &o->ti)
+    if (&a->ti != &b->ti)
         return false;
 
-    switch (ti.t)
+    switch (a->ti.t)
     {
-        case V_BOXEDINT:    return ((BoxedInt *)this)->val == ((BoxedInt *)o)->val;
-        case V_BOXEDFLOAT:  return ((BoxedFloat *)this)->val == ((BoxedFloat *)o)->val;
-        case V_STRING:      return *((LString *)this) == *((LString *)o);
+        case V_BOXEDINT:    return ((BoxedInt *)a)->val == ((BoxedInt *)b)->val;
+        case V_BOXEDFLOAT:  return ((BoxedFloat *)a)->val == ((BoxedFloat *)b)->val;
+        case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_COROUTINE:   return false;
         case V_VECTOR:
-        case V_STRUCT:      return structural && ((ElemObj *)this)->Equal(*(ElemObj *)o);
+        case V_STRUCT:      return structural && ((ElemObj *)a)->Equal(*(ElemObj *)b);
         default:            assert(0); return false;
     }
 }
@@ -78,30 +78,30 @@ bool Value::Equal(ValueType vtype, const Value &o, ValueType otype, bool structu
         case V_INT: return ival_ == o.ival_;
         case V_FLOAT: return fval_ == o.fval_;
         case V_FUNCTION: return ip_ == o.ip_;
-        default: return refnil()->Equal(o.ref_, structural);
+        default: return RefEqual(refnil(), o.ref_, structural);
     }
 }
 
-string RefObj::ToString(PrintPrefs &pp) const
+string RefToString(const RefObj *ro, PrintPrefs &pp)
 {
-    if (!this) return "nil";
+    if (!ro) return "nil";
 
-    switch (ti.t)
+    switch (ro->ti.t)
     {
-        case V_BOXEDINT:   { auto s = to_string(((BoxedInt *)this)->val);                      return pp.anymark ? "#" + s : s; }
-        case V_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)this)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
+        case V_BOXEDINT:   { auto s = to_string(((BoxedInt *)ro)->val);                      return pp.anymark ? "#" + s : s; }
+        case V_BOXEDFLOAT: { auto s = to_string_float(((BoxedFloat *)ro)->val, pp.decimals); return pp.anymark ? "#" + s : s; }
 
-        case V_STRING:     return ((LString *)this)->ToString(pp);
+        case V_STRING:     return ((LString *)ro)->ToString(pp);
         case V_COROUTINE:  return "(coroutine)";
         case V_VECTOR:
-        case V_STRUCT:     return ((ElemObj *)this)->ToString(pp);
-        default:           return string("(") + BaseTypeName(ti.t) + ")";
+        case V_STRUCT:     return ((ElemObj *)ro)->ToString(pp);
+        default:           return string("(") + BaseTypeName(ro->ti.t) + ")";
     }
 }
 
 string Value::ToString(ValueType vtype, PrintPrefs &pp) const
 {
-    if (IsRefNil(vtype)) return ref_ ? ref_->ToString(pp) : "nil";
+    if (IsRefNil(vtype)) return ref_ ? RefToString(ref_, pp) : "nil";
 
     switch (vtype)
     {

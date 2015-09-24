@@ -91,7 +91,7 @@ void AddBuiltins()
 {
     STARTDECL(print) (Value &a)
     {
-        Output(OUTPUT_PROGRAM, a.ref()->ToString(g_vm->programprintprefs).c_str());
+        Output(OUTPUT_PROGRAM, RefToString(a.ref(), g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A1",
@@ -101,7 +101,7 @@ void AddBuiltins()
     {
         if (a.ref() && &a.ref()->ti == &g_vm->GetTypeInfo(TYPE_ELEM_STRING)) return a;
 
-        auto str = g_vm->NewString(a.ref()->ToString(g_vm->programprintprefs));
+        auto str = g_vm->NewString(RefToString(a.ref(), g_vm->programprintprefs));
         a.DECRT();
         return str;
     }
@@ -218,7 +218,7 @@ void AddBuiltins()
 
     STARTDECL(equal) (Value &a, Value &b)
     {
-        bool eq = a.refnil()->Equal(b.refnil(), true);
+        bool eq = RefEqual(a.refnil(), b.refnil(), true);
         a.DECRTNIL();
         b.DECRTNIL();
         return Value(eq);

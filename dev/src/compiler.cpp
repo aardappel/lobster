@@ -190,7 +190,7 @@ Value CompileRun(Value &source, bool stringiscode)
     {
         vector<uchar> bytecode;
         Compile(fn.c_str(), stringiscode ? source.sval()->str() : nullptr, bytecode);
-        RunBytecode(fn.c_str(), bytecode.data());
+        RunBytecode(fn.c_str(), std::move(bytecode));
         auto ret = g_vm->evalret;
         delete g_vm;
         assert(!vmpool && !g_vm);

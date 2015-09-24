@@ -157,6 +157,7 @@ struct VMBase
     virtual string StructName(const TypeInfo &ti) = 0;
     virtual const TypeInfo &GetVarTypeInfo(int varidx) = 0;
     virtual void CoVarCleanup(CoRoutine *co) = 0;
+    virtual void EvalProgram() = 0;
     virtual void OneMoreFrame() = 0;
 };
 
@@ -198,10 +199,11 @@ struct RefObj : DynAlloc
     string CycleStr() const { return "_" + to_string(-refc) + "_"; }
 
     void DECDELETE(bool deref);
-    bool Equal(const RefObj *o, bool structural) const;
-    string ToString(PrintPrefs &pp) const;
     void Mark();
 };
+
+extern bool RefEqual(const RefObj *a, const RefObj *b, bool structural);
+extern string RefToString(const RefObj *ro, PrintPrefs &pp);
 
 struct BoxedInt : RefObj
 {

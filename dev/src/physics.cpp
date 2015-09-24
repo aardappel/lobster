@@ -285,43 +285,37 @@ void AddPhysicsOps()
 	STARTDECL(ph_render) ()
 	{
 		CheckPhysics();
-		auto oldobject2view = object2view;
+		auto oldobject2view = otransforms.object2view;
 		auto oldcolor = curcolor;
 		for (b2Body *body = world->GetBodyList(); body; body = body->GetNext())
 		{
 			auto pos = body->GetPosition();
 			auto mat = translation(float3(pos.x, pos.y, 0)) * rotationZ(body->GetAngle());
-			object2view = oldobject2view * mat;
+            otransforms.object2view = oldobject2view * mat;
 
 			for (b2Fixture *fixture = body->GetFixtureList(); fixture; fixture = fixture->GetNext())
 			{
 				auto shapetype = fixture->GetType();
 				auto r = (Renderable *)fixture->GetUserData();
 				curcolor = r->color;
-				r->Set();
 				switch (shapetype)
 				{
 					case b2Shape::e_polygon:
 					{
-						auto polyshape = (b2PolygonShape *)fixture->GetShape();
-						RenderArray(PRIM_FAN, polyshape->m_count, "pn", sizeof(b2Vec2), polyshape->m_vertices, nullptr, 
+                        r->Set();
+                        auto polyshape = (b2PolygonShape *)fixture->GetShape();
+						RenderArraySlow(PRIM_FAN, polyshape->m_count, polyshape->m_count, "pn", sizeof(b2Vec2), polyshape->m_vertices, nullptr, 
 							                                              sizeof(b2Vec2), polyshape->m_normals);
 						break;
 					}
 					case b2Shape::e_circle:
 					{
-						// FIXME: instead maybe cache a circle verts somewhere.. though should maxverts be changable?
-						const int maxverts = 20;
-						struct PhVert { float2 pos; float2 norm; } phverts[maxverts];
-						auto polyshape = (b2CircleShape *)fixture->GetShape();
-						float step = PI * 2 / maxverts;
-						for (int i = 0; i < maxverts; i++)
-						{
-							auto pos = float2(sinf(i * step + 1), cosf(i * step + 1));
-							phverts[i].pos = pos * polyshape->m_radius + B2ToFloat2(polyshape->m_p);
-							phverts[i].norm = pos;
-						}
-						RenderArray(PRIM_FAN, maxverts, "pn", sizeof(PhVert), phverts, nullptr);
+                        r->sh->SetTextures(r->textures);  // FIXME
+                        auto polyshape = (b2CircleShape *)fixture->GetShape();
+                        Transform2D(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]()
+                        {
+                            RenderCircle(r->sh, PRIM_FAN, 20, polyshape->m_radius);
+                        });
 						break;
 					}
 					case b2Shape::e_edge:
@@ -332,7 +326,7 @@ void AddPhysicsOps()
 				}
 			}
 		}
-		object2view = oldobject2view;
+        otransforms.object2view = oldobject2view;
 		curcolor = oldcolor;
 		return Value();
 	}
@@ -347,10 +341,10 @@ void AddPhysicsOps()
         //Output(OUTPUT_DEBUG, "rendering particles: %d", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
-        auto scale = fabs(object2view[0].x());
+        auto scale = fabs(otransforms.object2view[0].x());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval());
         particlematerial->Set();
-        RenderArray(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, nullptr, sizeof(byte4), colors);
+        RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(), particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, nullptr, sizeof(byte4), colors);
         return Value();
     }
     ENDDECL1(ph_renderparticles, "scale", "F", "",

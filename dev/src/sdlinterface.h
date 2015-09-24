@@ -55,3 +55,7 @@ extern bool ScreenShot(const char *filename, const int2 &screensize);
 extern void SDLTestMode();
 
 extern int SDLScreenDPI(int screen);
+
+#ifdef __EMSCRIPTEN__
+#define USE_MAIN_LOOP_CALLBACK
+#endif

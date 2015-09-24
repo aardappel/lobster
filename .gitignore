@@ -41,6 +41,8 @@
 /dev/emscripten/*.js
 /dev/emscripten/*.html
 /dev/emscripten/*.data
+/dev/emscripten/*.map
+/dev/emscripten/*.mem
 
 /dev/CMakeCache.txt
 /dev/CMakeFiles/

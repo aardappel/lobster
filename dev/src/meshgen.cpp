@@ -91,7 +91,7 @@ struct ImplicitFunction
 };
 
 static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
-static float3 axesf[] = { float3(1, 0, 0), float3(0, 1, 0), float3(0, 0, 1) };
+static float3 axesf[] = { float3_x, float3_y, float3_z };
 
 // use curiously recurring template pattern to allow implicit function to be inlined in rasterization loop
 

@@ -173,16 +173,6 @@ struct Node : Unary
         return n;
     }
     
-    int Count()
-    {
-        if (!this) return 0;
-        int count = 1;
-        if (a()) count += a()->Count();
-        if (b()) count += b()->Count();
-        if (c()) count += c()->Count();
-        return count;
-    }
-
     // Used to see if a var is worth outputting in a stacktrace.
     bool IsConstInit()
     {
@@ -218,6 +208,16 @@ struct Node : Unary
         return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
     }
 };
+
+inline int CountNodes(const Node *n)
+{
+    if (!n) return 0;
+    int count = 1;
+    if (n->a()) count += CountNodes(n->a());
+    if (n->b()) count += CountNodes(n->b());
+    if (n->c()) count += CountNodes(n->c());
+    return count;
+}
 
 inline void DumpType(const Node &n, string &ns)
 {

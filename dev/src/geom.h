@@ -78,8 +78,8 @@ template<typename T, int N> class vec
     void set(int i, const T a) { c[i] = a; }
     vec &add(int i, const T a) { c[i] += a; return *this; }
 
-    vec(const vec<T,3> &v, T e) { assert(N == 4); DOVEC(c[i] = i < 3 ? v[i] : e); }
-    vec(const vec<T,2> &v, T e) { assert(N == 3); DOVEC(c[i] = i < 2 ? v[i] : e); }
+    vec(const vec<T,3> &v, T e) { DOVEC(c[i] = i < 3 ? v[i] : e); }
+    vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
 
     vec<T,3> xyz() const { assert(N == 4); return vec<T,3>(c); }
     vec<T,2> xy()  const { assert(N == 3); return vec<T,2>(c); }
@@ -180,8 +180,13 @@ typedef vec<uchar,4> byte4;
 
 const float4 float4_0 = float4(0.0f);
 const float4 float4_1 = float4(1.0f);
+
 const float3 float3_0 = float3(0.0f);
 const float3 float3_1 = float3(1.0f);
+const float3 float3_x = float3(1, 0, 0);
+const float3 float3_y = float3(0, 1, 0);
+const float3 float3_z = float3(0, 0, 1);
+
 const float2 float2_0 = float2(0.0f);
 const float2 float2_1 = float2(1.0f);
 
@@ -396,7 +401,7 @@ inline float3x4 operator*(const float3x4 &m, const float3x4 &o)     // FIXME: cl
         (o[0]*m[2].x() + o[1]*m[2].y() + o[2]*m[2].z()).add(3, m[2].w()));
 }
 
-inline float4x4 translation(const float3& t)
+inline float4x4 translation(const float3 &t)
 {
     return float4x4(
         float4(1, 0, 0, 0),
@@ -441,9 +446,42 @@ inline float4x4 rotationZ(const float2 &v)
         float4( 0,     0,     0, 1));
 }
 
+inline float4x4 rotation3D(const float3 &v)
+{
+    return float4x4(
+        float4( 0,     -v.z(),  v.y(), 0),
+        float4( v.z(),  0,     -v.x(), 0),
+        float4(-v.y(),  v.x(),  0,     0),
+        float4( 0,      0,      0,     1));
+}
+
 inline float4x4 rotationX(float a) { return rotationX(float2(cosf(a), sinf(a))); }
 inline float4x4 rotationY(float a) { return rotationY(float2(cosf(a), sinf(a))); }
 inline float4x4 rotationZ(float a) { return rotationZ(float2(cosf(a), sinf(a))); }
+
+inline quat quatfromtwovectors(const float3 &u, const float3 &v)
+{
+    float norm_u_norm_v = sqrt(dot(u, u) * dot(v, v));
+    float real_part = norm_u_norm_v + dot(u, v);
+    float3 w;
+
+    if (real_part < 1.e-6f * norm_u_norm_v)
+    {
+        // If u and v are exactly opposite, rotate 180 degrees
+        // around an arbitrary orthogonal axis. Axis normalisation
+        // can happen later, when we normalise the quaternion.
+        real_part = 0.0f;
+        w = fabsf(u.x()) > fabsf(u.z()) ? float3(-u.y(), u.x(), 0.f)
+                                        : float3(0.f,   -u.z(), u.y());
+    }
+    else
+    {
+        // Otherwise, build quaternion the standard way.
+        w = cross(u, v);
+    }
+
+    return normalize(quat(w, real_part));
+}
 
 inline float3x3 rotation(const quat &q)
 {
@@ -465,6 +503,14 @@ inline float3x4 rotationscaletrans(const quat &q, const float3 &s, const float3 
     return float3x4(float4(m[0], t.x()),
                     float4(m[1], t.y()),
                     float4(m[2], t.z()));
+}
+
+inline float4x4 float3x3to4x4(const float3x3 &m)
+{
+    return float4x4(float4(m[0], 0),
+                    float4(m[1], 0),
+                    float4(m[2], 0),
+                    float4(0, 0, 0, 1));
 }
 
 inline float3x4 invertortho(const float3x4 &o) // FIXME: this is not generic, here because of IQM

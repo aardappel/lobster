@@ -188,9 +188,6 @@ Things to change if you want to release your app in the Google Play store:
 
 ### Emscripten / JavaScript
 
-There’s preliminary support to build this, but I haven’t seen it run succesfully
-yet.
-
 You need the [emscripten
 toolchain](<https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html>)
 installed, as well as GNU make (on windows that means installing
@@ -206,8 +203,8 @@ you placed in `assets`).
 
 You can now run it with `emrun --browser firefox lobster.html --verbose` or
 similar. Note that just loading up the html in your browser directly may not
-work because of security restrictions. Alternatively place the files on a
-webserver, and load from there.
+work because of security restrictions. Alternatively place all the generated
+files on a webserver, and load from there.
 
 Distributing Lobster programs.
 ------------------------------
