@@ -214,32 +214,41 @@
   Currently uses twice as much memory and stores scalars as int64_t & double, but the rest of the vm
   still reads them as int/float. This at least works, but is not optimal (compiler has to generate
   conversion instructions, and the extra precision goes unused). We could:
-  - Be lazy: Wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently
-  - Could make the rest of the vm also read the native type instead of int/float.
-    That will require a lot of casting/type changes thruout
-    the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
-    choose wether they think they need 64bit on a per project basis.
-    Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
-    -> don't want to have to maintain 2 versions of all the libs we use, so first switch to build all from source.
-    - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
-  - Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
-    pointers in 32bit).
-    This would generally be good, since using less memory in 64bit could be quite a speedup.
-    Problem is, there's no super elegant way of doing this.
-    - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
-      no support for this.
-      Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
-      and then use that incrementally. Means we must have our own large block allocator however.
-      On Windows VirtualAlloc can do the same.
-    - could track all allocations in the allocator, but means also tracking "large" allocs individually,
-      finding these in the table will slow things down, and means code can't run with the base allocator anymore.
-    - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
-      in it and towards it are offsets, this can work.
-      Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
-      as iOS whenever it goes full 64bit.
-      Also means we can't use the base allocator anymore.
-    - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
-      though for small objects.
+  NOTE: decision so far is 2) + 3)
+  1) Be lazy: Wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently.
+     Even in 64bit mode things like vertices are still floats, so mixed 32/64 will always make sense.
+  2) Could make the rest of the vm also read the native type instead of int/float.
+     That will require a lot of casting/type changes thruout.
+     Actually, can do this gradually, by providing additional accessors, and then do it where it makes sense.
+     the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
+     choose wether they think they need 64bit on a per project basis.
+     Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
+     - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
+  3) Could allow types of different sizes at least in vectors and structs where they take the most space, and
+     leave them uniform on the stack.
+     Start with vectors as that's easiest and most impactful.
+     Have a way to specify bit-width for both scalar types.
+     default would always be machine size everywhere.
+     If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
+     for struct as a whole if all elements are scalar.
+  4) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+     pointers in 32bit).
+     This would generally be good, since using less memory in 64bit could be quite a speedup.
+     Problem is, there's no super elegant way of doing this.
+     - Ideal would be if the OS would allow use to make all allocations come from a 32bit range, but there's
+       no support for this.
+       Instead, can use mmap() with MAP_NORESERVE on Linux/OSX/iOS/Android to just get a large chunk of memory,
+       and then use that incrementally. Means we must have our own large block allocator however.
+       On Windows VirtualAlloc can do the same.
+     - could track all allocations in the allocator, but means also tracking "large" allocs individually,
+       finding these in the table will slow things down, and means code can't run with the base allocator anymore.
+     - simpler, could require the allocator to re-alloc when it needs to grow. If we can guarantee all pointers
+       in it and towards it are offsets, this can work.
+       Problem is that these large reallocs can fail, i.e. might not work well for memory contrained systems such
+       as iOS whenever it goes full 64bit.
+       Also means we can't use the base allocator anymore.
+     - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
+       though for small objects.
 
 - add support for http://vallentinsource.com/opengl/debug-output
 
@@ -253,8 +262,6 @@
 
 - should redo gui.lobster to take all args in virtual float coords, not some in float font relative coords and some
   in pixels.
-
-- try Lobster with Emscripten now that SDL has built-in Emscripten support: https://hg.libsdl.org/SDL/rev/8900afb78a19
 
 - should consider allowing local functions to be declared with "public", which would expose them to closures called
   from within their parent function. This would allow the whole definition of gui.lobster to be inside gui_start.
