@@ -44,6 +44,7 @@ struct TypeChecker
 
     void ComputeStructVectorType(Struct *struc)
     {
+        // FIXME: this is broken. It would a scalar field to become any without boxing.
         if (struc->fields.size())
         {
             TypeRef vectortype = struc->fields.v[0].type;

@@ -216,9 +216,7 @@ def run_test_cases():
         goapaction {
             "eat",
             def(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
-            def(s):
-                if s[bread] > 0: s[bread]-- else: s[pizza]--
-                s[hungry]--
+            def(s): if s[bread] > 0: s[bread]-- else: s[pizza]--; s[hungry]--
         }
     ]
 

@@ -34,6 +34,7 @@ struct LoadedFile : Line
     bool cont;
     string sattr;
 
+    vector<pair<char, char>> bracketstack;
     vector<pair<int, bool>> indentstack;
     //char prevlineindenttype;
     const char *prevline, *prevlinetok;
@@ -209,11 +210,20 @@ struct Lex : LoadedFile
         }
     }
 
+    void PopBracket(char c)
+    {
+        if (bracketstack.empty())
+            Error(string("unmatched \'") + c + "\'");
+        if (bracketstack.back().second != c)
+            Error(string("mismatched \'") + c + "\', expected \'" + bracketstack.back().second + "\'");
+        bracketstack.pop_back();
+    }
+
     TType NextToken()
     {
         errorline = line;
         islf = false;
-        int c;
+        char c;
         for (;;) switch (tokenstart = p, c = *p++)
         {
             case '\0':
@@ -228,18 +238,20 @@ struct Lex : LoadedFile
                 }
                 else
                 {
+                    if (bracketstack.size())
+                        Error(string("unmatched \'") + bracketstack.back().first + "\' at end of file");
                     return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
 
-            case '\n': line++; islf = true; linestart = p; break;
+            case '\n': line++; islf = bracketstack.empty(); linestart = p; break;
             case ' ': case '\t': case '\r': case '\f': break;
             
-            case '(': return T_LEFTPAREN;
-            case ')': return T_RIGHTPAREN;
-            case '[': return T_LEFTBRACKET;
-            case ']': return T_RIGHTBRACKET;
-            case '{': return T_LEFTCURLY;
-            case '}': return T_RIGHTCURLY;
+            case '(': bracketstack.push_back(make_pair(c, ')')); return T_LEFTPAREN;
+            case '[': bracketstack.push_back(make_pair(c, ']')); return T_LEFTBRACKET;
+            case '{': bracketstack.push_back(make_pair(c, '}')); return T_LEFTCURLY;
+            case ')': PopBracket(c); return T_RIGHTPAREN;
+            case ']': PopBracket(c); return T_RIGHTBRACKET;
+            case '}': PopBracket(c); return T_RIGHTCURLY;
 
             case ';': return T_SEMICOLON;
 
@@ -351,7 +363,7 @@ struct Lex : LoadedFile
 
                 if (c == '.') return T_DOT;
 
-                auto tok = c <= ' ' ? "[ascii " + to_string(c) + "]" : string("") + (char)c;
+                auto tok = c <= ' ' ? "[ascii " + to_string(c) + "]" : string("") + c;
                 Error("illegal token: " + tok);
                 return T_NONE;
             }

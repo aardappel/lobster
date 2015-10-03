@@ -1,3 +1,6 @@
+- add this for nodes and VM types:
+  http://blogs.msdn.com/b/vcblog/archive/2015/09/28/debug-visualizers-in-visual-c-2015.aspx
+
 - syntax overhaul.
   think of ways in which we can improve the syntax to be less jarring to people coming from either
   Python (which it already kinda looks like), or C-style languages.
@@ -8,18 +11,24 @@
     One thing that could be better is default const.
     Informal poll on fb: 12 like :=, but 15 like var/const a lot better. Almost noone likes Python's way.
     Could allow both, like Go.
+  - use && or "and" instead of &
+    almost all mainstream languages use &&, except python/ruby/lua that use "and". Noone uses just &
+	Even Python use & for bitwise.
+	Might as well add &|^~ operators at that time too. And <<>>?
   - http://rigaux.org/language-study/syntax-across-languages.html
 - add more to http://rosettacode.org/wiki/Category:Lobster
   once there's no more syntax changes.
 
 - typechecker
+  - ComputeStructVectorType is broken. It would a scalar field to become any without boxing.
+    This is not an issue as long as we ensure that if its [any] its values do not get used, but its easy to leak.
 
   - multimethods
     - multimethods are very restricted right now, having to declare an explicit return type or having to match
       return types.
-	  - always specialize the full multi-method, such that it needs less types to be specified?
+      - always specialize the full multi-method, such that it needs less types to be specified?
     - the implementation is rather clumsy, and needing to dispatch on more than 1 arg so far has remained unused.
-	  - revert them to single dispatch?
+      - revert them to single dispatch?
     - need to disallow nilable types for args that are being dispatched on, since if the runtime value
       is ever nil, we can't choose a method. That, or have a way to have a method that works on nil alone.
 
@@ -193,23 +202,6 @@
 - add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function
   correctly at high fps.
 
-- this can't be indented as you'd want (maybe turn indentation off between matching brackets?):
-
-	vertex_neighbors :== [
-		[ [ [ 0, -1 ]:xy, 4 ],
-		  [ [ 0, -1 ]:xy, 3 ],
-		  [ [ 1, -1 ]:xy, 4 ],
-		  [ nil, 0 ],
-		  [ [ -1, 0 ]:xy, 2 ],
-		  [ [ -1, -1 ]:xy, 3 ] ],
-		  [ [ [ 0, -1 ]:xy, 4 ],
-		  [ [ 0, -1 ]:xy, 3 ],
-		  [ nil, 0 ],
-		  [ nil, 0 ],
-		  [ nil, 0 ],
-		  [ [ -1, 0 ]:xy, 3 ] ]
-	]
-
 - A better solution for 64bit builds.
   Currently uses twice as much memory and stores scalars as int64_t & double, but the rest of the vm
   still reads them as int/float. This at least works, but is not optimal (compiler has to generate
@@ -227,10 +219,45 @@
   3) Could allow types of different sizes at least in vectors and structs where they take the most space, and
      leave them uniform on the stack.
      Start with vectors as that's easiest and most impactful.
-     Have a way to specify bit-width for both scalar types.
+     Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
      default would always be machine size everywhere.
      If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
      for struct as a whole if all elements are scalar.
+     How to implement?
+     - hard to do just dynamically, since there's no "read an int of n bytes" instruction in C++
+       on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
+       that preserves the sign (>> is an ASR):
+       value = ((value << 32) >> 32)
+       to convert 32 to 64.
+       though note: http://blog.regehr.org/archives/738
+       On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
+       a non-problem.
+       It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
+       Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
+       Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
+       a conditional to check for floats.
+       Maybe allow bit sizes only for ints?
+       If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
+       would only be for 16/32 bit int vectors.
+       Hmm, that's a mess, better (also) go with:
+     - could do it statically by generating different load/store instructions, but that doesn't work for all the
+       code that accesses vectors generically (which would have to go thru a dynamic version above, or we simply
+       have to forbid such typed vectors to be used with generic functions, making them less useful).
+       Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
+	   can still allow them to work on these vectors.
+       Also means it has to be taken into account properly thruout the typesystem, i.e. an [int8] value cannot be
+       passed to an [int] variable etc. That means that rather than allow them to be a size specifier to the int/float
+       types, they have to be their own types.
+     3b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
+         and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
+         data structures.
+         Also cool for serialization.
+         And helps more generally combat the heavy nature of non-inline objects.
+         Then again, would be even better if structs could be separated from vectors more so we can add these
+         features (variable data sizes, inline structs, trailing vectors) to regular structs.
+		 Hmm, trailing vectors means reallocation, so not good to have in regular structs.
+         Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
+         Only valid for structs that look like a vector.
   4) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
      pointers in 32bit).
      This would generally be good, since using less memory in 64bit could be quite a speedup.
@@ -273,28 +300,23 @@
 
 - supposedly on OS X error window OK button is not clickable?
 
-- this gives a confusing error message if 2 and 3 line up (but not otherwise), because there's no indent:
-                    if(1 &
-                        2):
-                        3
-
 - docs:
   - not clear
-  	- value ... people used to doing v.x +=
-  	- else: if:
-  	- that you can make your own control structs in your own code: examples focus a bit too much on for/if
-  	- the single graphics matrix stack
-  	- more on debugging
+    - value ... people used to doing v.x +=
+    - else: if:
+    - that you can make your own control structs in your own code: examples focus a bit too much on for/if
+    - the single graphics matrix stack
+    - more on debugging
   - tutorials
-  	- absolute basics for those that don't know programming yet
+    - absolute basics for those that don't know programming yet
   - shader system
   - performance - do benchmarking
   - gui system
   - better language cheat sheet ?
   - web page:
-  	- link to reference and docs more for things that are not explained (e.g. ::)
-  	- more images to cool samples written in lobster, to entice what the language can do.
-  	first maybe add more/better examples
+    - link to reference and docs more for things that are not explained (e.g. ::)
+    - more images to cool samples written in lobster, to entice what the language can do.
+    first maybe add more/better examples
 
 - examples:
   - more/better examples..
@@ -323,11 +345,11 @@
     in some cases
   - work on optimizing the language a bit
     - inlining to undo all the small function value calling -> giving correct scope for inlined variables still
-	  requires a stack frame of sorts?
+      requires a stack frame of sorts?
     - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build
-	  easily
+      easily
       a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++
-	  optimizer can inline/simplify a lot of the simpler ops
+      optimizer can inline/simplify a lot of the simpler ops
       also see this for nice debugging: http://yosefk.com/blog/c-as-an-intermediate-language.html
       If we use C, then we can link in libtcc to compile on the fly (on all but iOS) for a medium speedboost.
 
@@ -432,7 +454,7 @@
 - per function real cpu profiling would not be too expensive
   just a single qpc per call -> no, 2, needs stack
     no, can do it stackless if we change the "definedfunction" saving to keeping a current one and saving the previous,
-	that way on each function entry/exit we know who to attribute the current elapsed time to
+    that way on each function entry/exit we know who to attribute the current elapsed time to
   gotta be able to display hierarchically blocks under named functions
   alternatively, could just do a ++ every instruction to count instructions... not quite as accurate an indication of
   performance, and harder to display compactly since you'd have to display it next to the lines in source

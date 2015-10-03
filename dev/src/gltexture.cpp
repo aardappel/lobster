@@ -18,6 +18,7 @@
 #include "glincludes.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#pragma warning(disable: 4457)
 #include "stb/stb_image.h"
 
 
