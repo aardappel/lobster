@@ -872,12 +872,13 @@ struct TypeChecker
     TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode)
     {
         auto ftype = fval.exptype;
+        auto nargs = Parser::CountList(args);
         if (ftype->IsFunction())
         {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping closures.
             auto sf = ftype->sf;
 
-            if (Parser::CountList(args) < sf->parent->nargs())
+            if ((int)nargs < sf->parent->nargs())
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and optimizer will remove them).
 
@@ -889,7 +890,7 @@ struct TypeChecker
         else if (ftype->t == V_YIELD)
         {
             // V_YIELD must have perculated up from a coroutine call.
-            if (Parser::CountList(args) > 1)
+            if (nargs > 1)
                 TypeError("coroutine yield call must at most one argument", fval);
 
             for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope)
@@ -1549,8 +1550,11 @@ struct TypeChecker
                     // Multiple overloads available, figure out which we want to call.
                     auto cnf = nf->first;
                     nf = nullptr;
+                    auto nargs = Parser::CountList(n.ncall_args());
                     for (; cnf; cnf = cnf->overloads)
                     {
+                        if (cnf->args.v.size() != nargs) continue;
+
                         Node *list = n.ncall_args();
                         for (auto &arg : cnf->args.v)
                         {

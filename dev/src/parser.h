@@ -489,9 +489,9 @@ struct Parser
         return nullptr;
     }
 
-    static int CountList(Node *n)
+    static size_t CountList(Node *n)
     {
-        int c = 0;
+        size_t c = 0;
         for (; n; n = n->tail()) c++;
         return c;
     }
@@ -1060,12 +1060,17 @@ struct Parser
                     }
                     else
                     {
-                        // FIXME: here we can look if "ids" exists in this scope, and substitute it
+                        auto nargs = CountList(args);
+                        for (auto ol = nf->overloads; ol; ol = ol->overloads)
+                        {
+                            if (ol->args.v.size() == nargs) goto argsok;  // Typechecker will deal with it.
+                        }
                         Error("missing arg to builtin function: " + idname); 
                     }
                 }
                 ai = &(*ai)->tail();
             }
+            argsok:
 
             // Special formats for these functions, for better type checking and performance
             // TODO: worth deleting the garbage list nodes this creates?

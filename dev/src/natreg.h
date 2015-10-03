@@ -342,8 +342,8 @@ struct NativeRegistry
         auto existing = nfunlookup[nf->name];
         if (existing)
         {
-            if (nf->args.v.size() != existing->args.v.size() ||
-                nf->retvals.v.size() != existing->retvals.v.size() ||
+            if (/*nf->args.v.size() != existing->args.v.size() ||
+                nf->retvals.v.size() != existing->retvals.v.size() || */
                 nf->subsystemid != existing->subsystemid ||
                 nf->ncm != existing->ncm)
             {

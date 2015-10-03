@@ -743,6 +743,15 @@ void AddBuiltins()
         x.DECRT(); y.DECRT(); \
         return Value(v);
 
+    #define VECSCALAROP(type, init, fun) \
+        type v = init; \
+        for (int i = 0; i < x.eval()->Len(); i++) { \
+            auto f = x.eval()->At(i); \
+            fun; \
+        } \
+        x.DECRT(); \
+        return Value(v);
+
     STARTDECL(min) (Value &x, Value &y) { return Value(min(x.ival(), y.ival())); } ENDDECL2(min, "x,y", "II", "I",
         "smallest of 2 integers.");
     STARTDECL(min) (Value &x, Value &y) { return Value(min(x.fval(), y.fval())); } ENDDECL2(min, "x,y", "FF", "F",
@@ -751,6 +760,10 @@ void AddBuiltins()
         "smallest components of 2 int vectors");
     STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,fval) } ENDDECL2(min, "x,y", "F]F]", "F]:/",
         "smallest components of 2 float vectors");
+    STARTDECL(min) (Value &x) { VECSCALAROP(int, INT_MAX, v = min(v, f.ival())) } ENDDECL1(min, "v", "I]", "I",
+        "smallest component of a int vector. returns smallest possible int for empty vector");
+    STARTDECL(min) (Value &x) { VECSCALAROP(float, FLT_MAX, v = min(v, f.fval())) } ENDDECL1(min, "v", "F]", "F",
+        "smallest component of a float vector. returns smallest possible float for empty vector");
 
     STARTDECL(max) (Value &x, Value &y) { return Value(max(x.ival(), y.ival())); } ENDDECL2(max, "x,y", "II", "I",
         "largest of 2 integers.");
@@ -760,6 +773,10 @@ void AddBuiltins()
         "largest components of 2 int vectors");
     STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,fval) } ENDDECL2(max, "x,y", "F]F]", "F]:/",
         "largest components of 2 float vectors");
+    STARTDECL(max) (Value &x) { VECSCALAROP(int, INT_MIN, v = max(v, f.ival())) } ENDDECL1(max, "v", "I]", "I",
+        "largest component of a int vector. returns largest possible int for empty vector");
+    STARTDECL(max) (Value &x) { VECSCALAROP(float, FLT_MIN, v = max(v, f.fval())) } ENDDECL1(max, "v", "F]", "F",
+        "largest component of a float vector. returns largest possible float for empty vector");
 
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t)
     {
