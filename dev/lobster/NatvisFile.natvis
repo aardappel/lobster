@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="lobster::Node">
+    <DisplayString>Node: {type} -> {exptype.type->t}</DisplayString>
+    <Expand>
+      <Item Name="exptype">exptype</Item>
+      <Item Name="a">a_</Item>
+      <Item Name="b">b_</Item>
+      <Item Name="c">((Ternary *)this)->c_</Item>
+      <Item Condition="type==T_IDENT" Name="id">((IdRef *)this)->ident_</Item>
+    </Expand>
+  </Type>
+  <Type Name="lobster::TypeRef">
+    <DisplayString>TypeRef: {type->t}</DisplayString>
+    <Expand>
+      <Item Condition="type->t==V_VECTOR||type->t==V_NIL||type->t==V_VAR" Name="sub">type->sub</Item>
+      <Item Condition="type->t==V_STRUCT" Name="struc">type->struc</Item>
+      <Item Condition="type->t==V_FUNCTION||type->t==V_COROUTINE" Name="sf">type->sf</Item>
+    </Expand>
+  </Type>
+  <Type Name="lobster::Type">
+    <DisplayString>Type: {t}</DisplayString>
+    <Expand>
+      <Item Condition="t==V_STRUCT" Name="struc">struc</Item>
+      <Item Condition="t==V_FUNCTION||t==V_COROUTINE" Name="sf">sf</Item>
+      <Item Condition="t==V_VECTOR||t==V_NIL||t==V_VAR" Name="sub">sub</Item>
+    </Expand>
+  </Type>
+  <Type Name="lobster::SubFunction">
+    <DisplayString>SubFunction: {parent->name}</DisplayString>
+  </Type>
+  <Type Name="lobster::Value">
+    <DisplayString Condition="type==V_NIL">Value: nil</DisplayString>
+    <DisplayString Condition="type==V_INT">Value: {ival_}</DisplayString>
+    <DisplayString Condition="type==V_FLOAT">Value: {fval_}f</DisplayString>
+    <DisplayString Condition="type==V_STRING">Value: {(char *)(sval_ + 1),na}</DisplayString>
+    <DisplayString Condition="type==V_VECTOR">Value: {type,en} len {vval_->len} subtype {vval_->ti.subt}</DisplayString>
+    <DisplayString Condition="type==V_STRUCT">Value: {type,en} len {stval_->ti.len} structidx {stval_->ti.structidx}</DisplayString>
+    <DisplayString>Value: {type}"</DisplayString>
+    <Expand>
+      <Item Condition="type==V_STRING" Name="sval">sval_</Item>
+      <Item Condition="type==V_STRUCT" Name="stval">stval_</Item>
+      <Item Condition="type==V_VECTOR" Name="vval">vval_</Item>
+      <Item Condition="type==V_COROUTINE" Name="cval">cval_</Item>
+      <Item Condition="type==V_BOXEDFLOAT" Name="bfval">bfval_</Item>
+      <Item Condition="type==V_BOXEDINT" Name="bival">bival_</Item>
+      <Item Name="ref">ref_</Item>
+    </Expand>
+  </Type>
+  <Type Name="lobster::LString">
+    <DisplayString>LString: {(char *)(this + 1)}</DisplayString>
+  </Type>
+  <Type Name="lobster::LStruct">
+    <DisplayString>LStruct: len {ti.len}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>ti.len</Size>
+        <ValuePointer>(Value *)(this + 1)</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="lobster::LVector">
+    <DisplayString>LVector: len {len}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>len</Size>
+        <ValuePointer>v</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="lobster::TypeInfo">
+    <DisplayString>TypeInfo: {t,en}</DisplayString>
+    <Expand>
+      <Item Condition="t==V_VECTOR||t==V_NIL" Name="subt_ti">(TypeInfo *)(g_vm->typetable+subt)</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

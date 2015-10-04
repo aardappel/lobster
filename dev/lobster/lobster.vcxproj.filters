@@ -1103,4 +1103,7 @@
       <Filter>common</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="NatvisFile.natvis" />
+  </ItemGroup>
 </Project>
