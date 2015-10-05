@@ -8,7 +8,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 

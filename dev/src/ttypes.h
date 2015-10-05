@@ -31,8 +31,8 @@ namespace lobster
     T0(T_MULTEQ, "*=", 2) \
     T0(T_DIVEQ, "/=", 2) \
     T0(T_MODEQ, "%=", 2) \
-    T0(T_AND, "&", 2) \
-    T0(T_OR, "|", 2) \
+    T0(T_AND, "and", 2) \
+    T0(T_OR, "or", 2) \
     T0(T_NOT, "~", 1) \
     T0(T_INCR, "++", 1) \
     T0(T_DECR, "--", 1) \
@@ -42,6 +42,12 @@ namespace lobster
     T0(T_GT, ">", 2) \
     T0(T_LTEQ, "<=", 2) \
     T0(T_GTEQ, ">=", 2) \
+    T0(T_BINAND, "&", 2) \
+    T0(T_BINOR, "|", 2) \
+    T0(T_XOR, "^", 2) \
+    T0(T_NEG, "~", 1) \
+    T0(T_ASL, "<<", 2) \
+    T0(T_ASR, ">>", 2) \
     T0(T_ASSIGN, "=", 2) \
     T0(T_DYNASSIGN, "<-", 2) \
     T0(T_LOGASSIGN, "?=", 2) \
@@ -122,6 +128,8 @@ namespace lobster
     T0(T_PROGRAM, "program", 0) \
     T0(T_PRIVATE, "private", 0) \
     T0(T_ENUM, "enum", 0) \
+    T0(T_VAR, "var", 0) \
+    T0(T_CONST, "const", 0) \
     T0(T_CALL_NOPARENS, "callnp", 0)
 
 enum TType

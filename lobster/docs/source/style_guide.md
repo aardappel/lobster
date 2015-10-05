@@ -1,9 +1,9 @@
-% Lobster Style Guide
+---
+title: Lobster Style Guide
+---
 
 This document defines the style that ideally should be used for all lobster
 programs.
-
-
 
 Why this document?
 ------------------
@@ -19,13 +19,9 @@ the style set forth in this document will be helpful. Most code you will find
 will use this style, so trying to enforce another style may be tricky.
 
 Python, being the language closest in syntax to Lobster, has a well defined
-[style guide][1], and so do other languages, like Java. C/C++ in particular has
-failed to establish a clear style, which is a constant source of confusion and
-disagreement.
-
-[1]: <http://www.python.org/dev/peps/pep-0008/>
-
-
+[style guide](<http://www.python.org/dev/peps/pep-0008/>), and so do other
+languages, like Java. C/C++ in particular has failed to establish a clear style,
+which is a constant source of confusion and disagreement.
 
 Default Style
 -------------
@@ -36,7 +32,7 @@ example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def qsort(xs, lt):
-    if(xs.length <= 1):
+    if xs.length <= 1:
         xs
     else:
         pivot := xs[0]
@@ -44,8 +40,6 @@ def qsort(xs, lt):
         append(append(qsort(tail.filter():  lt(_, pivot), lt), [ pivot ]),
                       qsort(tail.filter(): !lt(_, pivot), lt))
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 
 ### Indentation: Tabs vs Spaces
 
@@ -58,21 +52,11 @@ different methods of displaying code can make tab based code work
 inconsistently, which is more of a problem for a language with significant
 indentation like Lobster and Python.
 
-
-
 ### Whitespace
 
-Typical use of whitespace is around any binary operator (in the example `<=`
-`:=`), after a `,` and inside `[]` when used as vector constructor or definition
+Typical use of whitespace is around any binary operator (in the example `<=
+:=`), after a `,` and inside `[]` when used as vector constructor or definition
 (but not when used for indexing, and not inside `()`).
-
-One particular location where whitespace is not desirable is between a function
-name and the following `(`. Since in Lobster `if` and `for` etc. are mere
-functions rather than builtin control structures, they follow this same style.
-If you are used to C-style languages, you might be tempted to write a space
-after `if`, which is not desirable.
-
-
 
 ### Alignment
 
@@ -80,8 +64,6 @@ As seen in the `append` call, you are encouraged to make similar code line up
 using extra spaces. Because the first part of the `append` call ended in a `,`
 the second line is not counted as an indentation in the same way as the
 indentation blocks above it.
-
-
 
 ### Identifiers
 
@@ -91,12 +73,19 @@ where that becomes unreadable using an `_` to separate them is ok. Do not uses
 `_` to start or end regular identifiers (see the reference manual about
 anonymously declared variables).
 
-
-
 ### Indentation vs one-liners
 
-Prefer indentation over one liners unless the block is very short, e.g. `if(a <
-0): 10 else: a - 5` is better in-line than indented. Avoid the use of `;`
+Prefer indentation over one liners unless the block is very short, e.g. `if a <
+0: 10 else: a - 5` is better in-line than indented. Avoid the use of `;`
 generally, if you need multiple expressions in a block, indentation is superior.
 
+### Prefer the shortest form
 
+Whenever short forms are available for a particular syntax, prefer to use that,
+unless readability would suffer.
+
+### Syntax alternatives
+
+You should prefer `and or not` over `&& || !` where possible. The latter are
+there to ease the transition for those coming from C style languages, but the
+former are the language default.

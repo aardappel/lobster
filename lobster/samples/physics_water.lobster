@@ -21,7 +21,7 @@ for 5: ph_dynamic(ph_createbox([ 0.0, 10.0 + _ * 2.0 ], [ 1.0, 1.0 ]), true)
 
 ph_createparticlecircle([ 0.0, 5.0 ], 7.0, color_light_red, ph_colormixingparticle)
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle

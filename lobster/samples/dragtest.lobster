@@ -3,7 +3,7 @@
 include "vec.lobster"
 include "color.lobster"
 
-fatal(gl_window("event animation & mouse drag test", 1024, 1024))
+fatal(gl_window("event animation and mouse drag test", 1024, 1024))
 
 lines := []
 
@@ -33,7 +33,7 @@ while gl_frame():
     // just for demonstration purposes, gl_lasttime makes it easy to animate clicks etc.
     // we show little animated circles on each mouse down or up
     for(2) down:
-        gl_color(down & color_green | color_blue)
+        gl_color(down and color_green or color_blue)
         clicktime := gl_time() - gl_lasttime("mouse1", down)
         if  clicktime < 1:
             gl_translate float(gl_lastpos("mouse1", down)):

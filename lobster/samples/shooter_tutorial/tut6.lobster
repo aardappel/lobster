@@ -4,7 +4,7 @@ include "color.lobster"
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
-check(gl_setfontname("data/fonts/US101/US101.TTF") & gl_setfontsize(32), "can\'t load font!")
+check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
 
 worldsize :== 20.0
 
@@ -36,7 +36,7 @@ def renderpointytriangle(pos, dir):
         gl_rotate_z dir:
             gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 

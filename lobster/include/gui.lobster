@@ -63,8 +63,8 @@ private def advance(v:xy_i, f):
         f()
     else:
         cursize =
-            if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y & spacing) }
-            else:         xy { cursize.x + v.x + (cursize.x & spacing), max(cursize.y, v.y) }
+            if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y and spacing) }
+            else:         xy { cursize.x + v.x + (cursize.x and spacing), max(cursize.y, v.y) }
 
 private def max_space(v):
     if vertical: xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
@@ -205,7 +205,7 @@ private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
         if interactive:
             hit := gl_hit(float(size), 0)
-            if hit | (focus_id == id & gl_touchscreen()):
+            if hit or (focus_id == id and gl_touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
                 gl_color hover_color:
                     gl_rect(float(size))
@@ -214,7 +214,7 @@ private def button(id, f, do, dofocus, focusf):
                         gl_color(select_color):
                             gl_rect(float(size))
                     up := gl_wentup("mouse1")
-                    if dofocus & focus_id != id & (up | !gl_touchscreen()):
+                    if dofocus and focus_id != id and (up or !gl_touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
@@ -302,7 +302,7 @@ if program_name() == "gui.lobster": // run example
                     gui_color(color_red):
                         //gui_text(unicode2string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
                         gui_text("ON")
-                gui_text(focused & "C" | "E")
+                gui_text(focused and "C" or "E")
                 gui_background(color_blue, false):
                     gui_margin(xy_1i * 4):
                         gui_text("D")

@@ -133,7 +133,7 @@ while gl_frame():
 
     rndseed(0)
     gl_blend 0:
-        gl_setshader(aspoints & "phong_particle" | "phong")
+        gl_setshader(aspoints and "phong_particle" or "phong")
 
         if spaceship:
             gl_translate(xy_1 * 10):

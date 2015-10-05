@@ -10,6 +10,16 @@ include "astar.lobster"
 def run_test_cases():
     //trace_bytecode(1)
 
+    assert 1 & 3 == 1
+    assert 1 | 3 == 3
+    assert 1 ^ 2 == 3
+    assert 1 << 1 == 2
+    assert 2 >> 1 == 1
+    assert ~1 == -2
+
+    var vardef = 1      // shorter form: vardef := 1
+    const constdef = 1  // shorter form: constdef :== 1
+
     value testa { a:int }
     value testb : testa { b:int }
 
@@ -91,17 +101,17 @@ def run_test_cases():
     assert equal(sorted1, sorted3)
 
     found, findex := sorted1.binarysearch(1)
-    assert found == 2 & findex == 0
+    assert found == 2 and findex == 0
     found, findex = sorted1.binarysearch(9)
-    assert found == 2 & findex == 8
+    assert found == 2 and findex == 8
     found, findex = sorted1.binarysearch(3)
-    assert found == 2 & findex == 2
+    assert found == 2 and findex == 2
 
     assert 44 == sum(testvector)
     assert 264 == sum(testvector.map(): _ * _)
 
 
-    def factorial(n): 1 > n | factorial(n - 1) * n
+    def factorial(n): 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
     assert 16 == ((def(f): f(4)) (def(x): x * x))
@@ -122,7 +132,7 @@ def run_test_cases():
         assert "a" == (g(): "a")
 
     def compile_time_if(x):
-        if x is int | x is float:
+        if x is int or x is float:
             // The division is a type error if x is a string.
             // But it compiles anyway since this if is compile-time constant,
             // and the type checker ignores this branch.
@@ -186,7 +196,7 @@ def run_test_cases():
 
     path :=
         astar_2dgrid(false, worldsize, world[startpos], world[endpos], def(): world[_]) (n, nn::pathingcell):
-            (c == '#' & -1) | (c == '/' & 5) | 1
+            (c == '#' and -1) or (c == '/' and 5) or 1
 
     assert path.length == 27
 
@@ -194,9 +204,9 @@ def run_test_cases():
         n.path = true
 
     astar_result := map(world) row: fold(row, "") accum, n:
-        accum + ((n.path   & "P") |
-                 (n.closed & "X") |
-                 (n.open   & "O") |
+        accum + ((n.path   and "P") or
+                 (n.closed and "X") or
+                 (n.open   and "O") or
                  unicode2string([ n.c ]))
 
     assert equal(astar_result, expected_result)
@@ -215,7 +225,7 @@ def run_test_cases():
         goapaction { "bake bread", def(s): s[flour]  >= 1, def(s): s[flour]--;    s[bread]++ },
         goapaction {
             "eat",
-            def(s): (s[bread] > 0 | s[pizza] > 0) & s[hungry] > 0,
+            def(s): (s[bread] > 0 or s[pizza] > 0) and s[hungry] > 0,
             def(s): if s[bread] > 0: s[bread]-- else: s[pizza]--; s[hungry]--
         }
     ]
@@ -228,7 +238,7 @@ def run_test_cases():
 
     assert goap_path.length == 9
     goap_path.pop()
-    assert equal(goap_path.map(): _.delta?.name | "",
+    assert equal(goap_path.map(): _.delta?.name or "",
         ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"])
 
 
@@ -250,7 +260,7 @@ def run_test_cases():
         co2 := coroutine myfor(4)   // out of a simple function
 
         def interleave(co1, co2, f):   // test using 2 at once
-            while co1.active | co2.active:
+            while co1.active or co2.active:
                 if co1.active:
                     f(co1.returnvalue)
                     co1.resume
@@ -301,21 +311,21 @@ def run_test_cases():
 
     // multiple return values
     bb, cc, dd, ee := 1     // all set to 1
-    assert bb == 1 & bb == cc & dd == ee
+    assert bb == 1 and bb == cc and dd == ee
     ff, gg := 2, 3
-    assert ff == 2 & gg == 3
+    assert ff == 2 and gg == 3
     ff, gg = 8, 9
-    assert ff == 8 & gg == 9
+    assert ff == 8 and gg == 9
     def multiret():
         if sin(0): return 4, 5
         return 6, 7
     hh, ii := multiret()
-    assert hh == 6 & ii == 7
+    assert hh == 6 and ii == 7
     hh = multiret()
     assert hh == 6
     def multiretpassthru(): return multiret()  // doesn't work without the return!
     jj, kk := multiretpassthru()
-    assert jj == 6 & kk == 7
+    assert jj == 6 and kk == 7
 
     // non-local named returns: limited form of exception handling
     def nlr1():

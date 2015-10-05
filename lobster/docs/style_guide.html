@@ -23,7 +23,7 @@
 <h2 id="default-style">Default Style</h2>
 <p>Unless noted explicitly in this document, the style to follow is that of the samples in the Lobster documentation and distribution. Let's look at a typical example:</p>
 <pre><code>def qsort(xs, lt):
-    if(xs.length &lt;= 1):
+    if xs.length &lt;= 1:
         xs
     else:
         pivot := xs[0]
@@ -34,13 +34,16 @@
 <p>By default, you should use 4 spaces to indent (same as Python). The compiler will allow you to use tabs (discouraged), and in some cases even a mix (highly discouraged).</p>
 <p>In theory, tabs are superior for editing, but in practice, different editors and different methods of displaying code can make tab based code work inconsistently, which is more of a problem for a language with significant indentation like Lobster and Python.</p>
 <h3 id="whitespace">Whitespace</h3>
-<p>Typical use of whitespace is around any binary operator (in the example <code>&lt;=</code> <code>:=</code>), after a <code>,</code> and inside <code>[]</code> when used as vector constructor or definition (but not when used for indexing, and not inside <code>()</code>).</p>
-<p>One particular location where whitespace is not desirable is between a function name and the following <code>(</code>. Since in Lobster <code>if</code> and <code>for</code> etc. are mere functions rather than builtin control structures, they follow this same style. If you are used to C-style languages, you might be tempted to write a space after <code>if</code>, which is not desirable.</p>
+<p>Typical use of whitespace is around any binary operator (in the example <code>&lt;= :=</code>), after a <code>,</code> and inside <code>[]</code> when used as vector constructor or definition (but not when used for indexing, and not inside <code>()</code>).</p>
 <h3 id="alignment">Alignment</h3>
 <p>As seen in the <code>append</code> call, you are encouraged to make similar code line up using extra spaces. Because the first part of the <code>append</code> call ended in a <code>,</code> the second line is not counted as an indentation in the same way as the indentation blocks above it.</p>
 <h3 id="identifiers">Identifiers</h3>
 <p>Lobster uses lowercase for almost all indentifiers. If an identifier consists of multiple words, they are preferably just written consecutively, though for cases where that becomes unreadable using an <code>_</code> to separate them is ok. Do not uses <code>_</code> to start or end regular identifiers (see the reference manual about anonymously declared variables).</p>
 <h3 id="indentation-vs-one-liners">Indentation vs one-liners</h3>
-<p>Prefer indentation over one liners unless the block is very short, e.g. <code>if(a &lt; 0): 10 else: a - 5</code> is better in-line than indented. Avoid the use of <code>;</code> generally, if you need multiple expressions in a block, indentation is superior.</p>
+<p>Prefer indentation over one liners unless the block is very short, e.g. <code>if a &lt; 0: 10 else: a - 5</code> is better in-line than indented. Avoid the use of <code>;</code> generally, if you need multiple expressions in a block, indentation is superior.</p>
+<h3 id="prefer-the-shortest-form">Prefer the shortest form</h3>
+<p>Whenever short forms are available for a particular syntax, prefer to use that, unless readability would suffer.</p>
+<h3 id="syntax-alternatives">Syntax alternatives</h3>
+<p>You should prefer <code>and or not</code> over <code>&amp;&amp; || !</code> where possible. The latter are there to ease the transition for those coming from C style languages, but the former are the language default.</p>
 </body>
 </html>

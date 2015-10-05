@@ -16,7 +16,7 @@ Lexical definition
     and `*/` or single line comments starting with `//`
 
 -   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
-    != < > <= >= <- = := :== ! ? ?. . ->`
+    != < > <= >= <- = := :== ! ? ?. . -> && || and or not ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
     `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g. `\xFF` is the
@@ -60,7 +60,8 @@ topexp = `include` string\_constant \| [ `private` ] ( `def` ident functiondef
 
 struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
-vardef = list( ident ) ( `:=` \| `:==` \| `<-` ) list( opexp )
+vardef = ( `var` \| `const` ) ident `=` opexp \| list( ident ) ( `:=` \| `:==`
+\| `<-` ) list( opexp )
 
 enumdef = `enum` [ `+` \| `*` ] list( ident [ `=` integer\_constant ] )
 
@@ -83,9 +84,10 @@ expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
 exp = opexp [ ( `=` \| `+=` \| `-=` \| `*=` \| `/=` \| `%=` ) exp ]
 
 opexp = unary ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
-`<=` \|\| `==` \| `!=` \|\| `&` \| `|` ) unary
+`<=` \|\| `==` \| `!=` \|\| `&` \| `|` \| `&&` \| `||` \| `and` \| `or` \| \^ \|
+`<<` \| `>>`) unary
 
-unary = ( `-` \| `!` \| `++` \| `--` ) unary \| deref
+unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `?.` ident \| `->` ident
 \| `++` \| `--` \| call \| `is` type ]
@@ -94,7 +96,7 @@ factor = constant \| `(` exp `)` \| constructor \| `def` functiondef \|
 `coroutine` ident call \| ident [ call ]
 
 constructor = `[` [ indlist( exp ) ] `]` [ `::` type ] \| ident `{` [ indlist(
-exp ) ]  `}`
+exp ) ] `}`
 
 constant = numeric\_constant \| string\_constant \| character\_constant \| `nil`
 \| `true` \| `false`
@@ -189,7 +191,7 @@ former.
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-v := xyz { 1, 0, 0 }
+var v = xyz { 1, 0, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The type ensures that the right amount of values are given, and they can now be
@@ -222,28 +224,37 @@ v.x = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All variables must already have been declared, or this will result in an error.
-Instead, the `:=` operator defines and assigns in one go, and requires the
-variable to not have been declared yet in this scope:
+Instead, `var` defines and assigns in one go, and requires the variable to not
+have been declared yet in this scope. `const` does the same for variables which
+cannot be modified afterwards:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+var a = 1
+const a = 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`:=` and `:==` are shorthand for `var =` and `const =` respectively:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 a := 1
 b :== 1
-enum x = 1, y, z
-c <- 1
-d, e := 1, 2
-f, g := 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `:==` operator does the same as `:=`, but now forces the variable to never
-be assigned to again in any of the following statements (makes it a constant).
-Think of the `==` in `:==` as saying that the two will be kept equal as opposed
-to merely assigned once.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enum x = 1, y, z
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `enum` is merely a shorthand for `:==`, e.g. the above example is equivalent to
 `x :== 1; y :== 2; z :== 3`. If you leave out the `= 1`, the sequence will start
 at `0` instead. You may specify `+` or `*` after `enum` to indicate wether you
 want the sequence to continue using addition (default, by 1) or multiplication
 (by 2), the latter useful for flags.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+c <- 1
+d, e := 1, 2
+f, g := 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `<-` is another assignment operator, that re-defines an existing variable using
 *lexically bounded dynamic scope* instead of the default lexical scope (see
@@ -312,6 +323,8 @@ The increment and decrement operators `++` and `--` work either as prefix
 (increment, return new value) and as postfix (increment, return old value) on
 variables and vector index.
 
+Bitwise operators `& | ^ ~ << >>` behave like they do in any other language.
+
 ### Comparison and Logical Operators
 
 The next lower level of precedence are the comparison operators `< > <= >=`
@@ -322,10 +335,11 @@ in particular for `vector` and `coroutine` compare *by reference*, i.e they will
 give true only if both sides refer to the same object (*object identity*). To
 test for *structural identity* instead, use the built-in function `equal`.
 
-The logical operators `|` and `&` (or, and) are the next lower level of
-precedence, and both short-circuit: `a | b` returns `a` if it is not a false
-value (one of `0 0.0 nil`), and `b` otherwise. `a & b` returns `a` if it is a
-false value, `b` otherwise. The unary operator `!` turns false values into `1`
+The logical operators `and` and `or` (which may also be written `&&` and `||`
+respectively) are the next lower level of precedence, and both short-circuit: `a
+or b` returns `a` if it is not a false value (one of `0 0.0 nil`), and `b`
+otherwise. `a and b` returns `a` if it is a false value, `b` otherwise. The
+unary operator `not` (may also be written as `!`) turns false values into `1`
 and others into `0`.
 
 The `is` operator returns true if the left hand side value is of the type

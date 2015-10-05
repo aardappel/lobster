@@ -64,7 +64,7 @@ def radiance(r:Ray, depth):
     def intersectray(r:Ray):
         for(spheres) s, i:
             d := s.intersect(r)
-            if d != 0 & d<t:
+            if d != 0 and d<t:
                 t = d
                 id = i
         return id >= 0
@@ -74,7 +74,7 @@ def radiance(r:Ray, depth):
     n := normalize(x-obj.p)
     nl := if n.dot(r.d)<0: n else: n*-1
     f := obj.c
-    p := if f.x>f.y & f.x>f.z: f.x else: if f.y>f.z: f.y else: f.z // max refl
+    p := if f.x>f.y and f.x>f.z: f.x else: if f.y>f.z: f.y else: f.z // max refl
     if ++depth>5: if rndfloat()<p: f = f*(1/p) else: return obj.e  //R.R.
     if obj.refl == DIFF:                  // Ideal DIFFUSE reflection
         r1 := 360*rndfloat()

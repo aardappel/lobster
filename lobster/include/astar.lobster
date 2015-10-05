@@ -22,14 +22,14 @@ def astar_clear(n::astar_node):
 
 def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
-    n := startnode | nil
-    while n & !endcondition(n):
+    n := startnode or nil
+    while n and !endcondition(n):
         openlist.removeobj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
             if !nn.closed:
                 G := n.G + cost
-                if ((!nn.open & openlist.push(nn)) | G < nn.G):
+                if ((!nn.open and openlist.push(nn)) or G < nn.G):
                     nn.open = true
                     nn.delta = delta
                     nn.previous = n
@@ -38,7 +38,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
                     nn.F = G + nn.H
         n = nil
         for(openlist) c:
-            if !n | c.F < n.F | (c.F == n.F & c.H < n.H):
+            if !n or c.F < n.F or (c.F == n.F and c.H < n.H):
                 n = c
     path := []
     while n:
@@ -108,6 +108,6 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
                 nstate := n.state.copy
                 act.effect(nstate)
                 i := existingnodes.find(): equal(_.state, nstate)
-                nn := i >= 0 & existingnodes[i] | goap_node { nstate }
+                nn := i >= 0 and existingnodes[i] or goap_node { nstate }
                 f(act, 1, nn)
     heuristic: heuristic(_)

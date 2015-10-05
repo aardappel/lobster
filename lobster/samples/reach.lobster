@@ -24,8 +24,8 @@ while gl_frame():
 
     ball += ballvel
 
-    if(ball.x > 1 - ballradius | ball.x < ballradius): ballvel *= xy { -1.0,  1.0 }
-    if(ball.y > 1 - ballradius | ball.y < ballradius): ballvel *= xy {  1.0, -1.0 }
+    if(ball.x > 1 - ballradius or ball.x < ballradius): ballvel *= xy { -1.0,  1.0 }
+    if(ball.y > 1 - ballradius or ball.y < ballradius): ballvel *= xy {  1.0, -1.0 }
 
     gl_translate ball:
         gl_color(color_dark_grey)
@@ -37,7 +37,7 @@ while gl_frame():
     seglength := 0.1
 
     for(segs) seg, i:
-        in := i & target | ball
+        in := i and target or ball
         seg.dir = normalize(in - seg.pos) * seglength
         target = in - seg.dir
 

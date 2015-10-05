@@ -5,7 +5,7 @@ dirs := [ xy_xi, xy_yi ]
 colorconstant := 1
 
 def square(pos, size, depth):
-    if ((rnd(4) | depth < 2) & size.x > 8 & size.y > 8):
+    if ((rnd(4) or depth < 2) and size.x > 8 and size.y > 8):
         //dir := rnd(2)
         //dir := size.y > size.x
         //split := rnd(size[dir] - 7) + 4
@@ -18,7 +18,7 @@ def square(pos, size, depth):
             if split >= size.x:
                 split -= size.x
                 dir = 1
-            if split >= 3 & split <= size[dir] - 3:
+            if split >= 3 and split <= size[dir] - 3:
                 notfound = false
         for(2) i:
             width := if i: size[dir] - split else: split

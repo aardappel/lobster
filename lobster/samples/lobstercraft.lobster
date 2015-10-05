@@ -14,7 +14,7 @@ inventory := []::int // blocks we've mined
 camera_position = xyz_1 * lssize / 2
 camera_yaw = 45
 
-def inside(v): all(v > 0) & all(v < lssize - 1)    // keep the outer blocks empty for simplicity
+def inside(v): all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
 cells := map(lssize) z:
             map(lssize) y:
@@ -22,7 +22,7 @@ cells := map(lssize) z:
                     v := xyz { x, y, z }
                     h := simplex(float(v) / lssize + 11, 6, 1, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
-                    solid := h / 1.5 > div(z, lssize) - 0.5 & inside(v)
+                    solid := h / 1.5 > div(z, lssize) - 0.5 and inside(v)
                     // pick material with noise too:
                     if solid: solid = int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
                     solid
@@ -32,7 +32,7 @@ nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
-nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: gl_newpoly(map(s) c: map(3) i: float(and(c, shl(1, 2 - i)) != 0))
+nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: gl_newpoly(map(s) c: map(3) i: float(c & (1 << (2 - i)) != 0))
 
 while gl_frame():
     if gl_wentdown("escape"): return
@@ -58,12 +58,12 @@ while gl_frame():
     camvec := vecfromyawpitch(camera_yaw, camera_pitch, 1, 0)
     for(100) i:  // look at most 10 cubes ahead
         pos := int(camera_position + camvec * (i / 10.0))
-        if inside(pos) & !first_solid:
+        if inside(pos) and !first_solid:
             if cells[pos]: first_solid = pos
             else: last_empty = pos
-    // LMB places blocks & RMB removes blocks
-    if gl_wentdown("mouse1") & last_empty & inventory.length: cells[last_empty] = inventory.pop()
-    if gl_wentdown("mouse3") & first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
+    // LMB places blocks and RMB removes blocks
+    if gl_wentdown("mouse1") and last_empty and inventory.length: cells[last_empty] = inventory.pop()
+    if gl_wentdown("mouse3") and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
     gl_setshader("color")
     gl_blend(1)
     wh := 11.7  // let's add some water!

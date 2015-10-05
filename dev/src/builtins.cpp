@@ -569,19 +569,6 @@ void AddBuiltins()
     STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval())); } ENDDECL1(sqrt, "f", "F", "F", 
         "square root");
 
-    STARTDECL(and) (Value &a, Value &b) { return Value(a.ival() & b.ival());  } ENDDECL2(and, "a,b", "II", "I",
-        "bitwise and");
-    STARTDECL(or)  (Value &a, Value &b) { return Value(a.ival() | b.ival());  } ENDDECL2(or,  "a,b", "II", "I", 
-        "bitwise or");
-    STARTDECL(xor) (Value &a, Value &b) { return Value(a.ival() ^ b.ival());  } ENDDECL2(xor, "a,b", "II", "I",
-        "bitwise exclusive or");
-    STARTDECL(not) (Value &a)           { return Value(~a.ival());            } ENDDECL1(not, "a",   "I",  "I",
-        "bitwise negation");
-    STARTDECL(shl) (Value &a, Value &b) { return Value(a.ival() << b.ival()); } ENDDECL2(shl, "a,b", "II", "I", 
-        "bitwise shift left");
-    STARTDECL(shr) (Value &a, Value &b) { return Value(a.ival() >> b.ival()); } ENDDECL2(shr, "a,b", "II", "I", 
-        "bitwise shift right");
-
     #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor(len) : nullptr, a.eval()->ti)
         
     #define VECTOROPT(op, typeinfo) \

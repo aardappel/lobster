@@ -247,9 +247,8 @@ struct Parser
                 int cur = incremental ? 0 : 1;
                 for (;;)
                 {
-                    auto idname = lex.sattr;
-                    Expect(T_IDENT);
-                    auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
+                    ExpectId();
+                    auto id = st.LookupDef(lastid, lex.errorline, lex, false, true);
                     id->constant = true;
                     if (isprivate) id->isprivate = true;
                     if (IsNext(T_ASSIGN))
@@ -262,6 +261,19 @@ struct Parser
                     lex.Next();
                     if (incremental) cur++; else cur *= 2;
                 }
+                break;
+            }
+
+            case T_VAR:
+            case T_CONST:
+            {
+                auto isconst = lex.token == T_CONST;
+                lex.Next();
+                ExpectId();
+                Expect(T_ASSIGN);
+                auto d = ParseSingleVarDecl(isprivate, isconst, false, false);
+                AddTail(tail, d);
+                break;
                 break;
             }
 
@@ -289,17 +301,15 @@ struct Parser
     Node *ParseTypeDecl(bool isvalue, bool isprivate)
     {
         lex.Next();
-        auto sname = lex.sattr;
-        Expect(T_IDENT);
+        auto sname = ExpectId();
 
-        Struct *struc = &st.StructDecl(sname, lex);
+        Struct *struc = &st.StructDecl(lastid, lex);
 
         Struct *sup = nullptr;
         auto parse_sup = [&] ()
         {
-            auto sname = lex.sattr;
-            Expect(T_IDENT);
-            sup = &st.StructUse(sname, lex);
+            ExpectId();
+            sup = &st.StructUse(lastid, lex);
         };
 
         vector<pair<TypeRef, Node *>> spectypes;
@@ -410,9 +420,8 @@ struct Parser
             Expect(T_LEFTCURLY);
             ParseVector([this, &fieldid, &struc] ()
             { 
-                string fname = lex.sattr;
-                Expect(T_IDENT);
-                auto &sfield = st.FieldDecl(fname);
+                ExpectId();
+                auto &sfield = st.FieldDecl(lastid);
                 TypeRef type;
                 int fieldref = -1;
                 if (IsNext(T_COLON))
@@ -440,9 +449,22 @@ struct Parser
         return (Node *)new Unary(lex, T_STRUCTDEF, new StRef(lex, struc));
     }
 
-    Node *ParseVarDecl(bool isprivate)
+    Node *ParseSingleVarDecl(bool isprivate, bool constant, bool dynscope, bool logvar)
     {
         auto idname = lastid;
+        auto e = ParseExp(T_DEF);
+        auto id = dynscope
+            ? st.LookupDynScopeRedef(idname, lex)
+            : st.LookupDef(idname, lex.errorline, lex, false, true);
+        if (dynscope)  id->Assign(lex);
+        if (constant)  id->constant = true;
+        if (isprivate) id->isprivate = true;
+        if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
+        return (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, nullptr);
+    }
+
+    Node *ParseVarDecl(bool isprivate)
+    {
         bool dynscope = lex.token == T_DYNASSIGN;
         bool constant = lex.token == T_DEFCONST;
         bool logvar = lex.token == T_LOGASSIGN;
@@ -450,17 +472,10 @@ struct Parser
         if (lex.token == T_DEF || dynscope || constant || logvar)
         {
             lex.Next();
-            auto e = ParseExp(T_DEF);
-            auto id = dynscope
-                        ? st.LookupDynScopeRedef(idname, lex)
-                        : st.LookupDef(idname, lex.errorline, lex, false, true);
-            if (dynscope)  id->Assign(lex);
-            if (constant)  id->constant = true;
-            if (isprivate) id->isprivate = true;
-            if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
-            return (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, nullptr);
+            return ParseSingleVarDecl(isprivate, constant, dynscope, logvar);
         }
 
+        auto idname = lastid;
         bool withtype = lex.token == T_TYPEIN;
         if (lex.token == T_COLON || withtype)
         {
@@ -506,8 +521,7 @@ struct Parser
 
     Node *ParseNamedFunctionDefinition(bool isprivate = false)
     {
-        string idname = lex.sattr;
-        Expect(T_IDENT);
+        string idname = ExpectId();
 
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
@@ -532,10 +546,9 @@ struct Parser
         {
             for (;;)
             {
-                string a = lex.sattr;
-                Expect(T_IDENT);
+                ExpectId();
                 nargs++;
-                auto id = st.LookupDef(a, lex.errorline, lex, false, false);
+                auto id = st.LookupDef(lastid, lex.errorline, lex, false, false);
                 TypeRef type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype))
@@ -980,12 +993,14 @@ struct Parser
         return e;
     }
 
-    Node *ParseOpExp(uint level = 4)
+    Node *ParseOpExp(uint level = 6)
     {
         static TType ops[][4] =
         {
             { T_MULT, T_DIV, T_MOD, T_NONE },
             { T_PLUS, T_MINUS, T_NONE, T_NONE },
+            { T_ASL, T_ASR, T_NONE, T_NONE },
+            { T_BINAND, T_BINOR, T_XOR, T_NONE },
             { T_LT, T_GT, T_LTEQ, T_GTEQ },
             { T_EQ, T_NEQ, T_NONE, T_NONE },
             { T_AND, T_OR, T_NONE, T_NONE },
@@ -1010,6 +1025,7 @@ struct Parser
         {
             case T_MINUS: 
             case T_NOT:
+            case T_NEG:
             case T_INCR:
             case T_DECR:
             {
@@ -1167,8 +1183,7 @@ struct Parser
             {
                 auto op = lex.token;
                 lex.Next();
-                string idname = lex.sattr;
-                Expect(T_IDENT);
+                auto idname = ExpectId();
                 if (op == T_CODOT)
                 {
                     // Here we just look up ANY var with this name, only in the typechecker can we know if it exists
@@ -1298,8 +1313,7 @@ struct Parser
             case T_COROUTINE:
             {
                 lex.Next();
-                string idname = lex.sattr;
-                Expect(T_IDENT);
+                string idname = ExpectId();
                 return (Node *)new Unary(lex, T_COROUTINE,
                                          ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true));
             }
@@ -1454,6 +1468,13 @@ struct Parser
         lastid = lex.sattr;
         lex.Next();
         return true;
+    }
+
+    const string &ExpectId()
+    {
+        lastid = lex.sattr;
+        Expect(T_IDENT);
+        return lastid;
     }
 
     bool Either(TType t1, TType t2)           { return lex.token == t1 || lex.token == t2; }

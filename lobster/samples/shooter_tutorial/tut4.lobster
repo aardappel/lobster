@@ -16,7 +16,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 

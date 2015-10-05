@@ -26,7 +26,7 @@
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     gl_clear([ 0.0, 0.0, 0.0, 1.0 ])</code></pre>
 <p><code>gl_window</code> is our graphics initialization routine, and is the first thing we need to do before we can access any other graphics functionality. We specify a title and a size, though note that these are merely suggestions: on desktop platforms the user may resize/maximize our window, and on mobile platforms they just determine landscape vs portrait orientation, whereas the resolution is determined by the device itself.</p>
 <p><code>gl_window</code> returns an error string if something goes wrong (and things can go wrong, behind the scenes this call boots up an OpenGL engine including compiling shaders and what not), and <code>fatal</code> is a utility function defined in <code>std.lobster</code> that we're including that will quit the program and show the error string if available.</p>
@@ -46,7 +46,7 @@ fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 worldsize := 20.0
 
-while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
     gl_translate(float(gl_windowsize()) / 2.0)
@@ -75,7 +75,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -124,7 +124,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while gl_frame() &amp; !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -220,7 +220,7 @@ lastenemy := gl_time()</code></pre>
 </figure>
 <p>Now we have some loose ends to wrap up to call this thing a &quot;game&quot;: we have to keep track of the player health and score (and highscore), and give him a start / game over screen in-between sessions.</p>
 <p>To do that, we will have to be able to render text. First step towards doing that is loading up a font, right after <code>gl_window</code>:</p>
-<pre><code>check(gl_setfontname(&quot;data/fonts/US101/US101.TTF&quot;) &amp; gl_setfontsize(32), &quot;can\&#39;t load font!&quot;)</code></pre>
+<pre><code>check(gl_setfontname(&quot;data/fonts/US101/US101.TTF&quot;) and gl_setfontsize(32), &quot;can\&#39;t load font!&quot;)</code></pre>
 <p><code>check</code> is another useful function much like fatal, that ensures the first argument is true, and if not, exits the program with the given message.</p>
 <p>To implement the functionality, we start with some new variables:</p>
 <pre><code>playerhealth := 0.0

@@ -1,4 +1,4 @@
-// Useful constants & functions to use with the built-in physics functionality (ph_)
+// Useful constants and functions to use with the built-in physics functionality (ph_)
 
 enum * ph_waterparticle = 0,
        ph_zombieparticle = 2,

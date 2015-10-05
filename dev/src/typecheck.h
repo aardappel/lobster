@@ -1493,6 +1493,20 @@ struct TypeChecker
                 type = type_int;
                 break;
 
+            case T_BINAND:
+            case T_BINOR:
+            case T_XOR:
+            case T_ASL:
+            case T_ASR:
+                SubTypeLR(type_int, n);
+                type = type_int;
+                break;
+
+            case T_NEG:
+                SubType(n.child(), type_int, "negated value", n);
+                type = type_int;
+                break;
+
             case T_POSTDECR:
             case T_POSTINCR:
             case T_DECR:  

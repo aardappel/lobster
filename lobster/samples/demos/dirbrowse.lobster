@@ -19,7 +19,7 @@ def fullpath(n::node):
 def scan(n:node):
     entries = []
     names, sizes := scan_folder(n.fullpath, 1024)
-    if names & sizes:
+    if names and sizes:
         for(names) name, i:
             entries.push(node { name, sizes[i], nil, [] })
     insertion_sort(entries) a, b:
@@ -85,9 +85,9 @@ def render_sizes():
             gl_translate([ 0.0, fontsize ])
 
 fatal(gl_window("dirbrowsing", 1024, 768))
-check(gl_setfontname("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") & gl_setfontsize(fontsize), "can\'t load font!")
+check(gl_setfontname("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_setfontsize(fontsize), "can\'t load font!")
 
-while(gl_frame() & !gl_wentdown("escape")):
+while(gl_frame() and !gl_wentdown("escape")):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:

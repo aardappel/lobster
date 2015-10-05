@@ -8,8 +8,8 @@ followed by an E and then the end of the sequence:
 
     r := match_with("AAAAAAABCDCDBCDBBBE"):
         match_any(): match('A')
-        print(matched(): match_any(): match('B') | match_sequence("CD"))
-        match('E') & match_end()
+        print(matched(): match_any(): match('B') or match_sequence("CD"))
+        match('E') and match_end()
 
     assert(r)
 
@@ -34,7 +34,7 @@ private def start(ito, itv, f):
 private def grow(it): false
 private def grow(it:coroutine):
     x := it.returnvalue
-    it.active & it.resume & iterv.push(x)
+    it.active and it.resume and iterv.push(x)
 
 private def isend(it:coroutine): !it.active
 private def isend(it): i == iterv.length
@@ -50,13 +50,13 @@ def match_with(it:coroutine, f): start(it, [], f)
 
 def match_elem(f):     // match single element
     assert(iterv)           // if this fails, you're calling match() outside of a match_with() block
-    (i < iterv.length | grow(iterable)) & f(iterv[i]) & ++i
+    (i < iterv.length or grow(iterable)) and f(iterv[i]) and ++i
 
 def match_end(): isend(iterable)
 
 def guard(f):          // backtrack to the start if f fails
     prev := i
-    f() | ((i = prev) & false)
+    f() or ((i = prev) and false)
 
 def matched(f):    // return the sub-sequence matched by f as vector or string
     prev := i

@@ -1178,6 +1178,14 @@ struct VM : VMBase
                     break;
                 }
 
+                #define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); break; }
+                case IL_BINAND: BITOP(&);
+                case IL_BINOR:  BITOP(|);
+                case IL_XOR:    BITOP(^);
+                case IL_ASL:    BITOP(<<);
+                case IL_ASR:    BITOP(>>);
+                case IL_NEG:    { auto a = POP(); PUSH(~a.ival()); break; }
+
                 case IL_I2F:
                 {
                     Value a = POP();

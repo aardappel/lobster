@@ -583,6 +583,32 @@ struct CodeGen
                 }
                 break;
 
+            case T_BINAND:
+            case T_BINOR:
+            case T_XOR:
+            case T_ASL:
+            case T_ASR:
+                Gen(n->left(), retval);
+                Gen(n->right(), retval);
+                if (retval)
+                {
+                    TakeTemp(2);
+                    switch (n->type)
+                    {
+                        case T_BINAND: Emit(IL_BINAND); break;
+                        case T_BINOR:  Emit(IL_BINOR); break;
+                        case T_XOR:    Emit(IL_XOR); break;
+                        case T_ASL:    Emit(IL_ASL); break;
+                        case T_ASR:    Emit(IL_ASR); break;
+                    }
+                }
+                break;
+
+            case T_NEG:
+                Gen(n->child(), retval, true);
+                if (retval) Emit(IL_NEG);
+                break;
+
             case T_I2F:
                 Gen(n->child(), retval, true);
                 if (retval) Emit(IL_I2F);

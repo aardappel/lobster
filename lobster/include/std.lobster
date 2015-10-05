@@ -101,7 +101,7 @@ def insertion_sort(xs, lt):
     for(xs) key, i:
         if i:
             j := i
-            while j > 0 & lt(key, xs[j - 1]):
+            while j > 0 and lt(key, xs[j - 1]):
                 xs[j--] = xs[j - 1]
             xs[j] = key
 

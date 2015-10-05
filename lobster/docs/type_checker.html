@@ -48,11 +48,11 @@ if a:         // guaranteed not be nil inside block
 <li><p>If the variable cannot be initialized where it must be defined, see if there's a &quot;empty&quot; version of the reference type that the variable can be initialized with, such as an empty vector or string, or a struct filled with zeroes, that has a benign effect when used.</p></li>
 <li><p>If you must start with <code>nil</code>, try to have the if-check for it as early on as possible, so all code deeper down the call chain can benefit from a non-nil type that doesn't need to be checked.</p></li>
 </ul>
-<p>The flow based analysis generally understand logical expressions, so if you write <code>if !a:</code> instead, you'll be able to access <code>a</code> in the <code>else</code> block, but not in the <code>then</code> block. Similarly, if you write <code>if a &amp; f(a):</code> then <code>a</code> is available as non-nil both as argument to <code>f</code> <em>and</em> in the following block.</p>
-<p>De-referencing nillables as in <code>o &amp; o.f</code> is so common that there's a shorthand for it: <code>o?.f</code> (which can be chained). As useful as this looks, note that you are just passing on the problem, as the result of such an expression is again a nilable type. As such, this is best used inside conditionals or as statements where the result is not needed.</p>
+<p>The flow based analysis generally understand logical expressions, so if you write <code>if not a:</code> instead, you'll be able to access <code>a</code> in the <code>else</code> block, but not in the <code>then</code> block. Similarly, if you write <code>if a and f(a):</code> then <code>a</code> is available as non-nil both as argument to <code>f</code> <em>and</em> in the following block.</p>
+<p>De-referencing nillables as in <code>o and o.f</code> is so common that there's a shorthand for it: <code>o?.f</code> (which can be chained). As useful as this looks, note that you are just passing on the problem, as the result of such an expression is again a nilable type. As such, this is best used inside conditionals or as statements where the result is not needed.</p>
 <p><code>?</code> is generally the way to indicate a nilable type, e.g. <code>string?</code> is a nilable string.</p>
 <p>One more thing to notice about <code>nil</code> is that it only knows what exact nilable type it represents once it comes &quot;in contact with&quot; its reference type. That means that if you tried to access <code>a</code> right after it was defined, it would have still have type <code>nil</code> rather than <code>string?</code>. Similarly, if you tried to assign a vector to <code>a</code> after the first assignment, it would complain that only a <code>string?</code> is valid, i.e. a <code>string</code> or <code>nil</code> value.</p>
-<p>To bypass that process and force <code>nil</code> to represent a particular nilable type, you can attach a type, like <code>nil:string</code>, which creates a value of type <code>string?</code>. Alternatively you could write <code>nil &amp; a</code>, which makes <code>nil</code> have the type of whatever <code>a</code> has, which may be a generic variable. Similarly, <code>a | nil</code> has the same nilable type, but now the value is actually <code>a</code> rather than <code>nil</code>.</p>
+<p>To bypass that process and force <code>nil</code> to represent a particular nilable type, you can attach a type, like <code>nil:string</code>, which creates a value of type <code>string?</code>. Alternatively you could write <code>nil and a</code>, which makes <code>nil</code> have the type of whatever <code>a</code> has, which may be a generic variable. Similarly, <code>a or nil</code> has the same nilable type, but now the value is actually <code>a</code> rather than <code>nil</code>.</p>
 <h2 id="more-flow-based-types">More flow based types</h2>
 <p>As we saw with <code>nil</code>, a variable may have a different type in certain parts of the code, thanks to the information that a conditional provides.</p>
 <p>Another example of this is the <code>is</code> operator:</p>
@@ -69,7 +69,7 @@ a.x        // ok</code></pre>
 <h2 id="compile-time-if-thens.">Compile-time if-then's.</h2>
 <p>The flow-based type-checking above gives branches more specific types. But we can do even better: if the condition is statically known, we can avoid type-checking alltogether:</p>
 <pre><code>def compile_time_if(x):
-    if x is int | x is float:
+    if x is int or x is float:
         1 / x
     else:
         x

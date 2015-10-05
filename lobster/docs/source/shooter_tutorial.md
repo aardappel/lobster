@@ -26,7 +26,7 @@ include "vec.lobster"
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear([ 0.0, 0.0, 0.0, 1.0 ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,7 +76,7 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 worldsize := 20.0
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
     gl_translate(float(gl_windowsize()) / 2.0)
@@ -150,7 +150,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -252,7 +252,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while gl_frame() & !gl_wentdown("escape"):
+while gl_frame() and !gl_wentdown("escape"):
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -472,7 +472,7 @@ To do that, we will have to be able to render text. First step towards doing
 that is loading up a font, right after `gl_window`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-check(gl_setfontname("data/fonts/US101/US101.TTF") & gl_setfontsize(32), "can\'t load font!")
+check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `check` is another useful function much like fatal, that ensures the first

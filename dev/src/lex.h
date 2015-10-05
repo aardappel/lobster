@@ -256,8 +256,6 @@ struct Lex : LoadedFile
             case ';': return T_SEMICOLON;
 
             case ',': cont = true; return T_COMMA;
-            case '&': cont = true; return T_AND;
-            case '|': cont = true; return T_OR;
 
             #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
@@ -267,10 +265,15 @@ struct Lex : LoadedFile
             case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
             case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 
-            case '<': cont = true; second('=', T_LTEQ); second('-', T_DYNASSIGN); return T_LT;
-            case '=': cont = true; second('=', T_EQ); return T_ASSIGN;
-            case '!': cont = true; second('=', T_NEQ); cont = false; return T_NOT;
-            case '>': cont = true; second('=', T_GTEQ); return T_GT;
+            case '<': cont = true; second('=', T_LTEQ); second('<', T_ASL); second('-', T_DYNASSIGN); return T_LT;
+            case '=': cont = true; second('=', T_EQ);   return T_ASSIGN;
+            case '!': cont = true; second('=', T_NEQ);  cont = false; return T_NOT;
+            case '>': cont = true; second('=', T_GTEQ); second('>', T_ASR); return T_GT;
+
+            case '&': cont = true; second('&', T_AND); return T_BINAND;
+            case '|': cont = true; second('|', T_OR);  return T_BINOR;
+            case '^': cont = true; return T_XOR;
+            case '~': cont = true; return T_NEG;
 
             case '?': cont = true; second('=', T_LOGASSIGN); second('.', T_DOTMAYBE); cont = false;
                       return T_QUESTIONMARK;
@@ -343,6 +346,11 @@ struct Lex : LoadedFile
                     else if (sattr == "coroutine") return T_COROUTINE;
                     else if (sattr == "enum")      return T_ENUM;
                     else if (sattr == "typeof")    return T_TYPEOF;
+                    else if (sattr == "var")       return T_VAR;
+                    else if (sattr == "const")     return T_CONST;
+                    else if (sattr == "not")       return T_NOT;
+                    else if (sattr == "and")       { cont = true; return T_AND; }
+                    else if (sattr == "or")        { cont = true; return T_OR; }
                     else return T_IDENT;
                 }
 

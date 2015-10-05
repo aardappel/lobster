@@ -18,7 +18,7 @@
 <h2 id="lexical-definition">Lexical definition</h2>
 <ul>
 <li><p>Whitespace is space, tab, carriage return, nested comments delimited by <code>/*</code> and <code>*/</code> or single line comments starting with <code>//</code></p></li>
-<li><p>Operator tokens are <code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! ? ?. . -&gt;</code></p></li>
+<li><p>Operator tokens are <code>( ) [ ] { } : ; , &amp; | + ++ += - -- -= * *= / /= % %= == != &lt; &gt; &lt;= &gt;= &lt;- = := :== ! ? ?. . -&gt; &amp;&amp; || and or not ^ &lt;&lt; &gt;&gt;</code></p></li>
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255). Alternatively, strings can be enclosed in triple-quotes (<code>&quot;&quot;&quot;</code>) and may then contain any characters verbatim, including new-lines, quotes, and escape codes (which are all left untouched).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
@@ -32,7 +32,7 @@
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( <code>def</code> ident functiondef | struct | vardef | enumdef ) | expstat</p>
 <p>struct = ( <code>struct</code> | <code>value</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
-<p>vardef = list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
+<p>vardef = ( <code>var</code> | <code>const</code> ) ident <code>=</code> opexp | list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
 <p>enumdef = <code>enum</code> [ <code>+</code> | <code>*</code> ] list( ident [ <code>=</code> integer_constant ] )</p>
 <p>functiondef = <code>(</code> args <code>) :</code> body</p>
 <p>block = args <code>:</code> body | functiondef</p>
@@ -42,8 +42,8 @@
 <p>call = <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
-<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> ) unary</p>
-<p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> ) unary | deref</p>
+<p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> | <code>&amp;&amp;</code> | <code>||</code> | <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> | <code>&gt;&gt;</code>) unary</p>
+<p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> | ~ | <code>not</code> ) unary | deref</p>
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>?.</code> ident | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>def</code> functiondef | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> [ indlist( exp ) ] <code>]</code> [ <code>::</code> type ] | ident <code>{</code> [ indlist( exp ) ] <code>}</code></p>
@@ -84,7 +84,7 @@ value xyz : xy { z }</code></pre>
 <p>You specify a list of fields between <code>{</code> and <code>}</code>. The above example has no types specified, which makes it a generic type, more about the <a href="type_checker.html">type system</a>.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
 <p>You construct values of these types you use a similar syntax:</p>
-<pre><code>v := xyz { 1, 0, 0 }</code></pre>
+<pre><code>var v = xyz { 1, 0, 0 }</code></pre>
 <p>The type ensures that the right amount of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
 <p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction:</p>
 <pre><code>value xy { x:float, y:float }</code></pre>
@@ -95,15 +95,17 @@ value xyz : xy { z }</code></pre>
 <pre><code>a = 1
 v[0] = 1
 v.x = 1</code></pre>
-<p>All variables must already have been declared, or this will result in an error. Instead, the <code>:=</code> operator defines and assigns in one go, and requires the variable to not have been declared yet in this scope:</p>
+<p>All variables must already have been declared, or this will result in an error. Instead, <code>var</code> defines and assigns in one go, and requires the variable to not have been declared yet in this scope. <code>const</code> does the same for variables which cannot be modified afterwards:</p>
+<pre><code>var a = 1
+const a = 1</code></pre>
+<p><code>:=</code> and <code>:==</code> are shorthand for <code>var =</code> and <code>const =</code> respectively:</p>
 <pre><code>a := 1
-b :== 1
-enum x = 1, y, z
-c &lt;- 1
+b :== 1</code></pre>
+<pre><code>enum x = 1, y, z</code></pre>
+<p><code>enum</code> is merely a shorthand for <code>:==</code>, e.g. the above example is equivalent to <code>x :== 1; y :== 2; z :== 3</code>. If you leave out the <code>= 1</code>, the sequence will start at <code>0</code> instead. You may specify <code>+</code> or <code>*</code> after <code>enum</code> to indicate wether you want the sequence to continue using addition (default, by 1) or multiplication (by 2), the latter useful for flags.</p>
+<pre><code>c &lt;- 1
 d, e := 1, 2
 f, g := 1</code></pre>
-<p>The <code>:==</code> operator does the same as <code>:=</code>, but now forces the variable to never be assigned to again in any of the following statements (makes it a constant). Think of the <code>==</code> in <code>:==</code> as saying that the two will be kept equal as opposed to merely assigned once.</p>
-<p><code>enum</code> is merely a shorthand for <code>:==</code>, e.g. the above example is equivalent to <code>x :== 1; y :== 2; z :== 3</code>. If you leave out the <code>= 1</code>, the sequence will start at <code>0</code> instead. You may specify <code>+</code> or <code>*</code> after <code>enum</code> to indicate wether you want the sequence to continue using addition (default, by 1) or multiplication (by 2), the latter useful for flags.</p>
 <p><code>&lt;-</code> is another assignment operator, that re-defines an existing variable using <em>lexically bounded dynamic scope</em> instead of the default lexical scope (see example below). As you can see in the last 2 lines, all of these operators also allow multiple values to be assigned at once (see also multiple return values below).</p>
 <h3 id="indexing">Indexing</h3>
 <p>As indicated, square brackets can be used to index into vectors, with the . notation being a convenient shorthand for constant indices when field names are available. These may be chained arbitrarily (to index into a vector of vectors for example).</p>
@@ -121,9 +123,10 @@ print mat[pos]</code></pre>
 <p>In addition, the <code>+</code> operator also works as string concatenation if either side is of string type (the other side will be converted to a string representation if it wasn't already).</p>
 <p>Unary minus (<code>-</code>) acts on the same types in the same way as the binary version.</p>
 <p>The increment and decrement operators <code>++</code> and <code>--</code> work either as prefix (increment, return new value) and as postfix (increment, return old value) on variables and vector index.</p>
+<p>Bitwise operators <code>&amp; | ^ ~ &lt;&lt; &gt;&gt;</code> behave like they do in any other language.</p>
 <h3 id="comparison-and-logical-operators">Comparison and Logical Operators</h3>
 <p>The next lower level of precedence are the comparison operators <code>&lt; &gt; &lt;= &gt;=</code> which work on <code>int</code>, <code>float</code> and <code>string</code> and <code>vector</code> (returning a vector of booleans, use builtin functions <code>any</code> and <code>all</code> to test these), and then the equality operators <code>==</code> and <code>!=</code> which additionally work on all other types, but in particular for <code>vector</code> and <code>coroutine</code> compare <em>by reference</em>, i.e they will give true only if both sides refer to the same object (<em>object identity</em>). To test for <em>structural identity</em> instead, use the built-in function <code>equal</code>.</p>
-<p>The logical operators <code>|</code> and <code>&amp;</code> (or, and) are the next lower level of precedence, and both short-circuit: <code>a | b</code> returns <code>a</code> if it is not a false value (one of <code>0 0.0 nil</code>), and <code>b</code> otherwise. <code>a &amp; b</code> returns <code>a</code> if it is a false value, <code>b</code> otherwise. The unary operator <code>!</code> turns false values into <code>1</code> and others into <code>0</code>.</p>
+<p>The logical operators <code>and</code> and <code>or</code> (which may also be written <code>&amp;&amp;</code> and <code>||</code> respectively) are the next lower level of precedence, and both short-circuit: <code>a or b</code> returns <code>a</code> if it is not a false value (one of <code>0 0.0 nil</code>), and <code>b</code> otherwise. <code>a and b</code> returns <code>a</code> if it is a false value, <code>b</code> otherwise. The unary operator <code>not</code> (may also be written as <code>!</code>) turns false values into <code>1</code> and others into <code>0</code>.</p>
 <p>The <code>is</code> operator returns true if the left hand side value is of the type specified on the right, e.g. <code>x is float</code>.</p>
 <h2 id="function-definitions">Function Definitions</h2>
 <p>Lobster's entire design centers around functions and how they can be composed. It has both <em>named functions</em> and <em>function values</em>.</p>

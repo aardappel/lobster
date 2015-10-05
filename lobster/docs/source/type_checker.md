@@ -135,11 +135,11 @@ and can be avoided:
     type that doesn't need to be checked.
 
 The flow based analysis generally understand logical expressions, so if you
-write `if !a:` instead, you'll be able to access `a` in the `else` block, but
-not in the `then` block. Similarly, if you write `if a & f(a):` then `a` is
+write `if not a:` instead, you'll be able to access `a` in the `else` block, but
+not in the `then` block. Similarly, if you write `if a and f(a):` then `a` is
 available as non-nil both as argument to `f` *and* in the following block.
 
-De-referencing nillables as in `o & o.f` is so common that there's a shorthand
+De-referencing nillables as in `o and o.f` is so common that there's a shorthand
 for it: `o?.f` (which can be chained). As useful as this looks, note that you
 are just passing on the problem, as the result of such an expression is again a
 nilable type. As such, this is best used inside conditionals or as statements
@@ -157,8 +157,8 @@ vector to `a` after the first assignment, it would complain that only a
 
 To bypass that process and force `nil` to represent a particular nilable type,
 you can attach a type, like `nil:string`, which creates a value of type
-`string?`. Alternatively you could write `nil & a`, which makes `nil` have the
-type of whatever `a` has, which may be a generic variable. Similarly, `a | nil`
+`string?`. Alternatively you could write `nil and a`, which makes `nil` have the
+type of whatever `a` has, which may be a generic variable. Similarly, `a or nil`
 has the same nilable type, but now the value is actually `a` rather than `nil`.
 
 More flow based types
@@ -204,7 +204,7 @@ type-checking alltogether:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def compile_time_if(x):
-    if x is int | x is float:
+    if x is int or x is float:
         1 / x
     else:
         x
