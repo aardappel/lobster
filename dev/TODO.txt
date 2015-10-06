@@ -1,8 +1,3 @@
-- syntax overhaul.
-  - http://rigaux.org/language-study/syntax-across-languages.html
-- add more to http://rosettacode.org/wiki/Category:Lobster
-  once there's no more syntax changes.
-
 - typechecker
   - ComputeStructVectorType is broken. It would a scalar field to become any without boxing.
     This is not an issue as long as we ensure that if its [any] its values do not get used, but its easy to leak.
@@ -283,6 +278,10 @@
   including Win7 & 8. SDL folk don't seem to want to fix, it, maybe I should
 
 - supposedly on OS X error window OK button is not clickable?
+
+- add more to http://rosettacode.org/wiki/Category:Lobster
+  once there's no more syntax changes.
+  https://www.google.com/search?as_q=&as_epq=You+are+encouraged+to+solve+this+task+according+to+the+task+description%2C+using+any+language+you+may+know.&as_oq=&as_eq=&as_nlo=&as_nhi=&lr=&cr=&as_qdr=all&as_sitesearch=http%3A%2F%2Frosettacode.org%2F&as_occt=any&safe=images&as_filetype=&as_rights=#as_qdr=all&q=site:http:%2F%2Frosettacode.org%2F+%22You+are+encouraged+to+solve+this+task+according+to+the+task+description%2C+using+any+language+you+may+know.%22
 
 - docs:
   - not clear
@@ -591,6 +590,6 @@ CURRENT SOLUTION FROM TRADEOFS:
 NOTES:
 ======
 - mrgreenfur has the lobster.io domain we could use as a new homepage..
-
+- http://rigaux.org/language-study/syntax-across-languages.html
 
 

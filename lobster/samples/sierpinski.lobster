@@ -3,7 +3,7 @@
 include "vec.lobster"
 include "color.lobster"
 
-directions := [ xy_0, xy_x, xy_y ]
+const directions = [ xy_0, xy_x, xy_y ]
 
 def sierpinski(depth):
     if depth:

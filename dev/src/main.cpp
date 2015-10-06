@@ -64,15 +64,15 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
     return VerifyBytecode(bytecode);
 }
 
-void Exit()
+void Exit(int code)
 {
     extern void GraphicsShutDown(); GraphicsShutDown();
 
     #ifdef __EMSCRIPTEN__
-        emscripten_force_exit(0);
+        emscripten_force_exit(code);
     #endif
 
-    exit(0); // Needed at least on iOS to forcibly shut down the wrapper main()
+    exit(code); // Needed at least on iOS to forcibly shut down the wrapper main()
 }
 
 void one_frame_callback()
@@ -83,7 +83,7 @@ void one_frame_callback()
         assert(g_vm);
         g_vm->OneMoreFrame();
         // If this returns, we didn't hit a gl_frame() again and exited normally.
-        Exit();
+        Exit(0);
     }
     catch (string &s)
     {
@@ -91,7 +91,7 @@ void one_frame_callback()
         {
             // An actual error.
             Output(OUTPUT_ERROR, s.c_str());
-            Exit();
+            Exit(1);
         }
     }
 }
@@ -248,10 +248,11 @@ int main(int argc, char* argv[])
         #ifdef _WIN32
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
+
+        Exit(1);
     }
 
-    Exit();
-
+    Exit(0);
     return 0;
 }
 
