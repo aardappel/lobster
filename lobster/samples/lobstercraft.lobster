@@ -41,7 +41,7 @@ while gl_frame():
     gl_perspective(70, 0.1, 1000)
     camera_FPS_update("w", "a", "s", "d", 10, 4, true)
     camera_FPS_view()
-    gl_light(camera_position)
+    gl_light(camera_position, [ 64.0, 0.25 ])
     gl_blend(0)
     gl_setshader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world

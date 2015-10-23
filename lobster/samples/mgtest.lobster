@@ -25,6 +25,7 @@ if !aspoints:
     mg_set_polygonreduction(100, 0.98, 0.95)
     mg_set_vertrandomize(0)
 
+density := 80
 
 gun := 0
 if true:
@@ -50,7 +51,7 @@ if true:
         mg_scalevec([ 1.0, 1.0, 3.0 ]):
             mg_rotate(xyz_x, 90.0):
                 mg_cylinder()
-    gun = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
+    gun = mg_polygonize(density, [ [ 1.0, 1.0, 1.0 ], [ 1.0, 1.0, 1.0 ] ])
 
 spaceship := 0
 if true:
@@ -73,7 +74,7 @@ if true:
                 mg_scalevec([ 0.35, 0.35, 0.35 ]):
                     mg_rotate(xyz_y, 90.0):
                         mg_cylinder()
-    spaceship = mg_polygonize(256, [ [ 1.0, 1.0, 1.0 ] ])
+    spaceship = mg_polygonize(density * 2, [ [ 1.0, 1.0, 1.0 ], [ 0.5, 0.5, 1.0 ] ])
 
 def model_tree(numb, branchl, narrowf, leafs):
     if numb:
@@ -94,19 +95,22 @@ def model_tree(numb, branchl, narrowf, leafs):
             mg_scale(leafs):
                 mg_sphere()
 
-density := 120
-
 trees := []
 
 if true:
     model_tree(10, 1.5, 0.75, 12)
-    trees.push(mg_polygonize(density, [[0.7, 0.6, 0.5], [0.6, 1.0, 0.6]]))
+    trees.push(mg_polygonize(density, [[ 0.7, 0.6, 0.5 ], [ 0.6, 1.0, 0.6 ]]))
 
     model_tree(10, 1.2, 0.8, 1.2)
-    trees.push(mg_polygonize(density, [[0.5, 0.4, 0.3], [0.8, 1.0, 0.5]]))
+    trees.push(mg_polygonize(density, [[ 0.5, 0.4, 0.3 ], [ 0.8, 1.0, 0.5 ]]))
 
     model_tree(9, 2.0, 0.7, 15)
-    trees.push(mg_polygonize(density, [[0.6, 0.5, 0.4], [0.5, 0.7, 0.5]]))
+    trees.push(mg_polygonize(density, [[ 0.6, 0.5, 0.4 ], [ 0.5, 0.7, 0.5 ]]))
+
+landscape := 0
+if true:
+    mg_landscape(0.5, 0.5)
+    landscape = mg_polygonize(density * 2, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
 
 print "vertcount: gun " + gl_meshsize(gun)
 print "vertcount: ship " + gl_meshsize(spaceship)
@@ -121,14 +125,15 @@ while gl_frame():
 
     gl_clear(color_dark_grey)
     gl_cursor(0)
-    gl_perspective(70, 0.1, 1000)
+    gl_perspective(60, 0.1, 1000)
+    fovscale := 1.3
 
     speed := 10
     if(gl_isdown("left shift")): speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
     camera_FPS_view()
 
-    gl_light(camera_position)
+    gl_light(camera_position, [ 128.0, 0.1 ])
     //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
 
     rndseed(0)
@@ -137,17 +142,27 @@ while gl_frame():
 
         if spaceship:
             gl_translate(xy_1 * 10):
+                gl_pointscale(1 * fovscale)
                 gl_rendermesh(spaceship)
 
         if gun:
             gl_translate(xy_1 * 20):
-                gl_scale(0.1):
+                gl_scale(0.2):
+                    gl_pointscale(0.2 * fovscale)
                     gl_rendermesh(gun)
+
+        if landscape:
+            gl_translate(xy_y * 20):
+                gl_scale(5):
+                    gl_pointscale(5 * fovscale)
+                    gl_rendermesh(landscape)
+
         for(10) j:
             gl_translate(xyz_y * j * -5):
                 for(trees) t, i:
                     gl_translate(xyz_x * i * 10):
                         gl_scale(0.5):
+                            gl_pointscale(0.5 * fovscale)
                             gl_rendermesh(t)
 
         gl_setshader("color")

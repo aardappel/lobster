@@ -20,9 +20,10 @@ SHADER color_attr
 SHADER color_attr_particle
     VERTEX
         INPUTS apos:4 acolor:4
-        UNIFORMS mvp
+        UNIFORMS mvp pointscale
         gl_Position = mvp * apos;
 		icol = acolor;
+		gl_PointSize = pointscale;
     PIXEL
         INPUTS icol:4
         vec2 c = gl_PointCoord * 2.0 - 1.0;
@@ -48,7 +49,7 @@ PIXELFUNCTIONS
         vec3 halfangle1 = normalize(cameravec + light1vec);
         float NdotL = dot(nnormal, light1vec);
         float NdotC = dot(nnormal, halfangle1);
-        float spec = pow(clamp(NdotC, 0.0, 1.0), 128.0);
+        float spec = pow(clamp(NdotC, 0.0, 1.0), lightparams1.x) * lightparams1.y;
         return vec4(vec3(max(0.1, NdotL + spec)), 1);
     }
 
@@ -62,23 +63,24 @@ SHADER phong
         ipos = apos.xyz;
     PIXEL
         INPUTS inormal:3 ipos:3 icol:4
-        UNIFORMS col camera light1
+        UNIFORMS col camera light1 lightparams1
         gl_FragColor = col * icol * Phong(inormal, ipos);
 
 SHADER phong_particle
     VERTEX
         INPUTS apos:4 anormal:3 acolor:4
-        UNIFORMS mvp
+        UNIFORMS mvp pointscale camera
         gl_Position = mvp * apos;
         inormal = anormal;
         icol = acolor;
         ipos = apos.xyz;
-        gl_PointSize = 60.0 / gl_Position.w;  // FIXME: properly compute size
+		// Do our own backface culling. Also scale point relative to on-screen size.
+        gl_PointSize = dot(anormal, apos.xyz - camera) < 0 ? pointscale / gl_Position.w : 0.0;
     PIXEL
         INPUTS inormal:3 ipos:3 icol:4
-        UNIFORMS col camera light1
+        UNIFORMS col camera light1 lightparams1
         vec2 c = gl_PointCoord * 2.0 - 1.0;
-        if(length(c) > 1.0) discard;
+        if(dot(c, c * c * c) > 1.0) discard;  // Squircles!
         gl_FragColor = col * icol * Phong(inormal, ipos);
 
 
@@ -106,7 +108,7 @@ SHADER phong_anim
         ipos = apos.xyz;
     PIXEL
         INPUTS inormal:3 ipos:3 itc:2 icol:4
-        UNIFORMS col camera light1 tex0
+        UNIFORMS col camera light1 lightparams1 tex0
         gl_FragColor = col * icol * Phong(inormal, ipos) * texture2D(tex0, itc);
 
 

@@ -176,6 +176,9 @@
 
 - create easy way to build Lobster as console-only language.
 
+- should add readint/readfloat builtins, from any location in a string, with a given byte width, as little endian..
+  allows things reading binary file formats, FlatBuffers, or custom memory efficient arrays etc.
+
 - allow random number generator to be selected
 
 - add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function

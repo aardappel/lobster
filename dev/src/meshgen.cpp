@@ -5,7 +5,9 @@
 
 #include "glinterface.h"
 
+#include "meshgen.h"
 #include "mctables.h"
+#include "polyreduce.h"
 
 using namespace lobster;
 
@@ -20,6 +22,8 @@ using namespace lobster;
 - could work on sharp crease boolean version (see treesheets)
 - crease texturing: verts either get a tc of (0, rnd) when they are on a crease, or (1, rnd) when they are flat
 */
+
+extern float simplexNoise(const int octaves, const float persistence, const float scale, const float4 &v);
 
 struct ImplicitFunction;
 
@@ -154,7 +158,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
                                 p2 /= gridscale;
 
                                 if (static_cast<T *>(this)->Eval(p2) == (material != 0)) p1f = p;
-                                else                                                 p2f = p;
+                                else                                                     p2f = p;
                             }
 
                             auto e = int(iso * maxedge);
@@ -267,6 +271,17 @@ struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform>
     float3 ComputeSize() { return size * max(scalepos, scaleneg); }
 };
 
+struct IFLandscape : ImplicitFunctionImpl<IFLandscape>
+{
+    float zscale, xyscale;
+
+    inline bool Eval(const float3 &pos)
+    {
+        if (abs(pos) > 1) return false;
+        auto f = simplexNoise(8, 0.5f, xyscale, float4(pos.xy(), 0)) * zscale;
+        return pos.z() < f;
+    }
+};
 
 struct Group : ImplicitFunctionImpl<Group>
 {
@@ -325,10 +340,6 @@ float noisestretch = 1;
 float noiseintensity = 0;
 float randomizeverts = 0;
 
-int polyreductionpasses = 0;
-float epsilon = 0.98f;
-float maxtricornerdot = 0.95f;
-
 bool pointmode = false;
 
 int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float3> &materials)
@@ -367,18 +378,19 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     vector<int> mctriangles;
     vector<edge> edges;
 
-    for (int x = 0; x < gridsize.x() - 1; x++)
-        for (int y = 0; y < gridsize.y() - 1; y++)
-            for (int z = 0; z < gridsize.z() - 1; z++)
+    bool mesh_displacent = true;
+    bool flat_triangles_opt = true;
+    bool simple_occlusion = false;
+
+    bool marching_cubes = true;
+
+    if (marching_cubes)
     {
-        static int3 gridpos[8];
-        static findex celli[8];
+        int3 gridpos[8];
+        findex celli[8];
+        int vertlist[12];
 
-        int3 pos(x, y, z);
-
-        int ci = 0;
-
-        static int3 corners[8] =
+        const int3 corners[8] =
         {
             int3(0, 0, 0),
             int3(1, 0, 0),
@@ -390,68 +402,190 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
             int3(0, 1, 1),
         };
 
-        for (int i = 0; i < 8; i++)
+        for (int x = 0; x < gridsize.x() - 1; x++)
+            for (int y = 0; y < gridsize.y() - 1; y++)
+                for (int z = 0; z < gridsize.z() - 1; z++)
         {
-            gridpos[i] = pos + corners[i];
-            celli[i] = fcellindices[IndexGrid(gridpos[i], gridsize)];
+            int3 pos(x, y, z);
 
-            ci |= (celli[i].getm() != 0) << i;
-        }
-
-        if (mc_edge_table[ci] == 0) continue;
-
-        static int vertlist[12];
-
-        for (int i = 0; i < 12; i++) if (mc_edge_table[ci] & (1<<i))
-        {
-            int i1 = mc_edge_to_vert[i][0];
-            int i2 = mc_edge_to_vert[i][1];
-            int3 &p1 = gridpos[i1];
-            int3 &p2 = gridpos[i2];
-
-            int cidx = celli[i2].geti();
-            assert(cidx);
-
-            int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
-            fcell &fc = fcells[cidx];
-            int &idx = fc.edgeidx[dir];
-            if (idx < 0)
+            int ci = 0;
+            for (int i = 0; i < 8; i++)
             {
-                idx = (int)edges.size();
+                gridpos[i] = pos + corners[i];
+                celli[i] = fcellindices[IndexGrid(gridpos[i], gridsize)];
 
-                auto e = fc.edges[dir];
-                assert(e);
-                auto mid = mix(float3(p1), float3(p2), float(e) / maxedge);
-
-                assert(fc.material[dir]);
-                auto material = min(fc.material[dir] - 1, (int)materials.size() - 1);
-
-                edges.push_back(edge(mid, material));
+                ci |= (celli[i].getm() != 0) << i;
             }
-            vertlist[i] = idx;
-        }
 
-        for (int i = 0; mc_tri_table[ci][i] != -1; i++)
+            if (mc_edge_table[ci] == 0) continue;
+
+            for (int i = 0; i < 12; i++) if (mc_edge_table[ci] & (1<<i))
+            {
+                int i1 = mc_edge_to_vert[i][0];
+                int i2 = mc_edge_to_vert[i][1];
+                int3 &p1 = gridpos[i1];
+                int3 &p2 = gridpos[i2];
+
+                int cidx = celli[i2].geti();
+                assert(cidx);  // FIXME: this triggers at certain resolutions?
+
+                int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
+                fcell &fc = fcells[cidx];
+                int &idx = fc.edgeidx[dir];
+                if (idx < 0)
+                {
+                    idx = (int)edges.size();
+
+                    auto e = fc.edges[dir];
+                    assert(e);
+                    auto mid = mix(float3(p1), float3(p2), float(e) / maxedge);
+
+                    assert(fc.material[dir]);
+                    auto material = min(fc.material[dir] - 1, (int)materials.size() - 1);
+
+                    edges.push_back(edge(mid, material));
+                }
+                vertlist[i] = idx;
+            }
+
+            for (int i = 0; mc_tri_table[ci][i] != -1; i++)
+            {
+                mctriangles.push_back(vertlist[mc_tri_table[ci][i]]);
+            }
+        }
+    }
+    else
+    {
+        // Experimental marching squares slices mode, unfinished and unoptimized.
+        mesh_displacent = false;
+        flat_triangles_opt = false;
+        polyreductionpasses = 0;
+
+        int3 gridpos[3][4];
+        findex celli[3][4];
+        float3 edgev[4];
+
+        int3 corners[4] =
         {
-            mctriangles.push_back(vertlist[mc_tri_table[ci][i]]);
+            int3(0, 0, 0),
+            int3(1, 0, 0),
+            int3(1, 1, 0),
+            int3(0, 1, 0),
+        };
+
+        int linelist[16][5] =
+        {
+            { -1 },
+            { 0, 3, -1 },
+            { 1, 0, -1 },
+            { 1, 3, -1 },
+            { 2, 1, -1 },
+            { 0, 3, 2, 1, -1 },
+            { 2, 0, -1 },
+            { 2, 3, -1 },
+            { 3, 2, -1 },
+            { 0, 2, -1 },
+            { 1, 0, 3, 2, -1 },
+            { 1, 2, -1 },
+            { 3, 1, -1 },
+            { 0, 1, -1 },
+            { 3, 0, -1 },
+            { -1 },
+        };
+
+        // Both ambiguous cases use the minimal version since that's less polygons overal.
+        int trilist[16][10] =
+        {
+            { -1 },
+            { 0, 7, 1, -1 },
+            { 1, 3, 2, -1 },
+            { 0, 3, 2, 3, 0, 7, -1 },
+            { 3, 5, 4, -1 },
+            { 3, 5, 4, 0, 7, 1, -1 },
+            { 1, 4, 2, 4, 1, 5, -1 },
+            { 0, 7, 2, 7, 5, 2, 5, 4, 2, -1 },
+            { 5, 7, 6, -1 },
+            { 0, 5, 1, 5, 0, 6, -1 },
+            { 1, 3, 2, 5, 7, 6, -1 },
+            { 0, 6, 5, 0, 5, 3, 0, 3, 2, -1 },
+            { 7, 4, 3, 4, 7, 6, -1 },
+            { 6, 4, 3, 6, 3, 1, 6, 1, 0, -1 },
+            { 4, 3, 1, 4, 1, 7, 4, 7, 6, -1 },
+            { 0, 4, 2, 4, 0, 6, -1 },
+        };
+
+        int edgestartcell[4] = { 1, 2, 2, 3 };
+
+        for (int z = 1; z < gridsize.z() - 1; z++)
+            for (int x = 0; x < gridsize.x() - 1; x++)
+                for (int y = 0; y < gridsize.y() - 1; y++)
+        {
+            int3 pos(x, y, z);
+
+            int ci[3] = { 0, 0, 0 };
+            for (int lz = 0; lz < 3; lz++)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    gridpos[lz][i] = pos + corners[i] + int3(0, 0, lz - 1);
+                    celli[lz][i] = fcellindices[IndexGrid(gridpos[lz][i], gridsize)];
+                    ci[lz] |= (celli[lz][i].getm() != 0) << i;
+                }
+            }
+
+            if (linelist[ci[1]][0] < 0 && ci[1] == ci[0] && ci[1] == ci[2]) continue;
+            
+            for (int i = 0; i < 4; i++)
+            {
+                auto &fc = fcells[celli[1][edgestartcell[i]].geti()];
+                auto e = fc.edges[i & 1];
+                auto mid = e / float(maxedge) - ((i & 2) / 2);
+                edgev[i] = float3(gridpos[1][i]).add(i & 1, mid);
+            }
+
+            float3 zup(0, 0,  0.5f);
+            float3 zdn(0, 0, -0.5f);
+
+            // Side polys.
+            for (int i = 0; linelist[ci[1]][i] >= 0; i += 2)
+            {
+                // FIXME: disambiguate saddles?
+                auto a = linelist[ci[1]][i];
+                auto b = linelist[ci[1]][i + 1];
+                // FIXME: duplicate verts. reuse thru edgeidx.
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zup, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zup, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zdn, 0));
+
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zdn, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zdn, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zup, 0));
+            }
+
+            // Top polys.
+            if (ci[1] != ci[2] || linelist[ci[1]][0] >= 0)
+            {
+                // FIXME: clip against adjacent level.
+                for (int i = 0; trilist[ci[1]][i] >= 0; i += 3)
+                {
+                    auto a = trilist[ci[1]][i];
+                    auto b = trilist[ci[1]][i + 1];
+                    auto c = trilist[ci[1]][i + 2];
+                    // FIXME: duplicate verts.
+                    mctriangles.push_back(edges.size()); edges.push_back(edge((a & 1 ? edgev[a / 2] : float3(gridpos[1][a / 2])) + zup, 1));
+                    mctriangles.push_back(edges.size()); edges.push_back(edge((b & 1 ? edgev[b / 2] : float3(gridpos[1][b / 2])) + zup, 1));
+                    mctriangles.push_back(edges.size()); edges.push_back(edge((c & 1 ? edgev[c / 2] : float3(gridpos[1][c / 2])) + zup, 1));
+                }
+            }
+
+            // FIXME: bottom polys missing.
         }
     }
 
     delete[] fcellindices;
 
-    struct vert // any changes to this struct must be reflected in recompute_normals below
-    {
-        float3 pos;
-        float3 norm;
-        byte4 col;
-    };
-
     vector<int> triangles;
-    vector<vert> verts;
-
-    const bool mesh_displacent = true;
-    const bool flat_triangles_opt = true;
-    const bool simple_occlusion = false;
+    vector<mgvert> verts;
 
     RandomNumberGenerator<PCG32> r;
 
@@ -514,8 +648,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                         c.accum /= (float)-c.n;
                         c.col /= (float)-c.n;
                         c.n = (int)verts.size();
-                        verts.push_back(vert());
-                        vert &v = verts.back();
+                        verts.push_back(mgvert());
+                        auto &v = verts.back();
                         v.pos = c.accum;
                         v.norm = float3_0;
                         v.col = quantizec(c.col);
@@ -532,8 +666,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     {
         for (edge &e : edges)
         {
-            verts.push_back(vert());
-            vert &v = verts.back();
+            verts.push_back(mgvert());
+            auto &v = verts.back();
             v.pos = e.mid;
             v.col = quantizec(materials[e.material]);
             v.norm = float3_0;
@@ -554,9 +688,9 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
         for (size_t t = 0; t < triangles.size(); t += 3)
         {
-            vert &v1 = verts[triangles[t + 0]];
-            vert &v2 = verts[triangles[t + 1]];
-            vert &v3 = verts[triangles[t + 2]];
+            auto &v1 = verts[triangles[t + 0]];
+            auto &v2 = verts[triangles[t + 1]];
+            auto &v3 = verts[triangles[t + 2]];
 
             assert(v1.pos != v2.pos && v1.pos != v3.pos && v2.pos != v3.pos);
 
@@ -603,235 +737,19 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
     /////////// CALCULATE NORMALS
 
-    auto recompute_normals = [&]()
-    {
-        normalize_mesh(&triangles[0], triangles.size(), &verts[0], verts.size(), false);
-    };
-
-    recompute_normals();
+    RecomputeNormals(triangles, verts);
 
     /////////// POLYGON REDUCTION
 
-    // FIXME: factor out holding triangle data (face normal etc) in arrays
-
     if (polyreductionpasses)
     {
-        int *vertmap = new int[verts.size()];
-
-        for (int prp = 0; prp < polyreductionpasses; prp++)
-        {
-            memset(vertmap, -1, verts.size() * sizeof(int));
-
-            for (size_t t = 0; t < triangles.size(); t += 3)
-            {
-                vert &v1 = verts[triangles[t + 0]];
-                vert &v2 = verts[triangles[t + 1]];
-                vert &v3 = verts[triangles[t + 2]];
-
-                float3 v12u = v2.pos - v1.pos;
-                float3 v13u = v3.pos - v1.pos;
-                float3 d3  = normalize(cross(v13u, v12u));
-
-                for (int i = 0; i < 3; i++)
-                {
-                    if (dot(verts[triangles[t + i]].norm, d3) < epsilon)
-                        vertmap[triangles[t + i]] = -2;     // not available for reduction
-                }
-            }
-
-            for (size_t t = 0; t < triangles.size(); t += 3)
-            {
-                vert &v1 = verts[triangles[t + 0]];
-                vert &v2 = verts[triangles[t + 1]];
-                vert &v3 = verts[triangles[t + 2]];
-
-                float3 v12u = v2.pos - v1.pos;
-                float3 v13u = v3.pos - v1.pos;
-
-                int i1 = -1, i2 = -1, i3 = -1;
-                for (int i = 0; i < 3; i++)
-                {
-                    if (vertmap[triangles[t + i]] == -1)
-                    {
-                        if (i2 < 0)
-                        {
-                            if (i1 >= 0) i2 = i;
-                            else i1 = i;
-                        }
-                    }
-                    else i3 = i;
-                }
-
-                if (i3 < 0)     // all 3 flat, pick the shortest edge
-                {
-                    auto l12 = length(v12u);
-                    auto l13 = length(v13u);
-                    auto l23 = length(v2.pos - v3.pos);
-
-                    if (l13 < l12 && l13 < l23) // pick 13
-                    {
-                        i2 = 2;
-                        i3 = 1;
-                    }
-                    else if (l23 < l12 && l23 < l13)    // pick 23
-                    {
-                        i1 = 1;
-                        i2 = 2;
-                        i3 = 0;
-                    }
-                    else   // pick 12
-                    {
-                        i3 = 2;
-                    }
-                }
-
-                if (i1 >= 0 && i2 >= 0
-                    && vertmap[triangles[t + i3]] < 0  // why is this so important???
-                )
-                {
-                    int vi = triangles[t + i1];
-                    int ovi = triangles[t + i2];
-                    vertmap[vi] = ovi;
-                    vertmap[ovi] = vi;
-                }
-            }
-
-            int flipped = 0;
-            for (size_t t = 0; t < triangles.size(); t += 3)
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    int vi1 = triangles[t + i];
-                    int vi2 = triangles[t + (i + 1) % 3];
-                    int vi3 = triangles[t + (i + 2) % 3];
-                    if (vertmap[vi1] >= 0 && vertmap[vi1] != vi2 && vertmap[vi1] != vi3)
-                    {
-                        vert &v1 = verts[vi1];
-                        vert &v2 = verts[vi2];
-                        vert &v3 = verts[vi3];
-
-                        float3 d3  = normalize(cross(v3.pos - v1.pos, v2.pos - v1.pos));
-
-                        float3 vm = (verts[vertmap[vi1]].pos + v1.pos) / 2;
-                        float3 v12m = normalize(v2.pos - vm);
-                        float3 v13m = normalize(v3.pos - vm);
-                        float3 v23m = normalize(v3.pos - v2.pos);
-                        float3 d3m  = normalize(cross(v13m, v12m));
-
-                        if (dot(d3, d3m) < epsilon ||
-                            dot(v12m, v13m) > maxtricornerdot ||
-                            dot(-v12m, v23m) > maxtricornerdot ||
-                            dot(-v23m, -v13m) > maxtricornerdot)
-                        {
-                            vertmap[vertmap[vi1]] = -1;
-                            vertmap[vi1] = -1;
-                            flipped++;
-                        }
-                    }
-                }
-            }
-            //Output(OUTPUT_DEBUG, "flipped tris: %d\n", flipped);
-
-            for (size_t t = 0; t < triangles.size(); t += 3)
-            {
-                int keep = -1;
-                for (int i = 0; i < 3; i++)
-                {
-                    int vi = triangles[t + i];
-                    if (vertmap[vi] >= 0)
-                    {
-                        if (keep >= 0)
-                        {
-                            int kvi = triangles[t + keep];
-                            if (vertmap[vi] != kvi)
-                            {
-                                if (length(verts[ vi].pos - verts[vertmap[ vi]].pos) <
-                                    length(verts[kvi].pos - verts[vertmap[kvi]].pos))
-                                {
-                                    vertmap[vertmap[kvi]] = -1;
-                                    vertmap[kvi] = -1;
-                                    keep = i;
-                                }
-                                else
-                                {
-                                    vertmap[vertmap[vi]] = -1;
-                                    vertmap[vi] = -1;
-                                }
-                            }
-                        }
-                        else keep = i;
-                    }
-                }
-            }
-
-            size_t writep = 0;
-            for (size_t t = 0; t < triangles.size(); t += 3)
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    int target = vertmap[triangles[t + i]];
-                    if (target >= 0)
-                    {
-                        if (triangles[t + (i + 1) % 3] == target || triangles[t + (i + 2) % 3] == target)
-                        {
-                            writep -= i;
-                            break;
-                        }
-                    }
-
-                    triangles[writep++] = triangles[t + i];
-                }
-            }
-            auto polysreduced = (triangles.size() - writep) / 3;
-            //Output(OUTPUT_DEBUG, "reduced tris: %d\n", polysreduced);
-            triangles.erase(triangles.begin() + writep, triangles.end());
-
-            for (size_t t = 0; t < triangles.size(); t++)
-            {
-                if (vertmap[triangles[t]] >= 0 && vertmap[triangles[t]] < triangles[t])
-                    triangles[t] = vertmap[triangles[t]];
-            }
-
-            for (size_t i = 0; i < verts.size(); i++) if (vertmap[i] >= 0 && vertmap[i] < (int)i)
-            {
-                vert &v1 = verts[i];
-                vert &v2 = verts[vertmap[i]];
-
-                v2.pos = (v1.pos + v2.pos) / 2;
-                v2.col = byte4((int4(v1.col) + int4(v2.col)) / 2);
-            }
-
-            recompute_normals();
-
-            if (polysreduced < 100)
-                break;
-        }
-
-        // TODO: this also deletes verts from the bad triangle finder, but only if tri reduction is on
-        memset(vertmap, -1, verts.size() * sizeof(int));
-        for (size_t t = 0; t < triangles.size(); t++) vertmap[triangles[t]]++;
-        int ni = 0;
-        for (size_t i = 0; i < verts.size(); i++)
-        {
-            if (vertmap[i] >= 0)
-            {
-                verts[ni] = verts[i];
-                vertmap[i] = ni++;
-            }
-        }
-        verts.erase(verts.begin() + ni, verts.end());
-        for (size_t t = 0; t < triangles.size(); t++) triangles[t] = vertmap[triangles[t]];
-
-        delete[] vertmap;
+        PolyReduce(triangles, verts);
     }
-
 
     /////////// APPLY NOISE TO COLOR
 
     if (noiseintensity > 0)
     {
-        extern float simplexNoise(const int octaves, const float persistence, const float scale, const float4 &v);
-
         float scale = noisestretch;
         int octaves = 8;
         float persistence = 0.5f;
@@ -839,8 +757,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         for (auto &v : verts)
         {
             auto n = float3(simplexNoise(octaves, persistence, scale, float4(v.pos, 0.0f / scale)),
-                          simplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
-                          simplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
+                            simplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
+                            simplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
             v.col = quantizec(color2vec(v.col).xyz() * (float3_1 - (n + float3_1) / 2 * noiseintensity));
         }
     }
@@ -854,9 +772,9 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
         for (size_t t = 0; t < triangles.size(); t += 3)
         {
-            vert &v1 = verts[triangles[t + 0]];
-            vert &v2 = verts[triangles[t + 1]];
-            vert &v3 = verts[triangles[t + 2]];
+            auto &v1 = verts[triangles[t + 0]];
+            auto &v2 = verts[triangles[t + 1]];
+            auto &v3 = verts[triangles[t + 2]];
 
             float3 v12 = normalize(v2.pos - v1.pos);
             float3 v13 = normalize(v3.pos - v1.pos);
@@ -880,22 +798,20 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     if (verts.empty())
         return -1;
 
-    if (pointmode)
-    {
-        // Replace triangle indices by point indices.
-        triangles.clear();
-        for (int i = 0; i < (int)verts.size(); i++) triangles.push_back(i);
-
-        SetPointSprite(1);
-    }
-
-    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d\n", verts.size(),
-           edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(),
-           targetgridsize);
+    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d, scale = %f\n",
+           verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), targetgridsize,
+           gridscale);
 
     extern IntResourceManagerCompact<Mesh> *meshes;
-    auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(vert), "PNC"));
-    m->surfs.push_back(new Surface(&triangles[0], triangles.size(), pointmode ? PRIM_POINT : PRIM_TRIS));
+    auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(mgvert), "PNC"), pointmode ? PRIM_POINT : PRIM_TRIS);
+    if (pointmode)
+    {
+        m->pointsize = 1000 / gridscale;
+    }
+    else
+    {
+        m->surfs.push_back(new Surface(&triangles[0], triangles.size(), PRIM_TRIS));
+    }
     return (int)meshes->Add(m);
 }
 
@@ -994,6 +910,15 @@ void AddMeshGen()
     ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F]F]F]F]", "",
         "a superquadric that allows you to specify exponents and sizes in all 6 directions independently for maximum"
         " modelling possibilities");
+
+    STARTDECL(mg_landscape) (Value &zscale, Value &xyscale)
+    {
+        auto ls = new IFLandscape();
+        ls->zscale = zscale.fval();
+        ls->xyscale = xyscale.fval();
+        return AddShape(ls); 
+    } ENDDECL2(mg_landscape, "zscale,xyscale", "FF", "",
+        "a simplex landscape of unit size");
 
     STARTDECL(mg_set_polygonreduction) (Value &_polyreductionpasses, Value &_epsilon, Value &_maxtricornerdot)
     {

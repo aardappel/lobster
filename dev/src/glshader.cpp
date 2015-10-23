@@ -165,11 +165,13 @@ string ParseMaterialFile(char *mbuf)
                 {
                     word();
                     if (last.empty()) break;
-                    else if (last == "mvp")    decl += "uniform mat4 mvp;\n";
-                    else if (last == "col")    decl += "uniform vec4 col;\n";
-                    else if (last == "camera") decl += "uniform vec3 camera;\n";
-                    else if (last == "light1") decl += "uniform vec3 light1;\n";
-                    else if (last == "bones")  decl += "uniform vec4 bones[240];\n";   // FIXME: configurable
+                    else if (last == "mvp")          decl += "uniform mat4 mvp;\n";
+                    else if (last == "col")          decl += "uniform vec4 col;\n";
+                    else if (last == "camera")       decl += "uniform vec3 camera;\n";
+                    else if (last == "light1")       decl += "uniform vec3 light1;\n";
+                    else if (last == "lightparams1") decl += "uniform vec2 lightparams1;\n";
+                    else if (last == "bones")        decl += "uniform vec4 bones[230];\n";   // FIXME: configurable
+                    else if (last == "pointscale")   decl += "uniform float pointscale;\n";
                     else if (!strncmp(last.c_str(), "tex", 3))
                     {
                         if (accum == &compute)
@@ -304,11 +306,13 @@ void Shader::Link(const char *name)
         throw string("linking failed for shader: ") + name;
     }
 
-    mvp_i    = glGetUniformLocation(program, "mvp");
-    col_i    = glGetUniformLocation(program, "col");
-    camera_i = glGetUniformLocation(program, "camera");
-    light1_i = glGetUniformLocation(program, "light1");
-    bones_i  = glGetUniformLocation(program, "bones");
+    mvp_i          = glGetUniformLocation(program, "mvp");
+    col_i          = glGetUniformLocation(program, "col");
+    camera_i       = glGetUniformLocation(program, "camera");
+    light1_i       = glGetUniformLocation(program, "light1");
+    lightparams1_i = glGetUniformLocation(program, "lightparams1");
+    bones_i        = glGetUniformLocation(program, "bones");
+    pointscale_i   = glGetUniformLocation(program, "pointscale");
 
     glUseProgram(program);
 
@@ -338,9 +342,14 @@ void Shader::Set()
 
     if (mvp_i >= 0) glUniformMatrix4fv(mvp_i, 1, false, view2clip * otransforms.object2view);
     if (col_i >= 0) glUniform4fv(col_i, 1, curcolor.begin());
-
-    if (light1_i >= 0 && lights.size() > 0) glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin());
     if (camera_i >= 0) glUniform3fv(camera_i, 1, otransforms.view2object[3].begin());
+    if (pointscale_i >= 0) glUniform1f(pointscale_i, pointscale);
+
+    if (lights.size() > 0)
+    {
+        if (light1_i >= 0) glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin());
+        if (lightparams1_i >= 0) glUniform2fv(lightparams1_i, 1, lights[0].params.begin());
+    }
 }
 
 void Shader::SetAnim(float3x4 *bones, int num)

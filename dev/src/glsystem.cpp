@@ -26,10 +26,15 @@ GLBASEEXTS GLEXTS
 #undef GLEXT
 #endif
 
+float4 curcolor = float4_0;
+
 float4x4 view2clip(1);
 objecttransforms otransforms;
 
 vector<Light> lights;
+
+float pointscale = 1.0f;
+float custompointscale = 1.0f;
 
 void AppendTransform(const float4x4 &forward, const float4x4 &backward)
 {

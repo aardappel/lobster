@@ -289,12 +289,14 @@
     <ClInclude Include="..\src\il.h" />
     <ClInclude Include="..\src\lex.h" />
     <ClInclude Include="..\src\mctables.h" />
+    <ClInclude Include="..\src\meshgen.h" />
     <ClInclude Include="..\src\natreg.h" />
     <ClInclude Include="..\src\node.h" />
     <ClInclude Include="..\src\glinterface.h" />
     <ClInclude Include="..\src\optimizer.h" />
     <ClInclude Include="..\src\parser.h" />
     <ClInclude Include="..\src\platform.h" />
+    <ClInclude Include="..\src\polyreduce.h" />
     <ClInclude Include="..\src\sdlincludes.h" />
     <ClInclude Include="..\src\sdlinterface.h" />
     <ClInclude Include="..\src\slaballoc.h" />

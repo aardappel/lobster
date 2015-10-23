@@ -120,6 +120,8 @@ Geometry::~Geometry()
 
 void Mesh::Render(Shader *sh)
 {
+    if (prim == PRIM_POINT) SetPointSprite(pointsize);
+
     sh->Set();
 
     if (numbones && numframes)
@@ -159,16 +161,15 @@ Mesh::~Mesh()
     if (mats) delete[] mats;
 }
 
-void SetPointSprite(float size)
+void SetPointSprite(float scale)
 {
+    pointscale = scale * custompointscale;
     #ifdef PLATFORM_ES2
         // glEnable(GL_POINT_SPRITE_OES);
         // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
-        //glPointSize(size); // FIXME: set thru uniform
     #else
         glEnable(GL_POINT_SPRITE);
         glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-        glPointSize(size);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     #endif
 }

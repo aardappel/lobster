@@ -23,7 +23,7 @@ struct Shader
 
     uint vs, ps, cs, program;
 
-    int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, bones_i;
+    int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, lightparams1_i, bones_i, pointscale_i;
 
     Shader() : vs(0), ps(0), cs(0), program(0) {}
 
@@ -97,13 +97,14 @@ struct Mesh
     Geometry *geom;
     vector<Surface *> surfs;
     Primitive prim;  // If surfs is empty, this determines how to draw the verts.
+    float pointsize;  // if prim == PRIM_POINT
 
     int numframes, numbones;
     float3x4 *mats;
     float curanim;
 
     Mesh(Geometry *_g, Primitive _prim = PRIM_FAN)
-        : geom(_g), prim(_prim), numframes(0), numbones(0), mats(nullptr), curanim(0) {}
+        : geom(_g), prim(_prim), pointsize(1.0f), numframes(0), numbones(0), mats(nullptr), curanim(0) {}
     ~Mesh();
 
     void Render(Shader *sh);
@@ -112,6 +113,7 @@ struct Mesh
 struct Light
 {
     float4 pos;
+    float2 params;
 };
 
 
@@ -175,6 +177,8 @@ extern objecttransforms otransforms;
 extern vector<Light> lights;
 
 extern float4 curcolor;
+
+extern float pointscale, custompointscale;
 
 template<typename F> void Transform2D(const float4x4 &mat, F body)  // 2D, since this skips view2object needed for lighting.
 {

@@ -30,8 +30,6 @@ IntResourceManagerCompact<Mesh> *meshes = NULL;
 
 map<string, uint> texturecache;
 
-float4 curcolor = float4_0;
-
 Shader *currentshader = NULL;
 Shader *colorshader = NULL;
 
@@ -540,6 +538,16 @@ void AddGraphics()
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
+    STARTDECL(gl_pointscale) (Value &f)
+    {
+        custompointscale = f.fval();
+        return Value();
+    }
+    ENDDECL1(gl_pointscale, "factor", "F", "",
+        "sets the current scaling factor for point sprites."
+        " this can be what the current gl_scale is, or different, depending on the desired visuals."
+        " the ideal size may also be FOV dependent.");
+
     STARTDECL(gl_linemode) (Value &on, Value &body)
     {
         if (body.True()) g_vm->Push(Value((int)polymode));
@@ -972,16 +980,19 @@ void AddGraphics()
     ENDDECL1(gl_deletetexture, "i", "I", "",
         "free up memory for the given texture id");
 
-    STARTDECL(gl_light) (Value &pos)
+    STARTDECL(gl_light) (Value &pos, Value &params)
     {
         Light l;
         l.pos = otransforms.object2view * float4(ValueDecToF<3>(pos), 1);
+        l.params = ValueDecToF<2>(params);
         lights.push_back(l);
         return Value();
     }
-    ENDDECL1(gl_light, "pos", "F]", "",
+    ENDDECL2(gl_light, "pos,params", "F]F]", "",
         "sets up a light at the given position for this frame. make sure to call this after your camera transforms"
-        " but before any object transforms (i.e. defined in \"worldspace\").");
+        " but before any object transforms (i.e. defined in \"worldspace\")."
+        " params contains specular exponent in x (try 32/64/128 for different material looks) and"
+        " the specular scale in y (try 1 for full intensity)");
 
     STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness)
     {
