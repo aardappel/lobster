@@ -142,13 +142,14 @@ enum TextureFlag
     TF_NONE = 0,
     TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4,
     TF_FLOAT = 8,                           // rgba32f instead of rgba8
-    TF_WRITEONLY = 16, TF_READWRITE = 32    // Default is readonly.
+    TF_WRITEONLY = 16, TF_READWRITE = 32,   // Default is readonly.
+    TF_CUBEMAP = 64
 };
 
 extern uint CreateTexture(uchar *buf, const int2 &dim, int tf = TF_NONE);
 extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
 extern void DeleteTexture(uint id);
-extern void SetTexture(uint textureunit, uint id);
+extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
 extern int MaxTextureSize();
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);

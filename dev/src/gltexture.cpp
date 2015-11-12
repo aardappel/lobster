@@ -28,13 +28,17 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
     glGenTextures(1, &id);
     assert(id);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, id);
+    GLenum textype      = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : GL_TEXTURE_2D;
+    GLenum teximagetype = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : GL_TEXTURE_2D;
+    int texnumfaces     = tf & TF_CUBEMAP ? 6                              : 1;
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(textype, id);
+
+    glTexParameteri(textype, GL_TEXTURE_WRAP_S, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    glTexParameteri(textype, GL_TEXTURE_WRAP_T, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
+    glTexParameteri(textype, GL_TEXTURE_MIN_FILTER, tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
 
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
@@ -49,22 +53,24 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
             assert(false);  // buf points to float data, which we don't support.
         #endif
     }
-    glTexImage2D(GL_TEXTURE_2D, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
+
+    for (int i = 0; i < texnumfaces; i++)
+        glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
 
     if (tf & TF_NOMIPMAP) return id;
 
-    glEnable(GL_TEXTURE_2D);  // required on ATI for mipmapping to work?
+    glEnable(textype);  // required on ATI for mipmapping to work?
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
     if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
     #endif
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glGenerateMipmap(textype);
 
     return id;
 }
 
 uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
 {
-    tf = tf & ~TF_FLOAT;  // Not supported yet.
+    tf &= ~TF_FLOAT;  // Not supported yet.
 
     size_t len = 0;
     auto fbuf = LoadFile(name, &len);
@@ -88,10 +94,10 @@ uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
 
 void DeleteTexture(uint id) { glDeleteTextures(1, &id); }
 
-void SetTexture(uint textureunit, uint id)
+void SetTexture(uint textureunit, uint id, int tf)
 {
     glActiveTexture(GL_TEXTURE0 + textureunit);
-    glBindTexture(GL_TEXTURE_2D, id);
+    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, id);
 }
 
 void SetImageTexture(uint textureunit, uint id, int tf)

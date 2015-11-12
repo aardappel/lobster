@@ -174,15 +174,17 @@ string ParseMaterialFile(char *mbuf)
                     else if (last == "pointscale")   decl += "uniform float pointscale;\n";
                     else if (!strncmp(last.c_str(), "tex", 3))
                     {
+                        bool cubemap = !strncmp(last.c_str() + 3, "cube", 4);
                         if (accum == &compute)
                         {
-                            auto unit = atoi(last.c_str() + 3);
+                            auto unit = atoi(last.c_str() + 3 + (cubemap ? 4 : 0));
                             bool floatingp = unit >= 1;  // FIXME: total hack. need to be able to specify this.
                             decl += "layout(binding = " + to_string(unit) + ", " +
                                     (floatingp ? "rgba32f" : "rgba8") + ") ";
                         }
                         decl += "uniform ";
-                        decl += accum == &compute ? "image2D" : "sampler2D";
+                        decl += accum == &compute ? (cubemap ? "imageCube" : "image2D")
+                                                  : (cubemap ? "samplerCube" : "sampler2D");
                         decl += " " + last + ";\n";
                     }
                     else return "unknown uniform: " + last; 

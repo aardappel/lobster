@@ -48,4 +48,5 @@ texture_format_nearest   :== 4
 texture_format_float     :== 8
 texture_format_writeonly :== 16
 texture_format_readwrite :== 32
+texture_format_cubemap   :== 64
 

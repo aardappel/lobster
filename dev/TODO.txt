@@ -1,3 +1,5 @@
+- excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
+
 - typechecker
   - ComputeStructVectorType is broken. It would a scalar field to become any without boxing.
     This is not an issue as long as we ensure that if its [any] its values do not get used, but its easy to leak.

@@ -869,15 +869,15 @@ void AddGraphics()
         " Only loads from disk once if called again with the same name. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.");
 
-    STARTDECL(gl_setprimitivetexture) (Value &i, Value &id)
+    STARTDECL(gl_setprimitivetexture) (Value &i, Value &id, Value &tf)
     {
         TestGL();
 
-        SetTexture(GetSampler(i), id.ival());
+        SetTexture(GetSampler(i), id.ival(), tf.ival());
 
         return Value();
     }
-    ENDDECL2(gl_setprimitivetexture, "i,id", "II", "",
+    ENDDECL3(gl_setprimitivetexture, "i,id,textureformat", "III?", "",
         "sets texture unit i to texture id (for use with rect/circle/polygon/line)");
 
     STARTDECL(gl_setmeshtexture) (Value &mid, Value &part, Value &i, Value &id)
