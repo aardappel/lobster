@@ -31,6 +31,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
+#include <float.h>
 
 #include <string>
 #include <map>
