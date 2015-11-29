@@ -174,11 +174,22 @@ string ParseMaterialFile(char *mbuf)
                     else if (last == "pointscale")   decl += "uniform float pointscale;\n";
                     else if (!strncmp(last.c_str(), "tex", 3))
                     {
-                        bool cubemap = !strncmp(last.c_str() + 3, "cube", 4);
+                        auto p = last.c_str() + 3;
+                        bool cubemap = false;
+                        bool floatingp = false;
+                        if (!strncmp(p, "cube", 4))
+                        {
+                            p += 4;
+                            cubemap = true;
+                        }
+                        if (*p == 'f')
+                        {
+                            p++;
+                            floatingp = true;
+                        }
+                        auto unit = atoi(p);
                         if (accum == &compute)
                         {
-                            auto unit = atoi(last.c_str() + 3 + (cubemap ? 4 : 0));
-                            bool floatingp = unit >= 1;  // FIXME: total hack. need to be able to specify this.
                             decl += "layout(binding = " + to_string(unit) + ", " +
                                     (floatingp ? "rgba32f" : "rgba8") + ") ";
                         }
@@ -384,6 +395,8 @@ void DispatchCompute(const int3 &groups)
 {
     #ifndef PLATFORM_ES2
         if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+        // Make sure any imageStore operations have completed. Would be better to decouple this from DispatchCompute.
+        if (glMemoryBarrier) glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
     #else
         assert(false);
     #endif

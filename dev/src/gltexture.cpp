@@ -104,7 +104,7 @@ void SetImageTexture(uint textureunit, uint id, int tf)
 {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glBindImageTexture)
-            glBindImageTexture(textureunit, id, 0, GL_FALSE, 0,
+            glBindImageTexture(textureunit, id, 0, GL_TRUE, 0,
                                tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
                                tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
     #else
