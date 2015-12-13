@@ -567,11 +567,12 @@ inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, 
 }
 
 // type T must have .pos and .norm
-template<class T> void normalize_mesh(int *idxs, size_t idxlen, T *verts, size_t vertlen, bool ignore_bad_tris = true)
+inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen, size_t vsize, size_t normaloffset,
+                           bool ignore_bad_tris = true)
 {
     for (size_t i = 0; i < vertlen; i++)
     {
-        verts[i].norm = float3_0;
+        *(float3 *)((uchar *)verts + i * vsize + normaloffset) = float3_0;
     }
 
     for (size_t t = 0; t < idxlen; t += 3)
@@ -580,13 +581,13 @@ template<class T> void normalize_mesh(int *idxs, size_t idxlen, T *verts, size_t
         int v2i = idxs[t + 1];
         int v3i = idxs[t + 2];
 
-        float3 &v1p = verts[v1i].pos;  
-        float3 &v2p = verts[v2i].pos;
-        float3 &v3p = verts[v3i].pos;
+        float3 &v1p = *(float3 *)((uchar *)verts + v1i * vsize);
+        float3 &v2p = *(float3 *)((uchar *)verts + v2i * vsize);
+        float3 &v3p = *(float3 *)((uchar *)verts + v3i * vsize);
 
-        float3 &v1n = verts[v1i].norm;
-        float3 &v2n = verts[v2i].norm;
-        float3 &v3n = verts[v3i].norm;
+        float3 &v1n = *(float3 *)((uchar *)verts + v1i * vsize + normaloffset);
+        float3 &v2n = *(float3 *)((uchar *)verts + v2i * vsize + normaloffset);
+        float3 &v3n = *(float3 *)((uchar *)verts + v3i * vsize + normaloffset);
 
         if (v1p != v2p && v1p != v3p && v2p != v3p)
         {
@@ -609,7 +610,7 @@ template<class T> void normalize_mesh(int *idxs, size_t idxlen, T *verts, size_t
 
     for (size_t i = 0; i < vertlen; i++)
     {
-        float3 &norm = verts[i].norm;
+        float3 &norm = *(float3 *)((uchar *)verts + i * vsize + normaloffset);
         if (norm != float3_0)
             norm = normalize(norm);
     }

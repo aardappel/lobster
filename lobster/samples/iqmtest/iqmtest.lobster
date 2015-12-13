@@ -35,8 +35,9 @@ while gl_frame():
     gl_blend(0)
     gl_setshader("phong_anim")
     gl_animatemesh(iqmtest, gl_time() * 60)
-    gl_translate xy_1 * 10:
-        gl_rendermesh(iqmtest)
+    for(10) i:
+        gl_translate xy_1 * 10 + i * 5:
+            gl_rendermesh(iqmtest)
 
     gl_setshader("color")
     gl_debug_grid([20, 20, 0], xyz_1, 0.005)

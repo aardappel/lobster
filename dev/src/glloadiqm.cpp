@@ -332,7 +332,8 @@ Mesh *LoadIQM(const char *filename)
     }
 
     if (!innormal)
-        normalize_mesh((int *)tris, numtris * 3, verts, numverts);
+        normalize_mesh((int *)tris, numtris * 3, verts, numverts, sizeof(AnimVert),
+                       (uchar *)&verts[0].norm - (uchar *)&verts[0].pos);
 
     auto geom = new Geometry(verts, numverts, sizeof(AnimVert), "PNTCWI");
 

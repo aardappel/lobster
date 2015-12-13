@@ -105,18 +105,35 @@ Surface::~Surface()
 }
 
 Geometry::Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
-    : vertsize(_vertsize), fmt(_fmt), vboId(0), nverts(_nverts)
+    : vertsize(_vertsize), fmt(_fmt), vbo(0), nverts(_nverts)
 {
-    vboId = GenBO(GL_ARRAY_BUFFER, vertsize, nverts, verts);
+    vbo = GenBO(GL_ARRAY_BUFFER, vertsize, nverts, verts);
 }
 
-void Geometry::RenderSetup() { SetAttribs(vboId, fmt, (int)vertsize); }
-void Geometry::RenderDone()  { UnSetAttribs(fmt); }
+void Geometry::RenderSetup()
+{
+    /*
+    if (glMapBufferRange)
+    {
+        auto mem = (float *)glMapBufferRange(GL_ARRAY_BUFFER, 0, vertsize * nverts, GL_MAP_READ_BIT);
+        printf("%x\n", mem);
+    }
+    */
+
+    SetAttribs(vbo, fmt.c_str(), (int)vertsize);
+}
+
+void Geometry::RenderDone()
+{
+    UnSetAttribs(fmt.c_str());
+}
 
 Geometry::~Geometry()
 {
-    glDeleteBuffers(1, &vboId);
+    glDeleteBuffers(1, &vbo);
 }
+
+void Geometry::BindAsSSBO(uint bind_point_index) { BindVBOAsSSBO(bind_point_index, vbo); }
 
 void Mesh::Render(Shader *sh)
 {
@@ -143,6 +160,7 @@ void Mesh::Render(Shader *sh)
     }
 
     geom->RenderSetup();
+
     if (surfs.size())
     {
         for (auto s : surfs) s->Render(sh);
@@ -229,14 +247,14 @@ void RenderQuad(Shader *sh, Primitive prim, const float4x4 &trans)
     });
 }
 
-void RenderLine2D(Shader *sh, Primitive prim, const float2 &v1, const float2 &v2, float thickness)
+void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness)
 {
     auto v = v2 - v1;
     auto len = length(v);
     auto vnorm = v / len;
-    auto side = float2(vnorm.y(), -vnorm.x()) * thickness / 2;
-    auto trans = translation(float3(v1 + side, 0)) * 
-                 rotationZ(vnorm) *
+    auto side = float3(vnorm.y(), -vnorm.x(), 0) * thickness / 2;
+    auto trans = translation(v1 + side) * 
+                 rotationZ(vnorm.xy()) *
                  float4x4(float4(len, thickness, 1, 1));
     RenderQuad(sh, prim, trans);
 }

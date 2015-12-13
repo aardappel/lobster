@@ -395,8 +395,9 @@ void DispatchCompute(const int3 &groups)
 {
     #ifndef PLATFORM_ES2
         if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
-        // Make sure any imageStore operations have completed. Would be better to decouple this from DispatchCompute.
-        if (glMemoryBarrier) glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+        // Make sure any imageStore/VBOasSSBO operations have completed.
+        // Would be better to decouple this from DispatchCompute.
+        if (glMemoryBarrier) glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT || GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
     #else
         assert(false);
     #endif
@@ -404,29 +405,42 @@ void DispatchCompute(const int3 &groups)
 
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally be split up for more
 // flexibility.
-bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
+uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo)
 {
+    GLuint bo = 0;
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-        if (!sh || !glGetProgramResourceIndex || !glShaderStorageBlockBinding || !glBindBufferBase ||
-                   !glUniformBlockBinding || !glGetUniformBlockIndex) return false;
-        auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-        GLuint bo = 0;
-        glGenBuffers(1, &bo);
-        glBindBuffer(type, bo);
-        glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW);
-        glBindBuffer(type, 0);
-        sh->Activate();
-        auto idx = ssbo ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
-                        : glGetUniformBlockIndex(sh->program, uniformblockname);
-        if (idx == GL_INVALID_INDEX) return false;
-        GLuint bo_binding_point_index = 1;  // FIXME: how do we allocate these properly?
-        glBindBufferBase(type, bo_binding_point_index, bo);
-        if (ssbo) glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index);
-        else      glUniformBlockBinding      (sh->program, idx, bo_binding_point_index);
-        return true;
+        if (sh && glGetProgramResourceIndex && glShaderStorageBlockBinding && glBindBufferBase &&
+                  glUniformBlockBinding && glGetUniformBlockIndex)
+        {
+            sh->Activate();
+            auto idx = ssbo ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
+                            : glGetUniformBlockIndex(sh->program, uniformblockname);
+            if (idx != GL_INVALID_INDEX)
+            {
+                auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
+                glGenBuffers(1, &bo);
+                glBindBuffer(type, bo);
+                glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW);
+                glBindBuffer(type, 0);
+                static GLuint bo_binding_point_index = 0;
+                bo_binding_point_index++;  // FIXME: how do we allocate these properly?
+                glBindBufferBase(type, bo_binding_point_index, bo);
+                if (ssbo) glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index);
+                else      glUniformBlockBinding      (sh->program, idx, bo_binding_point_index);
+            }
+        }
     #else
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
-        return false;
     #endif
+    return bo;
 }
 
+void BindVBOAsSSBO(uint bind_point_index, uint vbo)
+{
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        if (glBindBufferBase)
+        {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point_index, vbo);
+        }
+    #endif
+}

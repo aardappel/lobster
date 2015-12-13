@@ -78,8 +78,8 @@ struct AnimVert : BasicVert // "PNTCWI"
 class Geometry 
 {
     const size_t vertsize;
-    const char *fmt;
-    uint vboId;
+    string fmt;
+    uint vbo;
 
     public:
 
@@ -90,6 +90,8 @@ class Geometry
 
     void RenderSetup();
     void RenderDone();
+
+    void BindAsSSBO(uint bind_point_index);
 };
 
 struct Mesh
@@ -134,7 +136,8 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, uint id, int tf);
-extern bool UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo);
+extern uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname, bool ssbo);
+extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
 
 // These must correspond to the constants in color.lobster
 enum TextureFlag
@@ -156,7 +159,7 @@ extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
 
 extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, 
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
-extern void RenderLine2D(Shader *sh, Primitive prim, const float2 &v1, const float2 &v2, float thickness);
+extern void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness);
 extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
 extern void RenderQuad(Shader *sh, Primitive prim, const float4x4 &trans);
 extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);

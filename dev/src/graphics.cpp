@@ -116,7 +116,7 @@ void poptrans()
 Mesh *GetMesh(Value &i)
 {
     auto m = meshes->Get(i.ival());
-    if (!m) g_vm->BuiltinError("graphics: illegal mesh id");
+    if (!m) g_vm->BuiltinError("graphics: illegal mesh id: " + to_string(i.ival()));
     return m;
 }
 
@@ -606,8 +606,8 @@ void AddGraphics()
     {
         TestGL();
 
-        auto v1 = ValueDecToF<2>(start);
-        auto v2 = ValueDecToF<2>(end);
+        auto v1 = ValueDecToF<3>(start);
+        auto v2 = ValueDecToF<3>(end);
 
         RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
         return Value();
@@ -634,57 +634,71 @@ void AddGraphics()
         " bottom right. this is the default at the start of a frame, use this call to get back to that after"
         " gl_perspective.");
 
-    STARTDECL(gl_newmesh) (Value &indices, Value &positions, Value &colors, Value &texcoords, Value &normals)
+    STARTDECL(gl_newmesh) (Value &positions, Value &colors, Value &texcoords, Value &normals, Value &indices)
     {
         TestGL();
 
         vector<int> idxs;
-        for (int i = 0; i < indices.eval()->Len(); i++)
+        if (indices.True())
         {
-            auto &e = indices.eval()->At(i);
-            if (e.ival() < 0 || e.ival() >= positions.eval()->Len())
-                g_vm->BuiltinError("newmesh: index out of range of vertex list");
-            idxs.push_back(e.ival());
+            for (int i = 0; i < indices.eval()->Len(); i++)
+            {
+                auto &e = indices.eval()->At(i);
+                if (e.ival() < 0 || e.ival() >= positions.eval()->Len())
+                    g_vm->BuiltinError("newmesh: index out of range of vertex list");
+                idxs.push_back(e.ival());
+            }
+            indices.DECRT();
         }
-        indices.DECRT();
 
         int nverts = positions.eval()->Len();
-
-        BasicVert *verts = new BasicVert[nverts];
-        BasicVert v = { float3_0, float3_0, float2_0, byte4_255 };
+        string format = "P";
+        size_t vsize = sizeof(float3);
+        size_t normal_offset = 0;
+        if (colors.True())    { format += "C"; vsize += sizeof(byte4); }
+        if (texcoords.True()) { format += "T"; vsize += sizeof(float2); }
+        if (normals.True())   { format += "N"; normal_offset = vsize; vsize += sizeof(float3); }
+        auto verts = new uchar[nverts * vsize];
 
         for (int i = 0; i < nverts; i++)
         {
-            v.pos  = ValueToF<3>(positions.eval()->At(i), 0);
-            v.col  = i < colors.eval()->Len()    ? quantizec(ValueToF<4>(colors.eval()->At(i), 1)) : byte4_255;
-            v.tc   = i < texcoords.eval()->Len() ? ValueToF<3>(texcoords.eval()->At(i), 0).xy()    : v.pos.xy();
-            v.norm = i < normals.eval()->Len()   ? ValueToF<3>(normals.eval()->At(i), 0)           : float3_0;
-            verts[i] = v;
+            auto p = &verts[i * vsize];
+            auto pos = ValueToF<3>(positions.eval()->At(i), 0);
+                                  *((float3 *&)p)++ = pos;
+            if (colors.True())    *((byte4  *&)p)++ = i < colors.eval()->Len()
+                                                          ? quantizec(ValueToF<4>(colors.eval()->At(i), 1))
+                                                          : byte4_255;
+            if (texcoords.True()) *((float2 *&)p)++ = i < texcoords.eval()->Len()
+                                                          ? ValueToF<3>(texcoords.eval()->At(i), 0).xy()
+                                                          : pos.xy();
+            if (normals.True())   *((float3 *&)p)++ = i < normals.eval()->Len()
+                                                          ? ValueToF<3>(normals.eval()->At(i), 0)
+                                                          : float3_0;
         }
 
-        if (!normals.eval()->Len())
+        if (normal_offset && !normals.eval()->Len())
         {
-            // if no normals were specified, generate them. if the user really doesn't use normals and this step is
-            // somehow too expensive, he can always pass in the positions vector a second time to skip it
-            normalize_mesh(&idxs[0], idxs.size(), verts, nverts);
+            // if no normals were specified, generate them.
+            normalize_mesh(&idxs[0], idxs.size(), verts, nverts, vsize, normal_offset);
         }
 
         positions.DECRT();
-        colors.DECRT();
-        texcoords.DECRT();
-        normals.DECRT();
+        colors.DECRTNIL();
+        texcoords.DECRTNIL();
+        normals.DECRTNIL();
 
-        auto m = new Mesh(new Geometry(verts, nverts, sizeof(BasicVert), "PNTC"));
-        m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
+        // FIXME: make meshes into points in a more general way.
+        auto m = new Mesh(new Geometry(verts, nverts, vsize, format.c_str()), indices.True() ? PRIM_TRIS : PRIM_POINT);
+        if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
 
         delete[] verts;
 
         return Value((int)meshes->Add(m));
     }
-    ENDDECL5(gl_newmesh, "indices,positions,colors,texcoords,normals", "I]F]]F]]F]]F]]", "I",
+    ENDDECL5(gl_newmesh, "positions,colors,texcoords,normals,indices", "F]]F]]?F]]?F]]?I]?", "I",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " you may specify [] to get defaults for colors (white) / texcoords (position x & y) /"
-        " normals (generated from adjacent triangles)");
+        " normals (generated from adjacent triangles), or nil if the attribute isn't needed at all");
 
     STARTDECL(gl_newpoly) (Value &positions)
     {
@@ -801,15 +815,25 @@ void AddGraphics()
         vector<float4> vals(vec.eval()->Len());
         for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToF<4>(vec.eval()->At(i));
         vec.DECRT();
-        auto ok = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(), name.sval()->str(), ssbo.True());
+        auto id = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(), name.sval()->str(), ssbo.True());
         name.DECRT();
-        return Value(ok);
+        return Value((int)id);
     }
     ENDDECL3(gl_uniformbufferobject, "name,value,ssbo", "SF]]I?", "I",
              "creates a uniform buffer object, and attaches it to the current shader at the given uniform block name."
              " uniforms in the shader must be all vec4s, or an array of them."
              " ssbo indicates if you want a shader storage block instead."
-             " returns false on error.");
+             " returns buffer id or 0 on error.");
+
+    STARTDECL(gl_bindmeshtocompute) (Value &mesh, Value &bpi)
+    {
+        TestGL();
+        if (mesh.ival()) GetMesh(mesh)->geom->BindAsSSBO(bpi.ival());
+        else BindVBOAsSSBO(bpi.ival(), 0);
+        return Value();
+    }
+    ENDDECL2(gl_bindmeshtocompute, "mesh,binding", "II", "",
+        "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a 0 mesh to unbind.");
 
     STARTDECL(gl_dispatchcompute) (Value &groups)
     {
