@@ -109,11 +109,11 @@ if true:
 
 landscape := 0
 if true:
-    mg_landscape(0.5, 0.5)
+    mg_landscape(1.0, 0.5)
     landscape = mg_polygonize(density * 2, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
 
-print "vertcount: gun " + gl_meshsize(gun)
-print "vertcount: ship " + gl_meshsize(spaceship)
+if gun: print "vertcount: gun " + gl_meshsize(gun)
+if spaceship: print "vertcount: ship " + gl_meshsize(spaceship)
 for trees: print("vertcount: tree1 " + gl_meshsize(_))
 
 print seconds_elapsed()

@@ -278,8 +278,11 @@ struct IFLandscape : ImplicitFunctionImpl<IFLandscape>
     inline bool Eval(const float3 &pos)
     {
         if (abs(pos) > 1) return false;
-        auto f = simplexNoise(8, 0.5f, xyscale, float4(pos.xy(), 0)) * zscale;
-        return pos.z() < f;
+        auto dpos = pos + float3(simplexNoise(8, 0.5f, 1, float4(pos.xy() + 1, 0)),
+                                 simplexNoise(8, 0.5f, 1, float4(pos.xy() + 2, 0)),
+                                 0) / 2;
+        auto f = simplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
+        return dpos.z() < f;
     }
 };
 
@@ -516,6 +519,43 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
         int edgestartcell[4] = { 1, 2, 2, 3 };
 
+        #ifdef MERGE_VERTICAL_EDGES
+        // FIXME: only do this for continguous sections
+        for (int x = 0; x < gridsize.x() - 1; x++)
+            for (int y = 0; y < gridsize.y() - 1; y++)
+        {
+            uint edgecountx = 0;
+            uint edgecounty = 0;
+            uint edgex = 0;
+            uint edgey = 0;
+            for (int z = 0; z < gridsize.z() - 1; z++)
+            {
+                int3 pos(x, y, z);
+
+                auto fci = fcellindices[IndexGrid(pos, gridsize)].geti();
+                if (fci)
+                {
+                    auto &fc = fcells[fci];
+                    if (fc.edges[0]) { edgex += fc.edges[0]; edgecountx++; }
+                    if (fc.edges[1]) { edgey += fc.edges[1]; edgecounty++; }
+                }
+            }
+
+            for (int z = 0; z < gridsize.z() - 1; z++)
+            {
+                int3 pos(x, y, z);
+
+                auto fci = fcellindices[IndexGrid(pos, gridsize)].geti();
+                if (fci)
+                {
+                    auto &fc = fcells[fci];
+                    if (edgecountx > 1 && fc.edges[0]) fc.edges[0] = ushort(edgex / edgecountx);
+                    if (edgecounty > 1 && fc.edges[1]) fc.edges[1] = ushort(edgey / edgecounty);
+                }
+            }
+        }
+        #endif
+
         for (int z = 1; z < gridsize.z() - 1; z++)
             for (int x = 0; x < gridsize.x() - 1; x++)
                 for (int y = 0; y < gridsize.y() - 1; y++)
@@ -537,7 +577,8 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
             
             for (int i = 0; i < 4; i++)
             {
-                auto &fc = fcells[celli[1][edgestartcell[i]].geti()];
+                auto fi = celli[1][edgestartcell[i]].geti();
+                auto &fc = fcells[fi];
                 auto e = fc.edges[i & 1];
                 auto mid = e / float(maxedge) - ((i & 2) / 2);
                 edgev[i] = float3(gridpos[1][i]).add(i & 1, mid);
