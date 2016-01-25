@@ -192,6 +192,8 @@ class SlabAlloc
             free(blocks);
             blocks = (void **)next;
         }
+
+        while (!largeallocs.Empty()) free(largeallocs.Get());
     }
 
     // these are the most basic allocation functions, only useable if you know for sure
@@ -336,6 +338,16 @@ class SlabAlloc
         auto to = (T *)alloc_small(sizeof(T));
         memcpy(to, from, sizeof(T));
         return to;
+    }
+
+    template<typename T> T *alloc_array(size_t numelems)
+    {
+        return (T *)alloc(sizeof(T) * numelems);
+    }
+
+    template<typename T> void dealloc_array(T *array, size_t numelems)
+    {
+        dealloc(array, sizeof(T) * numelems);
     }
 
     void *clone_obj_small_unknown(const void *from)  // Clones anything regardless of what it is, finds out size itself.

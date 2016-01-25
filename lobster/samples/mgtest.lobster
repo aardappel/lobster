@@ -22,7 +22,7 @@ mg_set_colornoise(0.5, 1)
 aspoints := false
 mg_set_pointmode(aspoints)
 if !aspoints:
-    mg_set_polygonreduction(100, 0.98, 0.95)
+    mg_set_polygonreduction(3, 0.98, 0.95)
     mg_set_vertrandomize(0)
 
 density := 80
@@ -108,7 +108,8 @@ if true:
     trees.push(mg_polygonize(density, [[ 0.6, 0.5, 0.4 ], [ 0.5, 0.7, 0.5 ]]))
 
 landscape := 0
-if true:
+// Currently expensive way to do a landscape.
+if false:
     mg_landscape(1.0, 0.5)
     landscape = mg_polygonize(density * 2, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
 
