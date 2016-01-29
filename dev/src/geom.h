@@ -566,6 +566,39 @@ inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, 
            (c - a) * tension * (   s3 -   s2    );
 }
 
+inline bool line_intersect(const float2 &l1a, const float2 &l1b, const float2 &l2a, const float2 &l2b,
+                           float2 *out = nullptr)
+{
+    float2 a(l1b - l1a);
+    float2 b(l2b - l2a);
+    float2 aperp(-a.y(), a.x());
+
+    auto f = dot(aperp, b);
+    if (!f) return false;     // Parallel.
+
+    float2 c(l2b - l1b);
+    float2 bperp(-b.y(), b.x());
+    auto aa = dot(aperp, c);
+    auto bb = dot(bperp, c);
+
+    if(f < 0)
+    {
+        if(aa > 0 || bb > 0 || aa < f || bb < f)     return false;
+    }
+    else
+    {
+        if(aa < 0 || bb < 0 || aa > f || bb > f)     return false;
+    }
+
+    if(out)
+    {
+        auto lerp = 1.0f - (aa / f);
+        *out = ((l2b - l2a) * lerp) + l2a;
+    }
+
+    return true;
+}
+
 // type T must have .pos and .norm
 inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen, size_t vsize, size_t normaloffset,
                            bool ignore_bad_tris = true)

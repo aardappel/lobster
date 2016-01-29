@@ -776,6 +776,16 @@ void AddBuiltins()
         "computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a"
         " cardinal spline (tension at 0.5 is a good default)");
 
+    STARTDECL(line_intersect) (Value &l1a, Value &l1b, Value &l2a, Value &l2b)
+    {
+        float2 ipoint;
+        auto r = line_intersect(ValueDecToF<2>(l1a), ValueDecToF<2>(l1b), ValueDecToF<2>(l2a), ValueDecToF<2>(l2b),
+                                &ipoint);
+        return r ? ToValueF(ipoint) : Value();
+    }
+    ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F]F]F]F]", "F]:2?",
+        "computes the intersection point between 2 line segments, or nil if no intersection");
+
     STARTDECL(lerp) (Value &x, Value &y, Value &f)
     {
         return Value(mix(x.fval(), y.fval(), f.fval()));
