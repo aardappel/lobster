@@ -341,7 +341,7 @@ void AddGraphics()
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
-    STARTDECL(gl_lastpos) (Value &name, Value &on)     // need a local version of this too?
+    STARTDECL(gl_lastpos) (Value &name, Value &on)
     {
         auto p = GetKeyPos(name.sval()->str(), on.ival());
         name.DECRT();
@@ -350,7 +350,7 @@ void AddGraphics()
     ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
-    STARTDECL(gl_locallastpos) (Value &name, Value &on)     // need a local version of this too?
+    STARTDECL(gl_locallastpos) (Value &name, Value &on)
     {
         auto p = localpos(GetKeyPos(name.sval()->str(), on.ival()));
         name.DECRT();

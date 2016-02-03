@@ -285,7 +285,7 @@ struct TypeChecker
     {
         if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
         if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
-        if (IsScalar(a->exptype->t)) a = (Node *)new Unary(a->line, T_E2A, a);
+        a = (Node *)new Unary(a->line, T_E2A, a);
         a->exptype = type_any;
     }
 

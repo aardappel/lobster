@@ -627,7 +627,7 @@ struct CodeGen
                     {
                         case V_INT:   Emit(IL_I2A); break;
                         case V_FLOAT: Emit(IL_F2A); break;
-                        default: assert(0);
+                        default: break;  // Everything else is already compatible.
                     }
                 }
                 break;
