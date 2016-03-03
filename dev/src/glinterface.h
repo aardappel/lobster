@@ -161,7 +161,8 @@ extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness);
 extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos, float thickness);
-extern void RenderQuad(Shader *sh, Primitive prim, const float4x4 &trans);
+extern void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
+extern void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
 extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
 
 extern Mesh *LoadIQM(const char *filename);

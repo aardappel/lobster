@@ -599,7 +599,7 @@ void SDLSoundClose()
 bool SDLPlaySound(const char *filename, bool sfxr)
 {
     #ifdef __EMSCRIPTEN__
-    // Distorted in chrome and no audio at all in chrome, disable for now.
+    // Distorted in firefox and no audio at all in chrome, disable for now.
     return false;
     #endif
 

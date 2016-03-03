@@ -20,7 +20,7 @@ while gl_frame():
     gl_scale(min(gl_windowsize().x, gl_windowsize().y))
 
     gl_color(color_light_grey)
-    gl_rect(xy_1)
+    gl_unit_square()
 
     ball += ballvel
 

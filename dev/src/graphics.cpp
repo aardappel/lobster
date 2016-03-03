@@ -591,16 +591,24 @@ void AddGraphics()
         " which gl_hit was true last frame is of the same size as this one (allows you to safely test in most cases"
         " of overlapping rendering)");
 
-    STARTDECL(gl_rect) (Value &vec)
+    STARTDECL(gl_rect) (Value &vec, Value &centered)
     {
         TestGL();
-
-        RenderQuad(currentshader, polymode, float4x4(float4(ValueToF<2>(vec), 1)));
-
+        RenderQuad(currentshader, polymode, centered.True(), float4x4(float4(ValueToF<2>(vec), 1)));
         return vec;
     }
-    ENDDECL1(gl_rect, "vec", "F]", "F]",
-        "renders a rectangle of the given size. returns the argument.");
+    ENDDECL2(gl_rect, "vec,centered", "F]I?", "F]",
+        "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given size."
+        " returns the argument.");
+
+    STARTDECL(gl_unit_square) (Value &centered)
+    {
+        TestGL();
+        RenderUnitSquare(currentshader, polymode, centered.True());
+        return Value();
+    }
+    ENDDECL1(gl_unit_square, "centered", "I?", "",
+        "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)");
 
     STARTDECL(gl_line) (Value &start, Value &end, Value &thickness)
     {

@@ -28,24 +28,29 @@ def exists(xs, fun):
 
 def forever(fun): while true: fun()
 
-def fold(xs, init, fun):
-    for xs: init = fun(init, _)
-    init
+def fold(xs, acc, fun):
+    for xs: acc = fun(acc, _)
+    acc
+
+def fold2(xs, acc1, acc2, fun):
+    for xs:
+        acc1, acc2 = fun(acc1, acc2, _)
+    return acc1, acc2
 
 def reduce(xs, fun):
     assert xs.length
-    init := xs[0]
-    for(xs.length - 1) i: init = fun(init, xs[i + 1])
-    init
+    acc := xs[0]
+    for(xs.length - 1) i: acc = fun(acc, xs[i + 1])
+    acc
 
 def connect(xs, fun):
     map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
 
 def reducerev(xs, fun):
     assert xs.length
-    init := xs[xs.length - 1]
-    for(xs.length - 1) i: init = fun(xs[xs.length - i - 2], init)
-    init
+    acc := xs[xs.length - 1]
+    for(xs.length - 1) i: acc = fun(xs[xs.length - i - 2], acc)
+    acc
 
 def find(xs, fun):
     for(xs) x, i: if fun(x): return i

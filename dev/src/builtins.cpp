@@ -702,7 +702,7 @@ void AddBuiltins()
     {
         auto x     = ValueDecToF<2>(xv);
         auto range = ValueDecToF<2>(rangev);
-        auto bias  = ValueDecToF<2>(biasv);
+        auto bias  = biasv.True() ? ValueDecToF<2>(biasv) : float2_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "F]:2F]:2F]:2?", "I",

@@ -24,6 +24,8 @@ SDL_GLContext _sdl_context = nullptr;
 
 
 /*
+// FIXME: document this, especially the ones containing spaces.
+
 mouse1 mouse2 mouse3...
 backspace tab clear return pause escape space delete
 ! " # $ & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ [ \ ] ^ _ `

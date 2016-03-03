@@ -6,9 +6,6 @@ colorconstant := 1
 
 def square(pos, size, depth):
     if ((rnd(4) or depth < 2) and size.x > 8 and size.y > 8):
-        //dir := rnd(2)
-        //dir := size.y > size.x
-        //split := rnd(size[dir] - 7) + 4
         notfound := true
         dir := 0
         split := 0
@@ -27,8 +24,6 @@ def square(pos, size, depth):
         gl_translate float(pos):
             gl_color(color_black)
             gl_rect(float(size))
-            //col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.7 + 0.3
-            //col[colorconstant] = 0.7
             col := [ rndfloat(), rndfloat(), rndfloat(), 1 ] * 0.15 + 0.75
             range := max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
             col[colorconstant] = rndfloat() * range + (1 - range)

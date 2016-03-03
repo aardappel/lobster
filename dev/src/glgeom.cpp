@@ -224,50 +224,61 @@ void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt,
     glDeleteBuffers(1, &vbo);
 }
 
-uint quadvbo = 0;
+uint quadvbo[2] = { 0, 0 };
 
-void RenderQuad(Shader *sh, Primitive prim, const float4x4 &trans)
+void RenderUnitSquare(Shader *sh, Primitive prim, bool centered)
 {
     int quadsize = sizeof(float) * 5;
-    if (!quadvbo)
+    if (!quadvbo[centered])
     {
-        static float tempquad_rect[20] =
+        static float vb_square[20] =
         {
             0, 0, 0, 0, 0,
             0, 1, 0, 0, 1,
             1, 1, 0, 1, 1,
             1, 0, 0, 1, 0,
         };
-        quadvbo = GenBO(GL_ARRAY_BUFFER, quadsize, 4, tempquad_rect);
+        static float vb_square_centered[20] =
+        {
+            -1, -1, 0, 0, 0,
+            -1,  1, 0, 0, 1,
+             1,  1, 0, 1, 1,
+             1, -1, 0, 1, 0,
+        };
+        quadvbo[centered] = GenBO(GL_ARRAY_BUFFER, quadsize, 4, centered ? vb_square_centered : vb_square);
     }
-    Transform2D(trans, [&]()
-    {
-        sh->Set();
-        RenderArray(prim, 4, 4, "PT", quadsize, quadvbo);
-    });
+    sh->Set();
+    RenderArray(prim, 4, 4, "PT", quadsize, quadvbo[centered]);
+}
+
+void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans)
+{
+    Transform2D(trans, [&]() { RenderUnitSquare(sh, prim, centered); });
 }
 
 void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness)
 {
-    auto v = v2 - v1;
+    auto v = (v2 - v1) / 2;
     auto len = length(v);
     auto vnorm = v / len;
-    auto side = float3(vnorm.y(), -vnorm.x(), 0) * thickness / 2;
-    auto trans = translation(v1 + side) * 
+    auto trans = translation(v1 + v) * 
                  rotationZ(vnorm.xy()) *
-                 float4x4(float4(len, thickness, 1, 1));
-    RenderQuad(sh, prim, trans);
+                 float4x4(float4(len, thickness / 2, 1, 1));
+    RenderQuad(sh, prim, true, trans);
 }
 
-void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos, float thickness)
+void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &/*campos*/, float thickness)
 {
     glDisable(GL_CULL_FACE);  // An exception in 3d mode.
-    auto side = normalize(cross(v2 - v1, campos - (v1 + v2) / 2)) * thickness;
+    // FIXME: need to rotate the line also to make it face the camera.
+    //auto camvec = normalize(campos - (v1 + v2) / 2);
     auto v = v2 - v1;
-    auto trans = translation(v1 + side) * 
-                 float3x3to4x4(rotation(quatfromtwovectors(normalize(v), float3_x))) *  // FIXME: cheaper?
-                 float4x4(float4(length(v), length(side) * 2, 1, 1));
-    RenderQuad(sh, PRIM_FAN, trans);
+    auto vq = quatfromtwovectors(normalize(v), float3_x);
+    //auto sq = quatfromtwovectors(camvec, float3_z);
+    auto trans = translation((v1 + v2) / 2) * 
+                 float3x3to4x4(rotation(vq)) *  // FIXME: cheaper?
+                 float4x4(float4(length(v) / 2, thickness, 1, 1));
+    RenderQuad(sh, PRIM_FAN, true, trans);
     glEnable(GL_CULL_FACE); 
 }
 

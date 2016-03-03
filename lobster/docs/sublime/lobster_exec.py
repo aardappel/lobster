@@ -242,7 +242,7 @@ class LobsterExecCommand(sublime_plugin.WindowCommand, ProcessListener):
             else:
                 self.append_string(proc, ("[Finished in %.1fs with exit code %d]\n"
                     % (elapsed, exit_code)))
-                self.append_string(proc, self.debug_text)
+                #self.append_string(proc, self.debug_text)
 
         if proc != self.proc:
             return
