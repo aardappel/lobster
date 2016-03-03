@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -76,6 +76,29 @@
 #define XINPUT_GAMEPAD_GUIDE 0x0400
 #endif
 
+#ifndef BATTERY_DEVTYPE_GAMEPAD
+#define BATTERY_DEVTYPE_GAMEPAD         0x00
+#endif
+#ifndef BATTERY_TYPE_WIRED
+#define BATTERY_TYPE_WIRED              0x01
+#endif
+
+#ifndef BATTERY_TYPE_UNKNOWN
+#define BATTERY_TYPE_UNKNOWN            0xFF
+#endif
+#ifndef BATTERY_LEVEL_EMPTY
+#define BATTERY_LEVEL_EMPTY             0x00
+#endif
+#ifndef BATTERY_LEVEL_LOW
+#define BATTERY_LEVEL_LOW               0x01
+#endif
+#ifndef BATTERY_LEVEL_MEDIUM
+#define BATTERY_LEVEL_MEDIUM            0x02
+#endif
+#ifndef BATTERY_LEVEL_FULL
+#define BATTERY_LEVEL_FULL              0x03
+#endif
+
 /* typedef's for XInput structs we use */
 typedef struct
 {
@@ -94,6 +117,12 @@ typedef struct
     DWORD dwPacketNumber;
     XINPUT_GAMEPAD_EX Gamepad;
 } XINPUT_STATE_EX;
+
+typedef struct
+{
+    BYTE BatteryType;
+    BYTE BatteryLevel;
+} XINPUT_BATTERY_INFORMATION_EX;
 
 /* Forward decl's for XInput API's we load dynamically and use if available */
 typedef DWORD (WINAPI *XInputGetState_t)
@@ -115,17 +144,26 @@ typedef DWORD (WINAPI *XInputGetCapabilities_t)
     XINPUT_CAPABILITIES* pCapabilities  /* [out] Receives the capabilities */
     );
 
+typedef DWORD (WINAPI *XInputGetBatteryInformation_t)
+    (
+    DWORD                         dwUserIndex,
+    BYTE                          devType,
+    XINPUT_BATTERY_INFORMATION_EX *pBatteryInformation
+    );
+
 extern int WIN_LoadXInputDLL(void);
 extern void WIN_UnloadXInputDLL(void);
 
 extern XInputGetState_t SDL_XInputGetState;
 extern XInputSetState_t SDL_XInputSetState;
 extern XInputGetCapabilities_t SDL_XInputGetCapabilities;
+extern XInputGetBatteryInformation_t SDL_XInputGetBatteryInformation;
 extern DWORD SDL_XInputVersion;  /* ((major << 16) & 0xFF00) | (minor & 0xFF) */
 
 #define XINPUTGETSTATE          SDL_XInputGetState
 #define XINPUTSETSTATE          SDL_XInputSetState
 #define XINPUTGETCAPABILITIES   SDL_XInputGetCapabilities
+#define XINPUTGETBATTERYINFORMATION   SDL_XInputGetBatteryInformation
 
 #endif /* HAVE_XINPUT_H */
 

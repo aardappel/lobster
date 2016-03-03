@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -178,6 +178,7 @@ SDL_JoystickOpen(int device_index)
     if (joystick->buttons) {
         SDL_memset(joystick->buttons, 0, joystick->nbuttons * sizeof(Uint8));
     }
+    joystick->epowerlevel = SDL_JOYSTICK_POWER_UNKNOWN;
 
     /* Add joystick to list */
     ++joystick->ref_count;
@@ -370,6 +371,23 @@ SDL_JoystickInstanceID(SDL_Joystick * joystick)
     }
 
     return (joystick->instance_id);
+}
+
+/*
+ * Find the SDL_Joystick that owns this instance id
+ */
+SDL_Joystick *
+SDL_JoystickFromInstanceID(SDL_JoystickID joyid)
+{
+    SDL_Joystick *joystick = SDL_joysticks;
+    while (joystick) {
+        if (joystick->instance_id == joyid) {
+            return joystick;
+        }
+        joystick = joystick->next;
+    }
+
+    return NULL;
 }
 
 /*
@@ -619,10 +637,10 @@ SDL_PrivateJoystickButton(SDL_Joystick * joystick, Uint8 button, Uint8 state)
     /* Make sure we're not getting garbage or duplicate events */
     if (button >= joystick->nbuttons) {
         return 0;
-	}
-	if (state == joystick->buttons[button]) {
-		return 0;
-	}
+    }
+    if (state == joystick->buttons[button]) {
+        return 0;
+    }
 
     /* We ignore events if we don't have keyboard focus, except for button
      * release. */
@@ -669,14 +687,17 @@ SDL_JoystickUpdate(void)
             int i;
 
             /* Tell the app that everything is centered/unpressed...  */
-            for (i = 0; i < joystick->naxes; i++)
+            for (i = 0; i < joystick->naxes; i++) {
                 SDL_PrivateJoystickAxis(joystick, i, 0);
+            }
 
-            for (i = 0; i < joystick->nbuttons; i++)
+            for (i = 0; i < joystick->nbuttons; i++) {
                 SDL_PrivateJoystickButton(joystick, i, 0);
+            }
 
-            for (i = 0; i < joystick->nhats; i++)
+            for (i = 0; i < joystick->nhats; i++) {
                 SDL_PrivateJoystickHat(joystick, i, SDL_HAT_CENTERED);
+            }
 
             joystick->force_recentering = SDL_FALSE;
         }
@@ -819,6 +840,23 @@ SDL_JoystickGUID SDL_JoystickGetGUIDFromString(const char *pchGUID)
     }
 
     return guid;
+}
+
+
+/* update the power level for this joystick */
+void SDL_PrivateJoystickBatteryLevel(SDL_Joystick * joystick, SDL_JoystickPowerLevel ePowerLevel)
+{
+    joystick->epowerlevel = ePowerLevel;
+}
+
+
+/* return its power level */
+SDL_JoystickPowerLevel SDL_JoystickCurrentPowerLevel(SDL_Joystick * joystick)
+{
+    if (!SDL_PrivateJoystickValid(joystick)) {
+        return (SDL_JOYSTICK_POWER_UNKNOWN);
+    }
+    return joystick->epowerlevel;
 }
 
 

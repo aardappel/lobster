@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -133,12 +133,6 @@
 - (BOOL)prefersStatusBarHidden
 {
     return (window->flags & (SDL_WINDOW_FULLSCREEN|SDL_WINDOW_BORDERLESS)) != 0;
-}
-
-- (UIStatusBarStyle)preferredStatusBarStyle
-{
-    /* We assume most SDL apps don't have a bright white background. */
-    return UIStatusBarStyleLightContent;
 }
 
 /*

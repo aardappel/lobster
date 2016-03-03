@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,7 +71,6 @@ static jclass mActivityClass;
 
 /* method signatures */
 static jmethodID midGetNativeSurface;
-static jmethodID midFlipBuffers;
 static jmethodID midAudioInit;
 static jmethodID midAudioWriteShortBuffer;
 static jmethodID midAudioWriteByteBuffer;
@@ -119,8 +118,6 @@ JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls)
 
     midGetNativeSurface = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                 "getNativeSurface","()Landroid/view/Surface;");
-    midFlipBuffers = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
-                                "flipBuffers","()V");
     midAudioInit = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
                                 "audioInit", "(IZZI)I");
     midAudioWriteShortBuffer = (*mEnv)->GetStaticMethodID(mEnv, mActivityClass,
@@ -134,7 +131,7 @@ JNIEXPORT void JNICALL SDL_Android_Init(JNIEnv* mEnv, jclass cls)
 
     bHasNewData = SDL_FALSE;
 
-    if(!midGetNativeSurface || !midFlipBuffers || !midAudioInit ||
+    if (!midGetNativeSurface || !midAudioInit ||
        !midAudioWriteShortBuffer || !midAudioWriteByteBuffer || !midAudioQuit || !midPollInputDevices) {
         __android_log_print(ANDROID_LOG_WARN, "SDL", "SDL: Couldn't locate Java callbacks, check that they're named and typed correctly");
     }
@@ -265,11 +262,6 @@ JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_onNativeSurfaceDestroyed(
     
     /* GL Context handling is done in the event loop because this function is run from the Java thread */
 
-}
-
-JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativeFlipBuffers(JNIEnv* env, jclass jcls)
-{
-    SDL_GL_SwapWindow(Android_Window);
 }
 
 /* Keydown */
@@ -476,12 +468,6 @@ ANativeWindow* Android_JNI_GetNativeWindow(void)
     (*env)->DeleteLocalRef(env, s);
   
     return anw;
-}
-
-void Android_JNI_SwapWindow(void)
-{
-    JNIEnv *mEnv = Android_JNI_GetEnv();
-    (*mEnv)->CallStaticVoidMethod(mEnv, mActivityClass, midFlipBuffers);
 }
 
 void Android_JNI_SetActivityTitle(const char *title)
@@ -785,12 +771,19 @@ fallback:
                 "open", "(Ljava/lang/String;I)Ljava/io/InputStream;");
         inputStream = (*mEnv)->CallObjectMethod(mEnv, assetManager, mid, fileNameJString, 1 /* ACCESS_RANDOM */);
         if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-            // Try fallback to APK Extension files
+            /* Try fallback to APK expansion files */
             mid = (*mEnv)->GetMethodID(mEnv, (*mEnv)->GetObjectClass(mEnv, context),
-                "openAPKExtensionInputStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
+                "openAPKExpansionInputStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
+            if (!mid) {
+                SDL_SetError("No openAPKExpansionInputStream() in Java class");
+                goto failure; /* Java class is missing the required method */
+            }
             inputStream = (*mEnv)->CallObjectMethod(mEnv, context, mid, fileNameJString);
 
-            if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
+            /* Exception is checked first because it always needs to be cleared.
+             * If no exception occurred then the last SDL error message is kept.
+             */
+            if (Android_JNI_ExceptionOccurred(SDL_FALSE) || !inputStream) {
                 goto failure;
             }
         }

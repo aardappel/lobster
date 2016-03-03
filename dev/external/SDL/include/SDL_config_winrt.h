@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,10 +19,25 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef _SDL_config_windows_h
-#define _SDL_config_windows_h
+#ifndef _SDL_config_winrt_h
+#define _SDL_config_winrt_h
 
 #include "SDL_platform.h"
+
+/* Make sure the Windows SDK's NTDDI_VERSION macro gets defined.  This is used
+   by SDL to determine which version of the Windows SDK is being used.
+*/
+#include <sdkddkver.h>
+
+/* Define possibly-undefined NTDDI values (used when compiling SDL against
+   older versions of the Windows SDK.
+*/
+#ifndef NTDDI_WINBLUE
+#define NTDDI_WINBLUE 0x06030000
+#endif
+#ifndef NTDDI_WIN10
+#define NTDDI_WIN10 0x0A000000
+#endif
 
 /* This is a set of defines to configure the SDL features */
 
@@ -163,7 +178,12 @@ typedef unsigned int uintptr_t;
 #define SDL_LOADSO_WINDOWS	1
 
 /* Enable various threading systems */
+#if (NTDDI_VERSION >= NTDDI_WINBLUE)
+#define SDL_THREAD_WINDOWS  1
+#else
+/* WinRT on Windows 8.0 and Windows Phone 8.0 don't support CreateThread() */
 #define SDL_THREAD_STDCPP   1
+#endif
 
 /* Enable various timer systems */
 #define SDL_TIMER_WINDOWS	1
@@ -191,4 +211,4 @@ typedef unsigned int uintptr_t;
 #define SDL_ASSEMBLY_ROUTINES	1
 #endif
 
-#endif /* _SDL_config_windows_h */
+#endif /* _SDL_config_winrt_h */

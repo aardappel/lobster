@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -303,6 +303,28 @@ void WINRT_ProcessPointerReleasedEvent(SDL_Window *window, Windows::UI::Input::P
             normalizedPoint.X,
             normalizedPoint.Y,
             pointerPoint->Properties->Pressure);
+    }
+}
+
+void WINRT_ProcessPointerEnteredEvent(SDL_Window *window, Windows::UI::Input::PointerPoint ^pointerPoint)
+{
+    if (!window) {
+        return;
+    }
+
+    if (!WINRT_IsTouchEvent(pointerPoint)) {
+        SDL_SetMouseFocus(window);
+    }
+}
+
+void WINRT_ProcessPointerExitedEvent(SDL_Window *window, Windows::UI::Input::PointerPoint ^pointerPoint)
+{
+    if (!window) {
+        return;
+    }
+
+    if (!WINRT_IsTouchEvent(pointerPoint)) {
+        SDL_SetMouseFocus(NULL);
     }
 }
 

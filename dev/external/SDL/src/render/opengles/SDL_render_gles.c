@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -285,7 +285,7 @@ GLES_CreateRenderer(SDL_Window * window, Uint32 flags)
     GLES_RenderData *data;
     GLint value;
     Uint32 window_flags;
-    int profile_mask, major, minor;
+    int profile_mask = 0, major = 0, minor = 0;
     SDL_bool changed_window = SDL_FALSE;
 
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile_mask);
@@ -721,7 +721,7 @@ GLES_UpdateClipRect(SDL_Renderer * renderer)
             int w, h;
 
             SDL_GetRendererOutputSize(renderer, &w, &h);
-            data->glScissor(renderer->viewport.x + rect->x, (h - renderer->viewport.y - renderer->viewport.h) + rect->y, rect->w, rect->h);
+            data->glScissor(renderer->viewport.x + rect->x, h - renderer->viewport.y - rect->y - rect->h, rect->w, rect->h);
         }
     } else {
         data->glDisable(GL_SCISSOR_TEST);

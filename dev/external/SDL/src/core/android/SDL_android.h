@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -33,9 +33,6 @@ extern "C" {
 #include "SDL_rect.h"
 
 /* Interface from the SDL library into the Android Java activity */
-/* extern SDL_bool Android_JNI_CreateContext(int majorVersion, int minorVersion, int red, int green, int blue, int alpha, int buffer, int depth, int stencil, int buffers, int samples);
-extern SDL_bool Android_JNI_DeleteContext(void); */
-extern void Android_JNI_SwapWindow(void);
 extern void Android_JNI_SetActivityTitle(const char *title);
 extern SDL_bool Android_JNI_GetAccelerometerValues(float values[3]);
 extern void Android_JNI_ShowTextInput(SDL_Rect *inputRect);
@@ -64,7 +61,7 @@ SDL_bool Android_JNI_HasClipboardText(void);
 
 /* Power support */
 int Android_JNI_GetPowerInfo(int* plugged, int* charged, int* battery, int* seconds, int* percent);
-    
+
 /* Joystick support */
 void Android_JNI_PollInputDevices(void);
 

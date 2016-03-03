@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -243,6 +243,20 @@ AddHIDElement(const void *value, void *parameter)
                                     }
                                 }
                                 break;
+                            case kHIDUsage_GD_DPadUp:
+                            case kHIDUsage_GD_DPadDown:
+                            case kHIDUsage_GD_DPadRight:
+                            case kHIDUsage_GD_DPadLeft:
+                            case kHIDUsage_GD_Start:
+                            case kHIDUsage_GD_Select:
+                                if (!ElementAlreadyAdded(cookie, pDevice->firstButton)) {
+                                    element = (recElement *) SDL_calloc(1, sizeof (recElement));
+                                    if (element) {
+                                        pDevice->buttons++;
+                                        headElement = &(pDevice->firstButton);
+                                    }
+                                }
+                                break;
                         }
                         break;
 
@@ -265,6 +279,7 @@ AddHIDElement(const void *value, void *parameter)
                         break;
 
                     case kHIDPage_Button:
+                    case kHIDPage_Consumer: /* e.g. 'pause' button on Steelseries MFi gamepads. */
                         if (!ElementAlreadyAdded(cookie, pDevice->firstButton)) {
                             element = (recElement *) SDL_calloc(1, sizeof (recElement));
                             if (element) {

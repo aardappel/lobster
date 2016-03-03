@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -102,6 +102,10 @@ WIN_InitKeyboard(_THIS)
     SDL_SetScancodeName(SDL_SCANCODE_APPLICATION, "Menu");
     SDL_SetScancodeName(SDL_SCANCODE_LGUI, "Left Windows");
     SDL_SetScancodeName(SDL_SCANCODE_RGUI, "Right Windows");
+
+    /* Are system caps/num/scroll lock active? Set our state to match. */
+    SDL_ToggleModState(KMOD_CAPS, (GetKeyState(VK_CAPITAL) & 0x0001) != 0);
+    SDL_ToggleModState(KMOD_NUM, (GetKeyState(VK_NUMLOCK) & 0x0001) != 0);
 }
 
 void
@@ -124,7 +128,7 @@ WIN_UpdateKeymap()
         /* If this key is one of the non-mappable keys, ignore it */
         /* Not mapping numbers fixes the French layout, giving numeric keycodes for the number keys, which is the expected behavior */
         if ((keymap[scancode] & SDLK_SCANCODE_MASK) ||
-			/*  scancode == SDL_SCANCODE_GRAVE || */ /* Uncomment this line to re-enable the behavior of not mapping the "`"(grave) key to the users actual keyboard layout */
+            /*  scancode == SDL_SCANCODE_GRAVE || */ /* Uncomment this line to re-enable the behavior of not mapping the "`"(grave) key to the users actual keyboard layout */
             (scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_0) ) {
             continue;
         }
@@ -402,7 +406,7 @@ IME_GetReadingString(SDL_VideoData *videodata, HWND hwnd)
     INT err = 0;
     BOOL vertical = FALSE;
     UINT maxuilen = 0;
-	static OSVERSIONINFOA osversion;
+    static OSVERSIONINFOA osversion;
 
     if (videodata->ime_uiless)
         return;

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2015 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -37,10 +37,13 @@ typedef struct
     WNDPROC wndproc;
     SDL_bool created;
     WPARAM mouse_button_flags;
+    SDL_bool initializing;
     SDL_bool expected_resize;
     SDL_bool in_border_change;
     SDL_bool in_title_click;
-	SDL_bool focus_click_pending;
+    SDL_bool focus_click_pending;
+    SDL_bool windowed_mode_was_maximized;
+    SDL_bool in_window_deactivation;
     struct SDL_VideoData *videodata;
 #if SDL_VIDEO_OPENGL_EGL  
     EGLSurface egl_surface;
