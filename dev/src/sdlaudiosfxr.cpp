@@ -556,6 +556,16 @@ bool SDLSoundInit()
 {
     if (audioid) return true;
 
+    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i)
+    {
+        Output(OUTPUT_INFO, "Audio driver available %s", SDL_GetAudioDriver(i));
+    }
+
+    #ifdef _WIN32
+        //auto err = SDL_AudioInit("xaudio2");
+        //if (err) Output(OUTPUT_INFO, "Forcing driver failed %d", err);
+    #endif
+
     if (SDL_InitSubSystem(SDL_INIT_AUDIO))
         return false;
 
