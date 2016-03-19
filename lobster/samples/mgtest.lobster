@@ -109,9 +109,9 @@ if true:
 
 landscape := 0
 // Currently expensive way to do a landscape.
-if false:
-    mg_landscape(1.0, 0.5)
-    landscape = mg_polygonize(density * 2, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
+if true:
+    mg_landscape(0.5, 1.0)
+    landscape = mg_polygonize(density, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
 
 if gun: print "vertcount: gun " + gl_meshsize(gun)
 if spaceship: print "vertcount: ship " + gl_meshsize(spaceship)
@@ -139,7 +139,7 @@ while gl_frame():
 
     rndseed(0)
     gl_blend 0:
-        gl_setshader(aspoints and "phong_particle" or "phong")
+        gl_setshader(aspoints and "phong_particle" or "flat")
 
         if spaceship:
             gl_translate(xy_1 * 10):

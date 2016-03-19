@@ -6,6 +6,8 @@ def map(xs, fun):
         r.push(fun(x, i))
     r
 
+def map2(xs, ys, fun): map xs.length: fun(xs[_], ys[_])
+
 def filter(xs, fun):
     r := []
     for(xs) x, i:
@@ -55,6 +57,16 @@ def reducerev(xs, fun):
 def find(xs, fun):
     for(xs) x, i: if fun(x): return i
     -1
+
+def find_best(xs, fun):
+    best := 0.0
+    i := -1
+    for(xs) x, j:
+        v := fun(x)
+        if i < 0 or v > best:
+            i = j
+            best = v
+    i
 
 def sum(xs):     fold(xs, 0): _x + _y
 def product(xs): fold(xs, 1): _x * _y

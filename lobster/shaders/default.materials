@@ -66,6 +66,21 @@ SHADER phong
         UNIFORMS col camera light1 lightparams1
         gl_FragColor = col * icol * Phong(inormal, ipos);
 
+SHADER flat
+    VERTEX
+        INPUTS apos:4 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        icol = acolor;
+        ipos = apos.xyz;
+    PIXEL
+        INPUTS ipos:3 icol:4
+        UNIFORMS col camera light1 lightparams1
+        // WARNING: only works on OpenGL ES 3 or better.
+        // would be even flatter if we knew the centroid.
+        vec3 wnormal = normalize(cross(dFdy(ipos), dFdx(ipos)));
+        gl_FragColor = col * icol * Phong(wnormal, ipos);
+
 SHADER phong_particle
     VERTEX
         INPUTS apos:4 anormal:3 acolor:4
@@ -110,5 +125,4 @@ SHADER phong_anim
         INPUTS inormal:3 ipos:3 itc:2 icol:4
         UNIFORMS col camera light1 lightparams1 tex0
         gl_FragColor = col * icol * Phong(inormal, ipos) * texture2D(tex0, itc);
-
 

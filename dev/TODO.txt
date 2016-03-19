@@ -3,6 +3,8 @@
 - typechecker
   - x.y.x does not participate in flow analysis and is pretty common
 
+  - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
+
   - ComputeStructVectorType is broken. It would a scalar field to become any without boxing.
     This is not an issue as long as we ensure that if its [any] its values do not get used, but its easy to leak.
 
