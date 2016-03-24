@@ -393,7 +393,7 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
 
 void DispatchCompute(const int3 &groups)
 {
-    #ifndef PLATFORM_ES2
+    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
         // Make sure any imageStore/VBOasSSBO operations have completed.
         // Would be better to decouple this from DispatchCompute.
