@@ -265,7 +265,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
         //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
         //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
         #ifdef __APPLE__
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
         #elif defined(_WIN32)
             //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);

@@ -110,11 +110,13 @@ string ParseMaterialFile(char *mbuf)
                 #ifdef PLATFORM_ES2
                     header += "#ifdef GL_ES\nprecision highp float;\n#endif\n";
                 #else
-                    //#ifdef __APPLE__
-                    header += "#version 120\n";
-                    //#else
-                    //header += "#version 130\n";
-                    //#endif
+                    #ifdef __APPLE__
+                    auto supported = glGetString(GL_SHADING_LANGUAGE_VERSION);
+                    // Apple randomly changes what it supports, so just ask for that.
+                    header += string("#version ") + char(supported[0]) + char(supported[2]) + char(supported[3]) + "\n";
+                    #else
+                    header += "#version 130\n";
+                    #endif
                 #endif
                 err = sh->Compile(shader.c_str(),
                                   (header + vdecl + vfunctions + "void main()\n{\n" + vertex + "}\n").c_str(),
