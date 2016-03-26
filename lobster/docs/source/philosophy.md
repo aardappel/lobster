@@ -85,7 +85,7 @@ suitable for my style of programming (heavily refactoring-based).
     you almost always should. Lobster has some very strong tools to make this
     possible, with a very terse and uniform higher order function call syntax,
     optionally immutable objects and coroutines that reduce the need for global
-    state in the first place.  
+    state in the first place.
     Lobster actually has very powerful object oriented features (multimethods
     being more expressive than traditional single dispatch in most OO
     languages), but it doesn't push it's OO angle to the forefront, and unlike
@@ -212,7 +212,7 @@ needs, roughly in this order:
 
 -   Generally more standard sub-systems. Related to sound, threading,
     networking, physics etc etc. I want to be careful however to not expand the
-    amount of library dependencies unless I absolutely have to, since that makes
+    number of library dependencies unless I absolutely have to, since that makes
     building and integrating so much more painful, and gives a lot of people
     bloat they don't need. I am hoping that I can make a nice set of
     functionality with minimal code that can serve most people for small to

@@ -330,7 +330,7 @@ void AddGraphics()
         return ToValueI(GetFinger(i.ival(), true));
     }
     ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
-        "amount of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
+        "number of pixels the mouse/finger has moved since the last frame. use this instead of substracting positions"
         " to correctly deal with lifted fingers and FPS mode (gl_cursor(0))");
 
     STARTDECL(gl_localmousepos) (Value &i)
@@ -1043,7 +1043,7 @@ void AddGraphics()
         return Value();
     }
     ENDDECL3(gl_debug_grid, "num,dist,thickness", "I]F]F", "",
-        "renders a grid in space for debugging purposes. num is the amount of lines in all 3 directions,"
+        "renders a grid in space for debugging purposes. num is the number of lines in all 3 directions,"
         " and dist their spacing. thickness of the lines in the same units");
 
     STARTDECL(gl_screenshot) (Value &fn)

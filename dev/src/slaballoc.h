@@ -26,7 +26,7 @@ from any memory block because pages are allocated aligned to their sizes (by cle
 therein). To do this alignment, many pages at once are allocated from the system, which wastes 1 page on alignment,
 currently representing 1% of memory.
 
-because each page tracks the amount of blocks in use, the moment any page becomes empty, it will remove all blocks
+because each page tracks the number of blocks in use, the moment any page becomes empty, it will remove all blocks
 therein from its bucket, and then make the page available to a different size allocation. This avoids that if at some
 point a lot of blocks of a certain size were allocated that they will always be allocated.
 

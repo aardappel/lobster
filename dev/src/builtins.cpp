@@ -874,7 +874,7 @@ void AddBuiltins()
     ENDDECL0(collect_garbage, "", "", "I",
         "forces a garbage collection to re-claim cycles. slow and not recommended to be used. instead, write code"
         " to clear any back pointers before abandoning data structures. Watch for a \"LEAKS FOUND\" message in the"
-        " console upon program exit to know when you've created a cycle. returns amount of objects collected.");
+        " console upon program exit to know when you've created a cycle. returns number of objects collected.");
 
     STARTDECL(set_max_stack_size) (Value &max)
     {

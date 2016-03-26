@@ -194,7 +194,7 @@ You construct values of these types you use a similar syntax:
 var v = xyz { 1, 0, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The type ensures that the right amount of values are given, and they can now be
+The type ensures that the right number of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
 
 Optionally, you may declare types of elements, which will cause these types to
@@ -418,7 +418,7 @@ modify the argument.
 
 Optionally, you may also call functions without any parentheses at all, e.g.
 `print "hi!"`. This is only allowed for known functions (that are not ambiguous
-with variables) that have 1 expression argument (followed by any amount of
+with variables) that have 1 expression argument (followed by any number of
 function value arguments that don't take arguments themselves, see below). It is
 up to the programmer to use good judgement on when to use this, the recommended
 use case is for calls used as statements (no nesting) that don't cause
@@ -538,7 +538,7 @@ def m(): return 1, 2
 a, b := m()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All return statements for any function must all return the same amount of return
+All return statements for any function must all return the same number of return
 values.
 
 When `m` returns multiple values, they get assigned to each variable in turn (if
@@ -781,7 +781,7 @@ The loop constructs `for`, `map`, `filter`, and `exists` all function similarly
 in that the iteration argument can be an int N (iterate 0..N-1), a string (each
 byte value), or a vector (each element). They all supply 0, 1 (the element) or 2
 (element, index) values to the function value, depending on the function value.
-`for` returns the amount of calls that returned a true value, `map` simply
+`for` returns the number of calls that returned a true value, `map` simply
 returns all return values in a vector, `filter` returns a vector of all elements
 for which the call returned a true value, and exists returns the first element
 for which the call returns true (and doesn't iterate further!) or `false`

@@ -903,7 +903,7 @@ struct Parser
     void ReturnValues(Function &f, int nrv)
     {
         if (f.retvals && f.retvals != nrv)
-            Error(string("all return statements of this function must return the same amount of return values."
+            Error(string("all return statements of this function must return the same number of return values."
                          " previously: ") + to_string(f.retvals));
         f.retvals = nrv;
     }

@@ -85,7 +85,7 @@ value xyz : xy { z }</code></pre>
 <p>Optionally, you specify a supertype, which has the effect of adding all the fields of the supertype to the current type, thus making it an extension of the former.</p>
 <p>You construct values of these types you use a similar syntax:</p>
 <pre><code>var v = xyz { 1, 0, 0 }</code></pre>
-<p>The type ensures that the right amount of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
+<p>The type ensures that the right number of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
 <p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction:</p>
 <pre><code>value xy { x:float, y:float }</code></pre>
 <h2 id="operators">Operators</h2>
@@ -148,7 +148,7 @@ def intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
 <p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
 <h3 id="function-calls">Function calls</h3>
 <p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don't modify the argument.</p>
-<p>Optionally, you may also call functions without any parentheses at all, e.g. <code>print &quot;hi!&quot;</code>. This is only allowed for known functions (that are not ambiguous with variables) that have 1 expression argument (followed by any amount of function value arguments that don't take arguments themselves, see below). It is up to the programmer to use good judgement on when to use this, the recommended use case is for calls used as statements (no nesting) that don't cause additional parentheses to be needed elsewhere. In case of doubt, use the standard call syntax.</p>
+<p>Optionally, you may also call functions without any parentheses at all, e.g. <code>print &quot;hi!&quot;</code>. This is only allowed for known functions (that are not ambiguous with variables) that have 1 expression argument (followed by any number of function value arguments that don't take arguments themselves, see below). It is up to the programmer to use good judgement on when to use this, the recommended use case is for calls used as statements (no nesting) that don't cause additional parentheses to be needed elsewhere. In case of doubt, use the standard call syntax.</p>
 <h3 id="function-values">Function Values</h3>
 <p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
 <pre><code>f := function(arg1, arg2): body</code></pre>
@@ -184,7 +184,7 @@ else:
 <p>return can specify more than one value to be returned, which can then be received by the multiple assignment syntax introduced above:</p>
 <pre><code>def m(): return 1, 2
 a, b := m()</code></pre>
-<p>All return statements for any function must all return the same amount of return values.</p>
+<p>All return statements for any function must all return the same number of return values.</p>
 <p>When <code>m</code> returns multiple values, they get assigned to each variable in turn (if there was only 1 return value in this example, they would all receive the same value). If there are more return values than there are variables, additionally values are thrown away, and if there are more variables than there are return values, this is an error.</p>
 <h3 id="scope">Scope</h3>
 <p>Functions and variables declared there-in always obey lexical scope: any use of a variable always refers to the closest enclosing definition of it.</p>
@@ -254,7 +254,7 @@ a = nil</code></pre>
 <p>Built-in functions are not strictly part of the language, but since Lobster relegates so much core functionality to them, it is useful to have a look how the important ones work. For a complete list, please refer to the <a href="builtin_functions_reference.html">built-in function reference</a>.</p>
 <h3 id="control-structures">Control Structures</h3>
 <p>We've already seen <code>if</code>, and it functions quite like you expect. The second function argument is optional.</p>
-<p>The loop constructs <code>for</code>, <code>map</code>, <code>filter</code>, and <code>exists</code> all function similarly in that the iteration argument can be an int N (iterate 0..N-1), a string (each byte value), or a vector (each element). They all supply 0, 1 (the element) or 2 (element, index) values to the function value, depending on the function value. <code>for</code> returns the amount of calls that returned a true value, <code>map</code> simply returns all return values in a vector, <code>filter</code> returns a vector of all elements for which the call returned a true value, and exists returns the first element for which the call returns true (and doesn't iterate further!) or <code>false</code> otherwise.</p>
+<p>The loop constructs <code>for</code>, <code>map</code>, <code>filter</code>, and <code>exists</code> all function similarly in that the iteration argument can be an int N (iterate 0..N-1), a string (each byte value), or a vector (each element). They all supply 0, 1 (the element) or 2 (element, index) values to the function value, depending on the function value. <code>for</code> returns the number of calls that returned a true value, <code>map</code> simply returns all return values in a vector, <code>filter</code> returns a vector of all elements for which the call returned a true value, and exists returns the first element for which the call returns true (and doesn't iterate further!) or <code>false</code> otherwise.</p>
 <p><code>while</code> is an odd function, since it is an exception to the rule of Lobster syntax:</p>
 <pre><code>while a &lt; 10: a++</code></pre>
 <p>That looks perfectly normal, but one thing should stand out: while takes not one, but 2 function values. Normally, in Lobster, this would make more sense:</p>

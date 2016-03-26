@@ -1222,7 +1222,7 @@ void AddMeshGen()
     }
     ENDDECL2(mg_polygonize, "subdiv,colors", "IF]]", "I",
         "returns a generated mesh (id 1..) from past mg_ commands."
-        " subdiv determines detail and amount of polygons (relative to the largest dimension of the model),"
+        " subdiv determines detail and number of polygons (relative to the largest dimension of the model),"
         " try 30.. 300 depending on the subject."
         " values much higher than that will likely make you run out of memory (or take very long)."
         " colors is a list of colors to be used with mg_fill()");

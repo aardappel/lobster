@@ -91,7 +91,7 @@ with.
 
 Before we can actually draw, we have to talk about coordinate systems. By
 default, coordinates in Lobster correspond directly to pixels, with (0,0) in the
-upper left corner (a left-handed coordinate system), and the total amount of
+upper left corner (a left-handed coordinate system), and the total number of
 pixels depending on the device (or the user), which during any frame is given by
 `gl_windowsize`. While working directly with pixel sizes may be useful for some
 applications, generally, we want games to be scalable, meaning they should
@@ -190,7 +190,7 @@ take into account:
     the device, we have no idea how many frames per second we're actually
     running at. If we simply move a fixed amount each frame, we'll end up moving
     faster on faster computers! Yet another common bug that we'll avoid by
-    multiplying our vector by `gl_deltatime`, which is the amount of seconds
+    multiplying our vector by `gl_deltatime`, which is the number of seconds
     (usually a fraction of a second, e.g. 0.033 at 30 FPS) that has passed since
     the last frame we rendered. The result is that we'll now move 1 unit (the
     length of the vector) per second exactly, regardless of how fast or slow our

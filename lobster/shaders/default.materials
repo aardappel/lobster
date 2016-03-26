@@ -78,6 +78,7 @@ SHADER flat
         UNIFORMS col camera light1 lightparams1
         // WARNING: only works on OpenGL ES 3 or better.
         // would be even flatter if we knew the centroid.
+        // Also: only works with light at camera.
         vec3 wnormal = normalize(cross(dFdy(ipos), dFdx(ipos)));
         gl_FragColor = col * icol * Phong(wnormal, ipos);
 

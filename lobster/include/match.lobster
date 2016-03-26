@@ -3,7 +3,7 @@
 match.lobster: pattern matching functionality similar to regexps, but more generally applicable as it works on
 (unicode) strings, vectors of any kind of values, and even coroutines
 
-example: match any amount of A's, followed by either a B or C/D in sequence (and capture this substring),
+example: match any number of A's, followed by either a B or C/D in sequence (and capture this substring),
 followed by an E and then the end of the sequence:
 
     r := match_with("AAAAAAABCDCDBCDBBBE"):
