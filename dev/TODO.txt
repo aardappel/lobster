@@ -1,5 +1,7 @@
 - excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
 
+- for any error related to a builtin function, can also print argument names and helptext.
+
 - typechecker
   - x.y.x does not participate in flow analysis and is pretty common
 

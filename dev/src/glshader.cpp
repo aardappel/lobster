@@ -399,7 +399,7 @@ void DispatchCompute(const int3 &groups)
         if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
         // Make sure any imageStore/VBOasSSBO operations have completed.
         // Would be better to decouple this from DispatchCompute.
-        if (glMemoryBarrier) glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT || GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+        if (glMemoryBarrier) glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
     #else
         assert(false);
     #endif

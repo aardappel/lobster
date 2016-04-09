@@ -642,9 +642,28 @@ void AddGraphics()
         " bottom right. this is the default at the start of a frame, use this call to get back to that after"
         " gl_perspective.");
 
-    STARTDECL(gl_newmesh) (Value &positions, Value &colors, Value &texcoords, Value &normals, Value &indices)
+    STARTDECL(gl_ortho3d) (Value &center, Value &extends)
+    {
+        Set3DOrtho(ValueDecToF<3>(center), ValueDecToF<3>(extends));
+        return Value();
+    }
+    ENDDECL2(gl_ortho3d, "center,extends", "F]F]", "",
+        "sets a custom ortho projection as 3D projection.");
+
+    STARTDECL(gl_newmesh) (Value &format, Value &attributes, Value &indices)
     {
         TestGL();
+
+        auto nattr = format.sval()->len;
+        if (nattr < 1 || nattr > 10 || nattr != attributes.vval()->len)
+            g_vm->BuiltinError("newmesh: illegal format/attributes size");
+
+        auto fmt = format.sval()->str();
+        if (nattr != (int)strspn(fmt, "PCTN") || fmt[0] != 'P')
+            g_vm->BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be first");
+
+        auto attrs = attributes.vval();
+        auto positions = attrs->At(0);
 
         vector<int> idxs;
         if (indices.True())
@@ -660,53 +679,64 @@ void AddGraphics()
         }
 
         int nverts = positions.eval()->Len();
-        string format = "P";
-        size_t vsize = sizeof(float3);
+        size_t vsize = AttribsSize(fmt);
         size_t normal_offset = 0;
-        if (colors.True())    { format += "C"; vsize += sizeof(byte4); }
-        if (texcoords.True()) { format += "T"; vsize += sizeof(float2); }
-        if (normals.True())   { format += "N"; normal_offset = vsize; vsize += sizeof(float3); }
         auto verts = new uchar[nverts * vsize];
 
         for (int i = 0; i < nverts; i++)
         {
-            auto p = &verts[i * vsize];
-            auto pos = ValueToF<3>(positions.eval()->At(i), 0);
-                                  *((float3 *&)p)++ = pos;
-            if (colors.True())    *((byte4  *&)p)++ = i < colors.eval()->Len()
-                                                          ? quantizec(ValueToF<4>(colors.eval()->At(i), 1))
-                                                          : byte4_255;
-            if (texcoords.True()) *((float2 *&)p)++ = i < texcoords.eval()->Len()
-                                                          ? ValueToF<3>(texcoords.eval()->At(i), 0).xy()
-                                                          : pos.xy();
-            if (normals.True())   *((float3 *&)p)++ = i < normals.eval()->Len()
-                                                          ? ValueToF<3>(normals.eval()->At(i), 0)
-                                                          : float3_0;
+            auto start = &verts[i * vsize];
+            auto p = start;
+            auto fmt_it = fmt;
+            float3 pos;
+            while (*fmt_it)
+            {
+                auto attrv = attrs->At(fmt_it - fmt).vval();
+                switch (*fmt_it++)
+                {
+                    case 'P':
+                        *((float3 *&)p)++ = pos = ValueToF<3>(attrv->At(i));
+                        break;
+                    case 'C':
+                        *((byte4  *&)p)++ = i < attrv->Len() ? quantizec(ValueToF<4>(attrv->At(i), 1)) : byte4_255;
+                        break;
+                    case 'T':
+                        *((float2 *&)p)++ = i < attrv->Len() ? ValueToF<2>(attrv->At(i), 0) : pos.xy();
+                        break;
+                    case 'N':
+                        if (!attrv->Len()) normal_offset = p - start;
+                        *((float3 *&)p)++ = i < attrv->Len() ? ValueToF<3>(attrv->At(i), 0) : float3_0;
+                        break;
+                    default: assert(0);
+                }
+            } 
         }
 
-        if (normal_offset && !normals.eval()->Len())
+        if (normal_offset)
         {
             // if no normals were specified, generate them.
             normalize_mesh(&idxs[0], idxs.size(), verts, nverts, vsize, normal_offset);
         }
 
-        positions.DECRT();
-        colors.DECRTNIL();
-        texcoords.DECRTNIL();
-        normals.DECRTNIL();
+        format.DECRT();
+        attributes.DECRT();
 
         // FIXME: make meshes into points in a more general way.
-        auto m = new Mesh(new Geometry(verts, nverts, vsize, format.c_str()), indices.True() ? PRIM_TRIS : PRIM_POINT);
+        auto m = new Mesh(new Geometry(verts, nverts, vsize, fmt), indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
 
         delete[] verts;
 
         return Value((int)meshes->Add(m));
     }
-    ENDDECL5(gl_newmesh, "positions,colors,texcoords,normals,indices", "F]]F]]?F]]?F]]?I]?", "I",
+    ENDDECL3(gl_newmesh, "format,attributes,indices", "SF]]]I]?", "I",
         "creates a new vertex buffer and returns an integer id (1..) for it."
+        " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
+        " position is obligatory and must come first."
+        " attributes is a vector with the same number of attribute vectors as format elements."
         " you may specify [] to get defaults for colors (white) / texcoords (position x & y) /"
-        " normals (generated from adjacent triangles), or nil if the attribute isn't needed at all");
+        " normals (generated from adjacent triangles)."
+        " example: mymesh := gl_newmesh(\"PCN\", [ positions, colors, [] ], indices)");
 
     STARTDECL(gl_newpoly) (Value &positions)
     {
@@ -832,6 +862,20 @@ void AddGraphics()
              " uniforms in the shader must be all vec4s, or an array of them."
              " ssbo indicates if you want a shader storage block instead."
              " returns buffer id or 0 on error.");
+
+    STARTDECL(gl_deletebufferobject) (Value &id)
+    {
+        TestGL();
+
+        // FIXME: should route this thru a IntResourceManagerCompact to be safe?
+        // I guess GL doesn't care about illegal id's?
+        DeleteBO(id.ival());
+
+        return Value();
+    }
+    ENDDECL1(gl_deletebufferobject, "id", "I", "",
+        "deletes a buffer objects, e.g. one allocated by gl_uniformbufferobject().");
+
 
     STARTDECL(gl_bindmeshtocompute) (Value &mesh, Value &bpi)
     {

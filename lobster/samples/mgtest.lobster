@@ -18,7 +18,7 @@ def mg_mirror_y(dist, body):
     for(2) i:
         mg_translate([ 0.0, i * dist * 2.0 - dist, 0.0 ], body)
 
-mg_set_colornoise(0.5, 1)
+//mg_set_colornoise(0.5, 1)
 aspoints := false
 mg_set_pointmode(aspoints)
 if !aspoints:
@@ -125,19 +125,24 @@ while gl_frame():
     gl_windowtitle("meshgen test: " + gl_deltatime())
 
     gl_clear(color_dark_grey)
-    gl_cursor(0)
-    gl_perspective(60, 0.1, 1000)
+
     fovscale := 1.3
 
-    speed := 10
-    if(gl_isdown("left shift")): speed = 50
-    camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    camera_FPS_view()
+    if true:
+        gl_cursor(0)
+        gl_perspective(60, 0.1, 1000)
 
-    gl_light(camera_position, [ 128.0, 0.1 ])
-    //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
+        speed := 10
+        if(gl_isdown("left shift")): speed = 50
+        camera_FPS_update("w", "a", "s", "d", speed, 4, true)
+        camera_FPS_view()
+        gl_light(camera_position, [ 128.0, 0.1 ])
+    else:
+        gl_ortho3d(xyz_0, xyz_f { gl_windowsize().x, gl_windowsize().y, 2000 } / 100)
+        gl_rotate_x(sincos(45))
+        gl_rotate_z(sincos(45))
+        gl_light(sincos(gl_time() * 10) * 100 + xyz_z * 300, [ 128.0, 0.1 ])
 
-    rndseed(0)
     gl_blend 0:
         gl_setshader(aspoints and "phong_particle" or "flat")
 
@@ -166,7 +171,6 @@ while gl_frame():
                             gl_pointscale(0.5 * fovscale)
                             gl_rendermesh(t)
 
-        gl_setshader("color")
-
+    gl_setshader("color")
     gl_debug_grid([ 20, 20, 0 ], xyz_1, 0.005)
 

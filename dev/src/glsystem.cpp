@@ -75,6 +75,19 @@ void Set2DMode(const int2 &screensize)
     view2clip = orthoGL(0, (float)screensize.x(), (float)screensize.y(), 0, 1, -1); // left handed coordinate system
 }
 
+void Set3DOrtho(const float3 &center, const float3 &extends)
+{
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);  
+
+    otransforms = objecttransforms();
+
+    auto p = center + extends;
+    auto m = center - extends;
+
+    view2clip = orthoGL(m.x(), p.x(), p.y(), m.y(), m.z(), p.z()); // left handed coordinate system
+}
+
 void Set3DMode(float fovy, float ratio, float znear, float zfar)
 {
     glEnable(GL_DEPTH_TEST);

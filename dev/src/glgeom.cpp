@@ -25,6 +25,27 @@ uint GenBO(GLenum type, int elemsize, int count, void *verts)
     return bo;
 }
 
+void DeleteBO(uint id)
+{
+    glDeleteBuffers(1, &id);
+}
+
+size_t AttribsSize(const char *fmt)
+{
+    size_t size = 0;
+    while (*fmt)
+    {
+        switch (*fmt++)
+        {
+            case 'P': case 'N':           size += 12; break;
+            case 'p': case 'n': case 'T': size +=  8; break;
+            case 'C': case 'W': case 'I': size +=  4; break;
+            default: assert(0);
+        }
+    }
+    return size;
+}
+
 void SetAttribs(uint vbo1, const char *fmt, int vertsize1, uint vbo2 = 0, int vertsize2 = 0)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo1);

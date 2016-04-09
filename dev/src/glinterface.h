@@ -123,6 +123,7 @@ extern void OpenGLInit();
 extern void OpenGLFrameStart(const int2 &screensize);
 extern void Set2DMode(const int2 &screensize);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
+extern void Set3DOrtho(const float3 &center, const float3 &extends);
 extern void ClearFrameBuffer(const float3 &c);
 extern int SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
@@ -157,6 +158,7 @@ extern int MaxTextureSize();
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
 
+extern void DeleteBO(uint id);
 extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, 
                         int vertsize, void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness);
@@ -164,6 +166,8 @@ extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const f
 extern void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
 extern void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
 extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
+
+extern size_t AttribsSize(const char *fmt);
 
 extern Mesh *LoadIQM(const char *filename);
 
