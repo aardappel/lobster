@@ -199,7 +199,7 @@ template<typename T> class RLE3DGrid
         else if (it_z + it[0].count - 1 == pos.z())
         {
             // Similarly, if this is the last value of the range..
-            if (it_z + it[0].count < dim.z() && it[3].val == newval)
+            if (dim.z() > it_z + it[0].count && it[3].val == newval)
             {
                 // ..and the next range has the new value, we can also shift these ranges.
                 it[2].count++;

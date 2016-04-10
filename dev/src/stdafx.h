@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <float.h>
+#include <limits.h>
 
 #include <string>
 #include <map>
