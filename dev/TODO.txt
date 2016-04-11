@@ -1,3 +1,9 @@
+- this crashes on += in codegen:
+team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
+                   color_light_blue, color_light_yellow, color_light_cyan, color_light_pink, color_dark_red, color_dark_green, color_dark_blue, color_olive ]
+team_colors += map(48) i: team_colors[i % 16]
+
+
 - excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
 
 - for any error related to a builtin function, can also print argument names and helptext.

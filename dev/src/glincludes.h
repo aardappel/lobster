@@ -81,6 +81,16 @@
             GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/, glUniformMatrix3x4fv       , 1) \
             GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC      , glBindAttribLocation       , 1) \
             GLEXT(PFNGLGETACTIVEUNIFORMARBPROC        , glGetActiveUniform         , 1) \
+            GLEXT(PFNGLBINDRENDERBUFFERPROC           , glBindRenderbuffer         , 1) \
+            GLEXT(PFNGLDELETERENDERBUFFERSPROC        , glDeleteRenderbuffers      , 1) \
+            GLEXT(PFNGLBINDFRAMEBUFFERPROC            , glBindFramebuffer          , 1) \
+            GLEXT(PFNGLDELETEFRAMEBUFFERSPROC         , glDeleteFramebuffers       , 1) \
+            GLEXT(PFNGLGENFRAMEBUFFERSPROC            , glGenFramebuffers          , 1) \
+            GLEXT(PFNGLFRAMEBUFFERTEXTURE2DPROC       , glFramebufferTexture2D     , 1) \
+            GLEXT(PFNGLGENRENDERBUFFERSPROC           , glGenRenderbuffers         , 1) \
+            GLEXT(PFNGLRENDERBUFFERSTORAGEPROC        , glRenderbufferStorage      , 1) \
+            GLEXT(PFNGLFRAMEBUFFERRENDERBUFFERPROC    , glFramebufferRenderbuffer  , 1) \
+            GLEXT(PFNGLCHECKFRAMEBUFFERSTATUSPROC     , glCheckFramebufferStatus   , 1) \
             GLEXT(PFNGLGENERATEMIPMAPEXTPROC          , glGenerateMipmap           , 0) \
             GLEXT(PFNGLDISPATCHCOMPUTEPROC            , glDispatchCompute          , 0) \
             GLEXT(PFNGLBINDIMAGETEXTUREPROC           , glBindImageTexture         , 0) \
