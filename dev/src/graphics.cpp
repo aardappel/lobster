@@ -1034,11 +1034,13 @@ void AddGraphics()
         return Value((int)id);
     }
     ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "I",
-             "creates a blank texture (for use with e.g. compute shaders), returns texture id."
+             "creates a blank texture (for use as frame buffer or with compute shaders), returns texture id."
              " see color.lobster for texture format");
 
     STARTDECL(gl_deletetexture) (Value &i)
     {
+        TestGL();
+
         auto it = texturecache.begin();
         // this is potentially expensive, we're counting on gl_deletetexture not being needed often
         while (it != texturecache.end())
@@ -1055,6 +1057,16 @@ void AddGraphics()
     }
     ENDDECL1(gl_deletetexture, "i", "I", "",
         "free up memory for the given texture id");
+    
+    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &depthsize)
+    {
+        TestGL();
+        
+        return Value(SwitchToFrameBuffer(tex.ival(), ValueDecToI<2>(depthsize)));
+    }
+    ENDDECL2(gl_switchtoframebuffer, "texid,depthsize", "II]", "I",
+             "switches to a new framebuffer, that renders into the given texture. also allocates a depth buffer for it"
+             " if depthsize > (0, 0). pass a texid of 0 to switch back to the windows framebuffer");
 
     STARTDECL(gl_light) (Value &pos, Value &params)
     {

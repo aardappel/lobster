@@ -155,6 +155,7 @@ extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE)
 extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
 extern int MaxTextureSize();
+extern bool SwitchToFrameBuffer(uint texture, const int2 &depthsize);
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
 
