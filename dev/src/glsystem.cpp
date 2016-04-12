@@ -14,10 +14,8 @@
 
 #include "stdafx.h"
 
-#include "glinterface.h"
-
 #include "glincludes.h"
-
+#include "glinterface.h"
 #include "sdlincludes.h"
 
 #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
@@ -65,14 +63,15 @@ void ClearFrameBuffer(const float3 &c)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Set2DMode(const int2 &screensize)
+void Set2DMode(const int2 &ssize, bool lh)
 {
     glDisable(GL_CULL_FACE);  
     glDisable(GL_DEPTH_TEST);
 
     otransforms = objecttransforms();
 
-    view2clip = orthoGL(0, (float)screensize.x(), (float)screensize.y(), 0, 1, -1); // left handed coordinate system
+    auto y = (float)ssize.y();
+    view2clip = orthoGL(0, (float)ssize.x(), lh ? y : 0, lh ? 0 : y, 1, -1);
 }
 
 void Set3DOrtho(const float3 &center, const float3 &extends)
@@ -106,9 +105,9 @@ uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha)
     return pixels;
 }
 
-void OpenGLFrameStart(const int2 &screensize)
+void OpenGLFrameStart(const int2 &ssize)
 {
-    glViewport(0, 0, screensize.x(), screensize.y());
+    glViewport(0, 0, ssize.x(), ssize.y());
 
     SetBlendMode(BLEND_ALPHA);
 

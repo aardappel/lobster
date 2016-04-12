@@ -71,6 +71,8 @@ int frames = 0;
 
 int screenscalefactor = 1;  // FIXME: remove this
 
+int2 screensize = int2_0;
+
 bool fullscreen = false;
 bool cursor = true;
 bool landscape = true;
@@ -159,7 +161,7 @@ float GetJoyAxis(int i)
     return joyaxes[max(min(i, MAXAXES - 1), 0)];
 }
 
-int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et, const int2 &screensize)
+int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et)
 {
     int numfingers = SDL_GetNumTouchFingers(e.touchId);
     //assert(numfingers && e.fingerId < numfingers);
@@ -239,7 +241,9 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
     }
 }
 
-string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
+const int2 &GetScreenSize() { return screensize; }
+
+string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen)
 {
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0)
@@ -286,7 +290,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
     Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
     #ifdef PLATFORM_ES2
-        landscape = screensize.x() >= screensize.y();
+        landscape = desired_screensize.x() >= desired_screensize.y();
         int modes = SDL_GetNumDisplayModes(0);
         screensize = int2(1280, 720);
         for (int i = 0; i < modes; i++)
@@ -324,6 +328,7 @@ string SDLInit(const char *title, int2 &screensize, bool isfullscreen)
             Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x(), screensize.y());
         #endif
     #else
+        screensize = desired_screensize;
         _sdl_window = SDL_CreateWindow(title,
                                         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                         screensize.x(), screensize.y(),
@@ -384,7 +389,7 @@ void SDLShutdown()
     SDL_Quit();
 }
 
-bool SDLFrame(int2 &screensize)
+bool SDLFrame()
 {
     auto millis = GetSeconds();
     frametime = millis - lasttime;
@@ -437,7 +442,7 @@ bool SDLFrame(int2 &screensize)
         // FIXME: if we're in cursor==0 mode, only update delta, not position
         case SDL_FINGERDOWN:
         {
-            int i = updatedragpos(event.tfinger, event.type, screensize);
+            int i = updatedragpos(event.tfinger, event.type);
             updatemousebutton(1, i, true);
             break;
         }
@@ -450,7 +455,7 @@ bool SDLFrame(int2 &screensize)
 
         case SDL_FINGERMOTION:
         {
-            updatedragpos(event.tfinger, event.type, screensize);
+            updatedragpos(event.tfinger, event.type);
             break;
         }
 
@@ -657,7 +662,7 @@ uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
     return buf;
 }
 
-bool ScreenShot(const char *filename, const int2 &screensize)
+bool ScreenShot(const char *filename)
 {
     SDL_Surface *surf = SDL_CreateRGBSurface(0, screensize.x(), screensize.y(), 24,
                                              0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);

@@ -22,8 +22,6 @@
 
 using namespace lobster;
 
-int2 screensize = int2_0;
-
 Primitive polymode = PRIM_FAN;
 
 IntResourceManagerCompact<Mesh> *meshes = NULL;
@@ -70,13 +68,13 @@ bool GraphicsFrameStart()
 {
     extern void CullFonts(); CullFonts();
 
-    bool cb = SDLFrame(screensize);
+    bool cb = SDLFrame();
 
     lastframehitsize = lasthitsize;
     lasthitsize = float3_0;
 
-    OpenGLFrameStart(screensize);
-    Set2DMode(screensize);
+    OpenGLFrameStart(GetScreenSize());
+    Set2DMode(GetScreenSize(), true);
 
     currentshader = colorshader;
 
@@ -159,8 +157,7 @@ void AddGraphics()
         if (graphics_initialized)
             g_vm->BuiltinError("cannot call gl_window() twice");
 
-        screensize = int2(xs.ival(), ys.ival());
-        string err = SDLInit(title.sval()->str(), screensize, fullscreen.ival() != 0);
+        string err = SDLInit(title.sval()->str(), int2(xs.ival(), ys.ival()), fullscreen.ival() != 0);
         title.DECRT();
 
         if (err.empty())
@@ -312,7 +309,7 @@ void AddGraphics()
 
     STARTDECL(gl_windowsize) ()
     {
-        return ToValueI(screensize);
+        return ToValueI(GetScreenSize());
     }
     ENDDECL0(gl_windowsize, "", "", "I]:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
@@ -625,7 +622,7 @@ void AddGraphics()
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar)
     {
-        Set3DMode(fovy.fval()*RAD, screensize.x() / (float)screensize.y(), znear.fval(), zfar.fval());
+        Set3DMode(fovy.fval()*RAD, GetScreenSize().x() / (float)GetScreenSize().y(), znear.fval(), zfar.fval());
         return Value();
     }
     ENDDECL3(gl_perspective, "fovy,znear,zfar", "FFF", "",
@@ -634,7 +631,7 @@ void AddGraphics()
 
     STARTDECL(gl_ortho) ()
     {
-        Set2DMode(screensize);
+        Set2DMode(GetScreenSize(), true);
         return Value();
     }
     ENDDECL0(gl_ortho, "", "", "",
@@ -1058,15 +1055,17 @@ void AddGraphics()
     ENDDECL1(gl_deletetexture, "i", "I", "",
         "free up memory for the given texture id");
     
-    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &depthsize)
+    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &fbsize, Value &depth)
     {
         TestGL();
         
-        return Value(SwitchToFrameBuffer(tex.ival(), ValueDecToI<2>(depthsize)));
+        auto sz = ValueDecToI<2>(fbsize);
+        return Value(SwitchToFrameBuffer(tex.ival(), tex.ival() ? sz : GetScreenSize(), depth.True()));
     }
-    ENDDECL2(gl_switchtoframebuffer, "texid,depthsize", "II]", "I",
-             "switches to a new framebuffer, that renders into the given texture. also allocates a depth buffer for it"
-             " if depthsize > (0, 0). pass a texid of 0 to switch back to the windows framebuffer");
+    ENDDECL3(gl_switchtoframebuffer, "texid,fbsize,hasdepth", "II]I", "I",
+             "switches to a new framebuffer, that renders into the given texture. pass the texture size."
+             " also allocates a depth buffer for it if depth is true."
+             " pass a texid of 0 to switch back to the original framebuffer");
 
     STARTDECL(gl_light) (Value &pos, Value &params)
     {
@@ -1104,7 +1103,7 @@ void AddGraphics()
 
     STARTDECL(gl_screenshot) (Value &fn)
     {
-        bool ok = ScreenShot(fn.sval()->str(), screensize);
+        bool ok = ScreenShot(fn.sval()->str());
         fn.DECRT();
         return Value(ok);
     }

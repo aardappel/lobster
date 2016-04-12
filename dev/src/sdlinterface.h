@@ -14,12 +14,13 @@
 
 // simple interface for SDL (that doesn't depend on its headers)
 
-extern string SDLInit(const char *title, int2 &screensize, bool fullscreen);
-extern bool SDLFrame(int2 &screensize);
+extern string SDLInit(const char *title, const int2 &screensize, bool fullscreen);
+extern bool SDLFrame();
 extern void SDLShutdown();
 extern void SDLTitle(const char *title);
 extern bool SDLIsMinimized();
 
+extern const int2 &GetScreenSize();
 
 struct UpDown
 {
@@ -50,7 +51,7 @@ extern void SDLSoundClose();
 
 extern uchar *SDLLoadFile(const char *absfilename, size_t *len);
 
-extern bool ScreenShot(const char *filename, const int2 &screensize);
+extern bool ScreenShot(const char *filename);
 
 extern void SDLTestMode();
 

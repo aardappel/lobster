@@ -120,8 +120,8 @@ struct Light
 
 
 extern void OpenGLInit();
-extern void OpenGLFrameStart(const int2 &screensize);
-extern void Set2DMode(const int2 &screensize);
+extern void OpenGLFrameStart(const int2 &ssize);
+extern void Set2DMode(const int2 &ssize, bool lh);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void Set3DOrtho(const float3 &center, const float3 &extends);
 extern void ClearFrameBuffer(const float3 &c);
@@ -155,7 +155,7 @@ extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE)
 extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
 extern int MaxTextureSize();
-extern bool SwitchToFrameBuffer(uint texture, const int2 &depthsize);
+extern bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth);
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
 

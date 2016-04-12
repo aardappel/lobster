@@ -117,7 +117,7 @@ int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); re
 
 uint fb = 0;
 uint rb = 0;
-bool SwitchToFrameBuffer(uint texture, const int2 &depthsize)
+bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth)
 {
     if (rb)
     {
@@ -131,17 +131,24 @@ bool SwitchToFrameBuffer(uint texture, const int2 &depthsize)
         glDeleteFramebuffers(1, &fb);
         fb = 0;
     }
-    if (!texture) return true;
+    if (!texture)
+    {
+        OpenGLFrameStart(fbsize);
+        Set2DMode(fbsize, true);
+        return true;
+    }
     
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-    if (depthsize.x())
+    if (depth)
     {
         glGenRenderbuffers(1, &rb);
         glBindRenderbuffer(GL_RENDERBUFFER, rb);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, depthsize.x(), depthsize.y());
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y());
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
     }
+    OpenGLFrameStart(fbsize);
+    Set2DMode(fbsize, false);  // Have to use rh mode here, otherwise texture is filled flipped.
     return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 }
