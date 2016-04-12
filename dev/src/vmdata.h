@@ -82,8 +82,10 @@ enum type_elem_t : int   // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_INT = 8,   // 2 each.
     TYPE_ELEM_VECTOR_OF_FLOAT = 10,
     TYPE_ELEM_VECTOR_OF_STRING = 12,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 14,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 16,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 14
+    TYPE_ELEM_FIXED_OFFSET_END = 18
 };
 
 struct TypeInfo

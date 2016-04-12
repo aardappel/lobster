@@ -127,17 +127,19 @@ struct CodeGen
     CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st)
     {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
-                                                    GetTypeTableOffset(type_int);
-                                                    GetTypeTableOffset(type_float);
-        Type type_boxedint(V_BOXEDINT);             GetTypeTableOffset(&type_boxedint);
-        Type type_boxedfloat(V_BOXEDFLOAT);         GetTypeTableOffset(&type_boxedfloat);
-                                                    GetTypeTableOffset(type_string);
-                                                    GetTypeTableOffset(type_any);
-        Type type_valuebuf(V_VALUEBUF);             GetTypeTableOffset(&type_valuebuf);
-        Type type_stackframebuf(V_STACKFRAMEBUF);   GetTypeTableOffset(&type_stackframebuf);
-                                                    GetTypeTableOffset(type_vector_int);
-                                                    GetTypeTableOffset(type_vector_float);
-        Type type_vec_str(V_VECTOR, &*type_string); GetTypeTableOffset(&type_vec_str);
+                                                            GetTypeTableOffset(type_int);
+                                                            GetTypeTableOffset(type_float);
+        Type type_boxedint(V_BOXEDINT);                     GetTypeTableOffset(&type_boxedint);
+        Type type_boxedfloat(V_BOXEDFLOAT);                 GetTypeTableOffset(&type_boxedfloat);
+                                                            GetTypeTableOffset(type_string);
+                                                            GetTypeTableOffset(type_any);
+        Type type_valuebuf(V_VALUEBUF);                     GetTypeTableOffset(&type_valuebuf);
+        Type type_stackframebuf(V_STACKFRAMEBUF);           GetTypeTableOffset(&type_stackframebuf);
+                                                            GetTypeTableOffset(type_vector_int);
+                                                            GetTypeTableOffset(type_vector_float);
+        Type type_vec_str(V_VECTOR, &*type_string);         GetTypeTableOffset(&type_vec_str);
+        Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
+        Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
 
         for (auto type : st.default_int_vector_types)

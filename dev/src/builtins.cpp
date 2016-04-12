@@ -765,6 +765,21 @@ void AddBuiltins()
     STARTDECL(max) (Value &x) { VECSCALAROP(float, FLT_MIN, v = max(v, f.fval())) } ENDDECL1(max, "v", "F]", "F",
         "largest component of a float vector. returns largest possible float for empty vector");
 
+    STARTDECL(lerp) (Value &x, Value &y, Value &f)
+    {
+        return Value(mix(x.fval(), y.fval(), f.fval()));
+    }
+    ENDDECL3(lerp, "x,y,f", "FFF", "F",
+        "linearly interpolates between x and y with factor f [0..1]");
+
+    STARTDECL(lerp) (Value &x, Value &y, Value &f)
+    {
+        auto numelems = x.eval()->Len();
+        return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
+    }
+    ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
+        "linearly interpolates between x and y vectors with factor f [0..1]");
+
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t)
     {
         return ToValueF(cardinalspline(ValueDecToF<3>(z),
@@ -786,20 +801,84 @@ void AddBuiltins()
     ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F]F]F]F]", "F]:2?",
         "computes the intersection point between 2 line segments, or nil if no intersection");
 
-    STARTDECL(lerp) (Value &x, Value &y, Value &f)
+    STARTDECL(circles_within_range) (Value &dist, Value &positions, Value &radiuses, Value &prefilter)
     {
-        return Value(mix(x.fval(), y.fval(), f.fval()));
+        auto len = positions.vval()->len;
+        if (radiuses.vval()->len != len || prefilter.vval()->len != len)
+            return g_vm->BuiltinError("circles_within_range: all input vectors must be the same size");
+        struct Node { float2 pos; float rad; bool filter; int idx; Node *next; };
+        vector<Node> nodes(len, Node());
+        float maxrad = 0;
+        float2 minpos = float2(FLT_MAX), maxpos(FLT_MIN);
+        for (int i = 0; i < len; i++)
+        {
+            auto &n = nodes[i];
+            auto p = ValueToF<2>(positions.vval()->At(i));
+            minpos = min(minpos, p);
+            maxpos = min(maxpos, p);
+            n.pos = p;
+            auto r = radiuses.vval()->At(i).fval();
+            maxrad = max(maxrad, r);
+            n.rad = r;
+            n.filter = prefilter.vval()->At(i).True();
+            n.idx = i;
+            n.next = nullptr;
+        }
+        positions.DECRT();
+        radiuses.DECRT();
+        prefilter.DECRT();
+        auto ncelld = (int)sqrtf(float(len + 1) * 4);
+        vector<Node *> cells(ncelld * ncelld, nullptr);
+        auto wsize = maxpos - minpos;
+        wsize *= 1.00001f;  // No objects may fall exactly on the far border.
+        for (int i = 0; i < len; i++)
+        {
+            auto &n = nodes[i];
+            auto cp = int2((n.pos - minpos) / wsize * float(ncelld));
+            auto &c = cells[cp.x() + cp.y() * ncelld];
+            n.next = c;
+            c = &n;
+        }
+        auto qdist = dist.fval();
+        vector<int> within_range;
+        vector<LVector *> results(len, nullptr);
+        for (int i = 0; i < len; i++)
+        {
+            auto &n = nodes[i];
+            float scanrad = n.rad + maxrad + qdist;
+            auto extents = scanrad / wsize * float(ncelld);
+            auto minc = int2(n.pos - extents);
+            auto maxc = int2(n.pos + extents);
+            for (int y = minc.y(); y <= maxc.y(); y++)
+            {
+                for (int x = minc.x(); x <= maxc.x(); x++)
+                {
+                    for (auto c = cells[x + y * ncelld]; c; c = c->next)
+                    {
+                        if (c->filter && c != &n)
+                        {
+                            auto d = length(c->pos - n.pos) - n.rad - c->rad;
+                            if (d < qdist)
+                            {
+                                within_range.push_back(c->idx);
+                            }
+                        }
+                    }
+                }
+            }
+            auto vec = (LVector *)g_vm->NewVector(0, within_range.size(), g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+            for (auto i : within_range) vec->Push(Value(i));
+            within_range.clear();
+            results[i] = vec;
+        }
+        auto rvec = (LVector *)g_vm->NewVector(0, len, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT));
+        for (auto vec : results) rvec->Push(Value(vec));
+        return Value(rvec);
     }
-    ENDDECL3(lerp, "x,y,f", "FFF", "F",
-        "linearly interpolates between x and y with factor f [0..1]");
-
-    STARTDECL(lerp) (Value &x, Value &y, Value &f)
-    {
-        auto numelems = x.eval()->Len();
-        return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
-    }
-    ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
-        "linearly interpolates between x and y vectors with factor f [0..1]");
+    ENDDECL4(circles_within_range, "dist,positions,radiuses,prefilter", "FF]]F]I]", "I]]",
+        "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
+        " a vector of vectors of indices of the circles that are within dist of eachothers radius."
+        " pre-filter indicates objects that should not appear in the inner vectors.");
 
     STARTDECL(resume) (Value &co, Value &ret)
     {
