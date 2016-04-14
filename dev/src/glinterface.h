@@ -167,6 +167,7 @@ extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const f
 extern void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
 extern void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
 extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
+extern void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
 
 extern size_t AttribsSize(const char *fmt);
 

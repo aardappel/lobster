@@ -309,7 +309,7 @@ void RenderCircle(Shader *sh, Primitive prim, int segments, float radius)
 {
     assert(segments >= 3);
 
-    auto vbo = circlevbos[segments];
+    auto &vbo = circlevbos[segments];
 
     if (!vbo)
     {
@@ -324,7 +324,6 @@ void RenderCircle(Shader *sh, Primitive prim, int segments, float radius)
         }
 
         vbo = GenBO(GL_ARRAY_BUFFER, sizeof(float3), segments, vbuf);
-        circlevbos[segments] = vbo;
         delete[] vbuf;
     }
 
@@ -332,5 +331,52 @@ void RenderCircle(Shader *sh, Primitive prim, int segments, float radius)
     {
         sh->Set();
         RenderArray(prim, segments, segments, "P", sizeof(float3), vbo);
+    });
+}
+
+map<pair<int, float>, pair<uint, uint>> opencirclevbos;  // FIXME: not global;
+
+void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness)
+{
+    assert(segments >= 3);
+
+    auto vbo_type = make_pair(segments, thickness);
+    auto &vibo = opencirclevbos[vbo_type];
+
+    auto nverts = segments * 2;
+    auto nindices = segments * 6;
+
+    if (!vibo.first)
+    {
+        auto vbuf = new float3[nverts];
+        auto ibuf = new int[nindices];
+
+        float step = PI * 2 / segments;
+        float inner = 1 - thickness;
+        for (int i = 0; i < segments; i++)
+        {
+            // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
+            float x = sinf(i * step + 1);
+            float y = cosf(i * step + 1);
+            vbuf[i * 2 + 0] = float3(x, y, 0);
+            vbuf[i * 2 + 1] = float3(x * inner, y * inner, 0);
+            ibuf[i * 6 + 0] = i * 2 + 0;
+            ibuf[i * 6 + 1] = ((i + 1) * 2 + 0) % nverts;
+            ibuf[i * 6 + 2] = i * 2 + 1;
+            ibuf[i * 6 + 3] = i * 2 + 1;
+            ibuf[i * 6 + 4] = ((i + 1) * 2 + 1) % nverts;
+            ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
+        }
+
+        vibo.first = GenBO(GL_ARRAY_BUFFER, sizeof(float3), nverts, vbuf);
+        vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), nindices, ibuf);
+        delete[] vbuf;
+        delete[] ibuf;
+    }
+
+    Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]()
+    {
+        sh->Set();
+        RenderArray(PRIM_TRIS, nindices, nverts, "P", sizeof(float3), vibo.first, vibo.second);
     });
 }

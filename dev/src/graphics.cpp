@@ -439,6 +439,18 @@ void AddGraphics()
     ENDDECL2(gl_circle, "radius,segments", "FI", "",
         "renders a circle");
 
+    STARTDECL(gl_opencircle) (Value &radius, Value &segments, Value &thickness)
+    {
+        TestGL();
+
+        RenderOpenCircle(currentshader, max(segments.ival(), 3), radius.fval(), thickness.fval());
+
+        return Value();
+    }
+    ENDDECL3(gl_opencircle, "radius,segments,thickness", "FIF", "",
+        "renders a circle that is open on the inside. thickness is the fraction of the radius that is filled,"
+        " try e.g. 0.2");
+
     STARTDECL(gl_rotate_x) (Value &angle, Value &body)
     {
         auto a = ValueDecToF<2>(angle);
