@@ -122,6 +122,11 @@ def insertion_sort(xs, lt):
                 xs[j--] = xs[j - 1]
             xs[j] = key
 
+def randomize(xs):
+    // Simple and effective, but remove makes it expensive.
+    for(xs.length) i: xs.push(xs.remove(rnd(xs.length - i)))
+    xs
+
 def nest_if(c, nest, with):
     if c: nest(with)
     else: with()
