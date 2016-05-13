@@ -1,3 +1,12 @@
+- have some way to pack all loaded files into the bytecode file, to simplify distribution of lobster
+  programs.
+  This would require the compiler to know all files that are going to be needed (though it will fall-back on normal loading
+  for unknown files).
+  1) could spit out a list of files loaded during a run, that is then used on the next compile. simple, but clumsy
+     and potentially fragile.
+  2) make it a compile feature by pre-fixing strings that are filenames with some kind of keyword, so they can be collected.
+     this does mean they cannot be constructed which kinda sucks. Maybe can allow patterns to expand to vectors somehow?
+
 - this crashes on += in codegen:
 team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
                    color_light_blue, color_light_yellow, color_light_cyan, color_light_pink, color_dark_red, color_dark_green, color_dark_blue, color_olive ]
