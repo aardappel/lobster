@@ -816,7 +816,7 @@ void AddBuiltins()
             auto &n = nodes[i];
             auto p = ValueToF<2>(positions.vval()->At(i));
             minpos = min(minpos, p);
-            maxpos = min(maxpos, p);
+            maxpos = max(maxpos, p);
             n.pos = p;
             auto r = radiuses.vval()->At(i).fval();
             maxrad = max(maxrad, r);
@@ -848,8 +848,8 @@ void AddBuiltins()
             auto &n = nodes[i];
             float scanrad = n.rad + maxrad + qdist;
             auto extents = scanrad / wsize * float(ncelld);
-            auto minc = int2(n.pos - extents);
-            auto maxc = int2(n.pos + extents);
+            auto minc = max(int2_0, min((ncelld - 1) * int2_1, int2(n.pos - extents)));
+            auto maxc = max(int2_0, min((ncelld - 1) * int2_1, int2(n.pos + extents)));
             for (int y = minc.y(); y <= maxc.y(); y++)
             {
                 for (int x = minc.x(); x <= maxc.x(); x++)

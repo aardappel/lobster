@@ -137,10 +137,10 @@ template<typename T> inline T mix(T a, T b, float f) { return a * (1 - f) + b * 
 //} 
 inline float rpowf(float t, float e) { return expf(e * logf(t)); } 
 
-template<typename T, int N> inline vec<T,N> operator+(float f, const vec<T,N> &v) { DOVECR(f + v[i]); }
-template<typename T, int N> inline vec<T,N> operator-(float f, const vec<T,N> &v) { DOVECR(f - v[i]); }
-template<typename T, int N> inline vec<T,N> operator*(float f, const vec<T,N> &v) { DOVECR(f * v[i]); }
-template<typename T, int N> inline vec<T,N> operator/(float f, const vec<T,N> &v) { DOVECR(f / v[i]); }
+template<typename T, int N> inline vec<T,N> operator+(T f, const vec<T,N> &v) { DOVECR(f + v[i]); }
+template<typename T, int N> inline vec<T,N> operator-(T f, const vec<T,N> &v) { DOVECR(f - v[i]); }
+template<typename T, int N> inline vec<T,N> operator*(T f, const vec<T,N> &v) { DOVECR(f * v[i]); }
+template<typename T, int N> inline vec<T,N> operator/(T f, const vec<T,N> &v) { DOVECR(f / v[i]); }
 
 template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b)
 {
@@ -191,6 +191,7 @@ const float2 float2_0 = float2(0.0f);
 const float2 float2_1 = float2(1.0f);
 
 const int2 int2_0 = int2(0);
+const int2 int2_1 = int2(1);
 
 const byte4 byte4_0   = byte4((uchar)0);
 const byte4 byte4_255 = byte4((uchar)255);
