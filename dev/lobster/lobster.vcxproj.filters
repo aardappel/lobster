@@ -1,13 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="compiler">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="compiler\builtins">
-      <UniqueIdentifier>{564c5719-24a0-4d9b-8808-665854c6bb93}</UniqueIdentifier>
-    </Filter>
     <Filter Include="engine">
       <UniqueIdentifier>{d933a959-f9c3-4269-9599-258505eccc49}</UniqueIdentifier>
     </Filter>
@@ -39,14 +32,8 @@
     <Filter Include="engine\physics\Box2D">
       <UniqueIdentifier>{2993c26f-4886-42bd-b3ba-314ecab6af92}</UniqueIdentifier>
     </Filter>
-    <Filter Include="_samples">
-      <UniqueIdentifier>{4c462cb2-4690-4eef-a9af-7a94fbf24856}</UniqueIdentifier>
-    </Filter>
     <Filter Include="dvm">
       <UniqueIdentifier>{da60f2b4-0659-4c6d-957e-6436692322c3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="common">
-      <UniqueIdentifier>{5b6e2421-9663-4999-a2ce-f1589fbbd7ec}</UniqueIdentifier>
     </Filter>
     <Filter Include="engine\freetype\lib">
       <UniqueIdentifier>{6c69c45a-266d-4003-8fff-321d02c73363}</UniqueIdentifier>
@@ -57,25 +44,13 @@
     <Filter Include="engine\sdl\headers">
       <UniqueIdentifier>{76604ffb-3ab0-46f1-a9a5-53ee081964e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="compiler">
+      <UniqueIdentifier>{5b6e2421-9663-4999-a2ce-f1589fbbd7ec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
       <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\lex.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\parser.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\codegen.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\node.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\idents.h">
-      <Filter>compiler</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tools.h">
       <Filter>base</Filter>
@@ -110,38 +85,11 @@
     <ClInclude Include="..\src\wentropy.h">
       <Filter>base</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\typecheck.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ttypes.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\optimizer.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vmlog.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vmdata.h">
       <Filter>dvm</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\disasm.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\il.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\natreg.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\bytecode_generated.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\compiler.h">
       <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vm.h">
-      <Filter>dvm</Filter>
     </ClInclude>
     <ClInclude Include="..\src\fontrenderer.h">
       <Filter>engine\freetype</Filter>
@@ -392,6 +340,9 @@
     <ClInclude Include="..\src\meshgen.h">
       <Filter>engine\meshgen</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\compiler.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -399,15 +350,6 @@
     </ClCompile>
     <ClCompile Include="..\src\meshgen.cpp">
       <Filter>engine\meshgen</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\builtins.cpp">
-      <Filter>compiler\builtins</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\file.cpp">
-      <Filter>compiler\builtins</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\lobsterreader.cpp">
-      <Filter>compiler\builtins</Filter>
     </ClCompile>
     <ClCompile Include="..\src\glshader.cpp">
       <Filter>engine\opengl</Filter>
@@ -426,9 +368,6 @@
     </ClCompile>
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">
       <Filter>engine\sdl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\platform.cpp">
-      <Filter>base</Filter>
     </ClCompile>
     <ClCompile Include="..\src\glloadiqm.cpp">
       <Filter>engine\opengl</Filter>
@@ -609,15 +548,6 @@
     </ClCompile>
     <ClCompile Include="..\include\Box2D\Particle\b2ParticleAssembly.cpp">
       <Filter>engine\physics\Box2D</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vm.cpp">
-      <Filter>dvm</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vmdata.cpp">
-      <Filter>dvm</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\compiler.cpp">
-      <Filter>compiler</Filter>
     </ClCompile>
     <ClCompile Include="..\external\freetype\src\autofit\autofit.c">
       <Filter>engine\freetype\lib</Filter>
@@ -1077,33 +1007,6 @@
     <None Include="..\TODO.txt" />
     <None Include="..\..\lobster\shaders\default.materials">
       <Filter>engine\shaders</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\pythtree.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\physics_boxes.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\physics_water.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\std.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\color.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\3dhelpers.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\physics.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\tests\tctest.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\src\bytecode.fbs">
-      <Filter>common</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

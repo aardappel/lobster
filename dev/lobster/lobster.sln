@@ -4,13 +4,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "engine", "lobster.vcxproj", "{EB07932C-0AC4-4962-B691-713B05E36832}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Android-VS", "..\android\Android-VS\Android-VS.vcxproj", "{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282} = {2C576764-3A5A-4CCD-B50D-C7C9C0349282}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lobster", "main.vcxproj", "{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}"
 	ProjectSection(ProjectDependencies) = postProject
 		{EB07932C-0AC4-4962-B691-713B05E36832} = {EB07932C-0AC4-4962-B691-713B05E36832}
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282} = {2C576764-3A5A-4CCD-B50D-C7C9C0349282}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "language", "language.vcxproj", "{2C576764-3A5A-4CCD-B50D-C7C9C0349282}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,14 +36,6 @@ Global
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|Win32.Build.0 = Release|Win32
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|x64.ActiveCfg = Release|x64
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|x64.Build.0 = Release|x64
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|ARM.ActiveCfg = Debug|ARM
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|ARM.Build.0 = Debug|ARM
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|Win32.ActiveCfg = Debug|x86
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Debug|x64.ActiveCfg = Debug|x86
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|ARM.ActiveCfg = Release|ARM
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|ARM.Build.0 = Release|ARM
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|Win32.ActiveCfg = Release|x86
-		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|x64.ActiveCfg = Release|x86
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|ARM.ActiveCfg = Debug|Win32
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|Win32.ActiveCfg = Debug|Win32
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|Win32.Build.0 = Debug|Win32
@@ -50,6 +46,16 @@ Global
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|Win32.Build.0 = Release|Win32
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.ActiveCfg = Release|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.Build.0 = Release|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|ARM.ActiveCfg = Debug|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|Win32.Build.0 = Debug|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|x64.ActiveCfg = Debug|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|x64.Build.0 = Debug|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|ARM.ActiveCfg = Release|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|Win32.ActiveCfg = Release|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|Win32.Build.0 = Release|Win32
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|x64.ActiveCfg = Release|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -296,23 +296,14 @@
     <ClInclude Include="..\external\SDL\include\SDL_types.h" />
     <ClInclude Include="..\external\SDL\include\SDL_version.h" />
     <ClInclude Include="..\external\SDL\include\SDL_video.h" />
-    <ClInclude Include="..\src\bytecode_generated.h" />
-    <ClInclude Include="..\src\codegen.h" />
     <ClInclude Include="..\src\compiler.h" />
-    <ClInclude Include="..\src\disasm.h" />
     <ClInclude Include="..\src\fontrenderer.h" />
     <ClInclude Include="..\src\geom.h" />
     <ClInclude Include="..\src\glincludes.h" />
-    <ClInclude Include="..\src\idents.h" />
-    <ClInclude Include="..\src\il.h" />
-    <ClInclude Include="..\src\lex.h" />
     <ClInclude Include="..\src\mctables.h" />
     <ClInclude Include="..\src\meshgen.h" />
     <ClInclude Include="..\src\natreg.h" />
-    <ClInclude Include="..\src\node.h" />
     <ClInclude Include="..\src\glinterface.h" />
-    <ClInclude Include="..\src\optimizer.h" />
-    <ClInclude Include="..\src\parser.h" />
     <ClInclude Include="..\src\platform.h" />
     <ClInclude Include="..\src\polyreduce.h" />
     <ClInclude Include="..\src\sdlincludes.h" />
@@ -320,12 +311,8 @@
     <ClInclude Include="..\src\slaballoc.h" />
     <ClInclude Include="..\src\stdafx.h" />
     <ClInclude Include="..\src\tools.h" />
-    <ClInclude Include="..\src\ttypes.h" />
-    <ClInclude Include="..\src\typecheck.h" />
     <ClInclude Include="..\src\unicode.h" />
-    <ClInclude Include="..\src\vm.h" />
     <ClInclude Include="..\src\vmdata.h" />
-    <ClInclude Include="..\src\vmlog.h" />
     <ClInclude Include="..\src\wentropy.h" />
   </ItemGroup>
   <ItemGroup>
@@ -1022,8 +1009,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\audio.cpp" />
-    <ClCompile Include="..\src\builtins.cpp" />
-    <ClCompile Include="..\src\file.cpp" />
     <ClCompile Include="..\src\font.cpp" />
     <ClCompile Include="..\src\fontrenderer.cpp" />
     <ClCompile Include="..\src\glgeom.cpp">
@@ -1036,16 +1021,9 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\src\graphics.cpp" />
-    <ClCompile Include="..\src\compiler.cpp">
-      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
-    </ClCompile>
-    <ClCompile Include="..\src\lobsterreader.cpp" />
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
-    <ClCompile Include="..\src\platform.cpp">
-      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
-    </ClCompile>
     <ClCompile Include="..\src\sdlsystem.cpp" />
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -1061,20 +1039,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
     </ClCompile>
-    <ClCompile Include="..\src\vm.cpp" />
-    <ClCompile Include="..\src\vmdata.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\lobster\include\3dhelpers.lobster" />
-    <None Include="..\..\lobster\include\color.lobster" />
-    <None Include="..\..\lobster\include\physics.lobster" />
-    <None Include="..\..\lobster\include\std.lobster" />
-    <None Include="..\..\lobster\samples\physics_boxes.lobster" />
-    <None Include="..\..\lobster\samples\physics_water.lobster" />
-    <None Include="..\..\lobster\samples\pythtree.lobster" />
-    <None Include="..\..\lobster\samples\tests\tctest.lobster" />
     <None Include="..\..\lobster\shaders\default.materials" />
-    <None Include="..\src\bytecode.fbs" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
   <ItemGroup>
