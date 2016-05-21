@@ -135,7 +135,7 @@ Renderable *GetRenderable(int id)
 
 extern int GetSampler(Value &i); // from graphics
 
-void AddPhysicsOps()
+void AddPhysics()
 {
 	STARTDECL(ph_initialize) (Value &gravity)
 	{
@@ -351,5 +351,3 @@ void AddPhysicsOps()
         "render all particles, with the given scale.");
 
 }
-
-AutoRegister __aph("physics", AddPhysicsOps);

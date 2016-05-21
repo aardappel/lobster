@@ -33,7 +33,8 @@
     #include <unistd.h>
 #endif
 
-using namespace lobster;
+namespace lobster
+{
 
 void AddDirItem(LVector *nlist, LVector *slist, const char *filename, int64_t size, int divisor)
 {
@@ -46,7 +47,7 @@ void AddDirItem(LVector *nlist, LVector *slist, const char *filename, int64_t si
     slist->Push(Value(int(size)));
 }
 
-void AddFileOps()
+void AddFile()
 {
     STARTDECL(scan_folder) (Value &fld, Value &divisor)
     {
@@ -150,4 +151,4 @@ void AddFileOps()
         "creates a file with the contents of a string, returns false if writing wasn't possible");
 }
 
-AutoRegister __afo("file", AddFileOps);
+}

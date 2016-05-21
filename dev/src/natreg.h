@@ -372,19 +372,6 @@ struct NativeRegistry
 
 extern NativeRegistry natreg;
 
-struct AutoRegister;
-
-extern AutoRegister *autoreglist;
-
-struct AutoRegister
-{
-    AutoRegister *next;
-    const char *name;
-    void (* regfun)();
-    AutoRegister(const char *_name, void (* _rf)())
-        : next(autoreglist), name(_name), regfun(_rf) { autoreglist = this; }
-};
-
 #define STARTDECL(name) { struct ___##name { static Value s_##name
 
 #define MIDDECL(name) static void mid_##name

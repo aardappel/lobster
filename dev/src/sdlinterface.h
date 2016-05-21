@@ -57,6 +57,11 @@ extern void SDLTestMode();
 
 extern int SDLScreenDPI(int screen);
 
+
+extern void RegisterCoreEngineBuiltins();
+extern bool GraphicsFrameStart();
+extern void GraphicsShutDown();
+
 #ifdef __EMSCRIPTEN__
 #define USE_MAIN_LOOP_CALLBACK
 #endif

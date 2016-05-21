@@ -1123,5 +1123,3 @@ void AddGraphics()
              "saves a screenshot, returns true if succesful");
 
 }
-
-AutoRegister __ag("graphics", AddGraphics);

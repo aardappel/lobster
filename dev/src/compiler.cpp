@@ -42,7 +42,6 @@ static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parse
 namespace lobster
 {
 
-AutoRegister *autoreglist = nullptr;
 NativeRegistry natreg;
 const Type g_type_int(V_INT);                           TypeRef type_int = &g_type_int;
 const Type g_type_float(V_FLOAT);                       TypeRef type_float = &g_type_float;
@@ -88,24 +87,11 @@ bool VerifyBytecode(const vector<uchar> &bytecode)
     return ok;
 }
 
-void RegisterBuiltins()
+void RegisterBuiltin(const char *name, void (* regfun)())
 {
-    vector<AutoRegister *> autoregs;
-    while (autoreglist)
-    {
-        autoregs.push_back(autoreglist);
-        autoreglist = autoreglist->next;
-    }
-    sort(autoregs.begin(), autoregs.end(), [] (AutoRegister *a, AutoRegister *b)
-    {
-        return strcmp(a->name, b->name) < 0;
-    });
-    for (auto ar : autoregs)
-    {
-        Output(OUTPUT_DEBUG, "subsystem: %s", ar->name);
-        natreg.NativeSubSystemStart(ar->name);
-        ar->regfun();
-    }
+    Output(OUTPUT_DEBUG, "subsystem: %s", name);
+    natreg.NativeSubSystemStart(name);
+    regfun();
 }
 
 void DumpBuiltins(bool justnames)
@@ -232,6 +218,12 @@ void AddCompiler()  // it knows how to call itself!
         "same as compile_run_code(), only now you pass a filename.");
 }
 
-AutoRegister __ac("compiler", AddCompiler);
+void RegisterCoreLanguageBuiltins()
+{
+    extern void AddBuiltins(); RegisterBuiltin("builtin",   AddBuiltins);
+    extern void AddCompiler(); RegisterBuiltin("compiler",  AddCompiler);
+    extern void AddFile();     RegisterBuiltin("file",      AddFile);
+    extern void AddReader();   RegisterBuiltin("parsedata", AddReader);
+}
 
 }

@@ -19,6 +19,8 @@
 
 #include "glinterface.h"
 
+#include "compiler.h"  // For RegisterBuiltin().
+
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;
 
@@ -694,4 +696,14 @@ int SDLScreenDPI(int screen)
     return screen >= screens
            ? 0  // Screen not present.
            : (int)(ddpi + 0.5f);
+}
+
+void RegisterCoreEngineBuiltins()
+{
+    extern void AddGraphics(); lobster::RegisterBuiltin("graphics",  AddGraphics);
+    extern void AddFont();     lobster::RegisterBuiltin("font",      AddFont);
+    extern void AddSound();    lobster::RegisterBuiltin("sound",     AddSound);
+    extern void AddPhysics();  lobster::RegisterBuiltin("physics",   AddPhysics);
+    extern void AddNoise();    lobster::RegisterBuiltin("noise",     AddNoise);
+    extern void AddMeshGen();  lobster::RegisterBuiltin("meshgen",   AddMeshGen);
 }

@@ -19,7 +19,8 @@
 
 #include "unicode.h"
 
-using namespace lobster;
+namespace lobster
+{
 
 static RandomNumberGenerator<MersenneTwister> rnd;
 
@@ -973,5 +974,4 @@ void AddBuiltins()
         "get the reference count of any value. for compiler debugging, mostly");
 }
 
-AutoRegister __abi("builtins", AddBuiltins);
-
+}

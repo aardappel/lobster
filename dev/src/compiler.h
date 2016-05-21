@@ -17,7 +17,8 @@ namespace lobster
 
 extern void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string *parsedump = nullptr);
 extern bool VerifyBytecode(const vector<uchar> &bytecode);
-extern void RegisterBuiltins();
+extern void RegisterBuiltin(const char *name, void (* regfun)());
+extern void RegisterCoreLanguageBuiltins();
 extern void DumpBuiltins(bool justnames);
 
 }

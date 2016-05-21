@@ -21,7 +21,7 @@
 
 using namespace lobster;
 
-void AddSoundOps()
+void AddSound()
 {
     STARTDECL(play_wav) (Value &ins)
     {
@@ -43,5 +43,3 @@ void AddSoundOps()
         "plays a synth sound defined by a .sfs file (use http://www.drpetter.se/project_sfxr.html to generate these)."
         " returns false on error");
 }
-
-AutoRegister __aso("sound", AddSoundOps);

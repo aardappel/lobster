@@ -66,7 +66,7 @@ bool Load(const char *bcf, vector<uchar> &bytecode)
 
 void Exit(int code)
 {
-    extern void GraphicsShutDown(); GraphicsShutDown();
+    GraphicsShutDown();
 
     #ifdef __EMSCRIPTEN__
         emscripten_force_exit(code);
@@ -79,7 +79,7 @@ void one_frame_callback()
 {
     try
     {
-        extern bool GraphicsFrameStart(); GraphicsFrameStart();
+        GraphicsFrameStart();
         assert(g_vm);
         g_vm->OneMoreFrame();
         // If this returns, we didn't hit a gl_frame() again and exited normally.
@@ -116,7 +116,8 @@ int main(int argc, char* argv[])
 
     try
     {
-        RegisterBuiltins();
+        RegisterCoreLanguageBuiltins();
+        RegisterCoreEngineBuiltins();
 
         bool parsedump = false;
         bool disasm = false;

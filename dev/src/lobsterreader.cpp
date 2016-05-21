@@ -20,7 +20,8 @@
 #include "ttypes.h"
 #include "lex.h"
 
-using namespace lobster;
+namespace lobster
+{
 
 struct ValueParser
 {
@@ -216,7 +217,7 @@ static Value ParseData(type_elem_t typeoff, char *inp)
     }
 }
 
-void AddReaderOps()
+void AddReader()
 {
     STARTDECL(parse_data) (Value &type, Value &ins)
     {
@@ -233,6 +234,4 @@ void AddReaderOps()
         " (or nil if no error)");
 }
 
-AutoRegister __aro("parsedata", AddReaderOps);
-
-
+}

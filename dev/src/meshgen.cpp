@@ -1293,5 +1293,3 @@ void AddMeshGen()
         " when a body is given, restores the previous fill mode afterwards."
         " Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
 }
-
-AutoRegister __amg("meshgen", AddMeshGen);
