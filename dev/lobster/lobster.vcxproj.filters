@@ -616,9 +616,6 @@
     <ClCompile Include="..\src\vmdata.cpp">
       <Filter>dvm</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\main.cpp">
-      <Filter>compiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\compiler.cpp">
       <Filter>compiler</Filter>
     </ClCompile>

@@ -1,11 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lobster", "lobster.vcxproj", "{EB07932C-0AC4-4962-B691-713B05E36832}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "engine", "lobster.vcxproj", "{EB07932C-0AC4-4962-B691-713B05E36832}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Android-VS", "..\android\Android-VS\Android-VS.vcxproj", "{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lobster", "main.vcxproj", "{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EB07932C-0AC4-4962-B691-713B05E36832} = {EB07932C-0AC4-4962-B691-713B05E36832}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +40,16 @@ Global
 		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|ARM.Build.0 = Release|ARM
 		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|Win32.ActiveCfg = Release|x86
 		{5D8D7CB2-96ED-451F-8F2D-9FB4089052E6}.Release|x64.ActiveCfg = Release|x86
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|ARM.ActiveCfg = Debug|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|Win32.Build.0 = Debug|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|x64.ActiveCfg = Debug|x64
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|x64.Build.0 = Debug|x64
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|ARM.ActiveCfg = Release|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|Win32.ActiveCfg = Release|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|Win32.Build.0 = Release|Win32
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.ActiveCfg = Release|x64
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
