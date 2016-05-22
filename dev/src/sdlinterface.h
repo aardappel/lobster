@@ -61,6 +61,8 @@ extern int SDLScreenDPI(int screen);
 extern void RegisterCoreEngineBuiltins();
 extern bool GraphicsFrameStart();
 extern void GraphicsShutDown();
+extern void EngineExit(int code);
+extern void EngineRunByteCode(const char *fn, vector<uchar> &&bytecode);
 
 #ifdef __EMSCRIPTEN__
 #define USE_MAIN_LOOP_CALLBACK

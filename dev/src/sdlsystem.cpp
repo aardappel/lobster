@@ -20,6 +20,11 @@
 #include "glinterface.h"
 
 #include "compiler.h"  // For RegisterBuiltin().
+#include "vm.h"
+#include "vmdata.h"
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
 
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;
@@ -700,10 +705,80 @@ int SDLScreenDPI(int screen)
 
 void RegisterCoreEngineBuiltins()
 {
+    lobster::RegisterCoreLanguageBuiltins();
+
     extern void AddGraphics(); lobster::RegisterBuiltin("graphics",  AddGraphics);
     extern void AddFont();     lobster::RegisterBuiltin("font",      AddFont);
     extern void AddSound();    lobster::RegisterBuiltin("sound",     AddSound);
     extern void AddPhysics();  lobster::RegisterBuiltin("physics",   AddPhysics);
     extern void AddNoise();    lobster::RegisterBuiltin("noise",     AddNoise);
     extern void AddMeshGen();  lobster::RegisterBuiltin("meshgen",   AddMeshGen);
+}
+
+void EngineExit(int code)
+{
+    GraphicsShutDown();
+
+    #ifdef __EMSCRIPTEN__
+        emscripten_force_exit(code);
+    #endif
+
+    exit(code); // Needed at least on iOS to forcibly shut down the wrapper main()
+}
+
+void one_frame_callback()
+{
+    try
+    {
+        GraphicsFrameStart();
+        assert(lobster::g_vm);
+        lobster::g_vm->OneMoreFrame();
+        // If this returns, we didn't hit a gl_frame() again and exited normally.
+        EngineExit(0);
+    }
+    catch (string &s)
+    {
+        if (s != "SUSPEND-VM-MAINLOOP")
+        {
+            // An actual error.
+            Output(OUTPUT_ERROR, s.c_str());
+            EngineExit(1);
+        }
+    }
+}
+
+void EngineRunByteCode(const char *fn, vector<uchar> &&bytecode)
+{
+    try
+    {
+        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode));
+    }
+    catch (string &s)
+    {
+        #ifdef USE_MAIN_LOOP_CALLBACK
+        if (s == "SUSPEND-VM-MAINLOOP")
+        {
+            // emscripten requires that we don't control the main loop.
+            // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
+            // Install the one-frame callback:
+            #ifdef __EMSCRIPTEN__
+            emscripten_set_main_loop(one_frame_callback, 0, false);
+            // Return from main() here (!) since we don't actually want to run any shutdown code yet.
+            assert(g_vm);
+            return 0;
+            #else
+            // Emulate this behavior so we can debug it.
+            while (g_vm->evalret == "") one_frame_callback();
+            #endif
+        }
+        else
+        #endif
+        {
+            if (lobster::g_vm) delete lobster::g_vm;
+            // An actual error.
+            throw s;
+        }
+    }
+
+    delete lobster::g_vm;
 }

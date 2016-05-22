@@ -38,6 +38,7 @@ static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parse
 #include "typecheck.h"
 #include "optimizer.h"
 #include "codegen.h"
+#include "wentropy.h"
 
 namespace lobster
 {
@@ -56,6 +57,9 @@ const Type g_type_coroutine(V_COROUTINE);               TypeRef type_coroutine =
 const Type g_type_typeid(V_TYPEID);                     TypeRef type_typeid = &g_type_typeid;
 const Type g_type_function_nil(V_NIL,
                                 &*type_function_null);  TypeRef type_function_nil = &g_type_function_nil;
+
+const char *fileheader = "\xA5\x74\xEF\x19";
+const int fileheaderlen = 4;
 
 void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string *parsedump = nullptr)
 {
@@ -85,6 +89,38 @@ bool VerifyBytecode(const vector<uchar> &bytecode)
     auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
     assert(ok);
     return ok;
+}
+
+void SaveByteCode(const char *bcf, const vector<uchar> &bytecode)
+{
+    vector<uchar> out;
+    WEntropyCoder<true>(bytecode.data(), bytecode.size(), bytecode.size(), out);
+
+    FILE *f = OpenForWriting(bcf, true);
+    if (f)
+    {
+        fwrite(fileheader, fileheaderlen, 1, f);
+        auto len = (uint)bytecode.size();
+        fwrite(&len, sizeof(uint), 1, f);  // FIXME: not endianness-safe
+        fwrite(out.data(), out.size(), 1, f);
+        fclose(f);
+    }
+}
+
+bool LoadByteCode(const char *bcf, vector<uchar> &bytecode)
+{
+    size_t bclen = 0;
+    uchar *bc = LoadFile(bcf, &bclen);
+    if (!bc) return false;
+
+    if (memcmp(fileheader, bc, fileheaderlen)) { free(bc); throw string("bytecode file corrupt: ") + bcf; }
+    uint origlen = *(uint *)(bc + fileheaderlen);
+    bytecode.clear();
+    WEntropyCoder<false>(bc + fileheaderlen + sizeof(uint), bclen - fileheaderlen - sizeof(uint), origlen, bytecode);
+
+    free(bc);
+
+    return VerifyBytecode(bytecode);
 }
 
 void RegisterBuiltin(const char *name, void (* regfun)())

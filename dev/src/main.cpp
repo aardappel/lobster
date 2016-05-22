@@ -16,85 +16,11 @@
 
 #include "compiler.h"
 #include "vm.h"
-#include "vmdata.h"
 
 #include "sdlincludes.h"    // FIXME: this makes SDL not modular, but without it it will miss the SDLMain indirection
 #include "sdlinterface.h"
 
-#include "wentropy.h"
-
-#ifdef __EMSCRIPTEN__
-#include "emscripten.h"
-#endif
-
 using namespace lobster;
-
-const char *fileheader = "\xA5\x74\xEF\x19";
-const int fileheaderlen = 4;
-
-void Save(const char *bcf, const vector<uchar> &bytecode)
-{
-    vector<uchar> out;
-    WEntropyCoder<true>(bytecode.data(), bytecode.size(), bytecode.size(), out);
-
-    FILE *f = OpenForWriting(bcf, true);
-    if (f)
-    {
-        fwrite(fileheader, fileheaderlen, 1, f);
-        auto len = (uint)bytecode.size();
-        fwrite(&len, sizeof(uint), 1, f);  // FIXME: not endianness-safe
-        fwrite(out.data(), out.size(), 1, f);
-        fclose(f);
-    }
-}
-
-bool Load(const char *bcf, vector<uchar> &bytecode)
-{
-    size_t bclen = 0;
-    uchar *bc = LoadFile(bcf, &bclen);
-    if (!bc) return false;
-
-    if (memcmp(fileheader, bc, fileheaderlen)) { free(bc); throw string("bytecode file corrupt: ") + bcf; }
-    uint origlen = *(uint *)(bc + fileheaderlen);
-    bytecode.clear();
-    WEntropyCoder<false>(bc + fileheaderlen + sizeof(uint), bclen - fileheaderlen - sizeof(uint), origlen, bytecode);
-
-    free(bc);
-
-    return VerifyBytecode(bytecode);
-}
-
-void Exit(int code)
-{
-    GraphicsShutDown();
-
-    #ifdef __EMSCRIPTEN__
-        emscripten_force_exit(code);
-    #endif
-
-    exit(code); // Needed at least on iOS to forcibly shut down the wrapper main()
-}
-
-void one_frame_callback()
-{
-    try
-    {
-        GraphicsFrameStart();
-        assert(g_vm);
-        g_vm->OneMoreFrame();
-        // If this returns, we didn't hit a gl_frame() again and exited normally.
-        Exit(0);
-    }
-    catch (string &s)
-    {
-        if (s != "SUSPEND-VM-MAINLOOP")
-        {
-            // An actual error.
-            Output(OUTPUT_ERROR, s.c_str());
-            Exit(1);
-        }
-    }
-}
 
 int main(int argc, char* argv[])
 {
@@ -116,7 +42,6 @@ int main(int argc, char* argv[])
 
     try
     {
-        RegisterCoreLanguageBuiltins();
         RegisterCoreEngineBuiltins();
 
         bool parsedump = false;
@@ -159,7 +84,7 @@ int main(int argc, char* argv[])
 
         if (!fn)
         {
-            if (!Load(default_bcf, bytecode))
+            if (!LoadByteCode(default_bcf, bytecode))
                 throw string("Lobster programming language compiler/runtime (version " __DATE__ 
                              ")\nno arguments given - cannot load ") + default_bcf;
         }
@@ -182,7 +107,7 @@ int main(int argc, char* argv[])
 
             if (bcf)
             {
-                Save(bcf, bytecode);
+                SaveByteCode(bcf, bytecode);
                 return 0;
             }
         }
@@ -199,45 +124,10 @@ int main(int argc, char* argv[])
             }
         }
 
-        #ifdef USE_MAIN_LOOP_CALLBACK
-        try
-        {
-        #endif
-
-        RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode));
-
-        #ifdef USE_MAIN_LOOP_CALLBACK
-        }
-        catch (string &s)
-        {
-            if (s == "SUSPEND-VM-MAINLOOP")
-            {
-                // emscripten requires that we don't control the main loop.
-                // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
-                // Install the one-frame callback:
-                #ifdef __EMSCRIPTEN__
-                emscripten_set_main_loop(one_frame_callback, 0, false);
-                // Return from main() here (!) since we don't actually want to run any shutdown code yet.
-                assert(g_vm);
-                return 0;
-                #else
-                // Emulate this behavior so we can debug it.
-                while (g_vm->evalret == "") one_frame_callback();
-                #endif
-            }
-            else
-            {
-                // An actual error.
-                throw s;
-            }
-        }
-        #endif
-
-        delete g_vm;
+        EngineRunByteCode(fn, std::move(bytecode));
     }
     catch (string &s)
     {
-        if (g_vm) delete g_vm;
         Output(OUTPUT_ERROR, s.c_str());
         if (from_bundle) MsgBox(s.c_str());
         if (wait)
@@ -250,10 +140,10 @@ int main(int argc, char* argv[])
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
 
-        Exit(1);
+        EngineExit(1);
     }
 
-    Exit(0);
+    EngineExit(0);
     return 0;
 }
 
