@@ -32,9 +32,6 @@
     <Filter Include="engine\physics\Box2D">
       <UniqueIdentifier>{2993c26f-4886-42bd-b3ba-314ecab6af92}</UniqueIdentifier>
     </Filter>
-    <Filter Include="dvm">
-      <UniqueIdentifier>{da60f2b4-0659-4c6d-957e-6436692322c3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="engine\freetype\lib">
       <UniqueIdentifier>{6c69c45a-266d-4003-8fff-321d02c73363}</UniqueIdentifier>
     </Filter>
@@ -84,9 +81,6 @@
     </ClInclude>
     <ClInclude Include="..\src\wentropy.h">
       <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vmdata.h">
-      <Filter>dvm</Filter>
     </ClInclude>
     <ClInclude Include="..\src\natreg.h">
       <Filter>compiler</Filter>
@@ -342,6 +336,15 @@
     </ClInclude>
     <ClInclude Include="..\src\compiler.h">
       <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vmdata.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3dgrid.h">
+      <Filter>engine\meshgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\simplex.h">
+      <Filter>engine\lobster_bindings</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

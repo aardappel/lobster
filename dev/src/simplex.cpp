@@ -89,7 +89,7 @@ static const int simplex[64][4] = {
 
 
 // 2D raw Simplex noise
-float simplexRawNoise( const float x, const float y ) {
+float SimplexRawNoise(const float x, const float y) {
     // Noise contributions from the three corners
     float n0, n1, n2;
 
@@ -159,7 +159,7 @@ float simplexRawNoise( const float x, const float y ) {
 
 
 // 3D raw Simplex noise
-float simplexRawNoise( const float x, const float y, const float z ) {
+float SimplexRawNoise(const float x, const float y, const float z) {
     float n0, n1, n2, n3; // Noise contributions from the four corners
 
     // Skew the input space to determine which simplex cell we're in
@@ -254,7 +254,7 @@ float simplexRawNoise( const float x, const float y, const float z ) {
 
 
 // 4D raw Simplex noise
-float simplexRawNoise( const float x, const float y, const float z, const float w ) {
+float SimplexRawNoise(const float x, const float y, const float z, const float w) {
     // The skewing and unskewing factors are hairy again for the 4D case
     float F4 = (sqrtf(5.0f)-1.0f)/4.0f;
     float G4 = (5.0f-sqrtf(5.0f))/20.0f;
@@ -391,7 +391,7 @@ float simplexRawNoise( const float x, const float y, const float z, const float 
 //
 // For each octave, a higher frequency/lower amplitude function will be added to the original.
 // The higher the persistence [0-1], the more of each succeeding octave will be added.
-float simplexNoise( const int octaves, const float persistence, const float scale, const float2 &v ) {
+float SimplexNoise(const int octaves, const float persistence, const float scale, const float2 &v) {
     float total = 0;
     float frequency = scale;
     float amplitude = 1;
@@ -401,7 +401,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
     float maxAmplitude = 0;
 
     for( int i=0; i < octaves; i++ ) {
-        total += simplexRawNoise( v.x() * frequency, v.y() * frequency ) * amplitude;
+        total += SimplexRawNoise( v.x() * frequency, v.y() * frequency ) * amplitude;
 
         frequency *= 2;
         maxAmplitude += amplitude;
@@ -416,7 +416,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
 //
 // For each octave, a higher frequency/lower amplitude function will be added to the original.
 // The higher the persistence [0-1], the more of each succeeding octave will be added.
-float simplexNoise( const int octaves, const float persistence, const float scale, const float3 &v ) {
+float SimplexNoise(const int octaves, const float persistence, const float scale, const float3 &v) {
     float total = 0;
     float frequency = scale;
     float amplitude = 1;
@@ -426,7 +426,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
     float maxAmplitude = 0;
 
     for( int i=0; i < octaves; i++ ) {
-        total += simplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency ) * amplitude;
+        total += SimplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency ) * amplitude;
 
         frequency *= 2;
         maxAmplitude += amplitude;
@@ -441,7 +441,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
 //
 // For each octave, a higher frequency/lower amplitude function will be added to the original.
 // The higher the persistence [0-1], the more of each succeeding octave will be added.
-float simplexNoise( const int octaves, const float persistence, const float scale, const float4 &v ) {
+float SimplexNoise(const int octaves, const float persistence, const float scale, const float4 &v) {
     float total = 0;
     float frequency = scale;
     float amplitude = 1;
@@ -451,7 +451,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
     float maxAmplitude = 0;
 
     for( int i=0; i < octaves; i++ ) {
-        total += simplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency, v.w() * frequency ) *
+        total += SimplexRawNoise( v.x() * frequency, v.y() * frequency, v.z() * frequency, v.w() * frequency ) *
                  amplitude;
 
         frequency *= 2;
@@ -462,7 +462,7 @@ float simplexNoise( const int octaves, const float persistence, const float scal
     return total / maxAmplitude;
 }
 
-//simplexNoise(octaves, 0.7f, 1.0f, x, y, z);
+//SimplexNoise(octaves, 0.7f, 1.0f, x, y, z);
 
 
 void AddNoise()
@@ -471,7 +471,7 @@ void AddNoise()
     {
         auto v = ValueDecToF<4>(pos);
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version
-        return Value(simplexNoise(octaves.ival(), persistence.fval(), scale.fval(), v));
+        return Value(SimplexNoise(octaves.ival(), persistence.fval(), scale.fval(), v));
     }
     ENDDECL4(simplex, "pos,octaves,scale,persistence", "F]IFF", "F",
         "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves (try 8),"

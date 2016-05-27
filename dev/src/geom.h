@@ -151,6 +151,7 @@ template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return d
 template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrtf(squaredlength(v)); }
 template<typename T, int N> inline vec<T,N> normalize(const vec<T,N> &v) { return v / length(v); }
 template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(fabsf(v[i])); }  // FIXME fabsf or abs
+template<typename T, int N> inline vec<T,N> sign(const vec<T,N> &v) { DOVECR((T)(v[i] >= 0 ? 1 : -1)); }
 template<typename T, int N> inline vec<T,N> mix(const vec<T,N> &a, const vec<T,N> &b, float f)
 {
     return a * (1 - f) + b * f;
@@ -192,6 +193,9 @@ const float2 float2_1 = float2(1.0f);
 
 const int2 int2_0 = int2(0);
 const int2 int2_1 = int2(1);
+
+const int3 int3_0 = int3(0);
+const int3 int3_1 = int3(1);
 
 const byte4 byte4_0   = byte4((uchar)0);
 const byte4 byte4_255 = byte4((uchar)255);

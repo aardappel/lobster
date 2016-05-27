@@ -9,6 +9,8 @@
 #include "mctables.h"
 #include "polyreduce.h"
 
+#include "simplex.h"
+
 using namespace lobster;
 
 
@@ -23,262 +25,7 @@ using namespace lobster;
 - crease texturing: verts either get a tc of (0, rnd) when they are on a crease, or (1, rnd) when they are flat
 */
 
-extern float simplexNoise(const int octaves, const float persistence, const float scale, const float4 &v);
-
 struct ImplicitFunction;
-
-const int maxedge = 256 * 256;
-
-struct fcell
-{
-    int edgeidx[3];
-    ushort edges[3];
-    short material[3];
-
-    fcell()
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            edgeidx[i] = -1;
-            edges[i] = 0;
-            material[i] = 0;
-        }
-    }
-};
-
-const int MATBITS = 2;
-const int MATMASK = (1<<MATBITS) - 1;
-
-class findex
-{
-    int i;
-
-    public:
-
-    findex() : i(0) {}
-
-    int getm() { return i & MATMASK; }
-    int geti() { return i >> MATBITS; }
-
-    void setm(int m) { i = (i & ~MATMASK) | m; }
-    void seti(int j) { i = (i & MATMASK) | (j << MATBITS); }
-
-    bool operator==(const findex &o) { return i == o.i; }
-    bool operator!=(const findex &o) { return i != o.i; }
-};
-
-// Stores an XY grid of RLE Z lists, based on the value of T.
-// Caches the current location in the list, so as long as you iterate through this with +Z as your inner loop,
-// will be close to the efficiency of accessing a 3D grid, while using less memory and smaller blocks of it.
-// Individual lists are reallocated as splitting of ranges makes this necessary.
-template<typename T> class RLE3DGrid
-{
-    public:
-
-    int3 dim;
-
-    private:
-
-    union RLEItem { T val; int count; };  // FIXME: bad if not the same size.
-
-    vector<RLEItem *> grid;
-    SlabAlloc alloc;
-    T default_val;
-
-    int2 cur_pos;
-    RLEItem *cur, *it;
-    int it_z;
-
-    int CurSize() { return cur[0].count; }
-    RLEItem *&GridLoc(const int2 &p) { return grid[p.x() + p.y() * dim.x()]; }
-
-    void Iterate(const int3 &pos)
-    {
-        auto p = pos.xy();
-        if (p != cur_pos)
-        {
-            // We're switching to a new xy. Look up a new RLE list, and cache it.
-            cur_pos = p;
-            auto &rle = GridLoc(p);
-            if (!rle)  // Lazyly allocate lists.
-            {
-                // A RLE list is a count of RLE pairs, first of which is a count, second the value.
-                rle = alloc.alloc_array<RLEItem>(3);
-                rle[0].count = 3;
-                rle[1].count = dim.z();
-                rle[2].val = default_val;
-            }
-            cur = rle;
-            it = cur + 1;
-            it_z = 0;
-        }
-        else if (pos.z() < it_z)
-        {
-            // Iterating to an earlier part of the list (very uncommon).
-            it_z = 0;
-            it = cur + 1;
-        }
-
-        // Iterate towards correct part of the list (common case, usually skips while-body).
-        while (pos.z() >= it_z + it[0].count)
-        {
-            it_z += it[0].count;
-            it += 2;
-            assert(it < cur + CurSize());  // Should not run off end of list.
-        }
-
-        // Here, it[1] now has the correct value for "pos".
-    }
-
-    template<typename F> void CopyCurrent(int change, const int3 &pos, F f)
-    {
-        auto rle = alloc.alloc_array<RLEItem>(CurSize() + change);
-        memcpy(rle, cur, (it - cur) * sizeof(RLEItem));
-        rle[0].count += change;
-        auto nit = rle + (it - cur);
-        f(nit);
-        memcpy(nit + 2 + change, it + 2, (CurSize() - (it - cur + 2)) * sizeof(RLEItem));
-        alloc.dealloc_array(cur, CurSize());
-        GridLoc(pos.xy()) = rle;
-        cur = rle;
-        it = nit;
-    }
-
-    public:
-    RLE3DGrid(const int3 &_dim, T _default_val)
-        : dim(_dim), default_val(_default_val), cur_pos(-1, -1), cur(nullptr), it(nullptr), it_z(0)
-    {
-        grid.resize(dim.x() * dim.y(), nullptr);
-    }
-
-    ~RLE3DGrid()
-    {
-    }
-
-    T Get(const int3 &pos)
-    {
-        Iterate(pos);
-        return it[1].val;
-    }
-
-    void Set(const int3 &pos, T newval)
-    {
-        Iterate(pos);
-        // No change, we're done, yay!
-        if (it[1].val == newval) return;
-
-        if (it[0].count == 1)
-        {
-            // We can just overwrite.
-            it[1].val = newval;
-            return;
-        }
-
-        // Part of a larger range.
-        if (it_z == pos.z())
-        {
-            // If this was the first value of a range..
-            if (it > cur + 1 && it[-1].val == newval)
-            {
-                // ..and the preceding range has that value, we can simply shift the two ranges.
-                it[-2].count++;
-                it[0].count--;
-                it_z++;
-            }
-            else
-            {
-                // Otherwise split in two.
-                CopyCurrent(2, pos, [&](RLEItem *nit) {
-                    nit[0].count = 1;
-                    nit[1].val = newval;
-                    nit[2].count = it[0].count - 1;
-                    nit[3].val = it[1].val;
-                });
-            }
-        }
-        else if (it_z + it[0].count - 1 == pos.z())
-        {
-            // Similarly, if this is the last value of the range..
-            if (dim.z() > it_z + it[0].count && it[3].val == newval)
-            {
-                // ..and the next range has the new value, we can also shift these ranges.
-                it[2].count++;
-                it[0].count--;
-            }
-            else
-            {
-                // Otherwise split in two.
-                CopyCurrent(2, pos, [&](RLEItem *nit) {
-                    nit[0].count = it[0].count - 1;
-                    nit[1].val = it[1].val;
-                    nit[2].count = 1;
-                    nit[3].val = newval;
-                });
-            }
-        }
-        else
-        {
-            // Split in 3.
-            CopyCurrent(4, pos, [&](RLEItem *nit) {
-                nit[0].count = pos.z() - it_z;
-                nit[1].val = it[1].val;
-                nit[2].count = 1;
-                nit[3].val = newval;
-                nit[4].count = it[0].count - nit[0].count - 1;
-                nit[5].val = it[1].val;
-            });
-        }
-    }
-};
-
-// Turns out the way shapes overlap and are rasterized invidually below makes this not as efficient a data
-// structure for this purpose as it at first seemed.
-//typedef RLE3DGrid<findex> FIndexGrid;
-//typedef RLE3DGrid<int> IntGrid;
-
-// Instead, this is a basic 3D grid, with individually allocated YZ arrays. 
-template<typename T> class Chunk3DGrid
-{
-public:
-
-    int3 dim;
-
-private:
-
-    vector<T *> grid;
-
-    T &Access(const int3 &pos) { return grid[pos.x()][pos.y() * dim.z() + pos.z()]; }
-
-public:
-    Chunk3DGrid(const int3 &_dim, T default_val) : dim(_dim)
-    {
-        grid.resize(dim.x(), nullptr);
-        for (int i = 0; i < dim.x(); i++)
-        {
-            auto len = dim.y() * dim.z();
-            grid[i] = new T[len];
-            std::fill_n(grid[i], len, default_val);
-        }
-    }
-
-    ~Chunk3DGrid()
-    {
-        for (auto p : grid) delete[] p;
-    }
-
-    T Get(const int3 &pos)
-    {
-        return Access(pos);
-    }
-
-    void Set(const int3 &pos, T newval)
-    {
-        Access(pos) = newval;
-    }
-};
-
-typedef Chunk3DGrid<findex> FIndexGrid;
-typedef Chunk3DGrid<int> IntGrid;
 
 float3 rotated_size(const float3x3 &rot, const float3 &size)
 {
@@ -295,12 +42,12 @@ struct ImplicitFunction
 
     virtual ~ImplicitFunction() {}
 
-    inline bool Eval(const float3 & /*pos*/) { return false; }
+    inline bool Eval(const float3 & /*pos*/) const { return false; }
 
     virtual float3 ComputeSize() { return size; };
     virtual void FillGrid(const int3 &start, const int3 &end, FIndexGrid *fcellindices,
                           vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans,
-                          const float3x3 &gridrot) = 0;
+                          const float3x3 &gridrot) const = 0;
 };
 
 static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
@@ -311,7 +58,7 @@ static float3 axesf[] = { float3_x, float3_y, float3_z };
 template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
 {
     void FillGrid(const int3 &start, const int3 &end, FIndexGrid *fcellindices,
-                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 &gridrot)
+                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 &gridrot) const
     {
         assert(end <= fcellindices->dim && int3(0) <= start);
 
@@ -325,7 +72,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
             pos -= gridtrans;
             pos = pos * gridrot;
             pos /= gridscale;
-            bool inside = static_cast<T *>(this)->Eval(pos);
+            bool inside = static_cast<const T *>(this)->Eval(pos);
 
             // bounding box is supposed to cover the entire shape with 1 empty cell surrounding in all directions
             assert(!inside || (ipos > start && ipos < end - 1));
@@ -350,7 +97,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
                     if ((omat != 0) != (tmat != 0))
                     {
                         // FIXME: factor this out, or make cell lookup
-                        if (inside || static_cast<T *>(this)->Eval(pos - (axesf[i] * gridrot) / gridscale))
+                        if (inside || static_cast<const T *>(this)->Eval(pos - (axesf[i] * gridrot) / gridscale))
                         {
                             auto solidpos = float3(tmat ? ipos : opos);
                             auto emptypos = float3(tmat ? opos : ipos);
@@ -367,13 +114,13 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
                                 p2 = p2 * gridrot;
                                 p2 /= gridscale;
 
-                                if (static_cast<T *>(this)->Eval(p2) == (material != 0)) p1f = p;
+                                if (static_cast<const T *>(this)->Eval(p2) == (material != 0)) p1f = p;
                                 else                                                     p2f = p;
                             }
 
-                            auto e = int(iso * maxedge);
+                            auto e = int(iso * fcell::MAXEDGE);
                             assert(iso >= 0 && iso <= 1);
-                            e = max(1, min(maxedge - 1, e));
+                            e = max(1, min(fcell::MAXEDGE - 1, e));
 
                             if (!fi.geti())
                             {
@@ -386,10 +133,10 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
 
                             if (fc.edges[i])
                             {
-                                int oe = tmat ? maxedge - fc.edges[i] : fc.edges[i];
+                                int oe = tmat ? fcell::MAXEDGE - fc.edges[i] : fc.edges[i];
                                 e = material ? max(e, oe) : min(e, oe);
                             }
-                            fc.edges[i] = ushort(tmat ? maxedge - e : e);
+                            fc.edges[i] = ushort(tmat ? fcell::MAXEDGE - e : e);
                             fc.material[i] = short(tmat ? tmat : omat);  // FIXME: make this depend on who is closer
                         }
                     }
@@ -405,17 +152,17 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction
 
 struct IFSphere : ImplicitFunctionImpl<IFSphere>
 {
-    inline bool Eval(const float3 &pos) { return dot(pos, pos) <= 1; }
+    inline bool Eval(const float3 &pos) const { return dot(pos, pos) <= 1; }
 };
 
 struct IFCube : ImplicitFunctionImpl<IFCube>
 {
-    inline bool Eval(const float3 &pos) { return abs(pos) <= 1; }
+    inline bool Eval(const float3 &pos) const { return abs(pos) <= 1; }
 };
 
 struct IFCylinder : ImplicitFunctionImpl<IFCylinder>
 {
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         return pos.z() <= 1 && pos.z() >= -1 && dot(pos.xy(), pos.xy()) <= 1;
     }
@@ -425,7 +172,7 @@ struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder>
 {
     float bot, top;
 
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         auto xy = pos.xy();
         auto r = mix(bot, top, pos.z() / 2 + 0.5f);
@@ -445,7 +192,7 @@ struct IFSuperQuadric : ImplicitFunctionImpl<IFSuperQuadric>
 {
     float3 exp;
 
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         return dot(pow(abs(pos), exp), float3_1) <= 1;
     }
@@ -456,7 +203,7 @@ struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid>
     float r;
     float3 exp;
 
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         auto p = pow(abs(pos), exp);
         auto xy = r - sqrtf(p.x() + p.y());
@@ -471,7 +218,7 @@ struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform>
     float3 exppos, expneg;
     float3 scalepos, scaleneg;
 
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         auto d = pos.iflt(0, scaleneg, scalepos);
         auto e = pos.iflt(0, expneg, exppos);
@@ -486,13 +233,13 @@ struct IFLandscape : ImplicitFunctionImpl<IFLandscape>
 {
     float zscale, xyscale;
 
-    inline bool Eval(const float3 &pos)
+    inline bool Eval(const float3 &pos) const
     {
         if (!(abs(pos) <= 1)) return false;
-        auto dpos = pos + float3(simplexNoise(8, 0.5f, 1, float4(pos.xy() + 1, 0)),
-                                 simplexNoise(8, 0.5f, 1, float4(pos.xy() + 2, 0)),
+        auto dpos = pos + float3(SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 1, 0)),
+                                 SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 2, 0)),
                                  0) / 2;
-        auto f = simplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
+        auto f = SimplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
         return dpos.z() < f;
     }
 };
@@ -524,7 +271,7 @@ struct Group : ImplicitFunctionImpl<Group>
     }
 
     void FillGrid(const int3 & /*start*/, const int3 & /*end*/, FIndexGrid *fcellindices,
-                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 & /*gridrot*/)
+                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans, const float3x3 & /*gridrot*/) const
     {
         for (auto c : children)
         {
@@ -556,35 +303,19 @@ float randomizeverts = 0;
 
 bool pointmode = false;
 
-int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float3> &materials)
+float3 id_grid_to_world(const int3 &pos) { return float3(pos); }
+
+int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans, const FIndexGrid *fcellindices,
+                  vector<fcell> &fcells, const vector<float3> &materials,
+                  float3 (* grid_to_world)(const int3 &pos))
 {
-    auto scenesize = root->ComputeSize() * 2;
-
-    float biggestdim = max(scenesize.x(), max(scenesize.y(), scenesize.z()));
-
-    auto gridscale = targetgridsize / biggestdim;
-
-    auto gridsize = int3(scenesize * gridscale + float3(2.5f));
-
-    auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
-
-    auto fcellindices = new FIndexGrid(gridsize, findex());
-
-    vector<fcell> fcells;
-    fcells.push_back(fcell());  // index 0 means no per cell data
-
-    /////////// SAMPLE GRID
-
-    root->FillGrid(int3(0), gridsize, fcellindices, fcells, float3(gridscale), gridtrans, float3x3_1);
-
-    /////////// APPLY MC
-
     struct edge
     {
-        float3 mid;
+        int3 iclosest;
+        float3 fmid;
         int material;
 
-        edge(const float3 &_mid, int _m) : mid(_mid), material(_m) {}
+        edge(const int3 &_iclosest, const float3 &_fmid, int _m) : iclosest(_iclosest), fmid(_fmid), material(_m) {}
     };
 
     vector<int> mctriangles;
@@ -650,12 +381,17 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
                     auto e = fc.edges[dir];
                     assert(e);
-                    auto mid = mix(float3(p1), float3(p2), float(e) / maxedge);
+
+                    auto wp1 = grid_to_world(p1);
+                    auto wp2 = grid_to_world(p2);
+
+                    auto mid = mix(wp1, wp2, float(e) / fcell::MAXEDGE);
+                    auto iclosest = e >= fcell::MAXEDGE / 2 ? p2 : p1;
 
                     assert(fc.material[dir]);
                     auto material = min(fc.material[dir] - 1, (int)materials.size() - 1);
 
-                    edges.push_back(edge(mid, material));
+                    edges.push_back(edge(iclosest, mid, material));
                 }
                 vertlist[i] = idx;
             }
@@ -789,7 +525,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                 auto fi = celli[1][edgestartcell[i]].geti();
                 auto &fc = fcells[fi];
                 auto e = fc.edges[i & 1];
-                auto mid = e / float(maxedge) - ((i & 2) / 2);
+                auto mid = e / float(fcell::MAXEDGE) - ((i & 2) / 2);
                 edgev[i] = float3(gridpos[1][i]).add(i & 1, mid);
             }
 
@@ -803,13 +539,13 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                 auto a = linelist[ci[1]][i];
                 auto b = linelist[ci[1]][i + 1];
                 // FIXME: duplicate verts. reuse thru edgeidx.
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zup, 0));
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zup, 0));
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zdn, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[a] + zup, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[b] + zup, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[b] + zdn, 0));
 
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[b] + zdn, 0));
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zdn, 0));
-                mctriangles.push_back(edges.size()); edges.push_back(edge(edgev[a] + zup, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[b] + zdn, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[a] + zdn, 0));
+                mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, edgev[a] + zup, 0));
             }
 
             // Top polys.
@@ -822,9 +558,9 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
                     auto b = trilist[ci[1]][i + 1];
                     auto c = trilist[ci[1]][i + 2];
                     // FIXME: duplicate verts.
-                    mctriangles.push_back(edges.size()); edges.push_back(edge((a & 1 ? edgev[a / 2] : float3(gridpos[1][a / 2])) + zup, 1));
-                    mctriangles.push_back(edges.size()); edges.push_back(edge((b & 1 ? edgev[b / 2] : float3(gridpos[1][b / 2])) + zup, 1));
-                    mctriangles.push_back(edges.size()); edges.push_back(edge((c & 1 ? edgev[c / 2] : float3(gridpos[1][c / 2])) + zup, 1));
+                    mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, (a & 1 ? edgev[a / 2] : float3(gridpos[1][a / 2])) + zup, 1));
+                    mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, (b & 1 ? edgev[b / 2] : float3(gridpos[1][b / 2])) + zup, 1));
+                    mctriangles.push_back(edges.size()); edges.push_back(edge(int3_0, (c & 1 ? edgev[c / 2] : float3(gridpos[1][c / 2])) + zup, 1));
                 }
             }
 
@@ -864,21 +600,20 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
         for (edge &e : edges)
         {
-            int3 ipos(e.mid + 0.5f);
-            int idx = dcellindices->Get(ipos);
+            int idx = dcellindices->Get(e.iclosest);
 
             if (idx < 0)
             {
                 idx = (int)cells.size();
-                dcellindices->Set(ipos, idx);
+                dcellindices->Set(e.iclosest, idx);
                 cells.push_back(dcell());
             }
 
             dcell &c = cells[idx];
-            c.accum += e.mid;
+            c.accum += e.fmid;
             c.col += materials[e.material];
             c.n--;
-            iverts.push_back(ipos);
+            iverts.push_back(e.iclosest);
         }
 
         for (size_t t = 0; t < mctriangles.size(); t += 3)
@@ -918,7 +653,7 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
         {
             verts.push_back(mgvert());
             auto &v = verts.back();
-            v.pos = e.mid;
+            v.pos = e.fmid;
             v.col = quantizec(materials[e.material]);
             v.norm = float3_0;
         }
@@ -1006,9 +741,9 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
 
         for (auto &v : verts)
         {
-            auto n = float3(simplexNoise(octaves, persistence, scale, float4(v.pos, 0.0f / scale)),
-                            simplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
-                            simplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
+            auto n = float3(SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.0f / scale)),
+                            SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.3f / scale)),
+                            SimplexNoise(octaves, persistence, scale, float4(v.pos, 0.6f / scale)));
             v.col = quantizec(color2vec(v.col).xyz() * (float3_1 - (n + float3_1) / 2 * noiseintensity));
         }
     }
@@ -1048,11 +783,9 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     if (verts.empty())
         return -1;
 
-    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, GS = %d, scale = %f\n",
-           verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), targetgridsize,
-           gridscale);
+    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, scale = %f\n",
+           verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), gridscale);
 
-    extern IntResourceManagerCompact<Mesh> *meshes;
     auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(mgvert), "PNC"), pointmode ? PRIM_POINT : PRIM_TRIS);
     if (pointmode)
     {
@@ -1062,9 +795,32 @@ int polygonize_mc(ImplicitFunction *root, const int targetgridsize, vector<float
     {
         m->surfs.push_back(new Surface(&triangles[0], triangles.size(), PRIM_TRIS));
     }
+
+    extern IntResourceManagerCompact<Mesh> *meshes;
     return (int)meshes->Add(m);
 }
 
+int eval_and_polygonize(ImplicitFunction *root, const int targetgridsize, const vector<float3> &materials)
+{
+    auto scenesize = root->ComputeSize() * 2;
+
+    float biggestdim = max(scenesize.x(), max(scenesize.y(), scenesize.z()));
+
+    auto gridscale = targetgridsize / biggestdim;
+
+    auto gridsize = int3(scenesize * gridscale + float3(2.5f));
+
+    auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
+
+    auto fcellindices = new FIndexGrid(gridsize, findex());
+
+    vector<fcell> fcells;
+    fcells.push_back(fcell());  // index 0 means no per cell data
+
+    root->FillGrid(int3(0), gridsize, fcellindices, fcells, float3(gridscale), gridtrans, float3x3_1);
+
+    return polygonize_mc(gridsize, gridscale, gridtrans, fcellindices, fcells, materials, id_grid_to_world);
+}
 
 Group *root = nullptr;
 Group *curgroup = nullptr;
@@ -1216,7 +972,7 @@ void AddMeshGen()
         vector<float3> materials;
         for (int i = 0; i < color.eval()->Len(); i++) materials.push_back(ValueToF<3>(color.eval()->At(i)));
         color.DECRT();
-        int mesh = polygonize_mc(root, subdiv.ival(), materials);
+        int mesh = eval_and_polygonize(root, subdiv.ival(), materials);
         MeshGenClear();
         return Value(mesh);
     }
@@ -1279,7 +1035,7 @@ void AddMeshGen()
     STARTDECL(mg_fill) (Value &fill, Value &body)
     {
         if (body.True()) g_vm->Push(Value(curcol));
-        curcol = fill.ival() & MATMASK;   // FIXME: error if doesn't fit?
+        curcol = fill.ival() & findex::MATMASK;   // FIXME: error if doesn't fit?
         return body;
     }
     MIDDECL(mg_fill) ()

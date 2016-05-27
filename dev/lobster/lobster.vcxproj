@@ -109,6 +109,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +136,7 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -296,6 +298,7 @@
     <ClInclude Include="..\external\SDL\include\SDL_types.h" />
     <ClInclude Include="..\external\SDL\include\SDL_version.h" />
     <ClInclude Include="..\external\SDL\include\SDL_video.h" />
+    <ClInclude Include="..\src\3dgrid.h" />
     <ClInclude Include="..\src\compiler.h" />
     <ClInclude Include="..\src\fontrenderer.h" />
     <ClInclude Include="..\src\geom.h" />
@@ -308,6 +311,7 @@
     <ClInclude Include="..\src\polyreduce.h" />
     <ClInclude Include="..\src\sdlincludes.h" />
     <ClInclude Include="..\src\sdlinterface.h" />
+    <ClInclude Include="..\src\simplex.h" />
     <ClInclude Include="..\src\slaballoc.h" />
     <ClInclude Include="..\src\stdafx.h" />
     <ClInclude Include="..\src\tools.h" />
