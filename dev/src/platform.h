@@ -57,3 +57,7 @@ extern void ConditionalBreakpoint(bool shouldbreak);
 #if defined(__IOS__) || defined(__ANDROID__)
     #define PLATFORM_TOUCH
 #endif
+
+#if defined(_WIN32)  // FIXME: also make work on Linux/OS X
+    #define PLATFORM_VR
+#endif

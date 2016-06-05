@@ -152,6 +152,7 @@ enum TextureFlag
 
 extern uint CreateTexture(uchar *buf, const int2 &dim, int tf = TF_NONE);
 extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
+extern uint CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(uint id);
 extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
 extern int MaxTextureSize();
@@ -198,3 +199,6 @@ template<typename F> void Transform2D(const float4x4 &mat, F body)  // 2D, since
     body();
     otransforms.object2view = oldobject2view;
 }
+
+extern bool VRInit();
+extern void VRShutDown();

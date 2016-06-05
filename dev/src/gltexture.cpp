@@ -57,13 +57,16 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
     for (int i = 0; i < texnumfaces; i++)
         glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
 
-    if (tf & TF_NOMIPMAP) return id;
+    if (!(tf & TF_NOMIPMAP))
+    {
+        glEnable(textype);  // required on ATI for mipmapping to work?
+        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
+        #endif
+            glGenerateMipmap(textype);
+    }
 
-    glEnable(textype);  // required on ATI for mipmapping to work?
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-    if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
-    #endif
-        glGenerateMipmap(textype);
+    glBindTexture(textype, 0);
 
     return id;
 }
@@ -89,6 +92,21 @@ uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
     uint id = CreateTexture(buf, dim, tf);
 
     stbi_image_free(buf);
+    return id;
+}
+
+uint CreateBlankTexture(const int2 &size, const float4 &color, int tf)
+{
+    auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+    auto buf = new uchar[size.x() * size.y() * sz];
+    for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
+    {
+        auto idx = y * size.x() + x;
+        if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
+        else               ((byte4  *)buf)[idx] = quantizec(color);
+    }
+    uint id = CreateTexture(buf, size, tf);
+    delete[] buf;
     return id;
 }
 

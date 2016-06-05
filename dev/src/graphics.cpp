@@ -38,6 +38,8 @@ bool graphics_initialized = false;
 
 void GraphicsShutDown()  // should be safe to call even if it wasn't initialized partially or at all
 {
+    VRShutDown();
+    
     extern void CleanPhysics(); CleanPhysics();
     extern void MeshGenClear(); MeshGenClear();
     extern void FontCleanup(); FontCleanup();
@@ -1026,21 +1028,7 @@ void AddGraphics()
     {
         TestGL();
 
-        auto size = ValueDecToI<2>(size_);
-        auto color = ValueDecToF<4>(col);
-
-        auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-        auto buf = new uchar[size.x() * size.y() * sz];
-        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
-        {
-            auto idx = y * size.x() + x;
-            if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = color;
-            else                      ((byte4  *)buf)[idx] = quantizec(color);
-        }
-        uint id = CreateTexture(buf, size, tf.ival());
-        delete[] buf;
-
-        return Value((int)id);
+        return Value((int)CreateBlankTexture(ValueDecToI<2>(size_), ValueDecToF<4>(col), tf.ival()));
     }
     ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "I",
              "creates a blank texture (for use as frame buffer or with compute shaders), returns texture id."

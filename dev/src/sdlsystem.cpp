@@ -713,6 +713,7 @@ void RegisterCoreEngineBuiltins()
     extern void AddPhysics();  lobster::RegisterBuiltin("physics",   AddPhysics);
     extern void AddNoise();    lobster::RegisterBuiltin("noise",     AddNoise);
     extern void AddMeshGen();  lobster::RegisterBuiltin("meshgen",   AddMeshGen);
+    extern void AddVR();       lobster::RegisterBuiltin("vr",        AddVR);
 }
 
 void EngineExit(int code)

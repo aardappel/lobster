@@ -54,7 +54,7 @@ template<typename T, int N> class vec
     }
     
     explicit vec(T e)         { DOVEC(c[i] = e); }
-    explicit vec(const T v[]) { DOVEC(c[i] = v[i]); }
+    explicit vec(const T *v)  { DOVEC(c[i] = v[i]); }
 
     template<typename U> explicit vec(const vec<U,N> &v) { DOVEC(c[i] = (T)v[i]); }
 
@@ -77,6 +77,12 @@ template<typename T, int N> class vec
     // (trying to encourage a functional style)
     void set(int i, const T a) { c[i] = a; }
     vec &add(int i, const T a) { c[i] += a; return *this; }
+
+    // nasty name to discourage use :)
+    T &x_mut() {                return c[0]; }
+    T &y_mut() {                return c[1]; }
+    T &z_mut() { assert(N > 2); return c[2]; }
+    T &w_mut() { assert(N > 3); return c[3]; }
 
     vec(const vec<T,3> &v, T e) { DOVEC(c[i] = i < 3 ? v[i] : e); }
     vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
@@ -288,6 +294,11 @@ template<typename T, int C, int R> class matrix
                 m[x].c[y] = x == y ? v[x] : 0; 
     }
 
+    explicit matrix(const T *mat_data)
+    {
+        memcpy(this, mat_data, sizeof(T) * R * C);
+    }
+
     matrix(V x, V y, V z, V w) { assert(C == 4); m[0] = x; m[1] = y; m[2] = z; m[3] = w; }
     matrix(V x, V y, V z)      { assert(C == 3); m[0] = x; m[1] = y; m[2] = z; }
     matrix(V x, V y)           { assert(C == 2); m[0] = x; m[1] = y; }
@@ -318,6 +329,11 @@ template<typename T, int C, int R> class matrix
         m[2].c[1] = t*y*z - x*s;
         m[2].c[2] = t*z*z + c;
     }
+
+    const T *data()  const { return m[0].c; }
+          T *data_mut()    { return m[0].c; }
+    const T *begin() const { return m[0].c; }
+    const T *end()   const { return m[C].c; }
 
     const V &operator[](int i) const { return m[i]; }
 
@@ -525,6 +541,140 @@ inline float3x4 invertortho(const float3x4 &o) // FIXME: this is not generic, he
     return float3x4(float4(inv[0], -dot(inv[0], inv[3])),
                     float4(inv[1], -dot(inv[1], inv[3])),
                     float4(inv[2], -dot(inv[2], inv[3])));
+}
+
+inline float4x4 invert(const float4x4 &mat)
+{
+    auto m = mat.data();
+    float4x4 dest;
+    auto inv = dest.data_mut();
+
+    inv[0] =   m[5]  * m[10] * m[15] - 
+               m[5]  * m[11] * m[14] - 
+               m[9]  * m[6]  * m[15] + 
+               m[9]  * m[7]  * m[14] +
+               m[13] * m[6]  * m[11] - 
+               m[13] * m[7]  * m[10];
+
+    inv[4] =  -m[4]  * m[10] * m[15] + 
+               m[4]  * m[11] * m[14] + 
+               m[8]  * m[6]  * m[15] - 
+               m[8]  * m[7]  * m[14] - 
+               m[12] * m[6]  * m[11] + 
+               m[12] * m[7]  * m[10];
+
+    inv[8] =   m[4]  * m[9]  * m[15] - 
+               m[4]  * m[11] * m[13] - 
+               m[8]  * m[5]  * m[15] + 
+               m[8]  * m[7]  * m[13] + 
+               m[12] * m[5]  * m[11] - 
+               m[12] * m[7]  * m[9];
+
+    inv[12] = -m[4]  * m[9]  * m[14] + 
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5]  * m[14] - 
+               m[8]  * m[6]  * m[13] - 
+               m[12] * m[5]  * m[10] + 
+               m[12] * m[6]  * m[9];
+
+    inv[1] =  -m[1]  * m[10] * m[15] + 
+               m[1]  * m[11] * m[14] + 
+               m[9]  * m[2]  * m[15] - 
+               m[9]  * m[3]  * m[14] - 
+               m[13] * m[2]  * m[11] + 
+               m[13] * m[3]  * m[10];
+
+    inv[5] =   m[0]  * m[10] * m[15] - 
+               m[0]  * m[11] * m[14] - 
+               m[8]  * m[2]  * m[15] + 
+               m[8]  * m[3]  * m[14] + 
+               m[12] * m[2]  * m[11] - 
+               m[12] * m[3]  * m[10];
+
+    inv[9] =  -m[0]  * m[9]  * m[15] + 
+               m[0]  * m[11] * m[13] + 
+               m[8]  * m[1]  * m[15] - 
+               m[8]  * m[3]  * m[13] - 
+               m[12] * m[1]  * m[11] + 
+               m[12] * m[3]  * m[9];
+              
+    inv[13] =  m[0]  * m[9]  * m[14] - 
+               m[0]  * m[10] * m[13] - 
+               m[8]  * m[1]  * m[14] + 
+               m[8]  * m[2]  * m[13] + 
+               m[12] * m[1]  * m[10] - 
+               m[12] * m[2]  * m[9];
+
+    inv[2] =   m[1]  * m[6]  * m[15] - 
+               m[1]  * m[7]  * m[14] - 
+               m[5]  * m[2]  * m[15] + 
+               m[5]  * m[3]  * m[14] + 
+               m[13] * m[2]  * m[7]  - 
+               m[13] * m[3]  * m[6];
+
+    inv[6] =  -m[0]  * m[6]  * m[15] + 
+               m[0]  * m[7]  * m[14] + 
+               m[4]  * m[2]  * m[15] - 
+               m[4]  * m[3]  * m[14] - 
+               m[12] * m[2]  * m[7]  + 
+               m[12] * m[3]  * m[6];
+
+    inv[10] =  m[0]  * m[5]  * m[15] - 
+               m[0]  * m[7]  * m[13] - 
+               m[4]  * m[1]  * m[15] + 
+               m[4]  * m[3]  * m[13] + 
+               m[12] * m[1]  * m[7]  - 
+               m[12] * m[3]  * m[5];
+
+    inv[14] = -m[0]  * m[5]  * m[14] + 
+               m[0]  * m[6]  * m[13] + 
+               m[4]  * m[1]  * m[14] - 
+               m[4]  * m[2]  * m[13] - 
+               m[12] * m[1]  * m[6]  + 
+               m[12] * m[2]  * m[5];
+
+    inv[3] =  -m[1]  * m[6]  * m[11] + 
+               m[1]  * m[7]  * m[10] + 
+               m[5]  * m[2]  * m[11] - 
+               m[5]  * m[3]  * m[10] - 
+               m[9]  * m[2]  * m[7]  + 
+               m[9]  * m[3]  * m[6];
+                             
+    inv[7] =   m[0]  * m[6]  * m[11] - 
+               m[0]  * m[7]  * m[10] - 
+               m[4]  * m[2]  * m[11] + 
+               m[4]  * m[3]  * m[10] + 
+               m[8]  * m[2]  * m[7]  - 
+               m[8]  * m[3]  * m[6];
+                             
+    inv[11] = -m[0]  * m[5]  * m[11] + 
+               m[0]  * m[7]  * m[9]  + 
+               m[4]  * m[1]  * m[11] - 
+               m[4]  * m[3]  * m[9] - 
+               m[8]  * m[1]  * m[7]  + 
+               m[8]  * m[3]  * m[5];
+                             
+    inv[15] =  m[0]  * m[5]  * m[10] - 
+               m[0]  * m[6]  * m[9]  - 
+               m[4]  * m[1]  * m[10] + 
+               m[4]  * m[2]  * m[9]  + 
+               m[8]  * m[1]  * m[6]  - 
+               m[8]  * m[2]  * m[5];
+
+    float det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    if (det == 0)
+    {
+        assert(false);
+        return float4x4_1;
+    }
+
+    det = 1.0f / det;
+
+    for (int i = 0; i < 16; i++)
+        inv[i] = inv[i] * det;
+
+    return dest;
 }
 
 // handedness: 1.f for RH, -1.f for LH

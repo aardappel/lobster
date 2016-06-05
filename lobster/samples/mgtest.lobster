@@ -12,8 +12,6 @@ fatal(gl_window("meshgen test (PLEASE WAIT...)", 1280, 800))
 camera_position = xyz { 10.0, 10.0, 10.0 }
 camera_yaw = 135
 
-def mg_scale(f, body): mg_scalevec(xyz_1 * f, body)
-
 def mg_mirror_y(dist, body):
     for(2) i:
         mg_translate([ 0.0, i * dist * 2.0 - dist, 0.0 ], body)
@@ -78,7 +76,7 @@ if true:
 
 def model_tree(numb, branchl, narrowf, leafs):
     if numb:
-        mg_scale([ 1, 1, branchl ]):
+        mg_scalevec(xyz_1 * [ 1, 1, branchl ]):
             mg_translate(xyz_z):
                 mg_tapered_cylinder(1, narrowf)
         mg_translate(xyz_z * branchl * 2):
@@ -87,12 +85,12 @@ def model_tree(numb, branchl, narrowf, leafs):
             for(branches) i:
                 mg_rotate(xyz_z, 360 * i / branches):
                     mg_rotate(axis, 12 * branches):
-                        mg_scale(narrowf):
+                        mg_scalevec(xyz_1 * narrowf):
                             mg_sphere()
                             model_tree(numb - 1, branchl, narrowf, leafs)
     else:
         mg_fill(2):
-            mg_scale(leafs):
+            mg_scalevec(xyz_1 * leafs):
                 mg_sphere()
 
 trees := []

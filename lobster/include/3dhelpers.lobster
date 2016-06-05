@@ -24,10 +24,12 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
-def camera_FPS_view():
+def camera_set_z_up_worldspace():
     // Default OpenGL view looks along -Z. We want a worldspace where -Z is down, so do that first:
     gl_rotate_x(sincos(-90))
-    // Now apply camera:
+
+def camera_FPS_view():
+    camera_set_z_up_worldspace()
     gl_rotate_x(sincos(camera_pitch))
     gl_rotate_z(sincos(-camera_yaw))
     gl_translate(-camera_position)
