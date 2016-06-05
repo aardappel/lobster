@@ -1005,6 +1005,9 @@
     <ClCompile Include="..\external\SDL\src\main\windows\SDL_windows_main.c">
       <Filter>engine\sdl\lib</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\glvr.cpp">
+      <Filter>engine\opengl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
