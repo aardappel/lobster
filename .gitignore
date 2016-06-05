@@ -9,7 +9,6 @@
 *.exp
 *.iobj
 *.ipdb
-*.lib
 *.a
 *.pdb
 *.ilk
@@ -24,6 +23,7 @@
 /external/
 
 /lobster/lobsterDBG.*
+**/lobster.lib
 
 /dev/android/assets/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Debug/
