@@ -95,7 +95,6 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar)
     otransforms = objecttransforms();
 
     view2clip = perspectiveFov(fovy, ratio, znear, zfar, 1);
-    view2clip *= float4x4(float4(1, -1, 1, 1)); // FIXME?
 }
 
 uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha)
@@ -151,5 +150,7 @@ void OpenGLInit()
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_MULTISAMPLE);
     #endif
+
+    glCullFace(GL_FRONT);
 }
 

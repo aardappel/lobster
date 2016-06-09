@@ -79,7 +79,7 @@ SHADER flat
         // WARNING: only works on OpenGL ES 3 or better.
         // would be even flatter if we knew the centroid.
         // Also: only works with light at camera.
-        vec3 wnormal = normalize(cross(dFdy(ipos), dFdx(ipos)));
+        vec3 wnormal = normalize(cross(dFdx(ipos), dFdy(ipos)));
         gl_FragColor = col * icol * Phong(wnormal, ipos);
 
 SHADER phong_particle

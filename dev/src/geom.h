@@ -604,7 +604,6 @@ inline bool line_intersect(const float2 &l1a, const float2 &l1b, const float2 &l
     return true;
 }
 
-// type T must have .pos and .norm
 inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen, size_t vsize, size_t normaloffset,
                            bool ignore_bad_tris = true)
 {

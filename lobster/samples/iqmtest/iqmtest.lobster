@@ -13,7 +13,7 @@ for(gl_meshparts(iqmtest)) name, i:
     gl_setmeshtexture(iqmtest, i, 0, tex)
 
 camera_position = xyz { 0.0, 0.0, 8.0 }
-camera_yaw = 135
+camera_yaw = -45
 camera_pitch = 20
 
 while gl_frame():
