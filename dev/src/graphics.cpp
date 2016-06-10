@@ -152,12 +152,12 @@ Mesh *CreatePolygon(Value &vl)
 
 void AddGraphics()
 {
-    STARTDECL(gl_window) (Value &title, Value &xs, Value &ys, Value &fullscreen)
+    STARTDECL(gl_window) (Value &title, Value &xs, Value &ys, Value &fullscreen, Value &novsync)
     {
         if (graphics_initialized)
             g_vm->BuiltinError("cannot call gl_window() twice");
 
-        string err = SDLInit(title.sval()->str(), int2(xs.ival(), ys.ival()), fullscreen.ival() != 0);
+        string err = SDLInit(title.sval()->str(), int2(xs.ival(), ys.ival()), fullscreen.ival() != 0, novsync.ival() == 0);
         title.DECRT();
 
         if (err.empty())
@@ -183,7 +183,7 @@ void AddGraphics()
 
         return Value();
     }
-    ENDDECL4(gl_window, "title,xs,ys,fullscreen", "SIII?", "S?",
+    ENDDECL5(gl_window, "title,xs,ys,fullscreen,novsync", "SIII?I?", "S?",
         "opens a window for OpenGL rendering. returns error string if any problems, nil otherwise.");
 
     STARTDECL(gl_loadmaterials) (Value &fn, Value &isinline)

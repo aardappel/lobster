@@ -250,7 +250,7 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
 
 const int2 &GetScreenSize() { return screensize; }
 
-string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen)
+string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync)
 {
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0)
@@ -361,7 +361,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
     */
 
     #ifndef __IOS__
-        SDL_GL_SetSwapInterval(1);  // vsync on
+        SDL_GL_SetSwapInterval(vsync);
     #endif
 
     SDL_JoystickEventState(SDL_ENABLE);
