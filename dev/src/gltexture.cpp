@@ -21,6 +21,7 @@
 #pragma warning(disable: 4457)
 #include "stb/stb_image.h"
 
+const int nummultisamples = 4;
 
 uint CreateTexture(uchar *buf, const int2 &dim, int tf)
 {
@@ -28,9 +29,12 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
     glGenTextures(1, &id);
     assert(id);
 
-    GLenum textype      = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : GL_TEXTURE_2D;
-    GLenum teximagetype = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : GL_TEXTURE_2D;
-    int texnumfaces     = tf & TF_CUBEMAP ? 6                              : 1;
+    GLenum textype = tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    GLenum teximagetype = textype;
+
+    textype         = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : textype;
+    teximagetype    = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : teximagetype;
+    int texnumfaces = tf & TF_CUBEMAP ? 6                              : 1;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(textype, id);
@@ -54,8 +58,15 @@ uint CreateTexture(uchar *buf, const int2 &dim, int tf)
         #endif
     }
 
-    for (int i = 0; i < texnumfaces; i++)
-        glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
+    if (tf & TF_MULTISAMPLE)
+    {
+        glTexImage2DMultisample(teximagetype, nummultisamples, format, dim.x(), dim.y(), true);
+    }
+    else
+    {
+        for (int i = 0; i < texnumfaces; i++)
+            glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
+    }
 
     if (!(tf & TF_NOMIPMAP))
     {
@@ -97,20 +108,31 @@ uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
 
 uint CreateBlankTexture(const int2 &size, const float4 &color, int tf)
 {
-    auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-    auto buf = new uchar[size.x() * size.y() * sz];
-    for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
+    if (tf & TF_MULTISAMPLE)
     {
-        auto idx = y * size.x() + x;
-        if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
-        else               ((byte4  *)buf)[idx] = quantizec(color);
+        return CreateTexture(nullptr, size, tf);  // No buffer required.
     }
-    uint id = CreateTexture(buf, size, tf);
-    delete[] buf;
-    return id;
+    else
+    {
+        auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
+        auto buf = new uchar[size.x() * size.y() * sz];
+        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
+        {
+            auto idx = y * size.x() + x;
+            if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
+            else               ((byte4  *)buf)[idx] = quantizec(color);
+        }
+        uint id = CreateTexture(buf, size, tf);
+        delete[] buf;
+        return id;
+    }
 }
 
-void DeleteTexture(uint id) { glDeleteTextures(1, &id); }
+void DeleteTexture(uint &id)
+{
+    if (id) glDeleteTextures(1, &id);
+    id = 0;
+}
 
 void SetTexture(uint textureunit, uint id, int tf)
 {
@@ -133,9 +155,22 @@ void SetImageTexture(uint textureunit, uint id, int tf)
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
 
+uint CreateFrameBuffer(uint texture, int tf)
+{
+    uint fb = 0;
+    glGenFramebuffers(1, &fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, texture, 0);
+    return fb;
+}
+
 uint fb = 0;
 uint rb = 0;
-bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth)
+uint retex = 0;  // Texture to resolve to at the end when fb refers to a multisample texture.
+int retf = 0;
+int2 resize = int2_0;
+bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex)
 {
     if (rb)
     {
@@ -145,6 +180,18 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth)
     }
     if (fb)
     {
+        if (retex)
+        {
+            uint refb = CreateFrameBuffer(retex, retf);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
+            glBlitFramebuffer(0, 0, resize.x(), resize.y(),
+                              0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            glDeleteFramebuffers(1, &refb);
+            retex = 0;
+            retf = 0;
+            resize = int2_0;
+        }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &fb);
         fb = 0;
@@ -156,17 +203,32 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth)
         return true;
     }
     
-    glGenFramebuffers(1, &fb);
-    glBindFramebuffer(GL_FRAMEBUFFER, fb);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    fb = CreateFrameBuffer(texture, tf);
+
     if (depth)
     {
         glGenRenderbuffers(1, &rb);
         glBindRenderbuffer(GL_RENDERBUFFER, rb);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y());
+        if (tf & TF_MULTISAMPLE)
+        {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples, GL_DEPTH_COMPONENT24,
+                                             fbsize.x(), fbsize.y());
+        }
+        else
+        {
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y());
+        }
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
     }
+
+    retex = resolvetex;
+    retf = tf & ~TF_MULTISAMPLE;
+    resize = fbsize;
+
     OpenGLFrameStart(fbsize);
     Set2DMode(fbsize, false);  // Have to use rh mode here, otherwise texture is filled flipped.
-    return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    auto ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    assert(ok);
+    return ok;
 }
+

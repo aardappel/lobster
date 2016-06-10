@@ -47,7 +47,8 @@ string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDevice
 #endif  // PLATFORM_VR
 
 int2 rtsize = int2_0;
-uint rttex[2] = { 0, 0 };
+uint mstex[2] = { 0, 0 };
+uint retex[2] = { 0, 0 };
 
 void VRShutDown()
 {
@@ -56,10 +57,10 @@ void VRShutDown()
     vrsys = NULL;
     vr::VR_Shutdown();
 
-    for (int i = 0; i < 2; i++) if (rttex[i])
+    for (int i = 0; i < 2; i++)
     {
-        DeleteTexture(rttex[i]);
-        rttex[i] = 0;
+        DeleteTexture(mstex[i]);
+        DeleteTexture(retex[i]);
     }
 
     #endif  // PLATFORM_VR
@@ -133,9 +134,14 @@ void VREye(int eye, float znear, float zfar)
 
     if (!vrsys) return;
 
-    if (!rttex[eye]) rttex[eye] = CreateBlankTexture(rtsize, float4(1, 0, 1, 1), TF_CLAMP | TF_NOMIPMAP);
+    glEnable(GL_MULTISAMPLE);
 
-    SwitchToFrameBuffer(rttex[eye], rtsize, true);
+    auto retf = TF_CLAMP | TF_NOMIPMAP;
+    auto mstf = retf | TF_MULTISAMPLE;
+    if (!mstex[eye]) mstex[eye] = CreateBlankTexture(rtsize, float4_0, mstf);
+    if (!retex[eye]) retex[eye] = CreateBlankTexture(rtsize, float4_0, retf);
+
+    SwitchToFrameBuffer(mstex[eye], rtsize, true, mstf, retex[eye]);
 
     auto proj = FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar, vr::API_OpenGL));
     Set3DMode(80, 1, znear, zfar);
@@ -159,11 +165,13 @@ void VRFinish()
 
     if (!vrsys) return;
 
-    SwitchToFrameBuffer(0, GetScreenSize(), false);
+    SwitchToFrameBuffer(0, GetScreenSize(), false, 0, 0);
+
+    glDisable(GL_MULTISAMPLE);
 
     for (int i = 0; i < 2; i++)
     {
-        vr::Texture_t vrtex = { (void *)rttex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t vrtex = { (void *)retex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);
         (void)err;
         assert(!err);
@@ -210,7 +218,7 @@ void AddVR()
 
     STARTDECL(vr_geteyetex) (Value &isright)
     {
-        return Value((int)rttex[isright.True()]);
+        return Value((int)retex[isright.True()]);
     }
     ENDDECL1(vr_geteyetex, "isright", "I", "I",
         "returns the texture for an eye. call after vr_finish. can be used to render the non-VR display");

@@ -31,7 +31,7 @@
 
 BitmapFont::~BitmapFont()
 {
-    if (texid) DeleteTexture(texid);
+    DeleteTexture(texid);
 }
 
 BitmapFont::BitmapFont(OutlineFont *_font, int _size) : texid(0), height(0), texh(0), texw(0), usedcount(1), size(_size), font(_font)
@@ -47,7 +47,7 @@ bool BitmapFont::CacheChars(const char *text)
     if (positions.size() == font->unicodetable.size())
         return true;
 
-    if (texid) DeleteTexture(texid);
+    DeleteTexture(texid);
     positions.clear();
 
     if (FT_Set_Pixel_Sizes((FT_Face)font->fthandle, 0, size))

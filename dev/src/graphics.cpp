@@ -1037,34 +1037,37 @@ void AddGraphics()
     STARTDECL(gl_deletetexture) (Value &i)
     {
         TestGL();
+        uint tex = i.ival();
 
         auto it = texturecache.begin();
         // this is potentially expensive, we're counting on gl_deletetexture not being needed often
         while (it != texturecache.end())
         {
-            if (it->second == uint(i.ival())) texturecache.erase(it++);
+            if (it->second == uint(tex)) texturecache.erase(it++);
             else ++it;
         }
 
         // the surfaces in meshes are still potentially referring to this texture,
         // but OpenGL doesn't care about illegal texture ids, so neither do we
-        DeleteTexture(i.ival());
+        DeleteTexture(tex);
 
         return Value();
     }
     ENDDECL1(gl_deletetexture, "i", "I", "",
         "free up memory for the given texture id");
     
-    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &fbsize, Value &depth)
+    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &fbsize, Value &depth, Value &tf, Value &retex)
     {
         TestGL();
         
-        auto sz = ValueDecToI<2>(fbsize);
-        return Value(SwitchToFrameBuffer(tex.ival(), tex.ival() ? sz : GetScreenSize(), depth.True()));
+        auto sz = fbsize.True() ? ValueDecToI<2>(fbsize) : int2_0;
+        return Value(SwitchToFrameBuffer(tex.ival(), tex.ival() ? sz : GetScreenSize(), depth.True(), tf.ival(), retex.ival()));
     }
-    ENDDECL3(gl_switchtoframebuffer, "texid,fbsize,hasdepth", "II]I", "I",
+    ENDDECL5(gl_switchtoframebuffer, "texid,fbsize,hasdepth,textureformat,resolvetex", "II]?I?I?I?", "I",
              "switches to a new framebuffer, that renders into the given texture. pass the texture size."
              " also allocates a depth buffer for it if depth is true."
+             " pass the textureformat that was used for this texture."
+             " pass a resolve texture if the base texture is multisample."
              " pass a texid of 0 to switch back to the original framebuffer");
 
     STARTDECL(gl_light) (Value &pos, Value &params)

@@ -43,12 +43,12 @@ color_blue_violet :== color { 0.5, 0,   1,   1 }
 
 // texture format constants
 
-texture_format_none      :== 0
-texture_format_clamp     :== 1
-texture_format_nomipmap  :== 2
-texture_format_nearest   :== 4
-texture_format_float     :== 8
-texture_format_writeonly :== 16
-texture_format_readwrite :== 32
-texture_format_cubemap   :== 64
-
+texture_format_none        :== 0
+texture_format_clamp       :== 1
+texture_format_nomipmap    :== 2
+texture_format_nearest     :== 4
+texture_format_float       :== 8
+texture_format_writeonly   :== 16
+texture_format_readwrite   :== 32
+texture_format_cubemap     :== 64
+texture_format_multisample :== 128
