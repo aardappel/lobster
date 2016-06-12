@@ -865,4 +865,13 @@ template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 
     return Value(v);
 }
 
+inline int RangeCheck(const Value &idx, int range, int bias = 0)
+{
+    int i = idx.ival();
+    if (i < bias || i >= bias + range)
+        g_vm->BuiltinError("index out of range [" + to_string(bias) + ".." + to_string(bias + range) + "): " + 
+                           to_string(i));
+    return i;
+}
+
 }  // namespace lobster

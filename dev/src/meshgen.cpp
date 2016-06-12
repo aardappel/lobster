@@ -720,6 +720,9 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
         v.pos /= gridscale;
     }
 
+    if (verts.empty())
+        return 0;
+
     /////////// CALCULATE NORMALS
 
     RecomputeNormals(triangles, verts);
@@ -779,9 +782,6 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
 
         delete[] cfactor;
     }
-
-    if (verts.empty())
-        return -1;
 
     Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, scale = %f\n",
            verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), gridscale);

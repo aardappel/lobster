@@ -23,7 +23,7 @@
 
 const int nummultisamples = 4;
 
-uint CreateTexture(uchar *buf, const int2 &dim, int tf)
+uint CreateTexture(const uchar *buf, const int2 &dim, int tf)
 {
     uint id;
     glGenTextures(1, &id);

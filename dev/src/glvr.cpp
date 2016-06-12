@@ -49,11 +49,18 @@ string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDevice
 int2 rtsize = int2_0;
 uint mstex[2] = { 0, 0 };
 uint retex[2] = { 0, 0 };
+struct MotionController { float4x4 mat; uint device; vr::VRControllerState_t state, laststate; };
+vector<MotionController> motioncontrollers;
+map<string, int> motioncontrollermeshes;
+
+map<string, vr::EVRButtonId> button_ids;
 
 void VRShutDown()
 {
     #ifdef PLATFORM_VR
     
+    button_ids.clear();
+
     vrsys = NULL;
     vr::VR_Shutdown();
 
@@ -71,6 +78,12 @@ bool VRInit()
     #ifdef PLATFORM_VR
 
     if (vrsys) return true;
+
+    button_ids["system"]   = vr::k_EButton_System;
+    button_ids["menu"]     = vr::k_EButton_ApplicationMenu;
+    button_ids["grip"]     = vr::k_EButton_Grip;
+    button_ids["touchpad"] = vr::k_EButton_SteamVR_Touchpad;
+    button_ids["trigger"]  = vr::k_EButton_SteamVR_Trigger;
 
     if (!vr::VR_IsHmdPresent()) return false;
 
@@ -185,10 +198,126 @@ void VRFinish()
     (void)err;
     assert(!err);
 
+    size_t mcn = 0;
+    for (uint device = 0; device < vr::k_unMaxTrackedDeviceCount; device++)
+    {
+        if (!trackeddeviceposes[device].bPoseIsValid)
+            continue;
+
+        if (vrsys->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller)
+            continue;
+
+        if (mcn == motioncontrollers.size())
+        {
+            MotionController mc;
+            memset(&mc, 0, sizeof(mc));
+            motioncontrollers.push_back(mc);
+        }
+        auto &mc = motioncontrollers[mcn];
+        mc.mat = FromOpenVR(trackeddeviceposes[device].mDeviceToAbsoluteTracking);
+        mc.device = device;
+        mc.laststate = mc.state;
+        auto ok = vrsys->GetControllerState(device, &mc.state);
+        if (!ok) memset(&mc.state, 0, sizeof(vr::VRControllerState_t));
+        mcn++;
+    }
+
+    #endif  // PLATFORM_VR
+}
+
+int VRGetMesh(uint device)
+{
+    #ifdef PLATFORM_VR
+
+    if (!vrsys) return 0;
+
+    auto name = GetTrackedDeviceString(device, vr::Prop_RenderModelName_String);
+    auto it = motioncontrollermeshes.find(name);
+    if (it != motioncontrollermeshes.end())
+        return it->second;
+
+    vr::RenderModel_t *model = nullptr;
+    for (;;)
+    {
+        auto err = vr::VRRenderModels()->LoadRenderModel_Async(name.c_str(), &model);
+        if (err == vr::VRRenderModelError_None)
+        {
+            break;
+        }
+        else if (err != vr::VRRenderModelError_Loading)
+        {
+            return 0;
+        }
+        SDL_Delay(1);
+    }
+
+    vr::RenderModel_TextureMap_t *modeltex = nullptr;
+    for (;;)
+    {
+        auto err = vr::VRRenderModels()->LoadTexture_Async(model->diffuseTextureId, &modeltex);
+        if (err == vr::VRRenderModelError_None)
+        {
+            break;
+        }
+        else if (err != vr::VRRenderModelError_Loading)
+        {
+            vr::VRRenderModels()->FreeRenderModel(model);
+            return 0;
+        }
+        SDL_Delay(1);
+    }
+
+    auto tex = CreateTexture(modeltex->rubTextureMapData, int2(modeltex->unWidth, modeltex->unHeight), TF_CLAMP);
+
+    auto m = new Mesh(new Geometry(&model->rVertexData[0].vPosition.v[0], model->unVertexCount,
+                                   sizeof(vr::RenderModel_Vertex_t), "PNT"), PRIM_TRIS);
+
+    auto nindices = model->unTriangleCount * 3;
+    vector<int> indices(nindices);
+    for (uint i = 0; i < nindices; i += 3)
+    {
+        indices[i + 0] = model->rIndexData[i + 0];
+        indices[i + 1] = model->rIndexData[i + 2];
+        indices[i + 2] = model->rIndexData[i + 1];
+    }
+    auto surf = new Surface(indices.data(), nindices, PRIM_TRIS);
+    surf->textures[0] = tex;
+    m->surfs.push_back(surf);
+
+    extern IntResourceManagerCompact<Mesh> *meshes;
+    auto midx = (int)meshes->Add(m);
+
+    motioncontrollermeshes[name] = midx;
+
+    vr::VRRenderModels()->FreeRenderModel(model);
+    vr::VRRenderModels()->FreeTexture(modeltex);
+
+    return midx;
+
+    #else
+
+    return 0;
+
     #endif  // PLATFORM_VR
 }
 
 using namespace lobster;
+
+MotionController *GetMC(Value &mc)
+{
+    auto n = mc.ival();
+    return n >= 0 && n < (int)motioncontrollers.size()
+        ? &motioncontrollers[n]
+        : nullptr;
+};
+
+vr::EVRButtonId GetButtonId(Value &button)
+{
+    auto it = button_ids.find(button.sval()->str());
+    if (it == button_ids.end()) g_vm->BuiltinError(string("unknown button name: ") + button.sval()->str());
+    button.DECRT();
+    return it->second;
+}
 
 void AddVR()
 {
@@ -223,5 +352,64 @@ void AddVR()
     ENDDECL1(vr_geteyetex, "isright", "I", "I",
         "returns the texture for an eye. call after vr_finish. can be used to render the non-VR display");
 
+    STARTDECL(vr_nummotioncontrollers) ()
+    {
+        return Value((int)motioncontrollers.size());
+    }
+    ENDDECL0(vr_nummotioncontrollers, "", "", "I",
+        "returns the number of motion controllers that are currently tracking");
+
+    extern Value PushTransform(const float4x4 &forward, const float4x4 &backward, const Value &body);
+    extern void PopTransform();
+    STARTDECL(vr_motioncontroller) (Value &mc, Value &body)
+    {
+        auto mcd = GetMC(mc);
+        return mcd
+            ? PushTransform(mcd->mat, invert(mcd->mat), body)
+            : PushTransform(float4x4_1, float4x4_1, body);
+    }
+    MIDDECL(vr_motioncontroller) ()
+    {
+        PopTransform();
+    }
+    ENDDECL2CONTEXIT(vr_motioncontroller, "n,body", "IC?", "",
+        "sets up the transform ready to render controller n."
+        " when a body is given, restores the previous transform afterwards."
+        " if there is no controller n (or it is currently not"
+        " tracking) the identity transform is used");
+
+    STARTDECL(vr_motioncontrollermesh) (Value &mc)
+    {
+        auto mcd = GetMC(mc);
+        return Value(mcd ? VRGetMesh(mcd->device) : 0);
+    }
+    ENDDECL1(vr_motioncontrollermesh, "n", "I", "I",
+        "returns the mesh for motion controller n, or 0 if not available");
+
+    STARTDECL(vr_motioncontrollerbutton) (Value &mc, Value &button)
+    {
+        auto mcd = GetMC(mc);
+        auto mask = ButtonMaskFromId(GetButtonId(button));
+        if (!mcd) return Value(0);
+        auto masknow = mcd->state.ulButtonPressed & mask;
+        auto maskbef = mcd->laststate.ulButtonPressed & mask;
+        auto step = int(masknow != 0) * 2 - int(maskbef == 0);
+        return Value(step);
+    }
+    ENDDECL2(vr_motioncontrollerbutton, "n,button", "IS", "I",
+        "returns the button state for motion controller n."
+        " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
+        " buttons are: system, menu, grip, trigger, touchpad");
+
+    STARTDECL(vr_motioncontrollervec) (Value &mc, Value &idx)
+    {
+        auto mcd = GetMC(mc);
+        if (!mcd) return Value(ToValueF(float3_0));
+        auto i = RangeCheck(idx, 4);
+        return Value(ToValueF(mcd->mat[i].xyz()));
+    }
+    ENDDECL2(vr_motioncontrollervec, "n,i", "II", "F]:3",
+        "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
+        " These are in Y up space.");
 }
 

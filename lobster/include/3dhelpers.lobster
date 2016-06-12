@@ -1,6 +1,6 @@
 // helper functions typical for 3d games
 
-// implement a standard FPS view with xy as the ground plane, and z up
+// implement a standard FPS view with xy as the ground plane, and Z up
 // first call update, then view
 
 include "vec.lobster"
@@ -24,12 +24,16 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
-def camera_set_z_up_worldspace():
-    // Default OpenGL view looks along -Z. We want a worldspace where -Z is down, so do that first:
-    gl_rotate_x(sincos(-90))
+def camera_set_z_up_worldspace(f):
+    // Default OpenGL view looks along -Z (Y up). We want a worldspace where -Z is down:
+    gl_rotate_x(sincos(-90)): f()
+
+def to_z_up(v):
+    // Convert points that are in Y up space to Z up.
+    xyz { v.x, -v.z, v.y }
 
 def camera_FPS_view():
-    camera_set_z_up_worldspace()
+    camera_set_z_up_worldspace(): nil
     gl_rotate_x(sincos(camera_pitch))
     gl_rotate_z(sincos(-camera_yaw))
     gl_translate(-camera_position)

@@ -94,7 +94,7 @@ void TestGL()
 float2 localpos(const int2 &pos) { return (otransforms.view2object * float4(float3(float2(pos), 0), 1)).xyz().xy(); }
 float2 localfingerpos(int i) { return localpos(GetFinger(i, false)); }
 
-Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
+Value PushTransform(const float4x4 &forward, const float4x4 &backward, const Value &body)
 {
     if (body.True())
     {
@@ -104,7 +104,7 @@ Value pushtrans(const float4x4 &forward, const float4x4 &backward, Value &body)
     return body;
 }
 
-void poptrans()
+void PopTransform()
 {
     auto s = g_vm->Pop();
     TYPE_ASSERT(s.type == V_STRING);
@@ -456,11 +456,11 @@ void AddGraphics()
     STARTDECL(gl_rotate_x) (Value &angle, Value &body)
     {
         auto a = ValueDecToF<2>(angle);
-        return pushtrans(rotationX(a), rotationX(a * float2(1, -1)), body);
+        return PushTransform(rotationX(a), rotationX(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_x) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F]:2C?", "",
         "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
@@ -469,11 +469,11 @@ void AddGraphics()
     STARTDECL(gl_rotate_y) (Value &angle, Value &body)
     {
         auto a = ValueDecToF<2>(angle);
-        return pushtrans(rotationY(a), rotationY(a * float2(1, -1)), body);
+        return PushTransform(rotationY(a), rotationY(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_y) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F]:2C?", "",
         "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
@@ -482,11 +482,11 @@ void AddGraphics()
     STARTDECL(gl_rotate_z) (Value &angle, Value &body)
     {
         auto a = ValueDecToF<2>(angle);
-        return pushtrans(rotationZ(a), rotationZ(a * float2(1, -1)), body);
+        return PushTransform(rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_z) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F]:2C?", "",
         "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector as angle."
@@ -495,11 +495,11 @@ void AddGraphics()
     STARTDECL(gl_translate) (Value &vec, Value &body)
     {
         auto v = ValueDecToF<3>(vec);
-        return pushtrans(translation(v), translation(-v), body);
+        return PushTransform(translation(v), translation(-v), body);
     }
     MIDDECL(gl_translate) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_translate, "vec,body", "F]C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
@@ -508,11 +508,11 @@ void AddGraphics()
     STARTDECL(gl_scale) (Value &f, Value &body)
     {
         auto v = f.fval() * float3_1;
-        return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
+        return PushTransform(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_scale, "factor,body", "FC?", "",
         "scales the current coordinate system using a numerical factor."
@@ -521,11 +521,11 @@ void AddGraphics()
     STARTDECL(gl_scale) (Value &vec, Value &body)
     {
         auto v = ValueDecToF<3>(vec, 1);
-        return pushtrans(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
+        return PushTransform(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) ()
     {
-        poptrans();
+        PopTransform();
     }
     ENDDECL2CONTEXIT(gl_scale, "factor,body", "F]C?", "",
         "scales the current coordinate system using a vector."
@@ -819,15 +819,18 @@ void AddGraphics()
         TestGL();
 
         auto sh = LookupShader(shader.sval()->str());
+
+        if (!sh) g_vm->BuiltinError(string("no such shader: ") + shader.sval()->str());
+
         shader.DECRT();
 
-        if (sh) currentshader = sh;
+        currentshader = sh;
 
-        return Value(sh != NULL);
+        return Value();
     }
-    ENDDECL1(gl_setshader, "shader", "S", "I",
+    ENDDECL1(gl_setshader, "shader", "S", "",
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
-        " color / textured / phong. returns if shader could be found.");
+        " color / textured / phong");
 
     STARTDECL(gl_setuniform) (Value &name, Value &vec)
     {

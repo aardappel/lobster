@@ -55,7 +55,7 @@ struct Surface : Textured
     string name;
     Primitive prim;
 
-    Surface(int *indices, size_t _nidx, Primitive _prim = PRIM_TRIS);
+    Surface(const int *indices, size_t _nidx, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -85,7 +85,7 @@ class Geometry
 
     const size_t nverts;
 
-    Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt);
+    Geometry(const void *verts, size_t _nverts, size_t _vertsize, const char *_fmt);
     ~Geometry();
 
     void RenderSetup();
@@ -151,7 +151,7 @@ enum TextureFlag
     TF_MULTISAMPLE = 128,
 };
 
-extern uint CreateTexture(uchar *buf, const int2 &dim, int tf = TF_NONE);
+extern uint CreateTexture(const uchar *buf, const int2 &dim, int tf = TF_NONE);
 extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
 extern uint CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(uint &id);

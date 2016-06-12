@@ -66,6 +66,19 @@ SHADER phong
         UNIFORMS col camera light1 lightparams1
         gl_FragColor = col * icol * Phong(inormal, ipos);
 
+SHADER phong_textured
+    VERTEX
+        INPUTS apos:4 anormal:3 atc:2
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        inormal = anormal;
+        ipos = apos.xyz;
+        itc = atc;
+    PIXEL
+        INPUTS inormal:3 ipos:3 itc:2
+        UNIFORMS tex0 col camera light1 lightparams1
+        gl_FragColor = col * Phong(inormal, ipos) * texture2D(tex0, itc);
+
 SHADER flat
     VERTEX
         INPUTS apos:4 acolor:4

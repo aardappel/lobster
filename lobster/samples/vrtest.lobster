@@ -32,22 +32,33 @@ def model_tree(numb, branchl, narrowf, leafs):
 model_tree(10, 1.5, 0.75, 12)
 tree := mg_polygonize(50, [[ 0.7, 0.6, 0.5 ], [ 0.6, 1.0, 0.6 ]])
 
+mg_sphere()
+sphere := mg_polygonize(3, [ color_red ])
+
 camera_position = xyz { 0.0, 0.0, 3.0 }
 camera_yaw = 135
 camera_pitch = 20
 
+balls := []::[xyz_f]
+
 def drawworld():
-    gl_clear(color_dark_grey)
+    gl_clear(color_grey)
     gl_blend(0)
 
-    gl_light(camera_position, [ 128.0, 1.0 ])
+    gl_light(camera_position, [ 64.0, 1.0 ])
     //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
 
-    gl_setshader("phong")
+    gl_setshader("flat")
     for(10) i:
         gl_translate sincos(i * 72) * 3:
             gl_scale(0.3):
                 gl_rendermesh(tree)
+
+    for(balls) b:
+        gl_translate b[0]:
+            gl_scale(0.1):
+                gl_rotate_z(sincos(gl_time() * 30)):
+                    gl_rendermesh(sphere)
 
     gl_setshader("color")
     gl_debug_grid([ 20, 20, 0 ], xyz_1, 0.005)
@@ -63,11 +74,23 @@ while gl_frame():
     if vrmode:
         for(2) e:
             vr_starteye(e, znear, zfar)
-            camera_set_z_up_worldspace()
-            drawworld()
+            camera_set_z_up_worldspace():
+                drawworld()
+            for(vr_nummotioncontrollers()) mc:
+                mcmesh := vr_motioncontrollermesh(mc)
+                if mcmesh:
+                    gl_color(color_white)
+                    vr_motioncontroller(mc):
+                        gl_setshader("phong_textured")
+                        gl_rendermesh(mcmesh)
         vr_finish()
+        for(2) mc:
+            if vr_motioncontrollerbutton(mc, "trigger") == 1:
+                pos := to_z_up(vr_motioncontrollervec(mc, 3))
+                dir := to_z_up(vr_motioncontrollervec(mc, 2))
+                balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
-        gl_clear(color_dark_red)
+        gl_clear(color_black)
         gl_blend(0)
         gl_setshader("textured")
 
@@ -83,3 +106,7 @@ while gl_frame():
         camera_FPS_view()
         drawworld()
 
+    if balls.length > 100:
+        balls.remove(0, balls.length - 100)
+    for(balls) b:
+        b[0] += b[1] * gl_deltatime() / 10

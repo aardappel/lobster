@@ -16,7 +16,7 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-uint GenBO(GLenum type, int elemsize, int count, void *verts)
+uint GenBO(GLenum type, int elemsize, int count, const void *verts)
 {
     uint bo;
     glGenBuffers(1, &bo);
@@ -108,7 +108,7 @@ Textured::Textured()
     memset(textures, 0, sizeof(uint) * Shader::MAX_SAMPLERS);
 }
 
-Surface::Surface(int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
+Surface::Surface(const int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
 {
     vboId = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), numidx, indices);
 }
@@ -125,7 +125,7 @@ Surface::~Surface()
     glDeleteBuffers(1, &vboId);
 }
 
-Geometry::Geometry(void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
+Geometry::Geometry(const void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
     : vertsize(_vertsize), fmt(_fmt), vbo(0), nverts(_nverts)
 {
     vbo = GenBO(GL_ARRAY_BUFFER, vertsize, nverts, verts);
