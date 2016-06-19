@@ -42,6 +42,7 @@ void GraphicsShutDown()  // should be safe to call even if it wasn't initialized
     
     extern void CleanPhysics(); CleanPhysics();
     extern void MeshGenClear(); MeshGenClear();
+    extern void CubeGenClear(); CubeGenClear();
     extern void FontCleanup(); FontCleanup();
 
     if (meshes)

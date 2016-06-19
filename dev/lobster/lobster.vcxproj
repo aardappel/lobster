@@ -1013,6 +1013,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\audio.cpp" />
+    <ClCompile Include="..\src\cubegen.cpp" />
     <ClCompile Include="..\src\font.cpp" />
     <ClCompile Include="..\src\fontrenderer.cpp" />
     <ClCompile Include="..\src\glgeom.cpp">

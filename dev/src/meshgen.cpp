@@ -783,7 +783,7 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
         delete[] cfactor;
     }
 
-    Output(OUTPUT_DEBUG, "verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, scale = %f\n",
+    Output(OUTPUT_DEBUG, "meshgen verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, scale = %f\n",
            verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), gridscale);
 
     auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(mgvert), "PNC"), pointmode ? PRIM_POINT : PRIM_TRIS);

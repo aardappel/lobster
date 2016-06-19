@@ -70,11 +70,15 @@ positive_directions :== [ xy { 0, 0 }, xy { 1, 0 }, xy { 1, 1 }, xy { 0, 1 } ]
 def xy(v):  xy  { v.x, v.y }
 def xyz(v): xyz { v.x, v.y, v.z }
 
-def xy_rnd():  xy  { rndfloat(), rndfloat() }
-def xyz_rnd(): xyz { rndfloat(), rndfloat(), rndfloat() }
+def xy_rnd():   xy  { rndfloat(), rndfloat() }
+def xyz_rnd():  xyz { rndfloat(), rndfloat(), rndfloat() }
+def xyzw_rnd(): xyzw { rndfloat(), rndfloat(), rndfloat(), rndfloat() }
 
 def xy_rnd_norm():  normalize(xy_rnd() - 0.5)
 def xyz_rnd_norm(): normalize(xyz_rnd() - 0.5)
+
+def xy_rndi(n):  xy  { rnd(n.x), rnd(n.y) }
+def xyz_rndi(n): xyz { rnd(n.x), rnd(n.y), rnd(n.x) }
 
 def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })

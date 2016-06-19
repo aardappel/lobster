@@ -1008,6 +1008,9 @@
     <ClCompile Include="..\src\glvr.cpp">
       <Filter>engine\opengl</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\cubegen.cpp">
+      <Filter>engine\meshgen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
