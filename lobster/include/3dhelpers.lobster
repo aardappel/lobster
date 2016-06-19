@@ -13,14 +13,14 @@ camera_velocity := xyz_0
 def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
     camera_yaw -= gl_mousedelta(0).x / mousesens
     if dopitch:
-        camera_pitch += gl_mousedelta(0).y / mousesens
+        camera_pitch -= gl_mousedelta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
     move   := gl_isdown(downkey) - gl_isdown(upkey)
     strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
     friction :== 20
     velspeed := min(1.0, friction * gl_deltatime())
-    dir := vecfromyawpitch(camera_yaw, -camera_pitch, move, strafe)
+    dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_deltatime() * movementspeed
 
@@ -34,7 +34,7 @@ def to_z_up(v):
 
 def camera_FPS_view():
     camera_set_z_up_worldspace(): nil
-    gl_rotate_x(sincos(camera_pitch))
+    gl_rotate_x(sincos(-camera_pitch - 90))
     gl_rotate_z(sincos(-camera_yaw))
     gl_translate(-camera_position)
 
