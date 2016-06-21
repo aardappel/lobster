@@ -303,6 +303,52 @@ void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &
     glEnable(GL_CULL_FACE); 
 }
 
+uint cube_vbo = 0, cube_ibo = 0;
+
+void RenderUnitCube(Shader *sh)
+{
+    struct cvert { float3 pos; float3 normal; };
+
+    if (!cube_vbo)
+    {
+        static int3 normals[] =
+        {
+            int3(1, 0, 0), int3(-1,  0,  0),
+            int3(0, 1, 0), int3( 0, -1,  0),
+            int3(0, 0, 1), int3( 0,  0, -1),
+        };
+
+        static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
+        static int indices[6] = { 0, 1, 3, 1, 2, 3 };
+
+        vector<cvert> verts;
+        vector<int> triangles;
+
+        for (int n = 0; n < 6; n++)
+        {
+            auto face = faces[n];
+            for (int i = 0; i < 6; i++) triangles.push_back(indices[i] + (int)verts.size());
+            for (int vn = 0; vn < 4; vn++)
+            {
+                cvert vert;
+                for (int d = 0; d < 3; d++)
+                {
+                    vert.pos.set(d, float((face[vn] & (1 << (2 - d))) != 0));
+                }
+                vert.normal = float3(normals[n]);
+                verts.push_back(vert);
+            }
+        }
+
+        cube_vbo = GenBO(GL_ARRAY_BUFFER, sizeof(cvert), 24, verts.data());
+        cube_ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
+    }
+
+    sh->Set();
+    RenderArray(PRIM_TRIS, 36, 24, "PN", sizeof(cvert), cube_vbo, cube_ibo);
+}
+    
+
 map<int, uint> circlevbos;  // FIXME: not global;
 
 void RenderCircle(Shader *sh, Primitive prim, int segments, float radius)

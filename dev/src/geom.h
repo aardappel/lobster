@@ -440,6 +440,15 @@ inline float4x4 scaling(float s)
         float4(0, 0, 0, 1));
 }
 
+inline float4x4 scaling(const float3 &s)
+{
+    return float4x4(
+        float4(s.x(), 0, 0, 0),
+        float4(0, s.y(), 0, 0),
+        float4(0, 0, s.z(), 0),
+        float4(0, 0, 0, 1));
+}
+
 inline float4x4 rotationX(const float2 &v)
 {
     return float4x4(

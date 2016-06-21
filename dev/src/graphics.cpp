@@ -454,6 +454,14 @@ void AddGraphics()
         "renders a circle that is open on the inside. thickness is the fraction of the radius that is filled,"
         " try e.g. 0.2");
 
+    STARTDECL(gl_unitcube) ()
+    {
+        RenderUnitCube(currentshader);
+        return Value();
+    }
+    ENDDECL0(gl_unitcube, "", "", "",
+        "renders a unit cube (0,0,0) - (1,1,1)");
+
     STARTDECL(gl_rotate_x) (Value &angle, Value &body)
     {
         auto a = ValueDecToF<2>(angle);

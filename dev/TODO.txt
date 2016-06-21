@@ -1,4 +1,5 @@
-- consider backing Z up into functions.
+- consider baking Z up into functions.
+  - clean up 3dhelpers?
 - use "time booleans"  like in vr_motioncontrollerbutton for gl_wentdown etc too.
 - use RangeCheck in more places.
 

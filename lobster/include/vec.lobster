@@ -70,6 +70,10 @@ positive_directions :== [ xy { 0, 0 }, xy { 1, 0 }, xy { 1, 1 }, xy { 0, 1 } ]
 def xy(v):  xy  { v.x, v.y }
 def xyz(v): xyz { v.x, v.y, v.z }
 
+// lengthen vectors
+def xyz(v, z):  xyz  { v.x, v.y, z }
+def xyzw(v, w): xyzw { v.x, v.y, v.z, w }
+
 def xy_rnd():   xy  { rndfloat(), rndfloat() }
 def xyz_rnd():  xyz { rndfloat(), rndfloat(), rndfloat() }
 def xyzw_rnd(): xyzw { rndfloat(), rndfloat(), rndfloat(), rndfloat() }
