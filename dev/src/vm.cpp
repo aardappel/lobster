@@ -382,7 +382,11 @@ struct VM : VMBase
         auto id = bcf->idents()->Get(sid->ididx());
         if (id->readonly() || id->global() != dumpglobals) return "";
         string name = id->name()->c_str();
-        return "\n   " + name + " = " + x.ToString(GetVarTypeInfo((int)idx).t, debugpp);
+        auto static_type = GetVarTypeInfo((int)idx).t;
+        #if RTT_ENABLED
+            if (static_type != x.type) return "";  // Likely uninitialized.
+        #endif
+        return "\n   " + name + " = " + x.ToString(static_type, debugpp);
     }
 
     void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask)
