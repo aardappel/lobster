@@ -16,7 +16,7 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-map<string, Shader *> shadermap;
+unordered_map<string, Shader *> shadermap;
 
 Shader *LookupShader(const char *name)
 {

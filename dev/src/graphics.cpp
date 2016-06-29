@@ -26,7 +26,7 @@ Primitive polymode = PRIM_FAN;
 
 IntResourceManagerCompact<Mesh> *meshes = NULL;
 
-map<string, uint> texturecache;
+unordered_map<string, uint> texturecache;
 
 Shader *currentshader = NULL;
 Shader *colorshader = NULL;

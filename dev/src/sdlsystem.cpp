@@ -66,7 +66,7 @@ struct KeyState : UpDown
     }
 };
 
-map<string, KeyState> keymap;
+unordered_map<string, KeyState> keymap;
 
 int mousewheeldelta = 0;
 

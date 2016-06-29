@@ -49,7 +49,14 @@ string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDevice
 int2 rtsize = int2_0;
 uint mstex[2] = { 0, 0 };
 uint retex[2] = { 0, 0 };
-struct MotionController { float4x4 mat; uint device; vr::VRControllerState_t state, laststate; };
+float4x4 hmdpose = float4x4_1;
+struct MotionController
+{
+    float4x4 mat;
+    uint device;
+    vr::VRControllerState_t state, laststate;
+    bool tracking;
+};
 vector<MotionController> motioncontrollers;
 map<string, int> motioncontrollermeshes;
 
@@ -164,7 +171,7 @@ void VREye(int eye, float znear, float zfar)
     auto vrview = eye2head;
     if (trackeddeviceposes[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
     {
-        auto hmdpose = FromOpenVR(trackeddeviceposes[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
+        hmdpose = FromOpenVR(trackeddeviceposes[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking);
         vrview = hmdpose * vrview;
     }
     AppendTransform(invert(vrview), vrview);
@@ -192,7 +199,14 @@ void VRFinish()
     
     vr::VRCompositor()->PostPresentHandoff();
 
-    glFlush();
+    #endif  // PLATFORM_VR
+}
+
+void VRStart()
+{
+    #ifdef PLATFORM_VR
+
+    if (!vrsys) return;
 
     auto err = vr::VRCompositor()->WaitGetPoses(trackeddeviceposes, vr::k_unMaxTrackedDeviceCount, NULL, 0);
     (void)err;
@@ -201,9 +215,6 @@ void VRFinish()
     size_t mcn = 0;
     for (uint device = 0; device < vr::k_unMaxTrackedDeviceCount; device++)
     {
-        if (!trackeddeviceposes[device].bPoseIsValid)
-            continue;
-
         if (vrsys->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller)
             continue;
 
@@ -214,7 +225,10 @@ void VRFinish()
             motioncontrollers.push_back(mc);
         }
         auto &mc = motioncontrollers[mcn];
-        mc.mat = FromOpenVR(trackeddeviceposes[device].mDeviceToAbsoluteTracking);
+        mc.tracking = trackeddeviceposes[device].bPoseIsValid;
+        mc.mat = mc.tracking
+            ? FromOpenVR(trackeddeviceposes[device].mDeviceToAbsoluteTracking)
+            : float4x4_1;
         mc.device = device;
         mc.laststate = mc.state;
         auto ok = vrsys->GetControllerState(device, &mc.state);
@@ -337,6 +351,14 @@ void AddVR()
         "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
         " replaces gl_perspective");
 
+    STARTDECL(vr_start) ()
+    {
+        VRStart();
+        return Value();
+    }
+    ENDDECL0(vr_start, "", "", "",
+        "starts VR by updating hmd & controller poses");
+
     STARTDECL(vr_finish) ()
     {
         VRFinish();
@@ -357,7 +379,15 @@ void AddVR()
         return Value((int)motioncontrollers.size());
     }
     ENDDECL0(vr_nummotioncontrollers, "", "", "I",
-        "returns the number of motion controllers that are currently tracking");
+        "returns the number of motion controllers in the system");
+
+    STARTDECL(vr_motioncontrollerstracking) (Value &mc)
+    {
+        auto mcd = GetMC(mc);
+        return Value(mcd && mcd->tracking);
+    }
+    ENDDECL1(vr_motioncontrollerstracking, "n", "I", "I",
+        "returns if motion controller n is tracking");
 
     extern Value PushTransform(const float4x4 &forward, const float4x4 &backward, const Value &body);
     extern void PopTransform();
@@ -390,7 +420,7 @@ void AddVR()
     {
         auto mcd = GetMC(mc);
         auto mask = ButtonMaskFromId(GetButtonId(button));
-        if (!mcd) return Value(0);
+        if (!mcd) return Value(-1);
         auto masknow = mcd->state.ulButtonPressed & mask;
         auto maskbef = mcd->laststate.ulButtonPressed & mask;
         auto step = int(masknow != 0) * 2 - int(maskbef == 0);
@@ -410,6 +440,15 @@ void AddVR()
     }
     ENDDECL2(vr_motioncontrollervec, "n,i", "II", "F]:3",
         "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
+        " These are in Y up space.");
+
+    STARTDECL(vr_hmdvec) (Value &idx)
+    {
+        auto i = RangeCheck(idx, 4);
+        return Value(ToValueF(hmdpose[i].xyz()));
+    }
+    ENDDECL1(vr_hmdvec, "i", "I", "F]:3",
+        "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
         " These are in Y up space.");
 }
 

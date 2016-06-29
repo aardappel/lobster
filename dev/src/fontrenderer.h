@@ -21,7 +21,7 @@ struct OutlineFont
     void *fthandle;
     void *fbuf;
 
-    map<int, int> unicodemap;
+    unordered_map<int, int> unicodemap;
     vector<int> unicodetable;
 
     OutlineFont(void *fth, void *fb) : fthandle(fth), fbuf(fb) {}

@@ -342,18 +342,18 @@ inline string TypeName(TypeRef type)
 
 struct SymbolTable
 {
-    map<string, Ident *> idents;
+    unordered_map<string, Ident *> idents;
     vector<Ident *> identtable;
     vector<Ident *> identstack;
     vector<SpecIdent *> specidents; 
 
-    map<string, Struct *> structs;
+    unordered_map<string, Struct *> structs;
     vector<Struct *> structtable;
 
-    map<string, SharedField *> fields;
+    unordered_map<string, SharedField *> fields;
     vector<SharedField *> fieldtable;
 
-    map<string, Function *> functions;
+    unordered_map<string, Function *> functions;
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
 

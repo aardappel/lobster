@@ -17,6 +17,11 @@ team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, c
                    color_light_blue, color_light_yellow, color_light_cyan, color_light_pink, color_dark_red, color_dark_green, color_dark_blue, color_olive ]
 team_colors += map(48) i: team_colors[i % 16]
 
+- weird type error:
+  if not (size == 0): // size is xyz_i
+  error: "==" requires type: numeric/string/vector/struct, got: any
+
+- also, == should not do pointer equality on value types! have to use equal for now
 
 - excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
 

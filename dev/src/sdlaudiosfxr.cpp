@@ -162,7 +162,7 @@ struct Sound
     size_t len;
 };
 
-map<string, Sound> sound_files;
+unordered_map<string, Sound> sound_files;
 Sound cursnd;
 uchar *cursndpos;
 

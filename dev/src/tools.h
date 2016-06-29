@@ -629,3 +629,15 @@ range_wrapper<T> range(const T &end) {
 }
 
 */
+
+// Stops a class from being accidental victim to default copy + destruct twice problem.
+
+class NonCopyable       
+{
+    NonCopyable(const NonCopyable&);
+    const NonCopyable& operator=(const NonCopyable&);
+
+protected:
+    NonCopyable() {}
+    //virtual ~NonCopyable() {}
+};

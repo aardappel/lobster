@@ -323,7 +323,7 @@ struct NativeFun : Named
 struct NativeRegistry
 {
     vector<NativeFun *> nfuns;
-    map<string, NativeFun *> nfunlookup;
+    unordered_map<string, NativeFun *> nfunlookup;
     vector<string> subsystems;
     list<Type> typestorage;  // For any native functions with types that rely on Wrap().
 

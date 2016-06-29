@@ -99,6 +99,7 @@ template<typename T, int N> class vec
     vec operator-(T e) const { DOVECR(c[i] - e); }
     vec operator*(T e) const { DOVECR(c[i] * e); }
     vec operator/(T e) const { DOVECR(c[i] / e); }
+    vec operator%(T e) const { DOVECR(c[i] % e); }
 
     vec operator-() const { DOVECR(-c[i]); }
 

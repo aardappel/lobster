@@ -66,23 +66,22 @@ def drawworld():
 while gl_frame():
     if gl_wentdown("escape"): return
 
-    if !vrmode: gl_cursor(0)
-    camera_FPS_update("w", "a", "s", "d", 10, 4, true)
-
     znear := 0.1
     zfar := 1000
     if vrmode:
+        vr_start()
         for(2) e:
             vr_starteye(e, znear, zfar)
             camera_set_z_up_worldspace():
                 drawworld()
             for(vr_nummotioncontrollers()) mc:
-                mcmesh := vr_motioncontrollermesh(mc)
-                if mcmesh:
-                    gl_color(color_white)
-                    vr_motioncontroller(mc):
-                        gl_setshader("phong_textured")
-                        gl_rendermesh(mcmesh)
+                if vr_motioncontrollerstracking(mc):
+                    mcmesh := vr_motioncontrollermesh(mc)
+                    if mcmesh:
+                        gl_color(color_white)
+                        vr_motioncontroller(mc):
+                            gl_setshader("phong_textured")
+                            gl_rendermesh(mcmesh)
         vr_finish()
         for(2) mc:
             if vr_motioncontrollerbutton(mc, "trigger") == 1:
@@ -100,6 +99,8 @@ while gl_frame():
                     gl_rect([ gl_windowsize().x / 2.0, -gl_windowsize().y ])
     else:
         // This is how we'd render normally, with no HMD connected:
+        gl_cursor(0)
+        camera_FPS_update("w", "a", "s", "d", 10, 4, true)
         gl_clear(color_dark_grey)
         gl_blend(0)
         gl_perspective(70, znear, zfar)

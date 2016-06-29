@@ -1,6 +1,7 @@
 
-// A basic 3D grid, with individually allocated YZ arrays. 
-template<typename T> class Chunk3DGrid
+// A basic 3D grid, with individually allocated YZ arrays.
+// Make Z your inner loop when accessing this.
+template<typename T> class Chunk3DGrid : NonCopyable
 {
 public:
 
@@ -44,7 +45,7 @@ public:
 // Caches the current location in the list, so as long as you iterate through this with +Z as your inner loop,
 // will be close to the efficiency of accessing a 3D grid, while using less memory and smaller blocks of it.
 // Individual lists are reallocated as splitting of ranges makes this necessary.
-template<typename T> class RLE3DGrid
+template<typename T> class RLE3DGrid : NonCopyable
 {
 public:
 
