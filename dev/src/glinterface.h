@@ -51,7 +51,7 @@ struct Textured
 struct Surface : Textured
 {
     size_t numidx;
-    uint vboId;
+    uint ibo;
     string name;
     Primitive prim;
 
@@ -59,6 +59,8 @@ struct Surface : Textured
     ~Surface();
 
     void Render(Shader *sh);
+
+    void WritePLY(string &s);
 };
 
 struct BasicVert    // common generic format: "PNTC"
@@ -92,6 +94,8 @@ class Geometry
     void RenderDone();
 
     void BindAsSSBO(uint bind_point_index);
+
+    bool WritePLY(string &s, int nindices);
 };
 
 struct Mesh
@@ -110,6 +114,8 @@ struct Mesh
     ~Mesh();
 
     void Render(Shader *sh);
+
+    bool SaveAsPLY(const char *filename);
 };
 
 struct Light

@@ -823,6 +823,17 @@ void AddGraphics()
     ENDDECL1(gl_rendermesh, "i", "I", "",
         "renders the specified mesh");
 
+    STARTDECL(gl_savemesh) (Value &i, Value &name)
+    {
+        TestGL();
+        bool ok = GetMesh(i)->SaveAsPLY(name.sval()->str());
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL2(gl_savemesh, "i,name", "IS", "I",
+        "saves the specified mesh to a file in the PLY format. useful if the mesh was generated procedurally."
+        " returns false if the file could not be written");
+
     STARTDECL(gl_setshader) (Value &shader)
     {
         TestGL();

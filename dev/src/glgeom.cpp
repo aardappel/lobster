@@ -110,19 +110,19 @@ Textured::Textured()
 
 Surface::Surface(const int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim)
 {
-    vboId = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), numidx, indices);
+    ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), numidx, indices);
 }
 
 void Surface::Render(Shader *sh)
 {
     sh->SetTextures(textures);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0);
 }
 
 Surface::~Surface()
 {
-    glDeleteBuffers(1, &vboId);
+    glDeleteBuffers(1, &ibo);
 }
 
 Geometry::Geometry(const void *verts, size_t _nverts, size_t _vertsize, const char *_fmt)
@@ -198,6 +198,72 @@ Mesh::~Mesh()
     delete geom;
     for (auto s : surfs) delete s;
     if (mats) delete[] mats;
+}
+
+bool Geometry::WritePLY(string &s, int nindices)
+{
+    s += "ply\n"
+         "format binary_little_endian 1.0\n"
+         "element vertex " + to_string(nverts) + "\n";
+
+    for (auto fc : fmt)
+    {
+        switch (fc)
+        {
+            case 'P': s += "property float x\nproperty float y\nproperty float z\n"; break;
+            case 'p': s += "property float x\nproperty float y\n"; break;
+            case 'N': s += "property float nx\nproperty float ny\nproperty float nz\n"; break;
+            case 'n': s += "property float nx\nproperty float ny\n"; break;
+            case 'T': s += "property float u\nproperty float v\n"; break;
+            case 'C': s += "property uchar red\nproperty uchar green\nproperty uchar blue\nproperty uchar alpha\n"; break;
+            case 'W': s += "property uchar wa\nproperty uchar wb\nproperty uchar wc\nproperty uchar wd\n"; break;
+            case 'I': s += "property uchar ia\nproperty uchar ib\nproperty uchar ic\nproperty uchar id\n"; break;
+            default: assert(0);
+        }
+    }
+
+    s += "element face " + to_string(nindices / 3) + "\n"
+         "property list int int vertex_index\n"
+         "end_header\n";
+
+    vector<uchar> vdata(nverts * vertsize);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data());
+    s.insert(s.end(), vdata.begin(), vdata.end());
+    return true;
+}
+
+void Surface::WritePLY(string &s)
+{
+    vector<int> idata(numidx / 3 * 4);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data());
+    for (int i = numidx - 3; i >= 0; i -= 3)
+    {
+        auto di = i / 3 * 4;
+        idata[di + 3] = idata[i + 1];
+        idata[di + 2] = idata[i + 2];  // we cull GL_FRONT
+        idata[di + 1] = idata[i + 0];
+        idata[di] = 3;
+    }
+    s.insert(s.end(), (char *)idata.data(), ((char *)idata.data()) + idata.size() * sizeof(int));
+}
+
+bool Mesh::SaveAsPLY(const char *filename)
+{
+    int nindices = 0;
+    for (auto &surf : surfs) nindices += surf->numidx;
+
+    string s;
+    if (!geom->WritePLY(s, nindices)) return false;
+    for (auto &surf : surfs) surf->WritePLY(s);
+
+    FILE *f = OpenForWriting(filename, true);
+    if (!f) return false;
+    fwrite(s.c_str(), s.size(), 1, f);
+    fclose(f);
+
+    return true;
 }
 
 void SetPointSprite(float scale)
