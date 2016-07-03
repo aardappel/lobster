@@ -12,7 +12,7 @@ private panoffset := xy_0
 private touchvelocity := xy_0
 
 def ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
-    if gl_isdown(buttonname):
+    if gl_button(buttonname) >= 1:
         delta := float(gl_mousedelta(0)) / scale
         panoffset -= delta
         // mild amount of dampening/smoothing from previous frames:
@@ -63,7 +63,7 @@ def ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin
     viewsteps = max(min(viewsteps, maxs), mins)
     viewscale := pow(rate, viewsteps)
     center := float(gl_mousepos(0))
-    if gl_isdown("mouse1") and gl_isdown("mouse11"):
+    if gl_button("mouse1") >= 1 and gl_button("mouse11") >= 1:
         dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
         center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
         if(lastdistance):

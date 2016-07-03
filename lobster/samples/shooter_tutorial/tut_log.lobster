@@ -6,7 +6,7 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
 
     gl_clear(color_black)
     gl_color(color_white)
@@ -31,8 +31,8 @@ while gl_frame() and !gl_wentdown("escape"):
         scale := gl_windowsize().y / worldsize
         gl_scale(scale)
 
-        dir := xy_f { gl_isdown("d") - gl_isdown("a"),
-                      gl_isdown("s") - gl_isdown("w") }
+        dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+                      (gl_button("s") >= 1) - (gl_button("w") >= 1) }
         newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
         if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
             playerpos = newpos
@@ -104,7 +104,7 @@ while gl_frame() and !gl_wentdown("escape"):
         msg := "press space to play!"
         gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
             gl_text(msg)
-        if gl_wentdown("space"):
+        if gl_button("space") == 1:
             playing = true
         gl_text("highscore: " + highscore)
 

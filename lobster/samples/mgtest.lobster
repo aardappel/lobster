@@ -118,7 +118,7 @@ for trees: print("vertcount: tree1 " + gl_meshsize(_))
 print seconds_elapsed()
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
 
     gl_windowtitle("meshgen test: " + gl_deltatime())
 
@@ -131,7 +131,7 @@ while gl_frame():
         gl_perspective(60, 0.1, 1000)
 
         speed := 10
-        if(gl_isdown("left shift")): speed = 50
+        if gl_button("left shift") >= 1: speed = 50
         camera_FPS_update("w", "a", "s", "d", speed, 4, true)
         camera_FPS_view()
         gl_light(camera_position, [ 128.0, 0.1 ])

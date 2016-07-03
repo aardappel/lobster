@@ -26,7 +26,7 @@ include "vec.lobster"
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear([ 0.0, 0.0, 0.0, 1.0 ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,7 +76,7 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 worldsize := 20.0
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
     gl_translate(float(gl_windowsize()) / 2.0)
@@ -150,7 +150,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -158,8 +158,8 @@ while gl_frame() and !gl_wentdown("escape"):
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { gl_isdown("d") - gl_isdown("a"),
-                  gl_isdown("s") - gl_isdown("w") }
+    dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+                  (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
         playerpos = newpos
@@ -252,7 +252,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -260,8 +260,8 @@ while gl_frame() and !gl_wentdown("escape"):
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { gl_isdown("d") - gl_isdown("a"),
-                  gl_isdown("s") - gl_isdown("w") }
+    dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+                  (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
         playerpos = newpos
@@ -495,7 +495,7 @@ which simply says:
         msg := "press space to play!"
         gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
             gl_text(msg)
-        if gl_wentdown("space"):
+        if gl_button("space") == 1:
             score = 0
             playerhealth = 100.0
             playerpos = xy_0
@@ -573,7 +573,7 @@ If you look at the finished code of tut6.lobster, you can notice one problem
 with game programming: we ended up with a lot of global variables, even for such
 an absolutely simple game. If a game gets more complicated, this growing set of
 globals will make our game hard to maintain, and error prone. Just look at the
-code above that follows `if gl_wentdown("space"):` in the menu code: we need to
+code above that follows `if gl_button("space") == 1:` in the menu code: we need to
 carefully reset each global that matters for the game, and if we forget one, we
 have a bug. Generally, the less local variable access is, the harder code is to
 follow.

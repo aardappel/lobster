@@ -9,7 +9,7 @@ lines := []
 
 while gl_frame():
 
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
 
     gl_clear(color_black)
     gl_color(color_white)
@@ -19,9 +19,10 @@ while gl_frame():
     start := float(gl_lastpos("mouse1", true))
     cur := float(gl_mousepos(0))
     if magnitude(start - cur) > 1:  // a click is not a drag
-        if gl_isdown("mouse1"):      // show feedback
+        mouse1 := gl_button("mouse1")
+        if mouse1 >= 1:      // show feedback
             gl_line(start, cur, 1)
-        if gl_wentup("mouse1"):      // store line
+        if mouse1 == 0:      // store line
             lines.push([start, float(gl_lastpos("mouse1", false))])
             // note how we use the mouse up position, which may be != cur
 

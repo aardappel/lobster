@@ -10,13 +10,13 @@ check(gl_setfontname("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf")
       "can\'t load font!")
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     gl_color(color_white)
     gl_text("left mouse to shoot rifle, right mouse for shotgun")
-    if gl_wentdown("mouse1"):
+    if gl_button("mouse1") == 1:
         check(play_wav("data/sounds/awesund/rifle.wav"), "can\'t load sound!")
-    if gl_wentdown("mouse3"):
+    if gl_button("mouse3") == 1:
         check(play_wav("data/sounds/awesund/shotgun.wav"), "can\'t load sound!")
 
 

@@ -10,7 +10,7 @@ pts := [ xy_0, xy_x ]
 angle := 0.0
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     origin := float(gl_windowsize()) / 2.0
     gl_translate(origin)

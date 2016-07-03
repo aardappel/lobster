@@ -42,7 +42,7 @@ def render_tree(n:node):
         // if(n.size >= 0) text += ": " + n.size
         size := float(gl_textsize(text))
         if gl_hit(size, 0):
-            if gl_wentdown("mouse1"):
+            if gl_button("mouse1") == 1:
                 select(n)
             gl_color color_light_grey:
                 gl_rect(size)
@@ -62,7 +62,7 @@ def render_entries():
             text := e.name
             size := float(gl_textsize(text))
             if gl_hit(size, 0):
-                if gl_wentdown("mouse1"):
+                if gl_button("mouse1") == 1:
                     dups := filter selected.children: _.name == e.name
                     if dups.length:
                         select(dups[0])
@@ -87,7 +87,7 @@ def render_sizes():
 fatal(gl_window("dirbrowsing", 1024, 768))
 check(gl_setfontname("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_setfontsize(fontsize), "can\'t load font!")
 
-while(gl_frame() and !gl_wentdown("escape")):
+while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:

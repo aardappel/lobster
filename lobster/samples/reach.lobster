@@ -14,7 +14,7 @@ ballvel := xy { 0.005, -0.004 }
 fatal(gl_window("reach", 600, 600))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
 
     gl_scale(min(gl_windowsize().x, gl_windowsize().y))

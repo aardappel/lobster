@@ -210,16 +210,16 @@ private def button(id, f, do, dofocus, focusf):
                 gl_color hover_color:
                     gl_rect(float(size))
                 if hit:
-                    if gl_isdown("mouse1"):
+                    mouse1 := gl_button("mouse1")
+                    if mouse1 >= 1:
                         gl_color(select_color):
                             gl_rect(float(size))
-                    up := gl_wentup("mouse1")
-                    if dofocus and focus_id != id and (up or !gl_touchscreen()):
+                    if dofocus and focus_id != id and (mouse1 == 0 or !gl_touchscreen()):
                         // If we have a focus action and this button wasn't the focus, then on a touch screen
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
                         focusf()
-                    else: if up:
+                    else: if mouse1 == 0:
                         if actionsound: play_sfxr(actionsound) // FIXME: wavs too
                         do()
 
@@ -258,7 +258,7 @@ if program_name() == "gui.lobster": // run example
     focused := false
 
     while gl_frame():
-        if gl_wentdown("escape"):
+        if gl_button("escape") == 1:
             return
 
         gl_setfontsize(gl_windowsize().y / 10)

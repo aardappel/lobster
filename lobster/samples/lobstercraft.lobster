@@ -35,7 +35,7 @@ fatal(gl_window("LobsterCraft(tm)", 800, 600))
 nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: gl_newpoly(map(s) c: map(3) i: float(c & (1 << (2 - i)) != 0))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_light_blue)
     gl_cursor(0)
     gl_perspective(70, 0.1, 1000)
@@ -62,8 +62,8 @@ while gl_frame():
             if cells[pos]: first_solid = pos
             else: last_empty = pos
     // LMB places blocks and RMB removes blocks
-    if gl_wentdown("mouse1") and last_empty and inventory.length: cells[last_empty] = inventory.pop()
-    if gl_wentdown("mouse3") and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
+    if gl_button("mouse1") == 1 and last_empty and inventory.length: cells[last_empty] = inventory.pop()
+    if gl_button("mouse3") == 1 and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
     gl_setshader("color")
     gl_blend(1)
     wh := 11.7  // let's add some water!

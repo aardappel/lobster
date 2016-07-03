@@ -13,7 +13,7 @@ ph_createbox([ 0.0, 1.0 ], [ 40.0, 1.0 ])  // floor
 
 boxtime := 0.0
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle

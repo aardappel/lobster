@@ -20,7 +20,7 @@ def branch(n, max, scale, len):
 fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_grey)
     rndseed(0)
     gl_translate(float(gl_windowsize()) / xy { 2.0, 1.0 })

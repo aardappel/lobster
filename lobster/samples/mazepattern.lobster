@@ -17,7 +17,7 @@ def endcap_line(a, b, thickness):
     gl_line(a + extension, b - extension, thickness)
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     rndseed(0)
     scale := gl_windowsize().y / 25

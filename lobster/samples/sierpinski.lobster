@@ -17,7 +17,7 @@ def sierpinski(depth):
 fatal(gl_window("sierpinski", 512, 512))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     gl_scale(float(gl_windowsize()))
     sierpinski(7)

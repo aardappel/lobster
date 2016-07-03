@@ -420,11 +420,10 @@ void AddVR()
     {
         auto mcd = GetMC(mc);
         auto mask = ButtonMaskFromId(GetButtonId(button));
-        if (!mcd) return Value(-1);
+        if (!mcd) return Value(TimeBool8().Step());
         auto masknow = mcd->state.ulButtonPressed & mask;
         auto maskbef = mcd->laststate.ulButtonPressed & mask;
-        auto step = int(masknow != 0) * 2 - int(maskbef == 0);
-        return Value(step);
+        return Value(TimeBool8(masknow != 0, maskbef != 0).Step());
     }
     ENDDECL2(vr_motioncontrollerbutton, "n,button", "IS", "I",
         "returns the button state for motion controller n."

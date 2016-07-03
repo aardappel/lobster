@@ -16,8 +16,8 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
         camera_pitch -= gl_mousedelta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
-    move   := gl_isdown(downkey) - gl_isdown(upkey)
-    strafe := gl_isdown(rightkey) - gl_isdown(leftkey)
+    move   := (gl_button(downkey) >= 1) - (gl_button(upkey) >= 1)
+    strafe := (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
     friction :== 20
     velspeed := min(1.0, friction * gl_deltatime())
     dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)

@@ -152,7 +152,7 @@ def onesample():
 fatal(gl_window("smallpt in lobster!", w, h))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     tex := onesample()
     gl_setprimitivetexture(0, tex)

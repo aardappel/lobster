@@ -263,33 +263,17 @@ void AddGraphics()
     ENDDECL1(gl_grab, "on", "I", "I",
         "grabs the mouse when the window is active. return wether it's on.");
 
-    STARTDECL(gl_wentdown) (Value &name)
+    STARTDECL(gl_button) (Value &name)
     {
         auto ks = GetKS(name.sval()->str());
         name.DECRT();
-        return Value(ks.wentdown);
+        return Value(ks.Step());
     }
-    ENDDECL1(gl_wentdown, "name", "S", "I",
-        "wether a key/mousebutton/finger went down this frame (pass a string like"
-        " mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc. mouse11 and on are additional fingers)");
-
-    STARTDECL(gl_wentup) (Value &name)
-    {
-        auto ks = GetKS(name.sval()->str());
-        name.DECRT();
-        return Value(ks.wentup);
-    }
-    ENDDECL1(gl_wentup, "name", "S", "I",
-        "wether a key/mousebutton/finger went up this frame");
-
-    STARTDECL(gl_isdown) (Value &name)
-    {
-        auto ks = GetKS(name.sval()->str());
-        name.DECRT();
-        return Value(ks.isdown);
-    }
-    ENDDECL1(gl_isdown, "name", "S", "I",
-        "wether a key/mousebutton/finger is currently down");
+    ENDDECL1(gl_button, "name", "S", "I",
+        "returns the state of a key/mousebutton/finger."
+        " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
+        " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc."
+        " mouse11 and on are additional fingers)");
 
     STARTDECL(gl_touchscreen) ()
     {

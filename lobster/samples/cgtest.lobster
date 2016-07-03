@@ -25,7 +25,7 @@ for 10000: modify()
 random_cubes := mg_create_cube_mesh()
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
 
     gl_windowtitle("cubegen test: " + gl_deltatime())
 
@@ -43,7 +43,7 @@ while gl_frame():
         gl_setshader("flat")
         gl_rendermesh(random_cubes)
 
-    if gl_wentdown("space"):
+    if gl_button("space") == 1:
         for 1000: modify()
         gl_deletemesh(random_cubes)
         random_cubes = mg_create_cube_mesh()

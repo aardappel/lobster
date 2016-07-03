@@ -17,16 +17,16 @@ camera_yaw = -45
 camera_pitch = 20
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
 
     gl_clear(color_dark_grey)
     gl_cursor(0)
     gl_perspective(70, 0.1, 1000)
 
     speed := 10
-    if gl_isdown("left shift"): speed = 50
+    if gl_button("left shift") >= 1: speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
-    if gl_isdown("space"): camera_direction(xyz_1 * 10 - camera_position)
+    if gl_button("space") >= 1: camera_direction(xyz_1 * 10 - camera_position)
     camera_FPS_view()
 
     gl_light(camera_position, [ 128.0, 1.0 ])

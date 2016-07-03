@@ -45,9 +45,9 @@ right meta left meta left super right super alt gr compose help print screen sys
 */
 
 
-struct KeyState : UpDown
+struct KeyState
 {
-    UpDown lastframe;
+    TimeBool8 button;
 
     double lasttime[2];
     int2 lastpos[2];
@@ -60,9 +60,7 @@ struct KeyState : UpDown
 
     void FrameReset()
     {
-        lastframe = *(UpDown *)this;
-        wentdown = false;
-        wentup = false;
+        button.Advance();
     }
 };
 
@@ -107,15 +105,7 @@ void updatebutton(string &name, bool on, int posfinger)
 {
     auto kmit = keymap.find(name);
     auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
-    ks->isdown = on;
-    if (on)
-    {
-        ks->wentdown = true;
-    }
-    else
-    {
-        ks->wentup = true;
-    }
+    ks->button.Set(on);
     ks->lasttime[on] = lasttime;
     ks->lastpos[on] = fingers[posfinger].mousepos;
 }
@@ -589,18 +579,18 @@ bool SDLFrame()
 double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 
-UpDown GetKS(const char *name)
+TimeBool8 GetKS(const char *name)
 {
     auto ks = keymap.find(name);
-    if (ks == keymap.end()) return UpDown();
+    if (ks == keymap.end()) return TimeBool8();
     #ifdef PLATFORM_TOUCH
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly
         // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,
         // and make that into a special case inside gl_hit
-        return ks->second.lastframe;
+        return ks->second.button.Back();
     #else
-        return ks->second;
+        return ks->second.button;
     #endif
 }
 

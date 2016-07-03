@@ -21,13 +21,13 @@ for 5: ph_dynamic(ph_createbox([ 0.0, 10.0 + _ * 2.0 ], [ 1.0, 1.0 ]), true)
 
 ph_createparticlecircle([ 0.0, 5.0 ], 7.0, color_light_red, ph_colormixingparticle)
 
-while gl_frame() and !gl_wentdown("escape"):
+while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
 
     // create right-handed coordinate system, with (0, 0) at the bottom middle
     camera_2d_worldspace(worldsize, xy { 0.5, 1 }, xy { 1.0, -1.0 })
 
-    if gl_isdown("mouse1"):
+    if gl_button("mouse1") >= 1:
         ph_createparticlecircle(gl_localmousepos(0), 0.5, color_light_blue, ph_colormixingparticle)
 
     ph_step(gl_deltatime())

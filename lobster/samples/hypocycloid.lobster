@@ -6,7 +6,7 @@ include "color.lobster"
 fatal(gl_window("hypocycloid", 1024, 768))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
     gl_clear(color_black)
     gl_translate(float(gl_windowsize()) / 2.0)
     gl_scale(gl_windowsize().y / 4.0)

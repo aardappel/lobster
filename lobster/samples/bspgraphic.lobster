@@ -35,9 +35,9 @@ seed := 342342432
 fatal(gl_window("bsp", 512, 512))
 
 while gl_frame():
-    if gl_wentdown("escape"): return
-    if gl_wentdown("space"): seed += 675656
-    if gl_wentdown("c"): colorconstant = (colorconstant + 1) % 3
+    if gl_button("escape") == 1: return
+    if gl_button("space") == 1: seed += 675656
+    if gl_button("c") == 1: colorconstant = (colorconstant + 1) % 3
     gl_clear(color_black)
     rndseed(seed)
     square(xy_0i, gl_windowsize(), 0)

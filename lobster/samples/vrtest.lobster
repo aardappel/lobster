@@ -64,7 +64,7 @@ def drawworld():
     gl_debug_grid([ 20, 20, 0 ], xyz_1, 0.005)
 
 while gl_frame():
-    if gl_wentdown("escape"): return
+    if gl_button("escape") == 1: return
 
     znear := 0.1
     zfar := 1000

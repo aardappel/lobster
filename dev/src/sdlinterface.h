@@ -22,18 +22,8 @@ extern bool SDLIsMinimized();
 
 extern const int2 &GetScreenSize();
 
-struct UpDown
-{
-    bool isdown;
-    bool wentdown;
-    bool wentup;
-
-    UpDown() : isdown(false), wentdown(false), wentup(false) {}
-};
-
-
 extern const int2 &GetFinger(int i, bool delta);
-extern UpDown GetKS(const char *name);
+extern TimeBool8 GetKS(const char *name);
 extern double GetKeyTime(const char *name, int on);
 extern int2 GetKeyPos(const char *name, int on);
 extern float GetJoyAxis(int i);
