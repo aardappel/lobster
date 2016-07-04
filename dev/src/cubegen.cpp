@@ -231,16 +231,13 @@ void AddCubeGen()
             }
         }
 
-        normalize_mesh(&triangles[0], triangles.size(), &verts[0], verts.size(), sizeof(cvert),
-                       (uchar *)&verts[0].normal - (uchar *)&verts[0].pos, false);
+        normalize_mesh(triangles.data(), triangles.size(), verts.data(), verts.size(), sizeof(cvert),
+                        (uchar *)&verts.data()->normal - (uchar *)&verts.data()->pos, false);
 
         Output(OUTPUT_DEBUG, "cubegen verts = %lu, tris = %lu\n", verts.size(), triangles.size() / 3);
 
-        if (!verts.size())
-            return 0;
-
-        auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(cvert), "PNC"), PRIM_TRIS);
-        m->surfs.push_back(new Surface(&triangles[0], triangles.size(), PRIM_TRIS));
+        auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(cvert), "PNC"), PRIM_TRIS);
+        m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
 
         extern IntResourceManagerCompact<Mesh> *meshes;
         return (int)meshes->Add(m);

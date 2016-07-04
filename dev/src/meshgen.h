@@ -58,8 +58,8 @@ struct mgvert
 
 inline void RecomputeNormals(vector<int> &triangles, vector<mgvert> &verts)
 {
-    normalize_mesh(&triangles[0], triangles.size(), &verts[0], verts.size(), sizeof(mgvert),
-                   (uchar *)&verts[0].norm - (uchar *)&verts[0].pos, false);
+    normalize_mesh(triangles.data(), triangles.size(), verts.data(), verts.size(), sizeof(mgvert),
+                   (uchar *)&verts.data()->norm - (uchar *)&verts.data()->pos, false);
 };
 
 extern int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans, const FIndexGrid *fcellindices,

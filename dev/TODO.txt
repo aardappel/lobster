@@ -1,5 +1,8 @@
 - consider baking Z up into functions.
   - clean up 3dhelpers?
+
+- have a reference counted resource handle instead of ints.
+
 - use RangeCheck in more places.
 
 - have some way to pack all loaded files into the bytecode file, to simplify distribution of lobster

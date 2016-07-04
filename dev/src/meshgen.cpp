@@ -720,9 +720,6 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
         v.pos /= gridscale;
     }
 
-    if (verts.empty())
-        return 0;
-
     /////////// CALCULATE NORMALS
 
     RecomputeNormals(triangles, verts);
@@ -786,14 +783,14 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
     Output(OUTPUT_DEBUG, "meshgen verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu, fcells = %lu, scale = %f\n",
            verts.size(), edges.size(), triangles.size() / 3, mctriangles.size() / 3, fcells.size(), gridscale);
 
-    auto m = new Mesh(new Geometry(&verts[0], verts.size(), sizeof(mgvert), "PNC"), pointmode ? PRIM_POINT : PRIM_TRIS);
+    auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(mgvert), "PNC"), pointmode ? PRIM_POINT : PRIM_TRIS);
     if (pointmode)
     {
         m->pointsize = 1000 / gridscale;
     }
     else
     {
-        m->surfs.push_back(new Surface(&triangles[0], triangles.size(), PRIM_TRIS));
+        m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
     }
 
     extern IntResourceManagerCompact<Mesh> *meshes;
