@@ -162,10 +162,12 @@ extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE)
 extern uint CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(uint &id);
 extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
+extern int2 TextureSize(uint id);
+extern uchar *ReadTexture(uint id, const int2 &size);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex);
 
-extern uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha);
+extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
 extern void DeleteBO(uint id);
 extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, 

@@ -97,10 +97,11 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar)
     view2clip = perspectiveFov(fovy, ratio, znear, zfar, 1);
 }
 
-uchar *ReadPixels(const int2 &pos, const int2 &size, bool alpha)
+uchar *ReadPixels(const int2 &pos, const int2 &size)
 {
-    uchar *pixels = new uchar[(3 + (int)alpha) * size.x() * size.y()];
-    glReadPixels(pos.x(), pos.y(), size.x(), size.y(), alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    uchar *pixels = new uchar[size.x() * size.y() * 4];
+    for (int y = 0; y < size.y(); y++)
+        glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels + y * (size.x() * 4));
     return pixels;
 }
 

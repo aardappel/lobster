@@ -18,8 +18,10 @@
 #include "glincludes.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#pragma warning(disable: 4457)
+#pragma warning(push)
+#pragma warning(disable: 4244)
 #include "stb/stb_image.h"
+#pragma warning(pop)
 
 const int nummultisamples = 4;
 
@@ -138,6 +140,23 @@ void SetTexture(uint textureunit, uint id, int tf)
 {
     glActiveTexture(GL_TEXTURE0 + textureunit);
     glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, id);
+}
+
+int2 TextureSize(uint id)
+{
+    glBindTexture(GL_TEXTURE_2D, id);
+    int2 size(0);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut());
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut());
+    return size;
+}
+
+uchar *ReadTexture(uint id, const int2 &size)
+{
+    glBindTexture(GL_TEXTURE_2D, id);
+    auto pixels = new uchar[size.x() * size.y() * 4];
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    return pixels;
 }
 
 void SetImageTexture(uint textureunit, uint id, int tf)

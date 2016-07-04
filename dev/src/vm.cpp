@@ -1355,7 +1355,7 @@ struct VM : VMBase
                 break;
             case V_STRING:
                 IDXErr(i, r.sval()->len, r.sval()); 
-                PUSH(Value((int)r.sval()->str()[i]));
+                PUSH(Value((int)((uchar *)r.sval()->str())[i]));
                 break;
             default:
                 VMASSERT(false); 

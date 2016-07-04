@@ -1062,7 +1062,32 @@ void AddGraphics()
     }
     ENDDECL1(gl_deletetexture, "i", "I", "",
         "free up memory for the given texture id");
-    
+
+    STARTDECL(gl_texturesize) (Value &i)
+    {
+        TestGL();
+        uint tex = i.ival();
+        auto size = TextureSize(tex);
+        return ToValueI(size);
+    }
+    ENDDECL1(gl_texturesize, "i", "I", "I:2]",
+        "returns the size of a texture");
+
+    STARTDECL(gl_readtexture) (Value &i)
+    {
+        TestGL();
+        uint tex = i.ival();
+        auto size = TextureSize(tex);
+        auto numpixels = size.x() * size.y();
+        if (!numpixels) return Value();
+        auto buf = ReadTexture(tex, size);
+        auto s = g_vm->NewString((char *)buf, numpixels * 4);
+        delete[] buf;
+        return Value(s);
+    }
+    ENDDECL1(gl_readtexture, "i", "I", "S?",
+        "read back RGBA texture data into a string or nil on failure");
+
     STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &fbsize, Value &depth, Value &tf, Value &retex)
     {
         TestGL();
@@ -1118,6 +1143,6 @@ void AddGraphics()
         return Value(ok);
     }
     ENDDECL1(gl_screenshot, "filename", "S", "I",
-             "saves a screenshot, returns true if succesful");
+             "saves a screenshot in .png format, returns true if succesful");
 
 }

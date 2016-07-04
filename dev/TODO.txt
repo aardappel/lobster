@@ -12,9 +12,17 @@
      this does mean they cannot be constructed which kinda sucks. Maybe can allow patterns to expand to vectors somehow?
 
 - this crashes on += in codegen:
-team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
+  team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
                    color_light_blue, color_light_yellow, color_light_cyan, color_light_pink, color_dark_red, color_dark_green, color_dark_blue, color_olive ]
-team_colors += map(48) i: team_colors[i % 16]
+  team_colors += map(48) i: team_colors[i % 16]
+
+- second return value doesn't get proper vector type from e.g. gl_loadtexture:
+  mapxy(xy { dim[0], dim[1] })
+
+- weird error:
+  struct controller { startpos:xyz_i = xyz_0i, endpos:xyz_i = xyz_0i, startinpal:int = false, endinpal:int = false, valid = false }
+  controllers := map(2): controller {}
+  error: no specialization of controller matches these types: xyz_i xyz_i int int int
 
 - weird type error:
   if not (size == 0): // size is xyz_i
