@@ -267,6 +267,7 @@ enum ETrackedDeviceProperty
 	Prop_CameraCompatibilityMode_Int32			= 2033,
 	Prop_ScreenshotHorizontalFieldOfViewDegrees_Float = 2034,
 	Prop_ScreenshotVerticalFieldOfViewDegrees_Float = 2035,
+	Prop_DisplaySuppressed_Bool					= 2036,
 
 	// Properties that are unique to TrackedDeviceClass_Controller
 	Prop_AttachedDeviceId_String				= 3000,
@@ -276,6 +277,7 @@ enum ETrackedDeviceProperty
 	Prop_Axis2Type_Int32						= 3004, // Return value is of type EVRControllerAxisType
 	Prop_Axis3Type_Int32						= 3005, // Return value is of type EVRControllerAxisType
 	Prop_Axis4Type_Int32						= 3006, // Return value is of type EVRControllerAxisType
+	Prop_ControllerRoleHint_Int32				= 3007, // Return value is of type ETrackedControllerRole
 
 	// Properties that are unique to TrackedDeviceClass_TrackingReference
 	Prop_FieldOfViewLeftDegrees_Float			= 4000,
@@ -318,7 +320,7 @@ struct VRTextureBounds_t
 };
 
 
-/** Allows the applicaiton to control how scene textures are used by the compositor when calling Submit. */
+/** Allows the application to control how scene textures are used by the compositor when calling Submit. */
 enum EVRSubmitFlags
 {
 	// Simple render path. App submits rendered left and right eye images with no lens distortion correction applied.
@@ -331,10 +333,6 @@ enum EVRSubmitFlags
 
 	// If the texture pointer passed in is actually a renderbuffer (e.g. for MSAA in OpenGL) then set this flag.
 	Submit_GlRenderBuffer = 0x02,
-
-	// If you application receives a screenshot request, submit with this flag to let the compositor this submission
-	// is in the response to the screenshot
-	Submit_Screenshot = 0x04
 };
 
 
@@ -349,6 +347,7 @@ enum EVRState
 	VRState_Ready_Alert = 4,
 	VRState_NotReady = 5,
 	VRState_Standby = 6,
+	VRState_Ready_Alert_Low = 7,
 };
 
 /** The types of events that could be posted (and what the parameters mean for each event type) */
@@ -365,6 +364,7 @@ enum EVREventType
 	VREvent_EnterStandbyMode			= 106,
 	VREvent_LeaveStandbyMode			= 107,
 	VREvent_TrackedDeviceRoleChanged	= 108,
+	VREvent_WatchdogWakeUpRequested		= 109,
 
 	VREvent_ButtonPress					= 200, // data is controller
 	VREvent_ButtonUnpress				= 201, // data is controller
@@ -378,6 +378,7 @@ enum EVREventType
 	VREvent_FocusLeave					= 304, // data is overlay
 	VREvent_Scroll						= 305, // data is mouse
 	VREvent_TouchPadMove				= 306, // data is mouse
+	VREvent_OverlayFocusChanged			= 307, // data is overlay, global event
 
 	VREvent_InputFocusCaptured			= 400, // data is process DEPRECATED
 	VREvent_InputFocusReleased			= 401, // data is process DEPRECATED
@@ -386,6 +387,7 @@ enum EVREventType
 	VREvent_SceneApplicationChanged		= 404, // data is process - The App actually drawing the scene changed (usually to or from the compositor)
 	VREvent_SceneFocusChanged			= 405, // data is process - New app got access to draw the scene
 	VREvent_InputFocusChanged			= 406, // data is process
+	VREvent_SceneApplicationSecondaryRenderingStarted = 407, // data is process
 
 	VREvent_HideRenderModels			= 410, // Sent to the scene application to request hiding render models temporarily
 	VREvent_ShowRenderModels			= 411, // Sent to the scene application to request restoring render model visibility
@@ -407,11 +409,14 @@ enum EVREventType
 	VREvent_DashboardGuideButtonDown = 514,
 	VREvent_DashboardGuideButtonUp = 515,
 	VREvent_ScreenshotTriggered	= 516, // Screenshot button combo was pressed, Dashboard should request a screenshot
+	VREvent_ImageFailed				= 517, // Sent to overlays when a SetOverlayRaw or SetOverlayfromFail fails to load
 
 	// Screenshot API
 	VREvent_RequestScreenshot = 520, // Sent by vrclient application to compositor to take a screenshot
 	VREvent_ScreenshotTaken = 521, // Sent by compositor to the application that the screenshot has been taken
 	VREvent_ScreenshotFailed = 522, // Sent by compositor to the application that the screenshot failed to be taken
+	VREvent_SubmitScreenshotToDashboard = 523, // Sent by compositor to the dashboard that a completed screenshot was submitted
+	VREvent_ScreenshotProgressToDashboard = 524, // Sent by compositor to the dashboard that a completed screenshot was submitted
 
 	VREvent_Notification_Shown				= 600,
 	VREvent_Notification_Hidden				= 601,
@@ -453,6 +458,7 @@ enum EVREventType
 	VREvent_ApplicationTransitionAborted	= 1301,
 	VREvent_ApplicationTransitionNewAppStarted = 1302,
 	VREvent_ApplicationListUpdated			= 1303,
+	VREvent_ApplicationMimeTypeLoad			= 1304,
 
 	VREvent_Compositor_MirrorWindowShown	= 1400,
 	VREvent_Compositor_MirrorWindowHidden	= 1401,
@@ -628,6 +634,23 @@ struct VREvent_SeatedZeroPoseReset_t
 	bool bResetBySystemMenu;
 };
 
+struct VREvent_Screenshot_t
+{
+	uint32_t handle;
+	uint32_t type;
+};
+
+struct VREvent_ScreenshotProgress_t
+{
+	float progress;
+};
+
+struct VREvent_ApplicationLaunch_t
+{
+	uint32_t pid;
+	uint32_t unArgsHandle;
+};
+
 /** If you change this you must manually update openvr_interop.cs.py */
 typedef union
 {
@@ -645,6 +668,9 @@ typedef union
 	VREvent_PerformanceTest_t performanceTest;
 	VREvent_TouchPadMove_t touchPadMove;
 	VREvent_SeatedZeroPoseReset_t seatedZeroPoseReset;
+	VREvent_Screenshot_t screenshot;
+	VREvent_ScreenshotProgress_t screenshotProgress;
+	VREvent_ApplicationLaunch_t applicationLaunch;
 } VREvent_Data_t;
 
 /** An event posted by the server to all running applications */
@@ -788,6 +814,9 @@ enum EVRApplicationType
 	VRApplication_Utility = 4,		// Init should not try to load any drivers. The application needs access to utility
 									// interfaces (like IVRSettings and IVRApplications) but not hardware.
 	VRApplication_VRMonitor = 5,	// Reserved for vrmonitor
+	VRApplication_SteamWatchdog = 6,// Reserved for Steam
+
+	VRApplication_Max
 };
 
 
@@ -844,6 +873,14 @@ enum EVRInitError
 	VRInitError_Init_NotSupportedWithCompositor	= 122,
 	VRInitError_Init_NotAvailableToUtilityApps	= 123,
 	VRInitError_Init_Internal				 	= 124,
+	VRInitError_Init_HmdDriverIdIsNone		 	= 125,
+	VRInitError_Init_HmdNotFoundPresenceFailed 	= 126,
+	VRInitError_Init_VRMonitorNotFound			= 127,
+	VRInitError_Init_VRMonitorStartupFailed		= 128,
+	VRInitError_Init_LowPowerWatchdogNotSupported = 129, 
+	VRInitError_Init_InvalidApplicationType		= 130,
+	VRInitError_Init_NotAvailableToWatchdogApps = 131,
+	VRInitError_Init_WatchdogDisabledInSettings = 132,
 
 	VRInitError_Driver_Failed				= 200,
 	VRInitError_Driver_Unknown				= 201,
@@ -854,17 +891,26 @@ enum EVRInitError
 	VRInitError_Driver_NotCalibrated		= 206,
 	VRInitError_Driver_CalibrationInvalid	= 207,
 	VRInitError_Driver_HmdDisplayNotFound	= 208,
-	
+	VRInitError_Driver_TrackedDeviceInterfaceUnknown = 209,
+	// VRInitError_Driver_HmdDisplayNotFoundAfterFix	 = 210, // not needed: here for historic reasons
+	VRInitError_Driver_HmdDriverIdOutOfBounds = 211,
+	VRInitError_Driver_HmdDisplayMirrored  = 212,
+
 	VRInitError_IPC_ServerInitFailed		= 300,
 	VRInitError_IPC_ConnectFailed			= 301,
 	VRInitError_IPC_SharedStateInitFailed	= 302,
 	VRInitError_IPC_CompositorInitFailed	= 303,
 	VRInitError_IPC_MutexInitFailed			= 304,
 	VRInitError_IPC_Failed					= 305,
+	VRInitError_IPC_CompositorConnectFailed	= 306,
+	VRInitError_IPC_CompositorInvalidConnectResponse = 307,
+	VRInitError_IPC_ConnectFailedAfterMultipleAttempts = 308,
 
 	VRInitError_Compositor_Failed					= 400,
 	VRInitError_Compositor_D3D11HardwareRequired	= 401,
 	VRInitError_Compositor_FirmwareRequiresUpdate	= 402,
+	VRInitError_Compositor_OverlayInitFailed		= 403,
+	VRInitError_Compositor_ScreenshotsInitFailed	= 404,
 
 	VRInitError_VendorSpecific_UnableToConnectToOculusRuntime = 1000,
 
@@ -891,7 +937,14 @@ enum EVRScreenshotType
 	VRScreenshotType_Mono = 1, // left eye only
 	VRScreenshotType_Stereo = 2,
 	VRScreenshotType_Cubemap = 3,
-	VRScreenshotType_StereoPanorama = 4
+	VRScreenshotType_MonoPanorama = 4,
+	VRScreenshotType_StereoPanorama = 5
+};
+
+enum EVRScreenshotPropertyFilenames
+{
+	VRScreenshotPropertyFilenames_Preview = 0,
+	VRScreenshotPropertyFilenames_VR = 1,
 };
 
 enum EVRTrackedCameraError
@@ -923,7 +976,7 @@ enum EVRTrackedCameraFrameType
 	MAX_CAMERA_FRAME_TYPES
 };
 
-typedef void* TrackedCameraHandle_t;
+typedef uint64_t TrackedCameraHandle_t;
 #define INVALID_TRACKED_CAMERA_HANDLE	((vr::TrackedCameraHandle_t)0)
 
 struct CameraVideoStreamFrameHeader_t
@@ -939,6 +992,11 @@ struct CameraVideoStreamFrameHeader_t
 	TrackedDevicePose_t standingTrackedDevicePose;
 };
 
+// Screenshot types
+typedef uint32_t ScreenshotHandle_t;
+
+static const uint32_t k_unScreenshotHandleInvalid = 0;
+
 #pragma pack( pop )
 
 // figure out how to import from the VR API dll
@@ -950,7 +1008,7 @@ struct CameraVideoStreamFrameHeader_t
 #define VR_INTERFACE extern "C" __declspec( dllimport )
 #endif
 
-#elif defined(GNUC) || defined(COMPILER_GCC) || defined(__APPLE__)
+#elif defined(__GNUC__) || defined(COMPILER_GCC) || defined(__APPLE__)
 
 #ifdef VR_API_EXPORT
 #define VR_INTERFACE extern "C" __attribute__((visibility("default")))
@@ -1377,6 +1435,9 @@ namespace vr
 		*/
 		virtual EVRApplicationError LaunchTemplateApplication( const char *pchTemplateAppKey, const char *pchNewAppKey, VR_ARRAY_COUNT( unKeys ) const AppOverrideKeys_t *pKeys, uint32_t unKeys ) = 0;
 
+		/** launches the application currently associated with this mime type and passes it the option args, typically the filename or object name of the item being launched */
+		virtual vr::EVRApplicationError LaunchApplicationFromMimeType( const char *pchMimeType, const char *pchArgs ) = 0;
+
 		/** Launches the dashboard overlay application if it is not already running. This call is only valid for 
 		* dashboard overlay applications. */
 		virtual EVRApplicationError LaunchDashboardOverlay( const char *pchAppKey ) = 0;
@@ -1413,6 +1474,21 @@ namespace vr
 		/** Gets the application auto-launch flag. This is only valid for applications which return true for VRApplicationProperty_IsDashboardOverlay_Bool. */
 		virtual bool GetApplicationAutoLaunch( const char *pchAppKey ) = 0;
 
+		/** Adds this mime-type to the list of supported mime types for this application*/
+		virtual EVRApplicationError SetDefaultApplicationForMimeType( const char *pchAppKey, const char *pchMimeType ) = 0;
+
+		/** return the app key that will open this mime type */
+		virtual bool GetDefaultApplicationForMimeType( const char *pchMimeType, char *pchAppKeyBuffer, uint32_t unAppKeyBufferLen ) = 0;
+
+		/** Get the list of supported mime types for this application, comma-delimited */
+		virtual bool GetApplicationSupportedMimeTypes( const char *pchAppKey, char *pchMimeTypesBuffer, uint32_t unMimeTypesBuffer ) = 0;
+
+		/** Get the list of app-keys that support this mime type, comma-delimited, the return value is number of bytes you need to return the full string */
+		virtual uint32_t GetApplicationsThatSupportMimeType( const char *pchMimeType, char *pchAppKeysThatSupportBuffer, uint32_t unAppKeysThatSupportBuffer ) = 0;
+
+		/** Get the args list from an app launch that had the process already running, you call this when you get a VREvent_ApplicationMimeTypeLoad */
+		virtual uint32_t GetApplicationLaunchArguments( uint32_t unHandle, char *pchArgs, uint32_t unArgs ) = 0;
+
 		// ---------------  Transition methods --------------- //
 
 		/** Returns the app key for the application that is starting up */
@@ -1446,7 +1522,7 @@ namespace vr
 		virtual EVRApplicationError LaunchInternalProcess( const char *pchBinaryPath, const char *pchArguments, const char *pchWorkingDirectory ) = 0;
 	};
 
-	static const char * const IVRApplications_Version = "IVRApplications_005";
+	static const char * const IVRApplications_Version = "IVRApplications_006";
 
 } // namespace vr
 
@@ -1478,7 +1554,7 @@ namespace vr
 		virtual void SetInt32( const char *pchSection, const char *pchSettingsKey, int32_t nValue, EVRSettingsError *peError = nullptr ) = 0;
 		virtual float GetFloat( const char *pchSection, const char *pchSettingsKey, float flDefaultValue, EVRSettingsError *peError = nullptr ) = 0;
 		virtual void SetFloat( const char *pchSection, const char *pchSettingsKey, float flValue, EVRSettingsError *peError = nullptr ) = 0;
-		virtual void GetString( const char *pchSection, const char *pchSettingsKey, char *pchValue, uint32_t unValueLen, const char *pchDefaultValue, EVRSettingsError *peError = nullptr ) = 0;
+		virtual void GetString( const char *pchSection, const char *pchSettingsKey, VR_OUT_STRING() char *pchValue, uint32_t unValueLen, const char *pchDefaultValue, EVRSettingsError *peError = nullptr ) = 0;
 		virtual void SetString( const char *pchSection, const char *pchSettingsKey, const char *pchValue, EVRSettingsError *peError = nullptr ) = 0;
 		
 		virtual void RemoveSection( const char *pchSection, EVRSettingsError *peError = nullptr ) = 0;
@@ -1523,6 +1599,14 @@ namespace vr
 	static const char * const k_pch_SteamVR_NeverKillProcesses_Bool = "neverKillProcesses";
 	static const char * const k_pch_SteamVR_RenderTargetMultiplier_Float = "renderTargetMultiplier";
 	static const char * const k_pch_SteamVR_AllowReprojection_Bool = "allowReprojection";
+	static const char * const k_pch_SteamVR_ForceReprojection_Bool = "forceReprojection";
+	static const char * const k_pch_SteamVR_ForceFadeOnBadTracking_Bool = "forceFadeOnBadTracking";
+	static const char * const k_pch_SteamVR_DefaultMirrorView_Int32 = "defaultMirrorView";
+	static const char * const k_pch_SteamVR_ShowMirrorView_Bool = "showMirrorView";
+	static const char * const k_pch_SteamVR_StartMonitorFromAppLaunch = "startMonitorFromAppLaunch";
+	static const char * const k_pch_SteamVR_AutoLaunchSteamVROnButtonPress = "autoLaunchSteamVROnButtonPress";
+	static const char * const k_pch_SteamVR_UseGenericGraphcisDevice_Bool = "useGenericGraphicsDevice";
+
 
 	//-----------------------------------------------------------------------------
 	// lighthouse keys
@@ -1558,7 +1642,8 @@ namespace vr
 	// user interface keys
 	static const char * const k_pch_UserInterface_Section = "userinterface";
 	static const char * const k_pch_UserInterface_StatusAlwaysOnTop_Bool = "StatusAlwaysOnTop";
-	static const char * const k_pch_UserInterface_EnableScreenshots_Bool = "EnableScreenshots";
+	static const char * const k_pch_UserInterface_Screenshots_Bool = "screenshots";
+	static const char * const k_pch_UserInterface_ScreenshotType_Int = "screenshotType";
 
 	//-----------------------------------------------------------------------------
 	// notification keys
@@ -1825,7 +1910,6 @@ enum EVRCompositorError
 	VRCompositorError_TextureUsesUnsupportedFormat = 105,
 	VRCompositorError_SharedTexturesNotSupported = 106,
 	VRCompositorError_IndexOutOfRange			= 107,
-	VRCompositorError_ScreenshotAlreadyInProgress = 108,
 };
 
 const uint32_t VRCompositor_ReprojectionReason_Cpu = 0x01;
@@ -1838,6 +1922,7 @@ struct Compositor_FrameTiming
 	uint32_t m_nFrameIndex;
 	uint32_t m_nNumFramePresents; // number of times this frame was presented
 	uint32_t m_nNumDroppedFrames; // number of additional times previous frame was scanned out
+	uint32_t m_nReprojectionFlags;
 
 	/** Absolute time reference for comparing frames.  This aligns with the vsync that running start is relative to. */
 	double m_flSystemTimeInSeconds;
@@ -1846,7 +1931,8 @@ struct Compositor_FrameTiming
 	* The fewer packets of work these are broken up into, the less likely this will happen.
 	* GPU work can be broken up by calling Flush.  This can sometimes be useful to get the GPU started
 	* processing that work earlier in the frame. */
-	float m_flSceneRenderGpuMs; // time spent rendering the scene
+	float m_flPreSubmitGpuMs; // time spent rendering the scene (gpu work submitted between WaitGetPoses and second Submit)
+	float m_flPostSubmitGpuMs; // additional time spent rendering by application (e.g. companion window)
 	float m_flTotalRenderGpuMs; // time between work submitted immediately after present (ideally vsync) until the end of compositor submitted work
 	float m_flCompositorRenderGpuMs; // time spend performing distortion correction, rendering chaperone, overlays, etc.
 	float m_flCompositorRenderCpuMs; // time spent on cpu submitting the above work for this frame
@@ -1867,9 +1953,6 @@ struct Compositor_FrameTiming
 	float m_flCompositorRenderStartMs;
 
 	vr::TrackedDevicePose_t m_HmdPose; // pose used by app to render this frame
-	int32_t m_nFidelityLevel; // app reported value
-
-	uint32_t m_nReprojectionFlags;
 };
 
 /** Cumulative stats for current application.  These are not cleared until a new app connects,
@@ -1879,7 +1962,7 @@ struct Compositor_CumulativeStats
 	uint32_t m_nPid; // Process id associated with these stats (may no longer be running).
 	uint32_t m_nNumFramePresents; // total number of times we called present (includes reprojected frames)
 	uint32_t m_nNumDroppedFrames; // total number of times an old frame was re-scanned out (without reprojection)
-	uint32_t m_nNumReprojectedFrames; // total number of times a frame was scanned out a second time with reprojection
+	uint32_t m_nNumReprojectedFrames; // total number of times a frame was scanned out a second time (with reprojection)
 
 	/** Values recorded at startup before application has fully faded in the first time. */
 	uint32_t m_nNumFramePresentsOnStartup;
@@ -2021,23 +2104,6 @@ public:
 	/** Temporarily suspends rendering (useful for finer control over scene transitions). */
 	virtual void SuspendRendering( bool bSuspend ) = 0;
 
-	/** Request a screenshot of the requested type, application
-	 *  will get an event that the screen shot has started.  The
-	 *  application should turn off any stenciling and max out
-	 *  quality for the next frames and include the Screenshot flag
-	 *  when calling Submit so that the compositor knows the
-	 *  screenshot.  The application should keep the higher qualtity
-	 *  and submitted with the ScreenShot flag until gets a
-	 *  screenshot End event.  It can take several frames for a
-	 *  cubemap to be capture for example. The first file is a
-	 *  boring 2D view used for preview, the second is the actual
-	 *  capture of the requested type.  They are the same for
-	 *  VRScreenshotType_Mono */
-	virtual vr::EVRCompositorError RequestScreenshot( vr::EVRScreenshotType type, const char *pchDestinationFileName, const char *pchVRDestinationFileName ) = 0;
-
-	/** Returns the current screenshot type if a screenshot is currently being captured **/
-	virtual vr::EVRScreenshotType GetCurrentScreenshotType() = 0;
-
 	/** Opens a shared D3D11 texture with the undistorted composited image for each eye. */
 	virtual vr::EVRCompositorError GetMirrorTextureD3D11( vr::EVREye eEye, void *pD3D11DeviceOrResource, void **ppD3D11ShaderResourceView ) = 0;
 
@@ -2048,7 +2114,7 @@ public:
 	virtual void UnlockGLSharedTextureForAccess( vr::glSharedTextureHandle_t glSharedTextureHandle ) = 0;
 };
 
-static const char * const IVRCompositor_Version = "IVRCompositor_015";
+static const char * const IVRCompositor_Version = "IVRCompositor_016";
 
 } // namespace vr
 
@@ -2163,7 +2229,7 @@ namespace vr
 	static const uint32_t k_unVROverlayMaxNameLength = 128;
 
 	/** The maximum number of overlays that can exist in the system at one time. */
-	static const uint32_t k_unMaxOverlayCount = 32;
+	static const uint32_t k_unMaxOverlayCount = 64;
 
 	/** Types of input supported by VR Overlays */
 	enum VROverlayInputMethod
@@ -2217,6 +2283,10 @@ namespace vr
 
 		VROverlayFlags_Panorama = 12, // Texture is a panorama
 		VROverlayFlags_StereoPanorama = 13, // Texture is a stereo panorama
+
+		// If this is set on an overlay owned by the scene application that overlay
+		// will be sorted with the "Other" overlays on top of all other scene overlays
+		VROverlayFlags_SortWithNonSceneOverlays = 14,
 	};
 
 	struct VROverlayIntersectionParams_t
@@ -2334,6 +2404,26 @@ namespace vr
 
 		/** Gets the alpha of the overlay quad. By default overlays are rendering at 100 percent alpha (1.0). */
 		virtual EVROverlayError GetOverlayAlpha( VROverlayHandle_t ulOverlayHandle, float *pfAlpha ) = 0;
+
+		/** Sets the aspect ratio of the texels in the overlay. 1.0 means the texels are square. 2.0 means the texels
+		* are twice as wide as they are tall. Defaults to 1.0. */
+		virtual EVROverlayError SetOverlayTexelAspect( VROverlayHandle_t ulOverlayHandle, float fTexelAspect ) = 0;
+
+		/** Gets the aspect ratio of the texels in the overlay. Defaults to 1.0 */
+		virtual EVROverlayError GetOverlayTexelAspect( VROverlayHandle_t ulOverlayHandle, float *pfTexelAspect ) = 0;
+
+		/** Sets the rendering sort order for the overlay. Overlays are rendered this order:
+		*      Overlays owned by the scene application
+		*      Overlays owned by some other application
+		*
+		*	Within a category overlays are rendered lowest sort order to highest sort order. Overlays with the same 
+		*	sort order are rendered back to front base on distance from the HMD.
+		*
+		*	Sort order defaults to 0. */
+		virtual EVROverlayError SetOverlaySortOrder( VROverlayHandle_t ulOverlayHandle, uint32_t unSortOrder ) = 0;
+
+		/** Gets the sort order of the overlay. See SetOverlaySortOrder for how this works. */
+		virtual EVROverlayError GetOverlaySortOrder( VROverlayHandle_t ulOverlayHandle, uint32_t *punSortOrder ) = 0;
 
 		/** Sets the width of the overlay quad in meters. By default overlays are rendered on a quad that is 1 meter across */
 		virtual EVROverlayError SetOverlayWidthInMeters( VROverlayHandle_t ulOverlayHandle, float fWidthInMeters ) = 0;
@@ -2538,7 +2628,7 @@ namespace vr
 
 	};
 
-	static const char * const IVROverlay_Version = "IVROverlay_012";
+	static const char * const IVROverlay_Version = "IVROverlay_013";
 
 } // namespace vr
 
@@ -2743,7 +2833,7 @@ namespace vr
 {
 
 	/** NOTE: Use of this interface is not recommended in production applications. It will not work for displays which use
-	* direct-to-display mode. It is also incompatible with the VR compositor and is not available when the compositor is running. */
+	* direct-to-display mode. Creating our own window is also incompatible with the VR compositor and is not available when the compositor is running. */
 	class IVRExtendedDisplay
 	{
 	public:
@@ -2800,13 +2890,157 @@ public:
 	* If there is no frame available yet, due to initial camera spinup or re-activation, the error will be VRTrackedCameraError_NoFrameAvailable.
 	* Ideally a caller should be polling at ~16ms intervals */
 	virtual vr::EVRTrackedCameraError GetVideoStreamFrameBuffer( vr::TrackedCameraHandle_t hTrackedCamera, vr::EVRTrackedCameraFrameType eFrameType, void *pFrameBuffer, uint32_t nFrameBufferSize, vr::CameraVideoStreamFrameHeader_t *pFrameHeader, uint32_t nFrameHeaderSize ) = 0;
+
+	/** Gets size of the image frame. */
+	virtual vr::EVRTrackedCameraError GetVideoStreamTextureSize( vr::TrackedDeviceIndex_t nDeviceIndex, vr::EVRTrackedCameraFrameType eFrameType, vr::VRTextureBounds_t *pTextureBounds, uint32_t *pnWidth, uint32_t *pnHeight ) = 0; 
+
+	/** Access a shared D3D11 texture for the specified tracked camera stream */
+	virtual vr::EVRTrackedCameraError GetVideoStreamTextureD3D11( vr::TrackedCameraHandle_t hTrackedCamera, vr::EVRTrackedCameraFrameType eFrameType, void *pD3D11DeviceOrResource, void **ppD3D11ShaderResourceView, vr::CameraVideoStreamFrameHeader_t *pFrameHeader, uint32_t nFrameHeaderSize ) = 0;
+
+	/** Access a shared GL texture for the specified tracked camera stream */
+	virtual vr::EVRTrackedCameraError GetVideoStreamTextureGL( vr::TrackedCameraHandle_t hTrackedCamera, vr::EVRTrackedCameraFrameType eFrameType, vr::glUInt_t *pglTextureId, vr::CameraVideoStreamFrameHeader_t *pFrameHeader, uint32_t nFrameHeaderSize ) = 0;
+	virtual vr::EVRTrackedCameraError ReleaseVideoStreamTextureGL( vr::TrackedCameraHandle_t hTrackedCamera, vr::glUInt_t glTextureId ) = 0;
 };
 
-static const char * const IVRTrackedCamera_Version = "IVRTrackedCamera_002";
+static const char * const IVRTrackedCamera_Version = "IVRTrackedCamera_003";
 
 } // namespace vr
 
-// End
+
+// ivrscreenshots.h
+namespace vr
+{
+
+/** Errors that can occur with the VR compositor */
+enum EVRScreenshotError
+{
+	VRScreenshotError_None							= 0,
+	VRScreenshotError_RequestFailed					= 1,
+	VRScreenshotError_IncompatibleVersion			= 100,
+	VRScreenshotError_NotFound						= 101,
+	VRScreenshotError_BufferTooSmall				= 102,
+	VRScreenshotError_ScreenshotAlreadyInProgress	= 108,
+};
+
+/** Allows the application to generate screenshots */
+class IVRScreenshots
+{
+public:
+	/** Request a screenshot of the requested type.
+	 *  A request of the VRScreenshotType_Stereo type will always
+	 *  work. Other types will depend on the underlying application
+	 *  support.
+	 *  The first file name is for the preview image and should be a
+	 *  regular screenshot (ideally from the left eye). The second
+	 *  is the VR screenshot in the correct format. They should be
+	 *  in the same aspect ratio.  Formats per type:
+	 *  VRScreenshotType_Mono: the VR filename is ignored (can be
+	 *  nullptr), this is a normal flat single shot.
+	 *  VRScreenshotType_Stereo:  The VR image should be a
+	 *  side-by-side with the left eye image on the left.
+	 *  VRScreenshotType_Cubemap: The VR image should be six square
+	 *  images composited horizontally.
+	 *  VRScreenshotType_StereoPanorama: above/below with left eye
+	 *  panorama being the above image.  Image is typically square
+	 *  with the panorama being 2x horizontal.
+	 *  
+	 *  Note that the VR dashboard will call this function when
+	 *  the user presses the screenshot binding (currently System
+	 *  Button + Trigger).  If Steam is running, the destination
+	 *  file names will be in %TEMP% and will be copied into
+	 *  Steam's screenshot library for the running application
+	 *  once SubmitScreenshot() is called.
+	 *  If Steam is not running, the paths will be in the user's
+	 *  documents folder under Documents\SteamVR\Screenshots.
+	 *  Other VR applications can call this to initate a
+	 *  screenshot outside of user control.
+	 *  The destination file names do not need an extension,
+	 *  will be replaced with the correct one for the format
+	 *  which is currently .png. */
+	virtual vr::EVRScreenshotError RequestScreenshot( vr::ScreenshotHandle_t *pOutScreenshotHandle, vr::EVRScreenshotType type, const char *pchPreviewFilename, const char *pchVRFilename ) = 0;
+
+	/** Called by the running VR application to indicate that it
+	 *  wishes to be in charge of screenshots.  If the
+	 *  application does not call this, the Compositor will only
+	 *  support VRScreenshotType_Stereo screenshots that will be
+	 *  captured without notification to the running app.
+	 *  Once hooked your application will receive a
+	 *  VREvent_RequestScreenshot event when the user presses the
+	 *  buttons to take a screenshot. */
+	virtual vr::EVRScreenshotError HookScreenshot( VR_ARRAY_COUNT( numTypes ) const vr::EVRScreenshotType *pSupportedTypes, int numTypes ) = 0;
+
+	/** When your application receives a
+	 *  VREvent_RequestScreenshot event, call these functions to get
+	 *  the details of the screenshot request. */
+	virtual vr::EVRScreenshotType GetScreenshotPropertyType( vr::ScreenshotHandle_t screenshotHandle, vr::EVRScreenshotError *pError ) = 0;
+
+	/** Get the filename for the preview or vr image (see
+	 *  vr::EScreenshotPropertyFilenames).  The return value is
+	 *  the size of the string.   */
+ 	virtual uint32_t GetScreenshotPropertyFilename( vr::ScreenshotHandle_t screenshotHandle, vr::EVRScreenshotPropertyFilenames filenameType, VR_OUT_STRING() char *pchFilename, uint32_t cchFilename, vr::EVRScreenshotError *pError ) = 0;
+
+	/** Call this if the application is taking the screen shot
+	 *  will take more than a few ms processing. This will result
+	 *  in an overlay being presented that shows a completion
+	 *  bar. */
+	virtual vr::EVRScreenshotError UpdateScreenshotProgress( vr::ScreenshotHandle_t screenshotHandle, float flProgress ) = 0;
+
+	/** Tells the compositor to take an internal screenshot of
+	 *  type VRScreenshotType_Stereo. It will take the current
+	 *  submitted scene textures of the running application and
+	 *  write them into the preview image and a side-by-side file
+	 *  for the VR image.
+	 *  This is similiar to request screenshot, but doesn't ever
+	 *  talk to the application, just takes the shot and submits. */
+	virtual vr::EVRScreenshotError TakeStereoScreenshot( vr::ScreenshotHandle_t *pOutScreenshotHandle, const char *pchPreviewFilename, const char *pchVRFilename ) = 0;
+
+	/** Submit the completed screenshot.  If Steam is running
+	 *  this will call into the Steam client and upload the
+	 *  screenshot to the screenshots section of the library for
+	 *  the running application.  If Steam is not running, this
+	 *  function will display a notification to the user that the
+	 *  screenshot was taken. The paths should be full paths with
+	 *  extensions.
+	 *  File paths should be absolute including
+	 *  exntensions.
+	 *  screenshotHandle can be k_unScreenshotHandleInvalid if this
+	 *  was a new shot taking by the app to be saved and not
+	 *  initiated by a user (achievement earned or something) */
+	virtual vr::EVRScreenshotError SubmitScreenshot( vr::ScreenshotHandle_t screenshotHandle, vr::EVRScreenshotType type, const char *pchSourcePreviewFilename, const char *pchSourceVRFilename ) = 0;
+};
+
+static const char * const IVRScreenshots_Version = "IVRScreenshots_001";
+
+} // namespace vr
+
+
+
+// ivrresources.h
+namespace vr
+{
+
+class IVRResources
+{
+public:
+
+	// ------------------------------------
+	// Shared Resource Methods
+	// ------------------------------------
+
+	/** Loads the specified resource into the provided buffer if large enough.
+	* Returns the size in bytes of the buffer required to hold the specified resource. */
+	virtual uint32_t LoadSharedResource( const char *pchResourceName, char *pchBuffer, uint32_t unBufferLen ) = 0;
+
+	/** Provides the full path to the specified resource. Resource names can include named directories for
+	* drivers and other things, and this resolves all of those and returns the actual physical path. 
+	* pchResourceTypeDirectory is the subdirectory of resources to look in. */
+	virtual uint32_t GetResourceFullPath( const char *pchResourceName, const char *pchResourceTypeDirectory, char *pchPathBuffer, uint32_t unBufferLen ) = 0;
+};
+
+static const char * const IVRResources_Version = "IVRResources_001";
+
+
+}// End
 
 #endif // _OPENVR_API
 
@@ -2874,6 +3108,7 @@ namespace vr
 	typedef EVROverlayError VROverlayError;
 	typedef EVRFirmwareError VRFirmwareError;
 	typedef EVRCompositorError VRCompositorError;
+	typedef EVRScreenshotError VRScreenshotsError;
 
 	inline uint32_t &VRToken()
 	{
@@ -2950,6 +3185,28 @@ namespace vr
 			return m_pVROverlay;
 		}
 
+		IVRResources *VRResources()
+		{
+			CheckClear();
+			if ( m_pVRResources == nullptr )
+			{
+				EVRInitError eError;
+				m_pVRResources = (IVRResources *)VR_GetGenericInterface( IVRResources_Version, &eError );
+			}
+			return m_pVRResources;
+		}
+
+		IVRScreenshots *VRScreenshots()
+		{
+			CheckClear();
+			if ( m_pVRScreenshots == nullptr )
+			{
+				EVRInitError eError;
+				m_pVRScreenshots = ( IVRScreenshots * )VR_GetGenericInterface( IVRScreenshots_Version, &eError );
+			}
+			return m_pVRScreenshots;
+		}
+
 		IVRRenderModels *VRRenderModels()
 		{
 			CheckClear();
@@ -3011,11 +3268,13 @@ namespace vr
 		IVRChaperoneSetup	*m_pVRChaperoneSetup;
 		IVRCompositor		*m_pVRCompositor;
 		IVROverlay			*m_pVROverlay;
+		IVRResources		*m_pVRResources;
 		IVRRenderModels		*m_pVRRenderModels;
 		IVRExtendedDisplay	*m_pVRExtendedDisplay;
 		IVRSettings			*m_pVRSettings;
 		IVRApplications		*m_pVRApplications;
 		IVRTrackedCamera	*m_pVRTrackedCamera;
+		IVRScreenshots		*m_pVRScreenshots;
 	};
 
 	inline COpenVRContext &OpenVRInternal_ModuleContext()
@@ -3029,9 +3288,11 @@ namespace vr
 	inline IVRChaperoneSetup *VR_CALLTYPE VRChaperoneSetup() { return OpenVRInternal_ModuleContext().VRChaperoneSetup(); }
 	inline IVRCompositor *VR_CALLTYPE VRCompositor() { return OpenVRInternal_ModuleContext().VRCompositor(); }
 	inline IVROverlay *VR_CALLTYPE VROverlay() { return OpenVRInternal_ModuleContext().VROverlay(); }
+	inline IVRScreenshots *VR_CALLTYPE VRScreenshots() { return OpenVRInternal_ModuleContext().VRScreenshots(); }
 	inline IVRRenderModels *VR_CALLTYPE VRRenderModels() { return OpenVRInternal_ModuleContext().VRRenderModels(); }
 	inline IVRApplications *VR_CALLTYPE VRApplications() { return OpenVRInternal_ModuleContext().VRApplications(); }
 	inline IVRSettings *VR_CALLTYPE VRSettings() { return OpenVRInternal_ModuleContext().VRSettings(); }
+	inline IVRResources *VR_CALLTYPE VRResources() { return OpenVRInternal_ModuleContext().VRResources(); }
 	inline IVRExtendedDisplay *VR_CALLTYPE VRExtendedDisplay() { return OpenVRInternal_ModuleContext().VRExtendedDisplay(); }
 	inline IVRTrackedCamera *VR_CALLTYPE VRTrackedCamera() { return OpenVRInternal_ModuleContext().VRTrackedCamera(); }
 
@@ -3047,6 +3308,8 @@ namespace vr
 		m_pVRSettings = nullptr;
 		m_pVRApplications = nullptr;
 		m_pVRTrackedCamera = nullptr;
+		m_pVRResources = nullptr;
+		m_pVRScreenshots = nullptr;
 	}
 
 	VR_INTERFACE uint32_t VR_CALLTYPE VR_InitInternal( EVRInitError *peError, EVRApplicationType eApplicationType );
