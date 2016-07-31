@@ -131,6 +131,8 @@ template<typename T, int N> class vec
 
     vec iflt(T e, const vec &a, const vec &b) const { DOVECR(c[i] < e ? a[i] : b[i]); }
 
+    string to_string() { string s = "("; DOVEC(if (i) s += ", "; s += std::to_string(c[i])); return s + ")"; }
+
     template<typename T2, int C, int R> friend class matrix;
 };
 

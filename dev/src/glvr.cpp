@@ -148,6 +148,57 @@ float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat)
                     float4(0, 0, 0, 1)).transpose();  // FIXME: simplify
 }
 
+void VRStart()
+{
+    #ifdef PLATFORM_VR
+
+    if (!vrsys) return;
+
+    auto err = vr::VRCompositor()->WaitGetPoses(trackeddeviceposes, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    (void)err;
+    assert(!err);
+
+    // Feels worse with this prediction?
+    /*
+    float fSecondsSinceLastVsync = 0;
+    vrsys->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, NULL);
+    float fDisplayFrequency = vrsys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
+                                                                   vr::Prop_DisplayFrequency_Float);
+    float fFrameDuration = 1.f / fDisplayFrequency;
+    float fVsyncToPhotons = vrsys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
+                                                                 vr::Prop_SecondsFromVsyncToPhotons_Float);
+    float fPredictedSecondsFromNow = fFrameDuration - fSecondsSinceLastVsync + fVsyncToPhotons;
+    vrsys->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow,
+                                           trackeddeviceposes, vr::k_unMaxTrackedDeviceCount);
+                                           */
+
+    size_t mcn = 0;
+    for (uint device = 0; device < vr::k_unMaxTrackedDeviceCount; device++)
+    {
+        if (vrsys->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller)
+            continue;
+
+        if (mcn == motioncontrollers.size())
+        {
+            MotionController mc;
+            memset(&mc, 0, sizeof(mc));
+            motioncontrollers.push_back(mc);
+        }
+        auto &mc = motioncontrollers[mcn];
+        mc.tracking = trackeddeviceposes[device].bPoseIsValid;
+        mc.mat = mc.tracking
+            ? FromOpenVR(trackeddeviceposes[device].mDeviceToAbsoluteTracking)
+            : float4x4_1;
+        mc.device = device;
+        mc.laststate = mc.state;
+        auto ok = vrsys->GetControllerState(device, &mc.state);
+        if (!ok) memset(&mc.state, 0, sizeof(vr::VRControllerState_t));
+        mcn++;
+    }
+
+    #endif  // PLATFORM_VR
+}
+
 void VREye(int eye, float znear, float zfar)
 {
     #ifdef PLATFORM_VR
@@ -197,44 +248,8 @@ void VRFinish()
         assert(!err);
     }
     
-    vr::VRCompositor()->PostPresentHandoff();
-
-    #endif  // PLATFORM_VR
-}
-
-void VRStart()
-{
-    #ifdef PLATFORM_VR
-
-    if (!vrsys) return;
-
-    auto err = vr::VRCompositor()->WaitGetPoses(trackeddeviceposes, vr::k_unMaxTrackedDeviceCount, NULL, 0);
-    (void)err;
-    assert(!err);
-
-    size_t mcn = 0;
-    for (uint device = 0; device < vr::k_unMaxTrackedDeviceCount; device++)
-    {
-        if (vrsys->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller)
-            continue;
-
-        if (mcn == motioncontrollers.size())
-        {
-            MotionController mc;
-            memset(&mc, 0, sizeof(mc));
-            motioncontrollers.push_back(mc);
-        }
-        auto &mc = motioncontrollers[mcn];
-        mc.tracking = trackeddeviceposes[device].bPoseIsValid;
-        mc.mat = mc.tracking
-            ? FromOpenVR(trackeddeviceposes[device].mDeviceToAbsoluteTracking)
-            : float4x4_1;
-        mc.device = device;
-        mc.laststate = mc.state;
-        auto ok = vrsys->GetControllerState(device, &mc.state);
-        if (!ok) memset(&mc.state, 0, sizeof(vr::VRControllerState_t));
-        mcn++;
-    }
+    // This should be after swap, but isn't needed if it is followed by WaitGetPoses anyway.
+    //vr::VRCompositor()->PostPresentHandoff();
 
     #endif  // PLATFORM_VR
 }

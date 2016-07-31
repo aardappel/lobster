@@ -620,8 +620,8 @@ void AddGraphics()
 
         auto v1 = ValueDecToF<3>(start);
         auto v2 = ValueDecToF<3>(end);
-
-        RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
+        if (Is2DMode()) RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
+        else RenderLine3D(currentshader, v1, v2, float3_0, thickness.fval());
         return Value();
     }
     ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",

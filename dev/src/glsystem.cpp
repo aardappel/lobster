@@ -34,6 +34,8 @@ vector<Light> lights;
 float pointscale = 1.0f;
 float custompointscale = 1.0f;
 
+bool mode2d = true;
+
 void AppendTransform(const float4x4 &forward, const float4x4 &backward)
 {
     otransforms.object2view *= forward;
@@ -72,6 +74,8 @@ void Set2DMode(const int2 &ssize, bool lh)
 
     auto y = (float)ssize.y();
     view2clip = orthoGL(0, (float)ssize.x(), lh ? y : 0, lh ? 0 : y, 1, -1);
+
+    mode2d = true;
 }
 
 void Set3DOrtho(const float3 &center, const float3 &extends)
@@ -85,6 +89,8 @@ void Set3DOrtho(const float3 &center, const float3 &extends)
     auto m = center - extends;
 
     view2clip = orthoGL(m.x(), p.x(), p.y(), m.y(), m.z(), p.z()); // left handed coordinate system
+
+    mode2d = false;
 }
 
 void Set3DMode(float fovy, float ratio, float znear, float zfar)
@@ -95,7 +101,11 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar)
     otransforms = objecttransforms();
 
     view2clip = perspectiveFov(fovy, ratio, znear, zfar, 1);
+
+    mode2d = false;
 }
+
+bool Is2DMode() { return mode2d; }
 
 uchar *ReadPixels(const int2 &pos, const int2 &size)
 {

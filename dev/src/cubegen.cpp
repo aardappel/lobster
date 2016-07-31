@@ -160,6 +160,8 @@ void AddCubeGen()
         static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
         static int indices[6] = { 0, 1, 3, 1, 2, 3 };
 
+        bool optimize_verts = false;
+
         struct VKey
         {
             vec<short, 3> pos;
@@ -170,7 +172,7 @@ void AddCubeGen()
         {
             return k.pos.x() ^ (k.pos.y() << 3) ^ (k.pos.z() << 6) ^ (k.pal << 3) ^ k.dir;
         };
-        unordered_map<VKey, int, decltype(hasher)> vertlookup(10000, hasher);
+        unordered_map<VKey, int, decltype(hasher)> vertlookup(optimize_verts ? 100000 : 10, hasher);
 
         RandomNumberGenerator<PCG32> rnd;
         vector<float> rnd_offset(1024);
@@ -205,23 +207,25 @@ void AddCubeGen()
                                     vpos += pos;
 
                                     VKey vkey { vec<short, 3>(vpos), c, (uchar)n };
-                                    auto it = vertlookup.find(vkey);
-                                    if (it != vertlookup.end())
-                                    {
-                                        vindices[vn] = it->second;
+                                    if (optimize_verts)
+                                    { 
+                                        auto it = vertlookup.find(vkey);
+                                        if (it != vertlookup.end())
+                                        {
+                                            vindices[vn] = it->second;
+                                            continue;
+                                        }
                                     }
-                                    else
-                                    {
-                                        cvert vert;
-                                        auto oi = ((vpos.z() << 8) ^ (vpos.y() << 4) ^ vpos.x()) % (rnd_offset.size() - 2);
-                                        auto offset = float3(&rnd_offset[oi]);
-                                        vert.pos = float3(vpos) + offset;
-                                        vert.normal = float3(neighbors[n]);
-                                        vert.color = v.palette[c];
-                                        vindices[vn] = (int)verts.size();
-                                        verts.push_back(vert);
-                                        vertlookup[vkey] = vindices[vn];
-                                    }
+                                    cvert vert;
+                                    auto oi = ((vpos.z() << 8) ^ (vpos.y() << 4) ^ vpos.x()) % (rnd_offset.size() - 2);
+                                    auto offset = float3(&rnd_offset[oi]);
+                                    vert.pos = float3(vpos) + offset;
+                                    vert.normal = float3(neighbors[n]);
+                                    vert.color = v.palette[c];
+                                    vindices[vn] = (int)verts.size();
+                                    verts.push_back(vert);
+
+                                    if (optimize_verts) vertlookup[vkey] = vindices[vn];
                                 }
                                 for (int i = 0; i < 6; i++) triangles.push_back(vindices[indices[i]]);
                             }
@@ -234,7 +238,7 @@ void AddCubeGen()
         normalize_mesh(triangles.data(), triangles.size(), verts.data(), verts.size(), sizeof(cvert),
                         (uchar *)&verts.data()->normal - (uchar *)&verts.data()->pos, false);
 
-        Output(OUTPUT_DEBUG, "cubegen verts = %lu, tris = %lu\n", verts.size(), triangles.size() / 3);
+        Output(OUTPUT_INFO, "cubegen verts = %lu, tris = %lu\n", verts.size(), triangles.size() / 3);
 
         auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(cvert), "PNC"), PRIM_TRIS);
         m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
