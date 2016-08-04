@@ -44,7 +44,7 @@ struct Optimizer
     
     Node *NewTernary(Node *context, TType t, TypeRef type, Node *a = nullptr, Node *b = nullptr, Node *c = nullptr)
     {
-        auto n = (Node *)new Ternary(context->line, t, a, b, c);
+        auto n = new Node(context->line, t, a, b, c);
         n->exptype = type;
         return n;
     }
@@ -107,7 +107,7 @@ struct Optimizer
                 {
                     Changed();
                     // FIXME: if the LHS has side-effects, then this is incorrect!
-                    n_ptr = (Node *)new IntConst(n.line, cval.ival());
+                    n_ptr = new Node(n.line, cval.ival());
                 }
                 break;
             }

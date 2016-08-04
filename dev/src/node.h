@@ -29,7 +29,7 @@ struct SlabAllocatedSmall
     #endif
 };
 
-struct AST : SlabAllocatedSmall
+struct Node : SlabAllocatedSmall
 {
     TType type;
 
@@ -37,89 +37,77 @@ struct AST : SlabAllocatedSmall
 
     Line line;
 
-    AST(Line &_line, TType _t) : type(_t), line(_line) {}
-};
-
-struct IntConst : AST { int integer_;      IntConst(Line &ln, int i)            : AST(ln, T_INT), integer_(i) {}; };
-struct FltConst : AST { double flt_;       FltConst(Line &ln, double f)         : AST(ln, T_FLOAT), flt_(f) {}; };
-struct StrConst : AST { char *str_;        StrConst(Line &ln, const string &s)  : AST(ln, T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}; };
-struct StRef    : AST { Struct *st_;       StRef   (Line &ln, Struct *st)       : AST(ln, T_STRUCT), st_(st) {} };
-struct FldRef   : AST { SharedField *fld_; FldRef  (Line &ln, SharedField *fld) : AST(ln, T_FIELD), fld_(fld) {} };
-struct FunRef   : AST { SubFunction *sf_;  FunRef  (Line &ln, SubFunction *sf)  : AST(ln, T_FUN), sf_(sf) {} };
-struct NatRef   : AST { NativeFun *nf_;    NatRef  (Line &ln, NativeFun *nf)    : AST(ln, T_NATIVE), nf_(nf) {} };
-struct TypeNode : AST { TypeRef type_;     TypeNode(Line &ln, TType t)          : AST(ln, t) {} };  // T_TYPE, T_NIL
-
-struct IdRef : AST
-{
-    Ident *ident_; 
-    SpecIdent *sid_;
-
-    IdRef(Line &ln, Ident *id) : AST(ln, T_IDENT), ident_(id), sid_(nullptr) {}
-};
-
-struct Unary : AST
-{
-    protected:
-    Node *a_;
-    public:
-
-    Unary(Line &ln, TType t, AST *a) : AST(ln, t), a_((Node *)a)
-    {
-        assert(TArity(t) >= 1);
-    }
-}; 
-
-struct Ternary : AST
-{
-    //protected:
-    Node *a_, *b_, *c_;
-    public:
-
-    Ternary(Line &ln, TType t, AST *a, AST *b, AST *c) : AST(ln, t), a_((Node *)a), b_((Node *)b), c_((Node *)c)
-    {
-        assert(TArity(t) == 3);
-    }
-};
-
-// Inverted subtyping: rather than have most of the compiler deal with the AST base type (which would require a ton
-// of virtual methods or casts to access the subtypes), we make Node (the most common occurring subtype, a binary
-// tree node) the type we use, and give it ACCs that can read all fields of all other subtypes, protected by an
-// assert. This is safe, fast, and memory efficient.
-
-struct Node : Unary
-{
     private:
-    Node *b_;
+    union
+    {
+        struct { Node *a_, *b_, *c_; };
+        struct { Ident *ident_; SpecIdent *sid_; };
+        int integer_;      
+        double flt_;       
+        char *str_;        
+        Struct *st_;       
+        SharedField *fld_; 
+        SubFunction *sf_;  
+        NativeFun *nf_;    
+        TypeRef type_;     
+    };
     public:
 
-    Node(Line &ln, TType t, AST *a, AST *b) : Unary(ln, t, (Node *)a), b_((Node *)b)
+    Node(Line &ln, TType t) : type(t), line(ln), a_(nullptr), b_(nullptr), c_(nullptr)
+    {
+        assert(TArity(t) == 0);
+    }
+
+    Node(Line &ln, TType t, Node *a) : type(t), line(ln), a_(a), b_(nullptr), c_(nullptr)
+    {
+        assert(TArity(t) == 1);
+    }
+
+    Node(Line &ln, TType t, Node *a, Node *b) : type(t), line(ln), a_(a), b_(b), c_(nullptr)
     {
         assert(TArity(t) == 2);
     };
 
-    int integer()       const { assert(type == T_INT);    return ((const IntConst *)this)->integer_; }
-    double flt()        const { assert(type == T_FLOAT);  return ((const FltConst *)this)->flt_; }
-    char * str()        const { assert(type == T_STR);    return ((const StrConst *)this)->str_; }
-    char *&str()              { assert(type == T_STR);    return ((      StrConst *)this)->str_; }
-    Ident * ident()     const { assert(type == T_IDENT);  return ((const IdRef *)this)->ident_; }
-    Ident *&ident()           { assert(type == T_IDENT);  return ((      IdRef *)this)->ident_; }
-    SpecIdent * sid()   const { assert(type == T_IDENT);  return ((const IdRef *)this)->sid_; }
-    SpecIdent *&sid()         { assert(type == T_IDENT);  return ((      IdRef *)this)->sid_; }
-    Struct *st()        const { assert(type == T_STRUCT); return ((const StRef *)this)->st_; }
-    SharedField *fld()  const { assert(type == T_FIELD);  return ((const FldRef *)this)->fld_; }
-    NativeFun * nf()    const { assert(type == T_NATIVE); return ((const NatRef *)this)->nf_; }
-    NativeFun *&nf()          { assert(type == T_NATIVE); return ((      NatRef *)this)->nf_; }
-    SubFunction * sf()  const { assert(type == T_FUN);    return ((const FunRef *)this)->sf_; }
-    SubFunction *&sf()        { assert(type == T_FUN);    return ((      FunRef *)this)->sf_; }
-    TypeRef  typenode() const { assert(type == T_TYPE || type == T_NIL); return ((const TypeNode *)this)->type_; }
-    TypeRef &typenode()       { assert(type == T_TYPE || type == T_NIL); return ((      TypeNode *)this)->type_; }
+    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : type(t), line(ln), a_(a), b_(b), c_(c)
+    {
+        assert(TArity(t) == 3);
+    }
+
+    Node(Line &ln, TType t, TypeRef tr) : type(t), line(ln), type_(tr) {}  // T_TYPE | T_NIL
+
+    Node(Line &ln, Ident *id) : line(ln), type(T_IDENT), ident_(id), sid_(nullptr) {}
+
+    Node(Line &ln, int i)            : line(ln), type(T_INT), integer_(i) {}
+    Node(Line &ln, double f)         : line(ln), type(T_FLOAT), flt_(f) {}
+    Node(Line &ln, const string &s)  : line(ln), type(T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}
+    Node(Line &ln, Struct *st)       : line(ln), type(T_STRUCT), st_(st) {}
+    Node(Line &ln, SharedField *fld) : line(ln), type(T_FIELD), fld_(fld) {}
+    Node(Line &ln, SubFunction *sf)  : line(ln), type(T_FUN), sf_(sf) {}
+    Node(Line &ln, NativeFun *nf)    : line(ln), type(T_NATIVE), nf_(nf) {}
+    
+    int integer()       const { assert(type == T_INT);    return integer_; }
+    double flt()        const { assert(type == T_FLOAT);  return flt_; }
+    char * str()        const { assert(type == T_STR);    return str_; }
+    char *&str()              { assert(type == T_STR);    return str_; }
+    Ident * ident()     const { assert(type == T_IDENT);  return ident_; }
+    Ident *&ident()           { assert(type == T_IDENT);  return ident_; }
+    SpecIdent * sid()   const { assert(type == T_IDENT);  return sid_; }
+    SpecIdent *&sid()         { assert(type == T_IDENT);  return sid_; }
+    Struct *st()        const { assert(type == T_STRUCT); return st_; }
+    SharedField *fld()  const { assert(type == T_FIELD);  return fld_; }
+    NativeFun * nf()    const { assert(type == T_NATIVE); return nf_; }
+    NativeFun *&nf()          { assert(type == T_NATIVE); return nf_; }
+    SubFunction * sf()  const { assert(type == T_FUN);    return sf_; }
+    SubFunction *&sf()        { assert(type == T_FUN);    return sf_; }
+    TypeRef  typenode() const { assert(type == T_TYPE || type == T_NIL); return type_; }
+    TypeRef &typenode()       { assert(type == T_TYPE || type == T_NIL); return type_; }
 
     Node * a() const { return TArity(type) > 0 ? a_ : nullptr; }
     Node * b() const { return TArity(type) > 1 ? b_ : nullptr; }
-    Node * c() const { return TArity(type) > 2 ? ((Ternary *)this)->c_ : nullptr; }
+    Node * c() const { return TArity(type) > 2 ? c_ : nullptr; }
     Node *&aref()    { assert(TArity(type) > 0); return a_; }
     Node *&bref()    { assert(TArity(type) > 1); return b_; }
-    Node *&cref()    { assert(TArity(type) > 2); return ((Ternary *)this)->c_; }
+    Node *&cref()    { assert(TArity(type) > 2); return c_; }
 
     Node * left()  const { assert(TArity(type) >= 2); return a_; }
     Node *&left()        { assert(TArity(type) >= 2); return a_; }
@@ -136,7 +124,7 @@ struct Node : Unary
     #define T1(ENUM, STR, CAT, ONE)             ACCESSOR(ENUM, ONE, a_)
     #define T2(ENUM, STR, CAT, ONE, TWO)        ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_)
     #define T3(ENUM, STR, CAT, ONE, TWO, THREE) ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_) \
-                                                                        ACCESSOR(ENUM, THREE, ((Ternary *)this)->c_)
+                                                                        ACCESSOR(ENUM, THREE, c_)
         TTYPES_LIST
     #undef T0
     #undef T1
@@ -152,8 +140,6 @@ struct Node : Unary
         }
         else
         {
-            // This looks odd, since it calls delete on potentially the incorrect type, but the implementation
-            // is dealloc_small which knows the correct size.
             if (a()) delete a();
             if (b()) delete b();
             if (c()) delete c();
@@ -162,7 +148,7 @@ struct Node : Unary
 
     Node *Clone()
     {
-        auto n = (Node *)parserpool->clone_obj_small_unknown(this);
+        auto n = parserpool->clone_obj_small(this);
         if (a()) n->aref() = a()->Clone();
         if (b()) n->bref() = b()->Clone();
         if (c()) n->cref() = c()->Clone();

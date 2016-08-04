@@ -600,7 +600,7 @@ void AddBuiltins()
         "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round)   (Value &a) { return Value(int(a.fval() + 0.5f)); } ENDDECL1(round, "f", "F", "I",
-        "converts a float to the closest int");
+        "converts a float to the closest int. same as int(f + 0.5), so does not work well on negative numbers");
     STARTDECL(round)   (Value &a) { VECTOROPT(int(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); } ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");
 
@@ -832,10 +832,11 @@ void AddBuiltins()
         vector<Node *> cells(ncelld * ncelld, nullptr);
         auto wsize = maxpos - minpos;
         wsize *= 1.00001f;  // No objects may fall exactly on the far border.
+        auto tocellspace = [&](const float2 &pos) { return int2((pos - minpos) / wsize * float(ncelld)); };
         for (int i = 0; i < len; i++)
         {
             auto &n = nodes[i];
-            auto cp = int2((n.pos - minpos) / wsize * float(ncelld));
+            auto cp = tocellspace(n.pos);
             auto &c = cells[cp.x() + cp.y() * ncelld];
             n.next = c;
             c = &n;
@@ -847,9 +848,8 @@ void AddBuiltins()
         {
             auto &n = nodes[i];
             float scanrad = n.rad + maxrad + qdist;
-            auto extents = scanrad / wsize * float(ncelld);
-            auto minc = max(int2_0, min((ncelld - 1) * int2_1, int2(n.pos - extents)));
-            auto maxc = max(int2_0, min((ncelld - 1) * int2_1, int2(n.pos + extents)));
+            auto minc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos - scanrad)));
+            auto maxc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos + scanrad)));
             for (int y = minc.y(); y <= maxc.y(); y++)
             {
                 for (int x = minc.x(); x <= maxc.x(); x++)

@@ -161,8 +161,8 @@ struct Parser
             id->isprivate = true;
         }
 
-        auto idr = new IdRef(lex, id);
-        return isdef ? (Node *)new Ternary(lex, T_DEF, idr, e, nullptr) : new Node(lex, T_ASSIGNLIST, idr, e);
+        auto idr = new Node(lex, id);
+        return isdef ? new Node(lex, T_DEF, idr, e, nullptr) : new Node(lex, T_ASSIGNLIST, idr, e);
     }
 
     Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar)
@@ -256,7 +256,7 @@ struct Parser
                         cur = atoi(lex.sattr.c_str());
                         Expect(T_INT);
                     }
-                    AddTail(tail, (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), new IntConst(lex, cur), nullptr));
+                    AddTail(tail, new Node(lex, T_DEF, new Node(lex, id), new Node(lex, cur), nullptr));
                     if (lex.token != T_COMMA) break;
                     lex.Next();
                     if (incremental) cur++; else cur *= 2;
@@ -446,7 +446,7 @@ struct Parser
             struc->predeclaration = true;
         }
 
-        return (Node *)new Unary(lex, T_STRUCTDEF, new StRef(lex, struc));
+        return new Node(lex, T_STRUCTDEF, new Node(lex, struc));
     }
 
     Node *ParseSingleVarDecl(bool isprivate, bool constant, bool dynscope, bool logvar)
@@ -460,7 +460,7 @@ struct Parser
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
         if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
-        return (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, nullptr);
+        return new Node(lex, T_DEF, new Node(lex, id), e, nullptr);
     }
 
     Node *ParseVarDecl(bool isprivate)
@@ -480,13 +480,13 @@ struct Parser
         if (lex.token == T_COLON || withtype)
         {
             lex.Next();
-            auto tn = new TypeNode(lex, T_TYPE);
-            ParseType(tn->type_, withtype);
+            auto tn = new Node(lex, T_TYPE, TypeRef());
+            ParseType(tn->typenode(), withtype);
             Expect(T_ASSIGN);
             auto e = ParseExp(T_DEF);
             auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
             if (isprivate) id->isprivate = true;
-            return (Node *)new Ternary(lex, T_DEF, new IdRef(lex, id), e, tn);
+            return new Node(lex, T_DEF, new Node(lex, id), e, tn);
         }
 
         if (IsNext(T_COMMA))
@@ -661,7 +661,7 @@ struct Parser
         // Keep copy or arg types from before specialization.
         f.orig_args = sf->args;  // not used for multimethods
 
-        return (Node *)new FunRef(lex, sf);
+        return new Node(lex, sf);
     }
 
     static Type *NewType()
@@ -853,7 +853,7 @@ struct Parser
 
         if (!e)
         {
-            if (coroutine) { e = (Node *)new AST(lex, T_COCLOSURE); coroutine = false; }
+            if (coroutine) { e = new Node(lex, T_COCLOSURE); coroutine = false; }
             else return nullptr;
         }
 
@@ -944,7 +944,7 @@ struct Parser
             else if (nrv > 1)
                 Error("cannot return multiple values from top level");
 
-            return new Node(lex, T_RETURN, rv, new IntConst(lex, fid));
+            return new Node(lex, T_RETURN, rv, new Node(lex, fid));
         }
 
         auto e = ParseExp(T_LIST);
@@ -1034,7 +1034,7 @@ struct Parser
                 auto e = ParseUnary();
                 if (t == T_INCR || t == T_DECR) Modify(e);
                 if (t == T_MINUS) t = T_UMINUS;
-                return (Node *)new Unary(lex, t, e);
+                return new Node(lex, t, e);
             }
 
             default:
@@ -1052,8 +1052,8 @@ struct Parser
 
         return new Node(lex, T_CALL, funval, clnargs > 0
             ? new Node(lex, T_LIST,
-                new AST(lex, T_FORLOOPVAR),
-                clnargs > 1 ? new Node(lex, T_LIST, new AST(lex, T_FORLOOPVAR), nullptr) : nullptr)
+                new Node(lex, T_FORLOOPVAR),
+                clnargs > 1 ? new Node(lex, T_LIST, new Node(lex, T_FORLOOPVAR), nullptr) : nullptr)
             : nullptr);
     }
 
@@ -1072,7 +1072,7 @@ struct Parser
                     auto &type = arg.type;
                     if (type->t == V_NIL)
                     {
-                        *ai = new Node(lex, T_LIST, (Node *)new AST(lex, T_DEFAULTVAL), nullptr);
+                        *ai = new Node(lex, T_LIST, new Node(lex, T_DEFAULTVAL), nullptr);
                     }
                     else
                     {
@@ -1092,7 +1092,7 @@ struct Parser
             // TODO: worth deleting the garbage list nodes this creates?
             if (nf->name == "if")
             {
-                return (Node *)new Ternary(lex, T_IF, args->head(),
+                return new Node(lex, T_IF, args->head(),
                                            BuiltinControlClosure(args->tail()->head(), 0),
                                            BuiltinControlClosure(args->tail()->tail()->head(), 0));
             }
@@ -1105,7 +1105,7 @@ struct Parser
                 return new Node(lex, T_FOR, args->head(), BuiltinControlClosure(args->tail()->head(), 2));
             }
 
-            return new Node(lex, T_NATCALL, new NatRef(lex, nf), args);
+            return new Node(lex, T_NATCALL, new Node(lex, nf), args);
         }
 
         if (f)
@@ -1120,17 +1120,17 @@ struct Parser
 
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
 
-            return new Node(lex, T_CALL, new FunRef(lex, f->subf), args);
+            return new Node(lex, T_CALL, new Node(lex, f->subf), args);
         }
         
         auto args = ParseFunArgs(coroutine, firstarg);
         auto id = st.Lookup(idname);
         if (id)
-            return (Node *)new Ternary(lex, T_DYNCALL, new IdRef(lex, id),
-                                                       new FunRef(lex, (SubFunction *)nullptr),
-                                                       args);
+            return new Node(lex, T_DYNCALL, new Node(lex, id),
+                                            new Node(lex, (SubFunction *)nullptr),
+                                            args);
 
-        auto n = new Node(lex, T_CALL, new FunRef(lex, (SubFunction *)nullptr), args);
+        auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)nullptr), args);
         ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
         forwardfunctioncalls.push_back(ffc);
         return n;
@@ -1192,14 +1192,14 @@ struct Parser
                     auto id = st.LookupAny(idname);
                     if (!id)
                         Error("coroutines have no variable named: " + idname);
-                    n = new Node(lex, T_CODOT, n, new IdRef(lex, id));
+                    n = new Node(lex, T_CODOT, n, new Node(lex, id));
                 }
                 else
                 {
                     SharedField *fld = st.FieldUse(idname);
                     if (fld) 
                     {
-                        n = new Node(lex, op, n, new FldRef(lex, fld));
+                        n = new Node(lex, op, n, new Node(lex, fld));
                     }
                     else
                     {
@@ -1229,22 +1229,22 @@ struct Parser
             case T_INCR:
             case T_DECR:
                 Modify(n);
-                n = (Node *)new Unary(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n);
+                n = new Node(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n);
                 lex.Next();
                 return n;
 
             case T_LEFTPAREN:   // only for dyn calls
             {
                 auto args = ParseFunArgs(false, nullptr);
-                n = (Node *)new Ternary(lex, T_DYNCALL, n, new FunRef(lex, (SubFunction *)nullptr), args);
+                n = new Node(lex, T_DYNCALL, n, new Node(lex, (SubFunction *)nullptr), args);
                 break;
             }
 
             case T_IS:
             {
                 lex.Next();
-                auto tn = new TypeNode(lex, T_TYPE);
-                ParseType(tn->type_, false);
+                auto tn = new Node(lex, T_TYPE, TypeRef());
+                ParseType(tn->typenode(), false);
                 return new Node(lex, T_IS, n, tn);
             }
 
@@ -1257,20 +1257,20 @@ struct Parser
     {
         switch (lex.token)
         {
-            case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return (Node *)new IntConst(lex, i); }
-            case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return (Node *)new FltConst(lex, f); }
-            case T_STR:   { string s = lex.sattr;               lex.Next(); return (Node *)new StrConst(lex, s); }
+            case T_INT:   { int i    = atoi(lex.sattr.c_str()); lex.Next(); return new Node(lex, i); }
+            case T_FLOAT: { double f = atof(lex.sattr.c_str()); lex.Next(); return new Node(lex, f); }
+            case T_STR:   { string s = lex.sattr;               lex.Next(); return new Node(lex, s); }
 
             case T_NIL:
             {
                 lex.Next();
-                auto n = new TypeNode(lex, T_NIL);
+                auto n = new Node(lex, T_NIL, TypeRef());
                 if (IsNext(T_COLON))
                 {
-                    ParseType(n->type_, false);
-                    n->type_ = n->type_->Wrap(NewType(), V_NIL);
+                    ParseType(n->typenode(), false);
+                    n->typenode() = n->typenode()->Wrap(NewType(), V_NIL);
                 }
-                return (Node *)n;
+                return n;
             }
 
             case T_LEFTPAREN:
@@ -1292,13 +1292,13 @@ struct Parser
                     AddTail(tail, this->ParseExp(T_CONSTRUCTOR));
                 }, T_RIGHTBRACKET);
 
-                auto tn = new TypeNode(lex, T_TYPE);
-                tn->type_ = type_vector_any;
+                auto tn = new Node(lex, T_TYPE, TypeRef());
+                tn->typenode() = type_vector_any;
 
                 if (IsNext(T_TYPEIN))
                 {
-                    ParseType(tn->type_, false);
-                    tn->type_ = tn->type_->Wrap(NewType());
+                    ParseType(tn->typenode(), false);
+                    tn->typenode() = tn->typenode()->Wrap(NewType());
                 }
 
                 return new Node(lex, T_CONSTRUCTOR, list, tn);
@@ -1314,7 +1314,7 @@ struct Parser
             {
                 lex.Next();
                 string idname = ExpectId();
-                return (Node *)new Unary(lex, T_COROUTINE,
+                return new Node(lex, T_COROUTINE,
                                          ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true));
             }
 
@@ -1335,7 +1335,7 @@ struct Parser
                 if (lex.token == T_RETURN)
                 {
                     lex.Next();
-                    return (Node *)new Unary(lex, T_TYPEOF, nullptr);
+                    return new Node(lex, T_TYPEOF, nullptr);
                 }
                 if (lex.token == T_IDENT)
                 {
@@ -1343,12 +1343,12 @@ struct Parser
                     if (id)
                     {
                         lex.Next();
-                        return (Node *)new Unary(lex, T_TYPEOF, (Node *)new IdRef(lex, id));
+                        return new Node(lex, T_TYPEOF, new Node(lex, id));
                     }
                 }
-                auto tn = new TypeNode(lex, T_TYPE);
-                ParseType(tn->type_, false);
-                return (Node *)new Unary(lex, T_TYPEOF, (Node *)tn);
+                auto tn = new Node(lex, T_TYPE, TypeRef());
+                ParseType(tn->typenode(), false);
+                return new Node(lex, T_TYPEOF, tn);
             }
 
             case T_IDENT:
@@ -1421,15 +1421,15 @@ struct Parser
                     }
                     AddTail(tail, exps[i]);
                 }
-                auto tn = new TypeNode(lex, T_TYPE);
-                tn->type_ = &struc.thistype;
+                auto tn = new Node(lex, T_TYPE, TypeRef());
+                tn->typenode() = &struc.thistype;
                 return new Node(lex, T_CONSTRUCTOR, list, tn);
             }
 
             default:
                 if (idname[0] == '_')
                 {
-                    return (Node *)new IdRef(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
+                    return new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
                 }
                 else
                 {
@@ -1444,10 +1444,10 @@ struct Parser
                         auto fld = st.LookupWithStruct(idname, lex, id);
                         if (fld)
                         {
-                            return new Node(lex, T_DOT, new IdRef(lex, id), new FldRef(lex, fld));
+                            return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
                         }
 
-                        return (Node *)new IdRef(lex, st.LookupUse(idname, lex));
+                        return new Node(lex, st.LookupUse(idname, lex));
                     }
                 }
         }

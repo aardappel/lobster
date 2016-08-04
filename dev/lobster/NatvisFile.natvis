@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?> 
+<?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="lobster::Node">
     <DisplayString>Node: {type} -> {exptype.type->t}</DisplayString>
@@ -6,8 +6,16 @@
       <Item Name="exptype">exptype</Item>
       <Item Name="a">a_</Item>
       <Item Name="b">b_</Item>
-      <Item Name="c">((Ternary *)this)->c_</Item>
-      <Item Condition="type==T_IDENT" Name="id">((IdRef *)this)->ident_</Item>
+      <Item Name="c">c_</Item>
+      <Item Condition="type==T_IDENT" Name="id">ident_</Item>
+      <Item Condition="type==T_IDENT" Name="sid">sid_</Item>
+      <Item Condition="type==T_INT" Name="integer">integer_</Item>
+      <Item Condition="type==T_FLOAT" Name="flt">flt_</Item>
+      <Item Condition="type==T_STR" Name="str">str_</Item>
+      <Item Condition="type==T_STRUCT" Name="st">st_</Item>
+      <Item Condition="type==T_FIELD" Name="fld">fld_</Item>
+      <Item Condition="type==T_FUN" Name="sf">sf_</Item>
+      <Item Condition="type==T_NATIVE" Name="nf">nf_</Item>
     </Expand>
   </Type>
   <Type Name="lobster::TypeRef">

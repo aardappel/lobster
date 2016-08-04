@@ -277,7 +277,7 @@ struct TypeChecker
     {
         assert(a->exptype->t != V_STRING);
         MakeAny(a);  // Could instead make a T_I2S etc, but string() goes thru any also.
-        a = (Node *)new Unary(a->line, T_A2S, a);
+        a = new Node(a->line, T_A2S, a);
         a->exptype = type_string;
     }
 
@@ -285,31 +285,31 @@ struct TypeChecker
     {
         if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
         if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
-        a = (Node *)new Unary(a->line, T_E2A, a);
+        a = new Node(a->line, T_E2A, a);
         a->exptype = type_any;
     }
 
     void MakeNil(Node *&a)
     {
-        a = (Node *)new Unary(a->line, T_E2N, a);
+        a = new Node(a->line, T_E2N, a);
         a->exptype = type_any;
     }
 
     void MakeBool(Node *&a)
     {
-        if (a->exptype->t != V_INT) a = (Node *)new Unary(a->line, T_E2B, a);
+        if (a->exptype->t != V_INT) a = new Node(a->line, T_E2B, a);
         a->exptype = type_int;
     }
 
     void MakeInt(Node *&a)
     {
-        a = (Node *)new Unary(a->line, T_T2I, a);
+        a = new Node(a->line, T_T2I, a);
         a->exptype = type_int;
     }
 
     void MakeFloat(Node *&a)
     {
-        a = (Node *)new Unary(a->line, T_I2F, a);
+        a = new Node(a->line, T_I2F, a);
         a->exptype = type_float;
     }
 
@@ -1660,7 +1660,7 @@ struct TypeChecker
                             assert(0);
                             TypeError("function passed to " + nf->name + " cannot take any arguments", n);
                         }
-                        auto fake_function_def = (Node *)new FunRef(n.line, sf);
+                        auto fake_function_def = new Node(n.line, sf);
                         TypeCheckCall(sf, args, *fake_function_def);
                         assert(sf == fake_function_def->sf());
                         delete fake_function_def;
