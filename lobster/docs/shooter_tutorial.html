@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title></title>
   <style type="text/css">code{white-space: pre;}</style>
-  <!--[if lt IE 9]>
-    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-  <![endif]-->
   <link rel="stylesheet" href="github.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
 <p>Learn Lobster: Let's create a 2D shooter!</p>
@@ -26,7 +26,7 @@
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-while gl_frame() and !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear([ 0.0, 0.0, 0.0, 1.0 ])</code></pre>
 <p><code>gl_window</code> is our graphics initialization routine, and is the first thing we need to do before we can access any other graphics functionality. We specify a title and a size, though note that these are merely suggestions: on desktop platforms the user may resize/maximize our window, and on mobile platforms they just determine landscape vs portrait orientation, whereas the resolution is determined by the device itself.</p>
 <p><code>gl_window</code> returns an error string if something goes wrong (and things can go wrong, behind the scenes this call boots up an OpenGL engine including compiling shaders and what not), and <code>fatal</code> is a utility function defined in <code>std.lobster</code> that we're including that will quit the program and show the error string if available.</p>
@@ -46,7 +46,7 @@ fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
 worldsize := 20.0
 
-while gl_frame() and !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
     gl_translate(float(gl_windowsize()) / 2.0)
@@ -75,7 +75,7 @@ worldsize := 20.0
 playerpos := xy_0
 playerspeed := 10
 
-while gl_frame() and !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -83,8 +83,8 @@ while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
-                  gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
+    dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
+                  (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
         playerpos = newpos
@@ -124,7 +124,7 @@ bulletspeed :== 15
 bullets := []
 lastbullet := gl_time()
 
-while gl_frame() and !gl_wentdown(&quot;escape&quot;):
+while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
@@ -132,8 +132,8 @@ while gl_frame() and !gl_wentdown(&quot;escape&quot;):
     scale := gl_windowsize().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { gl_isdown(&quot;d&quot;) - gl_isdown(&quot;a&quot;),
-                  gl_isdown(&quot;s&quot;) - gl_isdown(&quot;w&quot;) }
+    dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
+                  (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
     newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
     if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
         playerpos = newpos
@@ -231,7 +231,7 @@ playing := false</code></pre>
 <pre><code>        msg := &quot;press space to play!&quot;
         gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
             gl_text(msg)
-        if gl_wentdown(&quot;space&quot;):
+        if gl_button(&quot;space&quot;) == 1:
             score = 0
             playerhealth = 100.0
             playerpos = xy_0
@@ -264,7 +264,7 @@ playing := false</code></pre>
 <li><p>Game structure: different levels the player can try to beat, permanent upgrades the player can buy, etc.</p></li>
 </ul>
 <h3 id="advanced-topics-coroutines">8: Advanced Topics: Coroutines</h3>
-<p>If you look at the finished code of tut6.lobster, you can notice one problem with game programming: we ended up with a lot of global variables, even for such an absolutely simple game. If a game gets more complicated, this growing set of globals will make our game hard to maintain, and error prone. Just look at the code above that follows <code>if gl_wentdown(&quot;space&quot;):</code> in the menu code: we need to carefully reset each global that matters for the game, and if we forget one, we have a bug. Generally, the less local variable access is, the harder code is to follow.</p>
+<p>If you look at the finished code of tut6.lobster, you can notice one problem with game programming: we ended up with a lot of global variables, even for such an absolutely simple game. If a game gets more complicated, this growing set of globals will make our game hard to maintain, and error prone. Just look at the code above that follows <code>if gl_button(&quot;space&quot;) == 1:</code> in the menu code: we need to carefully reset each global that matters for the game, and if we forget one, we have a bug. Generally, the less local variable access is, the harder code is to follow.</p>
 <p>So how do we get rid of all these globals? We could stick all these variables in objects. And while that potentially improves some things (we can now initialize all state related to one level in a single object, guaranteeing simulatuous initialization), in the end we've replaced our globals with a single global that holds... more globals. Just because we hide things in an object doesn't make them less global, if there's only one copy of the variable and it is used everywhere then it is effectively global. The code hasn't really improved.</p>
 <p>Another trick to get rid of globals is to pass things as arguments instead. But looking at the code, there are no opportunities for doing so, since we'd there's no easy way to pass all these values from one frame to the next, unless we stick them all in one object like before.</p>
 <p>And this is really hinting at a deeper problem with games and global state: we have so much global state because <em>we need to remember what we were doing from one frame to the next</em>. Essentially, our programming language gives us great tools to sequence actions (control structures) within a frame, but not across frames. For example, a <code>for</code> loop is very convenient, because it allows us to specify &quot;do this 10 times&quot;, and we don't have to worry about keeping track of where we are, and all data related to the loop is <em>local</em>. Now you might want to say &quot;do this for the next 10 frames&quot;, and you'll have no help from the language, you need to keep track of where you are in your iteration manually, and worse, the state related to the loop needs to survive the frame loop, which means it has to be... <em>global</em>.</p>
