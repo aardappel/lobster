@@ -23,6 +23,7 @@
 /external/
 
 /lobster/lobsterDBG.*
+/lobster/lobster
 **/lobster.lib
 
 /dev/android/assets/

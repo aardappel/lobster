@@ -31,7 +31,11 @@ uint CreateTexture(const uchar *buf, const int2 &dim, int tf)
     glGenTextures(1, &id);
     assert(id);
 
-    GLenum textype = tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    GLenum textype =
+        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
+        #endif
+        GL_TEXTURE_2D;
     GLenum teximagetype = textype;
 
     textype         = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : textype;
@@ -62,7 +66,11 @@ uint CreateTexture(const uchar *buf, const int2 &dim, int tf)
 
     if (tf & TF_MULTISAMPLE)
     {
-        glTexImage2DMultisample(teximagetype, nummultisamples, format, dim.x(), dim.y(), true);
+        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+            glTexImage2DMultisample(teximagetype, nummultisamples, format, dim.x(), dim.y(), true);
+        #else
+            assert(false);
+        #endif
     }
     else
     {
@@ -180,15 +188,18 @@ uint CreateFrameBuffer(uint texture, int tf)
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, texture, 0);
+        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
+        #endif
+        GL_TEXTURE_2D, texture, 0);
     return fb;
 }
 
-uint fb = 0;
-uint rb = 0;
-uint retex = 0;  // Texture to resolve to at the end when fb refers to a multisample texture.
-int retf = 0;
-int2 resize = int2_0;
+static uint fb = 0;
+static uint rb = 0;
+static uint retex = 0;  // Texture to resolve to at the end when fb refers to a multisample texture.
+static int retf = 0;
+static int2 resize = int2_0;
 bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex)
 {
     if (rb)

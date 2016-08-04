@@ -410,7 +410,7 @@ struct Lex : LoadedFile
                     case '\"':
                         if (p[0] == '\"' && p[1] == '\"')
                         {
-                            p += 3;
+                            p += 2;
                             return T_STR;
                         }
                         // FALL-THRU:

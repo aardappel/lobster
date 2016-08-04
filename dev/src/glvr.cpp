@@ -27,9 +27,11 @@
 
 #include "openvr.h"
 
-vr::IVRSystem *vrsys = nullptr;
-vr::IVRRenderModels *vrmodels = nullptr;
-vr::TrackedDevicePose_t trackeddeviceposes[vr::k_unMaxTrackedDeviceCount];
+static vr::IVRSystem *vrsys = nullptr;
+static vr::IVRRenderModels *vrmodels = nullptr;
+static vr::TrackedDevicePose_t trackeddeviceposes[vr::k_unMaxTrackedDeviceCount];
+
+static map<string, vr::EVRButtonId> button_ids;
 
 string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDeviceProperty prop)
 {
@@ -44,23 +46,33 @@ string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDevice
     return s;
 }
 
+float4x4 FromOpenVR(const vr::HmdMatrix44_t &mat) { return float4x4(&mat.m[0][0]).transpose(); }
+
+float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat)
+{
+    return float4x4(float4(&mat.m[0][0]),
+                    float4(&mat.m[1][0]),
+                    float4(&mat.m[2][0]),
+                    float4(0, 0, 0, 1)).transpose();  // FIXME: simplify
+}
+
 #endif  // PLATFORM_VR
 
-int2 rtsize = int2_0;
-uint mstex[2] = { 0, 0 };
-uint retex[2] = { 0, 0 };
-float4x4 hmdpose = float4x4_1;
+static int2 rtsize = int2_0;
+static uint mstex[2] = { 0, 0 };
+static uint retex[2] = { 0, 0 };
+static float4x4 hmdpose = float4x4_1;
 struct MotionController
 {
     float4x4 mat;
     uint device;
-    vr::VRControllerState_t state, laststate;
+    #ifdef PLATFORM_VR
+        vr::VRControllerState_t state, laststate;
+    #endif
     bool tracking;
 };
-vector<MotionController> motioncontrollers;
-map<string, int> motioncontrollermeshes;
-
-map<string, vr::EVRButtonId> button_ids;
+static vector<MotionController> motioncontrollers;
+static map<string, int> motioncontrollermeshes;
 
 void VRShutDown()
 {
@@ -136,16 +148,6 @@ bool VRInit()
     return false;
 
     #endif  // PLATFORM_VR
-}
-
-float4x4 FromOpenVR(const vr::HmdMatrix44_t &mat) { return float4x4(&mat.m[0][0]).transpose(); }
-
-float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat)
-{
-    return float4x4(float4(&mat.m[0][0]),
-                    float4(&mat.m[1][0]),
-                    float4(&mat.m[2][0]),
-                    float4(0, 0, 0, 1)).transpose();  // FIXME: simplify
 }
 
 void VRStart()
@@ -340,6 +342,8 @@ MotionController *GetMC(Value &mc)
         : nullptr;
 };
 
+#ifdef PLATFORM_VR
+
 vr::EVRButtonId GetButtonId(Value &button)
 {
     auto it = button_ids.find(button.sval()->str());
@@ -347,6 +351,8 @@ vr::EVRButtonId GetButtonId(Value &button)
     button.DECRT();
     return it->second;
 }
+
+#endif  // PLATFORM_VR
 
 void AddVR()
 {
@@ -433,12 +439,16 @@ void AddVR()
 
     STARTDECL(vr_motioncontrollerbutton) (Value &mc, Value &button)
     {
-        auto mcd = GetMC(mc);
-        auto mask = ButtonMaskFromId(GetButtonId(button));
-        if (!mcd) return Value(TimeBool8().Step());
-        auto masknow = mcd->state.ulButtonPressed & mask;
-        auto maskbef = mcd->laststate.ulButtonPressed & mask;
-        return Value(TimeBool8(masknow != 0, maskbef != 0).Step());
+        #ifdef PLATFORM_VR
+            auto mcd = GetMC(mc);
+            auto mask = ButtonMaskFromId(GetButtonId(button));
+            if (!mcd) return Value(TimeBool8().Step());
+            auto masknow = mcd->state.ulButtonPressed & mask;
+            auto maskbef = mcd->laststate.ulButtonPressed & mask;
+            return Value(TimeBool8(masknow != 0, maskbef != 0).Step());
+        #else
+            return Value(0);
+        #endif
     }
     ENDDECL2(vr_motioncontrollerbutton, "n,button", "IS", "I",
         "returns the button state for motion controller n."

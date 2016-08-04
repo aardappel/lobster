@@ -35,6 +35,12 @@
 		3331458217596F4200D488CC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33EABDF215D9EE8400C1590D /* Foundation.framework */; };
 		3331458517596F4200D488CC /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3331458317596F4200D488CC /* Carbon.framework */; };
 		3331458617596F4200D488CC /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3331458417596F4200D488CC /* IOKit.framework */; };
+		333FE1E31D53E23B0064979E /* cubegen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E21D53E23B0064979E /* cubegen.cpp */; };
+		333FE1E51D53E2580064979E /* glvr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E41D53E2580064979E /* glvr.cpp */; };
+		333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E21D53E23B0064979E /* cubegen.cpp */; };
+		333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E21D53E23B0064979E /* cubegen.cpp */; };
+		333FE1EB1D53E2BF0064979E /* glvr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E41D53E2580064979E /* glvr.cpp */; };
+		333FE1EC1D53E2C00064979E /* glvr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 333FE1E41D53E2580064979E /* glvr.cpp */; };
 		3342B7A11B2B4CE500FA2F0B /* compiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79B1B2B4CE500FA2F0B /* compiler.cpp */; };
 		3342B7A21B2B4CE500FA2F0B /* compiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79B1B2B4CE500FA2F0B /* compiler.cpp */; };
 		3342B7A31B2B4CE500FA2F0B /* compiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3342B79B1B2B4CE500FA2F0B /* compiler.cpp */; };
@@ -736,6 +742,11 @@
 		3331457E17596F1600D488CC /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = System/Library/Frameworks/ForceFeedback.framework; sourceTree = SDKROOT; };
 		3331458317596F4200D488CC /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		3331458417596F4200D488CC /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		333FE1E21D53E23B0064979E /* cubegen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cubegen.cpp; sourceTree = "<group>"; };
+		333FE1E41D53E2580064979E /* glvr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = glvr.cpp; path = ../../src/glvr.cpp; sourceTree = "<group>"; };
+		333FE1E61D53E26B0064979E /* meshgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = meshgen.h; sourceTree = "<group>"; };
+		333FE1E71D53E26B0064979E /* polyreduce.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polyreduce.h; sourceTree = "<group>"; };
+		333FE1E81D53E27A0064979E /* simplex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = simplex.h; sourceTree = "<group>"; };
 		3342B79A1B2B4CE500FA2F0B /* bytecode_generated.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bytecode_generated.h; sourceTree = "<group>"; };
 		3342B79B1B2B4CE500FA2F0B /* compiler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler.cpp; sourceTree = "<group>"; };
 		3342B79C1B2B4CE500FA2F0B /* compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compiler.h; sourceTree = "<group>"; };
@@ -1336,6 +1347,7 @@
 		3395A8B917613F9B0047BE1F /* OpenGL */ = {
 			isa = PBXGroup;
 			children = (
+				333FE1E41D53E2580064979E /* glvr.cpp */,
 				33F7F3C51723671F005B7988 /* glgeom.cpp */,
 				33F7F3C41723671F005B7988 /* glincludes.h */,
 				33F7F3C61723671F005B7988 /* glinterface.h */,
@@ -1383,8 +1395,9 @@
 		3395A8BD176140380047BE1F /* engine */ = {
 			isa = PBXGroup;
 			children = (
-				8C7602B6195E453200EADF6F /* physics */,
+				333FE1E81D53E27A0064979E /* simplex.h */,
 				3381CAD1162340540069B2E8 /* simplex.cpp */,
+				8C7602B6195E453200EADF6F /* physics */,
 				3395A8C0176140870047BE1F /* MeshGen */,
 				3395A8B917613F9B0047BE1F /* OpenGL */,
 				3395A8BC176140280047BE1F /* Lobster bindings */,
@@ -1436,6 +1449,9 @@
 		3395A8C0176140870047BE1F /* MeshGen */ = {
 			isa = PBXGroup;
 			children = (
+				333FE1E61D53E26B0064979E /* meshgen.h */,
+				333FE1E71D53E26B0064979E /* polyreduce.h */,
+				333FE1E21D53E23B0064979E /* cubegen.cpp */,
 				3381CAC3162340540069B2E8 /* mctables.h */,
 				3381CAC5162340540069B2E8 /* meshgen.cpp */,
 			);
@@ -2660,6 +2676,7 @@
 				33D1638D1BAB9A2200BAD84D /* SDL_x11video.c in Sources */,
 				33D163661BAB9A2200BAD84D /* imKStoUCS.c in Sources */,
 				33D161481BAB9A2200BAD84D /* SDL_drawline.c in Sources */,
+				333FE1EC1D53E2C00064979E /* glvr.cpp in Sources */,
 				8C760352195E457400EADF6F /* b2PolygonShape.cpp in Sources */,
 				3331457317596E1100D488CC /* simplex.cpp in Sources */,
 				33D161631BAB9A2200BAD84D /* SDL_string.c in Sources */,
@@ -2674,6 +2691,7 @@
 				33D15C891BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C81BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33D163A81BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */,
+				333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */,
 				33D162BF1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
 				33D162B31BAB9A2200BAD84D /* SDL_blit.c in Sources */,
 				33D1636C1BAB9A2200BAD84D /* SDL_x11dyn.c in Sources */,
@@ -2878,6 +2896,7 @@
 				33D1638C1BAB9A2200BAD84D /* SDL_x11video.c in Sources */,
 				33D163651BAB9A2200BAD84D /* imKStoUCS.c in Sources */,
 				33D161471BAB9A2200BAD84D /* SDL_drawline.c in Sources */,
+				333FE1EB1D53E2BF0064979E /* glvr.cpp in Sources */,
 				8C760351195E457400EADF6F /* b2PolygonShape.cpp in Sources */,
 				33F7F3E617236720005B7988 /* font.cpp in Sources */,
 				33D161621BAB9A2200BAD84D /* SDL_string.c in Sources */,
@@ -2892,6 +2911,7 @@
 				33D15C881BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C71BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33D163A71BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */,
+				333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */,
 				33D162BE1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
 				33D162B21BAB9A2200BAD84D /* SDL_blit.c in Sources */,
 				33D1636B1BAB9A2200BAD84D /* SDL_x11dyn.c in Sources */,
@@ -2945,6 +2965,7 @@
 				33D163E31BABA50800BAD84D /* SDL_uikitopenglview.m in Sources */,
 				33D15FB21BAB9A2200BAD84D /* SDL_diskaudio.c in Sources */,
 				8C76036B195E457400EADF6F /* b2TrackedBlock.cpp in Sources */,
+				333FE1E51D53E2580064979E /* glvr.cpp in Sources */,
 				33AE2429164ABCE2007F578F /* file.cpp in Sources */,
 				8C7603A1195E457400EADF6F /* b2GearJoint.cpp in Sources */,
 				33D162BD1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
@@ -3060,6 +3081,7 @@
 				8C76039E195E457400EADF6F /* b2FrictionJoint.cpp in Sources */,
 				33D163791BAB9A2200BAD84D /* SDL_x11modes.c in Sources */,
 				8C760353195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
+				333FE1E31D53E23B0064979E /* cubegen.cpp in Sources */,
 				33D15FE81BAB9A2200BAD84D /* SDL_wave.c in Sources */,
 				8C760374195E457400EADF6F /* b2Fixture.cpp in Sources */,
 				33D15CC11BAB7E8A00BAD84D /* smooth.c in Sources */,
