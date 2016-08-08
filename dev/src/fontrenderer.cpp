@@ -175,6 +175,7 @@ void BitmapFont::RenderText(const char *text)
         x += advance;
     }
 
+    SetTexture(0, texid);
     RenderArraySlow(PRIM_TRIS, len * 6, len * 4, "PT", sizeof(PT), vbuf, ibuf);
 
     delete[] ibuf;
