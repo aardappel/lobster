@@ -611,12 +611,12 @@ struct TypeChecker
 
         CleanUpFlow(start_promoted_vars);
 
-        for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
-        for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
-
         Node *last = Parser::LastInList(sf.body);
         if (last->head()->type != T_RETURN || last->head()->return_function_idx()->integer() != sf.parent->idx) 
             RetVal(last->head(), &sf, 0);
+
+        for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
+        for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
 
         for (auto type : sf.returntypes) if (type->HasVariable())
         {
