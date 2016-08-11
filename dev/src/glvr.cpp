@@ -89,6 +89,10 @@ void VRShutDown()
         DeleteTexture(retex[i]);
     }
 
+    #else
+
+    (void)mstex;
+
     #endif  // PLATFORM_VR
 }
 

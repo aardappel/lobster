@@ -81,19 +81,19 @@
             GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/   , glUniformMatrix3x4fv            , 1) \
             GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \
             GLEXT(PFNGLGETACTIVEUNIFORMARBPROC           , glGetActiveUniform              , 1) \
-            GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 1) \
-            GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 1) \
-            GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 1) \
-            GLEXT(PFNGLDELETEFRAMEBUFFERSPROC            , glDeleteFramebuffers            , 1) \
-            GLEXT(PFNGLGENFRAMEBUFFERSPROC               , glGenFramebuffers               , 1) \
-            GLEXT(PFNGLFRAMEBUFFERTEXTURE2DPROC          , glFramebufferTexture2D          , 1) \
-            GLEXT(PFNGLGENRENDERBUFFERSPROC              , glGenRenderbuffers              , 1) \
-            GLEXT(PFNGLRENDERBUFFERSTORAGEPROC           , glRenderbufferStorage           , 1) \
-            GLEXT(PFNGLFRAMEBUFFERRENDERBUFFERPROC       , glFramebufferRenderbuffer       , 1) \
-            GLEXT(PFNGLCHECKFRAMEBUFFERSTATUSPROC        , glCheckFramebufferStatus        , 1) \
-            GLEXT(PFNGLTEXIMAGE2DMULTISAMPLEPROC         , glTexImage2DMultisample         , 1) \
-            GLEXT(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample, 1) \
-            GLEXT(PFNGLBLITFRAMEBUFFERPROC               , glBlitFramebuffer               , 1) \
+            GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 0) \
+            GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 0) \
+            GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 0) \
+            GLEXT(PFNGLDELETEFRAMEBUFFERSPROC            , glDeleteFramebuffers            , 0) \
+            GLEXT(PFNGLGENFRAMEBUFFERSPROC               , glGenFramebuffers               , 0) \
+            GLEXT(PFNGLFRAMEBUFFERTEXTURE2DPROC          , glFramebufferTexture2D          , 0) \
+            GLEXT(PFNGLGENRENDERBUFFERSPROC              , glGenRenderbuffers              , 0) \
+            GLEXT(PFNGLRENDERBUFFERSTORAGEPROC           , glRenderbufferStorage           , 0) \
+            GLEXT(PFNGLFRAMEBUFFERRENDERBUFFERPROC       , glFramebufferRenderbuffer       , 0) \
+            GLEXT(PFNGLCHECKFRAMEBUFFERSTATUSPROC        , glCheckFramebufferStatus        , 0) \
+            GLEXT(PFNGLTEXIMAGE2DMULTISAMPLEPROC         , glTexImage2DMultisample         , 0) \
+            GLEXT(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample, 0) \
+            GLEXT(PFNGLBLITFRAMEBUFFERPROC               , glBlitFramebuffer               , 0) \
             GLEXT(PFNGLGENERATEMIPMAPEXTPROC             , glGenerateMipmap                , 0) \
             GLEXT(PFNGLDISPATCHCOMPUTEPROC               , glDispatchCompute               , 0) \
             GLEXT(PFNGLBINDIMAGETEXTUREPROC              , glBindImageTexture              , 0) \

@@ -27,10 +27,14 @@
 #endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#pragma warning(push)
-#pragma warning(disable: 4244)
+#ifdef _WIN32
+  #pragma warning(push)
+  #pragma warning(disable: 4244)
+#endif
 #include "stb/stb_image_write.h"
-#pragma warning(pop)
+#ifdef _WIN32
+  #pragma warning(pop)
+#endif
 
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;

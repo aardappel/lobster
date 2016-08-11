@@ -31,11 +31,9 @@ struct SlabAllocatedSmall
 
 struct Node : SlabAllocatedSmall
 {
-    TType type;
-
-    TypeRef exptype;
-
     Line line;
+    TType type;
+    TypeRef exptype;
 
     private:
     union
@@ -53,27 +51,27 @@ struct Node : SlabAllocatedSmall
     };
     public:
 
-    Node(Line &ln, TType t) : type(t), line(ln), a_(nullptr), b_(nullptr), c_(nullptr)
+    Node(Line &ln, TType t) : line(ln), type(t), a_(nullptr), b_(nullptr), c_(nullptr)
     {
         assert(TArity(t) == 0);
     }
 
-    Node(Line &ln, TType t, Node *a) : type(t), line(ln), a_(a), b_(nullptr), c_(nullptr)
+    Node(Line &ln, TType t, Node *a) : line(ln), type(t), a_(a), b_(nullptr), c_(nullptr)
     {
         assert(TArity(t) == 1);
     }
 
-    Node(Line &ln, TType t, Node *a, Node *b) : type(t), line(ln), a_(a), b_(b), c_(nullptr)
+    Node(Line &ln, TType t, Node *a, Node *b) : line(ln), type(t), a_(a), b_(b), c_(nullptr)
     {
         assert(TArity(t) == 2);
     };
 
-    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : type(t), line(ln), a_(a), b_(b), c_(c)
+    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : line(ln), type(t), a_(a), b_(b), c_(c)
     {
         assert(TArity(t) == 3);
     }
 
-    Node(Line &ln, TType t, TypeRef tr) : type(t), line(ln), type_(tr) {}  // T_TYPE | T_NIL
+    Node(Line &ln, TType t, TypeRef tr) : line(ln), type(t), type_(tr) {}  // T_TYPE | T_NIL
 
     Node(Line &ln, Ident *id) : line(ln), type(T_IDENT), ident_(id), sid_(nullptr) {}
 
