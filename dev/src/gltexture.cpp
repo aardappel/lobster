@@ -188,6 +188,9 @@ int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); re
 
 uint CreateFrameBuffer(uint texture, int tf)
 {
+    if (!glGenFramebuffers)
+        return 0;
+
     uint fb = 0;
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -206,6 +209,9 @@ static int retf = 0;
 static int2 resize = int2_0;
 bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex)
 {
+    if (!glGenRenderbuffers)
+        return false;
+
     if (rb)
     {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
