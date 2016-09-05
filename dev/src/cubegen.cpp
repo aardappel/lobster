@@ -160,6 +160,7 @@ void AddCubeGen()
         static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
         static int indices[6] = { 0, 1, 3, 1, 2, 3 };
 
+        // off by default because slow, maybe try: https://github.com/greg7mdp/sparsepp
         bool optimize_verts = false;
 
         struct VKey

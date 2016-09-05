@@ -74,6 +74,11 @@ def xyz(v): xyz { v.x, v.y, v.z }
 def xyz(v, z):  xyz  { v.x, v.y, z }
 def xyzw(v, w): xyzw { v.x, v.y, v.z, w }
 
+// flip vectors
+def yx(v): xy { v.y, v.x }
+def zyx(v): xyz { v.z, v.y, v.x }
+def wzyx(v): xyzw { v.w, v.z, v.y, v.x }
+
 def xy_rnd():   xy  { rndfloat(), rndfloat() }
 def xyz_rnd():  xyz { rndfloat(), rndfloat(), rndfloat() }
 def xyzw_rnd(): xyzw { rndfloat(), rndfloat(), rndfloat(), rndfloat() }

@@ -120,8 +120,6 @@ def run_test_cases():
     // ////////////////////////////////////////////////////////////////////////
     // typechecking
 
-    def block(f): f()
-
     block():
         def h(i): i()
         def g(f):

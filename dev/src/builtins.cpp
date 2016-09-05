@@ -619,9 +619,9 @@ void AddBuiltins()
     STARTDECL(cos) (Value &a) { return Value(cosf(a.fval() * RAD)); } ENDDECL1(cos, "angle", "F", "F",
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
 
-    STARTDECL(sincos) (Value &a) { return ToValueF(float3(cosf(a.fval() * RAD), sinf(a.fval() * RAD), 0.0f)); }
-    ENDDECL1(sincos, "angle", "F", "F]:3",
-        "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle), 0 ]");
+    STARTDECL(sincos) (Value &a) { return ToValueF(float2(cosf(a.fval() * RAD), sinf(a.fval() * RAD))); }
+    ENDDECL1(sincos, "angle", "F", "F]:2",
+        "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]");
 
     STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval()) / RAD); } ENDDECL1(arcsin, "y", "F", "F",
         "the angle (in degrees) indicated by the y coordinate projected to the unit circle");
@@ -631,6 +631,11 @@ void AddBuiltins()
     STARTDECL(atan2) (Value &vec) { auto v = ValueDecToF<3>(vec); return Value(atan2f(v.y(), v.x()) / RAD); } 
     ENDDECL1(atan2, "vec",  "F]" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
+
+    STARTDECL(radians) (Value &a) { return Value(a.fval() * RAD); } ENDDECL1(radians, "angle", "F", "F",
+        "converts an angle in degrees to radians");
+    STARTDECL(degrees) (Value &a) { return Value(a.fval() / RAD); } ENDDECL1(degrees, "angle", "F", "F",
+        "converts an angle in radians to degrees");
 
     STARTDECL(normalize) (Value &vec)
     {
