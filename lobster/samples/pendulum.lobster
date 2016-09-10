@@ -31,7 +31,7 @@ while gl_frame():
 
     gl_translate(float(gl_windowsize()) / 2)
 
-    gl_blend(2):
+    gl_blend(blend_add):
         for(pts) pos, i:
             gl_color(color { 0.15, 0.075, 0.0, 1.0 } * i / max_steps)
             gl_translate(pos):

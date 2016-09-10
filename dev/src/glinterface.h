@@ -14,7 +14,7 @@
 
 // simple rendering interface for OpenGL (ES) (that doesn't depend on its headers)
 
-enum BlendMode { BLEND_NONE = 0, BLEND_ALPHA, BLEND_ADD, BLEND_ADDALPHA, BLEND_MUL };
+enum BlendMode { BLEND_NONE = 0, BLEND_ALPHA, BLEND_ADD, BLEND_ADDALPHA, BLEND_MUL, BLEND_PREMULALPHA };
 enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 struct Shader

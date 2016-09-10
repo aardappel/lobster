@@ -125,7 +125,7 @@ def gui_space(thickness:float):
 def gui_start(size, alignh, alignv, interact, f):   // top level only
     id := caller_id()
     gl_setshader("color")
-    gl_blend(1):
+    gl_blend(blend_alpha):
         parent_size <- size
         vertical <- false
         interactive <- interact

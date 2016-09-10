@@ -156,7 +156,7 @@ while gl_frame():
     gl_clear(color_black)
     tex := onesample()
     gl_setprimitivetexture(0, tex)
-    gl_blend(0)
+    gl_blend(blend_none)
     gl_setshader("textured")
     gl_rect(xy_f { w, h })
     gl_deletetexture(tex)

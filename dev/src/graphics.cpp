@@ -931,8 +931,8 @@ void AddGraphics()
         SetBlendMode((BlendMode)m.ival());
     }
     ENDDECL2CONTEXIT(gl_blend, "on,body", "IC?", "",
-        "changes the blending mode to 0: off, 1: alpha blend (default), 2: additive, 3: alpha additive,"
-        " 4: multiplicative. when a body is given, restores the previous mode afterwards");
+        "changes the blending mode (use blending constants from color.lobster). when a body is given,"
+        " restores the previous mode afterwards");
 
     STARTDECL(gl_loadtexture) (Value &name, Value &tf)
     {

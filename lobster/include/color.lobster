@@ -52,3 +52,12 @@ texture_format_writeonly   :== 16
 texture_format_readwrite   :== 32
 texture_format_cubemap     :== 64
 texture_format_multisample :== 128
+
+// blending constants
+
+blend_none                 :== 0
+blend_alpha                :== 1  // Default.
+blend_add                  :== 2
+blend_add_alpha            :== 3
+blend_multiply             :== 4
+blend_pre_multiplied_alpha :== 5

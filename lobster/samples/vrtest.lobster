@@ -43,7 +43,7 @@ balls := []::[xyz_f]
 
 def drawworld():
     gl_clear(color_grey)
-    gl_blend(0)
+    gl_blend(blend_none)
 
     gl_light(camera_position, [ 64.0, 1.0 ])
     //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
@@ -90,7 +90,7 @@ while gl_frame():
                 balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
         gl_clear(color_black)
-        gl_blend(0)
+        gl_blend(blend_none)
         gl_setshader("textured")
 
         for(2) e:
@@ -102,7 +102,7 @@ while gl_frame():
         gl_cursor(0)
         camera_FPS_update("w", "a", "s", "d", 10, 4, true)
         gl_clear(color_dark_grey)
-        gl_blend(0)
+        gl_blend(blend_none)
         gl_perspective(70, znear, zfar)
         camera_FPS_view()
         drawworld()

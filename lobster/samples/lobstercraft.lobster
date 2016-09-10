@@ -42,7 +42,7 @@ while gl_frame():
     camera_FPS_update("w", "a", "s", "d", 10, 4, true)
     camera_FPS_view()
     gl_light(camera_position, [ 64.0, 0.25 ])
-    gl_blend(0)
+    gl_blend(blend_none)
     gl_setshader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
         if e:  // if this cell is solid
@@ -65,7 +65,7 @@ while gl_frame():
     if gl_button("mouse1") == 1 and last_empty and inventory.length: cells[last_empty] = inventory.pop()
     if gl_button("mouse3") == 1 and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
     gl_setshader("color")
-    gl_blend(1)
+    gl_blend(blend_alpha)
     wh := 11.7  // let's add some water!
     gl_color([ 0.5, 0.5, 1.0, 0.5 ])
     gl_polygon([ [1, 1, wh], [1, lssize - 1, wh], [lssize - 1, lssize - 1, wh], [lssize - 1, 1, wh] ])

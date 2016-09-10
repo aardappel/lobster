@@ -32,7 +32,7 @@ while gl_frame() and gl_button("escape") != 1:
 
     ph_step(gl_deltatime())
 
-    gl_blend(3)
+    gl_blend(blend_add_alpha)
     ph_renderparticles(2.5)
-    gl_blend(0)
+    gl_blend(blend_none)
     ph_render()

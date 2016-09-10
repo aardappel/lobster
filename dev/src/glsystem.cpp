@@ -48,11 +48,12 @@ int SetBlendMode(BlendMode mode)
     if (mode == curblendmode) return curblendmode;
     switch (mode)
     {
-        case BLEND_NONE:     glDisable(GL_BLEND); break;
-        case BLEND_ALPHA:    glEnable (GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); break; // alpha / interpolative
-        case BLEND_ADD:      glEnable (GL_BLEND); glBlendFunc(GL_ONE,       GL_ONE                ); break; // additive (plain)
-        case BLEND_ADDALPHA: glEnable (GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE                ); break; // additive (using src alpha)
-        case BLEND_MUL:      glEnable (GL_BLEND); glBlendFunc(GL_DST_COLOR, GL_ZERO               ); break; // multiplicative / masking
+        case BLEND_NONE:        glDisable(GL_BLEND); break;
+        case BLEND_ALPHA:       glEnable (GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); break; // alpha / interpolative
+        case BLEND_ADD:         glEnable (GL_BLEND); glBlendFunc(GL_ONE,       GL_ONE                ); break; // additive (plain)
+        case BLEND_ADDALPHA:    glEnable (GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE                ); break; // additive (using src alpha)
+        case BLEND_MUL:         glEnable (GL_BLEND); glBlendFunc(GL_DST_COLOR, GL_ZERO               ); break; // multiplicative / masking
+        case BLEND_PREMULALPHA: glEnable (GL_BLEND); glBlendFunc(GL_ONE,       GL_ONE_MINUS_SRC_ALPHA); break; // premul-alpha / interpolative
     }
     int old = curblendmode;
     curblendmode = mode;
