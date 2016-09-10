@@ -81,7 +81,7 @@ def level(highscore, frame):
         forever():
             frame()
             if lastenemy < gl_time():
-                enemies.push(coroutine enemy(sincos(rnd(360)).xy * worldsize * 2))
+                enemies.push(coroutine enemy(sincos(rnd(360)) * worldsize * 2))
                 lastenemy += enemyrate
                 enemyrate *= 0.999
             enemies = filter(enemies) e:

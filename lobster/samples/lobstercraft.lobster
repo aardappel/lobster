@@ -55,7 +55,7 @@ while gl_frame():
                         gl_rendermesh(nbpolys[i])  // draw face
     first_solid := nil  // find the first solid and last empty block we're looking at
     last_empty := nil
-    camvec := vecfromyawpitch(camera_yaw, camera_pitch, 1, 0)
+    camvec := camera_forward_vector()
     for(100) i:  // look at most 10 cubes ahead
         pos := int(camera_position + camvec * (i / 10.0))
         if inside(pos) and !first_solid:

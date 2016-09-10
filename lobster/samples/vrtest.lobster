@@ -46,7 +46,7 @@ def drawworld():
     gl_blend(blend_none)
 
     gl_light(camera_position, [ 64.0, 1.0 ])
-    //gl_light(sincos(gl_time() * 20) * 100 + xyz_z * 100)
+    //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_setshader("flat")
     for(10) i:

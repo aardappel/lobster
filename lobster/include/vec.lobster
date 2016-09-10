@@ -93,8 +93,8 @@ def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
 
 def vecfromyawpitch(yaw, pitch, move, strafe):
-    (sincos(yaw - 90/* start from Y rather than X axis */) *
-        cos(pitch) - xyz_z * sin(pitch)) * move + sincos(yaw) * strafe
+    (xyz(sincos(yaw + 90/* start from Y rather than X axis */), 0) *
+        cos(pitch) + xyz_z * sin(pitch)) * move + xyz(sincos(yaw), 0) * strafe
 
 def rotate2D(v, angle):
     s := sin(-angle)

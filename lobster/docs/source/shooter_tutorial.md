@@ -404,7 +404,7 @@ this to the declarations.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if lastenemy < gl_time():
-        enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
+        enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
 

@@ -54,7 +54,7 @@ while gl_frame() and gl_button("escape") != 1:
             tomouse := normalize(gl_localmousepos(0) - playerpos)
 
             if lastenemy < gl_time():
-                enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
+                enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
                 lastenemy += enemyrate
                 enemyrate *= 0.999
 

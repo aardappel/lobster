@@ -633,7 +633,7 @@ void AddGraphics()
         return Value();
     }
     ENDDECL3(gl_perspective, "fovy,znear,zfar", "FFF", "",
-        "changes from 2D mode (default) to 3D perspective mode with vertical fov (try 60), far plane"
+        "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try 60), far plane"
         " (furthest you want to be able to render, try 1000) and near plane (try 1)");
 
     STARTDECL(gl_ortho) ()

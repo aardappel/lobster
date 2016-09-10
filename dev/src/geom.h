@@ -690,21 +690,21 @@ inline float4x4 invert(const float4x4 &mat)
 }
 
 // handedness: 1.f for RH, -1.f for LH
-inline float4x4 perspectiveFov( float fovy, float aspect, float znear, float zfar, float handedness)
+inline float4x4 perspective( float fovy, float aspect, float znear, float zfar, float handedness)
 {
     const float y = 1 / tanf(fovy * .5f);
     const float x = y / aspect;
-    const float zdist = (znear-zfar)*handedness;
+    const float zdist = (znear - zfar) * handedness;
     const float zfar_per_zdist = zfar / zdist;
 
     return float4x4(
-        float4(x, 0, 0,					   		        0),
-        float4(0, y, 0,					   		        0),
-        float4(0, 0, zfar_per_zdist,    	   	       -1.f*handedness),
-        float4(0, 0, 2*znear*zfar_per_zdist*handedness, 0));
+        float4(x, 0, 0,					   		             0),
+        float4(0, y, 0,					   		             0),
+        float4(0, 0, zfar_per_zdist,    	   	             -1.f * handedness),
+        float4(0, 0, 2 * znear * zfar_per_zdist * handedness, 0));
 }
 
-inline float4x4 orthoGL(float left, float right, float bottom, float top, float znear, float zfar)
+inline float4x4 ortho(float left, float right, float bottom, float top, float znear, float zfar)
 {
     return float4x4(
         float4(2.0f / (right - left), 0, 0, 0),

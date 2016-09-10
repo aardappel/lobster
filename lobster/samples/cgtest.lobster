@@ -11,18 +11,17 @@ dim :== xyz_1i * 128
 camera_position = float(dim) / 2
 camera_yaw = 135
 
-mg_init_cubes(dim)
+w := cg_init(dim)
 
 def modify():
     pos := xyz_rndi(dim)
     size := xyz_rndi(dim / 8)
-    col := xyzw_rnd()
-    col *= xyzw { 1.0, 1.0, 1.0, 0.55 }  // make empty more likely
-    mg_set_cubes(pos, size, col)
+    col := rnd(2) * rnd(256)
+    cg_set(w, pos, size, col)
 
 for 10000: modify()
 
-random_cubes := mg_create_cube_mesh()
+random_cubes := cg_create_mesh(w)
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -46,5 +45,5 @@ while gl_frame():
     if gl_button("space") == 1:
         for 1000: modify()
         gl_deletemesh(random_cubes)
-        random_cubes = mg_create_cube_mesh()
+        random_cubes = cg_create_mesh(w)
 

@@ -16,7 +16,7 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
         camera_pitch -= gl_mousedelta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
-    move   := (gl_button(downkey) >= 1) - (gl_button(upkey) >= 1)
+    move   := (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
     strafe := (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
     friction :== 20
     velspeed := min(1.0, friction * gl_deltatime())
@@ -38,9 +38,9 @@ def camera_FPS_view():
     gl_rotate_z(sincos(-camera_yaw))
     gl_translate(-camera_position)
 
-def camera_forward_vector(): vecfromyawpitch(camera_yaw, camera_pitch + 180, 1.0, 0.0)
+def camera_forward_vector(): vecfromyawpitch(camera_yaw, camera_pitch,      1.0, 0.0)
 def camera_up_vector():      vecfromyawpitch(camera_yaw, camera_pitch + 90, 1.0, 0.0)
-def camera_left_vector():    vecfromyawpitch(camera_yaw, camera_pitch, 0.0, 1.0)
+def camera_left_vector():    vecfromyawpitch(camera_yaw, camera_pitch,      0.0, 1.0)
 
 // an alternative way to set a 3D camera with an overriding direction, call this instead of camera_FPS_update,
 // then still call camera_FPS_view as before:
@@ -48,7 +48,7 @@ def camera_left_vector():    vecfromyawpitch(camera_yaw, camera_pitch, 0.0, 1.0)
 def camera_direction(v):
     v = normalize(v)
     camera_yaw = atan2(v) - 90  // look along Y rather than X
-    camera_pitch = arcsin(-v.z)
+    camera_pitch = arcsin(v.z)
 
 def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
     ws := float(gl_windowsize())

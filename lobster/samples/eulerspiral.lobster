@@ -20,6 +20,6 @@ while gl_frame():
     if pts.length < 10000:
         angle += 2.0 + (rndfloat() - 0.5) / 20.0
         a := atan2(pts.top - pts[pts.length - 2])
-        pts.push(pts.top + sincos(a + angle).xy)
+        pts.push(pts.top + sincos(a + angle))
     gl_linemode 1:
         gl_polygon(pts)

@@ -54,7 +54,7 @@ while gl_frame() and gl_button("escape") != 1:
         enemyrate ?= 1.0
         enemymaxhp :== 5
         every_n_seconds(enemyrate):
-            enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
+            enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
             enemyrate *= 0.999
 
         firerate :== 0.1

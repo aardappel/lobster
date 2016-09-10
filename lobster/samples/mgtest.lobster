@@ -139,7 +139,7 @@ while gl_frame():
         gl_ortho3d(xyz_0, xyz_f { gl_windowsize().x, gl_windowsize().y, 2000 } / 100)
         gl_rotate_x(sincos(45))
         gl_rotate_z(sincos(45))
-        gl_light(sincos(gl_time() * 10) * 100 + xyz_z * 300, [ 128.0, 0.1 ])
+        gl_light(xyz(sincos(gl_time() * 10), 0) * 100 + xyz_z * 300, [ 128.0, 0.1 ])
 
     gl_blend 0:
         gl_setshader(aspoints and "phong_particle" or "flat")
