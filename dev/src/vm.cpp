@@ -90,6 +90,9 @@ struct VM : VMBase
     int64_t vm_count_fcalls;
     int64_t vm_count_bcalls;
 
+    typedef void (VM::* f_ins_pointer)();
+    f_ins_pointer f_ins_pointers[IL_MAX_OPS];
+
     VM(const char *_pn, vector<uchar> &&_bytecode_buffer)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
           curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr),
@@ -136,6 +139,10 @@ struct VM : VMBase
         #endif
 
         vml.LogInit();
+
+        #define F(N) f_ins_pointers[IL_##N] = &VM::F_##N;
+            ILNAMES
+        #undef F
 
         assert(g_vm == nullptr);
         g_vm = this;
@@ -798,556 +805,543 @@ struct VM : VMBase
             if (vm_count_fcalls)  // remove trivial VM executions from output
                 Output(OUTPUT_INFO, "ins %lld, fcall %lld, bcall %lld", vm_count_ins, vm_count_fcalls, vm_count_bcalls);
         #endif
+
+        throw string("end-eval");
+    }
+
+    void F_PUSHINT() { PUSH(Value(*ip++)); }
+    void F_PUSHFLT() { PUSH(Value(*(float *)ip)); ip++; }
+    void F_PUSHNIL() { PUSH(Value()); }
+
+    void F_PUSHFUN()
+    {
+        int start = *ip++;
+        PUSH(Value(codestart + start));
+    }
+
+    void F_PUSHSTR()
+    {
+        auto start = ip;
+        while (*ip++) ;
+        auto len = (int)(ip - start);
+        // FIXME: have a way that constant strings can stay in the bytecode,
+        // or at least preallocate them all
+        auto s = NewString(len - 1);
+        for (int i = 0; i < len; i++) s->str()[i] = (char)start[i]; 
+        PUSH(Value(s));
+    }
+
+    void F_CALL()
+    {
+        auto nargs = *ip++;
+        auto fvar = *ip++;
+        auto fun = *ip++;
+        auto tm = *ip++;
+        FunIntro(nargs, codestart + fun, fvar, ip, tm);
+    }
+
+    void F_CALLMULTI()
+    {
+        auto nargs = *ip++;
+        auto fvar = *ip++;
+        auto fun = *ip++;
+        auto tm = *ip++;
+        EvalMulti(nargs, codestart + fun, fvar, ip, tm);
+    }
+
+    void F_FUNMULTI() { VMASSERT(0); }
+
+    void F_CALLVCOND()
+    {
+        // FIXME: don't need to check for function value again below if false
+        if (!TOP().True()) { ip += 2; } else F_CALLV();
+    }
+
+    void F_CALLV()
+    {
+        Value fun = POP();
+        VMTYPEEQ(fun, V_FUNCTION);
+        auto nargs = *ip++;
+        auto tm = *ip++;
+        FunIntro(nargs, fun.ip(), -1, ip, tm);
+    }
+
+    void F_YIELD() { CoYield(ip); }
+
+    void F_FUNSTART() { VMASSERT(0); }
+    void F_FUNEND() { FunOut(-1, 1); }
+
+    void F_RETURN()
+    {
+        int df = *ip++;
+        int nrv = *ip++;
+        int tidx = *ip++;
+        if(FunOut(df, nrv))
+        {
+            assert(nrv == 1);
+            EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t); 
+        }
+    }
+
+    void F_EXIT()
+    {
+        int tidx = *ip++;
+        EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
+    }
+
+    void F_CONT1()
+    {
+        auto nf = natreg.nfuns[*ip++];
+        POP();  // return value from body.
+        nf->cont1();
+        PUSH(Value());
+    }
+
+    void F_CONT1REF()
+    {
+        auto nf = natreg.nfuns[*ip++];
+        POP().DECRTNIL();  // return value from body.
+        nf->cont1();
+        PUSH(Value());
+    }
+
+    #define FORLOOP(L, V, iterref, bodyref) { \
+        auto forstart = ip - 1; \
+        auto tm = *ip++; \
+        auto bodyret = POP(); \
+        if (bodyref) bodyret.DECRTNIL(); \
+        auto &body = TOP(); \
+        auto &iter = TOPM(1); \
+        auto &i = TOPM(2); \
+        TYPE_ASSERT(i.type == V_INT); \
+        i.setival(i.ival() + 1); \
+        int len = 0; \
+        if (i.ival() < (len = (L))) { \
+            int nargs = body.ip()[1]; \
+            if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
+            FunIntro(nargs, body.ip(), -1, forstart, tm); \
+            return; \
+        } \
+        (void)POP(); /* body */ \
+        if (iterref) TOP().DECRT(); \
+        (void)POP(); /* iter */ \
+        (void)POP(); /* i */ \
+    }
+
+    void F_IFOR()    { FORLOOP(iter.ival(), i, false, false); }
+    void F_IFORREF() { FORLOOP(iter.ival(), i, false, true); }
+    void F_VFOR()    { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false); }
+    void F_VFORREF() { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true); }
+    void F_SFOR()    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
+    void F_SFORREF() { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
+
+    void F_BCALL()
+    {
+        #ifdef VM_PROFILER
+            vm_count_bcalls++;
+        #endif
+        auto nf = natreg.nfuns[*ip++];
+        Value v;
+        switch (nf->args.v.size())
+        {
+            #define ARG(N) Value a##N = POP();
+            case 0: {                                           v = nf->fun.f0(); break; }
+            case 1: { ARG(0)                                    v = nf->fun.f1(a0); break; }
+            case 2: { ARG(1) ARG(0)                             v = nf->fun.f2(a0, a1); break; }
+            case 3: { ARG(2) ARG(1) ARG(0)                      v = nf->fun.f3(a0, a1, a2); break; }
+            case 4: { ARG(3) ARG(2) ARG(1) ARG(0)               v = nf->fun.f4(a0, a1, a2, a3); break; }
+            case 5: { ARG(4) ARG(3) ARG(2) ARG(1) ARG(0)        v = nf->fun.f5(a0, a1, a2, a3, a4); break; }
+            case 6: { ARG(5) ARG(4) ARG(3) ARG(2) ARG(1) ARG(0) v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
+                                                                                                    break; }
+            default: VMASSERT(0); break;
+            #undef ARG
+        }
+        PUSH(v);
+        #if RTT_ENABLED
+            // see if any builtin function is lying about what type it returns
+            // other function types return intermediary values that don't correspond to final return values
+            if (nf->ncm == NCM_NONE)
+            { 
+                for (size_t i = 0; i < nf->retvals.v.size(); i++)
+                {
+                    auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
+                    auto u = nf->retvals.v[i].type->t;
+                    TYPE_ASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
+                }
+                TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
+            }
+        #endif
+    }
+                
+    void F_JUMP() { ip = codestart + *ip; }
+                
+    void F_NEWVEC()
+    {
+        auto type = (type_elem_t)*ip++;
+        auto len = *ip++;
+        auto vec = NewVector(len, len, GetTypeInfo(type));
+        if (len) vec->Init(TOPPTR() - len, len, false);
+        POPN(len);
+        PUSH(Value(vec));
+    }
+
+    void F_POP()    { POP(); }
+    void F_POPREF() { POP().DECRTNIL(); }
+
+    void F_DUP()    { auto x = TOP();            PUSH(x); }
+    void F_DUPREF() { auto x = TOP().INCRTNIL(); PUSH(x); }
+
+    #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
+    #define GETARGS() Value b = POP(); Value a = POP()
+    #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
+        if (extras & 1 && b.field == 0) Div0(); res = a.field op b.field;
+
+    #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERT(a.type == V_INT && b.type == V_INT))
+    #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERT(a.type == V_FLOAT && b.type == V_FLOAT))
+
+    #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
+    #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
+        int len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) : a.eval()->ti); \
+        for (int j = 0; j < len; j++) \
+        { \
+            if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
+            auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
+            if (extras&1 && bv == 0) Div0(); \
+            VMTYPEEQ(a.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
+            res.eval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
+        } \
+        a.DECRT(); \
+        if (!withscalar) b.DECRT(); \
+    } 
+    #define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, int, false, withscalar, icomp)
+    #define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, float, true, withscalar, fcomp)
+                    
+    #define _SCAT()  Value res; REFOP(NewString(a.sval()->str(), a.sval()->len, b.sval()->str(), b.sval()->len))
+    #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
+
+    #define ACOMPEN(op) { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); }
+                                           
+    #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); }
+    #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); }
+    #define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); }
+    #define IVVOPC(op, extras) { GETARGS(); _IVOP(op, extras, false, true);  PUSH(res); }
+    #define FVVOP(op, extras)  { GETARGS(); _FVOP(op, extras, false, false); PUSH(res); }
+    #define FVVOPC(op, extras) { GETARGS(); _FVOP(op, extras, false, true);  PUSH(res); }
+    #define IVSOP(op, extras)  { GETARGS(); _IVOP(op, extras, true, false);  PUSH(res); }
+    #define IVSOPC(op, extras) { GETARGS(); _IVOP(op, extras, true, true);   PUSH(res); }
+    #define FVSOP(op, extras)  { GETARGS(); _FVOP(op, extras, true, false);  PUSH(res); }
+    #define FVSOPC(op, extras) { GETARGS(); _FVOP(op, extras, true, true);   PUSH(res); }
+    #define SOP(op)            { GETARGS(); _SOP(op);                        PUSH(res); }
+    #define SCAT()             { GETARGS(); _SCAT();                         PUSH(res); }
+
+    // +  += I F Vif S
+    // -  -= I F Vif 
+    // *  *= I F Vif 
+    // /  /= I F Vif 
+    // %  %= I   Vi 
+
+    // <     I F Vif S
+    // >     I F Vif S
+    // <=    I F Vif S
+    // >=    I F Vif S
+    // ==    I F V   S   // FIXME differentiate struct / value / vector
+    // !=    I F V   S 
+
+    // U-    I F Vif
+    // U!    A
+
+    void F_IVVADD() { IVVOP(+,  0);  }
+    void F_IVVSUB() { IVVOP(-,  0);  }
+    void F_IVVMUL() { IVVOP(*,  0);  }
+    void F_IVVDIV() { IVVOP(/,  1);  }
+    void F_IVVMOD() { VMASSERT(0);   }
+    void F_IVVLT()  { IVVOP(<,  0);  }
+    void F_IVVGT()  { IVVOP(>,  0);  }
+    void F_IVVLE()  { IVVOP(<=, 0);  }
+    void F_IVVGE()  { IVVOP(>=, 0);  }
+    void F_FVVADD() { FVVOP(+,  0);  }
+    void F_FVVSUB() { FVVOP(-,  0);  }
+    void F_FVVMUL() { FVVOP(*,  0);  }
+    void F_FVVDIV() { FVVOP(/,  1);  }
+    void F_FVVMOD() { VMASSERT(0);   }
+    void F_FVVLT()  { FVVOPC(<,  0); }
+    void F_FVVGT()  { FVVOPC(>,  0); }
+    void F_FVVLE()  { FVVOPC(<=, 0); }
+    void F_FVVGE()  { FVVOPC(>=, 0); }
+
+    void F_IVSADD() { IVSOP(+,  0);  }
+    void F_IVSSUB() { IVSOP(-,  0);  }
+    void F_IVSMUL() { IVSOP(*,  0);  }
+    void F_IVSDIV() { IVSOP(/,  1);  }
+    void F_IVSMOD() { VMASSERT(0);   }
+    void F_IVSLT()  { IVSOP(<,  0);  }
+    void F_IVSGT()  { IVSOP(>,  0);  }
+    void F_IVSLE()  { IVSOP(<=, 0);  }
+    void F_IVSGE()  { IVSOP(>=, 0);  }
+    void F_FVSADD() { FVSOP(+,  0);  }
+    void F_FVSSUB() { FVSOP(-,  0);  }
+    void F_FVSMUL() { FVSOP(*,  0);  }
+    void F_FVSDIV() { FVSOP(/,  1);  }
+    void F_FVSMOD() { VMASSERT(0);   }
+    void F_FVSLT()  { FVSOPC(<,  0); }
+    void F_FVSGT()  { FVSOPC(>,  0); }
+    void F_FVSLE()  { FVSOPC(<=, 0); }
+    void F_FVSGE()  { FVSOPC(>=, 0); }
+
+    void F_AEQ() { ACOMPEN(==); }
+    void F_ANE() { ACOMPEN(!=); }
+                    
+    void F_IADD() { IOP(+,  0); }
+    void F_ISUB() { IOP(-,  0); }
+    void F_IMUL() { IOP(*,  0); }
+    void F_IDIV() { IOP(/ , 1); }
+    void F_IMOD() { IOP(%,  1); }
+    void F_ILT()  { IOP(<,  0); }
+    void F_IGT()  { IOP(>,  0); }
+    void F_ILE()  { IOP(<=, 0); }
+    void F_IGE()  { IOP(>=, 0); }
+    void F_IEQ()  { IOP(==, 0); }
+    void F_INE()  { IOP(!=, 0); }
+
+    void F_FADD() { FOP(+,  0); }
+    void F_FSUB() { FOP(-,  0); }
+    void F_FMUL() { FOP(*,  0); }
+    void F_FDIV() { FOP(/,  1); }
+    void F_FMOD() { VMASSERT(0); }
+    void F_FLT()  { FOP(<,  0); }
+    void F_FGT()  { FOP(>,  0); }
+    void F_FLE()  { FOP(<=, 0); }
+    void F_FGE()  { FOP(>=, 0); }
+    void F_FEQ()  { FOP(==, 0); }
+    void F_FNE()  { FOP(!=, 0); }
+
+    void F_SADD() { SCAT();  }
+    void F_SSUB() { VMASSERT(0); }
+    void F_SMUL() { VMASSERT(0); }
+    void F_SDIV() { VMASSERT(0); }
+    void F_SMOD() { VMASSERT(0); }
+    void F_SLT()  { SOP(<);  }
+    void F_SGT()  { SOP(>);  }
+    void F_SLE()  { SOP(<=); }
+    void F_SGE()  { SOP(>=); }
+    void F_SEQ()  { SOP(==); }
+    void F_SNE()  { SOP(!=); }
+
+    void F_IUMINUS() { Value a = POP(); PUSH(Value(-a.ival())); }
+    void F_FUMINUS() { Value a = POP(); PUSH(Value(-a.fval())); }
+
+    #define VUMINUS(isfloat, type) { \
+        Value a = POP(); \
+        Value res; \
+        int len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
+        if (len >= 0) \
+        { \
+            for (int i = 0; i < len; i++) \
+            { \
+                VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
+                res.eval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
+            } \
+            a.DECRT(); \
+            PUSH(res); \
+            return; \
+        } \
+        VMASSERT(false); \
+        }
+    void F_IVUMINUS() { VUMINUS(false, int) }
+    void F_FVUMINUS() { VUMINUS(true, float) }
+
+    void F_LOGNOT()
+    {
+        Value a = POP();
+        PUSH(!a.True());
+    }
+    void F_LOGNOTREF()
+    {
+        Value a = POP();
+        bool b = a.True();
+        PUSH(!b);
+        if (b) a.DECRT();
+    }
+
+    #define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); }
+    void F_BINAND() { BITOP(&);  }
+    void F_BINOR()  { BITOP(|);  }
+    void F_XOR()    { BITOP(^);  }
+    void F_ASL()    { BITOP(<<); }
+    void F_ASR()    { BITOP(>>); }
+    void F_NEG()    { auto a = POP(); PUSH(~a.ival()); }
+
+    void F_I2F()
+    {
+        Value a = POP();
+        VMTYPEEQ(a, V_INT);
+        PUSH((float)a.ival()); 
+    }                
+                
+    void F_A2S()
+    {
+        Value a = POP();
+        TYPE_ASSERT(IsRefNil(a.type));
+        PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti.t : V_NIL, programprintprefs)));
+        a.DECRTNIL();
+    }
+                    
+    void F_I2A()
+    {
+        Value i = POP();
+        VMTYPEEQ(i, V_INT);
+        PUSH(NewInt(i.ival()));
+    }
+
+    void F_F2A()
+    {
+        Value f = POP();
+        VMTYPEEQ(f, V_FLOAT);
+        PUSH(NewFloat(f.fval()));
+    }
+
+    void F_E2B()
+    {
+        Value a = POP();
+        PUSH(a.True());
+    }   
+
+    void F_E2BREF()
+    {
+        Value a = POP();
+        PUSH(a.True());
+        a.DECRTNIL();
+    }  
+
+    void F_PUSHVAR()    { PUSH(vars[*ip++]); }
+    void F_PUSHVARREF() { PUSH(vars[*ip++].INCRTNIL()); }
+
+    void F_PUSHFLD()  { PushDerefField(*ip++); }
+    void F_PUSHFLDM() { PushDerefField(*ip++); }
+    void F_PUSHIDXI() { PushDerefIdx(POP().ival()); }
+    void F_PUSHIDXV() { PushDerefIdx(GrabIndex(POP())); }
+
+    void F_PUSHLOC()
+    {
+        int i = *ip++;
+        Value coro = POP();
+        VMTYPEEQ(coro, V_COROUTINE);
+        PUSH(coro.cval()->GetVar(i));
+        TOP().INCTYPE(GetVarTypeInfo(i).t);
+        coro.DECRT();
+    }
+
+    void F_LVALLOC()
+    {
+        int lvalop = *ip++;
+        int i = *ip++;
+        Value coro = POP();
+        VMTYPEEQ(coro, V_COROUTINE);
+        Value &a = coro.cval()->GetVar(i);
+        LvalueOp(lvalop, a);
+        coro.DECRT();
+    }
+
+    void F_LVALVAR()   
+    {
+        int lvalop = *ip++; 
+        LvalueOp(lvalop, vars[*ip++]);
+    }
+
+    void F_LVALIDXI() { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); }
+    void F_LVALIDXV() { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); }
+    void F_LVALFLD()  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
+
+    void F_JUMPFAIL()       { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip;                }                    }
+    void F_JUMPFAILR()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       }                    }
+    void F_JUMPFAILN()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    }
+    void F_JUMPNOFAIL()     { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip;                }                    }
+    void F_JUMPNOFAILR()    { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       }                    }
+    void F_JUMPFAILREF()    { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip;                }                    }
+    void F_JUMPFAILRREF()   { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); }
+    void F_JUMPFAILNREF()   { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    }
+    void F_JUMPNOFAILREF()  { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if ( x.True()) { ip = codestart + nip;                }                    }
+    void F_JUMPNOFAILRREF() { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); }
+
+    void F_ISTYPE()
+    {
+        auto to = (type_elem_t)*ip++;
+        auto v = POP(); 
+        auto &ti = GetTypeInfo(to);
+        // Optimizer guarantees we don't have to deal with scalars.
+        if (v.refnil()) PUSH(&v.ref()->ti == &ti);
+        else PUSH(ti.t == V_NIL);
+        v.DECRTNIL();
+    }
+
+    void F_COCL()  { PUSH(Value(0, V_YIELD)); }  // This value never gets used anywhere, just a placeholder.
+    void F_CORO()  { CoNew(); }
+    void F_COEND() { CoClean(); }
+
+    void F_LOGREAD()
+    {
+        auto val = POP();
+        PUSH(vml.LogGet(val, *ip++, false));
+    }
+    void F_LOGREADREF()
+    {
+        auto val = POP();
+        PUSH(vml.LogGet(val, *ip++, true));
     }
 
     void EvalProgram()
     {
-        for (;;)
+        try
         {
-            #ifdef _DEBUG
-                if (trace)
-                {
-                    if (!trace_tail) trace_output.clear();
-                    DisAsmIns(trace_output, ip, codestart, typetable, bcf);
-                    trace_output += " [";
-                    trace_output += to_string(sp + 1);
-                    trace_output += "] - ";
-                    #if RTT_ENABLED
-                    if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
-                    if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
-                    #endif
-                    if (trace_tail)
-                    {
-                        trace_output += "\n";
-                        const int trace_max = 10000;
-                        if (trace_output.length() > trace_max) trace_output.erase(0, trace_max / 2);
-                    }
-                    else
-                    {
-                        Output(OUTPUT_INFO, "%s", trace_output.c_str());
-                    }
-                }
-
-                //currentline = LookupLine(ip).line;
-            #endif
-            
-            #ifdef VM_PROFILER
-                byteprofilecounts[ip - codestart]++;
-                vm_count_ins++;
-            #endif
-            
-            switch (*ip++)
+            for (;;)
             {
-                case IL_PUSHINT:   PUSH(Value(*ip++)); break;
-                case IL_PUSHFLT:   PUSH(Value(*(float *)ip)); ip++; break;
-                case IL_PUSHNIL:   PUSH(Value()); break;
-
-                case IL_PUSHFUN:
-                {
-                    int start = *ip++;
-                    PUSH(Value(codestart + start));
-                    break;
-                }
-
-                case IL_PUSHSTR:
-                {
-                    auto start = ip;
-                    while (*ip++) ;
-                    auto len = (int)(ip - start);
-                    // FIXME: have a way that constant strings can stay in the bytecode,
-                    // or at least preallocate them all
-                    auto s = NewString(len - 1);
-                    for (int i = 0; i < len; i++) s->str()[i] = (char)start[i]; 
-                    PUSH(Value(s));
-                    break;
-                }
-
-                case IL_CALL:
-                {
-                    auto nargs = *ip++;
-                    auto fvar = *ip++;
-                    auto fun = *ip++;
-                    auto tm = *ip++;
-                    FunIntro(nargs, codestart + fun, fvar, ip, tm);
-                    break;
-                }
-
-                case IL_CALLMULTI:
-                {
-                    auto nargs = *ip++;
-                    auto fvar = *ip++;
-                    auto fun = *ip++;
-                    auto tm = *ip++;
-                    EvalMulti(nargs, codestart + fun, fvar, ip, tm);
-                    break;
-                }
-
-                case IL_CALLVCOND:
-                    // FIXME: don't need to check for function value again below if false
-                    if (!TOP().True()) { ip += 2; break; }
-                case IL_CALLV:
-                {
-                    Value fun = POP();
-                    VMTYPEEQ(fun, V_FUNCTION);
-                    auto nargs = *ip++;
-                    auto tm = *ip++;
-                    FunIntro(nargs, fun.ip(), -1, ip, tm);
-                    break;
-                }
-
-                case IL_YIELD:
-                    CoYield(ip);
-                    break;
-
-                case IL_FUNSTART:
-                    VMASSERT(0);
-
-                case IL_FUNEND:
-                    FunOut(-1, 1);
-                    break;
-
-                case IL_RETURN:
-                {
-                    int df = *ip++;
-                    int nrv = *ip++;
-                    int tidx = *ip++;
-                    if(FunOut(df, nrv))
+                #ifdef _DEBUG
+                    if (trace)
                     {
-                        assert(nrv == 1);
-                        return EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t); 
-                    }
-                    break;
-                }
-
-                case IL_EXIT:
-                {
-                    int tidx = *ip++;
-                    return EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
-                }
-
-                case IL_CONT1:
-                {
-                    auto nf = natreg.nfuns[*ip++];
-                    POP();  // return value from body.
-                    nf->cont1();
-                    PUSH(Value());
-                    break;
-                }
-                case IL_CONT1REF:
-                {
-                    auto nf = natreg.nfuns[*ip++];
-                    POP().DECRTNIL();  // return value from body.
-                    nf->cont1();
-                    PUSH(Value());
-                    break;
-                }
-
-                #define FORLOOP(L, V, iterref, bodyref) { \
-                    auto forstart = ip - 1; \
-                    auto tm = *ip++; \
-                    auto bodyret = POP(); \
-                    if (bodyref) bodyret.DECRTNIL(); \
-                    auto &body = TOP(); \
-                    auto &iter = TOPM(1); \
-                    auto &i = TOPM(2); \
-                    TYPE_ASSERT(i.type == V_INT); \
-                    i.setival(i.ival() + 1); \
-                    int len = 0; \
-                    if (i.ival() < (len = (L))) { \
-                    int nargs = body.ip()[1]; \
-                    if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
-                    FunIntro(nargs, body.ip(), -1, forstart, tm); \
-                    break; \
-                    } \
-                    (void)POP(); /* body */ \
-                    if (iterref) TOP().DECRT(); \
-                    (void)POP(); /* iter */ \
-                    (void)POP(); /* i */ \
-                    break; \
-                }
-
-                case IL_IFOR:    FORLOOP(iter.ival(), i, false, false);
-                case IL_IFORREF: FORLOOP(iter.ival(), i, false, true);
-                case IL_VFOR:    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false);
-                case IL_VFORREF: FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true);
-                case IL_SFOR:    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false);
-                case IL_SFORREF: FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true);
-
-                case IL_BCALL:
-                {
-                    #ifdef VM_PROFILER
-                        vm_count_bcalls++;
-                    #endif
-                    auto nf = natreg.nfuns[*ip++];
-                    Value v;
-                    switch (nf->args.v.size())
-                    {
-                        #define ARG(N) Value a##N = POP();
-                        case 0: {                                           v = nf->fun.f0(); break; }
-                        case 1: { ARG(0)                                    v = nf->fun.f1(a0); break; }
-                        case 2: { ARG(1) ARG(0)                             v = nf->fun.f2(a0, a1); break; }
-                        case 3: { ARG(2) ARG(1) ARG(0)                      v = nf->fun.f3(a0, a1, a2); break; }
-                        case 4: { ARG(3) ARG(2) ARG(1) ARG(0)               v = nf->fun.f4(a0, a1, a2, a3); break; }
-                        case 5: { ARG(4) ARG(3) ARG(2) ARG(1) ARG(0)        v = nf->fun.f5(a0, a1, a2, a3, a4); break; }
-                        case 6: { ARG(5) ARG(4) ARG(3) ARG(2) ARG(1) ARG(0) v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
-                                                                                                                break; }
-                        default: VMASSERT(0); break;
-                        #undef ARG
-                    }
-                    PUSH(v);
-                    #if RTT_ENABLED
-                        // see if any builtin function is lying about what type it returns
-                        // other function types return intermediary values that don't correspond to final return values
-                        if (nf->ncm == NCM_NONE)
-                        { 
-                            for (size_t i = 0; i < nf->retvals.v.size(); i++)
-                            {
-                                auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
-                                auto u = nf->retvals.v[i].type->t;
-                                TYPE_ASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
-                            }
-                            TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
+                        if (!trace_tail) trace_output.clear();
+                        DisAsmIns(trace_output, ip, codestart, typetable, bcf);
+                        trace_output += " [";
+                        trace_output += to_string(sp + 1);
+                        trace_output += "] - ";
+                        #if RTT_ENABLED
+                        if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
+                        if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
+                        #endif
+                        if (trace_tail)
+                        {
+                            trace_output += "\n";
+                            const int trace_max = 10000;
+                            if (trace_output.length() > trace_max) trace_output.erase(0, trace_max / 2);
                         }
-                    #endif
-                    break;
-                }
-                
-                case IL_JUMP:
-                    ip = codestart + *ip;
-                    break;
-                
-                case IL_NEWVEC:
-                {
-                    auto type = (type_elem_t)*ip++;
-                    auto len = *ip++;
-                    auto vec = NewVector(len, len, GetTypeInfo(type));
-                    if (len) vec->Init(TOPPTR() - len, len, false);
-                    POPN(len);
-                    PUSH(Value(vec));
-                    break;
-                }
+                        else
+                        {
+                            Output(OUTPUT_INFO, "%s", trace_output.c_str());
+                        }
+                    }
 
-                case IL_POP:    POP();            break;
-                case IL_POPREF: POP().DECRTNIL(); break;
+                    //currentline = LookupLine(ip).line;
+                #endif
+            
+                #ifdef VM_PROFILER
+                    auto code_idx = ip - codestart;
+                    assert(code_idx < codelen);
+                    byteprofilecounts[code_idx]++;
+                    vm_count_ins++;
+                #endif
+            
+                auto op = *ip++;
 
-                case IL_DUP:    { auto x = TOP();            PUSH(x); break; }
-                case IL_DUPREF: { auto x = TOP().INCRTNIL(); PUSH(x); break; }
+                #ifdef _DEBUG
+                    if (op < 0 || op >= IL_MAX_OPS)
+                        Error("bytecode format problem: " + to_string(op));
+                #endif
 
-                #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
-                #define GETARGS() Value b = POP(); Value a = POP()
-                #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
-                    if (extras & 1 && b.field == 0) Div0(); res = a.field op b.field;
-
-                #define _IOP(op, extras)  TYPEOP(op, extras, ival(), VMASSERT(a.type == V_INT && b.type == V_INT))
-                #define _FOP(op, extras)  TYPEOP(op, extras, fval(), VMASSERT(a.type == V_FLOAT && b.type == V_FLOAT))
-
-                #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
-                #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-                    int len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) : a.eval()->ti); \
-                    for (int j = 0; j < len; j++) \
-                    { \
-                        if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
-                        auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
-                        if (extras&1 && bv == 0) Div0(); \
-                        VMTYPEEQ(a.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
-                        res.eval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
-                    } \
-                    a.DECRT(); \
-                    if (!withscalar) b.DECRT(); \
-                } 
-                #define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, int, false, withscalar, icomp)
-                #define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, float, true, withscalar, fcomp)
-                    
-                #define _SCAT()  Value res; REFOP(NewString(a.sval()->str(), a.sval()->len, b.sval()->str(), b.sval()->len))
-                #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
-
-                #define ACOMPEN(op) { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); break; }
-
-                                           
-                #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); break; }
-                #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); break; }
-                #define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); break; }
-                #define IVVOPC(op, extras) { GETARGS(); _IVOP(op, extras, false, true);  PUSH(res); break; }
-                #define FVVOP(op, extras)  { GETARGS(); _FVOP(op, extras, false, false); PUSH(res); break; }
-                #define FVVOPC(op, extras) { GETARGS(); _FVOP(op, extras, false, true);  PUSH(res); break; }
-                #define IVSOP(op, extras)  { GETARGS(); _IVOP(op, extras, true, false);  PUSH(res); break; }
-                #define IVSOPC(op, extras) { GETARGS(); _IVOP(op, extras, true, true);   PUSH(res); break; }
-                #define FVSOP(op, extras)  { GETARGS(); _FVOP(op, extras, true, false);  PUSH(res); break; }
-                #define FVSOPC(op, extras) { GETARGS(); _FVOP(op, extras, true, true);   PUSH(res); break; }
-                #define SOP(op)            { GETARGS(); _SOP(op);                        PUSH(res); break; }
-                #define SCAT()             { GETARGS(); _SCAT();                         PUSH(res); break; }
-
-                // +  += I F Vif S
-                // -  -= I F Vif 
-                // *  *= I F Vif 
-                // /  /= I F Vif 
-                // %  %= I   Vi 
-
-                // <     I F Vif S
-                // >     I F Vif S
-                // <=    I F Vif S
-                // >=    I F Vif S
-                // ==    I F V   S   // FIXME differentiate struct / value / vector
-                // !=    I F V   S 
-
-                // U-    I F Vif
-                // U!    A
-
-                case IL_IVVADD: IVVOP(+,  0);
-                case IL_IVVSUB: IVVOP(-,  0);
-                case IL_IVVMUL: IVVOP(*,  0);
-                case IL_IVVDIV: IVVOP(/,  1);
-                case IL_IVVLT:  IVVOP(<,  0);
-                case IL_IVVGT:  IVVOP(>,  0);
-                case IL_IVVLE:  IVVOP(<=, 0);
-                case IL_IVVGE:  IVVOP(>=, 0);
-                case IL_FVVADD: FVVOP(+,  0);
-                case IL_FVVSUB: FVVOP(-,  0);
-                case IL_FVVMUL: FVVOP(*,  0);
-                case IL_FVVDIV: FVVOP(/,  1);
-                case IL_FVVLT:  FVVOPC(<,  0);
-                case IL_FVVGT:  FVVOPC(>,  0);
-                case IL_FVVLE:  FVVOPC(<=, 0);
-                case IL_FVVGE:  FVVOPC(>=, 0);
-
-                case IL_IVSADD: IVSOP(+,  0);
-                case IL_IVSSUB: IVSOP(-,  0);
-                case IL_IVSMUL: IVSOP(*,  0);
-                case IL_IVSDIV: IVSOP(/,  1);
-                case IL_IVSLT:  IVSOP(<,  0);
-                case IL_IVSGT:  IVSOP(>,  0);
-                case IL_IVSLE:  IVSOP(<=, 0);
-                case IL_IVSGE:  IVSOP(>=, 0);
-                case IL_FVSADD: FVSOP(+,  0);
-                case IL_FVSSUB: FVSOP(-,  0);
-                case IL_FVSMUL: FVSOP(*,  0);
-                case IL_FVSDIV: FVSOP(/,  1);
-                case IL_FVSLT:  FVSOPC(<,  0);
-                case IL_FVSGT:  FVSOPC(>,  0);
-                case IL_FVSLE:  FVSOPC(<=, 0);
-                case IL_FVSGE:  FVSOPC(>=, 0);
-
-                case IL_AEQ:   ACOMPEN(==);
-                case IL_ANE:   ACOMPEN(!=);
-                    
-                case IL_IADD: IOP(+,  0);
-                case IL_ISUB: IOP(-,  0);
-                case IL_IMUL: IOP(*,  0);
-                case IL_IDIV: IOP(/ , 1);
-                case IL_IMOD: IOP(%,  1);
-                case IL_ILT:  IOP(<,  0);
-                case IL_IGT:  IOP(>,  0);
-                case IL_ILE:  IOP(<=, 0);
-                case IL_IGE:  IOP(>=, 0);
-                case IL_IEQ:  IOP(==, 0);
-                case IL_INE:  IOP(!=, 0);
-
-                case IL_FADD: FOP(+,  0);
-                case IL_FSUB: FOP(-,  0);
-                case IL_FMUL: FOP(*,  0);
-                case IL_FDIV: FOP(/,  1);
-                case IL_FLT:  FOP(<,  0);
-                case IL_FGT:  FOP(>,  0);
-                case IL_FLE:  FOP(<=, 0);
-                case IL_FGE:  FOP(>=, 0);
-                case IL_FEQ:  FOP(==, 0);
-                case IL_FNE:  FOP(!=, 0);
-
-                case IL_SADD: SCAT();
-                case IL_SLT:  SOP(<);
-                case IL_SGT:  SOP(>);
-                case IL_SLE:  SOP(<=);
-                case IL_SGE:  SOP(>=);
-                case IL_SEQ:  SOP(==);
-                case IL_SNE:  SOP(!=);
-
-                case IL_IUMINUS: { Value a = POP(); PUSH(Value(-a.ival())); break; }
-                case IL_FUMINUS: { Value a = POP(); PUSH(Value(-a.fval())); break; }
-
-                #define VUMINUS(isfloat, type) { \
-                    Value a = POP(); \
-                    Value res; \
-                    int len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
-                    if (len >= 0) \
-                    { \
-                        for (int i = 0; i < len; i++) \
-                        { \
-                            VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
-                            res.eval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
-                        } \
-                        a.DECRT(); \
-                        PUSH(res); \
-                        break; \
-                    } \
-                    VMASSERT(false); \
-                    break; }
-                case IL_IVUMINUS: VUMINUS(false, int)
-                case IL_FVUMINUS: VUMINUS(true, float)
-
-                case IL_LOGNOT:
-                {
-                    Value a = POP();
-                    PUSH(!a.True());
-                    break;
-                }
-                case IL_LOGNOTREF:
-                {
-                    Value a = POP();
-                    bool b = a.True();
-                    PUSH(!b);
-                    if (b) a.DECRT();
-                    break;
-                }
-
-                #define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); break; }
-                case IL_BINAND: BITOP(&);
-                case IL_BINOR:  BITOP(|);
-                case IL_XOR:    BITOP(^);
-                case IL_ASL:    BITOP(<<);
-                case IL_ASR:    BITOP(>>);
-                case IL_NEG:    { auto a = POP(); PUSH(~a.ival()); break; }
-
-                case IL_I2F:
-                {
-                    Value a = POP();
-                    VMTYPEEQ(a, V_INT);
-                    PUSH((float)a.ival());    
-                    break;
-                }                
-                
-                case IL_A2S:
-                {
-                    Value a = POP();
-                    TYPE_ASSERT(IsRefNil(a.type));
-                    PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti.t : V_NIL, programprintprefs)));
-                    a.DECRTNIL();
-                    break;
-                }
-                    
-                case IL_I2A:
-                {
-                    Value i = POP();
-                    VMTYPEEQ(i, V_INT);
-                    PUSH(NewInt(i.ival()));
-                    break;
-                }
-
-                case IL_F2A:
-                {
-                    Value f = POP();
-                    VMTYPEEQ(f, V_FLOAT);
-                    PUSH(NewFloat(f.fval()));
-                    break;
-                }
-
-                case IL_E2B:
-                {
-                    Value a = POP();
-                    PUSH(a.True());    
-                    break;
-                }   
-
-                case IL_E2BREF:
-                {
-                    Value a = POP();
-                    PUSH(a.True());
-                    a.DECRTNIL();
-                    break;
-                }  
-
-                case IL_PUSHVAR:    PUSH(vars[*ip++]); break;
-                case IL_PUSHVARREF: PUSH(vars[*ip++].INCRTNIL()); break;
-
-                case IL_PUSHFLD:
-                case IL_PUSHFLDM: PushDerefField(*ip++); break;
-                case IL_PUSHIDXI: PushDerefIdx(POP().ival()); break;
-                case IL_PUSHIDXV: PushDerefIdx(GrabIndex(POP())); break;
-
-                case IL_PUSHLOC:
-                {
-                    int i = *ip++;
-                    Value coro = POP();
-                    VMTYPEEQ(coro, V_COROUTINE);
-                    PUSH(coro.cval()->GetVar(i));
-                    TOP().INCTYPE(GetVarTypeInfo(i).t);
-                    coro.DECRT();
-                    break;
-                }
-
-                case IL_LVALLOC:
-                {
-                    int lvalop = *ip++;
-                    int i = *ip++;
-                    Value coro = POP();
-                    VMTYPEEQ(coro, V_COROUTINE);
-                    Value &a = coro.cval()->GetVar(i);
-                    LvalueOp(lvalop, a);
-                    coro.DECRT();
-                    break;
-                }
-
-                case IL_LVALVAR:   
-                {
-                    int lvalop = *ip++; 
-                    LvalueOp(lvalop, vars[*ip++]);
-                    break;
-                }
-
-                case IL_LVALIDXI: { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); break; }
-                case IL_LVALIDXV: { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); break; }
-                case IL_LVALFLD:  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); break; }
-
-                case IL_JUMPFAIL:       { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip;                }                    break; }
-                case IL_JUMPFAILR:      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       }                    break; }
-                case IL_JUMPFAILN:      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    break; }
-                case IL_JUMPNOFAIL:     { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip;                }                    break; }
-                case IL_JUMPNOFAILR:    { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       }                    break; }
-                case IL_JUMPFAILREF:    { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip;                }                    break; }
-                case IL_JUMPFAILRREF:   { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); break; }
-                case IL_JUMPFAILNREF:   { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    break; }
-                case IL_JUMPNOFAILREF:  { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if ( x.True()) { ip = codestart + nip;                }                    break; }
-                case IL_JUMPNOFAILRREF: { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); break; }
-
-                case IL_ISTYPE:
-                {
-                    auto to = (type_elem_t)*ip++;
-                    auto v = POP(); 
-                    auto &ti = GetTypeInfo(to);
-                    // Optimizer guarantees we don't have to deal with scalars.
-                    if (v.refnil()) PUSH(&v.ref()->ti == &ti);
-                    else PUSH(ti.t == V_NIL);
-                    v.DECRTNIL();
-                    break;
-                }
-
-                case IL_COCL:
-                    PUSH(Value(0, V_YIELD));  // This value never gets used anywhere, just a placeholder.
-                    break;
-
-                case IL_CORO:
-                    CoNew();
-                    break;
-
-                case IL_COEND:
-                    CoClean();
-                    break;
-
-                case IL_LOGREAD:
-                {
-                    auto val = POP();
-                    PUSH(vml.LogGet(val, *ip++, false));
-                    break;
-                }
-                case IL_LOGREADREF:
-                {
-                    auto val = POP();
-                    PUSH(vml.LogGet(val, *ip++, true));
-                    break;
-                }
-
-                default:
-                    Error("bytecode format problem: " + to_string(*--ip));
+                ((*this).*(f_ins_pointers[op]))();
             }
+        }
+        catch (string &s)
+        {
+            if (s != "end-eval") throw s;
         }
     }
 

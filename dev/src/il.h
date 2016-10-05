@@ -69,12 +69,17 @@ namespace lobster
     F(IPP) F(IPPR) F(IMM) F(IMMR) F(IPPP) F(IPPPR) F(IMMP) F(IMMPR) \
     F(FPP) F(FPPR) F(FMM) F(FMMR) F(FPPP) F(FPPPR) F(FMMP) F(FMMPR)
 
-#define F(N) IL_##N,
-    enum { ILNAMES };
-#undef F
+enum { 
+    #define F(N) IL_##N,
+        ILNAMES
+    #undef F
+    IL_MAX_OPS
+};
 
-#define F(N) LVO_##N,
-    enum { LVALOPNAMES };
-#undef F
+enum { 
+    #define F(N) LVO_##N,
+        LVALOPNAMES
+    #undef F
+};
 
 }
