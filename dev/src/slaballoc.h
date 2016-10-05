@@ -50,6 +50,7 @@ alloc_sized/dealloc_sized instead do store the size, if a more drop-in replaceme
 #ifdef _DEBUG
     // uncomment if debugging with crtdbg functionality is required (for finding memory corruption)
     //#define PASSTHRUALLOC
+    #define COLLECT_STATS
 #endif
 
 class SlabAlloc
@@ -103,7 +104,7 @@ class SlabAlloc
 
     DLList<DLNodeRaw> largeallocs;
 
-    #ifdef _DEBUG
+    #ifdef COLLECT_STATS
     long long stats[MAXBUCKETS];
     #endif
     long long statbig;
@@ -178,7 +179,7 @@ class SlabAlloc
     {
         for (int i = 0; i<MAXBUCKETS; i++)
         {
-            #ifdef _DEBUG
+            #ifdef COLLECT_STATS
                 stats[i] = 0;
             #endif
         }
@@ -209,7 +210,7 @@ class SlabAlloc
         assert(size <= MAXREUSESIZE);     // if you hit this, use alloc() below instead
 
         int b = bucket((int)size);
-        #ifdef _DEBUG
+        #ifdef COLLECT_STATS
             stats[b]++;
         #endif
 
@@ -433,7 +434,7 @@ class SlabAlloc
         {
             size_t num = 0;
             loopdllist(reuse[i], n) num++;
-            #ifdef _DEBUG
+            #ifdef COLLECT_STATS
                 if (num || stats[i])
                 {
                     size_t waste = (i*ALIGN*num+512)/1024;
@@ -453,7 +454,7 @@ class SlabAlloc
         loopdllist(usedpages, h) numused++;
         loopdllist(largeallocs, n) numlarge++;
 
-        if (full || numused || numlarge)
+        if (full || numused || numlarge || totalallocs)
         {
             Output(OUTPUT_INFO, "totalwaste %lu k, pages %d empty / %d used, %d big alloc live,"
                          " %lld total allocs made, %lld big allocs made",

@@ -7,7 +7,7 @@ include "exception.lobster"
 include "vec.lobster"
 include "astar.lobster"
 
-def run_test_cases():
+def run_test_cases(is_speed_test):
     //trace_bytecode(1)
 
     assert 1 & 3 == 1
@@ -57,18 +57,19 @@ def run_test_cases():
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert equal(string2unicode(unicode2string(unicodetests)), unicodetests)
 
-    compres1, comperr1 := compile_run_code("1 + 2")
-    if comperr1:
-        print comperr1
-    assert compres1 == "3"
+    if !is_speed_test:
+        compres1, comperr1 := compile_run_code("1 + 2")
+        if comperr1:
+            print comperr1
+        assert compres1 == "3"
 
-    /*
-    // this test makes it dependent on this file even in shipping builds, so off by default
-    compres2, comperr2 := compile_run_file("plugintest.lobster")
-    if(comperr2):
-        print(comperr2)
-    assert(compres2 == "plugintest return value")
-    */
+        /*
+        // this test makes it dependent on this file even in shipping builds, so off by default
+        compres2, comperr2 := compile_run_file("plugintest.lobster")
+        if(comperr2):
+            print(comperr2)
+        assert(compres2 == "plugintest return value")
+        */
 
     def scopetest():
         x := 1
@@ -350,20 +351,21 @@ def run_test_cases():
 
     assert(seconds_elapsed() - starttime > 0)
 
-    def cycletest():
-        struct cyclist { name:string, loop:cyclist?, next:cyclist? }
-        cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
-        cycle.loop = cycle
-        assert cycle.next
-        cycle.next.loop = cycle.next
+    if !is_speed_test:
+        def cycletest():
+            struct cyclist { name:string, loop:cyclist?, next:cyclist? }
+            cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
+            cycle.loop = cycle
+            assert cycle.next
+            cycle.next.loop = cycle.next
 
-    cycletest()
-    garbage_objects := collect_garbage()
-    assert garbage_objects == 4 // 2 vectors, 2 strings
-    garbage_objects = collect_garbage()
-    assert !garbage_objects
+        cycletest()
+        garbage_objects := collect_garbage()
+        assert garbage_objects == 4 // 2 vectors, 2 strings
+        garbage_objects = collect_garbage()
+        assert !garbage_objects
 
     //"press enter to continue...".print
     //getline()
 
-run_test_cases()
+run_test_cases(false)
