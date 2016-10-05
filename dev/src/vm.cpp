@@ -30,6 +30,7 @@ SlabAlloc *vmpool = nullptr;               // set during the lifetime of a VM ob
 
 #ifdef _DEBUG
     #define VM_PROFILER                     // tiny VM slowdown and memory usage when enabled
+    #define VM_PROFILER
 #endif
 
 struct VM : VMBase
@@ -85,6 +86,10 @@ struct VM : VMBase
     #define POPN(n) (sp -= (n))
     #define TOPPTR() (stack + sp + 1)
 
+    int64_t vm_count_ins;
+    int64_t vm_count_fcalls;
+    int64_t vm_count_bcalls;
+
     VM(const char *_pn, vector<uchar> &&_bytecode_buffer)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
           curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr),
@@ -92,7 +97,8 @@ struct VM : VMBase
           bcf(nullptr),
           currentline(-1), maxsp(-1),
           debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
-          trace(false), trace_tail(true)
+          trace(false), trace_tail(true),
+          vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
@@ -522,6 +528,10 @@ struct VM : VMBase
 
     void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip, int tempmask)
     {
+        #ifdef VM_PROFILER
+            vm_count_fcalls++;
+        #endif
+
         ip = newip;
 
         VMASSERT(*ip == IL_FUNSTART);
@@ -784,6 +794,9 @@ struct VM : VMBase
                        u.lastline != u.line ? ("-" + to_string(u.lastline)).c_str() : "",
                        u.count * 100.0f / total);
             }
+
+            if (vm_count_fcalls)  // remove trivial VM executions from output
+                Output(OUTPUT_INFO, "ins %lld, fcall %lld, bcall %lld", vm_count_ins, vm_count_fcalls, vm_count_bcalls);
         #endif
     }
 
@@ -820,8 +833,9 @@ struct VM : VMBase
             
             #ifdef VM_PROFILER
                 byteprofilecounts[ip - codestart]++;
+                vm_count_ins++;
             #endif
-
+            
             switch (*ip++)
             {
                 case IL_PUSHINT:   PUSH(Value(*ip++)); break;
@@ -961,6 +975,9 @@ struct VM : VMBase
 
                 case IL_BCALL:
                 {
+                    #ifdef VM_PROFILER
+                        vm_count_bcalls++;
+                    #endif
                     auto nf = natreg.nfuns[*ip++];
                     Value v;
                     switch (nf->args.v.size())
