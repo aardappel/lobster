@@ -77,7 +77,7 @@ struct Node : SlabAllocatedSmall
 
     Node(Line &ln, int i)            : line(ln), type(T_INT), integer_(i) {}
     Node(Line &ln, double f)         : line(ln), type(T_FLOAT), flt_(f) {}
-    Node(Line &ln, const string &s)  : line(ln), type(T_STR), str_(parserpool->alloc_string_sized(s.c_str())) {}
+    Node(Line &ln, const string &s)  : line(ln), type(T_STR), str_(parserpool->alloc_string_sized(s)) {}
     Node(Line &ln, Struct *st)       : line(ln), type(T_STRUCT), st_(st) {}
     Node(Line &ln, SharedField *fld) : line(ln), type(T_FIELD), fld_(fld) {}
     Node(Line &ln, SubFunction *sf)  : line(ln), type(T_FUN), sf_(sf) {}
@@ -152,7 +152,7 @@ struct Node : SlabAllocatedSmall
         if (c()) n->cref() = c()->Clone();
         if (type == T_STR)
         {
-            n->str() = parserpool->alloc_string_sized(str());
+            n->str() = (char *)parserpool->clone_sized(str());
         }
         return n;
     }

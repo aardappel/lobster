@@ -389,7 +389,7 @@ struct VM : VMBase
         return RefToString(a, debugpp);
     }
 
-    string DumpVar(const Value &x, size_t idx, uchar dumpglobals)
+    string DumpVar(const Value &x, size_t idx, bool dumpglobals)
     {
         auto sid = bcf->specidents()->Get((uint)idx);
         auto id = bcf->idents()->Get(sid->ididx());
@@ -821,13 +821,10 @@ struct VM : VMBase
 
     void F_PUSHSTR()
     {
-        auto start = ip;
-        while (*ip++) ;
-        auto len = (int)(ip - start);
         // FIXME: have a way that constant strings can stay in the bytecode,
         // or at least preallocate them all
-        auto s = NewString(len - 1);
-        for (int i = 0; i < len; i++) s->str()[i] = (char)start[i]; 
+        auto fb_s = bcf->stringtable()->Get(*ip++);
+        auto s = NewString(fb_s->c_str(), fb_s->Length());
         PUSH(Value(s));
     }
 
@@ -1323,7 +1320,7 @@ struct VM : VMBase
                 #endif
             
                 #ifdef VM_PROFILER
-                    auto code_idx = ip - codestart;
+                    auto code_idx = size_t(ip - codestart);
                     assert(code_idx < codelen);
                     byteprofilecounts[code_idx]++;
                     vm_count_ins++;

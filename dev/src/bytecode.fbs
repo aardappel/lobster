@@ -38,6 +38,8 @@ table BytecodeFile
     bytecode:[int];
 	typetable:[int];
 
+    stringtable:[string];
+
     lineinfo:[LineInfo];
     filenames:[string];
 

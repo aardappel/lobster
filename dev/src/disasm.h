@@ -177,8 +177,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
 
         case IL_PUSHSTR:
             s += "\"";
-            while(*ip) s += (char)*ip++;
-            ip++;
+            s += bcf->stringtable()->Get(*ip++)->c_str();
             s += "\"";
             break;
 

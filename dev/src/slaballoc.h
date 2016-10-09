@@ -280,7 +280,7 @@ class SlabAlloc
 
     void *alloc_sized(size_t size)
     {
-        size_t *p = (size_t *)alloc(size+sizeof(size_t));
+        size_t *p = (size_t *)alloc(size + sizeof(size_t));
         *p++ = size;  // stores 2 sizes for big objects!
         return p;
     }
@@ -293,12 +293,12 @@ class SlabAlloc
         dealloc(t, size);
     }
 
-    static size_t size_of_allocation(void *p)
+    static size_t size_of_allocation(const void *p)
     {
         return ((size_t *)p)[-1];
     }
 
-    template<typename T> static size_t size_of_allocation_typed(T *p)
+    template<typename T> static size_t size_of_allocation_typed(const T *p)
     {
         return size_of_allocation(p) / sizeof(T);
     }
@@ -312,6 +312,14 @@ class SlabAlloc
         return np;
     }
 
+    void *clone_sized(const void *p)
+    {
+        auto len = size_of_allocation(p);
+        auto buf = alloc_sized(len);
+        memcpy(buf, p, len);
+        return buf;
+    }
+
     // convenient string allocation, dealloc with dealloc_sized
 
     char *alloc_string_sized(const char *from)
@@ -319,6 +327,19 @@ class SlabAlloc
         char *buf = (char *)alloc_sized(strlen(from) + 1);
         strcpy(buf, from);
         return buf;
+    }
+
+    char *alloc_string_sized(const string &from)
+    {
+        auto len = from.size() + 1;
+        char *buf = (char *)alloc_sized(len);
+        memcpy(buf, from.c_str(), len);
+        return buf;
+    }
+
+    static size_t size_of_string(const void *p)
+    {
+        return size_of_allocation(p) - 1;
     }
 
     // typed helpers

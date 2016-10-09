@@ -17,7 +17,7 @@
 
 namespace lobster
 {
-    const int LOBSTER_BYTECODE_FORMAT_VERSION = 2;
+    const int LOBSTER_BYTECODE_FORMAT_VERSION = 3;
 
 #define ILNAMES \
     F(PUSHINT) \

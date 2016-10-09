@@ -30,6 +30,8 @@ struct CodeGen
 
     vector<TypeRef> rettypes, temptypestack;
 
+    vector<const char *> stringtable;  // sized strings.
+
     int Pos() { return (int)code.size(); }
 
     void Emit(int i)
@@ -430,7 +432,7 @@ struct CodeGen
         {
             case T_INT:   if (retval) { Emit(IL_PUSHINT, n->integer()); }; break;
             case T_FLOAT: if (retval) { GenFloat((float)n->flt()); }; break;
-            case T_STR:   if (retval) { Emit(IL_PUSHSTR); for (const char *p = n->str(); *p; p++) Emit(*p); Emit(0); }; break;
+            case T_STR:   if (retval) { Emit(IL_PUSHSTR, (int)stringtable.size()); stringtable.push_back(n->str()); }; break;
             case T_NIL:   if (retval) { Emit(IL_PUSHNIL); break; }
 
             case T_DEFAULTVAL:

@@ -682,6 +682,7 @@ struct SymbolTable
                    vector<type_elem_t> &vfloat_typeoffsets,
                    vector<bytecode::LineInfo> &linenumbers,
                    vector<bytecode::SpecIdent> &sids,
+                   vector<const char *> &stringtable,
                    vector<uchar> &bytecode)
     {
         flatbuffers::FlatBufferBuilder fbb;
@@ -698,18 +699,22 @@ struct SymbolTable
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb));
 
-        auto bcf = bytecode::CreateBytecodeFile(fbb, LOBSTER_BYTECODE_FORMAT_VERSION,
-                                                     fbb.CreateVector(code),
-                                                     fbb.CreateVector((vector<int> &)typetable),
-                                                     fbb.CreateVectorOfStructs(linenumbers),
-                                                     fbb.CreateVector(fns),
-                                                     fbb.CreateVector(functionoffsets),
-                                                     fbb.CreateVector(structoffsets),
-                                                     fbb.CreateVector(identoffsets),
-                                                     fbb.CreateVectorOfStructs(sids),
-                                                     fbb.CreateVector((vector<int> &)vint_typeoffsets),
-                                                     fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
-                                                     uses_frame_state);
+        auto bcf = bytecode::CreateBytecodeFile(fbb,
+            LOBSTER_BYTECODE_FORMAT_VERSION,
+            fbb.CreateVector(code),
+            fbb.CreateVector((vector<int> &)typetable),
+            fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(stringtable.size(), [&](size_t i) { 
+                return fbb.CreateString(stringtable[i], SlabAlloc::size_of_string(stringtable[i])); 
+            }),
+            fbb.CreateVectorOfStructs(linenumbers),
+            fbb.CreateVector(fns),
+            fbb.CreateVector(functionoffsets),
+            fbb.CreateVector(structoffsets),
+            fbb.CreateVector(identoffsets),
+            fbb.CreateVectorOfStructs(sids),
+            fbb.CreateVector((vector<int> &)vint_typeoffsets),
+            fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
+            uses_frame_state);
         fbb.Finish(bcf);
 
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
