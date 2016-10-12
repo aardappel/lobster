@@ -235,6 +235,7 @@
     <ClInclude Include="..\src\platform.h" />
     <ClInclude Include="..\src\slaballoc.h" />
     <ClInclude Include="..\src\stdafx.h" />
+    <ClInclude Include="..\src\tocpp.h" />
     <ClInclude Include="..\src\tools.h" />
     <ClInclude Include="..\src\ttypes.h" />
     <ClInclude Include="..\src\typecheck.h" />

@@ -92,6 +92,9 @@
     <ClInclude Include="..\src\vm.h">
       <Filter>dvm</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\tocpp.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">

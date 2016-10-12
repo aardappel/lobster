@@ -93,7 +93,9 @@ struct VM : VMBase
     typedef void (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
-    VM(const char *_pn, vector<uchar> &&_bytecode_buffer)
+    const void *compiled_code_ip;
+
+    VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_point, const void *static_bytecode)
         : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
           curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr),
           bytecode_buffer(std::move(_bytecode_buffer)),
@@ -101,12 +103,13 @@ struct VM : VMBase
           currentline(-1), maxsp(-1),
           debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
           trace(false), trace_tail(true),
-          vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0)
+          vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
+          compiled_code_ip(entry_point)
     {
         assert(vmpool == nullptr);
         vmpool = new SlabAlloc();
 
-        bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
+        bcf = bytecode::GetBytecodeFile(static_bytecode ? static_bytecode : bytecode_buffer.data());
         if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
             throw string("bytecode is from a different version of Lobster");
         vml.uses_frame_state = bcf->uses_frame_state() != 0;
@@ -140,7 +143,7 @@ struct VM : VMBase
 
         vml.LogInit();
 
-        #define F(N) f_ins_pointers[IL_##N] = &VM::F_##N;
+        #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
             ILNAMES
         #undef F
 
@@ -970,8 +973,6 @@ struct VM : VMBase
         #endif
     }
                 
-    void F_JUMP() { ip = codestart + *ip; }
-                
     void F_NEWVEC()
     {
         auto type = (type_elem_t)*ip++;
@@ -1249,6 +1250,8 @@ struct VM : VMBase
     void F_LVALIDXV() { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); }
     void F_LVALFLD()  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
 
+    void F_JUMP() { ip = codestart + *ip; }
+
     void F_JUMPFAIL()       { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip;                }                    }
     void F_JUMPFAILR()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       }                    }
     void F_JUMPFAILN()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    }
@@ -1292,48 +1295,52 @@ struct VM : VMBase
         {
             for (;;)
             {
-                #ifdef _DEBUG
-                    if (trace)
-                    {
-                        if (!trace_tail) trace_output.clear();
-                        DisAsmIns(trace_output, ip, codestart, typetable, bcf);
-                        trace_output += " [";
-                        trace_output += to_string(sp + 1);
-                        trace_output += "] - ";
-                        #if RTT_ENABLED
-                        if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
-                        if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
-                        #endif
-                        if (trace_tail)
+                #ifdef VM_COMPILED_CODE_MODE
+                    compiled_code_ip = ((block_t)compiled_code_ip)();
+                #else
+                    #ifdef _DEBUG
+                        if (trace)
                         {
-                            trace_output += "\n";
-                            const int trace_max = 10000;
-                            if (trace_output.length() > trace_max) trace_output.erase(0, trace_max / 2);
+                            if (!trace_tail) trace_output.clear();
+                            DisAsmIns(trace_output, ip, codestart, typetable, bcf);
+                            trace_output += " [";
+                            trace_output += to_string(sp + 1);
+                            trace_output += "] - ";
+                            #if RTT_ENABLED
+                            if (sp >= 0) { auto x = TOP();   trace_output += x.ToString(x.type, debugpp); }
+                            if (sp >= 1) { auto x = TOPM(1); trace_output += " "; trace_output += x.ToString(x.type, debugpp); }
+                            #endif
+                            if (trace_tail)
+                            {
+                                trace_output += "\n";
+                                const int trace_max = 10000;
+                                if (trace_output.length() > trace_max) trace_output.erase(0, trace_max / 2);
+                            }
+                            else
+                            {
+                                Output(OUTPUT_INFO, "%s", trace_output.c_str());
+                            }
                         }
-                        else
-                        {
-                            Output(OUTPUT_INFO, "%s", trace_output.c_str());
-                        }
-                    }
 
-                    //currentline = LookupLine(ip).line;
-                #endif
+                        //currentline = LookupLine(ip).line;
+                    #endif
             
-                #ifdef VM_PROFILER
-                    auto code_idx = size_t(ip - codestart);
-                    assert(code_idx < codelen);
-                    byteprofilecounts[code_idx]++;
-                    vm_count_ins++;
-                #endif
+                    #ifdef VM_PROFILER
+                        auto code_idx = size_t(ip - codestart);
+                        assert(code_idx < codelen);
+                        byteprofilecounts[code_idx]++;
+                        vm_count_ins++;
+                    #endif
             
-                auto op = *ip++;
+                    auto op = *ip++;
 
-                #ifdef _DEBUG
-                    if (op < 0 || op >= IL_MAX_OPS)
-                        Error("bytecode format problem: " + to_string(op));
+                    #ifdef _DEBUG
+                        if (op < 0 || op >= IL_MAX_OPS)
+                            Error("bytecode format problem: " + to_string(op));
+                    #endif
+
+                    ((*this).*(f_ins_pointers[op]))();
                 #endif
-
-                ((*this).*(f_ins_pointers[op]))();
             }
         }
         catch (string &s)
@@ -1584,9 +1591,10 @@ struct VM : VMBase
     }
 };
 
-void RunBytecode(const char *programname, vector<uchar> &&bytecode)
+void RunBytecode(const char *programname, vector<uchar> &&bytecode, const void *entry_point,
+                 const void *static_bytecode)
 {
-    new VM(programname, std::move(bytecode));  // Sets up g_vm
+    new VM(programname, std::move(bytecode), entry_point, static_bytecode);  // Sets up g_vm
     g_vm->EvalProgram();
 }
 

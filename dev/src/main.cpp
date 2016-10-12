@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
 
         bool parsedump = false;
         bool disasm = false;
+        bool to_cpp = false;
         const char *default_bcf = "default.lbc";
         const char *bcf = nullptr;
 
@@ -55,6 +56,7 @@ int main(int argc, char* argv[])
             string a = argv[arg];
             if      (a == "-w") { wait = true; }
             else if (a == "-b") { bcf = default_bcf; }
+            else if (a == "--to-cpp")    { to_cpp = true; }
             else if (a == "--parsedump") { parsedump = true; }
             else if (a == "--disasm")    { disasm = true; }
             else if (a == "--verbose")   { min_output_level = OUTPUT_INFO; }
@@ -124,7 +126,22 @@ int main(int argc, char* argv[])
             }
         }
 
-        EngineRunByteCode(fn, std::move(bytecode));
+        if (to_cpp)
+        {
+            FILE *f = OpenForWriting("compiled_lobster_program.cpp", false);
+            if (f)
+            {
+                string s;
+                ToCPP(s, bytecode.data(), bytecode.size());
+                fputs(s.c_str(), f);
+                fclose(f);
+            }
+        }
+        else
+        {
+            if (EngineRunByteCode(fn, std::move(bytecode), nullptr, nullptr))
+                return 0;  // Emscripten inverted control.
+        }
     }
     catch (string &s)
     {

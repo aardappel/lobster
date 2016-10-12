@@ -126,6 +126,8 @@ struct PrintPrefs
         : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1), anymark(_anymark) {}
 };
 
+typedef void *(*block_t)();
+
 struct VMBase
 {
     PrintPrefs programprintprefs;

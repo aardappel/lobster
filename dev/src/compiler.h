@@ -23,4 +23,6 @@ extern void RegisterBuiltin(const char *name, void (* regfun)());
 extern void RegisterCoreLanguageBuiltins();
 extern void DumpBuiltins(bool justnames);
 
+extern void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len);
+
 }

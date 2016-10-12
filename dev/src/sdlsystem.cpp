@@ -737,11 +737,11 @@ void one_frame_callback()
     }
 }
 
-void EngineRunByteCode(const char *fn, vector<uchar> &&bytecode)
+bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, const void *static_bytecode)
 {
     try
     {
-        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode));
+        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point, static_bytecode);
     }
     catch (string &s)
     {
@@ -755,7 +755,7 @@ void EngineRunByteCode(const char *fn, vector<uchar> &&bytecode)
             emscripten_set_main_loop(one_frame_callback, 0, false);
             // Return from main() here (!) since we don't actually want to run any shutdown code yet.
             assert(g_vm);
-            return 0;
+            return true;
             #else
             // Emulate this behavior so we can debug it.
             while (g_vm->evalret == "") one_frame_callback();
@@ -771,4 +771,31 @@ void EngineRunByteCode(const char *fn, vector<uchar> &&bytecode)
     }
 
     delete lobster::g_vm;
+    return false;
+}
+
+int EngineRunCompiledCodeMain(int argc, const char *argv[], const void *entry_point, const void *bytecodefb)
+{
+    (void)argc;
+
+    min_output_level = OUTPUT_INFO;
+    InitTime();
+
+    try
+    {
+        SetupDefaultDirs("", "../../lobster/", false);  // FIXME
+        RegisterCoreEngineBuiltins();
+
+        vector<uchar> empty;
+        if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb))
+            return 0;  // Emscripten.
+    }
+    catch (string &s)
+    {
+        Output(OUTPUT_ERROR, s.c_str());
+        EngineExit(1);
+    }
+
+    EngineExit(0);
+    return 0;
 }

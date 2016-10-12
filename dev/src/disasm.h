@@ -51,9 +51,7 @@ static const char *IdName(const bytecode::BytecodeFile *bcf, int i)
 static const int *DisAsmIns(string &s, const int *ip, const int *code, const type_elem_t *typetable,
                             const bytecode::BytecodeFile *bcf)
 {
-    #define F(N) #N,
-    static const char *ilnames[] = { ILNAMES };
-    #undef F
+    auto ilnames = ILNames();
 
     auto li = LookupLine(ip, code, bcf);
 
@@ -67,6 +65,13 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
     s += " ";
 
     int opc = *ip++;
+
+    if (opc < 0 || opc >= IL_MAX_OPS)
+    {
+        s += to_string(opc);
+        s += " ?";
+        return ip;
+    }
 
     switch(opc)
     {
@@ -210,6 +215,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += " ";
             s += to_string(nargs);
             ip += (nargs * 2 + 1) * n;
+            break;
         }
     }
 

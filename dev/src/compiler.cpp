@@ -40,6 +40,8 @@ static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parse
 #include "codegen.h"
 #include "wentropy.h"
 
+#include "tocpp.h"
+
 namespace lobster
 {
 
@@ -78,7 +80,7 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string
 
     CodeGen cg(parser, st);
 
-    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets, cg.lineinfo, cg.sids, bytecode);
+    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets, cg.lineinfo, cg.sids, cg.stringtable, bytecode);
 
     //parserpool->printstats();
 }
@@ -213,7 +215,7 @@ Value CompileRun(Value &source, bool stringiscode)
         vector<uchar> bytecode;
         Compile(fn.c_str(), stringiscode ? source.sval()->str() : nullptr, bytecode);
         //string s; DisAsm(s, bytecode.data()); Output(OUTPUT_INFO, "%s", s.c_str());
-        RunBytecode(fn.c_str(), std::move(bytecode));
+        RunBytecode(fn.c_str(), std::move(bytecode), nullptr, nullptr);
         auto ret = g_vm->evalret;
         delete g_vm;
         assert(!vmpool && !g_vm);
