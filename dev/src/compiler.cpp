@@ -18,9 +18,7 @@
 
 #include "vmdata.h"
 #include "natreg.h"
-#include "il.h"
 
-#include "bytecode_generated.h"
 #include "vm.h"
 
 namespace lobster
@@ -209,7 +207,7 @@ Value CompileRun(Value &source, bool stringiscode)
 {
     string fn = stringiscode ? "string" : source.sval()->str();  // fixme: datadir + sanitize?
     SlabAlloc *parentpool = vmpool; vmpool = nullptr;
-    VMBase    *parentvm   = g_vm;   g_vm = nullptr;
+    VM        *parentvm   = g_vm;   g_vm = nullptr;
     try
     {
         vector<uchar> bytecode;

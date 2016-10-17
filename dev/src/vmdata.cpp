@@ -18,6 +18,46 @@
 
 namespace lobster {
 
+BoxedInt::BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
+BoxedFloat::BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
+LString::LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
+
+string LString::ToString(PrintPrefs &pp)
+{
+    if (pp.cycles >= 0)
+    {
+        if (refc < 0)
+            return CycleStr(); 
+        CycleDone(pp.cycles);
+    }
+    string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
+    if (pp.quoted)
+    {
+        string r = "\"";
+        for (size_t i = 0; i < s.length(); i++) switch(s[i])
+        {
+            case '\n': r += "\\n"; break;
+            case '\t': r += "\\t"; break;
+            case '\r': r += "\\r"; break;
+            case '\\': r += "\\\\"; break;
+            case '\"': r += "\\\""; break;
+            case '\'': r += "\\\'"; break;
+            default:
+                if (s[i] >= ' ' && s[i] <= '~') r += s[i];
+                else { 
+                    r += "\\x"; r += HexChar(((uchar)s[i]) >> 4); r += HexChar(s[i] & 0xF); }
+                break;
+        }
+
+        r += "\"";
+        return r; 
+    }
+    else
+    {
+        return s;
+    }
+}
+
 int ElemObj::Len() const
 {
     if (ti.t == V_VECTOR) return ((LVector *)this)->len;
@@ -31,6 +71,71 @@ Value &ElemObj::At(int i) const
     assert(ti.t == V_STRUCT);
     return ((LStruct *)this)->At(i);
 };
+
+ValueType ElemObj::ElemType(int i) const
+{
+    auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.subt : ti.elems[i]);
+    auto vt = sti.t;
+    if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.subt).t;
+    #if RTT_ENABLED
+    if(vt != At(i).type && At(i).type != V_NIL && !(vt == V_VECTOR && At(i).type == V_STRUCT))  // FIXME: for testing
+    {
+        Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(At(i).type));
+        assert(false);
+    }
+    #endif
+    return vt;
+}
+
+string ElemObj::ToString(PrintPrefs &pp)
+{
+    if (pp.cycles >= 0)
+    {
+        if (refc < 0)
+            return CycleStr();
+        CycleDone(pp.cycles);
+    }
+
+    string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.structidx) + string("{") : "[";
+    for (int i = 0; i < Len(); i++)
+    {
+        if (i) s += ", ";
+        if ((int)s.size() > pp.budget) { s += "...."; break; }
+        PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
+        s += pp.depth || !IsRef(ElemType(i)) ? At(i).ToString(ElemType(i), subpp) : "..";
+    }
+    s += ti.t == V_STRUCT ? "}" : "]";
+
+    return s;
+}
+
+LVector::LVector(int _initial, int _max, const TypeInfo &_ti) : ElemObj(_ti), len(_initial), maxl(_max)
+{
+    v = maxl ? AllocSubBuf<Value>(maxl, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF)) : nullptr;
+}
+
+const TypeInfo &LVector::ElemTypeInfo() const { return g_vm->GetTypeInfo(ti.subt); }
+
+void LVector::Resize(int newmax)
+{
+    // FIXME: check overflow
+    auto mem = AllocSubBuf<Value>(newmax, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
+    if (len) memcpy(mem, v, sizeof(Value) * len);
+    DeallocBuf();
+    maxl = newmax;
+    v = mem;
+}
+
+void LVector::Append(LVector *from, int start, int amount)
+{
+    if (len + amount > maxl) Resize(len + amount);  // FIXME: check overflow
+    memcpy(v + len, from->v + start, sizeof(Value) * amount);
+    if (IsRefNil(from->ElemTypeInfo().t))
+    {
+        for (int i = 0; i < amount; i++) v[len + i].INCRTNIL();
+    }
+    len += amount;
+}
 
 void RefObj::DECDELETE(bool deref)
 {

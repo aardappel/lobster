@@ -49,6 +49,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "flatbuffers/flatbuffers.h"
+
 using namespace std;
 
 typedef unsigned char uchar;

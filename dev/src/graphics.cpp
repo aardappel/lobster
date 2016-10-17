@@ -81,7 +81,7 @@ bool GraphicsFrameStart()
 
     currentshader = colorshader;
 
-    g_vm->LogFrame();
+    g_vm->vml.LogFrame();
 
     return cb;
 }

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "il.h"
+#include "bytecode_generated.h"
+
 namespace lobster {
 
 #ifdef _DEBUG
@@ -128,45 +131,10 @@ struct PrintPrefs
 
 typedef void *(*block_t)();
 
-struct VMBase
-{
-    PrintPrefs programprintprefs;
-    const type_elem_t *typetable;
-    string evalret;
-
-    VMBase() : programprintprefs(10, 10000, false, -1, false), typetable(nullptr) {}
-    virtual ~VMBase() {}
-
-    const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
-
-    //virtual Value EvalC(Value &cl, int nargs) = 0;
-    virtual Value BuiltinError(string err) = 0;
-    virtual void Push(const Value &v) = 0;
-    virtual Value Pop() = 0;
-    virtual LString *NewString(const string &s) = 0;
-    virtual LString *NewString(const char *c, size_t l) = 0;
-    virtual ElemObj *NewVector(int initial, int max, const TypeInfo &ti) = 0;
-    virtual const TypeInfo *GetIntVectorType(int which) = 0;
-    virtual const TypeInfo *GetFloatVectorType(int which) = 0;
-    virtual void Trace(bool on) = 0;
-    virtual double Time() = 0;
-    virtual int GC() = 0;
-    virtual string ProperTypeName(const TypeInfo &ti) = 0;
-    virtual const char *ReverseLookupType(uint v) = 0;
-    virtual void SetMaxStack(int ms) = 0;
-    virtual void CoResume(CoRoutine *co) = 0;
-    virtual int CallerId() = 0;
-    virtual const char *GetProgramName() = 0;
-    virtual void LogFrame() = 0;
-    virtual string StructName(const TypeInfo &ti) = 0;
-    virtual const TypeInfo &GetVarTypeInfo(int varidx) = 0;
-    virtual void CoVarCleanup(CoRoutine *co) = 0;
-    virtual void EvalProgram() = 0;
-    virtual void OneMoreFrame() = 0;
-};
+struct VM;
 
 // the 2 globals that make up the current VM instance
-extern VMBase *g_vm;
+extern VM *g_vm;
 extern SlabAlloc *vmpool;
 
 struct DynAlloc     // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
@@ -185,13 +153,11 @@ struct RefObj : DynAlloc
     void Inc()
     {
         refc++;
-        //Output(OUTPUT_INFO, "INC to %d for %s", refc, ToString(g_vm->programprintprefs).c_str());
     }
 
     void Dec()
     {
         refc--;
-        //Output(OUTPUT_INFO, "DEC to %d for %s", refc, ToString(g_vm->programprintprefs).c_str());
         if (refc <= 0) DECDELETE(true);
     }
 
@@ -213,59 +179,25 @@ struct BoxedInt : RefObj
 {
     int val;
 
-    BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
+    BoxedInt(int _v);
 };
 
 struct BoxedFloat : RefObj
 {
     float val;
 
-    BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
+    BoxedFloat(float _v);
 };
 
 struct LString : RefObj
 {
     int len;    // has to match the Value integer type, since we allow the length to be obtained
 
-    LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
+    LString(int _l);
 
     char *str() { return (char *)(this + 1); }
 
-    string ToString(PrintPrefs &pp)
-    {
-        if (pp.cycles >= 0)
-        {
-            if (refc < 0)
-                return CycleStr(); 
-            CycleDone(pp.cycles);
-        }
-        string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
-        if (pp.quoted)
-        {
-            string r = "\"";
-            for (size_t i = 0; i < s.length(); i++) switch(s[i])
-            {
-                case '\n': r += "\\n"; break;
-                case '\t': r += "\\t"; break;
-                case '\r': r += "\\r"; break;
-                case '\\': r += "\\\\"; break;
-                case '\"': r += "\\\""; break;
-                case '\'': r += "\\\'"; break;
-                default:
-                    if (s[i] >= ' ' && s[i] <= '~') r += s[i];
-                    else { 
-                        r += "\\x"; r += HexChar(((uchar)s[i]) >> 4); r += HexChar(s[i] & 0xF); }
-                    break;
-            }
-
-            r += "\"";
-            return r; 
-        }
-        else
-        {
-            return s;
-        }
-    }
+    string ToString(PrintPrefs &pp);
 
     char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
@@ -280,7 +212,7 @@ struct LString : RefObj
 };
 
 #if RTT_ENABLED
-#define TYPE_ASSERT(cond) if(!(cond)) { g_vm->BuiltinError("type verification failed: " #cond); }
+#define TYPE_ASSERT(cond) assert(cond)
 #define TYPE_INIT(t) type(t),
 #else
 #define TYPE_ASSERT(cond) ((void)0)
@@ -411,20 +343,7 @@ struct ElemObj : RefObj
         }
     }
 
-    ValueType ElemType(int i) const
-    {
-        auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.subt : ti.elems[i]);
-        auto vt = sti.t;
-        if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.subt).t;
-        #if RTT_ENABLED
-        if(vt != At(i).type && At(i).type != V_NIL && !(vt == V_VECTOR && At(i).type == V_STRUCT))  // FIXME: for testing
-        {
-            Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(At(i).type));
-            assert(false);
-        }
-        #endif
-        return vt;
-    }
+    ValueType ElemType(int i) const;
 
     // TODO: If any of the methods below ever become performance critical, we can duplicate them over LVector/LStruct,
     // such that the check for which type it is only is made once.
@@ -466,27 +385,7 @@ struct ElemObj : RefObj
             At(i).Mark(ElemType(i));
     }
 
-    string ToString(PrintPrefs &pp)
-    {
-        if (pp.cycles >= 0)
-        {
-            if (refc < 0)
-                return CycleStr();
-            CycleDone(pp.cycles);
-        }
-
-        string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.structidx) + string("{") : "[";
-        for (int i = 0; i < Len(); i++)
-        {
-            if (i) s += ", ";
-            if ((int)s.size() > pp.budget) { s += "...."; break; }
-            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
-            s += pp.depth || !IsRef(ElemType(i)) ? At(i).ToString(ElemType(i), subpp) : "..";
-        }
-        s += ti.t == V_STRUCT ? "}" : "]";
-
-        return s;
-    }
+    string ToString(PrintPrefs &pp);
 };
 
 struct LStruct : ElemObj
@@ -519,10 +418,7 @@ struct LVector : ElemObj
     public:
     int maxl;
 
-    LVector(int _initial, int _max, const TypeInfo &_ti) : ElemObj(_ti), len(_initial), maxl(_max)
-    {
-        v = maxl ? AllocSubBuf<Value>(maxl, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF)) : nullptr;
-    }
+    LVector(int _initial, int _max, const TypeInfo &_ti);
 
     ~LVector() { assert(0); }   // destructed by DECREF
 
@@ -538,17 +434,9 @@ struct LVector : ElemObj
         vmpool->dealloc_small(this);
     }
 
-    const TypeInfo &ElemTypeInfo() const { return g_vm->GetTypeInfo(ti.subt); }
+    const TypeInfo &ElemTypeInfo() const;
 
-    void Resize(int newmax)
-    {
-        // FIXME: check overflow
-        auto mem = AllocSubBuf<Value>(newmax, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
-        if (len) memcpy(mem, v, sizeof(Value) * len);
-        DeallocBuf();
-        maxl = newmax;
-        v = mem;
-    }
+    void Resize(int newmax);
 
     void Push(const Value &val)
     {
@@ -591,16 +479,33 @@ struct LVector : ElemObj
         return v[i];
     }
 
-    void Append(LVector *from, int start, int amount)
+    void Append(LVector *from, int start, int amount);
+};
+
+struct VMLog
+{
+    bool uses_frame_state;
+    struct LogValue  // FIXME: there's probably a less lazy way to store this.
     {
-        if (len + amount > maxl) Resize(len + amount);  // FIXME: check overflow
-        memcpy(v + len, from->v + start, sizeof(Value) * amount);
-        if (IsRefNil(from->ElemTypeInfo().t))
-        {
-            for (int i = 0; i < amount; i++) v[len + i].INCRTNIL();
-        }
-        len += amount;
-    }
+        Value v;
+        ValueType t;
+        LogValue(const Value &_v, ValueType _t) : v(_v), t(_t) {}
+    };
+    vector<LogValue> logread, logwrite;
+    size_t logi;
+    const int *lognew;
+
+    VM &vm;
+    VMLog(VM &_vm);
+
+    void LogInit();
+    void LogFrame();
+    void LogSkipNestedFuns();
+    size_t LogFunctionEntry(const int *funstart, int nlogvars);
+    void LogFunctionExit(const int *funstart, const int *logvars, size_t logfunwritestart);
+    Value LogGet(Value def, int idx, bool isref);
+    void LogCleanup();
+    void LogMark();
 };
 
 struct StackFrame
@@ -613,6 +518,191 @@ struct StackFrame
     size_t logfunwritestart;
     size_t logfunreadstart;
 };
+
+struct VM
+{
+    Value *stack;
+    int stacksize;
+    int maxstacksize;
+    int sp;
+
+    const int *ip;
+
+    vector<StackFrame> stackframes;
+
+    CoRoutine *curcoroutine;
+
+    Value *vars;
+    
+    size_t codelen;
+    const int *codestart;
+    vector<int> codebigendian;
+    vector<type_elem_t> typetablebigendian;
+    uint64_t *byteprofilecounts;
+    
+    vector<uchar> bytecode_buffer;
+    const bytecode::BytecodeFile *bcf;
+
+    PrintPrefs programprintprefs;
+    const type_elem_t *typetable;
+    string evalret;
+
+    int currentline;
+    int maxsp;
+
+    PrintPrefs debugpp;
+
+    string programname;
+
+    VMLog vml;
+
+    bool trace;
+    bool trace_tail;
+    string trace_output;
+
+    int64_t vm_count_ins;
+    int64_t vm_count_fcalls;
+    int64_t vm_count_bcalls;
+
+    typedef void (VM::* f_ins_pointer)();
+    f_ins_pointer f_ins_pointers[IL_MAX_OPS];
+
+    const void *compiled_code_ip;
+
+    VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_point, const void *static_bytecode);
+    ~VM();
+
+    void OneMoreFrame();
+
+    const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
+    const TypeInfo &GetVarTypeInfo(int varidx);
+
+    void SetMaxStack(int ms) { maxstacksize = ms; }
+    const char *GetProgramName() { return programname.c_str(); }
+
+    const TypeInfo *GetIntVectorType(int which);
+    const TypeInfo *GetFloatVectorType(int which);
+
+    void DumpLeaks();
+    
+    ElemObj *NewVector(int initial, int max, const TypeInfo &ti);
+    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo &cti);
+    BoxedInt *NewInt(int i);
+    BoxedFloat *NewFloat(float f);
+    LString *NewString(size_t l);
+    LString *NewString(const char *c, size_t l);
+    LString *NewString(const string &s);
+    LString *NewString(const char *c1, size_t l1, const char *c2, size_t l2);
+
+    Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr);
+    Value BuiltinError(string err) { return Error(err); }
+    void VMAssert(bool ok, const char *what);
+    void VMAssert(bool ok, const char *what, const RefObj *a, const RefObj *b);
+
+    string ValueDBG(const RefObj *a);
+    string DumpVar(const Value &x, size_t idx, bool dumpglobals);
+
+    void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask);
+
+    void FinalStackVarsCleanup();
+    
+    int CallerId();
+
+    int VarCleanup(string *error, int towhere);
+    void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip, int tempmask);
+    bool FunOut(int towhere, int nrv);
+
+    void CoVarCleanup(CoRoutine *co);
+    void CoNonRec(const int *varip);
+    void CoNew();
+    void CoDone(const int *retip);
+    void CoClean();
+    void CoYield(const int *retip);
+    void CoResume(CoRoutine *co);
+
+    void EndEval(Value &ret, ValueType vt);
+
+    #define F(N, A) void F_##N();
+        ILNAMES
+    #undef F
+
+    void EvalProgram();
+
+    void PushDerefField(int i);
+    void PushDerefIdx(int i);
+    void LvalueObj(int lvalop, int i);
+    void LvalueOp(int op, Value &a);
+
+    string ProperTypeName(const TypeInfo &ti);
+
+    void Div0() { Error("division by zero"); } 
+    void IDXErr(int i, int n, const RefObj *v);
+    int GrabIndex(const Value &idx);
+    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, const TypeInfo &desttype);
+
+    void Push(const Value &v);
+    Value Pop();
+
+    string StructName(const TypeInfo &ti);
+    const char *ReverseLookupType(uint v);
+    void Trace(bool on) { trace = on; }
+    double Time() { return SecondsSinceStart(); }
+
+    int GC();
+};
+
+template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
+{
+    vec<float,N> t;
+    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).fval() : def);
+    return t;
+}
+
+template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
+{
+    vec<int, N> t;
+    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).ival() : def);
+    return t;
+}
+
+template<int N> inline vec<float,N> ValueDecToF(const Value &v, float def = 0)
+{
+    auto r = ValueToF<N>(v, def);
+    v.DECRT();
+    return r;
+}
+
+template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0)
+{
+    auto r = ValueToI<N>(v, def);
+    v.DECRT();
+    return r;
+}
+
+template <int N> inline Value ToValueI(const vec<int, N> &vec, int maxelems = 4)
+{
+    auto numelems = min(maxelems, N);
+    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetIntVectorType(numelems));
+    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
+    return Value(v);
+}
+
+template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 4)
+{
+    auto numelems = min(maxelems, N);
+    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetFloatVectorType(numelems));
+    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
+    return Value(v);
+}
+
+inline int RangeCheck(const Value &idx, int range, int bias = 0)
+{
+    int i = idx.ival();
+    if (i < bias || i >= bias + range)
+        g_vm->BuiltinError("index out of range [" + to_string(bias) + ".." + to_string(bias + range) + "): " + 
+            to_string(i));
+    return i;
+}
 
 struct CoRoutine : RefObj
 {
@@ -823,57 +913,6 @@ struct CoRoutine : RefObj
     }
 };
 
-template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0)
-{
-    vec<float,N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).fval() : def);
-    return t;
-}
 
-template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0)
-{
-    vec<int, N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).ival() : def);
-    return t;
-}
-
-template<int N> inline vec<float,N> ValueDecToF(const Value &v, float def = 0)
-{
-    auto r = ValueToF<N>(v, def);
-    v.DECRT();
-    return r;
-}
-
-template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0)
-{
-    auto r = ValueToI<N>(v, def);
-    v.DECRT();
-    return r;
-}
-
-template <int N> inline Value ToValueI(const vec<int, N> &vec, int maxelems = 4)
-{
-    auto numelems = min(maxelems, N);
-    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetIntVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
-    return Value(v);
-}
-
-template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 4)
-{
-    auto numelems = min(maxelems, N);
-    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetFloatVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
-    return Value(v);
-}
-
-inline int RangeCheck(const Value &idx, int range, int bias = 0)
-{
-    int i = idx.ival();
-    if (i < bias || i >= bias + range)
-        g_vm->BuiltinError("index out of range [" + to_string(bias) + ".." + to_string(bias + range) + "): " + 
-                           to_string(i));
-    return i;
-}
 
 }  // namespace lobster

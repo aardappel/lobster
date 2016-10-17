@@ -25,8 +25,6 @@ namespace lobster
              "#include \"stdafx.h\"\n"
              "#include \"vmdata.h\"\n"
              "#include \"natreg.h\"\n"
-             "#include \"il.h\"\n"
-             "#include \"bytecode_generated.h\"\n"
              "\n";
 
         auto len = bcf->bytecode()->Length();

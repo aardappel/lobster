@@ -68,9 +68,6 @@
     <ClInclude Include="..\src\optimizer.h">
       <Filter>compiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vmlog.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vmdata.h">
       <Filter>dvm</Filter>
     </ClInclude>
@@ -120,6 +117,9 @@
     </ClCompile>
     <ClCompile Include="..\src\compiler.cpp">
       <Filter>compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vmlog.cpp">
+      <Filter>dvm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
