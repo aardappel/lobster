@@ -21,6 +21,13 @@ namespace lobster
         auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
         //auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
 
+        map<int, const bytecode::Function *> function_lookup;
+        for (size_t i = 0; i < bcf->functions()->size(); i++)
+        {
+            auto f = bcf->functions()->Get(i);
+            function_lookup[f->bytecodestart()] = f;
+        }
+
         s += "#define VM_COMPILED_CODE_MODE\n\n"
              "#include \"stdafx.h\"\n"
              "#include \"vmdata.h\"\n"
@@ -42,6 +49,13 @@ namespace lobster
                 s += to_string(opc);
                 s += " ?";
                 continue;
+            }
+
+            if (opc == IL_FUNSTART)
+            {
+                s += "\n";
+                auto it = function_lookup.find(ip - 1 - code);
+                if (it != function_lookup.end()) s += "// " + it->second->name()->str() + "\n";
             }
 
             auto ilname = ilnames[opc];

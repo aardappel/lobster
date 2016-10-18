@@ -315,7 +315,7 @@ struct Function : Named
 
     flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb)
     {
-        return bytecode::CreateFunction(fbb, fbb.CreateString(name));
+        return bytecode::CreateFunction(fbb, fbb.CreateString(name), bytecodestart);
     }
 };
 

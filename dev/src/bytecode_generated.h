@@ -55,13 +55,16 @@ STRUCT_END(SpecIdent, 8);
 
 struct Function FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_NAME = 4
+    VT_NAME = 4,
+    VT_BYTECODESTART = 6
   };
   const flatbuffers::String *name() const { return GetPointer<const flatbuffers::String *>(VT_NAME); }
+  int32_t bytecodestart() const { return GetField<int32_t>(VT_BYTECODESTART, 0); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_NAME) &&
            verifier.Verify(name()) &&
+           VerifyField<int32_t>(verifier, VT_BYTECODESTART) &&
            verifier.EndTable();
   }
 };
@@ -70,24 +73,28 @@ struct FunctionBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) { fbb_.AddOffset(Function::VT_NAME, name); }
+  void add_bytecodestart(int32_t bytecodestart) { fbb_.AddElement<int32_t>(Function::VT_BYTECODESTART, bytecodestart, 0); }
   FunctionBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   FunctionBuilder &operator=(const FunctionBuilder &);
   flatbuffers::Offset<Function> Finish() {
-    auto o = flatbuffers::Offset<Function>(fbb_.EndTable(start_, 1));
+    auto o = flatbuffers::Offset<Function>(fbb_.EndTable(start_, 2));
     return o;
   }
 };
 
 inline flatbuffers::Offset<Function> CreateFunction(flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    int32_t bytecodestart = 0) {
   FunctionBuilder builder_(_fbb);
+  builder_.add_bytecodestart(bytecodestart);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Function> CreateFunctionDirect(flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr) {
-  return CreateFunction(_fbb, name ? _fbb.CreateString(name) : 0);
+    const char *name = nullptr,
+    int32_t bytecodestart = 0) {
+  return CreateFunction(_fbb, name ? _fbb.CreateString(name) : 0, bytecodestart);
 }
 
 struct Struct FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
