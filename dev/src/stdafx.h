@@ -76,3 +76,10 @@ static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *), 
 #include "tools.h"
 #include "slaballoc.h"
 #include "geom.h"
+
+#ifdef BUILD_CONTEXT_compiled_lobster
+    // This code is being build as part of lobster code compiled to C++, modify VM behavior accordingly.
+    #define VM_COMPILED_CODE_MODE
+#endif
+
+

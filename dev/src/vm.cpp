@@ -93,7 +93,11 @@ VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_poin
 
     vml.LogInit();
 
-    #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
+    #ifdef VM_COMPILED_CODE_MODE
+        #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
+    #else
+        #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
+    #endif
         ILNAMES
     #undef F
 
@@ -755,17 +759,25 @@ void VM::EndEval(Value &ret, ValueType vt)
     throw string("end-eval");
 }
 
-void VM::F_PUSHINT() { PUSH(Value(*ip++)); }
-void VM::F_PUSHFLT() { PUSH(Value(*(float *)ip)); ip++; }
-void VM::F_PUSHNIL() { PUSH(Value()); }
+#ifdef VM_COMPILED_CODE_MODE
+    #define VM_OP_PASSTHRU ip
+    #pragma warning (disable: 4458)  // ip hides class member, which we rely on
+    #pragma warning (disable: 4100)  // ip may not be touched
+#else
+    #define VM_OP_PASSTHRU
+#endif
 
-void VM::F_PUSHFUN()
+void VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); }
+void VM::F_PUSHFLT(VM_OP_ARGS) { PUSH(Value(*(float *)ip)); ip++; }
+void VM::F_PUSHNIL(VM_OP_ARGS) { PUSH(Value()); }
+
+void VM::F_PUSHFUN(VM_OP_ARGS)
 {
     int start = *ip++;
     PUSH(Value(codestart + start));
 }
 
-void VM::F_PUSHSTR()
+void VM::F_PUSHSTR(VM_OP_ARGS)
 {
     // FIXME: have a way that constant strings can stay in the bytecode,
     // or at least preallocate them all
@@ -774,7 +786,7 @@ void VM::F_PUSHSTR()
     PUSH(Value(s));
 }
 
-void VM::F_CALL()
+void VM::F_CALL(VM_OP_ARGS)
 {
     auto nargs = *ip++;
     auto fvar = *ip++;
@@ -783,7 +795,7 @@ void VM::F_CALL()
     FunIntro(nargs, codestart + fun, fvar, ip, tm);
 }
 
-void VM::F_CALLMULTI()
+void VM::F_CALLMULTI(VM_OP_ARGS)
 {
     auto nargs = *ip++;
     auto fvar = *ip++;
@@ -792,15 +804,15 @@ void VM::F_CALLMULTI()
     EvalMulti(nargs, codestart + fun, fvar, ip, tm);
 }
 
-void VM::F_FUNMULTI() { VMASSERT(0); }
+void VM::F_FUNMULTI(VM_OP_ARGS) { VMASSERT(0); }
 
-void VM::F_CALLVCOND()
+void VM::F_CALLVCOND(VM_OP_ARGS)
 {
     // FIXME: don't need to check for function value again below if false
-    if (!TOP().True()) { ip += 2; } else F_CALLV();
+    if (!TOP().True()) { ip += 2; } else F_CALLV(VM_OP_PASSTHRU);
 }
 
-void VM::F_CALLV()
+void VM::F_CALLV(VM_OP_ARGS)
 {
     Value fun = POP();
     VMTYPEEQ(fun, V_FUNCTION);
@@ -809,12 +821,12 @@ void VM::F_CALLV()
     FunIntro(nargs, fun.ip(), -1, ip, tm);
 }
 
-void VM::F_YIELD() { CoYield(ip); }
+void VM::F_YIELD(VM_OP_ARGS) { CoYield(ip); }
 
-void VM::F_FUNSTART() { VMASSERT(0); }
-void VM::F_FUNEND() { FunOut(-1, 1); }
+void VM::F_FUNSTART(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_FUNEND(VM_OP_ARGS) { FunOut(-1, 1); }
 
-void VM::F_RETURN()
+void VM::F_RETURN(VM_OP_ARGS)
 {
     int df = *ip++;
     int nrv = *ip++;
@@ -826,13 +838,13 @@ void VM::F_RETURN()
     }
 }
 
-void VM::F_EXIT()
+void VM::F_EXIT(VM_OP_ARGS)
 {
     int tidx = *ip++;
     EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
 }
 
-void VM::F_CONT1()
+void VM::F_CONT1(VM_OP_ARGS)
 {
     auto nf = natreg.nfuns[*ip++];
     POP();  // return value from body.
@@ -840,7 +852,7 @@ void VM::F_CONT1()
     PUSH(Value());
 }
 
-void VM::F_CONT1REF()
+void VM::F_CONT1REF(VM_OP_ARGS)
 {
     auto nf = natreg.nfuns[*ip++];
     POP().DECRTNIL();  // return value from body.
@@ -871,14 +883,14 @@ void VM::F_CONT1REF()
     (void)POP(); /* i */ \
 }
 
-void VM::F_IFOR()    { FORLOOP(iter.ival(), i, false, false); }
-void VM::F_IFORREF() { FORLOOP(iter.ival(), i, false, true); }
-void VM::F_VFOR()    { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false); }
-void VM::F_VFORREF() { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true); }
-void VM::F_SFOR()    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
-void VM::F_SFORREF() { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
+void VM::F_IFOR(VM_OP_ARGS)    { FORLOOP(iter.ival(), i, false, false); }
+void VM::F_IFORREF(VM_OP_ARGS) { FORLOOP(iter.ival(), i, false, true); }
+void VM::F_VFOR(VM_OP_ARGS)    { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false); }
+void VM::F_VFORREF(VM_OP_ARGS) { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true); }
+void VM::F_SFOR(VM_OP_ARGS)    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
+void VM::F_SFORREF(VM_OP_ARGS) { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
 
-void VM::F_BCALL()
+void VM::F_BCALL(VM_OP_ARGS)
 {
     #ifdef VM_PROFILER
         vm_count_bcalls++;
@@ -916,7 +928,7 @@ void VM::F_BCALL()
     #endif
 }
                 
-void VM::F_NEWVEC()
+void VM::F_NEWVEC(VM_OP_ARGS)
 {
     auto type = (type_elem_t)*ip++;
     auto len = *ip++;
@@ -926,11 +938,11 @@ void VM::F_NEWVEC()
     PUSH(Value(vec));
 }
 
-void VM::F_POP()    { POP(); }
-void VM::F_POPREF() { POP().DECRTNIL(); }
+void VM::F_POP(VM_OP_ARGS)    { POP(); }
+void VM::F_POPREF(VM_OP_ARGS) { POP().DECRTNIL(); }
 
-void VM::F_DUP()    { auto x = TOP();            PUSH(x); }
-void VM::F_DUPREF() { auto x = TOP().INCRTNIL(); PUSH(x); }
+void VM::F_DUP(VM_OP_ARGS)    { auto x = TOP();            PUSH(x); }
+void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 
 #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
 #define GETARGS() Value b = POP(); Value a = POP()
@@ -991,85 +1003,85 @@ void VM::F_DUPREF() { auto x = TOP().INCRTNIL(); PUSH(x); }
 // U-    I F Vif
 // U!    A
 
-void VM::F_IVVADD() { IVVOP(+,  0);  }
-void VM::F_IVVSUB() { IVVOP(-,  0);  }
-void VM::F_IVVMUL() { IVVOP(*,  0);  }
-void VM::F_IVVDIV() { IVVOP(/,  1);  }
-void VM::F_IVVMOD() { VMASSERT(0);   }
-void VM::F_IVVLT()  { IVVOP(<,  0);  }
-void VM::F_IVVGT()  { IVVOP(>,  0);  }
-void VM::F_IVVLE()  { IVVOP(<=, 0);  }
-void VM::F_IVVGE()  { IVVOP(>=, 0);  }
-void VM::F_FVVADD() { FVVOP(+,  0);  }
-void VM::F_FVVSUB() { FVVOP(-,  0);  }
-void VM::F_FVVMUL() { FVVOP(*,  0);  }
-void VM::F_FVVDIV() { FVVOP(/,  1);  }
-void VM::F_FVVMOD() { VMASSERT(0);   }
-void VM::F_FVVLT()  { FVVOPC(<,  0); }
-void VM::F_FVVGT()  { FVVOPC(>,  0); }
-void VM::F_FVVLE()  { FVVOPC(<=, 0); }
-void VM::F_FVVGE()  { FVVOPC(>=, 0); }
+void VM::F_IVVADD(VM_OP_ARGS) { IVVOP(+,  0);  }
+void VM::F_IVVSUB(VM_OP_ARGS) { IVVOP(-,  0);  }
+void VM::F_IVVMUL(VM_OP_ARGS) { IVVOP(*,  0);  }
+void VM::F_IVVDIV(VM_OP_ARGS) { IVVOP(/,  1);  }
+void VM::F_IVVMOD(VM_OP_ARGS) { VMASSERT(0);   }
+void VM::F_IVVLT(VM_OP_ARGS)  { IVVOP(<,  0);  }
+void VM::F_IVVGT(VM_OP_ARGS)  { IVVOP(>,  0);  }
+void VM::F_IVVLE(VM_OP_ARGS)  { IVVOP(<=, 0);  }
+void VM::F_IVVGE(VM_OP_ARGS)  { IVVOP(>=, 0);  }
+void VM::F_FVVADD(VM_OP_ARGS) { FVVOP(+,  0);  }
+void VM::F_FVVSUB(VM_OP_ARGS) { FVVOP(-,  0);  }
+void VM::F_FVVMUL(VM_OP_ARGS) { FVVOP(*,  0);  }
+void VM::F_FVVDIV(VM_OP_ARGS) { FVVOP(/,  1);  }
+void VM::F_FVVMOD(VM_OP_ARGS) { VMASSERT(0);   }
+void VM::F_FVVLT(VM_OP_ARGS)  { FVVOPC(<,  0); }
+void VM::F_FVVGT(VM_OP_ARGS)  { FVVOPC(>,  0); }
+void VM::F_FVVLE(VM_OP_ARGS)  { FVVOPC(<=, 0); }
+void VM::F_FVVGE(VM_OP_ARGS)  { FVVOPC(>=, 0); }
 
-void VM::F_IVSADD() { IVSOP(+,  0);  }
-void VM::F_IVSSUB() { IVSOP(-,  0);  }
-void VM::F_IVSMUL() { IVSOP(*,  0);  }
-void VM::F_IVSDIV() { IVSOP(/,  1);  }
-void VM::F_IVSMOD() { VMASSERT(0);   }
-void VM::F_IVSLT()  { IVSOP(<,  0);  }
-void VM::F_IVSGT()  { IVSOP(>,  0);  }
-void VM::F_IVSLE()  { IVSOP(<=, 0);  }
-void VM::F_IVSGE()  { IVSOP(>=, 0);  }
-void VM::F_FVSADD() { FVSOP(+,  0);  }
-void VM::F_FVSSUB() { FVSOP(-,  0);  }
-void VM::F_FVSMUL() { FVSOP(*,  0);  }
-void VM::F_FVSDIV() { FVSOP(/,  1);  }
-void VM::F_FVSMOD() { VMASSERT(0);   }
-void VM::F_FVSLT()  { FVSOPC(<,  0); }
-void VM::F_FVSGT()  { FVSOPC(>,  0); }
-void VM::F_FVSLE()  { FVSOPC(<=, 0); }
-void VM::F_FVSGE()  { FVSOPC(>=, 0); }
+void VM::F_IVSADD(VM_OP_ARGS) { IVSOP(+,  0);  }
+void VM::F_IVSSUB(VM_OP_ARGS) { IVSOP(-,  0);  }
+void VM::F_IVSMUL(VM_OP_ARGS) { IVSOP(*,  0);  }
+void VM::F_IVSDIV(VM_OP_ARGS) { IVSOP(/,  1);  }
+void VM::F_IVSMOD(VM_OP_ARGS) { VMASSERT(0);   }
+void VM::F_IVSLT(VM_OP_ARGS)  { IVSOP(<,  0);  }
+void VM::F_IVSGT(VM_OP_ARGS)  { IVSOP(>,  0);  }
+void VM::F_IVSLE(VM_OP_ARGS)  { IVSOP(<=, 0);  }
+void VM::F_IVSGE(VM_OP_ARGS)  { IVSOP(>=, 0);  }
+void VM::F_FVSADD(VM_OP_ARGS) { FVSOP(+,  0);  }
+void VM::F_FVSSUB(VM_OP_ARGS) { FVSOP(-,  0);  }
+void VM::F_FVSMUL(VM_OP_ARGS) { FVSOP(*,  0);  }
+void VM::F_FVSDIV(VM_OP_ARGS) { FVSOP(/,  1);  }
+void VM::F_FVSMOD(VM_OP_ARGS) { VMASSERT(0);   }
+void VM::F_FVSLT(VM_OP_ARGS)  { FVSOPC(<,  0); }
+void VM::F_FVSGT(VM_OP_ARGS)  { FVSOPC(>,  0); }
+void VM::F_FVSLE(VM_OP_ARGS)  { FVSOPC(<=, 0); }
+void VM::F_FVSGE(VM_OP_ARGS)  { FVSOPC(>=, 0); }
 
-void VM::F_AEQ() { ACOMPEN(==); }
-void VM::F_ANE() { ACOMPEN(!=); }
+void VM::F_AEQ(VM_OP_ARGS) { ACOMPEN(==); }
+void VM::F_ANE(VM_OP_ARGS) { ACOMPEN(!=); }
                     
-void VM::F_IADD() { IOP(+,  0); }
-void VM::F_ISUB() { IOP(-,  0); }
-void VM::F_IMUL() { IOP(*,  0); }
-void VM::F_IDIV() { IOP(/ , 1); }
-void VM::F_IMOD() { IOP(%,  1); }
-void VM::F_ILT()  { IOP(<,  0); }
-void VM::F_IGT()  { IOP(>,  0); }
-void VM::F_ILE()  { IOP(<=, 0); }
-void VM::F_IGE()  { IOP(>=, 0); }
-void VM::F_IEQ()  { IOP(==, 0); }
-void VM::F_INE()  { IOP(!=, 0); }
+void VM::F_IADD(VM_OP_ARGS) { IOP(+,  0); }
+void VM::F_ISUB(VM_OP_ARGS) { IOP(-,  0); }
+void VM::F_IMUL(VM_OP_ARGS) { IOP(*,  0); }
+void VM::F_IDIV(VM_OP_ARGS) { IOP(/ , 1); }
+void VM::F_IMOD(VM_OP_ARGS) { IOP(%,  1); }
+void VM::F_ILT(VM_OP_ARGS)  { IOP(<,  0); }
+void VM::F_IGT(VM_OP_ARGS)  { IOP(>,  0); }
+void VM::F_ILE(VM_OP_ARGS)  { IOP(<=, 0); }
+void VM::F_IGE(VM_OP_ARGS)  { IOP(>=, 0); }
+void VM::F_IEQ(VM_OP_ARGS)  { IOP(==, 0); }
+void VM::F_INE(VM_OP_ARGS)  { IOP(!=, 0); }
 
-void VM::F_FADD() { FOP(+,  0); }
-void VM::F_FSUB() { FOP(-,  0); }
-void VM::F_FMUL() { FOP(*,  0); }
-void VM::F_FDIV() { FOP(/,  1); }
-void VM::F_FMOD() { VMASSERT(0); }
-void VM::F_FLT()  { FOP(<,  0); }
-void VM::F_FGT()  { FOP(>,  0); }
-void VM::F_FLE()  { FOP(<=, 0); }
-void VM::F_FGE()  { FOP(>=, 0); }
-void VM::F_FEQ()  { FOP(==, 0); }
-void VM::F_FNE()  { FOP(!=, 0); }
+void VM::F_FADD(VM_OP_ARGS) { FOP(+,  0); }
+void VM::F_FSUB(VM_OP_ARGS) { FOP(-,  0); }
+void VM::F_FMUL(VM_OP_ARGS) { FOP(*,  0); }
+void VM::F_FDIV(VM_OP_ARGS) { FOP(/,  1); }
+void VM::F_FMOD(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_FLT(VM_OP_ARGS)  { FOP(<,  0); }
+void VM::F_FGT(VM_OP_ARGS)  { FOP(>,  0); }
+void VM::F_FLE(VM_OP_ARGS)  { FOP(<=, 0); }
+void VM::F_FGE(VM_OP_ARGS)  { FOP(>=, 0); }
+void VM::F_FEQ(VM_OP_ARGS)  { FOP(==, 0); }
+void VM::F_FNE(VM_OP_ARGS)  { FOP(!=, 0); }
 
-void VM::F_SADD() { SCAT();  }
-void VM::F_SSUB() { VMASSERT(0); }
-void VM::F_SMUL() { VMASSERT(0); }
-void VM::F_SDIV() { VMASSERT(0); }
-void VM::F_SMOD() { VMASSERT(0); }
-void VM::F_SLT()  { SOP(<);  }
-void VM::F_SGT()  { SOP(>);  }
-void VM::F_SLE()  { SOP(<=); }
-void VM::F_SGE()  { SOP(>=); }
-void VM::F_SEQ()  { SOP(==); }
-void VM::F_SNE()  { SOP(!=); }
+void VM::F_SADD(VM_OP_ARGS) { SCAT();  }
+void VM::F_SSUB(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_SMUL(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_SDIV(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_SMOD(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_SLT(VM_OP_ARGS)  { SOP(<);  }
+void VM::F_SGT(VM_OP_ARGS)  { SOP(>);  }
+void VM::F_SLE(VM_OP_ARGS)  { SOP(<=); }
+void VM::F_SGE(VM_OP_ARGS)  { SOP(>=); }
+void VM::F_SEQ(VM_OP_ARGS)  { SOP(==); }
+void VM::F_SNE(VM_OP_ARGS)  { SOP(!=); }
 
-void VM::F_IUMINUS() { Value a = POP(); PUSH(Value(-a.ival())); }
-void VM::F_FUMINUS() { Value a = POP(); PUSH(Value(-a.fval())); }
+void VM::F_IUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.ival())); }
+void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
 
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
@@ -1088,15 +1100,15 @@ void VM::F_FUMINUS() { Value a = POP(); PUSH(Value(-a.fval())); }
     } \
     VMASSERT(false); \
     }
-void VM::F_IVUMINUS() { VUMINUS(false, int) }
-void VM::F_FVUMINUS() { VUMINUS(true, float) }
+void VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, int) }
+void VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, float) }
 
-void VM::F_LOGNOT()
+void VM::F_LOGNOT(VM_OP_ARGS)
 {
     Value a = POP();
     PUSH(!a.True());
 }
-void VM::F_LOGNOTREF()
+void VM::F_LOGNOTREF(VM_OP_ARGS)
 {
     Value a = POP();
     bool b = a.True();
@@ -1105,21 +1117,21 @@ void VM::F_LOGNOTREF()
 }
 
 #define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); }
-void VM::F_BINAND() { BITOP(&);  }
-void VM::F_BINOR()  { BITOP(|);  }
-void VM::F_XOR()    { BITOP(^);  }
-void VM::F_ASL()    { BITOP(<<); }
-void VM::F_ASR()    { BITOP(>>); }
-void VM::F_NEG()    { auto a = POP(); PUSH(~a.ival()); }
+void VM::F_BINAND(VM_OP_ARGS) { BITOP(&);  }
+void VM::F_BINOR(VM_OP_ARGS)  { BITOP(|);  }
+void VM::F_XOR(VM_OP_ARGS)    { BITOP(^);  }
+void VM::F_ASL(VM_OP_ARGS)    { BITOP(<<); }
+void VM::F_ASR(VM_OP_ARGS)    { BITOP(>>); }
+void VM::F_NEG(VM_OP_ARGS)    { auto a = POP(); PUSH(~a.ival()); }
 
-void VM::F_I2F()
+void VM::F_I2F(VM_OP_ARGS)
 {
     Value a = POP();
     VMTYPEEQ(a, V_INT);
     PUSH((float)a.ival()); 
 }                
                 
-void VM::F_A2S()
+void VM::F_A2S(VM_OP_ARGS)
 {
     Value a = POP();
     TYPE_ASSERT(IsRefNil(a.type));
@@ -1127,42 +1139,42 @@ void VM::F_A2S()
     a.DECRTNIL();
 }
                     
-void VM::F_I2A()
+void VM::F_I2A(VM_OP_ARGS)
 {
     Value i = POP();
     VMTYPEEQ(i, V_INT);
     PUSH(NewInt(i.ival()));
 }
 
-void VM::F_F2A()
+void VM::F_F2A(VM_OP_ARGS)
 {
     Value f = POP();
     VMTYPEEQ(f, V_FLOAT);
     PUSH(NewFloat(f.fval()));
 }
 
-void VM::F_E2B()
+void VM::F_E2B(VM_OP_ARGS)
 {
     Value a = POP();
     PUSH(a.True());
 }   
 
-void VM::F_E2BREF()
+void VM::F_E2BREF(VM_OP_ARGS)
 {
     Value a = POP();
     PUSH(a.True());
     a.DECRTNIL();
 }  
 
-void VM::F_PUSHVAR()    { PUSH(vars[*ip++]); }
-void VM::F_PUSHVARREF() { PUSH(vars[*ip++].INCRTNIL()); }
+void VM::F_PUSHVAR(VM_OP_ARGS)    { PUSH(vars[*ip++]); }
+void VM::F_PUSHVARREF(VM_OP_ARGS) { PUSH(vars[*ip++].INCRTNIL()); }
 
-void VM::F_PUSHFLD()  { PushDerefField(*ip++); }
-void VM::F_PUSHFLDM() { PushDerefField(*ip++); }
-void VM::F_PUSHIDXI() { PushDerefIdx(POP().ival()); }
-void VM::F_PUSHIDXV() { PushDerefIdx(GrabIndex(POP())); }
+void VM::F_PUSHFLD(VM_OP_ARGS)  { PushDerefField(*ip++); }
+void VM::F_PUSHFLDM(VM_OP_ARGS) { PushDerefField(*ip++); }
+void VM::F_PUSHIDXI(VM_OP_ARGS) { PushDerefIdx(POP().ival()); }
+void VM::F_PUSHIDXV(VM_OP_ARGS) { PushDerefIdx(GrabIndex(POP())); }
 
-void VM::F_PUSHLOC()
+void VM::F_PUSHLOC(VM_OP_ARGS)
 {
     int i = *ip++;
     Value coro = POP();
@@ -1172,7 +1184,7 @@ void VM::F_PUSHLOC()
     coro.DECRT();
 }
 
-void VM::F_LVALLOC()
+void VM::F_LVALLOC(VM_OP_ARGS)
 {
     int lvalop = *ip++;
     int i = *ip++;
@@ -1183,30 +1195,35 @@ void VM::F_LVALLOC()
     coro.DECRT();
 }
 
-void VM::F_LVALVAR()   
+void VM::F_LVALVAR(VM_OP_ARGS)   
 {
     int lvalop = *ip++; 
     LvalueOp(lvalop, vars[*ip++]);
 }
 
-void VM::F_LVALIDXI() { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); }
-void VM::F_LVALIDXV() { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); }
-void VM::F_LVALFLD()  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
+void VM::F_LVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); }
+void VM::F_LVALIDXV(VM_OP_ARGS) { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); }
+void VM::F_LVALFLD(VM_OP_ARGS)  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
 
-void VM::F_JUMP() { ip = codestart + *ip; }
+#ifdef VM_COMPILED_CODE_MODE
+#define GJUMP(V, D1, C, P, D2) (VM_JUMP_ARGS) { V; D1; if (C) { P; return target1; } else { D2; return target2; } }
+#else
+#define GJUMP(V, D1, C, P, D2) (VM_JUMP_ARGS) { V; auto nip = *ip++; D1; if (C) { ip = codestart + nip; P; } else { D2; } }
+#endif
 
-void VM::F_JUMPFAIL()       { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip;                }                    }
-void VM::F_JUMPFAILR()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       }                    }
-void VM::F_JUMPFAILN()      { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    }
-void VM::F_JUMPNOFAIL()     { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip;                }                    }
-void VM::F_JUMPNOFAILR()    { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       }                    }
-void VM::F_JUMPFAILREF()    { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip;                }                    }
-void VM::F_JUMPFAILRREF()   { auto x = POP(); auto nip = *ip++;               if (!x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); }
-void VM::F_JUMPFAILNREF()   { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if (!x.True()) { ip = codestart + nip; PUSH(Value()); }                    }
-void VM::F_JUMPNOFAILREF()  { auto x = POP(); auto nip = *ip++; x.DECRTNIL(); if ( x.True()) { ip = codestart + nip;                }                    }
-void VM::F_JUMPNOFAILRREF() { auto x = POP(); auto nip = *ip++;               if ( x.True()) { ip = codestart + nip; PUSH(x);       } else x.DECRTNIL(); }
+VM_JUMP_RET VM::F_JUMP           GJUMP(              ,             , true     ,              ,             )
+VM_JUMP_RET VM::F_JUMPFAIL       GJUMP(auto x = POP(),             , !x.True(),              ,             )
+VM_JUMP_RET VM::F_JUMPFAILR      GJUMP(auto x = POP(),             , !x.True(), PUSH(x)      ,             )
+VM_JUMP_RET VM::F_JUMPFAILN      GJUMP(auto x = POP(),             , !x.True(), PUSH(Value()),             )
+VM_JUMP_RET VM::F_JUMPNOFAIL     GJUMP(auto x = POP(),             ,  x.True(),              ,             )
+VM_JUMP_RET VM::F_JUMPNOFAILR    GJUMP(auto x = POP(),             ,  x.True(), PUSH(x)      ,             )
+VM_JUMP_RET VM::F_JUMPFAILREF    GJUMP(auto x = POP(), x.DECRTNIL(), !x.True(),              ,             )
+VM_JUMP_RET VM::F_JUMPFAILRREF   GJUMP(auto x = POP(),             , !x.True(), PUSH(x)      , x.DECRTNIL())
+VM_JUMP_RET VM::F_JUMPFAILNREF   GJUMP(auto x = POP(), x.DECRTNIL(), !x.True(), PUSH(Value()),             )
+VM_JUMP_RET VM::F_JUMPNOFAILREF  GJUMP(auto x = POP(), x.DECRTNIL(),  x.True(),              ,             )
+VM_JUMP_RET VM::F_JUMPNOFAILRREF GJUMP(auto x = POP(),             ,  x.True(), PUSH(x)      , x.DECRTNIL())
 
-void VM::F_ISTYPE()
+void VM::F_ISTYPE(VM_OP_ARGS)
 {
     auto to = (type_elem_t)*ip++;
     auto v = POP(); 
@@ -1217,16 +1234,16 @@ void VM::F_ISTYPE()
     v.DECRTNIL();
 }
 
-void VM::F_COCL()  { PUSH(Value(0, V_YIELD)); }  // This value never gets used anywhere, just a placeholder.
-void VM::F_CORO()  { CoNew(); }
-void VM::F_COEND() { CoClean(); }
+void VM::F_COCL(VM_OP_ARGS)  { PUSH(Value(0, V_YIELD)); }  // This value never gets used anywhere, just a placeholder.
+void VM::F_CORO(VM_OP_ARGS)  { CoNew(); }
+void VM::F_COEND(VM_OP_ARGS) { CoClean(); }
 
-void VM::F_LOGREAD()
+void VM::F_LOGREAD(VM_OP_ARGS)
 {
     auto val = POP();
     PUSH(vml.LogGet(val, *ip++, false));
 }
-void VM::F_LOGREADREF()
+void VM::F_LOGREADREF(VM_OP_ARGS)
 {
     auto val = POP();
     PUSH(vml.LogGet(val, *ip++, true));

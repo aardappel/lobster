@@ -128,7 +128,8 @@ int main(int argc, char* argv[])
 
         if (to_cpp)
         {
-            FILE *f = OpenForWriting("compiled_lobster_program.cpp", false);
+            // FIXME: make less hard-coded.
+            FILE *f = fopen((StripFilePart(argv[0]) + "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(), "w");
             if (f)
             {
                 string s;

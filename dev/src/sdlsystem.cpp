@@ -774,7 +774,7 @@ bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *ent
     return false;
 }
 
-int EngineRunCompiledCodeMain(int argc, const char *argv[], const void *entry_point, const void *bytecodefb)
+int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb)
 {
     (void)argc;
 

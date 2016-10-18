@@ -14,6 +14,62 @@
 
 namespace lobster
 {
+    int ParseOpAndGetArity(int opc, const int *&ip)
+    {
+        auto arity = ILArity()[opc];
+
+        switch(opc)
+        {
+            default:
+            {
+                assert(arity >= 0);
+                ip += arity;
+                break;
+            }
+
+            case IL_CORO:
+            {
+                ip += 2;
+                int n = *ip++;
+                ip += n;
+                arity = n + 3;
+                break;
+            }
+
+            case IL_CALLMULTI:
+            {
+                auto nargs = *ip++;
+                ip += 3;
+                ip += nargs;
+                arity = nargs + 4;
+                break;
+            }
+
+            case IL_FUNSTART:
+            {
+                int n = *ip++;
+                ip += n;
+                int m = *ip++; 
+                ip += m;
+                ip++;
+                arity = n + m + 3;
+                break;
+            }
+
+            case IL_FUNMULTI:
+            {
+                auto n = *ip++;
+                auto nargs = *ip++;
+                auto tablesize = (nargs * 2 + 1) * n;
+                ip += tablesize;
+                arity = tablesize + 2;
+                break;
+            }
+        }
+
+        return arity;
+    }
+
     void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len)
     {
         auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
@@ -28,28 +84,49 @@ namespace lobster
             function_lookup[f->bytecodestart()] = f;
         }
 
-        s += "#define VM_COMPILED_CODE_MODE\n\n"
+        s += "#ifndef VM_COMPILED_CODE_MODE\n"
+             "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
+             "#endif\n"
+             "\n"
              "#include \"stdafx.h\"\n"
              "#include \"vmdata.h\"\n"
-             "#include \"natreg.h\"\n"
+             "#include \"sdlinterface.h\"\n"
+             "\n"
+             "using lobster::g_vm;\n"
              "\n";
 
         auto len = bcf->bytecode()->Length();
 
         auto ilnames = ILNames();
-        auto ilarities = ILArity();
 
         const int *ip = code;
+
         while (ip < code + len)
         {
+            s += "static void *block";
+            s += to_string(ip - code);
+            s += "();\n";
+
             int opc = *ip++;
 
             if (opc < 0 || opc >= IL_MAX_OPS)
             {
+                s += "// Corrupt bytecode starts here: ";
                 s += to_string(opc);
-                s += " ?";
-                continue;
+                s += "\n";
+                return;
             }
+
+            ParseOpAndGetArity(opc, ip);
+        }
+
+        s += "\n";
+
+        ip = code;
+
+        while (ip < code + len)
+        {
+            int opc = *ip++;
 
             if (opc == IL_FUNSTART)
             {
@@ -59,60 +136,12 @@ namespace lobster
             }
 
             auto ilname = ilnames[opc];
-            auto arity = ilarities[opc];
 
             auto args = ip;
 
-            switch(opc)
-            {
-                default:
-                {
-                    assert(arity >= 0);
-                    ip += arity;
-                    break;
-                }
+            auto arity = ParseOpAndGetArity(opc, ip);
 
-                case IL_CORO:
-                {
-                    ip += 2;
-                    int n = *ip++;
-                    ip += n;
-                    arity = n + 3;
-                    break;
-                }
-
-                case IL_CALLMULTI:
-                {
-                    auto nargs = *ip++;
-                    ip += 3;
-                    ip += nargs;
-                    arity = nargs + 4;
-                    break;
-                }
-
-                case IL_FUNSTART:
-                {
-                    int n = *ip++;
-                    ip += n;
-                    int m = *ip++; 
-                    ip += m;
-                    ip++;
-                    arity = n + m + 3;
-                    break;
-                }
-
-                case IL_FUNMULTI:
-                {
-                    auto n = *ip++;
-                    auto nargs = *ip++;
-                    auto tablesize = (nargs * 2 + 1) * n;
-                    ip += tablesize;
-                    arity = tablesize + 2;
-                    break;
-                }
-            }
-
-            s += "void *block";
+            s += "static void *block";
             s += to_string(args - 1 - code);
             s += "() { ";
             if (IsJumpOp(opc))
@@ -127,17 +156,25 @@ namespace lobster
             }
             else
             {
-                s += "int args[] = {";
-
-                for (int i = 0; i < arity; i++)
+                if (arity)
                 {
-                    if (i) s += ", ";
-                    s += to_string(args[i]);
+                    s += "int args[] = {";
+
+                    for (int i = 0; i < arity; i++)
+                    {
+                        if (i) s += ", ";
+                        s += to_string(args[i]);
+                    }
+
+                    s += "}; ";
                 }
 
-                s += "}; g_vm->F_";
+                s += "g_vm->F_";
                 s += ilname;
-                s += "(args); return ";
+                s += "(";
+                s += arity ? "args" : "nullptr";
+                s += "); return ";
+
                 if (opc == IL_EXIT)
                 {
                     s += "nullptr";
@@ -153,7 +190,7 @@ namespace lobster
 
         // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
         // in fact, it be nice if those were in readable format in the generated code.
-        s += "\nstatic const int bytecode[] =\n{";
+        s += "\nstatic const int bytecodefb[] =\n{";
         auto bytecode_ints = (const int *)bytecode_buffer;
         for (size_t i = 0; i < bytecode_len / sizeof(int); i++)
         {
@@ -161,8 +198,8 @@ namespace lobster
             s += to_string(bytecode_ints[i]);
             s += ", ";
         }
-        s += "\n}\n\n";
+        s += "\n};\n\n";
 
-        s += "int main(int argc, char *argv[])\n{\n  return RunCompiledCode(argc, argv, block0, bytecode);\n}\n";
+        s += "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, block0, bytecodefb);\n}\n";
     }
 }

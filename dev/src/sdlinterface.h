@@ -54,7 +54,7 @@ extern void GraphicsShutDown();
 extern void EngineExit(int code);
 extern bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, 
                               const void *static_bytecode);
-extern int EngineRunCompiledCodeMain(int argc, const char *argv[], const void *entry_point, const void *bytecodefb);
+extern int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb);
 
 #ifdef __EMSCRIPTEN__
 #define USE_MAIN_LOOP_CALLBACK

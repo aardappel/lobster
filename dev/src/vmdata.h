@@ -622,8 +622,21 @@ struct VM
 
     void EndEval(Value &ret, ValueType vt);
 
-    #define F(N, A) void F_##N();
-        ILNAMES
+    #ifdef VM_COMPILED_CODE_MODE
+        #define VM_OP_ARGS const int *ip
+        #define VM_JUMP_ARGS block_t target1, block_t target2
+        #define VM_JUMP_RET void *
+    #else
+        #define VM_OP_ARGS
+        #define VM_JUMP_ARGS
+        #define VM_JUMP_RET void
+    #endif
+
+    #define F(N, A) void F_##N(VM_OP_ARGS);
+        ILBASENAMES
+    #undef F
+    #define F(N, A) VM_JUMP_RET F_##N(VM_JUMP_ARGS);
+        ILJUMPNAMES
     #undef F
 
     void EvalProgram();
