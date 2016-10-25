@@ -648,6 +648,7 @@ struct VM
 
     void Div0() { Error("division by zero"); } 
     void IDXErr(int i, int n, const RefObj *v);
+    void BCallRetCheck(const void *nf);
     int GrabIndex(const Value &idx);
     int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar, const TypeInfo &desttype);
 

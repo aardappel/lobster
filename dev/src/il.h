@@ -17,7 +17,7 @@
 
 namespace lobster
 {
-    const int LOBSTER_BYTECODE_FORMAT_VERSION = 6;
+    const int LOBSTER_BYTECODE_FORMAT_VERSION = 7;
 
 #define ILBASENAMES \
     F(PUSHINT, 1) \
@@ -29,7 +29,7 @@ namespace lobster
     F(PUSHIDXI, 0) F(PUSHIDXV, 0) F(LVALIDXI, 1) F(LVALIDXV, 1) \
     F(PUSHFLD, 1) F(PUSHFLDM, 1) F(LVALFLD, 2) \
     F(PUSHLOC, 1) F(LVALLOC, 2) \
-    F(BCALL, 1) \
+    F(BCALL0, 1) F(BCALL1, 1) F(BCALL2, 1) F(BCALL3, 1) F(BCALL4, 1) F(BCALL5, 1) F(BCALL6, 1) \
     F(CALL, 4) F(CALLV, 2) F(CALLVCOND, 2) F(YIELD, 0) F(CONT1, 1) F(CONT1REF, 0) \
     F(FUNSTART, -1) F(FUNEND, 0) F(FUNMULTI, -1) F(CALLMULTI, -1) \
     F(NEWVEC, 2) \

@@ -146,7 +146,13 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             break;
         }
 
-        case IL_BCALL:
+        case IL_BCALL0:
+        case IL_BCALL1:
+        case IL_BCALL2:
+        case IL_BCALL3:
+        case IL_BCALL4:
+        case IL_BCALL5:
+        case IL_BCALL6:
         {
             int a = *ip++;
             s += natreg.nfuns[a]->name;

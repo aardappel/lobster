@@ -708,10 +708,10 @@ struct CodeGen
                     // instruction?
                     auto lastarg = GenArgs(n->ncall_args(), nargs, n);
                     TakeTemp(nargs);
-                    assert(nargs == (int)nf->args.size());
+                    assert(nargs == (int)nf->args.size() && nargs <= 6);
                     if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
                     {   
-                        Emit(IL_BCALL, nf->idx);
+                        Emit(IL_BCALL0 + nargs, nf->idx);
                         if (lastarg->type != T_DEFAULTVAL)
                         {
                             Emit(IL_CALLVCOND, 0);
@@ -725,7 +725,7 @@ struct CodeGen
                     }
                     else
                     {
-                        Emit(IL_BCALL, nf->idx);
+                        Emit(IL_BCALL0 + nargs, nf->idx);
                     }
                     if (nf->retvals.v.size() > 1)
                     {

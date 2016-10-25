@@ -890,42 +890,101 @@ void VM::F_VFORREF(VM_OP_ARGS) { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(
 void VM::F_SFOR(VM_OP_ARGS)    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
 void VM::F_SFORREF(VM_OP_ARGS) { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
 
-void VM::F_BCALL(VM_OP_ARGS)
+void VM::F_BCALL0(VM_OP_ARGS)
 {
     #ifdef VM_PROFILER
         vm_count_bcalls++;
     #endif
     auto nf = natreg.nfuns[*ip++];
-    Value v;
-    switch (nf->args.v.size())
-    {
-        #define ARG(N) Value a##N = POP();
-        case 0: {                                           v = nf->fun.f0(); break; }
-        case 1: { ARG(0)                                    v = nf->fun.f1(a0); break; }
-        case 2: { ARG(1) ARG(0)                             v = nf->fun.f2(a0, a1); break; }
-        case 3: { ARG(2) ARG(1) ARG(0)                      v = nf->fun.f3(a0, a1, a2); break; }
-        case 4: { ARG(3) ARG(2) ARG(1) ARG(0)               v = nf->fun.f4(a0, a1, a2, a3); break; }
-        case 5: { ARG(4) ARG(3) ARG(2) ARG(1) ARG(0)        v = nf->fun.f5(a0, a1, a2, a3, a4); break; }
-        case 6: { ARG(5) ARG(4) ARG(3) ARG(2) ARG(1) ARG(0) v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
-                                                                                                break; }
-        default: VMASSERT(0); break;
-        #undef ARG
-    }
+    Value v = nf->fun.f0();
     PUSH(v);
-    #if RTT_ENABLED
-        // see if any builtin function is lying about what type it returns
-        // other function types return intermediary values that don't correspond to final return values
-        if (nf->ncm == NCM_NONE)
-        { 
-            for (size_t i = 0; i < nf->retvals.v.size(); i++)
-            {
-                auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
-                auto u = nf->retvals.v[i].type->t;
-                TYPE_ASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
-            }
-            TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
-        }
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL1(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
     #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value v = nf->fun.f1(POP());
+    PUSH(v);
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL2(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value a1 = POP();
+    Value a0 = POP();
+    Value v = nf->fun.f2(a0, a1);
+    PUSH(v);
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL3(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value a2 = POP();
+    Value a1 = POP();
+    Value a0 = POP();
+    Value v = nf->fun.f3(a0, a1, a2);
+    PUSH(v);
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL4(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value a3 = POP();
+    Value a2 = POP();
+    Value a1 = POP();
+    Value a0 = POP();
+    Value v = nf->fun.f4(a0, a1, a2, a3);
+    PUSH(v);
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL5(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value a4 = POP();
+    Value a3 = POP();
+    Value a2 = POP();
+    Value a1 = POP();
+    Value a0 = POP();
+    Value v = nf->fun.f5(a0, a1, a2, a3, a4);
+    PUSH(v);
+    BCallRetCheck(nf);
+}
+                
+void VM::F_BCALL6(VM_OP_ARGS)
+{
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+    auto nf = natreg.nfuns[*ip++];
+    Value a5 = POP();
+    Value a4 = POP();
+    Value a3 = POP();
+    Value a2 = POP();
+    Value a1 = POP();
+    Value a0 = POP();
+    Value v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
+    PUSH(v);
+    BCallRetCheck(nf);
 }
                 
 void VM::F_NEWVEC(VM_OP_ARGS)
@@ -1458,6 +1517,27 @@ string VM::ProperTypeName(const TypeInfo &ti)
 void VM::IDXErr(int i, int n, const RefObj *v)
 {
     if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
+}
+
+void VM::BCallRetCheck(const void *_nf)
+{
+    #if RTT_ENABLED
+        // see if any builtin function is lying about what type it returns
+        // other function types return intermediary values that don't correspond to final return values
+        auto nf = (const NativeFun *)_nf;  // Don't expose type in header :(
+        if (nf->ncm == NCM_NONE)
+        { 
+            for (size_t i = 0; i < nf->retvals.v.size(); i++)
+            {
+                auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
+                auto u = nf->retvals.v[i].type->t;
+                TYPE_ASSERT(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));   
+            }
+            TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
+        }
+    #else
+        (void)_nf;
+    #endif
 }
 
 int VM::GrabIndex(const Value &idx)
