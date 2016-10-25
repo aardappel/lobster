@@ -78,7 +78,8 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string
 
     CodeGen cg(parser, st);
 
-    st.Serialize(cg.code, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets, cg.lineinfo, cg.sids, cg.stringtable, bytecode);
+    st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets, cg.lineinfo, cg.sids,
+                 cg.stringtable, bytecode);
 
     //parserpool->printstats();
 }

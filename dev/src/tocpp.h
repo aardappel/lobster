@@ -93,6 +93,8 @@ namespace lobster
              "#include \"sdlinterface.h\"\n"
              "\n"
              "using lobster::g_vm;\n"
+             "\n"
+             "#pragma warning (disable: 4102)  // Unused label.\n"
              "\n";
 
         auto len = bcf->bytecode()->Length();
@@ -101,11 +103,19 @@ namespace lobster
 
         const int *ip = code;
 
+        // Skip past 1st jump.
+        assert(*ip == IL_JUMP);
+        ip++;
+        auto starting_point = *ip++;
+
         while (ip < code + len)
         {
-            s += "static void *block";
-            s += to_string(ip - code);
-            s += "();\n";
+            if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
+            {
+                s += "static void *block";
+                s += to_string(ip - code);
+                s += "();\n";
+            }
 
             int opc = *ip++;
 
@@ -122,7 +132,9 @@ namespace lobster
 
         s += "\n";
 
-        ip = code;
+        ip = code + 2;
+
+        bool start_block = false;
 
         while (ip < code + len)
         {
@@ -139,23 +151,32 @@ namespace lobster
 
             auto args = ip;
 
+            if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT) start_block = true;
+
             auto arity = ParseOpAndGetArity(opc, ip);
 
-            s += "static void *block";
-            s += to_string(args - 1 - code);
-            s += "() { ";
+            if (start_block)
+            {
+                s += "static void *block";
+                s += to_string(args - 1 - code);
+                s += "() {\n";
+            }
+
+            s += "  ";
+
+            start_block = false;
+
             if (IsJumpOp(opc))
             {
-                s += "return g_vm->F_";
+                s += "if (g_vm->F_";
                 s += ilname;
-                s += "(block";
+                s += "()) return block";
                 s += to_string(args[0]);
-                s += ", block";
-                s += to_string(ip - code);
-                s += ")";
+                s += ";\n";
             }
             else
             {
+                s += "{ ";
                 if (arity)
                 {
                     s += "int args[] = {";
@@ -173,8 +194,16 @@ namespace lobster
                 s += ilname;
                 s += "(";
                 s += arity ? "args" : "nullptr";
-                s += "); return ";
-
+                s += ");";
+                if (opc == IL_CALL)
+                {
+                    //s += " g_vm->SetRet"
+                }
+                s += " }\n";                
+            }
+            if (start_block || bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
+            {
+                s += "  return ";
                 if (opc == IL_EXIT)
                 {
                     s += "nullptr";
@@ -184,8 +213,8 @@ namespace lobster
                     s += "block";
                     s += to_string(ip - code);
                 }
+                s += ";\n}\n";
             }
-            s += "; }\n";
         }
 
         // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
@@ -200,6 +229,7 @@ namespace lobster
         }
         s += "\n};\n\n";
 
-        s += "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, block0, bytecodefb);\n}\n";
+        s += "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, block" +
+             to_string(starting_point) + ", bytecodefb);\n}\n";
     }
 }

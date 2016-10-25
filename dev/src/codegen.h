@@ -18,6 +18,7 @@ namespace lobster
 struct CodeGen 
 {
     vector<int> code;
+    vector<uchar> code_attr;
     vector<bytecode::LineInfo> lineinfo;
     vector<bytecode::SpecIdent> sids;
     Parser &parser;
@@ -34,12 +35,21 @@ struct CodeGen
 
     int Pos() { return (int)code.size(); }
 
+    void GrowCodeAttr(int mins) { while (mins > (int)code_attr.size()) code_attr.push_back(bytecode::Attr_NONE); }
+
     void Emit(int i)
     {
         auto &ln = linenumbernodes.back()->line;
         if (lineinfo.empty() || ln.line != lineinfo.back().line() || ln.fileidx != lineinfo.back().fileidx())
             lineinfo.push_back(bytecode::LineInfo(ln.line, ln.fileidx, Pos()));
         code.push_back(i);
+        GrowCodeAttr(code.size());
+    }
+
+    void SplitAttr(int at)
+    {
+        GrowCodeAttr(at + 1);
+        code_attr[at] |= bytecode::Attr_SPLIT;
     }
 
     void Emit(int i, int j) { Emit(i); Emit(j); }
@@ -47,7 +57,11 @@ struct CodeGen
     void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
 
     #define MARKL(name) auto name = Pos();
-    #define SETL(name) code[name - 1] = Pos();
+    void SETL(int jumploc)
+    {
+        code[jumploc - 1] = Pos();
+        SplitAttr(Pos());
+    }
 
     // Make a table for use as VM runtime type.
     type_elem_t GetTypeTableOffset(TypeRef type)
@@ -163,16 +177,25 @@ struct CodeGen
 
         linenumbernodes.push_back(parser.root);
 
+        SplitAttr(0);
+
         Emit(IL_JUMP, 0);
         MARKL(fundefjump);
+
+        SplitAttr(Pos());
+
         for (auto f : parser.st.functiontable)
             if (f->subf && f->subf->typechecked)
                 GenFunction(*f);
         SETL(fundefjump);
 
+        SplitAttr(Pos());
+
         BodyGen(parser.root);
 
         Emit(IL_EXIT, GetTypeTableOffset(Parser::LastInList(parser.root)->head()->exptype));
+
+        SplitAttr(Pos());  // Allow off by one indexing.
 
         linenumbernodes.pop_back();
 
@@ -329,6 +352,7 @@ struct CodeGen
 
         linenumbernodes.push_back(sf.body);
 
+        SplitAttr(Pos());
         Emit(IL_FUNSTART);
         Emit((int)sf.args.v.size()); 
         for (auto &arg : sf.args.v) Emit(arg.sid->idx);
@@ -410,6 +434,8 @@ struct CodeGen
         auto nretvals = max(f.retvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
         for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
+
+        SplitAttr(Pos());
     };
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
@@ -690,6 +716,9 @@ struct CodeGen
                         {
                             Emit(IL_CALLVCOND, 0);
                             EmitTempInfo(n);
+
+                            SplitAttr(Pos());
+
                             assert(lastarg->exptype->t == V_FUNCTION);
                             Emit(IsRefNil(lastarg->exptype->sf->returntypes[0]->t) ? IL_CONT1REF : IL_CONT1, nf->idx);
                         }
@@ -754,6 +783,8 @@ struct CodeGen
                             TakeTemp(nargs + 1);
                             Emit(IL_CALLV, nargs);
                             EmitTempInfo(n);
+
+                            SplitAttr(Pos());
                         }
                     }
                 }
@@ -854,6 +885,7 @@ struct CodeGen
 
             case T_WHILE:
             {
+                SplitAttr(Pos());
                 MARKL(loopback);
                 Gen(n->while_condition(), 1, true);
                 Emit(JumpRef(IL_JUMPFAIL, n->while_condition()->exptype), 0);

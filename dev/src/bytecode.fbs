@@ -33,10 +33,13 @@ struct SpecIdent
 	typeidx:int;
 }
 
+enum Attr : ubyte (bit_flags) { SPLIT }
+
 table BytecodeFile
 {
     bytecode_version:int;  // The format of bytecode/typetable may change.
     bytecode:[int];
+    bytecode_attr:[Attr];
 	typetable:[int];
 
     stringtable:[string];

@@ -1206,9 +1206,9 @@ void VM::F_LVALIDXV(VM_OP_ARGS) { int lvalop = *ip++; LvalueObj(lvalop, GrabInde
 void VM::F_LVALFLD(VM_OP_ARGS)  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
 
 #ifdef VM_COMPILED_CODE_MODE
-#define GJUMP(V, D1, C, P, D2) (VM_JUMP_ARGS) { V; D1; if (C) { P; return target1; } else { D2; return target2; } }
+#define GJUMP(V, D1, C, P, D2) () { V; D1; if (C) { P; return true; } else { D2; return false; } }
 #else
-#define GJUMP(V, D1, C, P, D2) (VM_JUMP_ARGS) { V; auto nip = *ip++; D1; if (C) { ip = codestart + nip; P; } else { D2; } }
+#define GJUMP(V, D1, C, P, D2) () { V; auto nip = *ip++; D1; if (C) { ip = codestart + nip; P; } else { D2; } }
 #endif
 
 VM_JUMP_RET VM::F_JUMP           GJUMP(              ,             , true     ,              ,             )
