@@ -354,15 +354,13 @@ string VM::DumpVar(const Value &x, size_t idx, bool dumpglobals)
     return "\n   " + name + " = " + x.ToString(static_type, debugpp);
 }
 
-void VM::EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask)
+void VM::EvalMulti(const int *mip, int definedfunction, const int *retip, int tempmask)
 {
     VMASSERT(*mip == IL_FUNMULTI);
     mip++;
 
     auto nsubf = *mip++;
-    auto table_nargs = *mip++;
-    VMASSERT(nargs == table_nargs);
-    (void)table_nargs;
+    auto nargs = *mip++;
     for (int i = 0; i < nsubf; i++)
     {
         // TODO: rather than going thru all args, only go thru those that have types
@@ -389,7 +387,9 @@ void VM::EvalMulti(int nargs, const int *mip, int definedfunction, const int *re
 
         retip += nargs;
 
-        return FunIntro(nargs, codestart + *mip, definedfunction, retip, tempmask);
+        StartStackFrame(definedfunction, retip, tempmask);
+        ip = codestart + *mip;
+        return FunIntro();
 
         fail:;
     }
@@ -483,13 +483,22 @@ int VM::VarCleanup(string *error, int towhere)
     return lastunwind;
 }
 
-void VM::FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip, int tempmask)
+// Initializes only 3 fields of the stack frame, FunIntro must be called right after.
+void VM::StartStackFrame(int definedfunction, const int *retip, int tempmask)
+{
+    stackframes.push_back(StackFrame());
+    auto &stf = stackframes.back();
+    stf.retip = retip; 
+    stf.definedfunction = definedfunction;
+    stf.tempmask = tempmask;
+}
+
+// Only valid to be called right after StartStackFrame, with no bytecode in-between.
+void VM::FunIntro()
 {
     #ifdef VM_PROFILER
         vm_count_fcalls++;
     #endif
-
-    ip = newip;
 
     VMASSERT(*ip == IL_FUNSTART);
     ip++;
@@ -509,9 +518,8 @@ void VM::FunIntro(int nargs_given, const int *newip, int definedfunction, const 
     }
 
     auto nargs_fun = *ip++;
-    VMASSERT(nargs_given == nargs_fun);
         
-    for (int i = 0; i < nargs_given; i++) swap(vars[ip[i]], stack[sp - nargs_given + i + 1]);
+    for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], stack[sp - nargs_fun + i + 1]);
     ip += nargs_fun;
 
     auto ndef = *ip++;
@@ -527,7 +535,6 @@ void VM::FunIntro(int nargs_given, const int *newip, int definedfunction, const 
     }
     auto nlogvars = *ip++;
 
-    stackframes.push_back(StackFrame());
     auto &stf = stackframes.back();
     if (vml.uses_frame_state)
     {
@@ -538,11 +545,8 @@ void VM::FunIntro(int nargs_given, const int *newip, int definedfunction, const 
     {
         stf.logfunwritestart = stf.logfunreadstart = 0;
     }
-    stf.retip = retip; 
     stf.funstart = funstart;
-    stf.definedfunction = definedfunction;
     stf.spstart = sp;
-    stf.tempmask = tempmask;
 
     #ifdef _DEBUG
         if (sp > maxsp) maxsp = sp;
@@ -788,20 +792,20 @@ void VM::F_PUSHSTR(VM_OP_ARGS)
 
 void VM::F_CALL(VM_OP_ARGS)
 {
-    auto nargs = *ip++;
     auto fvar = *ip++;
     auto fun = *ip++;
     auto tm = *ip++;
-    FunIntro(nargs, codestart + fun, fvar, ip, tm);
+    StartStackFrame(fvar, ip, tm);
+    ip = codestart + fun;
+    FunIntro();
 }
 
 void VM::F_CALLMULTI(VM_OP_ARGS)
 {
-    auto nargs = *ip++;
     auto fvar = *ip++;
     auto fun = *ip++;
     auto tm = *ip++;
-    EvalMulti(nargs, codestart + fun, fvar, ip, tm);
+    EvalMulti(codestart + fun, fvar, ip, tm);
 }
 
 void VM::F_FUNMULTI(VM_OP_ARGS) { VMASSERT(0); }
@@ -809,16 +813,17 @@ void VM::F_FUNMULTI(VM_OP_ARGS) { VMASSERT(0); }
 void VM::F_CALLVCOND(VM_OP_ARGS)
 {
     // FIXME: don't need to check for function value again below if false
-    if (!TOP().True()) { ip += 2; } else F_CALLV(VM_OP_PASSTHRU);
+    if (!TOP().True()) { ip++; } else F_CALLV(VM_OP_PASSTHRU);
 }
 
 void VM::F_CALLV(VM_OP_ARGS)
 {
     Value fun = POP();
     VMTYPEEQ(fun, V_FUNCTION);
-    auto nargs = *ip++;
     auto tm = *ip++;
-    FunIntro(nargs, fun.ip(), -1, ip, tm);
+    StartStackFrame(-1, ip, tm);
+    ip = fun.ip();
+    FunIntro();
 }
 
 void VM::F_YIELD(VM_OP_ARGS) { CoYield(ip); }
@@ -863,6 +868,7 @@ void VM::F_CONT1REF(VM_OP_ARGS)
 #define FORLOOP(L, V, iterref, bodyref) { \
     auto forstart = ip - 1; \
     auto tm = *ip++; \
+    auto nargs = *ip++; \
     auto bodyret = POP(); \
     if (bodyref) bodyret.DECRTNIL(); \
     auto &body = TOP(); \
@@ -872,9 +878,10 @@ void VM::F_CONT1REF(VM_OP_ARGS)
     i.setival(i.ival() + 1); \
     int len = 0; \
     if (i.ival() < (len = (L))) { \
-        int nargs = body.ip()[1]; \
         if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
-        FunIntro(nargs, body.ip(), -1, forstart, tm); \
+        StartStackFrame(-1, forstart, tm); \
+        ip = body.ip(); \
+        FunIntro(); \
         return; \
     } \
     (void)POP(); /* body */ \

@@ -419,7 +419,6 @@ struct CodeGen
                          " arguments, " + to_string(nargs) + " given", errnode);
         TakeTemp(nargs);
         Emit(f.multimethod ? IL_CALLMULTI : IL_CALL,
-             nargs,
              f.idx,
              f.multimethod ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf);
@@ -714,7 +713,7 @@ struct CodeGen
                         Emit(IL_BCALL0 + nargs, nf->idx);
                         if (lastarg->type != T_DEFAULTVAL)
                         {
-                            Emit(IL_CALLVCOND, 0);
+                            Emit(IL_CALLVCOND);
                             EmitTempInfo(n);
 
                             SplitAttr(Pos());
@@ -781,7 +780,7 @@ struct CodeGen
                             assert(nargs == (int)sf->args.size());
                             Gen(n->dcall_fval(), 1);
                             TakeTemp(nargs + 1);
-                            Emit(IL_CALLV, nargs);
+                            Emit(IL_CALLV);
                             EmitTempInfo(n);
 
                             SplitAttr(Pos());
@@ -916,6 +915,7 @@ struct CodeGen
                 }
                 EmitTempInfo(n);
                 TakeTemp(3);
+                Emit((int)n->for_body()->call_function()->sf()->args.size());
                 Dummy(retval);
                 break;
             }

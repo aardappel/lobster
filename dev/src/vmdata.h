@@ -602,14 +602,15 @@ struct VM
     string ValueDBG(const RefObj *a);
     string DumpVar(const Value &x, size_t idx, bool dumpglobals);
 
-    void EvalMulti(int nargs, const int *mip, int definedfunction, const int *retip, int tempmask);
+    void EvalMulti(const int *mip, int definedfunction, const int *retip, int tempmask);
 
     void FinalStackVarsCleanup();
     
     int CallerId();
 
     int VarCleanup(string *error, int towhere);
-    void FunIntro(int nargs_given, const int *newip, int definedfunction, const int *retip, int tempmask);
+    void StartStackFrame(int definedfunction, const int *retip, int tempmask);
+    void FunIntro();
     bool FunOut(int towhere, int nrv);
 
     void CoVarCleanup(CoRoutine *co);

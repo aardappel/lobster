@@ -14,7 +14,7 @@
 
 namespace lobster
 {
-    int ParseOpAndGetArity(int opc, const int *&ip)
+    int ParseOpAndGetArity(int opc, const int *&ip, const int *code)
     {
         auto arity = ILArity()[opc];
 
@@ -38,8 +38,9 @@ namespace lobster
 
             case IL_CALLMULTI:
             {
-                auto nargs = *ip++;
-                ip += 3;
+                ip++;
+                auto nargs = code[*ip++ + 2];
+                ip++;
                 ip += nargs;
                 arity = nargs + 4;
                 break;
@@ -127,7 +128,7 @@ namespace lobster
                 return;
             }
 
-            ParseOpAndGetArity(opc, ip);
+            ParseOpAndGetArity(opc, ip, code);
         }
 
         s += "\n";
@@ -153,7 +154,7 @@ namespace lobster
 
             if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT) start_block = true;
 
-            auto arity = ParseOpAndGetArity(opc, ip);
+            auto arity = ParseOpAndGetArity(opc, ip, code);
 
             if (start_block)
             {

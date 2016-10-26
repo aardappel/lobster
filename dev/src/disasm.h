@@ -75,12 +75,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
 
     switch(opc)
     {
-        case IL_IFOR:
-        case IL_VFOR:
-        case IL_SFOR:
-        case IL_IFORREF:
-        case IL_VFORREF:
-        case IL_SFORREF:
         case IL_PUSHINT:
         case IL_PUSHFUN:
         case IL_CONT1:
@@ -102,6 +96,17 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += to_string(*ip++);
             break;
 
+        case IL_IFOR:
+        case IL_VFOR:
+        case IL_SFOR:
+        case IL_IFORREF:
+        case IL_VFORREF:
+        case IL_SFORREF:
+            s += to_string(*ip++);
+            s += " ";
+            s += to_string(*ip++);
+            break;
+
         case IL_RETURN:
         {
             auto id = *ip++;
@@ -113,18 +118,17 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
 
         case IL_CALLV:
         case IL_CALLVCOND:
-            s += to_string(*ip++);
-            s += " m:";
+            s += "m:";
             s += to_string(*ip++);
             break;
 
         case IL_CALL:
         case IL_CALLMULTI:
         {
-            auto nargs = *ip++;
             auto id = *ip++;
             auto bc = *ip++;
             auto tm = *ip++;
+            auto nargs = code[bc + (opc == IL_CALLMULTI ? 2 : 1)];
             if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
             s += to_string(nargs);
             s += " ";
