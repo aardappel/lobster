@@ -3,7 +3,7 @@ title: The Lobster C++ Implementation
 ---
 
 This document gives hints on how to work with the Lobster C++ code in terms of
-building, extending, and reusing.
+building, extending, reusing, and compiling Lobster code to C++.
 
 Lobster has been released under the Apache 2 open source license.
 
@@ -29,8 +29,8 @@ mobile platforms are still default to 32bit, this uniformity is helpful.
 This platform is definitely best supported and easiest to use for now. Open up
 `dev\lobster\lobster.sln` with Visual Studio. The project is set up to build
 lobster.exe in the main lobster folder, and will be ready for use as described
-either from the [command line](<command_line_usage.html>) or
-[Notepad++](<notepadpp_ide.html>) / SublimeText.
+either from the [command line](command_line_usage.html) or
+[Notepad++](notepadpp_ide.html) / SublimeText.
 
 ### OS X & iOS
 
@@ -49,11 +49,10 @@ to the Resource location in the bundle, then running from Xcode with the main
 lobster file as command line argument.
 
 Distribution is currently a bit clumsier. You'll need to run lobster to produce
-a bytecode file (see [command line](<command_line_usage.html>)), then make a
-copy of the bundle, and stick the bytecode file (+data) in the Resource
-location, and you should have something that can be distributed to users. For
-iOS you can compile using the OS X exe, then run that same bytecode using the
-iOS exe.
+a bytecode file (see [command line](command_line_usage.html)), then make a copy
+of the bundle, and stick the bytecode file (+data) in the Resource location, and
+you should have something that can be distributed to users. For iOS you can
+compile using the OS X exe, then run that same bytecode using the iOS exe.
 
 ### CMake / Linux
 
@@ -91,19 +90,19 @@ will move the executable to `lobster/`.
 You must have the following installed:
 
 -   [Android
-    SDK](<https://developer.android.com/sdk/installing/index.html?pkg=tools>)
+    SDK](https://developer.android.com/sdk/installing/index.html?pkg=tools)
     (standalone, Android Studio not necessary).
 
--   [Android NDK](<https://developer.android.com/ndk/downloads/index.html>).
+-   [Android NDK](https://developer.android.com/ndk/downloads/index.html).
 
 -   [Java
-    SDK](<http://www.oracle.com/technetwork/java/javase/downloads/index.html>)
+    SDK](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
     (needed by Ant, and for keytool.exe)
 
--   [Ant](<http://ant.apache.org/>) (Windows users may prefer
-    [WinAnt](<https://code.google.com/p/winant/>)).
+-   [Ant](http://ant.apache.org/) (Windows users may prefer
+    [WinAnt](https://code.google.com/p/winant/)).
 
--   [Python](<https://www.python.org/downloads/>) (2.7).
+-   [Python](https://www.python.org/downloads/) (2.7).
 
 If the above are not installed correctly, and *their tools are not in your
 path*, the steps below will not work.
@@ -135,15 +134,15 @@ If this gives any errors indicating missing programs, check the what you
 installed above.
 
 If this gives C++ compilation errors, please email me, or better yet, open an
-issue on [github](<https://github.com/aardappel/lobster/issues>).
+issue on [github](https://github.com/aardappel/lobster/issues).
 
 `dev/android/apks/` should now contain a .apk file.
 
-The Python script above comes from
-[FPLUtil](<https://google.github.io/fplutil/>), and has lots of options that
-allow you to check devices, run, sign your apk, which you’ll need to release to
-the play store (in particular, you’ll need to generate your own certifcate using
-keytool, and replace the above arguments). To see more, run:
+The Python script above comes from [FPLUtil](https://google.github.io/fplutil/),
+and has lots of options that allow you to check devices, run, sign your apk,
+which you’ll need to release to the play store (in particular, you’ll need to
+generate your own certifcate using keytool, and replace the above arguments). To
+see more, run:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 python -B build_all_android.py --help
@@ -189,9 +188,9 @@ Things to change if you want to release your app in the Google Play store:
 ### Emscripten / JavaScript
 
 You need the [emscripten
-toolchain](<https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html>)
+toolchain](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)
 installed, as well as GNU make (on windows that means installing
-[this](<http://gnuwin32.sourceforge.net/packages/make.htm>)).
+[this](http://gnuwin32.sourceforge.net/packages/make.htm)).
 
 Before you build, gather your lobster distribution files (see below) and place
 them in `dev/emscripten/assets`. They will be automatically picked up by the
@@ -226,6 +225,27 @@ Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under
 Contents, on Android it’s under assets in the .apk, and with emscripten there’s
 an assets directory also.
+
+Compiling Lobster code to C++
+-----------------------------
+
+Rather than directly executing or compiling to bytecode, Lobster can also be
+translated to C++, for a further speed boost. This is useful when releasing a
+shipping build to customers, but hopefully not necessary during development.
+
+With the `--to-cpp` option on the command-line, the compiler will generate a
+`compiled_lobster.cpp` file. This file contains a `main()` and is otherwise
+self-contained such that when you compile it with the build files for any
+platform (see instructions above) substituting it for the standard `main.cpp`,
+you’ll end up with an executable that runs only that specific program.
+
+Currently, this process is a bit clunky, you must run the compiler with
+`lobster/` as you current directory, and the compiled file will always be
+written to `dev/compiled_lobster/`
+
+On Windows, there are project files in that same directory that will
+automatically pick up the compiled lobster code. Eventually there should be
+convenient ways to do this on any platform.
 
 Extending Lobster
 -----------------
@@ -274,7 +294,7 @@ fashion, in the Visual Studio project you can see all things added to Lobster in
 
 You can always run Lobster with the `-r` option to get an overview of all
 functions currently added to the system (the current list is
-[here](<builtin_functions_reference.html>)). To add/remove functionality is
+[here](builtin_functions_reference.html)). To add/remove functionality is
 generally as easy as adding/removing the corresponding `.cpp` file.
 
 Lobster uses some macros to allow you to define a native function in one

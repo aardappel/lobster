@@ -271,6 +271,7 @@ struct CodeGen
             f.bytecodestart = Pos();
             int numentries = 0;
             MARKL(multistart);
+            SplitAttr(Pos());
             Emit(IL_FUNMULTI, 0, f.nargs());
 
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
@@ -725,6 +726,7 @@ struct CodeGen
                     else
                     {
                         Emit(IL_BCALL0 + nargs, nf->idx);
+                        if (nf->name == "resume") SplitAttr(Pos()); // FIXME: make resume a vm op.
                     }
                     if (nf->retvals.v.size() > 1)
                     {
@@ -757,6 +759,7 @@ struct CodeGen
                             Emit(IL_PUSHNIL);
                         }
                         Emit(IL_YIELD);
+                        SplitAttr(Pos());
                     }
                     else
                     {
@@ -905,6 +908,7 @@ struct CodeGen
                 Emit(IL_PUSHNIL);     // body retval
                 auto type = n->for_iter()->exptype;
                 auto isref = (int)IsRefNil(n->for_body()->exptype->t);
+                SplitAttr(Pos());
                 switch (type->t)
                 {
                     case V_INT:    Emit(IL_IFOR + isref); break;

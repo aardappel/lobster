@@ -30,6 +30,14 @@ SlabAlloc *vmpool = nullptr;               // set during the lifetime of a VM ob
     #define VM_PROFILER
 #endif
 
+#ifdef VM_COMPILED_CODE_MODE
+    #define VM_OP_PASSTHRU ip, fcont
+    #pragma warning (disable: 4458)  // ip hides class member, which we rely on
+    #pragma warning (disable: 4100)  // ip may not be touched
+#else
+    #define VM_OP_PASSTHRU
+#endif
+
 enum
 {
     INITSTACKSIZE   =   4 * 1024, // *8 bytes each
@@ -45,7 +53,12 @@ enum
 #define TOPPTR() (stack + sp + 1)
 
 VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_point, const void *static_bytecode)
-      : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1), ip(nullptr),
+      : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
+        #ifdef VM_COMPILED_CODE_MODE
+            next_call_target(nullptr), next_mm_table(nullptr), next_mm_call(nullptr),
+        #else
+            ip(nullptr),
+        #endif
         curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr), byteprofilecounts(nullptr),
         bytecode_buffer(std::move(_bytecode_buffer)),
         bcf(nullptr),
@@ -81,7 +94,10 @@ VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_poin
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
-    ip = codestart;
+
+    #ifndef VM_COMPILED_CODE_MODE
+        ip = codestart;
+    #endif
 
     vars = new Value[bcf->specidents()->size()];
     stack = new Value[stacksize = INITSTACKSIZE];
@@ -220,7 +236,7 @@ LString *VM::NewString(size_t l)
 {
     return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l); 
 }
-CoRoutine *VM::NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo &cti)
+CoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, CoRoutine *p, const TypeInfo &cti)
 {
     assert(cti.t == V_COROUTINE);
     return new (vmpool->alloc(sizeof(CoRoutine))) CoRoutine(sp + 2 /* top of sp + pushed coro */,
@@ -268,8 +284,12 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b)
 {
     if (trace_tail && trace_output.length()) throw trace_output + err;
 
-    auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
-    auto s = string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): VM error: " + err;
+    string s;
+    #ifndef VM_COMPILED_CODE_MODE
+        auto li = LookupLine(ip - 1, codestart, bcf);  // error is usually in the byte before the current ip
+        s += string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) + "): ";
+    #endif
+    s += "VM error: " + err;
     if (a) s += "\n   arg: " + ValueDBG(a);
     if (b) s += "\n   arg: " + ValueDBG(b);
     while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart))
@@ -288,7 +308,6 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b)
         int deffun = stackframes.back().definedfunction;
         VarCleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
 
-        auto li = LookupLine(ip - 1, codestart, bcf);
         if (deffun >= 0)
         {
             s += string("\nin function: ") + bcf->functions()->Get(deffun)->name()->c_str();
@@ -297,7 +316,10 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b)
         {
             s += "\nin block";
         }
+        #ifndef VM_COMPILED_CODE_MODE
+        auto li = LookupLine(ip - 1, codestart, bcf);
         s += string(" -> ") + bcf->filenames()->Get(li->fileidx())->c_str() + "(" + to_string(li->line()) + ")";
+        #endif
 
         s += locals;
     }
@@ -354,11 +376,8 @@ string VM::DumpVar(const Value &x, size_t idx, bool dumpglobals)
     return "\n   " + name + " = " + x.ToString(static_type, debugpp);
 }
 
-void VM::EvalMulti(const int *mip, int definedfunction, const int *retip, int tempmask)
+void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_types, block_t comp_retip, int tempmask)
 {
-    VMASSERT(*mip == IL_FUNMULTI);
-    mip++;
-
     auto nsubf = *mip++;
     auto nargs = *mip++;
     for (int i = 0; i < nsubf; i++)
@@ -369,7 +388,7 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *retip, int te
             auto &desired = GetTypeInfo((type_elem_t)*mip++);
             if (desired.t != V_ANY)
             {
-                auto &given = GetTypeInfo((type_elem_t)retip[j]);
+                auto &given = GetTypeInfo((type_elem_t)call_arg_types[j]);
                 // Have to check the actual value, since given may be a supertype.
                 // FIXME: this is slow.
                 if ((given.t != desired.t && given.t != V_ANY) ||
@@ -385,19 +404,28 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *retip, int te
             }
         }
 
-        retip += nargs;
+        {
+            call_arg_types += nargs;
 
-        StartStackFrame(definedfunction, retip, tempmask);
-        ip = codestart + *mip;
-        return FunIntro();
+            #ifdef VM_COMPILED_CODE_MODE
+                InsPtr retip(comp_retip);
+                InsPtr fun(next_mm_table[i]);
+            #else
+                InsPtr retip(call_arg_types);
+                InsPtr fun(codestart + *mip);
+                (void)comp_retip;
+            #endif
 
+            StartStackFrame(definedfunction, retip, tempmask);
+            return FunIntroPre(fun);
+        }
         fail:;
     }
 
     string argtypes;
     for (int j = 0; j < nargs; j++)
     {
-        auto &ti = GetTypeInfo((type_elem_t)retip[j]);
+        auto &ti = GetTypeInfo((type_elem_t)call_arg_types[j]);
         Value &v = stack[sp - nargs + j + 1];
         argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti : ti);
         if (j < nargs - 1) argtypes += ", ";
@@ -424,7 +452,25 @@ void VM::FinalStackVarsCleanup()
     
 int VM::CallerId()
 {
-    return stackframes.size() ? (int)(stackframes.back().retip - codestart) : -1;
+    return stackframes.size() ? stackframes.back().retip.CallerId() : -1;
+}
+
+void VM::JumpTo(InsPtr j)
+{
+    #ifdef VM_COMPILED_CODE_MODE
+        next_call_target = j.f;
+    #else
+        ip = j.f;
+    #endif
+}
+
+InsPtr VM::GetIP()
+{
+    #ifdef VM_COMPILED_CODE_MODE
+        return InsPtr(next_call_target);
+    #else
+        return InsPtr(ip);
+    #endif
 }
 
 int VM::VarCleanup(string *error, int towhere)
@@ -433,13 +479,13 @@ int VM::VarCleanup(string *error, int towhere)
 
     assert(sp == stf.spstart);
 
-    ip = stf.funstart;
+    auto fip = stf.funstart;
 
-    auto nargs = *ip++;
-    auto freevars = ip + nargs;
-    ip += nargs;
-    auto ndef = *ip++;
-    auto defvars = ip + ndef;
+    auto nargs = *fip++;
+    auto freevars = fip + nargs;
+    fip += nargs;
+    auto ndef = *fip++;
+    auto defvars = fip + ndef;
 
     if (vml.uses_frame_state)
     {
@@ -461,7 +507,7 @@ int VM::VarCleanup(string *error, int towhere)
         vars[i] = POP();
     } 
 
-    ip = stf.retip;
+    JumpTo(stf.retip);
 
     bool lastunwind = towhere == -1 || towhere == stf.definedfunction;
     auto tempmask = stf.tempmask;
@@ -484,7 +530,7 @@ int VM::VarCleanup(string *error, int towhere)
 }
 
 // Initializes only 3 fields of the stack frame, FunIntro must be called right after.
-void VM::StartStackFrame(int definedfunction, const int *retip, int tempmask)
+void VM::StartStackFrame(int definedfunction, InsPtr retip, int tempmask)
 {
     stackframes.push_back(StackFrame());
     auto &stf = stackframes.back();
@@ -493,15 +539,24 @@ void VM::StartStackFrame(int definedfunction, const int *retip, int tempmask)
     stf.tempmask = tempmask;
 }
 
+void VM::FunIntroPre(InsPtr fun)
+{
+    JumpTo(fun);
+    #ifdef VM_COMPILED_CODE_MODE
+        // We don't call FunIntro() here, instead the compiled code for FUNSTART/FUNMULTI actually does that.
+    #else
+        VMASSERT(*ip == IL_FUNSTART);
+        ip++;
+        FunIntro();
+    #endif
+}
+
 // Only valid to be called right after StartStackFrame, with no bytecode in-between.
-void VM::FunIntro()
+void VM::FunIntro(VM_OP_ARGS)
 {
     #ifdef VM_PROFILER
         vm_count_fcalls++;
     #endif
-
-    VMASSERT(*ip == IL_FUNSTART);
-    ip++;
 
     auto funstart = ip;
 
@@ -581,7 +636,7 @@ bool VM::FunOut(int towhere, int nrv)
 void VM::CoVarCleanup(CoRoutine *co)
 {
     // Convenient way to copy everything back onto the stack.
-    const int *tip = nullptr;
+    InsPtr tip(nullptr);
     auto copylen = co->Resume(sp + 1, stack, stackframes, tip, nullptr);
     auto startsp = sp;
     sp += copylen;
@@ -614,9 +669,14 @@ void VM::CoNonRec(const int *varip)
     // which could still cause problems
 }
 
-void VM::CoNew()
+void VM::CoNew(VM_OP_ARGS_CALL)
 {
-    const int *returnip = codestart + *ip++;
+    #ifdef VM_COMPILED_CODE_MODE
+        ip++;
+        InsPtr returnip(fcont);
+    #else
+        InsPtr returnip(codestart + *ip++);
+    #endif
     auto ctidx = (type_elem_t)*ip++;
     CoNonRec(ip);
     curcoroutine = NewCoRoutine(returnip, ip, curcoroutine, GetTypeInfo(ctidx));
@@ -626,10 +686,10 @@ void VM::CoNew()
     PUSH(Value(curcoroutine));
 }
 
-void VM::CoDone(const int *retip)
+void VM::CoDone(InsPtr retip)
 {
     int newtop = curcoroutine->Suspend(sp + 1, stack, stackframes, retip, curcoroutine);
-    ip = retip;
+    JumpTo(retip);
     sp = newtop - 1; // top of stack is now coro value from create or resume
 }
 
@@ -642,14 +702,21 @@ void VM::CoClean()
     }
 
     auto co = curcoroutine;
-    CoDone(ip);
+    CoDone(InsPtr(nullptr));
     VMASSERT(co->stackcopylen == 1);
     co->active = false;
 }
 
-void VM::CoYield(const int *retip)
+void VM::CoYield(VM_OP_ARGS_CALL)
 {
     assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
+
+    #ifdef VM_COMPILED_CODE_MODE
+        (void)ip;
+        InsPtr retip(fcont);
+    #else
+        InsPtr retip(ip);
+    #endif
 
     auto ret = POP();
 
@@ -665,7 +732,7 @@ void VM::CoYield(const int *retip)
     CoDone(retip);
 }
 
-void VM::CoResume(CoRoutine *co)
+void VM::CoResume(CoRoutine *co, InsPtr rip)
 {
     if (co->stackstart >= 0)
         Error("cannot resume running coroutine");
@@ -676,7 +743,7 @@ void VM::CoResume(CoRoutine *co)
     PUSH(Value(co));    // this will be the return value for the corresponding yield, and holds the ref for gc
 
     CoNonRec(co->varip);
-    sp += co->Resume(sp + 1, stack, stackframes, ip, curcoroutine);
+    sp += co->Resume(sp + 1, stack, stackframes, rip, curcoroutine);
 
     curcoroutine = co;
 
@@ -763,22 +830,19 @@ void VM::EndEval(Value &ret, ValueType vt)
     throw string("end-eval");
 }
 
-#ifdef VM_COMPILED_CODE_MODE
-    #define VM_OP_PASSTHRU ip
-    #pragma warning (disable: 4458)  // ip hides class member, which we rely on
-    #pragma warning (disable: 4100)  // ip may not be touched
-#else
-    #define VM_OP_PASSTHRU
-#endif
-
 void VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); }
 void VM::F_PUSHFLT(VM_OP_ARGS) { PUSH(Value(*(float *)ip)); ip++; }
 void VM::F_PUSHNIL(VM_OP_ARGS) { PUSH(Value()); }
 
-void VM::F_PUSHFUN(VM_OP_ARGS)
+void VM::F_PUSHFUN(VM_OP_ARGS_CALL)
 {
-    int start = *ip++;
-    PUSH(Value(codestart + start));
+    #ifdef VM_COMPILED_CODE_MODE
+        ip++;
+    #else
+        int start = *ip++;
+        auto fcont = codestart + start;
+    #endif
+    PUSH(Value(InsPtr(fcont)));
 }
 
 void VM::F_PUSHSTR(VM_OP_ARGS)
@@ -790,45 +854,87 @@ void VM::F_PUSHSTR(VM_OP_ARGS)
     PUSH(Value(s));
 }
 
-void VM::F_CALL(VM_OP_ARGS)
+void VM::F_CALL(VM_OP_ARGS_CALL)
 {
     auto fvar = *ip++;
-    auto fun = *ip++;
-    auto tm = *ip++;
-    StartStackFrame(fvar, ip, tm);
-    ip = codestart + fun;
-    FunIntro();
+    #ifdef VM_COMPILED_CODE_MODE
+        ip++;
+        auto tm = *ip++;
+        block_t fun = nullptr;  // Dynamic calls need this set, but for CALL it is ignored.
+    #else
+        auto fun = codestart + *ip++;
+        auto tm = *ip++;
+        auto fcont = ip;
+    #endif
+    StartStackFrame(fvar, InsPtr(fcont), tm);
+    FunIntroPre(InsPtr(fun));
 }
 
-void VM::F_CALLMULTI(VM_OP_ARGS)
+void VM::F_CALLMULTI(VM_OP_ARGS_CALL)
 {
-    auto fvar = *ip++;
-    auto fun = *ip++;
-    auto tm = *ip++;
-    EvalMulti(codestart + fun, fvar, ip, tm);
+    #ifdef VM_COMPILED_CODE_MODE
+        next_mm_call = ip;
+        next_call_target = fcont;  // Used just to transfer value here.
+    #else
+        auto fvar = *ip++;
+        auto fun = *ip++;
+        auto tm = *ip++;
+        auto mip = codestart + fun;
+        VMASSERT(*mip == IL_FUNMULTI);
+        mip++;
+        EvalMulti(mip, fvar, ip, nullptr, tm);
+    #endif
 }
 
-void VM::F_FUNMULTI(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_FUNMULTI(VM_OP_ARGS)
+{
+    #ifdef VM_COMPILED_CODE_MODE
+        auto cip = next_mm_call;
+        auto fvar = *cip++;
+        cip++;
+        auto tm = *cip++;
+        EvalMulti(ip, fvar, cip, next_call_target, tm);
+    #else
+        VMASSERT(false);
+    #endif
+}
 
-void VM::F_CALLVCOND(VM_OP_ARGS)
+void VM::F_CALLVCOND(VM_OP_ARGS_CALL)
 {
     // FIXME: don't need to check for function value again below if false
-    if (!TOP().True()) { ip++; } else F_CALLV(VM_OP_PASSTHRU);
+    if (!TOP().True())
+    {
+        ip++;
+        #ifdef VM_COMPILED_CODE_MODE
+            next_call_target = nullptr;
+        #endif
+    }
+    else
+    {
+        F_CALLV(VM_OP_PASSTHRU);
+    }
 }
 
-void VM::F_CALLV(VM_OP_ARGS)
+void VM::F_CALLV(VM_OP_ARGS_CALL)
 {
     Value fun = POP();
     VMTYPEEQ(fun, V_FUNCTION);
     auto tm = *ip++;
-    StartStackFrame(-1, ip, tm);
-    ip = fun.ip();
-    FunIntro();
+    #ifndef VM_COMPILED_CODE_MODE
+        auto fcont = ip;
+    #endif
+    StartStackFrame(-1, InsPtr(fcont), tm);
+    FunIntroPre(fun.ip());
 }
 
-void VM::F_YIELD(VM_OP_ARGS) { CoYield(ip); }
-
-void VM::F_FUNSTART(VM_OP_ARGS) { VMASSERT(0); }
+void VM::F_FUNSTART(VM_OP_ARGS)
+{
+    #ifdef VM_COMPILED_CODE_MODE
+        FunIntro(ip);
+    #else
+        VMASSERT(false);
+    #endif
+}
 void VM::F_FUNEND(VM_OP_ARGS) { FunOut(-1, 1); }
 
 void VM::F_RETURN(VM_OP_ARGS)
@@ -865,8 +971,15 @@ void VM::F_CONT1REF(VM_OP_ARGS)
     PUSH(Value());
 }
 
+#ifdef VM_COMPILED_CODE_MODE
+    #define FOR_START fcont
+    #define FOR_NEXT_TARGET next_call_target = nullptr;
+#else
+    #define FOR_START forstart
+    #define FOR_NEXT_TARGET
+#endif
 #define FORLOOP(L, V, iterref, bodyref) { \
-    auto forstart = ip - 1; \
+    auto forstart = ip - 1; (void)forstart; \
     auto tm = *ip++; \
     auto nargs = *ip++; \
     auto bodyret = POP(); \
@@ -879,23 +992,23 @@ void VM::F_CONT1REF(VM_OP_ARGS)
     int len = 0; \
     if (i.ival() < (len = (L))) { \
         if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
-        StartStackFrame(-1, forstart, tm); \
-        ip = body.ip(); \
-        FunIntro(); \
+        StartStackFrame(-1, InsPtr(FOR_START), tm); \
+        FunIntroPre(body.ip()); \
         return; \
     } \
     (void)POP(); /* body */ \
     if (iterref) TOP().DECRT(); \
     (void)POP(); /* iter */ \
     (void)POP(); /* i */ \
+    FOR_NEXT_TARGET \
 }
 
-void VM::F_IFOR(VM_OP_ARGS)    { FORLOOP(iter.ival(), i, false, false); }
-void VM::F_IFORREF(VM_OP_ARGS) { FORLOOP(iter.ival(), i, false, true); }
-void VM::F_VFOR(VM_OP_ARGS)    { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false); }
-void VM::F_VFORREF(VM_OP_ARGS) { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true); }
-void VM::F_SFOR(VM_OP_ARGS)    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
-void VM::F_SFORREF(VM_OP_ARGS) { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
+void VM::F_IFOR(VM_OP_ARGS_CALL)    { FORLOOP(iter.ival(), i, false, false); }
+void VM::F_IFORREF(VM_OP_ARGS_CALL) { FORLOOP(iter.ival(), i, false, true); }
+void VM::F_VFOR(VM_OP_ARGS_CALL)    { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false); }
+void VM::F_VFORREF(VM_OP_ARGS_CALL) { FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true); }
+void VM::F_SFOR(VM_OP_ARGS_CALL)    { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false); }
+void VM::F_SFORREF(VM_OP_ARGS_CALL) { FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true); }
 
 void VM::F_BCALL0(VM_OP_ARGS)
 {
@@ -1300,8 +1413,10 @@ void VM::F_ISTYPE(VM_OP_ARGS)
     v.DECRTNIL();
 }
 
+void VM::F_YIELD(VM_OP_ARGS_CALL) { CoYield(VM_OP_PASSTHRU); }
+
 void VM::F_COCL(VM_OP_ARGS)  { PUSH(Value(0, V_YIELD)); }  // This value never gets used anywhere, just a placeholder.
-void VM::F_CORO(VM_OP_ARGS)  { CoNew(); }
+void VM::F_CORO(VM_OP_ARGS_CALL)  { CoNew(VM_OP_PASSTHRU); }
 void VM::F_COEND(VM_OP_ARGS) { CoClean(); }
 
 void VM::F_LOGREAD(VM_OP_ARGS)

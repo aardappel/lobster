@@ -96,13 +96,13 @@ size_t VMLog::LogFunctionEntry(const int *funstart, int nlogvars)
 
     size_t lws = logwrite.size();
 
-    logwrite.push_back(LogValue(Value(funstart, V_LOGSTART), V_LOGSTART));
+    logwrite.push_back(LogValue(Value(V_LOGSTART, funstart), V_LOGSTART));
 
     for (int i = 0; i < nlogvars; i++) logwrite.push_back(LogValue(Value(), V_NIL));
 
     if (!lognew)
     {
-        if (logread[logi].t == V_LOGSTART && logread[logi].v.ip() == funstart)
+        if (logread[logi].t == V_LOGSTART && logread[logi].v.opargs() == funstart)
         {
             logi++; // expected path: function present
             logi += nlogvars; // skip past them, read by index
@@ -121,7 +121,7 @@ void VMLog::LogFunctionExit(const int *funstart, const int *logvars, size_t logf
     if (logwrite.back().t == V_LOGSTART)
     {
         // common case: function didn't write anything, we cull it
-        assert(logwrite.back().v.ip() == funstart);
+        assert(logwrite.back().v.opargs() == funstart);
         logwrite.pop_back();
     }
     else
@@ -134,7 +134,7 @@ void VMLog::LogFunctionExit(const int *funstart, const int *logvars, size_t logf
             auto vt = vm.GetVarTypeInfo(varidx).t;
             logwrite[i + logfunwritestart + 1] = LogValue(vm.vars[varidx].INCTYPE(vt), vt);
         }
-        logwrite.push_back(LogValue(Value(funstart, V_LOGEND), V_LOGEND));
+        logwrite.push_back(LogValue(Value(V_LOGEND, funstart), V_LOGEND));
     }
 
     if (lognew)
@@ -144,7 +144,7 @@ void VMLog::LogFunctionExit(const int *funstart, const int *logvars, size_t logf
     else for (;;) switch (logread[logi].t)
     {
         case V_LOGEND:      // expected
-            assert(logread[logi].v.ip() == funstart || !logread[logi].v.ip());
+            assert(logread[logi].v.opargs() == funstart || !logread[logi].v.opargs());
             logi++;
         case V_LOGMARKER:   // can happen with empty log
             return;

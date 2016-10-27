@@ -192,7 +192,7 @@ enemies := []
 lastenemy := gl_time()</code></pre>
 <p>We can set up enemies analogous to bullets. Of course, we could share some of this functionality between them, but let's not complicate matters for now. Add this to the declarations.</p>
 <pre><code>    if lastenemy &lt; gl_time():
-        enemies.push(enemy { sincos(rnd(360)).xy * worldsize * 2, enemymaxhp })
+        enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
         lastenemy += enemyrate
         enemyrate *= 0.999
 

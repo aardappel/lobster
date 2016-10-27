@@ -199,8 +199,6 @@ struct LString : RefObj
 
     string ToString(PrintPrefs &pp);
 
-    char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
-
     void DeleteSelf() { vmpool->dealloc(this, sizeof(LString) + len + 1); }
 
     bool operator==(LString &o) { return strcmp(str(), o.str()) == 0; }
@@ -209,6 +207,20 @@ struct LString : RefObj
     bool operator<=(LString &o) { return strcmp(str(), o.str()) <= 0; }
     bool operator> (LString &o) { return strcmp(str(), o.str()) >  0; }
     bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
+};
+
+struct InsPtr
+{
+    #ifdef VM_COMPILED_CODE_MODE
+        block_t f;
+        explicit InsPtr(block_t _f) : f(_f) {}
+    #else
+        const int *f;
+        explicit InsPtr(const int *_f) : f(_f) {}
+    #endif
+    InsPtr() : f(nullptr) {}
+    bool operator==(const InsPtr o) const { return f == o.f; }
+    int CallerId() { return (int)f; }
 };
 
 #if RTT_ENABLED
@@ -231,7 +243,7 @@ struct Value
         // Unboxed values.
         intp ival_;      // scalars stored as pointer-sized versions.
         floatp fval_;
-        const int *ip_;  // Never gets converted to any, so no boxed version available.
+        InsPtr ip_;  // Never gets converted to any, so no boxed version available.
 
         // Reference values (includes NULL if nillable version).
         LString *sval_;
@@ -246,6 +258,9 @@ struct Value
         // Generic reference access.
         RefObj *ref_;
         ElemObj *eval_;
+
+        // Only used inside LogValue.
+        const int *opargs_;
     };
     public:
 
@@ -261,21 +276,23 @@ struct Value
     ElemObj    *eval  () const { TYPE_ASSERT(IsVector(type));       return eval_;        }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
-    const int  *ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
-    int         logip () const { TYPE_ASSERT(type >= V_LOGSTART);   return (int)ival_;   }
+    InsPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
+    const int  *opargs() const { TYPE_ASSERT(type >= V_LOGSTART);   return opargs_;      }
     void       *any   () const {                                    return ref_;         }
                                                                        
     void setival(int i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
     void setfval(float f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
-    inline Value()                          : TYPE_INIT(V_NIL)         ref_(nullptr) {}
-    inline Value(int i)                     : TYPE_INIT(V_INT)         ival_(i)      {}
-    inline Value(int i, ValueType t)        : TYPE_INIT(t)             ival_(i)      { (void)t; }
-    inline Value(bool b)                    : TYPE_INIT(V_INT)         ival_(b)      {}
-    inline Value(float f)                   : TYPE_INIT(V_FLOAT)       fval_(f)      {}
-    inline Value(const int *i)              : TYPE_INIT(V_FUNCTION)    ip_(i)        {}
-    inline Value(const int *i, ValueType t) : TYPE_INIT(t)             ip_(i)        { (void)t; }
-    inline Value(RefObj *r)                 : TYPE_INIT(r->ti.t)       ref_(r)       {}
+    inline Value()                           : TYPE_INIT(V_NIL)         ref_(nullptr)    {}
+    inline Value(int i)                      : TYPE_INIT(V_INT)         ival_(i)         {}
+    inline Value(int64_t i)                  : TYPE_INIT(V_INT)         ival_((intp)i)   {}
+    inline Value(int i, ValueType t)         : TYPE_INIT(t)             ival_(i)         { (void)t; }
+    inline Value(bool b)                     : TYPE_INIT(V_INT)         ival_(b)         {}
+    inline Value(float f)                    : TYPE_INIT(V_FLOAT)       fval_(f)         {}
+    inline Value(double f)                   : TYPE_INIT(V_FLOAT)       fval_((floatp)f) {}
+    inline Value(InsPtr i)                   : TYPE_INIT(V_FUNCTION)    ip_(i)           {}
+    inline Value(ValueType t, const int *oa) : TYPE_INIT(t)             opargs_(oa)      { (void)t; }
+    inline Value(RefObj *r)                  : TYPE_INIT(r->ti.t)       ref_(r)          {}
 
     inline bool True() const { return ival_ != 0; }
 
@@ -297,13 +314,6 @@ struct Value
 
     inline void DECRTNIL() const { if (ref_) DECRT(); }
     inline void DECTYPE(ValueType t) const { if (IsRefNil(t)) DECRTNIL(); }
-
-    int Nargs()
-    {
-        TYPE_ASSERT(type == V_FUNCTION);
-        //assert(*ip == IL_FUNSTART);
-        return ip_[1];
-    }
 
     string ToString(ValueType vtype, PrintPrefs &pp) const;
     bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
@@ -510,7 +520,7 @@ struct VMLog
 
 struct StackFrame
 {
-    const int *retip;
+    InsPtr retip;
     const int *funstart;
     int definedfunction;
     int spstart;
@@ -526,7 +536,13 @@ struct VM
     int maxstacksize;
     int sp;
 
-    const int *ip;
+    #ifdef VM_COMPILED_CODE_MODE
+        block_t next_call_target;
+        block_t *next_mm_table;
+        const int *next_mm_call;
+    #else
+        const int *ip;
+    #endif
 
     vector<StackFrame> stackframes;
 
@@ -586,7 +602,7 @@ struct VM
     void DumpLeaks();
     
     ElemObj *NewVector(int initial, int max, const TypeInfo &ti);
-    CoRoutine *NewCoRoutine(const int *rip, const int *vip, CoRoutine *p, const TypeInfo &cti);
+    CoRoutine *NewCoRoutine(InsPtr rip, const int *vip, CoRoutine *p, const TypeInfo &cti);
     BoxedInt *NewInt(int i);
     BoxedFloat *NewFloat(float f);
     LString *NewString(size_t l);
@@ -602,37 +618,45 @@ struct VM
     string ValueDBG(const RefObj *a);
     string DumpVar(const Value &x, size_t idx, bool dumpglobals);
 
-    void EvalMulti(const int *mip, int definedfunction, const int *retip, int tempmask);
+    void EvalMulti(const int *mip, int definedfunction, const int *call_arg_types, block_t comp_retip, int tempmask);
 
     void FinalStackVarsCleanup();
     
     int CallerId();
 
+    #ifdef VM_COMPILED_CODE_MODE
+        #define VM_OP_ARGS const int *ip
+        #define VM_OP_ARGS_CALL const int *ip, block_t fcont
+        #define VM_JUMP_RET bool
+    #else
+        #define VM_OP_ARGS
+        #define VM_OP_ARGS_CALL
+        #define VM_JUMP_RET void
+    #endif
+
+    void JumpTo(InsPtr j);
+    InsPtr GetIP();
     int VarCleanup(string *error, int towhere);
-    void StartStackFrame(int definedfunction, const int *retip, int tempmask);
-    void FunIntro();
+    void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
+    void FunIntroPre(InsPtr fun);
+    void FunIntro(VM_OP_ARGS);
     bool FunOut(int towhere, int nrv);
 
     void CoVarCleanup(CoRoutine *co);
     void CoNonRec(const int *varip);
-    void CoNew();
-    void CoDone(const int *retip);
+    void CoNew(VM_OP_ARGS_CALL);
+    void CoDone(InsPtr retip);
     void CoClean();
-    void CoYield(const int *retip);
-    void CoResume(CoRoutine *co);
+    void CoYield(VM_OP_ARGS_CALL);
+    void CoResume(CoRoutine *co, InsPtr rip);
 
     void EndEval(Value &ret, ValueType vt);
 
-    #ifdef VM_COMPILED_CODE_MODE
-        #define VM_OP_ARGS const int *ip
-        #define VM_JUMP_RET bool
-    #else
-        #define VM_OP_ARGS
-        #define VM_JUMP_RET void
-    #endif
-
     #define F(N, A) void F_##N(VM_OP_ARGS);
         ILBASENAMES
+    #undef F
+    #define F(N, A) void F_##N(VM_OP_ARGS_CALL);
+        ILCALLNAMES
     #undef F
     #define F(N, A) VM_JUMP_RET F_##N();
         ILJUMPNAMES
@@ -717,6 +741,13 @@ inline int RangeCheck(const Value &idx, int range, int bias = 0)
     return i;
 }
 
+inline const char *IdName(const bytecode::BytecodeFile *bcf, int i)
+{
+    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->c_str();
+}
+
+void EscapeAndQuote(const string &s, string &r);
+
 struct CoRoutine : RefObj
 {
     bool active;        // goes to false when it has hit the end of the coroutine instead of a yield
@@ -730,11 +761,11 @@ struct CoRoutine : RefObj
     int stackframecopylen, stackframecopymax;
     int top_at_suspend;
 
-    const int *returnip;
+    InsPtr returnip;
     const int *varip;
     CoRoutine *parent;
 
-    CoRoutine(int _ss, int _sfs, const int *_rip, const int *_vip, CoRoutine *_p, const TypeInfo &cti)
+    CoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, CoRoutine *_p, const TypeInfo &cti)
         : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0), stackframecopymax(0),
@@ -768,7 +799,7 @@ struct CoRoutine : RefObj
         stackframecopylen = newlen;
     }
 
-    int Suspend(int top, Value *stack, vector<StackFrame> &stackframes, const int *&rip, CoRoutine *&curco)
+    int Suspend(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, CoRoutine *&curco)
     {
         assert(stackstart >= 0);
 
@@ -804,7 +835,7 @@ struct CoRoutine : RefObj
         }
     }
 
-    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, const int *&rip, CoRoutine *p)
+    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, CoRoutine *p)
     {
         assert(stackstart < 0);
 

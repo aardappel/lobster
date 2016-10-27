@@ -57,7 +57,7 @@ def run_test_cases(is_speed_test):
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert equal(string2unicode(unicode2string(unicodetests)), unicodetests)
 
-    if !is_speed_test:
+    if !is_speed_test and !vm_compiled_mode():
         compres1, comperr1 := compile_run_code("1 + 2")
         if comperr1:
             print comperr1

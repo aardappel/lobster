@@ -657,3 +657,4 @@ secs measured in release win32 on speedtest.lobster, all other figures in debug.
 last_dynamically_typed: secs 10.11, ins 599572240, fcall 57534476, bcall 2534535, totalallocs 4501531, 59.3m ins/sec.
 last_switch_statement : secs  7.65, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586, 69.1m ins/sec.
 over function pointer : secs  6.99, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586, 75.6m ins/sec.
+first compile to C++  : secs  4.85, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586, 75.6m ins/sec.

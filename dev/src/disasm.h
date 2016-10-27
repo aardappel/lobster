@@ -43,11 +43,6 @@ static void LvalDisAsm(string &s, const int *&ip)
     s += " ";
 }
 
-static const char *IdName(const bytecode::BytecodeFile *bcf, int i)
-{
-    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->c_str();
-}
-
 static const int *DisAsmIns(string &s, const int *ip, const int *code, const type_elem_t *typetable,
                             const bytecode::BytecodeFile *bcf)
 {
@@ -191,9 +186,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             break;
 
         case IL_PUSHSTR:
-            s += "\"";
-            s += bcf->stringtable()->Get(*ip++)->c_str();
-            s += "\"";
+            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->c_str(), s);
             break;
 
         case IL_FUNSTART:
@@ -224,7 +217,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += to_string(n);
             s += " ";
             s += to_string(nargs);
-            ip += (nargs * 2 + 1) * n;
+            ip += (nargs + 1) * n;
             break;
         }
     }

@@ -17,21 +17,20 @@
 
 namespace lobster
 {
-    const int LOBSTER_BYTECODE_FORMAT_VERSION = 8;
+    const int LOBSTER_BYTECODE_FORMAT_VERSION = 9;
 
 #define ILBASENAMES \
     F(PUSHINT, 1) \
     F(PUSHFLT, 1) \
     F(PUSHSTR, 1) \
     F(PUSHNIL, 0) \
-    F(PUSHFUN, 1) \
     F(PUSHVAR, 1) F(PUSHVARREF, 1) F(LVALVAR, 2) \
     F(PUSHIDXI, 0) F(PUSHIDXV, 0) F(LVALIDXI, 1) F(LVALIDXV, 1) \
     F(PUSHFLD, 1) F(PUSHFLDM, 1) F(LVALFLD, 2) \
     F(PUSHLOC, 1) F(LVALLOC, 2) \
     F(BCALL0, 1) F(BCALL1, 1) F(BCALL2, 1) F(BCALL3, 1) F(BCALL4, 1) F(BCALL5, 1) F(BCALL6, 1) \
-    F(CALL, 3) F(CALLV, 1) F(CALLVCOND, 1) F(YIELD, 0) F(CONT1, 1) F(CONT1REF, 0) \
-    F(FUNSTART, -1) F(FUNEND, 0) F(FUNMULTI, -1) F(CALLMULTI, -1) \
+    F(CONT1, 1) F(CONT1REF, 0) \
+    F(FUNSTART, -1) F(FUNEND, 0) F(FUNMULTI, -1) \
     F(NEWVEC, 2) \
     F(POP, 0) F(POPREF, 0) \
     F(DUP, 0) F(DUPREF, 0) \
@@ -49,9 +48,13 @@ namespace lobster
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \
     F(I2F, 0) F(A2S, 0) F(I2A, 0) F(F2A, 0) F(E2B, 0) F(E2BREF, 0) \
     F(RETURN, 3) \
-    F(IFOR, 2) F(IFORREF, 2) F(SFOR, 2) F(SFORREF, 2) F(VFOR, 2) F(VFORREF, 2) \
-    F(ISTYPE, 1) F(CORO, -1) F(COCL, 0) F(COEND, 0) \
+    F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
     F(LOGREAD, 1) F(LOGREADREF, 1)
+
+#define ILCALLNAMES \
+    F(CALL, 3) F(CALLMULTI, -1) F(CALLV, 1) F(CALLVCOND, 1) \
+    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 0) \
+    F(IFOR, 2) F(IFORREF, 2) F(SFOR, 2) F(SFORREF, 2) F(VFOR, 2) F(VFORREF, 2)
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
@@ -59,7 +62,7 @@ namespace lobster
     F(JUMPFAILN, 1) F(JUMPFAILNREF, 1) \
     F(JUMPNOFAIL, 1) F(JUMPNOFAILREF, 1) F(JUMPNOFAILR, 1) F(JUMPNOFAILRREF, 1) \
 
-#define ILNAMES ILBASENAMES ILJUMPNAMES
+#define ILNAMES ILBASENAMES ILCALLNAMES ILJUMPNAMES
 
 #define LVALOPNAMES \
     F(WRITE)  F(WRITER)  F(WRITEREF) F(WRITERREF) \
@@ -92,6 +95,14 @@ inline const char **ILNames()
         static const char *ilnames[] = { ILNAMES };
     #undef F
     return ilnames;
+}
+
+inline const char **LvalOpNames()
+{
+    #define F(N) #N,
+        static const char *lvalopnames[] = { LVALOPNAMES };
+    #undef F
+    return lvalopnames;
 }
 
 inline const int *ILArity()

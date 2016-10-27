@@ -27,6 +27,11 @@ These can be passed to lobster anywhere on the command line.
     distributing programs created in lobster is as simple as packaging up the
     lobster executable with a bytecode file and any data files it may use.
 
+-   `--to-cpp` : compiles to a .cpp file. Useful if you’ve created something in
+    Lobster that could use a bit more speed, for a shipping build. Not recommend
+    to be used during development. See [implementation](implementation.html) on
+    how to compile the resulting code.
+
 -   `-w` : makes the compiler wait for commandline input before it exits. Useful
     on Windows.
 

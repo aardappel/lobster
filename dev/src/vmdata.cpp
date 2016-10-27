@@ -22,6 +22,29 @@ BoxedInt::BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(
 BoxedFloat::BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
 LString::LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
 
+char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
+
+void EscapeAndQuote(const string &s, string &r)
+{
+    r += "\"";
+    for (size_t i = 0; i < s.length(); i++) switch(s[i])
+    {
+        case '\n': r += "\\n"; break;
+        case '\t': r += "\\t"; break;
+        case '\r': r += "\\r"; break;
+        case '\\': r += "\\\\"; break;
+        case '\"': r += "\\\""; break;
+        case '\'': r += "\\\'"; break;
+        default:
+            if (s[i] >= ' ' && s[i] <= '~') r += s[i];
+            else { 
+                r += "\\x"; r += HexChar(((uchar)s[i]) >> 4); r += HexChar(s[i] & 0xF); }
+            break;
+    }
+
+    r += "\"";
+}
+
 string LString::ToString(PrintPrefs &pp)
 {
     if (pp.cycles >= 0)
@@ -33,23 +56,8 @@ string LString::ToString(PrintPrefs &pp)
     string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
     if (pp.quoted)
     {
-        string r = "\"";
-        for (size_t i = 0; i < s.length(); i++) switch(s[i])
-        {
-            case '\n': r += "\\n"; break;
-            case '\t': r += "\\t"; break;
-            case '\r': r += "\\r"; break;
-            case '\\': r += "\\\\"; break;
-            case '\"': r += "\\\""; break;
-            case '\'': r += "\\\'"; break;
-            default:
-                if (s[i] >= ' ' && s[i] <= '~') r += s[i];
-                else { 
-                    r += "\\x"; r += HexChar(((uchar)s[i]) >> 4); r += HexChar(s[i] & 0xF); }
-                break;
-        }
-
-        r += "\"";
+        string r;
+        EscapeAndQuote(s, r);
         return r; 
     }
     else

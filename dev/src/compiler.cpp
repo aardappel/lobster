@@ -214,6 +214,11 @@ Value CompileRun(Value &source, bool stringiscode)
         vector<uchar> bytecode;
         Compile(fn.c_str(), stringiscode ? source.sval()->str() : nullptr, bytecode);
         //string s; DisAsm(s, bytecode.data()); Output(OUTPUT_INFO, "%s", s.c_str());
+        #ifdef VM_COMPILED_CODE_MODE
+            // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
+            // interpreted mode anymore.
+            throw string("cannot execute bytecode in compiled mode");
+        #endif
         RunBytecode(fn.c_str(), std::move(bytecode), nullptr, nullptr);
         auto ret = g_vm->evalret;
         delete g_vm;
@@ -230,7 +235,7 @@ Value CompileRun(Value &source, bool stringiscode)
         vmpool = parentpool;
         g_vm = parentvm;
         source.DECRT();
-        g_vm->Push(Value());
+        g_vm->Push(Value(g_vm->NewString("nil")));
         return Value(g_vm->NewString(s));
     }
 }

@@ -888,7 +888,7 @@ void AddBuiltins()
 
     STARTDECL(resume) (Value &co, Value &ret)
     {
-        g_vm->CoResume(co.cval());
+        g_vm->CoResume(co.cval(), g_vm->GetIP());
         // By the time CoResume returns, we're now back in the context of co, meaning that the return value below
         // is what is returned from yield.
         return ret;
@@ -920,6 +920,19 @@ void AddBuiltins()
     }
     ENDDECL0(program_name, "", "", "S",
         "returns the name of the main program (e.g. \"foo.lobster\".");
+
+    STARTDECL(vm_compiled_mode) ()
+    {
+        return Value(
+            #ifdef VM_COMPILED_CODE_MODE
+                true
+            #else
+                false
+            #endif
+        );
+    }
+    ENDDECL0(vm_compiled_mode, "", "", "I",
+        "returns if the VM is running in compiled mode (Lobster -> C++).");
 
     STARTDECL(caller_id) ()
     {

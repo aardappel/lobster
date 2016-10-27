@@ -61,7 +61,7 @@ namespace lobster
             {
                 auto n = *ip++;
                 auto nargs = *ip++;
-                auto tablesize = (nargs * 2 + 1) * n;
+                auto tablesize = (nargs + 1) * n;
                 ip += tablesize;
                 arity = tablesize + 2;
                 break;
@@ -85,13 +85,13 @@ namespace lobster
             function_lookup[f->bytecodestart()] = f;
         }
 
-        s += "#ifndef VM_COMPILED_CODE_MODE\n"
-             "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
-             "#endif\n"
-             "\n"
-             "#include \"stdafx.h\"\n"
+        s += "#include \"stdafx.h\"\n"
              "#include \"vmdata.h\"\n"
              "#include \"sdlinterface.h\"\n"
+             "\n"
+             "#ifndef VM_COMPILED_CODE_MODE\n"
+             "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
+             "#endif\n"
              "\n"
              "using lobster::g_vm;\n"
              "\n"
@@ -135,7 +135,7 @@ namespace lobster
 
         ip = code + 2;
 
-        bool start_block = false;
+        bool already_returned = false;
 
         while (ip < code + len)
         {
@@ -152,26 +152,31 @@ namespace lobster
 
             auto args = ip;
 
-            if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT) start_block = true;
-
-            auto arity = ParseOpAndGetArity(opc, ip, code);
-
-            if (start_block)
+            if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT)
             {
                 s += "static void *block";
                 s += to_string(args - 1 - code);
                 s += "() {\n";
+                already_returned = false;
             }
+
+            auto arity = ParseOpAndGetArity(opc, ip, code);
 
             s += "  ";
 
-            start_block = false;
-
             if (IsJumpOp(opc))
             {
-                s += "if (g_vm->F_";
-                s += ilname;
-                s += "()) return block";
+                if (opc != IL_JUMP)
+                {
+                    s += "if (g_vm->F_";
+                    s += ilname;
+                    s += "()) ";
+                }
+                else
+                {
+                    already_returned = true;
+                }
+                s += "return block";
                 s += to_string(args[0]);
                 s += ";\n";
             }
@@ -180,7 +185,7 @@ namespace lobster
                 s += "{ ";
                 if (arity)
                 {
-                    s += "int args[] = {";
+                    s += "static int args[] = {";
 
                     for (int i = 0; i < arity; i++)
                     {
@@ -191,30 +196,115 @@ namespace lobster
                     s += "}; ";
                 }
 
+                if (opc == IL_FUNMULTI)
+                {
+                    s += "static lobster::block_t mmtable[] = {";
+                    auto nargs = args[1];
+                    for (int i = 0; i < args[0]; i++)
+                    {
+                        s += "block";
+                        s += to_string(args[2 + (nargs + 1) * i + nargs]);
+                        s += ", ";
+                    }
+                    s += "}; g_vm->next_mm_table = mmtable; ";
+                }
+                else if (opc == IL_BCALL2 && natreg.nfuns[args[0]]->name == "resume")  // FIXME: make resume a vm op.
+                {
+                    s += "g_vm->next_call_target = block";
+                    s += to_string(ip - code);
+                    s += "; ";
+                }
+
                 s += "g_vm->F_";
                 s += ilname;
                 s += "(";
                 s += arity ? "args" : "nullptr";
-                s += ");";
-                if (opc == IL_CALL)
+                if (opc == IL_CALL || opc == IL_CALLMULTI || opc == IL_CALLV || opc == IL_CALLVCOND || opc == IL_YIELD)
                 {
-                    //s += " g_vm->SetRet"
+                    s += ", block";
+                    s += to_string(ip - code);
+                }
+                else if (opc >= IL_IFOR && opc <= IL_VFORREF)
+                {
+                    s += ", block";
+                    s += to_string(args - 1 - code);
+                }
+                else if (opc == IL_PUSHFUN || opc == IL_CORO)
+                {
+                    s += ", block";
+                    s += to_string(args[0]);
+                }
+                s += ");";
+
+                if (opc >= IL_BCALL0 && opc <= IL_BCALL6)
+                {
+                    s += " /* ";
+                    s += natreg.nfuns[args[0]]->name;
+                    s += " */";
+                }
+                else if (opc == IL_PUSHVAR || opc == IL_PUSHVARREF)
+                {
+                    s += " /* ";
+                    s += IdName(bcf, args[0]);
+                    s += " */";
+                }
+                else if (opc == IL_LVALVAR)
+                {
+                    s += " /* ";
+                    s += LvalOpNames()[args[0]];
+                    s += " ";
+                    s += IdName(bcf, args[1]);
+                    s += " */";
+                }
+                else if (opc == IL_PUSHSTR)
+                {
+                    s += " /* ";
+                    EscapeAndQuote(bcf->stringtable()->Get(args[0])->c_str(), s);
+                    s += " */";
+                }
+                else if (opc == IL_CALL || opc == IL_CALLMULTI)
+                {
+                    s += " /* ";
+                    s += bcf->functions()->Get(args[0])->name()->c_str();
+                    s += " */";
+                }
+
+                if (opc == IL_CALL || opc == IL_CALLMULTI)
+                {
+                    s += " return block";
+                    s += to_string(args[1]);
+                    s += ";";
+                    already_returned = true;
+                }
+                else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI || opc == IL_YIELD ||
+                         opc == IL_COEND || opc == IL_RETURN)
+                {
+                    s += " return g_vm->next_call_target;";
+                    already_returned = true;
+                }
+                else if (opc == IL_CALLVCOND || (opc >= IL_IFOR && opc <= IL_VFORREF))
+                {
+                    s += " if (g_vm->next_call_target) return g_vm->next_call_target;";
                 }
                 s += " }\n";                
             }
-            if (start_block || bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
+            if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
             {
-                s += "  return ";
-                if (opc == IL_EXIT)
+                if (!already_returned)
                 {
-                    s += "nullptr";
+                    s += "  return ";
+                    if (opc == IL_EXIT)
+                    {
+                        s += "nullptr";
+                    }
+                    else
+                    {
+                        s += "block";
+                        s += to_string(ip - code);
+                    }
+                    s += ";\n";
                 }
-                else
-                {
-                    s += "block";
-                    s += to_string(ip - code);
-                }
-                s += ";\n}\n";
+                s += "}\n";
             }
         }
 

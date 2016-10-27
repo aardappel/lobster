@@ -221,7 +221,7 @@ struct Narg : Typed
                 case '3': flags = ArgFlags(flags | NF_SUBARG3); break;
                 case '*': flags = ArgFlags(flags | NF_ANYVAR); break;
                 case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
-                case '%': flags = ArgFlags(flags | NF_CORESUME); break;
+                case '%': flags = ArgFlags(flags | NF_CORESUME); break;  // FIXME: make resume a vm op.
                 case ']': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back()); break;
                 case '?': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back(), V_NIL); break;
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;

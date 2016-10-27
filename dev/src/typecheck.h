@@ -388,9 +388,9 @@ struct TypeChecker
     {
         switch (n.type)
         {
-            case T_INT:   val = Value(n.integer());    return true;
-            case T_FLOAT: val = Value((float)n.flt()); return true;
-            case T_NIL:   val = Value(nullptr, V_NIL); return true;
+            case T_INT:   val = Value(n.integer()); return true;
+            case T_FLOAT: val = Value(n.flt());     return true;
+            case T_NIL:   val = Value();            return true;
             case T_IS:
             {
                 if (n.left()->exptype == n.right()->exptype ||
