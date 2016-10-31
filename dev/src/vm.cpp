@@ -55,7 +55,7 @@ enum
 VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_point, const void *static_bytecode)
       : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
         #ifdef VM_COMPILED_CODE_MODE
-            next_call_target(nullptr), next_mm_table(nullptr), next_mm_call(nullptr),
+            next_call_target(0), next_mm_table(nullptr), next_mm_call(nullptr),
         #else
             ip(nullptr),
         #endif
@@ -636,7 +636,7 @@ bool VM::FunOut(int towhere, int nrv)
 void VM::CoVarCleanup(CoRoutine *co)
 {
     // Convenient way to copy everything back onto the stack.
-    InsPtr tip(nullptr);
+    InsPtr tip(0);
     auto copylen = co->Resume(sp + 1, stack, stackframes, tip, nullptr);
     auto startsp = sp;
     sp += copylen;
@@ -702,7 +702,7 @@ void VM::CoClean()
     }
 
     auto co = curcoroutine;
-    CoDone(InsPtr(nullptr));
+    CoDone(InsPtr(0));
     VMASSERT(co->stackcopylen == 1);
     co->active = false;
 }
@@ -860,7 +860,7 @@ void VM::F_CALL(VM_OP_ARGS_CALL)
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
         auto tm = *ip++;
-        block_t fun = nullptr;  // Dynamic calls need this set, but for CALL it is ignored.
+        block_t fun = 0;  // Dynamic calls need this set, but for CALL it is ignored.
     #else
         auto fun = codestart + *ip++;
         auto tm = *ip++;
@@ -882,7 +882,7 @@ void VM::F_CALLMULTI(VM_OP_ARGS_CALL)
         auto mip = codestart + fun;
         VMASSERT(*mip == IL_FUNMULTI);
         mip++;
-        EvalMulti(mip, fvar, ip, nullptr, tm);
+        EvalMulti(mip, fvar, ip, 0, tm);
     #endif
 }
 
@@ -906,7 +906,7 @@ void VM::F_CALLVCOND(VM_OP_ARGS_CALL)
     {
         ip++;
         #ifdef VM_COMPILED_CODE_MODE
-            next_call_target = nullptr;
+            next_call_target = 0;
         #endif
     }
     else
@@ -973,7 +973,7 @@ void VM::F_CONT1REF(VM_OP_ARGS)
 
 #ifdef VM_COMPILED_CODE_MODE
     #define FOR_START fcont
-    #define FOR_NEXT_TARGET next_call_target = nullptr;
+    #define FOR_NEXT_TARGET next_call_target = 0;
 #else
     #define FOR_START forstart
     #define FOR_NEXT_TARGET
@@ -1437,7 +1437,12 @@ void VM::EvalProgram()
         for (;;)
         {
             #ifdef VM_COMPILED_CODE_MODE
-                compiled_code_ip = ((block_t)compiled_code_ip)();
+                #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
+                    compiled_code_ip = ((block_t)compiled_code_ip)();
+                #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
+                    ((block_base_t)compiled_code_ip)();
+                    assert(false);  // Should not return here.
+                #endif
             #else
                 #ifdef _DEBUG
                     if (trace)

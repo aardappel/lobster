@@ -129,7 +129,17 @@ struct PrintPrefs
         : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1), anymark(_anymark) {}
 };
 
-typedef void *(*block_t)();
+#define VM_DISPATCH_TRAMPOLINE 1
+#define VM_DISPATCH_SWITCH_GOTO 2
+
+#define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
+
+typedef void *(*block_base_t)();
+#if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
+    typedef block_base_t block_t;
+#elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
+    typedef int block_t;
+#endif
 
 struct VM;
 
@@ -218,7 +228,7 @@ struct InsPtr
         const int *f;
         explicit InsPtr(const int *_f) : f(_f) {}
     #endif
-    InsPtr() : f(nullptr) {}
+    InsPtr() : f(0) {}
     bool operator==(const InsPtr o) const { return f == o.f; }
     int CallerId() { return (int)f; }
 };

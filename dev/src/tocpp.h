@@ -73,6 +73,8 @@ namespace lobster
 
     void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len)
     {
+        int dispatch = VM_DISPATCH_METHOD;
+
         auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
         assert(FLATBUFFERS_LITTLEENDIAN);
         auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
@@ -102,20 +104,55 @@ namespace lobster
 
         auto ilnames = ILNames();
 
+        vector<int> block_ids(bcf->bytecode_attr()->size());
+
+        auto BlockRef = [&](int ip)
+        {
+            if (dispatch == VM_DISPATCH_TRAMPOLINE) s += "block";
+            s += to_string(dispatch == VM_DISPATCH_TRAMPOLINE ? ip : block_ids[ip]);
+        };
+
+        auto JumpIns = [&](int ip = 0)
+        {
+            if (dispatch == VM_DISPATCH_TRAMPOLINE)
+            {
+                s += "return ";
+            }
+            else if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+            {
+                if (ip) s += "goto block_label";
+                else s += "{ ip = ";
+            }
+            if (ip) BlockRef(ip); else s += "g_vm->next_call_target";
+            s += ";";
+            if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+            {
+                if (!ip) s += " continue; }";
+            }
+        };
+
         const int *ip = code;
 
         // Skip past 1st jump.
         assert(*ip == IL_JUMP);
         ip++;
         auto starting_point = *ip++;
+        int block_id = 1;
 
         while (ip < code + len)
         {
             if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
             {
-                s += "static void *block";
-                s += to_string(ip - code);
-                s += "();\n";
+                if (dispatch == VM_DISPATCH_TRAMPOLINE)
+                {
+                    s += "static void *block";
+                    s += to_string(ip - code);
+                    s += "();\n";
+                }
+                else if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+                {
+                    block_ids[ip - code] = block_id++;
+                }
             }
 
             int opc = *ip++;
@@ -132,6 +169,13 @@ namespace lobster
         }
 
         s += "\n";
+
+        if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+        {
+            s += "static void *one_gigantic_function() {\n  int ip = ";
+            BlockRef(starting_point);
+            s += ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n";
+        }
 
         ip = code + 2;
 
@@ -154,16 +198,26 @@ namespace lobster
 
             if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT)
             {
-                s += "static void *block";
-                s += to_string(args - 1 - code);
-                s += "() {\n";
+                if (dispatch == VM_DISPATCH_TRAMPOLINE)
+                {
+                    s += "static void *block";
+                    s += to_string(args - 1 - code);
+                    s += "() {\n";
+                }
+                else if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+                {
+                    s += "  case ";
+                    BlockRef(args - 1 - code);
+                    s += ": block_label";
+                    BlockRef(args - 1 - code);
+                    s += ":\n";
+                }
                 already_returned = false;
             }
 
             auto arity = ParseOpAndGetArity(opc, ip, code);
 
-            s += "  ";
-
+            s += "    ";
             if (IsJumpOp(opc))
             {
                 if (opc != IL_JUMP)
@@ -176,9 +230,8 @@ namespace lobster
                 {
                     already_returned = true;
                 }
-                s += "return block";
-                s += to_string(args[0]);
-                s += ";\n";
+                JumpIns(args[0]);
+                s += "\n";
             }
             else
             {
@@ -202,16 +255,15 @@ namespace lobster
                     auto nargs = args[1];
                     for (int i = 0; i < args[0]; i++)
                     {
-                        s += "block";
-                        s += to_string(args[2 + (nargs + 1) * i + nargs]);
+                        BlockRef(args[2 + (nargs + 1) * i + nargs]);
                         s += ", ";
                     }
                     s += "}; g_vm->next_mm_table = mmtable; ";
                 }
                 else if (opc == IL_BCALL2 && natreg.nfuns[args[0]]->name == "resume")  // FIXME: make resume a vm op.
                 {
-                    s += "g_vm->next_call_target = block";
-                    s += to_string(ip - code);
+                    s += "g_vm->next_call_target = ";
+                    BlockRef(ip - code);
                     s += "; ";
                 }
 
@@ -221,18 +273,18 @@ namespace lobster
                 s += arity ? "args" : "nullptr";
                 if (opc == IL_CALL || opc == IL_CALLMULTI || opc == IL_CALLV || opc == IL_CALLVCOND || opc == IL_YIELD)
                 {
-                    s += ", block";
-                    s += to_string(ip - code);
+                    s += ", ";
+                    BlockRef(ip - code);
                 }
                 else if (opc >= IL_IFOR && opc <= IL_VFORREF)
                 {
-                    s += ", block";
-                    s += to_string(args - 1 - code);
+                    s += ", ";
+                    BlockRef(args - 1 - code);
                 }
                 else if (opc == IL_PUSHFUN || opc == IL_CORO)
                 {
-                    s += ", block";
-                    s += to_string(args[0]);
+                    s += ", ";
+                    BlockRef(args[0]);
                 }
                 s += ");";
 
@@ -271,41 +323,42 @@ namespace lobster
 
                 if (opc == IL_CALL || opc == IL_CALLMULTI)
                 {
-                    s += " return block";
-                    s += to_string(args[1]);
-                    s += ";";
+                    s += " ";
+                    JumpIns(args[1]);
                     already_returned = true;
                 }
                 else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI || opc == IL_YIELD ||
                          opc == IL_COEND || opc == IL_RETURN)
                 {
-                    s += " return g_vm->next_call_target;";
+                    s += " ";
+                    JumpIns();
                     already_returned = true;
                 }
                 else if (opc == IL_CALLVCOND || (opc >= IL_IFOR && opc <= IL_VFORREF))
                 {
-                    s += " if (g_vm->next_call_target) return g_vm->next_call_target;";
+                    s += " if (g_vm->next_call_target) ";
+                    JumpIns();
                 }
                 s += " }\n";                
             }
             if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT)
             {
-                if (!already_returned)
+                if (dispatch == VM_DISPATCH_TRAMPOLINE)
                 {
-                    s += "  return ";
-                    if (opc == IL_EXIT)
+                    if (!already_returned)
                     {
-                        s += "nullptr";
+                        s += "  ";
+                        JumpIns(opc == IL_EXIT ? 0 : ip - code);
+                        s += "\n";
                     }
-                    else
-                    {
-                        s += "block";
-                        s += to_string(ip - code);
-                    }
-                    s += ";\n";
+                    s += "}\n";
                 }
-                s += "}\n";
             }
+        }
+
+        if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+        {
+            s += "}\n}\n";  // End of gigantic function.
         }
 
         // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
@@ -320,7 +373,16 @@ namespace lobster
         }
         s += "\n};\n\n";
 
-        s += "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, block" +
-             to_string(starting_point) + ", bytecodefb);\n}\n";
+        s += "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, ";
+        if (dispatch == VM_DISPATCH_SWITCH_GOTO)
+        {
+            s += "one_gigantic_function";
+        }
+        else if (dispatch == VM_DISPATCH_TRAMPOLINE)
+        {
+            s += "block";
+            s += to_string(starting_point);
+        }
+        s += ", bytecodefb);\n}\n";
     }
 }
