@@ -1,3 +1,5 @@
+- Add VAOs.
+
 - consider baking Z up into functions.
   - clean up 3dhelpers?
 

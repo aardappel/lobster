@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace lobster
-{
+namespace lobster {
 
 // Enum used both for token and node types
 
@@ -132,8 +131,7 @@ namespace lobster
     T0(T_CONST, "const", 0) \
     T0(T_CALL_NOPARENS, "callnp", 0)
 
-enum TType
-{
+enum TType {
     #define T0(ENUM, STR, CAT) ENUM,
     #define T1(ENUM, STR, CAT, ONE) ENUM,
     #define T2(ENUM, STR, CAT, ONE, TWO) ENUM,
@@ -145,10 +143,8 @@ enum TType
     #undef T3
 };
 
-inline const char *TName(TType t)
-{
-    static const char *names[] =
-    {
+inline const char *TName(TType t) {
+    static const char *names[] = {
         #define T0(ENUM, STR, CAT) STR,
         #define T1(ENUM, STR, CAT, ONE) STR,
         #define T2(ENUM, STR, CAT, ONE, TWO) STR,
@@ -162,10 +158,8 @@ inline const char *TName(TType t)
     return names[t];
 }
 
-inline char TArity(TType t)
-{
-    static char cats[] =
-    {
+inline char TArity(TType t) {
+    static char cats[] = {
         #define T0(ENUM, STR, CAT) CAT,
         #define T1(ENUM, STR, CAT, ONE) CAT,
         #define T2(ENUM, STR, CAT, ONE, TWO) CAT,

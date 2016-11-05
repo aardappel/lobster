@@ -12,42 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// platform independent file access:
+// Platform independent file access:
 
 extern string StripFilePart(const char *filepath);
 extern string StripDirPart(const char *filepath);
 
-// call this at init to determine default folders to load stuff from
+// Call this at init to determine default folders to load stuff from.
 extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle);
 
 extern uchar *LoadFile(const char *relfilename, size_t *len = nullptr);
 extern FILE *OpenForWriting(const char *relfilename, bool binary);
 extern string SanitizePath(const char *path);
 
-// logging:
+// Logging:
 
-enum OutputType
-{
-    OUTPUT_DEBUG,    // temp spam, should eventually be removed, shown only at --debug
-    OUTPUT_INFO,     // output that helps understanding what the code is doing when not under a debugger, shown with --verbose.
-    OUTPUT_WARN,     // non-critical issues, e.g. SDL errors. This level shown by default.
-    OUTPUT_PROGRAM,  // output by the Lobster code.
-    OUTPUT_ERROR,    // compiler & vm errors, program terminates after this. Only thing shown at --silent.
+enum OutputType {
+    // Temp spam, should eventually be removed, shown only at --debug.
+    OUTPUT_DEBUG,
+    // Output that helps understanding what the code is doing when not under a debugger,
+    // shown with --verbose.
+    OUTPUT_INFO,
+    // Non-critical issues, e.g. SDL errors. This level shown by default.
+    OUTPUT_WARN,
+    // Output by the Lobster code.
+    OUTPUT_PROGRAM,
+    // Compiler & vm errors, program terminates after this. Only thing shown at --silent.
+    OUTPUT_ERROR,
 };
 
-extern OutputType min_output_level;  // defaults to showing OUTPUT_WARN and up.
+extern OutputType min_output_level;  // Defaults to showing OUTPUT_WARN and up.
 
 extern void Output(OutputType ot, const char *msg, ...);
 
 extern void MsgBox(const char *err);
 
-// time:
-
+// Time:
 extern void InitTime();
 extern double SecondsSinceStart();
 
-// misc:
-
+// Misc:
 extern void ConditionalBreakpoint(bool shouldbreak);
 
 #if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)
@@ -58,6 +61,6 @@ extern void ConditionalBreakpoint(bool shouldbreak);
     #define PLATFORM_TOUCH
 #endif
 
-#if defined(_WIN32)  // FIXME: also make work on Linux/OS X
+#if defined(_WIN32)  // FIXME: Also make work on Linux/OS X.
     #define PLATFORM_VR
 #endif

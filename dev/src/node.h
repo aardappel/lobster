@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace lobster
-{
-    
-struct SlabAllocatedSmall
-{
+namespace lobster {
+
+struct SlabAllocatedSmall {
     #undef new
-    void *operator new(size_t size)                         { return parserpool->alloc_small(size); }
-    void *operator new(size_t size, int, const char *, int) { return parserpool->alloc_small(size); }
-    void operator delete(void *p)                           { parserpool->dealloc_small(p); };
-    void operator delete(void *p, int, const char *, int)   { parserpool->dealloc_small(p); }
+    void *operator new(size_t size) { return parserpool->alloc_small(size); }
+    void *operator new(size_t size, int, const char *, int) {
+        return parserpool->alloc_small(size);
+    }
+    void operator delete(void *p) { parserpool->dealloc_small(p); };
+    void operator delete(void *p, int, const char *, int) { parserpool->dealloc_small(p); }
     #ifdef _WIN32
     #ifdef _DEBUG
     #define new DEBUG_NEW
@@ -29,45 +29,39 @@ struct SlabAllocatedSmall
     #endif
 };
 
-struct Node : SlabAllocatedSmall
-{
+struct Node : SlabAllocatedSmall {
     Line line;
     TType type;
     TypeRef exptype;
 
     private:
-    union
-    {
+    union {
         struct { Node *a_, *b_, *c_; };
         struct { Ident *ident_; SpecIdent *sid_; };
-        int integer_;      
-        double flt_;       
-        char *str_;        
-        Struct *st_;       
-        SharedField *fld_; 
-        SubFunction *sf_;  
-        NativeFun *nf_;    
-        TypeRef type_;     
+        int integer_;
+        double flt_;
+        char *str_;
+        Struct *st_;
+        SharedField *fld_;
+        SubFunction *sf_;
+        NativeFun *nf_;
+        TypeRef type_;
     };
     public:
 
-    Node(Line &ln, TType t) : line(ln), type(t), a_(nullptr), b_(nullptr), c_(nullptr)
-    {
+    Node(Line &ln, TType t) : line(ln), type(t), a_(nullptr), b_(nullptr), c_(nullptr) {
         assert(TArity(t) == 0);
     }
 
-    Node(Line &ln, TType t, Node *a) : line(ln), type(t), a_(a), b_(nullptr), c_(nullptr)
-    {
+    Node(Line &ln, TType t, Node *a) : line(ln), type(t), a_(a), b_(nullptr), c_(nullptr) {
         assert(TArity(t) == 1);
     }
 
-    Node(Line &ln, TType t, Node *a, Node *b) : line(ln), type(t), a_(a), b_(b), c_(nullptr)
-    {
+    Node(Line &ln, TType t, Node *a, Node *b) : line(ln), type(t), a_(a), b_(b), c_(nullptr) {
         assert(TArity(t) == 2);
     };
 
-    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : line(ln), type(t), a_(a), b_(b), c_(c)
-    {
+    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : line(ln), type(t), a_(a), b_(b), c_(c) {
         assert(TArity(t) == 3);
     }
 
@@ -77,12 +71,13 @@ struct Node : SlabAllocatedSmall
 
     Node(Line &ln, int i)            : line(ln), type(T_INT), integer_(i) {}
     Node(Line &ln, double f)         : line(ln), type(T_FLOAT), flt_(f) {}
-    Node(Line &ln, const string &s)  : line(ln), type(T_STR), str_(parserpool->alloc_string_sized(s)) {}
+    Node(Line &ln, const string &s)  : line(ln), type(T_STR),
+                                       str_(parserpool->alloc_string_sized(s)) {}
     Node(Line &ln, Struct *st)       : line(ln), type(T_STRUCT), st_(st) {}
     Node(Line &ln, SharedField *fld) : line(ln), type(T_FIELD), fld_(fld) {}
     Node(Line &ln, SubFunction *sf)  : line(ln), type(T_FUN), sf_(sf) {}
     Node(Line &ln, NativeFun *nf)    : line(ln), type(T_NATIVE), nf_(nf) {}
-    
+
     int integer()       const { assert(type == T_INT);    return integer_; }
     double flt()        const { assert(type == T_FLOAT);  return flt_; }
     char * str()        const { assert(type == T_STR);    return str_; }
@@ -130,71 +125,55 @@ struct Node : SlabAllocatedSmall
     #undef T3
     #undef ACCESSOR
 
-    ~Node()
-    {
-        if (type == T_STR)
-        {
+    ~Node() {
+        if (type == T_STR) {
             parserpool->dealloc_sized(str());
-        }
-        else
-        {
+        } else {
             if (a()) delete a();
             if (b()) delete b();
             if (c()) delete c();
         }
     }
 
-    Node *Clone()
-    {
+    Node *Clone() {
         auto n = parserpool->clone_obj_small(this);
         if (a()) n->aref() = a()->Clone();
         if (b()) n->bref() = b()->Clone();
         if (c()) n->cref() = c()->Clone();
-        if (type == T_STR)
-        {
+        if (type == T_STR) {
             n->str() = (char *)parserpool->clone_sized(str());
         }
         return n;
     }
-    
+
     // Used to see if a var is worth outputting in a stacktrace.
-    bool IsConstInit()
-    {
-        switch (type)
-        {
+    bool IsConstInit() {
+        switch (type) {
             case T_INT:
             case T_FLOAT:
             case T_STR:
             case T_FUN:
                 return true;
-
             case T_IDENT:
                 return ident()->static_constant;
-
-            case T_CONSTRUCTOR:
-            {
-                for (Node *n = constructor_args(); n; n = n->tail())
-                {
+            case T_CONSTRUCTOR: {
+                for (Node *n = constructor_args(); n; n = n->tail()) {
                     if (!n->head()->IsConstInit()) return false;
                 }
                 return true;
             }
-
             // TODO: support more types of exps?
-
             default:
                 return false;
         }
     }
 
-    int ClosureArgs()
-    {
+    int ClosureArgs() {
         return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
     }
 };
 
-inline int CountNodes(const Node *n)
-{
+inline int CountNodes(const Node *n) {
     if (!n) return 0;
     int count = 1;
     if (n->a()) count += CountNodes(n->a());
@@ -203,59 +182,55 @@ inline int CountNodes(const Node *n)
     return count;
 }
 
-inline void DumpType(const Node &n, string &ns)
-{
-    if (n.exptype->t != V_ANY)
-    {
+inline void DumpType(const Node &n, string &ns) {
+    if (n.exptype->t != V_ANY) {
         ns += ":";
         ns += TypeName(n.exptype);
     }
 }
 
-inline string Dump(const Node &n, int indent)
-{
-    switch (n.type)
-    {
+inline string Dump(const Node &n, int indent) {
+    switch (n.type) {
         case T_INT:   return to_string(n.integer());
         case T_FLOAT: return to_string(n.flt());
         case T_STR:   return string("\"") + n.str() + "\"";
         case T_NIL:   return "nil";
-
         case T_IDENT:  return n.ident()->name;
         case T_STRUCT: return n.st()->name;
         case T_FIELD:  return n.fld()->name;
         case T_NATIVE: return n.nf()->name;
         case T_TYPE:   return TypeName(n.typenode());
-
         case T_FUN:    return n.sf()
             ? "[fun " + n.sf()->parent->name + "]" /*+ sf()->body->Dump(indent + 2, symbols) */
             : "<>";
-
-        default:
-        {
+        default: {
             string s = TName(n.type);
-
             string as, bs, cs;
             bool ml = false;
             auto indenb = indent - (n.type == T_LIST) * 2;
-
-            if (n.a()) { as = Dump(*n.a(), indent + 2); DumpType(*n.a(), as); if (as[0] == ' ') ml = true; }
-            if (n.b()) { bs = Dump(*n.b(), indenb + 2); DumpType(*n.b(), bs); if (bs[0] == ' ') ml = true; }
-            if (n.c()) { cs = Dump(*n.c(), indenb + 2); DumpType(*n.c(), cs); if (cs[0] == ' ') ml = true; }
-
+            if (n.a()) {
+                as = Dump(*n.a(), indent + 2);
+                DumpType(*n.a(), as);
+                if (as[0] == ' ') ml = true;
+            }
+            if (n.b()) {
+                bs = Dump(*n.b(), indenb + 2);
+                DumpType(*n.b(), bs);
+                if (bs[0] == ' ') ml = true;
+            }
+            if (n.c()) {
+                cs = Dump(*n.c(), indenb + 2);
+                DumpType(*n.c(), cs);
+                if (cs[0] == ' ') ml = true;
+            }
             if (as.size() + bs.size() + cs.size() > 60) ml = true;
-
-            if (ml)
-            {
+            if (ml) {
                 if (n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
                 if (n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
                 if (n.c()) { if (cs[0] != ' ') cs = string(indenb + 2, ' ') + cs; }
-                if (n.type == T_LIST)
-                {
+                if (n.type == T_LIST) {
                     s = "";
-                }
-                else
-                {
+                } else {
                     s = string(indent, ' ') + s;
                     if (n.a()) s += "\n";
                 }
@@ -263,9 +238,7 @@ inline string Dump(const Node &n, int indent)
                 if (n.b()) s += "\n" + bs;
                 if (n.c()) s += "\n" + cs;
                 return s;
-            }
-            else
-            {
+            } else {
                 if (n.b()) return n.c() ? "(" + s + " " + as + " " + bs + " " + cs + ")"
                                         : "(" + s + " " + as + " " + bs + ")";
                 else return "(" + s + " " + as + ")";

@@ -58,27 +58,29 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 
 // Pointer-sized scalars.
-#if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__ 
+#if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
     typedef double floatp;
 #else
     typedef float floatp;
 #endif
 typedef ptrdiff_t intp;
-static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *), "typedefs need fixing");
+static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *),
+              "typedefs need fixing");
 
 #ifdef nullptr
 #undef nullptr
 #endif
 #define nullptr nullptr
 
-// our universally used headers
+// Our universally used headers.
 #include "platform.h"
 #include "tools.h"
 #include "slaballoc.h"
 #include "geom.h"
 
 #ifdef BUILD_CONTEXT_compiled_lobster
-    // This code is being build as part of lobster code compiled to C++, modify VM behavior accordingly.
+    // This code is being build as part of lobster code compiled to C++, modify VM behavior
+    // accordingly.
     #define VM_COMPILED_CODE_MODE
 #endif
 

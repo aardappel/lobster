@@ -15,8 +15,7 @@
 // FlatBuffers takes care of backwards compatibility of all metadata, but not the actual bytecode.
 // This needs to be bumped each time we make changes to the format.
 
-namespace lobster
-{
+namespace lobster {
     const int LOBSTER_BYTECODE_FORMAT_VERSION = 9;
 
 #define ILBASENAMES \
@@ -35,13 +34,20 @@ namespace lobster
     F(POP, 0) F(POPREF, 0) \
     F(DUP, 0) F(DUPREF, 0) \
     F(EXIT, 1) \
-    F(IADD, 0)  F(ISUB, 0)  F(IMUL, 0)  F(IDIV, 0)  F(IMOD, 0)  F(ILT, 0)  F(IGT, 0)  F(ILE, 0)  F(IGE, 0)  F(IEQ, 0) F(INE, 0) \
-    F(FADD, 0)  F(FSUB, 0)  F(FMUL, 0)  F(FDIV, 0)  F(FMOD, 0)  F(FLT, 0)  F(FGT, 0)  F(FLE, 0)  F(FGE, 0)  F(FEQ, 0) F(FNE, 0) \
-    F(SADD, 0)  F(SSUB, 0)  F(SMUL, 0)  F(SDIV, 0)  F(SMOD, 0)  F(SLT, 0)  F(SGT, 0)  F(SLE, 0)  F(SGE, 0)  F(SEQ, 0) F(SNE, 0) \
-    F(IVVADD, 0) F(IVVSUB, 0) F(IVVMUL, 0) F(IVVDIV, 0) F(IVVMOD, 0) F(IVVLT, 0) F(IVVGT, 0) F(IVVLE, 0) F(IVVGE, 0) \
-    F(FVVADD, 0) F(FVVSUB, 0) F(FVVMUL, 0) F(FVVDIV, 0) F(FVVMOD, 0) F(FVVLT, 0) F(FVVGT, 0) F(FVVLE, 0) F(FVVGE, 0) \
-    F(IVSADD, 0) F(IVSSUB, 0) F(IVSMUL, 0) F(IVSDIV, 0) F(IVSMOD, 0) F(IVSLT, 0) F(IVSGT, 0) F(IVSLE, 0) F(IVSGE, 0) \
-    F(FVSADD, 0) F(FVSSUB, 0) F(FVSMUL, 0) F(FVSDIV, 0) F(FVSMOD, 0) F(FVSLT, 0) F(FVSGT, 0) F(FVSLE, 0) F(FVSGE, 0) \
+    F(IADD, 0)  F(ISUB, 0)  F(IMUL, 0)  F(IDIV, 0)  F(IMOD, 0) \
+    F(ILT, 0)  F(IGT, 0)  F(ILE, 0)  F(IGE, 0)  F(IEQ, 0) F(INE, 0) \
+    F(FADD, 0)  F(FSUB, 0)  F(FMUL, 0)  F(FDIV, 0)  F(FMOD, 0) \
+    F(FLT, 0)  F(FGT, 0)  F(FLE, 0)  F(FGE, 0)  F(FEQ, 0) F(FNE, 0) \
+    F(SADD, 0)  F(SSUB, 0)  F(SMUL, 0)  F(SDIV, 0)  F(SMOD, 0) \
+    F(SLT, 0)  F(SGT, 0)  F(SLE, 0)  F(SGE, 0)  F(SEQ, 0) F(SNE, 0) \
+    F(IVVADD, 0) F(IVVSUB, 0) F(IVVMUL, 0) F(IVVDIV, 0) F(IVVMOD, 0) \
+    F(IVVLT, 0) F(IVVGT, 0) F(IVVLE, 0) F(IVVGE, 0) \
+    F(FVVADD, 0) F(FVVSUB, 0) F(FVVMUL, 0) F(FVVDIV, 0) F(FVVMOD, 0) \
+    F(FVVLT, 0) F(FVVGT, 0) F(FVVLE, 0) F(FVVGE, 0) \
+    F(IVSADD, 0) F(IVSSUB, 0) F(IVSMUL, 0) F(IVSDIV, 0) F(IVSMOD, 0) \
+    F(IVSLT, 0) F(IVSGT, 0) F(IVSLE, 0) F(IVSGE, 0) \
+    F(FVSADD, 0) F(FVSSUB, 0) F(FVSMUL, 0) F(FVSDIV, 0) F(FVSMOD, 0) \
+    F(FVSLT, 0) F(FVSGT, 0) F(FVSLE, 0) F(FVSGE, 0) \
     F(AEQ, 0) F(ANE, 0) \
     F(IUMINUS, 0) F(FUMINUS, 0) F(IVUMINUS, 0) F(FVUMINUS, 0) \
     F(LOGNOT, 0) F(LOGNOTREF, 0) \
@@ -66,47 +72,47 @@ namespace lobster
 
 #define LVALOPNAMES \
     F(WRITE)  F(WRITER)  F(WRITEREF) F(WRITERREF) \
-    F(IADD)   F(IADDR)   F(ISUB)   F(ISUBR)   F(IMUL)   F(IMULR)   F(IDIV)   F(IDIVR)   F(IMOD)  F(IMODR) \
+    F(IADD)   F(IADDR)   F(ISUB)   F(ISUBR)   F(IMUL)   F(IMULR)   F(IDIV)   F(IDIVR) \
+    F(IMOD)   F(IMODR) \
     F(FADD)   F(FADDR)   F(FSUB)   F(FSUBR)   F(FMUL)   F(FMULR)   F(FDIV)   F(FDIVR) \
-    F(IVVADD) F(IVVADDR) F(IVVSUB) F(IVVSUBR) F(IVVMUL) F(IVVMULR) F(IVVDIV) F(IVVDIVR) F(IVVMOD) F(IVVMODR) \
+    F(IVVADD) F(IVVADDR) F(IVVSUB) F(IVVSUBR) F(IVVMUL) F(IVVMULR) F(IVVDIV) F(IVVDIVR) \
+    F(IVVMOD) F(IVVMODR) \
     F(FVVADD) F(FVVADDR) F(FVVSUB) F(FVVSUBR) F(FVVMUL) F(FVVMULR) F(FVVDIV) F(FVVDIVR) \
-    F(IVSADD) F(IVSADDR) F(IVSSUB) F(IVSSUBR) F(IVSMUL) F(IVSMULR) F(IVSDIV) F(IVSDIVR) F(IVSMOD) F(IVSMODR) \
+    F(IVSADD) F(IVSADDR) F(IVSSUB) F(IVSSUBR) F(IVSMUL) F(IVSMULR) F(IVSDIV) F(IVSDIVR) \
+    F(IVSMOD) F(IVSMODR) \
     F(FVSADD) F(FVSADDR) F(FVSSUB) F(FVSSUBR) F(FVSMUL) F(FVSMULR) F(FVSDIV) F(FVSDIVR) \
     F(SADD)   F(SADDR) \
     F(IPP) F(IPPR) F(IMM) F(IMMR) F(IPPP) F(IPPPR) F(IMMP) F(IMMPR) \
     F(FPP) F(FPPR) F(FMM) F(FMMR) F(FPPP) F(FPPPR) F(FMMP) F(FMMPR)
 
-enum { 
+enum {
     #define F(N, A) IL_##N,
         ILNAMES
     #undef F
     IL_MAX_OPS
 };
 
-enum { 
+enum {
     #define F(N) LVO_##N,
         LVALOPNAMES
     #undef F
 };
 
-inline const char **ILNames()
-{
+inline const char **ILNames() {
     #define F(N, A) #N,
         static const char *ilnames[] = { ILNAMES };
     #undef F
     return ilnames;
 }
 
-inline const char **LvalOpNames()
-{
+inline const char **LvalOpNames() {
     #define F(N) #N,
         static const char *lvalopnames[] = { LVALOPNAMES };
     #undef F
     return lvalopnames;
 }
 
-inline const int *ILArity()
-{
+inline const int *ILArity() {
     #define F(N, A) A,
         static const int ilarity[] = { ILNAMES };
     #undef F

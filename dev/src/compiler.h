@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace lobster
-{
+namespace lobster {
 
-extern void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode, string *parsedump = nullptr);
+extern void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode,
+                    string *parsedump = nullptr);
 extern bool VerifyBytecode(const vector<uchar> &bytecode);
 extern void SaveByteCode(const char *bcf, const vector<uchar> &bytecode);
 extern bool LoadByteCode(const char *bcf, vector<uchar> &bytecode);

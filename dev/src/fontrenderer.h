@@ -16,11 +16,9 @@
 
 struct BitmapFont;
 
-struct OutlineFont
-{
+struct OutlineFont {
     void *fthandle;
     void *fbuf;
-
     unordered_map<int, int> unicodemap;
     vector<int> unicodetable;
 
@@ -30,16 +28,13 @@ struct OutlineFont
     bool EnsureCharsPresent(const char *utf8str);
 };
 
-struct BitmapFont
-{
+struct BitmapFont {
     uint texid;
-    vector<int3> positions;  
+    vector<int3> positions;
     int height;
     int texh, texw;
     int usedcount;
-
     int size;
-
     OutlineFont *font;
 
     ~BitmapFont();

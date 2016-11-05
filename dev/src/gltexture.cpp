@@ -19,47 +19,40 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #ifdef _WIN32
-  #pragma warning(push)
-  #pragma warning(disable: 4244)
+    #pragma warning(push)
+    #pragma warning(disable: 4244)
 #endif
 #include "stb/stb_image.h"
 #ifdef _WIN32
-  #pragma warning(pop)
+    #pragma warning(pop)
 #endif
 
 const int nummultisamples = 4;
 
-uint CreateTexture(const uchar *buf, const int2 &dim, int tf)
-{
+uint CreateTexture(const uchar *buf, const int2 &dim, int tf) {
     uint id;
     glGenTextures(1, &id);
     assert(id);
-
     GLenum textype =
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
         GL_TEXTURE_2D;
     GLenum teximagetype = textype;
-
     textype         = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : textype;
     teximagetype    = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : teximagetype;
     int texnumfaces = tf & TF_CUBEMAP ? 6                              : 1;
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(textype, id);
-
     glTexParameteri(textype, GL_TEXTURE_WRAP_S, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
     glTexParameteri(textype, GL_TEXTURE_WRAP_T, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
     glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
-    glTexParameteri(textype, GL_TEXTURE_MIN_FILTER, tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
-
+    glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
+        tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
     //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-
     auto format = GL_RGBA;
     auto component = GL_UNSIGNED_BYTE;
-    if (tf & TF_FLOAT)
-    {
+    if (tf & TF_FLOAT) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
             format = GL_RGBA32F;
             component = GL_FLOAT;
@@ -67,71 +60,51 @@ uint CreateTexture(const uchar *buf, const int2 &dim, int tf)
             assert(false);  // buf points to float data, which we don't support.
         #endif
     }
-
-    if (tf & TF_MULTISAMPLE)
-    {
+    if (tf & TF_MULTISAMPLE) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
             glTexImage2DMultisample(teximagetype, nummultisamples, format, dim.x(), dim.y(), true);
         #else
             assert(false);
         #endif
-    }
-    else
-    {
+    } else {
         for (int i = 0; i < texnumfaces; i++)
             glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
     }
-
-    if (!(tf & TF_NOMIPMAP))
-    {
+    if (!(tf & TF_NOMIPMAP)) {
         glEnable(textype);  // required on ATI for mipmapping to work?
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
         #endif
             glGenerateMipmap(textype);
     }
-
     glBindTexture(textype, 0);
-
     return id;
 }
 
-uint CreateTextureFromFile(const char *name, int2 &dim, int tf)
-{
+uint CreateTextureFromFile(const char *name, int2 &dim, int tf) {
     tf &= ~TF_FLOAT;  // Not supported yet.
-
     size_t len = 0;
     auto fbuf = LoadFile(name, &len);
     if (!fbuf)
         return 0;
-
     int x, y, comp;
     auto buf = stbi_load_from_memory(fbuf, (int)len, &x, &y, &comp, 4);
     dim = int2(x, y);
-
     free(fbuf);
-
     if (!buf)
         return 0;
-
     uint id = CreateTexture(buf, dim, tf);
-
     stbi_image_free(buf);
     return id;
 }
 
-uint CreateBlankTexture(const int2 &size, const float4 &color, int tf)
-{
-    if (tf & TF_MULTISAMPLE)
-    {
+uint CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
+    if (tf & TF_MULTISAMPLE) {
         return CreateTexture(nullptr, size, tf);  // No buffer required.
-    }
-    else
-    {
+    } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[size.x() * size.y() * sz];
-        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++)
-        {
+        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++) {
             auto idx = y * size.x() + x;
             if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
             else               ((byte4  *)buf)[idx] = quantizec(color);
@@ -142,20 +115,17 @@ uint CreateBlankTexture(const int2 &size, const float4 &color, int tf)
     }
 }
 
-void DeleteTexture(uint &id)
-{
+void DeleteTexture(uint &id) {
     if (id) glDeleteTextures(1, &id);
     id = 0;
 }
 
-void SetTexture(uint textureunit, uint id, int tf)
-{
+void SetTexture(uint textureunit, uint id, int tf) {
     glActiveTexture(GL_TEXTURE0 + textureunit);
     glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, id);
 }
 
-int2 TextureSize(uint id)
-{
+int2 TextureSize(uint id) {
     glBindTexture(GL_TEXTURE_2D, id);
     int2 size(0);
     glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut());
@@ -163,20 +133,20 @@ int2 TextureSize(uint id)
     return size;
 }
 
-uchar *ReadTexture(uint id, const int2 &size)
-{
+uchar *ReadTexture(uint id, const int2 &size) {
     glBindTexture(GL_TEXTURE_2D, id);
     auto pixels = new uchar[size.x() * size.y() * 4];
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     return pixels;
 }
 
-void SetImageTexture(uint textureunit, uint id, int tf)
-{
+void SetImageTexture(uint textureunit, uint id, int tf) {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glBindImageTexture)
             glBindImageTexture(textureunit, id, 0, GL_TRUE, 0,
-                               tf & TF_WRITEONLY ? GL_WRITE_ONLY : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
+                               tf & TF_WRITEONLY
+                                   ? GL_WRITE_ONLY
+                                   : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
                                tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
     #else
         assert(false);
@@ -186,11 +156,9 @@ void SetImageTexture(uint textureunit, uint id, int tf)
 // from 2048 on older GLES2 devices and very old PCs to 16384 on the latest PC cards
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
 
-uint CreateFrameBuffer(uint texture, int tf)
-{
+uint CreateFrameBuffer(uint texture, int tf) {
     if (!glGenFramebuffers)
         return 0;
-
     uint fb = 0;
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -207,21 +175,16 @@ static uint rb = 0;
 static uint retex = 0;  // Texture to resolve to at the end when fb refers to a multisample texture.
 static int retf = 0;
 static int2 resize = int2_0;
-bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex)
-{
+bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex) {
     if (!glGenRenderbuffers)
         return false;
-
-    if (rb)
-    {
+    if (rb) {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glDeleteRenderbuffers(1, &rb);
         rb = 0;
     }
-    if (fb)
-    {
-        if (retex)
-        {
+    if (fb) {
+        if (retex) {
             uint refb = CreateFrameBuffer(retex, retf);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
@@ -236,35 +199,26 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, u
         glDeleteFramebuffers(1, &fb);
         fb = 0;
     }
-    if (!texture)
-    {
+    if (!texture) {
         OpenGLFrameStart(fbsize);
         Set2DMode(fbsize, true);
         return true;
     }
-    
     fb = CreateFrameBuffer(texture, tf);
-
-    if (depth)
-    {
+    if (depth) {
         glGenRenderbuffers(1, &rb);
         glBindRenderbuffer(GL_RENDERBUFFER, rb);
-        if (tf & TF_MULTISAMPLE)
-        {
+        if (tf & TF_MULTISAMPLE) {
             glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples, GL_DEPTH_COMPONENT24,
                                              fbsize.x(), fbsize.y());
-        }
-        else
-        {
+        } else {
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y());
         }
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
     }
-
     retex = resolvetex;
     retf = tf & ~TF_MULTISAMPLE;
     resize = fbsize;
-
     OpenGLFrameStart(fbsize);
     Set2DMode(fbsize, false);  // Have to use rh mode here, otherwise texture is filled flipped.
     auto ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;

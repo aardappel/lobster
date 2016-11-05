@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace lobster
-{
+namespace lobster {
 
-struct Named
-{
+struct Named {
     string name;
     int idx;
     bool isprivate;
@@ -29,14 +27,12 @@ struct SubFunction;
 
 struct Struct;
 
-struct Type
-{
+struct Type {
     const ValueType t;
 
-    union
-    {
+    union {
         const Type *sub; // V_VECTOR | V_NIL | V_VAR
-        Named *named;    // V_FUNCTION | V_COROUTINE | V_STRUCT 
+        Named *named;    // V_FUNCTION | V_COROUTINE | V_STRUCT
         SubFunction *sf; // V_FUNCTION | V_COROUTINE
         Struct *struc;   // V_STRUCT
     };
@@ -47,8 +43,7 @@ struct Type
     Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
     Type(ValueType _t, Struct *_st)      : t(_t),    struc(_st)   {}
 
-    bool operator==(const Type &o) const
-    {
+    bool operator==(const Type &o) const {
         return t == o.t &&
                (sub == o.sub ||  // Also compares sf/struc
                 (Wrapped() && *sub == *o.sub));
@@ -56,24 +51,21 @@ struct Type
 
     bool operator!=(const Type &o) const { return !(*this == o); }
 
-    bool EqNoIndex(const Type &o) const
-    { 
+    bool EqNoIndex(const Type &o) const {
         return t == o.t && (!Wrapped() || sub->EqNoIndex(*o.sub));
     }
 
-    Type &operator=(const Type &o)
-    {
-        (ValueType &)t = o.t;  // hack: we want t to be const, but still have a working assignment operator
+    Type &operator=(const Type &o) {
+        // Hack: we want t to be const, but still have a working assignment operator.
+        (ValueType &)t = o.t;
         sub = o.sub;
         return *this;
     }
 
     // This one is used to sort types for multi-dispatch.
-    bool operator<(const Type &o) const
-    {
+    bool operator<(const Type &o) const {
         if (t != o.t) return t < o.t;
-        switch (t)
-        {
+        switch (t) {
             case V_VECTOR:
             case V_NIL:
                 return *sub < *o.sub;
@@ -85,14 +77,12 @@ struct Type
         }
     }
 
-    const Type *Element() const
-    {
+    const Type *Element() const {
         assert(Wrapped());
         return sub;
     }
 
-    Type *Wrap(Type *dest, ValueType with = V_VECTOR) const
-    {
+    Type *Wrap(Type *dest, ValueType with = V_VECTOR) const {
         *dest = Type(with, this);
         return dest;
     }
@@ -105,8 +95,7 @@ struct Type
 
     bool IsFunction() const { return t == V_FUNCTION && sf; }
 
-    bool HasVariable() const  // FIXME: does this cover all cases?
-    {
+    bool HasVariable() const {  // FIXME: does this cover all cases?
         return t == V_VAR ||
               (t == V_VECTOR && sub->t == V_VAR) ||
               (t == V_NIL    && sub->t == V_VAR);
@@ -119,16 +108,14 @@ extern const Type g_type_any;
 // - initialized to type_any instead of nullptr
 // - pointer is const
 // - comparisons are by value.
-class TypeRef
-{
+class TypeRef {
     const Type *type;
 
     public:
     TypeRef() : type(&g_type_any) {}
     TypeRef(const Type *_type) : type(_type) {}
 
-    TypeRef &operator=(const TypeRef &o)
-    {
+    TypeRef &operator=(const TypeRef &o) {
         type = o.type;
         return *this;
     }
@@ -157,8 +144,7 @@ extern TypeRef type_function_nil;
 extern TypeRef type_coroutine;
 extern TypeRef type_typeid;
 
-enum ArgFlags
-{
+enum ArgFlags {
     AF_NONE = 0,
     NF_EXPFUNVAL = 1,
     AF_ANYTYPE = 2,
@@ -172,8 +158,7 @@ enum ArgFlags
 struct Ident;
 struct SpecIdent;
 
-struct Typed
-{
+struct Typed {
     TypeRef type;
     ArgFlags flags;
 
@@ -181,26 +166,22 @@ struct Typed
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
     Typed(TypeRef _type, bool generic) { SetType(_type, generic); }
 
-    void SetType(TypeRef _type, bool generic)
-    {
+    void SetType(TypeRef _type, bool generic) {
         type = _type;
         flags = generic ? AF_ANYTYPE : AF_NONE;
     }
 };
 
-struct Narg : Typed
-{
+struct Narg : Typed {
     char fixed_len;
 
     Narg() : Typed(), fixed_len(0) {}
     Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len) {}
 
-    void Set(const char *&tid, list<Type> &typestorage)
-    {
+    void Set(const char *&tid, list<Type> &typestorage) {
         char t = *tid++;
         flags = AF_NONE;
-        switch (t)
-        {
+        switch (t) {
             case 'I': type = type_int; break;
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
@@ -211,19 +192,23 @@ struct Narg : Typed
             case 'T': type = type_typeid; break;
             default:  assert(0);
         }
-        while (*tid && !isalpha(*tid))
-        {
-            switch (*tid++)
-            {
+        while (*tid && !isalpha(*tid)) {
+            switch (*tid++) {
                 case 0: break;
                 case '1': flags = ArgFlags(flags | NF_SUBARG1); break;
                 case '2': flags = ArgFlags(flags | NF_SUBARG2); break;
                 case '3': flags = ArgFlags(flags | NF_SUBARG3); break;
                 case '*': flags = ArgFlags(flags | NF_ANYVAR); break;
                 case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
-                case '%': flags = ArgFlags(flags | NF_CORESUME); break;  // FIXME: make resume a vm op.
-                case ']': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back()); break;
-                case '?': typestorage.push_back(Type()); type = type->Wrap(&typestorage.back(), V_NIL); break;
+                case '%': flags = ArgFlags(flags | NF_CORESUME); break; // FIXME: make a vm op.
+                case ']':
+                    typestorage.push_back(Type());
+                    type = type->Wrap(&typestorage.back());
+                    break;
+                case '?':
+                    typestorage.push_back(Type());
+                    type = type->Wrap(&typestorage.back(), V_NIL);
+                    break;
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
                 default: assert(0);
             }
@@ -231,15 +216,13 @@ struct Narg : Typed
     }
 };
 
-struct GenericArgs
-{
+struct GenericArgs {
     virtual string GetName(size_t i) const = 0;
     virtual const Typed *GetType(size_t i) const = 0;
     virtual size_t size() const = 0;
 };
 
-struct NargVector : GenericArgs
-{
+struct NargVector : GenericArgs {
     vector<Narg> v;
     const char *idlist;
 
@@ -247,28 +230,23 @@ struct NargVector : GenericArgs
 
     size_t size() const { return v.size(); }
     const Typed *GetType(size_t i) const { return &v[i]; }
-    string GetName(size_t i) const
-    {
+    string GetName(size_t i) const {
         auto ids = idlist;
-        for (;;)
-        {
+        for (;;) {
             const char *idend = strchr(ids, ',');
-            if (!idend)
-            {
+            if (!idend) {
                 // if this fails, you're not specifying enough arg names in the comma separated list
                 assert(!i);
                 idend = ids + strlen(ids);
             }
-            if (!i--) return string(ids, idend); 
+            if (!i--) return string(ids, idend);
             ids = idend + 1;
         }
     }
 };
 
-struct BuiltinPtr
-{
-    union 
-    {
+struct BuiltinPtr {
+    union  {
         Value (*f0)();
         Value (*f1)(Value &);
         Value (*f2)(Value &, Value &);
@@ -281,8 +259,7 @@ struct BuiltinPtr
 
 enum NativeCallMode { NCM_NONE, NCM_CONT_EXIT };
 
-struct NativeFun : Named
-{
+struct NativeFun : Named {
     BuiltinPtr fun;
 
     NargVector args, retvals;
@@ -297,56 +274,46 @@ struct NativeFun : Named
 
     NativeFun *overloads, *first;
 
-    NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids, const char *rets, int nargs,
-              const char *_help, NativeCallMode _ncm, void (*_cont1)(), list<Type> &typestorage)
-        : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm), cont1(_cont1),
-          help(_help), subsystemid(-1), overloads(nullptr), first(this)
-    {
+    NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
+              const char *rets, int nargs, const char *_help, NativeCallMode _ncm, void (*_cont1)(),
+              list<Type> &typestorage)
+        : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm),
+          cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr), first(this) {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
         assert(TypeLen(typeids) == nargs);
-
-        for (int i = 0; i < nargs; i++)
-        {
+        for (int i = 0; i < nargs; i++) {
             args.GetName(i);  // Call this just to trigger the assert.
             args.v[i].Set(typeids, typestorage);
         }
-
-        for (int i = 0; i < nretvalues; i++)
-        {
+        for (int i = 0; i < nretvalues; i++) {
             retvals.v.push_back(Narg());
             retvals.v[i].Set(rets, typestorage);
         }
     }
 };
 
-struct NativeRegistry
-{
+struct NativeRegistry {
     vector<NativeFun *> nfuns;
     unordered_map<string, NativeFun *> nfunlookup;
     vector<string> subsystems;
     list<Type> typestorage;  // For any native functions with types that rely on Wrap().
 
-    ~NativeRegistry()
-    {
+    ~NativeRegistry() {
         for (auto f : nfuns) delete f;
     }
 
     void NativeSubSystemStart(const char *name) { subsystems.push_back(name); }
 
-    void Register(NativeFun *nf)
-    {
+    void Register(NativeFun *nf) {
         nf->idx = (int)nfuns.size();
         nf->subsystemid = (int)subsystems.size() - 1;
-
         auto existing = nfunlookup[nf->name];
-        if (existing)
-        {
+        if (existing) {
             if (/*nf->args.v.size() != existing->args.v.size() ||
                 nf->retvals.v.size() != existing->retvals.v.size() || */
                 nf->subsystemid != existing->subsystemid ||
-                nf->ncm != existing->ncm)
-            {
+                nf->ncm != existing->ncm) {
                 // Must have similar signatures.
                 assert(0);
                 throw "native library name clash: " + nf->name;
@@ -354,17 +321,13 @@ struct NativeRegistry
             nf->overloads = existing->overloads;
             existing->overloads = nf;
             nf->first = existing->first;
-        }
-        else
-        {
+        } else {
             nfunlookup[nf->name] = nf;
         }
-
         nfuns.push_back(nf);
     }
 
-    NativeFun *FindNative(const string &name)
-    {
+    NativeFun *FindNative(const string &name) {
         auto it = nfunlookup.find(name);
         return it != nfunlookup.end() ? it->second : nullptr;
     }
@@ -378,19 +341,26 @@ extern NativeRegistry natreg;
 
 #define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
     BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
-    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1, natreg.typestorage)); } }
+    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1, \
+                                  natreg.typestorage)); } }
 
-#define ENDDECL0(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)
-#define ENDDECL1(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, nullptr)
-#define ENDDECL2(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_NONE, nullptr)
-#define ENDDECL3(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_NONE, nullptr)
-#define ENDDECL4(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 4, NCM_NONE, nullptr)
-#define ENDDECL5(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
-#define ENDDECL6(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
-
-#define ENDDECL2CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, \
-                                                                                                 &___##name::mid_##name)
-#define ENDDECL3CONTEXIT(name, ids, types, rets, help) ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, \
-                                                                                                 &___##name::mid_##name)
+#define ENDDECL0(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)
+#define ENDDECL1(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, nullptr)
+#define ENDDECL2(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 2, NCM_NONE, nullptr)
+#define ENDDECL3(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 3, NCM_NONE, nullptr)
+#define ENDDECL4(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 4, NCM_NONE, nullptr)
+#define ENDDECL5(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
+#define ENDDECL6(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
+#define ENDDECL2CONTEXIT(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, &___##name::mid_##name)
+#define ENDDECL3CONTEXIT(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, &___##name::mid_##name)
 
 }  // namespace lobster

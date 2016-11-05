@@ -55,21 +55,18 @@ right meta left meta left super right super alt gr compose help print screen sys
 */
 
 
-struct KeyState
-{
+struct KeyState {
     TimeBool8 button;
 
     double lasttime[2];
     int2 lastpos[2];
 
-    KeyState()
-    {
+    KeyState() {
         lasttime[0] = lasttime[1] = 0x80000000;
         lastpos[0] = lastpos[1] = int2(-1, -1);
     }
 
-    void FrameReset()
-    {
+    void FrameReset() {
         button.Advance();
     }
 };
@@ -97,8 +94,7 @@ bool testmode = false;
 const int MAXAXES = 8;
 float joyaxes[MAXAXES] = { 0 };
 
-struct Finger
-{
+struct Finger {
     SDL_FingerID id;
     int2 mousepos;
     int2 mousedelta;
@@ -111,8 +107,7 @@ const int MAXFINGERS = 10;
 Finger fingers[MAXFINGERS];
 
 
-void updatebutton(string &name, bool on, int posfinger)
-{
+void updatebutton(string &name, bool on, int posfinger) {
     auto kmit = keymap.find(name);
     auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
     ks->button.Set(on);
@@ -120,25 +115,20 @@ void updatebutton(string &name, bool on, int posfinger)
     ks->lastpos[on] = fingers[posfinger].mousepos;
 }
 
-void updatemousebutton(int button, int finger, bool on)
-{
+void updatemousebutton(int button, int finger, bool on) {
     string name = "mouse";
     name += '0' + (char)button;
     if (finger) name += '0' + (char)finger;
     updatebutton(name, on, finger);
 }
 
-void clearfingers(bool delta)
-{
+void clearfingers(bool delta) {
     for (auto &f : fingers) (delta ? f.mousedelta : f.mousepos) = int2(0);
 }
 
-int findfinger(SDL_FingerID id, bool remove)
-{
-    for (auto &f : fingers) if (f.id == id && f.used)
-    {
-        if (remove)
-        {
+int findfinger(SDL_FingerID id, bool remove) {
+    for (auto &f : fingers) if (f.id == id && f.used) {
+        if (remove) {
             // would be more correct to clear mouse position here, but that doesn't work with delayed touch..
             // would have to delay it too
             f.used = false;
@@ -147,8 +137,7 @@ int findfinger(SDL_FingerID id, bool remove)
     }
     if (remove) return MAXFINGERS - 1; // FIXME: this is masking a bug...
     assert(!remove);
-    for (auto &f : fingers) if (!f.used)
-    {
+    for (auto &f : fingers) if (!f.used) {
         f.id = id;
         f.used = true;
         return int(&f - fingers);
@@ -157,26 +146,21 @@ int findfinger(SDL_FingerID id, bool remove)
     return 0;
 }
 
-const int2 &GetFinger(int i, bool delta)
-{
+const int2 &GetFinger(int i, bool delta) {
     auto &f = fingers[max(min(i, MAXFINGERS - 1), 0)];
     return delta ? f.mousedelta : f.mousepos;
 }
 
-float GetJoyAxis(int i)
-{
+float GetJoyAxis(int i) {
     return joyaxes[max(min(i, MAXAXES - 1), 0)];
 }
 
-int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et)
-{
+int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
     int numfingers = SDL_GetNumTouchFingers(e.touchId);
     //assert(numfingers && e.fingerId < numfingers);
-    for (int i = 0; i < numfingers; i++)
-    {
+    for (int i = 0; i < numfingers; i++) {
         auto finger = SDL_GetTouchFinger(e.touchId, i);
-        if (finger->id == e.fingerId)
-        {
+        if (finger->id == e.fingerId) {
             // this is a bit clumsy as SDL has a list of fingers and so do we, but they work a bit differently
             int j = findfinger(e.fingerId, et == SDL_FINGERUP);
             auto &f = fingers[j];
@@ -195,18 +179,15 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et)
 }
 
 
-string SDLError(const char *msg)
-{
+string SDLError(const char *msg) {
     string s = string(msg) + ": " + SDL_GetError();
     Output(OUTPUT_WARN, s.c_str());
     SDLShutdown();
     return s;
 }
 
-int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
-{
-    switch (event->type)
-    {
+int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
+    switch (event->type) {
         case SDL_APP_TERMINATING:
             /* Terminate the app.
              Shut everything down before returning from this function.
@@ -225,7 +206,7 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
             return 0;
         case SDL_APP_DIDENTERBACKGROUND:
             /* This will get called if the user accepted whatever sent your app to the background.
-             If the user got a phone call and canceled it, 
+             If the user got a phone call and canceled it,
              you'll instead get an SDL_APP_DIDENTERFOREGROUND event and restart your loops.
              When you get this, you have 5 seconds to save all your state or the app will be terminated.
              Your app is NOT active at this point.
@@ -250,11 +231,9 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event)
 
 const int2 &GetScreenSize() { return screensize; }
 
-string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync)
-{
+string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync) {
     //SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0)
-    {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
     }
 
@@ -300,13 +279,11 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
         landscape = desired_screensize.x() >= desired_screensize.y();
         int modes = SDL_GetNumDisplayModes(0);
         screensize = int2(1280, 720);
-        for (int i = 0; i < modes; i++)
-        {
+        for (int i = 0; i < modes; i++) {
             SDL_DisplayMode mode;
             SDL_GetDisplayMode(0, i, &mode);
             Output(OUTPUT_INFO, "mode: %d %d", mode.w, mode.h);
-            if (landscape ? mode.w > screensize.x() : mode.h > screensize.y())
-            {
+            if (landscape ? mode.w > screensize.x() : mode.h > screensize.y()) {
                 screensize = int2(mode.w, mode.h);
             }
         }
@@ -366,11 +343,9 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
     SDL_JoystickEventState(SDL_ENABLE);
     SDL_JoystickUpdate();
-    for(int i = 0; i < SDL_NumJoysticks(); i++)
-    {
+    for(int i = 0; i < SDL_NumJoysticks(); i++) {
         SDL_Joystick *joy = SDL_JoystickOpen(i);
-        if (joy)
-        {
+        if (joy) {
             Output(OUTPUT_INFO, "Detected joystick: %s (%d axes, %d buttons, %d balls, %d hats)",
                                 SDL_JoystickName(joy), SDL_JoystickNumAxes(joy), SDL_JoystickNumButtons(joy),
                                 SDL_JoystickNumBalls(joy), SDL_JoystickNumHats(joy));
@@ -387,8 +362,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
 double GetSeconds() { return (double)(SDL_GetPerformanceCounter() - timestart) / (double)timefreq; }
 
-void SDLShutdown()
-{
+void SDLShutdown() {
     // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. upon SDL_GL_DeleteContext
     if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = nullptr;
     if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = nullptr;
@@ -396,8 +370,7 @@ void SDLShutdown()
     SDL_Quit();
 }
 
-bool SDLFrame()
-{
+bool SDLFrame() {
     auto millis = GetSeconds();
     frametime = millis - lasttime;
     lasttime = millis;
@@ -408,12 +381,9 @@ bool SDLFrame()
     mousewheeldelta = 0;
     clearfingers(true);
 
-    if (minimized)
-    {
+    if (minimized) {
         SDL_Delay(10);  // save CPU/battery
-    }
-    else
-    {
+    } else {
         #ifndef __EMSCRIPTEN__
         SDL_GL_SwapWindow(_sdl_window);
         #endif
@@ -426,15 +396,13 @@ bool SDLFrame()
     bool closebutton = false;
 
     SDL_Event event;
-    while(SDL_PollEvent(&event)) switch(event.type)
-    {
+    while(SDL_PollEvent(&event)) switch(event.type) {
         case SDL_QUIT:
             closebutton = true;
             break;
 
         case SDL_KEYDOWN:
-        case SDL_KEYUP:
-        {
+        case SDL_KEYUP: {
             const char *kn = SDL_GetKeyName(event.key.keysym.sym);
             if (!*kn) break;
             string name = kn;
@@ -447,21 +415,18 @@ bool SDLFrame()
         #ifdef PLATFORM_TOUCH
 
         // FIXME: if we're in cursor==0 mode, only update delta, not position
-        case SDL_FINGERDOWN:
-        {
+        case SDL_FINGERDOWN: {
             int i = updatedragpos(event.tfinger, event.type);
             updatemousebutton(1, i, true);
             break;
         }
-        case SDL_FINGERUP:
-        {
+        case SDL_FINGERUP: {
             int i = findfinger(event.tfinger.fingerId, true);
             updatemousebutton(1, i, false);
             break;
         }
 
-        case SDL_FINGERMOTION:
-        {
+        case SDL_FINGERMOTION: {
             updatedragpos(event.tfinger, event.type);
             break;
         }
@@ -469,11 +434,9 @@ bool SDLFrame()
         #else
 
         case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEBUTTONUP:
-        {
+        case SDL_MOUSEBUTTONUP: {
             updatemousebutton(event.button.button, 0, event.button.state != 0);
-            if (cursor)
-            {
+            if (cursor) {
                 fingers[0].mousepos = int2(event.button.x, event.button.y) * screenscalefactor;
             }
             break;
@@ -481,12 +444,9 @@ bool SDLFrame()
 
         case SDL_MOUSEMOTION:
             fingers[0].mousedelta += int2(event.motion.xrel, event.motion.yrel);
-            if (cursor)
-            {
+            if (cursor) {
                 fingers[0].mousepos = int2(event.motion.x, event.motion.y) * screenscalefactor;
-            }
-            else
-            {
+            } else {
                 //if (skipmousemotion) { skipmousemotion--; break; }
                 //if (event.motion.x == screensize.x / 2 && event.motion.y == screensize.y / 2) break;
 
@@ -500,8 +460,7 @@ bool SDLFrame()
             }
             break;
 
-        case SDL_MOUSEWHEEL:
-        {
+        case SDL_MOUSEWHEEL: {
             if (event.wheel.which == SDL_TOUCH_MOUSEID) break;  // Emulated scrollwheel on touch devices?
             auto y = event.wheel.y;
             #ifdef __EMSCRIPTEN__
@@ -513,11 +472,9 @@ bool SDLFrame()
 
         #endif
 
-        case SDL_JOYAXISMOTION:
-        {
+        case SDL_JOYAXISMOTION: {
             const int deadzone = 800; // FIXME
-            if (event.jaxis.axis < MAXAXES)
-            {
+            if (event.jaxis.axis < MAXAXES) {
                 joyaxes[event.jaxis.axis] = abs(event.jaxis.value) > deadzone ? event.jaxis.value / (float)0x8000 : 0;
             };
             break;
@@ -527,8 +484,7 @@ bool SDLFrame()
             break;
 
         case SDL_JOYBUTTONDOWN:
-        case SDL_JOYBUTTONUP:
-        {
+        case SDL_JOYBUTTONUP: {
             string name = "joy";
             name += '0' + (char)event.jbutton.button;
             updatebutton(name, event.jbutton.state == SDL_PRESSED, 0);
@@ -536,8 +492,7 @@ bool SDLFrame()
         }
 
         case SDL_WINDOWEVENT:
-            switch (event.window.event)
-            {
+            switch (event.window.event) {
                 case SDL_WINDOWEVENT_RESIZED:
                     screensize = int2(event.window.data1, event.window.data2);
                     // reload and bind shaders/textures here
@@ -577,8 +532,7 @@ bool SDLFrame()
     */
 
     /*
-    if (SDL_GetMouseFocus() != _sdl_window)
-    {
+    if (SDL_GetMouseFocus() != _sdl_window) {
         int A = 1;
     }
     */
@@ -589,8 +543,7 @@ bool SDLFrame()
 double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 
-TimeBool8 GetKS(const char *name)
-{
+TimeBool8 GetKS(const char *name) {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return TimeBool8();
     #ifdef PLATFORM_TOUCH
@@ -604,14 +557,12 @@ TimeBool8 GetKS(const char *name)
     #endif
 }
 
-double GetKeyTime(const char *name, int on)
-{
+double GetKeyTime(const char *name, int on) {
     auto ks = keymap.find(name);
     return ks == keymap.end() ? -3600 : ks->second.lasttime[on];
 }
 
-int2 GetKeyPos(const char *name, int on)
-{
+int2 GetKeyPos(const char *name, int on) {
     auto ks = keymap.find(name);
     return ks == keymap.end() ? int2(-1, -1) : ks->second.lastpos[on];
 }
@@ -622,19 +573,14 @@ void SDLTitle(const char *title) { SDL_SetWindowTitle(_sdl_window, title); }
 int SDLWheelDelta() { return mousewheeldelta; }
 bool SDLIsMinimized() { return minimized; }
 
-bool SDLCursor(bool on)
-{
-    if (on != cursor)
-    {
+bool SDLCursor(bool on) {
+    if (on != cursor) {
         cursor = !cursor;
-        if (cursor)
-        {
+        if (cursor) {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_FALSE);
             SDL_ShowCursor(1);
             SDL_SetRelativeMouseMode(SDL_FALSE);
-        }
-        else
-        {
+        } else {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
             #if defined(_WIN32) || defined(__APPLE__)
@@ -647,14 +593,12 @@ bool SDLCursor(bool on)
     return cursor;
 }
 
-bool SDLGrab(bool on)
-{
+bool SDLGrab(bool on) {
     SDL_SetWindowGrab(_sdl_window, on ? SDL_TRUE : SDL_FALSE);
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
 
-uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
-{
+uchar *SDLLoadFile(const char *absfilename, size_t *lenret) {
     auto f = SDL_RWFromFile(absfilename, "rb");
     if (!f) return nullptr;
     auto len = (size_t)SDL_RWseek(f, 0, RW_SEEK_END);
@@ -669,8 +613,7 @@ uchar *SDLLoadFile(const char *absfilename, size_t *lenret)
     return buf;
 }
 
-bool ScreenShot(const char *filename)
-{
+bool ScreenShot(const char *filename) {
     auto pixels = ReadPixels(int2(0), screensize);
     auto ok = stbi_write_png(filename, screensize.x(), screensize.y(), 4, pixels, screensize.x() * 4);
     delete[] pixels;
@@ -679,8 +622,7 @@ bool ScreenShot(const char *filename)
 
 void SDLTestMode() { testmode = true; }
 
-int SDLScreenDPI(int screen)
-{
+int SDLScreenDPI(int screen) {
     int screens = max(1, SDL_GetNumVideoDisplays());
     float ddpi = 200;  // Reasonable default just in case screen 0 gives an error.
     #ifndef __EMSCRIPTEN__
@@ -691,8 +633,7 @@ int SDLScreenDPI(int screen)
            : (int)(ddpi + 0.5f);
 }
 
-void RegisterCoreEngineBuiltins()
-{
+void RegisterCoreEngineBuiltins() {
     lobster::RegisterCoreLanguageBuiltins();
 
     extern void AddGraphics(); lobster::RegisterBuiltin("graphics",  AddGraphics);
@@ -705,8 +646,7 @@ void RegisterCoreEngineBuiltins()
     extern void AddVR();       lobster::RegisterBuiltin("vr",        AddVR);
 }
 
-void EngineExit(int code)
-{
+void EngineExit(int code) {
     GraphicsShutDown();
 
     #ifdef __EMSCRIPTEN__
@@ -716,20 +656,16 @@ void EngineExit(int code)
     exit(code); // Needed at least on iOS to forcibly shut down the wrapper main()
 }
 
-void one_frame_callback()
-{
-    try
-    {
+void one_frame_callback() {
+    try {
         GraphicsFrameStart();
         assert(lobster::g_vm);
         lobster::g_vm->OneMoreFrame();
         // If this returns, we didn't hit a gl_frame() again and exited normally.
         EngineExit(0);
     }
-    catch (string &s)
-    {
-        if (s != "SUSPEND-VM-MAINLOOP")
-        {
+    catch (string &s) {
+        if (s != "SUSPEND-VM-MAINLOOP") {
             // An actual error.
             Output(OUTPUT_ERROR, s.c_str());
             EngineExit(1);
@@ -737,17 +673,13 @@ void one_frame_callback()
     }
 }
 
-bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, const void *static_bytecode)
-{
-    try
-    {
+bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, const void *static_bytecode) {
+    try {
         lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point, static_bytecode);
     }
-    catch (string &s)
-    {
+    catch (string &s) {
         #ifdef USE_MAIN_LOOP_CALLBACK
-        if (s == "SUSPEND-VM-MAINLOOP")
-        {
+        if (s == "SUSPEND-VM-MAINLOOP") {
             // emscripten requires that we don't control the main loop.
             // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
             // Install the one-frame callback:
@@ -760,8 +692,7 @@ bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *ent
             // Emulate this behavior so we can debug it.
             while (g_vm->evalret == "") one_frame_callback();
             #endif
-        }
-        else
+        } else
         #endif
         {
             if (lobster::g_vm) delete lobster::g_vm;
@@ -774,15 +705,13 @@ bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *ent
     return false;
 }
 
-int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb)
-{
+int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb) {
     (void)argc;
 
     min_output_level = OUTPUT_INFO;
     InitTime();
 
-    try
-    {
+    try {
         SetupDefaultDirs("", "../../lobster/", false);  // FIXME
         RegisterCoreEngineBuiltins();
 
@@ -790,8 +719,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb))
             return 0;  // Emscripten.
     }
-    catch (string &s)
-    {
+    catch (string &s) {
         Output(OUTPUT_ERROR, s.c_str());
         EngineExit(1);
     }

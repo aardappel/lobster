@@ -1,42 +1,36 @@
 namespace bytecode;
 
-struct LineInfo
-{
+struct LineInfo {
     line:int;
     fileidx:int;
     bytecodestart:int;
 }
 
-table Function
-{
+table Function {
     name:string;
     bytecodestart:int;
 }
 
-table Struct
-{
+table Struct {
     name:string;
     idx:int;
     nfields:int;
 }
 
-table Ident
-{
+table Ident {
     name:string;
     readonly:bool;
 	global:bool;
 }
 
-struct SpecIdent
-{
+struct SpecIdent {
 	ididx:int;
 	typeidx:int;
 }
 
 enum Attr : ubyte (bit_flags) { SPLIT }
 
-table BytecodeFile
-{
+table BytecodeFile {
     bytecode_version:int;  // The format of bytecode/typetable may change.
     bytecode:[int];
     bytecode_attr:[Attr];

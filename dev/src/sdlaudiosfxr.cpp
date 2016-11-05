@@ -24,8 +24,7 @@ SDL_AudioDeviceID audioid = 0;
 
 #define rnd(n) (rand()%(n+1))
 
-float frnd(float range)
-{
+float frnd(float range) {
     return (float)rnd(10000)/10000*range;
 }
 
@@ -113,8 +112,7 @@ int file_sampleswritten;
 float filesample=0.0f;
 int fileacc=0;
 
-void ResetParams()
-{
+void ResetParams() {
     wave_type=0;
 
     p_base_freq=0.3f;
@@ -149,14 +147,12 @@ void ResetParams()
     p_arp_mod=0.0f;
 }
 
-void fread_mem(void *dest, int s1, int s2, uchar *&file)
-{
+void fread_mem(void *dest, int s1, int s2, uchar *&file) {
     memcpy(dest, file, s1 * s2);
     file += s1 * s2;
 }
 
-struct Sound
-{
+struct Sound {
     bool sfxr;
     uchar *buf;
     size_t len;
@@ -168,25 +164,20 @@ uchar *cursndpos;
 
 SDL_AudioSpec playbackspec;
 
-bool LoadSound(const char* filename, bool sfxr)
-{
+bool LoadSound(const char* filename, bool sfxr) {
     auto it = sound_files.find(filename);
     Sound snd;
 
-    if (it == sound_files.end())
-    {
+    if (it == sound_files.end()) {
         size_t len = 0;
         uchar *buf = LoadFile(filename, &len);
         if (!buf)
             return false;
 
-        if (sfxr)
-        {
+        if (sfxr) {
             snd.buf = buf;
             snd.len = len;
-        }
-        else
-        {
+        } else {
             SDL_AudioSpec wav_spec;
             Uint32 wav_len;
             auto wav_spec_ret = SDL_LoadWAV_RW(SDL_RWFromMem(buf, (int)len), true, &wav_spec, &snd.buf, &wav_len);
@@ -203,14 +194,12 @@ bool LoadSound(const char* filename, bool sfxr)
                         wav_spec.format, wav_spec.channels, wav_spec.freq,
                         playbackspec.format, playbackspec.channels, playbackspec.freq);
 
-            if (ret < 0)
-            {
+            if (ret < 0) {
                 SDL_FreeWAV(snd.buf);
                 return false;
             }
 
-            if (ret)
-            {
+            if (ret) {
                 wav_cvt.buf = (uchar *)malloc(snd.len * wav_cvt.len_mult);
                 wav_cvt.len = (int)snd.len;
                 memcpy(wav_cvt.buf, snd.buf, snd.len);
@@ -229,17 +218,14 @@ bool LoadSound(const char* filename, bool sfxr)
         snd.sfxr = sfxr;
 
         sound_files[filename] = snd;
-    }
-    else
-    {
+    } else {
         snd = it->second;
 
         if (sfxr != snd.sfxr)   // wav file and sfxr file with same name? should be very rare :)
             return false;
     }
 
-    if (sfxr)
-    {
+    if (sfxr) {
         uchar *file = snd.buf;
 
         int version = 0;
@@ -286,8 +272,7 @@ bool LoadSound(const char* filename, bool sfxr)
     return true;
 }
 
-void ResetSample(bool restart)
-{
+void ResetSample(bool restart) {
     if(!restart)
         phase=0;
     fperiod=100.0/(p_base_freq*p_base_freq+0.001);
@@ -305,8 +290,7 @@ void ResetSample(bool restart)
     arp_limit=(int)(pow(1.0f-p_arp_speed, 2.0f)*20000+32);
     if(p_arp_speed==1.0f)
         arp_limit=0;
-    if(!restart)
-    {
+    if(!restart) {
         // reset filter
         fltp=0.0f;
         fltdp=0.0f;
@@ -348,38 +332,32 @@ void ResetSample(bool restart)
     }
 }
 
-void SynthSample(int length, float* buffer, FILE* file)
-{
-    for(int i=0;i<length;i++)
-    {
+void SynthSample(int length, float* buffer, FILE* file) {
+    for(int i=0;i<length;i++) {
         if(!playing_sample)
             break;
 
         rep_time++;
-        if(rep_limit!=0 && rep_time>=rep_limit)
-        {
+        if(rep_limit!=0 && rep_time>=rep_limit) {
             rep_time=0;
             ResetSample(true);
         }
 
         // frequency envelopes/arpeggios
         arp_time++;
-        if(arp_limit!=0 && arp_time>=arp_limit)
-        {
+        if(arp_limit!=0 && arp_time>=arp_limit) {
             arp_limit=0;
             fperiod*=arp_mod;
         }
         fslide+=fdslide;
         fperiod*=fslide;
-        if(fperiod>fmaxperiod)
-        {
+        if(fperiod>fmaxperiod) {
             fperiod=fmaxperiod;
             if(p_freq_limit>0.0f)
                 playing_sample=false;
         }
         float rfperiod=(float)fperiod;
-        if(vib_amp>0.0f)
-        {
+        if(vib_amp>0.0f) {
             vib_phase+=vib_speed;
             rfperiod=float(fperiod*(1.0+sin(vib_phase)*vib_amp));
         }
@@ -390,8 +368,7 @@ void SynthSample(int length, float* buffer, FILE* file)
         if(square_duty>0.5f) square_duty=0.5f;
         // volume envelope
         env_time++;
-        if(env_time>env_length[env_stage])
-        {
+        if(env_time>env_length[env_stage]) {
             env_time=0;
             env_stage++;
             if(env_stage==3)
@@ -409,20 +386,17 @@ void SynthSample(int length, float* buffer, FILE* file)
         iphase=abs((int)fphase);
         if(iphase>1023) iphase=1023;
 
-        if(flthp_d!=0.0f)
-        {
+        if(flthp_d!=0.0f) {
             flthp*=flthp_d;
             if(flthp<0.00001f) flthp=0.00001f;
             if(flthp>0.1f) flthp=0.1f;
         }
 
         float ssample=0.0f;
-        for(int si=0;si<8;si++) // 8x supersampling
-        {
+        for(int si=0;si<8;si++) {  // 8x supersampling
             float sample=0.0f;
             phase++;
-            if(phase>=period)
-            {
+            if(phase>=period) {
 //				phase=0;
                 phase%=period;
                 if(wave_type==3)
@@ -431,8 +405,7 @@ void SynthSample(int length, float* buffer, FILE* file)
             }
             // base waveform
             float fp=(float)phase/period;
-            switch(wave_type)
-            {
+            switch(wave_type) {
             case 0: // square
                 if(fp<square_duty)
                     sample=0.5f;
@@ -454,13 +427,10 @@ void SynthSample(int length, float* buffer, FILE* file)
             fltw*=fltw_d;
             if(fltw<0.0f) fltw=0.0f;
             if(fltw>0.1f) fltw=0.1f;
-            if(p_lpf_freq!=1.0f)
-            {
+            if(p_lpf_freq!=1.0f) {
                 fltdp+=(sample-fltp)*fltw;
                 fltdp-=fltdp*fltdmp;
-            }
-            else
-            {
+            } else {
                 fltp=sample;
                 fltdp=0.0f;
             }
@@ -480,14 +450,12 @@ void SynthSample(int length, float* buffer, FILE* file)
 
         ssample*=2.0f*sound_vol;
 
-        if(buffer!=nullptr)
-        {
+        if(buffer!=nullptr) {
             if(ssample>1.0f) ssample=1.0f;
             if(ssample<-1.0f) ssample=-1.0f;
             *buffer++=ssample;
         }
-        if(file!=nullptr)
-        {
+        if(file!=nullptr) {
             // quantize depending on format
             // accumulate/count to accomodate variable sample rate?
             ssample*=4.0f; // arbitrary gain to get reasonable output volume...
@@ -495,17 +463,13 @@ void SynthSample(int length, float* buffer, FILE* file)
             if(ssample<-1.0f) ssample=-1.0f;
             filesample+=ssample;
             fileacc++;
-            if(wav_freq==44100 || fileacc==2)
-            {
+            if(wav_freq==44100 || fileacc==2) {
                 filesample/=fileacc;
                 fileacc=0;
-                if(wav_bits==16)
-                {
+                if(wav_bits==16) {
                     short isample=(short)(filesample*32000);
                     fwrite(&isample, 1, 2, file);
-                }
-                else
-                {
+                } else {
                     uchar isample=(uchar)(filesample*127+128);
                     fwrite(&isample, 1, 1, file);
                 }
@@ -516,27 +480,21 @@ void SynthSample(int length, float* buffer, FILE* file)
     }
 }
 
-static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len)
-{
-    if (playing_sample)
-    {
-        if (cursnd.sfxr)
-        {
+static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len) {
+    if (playing_sample) {
+        if (cursnd.sfxr) {
             uint l = len/2;
             float *fbuf = new float[l];
             memset(fbuf, 0, sizeof(float)*l);
             SynthSample(l, fbuf, nullptr);
-            while (l--)
-            {
+            while (l--) {
                 float f = fbuf[l];
                 if (f < -1.0) f = -1.0;
                 if (f > 1.0) f = 1.0;
                 ((Sint16*)stream)[l] = (Sint16)(f * 32767);
             }
             delete[] fbuf;
-        }
-        else
-        {
+        } else {
             size_t amount = min((size_t)len, cursnd.len - (cursndpos - cursnd.buf));
             memcpy(stream, cursndpos, amount);
             memset(stream + amount, 0, len - amount);
@@ -544,20 +502,16 @@ static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len)
             if (cursndpos == cursnd.buf + cursnd.len)
                 playing_sample = false;
         }
-    }
-    else
-    {
+    } else {
         memset(stream, 0, len);
         SDL_PauseAudioDevice(audioid, 1);
     }
 }
 
-bool SDLSoundInit()
-{
+bool SDLSoundInit() {
     if (audioid) return true;
 
-    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i)
-    {
+    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         Output(OUTPUT_INFO, "Audio driver available %s", SDL_GetAudioDriver(i));
     }
 
@@ -570,8 +524,7 @@ bool SDLSoundInit()
         return false;
 
     int count = SDL_GetNumAudioDevices(0);
-    for (int i = 0; i < count; ++i)
-    {
+    for (int i = 0; i < count; ++i) {
         Output(OUTPUT_INFO, "Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
     }
 
@@ -588,12 +541,10 @@ bool SDLSoundInit()
     return !!audioid;
 }
 
-void SDLSoundClose()
-{
+void SDLSoundClose() {
     if (audioid) SDL_PauseAudioDevice(audioid, 1);
 
-    for (auto &it : sound_files)
-    {
+    for (auto &it : sound_files) {
         Sound &snd = it.second;
         if (snd.sfxr) free(snd.buf);
         else SDL_FreeWAV(snd.buf);
@@ -606,8 +557,7 @@ void SDLSoundClose()
     audioid = 0;
 }
 
-bool SDLPlaySound(const char *filename, bool sfxr)
-{
+bool SDLPlaySound(const char *filename, bool sfxr) {
     #ifdef __EMSCRIPTEN__
     // Distorted in firefox and no audio at all in chrome, disable for now.
     return false;
@@ -615,14 +565,10 @@ bool SDLPlaySound(const char *filename, bool sfxr)
 
     ResetParams();
     bool ok = SDLSoundInit() && LoadSound(filename, sfxr);
-    if (ok)
-    {
-        if (cursnd.sfxr)
-        {
+    if (ok) {
+        if (cursnd.sfxr) {
             ResetSample(false);
-        }
-        else
-        {
+        } else {
             cursndpos = cursnd.buf;
         }
         SDL_PauseAudioDevice(audioid, 0);

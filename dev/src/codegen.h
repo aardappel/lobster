@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace lobster
-{
+namespace lobster {
 
-struct CodeGen 
-{
+struct CodeGen  {
     vector<int> code;
     vector<uchar> code_attr;
     vector<bytecode::LineInfo> lineinfo;
@@ -25,29 +23,27 @@ struct CodeGen
     vector<const Node *> linenumbernodes;
     vector<pair<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
-    
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
-
     vector<TypeRef> rettypes, temptypestack;
-
     vector<const char *> stringtable;  // sized strings.
 
     int Pos() { return (int)code.size(); }
 
-    void GrowCodeAttr(int mins) { while (mins > (int)code_attr.size()) code_attr.push_back(bytecode::Attr_NONE); }
+    void GrowCodeAttr(int mins) {
+        while (mins > (int)code_attr.size()) code_attr.push_back(bytecode::Attr_NONE);
+    }
 
-    void Emit(int i)
-    {
+    void Emit(int i) {
         auto &ln = linenumbernodes.back()->line;
-        if (lineinfo.empty() || ln.line != lineinfo.back().line() || ln.fileidx != lineinfo.back().fileidx())
+        if (lineinfo.empty() || ln.line != lineinfo.back().line() ||
+            ln.fileidx != lineinfo.back().fileidx())
             lineinfo.push_back(bytecode::LineInfo(ln.line, ln.fileidx, Pos()));
         code.push_back(i);
         GrowCodeAttr(code.size());
     }
 
-    void SplitAttr(int at)
-    {
+    void SplitAttr(int at) {
         GrowCodeAttr(at + 1);
         code_attr[at] |= bytecode::Attr_SPLIT;
     }
@@ -57,76 +53,58 @@ struct CodeGen
     void Emit(int i, int j, int k, int l) { Emit(i); Emit(j); Emit(k); Emit(l); }
 
     #define MARKL(name) auto name = Pos();
-    void SETL(int jumploc)
-    {
+    void SETL(int jumploc) {
         code[jumploc - 1] = Pos();
         SplitAttr(Pos());
     }
 
     // Make a table for use as VM runtime type.
-    type_elem_t GetTypeTableOffset(TypeRef type)
-    {
+    type_elem_t GetTypeTableOffset(TypeRef type) {
         vector<type_elem_t> tt;
         tt.push_back((type_elem_t)type->t);
-
-        switch (type->t)
-        {
+        switch (type->t) {
             case V_NIL:
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
                 break;
-
             case V_FUNCTION:
                 tt.push_back((type_elem_t)type->sf->idx);
                 break;
-
             case V_COROUTINE:
-                if (type->sf)
-                {
+                if (type->sf) {
                     if (type->sf->cotypeinfo >= 0)
                         return type->sf->cotypeinfo;
-
                     type->sf->cotypeinfo = (type_elem_t)type_table.size();
                     // Reserve space, so other types can be added afterwards safely.
                     type_table.insert(type_table.end(), 3, (type_elem_t)0);
-
                     tt.push_back((type_elem_t)type->sf->idx);
                     tt.push_back(GetTypeTableOffset(type->sf->returntypes[0]));
-
                     std::copy(tt.begin(), tt.end(), type_table.begin() + type->sf->cotypeinfo);
                     return type->sf->cotypeinfo;
-                }
-                else
-                {
+                } else {
                     tt.push_back((type_elem_t)-1);
                     tt.push_back(TYPE_ELEM_ANY);
                 }
                 break;
-
             case V_STRUCT:
                 if (type->struc->typeinfo >= 0)
                     return type->struc->typeinfo;
-
                 type->struc->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 type_table.insert(type_table.end(), type->struc->fields.size() + 3, (type_elem_t)0);
-
                 tt.push_back((type_elem_t)type->struc->idx);
                 tt.push_back((type_elem_t)type->struc->fields.size());
-                for (auto &field : type->struc->fields.v)
-                {
+                for (auto &field : type->struc->fields.v) {
                     tt.push_back(GetTypeTableOffset(field.type));
                 }
-
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->struc->typeinfo);
                 return type->struc->typeinfo;
-
             case V_VAR:
                 // This can happen with an empty [] vector that was never bound to anything.
                 // Should be benign to use any, since it is never accessed anywhere.
-                // FIXME: would be even better to check this case before codegen, since this may mask bugs.
+                // FIXME: would be even better to check this case before codegen, since this may
+                // mask bugs.
                 return GetTypeTableOffset(type_any);
-
             default:
                 assert(IsRuntime(type->t));
                 break;
@@ -140,8 +118,7 @@ struct CodeGen
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st)
-    {
+    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -157,50 +134,34 @@ struct CodeGen
         Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
         Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
-
         for (auto type : st.default_int_vector_types)
             vint_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
         for (auto type : st.default_float_vector_types)
             vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
-
-        for (auto sid : st.specidents) sids.push_back(bytecode::SpecIdent(sid->id->idx, GetTypeTableOffset(sid->type)));
-
+        for (auto sid : st.specidents)
+            sids.push_back(bytecode::SpecIdent(sid->id->idx, GetTypeTableOffset(sid->type)));
         // Create list of subclasses, to help in creation of dispatch tables.
-        for (auto struc : st.structtable)
-        {
-            if (struc->superclass)
-            {
+        for (auto struc : st.structtable) {
+            if (struc->superclass) {
                 struc->nextsubclass = struc->superclass->firstsubclass;
                 struc->superclass->firstsubclass = struc;
             }
         }
-
         linenumbernodes.push_back(parser.root);
-
         SplitAttr(0);
-
         Emit(IL_JUMP, 0);
         MARKL(fundefjump);
-
         SplitAttr(Pos());
-
         for (auto f : parser.st.functiontable)
             if (f->subf && f->subf->typechecked)
                 GenFunction(*f);
         SETL(fundefjump);
-
         SplitAttr(Pos());
-
         BodyGen(parser.root);
-
         Emit(IL_EXIT, GetTypeTableOffset(Parser::LastInList(parser.root)->head()->exptype));
-
         SplitAttr(Pos());  // Allow off by one indexing.
-
         linenumbernodes.pop_back();
-
-        for (auto &fixup : call_fixups)
-        {
+        for (auto &fixup : call_fixups) {
             auto &sf = *fixup.second;
             auto &f = *sf.parent;
             auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
@@ -210,26 +171,21 @@ struct CodeGen
         }
     }
 
-    ~CodeGen()
-    {
+    ~CodeGen() {
     }
 
     void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
 
-    void BodyGen(Node *n)
-    {
+    void BodyGen(Node *n) {
         for (; n; n = n->tail()) Gen(n->head(), !n->tail());
     }
 
-    struct sfcompare
-    {
+    struct sfcompare {
         int nargs;
         CodeGen *cg;
         Function *f;
-        bool operator() (SubFunction *a, SubFunction *b)
-        {
-            for (int i = 0; i < nargs; i++)
-            {
+        bool operator() (SubFunction *a, SubFunction *b) {
+            for (int i = 0; i < nargs; i++) {
                 auto ta = a->args.v[i].type;
                 auto tb = b->args.v[i].type;
 
@@ -240,48 +196,34 @@ struct CodeGen
         }
     } sfcomparator;
 
-    bool GenFunction(Function &f)
-    {
+    bool GenFunction(Function &f) {
         if (f.bytecodestart > 0 || f.istype) return false;
-
-        if (!f.multimethod)
-        {
+        if (!f.multimethod) {
             f.bytecodestart = Pos();
-            for (auto sf = f.subf; sf; sf = sf->next)
-            {
+            for (auto sf = f.subf; sf; sf = sf->next) {
                 GenScope(*sf);
             }
-        }
-        else
-        {
+        } else {
             // do multi-dispatch
             vector<SubFunction *> sfs;
-
-            for (auto sf = f.subf; sf; sf = sf->next)
-            {
+            for (auto sf = f.subf; sf; sf = sf->next) {
                 sfs.push_back(sf);
                 GenScope(*sf);
             }
-
             sfcomparator.nargs = f.nargs();
             sfcomparator.cg = this;
             sfcomparator.f = &f;
             sort(sfs.begin(), sfs.end(), sfcomparator);
-
             f.bytecodestart = Pos();
             int numentries = 0;
             MARKL(multistart);
             SplitAttr(Pos());
             Emit(IL_FUNMULTI, 0, f.nargs());
-
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
-            for (auto sf : sfs)
-            {
-                auto gendispatch = [&] (int override_j, TypeRef override_type)
-                {
+            for (auto sf : sfs) {
+                auto gendispatch = [&] (int override_j, TypeRef override_type) {
                     Output(OUTPUT_DEBUG, "dispatch %s", f.name.c_str());
-                    for (int j = 0; j < f.nargs(); j++)
-                    {
+                    for (int j = 0; j < f.nargs(); j++) {
                         auto type = j == override_j ? override_type : sf->args.v[j].type;
                         Output(OUTPUT_DEBUG, "arg %d: %s", j, TypeName(type).c_str());
                         Emit(GetTypeTableOffset(type));
@@ -292,17 +234,13 @@ struct CodeGen
                 // Generate regular dispatch entry.
                 gendispatch(-1, nullptr);
                 // See if this entry contains super-types and generate additional entries.
-                for (int j = 0; j < f.nargs(); j++)
-                {
+                for (int j = 0; j < f.nargs(); j++) {
                     auto arg = sf->args.v[j];
-                    if (arg.type->t == V_STRUCT)
-                    {
+                    if (arg.type->t == V_STRUCT) {
                         auto struc = arg.type->struc;
-                        for (auto subs = struc->firstsubclass; subs; subs = subs->nextsubclass)
-                        {
+                        for (auto subs = struc->firstsubclass; subs; subs = subs->nextsubclass) {
                             // See if this instance already exists:
-                            for (auto osf : sfs)
-                            {
+                            for (auto osf : sfs) {
                                 // Only check this arg, not all arg, which is reasonable.
                                 if (*osf->args.v[j].type == subs->thistype) goto skip;
                             }
@@ -318,72 +256,59 @@ struct CodeGen
         return true;
     }
 
-    void GenScope(SubFunction &sf)
-    {
+    void GenScope(SubFunction &sf) {
         if (sf.subbytecodestart > 0) return;
         sf.subbytecodestart = Pos();
-
-        if (!sf.typechecked)
-        {
+        if (!sf.typechecked) {
             auto s = Dump(*sf.body, 0);
             Output(OUTPUT_DEBUG, "untypechecked: %s : %s", sf.parent->name.c_str(), s.c_str());
             assert(0);
         }
-
         vector<SpecIdent *> defs;
         vector<SpecIdent *> logvars;
-        // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order stays the same
-        for (auto topl = sf.body; topl; topl = topl->tail())
-        {
+        // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order
+        // stays the same
+        for (auto topl = sf.body; topl; topl = topl->tail()) {
             size_t logmultiassignstart = logvars.size();
-            for (auto dl = topl->head(); dl->type == T_DEF; dl = dl->right())
-            {
+            for (auto dl = topl->head(); dl->type == T_DEF; dl = dl->right()) {
                 auto sid = dl->left()->sid();
                 auto id = dl->left()->ident();
-                if (id->logvaridx >= 0)
-                {
+                if (id->logvaridx >= 0) {
                     id->logvaridx = (int)logvars.size();
                     logvars.push_back(sid);
-                }
-                else defs.push_back(sid);
+                } else defs.push_back(sid);
             }
             // order of multi-assign initializers is reversed on the stack
             reverse(logvars.begin() + logmultiassignstart, logvars.end());
         }
-
         linenumbernodes.push_back(sf.body);
-
         SplitAttr(Pos());
         Emit(IL_FUNSTART);
-        Emit((int)sf.args.v.size()); 
+        Emit((int)sf.args.v.size());
         for (auto &arg : sf.args.v) Emit(arg.sid->idx);
-        // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus optimize function calls
+        // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus
+        // optimize function calls
         Emit((int)(defs.size() + logvars.size()));
         for (auto id : defs) Emit(id->idx);
         for (auto id : logvars) Emit(id->idx);
         Emit((int)logvars.size());
-
         if (sf.body) BodyGen(sf.body);
         else Dummy(true);
-
         TakeTemp(1);
         assert(temptypestack.empty());
-
         Emit(IL_FUNEND);
-
         linenumbernodes.pop_back();
     }
 
-    void EmitTempInfo(const Node *callnode)
-    {
+    void EmitTempInfo(const Node *callnode) {
         int i = 0;
         uint mask = 0;
-        for (auto type : temptypestack)
-        {
-            if (IsRefNil(type->t))
-            {
+        for (auto type : temptypestack) {
+            if (IsRefNil(type->t)) {
                 // FIXME: this is pretty lame, but hopefully rare. stopgap measure.
-                if (i >= 32) parser.Error("internal error: too many temporaries at function call site", callnode);
+                if (i >= 32)
+                    parser.Error("internal error: too many temporaries at function call site",
+                                 callnode);
                 mask |= 1 << i;
             }
             i++;
@@ -393,17 +318,14 @@ struct CodeGen
 
     void TakeTemp(int n) { temptypestack.erase(temptypestack.end() - n, temptypestack.end()); }
 
-    void GenFixup(const SubFunction *sf)
-    {
+    void GenFixup(const SubFunction *sf) {
         if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
     }
 
-    const Node *GenArgs(const Node *list, int &nargs, const Node *parent = nullptr)
-    {
+    const Node *GenArgs(const Node *list, int &nargs, const Node *parent = nullptr) {
         // Skip unused args, this may happen for dynamic calls.
         const Node *lastarg = nullptr;
-        for (; list; list = list->tail())
-        {
+        for (; list; list = list->tail()) {
             Gen(list->head(), 1, false, parent);
             lastarg = list->head();
             nargs++;
@@ -411,8 +333,7 @@ struct CodeGen
         return lastarg;
     };
 
-    void GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs)
-    {
+    void GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs) {
         auto &f = *sf.parent;
         GenArgs(args, nargs);
         if (f.nargs() != nargs)
@@ -424,17 +345,14 @@ struct CodeGen
              f.multimethod ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf);
         EmitTempInfo(args);
-        if (f.multimethod)
-        {
-            for (const Node *list = args; list; list = list->tail())
-            {
+        if (f.multimethod) {
+            for (const Node *list = args; list; list = list->tail()) {
                 Emit(GetTypeTableOffset(list->head()->exptype));
             }
         }
         auto nretvals = max(f.retvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
         for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
-
         SplitAttr(Pos());
     };
 
@@ -442,30 +360,29 @@ struct CodeGen
 
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
 
-    void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr)
-    {
-        // The cases below generate no retvals if retval==0, otherwise they generate however many they can
-        // irrespective of retval, optionally record that in rettypes for the more complex
+    void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr) {
+        // The cases below generate no retvals if retval==0, otherwise they generate however many
+        // they can irrespective of retval, optionally record that in rettypes for the more complex
         // cases. Then at the end of this function the two get matched up.
-
         auto tempstartsize = temptypestack.size();
-
         linenumbernodes.push_back(n);
-
         int opc = 0;
 
-        switch(n->type)
-        {
+        switch(n->type) {
+            case T_NIL:   if (retval) { Emit(IL_PUSHNIL); break; }
             case T_INT:   if (retval) { Emit(IL_PUSHINT, n->integer()); }; break;
             case T_FLOAT: if (retval) { GenFloat((float)n->flt()); }; break;
-            case T_STR:   if (retval) { Emit(IL_PUSHSTR, (int)stringtable.size()); stringtable.push_back(n->str()); }; break;
-            case T_NIL:   if (retval) { Emit(IL_PUSHNIL); break; }
 
-            case T_DEFAULTVAL:
-            {
+            case T_STR:
+                if (retval) {
+                    Emit(IL_PUSHSTR, (int)stringtable.size());
+                    stringtable.push_back(n->str());
+                };
+                break;
+
+            case T_DEFAULTVAL: {
                 assert(n->exptype->t == V_NIL);  // Optional args are indicated by being nillable.
-                if (retval) switch (n->exptype->sub->t)
-                {
+                if (retval) switch (n->exptype->sub->t) {
                     case V_INT: Emit(IL_PUSHINT, 0); break;
                     case V_FLOAT: GenFloat(0); break;
                     default: Emit(IL_PUSHNIL); break;
@@ -474,8 +391,7 @@ struct CodeGen
             }
 
             case T_IDENT:
-                if (retval)
-                {
+                if (retval) {
                     Emit(IsRefNil(n->sid()->type->t) ? IL_PUSHVARREF : IL_PUSHVAR, n->sid()->idx);
                 };
                 break;
@@ -489,8 +405,7 @@ struct CodeGen
             case T_INDEX:
                 Gen(n->left(), retval);
                 Gen(n->right(), retval);
-                if (retval)
-                {
+                if (retval) {
                     TakeTemp(2);
                     Emit(n->right()->exptype->t == V_INT ? IL_PUSHIDXI : IL_PUSHIDXV);
                 }
@@ -502,26 +417,23 @@ struct CodeGen
                 break;
 
             case T_DEF:
-            case T_ASSIGNLIST:
-            {
+            case T_ASSIGNLIST: {
                 auto dl = n;
                 vector<Node *> defs;
-                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right())
-                {
+                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right()) {
                     defs.push_back(dl->left());
                 }
                 Gen(dl, (int)defs.size());
                 dl = n;
-                for (int i = (int)defs.size() - 1; i >= 0; i--)
-                {
-                    if (n->type == T_DEF)
-                    {
+                for (int i = (int)defs.size() - 1; i >= 0; i--) {
+                    if (n->type == T_DEF) {
                         if (defs[i]->ident()->logvaridx >= 0)
                             Emit(IsRefNil(defs[i]->exptype->t) ? IL_LOGREADREF : IL_LOGREAD,
                                  defs[i]->ident()->logvaridx);
                     }
                     TakeTemp(1);
-                    Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE, defs[i]->sid()->idx);
+                    Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE,
+                        defs[i]->sid()->idx);
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
                 Dummy(retval);
@@ -559,22 +471,25 @@ struct CodeGen
             case T_PLUS:
                 Gen(n->left(), retval);
                 Gen(n->right(), retval);
-                if (retval)
-                {
+                if (retval) {
                     TakeTemp(2);
-                    // Have to check right and left because comparison ops generate ints for node overall.
-                    if      (n->right()->exptype->t == V_INT    && n->left()->exptype->t == V_INT)    Emit(IL_IADD + opc);
-                    else if (n->right()->exptype->t == V_FLOAT  && n->left()->exptype->t == V_FLOAT)  Emit(IL_FADD + opc);
-                    else if (n->right()->exptype->t == V_STRING && n->left()->exptype->t == V_STRING) Emit(IL_SADD + opc);
-                    else
-                    {
-                        if (opc >= 9)  // EQ/NEQ
-                        {
-                            assert(IsRefNil(n->left()->exptype->t) && IsRefNil(n->right()->exptype->t));
+                    // Have to check right and left because comparison ops generate ints for node
+                    // overall.
+                    if (n->right()->exptype->t == V_INT &&
+                        n->left()->exptype->t == V_INT) {
+                        Emit(IL_IADD + opc);
+                    } else if (n->right()->exptype->t == V_FLOAT &&
+                               n->left()->exptype->t == V_FLOAT) {
+                        Emit(IL_FADD + opc);
+                    } else if (n->right()->exptype->t == V_STRING &&
+                               n->left()->exptype->t == V_STRING) {
+                        Emit(IL_SADD + opc);
+                    } else {
+                        if (opc >= 9) {  // EQ/NEQ
+                            assert(IsRefNil(n->left()->exptype->t) &&
+                                   IsRefNil(n->right()->exptype->t));
                             Emit(IL_AEQ + opc - 9);
-                        }
-                        else
-                        {
+                        } else {
                             // If this is a comparison op, be sure to use the child type.
                             TypeRef vectype = opc >= 5 ? n->left()->exptype : n->exptype;
                             TypeRef sub;
@@ -582,8 +497,10 @@ struct CodeGen
                             else if (vectype->t == V_STRUCT) sub = vectype->struc->vectortype->sub;
                             else assert(false);
                             bool withscalar = IsScalar(n->right()->exptype->t);
-                            if      (sub->t == V_INT)    Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
-                            else if (sub->t == V_FLOAT)  Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
+                            if      (sub->t == V_INT)
+                                Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
+                            else if (sub->t == V_FLOAT)
+                                Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
                             else assert(false);
                         }
                     }
@@ -592,18 +509,15 @@ struct CodeGen
 
             case T_UMINUS:
                 Gen(n->child(), retval, true);
-                if (retval)
-                {
+                if (retval) {
                     auto type = n->child()->exptype;
-                    switch (type->t)
-                    {
+                    switch (type->t) {
                         case V_INT: Emit(IL_IUMINUS); break;
                         case V_FLOAT: Emit(IL_FUMINUS); break;
-                        case V_STRUCT: 
-                        case V_VECTOR:
-                        {
+                        case V_STRUCT:
+                        case V_VECTOR: {
                             auto elem = type->t == V_VECTOR
-                                        ? type->Element()->t 
+                                        ? type->Element()->t
                                         : type->struc->vectortype->Element()->t;
                             Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
                             break;
@@ -620,11 +534,9 @@ struct CodeGen
             case T_ASR:
                 Gen(n->left(), retval);
                 Gen(n->right(), retval);
-                if (retval)
-                {
+                if (retval) {
                     TakeTemp(2);
-                    switch (n->type)
-                    {
+                    switch (n->type) {
                         case T_BINAND: Emit(IL_BINAND); break;
                         case T_BINOR:  Emit(IL_BINOR); break;
                         case T_XOR:    Emit(IL_XOR); break;
@@ -651,10 +563,8 @@ struct CodeGen
 
             case T_E2A:
                 Gen(n->child(), retval, true);
-                if (retval)
-                {
-                    switch (n->child()->exptype->t)
-                    {
+                if (retval) {
+                    switch (n->child()->exptype->t) {
                         case V_INT:   Emit(IL_I2A); break;
                         case V_FLOAT: Emit(IL_F2A); break;
                         default: break;  // Everything else is already compatible.
@@ -678,135 +588,104 @@ struct CodeGen
                 break;
 
             case T_FUN:
-                if (retval) 
-                {
-                    if (n->sf()->parent->anonymous)
-                    {
+                if (retval)  {
+                    if (n->sf()->parent->anonymous) {
                         Emit(IL_PUSHFUN, n->sf()->subbytecodestart);
                         GenFixup(n->sf());
-                    }
-                    else
-                    {
+                    } else {
                         Dummy(retval);
                     }
                 }
-                break; 
+                break;
 
             case T_STRUCTDEF:
                 Dummy(retval);
                 break;
-            
+
             case T_NATCALL:
             case T_CALL:
-            case T_DYNCALL:     
-            {
+            case T_DYNCALL: {
                 int nargs = 0;
-                if (n->type == T_NATCALL)
-                {
+                if (n->type == T_NATCALL) {
                     auto nf = n->ncall_id()->nf();
-                    // TODO: could pass arg types in here if most exps have types, cheaper than doing it all in call
-                    // instruction?
+                    // TODO: could pass arg types in here if most exps have types, cheaper than
+                    // doing it all in call instruction?
                     auto lastarg = GenArgs(n->ncall_args(), nargs, n);
                     TakeTemp(nargs);
                     assert(nargs == (int)nf->args.size() && nargs <= 6);
-                    if (nf->ncm == NCM_CONT_EXIT)  // graphics.h
-                    {   
+                    if (nf->ncm == NCM_CONT_EXIT) { // graphics.h
                         Emit(IL_BCALL0 + nargs, nf->idx);
-                        if (lastarg->type != T_DEFAULTVAL)
-                        {
+                        if (lastarg->type != T_DEFAULTVAL) {
                             Emit(IL_CALLVCOND);
                             EmitTempInfo(n);
 
                             SplitAttr(Pos());
 
                             assert(lastarg->exptype->t == V_FUNCTION);
-                            Emit(IsRefNil(lastarg->exptype->sf->returntypes[0]->t) ? IL_CONT1REF : IL_CONT1, nf->idx);
+                            Emit(IsRefNil(lastarg->exptype->sf->returntypes[0]->t)
+                                ? IL_CONT1REF : IL_CONT1, nf->idx);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         Emit(IL_BCALL0 + nargs, nf->idx);
-                        if (nf->name == "resume") SplitAttr(Pos()); // FIXME: make resume a vm op.
+                        if (nf->name == "resume") SplitAttr(Pos()); // FIXME: make a vm op.
                     }
-                    if (nf->retvals.v.size() > 1)
-                    {
+                    if (nf->retvals.v.size() > 1) {
                         for (auto &rv : nf->retvals.v) rettypes.push_back(rv.type);
+                    } else if (!nf->retvals.v.size() && retval) {
+                        // can't make this an error since these functions are often called as the
+                        // last thing in a function, requiring a return value
                     }
-                    else if (!nf->retvals.v.size() && retval)
-                    { 
-                        // can't make this an error since these functions are often called as the last thing in a
-                        // function, requiring a return value
-                    }
-                }
-                else if (n->type == T_CALL)
-                {
+                } else if (n->type == T_CALL) {
                     GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs);
-                }
-                else
-                {
+                } else {
                     assert(n->type == T_DYNCALL);
-
-                    if (n->dcall_fval()->exptype->t == V_YIELD)
-                    {
-                        if (n->dcall_args())
-                        {
+                    if (n->dcall_fval()->exptype->t == V_YIELD) {
+                        if (n->dcall_args()) {
                             GenArgs(n->dcall_args(), nargs);
                             TakeTemp(nargs);
                             assert(nargs == 1);
-                        }
-                        else
-                        {
+                        } else {
                             Emit(IL_PUSHNIL);
                         }
                         Emit(IL_YIELD);
                         SplitAttr(Pos());
-                    }
-                    else
-                    {
+                    } else {
                         auto sf = n->dcall_fval()->exptype->sf;
                         auto spec_sf = n->dcall_function()->sf();
                         (void)spec_sf;
                         assert(sf && sf == spec_sf);
                         // FIXME: in the future, we can make a special case for istype calls.
-                        if (!sf->parent->istype)
-                        {
-                            // We statically know which function this is calling, which means that we don't have
-                            // to need function value, but we generate code for it for the rare case it contains a
-                            // side effect, usually it is an ident which will result in no code (retval = 0).
+                        if (!sf->parent->istype) {
+                            // We statically know which function this is calling, which means that
+                            // we don't have to need function value, but we generate code for it for
+                            // the rare case it contains a side effect, usually it is an ident which
+                            // will result in no code (retval = 0).
                             Gen(n->dcall_fval(), 0);
                             // We can now turn this into a normal call.
                             GenCall(*sf, n->dcall_args(), n, nargs);
-                        }
-                        else
-                        {
+                        } else {
                             GenArgs(n->dcall_args(), nargs);
                             assert(nargs == (int)sf->args.size());
                             Gen(n->dcall_fval(), 1);
                             TakeTemp(nargs + 1);
                             Emit(IL_CALLV);
                             EmitTempInfo(n);
-
                             SplitAttr(Pos());
                         }
                     }
                 }
-                if (!retval)
-                {
-                    if (rettypes.size())
-                    {
-                        while (rettypes.size())
-                        {
+                if (!retval) {
+                    if (rettypes.size()) {
+                        while (rettypes.size()) {
                             Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
                             rettypes.pop_back();
                         }
-                    }
-                    else
-                    {
+                    } else {
                         Emit(IsRefNil(n->exptype->t) ? IL_POPREF : IL_POP);
                     }
                 }
                 break;
-            }  
+            }
 
             case T_LIST:
                 assert(0);  // handled by individual parents: EXPS {} [] ADT
@@ -817,25 +696,21 @@ struct CodeGen
                 Gen(n->right(), retval, true);
                 break;
 
-            case T_MULTIRET:
-            {
+            case T_MULTIRET: {
                 assert(retval);
                 int na = 0;
-                for (auto ni = n; ni; ni = ni->tailexps())
-                {
+                for (auto ni = n; ni; ni = ni->tailexps()) {
                     Gen(ni->headexp(), 1);
                     na++;
                 }
                 TakeTemp(na);
-                for (auto ni = n; ni; ni = ni->tailexps())
-                {
+                for (auto ni = n; ni; ni = ni->tailexps()) {
                     rettypes.push_back(ni->headexp()->exptype);
                 }
                 break;
             }
 
-            case T_AND:
-            {
+            case T_AND: {
                 Gen(n->left(), 1, true);
                 Emit(JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, n->left()->exptype), 0);
                 MARKL(loc);
@@ -844,8 +719,7 @@ struct CodeGen
                 break;
             }
 
-            case T_OR:
-            {
+            case T_OR: {
                 Gen(n->left(), 1, true);
                 Emit(JumpRef(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, n->left()->exptype), 0);
                 MARKL(loc);
@@ -854,30 +728,26 @@ struct CodeGen
                 break;
             }
 
-            case T_NOT:
-            {
+            case T_NOT: {
                 Gen(n->child(), retval, true);
                 if (retval) Emit(IsRefNil(n->child()->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
                 break;
             }
 
-            case T_IF:
-            {
+            case T_IF: {
                 Gen(n->if_condition(), 1, true);
                 bool has_else = n->if_else()->type != T_DEFAULTVAL;
-                Emit(JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, n->if_condition()->exptype), 0);
+                Emit(JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL,
+                             n->if_condition()->exptype), 0);
                 MARKL(loc);
-                if (has_else)
-                {
+                if (has_else) {
                     Gen(n->if_then(), retval, true);
                     Emit(IL_JUMP, 0);
                     MARKL(loc2);
                     SETL(loc);
                     Gen(n->if_else(), retval, true);
                     SETL(loc2);
-                }
-                else
-                {
+                } else {
                     // If retval, then this will generate nil thru T_E2N
                     Gen(n->if_then(), retval, true);
                     SETL(loc);
@@ -885,8 +755,7 @@ struct CodeGen
                 break;
             }
 
-            case T_WHILE:
-            {
+            case T_WHILE: {
                 SplitAttr(Pos());
                 MARKL(loopback);
                 Gen(n->while_condition(), 1, true);
@@ -899,8 +768,7 @@ struct CodeGen
                 break;
             }
 
-            case T_FOR:
-            {
+            case T_FOR: {
                 Emit(IL_PUSHINT, -1);   // i
                 temptypestack.push_back(type_int);
                 Gen(n->for_iter(), 1);
@@ -909,13 +777,14 @@ struct CodeGen
                 auto type = n->for_iter()->exptype;
                 auto isref = (int)IsRefNil(n->for_body()->exptype->t);
                 SplitAttr(Pos());
-                switch (type->t)
-                {
+                switch (type->t) {
                     case V_INT:    Emit(IL_IFOR + isref); break;
                     case V_STRING: Emit(IL_SFOR + isref); break;
                     case V_VECTOR: Emit(IL_VFOR + isref); break;
-                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR); Emit(IL_VFOR + isref); break;
-                    default: assert(false);
+                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR);
+                                   Emit(IL_VFOR + isref);
+                                   break;
+                    default:       assert(false);
                 }
                 EmitTempInfo(n);
                 TakeTemp(3);
@@ -924,12 +793,10 @@ struct CodeGen
                 break;
             }
 
-            case T_CONSTRUCTOR:
-            {
+            case T_CONSTRUCTOR: {
                 int i = 0;
                 // FIXME: a malicious script can exploit this for a stack overflow.
-                for (auto cn = n->constructor_args(); cn; cn = cn->tail())
-                {
+                for (auto cn = n->constructor_args(); cn; cn = cn->tail()) {
                     assert(cn->type == T_LIST);
                     Gen(cn->head(), 1);
                     i++;
@@ -937,12 +804,9 @@ struct CodeGen
                 TakeTemp(i);
                 auto vtype = n->exptype;
                 auto offset = GetTypeTableOffset(vtype);
-                if (vtype->t == V_STRUCT)
-                {
+                if (vtype->t == V_STRUCT) {
                     assert((int)vtype->struc->fields.size() == i);
-                }
-                else
-                {
+                } else {
                     assert(vtype->t == V_VECTOR);
                 }
                 Emit(IL_NEWVEC, offset, i);
@@ -950,28 +814,25 @@ struct CodeGen
                 break;
             }
 
-            case T_IS:
-            {
+            case T_IS: {
                 Gen(n->left(), retval, true);
-                // If the value was a scalar, then it always results in a compile time type check, which means
-                // this T_IS would have been optimized out. Which means from here on we can assume its a ref.
+                // If the value was a scalar, then it always results in a compile time type check,
+                // which means this T_IS would have been optimized out. Which means from here on we
+                // can assume its a ref.
                 assert(!IsScalar(n->left()->exptype->t));
-                if (retval)
-                {
+                if (retval) {
                     Emit(IL_ISTYPE, GetTypeTableOffset(n->right()->typenode()));
                 }
                 break;
             }
 
-            case T_RETURN:
-            {
+            case T_RETURN: {
                 int fid = n->return_function_idx()->integer();
-                if (n->return_value())
-                {
+                if (n->return_value()) {
                     Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1, true);
-                }
-                else Emit(IL_PUSHNIL);
-                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1, GetTypeTableOffset(n->exptype));
+                } else Emit(IL_PUSHNIL);
+                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1,
+                     GetTypeTableOffset(n->exptype));
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }
@@ -979,41 +840,31 @@ struct CodeGen
                 if (retval) Emit(IL_COCL);
                 break;
 
-            case T_COROUTINE:
-            {
+            case T_COROUTINE: {
                 Emit(IL_CORO, 0);
                 MARKL(loc);
-
                 assert(n->exptype->t == V_COROUTINE && n->exptype->sf);
-
                 Emit(GetTypeTableOffset(n->exptype));
-
                 auto sf = n->exptype->sf;
-
-                // TODO: we shouldn't need to store this table for each call, instead do it once for each function
+                // TODO: We shouldn't need to store this table for each call, instead do it once for
+                // each function.
                 Emit((int)sf->coyieldsave.v.size());
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
-
                 Gen(n->child(), retval, true);
-
                 Emit(IL_COEND);
                 SETL(loc);
-
                 if (!retval) Emit(IL_POPREF);
                 break;
             }
 
-            case T_TYPEOF:
-            {
-                if (n->child())
-                {
+            case T_TYPEOF: {
+                if (n->child()) {
                     Emit(IL_PUSHINT, GetTypeTableOffset(n->child()->type == T_IDENT
                                                         ? n->child()->exptype
                                                         : n->child()->typenode()));
-                }
-                else
-                {
-                    if (!parent || parent->type != T_NATCALL) parser.Error("typeof return out of call context", n);
+                } else {
+                    if (!parent || parent->type != T_NATCALL)
+                        parser.Error("typeof return out of call context", n);
                     Emit(IL_PUSHINT, GetTypeTableOffset(parent->exptype));
                 }
                 break;
@@ -1022,98 +873,94 @@ struct CodeGen
             default:
                 assert(0);
         }
-
         assert(tempstartsize == temptypestack.size());
         (void)tempstartsize;
-
-        if (retval)  // If 0, the above code already made sure to not generate value(s).
-        {
-            if (rettypes.empty())  // default case, 1 value
-            {
+        // If 0, the above code already made sure to not generate value(s).
+        if (retval) {
+            // default case, 1 value
+            if (rettypes.empty()) {
                 rettypes.push_back(n->exptype);
             }
-
-            if (rettypes.size() == 1) // if we generate just 1 value, it can be copied into multiple vars if needed
-            {
-                for (; retval > 1; retval--)
-                {
+            // if we generate just 1 value, it can be copied into multiple vars if needed
+            if (rettypes.size() == 1) {
+                for (; retval > 1; retval--) {
                     rettypes.push_back(rettypes.back());
                     Emit(IsRefNil(rettypes.back()->t) ? IL_DUPREF : IL_DUP);
                 }
-            }
-            else if((int)rettypes.size() > retval) // if the caller doesn't want all return values, just pop em
-            {
-                while ((int)rettypes.size() > retval)
-                {
+            // if the caller doesn't want all return values, just pop em
+            } else if((int)rettypes.size() > retval) {
+                while ((int)rettypes.size() > retval) {
                     Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
                     rettypes.pop_back();
                 }
-            }
-            else if ((int)rettypes.size() < retval)    // only happens if both are > 1
-            {
+            // only happens if both are > 1
+            } else if ((int)rettypes.size() < retval) {
                 parser.Error("expression does not supply that many return values", n);
             }
-
-            while (rettypes.size())
-            {
+            while (rettypes.size()) {
                 if (!taketemp) temptypestack.push_back(rettypes.back());
                 rettypes.pop_back();
             }
         }
-
         assert(rettypes.empty());
-
         linenumbernodes.pop_back();
     }
 
-    void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type, const Node *rhs = nullptr)
-    {
-        if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD)
-        {
-            if      (type->t == V_INT)    {                                                            }
-            else if (type->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD; }
-            else if (type->t == V_STRING) { assert(lvalop == LVO_IADD); lvalop = LVO_SADD; }
-            else
-            {
+    void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
+                   const Node *rhs = nullptr) {
+        if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
+            if (type->t == V_INT) {
+            } else if (type->t == V_FLOAT)  {
+                assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD;
+            } else if (type->t == V_STRING) {
+                assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
+            } else {
                 TypeRef sub;
                 if      (type->t == V_VECTOR) sub = type->sub;
                 else if (type->t == V_STRUCT) sub = type->struc->vectortype->sub;
                 else assert(false);
                 bool withscalar = IsScalar(rhs->exptype->t);
-                if      (sub->t == V_INT)    {                             lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD; }
-                else if (sub->t == V_FLOAT)  { assert(lvalop != LVO_IMOD); lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD; }
-                else assert(false);
+                if (sub->t == V_INT) {
+                    lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD;
+                } else if (sub->t == V_FLOAT) {
+                    assert(lvalop != LVO_IMOD);
+                    lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD;
+                } else assert(false);
             }
-        }
-        else if (lvalop >= LVO_IPP && lvalop <= LVO_IMMP)
-        {
+        } else if (lvalop >= LVO_IPP && lvalop <= LVO_IMMP) {
             if (type->t == V_FLOAT) lvalop += LVO_FPP - LVO_IPP;
             else assert(type->t == V_INT);
         }
         if (retval) lvalop++;
         int na = 0;
         if (rhs) { Gen(rhs, 1); na++; }
-        switch (lval->type)
-        {
-            case T_IDENT: TakeTemp(na); Emit(IL_LVALVAR, lvalop, lval->sid()->idx); break;
-            case T_DOT:   Gen(lval->left(), 1); TakeTemp(na + 1); GenFieldAccess(lval->right(), lvalop, false); break;
-            case T_CODOT: Gen(lval->left(), 1); TakeTemp(na + 1); Emit(IL_LVALLOC, lvalop, lval->right()->sid()->idx); break;
-            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1); TakeTemp(na + 2);
-                          Emit(lval->right()->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV, lvalop);
+        switch (lval->type) {
+            case T_IDENT: TakeTemp(na);
+                          Emit(IL_LVALVAR, lvalop, lval->sid()->idx);
+                          break;
+            case T_DOT:   Gen(lval->left(), 1);
+                          TakeTemp(na + 1);
+                          GenFieldAccess(lval->right(), lvalop, false);
+                          break;
+            case T_CODOT: Gen(lval->left(), 1);
+                          TakeTemp(na + 1);
+                          Emit(IL_LVALLOC, lvalop, lval->right()->sid()->idx);
+                          break;
+            case T_INDEX: Gen(lval->left(), 1); Gen(lval->right(), 1);
+                          TakeTemp(na + 2);
+                          Emit(lval->right()->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV,
+                              lvalop);
                           break;
             default:      parser.Error("lvalue required", lval);
         }
     }
 
-    void GenFieldAccess(Node *sfieldnode, int lvalop, bool maybe)
-    {
+    void GenFieldAccess(Node *sfieldnode, int lvalop, bool maybe) {
         auto f = sfieldnode->fld();
         auto stype = sfieldnode->exptype;
         assert(stype->t == V_STRUCT);  // Ensured by typechecker.
-
         if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
         else Emit(IL_PUSHFLD + (int)maybe);
-        
         auto idx = stype->struc->Has(f);
         assert(idx >= 0);
         Emit(idx);

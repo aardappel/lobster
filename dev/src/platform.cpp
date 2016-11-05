@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// misc platform specific stuff
+// Misc platform specific stuff.
 
 #include "stdafx.h"
 #include <stdarg.h>
@@ -43,76 +43,72 @@
 #include "sdlincludes.h"
 #include "sdlinterface.h"
 
+// Main dir to load files relative to, on windows this is where lobster.exe resides, on apple
+// platforms it's the Resource folder in the bundle.
+string datadir;
+// Auxiliary dir to load files from, this is where the bytecode file you're running or the main
+// .lobster file you're compiling reside.
+string auxdir;
+// Folder to write to, usually the same as auxdir, special folder on mobile platforms.
+string writedir;
 
-string datadir;  // main dir to load files relative to, on windows this is where lobster.exe resides,
-                 // on apple platforms it's the Resource folder in the bundle
-string auxdir;   // auxiliary dir to load files from, this is where the bytecode file you're running or
-                 // the main .lobster file you're compiling reside
-string writedir; // folder to write to, usually the same as auxdir, special folder on mobile platforms
-
-string StripFilePart(const char *filepath)
-{
+string StripFilePart(const char *filepath) {
     auto fpos = strrchr(filepath, FILESEP);
     return fpos ? string(filepath, fpos - filepath + 1) : "";
 }
 
-string StripDirPart(const char *filepath)
-{
+string StripDirPart(const char *filepath) {
     auto fpos = strrchr(filepath, FILESEP);
     if (!fpos) fpos = strrchr(filepath, ':');
     return fpos ? fpos + 1 : filepath;
 }
 
-bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle)
-{
+bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle) {
     datadir = StripFilePart(exefilepath);
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
     writedir = auxdir;
-
     // FIXME: use SDL_GetBasePath() instead?
     #ifdef __APPLE__
-        if (from_bundle)
-        {
-            // default data dir is the Resources folder inside the .app bundle
+        if (from_bundle) {
+            // Default data dir is the Resources folder inside the .app bundle.
             CFBundleRef mainBundle = CFBundleGetMainBundle();
             CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
             char path[PATH_MAX];
-            auto res = CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path, PATH_MAX);
+            auto res = CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (UInt8 *)path,
+                                                        PATH_MAX);
             CFRelease(resourcesURL);
             if (!res)
                 return false;
             datadir = string(path) + "/";
             #ifdef __IOS__
-                writedir = StripFilePart(path) + "Documents/"; // there's probably a better way to do this in CF
+                // There's probably a better way to do this in CF.
+                writedir = StripFilePart(path) + "Documents/";
             #else
-                // FIXME: this should probably be ~/Library/Application Support/AppName,
-                // but for now this works for non-app store apps
+                // FIXME: This should probably be ~/Library/Application Support/AppName,
+                // but for now this works for non-app store apps.
                 writedir = datadir;
             #endif
         }
     #elif defined(__ANDROID__)
-        SDL_Init(0); // FIXME, is this needed? bad dependency.
+        SDL_Init(0); // FIXME: Is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
         Output(OUTPUT_INFO, internalstoragepath);
         Output(OUTPUT_INFO, externalstoragepath);
         if (internalstoragepath) datadir = internalstoragepath + string("/");
         if (externalstoragepath) writedir = externalstoragepath + string("/");
-        // for some reason, the above SDL functionality doesn't actually work,
+        // For some reason, the above SDL functionality doesn't actually work,
         // we have to use the relative path only to access APK files:
         datadir = "";
         auxdir = writedir;
     #endif
-
     (void)from_bundle;
     return true;
 }
 
-string SanitizePath(const char *path)
-{
+string SanitizePath(const char *path) {
     string r;
-    while (*path)
-    {
+    while (*path) {
         if (*path == '\\' || *path == '/') r += FILESEP;
         else r += *path;
         path++;
@@ -120,14 +116,12 @@ string SanitizePath(const char *path)
     return r;
 }
 
-uchar *LoadFilePlatform(const char *absfilename, size_t *lenret)
-{
+uchar *LoadFilePlatform(const char *absfilename, size_t *lenret) {
     return SDLLoadFile(absfilename, lenret);
     //return loadfile(absfilename, lenret);
 }
 
-uchar *LoadFile(const char *relfilename, size_t *lenret)
-{
+uchar *LoadFile(const char *relfilename, size_t *lenret) {
     auto srfn = SanitizePath(relfilename);
     auto f = LoadFilePlatform((datadir + srfn).c_str(), lenret);
     if (f) return f;
@@ -136,22 +130,19 @@ uchar *LoadFile(const char *relfilename, size_t *lenret)
     return LoadFilePlatform((writedir + srfn).c_str(), lenret);
 }
 
-FILE *OpenForWriting(const char *relfilename, bool binary)
-{
+FILE *OpenForWriting(const char *relfilename, bool binary) {
     return fopen((writedir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
 }
 
 OutputType min_output_level = OUTPUT_WARN;
 
-void Output(OutputType ot, const char *msg, ...)
-{
+void Output(OutputType ot, const char *msg, ...) {
     if (ot < min_output_level) return;
     va_list args;
     va_start(args, msg);
     #ifdef __ANDROID__
         auto tag = "lobster";
-        switch (ot)
-        {
+        switch (ot) {
             case OUTPUT_DEBUG:   __android_log_vprint(ANDROID_LOG_DEBUG, tag, msg, args); break;
             case OUTPUT_INFO:    __android_log_vprint(ANDROID_LOG_INFO,  tag, msg, args); break;
             case OUTPUT_WARN:    __android_log_vprint(ANDROID_LOG_WARN,  tag, msg, args); break;
@@ -176,8 +167,7 @@ void Output(OutputType ot, const char *msg, ...)
     va_end(args);
 }
 
-void MsgBox(const char *err)
-{
+void MsgBox(const char *err) {
     #if defined(__APPLE__) && !defined(__IOS__)
         // FIXME: this code should never be run when running from command line
         DialogRef alertDialog;
@@ -190,46 +180,38 @@ void MsgBox(const char *err)
     #endif
 }
 
-#ifndef _WIN32   // emulate QPC on *nix, thanks Lee
-    struct LARGE_INTEGER
-    {
+#ifndef _WIN32   // Emulate QPC on *nix, thanks Lee.
+    struct LARGE_INTEGER {
         long long int QuadPart;
     };
 
-    void QueryPerformanceCounter(LARGE_INTEGER *dst)
-    {
+    void QueryPerformanceCounter(LARGE_INTEGER *dst) {
         struct timeval t;
         gettimeofday (& t, nullptr);
         dst->QuadPart = t.tv_sec * 1000000LL + t.tv_usec;
     }
 
-    void QueryPerformanceFrequency(LARGE_INTEGER *dst)
-    {
+    void QueryPerformanceFrequency(LARGE_INTEGER *dst) {
         dst->QuadPart = 1000000LL;
     }
 #endif
 
 LARGE_INTEGER freq, start;
 
-void InitTime()
-{
+void InitTime() {
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&start);
 }
 
-double SecondsSinceStart()
-{
+double SecondsSinceStart() {
     LARGE_INTEGER end;
     QueryPerformanceCounter(&end);
     return double(end.QuadPart - start.QuadPart) / double(freq.QuadPart);
 }
 
-// use this instead of assert to break on a condition and still be able to continue in the debugger.
-
-void ConditionalBreakpoint(bool shouldbreak)
-{
-    if (shouldbreak)
-    {
+// Use this instead of assert to break on a condition and still be able to continue in the debugger.
+void ConditionalBreakpoint(bool shouldbreak) {
+    if (shouldbreak) {
         #ifdef _WIN32
             __debugbreak();
         #elif __GCC__
