@@ -266,21 +266,16 @@ struct CodeGen  {
         }
         vector<SpecIdent *> defs;
         vector<SpecIdent *> logvars;
-        // FIXME: replace this with sf.locals and sf.dynscoperedefs, but be careful logvar order
-        // stays the same
-        for (auto topl = sf.body; topl; topl = topl->tail()) {
-            size_t logmultiassignstart = logvars.size();
-            for (auto dl = topl->head(); dl->type == T_DEF; dl = dl->right()) {
-                auto sid = dl->left()->sid();
-                auto id = dl->left()->ident();
-                if (id->logvaridx >= 0) {
-                    id->logvaridx = (int)logvars.size();
-                    logvars.push_back(sid);
-                } else defs.push_back(sid);
-            }
-            // order of multi-assign initializers is reversed on the stack
-            reverse(logvars.begin() + logmultiassignstart, logvars.end());
-        }
+        auto collect = [&](Arg &arg) {
+            if (arg.id->logvaridx >= 0) {
+                arg.id->logvaridx = (int)logvars.size();
+                // These logsvars are in the correct order in a multi-def statement thanks to
+                // the ordering in RecMultiDef matching the inverse stack order.
+                logvars.push_back(arg.sid);
+            } else defs.push_back(arg.sid);
+        };
+        for (auto &arg : sf.locals.v) collect(arg);
+        for (auto &arg : sf.dynscoperedefs.v) collect(arg);
         linenumbernodes.push_back(sf.body);
         SplitAttr(Pos());
         Emit(IL_FUNSTART);

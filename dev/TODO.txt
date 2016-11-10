@@ -1,3 +1,9 @@
+- function call optimization and simplication.
+  - inlining
+  - remove dynscope
+  - change logvars to not depend on function calling?
+  - change var access to be relative to top of stack
+
 - Add VAOs.
 
 - consider baking Z up into functions.

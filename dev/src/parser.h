@@ -141,6 +141,8 @@ struct Parser {
             }
         }
         if (e) {
+            // The fact that a multi-def adds new Idents in reverse order is something logvars
+            // rely on (see GenScope).
             e = DefineWith(idname, e, isprivate, isdef, islogvar);
         } else {
             lex.Undo(T_COMMA);

@@ -17,7 +17,10 @@ while gl_frame():
 
     def b():
         if a() % 4:
-            v ?= 0
+            v, w ?= 0, 1
             v++
+            //print v + " | " + w
+        else:
+            //print "---"
 
     b()
