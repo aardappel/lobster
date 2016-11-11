@@ -601,7 +601,6 @@ struct VM {
     #endif
 
     void JumpTo(InsPtr j);
-    InsPtr GetIP();
     int VarCleanup(string *error, int towhere);
     void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
@@ -614,7 +613,7 @@ struct VM {
     void CoDone(InsPtr retip);
     void CoClean();
     void CoYield(VM_OP_ARGS_CALL);
-    void CoResume(CoRoutine *co, InsPtr rip);
+    void CoResume(CoRoutine *co);
 
     void EndEval(Value &ret, ValueType vt);
 
@@ -649,7 +648,7 @@ struct VM {
 
     string StructName(const TypeInfo &ti);
     const char *ReverseLookupType(uint v);
-    void Trace(bool on) { trace = on; }
+    void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
     double Time() { return SecondsSinceStart(); }
 
     int GC();

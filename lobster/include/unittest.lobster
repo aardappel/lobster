@@ -8,7 +8,7 @@ include "vec.lobster"
 include "astar.lobster"
 
 def run_test_cases(is_speed_test):
-    //trace_bytecode(1)
+    trace_bytecode(false, true)
 
     assert 1 & 3 == 1
     assert 1 | 3 == 3

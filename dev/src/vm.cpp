@@ -67,7 +67,7 @@ VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_poin
         programprintprefs(10, 10000, false, -1, false), typetable(nullptr),
         currentline(-1), maxsp(-1),
         debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
-        trace(false), trace_tail(true),
+        trace(false), trace_tail(false),
         vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
         compiled_code_ip(entry_point) {
     assert(vmpool == nullptr);
@@ -390,14 +390,6 @@ void VM::JumpTo(InsPtr j) {
     #endif
 }
 
-InsPtr VM::GetIP() {
-    #ifdef VM_COMPILED_CODE_MODE
-        return InsPtr(next_call_target);
-    #else
-        return InsPtr(ip);
-    #endif
-}
-
 int VM::VarCleanup(string *error, int towhere) {
     auto &stf = stackframes.back();
     assert(sp == stf.spstart);
@@ -605,7 +597,7 @@ void VM::CoYield(VM_OP_ARGS_CALL) {
     CoDone(retip);
 }
 
-void VM::CoResume(CoRoutine *co, InsPtr rip) {
+void VM::CoResume(CoRoutine *co) {
     if (co->stackstart >= 0)
         Error("cannot resume running coroutine");
     if (!co->active)
@@ -613,7 +605,13 @@ void VM::CoResume(CoRoutine *co, InsPtr rip) {
     // This will be the return value for the corresponding yield, and holds the ref for gc.
     PUSH(Value(co));
     CoNonRec(co->varip);
+    #ifdef VM_COMPILED_CODE_MODE
+        auto rip = InsPtr(next_call_target);
+    #else
+        auto rip = InsPtr(ip);
+    #endif
     sp += co->Resume(sp + 1, stack, stackframes, rip, curcoroutine);
+    JumpTo(rip);
     curcoroutine = co;
     // must be, since those vars got backed up in it before
     VMASSERT(curcoroutine->stackcopymax >=  *curcoroutine->varip);

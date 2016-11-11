@@ -872,7 +872,7 @@ void AddBuiltins() {
         " pre-filter indicates objects that should not appear in the inner vectors.");
 
     STARTDECL(resume) (Value &co, Value &ret) {
-        g_vm->CoResume(co.cval(), g_vm->GetIP());
+        g_vm->CoResume(co.cval());
         // By the time CoResume returns, we're now back in the context of co, meaning that the
         // return value below is what is returned from yield.
         return ret;
@@ -934,11 +934,11 @@ void AddBuiltins() {
     ENDDECL1(assert, "condition", "A*", "A1",
         "halts the program with an assertion failure if passed false. returns its input");
 
-    STARTDECL(trace_bytecode) (Value &i) {
-        g_vm->Trace(i.ival() != 0);
+    STARTDECL(trace_bytecode) (Value &i, Value &tail) {
+        g_vm->Trace(i.ival() != 0, tail.ival() != 0);
         return Value();
     }
-    ENDDECL1(trace_bytecode, "on", "I", "",
+    ENDDECL2(trace_bytecode, "on,tail", "II", "",
         "tracing shows each bytecode instruction as it is being executed, not very useful unless"
         " you are trying to isolate a compiler bug");
 
