@@ -224,9 +224,7 @@ struct SubFunction {
         // Don't clone freevars, these will be accumulated in the new copy anew.
     }
 
-    ~SubFunction() {
-        if (next) delete next;
-    }
+    ~SubFunction() {}
 };
 
 struct Function : Named {
@@ -257,7 +255,7 @@ struct Function : Named {
        scopelevel(_sl), retvals(0) {
     }
     Function() : Function("", 0, -1) {}
-    ~Function() { if (subf) delete subf; }
+    ~Function() {}
 
     int nargs() { return (int)subf->args.v.size(); }
 
@@ -267,11 +265,10 @@ struct Function : Named {
         return sum;
     }
 
-    void DeleteSubFunction(SubFunction *sf) {
+    void RemoveSubFunction(SubFunction *sf) {
         for (auto sfp = &subf; *sfp; sfp = &(*sfp)->next) if (*sfp == sf) {
             *sfp = sf->next;
             sf->next = nullptr;
-            delete sf;
             return;
         }
         assert(false);
@@ -334,11 +331,12 @@ struct SymbolTable {
     SymbolTable() : uses_frame_state(false) {}
 
     ~SymbolTable() {
-        for (auto id : identtable)    delete id;
-        for (auto sid : specidents)   delete sid;
-        for (auto st : structtable)   delete st;
-        for (auto f  : functiontable) delete f;
-        for (auto f  : fieldtable)    delete f;
+        for (auto id : identtable)       delete id;
+        for (auto sid : specidents)      delete sid;
+        for (auto st : structtable)      delete st;
+        for (auto f  : functiontable)    delete f;
+        for (auto sf : subfunctiontable) delete sf;
+        for (auto f  : fieldtable)       delete f;
     }
 
     Ident *Lookup(const string &name) {

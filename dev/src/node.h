@@ -67,7 +67,8 @@ struct Node : SlabAllocatedSmall {
 
     Node(Line &ln, TType t, TypeRef tr) : line(ln), type(t), type_(tr) {}  // T_TYPE | T_NIL
 
-    Node(Line &ln, Ident *id) : line(ln), type(T_IDENT), ident_(id), sid_(nullptr) {}
+    Node(Line &ln, Ident *id, SpecIdent *sid = nullptr)
+        : line(ln), type(T_IDENT), ident_(id), sid_(sid) {}
 
     Node(Line &ln, int i)            : line(ln), type(T_INT), integer_(i) {}
     Node(Line &ln, double f)         : line(ln), type(T_FLOAT), flt_(f) {}
@@ -113,11 +114,13 @@ struct Node : SlabAllocatedSmall {
     #define ACCESSOR(ENUM, NAME, AB) \
               Node *&NAME()       { assert(type == ENUM); return AB; } \
         const Node * NAME() const { assert(type == ENUM); return AB; }
-    #define T0(ENUM, STR, CAT)
-    #define T1(ENUM, STR, CAT, ONE)             ACCESSOR(ENUM, ONE, a_)
-    #define T2(ENUM, STR, CAT, ONE, TWO)        ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_)
-    #define T3(ENUM, STR, CAT, ONE, TWO, THREE) ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_) \
-                                                                        ACCESSOR(ENUM, THREE, c_)
+    #define T0(ENUM, STR, CAT, SE)
+    #define T1(ENUM, STR, CAT, SE, ONE) \
+                ACCESSOR(ENUM, ONE, a_)
+    #define T2(ENUM, STR, CAT, SE, ONE, TWO) \
+                ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_)
+    #define T3(ENUM, STR, CAT, SE, ONE, TWO, THREE) \
+                ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_) ACCESSOR(ENUM, THREE, c_)
         TTYPES_LIST
     #undef T0
     #undef T1
@@ -166,6 +169,14 @@ struct Node : SlabAllocatedSmall {
             default:
                 return false;
         }
+    }
+
+    // Used in the optimizer to see if this node can be discarded without consequences.
+    bool HasSideEffects() {
+        return TSideEffect(type) ||
+               (a() && a()->HasSideEffects()) ||
+               (b() && b()->HasSideEffects()) ||
+               (c() && c()->HasSideEffects());
     }
 
     int ClosureArgs() {

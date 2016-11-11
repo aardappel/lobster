@@ -21,6 +21,7 @@ while gl_frame():
             v++
             //print v + " | " + w
         else:
+            nil
             //print "---"
 
     b()

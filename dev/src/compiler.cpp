@@ -46,14 +46,14 @@ const Type g_type_int(V_INT);
 const Type g_type_float(V_FLOAT);
 const Type g_type_string(V_STRING);
 const Type g_type_any(V_ANY);
-const Type g_type_vector_any(V_VECTOR, &*type_any);
-const Type g_type_vector_int(V_VECTOR, &*type_int);
-const Type g_type_vector_float(V_VECTOR, &*type_float);
+const Type g_type_vector_any(V_VECTOR, &g_type_any);
+const Type g_type_vector_int(V_VECTOR, &g_type_int);
+const Type g_type_vector_float(V_VECTOR, &g_type_float);
 const Type g_type_function_null(V_FUNCTION);
 const Type g_type_function_cocl(V_YIELD);
 const Type g_type_coroutine(V_COROUTINE);
 const Type g_type_typeid(V_TYPEID);
-const Type g_type_function_nil(V_NIL, &*type_function_null);
+const Type g_type_function_nil(V_NIL, &g_type_function_null);
 
 TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
@@ -80,7 +80,7 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode,
     // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc, 100);
-    if (parsedump) *parsedump = parser.DumpAll();
+    if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
                  cg.lineinfo, cg.sids, cg.stringtable, bytecode);

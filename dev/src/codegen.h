@@ -176,7 +176,7 @@ struct CodeGen  {
 
     void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
 
-    void BodyGen(Node *n) {
+    void BodyGen(const Node *n) {
         for (; n; n = n->tail()) Gen(n->head(), !n->tail());
     }
 
@@ -314,6 +314,7 @@ struct CodeGen  {
     void TakeTemp(int n) { temptypestack.erase(temptypestack.end() - n, temptypestack.end()); }
 
     void GenFixup(const SubFunction *sf) {
+        assert(sf->body);
         if (!sf->subbytecodestart) call_fixups.push_back(make_pair(Pos() - 1, sf));
     }
 
@@ -341,7 +342,7 @@ struct CodeGen  {
         GenFixup(&sf);
         EmitTempInfo(args);
         if (f.multimethod) {
-            for (const Node *list = args; list; list = list->tail()) {
+            for (auto list = args; list; list = list->tail()) {
                 Emit(GetTypeTableOffset(list->head()->exptype));
             }
         }
@@ -584,7 +585,10 @@ struct CodeGen  {
 
             case T_FUN:
                 if (retval)  {
-                    if (n->sf()->parent->anonymous) {
+                    // If no body, then the function has been optimized away, meaning this
+                    // function value will never be used.
+                    // FIXME: instead, ensure such values are removed by the optimizer.
+                    if (n->sf()->parent->anonymous && n->sf()->body) {
                         Emit(IL_PUSHFUN, n->sf()->subbytecodestart);
                         GenFixup(n->sf());
                     } else {
@@ -651,10 +655,11 @@ struct CodeGen  {
                         assert(sf && sf == spec_sf);
                         // FIXME: in the future, we can make a special case for istype calls.
                         if (!sf->parent->istype) {
-                            // We statically know which function this is calling, which means that
-                            // we don't have to need function value, but we generate code for it for
-                            // the rare case it contains a side effect, usually it is an ident which
-                            // will result in no code (retval = 0).
+                            // We statically know which function this is calling.
+                            // NOTE: the optimizer converts T_DYNCALL into T_CALL already for this
+                            // case and when the function value is a simple var.
+                            // We keep this code here for when the function value is side-effecting,
+                            // or when we want to run without the optimizer?
                             Gen(n->dcall_fval(), 0);
                             // We can now turn this into a normal call.
                             GenCall(*sf, n->dcall_args(), n, nargs);
@@ -684,6 +689,12 @@ struct CodeGen  {
 
             case T_LIST:
                 assert(0);  // handled by individual parents: EXPS {} [] ADT
+                break;
+
+            case T_INLINED:
+                for (auto list = n->body(); list; list = list->tail()) {
+                    Gen(list->head(), list->tail() ? 0 : retval, retval != 0);
+                }
                 break;
 
             case T_SEQ:
@@ -828,6 +839,12 @@ struct CodeGen  {
                 } else Emit(IL_PUSHNIL);
                 Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1,
                      GetTypeTableOffset(n->exptype));
+                if (temptypestack.size()) {
+                    // This shouldn't happen very often. It can easily be fixed by EmitTempInfo
+                    // if needed. More elegant may be to just pop these values before the return?
+                    parser.Error("cannot return from inside an expression: " +
+                                 (fid >= 0 ? st.functiontable[fid]->name : string("program")), n);
+                }
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }
@@ -892,6 +909,7 @@ struct CodeGen  {
             } else if ((int)rettypes.size() < retval) {
                 parser.Error("expression does not supply that many return values", n);
             }
+            // Copy return types on temp stack, unless caller doesn't want them (taketemp = true).
             while (rettypes.size()) {
                 if (!taketemp) temptypestack.push_back(rettypes.back());
                 rettypes.pop_back();

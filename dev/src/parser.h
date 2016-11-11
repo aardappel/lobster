@@ -1159,17 +1159,19 @@ struct Parser {
             Error(lex.TokStr(t) + " expected, found: " + lex.TokStr());
     }
 
-    string DumpAll() {
+    string DumpAll(bool onlytypechecked = false) {
         string s;
         for (auto f : st.functiontable) {
             for (auto sf = f->subf; sf; sf = sf->next) {
-                s += "FUNCTION: " + f->name + "(";
-                for (auto &arg : sf->args.v) {
-                    s += arg.id->name + ":" + TypeName(arg.type) + " ";
+                if (!onlytypechecked || sf->typechecked) {
+                    s += "FUNCTION: " + f->name + "(";
+                    for (auto &arg : sf->args.v) {
+                        s += arg.id->name + ":" + TypeName(arg.type) + " ";
+                    }
+                    s += ")\n";
+                    if (sf->body) s += Dump(*sf->body, 4);
+                    s += "\n\n";
                 }
-                s += ")\n";
-                if (sf->body) s += Dump(*sf->body, 4);
-                s += "\n\n";
             }
         }
         return s + "TOPLEVEL:\n" + Dump(*root, 0);

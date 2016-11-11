@@ -1,7 +1,8 @@
 - function call optimization and simplication.
   - inlining
+    - for
+    - named functions
   - remove static function arguments
-    - why does interleave() use a dynamic call for f()
   - remove dynscope
   - change logvars to not depend on function calling?
   - change var access to be relative to top of stack
