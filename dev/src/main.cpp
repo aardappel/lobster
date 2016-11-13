@@ -44,25 +44,41 @@ int main(int argc, char* argv[]) {
         const char *default_bcf = "default.lbc";
         const char *bcf = nullptr;
         const char *fn = nullptr;
-        for (int arg = 1; arg < argc; arg++) if (argv[arg][0] == '-') {
-            string a = argv[arg];
-            if (a == "-w") { wait = true; }
-            else if (a == "-b") { bcf = default_bcf; }
-            else if (a == "--to-cpp") { to_cpp = true; }
-            else if (a == "--parsedump") { parsedump = true; }
-            else if (a == "--disasm") { disasm = true; }
-            else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
-            else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
-            else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
-            else if (a == "--gen-builtins-html") { DumpBuiltins(false); return 0; }
-            else if (a == "--gen-builtins-names") { DumpBuiltins(true);  return 0; }
-            else if (a == "--non-interactive-test") { SDLTestMode(); }
-            // process identifier supplied by OS X
-            else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
-            else throw string("unknown command line argument: ") + argv[arg];
-        } else {
-            if (fn) throw string("more than one file specified");
-            fn = argv[arg];
+        string helptext = "\nUsage:\n"
+            "lobster [ OPTIONS ] [ FILE ]\n"
+            "Compile & run FILE, or omit FILE to load default.lbc\n"
+            "-w                     Wait for input before exiting.\n"
+            "-b                     Compile to bytecode file, don't run.\n"
+            "--to-cpp               Compile to C++ code, don't run.\n"
+            "--parsedump            Also dump parse tree.\n"
+            "--disasm               Also dump bytecode disassembly.\n"
+            "--verbose              Output additional informational text.\n"
+            "--debug                Output compiler internal logging.\n"
+            "--silent               Only output errors.\n"
+            "--gen-builtins-html    Write builtin commands help file.\n"
+            "--gen-builtins-names   Write builtin commands - just names.\n"
+            "--non-interactive-test Quit after running 1 frame.\n";
+        for (int arg = 1; arg < argc; arg++) {
+            if (argv[arg][0] == '-') {
+                string a = argv[arg];
+                if (a == "-w") { wait = true; }
+                else if (a == "-b") { bcf = default_bcf; }
+                else if (a == "--to-cpp") { to_cpp = true; }
+                else if (a == "--parsedump") { parsedump = true; }
+                else if (a == "--disasm") { disasm = true; }
+                else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
+                else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
+                else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
+                else if (a == "--gen-builtins-html") { DumpBuiltins(false); return 0; }
+                else if (a == "--gen-builtins-names") { DumpBuiltins(true); return 0; }
+                else if (a == "--non-interactive-test") { SDLTestMode(); }
+                // process identifier supplied by OS X
+                else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
+                else throw "unknown command line argument: " + (argv[arg] + helptext);
+            } else {
+                if (fn) throw "more than one file specified" + helptext;
+                fn = argv[arg];
+            }
         }
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
@@ -72,8 +88,8 @@ int main(int argc, char* argv[]) {
         vector<uchar> bytecode;
         if (!fn) {
             if (!LoadByteCode(default_bcf, bytecode))
-                throw string("Lobster programming language compiler/runtime (version " __DATE__
-                             ")\nno arguments given - cannot load ") + default_bcf;
+                throw "Lobster programming language compiler/runtime (version " __DATE__
+                      ")\nno arguments given - cannot load " + (default_bcf + helptext);
         } else {
             Output(OUTPUT_INFO, "compiling...");
             string dump;
