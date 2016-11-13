@@ -4,6 +4,7 @@
 
 *.suo
 *.vcxproj.user
+.vscode/
 
 *.lbc
 *.exp

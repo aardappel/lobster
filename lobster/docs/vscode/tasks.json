@@ -1,0 +1,30 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "0.1.0",
+    "windows": {
+        "command": "lobster\\lobster.exe"
+    },
+    "linux": {
+        "command": "lobster_cmake"
+    },    
+    "osx": {
+        "command": "lobster"
+    },  
+    "isShellCommand": true,
+    "args": ["${file}"],
+    "showOutput": "always",
+    "echoCommand": true,
+    "isBuildCommand": true,
+    "problemMatcher": {
+        "owner": "lobster",
+        "fileLocation": ["relative", "${fileDirname}"],
+        "pattern": {
+            "regexp": "^(.*)\\((.+)\\): (warning|error): (.*)$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4
+        }
+    }
+}

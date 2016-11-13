@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="github.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<p>VSCode as Lobster IDE</p>
+<h2 id="running-lobster-programs-from-within-the-editor">Running Lobster programs from within the editor</h2>
+<ul>
+<li><p>Copy <code>lobster/docs/vscode/tasks.json</code> to a <code>.vscode</code> workspace folder that is in the root of where you keep your lobster code.</p></li>
+<li><p>Load some lobster code. pressing <code>ctrl+shift+b</code> should run it. Press <code>ctrl+shift+m</code> (or click on the error icon in the status bar) to get problem pane, which allows you to click on the error to go to it.</p>
+<ul>
+<li>Output is set to <code>silent</code> in <code>tasks.json</code> because otherwise the output window obscures the problem pane, and errors in the output are not clickable in VSCode. If you want to see any <code>print</code> output however, change this setting to <code>always</code>.</li>
+</ul></li>
+</ul>
+<h2 id="syntax-highlighting">Syntax Highlighting</h2>
+<p>Copy the folder <code>lobster/docs/vscode/lobster</code> to <code>.vscode/extensions</code> <em>within your user folder</em>, not your workspace folder. This will enable syntax highlighting next time VSCode is run.</p>
+<p> </p>
+</body>
+</html>
