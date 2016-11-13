@@ -237,7 +237,9 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 JumpIns(args[1]);
                 already_returned = true;
             } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
-                       opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN) {
+                       opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
+                       // FIXME: make resume a vm op.
+                       (opc == IL_BCALL2 && natreg.nfuns[args[0]]->name == "resume")) {
                 s += " ";
                 JumpIns();
                 already_returned = true;
