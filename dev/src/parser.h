@@ -42,9 +42,18 @@ struct Parser {
     }
 
     void Parse() {
-        st.ScopeStart();
-        root = ParseStatements();
+        auto sf = st.ScopeStart();
+        st.toplevel = sf;
+        auto &f = st.CreateFunction("__top_level_expression", "");
+        sf->SetParent(f, f.subf);
+        f.anonymous = true;
+        sf->body = ParseStatements();
         st.ScopeCleanup();
+        root = new Node(lex, T_LIST,
+                   new Node(lex, sf),
+                   new Node(lex, T_LIST,
+                       new Node(lex, T_CALL, new Node(lex, sf), nullptr),
+                       nullptr));
         Expect(T_ENDOFFILE);
         assert(forwardfunctioncalls.empty());
     }
@@ -405,9 +414,7 @@ struct Parser {
                         bool isprivate, bool parens, bool parseargs,
                         const string &context,
                         bool expfunval = false, TType expfunvalparent = T_FUN) {
-        st.ScopeStart();
-        auto sf = st.CreateSubFunction();
-        st.defsubfunctionstack.push_back(sf);
+        auto sf = st.ScopeStart();
         if (parens) Expect(T_LEFTPAREN);
         int nargs = 0;
         if (lex.token != T_RIGHTPAREN && parseargs) {
@@ -470,7 +477,6 @@ struct Parser {
                 sf->body = new Node(lex, T_LIST, ParseExpStat(), nullptr);
             }
         }
-        st.defsubfunctionstack.pop_back();
         for (auto &arg : sf->args.v) {
             if (arg.id->anonymous_arg) {
                 if (name) Error("cannot use anonymous argument: " + arg.id->name +
@@ -798,7 +804,11 @@ struct Parser {
     }
 
     Node *BuiltinControlClosure(Node *funval, int maxargs) {
-        auto clnargs = funval->ClosureArgs();
+        auto clnargs = 0;
+        if (funval->type == T_FUN)
+            clnargs = funval->sf()->parent->nargs();
+        else if (funval->type != T_DEFAULTVAL)
+            Error("illegal body", funval);
         if (clnargs > maxargs)
             Error("body has " + to_string(clnargs - maxargs) + " parameters too many", funval);
         if (funval->type == T_DEFAULTVAL) return funval;

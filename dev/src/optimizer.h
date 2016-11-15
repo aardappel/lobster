@@ -19,14 +19,13 @@ struct Optimizer {
         maxpasses = max(1, maxpasses);
         for (; changes_this_pass && i < maxpasses; i++) {
             changes_this_pass = false;
-            Optimize(parser.root, T_LIST);
+            // We don't optimize parser.root, it only contains a single call.
             for (auto f : parser.st.functiontable) {
                 if (f->subf && f->subf->typechecked) {
                     for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) {
                         cursf = sf;
                         Optimize(sf->body, T_LIST);
                     }
-                    cursf = nullptr;
                 }
             }
         }
@@ -114,13 +113,12 @@ struct Optimizer {
             case T_CALL: {
                 auto sf = n.call_function()->sf();
                 // FIXME: Reduce these requirements where possible.
-                // ConditionalBreakpoint(sf->parent->name == "function198heuristic");
-                if (sf->parent->anonymous &&
-                    cursf &&
-                    !sf->iscoroutine &&
-                    !sf->dynscoperedefs.size() &&
-                    sf->returntypes.size() <= 1 &&
-                    parent_type != T_FOR)
+                if (/*parent_type == T_FOR ||*/  // Always inline for bodies.
+                    (sf->parent->anonymous &&
+                     !sf->iscoroutine &&
+                     !sf->dynscoperedefs.size() &&
+                     sf->returntypes.size() <= 1 &&
+                     parent_type != T_FOR))
                 {
                     for (auto &arg : sf->locals.v) if (arg.id->logvaridx >= 0) goto skip;
                     if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
@@ -134,6 +132,9 @@ struct Optimizer {
     }
 
     Node *Inline(Node &call, SubFunction &sf) {
+        // Note that sf_def in these Ident's being moved is now not correct anymore, but the
+        // only use for that field is to determine if the variable is "global" after the optimizer,
+        // so we let that slip.
         cursf->locals.v.insert(cursf->locals.v.end(), sf.args.v.begin(), sf.args.v.end());
         cursf->locals.v.insert(cursf->locals.v.end(), sf.locals.v.begin(), sf.locals.v.end());
         int ai = 0;

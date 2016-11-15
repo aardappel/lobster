@@ -28,7 +28,8 @@ struct Ident : Named {
 
     Ident *prev;
 
-    SubFunction *sf_def;    // Where it is defined, including anonymous functions. nullptr if global.
+    // TODO: remove this from Ident, only makes sense during parsing really.
+    SubFunction *sf_def;    // Where it is defined, including anonymous functions.
 
     bool single_assignment;
     bool constant;
@@ -52,8 +53,9 @@ struct Ident : Named {
             lex.Error("variable " + name + " is constant");
     }
 
-    flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
-        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, !sf_def);
+    flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
+                                                   SubFunction *toplevel) {
+        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, sf_def == toplevel);
     }
 };
 
@@ -313,6 +315,7 @@ struct SymbolTable {
     unordered_map<string, Function *> functions;
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
+    SubFunction *toplevel;
 
     vector<string> filenames;
 
@@ -328,7 +331,7 @@ struct SymbolTable {
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
 
-    SymbolTable() : uses_frame_state(false) {}
+    SymbolTable() : toplevel(nullptr), uses_frame_state(false) {}
 
     ~SymbolTable() {
         for (auto id : identtable)       delete id;
@@ -350,7 +353,7 @@ struct SymbolTable {
     }
 
     Ident *LookupDef(const string &name, int line, Lex &lex, bool anonymous_arg, bool islocal) {
-        auto sf = defsubfunctionstack.empty() ? nullptr : defsubfunctionstack.back();
+        auto sf = defsubfunctionstack.back();
         auto existing_ident = Lookup(name);
         if (anonymous_arg && existing_ident && existing_ident->sf_def == sf) return existing_ident;
         Ident *ident = nullptr;
@@ -359,7 +362,7 @@ struct SymbolTable {
         ident = new Ident(name, line, (int)identtable.size(), (int)scopelevels.back());
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
-        if (sf) (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, nullptr, type_any, true));
+        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, nullptr, type_any, true));
         if (existing_ident) {
             if (scopelevels.back() == existing_ident->scope)
                 lex.Error("identifier redefinition: " + ident->name);
@@ -375,8 +378,7 @@ struct SymbolTable {
         auto ident = Lookup(name);
         if (!ident)
             lex.Error("lhs of <- must refer to existing variable: " + name);
-        if (defsubfunctionstack.size())
-            defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, nullptr, type_any, true));
+        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, nullptr, type_any, true));
         return ident;
     }
 
@@ -411,12 +413,16 @@ struct SymbolTable {
         return id ? fld : nullptr;
     }
 
-    void ScopeStart() {
+    SubFunction *ScopeStart() {
         scopelevels.push_back(identstack.size());
         withstacklevels.push_back(withstack.size());
+        auto sf = CreateSubFunction();
+        defsubfunctionstack.push_back(sf);
+        return sf;
     }
 
     void ScopeCleanup() {
+        defsubfunctionstack.pop_back();
         while (identstack.size() > scopelevels.back()) {
             auto ident = identstack.back();
             auto it = idents.find(ident->name);
@@ -596,7 +602,7 @@ struct SymbolTable {
         vector<flatbuffers::Offset<bytecode::Struct>> structoffsets;
         for (auto s : structtable) structoffsets.push_back(s->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
-        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb));
+        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, toplevel));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
             LOBSTER_BYTECODE_FORMAT_VERSION,
             fbb.CreateVector(code),

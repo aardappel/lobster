@@ -178,10 +178,6 @@ struct Node : SlabAllocatedSmall {
                (b() && b()->HasSideEffects()) ||
                (c() && c()->HasSideEffects());
     }
-
-    int ClosureArgs() {
-        return type == T_DEFAULTVAL ? 0 : (type == T_COCLOSURE ? 1 : sf()->parent->nargs());
-    }
 };
 
 inline int CountNodes(const Node *n) {

@@ -1005,7 +1005,7 @@ struct TypeChecker {
             // Check if we arrived at the definition point.
             // Since this function may have been cloned since, we also accept any specialization.
             if (id.sf_def == sf ||
-                (id.sf_def && id.sf_def->parent == sf->parent && !sf->parent->multimethod))
+                (id.sf_def->parent == sf->parent && !sf->parent->multimethod))
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
@@ -1144,10 +1144,7 @@ struct TypeChecker {
                         TypeCheck(dl->left(), T_ASSIGNLIST);
                     } else {  // T_DEF
                         auto id = dl->left()->ident();
-                        if (!id->cursid) {
-                            assert(!id->sf_def);  // Must be a global;
-                            id->cursid = NewSid(id, type_any);
-                        }
+                        assert(id->cursid);
                         // We have to use a variable here because the init exp may be a function
                         // call that causes this variable to be used/assigned.
                         id->cursid->type = n.c() ? n.c()->typenode() : NewTypeVar();
