@@ -265,14 +265,8 @@ struct CodeGen  {
             assert(0);
         }
         vector<SpecIdent *> defs;
-        vector<SpecIdent *> logvars;
         auto collect = [&](Arg &arg) {
-            if (arg.id->logvaridx >= 0) {
-                arg.id->logvaridx = (int)logvars.size();
-                // These logsvars are in the correct order in a multi-def statement thanks to
-                // the ordering in RecMultiDef matching the inverse stack order.
-                logvars.push_back(arg.sid);
-            } else defs.push_back(arg.sid);
+            defs.push_back(arg.sid);
         };
         for (auto &arg : sf.locals.v) collect(arg);
         for (auto &arg : sf.dynscoperedefs.v) collect(arg);
@@ -283,10 +277,8 @@ struct CodeGen  {
         for (auto &arg : sf.args.v) Emit(arg.sid->idx);
         // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus
         // optimize function calls
-        Emit((int)(defs.size() + logvars.size()));
+        Emit((int)defs.size());
         for (auto id : defs) Emit(id->idx);
-        for (auto id : logvars) Emit(id->idx);
-        Emit((int)logvars.size());
         if (sf.body) BodyGen(sf.body);
         else Dummy(true);
         TakeTemp(1);
@@ -423,13 +415,13 @@ struct CodeGen  {
                 dl = n;
                 for (int i = (int)defs.size() - 1; i >= 0; i--) {
                     if (n->type == T_DEF) {
-                        if (defs[i]->ident()->logvaridx >= 0)
-                            Emit(IsRefNil(defs[i]->exptype->t) ? IL_LOGREADREF : IL_LOGREAD,
-                                 defs[i]->ident()->logvaridx);
+                        if (defs[i]->ident()->logvar)
+                            Emit(IL_LOGREAD, defs[i]->sid()->logvaridx);
                     }
                     TakeTemp(1);
                     Emit(IL_LVALVAR, IsRefNil(defs[i]->exptype->t) ? LVO_WRITEREF : LVO_WRITE,
                         defs[i]->sid()->idx);
+                    VarModified(defs[i]->sid());
                 }
                 // currently can only happen with def on last line of body, which is nonsensical
                 Dummy(retval);
@@ -919,6 +911,10 @@ struct CodeGen  {
         linenumbernodes.pop_back();
     }
 
+    void VarModified(SpecIdent *sid) {
+        if (sid->id->logvar) Emit(IL_LOGWRITE, sid->idx, sid->logvaridx);
+    }
+
     void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
                    const Node *rhs = nullptr) {
         if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
@@ -950,6 +946,7 @@ struct CodeGen  {
         switch (lval->type) {
             case T_IDENT: TakeTemp(na);
                           Emit(IL_LVALVAR, lvalop, lval->sid()->idx);
+                          VarModified(lval->sid());
                           break;
             case T_DOT:   Gen(lval->left(), 1);
                           TakeTemp(na + 1);

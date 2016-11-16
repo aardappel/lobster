@@ -17,135 +17,66 @@
 
 namespace lobster {
 
-VMLog::VMLog(VM &_vm) : uses_frame_state(false), logi(0), lognew(nullptr), vm(_vm) {}
+VMLog::VMLog(VM &_vm) : vm(_vm) {}
 
-void VMLog::LogInit() {
-    if (uses_frame_state) {
-        // get the logs in a good state before the first frame
-        logread.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
-        logread.push_back(LogValue(Value(0, V_LOGEND), V_LOGEND));
-        logread.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
-        logi = 1;
-
-        logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
-        logwrite.push_back(LogValue(Value(0, V_LOGEND), V_LOGEND));
+void VMLog::LogInit(const bytecode::BytecodeFile *bcf) {
+    logvars.resize(bcf->logvars()->size());
+    size_t i = 0;
+    for (auto &l : logvars) {
+        auto sid = bcf->logvars()->Get(i++);
+        l.read = 0;
+        l.type = &vm.GetTypeInfo((type_elem_t)bcf->specidents()->Get(sid)->typeidx());
     }
 }
 
-void VMLog::LogFrame() {
-    if (uses_frame_state) {
-        while (logread[logi].t == V_LOGSTART) LogSkipNestedFuns();
-        // the start of whatever called this frame
-        assert(logwrite.back().t == V_LOGSTART);
-        logwrite.pop_back();
-        // always bookend the log with markers, so we can blindly look ahead/behind
-        logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
-        logwrite.swap(logread);
-        logwrite.clear();
-        logwrite.push_back(LogValue(Value(0, V_LOGMARKER), V_LOGMARKER));
-        logi = 1;
-        lognew = nullptr;
-        #ifdef _DEBUG
-            #if 0
-                PrintPrefs pp(1, 20, true, -1);
-                printf("frame log:");
-                for (size_t i = logi + 1; i < logread.size() - 1; i++) {
-                    switch (logread[i].type) {
-                        case V_LOGSTART: printf(" ("); break;
-                        case V_LOGEND: printf(")"); break;
-                        case V_LOGMARKER: assert(0); break;
-                        default: printf(" %s", logread[i].ToString(pp).c_str()); break;
-                    }
-                }
-                printf("\n");
-            #endif
-        #endif
+void VMLog::LogPurge() {
+    for (auto &l : logvars) {
+        if (IsRefNil(l.type->t)) {
+            for (size_t i = l.read; i < l.values.size(); i++) l.values[i].DECRTNIL();
+        }
+        l.values.resize(l.read);
     }
+}
+void VMLog::LogFrame() {
+    LogPurge();
+    for (auto &l : logvars) l.read = 0;
 };
 
-void VMLog::LogSkipNestedFuns() {
-    logi++;
-    int nest = 1;
-    while (nest) {
-        switch (logread[logi].t) {
-            case V_LOGSTART: nest++; break;
-            case V_LOGEND: nest--; break;
-            case V_LOGMARKER: assert(0); break;
-            default: logread[logi].v.DECTYPE(logread[logi].t); break;
-        }
-        logi++;
-    }
-}
 
-size_t VMLog::LogFunctionEntry(const int *funstart, int nlogvars) {
-    assert(uses_frame_state);
-    size_t lws = logwrite.size();
-    logwrite.push_back(LogValue(Value(V_LOGSTART, funstart), V_LOGSTART));
-    for (int i = 0; i < nlogvars; i++) logwrite.push_back(LogValue(Value(), V_NIL));
-    if (!lognew) {
-        if (logread[logi].t == V_LOGSTART && logread[logi].v.opargs() == funstart) {
-            logi++; // expected path: function present
-            logi += nlogvars; // skip past them, read by index
-        } else {
-            lognew = funstart; // stop tryint to read from the log until we exit this function
-        }
-    }
-    return lws;
-}
-
-void VMLog::LogFunctionExit(const int *funstart, const int *logvars, size_t logfunwritestart) {
-    if (logwrite.back().t == V_LOGSTART) {
-        // common case: function didn't write anything, we cull it
-        assert(logwrite.back().v.opargs() == funstart);
-        logwrite.pop_back();
-    } else {
-        int nlogvars = *logvars;
-        logvars -= nlogvars;
-        for (int i = 0; i < nlogvars; i++) {
-            auto varidx = *logvars++;
-            auto vt = vm.GetVarTypeInfo(varidx).t;
-            logwrite[i + logfunwritestart + 1] = LogValue(vm.vars[varidx].INCTYPE(vt), vt);
-        }
-        logwrite.push_back(LogValue(Value(V_LOGEND, funstart), V_LOGEND));
-    }
-    if (lognew) {
-        if (lognew == funstart) lognew = nullptr;
-    } else for (;;) switch (logread[logi].t) {
-        case V_LOGEND:      // expected
-            assert(logread[logi].v.opargs() == funstart || !logread[logi].v.opargs());
-            logi++;
-        case V_LOGMARKER:   // can happen with empty log
-            return;
-        case V_LOGSTART:    // clean up any
-            LogSkipNestedFuns();
-            break;
-        default:            // should not happen
-            assert(0);
-            logread[logi].v.DECTYPE(logread[logi].t);
-            logi++;
-            break;
-    }
-}
-
-Value VMLog::LogGet(Value def, int idx, bool isref) {
-    assert(uses_frame_state);
-    if (lognew) {
+Value VMLog::LogGet(Value def, int idx) {
+    auto &l = logvars[idx];
+    bool isref = IsRefNil(l.type->t);
+    if (l.read == l.values.size()) {  // Value doesn't exist yet.
+        // Already write value, so it can be written to regardless of wether it existed or not.
+        l.values.push_back(def);
+        if (isref) def.INCRTNIL();
+        l.read++;
         return def;
     } else {
-        auto lfr = vm.stackframes.back().logfunreadstart;
-        if (isref) def.DECRTNIL();
-        return logread[lfr + idx].v;
+        // Get existing value, ignore default.
+        auto v = l.values[l.read++];
+        if (isref) { v.INCRTNIL(); def.DECRTNIL(); }
+        return v;
     }
+}
+
+void VMLog::LogWrite(Value newval, int idx) {
+    auto &l = logvars[idx];
+    bool isref = IsRefNil(l.type->t);
+    assert(l.read > 0);
+    l.values[l.read - 1] = newval;
+    if (isref) newval.INCRTNIL();
 }
 
 void VMLog::LogCleanup() {
-    for (auto &v : logread) v.v.DECTYPE(v.t);
-    for (auto &v : logwrite) v.v.DECTYPE(v.t);
+    for (auto &l : logvars) l.read = 0;
+    LogPurge();
 }
 
 void VMLog::LogMark() {
-    for (auto &v : logread) v.v.Mark(v.t);
-    for (auto &v : logwrite) v.v.Mark(v.t);
+    for (auto &l : logvars) {
+        if (IsRefNil(l.type->t)) for (auto v : l.values) v.MarkRef();
+    }
 }
 
 }  // namespace lobster

@@ -226,7 +226,7 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_SPECIDENTS = 24,
     VT_DEFAULT_INT_VECTOR_TYPES = 26,
     VT_DEFAULT_FLOAT_VECTOR_TYPES = 28,
-    VT_USES_FRAME_STATE = 30
+    VT_LOGVARS = 30
   };
   int32_t bytecode_version() const { return GetField<int32_t>(VT_BYTECODE_VERSION, 0); }
   const flatbuffers::Vector<int32_t> *bytecode() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_BYTECODE); }
@@ -241,7 +241,7 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<const SpecIdent *> *specidents() const { return GetPointer<const flatbuffers::Vector<const SpecIdent *> *>(VT_SPECIDENTS); }
   const flatbuffers::Vector<int32_t> *default_int_vector_types() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_DEFAULT_INT_VECTOR_TYPES); }
   const flatbuffers::Vector<int32_t> *default_float_vector_types() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_DEFAULT_FLOAT_VECTOR_TYPES); }
-  bool uses_frame_state() const { return GetField<uint8_t>(VT_USES_FRAME_STATE, 0) != 0; }
+  const flatbuffers::Vector<int32_t> *logvars() const { return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_LOGVARS); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION) &&
@@ -274,7 +274,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.Verify(default_int_vector_types()) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_DEFAULT_FLOAT_VECTOR_TYPES) &&
            verifier.Verify(default_float_vector_types()) &&
-           VerifyField<uint8_t>(verifier, VT_USES_FRAME_STATE) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, VT_LOGVARS) &&
+           verifier.Verify(logvars()) &&
            verifier.EndTable();
   }
 };
@@ -295,7 +296,7 @@ struct BytecodeFileBuilder {
   void add_specidents(flatbuffers::Offset<flatbuffers::Vector<const SpecIdent *>> specidents) { fbb_.AddOffset(BytecodeFile::VT_SPECIDENTS, specidents); }
   void add_default_int_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types) { fbb_.AddOffset(BytecodeFile::VT_DEFAULT_INT_VECTOR_TYPES, default_int_vector_types); }
   void add_default_float_vector_types(flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types) { fbb_.AddOffset(BytecodeFile::VT_DEFAULT_FLOAT_VECTOR_TYPES, default_float_vector_types); }
-  void add_uses_frame_state(bool uses_frame_state) { fbb_.AddElement<uint8_t>(BytecodeFile::VT_USES_FRAME_STATE, static_cast<uint8_t>(uses_frame_state), 0); }
+  void add_logvars(flatbuffers::Offset<flatbuffers::Vector<int32_t>> logvars) { fbb_.AddOffset(BytecodeFile::VT_LOGVARS, logvars); }
   BytecodeFileBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   BytecodeFileBuilder &operator=(const BytecodeFileBuilder &);
   flatbuffers::Offset<BytecodeFile> Finish() {
@@ -318,8 +319,9 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(flatbuffers::FlatBuf
     flatbuffers::Offset<flatbuffers::Vector<const SpecIdent *>> specidents = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_float_vector_types = 0,
-    bool uses_frame_state = false) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> logvars = 0) {
   BytecodeFileBuilder builder_(_fbb);
+  builder_.add_logvars(logvars);
   builder_.add_default_float_vector_types(default_float_vector_types);
   builder_.add_default_int_vector_types(default_int_vector_types);
   builder_.add_specidents(specidents);
@@ -333,7 +335,6 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(flatbuffers::FlatBuf
   builder_.add_bytecode_attr(bytecode_attr);
   builder_.add_bytecode(bytecode);
   builder_.add_bytecode_version(bytecode_version);
-  builder_.add_uses_frame_state(uses_frame_state);
   return builder_.Finish();
 }
 
@@ -351,8 +352,8 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(flatbuffers::F
     const std::vector<const SpecIdent *> *specidents = nullptr,
     const std::vector<int32_t> *default_int_vector_types = nullptr,
     const std::vector<int32_t> *default_float_vector_types = nullptr,
-    bool uses_frame_state = false) {
-  return CreateBytecodeFile(_fbb, bytecode_version, bytecode ? _fbb.CreateVector<int32_t>(*bytecode) : 0, bytecode_attr ? _fbb.CreateVector<uint8_t>(*bytecode_attr) : 0, typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0, stringtable ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*stringtable) : 0, lineinfo ? _fbb.CreateVector<const LineInfo *>(*lineinfo) : 0, filenames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*filenames) : 0, functions ? _fbb.CreateVector<flatbuffers::Offset<Function>>(*functions) : 0, structs ? _fbb.CreateVector<flatbuffers::Offset<Struct>>(*structs) : 0, idents ? _fbb.CreateVector<flatbuffers::Offset<Ident>>(*idents) : 0, specidents ? _fbb.CreateVector<const SpecIdent *>(*specidents) : 0, default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0, default_float_vector_types ? _fbb.CreateVector<int32_t>(*default_float_vector_types) : 0, uses_frame_state);
+    const std::vector<int32_t> *logvars = nullptr) {
+  return CreateBytecodeFile(_fbb, bytecode_version, bytecode ? _fbb.CreateVector<int32_t>(*bytecode) : 0, bytecode_attr ? _fbb.CreateVector<uint8_t>(*bytecode_attr) : 0, typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0, stringtable ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*stringtable) : 0, lineinfo ? _fbb.CreateVector<const LineInfo *>(*lineinfo) : 0, filenames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*filenames) : 0, functions ? _fbb.CreateVector<flatbuffers::Offset<Function>>(*functions) : 0, structs ? _fbb.CreateVector<flatbuffers::Offset<Struct>>(*structs) : 0, idents ? _fbb.CreateVector<flatbuffers::Offset<Ident>>(*idents) : 0, specidents ? _fbb.CreateVector<const SpecIdent *>(*specidents) : 0, default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0, default_float_vector_types ? _fbb.CreateVector<int32_t>(*default_float_vector_types) : 0, logvars ? _fbb.CreateVector<int32_t>(*logvars) : 0);
 }
 
 inline const bytecode::BytecodeFile *GetBytecodeFile(const void *buf) { return flatbuffers::GetRoot<bytecode::BytecodeFile>(buf); }

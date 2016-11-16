@@ -42,8 +42,6 @@ enum ValueType : int {
     V_YIELD,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
-    // used in log, if they appear as a value in a program, that's a bug
-    V_LOGSTART, V_LOGEND, V_LOGMARKER,
     V_MAXVMTYPES
 };
 
@@ -251,9 +249,6 @@ struct Value {
         // Generic reference access.
         RefObj *ref_;
         ElemObj *eval_;
-
-        // Only used inside LogValue.
-        const int *opargs_;
     };
     public:
 
@@ -270,7 +265,6 @@ struct Value {
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
     InsPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
-    const int  *opargs() const { TYPE_ASSERT(type >= V_LOGSTART);   return opargs_;      }
     void       *any   () const {                                    return ref_;         }
 
     void setival(int i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
@@ -284,7 +278,6 @@ struct Value {
     inline Value(float f)                    : TYPE_INIT(V_FLOAT)    fval_(f)         {}
     inline Value(double f)                   : TYPE_INIT(V_FLOAT)    fval_((floatp)f) {}
     inline Value(InsPtr i)                   : TYPE_INIT(V_FUNCTION) ip_(i)           {}
-    inline Value(ValueType t, const int *oa) : TYPE_INIT(t)          opargs_(oa)      { (void)t; }
     inline Value(RefObj *r)                  : TYPE_INIT(r->ti.t)    ref_(r)          {}
 
     inline bool True() const { return ival_ != 0; }
@@ -309,6 +302,7 @@ struct Value {
     string ToString(ValueType vtype, PrintPrefs &pp) const;
     bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     void Mark(ValueType vtype);
+    void MarkRef();
 };
 
 template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
@@ -461,25 +455,21 @@ struct LVector : ElemObj {
 };
 
 struct VMLog {
-    bool uses_frame_state;
-    struct LogValue { // FIXME: there's probably a less lazy way to store this.
-        Value v;
-        ValueType t;
-        LogValue(const Value &_v, ValueType _t) : v(_v), t(_t) {}
+    struct LogVar {
+        vector<Value> values;
+        size_t read;
+        const TypeInfo *type;
     };
-    vector<LogValue> logread, logwrite;
-    size_t logi;
-    const int *lognew;
+    vector<LogVar> logvars;
 
     VM &vm;
     VMLog(VM &_vm);
 
-    void LogInit();
+    void LogInit(const bytecode::BytecodeFile *bcf);
+    void LogPurge();
     void LogFrame();
-    void LogSkipNestedFuns();
-    size_t LogFunctionEntry(const int *funstart, int nlogvars);
-    void LogFunctionExit(const int *funstart, const int *logvars, size_t logfunwritestart);
-    Value LogGet(Value def, int idx, bool isref);
+    Value LogGet(Value def, int idx);
+    void LogWrite(Value newval, int idx);
     void LogCleanup();
     void LogMark();
 };
@@ -490,8 +480,6 @@ struct StackFrame {
     int definedfunction;
     int spstart;
     int tempmask;
-    size_t logfunwritestart;
-    size_t logfunreadstart;
 };
 
 struct VM {

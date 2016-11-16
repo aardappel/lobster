@@ -209,6 +209,10 @@ void Value::Mark(ValueType vtype) {
     if (IsRefNil(vtype) && ref_) ref_->Mark();
 }
 
+void Value::MarkRef() {
+    if (ref_) ref_->Mark();
+}
+
 string TypeInfo::Debug(bool rec) const {
     string s = BaseTypeName(t);
     if (t == V_VECTOR || t == V_NIL) {

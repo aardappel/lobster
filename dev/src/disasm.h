@@ -75,7 +75,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_JUMPNOFAILREF:
         case IL_JUMPNOFAILRREF:
         case IL_LOGREAD:
-        case IL_LOGREADREF:
         case IL_ISTYPE:
         case IL_EXIT:
             s += to_string(*ip++);
@@ -87,6 +86,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_IFORREF:
         case IL_VFORREF:
         case IL_SFORREF:
+        case IL_LOGWRITE:
             s += to_string(*ip++);
             s += " ";
             s += to_string(*ip++);
@@ -181,8 +181,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             n = *ip++;
             s += "=> ";
             while (n--) { s += IdName(bcf, *ip++); s += " "; }
-            n = *ip++;
-            if (n) { s += "(log = "; s += to_string(n); s += ")"; }
             break;
         }
 

@@ -16,7 +16,7 @@
 // This needs to be bumped each time we make changes to the format.
 
 namespace lobster {
-    const int LOBSTER_BYTECODE_FORMAT_VERSION = 9;
+    const int LOBSTER_BYTECODE_FORMAT_VERSION = 10;
 
 #define ILBASENAMES \
     F(PUSHINT, 1) \
@@ -55,7 +55,7 @@ namespace lobster {
     F(I2F, 0) F(A2S, 0) F(I2A, 0) F(F2A, 0) F(E2B, 0) F(E2BREF, 0) \
     F(RETURN, 3) \
     F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
-    F(LOGREAD, 1) F(LOGREADREF, 1)
+    F(LOGREAD, 1) F(LOGWRITE, 2)
 
 #define ILCALLNAMES \
     F(CALL, 3) F(CALLMULTI, -1) F(CALLV, 1) F(CALLVCOND, 1) \

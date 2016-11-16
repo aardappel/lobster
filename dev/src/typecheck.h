@@ -1187,7 +1187,10 @@ struct TypeChecker {
                         idn->sid() = id->cursid;
                         Output(OUTPUT_DEBUG, "var: %s:%s", id->name.c_str(),
                                TypeName(type).c_str());
-                        if (id->logvaridx >= 0) {
+                        if (id->logvar) {
+                            assert(id->cursid->logvaridx < 0);
+                            id->cursid->logvaridx = (int)st.speclogvars.size();
+                            st.speclogvars.push_back(id->cursid->idx);
                             for (auto &sc : scopes)
                                 if (sc.sf->iscoroutine)
                                     TypeError("can\'t use log variable inside coroutine", n);

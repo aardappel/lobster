@@ -75,7 +75,6 @@ VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_poin
     bcf = bytecode::GetBytecodeFile(static_bytecode ? static_bytecode : bytecode_buffer.data());
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
         throw string("bytecode is from a different version of Lobster");
-    vml.uses_frame_state = bcf->uses_frame_state() != 0;
     codelen = bcf->bytecode()->Length();
     if (FLATBUFFERS_LITTLEENDIAN) {
         // We can use the buffer directly.
@@ -99,7 +98,7 @@ VM::VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_poin
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
-    vml.LogInit();
+    vml.LogInit(bcf);
     #ifdef VM_COMPILED_CODE_MODE
         #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
     #else
@@ -399,9 +398,6 @@ int VM::VarCleanup(string *error, int towhere) {
     fip += nargs;
     auto ndef = *fip++;
     auto defvars = fip + ndef;
-    if (vml.uses_frame_state) {
-        vml.LogFunctionExit(stf.funstart, defvars, stf.logfunwritestart);
-    }
     while (ndef--) {
         auto i = *--defvars;
         if (error) (*error) += DumpVar(vars[i], i, false);
@@ -483,14 +479,7 @@ void VM::FunIntro(VM_OP_ARGS) {
         auto varidx = *ip++;
         PUSH(vars[varidx].INCTYPE(GetVarTypeInfo(varidx).t));
     }
-    auto nlogvars = *ip++;
     auto &stf = stackframes.back();
-    if (vml.uses_frame_state) {
-        stf.logfunwritestart = vml.LogFunctionEntry(funstart, nlogvars);
-        stf.logfunreadstart = vml.logi - nlogvars;
-    } else {
-        stf.logfunwritestart = stf.logfunreadstart = 0;
-    }
     stf.funstart = funstart;
     stf.spstart = sp;
     #ifdef _DEBUG
@@ -1258,11 +1247,13 @@ void VM::F_COEND(VM_OP_ARGS) { CoClean(); }
 
 void VM::F_LOGREAD(VM_OP_ARGS) {
     auto val = POP();
-    PUSH(vml.LogGet(val, *ip++, false));
+    PUSH(vml.LogGet(val, *ip++));
 }
-void VM::F_LOGREADREF(VM_OP_ARGS) {
-    auto val = POP();
-    PUSH(vml.LogGet(val, *ip++, true));
+
+void VM::F_LOGWRITE(VM_OP_ARGS) {
+    auto vidx = *ip++;
+    auto lidx = *ip++;
+    vml.LogWrite(vars[vidx], lidx);
 }
 
 void VM::EvalProgram() {

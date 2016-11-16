@@ -35,8 +35,7 @@ struct Ident : Named {
     bool constant;
     bool static_constant;
     bool anonymous_arg;
-
-    int logvaridx;
+    bool logvar;
 
     SpecIdent *cursid;
 
@@ -44,7 +43,7 @@ struct Ident : Named {
         : Named(_name, _idx), line(_l),
           scope(_sc), prev(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
-          logvaridx(-1), cursid(nullptr) {}
+          logvar(false), cursid(nullptr) {}
     Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Assign(Lex &lex) {
@@ -63,8 +62,10 @@ struct SpecIdent {
     Ident *id;
     TypeRef type;
     int idx;
+    int logvaridx;
 
-    SpecIdent(Ident *_id, TypeRef _type, int _idx) : id(_id), type(_type), idx(_idx) {}
+    SpecIdent(Ident *_id, TypeRef _type, int _idx)
+        : id(_id), type(_type), idx(_idx), logvaridx(-1) {}
 };
 
 // Only still needed because we have no idea which struct it refers to at parsing time.
@@ -198,7 +199,7 @@ struct SubFunction {
     SubFunction *next;
     Function *parent;
     int subbytecodestart;
-    bool typechecked, freevarchecked, mustspecialize, fixedreturntype;
+    bool typechecked, freevarchecked, mustspecialize, fixedreturntype, logvarcallgraph;
     int numcallers;
     Type thistype;       // convenient place to store the type corresponding to this
 
@@ -208,7 +209,7 @@ struct SubFunction {
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), mustspecialize(false),
-          fixedreturntype(false), numcallers(0),
+          fixedreturntype(false), logvarcallgraph(false), numcallers(0),
           thistype(V_FUNCTION, this) {
         returntypes.push_back(type_any);  // functions always have at least 1 return value.
     }
@@ -305,6 +306,7 @@ struct SymbolTable {
     vector<Ident *> identtable;
     vector<Ident *> identstack;
     vector<SpecIdent *> specidents;
+    vector<int> speclogvars;  // Index into specidents.
 
     unordered_map<string, Struct *> structs;
     vector<Struct *> structtable;
@@ -326,12 +328,10 @@ struct SymbolTable {
 
     vector<TypeRef> default_int_vector_types, default_float_vector_types;
 
-    bool uses_frame_state;
-
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
 
-    SymbolTable() : toplevel(nullptr), uses_frame_state(false) {}
+    SymbolTable() : toplevel(nullptr) {}
 
     ~SymbolTable() {
         for (auto id : identtable)       delete id;
@@ -411,6 +411,11 @@ struct SymbolTable {
             }
         }
         return id ? fld : nullptr;
+    }
+
+    void MakeLogVar(Ident *id) {
+        id->logvar = true;
+        defsubfunctionstack.back()->logvarcallgraph = true;
     }
 
     SubFunction *ScopeStart() {
@@ -622,7 +627,7 @@ struct SymbolTable {
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
             fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
-            uses_frame_state);
+            fbb.CreateVector(speclogvars));
         fbb.Finish(bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

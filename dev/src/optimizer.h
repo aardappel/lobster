@@ -120,11 +120,9 @@ struct Optimizer {
                      sf->returntypes.size() <= 1 &&
                      parent_type != T_FOR))
                 {
-                    for (auto &arg : sf->locals.v) if (arg.id->logvaridx >= 0) goto skip;
                     if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
                         n_ptr = Inline(n, *sf);
                     }
-                    skip:;
                 }
                 break;
             }

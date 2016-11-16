@@ -118,10 +118,7 @@ struct Parser {
     Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar) {
         auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true)
                         : st.LookupUse(idname, lex);
-        if (islogvar) {
-            id->logvaridx = 0;
-            st.uses_frame_state = true;
-        }
+        if (islogvar) st.MakeLogVar(id);
         if (isprivate) {
             if (!isdef) Error("assignment cannot be made private");
             id->isprivate = true;
@@ -150,8 +147,6 @@ struct Parser {
             }
         }
         if (e) {
-            // The fact that a multi-def adds new Idents in reverse order is something logvars
-            // rely on (see GenScope).
             e = DefineWith(idname, e, isprivate, isdef, islogvar);
         } else {
             lex.Undo(T_COMMA);
@@ -354,7 +349,7 @@ struct Parser {
         if (dynscope)  id->Assign(lex);
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
-        if (logvar)  { id->logvaridx = 0; st.uses_frame_state = true; }
+        if (logvar)    st.MakeLogVar(id);
         return new Node(lex, T_DEF, new Node(lex, id), e, nullptr);
     }
 

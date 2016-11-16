@@ -42,7 +42,6 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             ip += n;
             int m = *ip++;
             ip += m;
-            ip++;
             arity = n + m + 3;
             break;
         }

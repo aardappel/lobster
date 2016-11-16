@@ -4,8 +4,14 @@
     - named functions
   - remove static function arguments
   - remove dynscope
-  - change logvars to not depend on function calling?
   - change var access to be relative to top of stack
+  - cleanup of id/sid/arg..
+
+- experiment more with frame state now that its faster & cleaner.
+  - add a frame-state loop that's not dependent on gl_frame.
+  - dump frame state.
+  - create some generic primitives.. frame-based if-then, sequencing, etc.
+  - save frame state?
 
 - Add VAOs.
 
