@@ -64,8 +64,9 @@ void VMLog::LogWrite(Value newval, int idx) {
     auto &l = logvars[idx];
     bool isref = IsRefNil(l.type->t);
     assert(l.read > 0);
-    l.values[l.read - 1] = newval;
-    if (isref) newval.INCRTNIL();
+    auto &slot = l.values[l.read - 1];
+    if (isref) { slot.DECRTNIL(); newval.INCRTNIL(); }
+    slot = newval;
 }
 
 void VMLog::LogCleanup() {
