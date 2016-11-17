@@ -4,8 +4,11 @@
     - named functions
   - remove static function arguments
   - remove dynscope
+  - C++ backend: detect when not needing to return to trampoline?
   - change var access to be relative to top of stack
   - cleanup of id/sid/arg..
+  - support functions that don't return anything.
+  - make resume a VM op.
 
 - experiment more with frame state now that its faster & cleaner.
   - add a frame-state loop that's not dependent on gl_frame.
@@ -677,3 +680,5 @@ VM: over function pointer : secs  6.99, ins 528287030, fcall 53352301, bcall 328
 C++: first compiled       : secs  4.85, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586, 108.9m ins/sec.
 VM: first inlining        : secs  6.55, ins 511702691, fcall 34036002, bcall 3289786, totalallocs 4559054,  78.1m ins/sec.
 C++: first inlining       : secs  4.31, ins 511702691, fcall 34036002, bcall 3289786, totalallocs 4559054, 118.7m ins/sec.
+VM: inlined for           : secs  5:19, ins 532311325, fcall 10848019, bcall 3285282, totalallocs 4528342, 102.7m ins/sec.
+C++: inlined for          : secs  2.86, ins 532311325, fcall 10848019, bcall 3285282, totalallocs 4528342, 186.1m ins/sec.

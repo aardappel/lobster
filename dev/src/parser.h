@@ -809,8 +809,8 @@ struct Parser {
         if (funval->type == T_DEFAULTVAL) return funval;
         return new Node(lex, T_CALL, funval, clnargs > 0
             ? new Node(lex, T_LIST,
-                new Node(lex, T_FORLOOPVAR),
-                clnargs > 1 ? new Node(lex, T_LIST, new Node(lex, T_FORLOOPVAR), nullptr) : nullptr)
+                new Node(lex, T_FORLOOPELEM),
+                clnargs > 1 ? new Node(lex, T_LIST, new Node(lex, T_FORLOOPI), nullptr) : nullptr)
             : nullptr);
     }
 

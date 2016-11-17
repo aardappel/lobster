@@ -1102,8 +1102,8 @@ struct TypeChecker {
                                TypeName(itertype), n);
                 auto args = n.for_body()->call_args();
                 if (args) {
-                    args->head()->exptype = itertype;
-                    if (args->tail()) args->tail()->head()->exptype = type_int;
+                    args->head()->exptype = itertype;  // T_FORLOOPELEM
+                    if (args->tail()) args->tail()->head()->exptype = type_int;  // T_FORLOOPI
                 }
                 TypeCheck(n.for_body(), T_FOR);
                 // Currently always return V_NIL
@@ -1111,7 +1111,8 @@ struct TypeChecker {
                 return;
             }
 
-            case T_FORLOOPVAR:
+            case T_FORLOOPELEM:
+            case T_FORLOOPI:
                 // Ignore, they've already been assigned a type in T_FOR.
                 return;
 

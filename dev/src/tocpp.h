@@ -200,10 +200,7 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 opc == IL_YIELD) {
                 s += ", ";
                 BlockRef(ip - code);
-            } else if (opc >= IL_IFOR && opc <= IL_VFORREF) {
-                s += ", ";
-                BlockRef(args - 1 - code);
-            } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
+            } else if (opc == IL_PUSHFUN || opc == IL_CORO || (opc >= IL_IFOR && opc <= IL_VFOR)) {
                 s += ", ";
                 BlockRef(args[0]);
             }
@@ -242,7 +239,7 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 s += " ";
                 JumpIns();
                 already_returned = true;
-            } else if (opc == IL_CALLVCOND || (opc >= IL_IFOR && opc <= IL_VFORREF)) {
+            } else if (opc == IL_CALLVCOND || (opc >= IL_IFOR && opc <= IL_VFOR)) {
                 s += " if (g_vm->next_call_target) ";
                 JumpIns();
             }

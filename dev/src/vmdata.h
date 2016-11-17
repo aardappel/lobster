@@ -710,11 +710,14 @@ struct CoRoutine : RefObj {
     const int *varip;
     CoRoutine *parent;
 
+    int tm;  // When yielding from within a for, there will be temps on top of the stack.
+
     CoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, CoRoutine *_p, const TypeInfo &cti)
         : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0),
-          stackframecopymax(0), top_at_suspend(-1), returnip(_rip), varip(_vip), parent(_p) {}
+          stackframecopymax(0), top_at_suspend(-1), returnip(_rip), varip(_vip), parent(_p), tm(0)
+          {}
 
     Value &Current() {
         if (stackstart >= 0) g_vm->BuiltinError("cannot get value of active coroutine");

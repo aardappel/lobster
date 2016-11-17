@@ -94,7 +94,8 @@ namespace lobster {
     T3(T_IF, "if", 3, false, if_condition, if_then, if_else) \
     T2(T_WHILE, "while", 2, false, while_condition, while_body) \
     T2(T_FOR, "for", 2, false, for_iter, for_body) \
-    T0(T_FORLOOPVAR, "for loop variable", 0, false) \
+    T0(T_FORLOOPELEM, "for loop element", 0, false) \
+    T0(T_FORLOOPI, "for loop counter", 0, false) \
     T0(T_EMPTY, "empty", 0, false) \
     T1(T_INLINED, "inlined", 1, false, body) \
     \

@@ -515,8 +515,13 @@ void VM::CoVarCleanup(CoRoutine *co) {
     for (int i = co->stackframecopylen - 1; i >= 0 ; i--) {
         auto &stf = stackframes.back();
         // FIXME: guarantee this statically.
-        if (stf.spstart != sp)
-            g_vm->BuiltinError("internal: can\'t have tempories above a yield.");
+        if (stf.spstart != sp) {
+            // There are temps from an enclosing for loop on the stack.
+            for (int i = 0; i < sp - stf.spstart; i++)
+                if (co->tm & (1 << i))
+                    stack[stf.spstart + 1 + i].DECRTNIL();
+            sp = stf.spstart;
+        }
         VarCleanup(nullptr, !i ? stf.definedfunction : -2);
     }
     assert(sp == startsp);
@@ -569,6 +574,7 @@ void VM::CoClean() {
 
 void VM::CoYield(VM_OP_ARGS_CALL) {
     assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
+    curcoroutine->tm = *ip++;
     #ifdef VM_COMPILED_CODE_MODE
         (void)ip;
         InsPtr retip(fcont);
@@ -805,48 +811,40 @@ void VM::F_CONT1REF(VM_OP_ARGS) {
     #define FOR_START forstart
     #define FOR_NEXT_TARGET
 #endif
-#define FORLOOP(L, V, iterref, bodyref) { \
-    auto forstart = ip - 1; (void)forstart; \
-    auto tm = *ip++; \
-    auto nargs = *ip++; \
-    auto bodyret = POP(); \
-    if (bodyref) bodyret.DECRTNIL(); \
-    auto &body = TOP(); \
-    auto &iter = TOPM(1); \
-    auto &i = TOPM(2); \
+#define FORLOOP(L, iterref) { \
+    auto forstart = *ip++ + codestart; (void)forstart; \
+    auto &iter = TOP(); \
+    auto &i = TOPM(1); \
     TYPE_ASSERT(i.type == V_INT); \
     i.setival(i.ival() + 1); \
     int len = 0; \
     if (i.ival() < (len = (L))) { \
-        if (nargs) { PUSH(V); if (nargs > 1) PUSH(i); } /* FIXME: make this static? */ \
-        StartStackFrame(-1, InsPtr(FOR_START), tm); \
-        FunIntroPre(body.ip()); \
-        return; \
+        JumpTo(InsPtr(FOR_START)); \
+    } else { \
+        if (iterref) TOP().DECRT(); \
+        (void)POP(); /* iter */ \
+        (void)POP(); /* i */ \
+        FOR_NEXT_TARGET \
     } \
-    (void)POP(); /* body */ \
-    if (iterref) TOP().DECRT(); \
-    (void)POP(); /* iter */ \
-    (void)POP(); /* i */ \
-    FOR_NEXT_TARGET \
 }
+#define FORELEM(V) \
+    auto &iter = TOP(); (void)iter; \
+    auto &i = TOPM(1); \
+    TYPE_ASSERT(i.type == V_INT); \
+    PUSH(V);
 
-void VM::F_IFOR(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.ival(), i, false, false);
-}
-void VM::F_IFORREF(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.ival(), i, false, true);
-}
-void VM::F_VFOR(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, false);
-}
-void VM::F_VFORREF(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.eval()->Len(), iter.eval()->AtInc(i.ival()), true, true);
-}
-void VM::F_SFOR(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, false);
-}
-void VM::F_SFORREF(VM_OP_ARGS_CALL) {
-    FORLOOP(iter.sval()->len, Value((int)((uchar *)iter.sval()->str())[i.ival()]), true, true);
+void VM::F_IFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.ival(), false); }
+void VM::F_VFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.eval()->Len(), true); }
+void VM::F_SFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.sval()->len, true); }
+
+void VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
+void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->AtInc(i.ival())); }
+void VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
+
+void VM::F_FORLOOPI(VM_OP_ARGS) {
+    auto &i = TOPM(1);
+    TYPE_ASSERT(i.type == V_INT);
+    PUSH(i);
 }
 
 void VM::F_BCALL0(VM_OP_ARGS) {

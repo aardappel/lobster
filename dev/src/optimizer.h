@@ -113,12 +113,11 @@ struct Optimizer {
             case T_CALL: {
                 auto sf = n.call_function()->sf();
                 // FIXME: Reduce these requirements where possible.
-                if (/*parent_type == T_FOR ||*/  // Always inline for bodies.
+                if (parent_type == T_FOR ||  // Always inline for bodies.
                     (sf->parent->anonymous &&
                      !sf->iscoroutine &&
                      !sf->dynscoperedefs.size() &&
-                     sf->returntypes.size() <= 1 &&
-                     parent_type != T_FOR))
+                     sf->returntypes.size() <= 1))
                 {
                     if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
                         n_ptr = Inline(n, *sf);

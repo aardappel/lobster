@@ -26,6 +26,7 @@ struct CodeGen  {
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeRef> rettypes, temptypestack;
+    size_t nested_fors;
     vector<const char *> stringtable;  // sized strings.
 
     int Pos() { return (int)code.size(); }
@@ -118,7 +119,7 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st) {
+    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st), nested_fors(0) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -639,6 +640,10 @@ struct CodeGen  {
                             Emit(IL_PUSHNIL);
                         }
                         Emit(IL_YIELD);
+                        // We may have temps on the stack from an enclosing for.
+                        // Check that these temps are actually from for loops, to not mask bugs.
+                        assert(temptypestack.size() == nested_fors * 2);
+                        EmitTempInfo(n);
                         SplitAttr(Pos());
                     } else {
                         auto sf = n->dcall_fval()->exptype->sf;
@@ -770,26 +775,46 @@ struct CodeGen  {
                 Emit(IL_PUSHINT, -1);   // i
                 temptypestack.push_back(type_int);
                 Gen(n->for_iter(), 1);
-                Gen(n->for_body()->call_function(), 1);  // FIXME: inline this somehow.
-                Emit(IL_PUSHNIL);     // body retval
-                auto type = n->for_iter()->exptype;
-                auto isref = (int)IsRefNil(n->for_body()->exptype->t);
+                nested_fors++;
+                Emit(IL_JUMP, 0);
+                MARKL(startloop);
                 SplitAttr(Pos());
+                Gen(n->for_body(), 0);
+                SETL(startloop);
+                auto type = n->for_iter()->exptype;
                 switch (type->t) {
-                    case V_INT:    Emit(IL_IFOR + isref); break;
-                    case V_STRING: Emit(IL_SFOR + isref); break;
-                    case V_VECTOR: Emit(IL_VFOR + isref); break;
+                    case V_INT:    Emit(IL_IFOR); break;
+                    case V_STRING: Emit(IL_SFOR); break;
+                    case V_VECTOR: Emit(IL_VFOR); break;
                     case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR);
-                                   Emit(IL_VFOR + isref);
+                                   Emit(IL_VFOR);
                                    break;
                     default:       assert(false);
                 }
-                EmitTempInfo(n);
-                TakeTemp(3);
-                Emit((int)n->for_body()->call_function()->sf()->args.size());
+                Emit(startloop);
+                nested_fors--;
+                TakeTemp(2);
                 Dummy(retval);
                 break;
             }
+
+            case T_FORLOOPELEM: {
+                auto type = temptypestack.back();
+                switch (type->t) {
+                    case V_INT:    Emit(IL_IFORELEM); break;
+                    case V_STRING: Emit(IL_SFORELEM); break;
+                    case V_VECTOR: Emit(IL_VFORELEM); break;
+                    case V_STRUCT: assert(type->struc->vectortype->t == V_VECTOR);
+                                   Emit(IL_VFORELEM);
+                                   break;
+                    default:       assert(false);
+                }
+                break;
+            }
+
+            case T_FORLOOPI:
+                Emit(IL_FORLOOPI);
+                break;
 
             case T_CONSTRUCTOR: {
                 int i = 0;
@@ -825,18 +850,22 @@ struct CodeGen  {
             }
 
             case T_RETURN: {
-                int fid = n->return_function_idx()->integer();
-                if (n->return_value()) {
-                    Gen(n->return_value(), fid >= 0 ? st.functiontable[fid]->retvals : 1, true);
-                } else Emit(IL_PUSHNIL);
-                Emit(IL_RETURN, fid, fid >= 0 ? st.functiontable[fid]->retvals : 1,
-                     GetTypeTableOffset(n->exptype));
+                assert(!rettypes.size());
                 if (temptypestack.size()) {
-                    // This shouldn't happen very often. It can easily be fixed by EmitTempInfo
-                    // if needed. More elegant may be to just pop these values before the return?
-                    parser.Error("cannot return from inside an expression: " +
-                                 (fid >= 0 ? st.functiontable[fid]->name : string("program")), n);
+                    // We have temps on the stack from an enclosing for.
+                    // We can't actually remove these from the stack as the parent nodes still
+                    // expect them to be there.
+                    // Check that these temps are actually from for loops, to not mask bugs.
+                    assert(temptypestack.size() == nested_fors * 2);
+                    for (int i = (int)temptypestack.size() - 1; i >= 0; i--) {
+                        Emit(IsRefNil(temptypestack[i]->t) ? IL_POPREF : IL_POP);
+                    }
                 }
+                int fid = n->return_function_idx()->integer();
+                int nretvals = fid >= 0 ? st.functiontable[fid]->retvals : 1;
+                if (n->return_value()) Gen(n->return_value(), nretvals, true);
+                else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
+                Emit(IL_RETURN, fid, nretvals, GetTypeTableOffset(n->exptype));
                 // retval==true is nonsensical here, but can't enforce
                 break;
             }

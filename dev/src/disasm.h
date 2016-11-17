@@ -77,15 +77,13 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_LOGREAD:
         case IL_ISTYPE:
         case IL_EXIT:
-            s += to_string(*ip++);
-            break;
-
         case IL_IFOR:
         case IL_VFOR:
         case IL_SFOR:
-        case IL_IFORREF:
-        case IL_VFORREF:
-        case IL_SFORREF:
+        case IL_YIELD:
+            s += to_string(*ip++);
+            break;
+
         case IL_LOGWRITE:
             s += to_string(*ip++);
             s += " ";
