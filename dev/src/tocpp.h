@@ -158,14 +158,15 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
         }
         auto arity = ParseOpAndGetArity(opc, ip, code);
         s += "    ";
-        if (IsJumpOp(opc)) {
-            if (opc != IL_JUMP) {
-                s += "if (g_vm->F_";
-                s += ilname;
-                s += "()) ";
-            } else {
-                already_returned = true;
-            }
+        if (opc == IL_JUMP) {
+            already_returned = true;
+            JumpIns(args[0]);
+            s += "\n";
+        } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILRREF) ||
+                   (opc >= IL_IFOR && opc <= IL_VFOR)) {
+            s += "if (g_vm->F_";
+            s += ilname;
+            s += "()) ";
             JumpIns(args[0]);
             s += "\n";
         } else {
@@ -200,7 +201,7 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 opc == IL_YIELD) {
                 s += ", ";
                 BlockRef(ip - code);
-            } else if (opc == IL_PUSHFUN || opc == IL_CORO || (opc >= IL_IFOR && opc <= IL_VFOR)) {
+            } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
                 s += ", ";
                 BlockRef(args[0]);
             }
@@ -239,7 +240,7 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 s += " ";
                 JumpIns();
                 already_returned = true;
-            } else if (opc == IL_CALLVCOND || (opc >= IL_IFOR && opc <= IL_VFOR)) {
+            } else if (opc == IL_CALLVCOND) {
                 s += " if (g_vm->next_call_target) ";
                 JumpIns();
             }

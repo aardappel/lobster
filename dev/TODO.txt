@@ -1,10 +1,13 @@
 - function call optimization and simplication.
+  - make a micro-benchmark to compare against other languages.
   - inlining
-    - for
     - named functions
   - remove static function arguments
+    - or maybe better to generically remove vars that aren't used.
   - remove dynscope
   - C++ backend: detect when not needing to return to trampoline?
+    - need to know when "broken" by a function call.
+    - though given that the switch/jump method is slower, maybe not a priority.
   - change var access to be relative to top of stack
   - cleanup of id/sid/arg..
   - support functions that don't return anything.

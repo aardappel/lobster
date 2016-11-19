@@ -805,26 +805,28 @@ void VM::F_CONT1REF(VM_OP_ARGS) {
 }
 
 #ifdef VM_COMPILED_CODE_MODE
-    #define FOR_START fcont
-    #define FOR_NEXT_TARGET next_call_target = 0;
+    #define FOR_INIT
+    #define FOR_CONTINUE return true
+    #define FOR_FINISHED return false
 #else
-    #define FOR_START forstart
-    #define FOR_NEXT_TARGET
+    #define FOR_INIT auto cont = *ip++
+    #define FOR_CONTINUE ip = cont + codestart
+    #define FOR_FINISHED
 #endif
 #define FORLOOP(L, iterref) { \
-    auto forstart = *ip++ + codestart; (void)forstart; \
+    FOR_INIT; \
     auto &iter = TOP(); \
     auto &i = TOPM(1); \
     TYPE_ASSERT(i.type == V_INT); \
     i.setival(i.ival() + 1); \
     int len = 0; \
     if (i.ival() < (len = (L))) { \
-        JumpTo(InsPtr(FOR_START)); \
+        FOR_CONTINUE; \
     } else { \
         if (iterref) TOP().DECRT(); \
         (void)POP(); /* iter */ \
         (void)POP(); /* i */ \
-        FOR_NEXT_TARGET \
+        FOR_FINISHED; \
     } \
 }
 #define FORELEM(V) \
@@ -833,9 +835,9 @@ void VM::F_CONT1REF(VM_OP_ARGS) {
     TYPE_ASSERT(i.type == V_INT); \
     PUSH(V);
 
-void VM::F_IFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.ival(), false); }
-void VM::F_VFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.eval()->Len(), true); }
-void VM::F_SFOR(VM_OP_ARGS_CALL) { FORLOOP(iter.sval()->len, true); }
+VM_JUMP_RET VM::F_IFOR() { FORLOOP(iter.ival(), false); }
+VM_JUMP_RET VM::F_VFOR() { FORLOOP(iter.eval()->Len(), true); }
+VM_JUMP_RET VM::F_SFOR() { FORLOOP(iter.sval()->len, true); }
 
 void VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
 void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->AtInc(i.ival())); }

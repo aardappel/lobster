@@ -60,14 +60,14 @@ namespace lobster {
 
 #define ILCALLNAMES \
     F(CALL, 3) F(CALLMULTI, -1) F(CALLV, 1) F(CALLVCOND, 1) \
-    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 1) \
-    F(IFOR, 1) F(SFOR, 1) F(VFOR, 1)
+    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 1)
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
     F(JUMPFAIL, 1) F(JUMPFAILREF, 1) F(JUMPFAILR, 1) F(JUMPFAILRREF, 1) \
     F(JUMPFAILN, 1) F(JUMPFAILNREF, 1) \
     F(JUMPNOFAIL, 1) F(JUMPNOFAILREF, 1) F(JUMPNOFAILR, 1) F(JUMPNOFAILRREF, 1) \
+    F(IFOR, 1) F(SFOR, 1) F(VFOR, 1)
 
 #define ILNAMES ILBASENAMES ILCALLNAMES ILJUMPNAMES
 
@@ -119,7 +119,5 @@ inline const int *ILArity() {
     #undef F
     return ilarity;
 }
-
-inline bool IsJumpOp(int opc) { return opc >= IL_JUMP && opc <= IL_JUMPNOFAILRREF; }
 
 }
