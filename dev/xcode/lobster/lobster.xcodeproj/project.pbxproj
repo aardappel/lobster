@@ -513,6 +513,9 @@
 		33D163E51BABA50800BAD84D /* SDL_uikitview.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163D91BABA50800BAD84D /* SDL_uikitview.m */; };
 		33D163E61BABA50800BAD84D /* SDL_uikitviewcontroller.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163DB1BABA50800BAD84D /* SDL_uikitviewcontroller.m */; };
 		33D163E71BABA50800BAD84D /* SDL_uikitwindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */; };
+		33D4B5961DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
+		33D4B5971DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
+		33D4B5981DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
 		33EABDEE15D9EE8400C1590D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33EABDED15D9EE8400C1590D /* Cocoa.framework */; };
 		33EABDF815D9EE8400C1590D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 33EABDF615D9EE8400C1590D /* InfoPlist.strings */; };
 		33EABE2715D9EFC200C1590D /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D4C5F41488BFDC0019C311 /* OpenGL.framework */; };
@@ -753,7 +756,6 @@
 		3342B79D1B2B4CE500FA2F0B /* il.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = il.h; sourceTree = "<group>"; };
 		3342B79E1B2B4CE500FA2F0B /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		3342B79F1B2B4CE500FA2F0B /* vm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vm.cpp; sourceTree = "<group>"; };
-		3342B7A01B2B4CE500FA2F0B /* vmlog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vmlog.h; sourceTree = "<group>"; };
 		335BD085175BAE68002064AE /* pythtree.lobster */ = {isa = PBXFileReference; lastKnownFileType = text; name = pythtree.lobster; path = ../../../lobster/samples/pythtree.lobster; sourceTree = "<group>"; };
 		33625C931A15A7B2005B131F /* ttypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ttypes.h; sourceTree = "<group>"; };
 		33625C941A15A7B2005B131F /* typecheck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = typecheck.h; sourceTree = "<group>"; };
@@ -1075,6 +1077,7 @@
 		33D163DB1BABA50800BAD84D /* SDL_uikitviewcontroller.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitviewcontroller.m; sourceTree = "<group>"; };
 		33D163DC1BABA50800BAD84D /* SDL_uikitwindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_uikitwindow.h; sourceTree = "<group>"; };
 		33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitwindow.m; sourceTree = "<group>"; };
+		33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vmlog.cpp; sourceTree = "<group>"; };
 		33D4C5F41488BFDC0019C311 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
 		33EABDDF15D9DD3B00C1590D /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../lib/libSDL2.a; sourceTree = "<group>"; };
 		33EABDEB15D9EE8400C1590D /* lobsterapp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lobsterapp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1410,6 +1413,7 @@
 		3395A8BE176140570047BE1F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
+				33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */,
 				3342B79E1B2B4CE500FA2F0B /* main.cpp */,
 				3342B79B1B2B4CE500FA2F0B /* compiler.cpp */,
 				3342B79C1B2B4CE500FA2F0B /* compiler.h */,
@@ -1429,7 +1433,6 @@
 				3381CADA162340540069B2E8 /* vmdata.cpp */,
 				3381CAD9162340540069B2E8 /* vm.h */,
 				3342B79F1B2B4CE500FA2F0B /* vm.cpp */,
-				3342B7A01B2B4CE500FA2F0B /* vmlog.h */,
 				3342B79A1B2B4CE500FA2F0B /* bytecode_generated.h */,
 				33632F5E1B5DD16B00550981 /* bytecode.fbs */,
 			);
@@ -2656,6 +2659,7 @@
 				33D162081BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
 				3331457217596E1100D488CC /* meshgen.cpp in Sources */,
 				8C76033A195E457400EADF6F /* b2CollidePolygon.cpp in Sources */,
+				33D4B5981DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33D1610C1BAB9A2200BAD84D /* SDL_power.c in Sources */,
 				8C76035E195E457400EADF6F /* b2Math.cpp in Sources */,
 				8C76036D195E457400EADF6F /* b2TrackedBlock.cpp in Sources */,
@@ -2876,6 +2880,7 @@
 				33D162071BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
 				33F7F3E417236720005B7988 /* sdlaudiosfxr.cpp in Sources */,
 				8C760339195E457400EADF6F /* b2CollidePolygon.cpp in Sources */,
+				33D4B5971DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33D1610B1BAB9A2200BAD84D /* SDL_power.c in Sources */,
 				8C76035D195E457400EADF6F /* b2Math.cpp in Sources */,
 				8C76036C195E457400EADF6F /* b2TrackedBlock.cpp in Sources */,
@@ -2959,6 +2964,7 @@
 				33D1637C1BAB9A2200BAD84D /* SDL_x11mouse.c in Sources */,
 				33D162E11BAB9A2200BAD84D /* SDL_stretch.c in Sources */,
 				33D15C9F1BAB7D3C00BAD84D /* ftstroke.c in Sources */,
+				33D4B5961DE0CF8300C6FEB9 /* vmlog.cpp in Sources */,
 				33D163DF1BABA50800BAD84D /* SDL_uikitevents.m in Sources */,
 				3342B7A41B2B4CE500FA2F0B /* main.cpp in Sources */,
 				3342B7A11B2B4CE500FA2F0B /* compiler.cpp in Sources */,
