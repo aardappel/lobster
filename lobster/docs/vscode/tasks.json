@@ -6,10 +6,10 @@
         "command": "lobster\\lobster.exe"
     },
     "linux": {
-        "command": "lobster_cmake"
+        "command": "lobster/lobster_cmake"
     },    
     "osx": {
-        "command": "lobster"
+        "command": "lobster/lobster"
     },  
     "isShellCommand": true,
     "args": ["${file}"],
