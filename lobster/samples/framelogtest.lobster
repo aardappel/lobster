@@ -16,12 +16,13 @@ while gl_frame():
         v++
 
     def b():
+        i := a()
         if a() % 4:
             v, w ?= 0, 1
             v++
-            //print v + " | " + w
+            print v + " | " + w
         else:
             nil
-            //print "---"
+            print "--- " + i
 
     b()
