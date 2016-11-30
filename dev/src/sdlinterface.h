@@ -16,6 +16,7 @@
 
 extern string SDLInit(const char *title, const int2 &screensize, bool fullscreen, int vsync);
 extern bool SDLFrame();
+extern void SDLFakeFrame(double delta);
 extern void SDLShutdown();
 extern void SDLTitle(const char *title);
 extern bool SDLIsMinimized();
@@ -52,7 +53,7 @@ extern void RegisterCoreEngineBuiltins();
 extern bool GraphicsFrameStart();
 extern void GraphicsShutDown();
 extern void EngineExit(int code);
-extern bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, 
+extern bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point,
                               const void *static_bytecode);
 extern int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb);
 

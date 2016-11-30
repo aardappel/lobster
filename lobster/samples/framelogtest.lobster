@@ -1,15 +1,6 @@
 
-include "vec.lobster"
-include "color.lobster"
-
-fatal(gl_window("logtest", 1024, 1024))
-
-while gl_frame():
-
-    if gl_button("escape") == 1: return
-
-    gl_clear(color_black)
-    gl_color(color_white)
+for 60:
+    gl_logframe(1.0 / 60.0)
 
     def a():
         v ?= 0
@@ -26,3 +17,4 @@ while gl_frame():
             print "--- " + i
 
     b()
+

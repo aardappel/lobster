@@ -633,6 +633,7 @@ struct TypeChecker {
         sf->CloneIds(*csf);
         sf->body = csf->body->Clone();
         sf->freevarchecked = true;
+        sf->logvarcallgraph = csf->logvarcallgraph;
         return sf;
     }
 
@@ -663,6 +664,16 @@ struct TypeChecker {
             return f.multimethodretval;
         } else {
             SubFunction *sf = csf;
+            if (csf->logvarcallgraph) {
+                // Mark call-graph up to here as using logvars, if it hasn't been already.
+                for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+                    if (it->sf->logvarcallgraph) break;
+                    it->sf->logvarcallgraph = true;
+                }
+                // Functions using logvars or leading up to it are always specialized, that way
+                // they have unique specidents.
+                goto specialize;
+            }
             // First see any args are untyped, this means we must specialize.
             for (auto &arg : csf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
             // If we didn't find any such args, and we also don't have any freevars, we don't
@@ -673,7 +684,7 @@ struct TypeChecker {
                 if (sf->typechecked) {
                     // Check if any existing specializations match.
                     for (sf = f.subf; sf; sf = sf->next) {
-                        if (sf->typechecked && !sf->mustspecialize) {
+                        if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
                             int i = 0;
                             for (Node *list = call_args; list && i < f.nargs();
                                 list = list->tail()) {

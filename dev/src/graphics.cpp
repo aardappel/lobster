@@ -179,6 +179,17 @@ void AddGraphics() {
         "advances rendering by one frame, swaps buffers, and collects new input events."
         " returns true if the closebutton on the window was pressed");
 
+    STARTDECL(gl_logframe) (Value &delta) {
+        SDLFakeFrame(delta.fval());
+        g_vm->vml.LogFrame();
+        return Value();
+    }
+    ENDDECL1(gl_logframe, "delta", "F", "",
+        "call this function instead of gl_frame() to simulate a frame based program from"
+        " non-graphical code. does not require gl_window(). manages frame log state much like"
+        " gl_frame(). allows gl_time and gl_deltatime to work. pass a desired delta time,"
+        " e.g. 1.0/60.0");
+
     STARTDECL(gl_shutdown) () {
         GraphicsShutDown();
         return Value();
