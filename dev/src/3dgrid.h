@@ -31,6 +31,19 @@ template<typename T> class Chunk3DGrid : NonCopyable {
     void Set(const int3 &pos, T newval) {
         Access(pos) = newval;
     }
+
+    // This creates a Z-major continuous buffer, whereas the original data is X-major.
+    T *ToContinousGrid() {
+        auto buf = new T[dim.x() * dim.y() * dim.z()];
+        for (int z = 0; z < dim.z(); z++) {
+            for (int y = 0; y < dim.y(); y++) {
+                for (int x = 0; x < dim.x(); x++) {
+                    buf[z * dim.x() * dim.y() + y * dim.x() + x] = Get(int3(x, y, z));
+                }
+            }
+        }
+        return buf;
+    }
 };
 
 // Stores an XY grid of RLE Z lists, based on the value of T.

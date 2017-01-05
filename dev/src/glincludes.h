@@ -81,6 +81,7 @@
             GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/   , glUniformMatrix3x4fv            , 1) \
             GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \
             GLEXT(PFNGLGETACTIVEUNIFORMARBPROC           , glGetActiveUniform              , 1) \
+            GLEXT(PFNGLTEXIMAGE3DPROC                    , glTexImage3D                    , 1) \
             GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 0) \
             GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 0) \
             GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 0) \
@@ -109,4 +110,19 @@
             GLEXTS
         #undef GLEXT
     #endif
+#endif
+#if defined(_DEBUG) || DEBUG == 1 || !defined(NDEBUG)
+    #define LOG_GL_ERRORS
+#endif
+#ifdef LOG_GL_ERRORS
+    #define GL_CALL(call)                      \
+      {                                        \
+        call;                                  \
+        LogGLError(__FILE__, __LINE__, #call); \
+      }
+#else
+    #define GL_CALL(call) \
+      do {                \
+        call;             \
+      } while (0)
 #endif

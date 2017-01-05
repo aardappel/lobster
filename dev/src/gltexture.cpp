@@ -29,7 +29,7 @@
 
 const int nummultisamples = 4;
 
-uint CreateTexture(const uchar *buf, const int2 &dim, int tf) {
+uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     uint id;
     glGenTextures(1, &id);
     assert(id);
@@ -37,38 +37,49 @@ uint CreateTexture(const uchar *buf, const int2 &dim, int tf) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
-        GL_TEXTURE_2D;
+        (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D);
     GLenum teximagetype = textype;
     textype         = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : textype;
     teximagetype    = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : teximagetype;
     int texnumfaces = tf & TF_CUBEMAP ? 6                              : 1;
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(textype, id);
-    glTexParameteri(textype, GL_TEXTURE_WRAP_S, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-    glTexParameteri(textype, GL_TEXTURE_WRAP_T, tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+    auto wrap = tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+    glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap);
+    if(tf & TF_3D) glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap);
     glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
     glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
         tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
-    //if (mipmap) glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-    auto format = GL_RGBA;
-    auto component = GL_UNSIGNED_BYTE;
+    //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
+    auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE8 : GL_RGBA8;
+    auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE : GL_RGBA;
+    auto buffercomponent = GL_UNSIGNED_BYTE;
+    if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3))
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // Defaults to 4.
     if (tf & TF_FLOAT) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-            format = GL_RGBA32F;
-            component = GL_FLOAT;
+            internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
+            bufferformat = internalformat;
+            buffercomponent = GL_FLOAT;
         #else
             assert(false);  // buf points to float data, which we don't support.
         #endif
     }
     if (tf & TF_MULTISAMPLE) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-            glTexImage2DMultisample(teximagetype, nummultisamples, format, dim.x(), dim.y(), true);
+            glTexImage2DMultisample(teximagetype, nummultisamples, internalformat, dim[0], dim[1],
+                                    true);
         #else
             assert(false);
         #endif
+    } else if(tf & TF_3D) {
+        GL_CALL(glTexImage3D(textype, 0, internalformat, dim[0], dim[1], dim[2], 0, bufferformat,
+                             buffercomponent, buf));
     } else {
         for (int i = 0; i < texnumfaces; i++)
-            glTexImage2D(teximagetype + i, 0, format, dim.x(), dim.y(), 0, GL_RGBA, component, buf);
+            GL_CALL(glTexImage2D(teximagetype + i, 0, internalformat, dim[0], dim[1], 0,
+                                 bufferformat, buffercomponent, buf));
     }
     if (!(tf & TF_NOMIPMAP)) {
         glEnable(textype);  // required on ATI for mipmapping to work?
@@ -93,14 +104,14 @@ uint CreateTextureFromFile(const char *name, int2 &dim, int tf) {
     free(fbuf);
     if (!buf)
         return 0;
-    uint id = CreateTexture(buf, dim, tf);
+    uint id = CreateTexture(buf, dim.data(), tf);
     stbi_image_free(buf);
     return id;
 }
 
 uint CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
     if (tf & TF_MULTISAMPLE) {
-        return CreateTexture(nullptr, size, tf);  // No buffer required.
+        return CreateTexture(nullptr, size.data(), tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[size.x() * size.y() * sz];
@@ -109,7 +120,7 @@ uint CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
             if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
             else               ((byte4  *)buf)[idx] = quantizec(color);
         }
-        uint id = CreateTexture(buf, size, tf);
+        uint id = CreateTexture(buf, size.data(), tf);
         delete[] buf;
         return id;
     }
@@ -122,7 +133,8 @@ void DeleteTexture(uint &id) {
 
 void SetTexture(uint textureunit, uint id, int tf) {
     glActiveTexture(GL_TEXTURE0 + textureunit);
-    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, id);
+    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
+                                  : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), id);
 }
 
 int2 TextureSize(uint id) {

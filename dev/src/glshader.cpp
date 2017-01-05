@@ -170,9 +170,14 @@ string ParseMaterialFile(char *mbuf) {
                         auto p = last.c_str() + 3;
                         bool cubemap = false;
                         bool floatingp = false;
+                        bool d3 = false;
                         if (!strncmp(p, "cube", 4)) {
                             p += 4;
                             cubemap = true;
+                        }
+                        if (!strncmp(p, "3d", 2)) {
+                            p += 2;
+                            d3 = true;
                         }
                         if (*p == 'f') {
                             p++;
@@ -185,7 +190,8 @@ string ParseMaterialFile(char *mbuf) {
                         }
                         decl += "uniform ";
                         decl += accum == &compute ? (cubemap ? "imageCube" : "image2D")
-                                                  : (cubemap ? "samplerCube" : "sampler2D");
+                                                  : (cubemap ? "samplerCube" : (d3 ? "sampler3D" :
+                                                                                     "sampler2D"));
                         decl += " " + last + ";\n";
                     } else return "unknown uniform: " + last;
                 }
@@ -292,7 +298,12 @@ void Shader::Link(const char *name) {
     pointscale_i   = glGetUniformLocation(program, "pointscale");
     glUseProgram(program);
     for (int i = 0; i < MAX_SAMPLERS; i++) {
-        tex_i[i] = glGetUniformLocation(program, ("tex" + to_string(i)).c_str());
+        auto is = to_string(i);
+        tex_i[i] = glGetUniformLocation(program, ("tex" + is).c_str());
+        if (tex_i[i] < 0) {
+            tex_i[i] = glGetUniformLocation(program, ("texcube" + is).c_str());
+            if (tex_i[i] < 0) tex_i[i] = glGetUniformLocation(program, ("tex3d" + is).c_str());
+        }
         if (tex_i[i] >= 0) glUniform1i(tex_i[i], i);
     }
 }

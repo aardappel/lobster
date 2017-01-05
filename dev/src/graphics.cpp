@@ -891,7 +891,7 @@ void AddGraphics() {
             }
         }
         matv.DECRT();
-        uint id = CreateTexture(buf, int2(xs, ys), tf.ival());
+        uint id = CreateTexture(buf, int2(xs, ys).data(), tf.ival());
         delete[] buf;
         return Value((int)id);
     }

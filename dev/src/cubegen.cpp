@@ -232,6 +232,17 @@ void AddCubeGen() {
     ENDDECL1(cg_create_mesh, "worldid", "I", "I",
         "converts world to a mesh");
 
+    STARTDECL(cg_create_3d_texture) (Value &wid) {
+        auto &v = GetVoxels(wid);
+        auto buf = v.grid.ToContinousGrid();
+        auto tex = CreateTexture(buf, v.grid.dim.data(),
+                                 TF_3D | TF_NOMIPMAP | TF_NEAREST | TF_CLAMP | TF_SINGLE_CHANNEL);
+        delete[] buf;
+        return Value((int)tex);
+    }
+    ENDDECL1(cg_create_3d_texture, "worldid", "I", "I",
+        "returns the new texture id");
+
     STARTDECL(cg_load_vox) (Value &name) {
         size_t len = 0;
         auto buf = LoadFile(name.sval()->str(), &len);

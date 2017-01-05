@@ -120,6 +120,8 @@ struct Light {
 
 extern void OpenGLInit();
 extern void OpenGLFrameStart(const int2 &ssize);
+extern void LogGLError(const char *file, int line, const char *call);
+
 extern void Set2DMode(const int2 &ssize, bool lh);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void Set3DOrtho(const float3 &center, const float3 &extends);
@@ -149,9 +151,11 @@ enum TextureFlag {
     TF_WRITEONLY = 16, TF_READWRITE = 32,   // Default is readonly.
     TF_CUBEMAP = 64,
     TF_MULTISAMPLE = 128,
+    TF_SINGLE_CHANNEL = 256,                // Default is RGBA.
+    TF_3D = 512,
 };
 
-extern uint CreateTexture(const uchar *buf, const int2 &dim, int tf = TF_NONE);
+extern uint CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
 extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
 extern uint CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(uint &id);

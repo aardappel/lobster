@@ -96,7 +96,7 @@ bool BitmapFont::CacheChars(const char *text) {
         }
         x += advance;
     }
-    texid = CreateTexture(image, int2(texw, texh), TF_CLAMP | TF_NOMIPMAP);
+    texid = CreateTexture(image, int2(texw, texh).data(), TF_CLAMP | TF_NOMIPMAP);
     delete[] image;
     return true;
 }

@@ -316,13 +316,14 @@ void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &
 uint cube_vbo = 0, cube_ibo = 0;
 
 void RenderUnitCube(Shader *sh) {
-    struct cvert { float3 pos; float3 normal; };
+    struct cvert { float3 pos; float3 normal; float2 tc; };
     if (!cube_vbo) {
-        static int3 normals[] = {
-            int3(1, 0, 0), int3(-1,  0,  0),
-            int3(0, 1, 0), int3( 0, -1,  0),
-            int3(0, 0, 1), int3( 0,  0, -1),
+        static float3 normals[] = {
+            float3(1, 0, 0), float3(-1,  0,  0),
+            float3(0, 1, 0), float3( 0, -1,  0),
+            float3(0, 0, 1), float3( 0,  0, -1),
         };
+        static float2 tcs[] = { float2(0, 0), float2(1, 0), float2(1, 1), float2(0, 1) };
         static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
         static int indices[6] = { 0, 1, 3, 1, 2, 3 };
         vector<cvert> verts;
@@ -335,7 +336,8 @@ void RenderUnitCube(Shader *sh) {
                 for (int d = 0; d < 3; d++) {
                     vert.pos.set(d, float((face[vn] & (1 << (2 - d))) != 0));
                 }
-                vert.normal = float3(normals[n]);
+                vert.normal = normals[n];
+                vert.tc = tcs[vn];
                 verts.push_back(vert);
             }
         }
@@ -343,7 +345,7 @@ void RenderUnitCube(Shader *sh) {
         cube_ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
     }
     sh->Set();
-    RenderArray(PRIM_TRIS, 36, 24, "PN", sizeof(cvert), cube_vbo, cube_ibo);
+    RenderArray(PRIM_TRIS, 36, 24, "PNT", sizeof(cvert), cube_vbo, cube_ibo);
 }
 
 map<int, uint> circlevbos;  // FIXME: not global;

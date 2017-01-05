@@ -43,21 +43,23 @@ color_blue_violet :== color { 0.5, 0,   1,   1 }
 
 // texture format constants
 
-texture_format_none        :== 0
-texture_format_clamp       :== 1
-texture_format_nomipmap    :== 2
-texture_format_nearest     :== 4
-texture_format_float       :== 8
-texture_format_writeonly   :== 16
-texture_format_readwrite   :== 32
-texture_format_cubemap     :== 64
-texture_format_multisample :== 128
+enum * texture_format_none = 0,
+       texture_format_clamp = 1,
+       texture_format_nomipmap,
+       texture_format_nearest,
+       texture_format_float,
+       texture_format_writeonly,
+       texture_format_readwrite,
+       texture_format_cubemap,
+       texture_format_multisample,
+       texture_format_single_channel,
+       texture_format_3d
 
 // blending constants
 
-blend_none                 :== 0
-blend_alpha                :== 1  // Default.
-blend_add                  :== 2
-blend_add_alpha            :== 3
-blend_multiply             :== 4
-blend_pre_multiplied_alpha :== 5
+enum + blend_none,
+       blend_alpha,  // Default.
+       blend_add,
+       blend_add_alpha,
+       blend_multiply,
+       blend_pre_multiplied_alpha
