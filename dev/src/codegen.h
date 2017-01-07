@@ -863,6 +863,7 @@ struct CodeGen  {
                 }
                 int fid = n->return_function_idx()->integer();
                 int nretvals = fid >= 0 ? st.functiontable[fid]->retvals : 1;
+                if (nretvals > MAX_RETURN_VALUES) parser.Error("too many return values");
                 if (n->return_value()) Gen(n->return_value(), nretvals, true);
                 else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
                 Emit(IL_RETURN, fid, nretvals, GetTypeTableOffset(n->exptype));
@@ -883,7 +884,7 @@ struct CodeGen  {
                 // each function.
                 Emit((int)sf->coyieldsave.v.size());
                 for (auto &arg : sf->coyieldsave.v) Emit(arg.sid->idx);
-                Gen(n->child(), retval, true);
+                Gen(n->child(), 1, true);
                 Emit(IL_COEND);
                 SETL(loc);
                 if (!retval) Emit(IL_POPREF);

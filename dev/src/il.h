@@ -16,7 +16,9 @@
 // This needs to be bumped each time we make changes to the format.
 
 namespace lobster {
-    const int LOBSTER_BYTECODE_FORMAT_VERSION = 11;
+
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 11;
+const int MAX_RETURN_VALUES = 16;
 
 #define ILBASENAMES \
     F(PUSHINT, 1) \

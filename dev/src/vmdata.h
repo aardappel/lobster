@@ -488,6 +488,8 @@ struct VM {
     int maxstacksize;
     int sp;
 
+    Value retvalstemp[MAX_RETURN_VALUES];
+
     #ifdef VM_COMPILED_CODE_MODE
         block_t next_call_target;
         block_t *next_mm_table;
@@ -589,6 +591,7 @@ struct VM {
     #endif
 
     void JumpTo(InsPtr j);
+    InsPtr GetIP();
     int VarCleanup(string *error, int towhere);
     void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
@@ -598,7 +601,7 @@ struct VM {
     void CoVarCleanup(CoRoutine *co);
     void CoNonRec(const int *varip);
     void CoNew(VM_OP_ARGS_CALL);
-    void CoDone(InsPtr retip);
+    void CoSuspend(InsPtr retip);
     void CoClean();
     void CoYield(VM_OP_ARGS_CALL);
     void CoResume(CoRoutine *co);
@@ -820,7 +823,8 @@ struct CoRoutine : RefObj {
     void DeleteSelf(bool deref) {
         assert(stackstart < 0);
         if (stackcopy) {
-            stackcopy[--stackcopylen].DECTYPE(g_vm->GetTypeInfo(ti.yieldtype).t);
+            auto curvaltype = g_vm->GetTypeInfo(ti.yieldtype).t;
+            stackcopy[--stackcopylen].DECTYPE(curvaltype);
             if (active) {
                 if (deref) {
                     for (int i = *varip; i > 0; i--) {

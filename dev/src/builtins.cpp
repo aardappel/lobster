@@ -876,6 +876,8 @@ void AddBuiltins() {
         // By the time CoResume returns, we're now back in the context of co, meaning that the
         // return value below is what is returned from yield.
         return ret;
+        // The actual return value from this call to resume will be the argument to the next call
+        // to yield, or the coroutine return value.
     }
     ENDDECL2(resume, "coroutine,returnvalue", "RA%?", "A",
         "resumes execution of a coroutine, passing a value back or nil");

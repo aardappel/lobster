@@ -389,6 +389,14 @@ void VM::JumpTo(InsPtr j) {
     #endif
 }
 
+InsPtr VM::GetIP() {
+    #ifdef VM_COMPILED_CODE_MODE
+        return InsPtr(next_call_target);
+    #else
+        return InsPtr(ip);
+    #endif
+}
+
 int VM::VarCleanup(string *error, int towhere) {
     auto &stf = stackframes.back();
     assert(sp == stf.spstart);
@@ -490,7 +498,9 @@ void VM::FunIntro(VM_OP_ARGS) {
 bool VM::FunOut(int towhere, int nrv) {
     bool bottom = false;
     sp -= nrv;
-    auto rvs = TOPPTR();
+    // Have to store these off the stack, since VarCleanup() may cause stack activity if coroutines
+    // are destructed.
+    memcpy(retvalstemp, TOPPTR(), nrv * sizeof(Value));
     for(;;) {
         if (!stackframes.size()) {
             if (towhere >= 0)
@@ -501,7 +511,7 @@ bool VM::FunOut(int towhere, int nrv) {
         }
         if(VarCleanup(nullptr, towhere)) break;
     }
-    memcpy(TOPPTR(), rvs, nrv * sizeof(Value));
+    memcpy(TOPPTR(), retvalstemp, nrv * sizeof(Value));
     sp += nrv;
     return bottom;
 }
@@ -522,7 +532,10 @@ void VM::CoVarCleanup(CoRoutine *co) {
                     stack[stf.spstart + 1 + i].DECRTNIL();
             sp = stf.spstart;
         }
+        // Save the ip, because VarCleanup will jump to it.
+        auto bip = GetIP();
         VarCleanup(nullptr, !i ? stf.definedfunction : -2);
+        JumpTo(bip);
     }
     assert(sp == startsp);
     (void)startsp;
@@ -552,22 +565,27 @@ void VM::CoNew(VM_OP_ARGS_CALL) {
     curcoroutine->BackupParentVars(vars);
     int nvars = *ip++;
     ip += nvars;
+    // Always have the active coroutine at top of the stack, retaining 1 refcount. This is
+    // because it is not guaranteed that there any other references, and we can't have this drop
+    // to 0 while active.
     PUSH(Value(curcoroutine));
 }
 
-void VM::CoDone(InsPtr retip) {
+void VM::CoSuspend(InsPtr retip) {
     int newtop = curcoroutine->Suspend(sp + 1, stack, stackframes, retip, curcoroutine);
     JumpTo(retip);
     sp = newtop - 1; // top of stack is now coro value from create or resume
 }
 
 void VM::CoClean() {
+    // This function is like yield, except happens implicitly when the coroutine returns.
+    // It will jump back to the resume (or create) that invoked it.
     for (int i = 1; i <= *curcoroutine->varip; i++) {
         auto &var = vars[curcoroutine->varip[i]];
         var = curcoroutine->stackcopy[i - 1];
     }
     auto co = curcoroutine;
-    CoDone(InsPtr(0));
+    CoSuspend(InsPtr(0));
     VMASSERT(co->stackcopylen == 1);
     co->active = false;
 }
@@ -589,7 +607,7 @@ void VM::CoYield(VM_OP_ARGS_CALL) {
         var = curcoroutine->stackcopy[i - 1];
     }
     PUSH(ret);  // current value always top of the stack
-    CoDone(retip);
+    CoSuspend(retip);
 }
 
 void VM::CoResume(CoRoutine *co) {
@@ -600,11 +618,7 @@ void VM::CoResume(CoRoutine *co) {
     // This will be the return value for the corresponding yield, and holds the ref for gc.
     PUSH(Value(co));
     CoNonRec(co->varip);
-    #ifdef VM_COMPILED_CODE_MODE
-        auto rip = InsPtr(next_call_target);
-    #else
-        auto rip = InsPtr(ip);
-    #endif
+    auto rip = GetIP();
     sp += co->Resume(sp + 1, stack, stackframes, rip, curcoroutine);
     JumpTo(rip);
     curcoroutine = co;
