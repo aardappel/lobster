@@ -44,6 +44,7 @@ struct Shader {
     bool SetUniform(const char *name,        // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
+    bool Dump(const char *filename, bool stripnonascii);
 };
 
 struct Textured {

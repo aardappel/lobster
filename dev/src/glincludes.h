@@ -102,6 +102,7 @@
             GLEXT(PFNGLSHADERSTORAGEBLOCKBINDINGPROC     , glShaderStorageBlockBinding     , 0) \
             GLEXT(PFNGLGETUNIFORMBLOCKINDEXPROC          , glGetUniformBlockIndex          , 0) \
             GLEXT(PFNGLUNIFORMBLOCKBINDINGPROC           , glUniformBlockBinding           , 0) \
+            GLEXT(PFNGLGETPROGRAMBINARYPROC              , glGetProgramBinary              , 0) \
             GLEXT(PFNGLBINDBUFFERBASEPROC                , glBindBufferBase                , 0) \
             GLEXT(PFNGLMEMORYBARRIERPROC                 , glMemoryBarrier                 , 0) \
             GLEXT(PFNGLMAPBUFFERRANGEPROC                , glMapBufferRange                , 0)

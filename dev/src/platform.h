@@ -22,6 +22,7 @@ extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, b
 
 extern uchar *LoadFile(const char *relfilename, size_t *len = nullptr);
 extern FILE *OpenForWriting(const char *relfilename, bool binary);
+extern bool WriteFile(const char *relfilename, bool binary, const char *data, size_t len);
 extern string SanitizePath(const char *path);
 
 // Logging:

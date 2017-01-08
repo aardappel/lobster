@@ -134,6 +134,16 @@ FILE *OpenForWriting(const char *relfilename, bool binary) {
     return fopen((writedir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
 }
 
+bool WriteFile(const char *relfilename, bool binary, const char *data, size_t len) {
+    FILE *f = OpenForWriting(relfilename, binary);
+    size_t written = 0;
+    if (f) {
+        written = fwrite(data, len, 1, f);
+        fclose(f);
+    }
+    return written == 1;
+}
+
 OutputType min_output_level = OUTPUT_WARN;
 
 void Output(OutputType ot, const char *msg, ...) {

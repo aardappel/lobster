@@ -119,15 +119,10 @@ void AddFile() {
         " you may use either \\ or / as path separators");
 
     STARTDECL(write_file) (Value &file, Value &contents) {
-        FILE *f = OpenForWriting(file.sval()->str(), true);
+        auto ok = WriteFile(file.sval()->str(), true, contents.sval()->str(), contents.sval()->len);
         file.DECRT();
-        size_t written = 0;
-        if (f) {
-            written = fwrite(contents.sval()->str(), contents.sval()->len, 1, f);
-            fclose(f);
-        }
         contents.DECRT();
-        return Value(written == 1);
+        return Value(ok);
     }
     ENDDECL2(write_file, "file,contents", "SS", "I",
         "creates a file with the contents of a string, returns false if writing wasn't possible");

@@ -95,11 +95,7 @@ int main(int argc, char* argv[]) {
             string dump;
             Compile(StripDirPart(fn).c_str(), nullptr, bytecode, parsedump ? &dump : nullptr);
             if (parsedump) {
-                FILE *f = OpenForWriting("parsedump.txt", false);
-                if (f) {
-                    fprintf(f, "%s\n", dump.c_str());
-                    fclose(f);
-                }
+                WriteFile("parsedump.txt", false, dump.c_str(), dump.length());
             }
             if (bcf) {
                 SaveByteCode(bcf, bytecode);
@@ -107,13 +103,9 @@ int main(int argc, char* argv[]) {
             }
         }
         if (disasm) {
-            FILE *f = OpenForWriting("disasm.txt", false);
-            if (f) {
-                string s;
-                DisAsm(s, bytecode.data());
-                fputs(s.c_str(), f);
-                fclose(f);
-            }
+            string s;
+            DisAsm(s, bytecode.data());
+            WriteFile("disasm.txt", false, s.c_str(), s.length());
         }
         if (to_cpp) {
             // FIXME: make less hard-coded.

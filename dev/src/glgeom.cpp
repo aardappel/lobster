@@ -217,11 +217,7 @@ bool Mesh::SaveAsPLY(const char *filename) {
     string s;
     if (!geom->WritePLY(s, nindices)) return false;
     for (auto &surf : surfs) surf->WritePLY(s);
-    FILE *f = OpenForWriting(filename, true);
-    if (!f) return false;
-    fwrite(s.c_str(), s.size(), 1, f);
-    fclose(f);
-    return true;
+    return WriteFile(filename, true, s.c_str(), s.size());
 }
 
 void SetPointSprite(float scale) {

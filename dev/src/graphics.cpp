@@ -805,6 +805,17 @@ void AddGraphics() {
         "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
         " values.");
 
+    STARTDECL(gl_dumpshader) (Value &filename, Value &stripnonascii) {
+        TestGL();
+        currentshader->Activate();
+        auto ok = currentshader->Dump(filename.sval()->str(), stripnonascii.True());
+        return Value(ok);
+    }
+    ENDDECL2(gl_dumpshader, "filename,stripnonascii", "SI", "I",
+        "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
+        " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
+        " pass true for stripnonascii if you're only interested in that part.");
+
     STARTDECL(gl_blend) (Value &mode, Value &body) {
         TestGL();
         int old = SetBlendMode((BlendMode)mode.ival());
