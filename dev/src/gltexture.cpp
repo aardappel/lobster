@@ -48,12 +48,15 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap);
     glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap);
     if(tf & TF_3D) glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap);
-    glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST ? GL_NEAREST : GL_LINEAR);
+    glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST_MAG ? GL_NEAREST : GL_LINEAR);
     glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
-        tf & TF_NOMIPMAP ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
+        tf & TF_NOMIPMAP ? (tf & TF_NEAREST_MIN ? GL_NEAREST : GL_LINEAR)
+                         : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
+                                                : GL_LINEAR_MIPMAP_LINEAR));
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
     auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE8 : GL_RGBA8;
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE : GL_RGBA;
+    auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uchar) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
     if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3))
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // Defaults to 4.
@@ -61,6 +64,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
             internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             bufferformat = internalformat;
+            buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4);
             buffercomponent = GL_FLOAT;
         #else
             assert(false);  // buf points to float data, which we don't support.
@@ -74,14 +78,24 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
             assert(false);
         #endif
     } else if(tf & TF_3D) {
-        GL_CALL(glTexImage3D(textype, 0, internalformat, dim[0], dim[1], dim[2], 0, bufferformat,
-                             buffercomponent, buf));
-    } else {
-        for (int i = 0; i < texnumfaces; i++)
-            GL_CALL(glTexImage2D(teximagetype + i, 0, internalformat, dim[0], dim[1], 0,
+        int mipl = 0;
+        for (auto d = int3(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+            GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x(), d.y(), d.z(), 0,
                                  bufferformat, buffercomponent, buf));
+            mipl++;
+            buf += d.volume() * buffersize;
+        }
+    } else {
+        int mipl = 0;
+        for (auto d = int2(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+            for (int i = 0; i < texnumfaces; i++)
+                GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x(), d.y(), 0,
+                                     bufferformat, buffercomponent, buf));
+            mipl++;
+            buf += d.volume() * buffersize;
+        }
     }
-    if (!(tf & TF_NOMIPMAP)) {
+    if (!(tf & TF_NOMIPMAP) && !(tf & TF_BUFFER_HAS_MIPS)) {
         glEnable(textype);  // required on ATI for mipmapping to work?
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glGenerateMipmap)     // only exists in 3.0 contexts and up.

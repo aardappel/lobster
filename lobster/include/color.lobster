@@ -46,14 +46,16 @@ color_blue_violet :== color { 0.5, 0,   1,   1 }
 enum * texture_format_none = 0,
        texture_format_clamp = 1,
        texture_format_nomipmap,
-       texture_format_nearest,
+       texture_format_nearest_mag,
+       texture_format_nearest_min,
        texture_format_float,
        texture_format_writeonly,
        texture_format_readwrite,
        texture_format_cubemap,
        texture_format_multisample,
        texture_format_single_channel,
-       texture_format_3d
+       texture_format_3d,
+       texture_format_buffer_has_mips
 
 // blending constants
 

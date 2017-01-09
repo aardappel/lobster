@@ -147,13 +147,17 @@ extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
 // These must correspond to the constants in color.lobster
 enum TextureFlag {
     TF_NONE = 0,
-    TF_CLAMP = 1, TF_NOMIPMAP = 2, TF_NEAREST = 4,
-    TF_FLOAT = 8,                           // rgba32f instead of rgba8
-    TF_WRITEONLY = 16, TF_READWRITE = 32,   // Default is readonly.
-    TF_CUBEMAP = 64,
-    TF_MULTISAMPLE = 128,
-    TF_SINGLE_CHANNEL = 256,                // Default is RGBA.
-    TF_3D = 512,
+    TF_CLAMP = 1,
+    TF_NOMIPMAP = 2,
+    TF_NEAREST_MAG = 4,
+    TF_NEAREST_MIN = 8,
+    TF_FLOAT = 16,                           // rgba32f instead of rgba8
+    TF_WRITEONLY = 32, TF_READWRITE = 64,   // Default is readonly.
+    TF_CUBEMAP = 128,
+    TF_MULTISAMPLE = 256,
+    TF_SINGLE_CHANNEL = 512,                // Default is RGBA.
+    TF_3D = 1024,
+    TF_BUFFER_HAS_MIPS = 2048,
 };
 
 extern uint CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);

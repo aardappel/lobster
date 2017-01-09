@@ -33,8 +33,7 @@ template<typename T> class Chunk3DGrid : NonCopyable {
     }
 
     // This creates a Z-major continuous buffer, whereas the original data is X-major.
-    T *ToContinousGrid() {
-        auto buf = new T[dim.x() * dim.y() * dim.z()];
+    void ToContinousGrid(T *buf) {
         for (int z = 0; z < dim.z(); z++) {
             for (int y = 0; y < dim.y(); y++) {
                 for (int x = 0; x < dim.x(); x++) {
@@ -42,7 +41,6 @@ template<typename T> class Chunk3DGrid : NonCopyable {
                 }
             }
         }
-        return buf;
     }
 };
 

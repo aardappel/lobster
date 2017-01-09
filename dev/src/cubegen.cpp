@@ -48,10 +48,11 @@ const uchar transparant = 0;
 
 struct Voxels {
     vector<byte4> palette;
+    bool is_default_palette;
     Chunk3DGrid<uchar> grid;
-    int i;
+    int idx;
 
-    Voxels(const int3 &dim) : grid(dim, transparant), i(0) {}
+    Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant), idx(0) {}
 
     void Set(const int3 &p, const int3 &sz, uchar pi) {
         for (int x = max(0, p.x()); x < min(p.x() + sz.x(), grid.dim.x()); x++) {
@@ -61,6 +62,25 @@ struct Voxels {
                 }
             }
         }
+    }
+
+    uchar Color2Palette(const float4 &color) {
+        uchar pi = transparant;
+        if (color.w() >= 0.5f) {
+            if (is_default_palette) {  // Fast path.
+                auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
+                pi = (5 - ic.x()) * 36 +
+                     (5 - ic.y()) * 6 +
+                     (5 - ic.z()) + 1;
+            } else {
+                float error = 9999;
+                for (size_t i = 1; i < palette.size(); i++) {
+                    auto err = squaredlength(float4(palette[i]) - color);
+                    if (err < error) { error = err; pi = (uchar)i; }
+                }
+            }
+        }
+        return pi;
     }
 };
 
@@ -81,7 +101,7 @@ Voxels &NewWorld(const int3 &size) {
     if (!voxels_set)
         voxels_set = new IntResourceManagerCompact<Voxels>([](Voxels *v) { delete v; });
     auto v = new Voxels(size);
-    v->i = (int)voxels_set->Add(v);
+    v->idx = (int)voxels_set->Add(v);
     v->palette.insert(v->palette.end(), (byte4 *)default_palette, ((byte4 *)default_palette) + 256);
     return *v;
 }
@@ -89,7 +109,7 @@ Voxels &NewWorld(const int3 &size) {
 void AddCubeGen() {
     STARTDECL(cg_init) (Value &size) {
         auto &v = NewWorld(ValueDecToI<3>(size));
-        return Value(v.i);
+        return Value(v.idx);
     }
     ENDDECL1(cg_init, "size", "I]:3", "I",
         "initializes a new, empty 3D cube world. 4 bytes per cell, careful with big sizes :)"
@@ -110,20 +130,12 @@ void AddCubeGen() {
     ENDDECL4(cg_set, "worldid,pos,size,paletteindex", "II]:3I]:3I", "",
         "sets a range of cubes to palette index. index 0 is considered empty space");
 
-    STARTDECL(cg_color_to_default_palette) (Value &color) {
-        auto col = quantizec(ValueDecToF<4>(color));
-        uchar pi = transparant;
-        if (col.w() >= 128) {
-            auto ic = byte4((int4(col) + (0x33 / 2)) / 0x33);
-            pi = (5 - ic.x()) * 36 +
-                (5 - ic.y()) * 6 +
-                (5 - ic.z()) + 1;
-        }
-        return Value(pi);
+    STARTDECL(cg_color_to_palette) (Value &wid, Value &color) {
+        return Value(GetVoxels(wid).Color2Palette(ValueDecToF<4>(color)));
     }
-    ENDDECL1(cg_color_to_default_palette, "color", "F]:4", "I",
+    ENDDECL2(cg_color_to_palette, "worldid,color", "IF]:4", "I",
         "converts a color to a palette index. alpha < 0.5 is considered empty space."
-        " note: only works for the default palette");
+        " note: this is fast for the default palette, slow otherwise.");
 
     STARTDECL(cg_palette_to_color) (Value &wid, Value &pal) {
         auto p = uchar(pal.ival());
@@ -234,9 +246,42 @@ void AddCubeGen() {
 
     STARTDECL(cg_create_3d_texture) (Value &wid) {
         auto &v = GetVoxels(wid);
-        auto buf = v.grid.ToContinousGrid();
+        auto mipsizes = 0;
+        for (auto d = v.grid.dim; d.x(); d /= 2) mipsizes += d.volume();
+        auto buf = new uchar[mipsizes];
+        v.grid.ToContinousGrid(buf);
+        auto mipb = buf;
+        for (auto db = v.grid.dim; db.x() > 1; db /= 2) {
+            auto ds = db / 2;
+            auto mips = mipb + db.volume();
+            for (int z = 0; z < ds.z(); z++) {
+                auto zb = z * 2;
+                for (int y = 0; y < ds.y(); y++) {
+                    auto yb = y * 2;
+                    for (int x = 0; x < ds.x(); x++) {
+                        auto xb = x * 2;
+                        auto sum = float4_0;
+                        int filled = 0;
+                        for (int sz = 0; sz < 2; sz++) {
+                            for (int sy = 0; sy < 2; sy++) {
+                                for (int sx = 0; sx < 2; sx++) {
+                                    auto i = mipb[(zb + sz) * db.x() * db.y() +
+                                                    (yb + sy) * db.x() + xb + sx];
+                                    if (i != transparant) { sum += float4(v.palette[i]); filled++; }
+                                }
+                            }
+                        }
+                        auto pi = filled >= 4 ? v.Color2Palette(sum / (filled * 255.0f))
+                                              : transparant;
+                        mips[z * ds.x() * ds.y() + y * ds.x() + x] = pi;
+                    }
+                }
+            }
+            mipb = mips;
+        }
         auto tex = CreateTexture(buf, v.grid.dim.data(),
-                                 TF_3D | TF_NOMIPMAP | TF_NEAREST | TF_CLAMP | TF_SINGLE_CHANNEL);
+            TF_3D | TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP | TF_SINGLE_CHANNEL |
+            TF_BUFFER_HAS_MIPS);
         delete[] buf;
         return Value((int)tex);
     }
@@ -267,6 +312,12 @@ void AddCubeGen() {
                 voxels->palette.clear();
                 voxels->palette.push_back(byte4_0);
                 voxels->palette.insert(voxels->palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
+                for (size_t i = 0; i < voxels->palette.size(); i++) {
+                    if (voxels->palette[i] != *(byte4 *)&default_palette[i]) {
+                        voxels->is_default_palette = false;
+                        break;
+                    }
+                }
             } else if (!strncmp((char *)id, "XYZI", 4)) {
                 assert(size.x());
                 voxels = &NewWorld(size);
@@ -279,7 +330,7 @@ void AddCubeGen() {
             p += contentlen;
         }
         free(buf);
-        return Value(voxels->i);
+        return Value(voxels->idx);
     }
     ENDDECL1(cg_load_vox, "name", "S", "I",
         "loads a file in the .vox format (MagicaVoxel). returns world id or 0 if file failed to"
