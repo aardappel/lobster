@@ -1068,10 +1068,21 @@ struct TypeChecker {
                     if (!isconst) {
                         auto tleft = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
                         auto tright = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
-                        type = Union(tleft, tright, false);
-                        // These will potentially make either body from T_CALL into some coercion.
-						SubType(n.if_then(), type, "then branch", n);
-                        SubType(n.if_else(), type, "else branch", n);
+                        // FIXME: this is a bit of a hack. Much better if we had an actual type
+                        // to signify NORETURN, to be taken into account in more places.
+                        if (Parser::LastInList(n.if_then()->call_function()->sf()->body)
+                                    ->head()->type == T_RETURN) {
+                            type = tright;
+                        } else if (Parser::LastInList(n.if_else()->call_function()->sf()->body)
+                                           ->head()->type == T_RETURN) {
+                            type = tleft;
+                        } else {
+                            type = Union(tleft, tright, false);
+                            // These will potentially make either body from T_CALL into some
+                            // coercion.
+						    SubType(n.if_then(), type, "then branch", n);
+                            SubType(n.if_else(), type, "else branch", n);
+                        }
                     } else if (cval.True()) {
                         // Ignore the else part, optimizer guaranteed to cull it.
                         type = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
