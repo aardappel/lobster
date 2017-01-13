@@ -2,6 +2,7 @@
 
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 include "3dhelpers.lobster"
 include "physics.lobster"
 

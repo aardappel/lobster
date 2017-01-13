@@ -128,6 +128,7 @@ namespace lobster {
     T0(T_FROM, "from", 0, false) \
     T0(T_PROGRAM, "program", 0, false) \
     T0(T_PRIVATE, "private", 0, false) \
+    T0(T_RESOURCE, "resource", 0, false) \
     T0(T_ENUM, "enum", 0, false) \
     T0(T_VAR, "var", 0, false) \
     T0(T_CONST, "const", 0, false) \

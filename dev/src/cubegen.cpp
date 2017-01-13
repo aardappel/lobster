@@ -84,42 +84,35 @@ struct Voxels {
     }
 };
 
-IntResourceManagerCompact<Voxels> *voxels_set = nullptr;
+static ResourceType voxel_type = { "voxels", [](void *v) { delete (Voxels *)v; } };
 
-Voxels &GetVoxels(Value &i) {
-    auto v = voxels_set->Get(i.ival());
-    if (!v) g_vm->BuiltinError("illegal voxel grid id: " + to_string(i.ival()));
-    return *v;
+Voxels &GetVoxels(Value &res) {
+    return *GetResourceDec<Voxels *>(res, &voxel_type);
 }
 
 void CubeGenClear() {
-    if (voxels_set) delete voxels_set;
-    voxels_set = nullptr;
 }
 
-Voxels &NewWorld(const int3 &size) {
-    if (!voxels_set)
-        voxels_set = new IntResourceManagerCompact<Voxels>([](Voxels *v) { delete v; });
+Voxels *NewWorld(const int3 &size) {
     auto v = new Voxels(size);
-    v->idx = (int)voxels_set->Add(v);
     v->palette.insert(v->palette.end(), (byte4 *)default_palette, ((byte4 *)default_palette) + 256);
-    return *v;
+    return v;
 }
 
 void AddCubeGen() {
     STARTDECL(cg_init) (Value &size) {
-        auto &v = NewWorld(ValueDecToI<3>(size));
-        return Value(v.idx);
+        auto v = NewWorld(ValueDecToI<3>(size));
+        return Value(g_vm->NewResource(v, &voxel_type));
     }
-    ENDDECL1(cg_init, "size", "I]:3", "I",
-        "initializes a new, empty 3D cube world. 4 bytes per cell, careful with big sizes :)"
-        " returns the world id");
+    ENDDECL1(cg_init, "size", "I]:3", "X",
+        "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
+        " returns the block");
 
     STARTDECL(cg_size) (Value &wid) {
         return Value(ToValueI(GetVoxels(wid).grid.dim));
     }
-    ENDDECL1(cg_size, "worldid", "I", "I]:3",
-        "returns the current world size");
+    ENDDECL1(cg_size, "block", "X", "I]:3",
+        "returns the current block size");
 
     STARTDECL(cg_set) (Value &wid, Value &pos, Value &size, Value &color) {
         auto p = ValueDecToI<3>(pos);
@@ -127,13 +120,13 @@ void AddCubeGen() {
         GetVoxels(wid).Set(p, sz, (uchar)color.ival());
         return Value();
     }
-    ENDDECL4(cg_set, "worldid,pos,size,paletteindex", "II]:3I]:3I", "",
+    ENDDECL4(cg_set, "block,pos,size,paletteindex", "XI]:3I]:3I", "",
         "sets a range of cubes to palette index. index 0 is considered empty space");
 
     STARTDECL(cg_color_to_palette) (Value &wid, Value &color) {
         return Value(GetVoxels(wid).Color2Palette(ValueDecToF<4>(color)));
     }
-    ENDDECL2(cg_color_to_palette, "worldid,color", "IF]:4", "I",
+    ENDDECL2(cg_color_to_palette, "block,color", "XF]:4", "I",
         "converts a color to a palette index. alpha < 0.5 is considered empty space."
         " note: this is fast for the default palette, slow otherwise.");
 
@@ -141,7 +134,7 @@ void AddCubeGen() {
         auto p = uchar(pal.ival());
         return Value(ToValueF(color2vec(GetVoxels(wid).palette[p])));
     }
-    ENDDECL2(cg_palette_to_color, "worldid,paletteindex", "II", "F]:4",
+    ENDDECL2(cg_palette_to_color, "block,paletteindex", "XI", "F]:4",
         "converts a palette index to a color. empty space (index 0) will have 0 alpha");
 
     STARTDECL(cg_copy_palette) (Value &fromworld, Value &toworld) {
@@ -151,7 +144,7 @@ void AddCubeGen() {
         w2.palette.insert(w2.palette.end(), w1.palette.begin(), w1.palette.end());
         return Value();
     }
-    ENDDECL2(cg_copy_palette, "fromworld,toworld", "II", "",
+    ENDDECL2(cg_copy_palette, "fromworld,toworld", "XX", "",
         "");
 
     STARTDECL(cg_create_mesh) (Value &wid) {
@@ -238,11 +231,11 @@ void AddCubeGen() {
         auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(cvert), "PNC"),
                           PRIM_TRIS);
         m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
-        extern IntResourceManagerCompact<Mesh> *meshes;
-        return (int)meshes->Add(m);
+        extern ResourceType mesh_type;
+        return Value(g_vm->NewResource(m, &mesh_type));
     }
-    ENDDECL1(cg_create_mesh, "worldid", "I", "I",
-        "converts world to a mesh");
+    ENDDECL1(cg_create_mesh, "block", "X", "X",
+        "converts block to a mesh");
 
     STARTDECL(cg_create_3d_texture) (Value &wid) {
         auto &v = GetVoxels(wid);
@@ -283,10 +276,11 @@ void AddCubeGen() {
             TF_3D | TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP | TF_SINGLE_CHANNEL |
             TF_BUFFER_HAS_MIPS);
         delete[] buf;
-        return Value((int)tex);
+        extern ResourceType texture_type;
+        return Value(g_vm->NewResource((void *)tex, &texture_type));
     }
-    ENDDECL1(cg_create_3d_texture, "worldid", "I", "I",
-        "returns the new texture id");
+    ENDDECL1(cg_create_3d_texture, "block", "X", "X",
+        "returns the new texture");
 
     STARTDECL(cg_load_vox) (Value &name) {
         size_t len = 0;
@@ -295,7 +289,7 @@ void AddCubeGen() {
         if (!buf) return Value(0);
         if (strncmp((char *)buf, "VOX ", 4)) {
             free(buf);
-            return Value(0);
+            return Value();
         }
         int3 size = int3_0;
         Voxels *voxels = nullptr;
@@ -320,7 +314,7 @@ void AddCubeGen() {
                 }
             } else if (!strncmp((char *)id, "XYZI", 4)) {
                 assert(size.x());
-                voxels = &NewWorld(size);
+                voxels = NewWorld(size);
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uchar *)(p + i * 4 + 4));
@@ -330,10 +324,10 @@ void AddCubeGen() {
             p += contentlen;
         }
         free(buf);
-        return Value(voxels->idx);
+        return Value(g_vm->NewResource(voxels, &voxel_type));
     }
-    ENDDECL1(cg_load_vox, "name", "S", "I",
-        "loads a file in the .vox format (MagicaVoxel). returns world id or 0 if file failed to"
+    ENDDECL1(cg_load_vox, "name", "S", "X?",
+        "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
         " load");
 
     STARTDECL(cg_save_vox) (Value &wid, Value &name) {
@@ -381,16 +375,8 @@ void AddCubeGen() {
         fclose(f);
         return Value(true);
     }
-    ENDDECL2(cg_save_vox, "worldid,name", "IS", "I",
+    ENDDECL2(cg_save_vox, "block,name", "XS", "I",
         "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
-        " this format can only save worlds < 256^3, will fail if bigger");
-
-    STARTDECL(cg_delete) (Value &wid) {
-        voxels_set->Delete(wid.ival());
-        return Value();
-    }
-    ENDDECL1(cg_delete, "worldid", "I", "",
-        "deletes a world");
-
+        " this format can only save blocks < 256^3, will fail if bigger");
 
 }

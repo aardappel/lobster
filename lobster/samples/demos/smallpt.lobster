@@ -15,6 +15,7 @@ I timed it to be 2.5 times faster than the Python version, though most of that w
 
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 
 value Ray { o:xyz_f, d:xyz_f }
 
@@ -159,7 +160,6 @@ while gl_frame():
     gl_blend(blend_none)
     gl_setshader("textured")
     gl_rect(xy_f { w, h })
-    gl_deletetexture(tex)
 
 
 

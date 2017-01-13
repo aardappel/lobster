@@ -126,6 +126,7 @@ struct CodeGen  {
         Type type_boxedint(V_BOXEDINT);                     GetTypeTableOffset(&type_boxedint);
         Type type_boxedfloat(V_BOXEDFLOAT);                 GetTypeTableOffset(&type_boxedfloat);
                                                             GetTypeTableOffset(type_string);
+                                                            GetTypeTableOffset(type_resource);
                                                             GetTypeTableOffset(type_any);
         Type type_valuebuf(V_VALUEBUF);                     GetTypeTableOffset(&type_valuebuf);
         Type type_stackframebuf(V_STACKFRAMEBUF);           GetTypeTableOffset(&type_stackframebuf);

@@ -23,13 +23,21 @@
 using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
-IntResourceManagerCompact<Mesh> *meshes = NULL;
-unordered_map<string, uint> texturecache;
 Shader *currentshader = NULL;
 Shader *colorshader = NULL;
 float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
+
+ResourceType mesh_type = { "mesh", [](void *m) { delete (Mesh *)m; } };
+ResourceType texture_type = { "texture", [](void *t) { uint tex = (int)t; DeleteTexture(tex); } };
+
+Mesh &GetMesh(Value &res) {
+    return *GetResourceDec<Mesh *>(res, &mesh_type);
+}
+uint GetTexture(Value &res) {
+    return GetResourceDec<uint>(res, &texture_type);
+}
 
 // Should be safe to call even if it wasn't initialized partially or at all.
 void GraphicsShutDown() {
@@ -38,11 +46,6 @@ void GraphicsShutDown() {
     extern void MeshGenClear(); MeshGenClear();
     extern void CubeGenClear(); CubeGenClear();
     extern void FontCleanup(); FontCleanup();
-    if (meshes) {
-        delete meshes;
-        meshes = NULL;
-    }
-    texturecache.clear();
     ShaderShutDown();
     currentshader = NULL;
     colorshader = NULL;
@@ -96,12 +99,6 @@ void PopTransform() {
     s.DECRT();
 }
 
-Mesh *GetMesh(Value &i) {
-    auto m = meshes->Get(i.ival());
-    if (!m) g_vm->BuiltinError("graphics: illegal mesh id: " + to_string(i.ival()));
-    return m;
-}
-
 int GetSampler(Value &i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         g_vm->BuiltinError("graphics: illegal texture unit");
@@ -143,7 +140,6 @@ void AddGraphics() {
         }
         colorshader = LookupShader("color");
         assert(colorshader);
-        meshes = new IntResourceManagerCompact<Mesh>([](Mesh *m) { delete m; });
         Output(OUTPUT_INFO, "graphics fully initialized...");
         graphics_initialized = true;
         return Value();
@@ -641,9 +637,9 @@ void AddGraphics() {
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
         delete[] verts;
-        return Value((int)meshes->Add(m));
+        return Value(g_vm->NewResource(m, &mesh_type));
     }
-    ENDDECL3(gl_newmesh, "format,attributes,indices", "SF]]]I]?", "I",
+    ENDDECL3(gl_newmesh, "format,attributes,indices", "SF]]]I]?", "X",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
         " position is obligatory and must come first."
@@ -655,9 +651,9 @@ void AddGraphics() {
     STARTDECL(gl_newpoly) (Value &positions) {
         auto m = CreatePolygon(positions);
         positions.DECRT();
-        return Value((int)meshes->Add(m));
+        return Value(g_vm->NewResource(m, &mesh_type));
     }
-    ENDDECL1(gl_newpoly, "positions", "F]]", "I",
+    ENDDECL1(gl_newpoly, "positions", "F]]", "X",
         "creates a mesh out of a loop of points, much like gl_polygon."
         " gl_linemode determines how this gets drawn (fan or loop)."
         " returns mesh id");
@@ -666,57 +662,50 @@ void AddGraphics() {
         TestGL();
         auto m = LoadIQM(fn.sval()->str());
         fn.DECRT();
-        return Value(m ? (int)meshes->Add(m) : 0);
+        return m ? Value(g_vm->NewResource(m, &mesh_type)) : Value();
     }
-    ENDDECL1(gl_newmesh_iqm, "filename", "S", "I",
-        "load a .iqm file into a mesh, returns integer id (1..), or 0 on failure to load.");
-
-    STARTDECL(gl_deletemesh) (Value &i) {
-        meshes->Delete(i.ival());
-        return Value();
-    }
-    ENDDECL1(gl_deletemesh, "i", "I", "",
-        "free up memory for the given mesh id");
+    ENDDECL1(gl_newmesh_iqm, "filename", "S", "X?",
+        "load a .iqm file into a mesh, returns mesh or nil on failure to load.");
 
     STARTDECL(gl_meshparts) (Value &i) {
-        auto m = GetMesh(i);
-        auto v = (LVector *)g_vm->NewVector(0, (int)m->surfs.size(),
+        auto &m = GetMesh(i);
+        auto v = (LVector *)g_vm->NewVector(0, (int)m.surfs.size(),
                                             g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
-        for (auto s : m->surfs) v->Push(Value(g_vm->NewString(s->name)));
+        for (auto s : m.surfs) v->Push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }
-    ENDDECL1(gl_meshparts, "i", "I", "S]",
-        "returns an array of names of all parts of mesh i (names may be empty)");
+    ENDDECL1(gl_meshparts, "m", "X", "S]",
+        "returns an array of names of all parts of mesh m (names may be empty)");
 
     STARTDECL(gl_meshsize) (Value &i) {
-        auto m = GetMesh(i);
-        return Value((int)m->geom->nverts);
+        auto &m = GetMesh(i);
+        return Value((int)m.geom->nverts);
     }
-    ENDDECL1(gl_meshsize, "i", "I", "I",
+    ENDDECL1(gl_meshsize, "m", "X", "I",
         "returns the number of verts in this mesh");
 
     STARTDECL(gl_animatemesh) (Value &i, Value &f) {
-        GetMesh(i)->curanim = f.fval();
+        GetMesh(i).curanim = f.fval();
         return Value();
     }
-    ENDDECL2(gl_animatemesh, "i,frame", "IF", "",
-        "set the frame for animated mesh i");
+    ENDDECL2(gl_animatemesh, "m,frame", "XF", "",
+        "set the frame for animated mesh m");
 
     STARTDECL(gl_rendermesh) (Value &i) {
         TestGL();
-        GetMesh(i)->Render(currentshader);
+        GetMesh(i).Render(currentshader);
         return Value();
     }
-    ENDDECL1(gl_rendermesh, "i", "I", "",
+    ENDDECL1(gl_rendermesh, "m", "X", "",
         "renders the specified mesh");
 
     STARTDECL(gl_savemesh) (Value &i, Value &name) {
         TestGL();
-        bool ok = GetMesh(i)->SaveAsPLY(name.sval()->str());
+        bool ok = GetMesh(i).SaveAsPLY(name.sval()->str());
         name.DECRT();
         return Value(ok);
     }
-    ENDDECL2(gl_savemesh, "i,name", "IS", "I",
+    ENDDECL2(gl_savemesh, "m,name", "XS", "I",
         "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
         " procedurally. returns false if the file could not be written");
 
@@ -788,12 +777,12 @@ void AddGraphics() {
 
     STARTDECL(gl_bindmeshtocompute) (Value &mesh, Value &bpi) {
         TestGL();
-        if (mesh.ival()) GetMesh(mesh)->geom->BindAsSSBO(bpi.ival());
+        if (mesh.True()) GetMesh(mesh).geom->BindAsSSBO(bpi.ival());
         else BindVBOAsSSBO(bpi.ival(), 0);
         return Value();
     }
-    ENDDECL2(gl_bindmeshtocompute, "mesh,binding", "II", "",
-        "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a 0 mesh to"
+    ENDDECL2(gl_bindmeshtocompute, "mesh,binding", "X?I", "",
+        "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
         " unbind.");
 
     STARTDECL(gl_dispatchcompute) (Value &groups) {
@@ -809,6 +798,7 @@ void AddGraphics() {
         TestGL();
         currentshader->Activate();
         auto ok = currentshader->Dump(filename.sval()->str(), stripnonascii.True());
+        filename.DECRT();
         return Value(ok);
     }
     ENDDECL2(gl_dumpshader, "filename,stripnonascii", "SI", "I",
@@ -835,52 +825,43 @@ void AddGraphics() {
         TestGL();
         uint id = 0;
         int2 dim(0);
-        auto it = texturecache.find(name.sval()->str());
-        if (it != texturecache.end()) {
-            id = it->second;
-        } else {
-            id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
-
-            if (id) texturecache[name.sval()->str()] = id;
-        }
+        id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
         name.DECRT();
-        g_vm->Push(Value((int)id));
+        g_vm->Push(g_vm->NewResource((void *)id, &texture_type));
         return ToValueI(dim);
     }
-    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "II]:2",
-        "returns texture id if succesfully loaded from file name, otherwise 0."
-        " see color.lobster for texture format."
-        " Returns the size of the loaded textures in pixels as second return value on first load"
-        " (xy_i), or (0, 0) otherwise."
-        " Only loads from disk once if called again with the same name. Uses stb_image internally"
+    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I]:2",
+        "returns texture if succesfully loaded from file name, otherwise nil."
+        " see color.lobster for texture format. Returns the size of the loaded textures in pixels"
+        " as second return value (xy_i), or (0, 0) otherwise. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
         " PIC.");
 
     STARTDECL(gl_setprimitivetexture) (Value &i, Value &id, Value &tf) {
         TestGL();
-        SetTexture(GetSampler(i), id.ival(), tf.ival());
+        SetTexture(GetSampler(i), GetTexture(id), tf.ival());
         return Value();
     }
-    ENDDECL3(gl_setprimitivetexture, "i,id,textureformat", "III?", "",
-        "sets texture unit i to texture id (for use with rect/circle/polygon/line)");
+    ENDDECL3(gl_setprimitivetexture, "i,tex,textureformat", "IXI?", "",
+        "sets texture unit i to texture (for use with rect/circle/polygon/line)");
 
     STARTDECL(gl_setmeshtexture) (Value &mid, Value &part, Value &i, Value &id) {
-        auto m = GetMesh(mid);
-        if (part.ival() < 0 || part.ival() >= (int)m->surfs.size())
+        auto &m = GetMesh(mid);
+        if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             g_vm->BuiltinError("setmeshtexture: illegal part index");
-        m->surfs[part.ival()]->textures[GetSampler(i)] = id.ival();
+        m.surfs[part.ival()]->textures[GetSampler(i)] = GetTexture(id);
         return Value();
     }
-    ENDDECL4(gl_setmeshtexture, "meshid,part,i,textureid", "IIII", "",
-        "sets texture unit i to texture id for a mesh and part (0 if not a multi-part mesh)");
+    ENDDECL4(gl_setmeshtexture, "mesh,part,i,texture", "XIIX", "",
+        "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)");
 
     STARTDECL(gl_setimagetexture) (Value &i, Value &id, Value &tf) {
         TestGL();
-        SetImageTexture(GetSampler(i), id.ival(), tf.ival());
+        SetImageTexture(GetSampler(i), GetTexture(id), tf.ival());
         return Value();
     }
-    ENDDECL3(gl_setimagetexture, "i,id,textureformat", "III", "",
-        "sets image unit i to texture id (for use with compute). texture format must be the same"
+    ENDDECL3(gl_setimagetexture, "i,tex,textureformat", "IXI", "",
+        "sets image unit i to texture (for use with compute). texture format must be the same"
         " as what you specified in gl_loadtexture / gl_createtexture,"
         " with optionally writeonly/readwrite flags.");
 
@@ -904,50 +885,32 @@ void AddGraphics() {
         matv.DECRT();
         uint id = CreateTexture(buf, int2(xs, ys).data(), tf.ival());
         delete[] buf;
-        return Value((int)id);
+        return Value(g_vm->NewResource((void *)id, &texture_type));
     }
-    ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "I",
-        "creates a texture from a 2d array of color vectors, returns texture id."
-        " see color.lobster for texture format");
+    ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "X",
+        "creates a texture from a 2d array of color vectors."
+        " see texture.lobster for texture format");
 
     STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf) {
         TestGL();
-        return Value((int)CreateBlankTexture(ValueDecToI<2>(size_), ValueDecToF<4>(col),
-                                             tf.ival()));
+        auto id = CreateBlankTexture(ValueDecToI<2>(size_), ValueDecToF<4>(col), tf.ival());
+        return Value(g_vm->NewResource((void *)id, &texture_type));
     }
-    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "I",
-        "creates a blank texture (for use as frame buffer or with compute shaders), returns texture"
-        " id. see color.lobster for texture format");
+    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "X",
+        "creates a blank texture (for use as frame buffer or with compute shaders)."
+        " see texture.lobster for texture format");
 
-    STARTDECL(gl_deletetexture) (Value &i) {
+    STARTDECL(gl_texturesize) (Value &tex) {
         TestGL();
-        uint tex = i.ival();
-        auto it = texturecache.begin();
-        // this is potentially expensive, we're counting on gl_deletetexture not being needed often
-        while (it != texturecache.end()) {
-            if (it->second == uint(tex)) texturecache.erase(it++);
-            else ++it;
-        }
-        // the surfaces in meshes are still potentially referring to this texture,
-        // but OpenGL doesn't care about illegal texture ids, so neither do we
-        DeleteTexture(tex);
-        return Value();
-    }
-    ENDDECL1(gl_deletetexture, "i", "I", "",
-        "free up memory for the given texture id");
-
-    STARTDECL(gl_texturesize) (Value &i) {
-        TestGL();
-        uint tex = i.ival();
-        auto size = TextureSize(tex);
+        auto size = TextureSize(GetTexture(tex));
         return ToValueI(size);
     }
-    ENDDECL1(gl_texturesize, "i", "I", "I:2]",
+    ENDDECL1(gl_texturesize, "tex", "X", "I:2]",
         "returns the size of a texture");
 
-    STARTDECL(gl_readtexture) (Value &i) {
+    STARTDECL(gl_readtexture) (Value &t) {
         TestGL();
-        uint tex = i.ival();
+        uint tex = GetTexture(t);
         auto size = TextureSize(tex);
         auto numpixels = size.x() * size.y();
         if (!numpixels) return Value();
@@ -956,23 +919,24 @@ void AddGraphics() {
         delete[] buf;
         return Value(s);
     }
-    ENDDECL1(gl_readtexture, "i", "I", "S?",
+    ENDDECL1(gl_readtexture, "tex", "X", "S?",
         "read back RGBA texture data into a string or nil on failure");
 
-    STARTDECL(gl_switchtoframebuffer) (Value &tex, Value &fbsize, Value &depth, Value &tf,
+    STARTDECL(gl_switchtoframebuffer) (Value &t, Value &fbsize, Value &depth, Value &tf,
                                        Value &retex) {
         TestGL();
         auto sz = fbsize.True() ? ValueDecToI<2>(fbsize) : int2_0;
-        return Value(SwitchToFrameBuffer(tex.ival(), tex.ival() ? sz : GetScreenSize(),
+        auto tex = GetTexture(t);
+        return Value(SwitchToFrameBuffer(tex, tex ? sz : GetScreenSize(),
                                          depth.True(), tf.ival(), retex.ival()));
     }
-    ENDDECL5(gl_switchtoframebuffer, "texid,fbsize,hasdepth,textureformat,resolvetex", "II]?I?I?I?",
+    ENDDECL5(gl_switchtoframebuffer, "tex,fbsize,hasdepth,textureformat,resolvetex", "X?I]?I?I?I?",
         "I",
         "switches to a new framebuffer, that renders into the given texture. pass the texture size."
         " also allocates a depth buffer for it if depth is true."
         " pass the textureformat that was used for this texture."
         " pass a resolve texture if the base texture is multisample."
-        " pass a texid of 0 to switch back to the original framebuffer");
+        " pass a nil texture to switch back to the original framebuffer");
 
     STARTDECL(gl_light) (Value &pos, Value &params) {
         Light l;

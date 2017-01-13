@@ -55,7 +55,7 @@ inline void RecomputeNormals(vector<int> &triangles, vector<mgvert> &verts) {
                    (uchar *)&verts.data()->norm - (uchar *)&verts.data()->pos, false);
 };
 
-extern int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
-                         const FIndexGrid *fcellindices, vector<fcell> &fcells,
-                         const vector<float3> &materials,
-                         float3 (* grid_to_world)(const int3 &pos));
+extern Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
+                           const FIndexGrid *fcellindices, vector<fcell> &fcells,
+                           const vector<float3> &materials,
+                           float3 (* grid_to_world)(const int3 &pos));

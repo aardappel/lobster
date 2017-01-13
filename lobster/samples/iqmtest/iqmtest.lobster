@@ -2,15 +2,17 @@
 
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 include "3dhelpers.lobster"
 
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 
 iqmtest := check(gl_newmesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
 
-for(gl_meshparts(iqmtest)) name, i:
-    tex := check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
-    gl_setmeshtexture(iqmtest, i, 0, tex)
+textures := map(gl_meshparts(iqmtest)) name, i:
+    check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
+
+for(textures) tex, i: gl_setmeshtexture(iqmtest, i, 0, tex)
 
 camera_position = xyz { 0.0, 0.0, 8.0 }
 camera_yaw = -45

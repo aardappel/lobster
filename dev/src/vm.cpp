@@ -211,6 +211,9 @@ BoxedInt *VM::NewInt(int i) {
 BoxedFloat *VM::NewFloat(float f) {
     return new (vmpool->alloc(sizeof(BoxedFloat))) BoxedFloat(f);
 }
+LResource *VM::NewResource(void *v, const ResourceType *t) {
+    return new (vmpool->alloc(sizeof(LResource))) LResource(v, t);
+}
 #ifdef _WIN32
 #ifdef _DEBUG
 #define new DEBUG_NEW

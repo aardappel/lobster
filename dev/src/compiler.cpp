@@ -52,6 +52,7 @@ const Type g_type_vector_float(V_VECTOR, &g_type_float);
 const Type g_type_function_null(V_FUNCTION);
 const Type g_type_function_cocl(V_YIELD);
 const Type g_type_coroutine(V_COROUTINE);
+const Type g_type_resource(V_RESOURCE);
 const Type g_type_typeid(V_TYPEID);
 const Type g_type_function_nil(V_NIL, &g_type_function_null);
 
@@ -65,6 +66,7 @@ TypeRef type_vector_float = &g_type_vector_float;
 TypeRef type_function_null = &g_type_function_null;
 TypeRef type_function_cocl = &g_type_function_cocl;
 TypeRef type_coroutine = &g_type_coroutine;
+TypeRef type_resource = &g_type_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_function_nil = &g_type_function_nil;
 

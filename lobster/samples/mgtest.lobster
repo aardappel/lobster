@@ -25,7 +25,7 @@ if !aspoints:
 
 density := 80
 
-gun := 0
+gun := nil
 if true:
     mg_rotate(xyz_y, 90.0):
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
@@ -51,7 +51,7 @@ if true:
                 mg_cylinder()
     gun = mg_polygonize(density, [ [ 1.0, 1.0, 1.0 ], [ 1.0, 1.0, 1.0 ] ])
 
-spaceship := 0
+spaceship := nil
 if true:
     mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 2.0, 2.0, 2.0 ], [ 2.0, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
     mg_superquadric_non_uniform([ 2.0, 1.5, 1.0 ], [ 2.0, 1.5, 2.0 ], [ 4.0, 1.0, 0.7 ], [ 0.7, 1.0, 0.4 ])
@@ -105,7 +105,7 @@ if true:
     model_tree(9, 2.0, 0.7, 15)
     trees.push(mg_polygonize(density, [[ 0.6, 0.5, 0.4 ], [ 0.5, 0.7, 0.5 ]]))
 
-landscape := 0
+landscape := nil
 // Currently expensive way to do a landscape.
 if true:
     mg_landscape(0.5, 1.0)

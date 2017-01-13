@@ -7,6 +7,7 @@
 include "std.lobster"
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 include "3dhelpers.lobster"
 
 lssize := 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate

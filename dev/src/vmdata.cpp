@@ -21,6 +21,8 @@ namespace lobster {
 BoxedInt::BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
 BoxedFloat::BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
 LString::LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
+LResource::LResource(void *v, const ResourceType *t)
+    : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_RESOURCE)), val(v), type(t) {}
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
@@ -135,6 +137,7 @@ void RefObj::DECDELETE(bool deref) {
         case V_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(deref); break;
         case V_STRUCT:     ((LStruct *)this)->DeleteSelf(deref); break;
+        case V_RESOURCE:   ((LResource *)this)->DeleteSelf(); break;
         default:           assert(false);
     }
 }

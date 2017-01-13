@@ -44,6 +44,5 @@ while gl_frame():
 
     if gl_button("space") == 1:
         for 1000: modify()
-        gl_deletemesh(random_cubes)
         random_cubes = cg_create_mesh(w)
 

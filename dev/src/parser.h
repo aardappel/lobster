@@ -512,6 +512,7 @@ struct Parser {
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
+            case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
             case T_VECTTYPE:  dest = type_vector_any; lex.Next(); break;  // FIXME: remove this one?
             case T_FUN: {
                 lex.Next();

@@ -142,6 +142,7 @@ extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
 extern TypeRef type_function_nil;
 extern TypeRef type_coroutine;
+extern TypeRef type_resource;
 extern TypeRef type_typeid;
 
 enum ArgFlags {
@@ -188,6 +189,7 @@ struct Narg : Typed {
             case 'V': type = type_vector_any; break;  // Deprecated, use ']'
             case 'C': type = type_function_null; break;
             case 'R': type = type_coroutine; break;
+            case 'X': type = type_resource; break;
             case 'A': type = type_any; break;
             case 'T': type = type_typeid; break;
             default:  assert(0);

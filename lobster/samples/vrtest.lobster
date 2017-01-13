@@ -2,6 +2,7 @@
 
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 include "3dhelpers.lobster"
 
 vrmode := vr_init()
@@ -41,6 +42,8 @@ camera_pitch = 20
 
 balls := []::[xyz_f]
 
+controller_meshes := map(10): nil
+
 def drawworld():
     gl_clear(color_grey)
     gl_blend(blend_none)
@@ -76,7 +79,11 @@ while gl_frame():
                 drawworld()
             for(vr_nummotioncontrollers()) mc:
                 if vr_motioncontrollerstracking(mc):
-                    mcmesh := vr_motioncontrollermesh(mc)
+                    mcmesh := controller_meshes[mc]
+                    if !mcmesh:
+                        // FIXME: sadly have to do this on the fly because at init controllers and
+                        // meshes are not available for some reason.
+                        controller_meshes[mc] = mcmesh = vr_createmotioncontrollermesh(mc)
                     if mcmesh:
                         gl_color(color_white)
                         vr_motioncontroller(mc):
@@ -94,7 +101,7 @@ while gl_frame():
         gl_setshader("textured")
 
         for(2) e:
-            gl_setprimitivetexture(0, vr_geteyetex(e))
+            vr_seteyetex(0, e)
             gl_translate([ gl_windowsize().x * e / 2.0, gl_windowsize().y ]):
                     gl_rect([ gl_windowsize().x / 2.0, -gl_windowsize().y ])
     else:

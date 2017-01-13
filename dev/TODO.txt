@@ -1,3 +1,10 @@
+- ATM and many others don't render gui correctly anymore
+
+- if you declare a:[int] = [], then the constructor for [] will get types with [any] and have this
+  as its "ti" at runtime, which is incorrect
+
+- support default args?
+
 - function call optimization and simplication.
   - make a micro-benchmark to compare against other languages.
   - inlining
@@ -28,6 +35,9 @@
   - DOCS!
 
 - Add VAOs.
+
+- Make loadtexturecached into something using a generic map. But to declare it, need to be
+  able to specify generic vectors in struct decls.
 
 - consider baking Z up into functions.
   - clean up 3dhelpers?
@@ -77,8 +87,13 @@
 
 - for any error related to a builtin function, can also print argument names and helptext.
 
+- syntax: "if c: a, b = exp" doesn't compile if the multi-assign is on the same line.
+
 - typechecker
   - x.y.x does not participate in flow analysis and is pretty common
+  - x[i] does not do flow analysis.. not as trivial to add if i is an exp or could change.
+
+  - flow analysis should also know about if !a: return; a // not nil here
 
   - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
 
@@ -253,6 +268,10 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
+
+- There's a possibility gl_setmeshtexture will hold on to texture ids that get deleted.
+  Would be nice to avoid this, but don't want Mesh to have to hold on to an LResource, or
+  have to implement a second level of refcounting.
 
 - remove last cases of RenderArraySlow
   - cache for text VBOs, and cache for arbitrary polygons, cleared if not used in a frame.

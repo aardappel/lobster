@@ -3,6 +3,7 @@
 
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 
 /*
 TODO:
@@ -253,6 +254,7 @@ if program_name() == "gui.lobster": // run example
     //check(gl_setfontname("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
 
     ghosttex := gl_loadtexture("data/textures/lobster.jpg")
+    assert ghosttex
 
     clicked := false
     focused := false

@@ -3,6 +3,7 @@
 include "std.lobster"
 include "vec.lobster"
 include "color.lobster"
+include "texture.lobster"
 
 g :== 9.8
 mass := 1

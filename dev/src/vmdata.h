@@ -25,12 +25,13 @@ namespace lobster {
 
 enum ValueType : int {
     // refc types are negative
-    V_MINVMTYPES = -10,
-    V_ANY = -9,         // any other reference type.
-    V_STACKFRAMEBUF = -8,
-    V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, not used by Value.
-    V_BOXEDFLOAT = -6,
-    V_BOXEDINT = -5,
+    V_MINVMTYPES = -11,
+    V_ANY = -10,         // any other reference type.
+    V_STACKFRAMEBUF = -9,
+    V_VALUEBUF = -8,    // only used as memory type for vector/coro buffers, not used by Value.
+    V_BOXEDFLOAT = -7,
+    V_BOXEDINT = -6,
+    V_RESOURCE = -5,
     V_COROUTINE = -4,
     V_STRING = -3,
     V_STRUCT = -2,
@@ -54,7 +55,7 @@ inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 inline const char *BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<value_buffer>", "<stackframe_buffer>",
-        "boxed_float", "boxed_int", "coroutine", "string", "struct", "vector",
+        "boxed_float", "boxed_int", "resource", "coroutine", "string", "struct", "vector",
         "nil", "int", "float", "function", "yield_function", "variable", "typeid",
         "<logstart>", "<logend>", "<logmarker>"
     };
@@ -72,16 +73,17 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_BOXEDINT,
     TYPE_ELEM_BOXEDFLOAT,
     TYPE_ELEM_STRING,
+    TYPE_ELEM_RESOURCE,
     TYPE_ELEM_ANY,
     TYPE_ELEM_VALUEBUF,
     TYPE_ELEM_STACKFRAMEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 8,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 10,
-    TYPE_ELEM_VECTOR_OF_STRING = 12,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 14,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 16,
+    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
+    TYPE_ELEM_VECTOR_OF_STRING = 13,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 15,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 17,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 18
+    TYPE_ELEM_FIXED_OFFSET_END = 19
 };
 
 struct TypeInfo {
@@ -203,6 +205,24 @@ struct LString : RefObj {
     bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
 };
 
+// There must be a single of these per type, since they are compared by pointer.
+struct ResourceType {
+    const char *name;
+    void (* deletefun)(void *);
+};
+
+struct LResource : RefObj {
+    void *val;
+    const ResourceType *type;
+
+    LResource(void *v, const ResourceType *t);
+
+    void DeleteSelf() {
+        type->deletefun(val);
+        vmpool->dealloc(this, sizeof(LResource));
+    }
+};
+
 struct InsPtr {
     #ifdef VM_COMPILED_CODE_MODE
         block_t f;
@@ -241,6 +261,7 @@ struct Value {
         LVector *vval_;
         LStruct *stval_;
         CoRoutine *cval_;
+        LResource *xval_;
 
         // Boxed scalars (never NULL)
         BoxedInt *bival_;
@@ -261,6 +282,7 @@ struct Value {
     LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
     LStruct    *stval () const { TYPE_ASSERT(type == V_STRUCT);     return stval_;       }
     CoRoutine  *cval  () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;        }
+    LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
     ElemObj    *eval  () const { TYPE_ASSERT(IsVector(type));       return eval_;        }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { TYPE_ASSERT(IsRefNil(type));       return ref_;         }
@@ -304,6 +326,20 @@ struct Value {
     void Mark(ValueType vtype);
     void MarkRef();
 };
+
+template<typename T> inline T GetResourceDec(Value &val, const ResourceType *type) {
+    if (!val.True())
+        return (T)0;
+    auto x = val.xval();
+    if (x->refc < 2)
+        // This typically does not happen unless resource is not stored in a variable.
+        g_vm->BuiltinError("cannot use temporary resource");
+    val.DECRT();
+    if (x->type != type)
+        g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
+                           x->type->name);
+    return (T)x->val;
+}
 
 template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
     auto mem = (const TypeInfo **)vmpool->alloc(size * sizeof(T) + sizeof(TypeInfo *));
@@ -560,6 +596,7 @@ struct VM {
     CoRoutine *NewCoRoutine(InsPtr rip, const int *vip, CoRoutine *p, const TypeInfo &cti);
     BoxedInt *NewInt(int i);
     BoxedFloat *NewFloat(float f);
+    LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
     LString *NewString(const char *c, size_t l);
     LString *NewString(const string &s);

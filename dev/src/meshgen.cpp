@@ -262,9 +262,9 @@ bool pointmode = false;
 
 float3 id_grid_to_world(const int3 &pos) { return float3(pos); }
 
-int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
-                  const FIndexGrid *fcellindices, vector<fcell> &fcells,
-                  const vector<float3> &materials, float3 (* grid_to_world)(const int3 &pos)) {
+Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
+                    const FIndexGrid *fcellindices, vector<fcell> &fcells,
+                    const vector<float3> &materials, float3 (* grid_to_world)(const int3 &pos)) {
     struct edge {
         int3 iclosest;
         float3 fmid;
@@ -618,12 +618,11 @@ int polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans
     } else {
         m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
     }
-    extern IntResourceManagerCompact<Mesh> *meshes;
-    return (int)meshes->Add(m);
+    return m;
 }
 
-int eval_and_polygonize(ImplicitFunction *root, const int targetgridsize,
-                        const vector<float3> &materials) {
+Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize,
+                          const vector<float3> &materials) {
     auto scenesize = root->ComputeSize() * 2;
     float biggestdim = max(scenesize.x(), max(scenesize.y(), scenesize.z()));
     auto gridscale = targetgridsize / biggestdim;
@@ -777,12 +776,13 @@ void AddMeshGen() {
         for (int i = 0; i < color.eval()->Len(); i++)
             materials.push_back(ValueToF<3>(color.eval()->At(i)));
         color.DECRT();
-        int mesh = eval_and_polygonize(root, subdiv.ival(), materials);
+        auto mesh = eval_and_polygonize(root, subdiv.ival(), materials);
         MeshGenClear();
-        return Value(mesh);
+        extern ResourceType mesh_type;
+        return Value(g_vm->NewResource(mesh, &mesh_type));
     }
-    ENDDECL2(mg_polygonize, "subdiv,colors", "IF]]", "I",
-        "returns a generated mesh (id 1..) from past mg_ commands."
+    ENDDECL2(mg_polygonize, "subdiv,colors", "IF]]", "X",
+        "returns a generated mesh from past mg_ commands."
         " subdiv determines detail and number of polygons (relative to the largest dimension of the"
         " model), try 30.. 300 depending on the subject."
         " values much higher than that will likely make you run out of memory (or take very long)."

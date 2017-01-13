@@ -67,7 +67,6 @@ struct MotionController {
     bool tracking;
 };
 static vector<MotionController> motioncontrollers;
-static map<string, int> motioncontrollermeshes;
 
 void VRShutDown() {
     #ifdef PLATFORM_VR
@@ -210,13 +209,10 @@ void VRFinish() {
     #endif  // PLATFORM_VR
 }
 
-int VRGetMesh(uint device) {
+Mesh *VRCreateMesh(uint device) {
     #ifdef PLATFORM_VR
     if (!vrsys) return 0;
     auto name = GetTrackedDeviceString(device, vr::Prop_RenderModelName_String);
-    auto it = motioncontrollermeshes.find(name);
-    if (it != motioncontrollermeshes.end())
-        return it->second;
     vr::RenderModel_t *model = nullptr;
     for (;;) {
         auto err = vr::VRRenderModels()->LoadRenderModel_Async(name.c_str(), &model);
@@ -252,14 +248,11 @@ int VRGetMesh(uint device) {
     auto surf = new Surface(indices.data(), nindices, PRIM_TRIS);
     surf->textures[0] = tex;
     m->surfs.push_back(surf);
-    extern IntResourceManagerCompact<Mesh> *meshes;
-    auto midx = (int)meshes->Add(m);
-    motioncontrollermeshes[name] = midx;
     vr::VRRenderModels()->FreeRenderModel(model);
     vr::VRRenderModels()->FreeTexture(modeltex);
-    return midx;
+    return m;
     #else
-    return 0;
+    return nullptr;
     #endif  // PLATFORM_VR
 }
 
@@ -313,12 +306,14 @@ void AddVR() {
     ENDDECL0(vr_finish, "", "", "",
         "finishes vr rendering by compositing (and distorting) both eye renders to the screen");
 
-    STARTDECL(vr_geteyetex) (Value &isright) {
-        return Value((int)retex[isright.True()]);
+    STARTDECL(vr_seteyetex) (Value &unit, Value &isright) {
+        extern int GetSampler(Value &i);
+        SetTexture(GetSampler(unit), retex[isright.True()]);
+        return Value();
     }
-    ENDDECL1(vr_geteyetex, "isright", "I", "I",
-        "returns the texture for an eye. call after vr_finish. can be used to render the non-VR"
-        " display");
+    ENDDECL2(vr_seteyetex, "unit,isright", "II", "",
+        "sets the texture for an eye (like gl_setprimitivetexture). call after vr_finish. can be"
+        " used to render the non-VR display");
 
     STARTDECL(vr_nummotioncontrollers) () {
         return Value((int)motioncontrollers.size());
@@ -351,12 +346,13 @@ void AddVR() {
         " if there is no controller n (or it is currently not"
         " tracking) the identity transform is used");
 
-    STARTDECL(vr_motioncontrollermesh) (Value &mc) {
+    STARTDECL(vr_createmotioncontrollermesh) (Value &mc) {
         auto mcd = GetMC(mc);
-        return Value(mcd ? VRGetMesh(mcd->device) : 0);
+        extern ResourceType mesh_type;
+        return mcd ? Value(g_vm->NewResource(VRCreateMesh(mcd->device), &mesh_type)) : Value();
     }
-    ENDDECL1(vr_motioncontrollermesh, "n", "I", "I",
-        "returns the mesh for motion controller n, or 0 if not available");
+    ENDDECL1(vr_createmotioncontrollermesh, "n", "I", "X?",
+        "returns the mesh for motion controller n, or nil if not available");
 
     STARTDECL(vr_motioncontrollerbutton) (Value &mc, Value &button) {
         #ifdef PLATFORM_VR
