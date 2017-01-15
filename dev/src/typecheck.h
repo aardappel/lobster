@@ -630,6 +630,7 @@ struct TypeChecker {
         Output(OUTPUT_DEBUG, "cloning: %s", csf->parent->name.c_str());
         auto sf = st.CreateSubFunction();
         sf->SetParent(*csf->parent, csf->parent->subf);
+        // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
         sf->CloneIds(*csf);
         sf->body = csf->body->Clone();
         sf->freevarchecked = true;

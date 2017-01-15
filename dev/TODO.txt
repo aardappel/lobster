@@ -1,4 +1,4 @@
-- ATM and many others don't render gui correctly anymore
+- code using gui.lobster can't be inlined correctly if multi-referenced functions are enabled.
 
 - if you declare a:[int] = [], then the constructor for [] will get types with [any] and have this
   as its "ti" at runtime, which is incorrect

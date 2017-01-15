@@ -103,6 +103,9 @@ struct Optimizer {
                     auto spec_sf = n.dcall_function()->sf();
                     (void)spec_sf;
                     assert(sf && sf == spec_sf);  // Sanity check.
+                    // We rely on all these DYNCALLs being converted in the first pass, and only
+                    // potentially inlined in the second for this increase to not cause problems.
+                    sf->numcallers++;
                     if (!sf->parent->istype && !n.dcall_fval()->HasSideEffects()) {
                         n_ptr = Typed(n.exptype,
                                       new Node(n.line, T_CALL, n.dcall_function(), n.dcall_args()));
@@ -119,13 +122,22 @@ struct Optimizer {
                      !sf->dynscoperedefs.size() &&
                      sf->returntypes.size() <= 1))
                 {
-                    if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
+                    // FIXME: it misbehaved with numcallers > 1, see any code using gui.lobster
+                    if (sf->numcallers <= 1 /* || CountNodes(sf->body) < 8*/) {  // FIXME: configurable.
                         n_ptr = Inline(n, *sf);
                     }
                 }
                 break;
             }
         }
+    }
+
+    void IncreaseCallers(Node &n) {
+        if (n.type == T_CALL)
+            n.call_function()->sf()->numcallers++;
+        if (n.a()) IncreaseCallers(*n.a());
+        if (n.b()) IncreaseCallers(*n.b());
+        if (n.c()) IncreaseCallers(*n.c());
     }
 
     Node *Inline(Node &call, SubFunction &sf) {
@@ -152,12 +164,15 @@ struct Optimizer {
             tail = &(*tail)->bref();
             ai++;
         }
+        // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
+        // typechecker.
         if (sf.numcallers <= 1) {
             *tail = sf.body;
             sf.body = nullptr;
             sf.parent->RemoveSubFunction(&sf);
         } else {
             *tail = sf.body->Clone();
+            IncreaseCallers(**tail);
             sf.numcallers--;
         }
         newn = Typed(sf.returntypes[0], new Node(call.line, T_INLINED, newn));
