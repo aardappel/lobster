@@ -296,7 +296,7 @@ void Shader::Link(const char *name) {
     lightparams1_i = glGetUniformLocation(program, "lightparams1");
     bones_i        = glGetUniformLocation(program, "bones");
     pointscale_i   = glGetUniformLocation(program, "pointscale");
-    glUseProgram(program);
+    Activate();
     for (int i = 0; i < MAX_SAMPLERS; i++) {
         auto is = to_string(i);
         tex_i[i] = glGetUniformLocation(program, ("tex" + is).c_str());
@@ -315,8 +315,14 @@ Shader::~Shader() {
     if (cs) glDeleteShader(cs);
 }
 
+// FIXME: unlikely to cause ABA problem, but still better to reset once per frame just in case.
+static uint last_program = 0;
+
 void Shader::Activate() {
-    glUseProgram(program);
+    if (program != last_program) {
+        glUseProgram(program);
+        last_program = program;
+    }
 }
 
 void Shader::Set() {
