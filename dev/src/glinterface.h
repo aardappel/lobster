@@ -81,16 +81,16 @@ struct AnimVert : BasicVert { // "PNTCWI"
 class Geometry  {
     const size_t vertsize;
     string fmt;
-    uint vbo;
+    uint vbo1, vbo2, vao;
 
     public:
     const size_t nverts;
 
-    Geometry(const void *verts, size_t _nverts, size_t _vertsize, const char *_fmt);
+    Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const char *_fmt,
+             const void *verts2 = nullptr, size_t vertsize2 = 0);
     ~Geometry();
 
     void RenderSetup();
-    void RenderDone();
     void BindAsSSBO(uint bind_point_index);
     bool WritePLY(string &s, int nindices);
 };

@@ -54,6 +54,9 @@
             GLEXT(PFNGLVERTEXATTRIBPOINTERARBPROC        , glVertexAttribPointer           , 1) \
             GLEXT(PFNGLENABLEVERTEXATTRIBARRAYARBPROC    , glEnableVertexAttribArray       , 1) \
             GLEXT(PFNGLDISABLEVERTEXATTRIBARRAYARBPROC   , glDisableVertexAttribArray      , 1) \
+            GLEXT(PFNGLGENVERTEXARRAYSPROC               , glGenVertexArrays               , 1) \
+            GLEXT(PFNGLBINDVERTEXARRAYPROC               , glBindVertexArray               , 1) \
+            GLEXT(PFNGLDELETEVERTEXARRAYSPROC            , glDeleteVertexArrays            , 1) \
             GLEXT(PFNGLCREATEPROGRAMPROC                 , glCreateProgram                 , 1) \
             GLEXT(PFNGLDELETEPROGRAMPROC                 , glDeleteProgram                 , 1) \
             GLEXT(PFNGLDELETESHADERPROC                  , glDeleteShader                  , 1) \
