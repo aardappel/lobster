@@ -586,6 +586,9 @@ void AddBuiltins() {
     STARTDECL(cos) (Value &a) { return Value(cosf(a.fval() * RAD)); }
     ENDDECL1(cos, "angle", "F", "F",
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
+    STARTDECL(tan) (Value &a) { return Value(tanf(a.fval() * RAD)); }
+    ENDDECL1(tan, "angle", "F", "F",
+        "the tangent of an angle (in degrees)");
 
     STARTDECL(sincos) (Value &a) {
         return ToValueF(float2(cosf(a.fval() * RAD), sinf(a.fval() * RAD)));
