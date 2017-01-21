@@ -65,6 +65,17 @@ diagonal_directions :== [ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 }
 
 positive_directions :== [ xy { 0, 0 }, xy { 1, 0 }, xy { 1, 1 }, xy { 0, 1 } ]
 
+octant_directions :== [
+    xyz {  1,  1,  1 },
+    xyz {  1,  1, -1 },
+    xyz {  1, -1,  1 },
+    xyz {  1, -1, -1 },
+    xyz { -1,  1,  1 },
+    xyz { -1,  1, -1 },
+    xyz { -1, -1,  1 },
+    xyz { -1, -1, -1 }
+]
+
 // shorten vectors, e.g. xyz -> xy
 // FIXME: subtyping should take care of this
 def xy(v):  xy  { v.x, v.y }
@@ -91,6 +102,9 @@ def xyz_rndi(n): xyz { rnd(n.x), rnd(n.y), rnd(n.x) }
 
 def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
+
+def forxyz(v, fun): for(v.z) z: for(v.y) y: for(v.x) x: fun(xyz { x, y, z })
+def mapxyz(v, fun): map(v.z) z: map(v.y) y: map(v.x) x: fun(xyz { x, y, z })
 
 def vecfromyawpitch(yaw, pitch, move, strafe):
     (xyz(sincos(yaw + 90/* start from Y rather than X axis */), 0) *

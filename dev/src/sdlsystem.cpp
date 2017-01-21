@@ -231,7 +231,8 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
 
 const int2 &GetScreenSize() { return screensize; }
 
-string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync) {
+string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync,
+               int samples) {
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
@@ -263,8 +264,8 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
             //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
         #endif
         #if defined(__APPLE__) || defined(_WIN32)
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples > 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
         #endif
     #endif
 
@@ -332,11 +333,6 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
     Output(OUTPUT_INFO, "SDL OpenGL context created...");
 
-    /*
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
-    */
-
     #ifndef __IOS__
         SDL_GL_SetSwapInterval(vsync);
     #endif
@@ -356,6 +352,8 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
     timefreq = SDL_GetPerformanceFrequency();
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
+
+    OpenGLInit(samples);
 
     return "";
 }

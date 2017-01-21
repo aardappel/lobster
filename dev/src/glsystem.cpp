@@ -119,7 +119,7 @@ void OpenGLFrameStart(const int2 &ssize) {
     lights.clear();
 }
 
-void OpenGLInit() {
+void OpenGLInit(int samples) {
     #ifndef PLATFORM_ES2
     //auto vers = (char *)glGetString(GL_VERSION);
     auto exts = (char *)glGetString(GL_EXTENSIONS);
@@ -150,7 +150,7 @@ void OpenGLInit() {
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_MULTISAMPLE);
+    if (samples > 1) glEnable(GL_MULTISAMPLE);
     #endif
     glCullFace(GL_FRONT);
 }

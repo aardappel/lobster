@@ -172,7 +172,6 @@ void VRStart() {
 void VREye(int eye, float znear, float zfar) {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
-    glEnable(GL_MULTISAMPLE);
     auto retf = TF_CLAMP | TF_NOMIPMAP;
     auto mstf = retf | TF_MULTISAMPLE;
     if (!mstex[eye]) mstex[eye] = CreateBlankTexture(rtsize, float4_0, mstf);
@@ -197,7 +196,6 @@ void VRFinish() {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
     SwitchToFrameBuffer(0, GetScreenSize(), false, 0, 0);
-    glDisable(GL_MULTISAMPLE);
     for (int i = 0; i < 2; i++) {
         vr::Texture_t vrtex = { (void *)retex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);

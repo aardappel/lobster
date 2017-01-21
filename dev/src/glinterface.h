@@ -119,7 +119,7 @@ struct Light {
 };
 
 
-extern void OpenGLInit();
+extern void OpenGLInit(int samples);
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void LogGLError(const char *file, int line, const char *call);
 
