@@ -4,6 +4,7 @@
 // first call update, then view
 
 include "vec.lobster"
+include "texture.lobster"
 
 camera_position := xyz_0
 camera_yaw := 0.0
@@ -62,3 +63,24 @@ def gl_deltatime_over_time():
     delta_time_log.push(gl_deltatime())
     delta_time_log.remove(0)
     (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
+
+private fstex := nil
+private fssize := xy_0i
+def fs_post_process(shader, on, f):
+    if on:
+        texture_format :== texture_format_clamp | texture_format_nomipmap
+        if !fstex:
+            fssize = gl_windowsize()
+            fstex = gl_createblanktexture(fssize, color_black, texture_format)
+        assert fstex  // FIXME
+        assert gl_switchtoframebuffer(fstex, fssize, true, texture_format)
+        f()
+        gl_switchtoframebuffer(nil)
+        //gl_clear(color_light_grey)
+        gl_setprimitivetexture(0, fstex, texture_format)
+        gl_setshader(shader)
+        gl_translate(xy_f { 0, fssize.y }):
+            gl_rect(xy_f { fssize.x, -fssize.y })
+    else:
+        f()
+

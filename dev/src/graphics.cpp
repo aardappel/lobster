@@ -381,12 +381,13 @@ void AddGraphics() {
         "renders a circle that is open on the inside. thickness is the fraction of the radius that"
         " is filled, try e.g. 0.2");
 
-    STARTDECL(gl_unitcube) () {
-        RenderUnitCube(currentshader);
+    STARTDECL(gl_unitcube) (Value &inside) {
+        RenderUnitCube(currentshader, inside.True());
         return Value();
     }
-    ENDDECL0(gl_unitcube, "", "", "",
-        "renders a unit cube (0,0,0) - (1,1,1)");
+    ENDDECL1(gl_unitcube, "insideout", "I?", "",
+        "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
+        " out");
 
     STARTDECL(gl_rotate_x) (Value &angle, Value &body) {
         auto a = ValueDecToF<2>(angle);
@@ -936,7 +937,8 @@ void AddGraphics() {
         " also allocates a depth buffer for it if depth is true."
         " pass the textureformat that was used for this texture."
         " pass a resolve texture if the base texture is multisample."
-        " pass a nil texture to switch back to the original framebuffer");
+        " pass a nil texture to switch back to the original framebuffer."
+        " performance note: do not recreate texture passed in unless necessary.");
 
     STARTDECL(gl_light) (Value &pos, Value &params) {
         Light l;

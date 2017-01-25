@@ -287,12 +287,12 @@ void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &
     glEnable(GL_CULL_FACE);
 }
 
-Geometry *cube_geom = nullptr;
-uint cube_ibo = 0;
+Geometry *cube_geom[2] = { nullptr, nullptr };
+uint cube_ibo[2] = { 0, 0 };
 
-void RenderUnitCube(Shader *sh) {
+void RenderUnitCube(Shader *sh, int inside) {
     struct cvert { float3 pos; float3 normal; float2 tc; };
-    if (!cube_geom) {
+    if (!cube_geom[inside]) {
         static float3 normals[] = {
             float3(1, 0, 0), float3(-1,  0,  0),
             float3(0, 1, 0), float3( 0, -1,  0),
@@ -300,12 +300,12 @@ void RenderUnitCube(Shader *sh) {
         };
         static float2 tcs[] = { float2(0, 0), float2(1, 0), float2(1, 1), float2(0, 1) };
         static const char *faces[6] = { "4576", "0231", "2673", "0154", "1375", "0462" };
-        static int indices[6] = { 0, 1, 3, 1, 2, 3 };
+        static int indices[2][6] = { { 0, 1, 3, 1, 2, 3 }, { 0, 3, 1, 1, 3, 2 } };
         vector<cvert> verts;
         vector<int> triangles;
         for (int n = 0; n < 6; n++) {
             auto face = faces[n];
-            for (int i = 0; i < 6; i++) triangles.push_back(indices[i] + (int)verts.size());
+            for (int i = 0; i < 6; i++) triangles.push_back(indices[inside][i] + (int)verts.size());
             for (int vn = 0; vn < 4; vn++) {
                 cvert vert;
                 for (int d = 0; d < 3; d++) {
@@ -316,11 +316,11 @@ void RenderUnitCube(Shader *sh) {
                 verts.push_back(vert);
             }
         }
-        cube_geom = new Geometry(verts.data(), 24, sizeof(cvert), "PNT");
-        cube_ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
+        cube_geom[inside] = new Geometry(verts.data(), 24, sizeof(cvert), "PNT");
+        cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
     }
     sh->Set();
-    RenderArray(PRIM_TRIS, 36, 24, cube_geom, cube_ibo);
+    RenderArray(PRIM_TRIS, 36, 24, cube_geom[inside], cube_ibo[inside]);
 }
 
 map<int, Geometry *> circlevbos;  // FIXME: not global;

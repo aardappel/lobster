@@ -680,22 +680,22 @@ void AddBuiltins() {
              "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueDecToI<2>(xv);
-        auto range = ValueDecToI<2>(rangev);
-        auto bias  = biasv.True() ? ValueDecToI<2>(biasv) : int2_0;
+        auto x     = ValueDecToI<3>(xv);
+        auto range = ValueDecToI<3>(rangev, 1);
+        auto bias  = biasv.True() ? ValueDecToI<3>(biasv) : int3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "I]:2I]:2I]:2?", "I",
-             "checks if a 2d integer vector is >= bias and < bias + range. Bias defaults to 0.");
+    ENDDECL3(inrange, "x,range,bias", "I]I]I]?", "I",
+             "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueDecToF<2>(xv);
-        auto range = ValueDecToF<2>(rangev);
-        auto bias  = biasv.True() ? ValueDecToF<2>(biasv) : float2_0;
+        auto x     = ValueDecToF<3>(xv);
+        auto range = ValueDecToF<3>(rangev, 1);
+        auto bias  = biasv.True() ? ValueDecToF<3>(biasv) : float3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "F]:2F]:2F]:2?", "I",
-        "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.");
+    ENDDECL3(inrange, "x,range,bias", "F]F]F]?", "I",
+        "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(abs) (Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
         "absolute value of an integer");

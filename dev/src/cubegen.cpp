@@ -73,9 +73,9 @@ struct Voxels {
                      (5 - ic.y()) * 6 +
                      (5 - ic.z()) + 1;
             } else {
-                float error = 9999;
+                float error = 999999;
                 for (size_t i = 1; i < palette.size(); i++) {
-                    auto err = squaredlength(float4(palette[i]) - color);
+                    auto err = squaredlength(color2vec(palette[i]) - color);
                     if (err < error) { error = err; pi = (uchar)i; }
                 }
             }
@@ -284,7 +284,8 @@ void AddCubeGen() {
 
     STARTDECL(cg_load_vox) (Value &name) {
         size_t len = 0;
-        auto buf = LoadFile(name.sval()->str(), &len);
+        auto namep = name.sval()->str();
+        auto buf = LoadFile(namep, &len);
         name.DECRT();
         if (!buf) return Value(0);
         if (strncmp((char *)buf, "VOX ", 4)) {

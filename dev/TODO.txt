@@ -92,6 +92,8 @@
 - typechecker
   - x.y.x does not participate in flow analysis and is pretty common
   - x[i] does not do flow analysis.. not as trivial to add if i is an exp or could change.
+  - if !a: a = ..
+    // here a is still nillable.
 
   - flow analysis should also know about if !a: return; a // not nil here
 

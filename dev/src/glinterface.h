@@ -28,8 +28,8 @@ enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 struct Shader {
     enum { MAX_SAMPLERS = 4 };
     uint vs, ps, cs, program;
-    int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, lightparams1_i, bones_i,
-        pointscale_i;
+    int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, lightparams1_i, texturesize_i,
+        bones_i, pointscale_i;
 
     Shader() : vs(0), ps(0), cs(0), program(0) {}
     ~Shader();
@@ -183,7 +183,7 @@ extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const f
                          float thickness);
 extern void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
 extern void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
-extern void RenderUnitCube(Shader *sh);
+extern void RenderUnitCube(Shader *sh, int inside);
 extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
 extern void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
 

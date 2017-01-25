@@ -15,6 +15,7 @@
 #include "stdafx.h"
 #include "glinterface.h"
 #include "glincludes.h"
+#include "sdlinterface.h"
 
 unordered_map<string, Shader *> shadermap;
 
@@ -72,6 +73,7 @@ string ParseMaterialFile(char *mbuf) {
     auto p = mbuf;
     string err;
     string last;
+    string defines;
     string vfunctions, pfunctions, cfunctions, vertex, pixel, compute, vdecl, pdecl, csdecl, shader;
     string *accum = nullptr;
     auto word = [&]() {
@@ -84,7 +86,7 @@ string ParseMaterialFile(char *mbuf) {
         if (!shader.empty()) {
             auto sh = new Shader();
             if (compute.length()) {
-                auto header = "#version 430\n";
+                auto header = "#version 430\n" + defines;
                 err = sh->Compile(shader.c_str(), (header + csdecl + cfunctions +
                                                    "void main()\n{\n" + compute + "}\n").c_str());
             } else {
@@ -101,6 +103,7 @@ string ParseMaterialFile(char *mbuf) {
                     header += "#version 130\n";
                     #endif
                 #endif
+                header += defines;
                 err = sh->Compile(shader.c_str(),
                                   (header + vdecl + vfunctions + "void main()\n{\n" + vertex +
                                    "}\n").c_str(),
@@ -163,6 +166,7 @@ string ParseMaterialFile(char *mbuf) {
                     else if (last == "camera")       decl += "uniform vec3 camera;\n";
                     else if (last == "light1")       decl += "uniform vec3 light1;\n";
                     else if (last == "lightparams1") decl += "uniform vec2 lightparams1;\n";
+                    else if (last == "texturesize")  decl += "uniform vec2 texturesize;\n";
                     // FIXME: Make configurable.
                     else if (last == "bones")        decl += "uniform vec4 bones[230];\n";
                     else if (last == "pointscale")   decl += "uniform float pointscale;\n";
@@ -228,6 +232,13 @@ string ParseMaterialFile(char *mbuf) {
                 word();
                 auto ys = last;
                 csdecl += "layout(local_size_x = " + xs + ", local_size_y = " + ys + ") in;\n";
+            } else if (last == "DEFINE") {
+                word();
+                auto def = last;
+                word();
+                auto val = last;
+                if (!val.empty()) def += " " + val;
+                defines += "#define " + def + "\n";
             } else {
                 if (!accum)
                     return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " + string(start);
@@ -294,6 +305,7 @@ void Shader::Link(const char *name) {
     camera_i       = glGetUniformLocation(program, "camera");
     light1_i       = glGetUniformLocation(program, "light1");
     lightparams1_i = glGetUniformLocation(program, "lightparams1");
+    texturesize_i  = glGetUniformLocation(program, "texturesize");
     bones_i        = glGetUniformLocation(program, "bones");
     pointscale_i   = glGetUniformLocation(program, "pointscale");
     Activate();
@@ -337,6 +349,8 @@ void Shader::Set() {
         if (lightparams1_i >= 0)
             glUniform2fv(lightparams1_i, 1, lights[0].params.begin());
     }
+    if (texturesize_i >= 0)
+        glUniform2fv(texturesize_i, 1, float2(GetScreenSize()).begin());
 }
 
 void Shader::SetAnim(float3x4 *bones, int num) {
