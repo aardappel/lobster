@@ -916,6 +916,7 @@ void AddGraphics() {
         auto numpixels = size.x() * size.y();
         if (!numpixels) return Value();
         auto buf = ReadTexture(tex, size);
+        if (!buf) return Value();
         auto s = g_vm->NewString((char *)buf, numpixels * 4);
         delete[] buf;
         return Value(s);

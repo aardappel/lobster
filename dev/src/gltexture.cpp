@@ -54,8 +54,8 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
                          : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
                                                 : GL_LINEAR_MIPMAP_LINEAR));
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
-    auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE8 : GL_RGBA8;
-    auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_LUMINANCE : GL_RGBA;
+    auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
+    auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
     auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uchar) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
     if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3))
@@ -154,16 +154,23 @@ void SetTexture(uint textureunit, uint id, int tf) {
 int2 TextureSize(uint id) {
     glBindTexture(GL_TEXTURE_2D, id);
     int2 size(0);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut());
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut());
+    // FIXME: need to actually store the size in an object when we create it.
+    #ifndef PLATFORM_ES2
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut());
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut());
+    #endif
     return size;
 }
 
 uchar *ReadTexture(uint id, const int2 &size) {
-    glBindTexture(GL_TEXTURE_2D, id);
-    auto pixels = new uchar[size.x() * size.y() * 4];
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    return pixels;
+    #ifndef PLATFORM_ES2
+        glBindTexture(GL_TEXTURE_2D, id);
+        auto pixels = new uchar[size.x() * size.y() * 4];
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        return pixels;
+    #else
+        return nullptr;
+    #endif
 }
 
 void SetImageTexture(uint textureunit, uint id, int tf) {

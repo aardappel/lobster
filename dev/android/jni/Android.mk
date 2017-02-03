@@ -29,16 +29,19 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/glshader.cpp \
 	$(LOBSTER_PATH)/src/glsystem.cpp \
 	$(LOBSTER_PATH)/src/gltexture.cpp \
+	$(LOBSTER_PATH)/src/glvr.cpp \
 	$(LOBSTER_PATH)/src/graphics.cpp \
 	$(LOBSTER_PATH)/src/physics.cpp \
 	$(LOBSTER_PATH)/src/lobsterreader.cpp \
 	$(LOBSTER_PATH)/src/meshgen.cpp \
+	$(LOBSTER_PATH)/src/cubegen.cpp \
 	$(LOBSTER_PATH)/src/platform.cpp \
 	$(LOBSTER_PATH)/src/sdlaudiosfxr.cpp \
 	$(LOBSTER_PATH)/src/sdlsystem.cpp \
 	$(LOBSTER_PATH)/src/simplex.cpp \
 	$(LOBSTER_PATH)/src/stdafx.cpp \
 	$(LOBSTER_PATH)/src/vmdata.cpp \
+	$(LOBSTER_PATH)/src/vmlog.cpp \
 	$(LOBSTER_PATH)/src/vm.cpp \
 	$(subst $(LOCAL_PATH)/,, \
 	$(wildcard $(LOCAL_PATH)/$(BOX2D_PATH)/Collision/*.cpp) \
@@ -110,5 +113,5 @@ LOCAL_STATIC_LIBRARIES :=
 LOCAL_CPPFLAGS := -std=c++11
 LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES
 
-LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -ldl -landroid
+LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -lGLESv3 -llog -ldl -landroid
 include $(BUILD_SHARED_LIBRARY)

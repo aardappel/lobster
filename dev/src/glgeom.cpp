@@ -149,6 +149,7 @@ Mesh::~Mesh() {
 }
 
 bool Geometry::WritePLY(string &s, int nindices) {
+    #ifndef PLATFORM_ES2
     s += "ply\n"
          "format binary_little_endian 1.0\n"
          "element vertex " + to_string(nverts) + "\n";
@@ -176,9 +177,15 @@ bool Geometry::WritePLY(string &s, int nindices) {
     glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data());
     s.insert(s.end(), vdata.begin(), vdata.end());
     return true;
+    #else
+    (void)s;
+    (void)nindices;
+    return false;
+    #endif
 }
 
 void Surface::WritePLY(string &s) {
+    #ifndef PLATFORM_ES2
     vector<int> idata(numidx / 3 * 4);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data());
@@ -190,6 +197,9 @@ void Surface::WritePLY(string &s) {
         idata[di] = 3;
     }
     s.insert(s.end(), (char *)idata.data(), ((char *)idata.data()) + idata.size() * sizeof(int));
+    #else
+    (void)s;
+    #endif
 }
 
 bool Mesh::SaveAsPLY(const char *filename) {

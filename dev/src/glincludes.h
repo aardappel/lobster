@@ -27,6 +27,10 @@
     #if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
         #include <GLES2/gl2.h>
         #include <GLES2/gl2ext.h>
+        #if defined(__ANDROID__)
+            #include <GLES3/gl3.h>
+            #include <GLES3/gl3ext.h>
+        #endif
     #else   // _WIN32 & Linux
         #ifdef _WIN32
             #define VC_EXTRALEAN

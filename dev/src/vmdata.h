@@ -327,20 +327,6 @@ struct Value {
     void MarkRef();
 };
 
-template<typename T> inline T GetResourceDec(Value &val, const ResourceType *type) {
-    if (!val.True())
-        return (T)0;
-    auto x = val.xval();
-    if (x->refc < 2)
-        // This typically does not happen unless resource is not stored in a variable.
-        g_vm->BuiltinError("cannot use temporary resource");
-    val.DECRT();
-    if (x->type != type)
-        g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
-                           x->type->name);
-    return (T)x->val;
-}
-
 template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
     auto mem = (const TypeInfo **)vmpool->alloc(size * sizeof(T) + sizeof(TypeInfo *));
     *mem = &ti;  // DynAlloc header.
@@ -730,6 +716,20 @@ inline int RangeCheck(const Value &idx, int range, int bias = 0) {
 
 inline const char *IdName(const bytecode::BytecodeFile *bcf, int i) {
     return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->c_str();
+}
+
+template<typename T> inline T GetResourceDec(Value &val, const ResourceType *type) {
+    if (!val.True())
+        return (T)0;
+    auto x = val.xval();
+    if (x->refc < 2)
+        // This typically does not happen unless resource is not stored in a variable.
+        g_vm->BuiltinError("cannot use temporary resource");
+    val.DECRT();
+    if (x->type != type)
+        g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
+            x->type->name);
+    return (T)x->val;
 }
 
 void EscapeAndQuote(const string &s, string &r);
