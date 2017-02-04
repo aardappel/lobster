@@ -816,7 +816,7 @@ struct Parser {
     }
 
     Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg,
-                            bool coroutine, bool noparens = false) {
+                            bool coroutine, bool noparens) {
         if (nf) {
             auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &nf->args, noparens);
             Node **ai = &args;
@@ -929,7 +929,7 @@ struct Parser {
                         auto f = st.FindFunction(idname);
                         auto nf = natreg.FindNative(idname);
                         if ((f || nf) && op == T_DOT) {
-                            n = ParseFunctionCall(f, nf, idname, n, false);
+                            n = ParseFunctionCall(f, nf, idname, n, false, false);
                         } else {
                             Error("not a type member or function: " + idname);
                         }
@@ -1020,7 +1020,7 @@ struct Parser {
                 lex.Next();
                 string idname = ExpectId();
                 return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname),
-                                                      nullptr, idname, nullptr, true));
+                                                      nullptr, idname, nullptr, true, false));
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
@@ -1061,74 +1061,80 @@ struct Parser {
     }
 
     Node *IdentFactor(const string &idname) {
-        auto nf = natreg.FindNative(idname);
-        auto f = st.FindFunction(idname);
-        switch (lex.token) {
-            case T_LEFTPAREN:
-                return ParseFunctionCall(f, nf, idname, nullptr, false);
-            case T_LEFTCURLY: {
-                lex.Next();
-                auto &struc = st.StructUse(idname, lex);
-                vector<Node *> exps(struc.fields.size(), nullptr);
-                ParseVector([&] () {
-                    auto id = lex.sattr;
-                    if (IsNext(T_IDENT)) {
-                        if (IsNext(T_COLON)) {
-                            auto fld = st.FieldUse(id);
-                            auto field = struc.Has(fld);
-                            if (field < 0) Error("unknown field: " + id);
-                            if (exps[field]) Error("field initialized twice: " + id);
-                            exps[field] = ParseExp(T_CONSTRUCTOR);
-                            return;
-                        } else {  // Undo
-                            lex.PushCur();
-                            lex.Push(T_IDENT, id);
-                            lex.Next();
-                        }
+        if (IsNext(T_LEFTCURLY)) {
+            auto &struc = st.StructUse(idname, lex);
+            vector<Node *> exps(struc.fields.size(), nullptr);
+            ParseVector([&] () {
+                auto id = lex.sattr;
+                if (IsNext(T_IDENT)) {
+                    if (IsNext(T_COLON)) {
+                        auto fld = st.FieldUse(id);
+                        auto field = struc.Has(fld);
+                        if (field < 0) Error("unknown field: " + id);
+                        if (exps[field]) Error("field initialized twice: " + id);
+                        exps[field] = ParseExp(T_CONSTRUCTOR);
+                        return;
+                    } else {  // Undo
+                        lex.PushCur();
+                        lex.Push(T_IDENT, id);
+                        lex.Next();
                     }
-                    // An initializer without a tag. Find first field without a default thats not
-                    // set yet.
-                    for (size_t i = 0; i < exps.size(); i++) {
-                        if (!exps[i] && !struc.fields.v[i].defaultval) {
-                            exps[i] = ParseExp(T_CONSTRUCTOR);
-                            return;
-                        }
-                    }
-                    Error("too many initializers for: " + struc.name);
-                }, T_RIGHTCURLY);
-                // Now fill in defaults, check for missing fields, and construct list.
-                Node *list = nullptr;
-                Node **tail = &list;
+                }
+                // An initializer without a tag. Find first field without a default thats not
+                // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i]) {
-                        if (struc.fields.v[i].defaultval)
-                            exps[i] = struc.fields.v[i].defaultval->Clone();
-                        else
-                            Error("field not initialized: " + struc.fields.v[i].id->name);
+                    if (!exps[i] && !struc.fields.v[i].defaultval) {
+                        exps[i] = ParseExp(T_CONSTRUCTOR);
+                        return;
                     }
-                    AddTail(tail, exps[i]);
                 }
-                auto tn = new Node(lex, T_TYPE, TypeRef());
-                tn->typenode() = &struc.thistype;
-                return new Node(lex, T_CONSTRUCTOR, list, tn);
+                Error("too many initializers for: " + struc.name);
+            }, T_RIGHTCURLY);
+            // Now fill in defaults, check for missing fields, and construct list.
+            Node *list = nullptr;
+            Node **tail = &list;
+            for (size_t i = 0; i < exps.size(); i++) {
+                if (!exps[i]) {
+                    if (struc.fields.v[i].defaultval)
+                        exps[i] = struc.fields.v[i].defaultval->Clone();
+                    else
+                        Error("field not initialized: " + struc.fields.v[i].id->name);
+                }
+                AddTail(tail, exps[i]);
             }
-            default:
-                if (idname[0] == '_') {
-                    return new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
-                } else {
-                    auto id = st.Lookup(idname);
-                    if (!id && (nf || f)) {  // Function call without ()
-                        return ParseFunctionCall(f, nf, idname, nullptr, false, true);
-                    } else {
-                        Ident *id = nullptr;
-                        auto fld = st.LookupWithStruct(idname, lex, id);
-                        if (fld) {
-                            return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
-                        }
-
-                        return new Node(lex, st.LookupUse(idname, lex));
-                    }
-                }
+            auto tn = new Node(lex, T_TYPE, TypeRef());
+            tn->typenode() = &struc.thistype;
+            return new Node(lex, T_CONSTRUCTOR, list, tn);
+        } else {
+            // If we see "f(" the "(" is the start of an argument list, but for "f (", "(" is
+            // part of an expression of a single argument with no extra "()".
+            // This avoids things like "f (1 + 2) * 3" ("* 3" part of the single arg) being
+            // interpreted as "f(1 + 2) * 3" (not part of the arg).
+            // This is benign, since single arg calls with "()" work regardless of whitespace,
+            // and multi-arg calls with whitespace will now error on the first "," (since we
+            // don't have C's ","-operator.
+            auto nf = natreg.FindNative(idname);
+            auto f = st.FindFunction(idname);
+            if (lex.token == T_LEFTPAREN && lex.whitespacebefore == 0) {
+                return ParseFunctionCall(f, nf, idname, nullptr, false, false);
+            }
+            // Check for implicit variable.
+            if (idname[0] == '_') {
+                return new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
+            }
+            // Check for function call without ().
+            auto id = st.Lookup(idname);
+            if (!id && (nf || f)) {
+                return ParseFunctionCall(f, nf, idname, nullptr, false, true);
+            }
+            // Check for field reference in function with :: arguments.
+            id = nullptr;
+            auto fld = st.LookupWithStruct(idname, lex, id);
+            if (fld) {
+                return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
+            }
+            // It's a regular variable.
+            return new Node(lex, st.LookupUse(idname, lex));
         }
     }
 

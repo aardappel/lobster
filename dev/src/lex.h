@@ -30,6 +30,7 @@ struct LoadedFile : Line {
     bool islf;
     bool cont;
     string sattr;
+    size_t whitespacebefore;
 
     vector<pair<char, char>> bracketstack;
     vector<pair<int, bool>> indentstack;
@@ -42,7 +43,8 @@ struct LoadedFile : Line {
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
         : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss), token(T_NONE),
-          errorline(1), islf(false), cont(false), prevline(nullptr), prevlinetok(nullptr)
+          errorline(1), islf(false), cont(false), whitespacebefore(0),
+          prevline(nullptr), prevlinetok(nullptr)
           /* prevlineindenttype(0) */ {
         source = stringsource;
         if (!source) source = (char *)LoadFile((string("include/") + fn).c_str());
@@ -184,6 +186,7 @@ struct Lex : LoadedFile {
     TType NextToken() {
         errorline = line;
         islf = false;
+        whitespacebefore = 0;
         char c;
         for (;;) switch (tokenstart = p, c = *p++) {
             case '\0':
@@ -202,7 +205,7 @@ struct Lex : LoadedFile {
                 }
 
             case '\n': line++; islf = bracketstack.empty(); linestart = p; break;
-            case ' ': case '\t': case '\r': case '\f': break;
+            case ' ': case '\t': case '\r': case '\f': whitespacebefore++; break;
 
             case '(': bracketstack.push_back(make_pair(c, ')')); return T_LEFTPAREN;
             case '[': bracketstack.push_back(make_pair(c, ']')); return T_LEFTBRACKET;
