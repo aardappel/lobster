@@ -51,6 +51,10 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
     s += " \tL ";
     s += to_string(li->line());
     s += " \t";
+    if (*ip < 0 || *ip >= IL_MAX_OPS) {
+        s += "ILLEGAL INSTRUCTION: " + to_string(*ip);
+        return nullptr;
+    }
     s += ilnames[*ip];
     s += " ";
     int opc = *ip++;
@@ -63,6 +67,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_PUSHINT:
         case IL_PUSHFUN:
         case IL_CONT1:
+        case IL_CONT1REF:
         case IL_JUMP:
         case IL_JUMPFAIL:
         case IL_JUMPFAILR:
@@ -213,6 +218,7 @@ void DisAsm(string &s, const uchar *bytecode_buffer) {
     while (ip < code + len) {
         ip = DisAsmIns(s, ip, code, typetable, bcf);
         s += "\n";
+        if (!ip) break;
     }
 }
 
