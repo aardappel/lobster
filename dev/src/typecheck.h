@@ -1463,11 +1463,6 @@ struct TypeChecker {
                     i++;
                 }
 
-                if (nf->name == "assert") {
-                    // Special case, add to flow:
-                    CheckFlowTypeChanges(true, *n.ncall_args()->head());
-                }
-
                 type = type_any;  // no retvals
                 if (nf->retvals.v.size()) {
                     // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
@@ -1524,6 +1519,13 @@ struct TypeChecker {
                         type = type->sub->t == V_INT ? st.default_int_vector_types[flen]
                                                      : st.default_float_vector_types[flen];
                     }
+                }
+
+                if (nf->name == "assert") {
+                    // Special case, add to flow:
+                    CheckFlowTypeChanges(true, *n.ncall_args()->head());
+                    // Also make result non-nil, if it was.
+                    if (type->t == V_NIL) type = type->Element();
                 }
                 break;
             }
