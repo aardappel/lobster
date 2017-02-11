@@ -1,9 +1,8 @@
+- memory leaks because of global vars in e.g. glgeom.cpp
+
 - code using gui.lobster can't be inlined correctly if multi-referenced functions are enabled.
 
 - break statement
-
-- if you declare a:[int] = [], then the constructor for [] will get types with [any] and have this
-  as its "ti" at runtime, which is incorrect
 
 - support default args?
 
@@ -39,6 +38,9 @@
   - create some generic primitives.. frame-based if-then, sequencing, etc.
   - save frame state?
   - DOCS!
+
+- Builtin calls that return no value are followed by IL_POPREF, would be better IL_POP or nothing
+  at all.
 
 - some form or switch or pattern match facility?
 
@@ -96,7 +98,6 @@
 - syntax: "if c: a, b = exp" doesn't compile if the multi-assign is on the same line.
 
 - typechecker
-  - x.y.x does not participate in flow analysis and is pretty common
   - x[i] does not do flow analysis.. not as trivial to add if i is an exp or could change.
   - if !a: a = ..
     // here a is still nillable.

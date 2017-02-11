@@ -828,9 +828,14 @@ struct TypeChecker {
         return bodycall->exptype;
     }
 
+    Ident *IsIdOrDots(const Node &n) {
+        auto t = &n;
+        while (t->type == T_DOT || t->type == T_DOTMAYBE) t = t->left();
+        return t->type == T_IDENT ? t->ident() : nullptr;
+    }
+
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type) {
-        if (n.type == T_IDENT ||
-            ((n.type == T_DOT || n.type == T_DOTMAYBE) && n.left()->type == T_IDENT)) {
+        if (IsIdOrDots(n)) {
             flowstack.push_back(FlowItem(&n, type));
         }
     }
@@ -914,22 +919,27 @@ struct TypeChecker {
                     if (in.type == T_IDENT && in.ident() == n.ident()) {
                         n.exptype = flow.old;  // only for assign
                         goto found;
-                    } else if ((in.type == T_DOT || in.type == T_DOTMAYBE) &&
-                               in.left()->ident() == n.ident() && assign) {
+                    } else if (IsIdOrDots(in) == n.ident() && assign) {
                         // We're writing to var V and V.f is in the stack: invalidate regardless.
                         goto found;
                     }
                     break;
                 case T_DOT:
-                case T_DOTMAYBE:
-                    if (n.left()->type == T_IDENT &&
-                        (in.type == T_DOT || in.type == T_DOTMAYBE) &&
-                        in.left()->ident() == n.left()->ident() &&
-                        in.right()->fld() == n.right()->fld()) {
+                case T_DOTMAYBE: {
+                    auto t = &n;
+                    auto it = &in;
+                    while (t->type == it->type && (t->type == T_DOT || t->type == T_DOTMAYBE) &&
+                           t->right()->fld() == it->right()->fld()) {
+                        t = t->left();
+                        it = it->left();
+                    }
+                    if (t->type == T_IDENT && it->type == T_IDENT &&
+                        t->ident() == it->ident()) {
                         n.exptype = flow.old;  // only for assign
                         goto found;
                     }
                     break;
+                }
                 default: assert(0);
             }
             continue;
@@ -1160,9 +1170,11 @@ struct TypeChecker {
 
             case T_DEF:
             case T_ASSIGNLIST: {
-                auto dl = &n;
+                auto dlp = &n_ptr;
+                auto dl = *dlp;
                 vector<Node *> idnodes;
-                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST; dl = dl->right()) {
+                for (; dl->type == T_DEF || dl->type == T_ASSIGNLIST;
+                       (dlp = &dl->right()), (dl = *dlp)) {
                     idnodes.push_back(dl->left());
                     if (dl->type == T_ASSIGNLIST) {
                         TypeCheck(dl->left(), T_ASSIGNLIST);
@@ -1202,7 +1214,13 @@ struct TypeChecker {
                             break;
                     }
                     if (n.type == T_DEF) {
-                        if (n.c()) type = n.c()->typenode();
+                        if (n.c()) {
+                            type = n.c()->typenode();
+                            // Have to subtype the initializer value, as that node may contain
+                            // unbound vars (a:[int] = []) or values that that need to be coerced
+                            // (a:float = 1)
+                            SubType(*dlp, type, "initializer", "definition");
+                        }
                         auto id = idn->ident();
                         // Must SubType here rather than assignment, since id->cursid->type is var
                         // that may have been bound by the initializer already.
