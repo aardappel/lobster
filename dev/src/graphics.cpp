@@ -351,7 +351,6 @@ void AddGraphics() {
 
     STARTDECL(gl_polygon) (Value &vl) {
         auto m = CreatePolygon(vl);
-        currentshader->Set();
         m->Render(currentshader);
         delete m;
         return vl;
@@ -824,11 +823,10 @@ void AddGraphics() {
 
     STARTDECL(gl_loadtexture) (Value &name, Value &tf) {
         TestGL();
-        uint id = 0;
         int2 dim(0);
-        id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
+        uint id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
         name.DECRT();
-        g_vm->Push(g_vm->NewResource((void *)id, &texture_type));
+        g_vm->Push(id ? g_vm->NewResource((void *)id, &texture_type) : Value());
         return ToValueI(dim);
     }
     ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I]:2",
@@ -953,6 +951,42 @@ void AddGraphics() {
         " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
         " params contains specular exponent in x (try 32/64/128 for different material looks) and"
         " the specular scale in y (try 1 for full intensity)");
+
+    STARTDECL(gl_rendertiles) (Value &pos, Value &tile, Value &mapsize) {
+        TestGL();
+        auto msize = float2(ValueDecToI<2>(mapsize));
+        int len = pos.vval()->Len();
+        if (len != tile.vval()->Len())
+            g_vm->BuiltinError("rendertiles: vectors of different size");
+        auto vbuf = new SpriteVert[len * 6];
+        for (int i = 0; i < len; i++) {
+            auto p = ValueToF<2>(pos.vval()->At(i));
+            auto t = float2(ValueToI<2>(tile.vval()->At(i))) / msize;
+            vbuf[i * 6 + 0].pos = p;
+            vbuf[i * 6 + 1].pos = p + float2_y;
+            vbuf[i * 6 + 2].pos = p + float2_1;
+            vbuf[i * 6 + 3].pos = p;
+            vbuf[i * 6 + 4].pos = p + float2_1;
+            vbuf[i * 6 + 5].pos = p + float2_x;
+            vbuf[i * 6 + 0].tc = t;
+            vbuf[i * 6 + 1].tc = t + float2_y / msize;
+            vbuf[i * 6 + 2].tc = t + float2_1 / msize;
+            vbuf[i * 6 + 3].tc = t;
+            vbuf[i * 6 + 4].tc = t + float2_1 / msize;
+            vbuf[i * 6 + 5].tc = t + float2_x / msize;
+        }
+        pos.DECRT();
+        tile.DECRT();
+        currentshader->Set();
+        RenderArraySlow(PRIM_TRIS, len * 6, "pT", sizeof(SpriteVert), vbuf);
+        delete[] vbuf;
+        return Value();
+    }
+    ENDDECL3(gl_rendertiles, "positions,tilecoords,mapsize", "F]]I]]I]", "",
+        "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
+        " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
+        " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
+        " Before calling this, make sure to have the texture set and a textured shader");
 
     STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness) {
         TestGL();

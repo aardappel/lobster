@@ -218,6 +218,8 @@ const float3 float3_z = float3(0, 0, 1);
 
 const float2 float2_0 = float2(0.0f);
 const float2 float2_1 = float2(1.0f);
+const float2 float2_x = float2(1, 0);
+const float2 float2_y = float2(0, 1);
 
 const int2 int2_0 = int2(0);
 const int2 int2_1 = int2(1);
