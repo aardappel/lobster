@@ -1124,7 +1124,7 @@ struct Parser {
             }
             // Check for function call without ().
             auto id = st.Lookup(idname);
-            if (!id && (nf || f)) {
+            if (!id && (nf || f) && lex.whitespacebefore > 0) {
                 return ParseFunctionCall(f, nf, idname, nullptr, false, true);
             }
             // Check for field reference in function with :: arguments.
