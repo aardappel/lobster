@@ -174,4 +174,3 @@ def fatal(msg):
 def check(val, msg):
     if !val: fatal(msg)
     assert val  // FIXME: needed to make return type not-nil.
-    val

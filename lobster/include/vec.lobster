@@ -115,3 +115,5 @@ def rotate2D(v, angle):
     c := cos(-angle)
     xy { v.x * c + v.y * s,
          v.y * c - v.x * s }
+
+def manhattan(v): abs(v.x) + abs(v.y)

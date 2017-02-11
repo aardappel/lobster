@@ -4,6 +4,7 @@
 // first call update, then view
 
 include "vec.lobster"
+include "color.lobster"
 include "texture.lobster"
 
 camera_position := xyz_0

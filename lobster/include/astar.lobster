@@ -48,7 +48,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
 
 // specialized to a graph in 2D or 3D space (assumes pre existing nodes), usage:
 // - create a graph out of nodes inherited from astar_node above
-// - costf must compute the cost of traversal between 2 nodes
+// - costf must compute the cost of traversal between 2 nodes, 0 for impassable
 // - neighbors generates adjacent nodes
 // - returns a list of nodes from end to start inclusive, or empty list if no path
 
