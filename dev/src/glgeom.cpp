@@ -223,23 +223,32 @@ void SetPointSprite(float scale) {
     #endif
 }
 
-void RenderArray(Primitive prim, int tcount, int vcount, Geometry *geom, uint ibo = 0) {
+void RenderArray(Primitive prim, int vcount, Geometry *geom) {
     GLenum glprim = GetPrimitive(prim);
     geom->RenderSetup();
-    if (ibo) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glDrawElements(glprim, tcount, GL_UNSIGNED_INT, 0);
-    } else {
-        glDrawArrays(glprim, 0, vcount);
-    }
+    glDrawArrays(glprim, 0, vcount);
+}
+
+void RenderArray(Primitive prim, int tcount, Geometry *geom, uint ibo) {
+    GLenum glprim = GetPrimitive(prim);
+    geom->RenderSetup();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glDrawElements(glprim, tcount, GL_UNSIGNED_INT, 0);
 }
 
 void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt,
-                     int vertsize1, void *vbuf1, int *ibuf, int vertsize2, void *vbuf2) {
+                     int vertsize1, void *vbuf1, int *ibuf) {
+    auto geom = new Geometry(vbuf1, vcount, vertsize1, fmt, nullptr, 0);
+    uint ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), tcount, ibuf);
+    RenderArray(prim, tcount, geom, ibo);
+    glDeleteBuffers(1, &ibo);
+    delete geom;
+}
+
+void RenderArraySlow(Primitive prim, int vcount, const char *fmt,
+    int vertsize1, void *vbuf1, int vertsize2, void *vbuf2) {
     auto geom = new Geometry(vbuf1, vcount, vertsize1, fmt, vbuf2, vertsize2);
-    uint ibo = ibuf ? GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), tcount, ibuf) : 0;
-    RenderArray(prim, tcount, vcount, geom, ibo);
-    if (ibuf) glDeleteBuffers(1, &ibo);
+    RenderArray(prim, vcount, geom);
     delete geom;
 }
 
@@ -265,7 +274,7 @@ void RenderUnitSquare(Shader *sh, Primitive prim, bool centered) {
             new Geometry(centered ? vb_square_centered : vb_square, 4, quadsize, "PT");
     }
     sh->Set();
-    RenderArray(prim, 4, 4, quadgeom[centered]);
+    RenderArray(prim, 4, quadgeom[centered]);
 }
 
 void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans) {
@@ -330,10 +339,10 @@ void RenderUnitCube(Shader *sh, int inside) {
         cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
     }
     sh->Set();
-    RenderArray(PRIM_TRIS, 36, 24, cube_geom[inside], cube_ibo[inside]);
+    RenderArray(PRIM_TRIS, 36, cube_geom[inside], cube_ibo[inside]);
 }
 
-map<int, Geometry *> circlevbos;  // FIXME: not global;
+map<int, Geometry *> circlevbos;  // FIXME: not global, these are never deallocated!!!
 
 void RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
     assert(segments >= 3);
@@ -351,7 +360,7 @@ void RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
     }
     Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
-        RenderArray(prim, segments, segments, geom);
+        RenderArray(prim, segments, geom);
     });
 }
 
@@ -388,6 +397,6 @@ void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness) {
     }
     Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();
-        RenderArray(PRIM_TRIS, nindices, nverts, vibo.first, vibo.second);
+        RenderArray(PRIM_TRIS, nindices, vibo.first, vibo.second);
     });
 }

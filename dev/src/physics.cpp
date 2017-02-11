@@ -271,8 +271,8 @@ void AddPhysics() {
 					case b2Shape::e_polygon: {
                         r->Set();
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
-						RenderArraySlow(PRIM_FAN, polyshape->m_count, polyshape->m_count, "pn",
-                                        sizeof(b2Vec2), polyshape->m_vertices, nullptr,
+						RenderArraySlow(PRIM_FAN, polyshape->m_count, "pn",
+                                        sizeof(b2Vec2), polyshape->m_vertices,
 							            sizeof(b2Vec2), polyshape->m_normals);
 						break;
 					}
@@ -308,8 +308,7 @@ void AddPhysics() {
         auto scale = fabs(otransforms.object2view[0].x());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval());
         particlematerial->Set();
-        RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(),
-                        particlesystem->GetParticleCount(), "pC", sizeof(float2), verts, nullptr,
+        RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts,
                         sizeof(byte4), colors);
         return Value();
     }

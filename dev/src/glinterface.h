@@ -78,6 +78,11 @@ struct AnimVert : BasicVert { // "PNTCWI"
     byte4 indices;
 };
 
+struct SpriteVert {   // "pT"
+    float2 pos;
+    float2 tc;
+};
+
 class Geometry  {
     const size_t vertsize;
     string fmt;
@@ -175,8 +180,9 @@ extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
 extern void DeleteBO(uint id);
 extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, int vertsize,
-                            void *vbuf1, int *ibuf = nullptr, int vertsize2 = 0,
-                            void *vbuf2 = nullptr);
+                            void *vbuf1, int *ibuf);
+extern void RenderArraySlow(Primitive prim, int vcount, const char *fmt, int vertsize,
+                            void *vbuf1, int vertsize2 = 0, void *vbuf2 = nullptr);
 extern void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2,
                          float thickness);
 extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos,
