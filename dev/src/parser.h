@@ -852,7 +852,10 @@ struct Parser {
             }
             return new Node(lex, T_NATCALL, new Node(lex, nf), args);
         }
-        if (f) {
+        auto id = st.Lookup(idname);
+        // If both a var and a function are in scope, the deepest scope wins.
+        // Note: <, because functions are inside their own scope.
+        if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
@@ -864,7 +867,6 @@ struct Parser {
             return new Node(lex, T_CALL, new Node(lex, f->subf), args);
         }
         auto args = ParseFunArgs(coroutine, firstarg);
-        auto id = st.Lookup(idname);
         if (id)
             return new Node(lex, T_DYNCALL, new Node(lex, id),
                                             new Node(lex, (SubFunction *)nullptr),
@@ -1122,8 +1124,8 @@ struct Parser {
             if (idname[0] == '_') {
                 return new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
             }
-            // Check for function call without ().
             auto id = st.Lookup(idname);
+            // Check for function call without ().
             if (!id && (nf || f) && lex.whitespacebefore > 0) {
                 return ParseFunctionCall(f, nf, idname, nullptr, false, true);
             }

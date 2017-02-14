@@ -135,7 +135,7 @@ def return_after(v, f):
     f()
     v
 
-def block(f): f()  // Useful to create a scope where there is none.
+def do(f): f()  // Useful to create a scope where there is none.
 
 def forbias (num, bias,  fun): for num: fun(_ + bias)
 def forscale(num, scale, fun): for num: fun(_ * scale)

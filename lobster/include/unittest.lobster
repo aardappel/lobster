@@ -121,7 +121,7 @@ def run_test_cases(is_speed_test):
     // ////////////////////////////////////////////////////////////////////////
     // typechecking
 
-    block():
+    do():
         def h(i): i()
         def g(f):
             // Here, the def passed to h appears the same each time, but it has a freevar f that is different.
@@ -246,7 +246,7 @@ def run_test_cases(is_speed_test):
 
     // FIXME: sticking these in a block for now, because collect_garbage() below
     // can't handle coroutines yet.
-    block():
+    do():
         def mycoro(f):
             forrange(3, 6): f(_)
             1337

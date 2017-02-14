@@ -24,7 +24,7 @@ struct SpecIdent;
 
 struct Ident : Named {
     int line;
-    size_t scope;
+    size_t identstacklevel, scopelevel;
 
     Ident *prev;
 
@@ -39,12 +39,12 @@ struct Ident : Named {
 
     SpecIdent *cursid;
 
-    Ident(const string &_name, int _l, int _idx, size_t _sc)
+    Ident(const string &_name, int _l, int _idx, size_t _isl, size_t _sl)
         : Named(_name, _idx), line(_l),
-          scope(_sc), prev(nullptr), sf_def(nullptr),
+          identstacklevel(_isl), scopelevel(_sl), prev(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
           logvar(false), cursid(nullptr) {}
-    Ident() : Ident("", -1, 0, SIZE_MAX) {}
+    //Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Assign(Lex &lex) {
         single_assignment = false;
@@ -247,17 +247,16 @@ struct Function : Named {
     bool istype;
     // Store the original types the function was declared with, before specialization.
     ArgVector orig_args;
-    int scopelevel;
+    size_t scopelevel;
     // 0 for anonymous functions, and for named functions to indicate no return has happened yet.
     // 0 implies 1, all function return at least 1 value.
     int retvals;
 
-    Function(const string &_name, int _idx, int _sl)
+    Function(const string &_name, int _idx, size_t _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0),
        scopelevel(_sl), retvals(0) {
     }
-    Function() : Function("", 0, -1) {}
     ~Function() {}
 
     int nargs() { return (int)subf->args.v.size(); }
@@ -359,12 +358,13 @@ struct SymbolTable {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = new Ident(name, line, (int)identtable.size(), (int)scopelevels.back());
+        ident = new Ident(name, line, (int)identtable.size(), scopelevels.back(),
+                          scopelevels.size());
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
         (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, nullptr, type_any, true));
         if (existing_ident) {
-            if (scopelevels.back() == existing_ident->scope)
+            if (scopelevels.back() == existing_ident->identstacklevel)
                 lex.Error("identifier redefinition: " + ident->name);
             ident->prev = existing_ident;
         }
@@ -523,7 +523,7 @@ struct SymbolTable {
 
     Function &CreateFunction(const string &name, const string &context) {
         auto fname = name.length() ? name : "function" + to_string(functiontable.size()) + context;
-        auto f = new Function(fname, (int)functiontable.size(), (int)scopelevels.size());
+        auto f = new Function(fname, (int)functiontable.size(), scopelevels.size());
         functiontable.push_back(f);
         return *f;
     }
@@ -531,7 +531,7 @@ struct SymbolTable {
     Function &FunctionDecl(const string &name, int nargs, Lex &lex) {
         auto fit = functions.find(name);
         if (fit != functions.end()) {
-            if (fit->second->scopelevel != int(scopelevels.size()))
+            if (fit->second->scopelevel != scopelevels.size())
                 lex.Error("cannot define a variation of function " + name +
                           " at a different scope level");
             for (auto f = fit->second; f; f = f->sibf)

@@ -1,3 +1,5 @@
+- should somehow avoid functions whose return types aren't used to have matching return types.
+
 - memory leaks because of global vars in e.g. glgeom.cpp
 
 - code using gui.lobster can't be inlined correctly if multi-referenced functions are enabled.
