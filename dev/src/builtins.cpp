@@ -541,14 +541,14 @@ void AddBuiltins() {
     STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); }
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROP(int(ceilf(f.fval()))); }
+    STARTDECL(ceiling) (Value &a) { VECTOROPT(int(ceilf(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(ceiling, "v", "F]", "I]:/",
         "the nearest ints >= each component of v");
 
     STARTDECL(floor) (Value &a) { return Value(int(floorf(a.fval()))); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor) (Value &a) { VECTOROP(int(floorf(f.fval()))); }
+    STARTDECL(floor) (Value &a) { VECTOROPT(int(floorf(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(floor, "v", "F]", "I]:/",
         "the nearest ints <= each component of v");
 
@@ -561,7 +561,8 @@ void AddBuiltins() {
 
     STARTDECL(round) (Value &a) { return Value(int(a.fval() + 0.5f)); }
     ENDDECL1(round, "f", "F", "I",
-        "converts a float to the closest int. same as int(f + 0.5), so does not work well on negative numbers");
+        "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
+        " negative numbers");
     STARTDECL(round) (Value &a) { VECTOROPT(int(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");

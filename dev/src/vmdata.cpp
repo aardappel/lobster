@@ -80,6 +80,7 @@ ValueType ElemObj::ElemType(int i) const {
     // FIXME: for testing
     if(vt != At(i).type && At(i).type != V_NIL && !(vt == V_VECTOR && At(i).type == V_STRUCT)) {
         Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(At(i).type));
+        //g_vm->BuiltinError("");
         assert(false);
     }
     #endif
