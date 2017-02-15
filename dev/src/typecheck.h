@@ -24,7 +24,7 @@ struct TypeChecker {
                 PromoteStructIdx(field.type, struc->superclass, struc);
             }
         }
-        TypeCheck(parser.root, T_LIST);
+        TypeCheckList(parser.root);
         CleanUpFlow(0);
         assert(!scopes.size());
         assert(!named_scopes.size());
@@ -531,7 +531,7 @@ struct TypeChecker {
         if (!sf.fixedreturntype) sf.returntypes[0] = NewTypeVar();
         sf.coresumetype = sf.iscoroutine ? NewTypeVar() : type_any;
         auto start_promoted_vars = flowstack.size();
-        TypeCheck(sf.body, T_LIST);
+        TypeCheckList(sf.body);
         CleanUpFlow(start_promoted_vars);
         Node *last = Parser::LastInList(sf.body);
         if (last->head()->type != T_RETURN ||
@@ -1038,6 +1038,11 @@ struct TypeChecker {
         }
     }
 
+    void TypeCheckList(Node *n) {
+        // Flatten the TypeCheck recursion a bit
+        for (; n; n = n->b()) TypeCheck(n->aref(), T_LIST);
+    }
+
     void TypeCheck(Node *&n_ptr, TType parent_type) {
         if (!n_ptr) return;
         Node &n = *n_ptr;
@@ -1048,8 +1053,7 @@ struct TypeChecker {
                 break;
 
             case T_LIST:
-                // Flatten the TypeCheck recursion a bit
-                for (Node *stats = &n; stats; stats = stats->b()) TypeCheck(stats->aref(), T_LIST);
+                assert(false);  // Parent calls TypeCheckList.
                 break;
 
             case T_OR:
@@ -1379,7 +1383,7 @@ struct TypeChecker {
 
             case T_NATCALL: {
                 TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheckList(n.bref());
                 auto nf = n.ncall_id()->nf();
                 if (nf->first->overloads) {
                     // Multiple overloads available, figure out which we want to call.
@@ -1546,7 +1550,7 @@ struct TypeChecker {
 
             case T_CALL: {
                 TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheckList(n.bref());
                 auto sf = n.call_function()->sf();
                 type = TypeCheckCall(sf, n.call_args(), *n.call_function());
                 break;
@@ -1568,7 +1572,7 @@ struct TypeChecker {
                     n.dcall_fval()->sf() = PreSpecializeFunction(n.dcall_fval()->sf());
                 TypeCheck(n.aref(), n.type);
                 TypeCheck(n.bref(), n.type);
-                TypeCheck(n.cref(), n.type);
+                TypeCheckList(n.cref());
                 type = TypeCheckDynCall(*n.dcall_fval(), n.dcall_args(), n.dcall_function());
                 break;
 
@@ -1632,7 +1636,7 @@ struct TypeChecker {
                 break;  // Already set by the parser.
 
             case T_CONSTRUCTOR: {
-                TypeCheck(n.aref(), n.type);
+                TypeCheckList(n.aref());
                 TypeCheck(n.bref(), n.type);
                 type = n.constructor_type()->typenode();
                 if (type->t == V_VECTOR && type->sub->t == V_ANY) {
