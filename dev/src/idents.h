@@ -250,12 +250,12 @@ struct Function : Named {
     size_t scopelevel;
     // 0 for anonymous functions, and for named functions to indicate no return has happened yet.
     // 0 implies 1, all function return at least 1 value.
-    int retvals;
+    int nretvals;
 
     Function(const string &_name, int _idx, size_t _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0),
-       scopelevel(_sl), retvals(0) {
+       scopelevel(_sl), nretvals(0) {
     }
     ~Function() {}
 

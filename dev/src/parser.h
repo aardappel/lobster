@@ -489,7 +489,7 @@ struct Parser {
                     if (!stat->tail() && (stat->head()->type != T_RETURN ||
                         stat->head()->return_function_idx()->integer() != f.idx /* return from */))
                         ReturnValues(f, 1);
-                assert(f.retvals);
+                assert(f.nretvals);
             }
         }
         // Keep copy or arg types from before specialization.
@@ -683,10 +683,10 @@ struct Parser {
     }
 
     void ReturnValues(Function &f, int nrv) {
-        if (f.retvals && f.retvals != nrv)
+        if (f.nretvals && f.nretvals != nrv)
             Error(string("all return statements of this function must return the same number of"
-                         " return values. previously: ") + to_string(f.retvals));
-        f.retvals = nrv;
+                         " return values. previously: ") + to_string(f.nretvals));
+        f.nretvals = nrv;
     }
 
     Node *ParseExpStat() {
@@ -696,7 +696,7 @@ struct Parser {
             if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
                 if (rv->type == T_CALL)
-                    nrv = max(nrv, rv->call_function()->sf()->parent->retvals);
+                    nrv = max(nrv, rv->call_function()->sf()->parent->nretvals);
             }
             int fid = -2;
             if (IsNext(T_FROM)) {

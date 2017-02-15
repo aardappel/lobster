@@ -340,7 +340,7 @@ struct CodeGen  {
                 Emit(GetTypeTableOffset(list->head()->exptype));
             }
         }
-        auto nretvals = max(f.retvals, 1);
+        auto nretvals = max(f.nretvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
         for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
         SplitAttr(Pos());
@@ -863,7 +863,7 @@ struct CodeGen  {
                     }
                 }
                 int fid = n->return_function_idx()->integer();
-                int nretvals = fid >= 0 ? st.functiontable[fid]->retvals : 1;
+                int nretvals = fid >= 0 ? st.functiontable[fid]->nretvals : 1;
                 if (nretvals > MAX_RETURN_VALUES) parser.Error("too many return values");
                 if (n->return_value()) Gen(n->return_value(), nretvals, true);
                 else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
