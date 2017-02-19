@@ -1,4 +1,15 @@
 - should somehow avoid functions whose return types aren't used to have matching return types.
+  - make codegen throw away return values before they're returned, and not pop after call.
+    - specialize natcalls on retval or not.
+  - FIXME: are dynamic function values type checked at all?
+  - remove return value checking from parser
+  - simplify or remove return value checking from codegen
+  - simplify e.g. occurrences of return - from etc that shouldn't need fake return values anymore.
+  - also apply this to builtin functions?
+  - reqret arg of TypeCheck: if we are sure codegen or optimizer optimizes op out, can
+    turn "true" in to passing "reqret" to child.
+
+- add options to either show more extensive stacktrace dump to either stdout or file.
 
 - memory leaks because of global vars in e.g. glgeom.cpp
 
@@ -53,6 +64,9 @@
   - clean up 3dhelpers?
 
 - have a reference counted resource handle instead of ints.
+
+- Could provide a compilation mode where this is compiled in: https://github.com/bombomby/brofiler
+  Would be able to show a nice nested view of the cost of all lobster functions and builtins.
 
 - use RangeCheck in more places.
 

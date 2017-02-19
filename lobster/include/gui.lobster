@@ -104,7 +104,6 @@ private def block(al, sp, vert, id, f):
 
 def gui_text(text:string):
     element(cache_size(caller_id()): gl_textsize(text)):
-        //print(gl_textsize(text))
         gl_text(text)
 
 def gui_image(factors, tex):
@@ -137,8 +136,6 @@ def gui_start(size, alignh, alignv, interact, f):   // top level only
         overalsize = cursize_of(id, f)
         assert(overalsize)
 
-        //print(size_list)
-
         render_pass = true
         size_index = 1
 
@@ -147,9 +144,6 @@ def gui_start(size, alignh, alignv, interact, f):   // top level only
             align <- alignh
             vertical <- true
             f()
-
-        //assert(size_index == length(size_list))
-        //print(size_index)
 
 def gui_hblock(al, sp, f): block(al, sp, false, caller_id(), f)
 def gui_vblock(al, sp, f): block(al, sp, true,  caller_id(), f)

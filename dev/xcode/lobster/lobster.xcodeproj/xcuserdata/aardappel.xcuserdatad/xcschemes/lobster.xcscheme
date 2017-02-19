@@ -80,6 +80,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "unittest.lobster"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "../projects/rtsclicker.lobster"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

@@ -159,7 +159,7 @@ struct CodeGen  {
                 GenFunction(*f);
         SETL(fundefjump);
         SplitAttr(Pos());
-        BodyGen(parser.root);
+        BodyGen(parser.root, true);
         Emit(IL_EXIT, GetTypeTableOffset(Parser::LastInList(parser.root)->head()->exptype));
         SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
@@ -178,8 +178,8 @@ struct CodeGen  {
 
     void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
 
-    void BodyGen(const Node *n) {
-        for (; n; n = n->tail()) Gen(n->head(), !n->tail());
+    void BodyGen(const Node *n, bool reqret) {
+        for (; n; n = n->tail()) Gen(n->head(), reqret && !n->tail());
     }
 
     struct sfcompare {
@@ -281,11 +281,11 @@ struct CodeGen  {
         // optimize function calls
         Emit((int)defs.size());
         for (auto id : defs) Emit(id->idx);
-        if (sf.body) BodyGen(sf.body);
-        else Dummy(true);
-        TakeTemp(1);
+        if (sf.body) BodyGen(sf.body, sf.reqret);
+        else Dummy(sf.reqret);
+        if (sf.reqret) TakeTemp(1);
         assert(temptypestack.empty());
-        Emit(IL_FUNEND);
+        Emit(IL_FUNEND, sf.reqret);
         linenumbernodes.pop_back();
     }
 
@@ -323,7 +323,8 @@ struct CodeGen  {
         return lastarg;
     };
 
-    void GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs) {
+    void GenCall(const SubFunction &sf, const Node *args, const Node *errnode, int &nargs,
+                 int retval) {
         auto &f = *sf.parent;
         GenArgs(args, nargs);
         if (f.nargs() != nargs)
@@ -342,13 +343,27 @@ struct CodeGen  {
         }
         auto nretvals = max(f.nretvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
-        for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
+        if (sf.reqret) {
+            if (retval) {
+                for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
+            } else {
+                // FIXME: better if this is impossible by making sure typechecker makes it !reqret.
+                //assert(f.multimethod);
+                for (int i = 0; i < nretvals; i++) GenPop(sf.returntypes[i]);
+            }
+        } else {
+            assert(!retval);
+        }
         SplitAttr(Pos());
     };
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
 
     void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
+
+    void GenPop(TypeRef type) {
+        Emit(IsRefNil(type->t) ? IL_POPREF : IL_POP);
+    }
 
     void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr) {
         // The cases below generate no retvals if retval==0, otherwise they generate however many
@@ -609,14 +624,16 @@ struct CodeGen  {
                     if (nf->ncm == NCM_CONT_EXIT) { // graphics.h
                         Emit(IL_BCALL0 + nargs, nf->idx);
                         if (lastarg->type != T_DEFAULTVAL) {
-                            Emit(IL_CALLVCOND);
+                            Emit(IL_CALLVCOND);  // FIXME: doesn't need to be COND anymore?
                             EmitTempInfo(n);
-
                             SplitAttr(Pos());
-
                             assert(lastarg->exptype->t == V_FUNCTION);
-                            Emit(IsRefNil(lastarg->exptype->sf->returntypes[0]->t)
-                                ? IL_CONT1REF : IL_CONT1, nf->idx);
+                            auto sf = lastarg->exptype->sf;
+                            if (sf->reqret) {
+                                assert(false);  // We currently never use the retval.
+                                //GenPop(sf->returntypes[0]);
+                            }
+                            Emit(IL_CONT1, nf->idx);  // FIXME: make this not return a value in the VM
                         }
                     } else {
                         Emit(IL_BCALL0 + nargs, nf->idx);
@@ -628,8 +645,19 @@ struct CodeGen  {
                         // can't make this an error since these functions are often called as the
                         // last thing in a function, requiring a return value
                     }
+                    if (!retval) {
+                        if (rettypes.size()) {
+                            while (rettypes.size()) {
+                                GenPop(rettypes.back());
+                                rettypes.pop_back();
+                            }
+                        } else {
+                            GenPop(n->exptype);
+                        }
+                    }
                 } else if (n->type == T_CALL) {
-                    GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs);
+                    GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs,
+                            retval);
                 } else {
                     assert(n->type == T_DYNCALL);
                     if (n->dcall_fval()->exptype->t == V_YIELD) {
@@ -646,6 +674,7 @@ struct CodeGen  {
                         assert(temptypestack.size() == nested_fors * 2);
                         EmitTempInfo(n);
                         SplitAttr(Pos());
+                        if (!retval) GenPop(n->exptype);
                     } else {
                         auto sf = n->dcall_fval()->exptype->sf;
                         auto spec_sf = n->dcall_function()->sf();
@@ -660,7 +689,7 @@ struct CodeGen  {
                             // or when we want to run without the optimizer?
                             Gen(n->dcall_fval(), 0);
                             // We can now turn this into a normal call.
-                            GenCall(*sf, n->dcall_args(), n, nargs);
+                            GenCall(*sf, n->dcall_args(), n, nargs, retval);
                         } else {
                             GenArgs(n->dcall_args(), nargs);
                             assert(nargs == (int)sf->args.size());
@@ -669,17 +698,8 @@ struct CodeGen  {
                             Emit(IL_CALLV);
                             EmitTempInfo(n);
                             SplitAttr(Pos());
+                            if (!retval) GenPop(n->exptype);
                         }
-                    }
-                }
-                if (!retval) {
-                    if (rettypes.size()) {
-                        while (rettypes.size()) {
-                            Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
-                            rettypes.pop_back();
-                        }
-                    } else {
-                        Emit(IsRefNil(n->exptype->t) ? IL_POPREF : IL_POP);
                     }
                 }
                 break;
@@ -859,7 +879,7 @@ struct CodeGen  {
                     // Check that these temps are actually from for loops, to not mask bugs.
                     assert(temptypestack.size() == nested_fors * 2);
                     for (int i = (int)temptypestack.size() - 1; i >= 0; i--) {
-                        Emit(IsRefNil(temptypestack[i]->t) ? IL_POPREF : IL_POP);
+                        GenPop(temptypestack[i]);
                     }
                 }
                 int sfid = n->return_subfunction_idx()->integer();
@@ -867,8 +887,12 @@ struct CodeGen  {
                 int fid = sf ? sf->parent->idx : sfid;
                 int nretvals = sf ? sf->parent->nretvals : 1;
                 if (nretvals > MAX_RETURN_VALUES) parser.Error("too many return values");
-                if (n->return_value()) Gen(n->return_value(), nretvals, true);
-                else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
+                if (!sf || sf->reqret) {
+                    if (n->return_value()) Gen(n->return_value(), nretvals, true);
+                    else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
+                } else {
+                    nretvals = 0;
+                }
                 // FIXME: we could change the VM to instead work with SubFunction ids.
                 Emit(IL_RETURN, fid, nretvals, GetTypeTableOffset(n->exptype));
                 // retval==true is nonsensical here, but can't enforce
@@ -928,7 +952,7 @@ struct CodeGen  {
             // if the caller doesn't want all return values, just pop em
             } else if((int)rettypes.size() > retval) {
                 while ((int)rettypes.size() > retval) {
-                    Emit(IsRefNil(rettypes.back()->t) ? IL_POPREF : IL_POP);
+                    GenPop(rettypes.back());
                     rettypes.pop_back();
                 }
             // only happens if both are > 1

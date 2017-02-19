@@ -790,7 +790,10 @@ void VM::F_FUNSTART(VM_OP_ARGS) {
     #endif
 }
 
-void VM::F_FUNEND(VM_OP_ARGS) { FunOut(-1, 1); }
+void VM::F_FUNEND(VM_OP_ARGS) {
+    int nrv = *ip++;
+    FunOut(-1, nrv);
+}
 
 void VM::F_RETURN(VM_OP_ARGS) {
     int df = *ip++;
@@ -809,14 +812,6 @@ void VM::F_EXIT(VM_OP_ARGS) {
 
 void VM::F_CONT1(VM_OP_ARGS) {
     auto nf = natreg.nfuns[*ip++];
-    POP();  // return value from body.
-    nf->cont1();
-    PUSH(Value());
-}
-
-void VM::F_CONT1REF(VM_OP_ARGS) {
-    auto nf = natreg.nfuns[*ip++];
-    POP().DECRTNIL();  // return value from body.
     nf->cont1();
     PUSH(Value());
 }

@@ -24,7 +24,7 @@ struct TypeChecker {
                 PromoteStructIdx(field.type, struc->superclass, struc);
             }
         }
-        TypeCheckList(parser.root);
+        TypeCheckList(parser.root, true);
         CleanUpFlow(0);
         assert(!scopes.size());
         assert(!named_scopes.size());
@@ -487,15 +487,18 @@ struct TypeChecker {
         if (!sf) return;
         if (i >= sf->returntypes.size()) {
             if (sf->fixedreturntype)
-                TypeError("number of returned value must correspond to declared return type", *a);
+                TypeError("number of returned value(s) must correspond to declared return type",
+                          *a);
             assert(i == sf->returntypes.size());
             sf->returntypes.push_back(exacttype ? *exacttype : a->exptype);
-        } else {
+        } else if (sf->reqret) {
             auto argname = "return value";
             if (exacttype) SubTypeT(*exacttype, sf->returntypes[i], *a, argname);
             else if (a) SubType(a, sf->returntypes[i], argname, *a);
             // FIXME: this allows "return" followed by "return 1" ?
             else SubTypeT(type_any, sf->returntypes[i], *a, argname);
+        } else {
+            // The caller doesn't want return values.
         }
     }
 
@@ -531,7 +534,7 @@ struct TypeChecker {
         if (!sf.fixedreturntype) sf.returntypes[0] = NewTypeVar();
         sf.coresumetype = sf.iscoroutine ? NewTypeVar() : type_any;
         auto start_promoted_vars = flowstack.size();
-        TypeCheckList(sf.body);
+        TypeCheckList(sf.body, true, sf.reqret);
         CleanUpFlow(start_promoted_vars);
         Node *last = Parser::LastInList(sf.body);
         if (last->head()->type != T_RETURN ||
@@ -539,7 +542,7 @@ struct TypeChecker {
             RetVal(last->head(), &sf, 0);
         for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
         for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
-        for (auto type : sf.returntypes) if (type->HasVariable()) {
+        for (auto type : sf.returntypes) if (sf.reqret && type->HasVariable()) {
             // If this function return something with a variable in it, then it likely will get
             // bound by the caller. If the function then gets reused without specialization, it will
             // get the wrong return type, so we force specialization for subsequent calls of this
@@ -638,7 +641,31 @@ struct TypeChecker {
         return sf;
     }
 
-    TypeRef TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node) {
+    TypeRef TypeCheckMatchingCall(SubFunction *sf, Node *call_args, Node &function_def_node) {
+        // Here we have a SubFunction witch matching specialized types.
+        sf->numcallers++;
+        Function &f = *sf->parent;
+        // First check all the manually typed args.
+        int i = 0;
+        for (Node *list = call_args; list && i < f.nargs(); i++, list = list->tail()) {
+            auto &arg = sf->args.v[i];
+            if (arg.flags != AF_ANYTYPE)
+                SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
+            if (list->head()->type == T_COCLOSURE)
+                sf->iscoroutine = true;
+        }
+        if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
+        function_def_node.sf() = sf;
+        for (auto &freevar : sf->freevars.v) {
+            // New freevars may have been added during the function def typecheck above.
+            // In case their types differ from the flow-sensitive value at the callsite (here),
+            // we want to override them.
+            freevar.type = freevar.id->cursid->type;
+        }
+        return sf->returntypes[0];
+    }
+
+    TypeRef TypeCheckCall(SubFunction *csf, Node *call_args, Node &function_def_node, bool reqret) {
         Function &f = *csf->parent;
         if (f.multimethod) {
             if (!f.subf->numcallers) {
@@ -663,82 +690,59 @@ struct TypeChecker {
                 }
             }
             return f.multimethodretval;
+        } else if (f.istype) {
+            // Function types are always fully typed.
+            return TypeCheckMatchingCall(csf, call_args, function_def_node);
         } else {
-            SubFunction *sf = csf;
             if (csf->logvarcallgraph) {
                 // Mark call-graph up to here as using logvars, if it hasn't been already.
                 for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
                     if (it->sf->logvarcallgraph) break;
                     it->sf->logvarcallgraph = true;
                 }
-                // Functions using logvars or leading up to it are always specialized, that way
-                // they have unique specidents.
-                goto specialize;
             }
-            // First see any args are untyped, this means we must specialize.
-            for (auto &arg : csf->args.v) if (arg.flags == AF_ANYTYPE) goto specialize;
-            // If we didn't find any such args, and we also don't have any freevars, we don't
-            // specialize.
-            if (!csf->freevars.v.size() && !csf->mustspecialize) goto match;
-            specialize: {
-                assert(!f.istype);  // Should not contain any AF_ANYTYPE
-                if (sf->typechecked) {
-                    // Check if any existing specializations match.
-                    for (sf = f.subf; sf; sf = sf->next) {
-                        if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
-                            int i = 0;
-                            for (Node *list = call_args; list && i < f.nargs();
-                                list = list->tail()) {
-                                auto &arg = sf->args.v[i++];
-                                if (arg.flags == AF_ANYTYPE &&
-                                    !ExactType(list->head()->exptype, arg.type)) goto fail;
-                            }
-                            if (FreeVarsSameAsCurrent(sf, false)) goto match;
-                            fail:;
+            // Check if we need to specialize: generic args, free vars and need of retval
+            // must match previous calls.
+            SubFunction *sf = csf;
+            if (sf->typechecked) {
+                // Check if any existing specializations match.
+                for (sf = f.subf; sf; sf = sf->next) {
+                    if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
+                        int i = 0;
+                        for (Node *list = call_args; list && i < f.nargs();
+                            list = list->tail()) {
+                            auto &arg = sf->args.v[i++];
+                            if (arg.flags == AF_ANYTYPE &&
+                                !ExactType(list->head()->exptype, arg.type)) goto fail;
                         }
+                        if (FreeVarsSameAsCurrent(sf, false) && reqret == sf->reqret)
+                            return TypeCheckMatchingCall(sf, call_args, function_def_node);
+
+                        fail:;
                     }
-                    // No fit. Specialize existing function, or its clone.
-                    sf = CloneFunction(csf);
                 }
-                // Now specialize.
-                int i = 0;
-                for (Node *list = call_args; list && i < f.nargs(); list = list->tail()) {
-                    auto &arg = sf->args.v[i];
-                    if (arg.flags == AF_ANYTYPE) {
-                        arg.type = list->head()->exptype;  // Specialized to arg.
-                        CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.id->name.c_str(),
-                                        *list->head(), f.name.c_str());
-                        Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(),
-                               TypeName(arg.type).c_str());
-                    }
-                    i++;
-                }
-                // This must be the correct freevar specialization.
-                assert(!f.anonymous || sf->freevarchecked);
-                assert(!sf->freevars.v.size());
-                Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
+                // No fit. Specialize existing function, or its clone.
+                sf = CloneFunction(csf);
             }
-            match:
-            // Here we have a SubFunction witch matching specialized types.
-            sf->numcallers++;
-            // First check all the manually typed args.
+            // Now specialize.
+            sf->reqret = reqret;
             int i = 0;
-            for (Node *list = call_args; list && i < f.nargs(); i++, list = list->tail()) {
+            for (Node *list = call_args; list && i < f.nargs(); list = list->tail()) {
                 auto &arg = sf->args.v[i];
-                if (arg.flags != AF_ANYTYPE)
-                    SubType(list->head(), arg.type, ArgName(i).c_str(), f.name.c_str());
-                if (list->head()->type == T_COCLOSURE)
-                    sf->iscoroutine = true;
+                if (arg.flags == AF_ANYTYPE) {
+                    arg.type = list->head()->exptype;  // Specialized to arg.
+                    CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.id->name.c_str(),
+                                    *list->head(), f.name.c_str());
+                    Output(OUTPUT_DEBUG, "arg: %s:%s", arg.id->name.c_str(),
+                            TypeName(arg.type).c_str());
+                }
+                i++;
             }
-            if (!f.istype) TypeCheckFunctionDef(*sf, &function_def_node);
-            function_def_node.sf() = sf;
-            for (auto &freevar : sf->freevars.v) {
-                // New freevars may have been added during the function def typecheck above.
-                // In case their types differ from the flow-sensitive value at the callsite (here),
-                // we want to override them.
-                freevar.type = freevar.id->cursid->type;
-            }
-            return sf->returntypes[0];
+            // This must be the correct freevar specialization.
+            assert(!f.anonymous || sf->freevarchecked);
+            assert(!sf->freevars.v.size());
+            Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
+            return TypeCheckMatchingCall(sf, call_args, function_def_node);
         }
     }
 
@@ -764,7 +768,7 @@ struct TypeChecker {
         return sf;
     }
 
-    TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode) {
+    TypeRef TypeCheckDynCall(Node &fval, Node *args, Node *fspecnode, bool reqret) {
         auto ftype = fval.exptype;
         auto nargs = Parser::CountList(args);
         if (ftype->IsFunction()) {
@@ -775,7 +779,7 @@ struct TypeChecker {
                 TypeError("function value called with too few arguments", fval);
             // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
             // remove them).
-            auto type = TypeCheckCall(sf, args, *fspecnode);
+            auto type = TypeCheckCall(sf, args, *fspecnode, reqret);
             auto nsf = fspecnode->sf();
             fspecnode->exptype = fval.exptype = &nsf->thistype;
             return type;
@@ -821,9 +825,9 @@ struct TypeChecker {
     }
 
     TypeRef TypeCheckBranch(bool iftrue, const Node &condition, Node *&bodycall,
-                            TType parent_type) {
+                            TType parent_type, bool reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        TypeCheck(bodycall, parent_type);
+        TypeCheck(bodycall, parent_type, reqret);
         CleanUpFlow(flowstart);
         return bodycall->exptype;
     }
@@ -967,12 +971,12 @@ struct TypeChecker {
         while (flowstack.size() > start) flowstack.pop_back();
     }
 
-    TypeRef TypeCheckAndOr(Node *&n_ptr, bool only_true_type, TType parent_type) {
+    TypeRef TypeCheckAndOr(Node *&n_ptr, bool only_true_type, TType parent_type, bool reqret) {
         // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
         // and the overal type should be the union of b and c.
         // Or a? | b, which should also be the union of a and b.
         if (n_ptr->type != T_AND && n_ptr->type != T_OR) {
-            TypeCheck(n_ptr, parent_type);
+            TypeCheck(n_ptr, parent_type, reqret);
         }
         Node &n = *n_ptr;
         // We check again, since TypeCheck may have removed a coercion op.
@@ -981,9 +985,9 @@ struct TypeChecker {
             if (type->t == V_NIL && only_true_type) return type->Element();
             return type;
         }
-        auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR, n.type);
+        auto tleft = TypeCheckAndOr(n.left(), n.type == T_OR, n.type, true);
         auto flowstart = CheckFlowTypeChanges(n.type == T_AND, *n.left());
-        auto tright = TypeCheckAndOr(n.right(), only_true_type, n.type);
+        auto tright = TypeCheckAndOr(n.right(), only_true_type, n.type, reqret);
         CleanUpFlow(flowstart);
         if (only_true_type && n.type == T_AND) {
             n.exptype = tright;
@@ -1038,12 +1042,12 @@ struct TypeChecker {
         }
     }
 
-    void TypeCheckList(Node *n) {
+    void TypeCheckList(Node *n, bool onlylast, bool reqret = true) {
         // Flatten the TypeCheck recursion a bit
-        for (; n; n = n->b()) TypeCheck(n->aref(), T_LIST);
+        for (; n; n = n->b()) TypeCheck(n->aref(), T_LIST, onlylast && n->b() ? false : reqret);
     }
 
-    void TypeCheck(Node *&n_ptr, TType parent_type) {
+    void TypeCheck(Node *&n_ptr, TType parent_type, bool reqret) {
         if (!n_ptr) return;
         Node &n = *n_ptr;
         TypeRef &type = n.exptype;
@@ -1058,17 +1062,19 @@ struct TypeChecker {
 
             case T_OR:
             case T_AND:
-                TypeCheckAndOr(n_ptr, false, parent_type);
+                TypeCheckAndOr(n_ptr, false, parent_type, reqret);
                 break;
 
             case T_IF: {
-                TypeCheck(n.if_condition(), T_IF);
+                TypeCheck(n.if_condition(), T_IF, true);
                 Value cval;
                 bool isconst = ConstVal(*n.if_condition(), cval);
                 if (n.if_else()->type != T_DEFAULTVAL) {
                     if (!isconst) {
-                        auto tleft = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
-                        auto tright = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
+                        auto tleft = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF,
+                                                     reqret);
+                        auto tright = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF,
+                                                      reqret);
                         // FIXME: this is a bit of a hack. Much better if we had an actual type
                         // to signify NORETURN, to be taken into account in more places.
                         if (Parser::LastInList(n.if_then()->call_function()->sf()->body)
@@ -1086,20 +1092,20 @@ struct TypeChecker {
                         }
                     } else if (cval.True()) {
                         // Ignore the else part, optimizer guaranteed to cull it.
-                        type = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
+                        type = TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF, reqret);
                     } else {
                         // Ignore the then part, optimizer guaranteed to cull it.
-                        type = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF);
+                        type = TypeCheckBranch(false, *n.if_condition(), n.if_else(), T_IF, reqret);
                     }
                 } else {
                     // No else: this always returns nil.
                     if (!isconst || cval.True()) {
-                        TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF);
+                        TypeCheckBranch(true, *n.if_condition(), n.if_then(), T_IF, false);
                         MakeNil(n.if_then());
                     }
                     // Else constant == false: this if-then will get optimized out entirely, ignore
                     // it. Bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
-                    TypeCheck(n.if_else(), T_IF);
+                    TypeCheck(n.if_else(), T_IF, reqret);
                     SubType(n.if_else(), type_function_nil, "else", n);
                     type = type_any;
                 }
@@ -1107,16 +1113,16 @@ struct TypeChecker {
             }
 
             case T_WHILE: {
-                TypeCheck(n.while_condition(), T_WHILE);
+                TypeCheck(n.while_condition(), T_WHILE, true);
                 TypeCheckBranch(true, *n.while_condition()->call_function()->sf()->body->head(),
-                                n.while_body(), T_WHILE);
+                                n.while_body(), T_WHILE, false);
                 // Currently always return V_NIL
                 type = type_any;
                 break;
             }
 
             case T_FOR: {
-                TypeCheck(n.for_iter(), T_FOR);
+                TypeCheck(n.for_iter(), T_FOR, true);
                 auto itertype = n.for_iter()->exptype;
                 if (itertype->t == V_INT || itertype->t == V_STRING) itertype = type_int;
                 else if (itertype->t == V_VECTOR) itertype = itertype->Element();
@@ -1128,7 +1134,7 @@ struct TypeChecker {
                     args->head()->exptype = itertype;  // T_FORLOOPELEM
                     if (args->tail()) args->tail()->head()->exptype = type_int;  // T_FORLOOPI
                 }
-                TypeCheck(n.for_body(), T_FOR);
+                TypeCheck(n.for_body(), T_FOR, false);
                 // Currently always return V_NIL
                 type = type_any;
                 break;
@@ -1140,7 +1146,7 @@ struct TypeChecker {
                 break;
 
             case T_CODOT: {
-                TypeCheck(n.left(), n.type);
+                TypeCheck(n.left(), n.type, true);
                 // Leave right ident untypechecked.
                 SubType(n.left(), type_coroutine, "coroutine", n);
                 auto sf = n.left()->exptype->sf;
@@ -1167,7 +1173,7 @@ struct TypeChecker {
                        (dlp = &dl->right()), (dl = *dlp)) {
                     idnodes.push_back(dl->left());
                     if (dl->type == T_ASSIGNLIST) {
-                        TypeCheck(dl->left(), T_ASSIGNLIST);
+                        TypeCheck(dl->left(), T_ASSIGNLIST, true);
                     } else {  // T_DEF
                         auto id = dl->left()->ident();
                         assert(id->cursid);
@@ -1176,7 +1182,7 @@ struct TypeChecker {
                         id->cursid->type = n.c() ? n.c()->typenode() : NewTypeVar();
                     }
                 }
-                TypeCheck(dl, n.type);
+                TypeCheck(dl, n.type, true);
                 size_t i = 0;
                 for (auto idn : idnodes) {
                     if (!dl) parser.Error("right hand side does not return enough values", &n);
@@ -1248,8 +1254,8 @@ struct TypeChecker {
             case T_MULT:
             case T_DIV:
             case T_MOD: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 type = Union(n.left(), n.right(), true);
                 bool unionchecked = false;
                 MathError(type, n, n.type, unionchecked, true);
@@ -1262,8 +1268,8 @@ struct TypeChecker {
             case T_MINUSEQ:
             case T_DIVEQ:
             case T_MODEQ: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 CheckReadOnly(*n.left());
                 type = n.left()->exptype;
                 if (!MathCheckVector(type, n.left(), n.right())) {
@@ -1280,8 +1286,8 @@ struct TypeChecker {
             case T_LTEQ:
             case T_GT:
             case T_LT: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 type = type_int;
                 auto u = Union(n.left(), n.right(), true);
                 if (!u->Numeric() && u->t != V_STRING) {
@@ -1311,7 +1317,7 @@ struct TypeChecker {
             }
 
             case T_NOT:
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 type = type_int;
                 break;
 
@@ -1320,14 +1326,14 @@ struct TypeChecker {
             case T_XOR:
             case T_ASL:
             case T_ASR:
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 SubTypeLR(type_int, n);
                 type = type_int;
                 break;
 
             case T_NEG:
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 SubType(n.child(), type_int, "negated value", n);
                 type = type_int;
                 break;
@@ -1336,7 +1342,7 @@ struct TypeChecker {
             case T_POSTINCR:
             case T_DECR:
             case T_INCR: {
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 CheckReadOnly(*n.child());
                 type = n.child()->exptype;
                 if (!type->Numeric())
@@ -1345,7 +1351,7 @@ struct TypeChecker {
             }
 
             case T_UMINUS: {
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 type = n.child()->exptype;
                 if (!type->Numeric() &&
                     type->t != V_VECTOR &&
@@ -1365,8 +1371,8 @@ struct TypeChecker {
             }
 
             case T_ASSIGN:
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 CheckReadOnly(*n.left());
                 if (n.left()->type != T_INDEX) AssignFlowDemote(*n.left(), n.right()->exptype, true);
                 SubType(n.right(), n.left()->exptype, "right", n);
@@ -1382,8 +1388,8 @@ struct TypeChecker {
                 break;
 
             case T_NATCALL: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheckList(n.bref());
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheckList(n.bref(), false);
                 auto nf = n.ncall_id()->nf();
                 if (nf->first->overloads) {
                     // Multiple overloads available, figure out which we want to call.
@@ -1473,7 +1479,7 @@ struct TypeChecker {
                                       " cannot take any arguments", n);
                         }
                         auto fake_function_def = new Node(n.line, sf);
-                        TypeCheckCall(sf, args, *fake_function_def);
+                        TypeCheckCall(sf, args, *fake_function_def, false);
                         assert(sf == fake_function_def->sf());
                         delete fake_function_def;
                     }
@@ -1549,10 +1555,10 @@ struct TypeChecker {
             }
 
             case T_CALL: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheckList(n.bref());
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheckList(n.bref(), false);
                 auto sf = n.call_function()->sf();
-                type = TypeCheckCall(sf, n.call_args(), *n.call_function());
+                type = TypeCheckCall(sf, n.call_args(), *n.call_function(), reqret);
                 break;
             }
 
@@ -1570,15 +1576,16 @@ struct TypeChecker {
             case T_DYNCALL:
                 if (n.dcall_fval()->type == T_FUN)
                     n.dcall_fval()->sf() = PreSpecializeFunction(n.dcall_fval()->sf());
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
-                TypeCheckList(n.cref());
-                type = TypeCheckDynCall(*n.dcall_fval(), n.dcall_args(), n.dcall_function());
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
+                TypeCheckList(n.cref(), false);
+                type = TypeCheckDynCall(*n.dcall_fval(), n.dcall_args(), n.dcall_function(),
+                                        reqret);
                 break;
 
             case T_RETURN: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 auto sfid = n.return_subfunction_idx()->integer();
                 auto sf = sfid < 0 ? nullptr : st.subfunctiontable[sfid];
                 for (int i = (int)scopes.size() - 1; i >= 0; i--) {
@@ -1626,8 +1633,8 @@ struct TypeChecker {
                 break;
 
             case T_IS:
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 type = type_int;
                 break;
 
@@ -1635,8 +1642,8 @@ struct TypeChecker {
                 break;  // Already set by the parser.
 
             case T_CONSTRUCTOR: {
-                TypeCheckList(n.aref());
-                TypeCheck(n.bref(), n.type);
+                TypeCheckList(n.aref(), false);
+                TypeCheck(n.bref(), n.type, true);
                 type = n.constructor_type()->typenode();
                 if (type->t == V_VECTOR && type->sub->t == V_ANY) {
                     // No type was specified.. first find union of all elements.
@@ -1665,8 +1672,8 @@ struct TypeChecker {
 
             case T_DOT:
             case T_DOTMAYBE: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 auto smtype = n.left()->exptype;
                 auto stype = n.type == T_DOTMAYBE && smtype->t == V_NIL
                              ? smtype->Element()
@@ -1688,8 +1695,8 @@ struct TypeChecker {
             }
 
             case T_INDEX: {
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 auto vtype = n.left()->exptype;
                 if (vtype->t == V_STRUCT) vtype = vtype->struc->vectortype;
                 if (vtype->t != V_VECTOR && vtype->t != V_STRING)
@@ -1718,8 +1725,8 @@ struct TypeChecker {
             }
 
             case T_SEQ:
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, false);
+                TypeCheck(n.bref(), n.type, reqret);
                 type = n.right()->exptype;
                 break;
 
@@ -1728,7 +1735,7 @@ struct TypeChecker {
                 break;
 
             case T_COROUTINE: {
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 if (n.child()->type != T_CALL)  // could be dyn call
                     TypeError("coroutine constructor must be regular function call", n);
                 auto sf = n.child()->call_function()->sf();
@@ -1740,13 +1747,13 @@ struct TypeChecker {
             }
 
             case T_TYPEOF:
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 type = type_typeid;
                 break;
 
             case T_MULTIRET:
-                TypeCheck(n.aref(), n.type);
-                TypeCheck(n.bref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
+                TypeCheck(n.bref(), n.type, true);
                 break;
 
             case T_NATIVE:
@@ -1762,7 +1769,7 @@ struct TypeChecker {
                 // These have been added by another specialization.
                 // We could check if they still apply, but even more robust is just to remove them,
                 // and let them be regenerated if need be.
-                TypeCheck(n.aref(), n.type);
+                TypeCheck(n.aref(), n.type, true);
                 n_ptr = n.child();
                 n.child() = nullptr;
                 delete &n;

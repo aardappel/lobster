@@ -67,7 +67,6 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_PUSHINT:
         case IL_PUSHFUN:
         case IL_CONT1:
-        case IL_CONT1REF:
         case IL_JUMP:
         case IL_JUMPFAIL:
         case IL_JUMPFAILR:
@@ -86,6 +85,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_VFOR:
         case IL_SFOR:
         case IL_YIELD:
+        case IL_FUNEND:
             s += to_string(*ip++);
             break;
 
