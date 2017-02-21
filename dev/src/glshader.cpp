@@ -32,12 +32,12 @@ void ShaderShutDown() {
 
 string GLSLError(uint obj, bool isprogram, const char *source) {
     GLint length = 0;
-    if (isprogram) glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &length);
-    else           glGetShaderiv (obj, GL_INFO_LOG_LENGTH, &length);
+    if (isprogram) GL_CALL(glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &length));
+    else           GL_CALL(glGetShaderiv (obj, GL_INFO_LOG_LENGTH, &length));
     if (length > 1) {
         GLchar *log = new GLchar[length];
-        if (isprogram) glGetProgramInfoLog(obj, length, &length, log);
-        else           glGetShaderInfoLog (obj, length, &length, log);
+        if (isprogram) GL_CALL(glGetProgramInfoLog(obj, length, &length, log));
+        else           GL_CALL(glGetShaderInfoLog (obj, length, &length, log));
         string err = "GLSL ERROR: ";
         err += log;
         int i = 0;
@@ -56,16 +56,16 @@ string GLSLError(uint obj, bool isprogram, const char *source) {
 
 uint CompileGLSLShader(GLenum type, uint program, const GLchar *source, string &err)  {
     uint obj = glCreateShader(type);
-    glShaderSource(obj, 1, &source, nullptr);
-    glCompileShader(obj);
+    GL_CALL(glShaderSource(obj, 1, &source, nullptr));
+    GL_CALL(glCompileShader(obj));
     GLint success;
-    glGetShaderiv(obj, GL_COMPILE_STATUS, &success);
+    GL_CALL(glGetShaderiv(obj, GL_COMPILE_STATUS, &success));
     if (success) {
-        glAttachShader(program, obj);
+        GL_CALL(glAttachShader(program, obj));
         return obj;
     }
     err = GLSLError(obj, false, source);
-    glDeleteShader(obj);
+    GL_CALL(glDeleteShader(obj));
     return 0;
 }
 
@@ -101,9 +101,11 @@ string ParseMaterialFile(char *mbuf) {
                               char(supported[3]) + "\n";
                     #else
                     header += "#version 130\n";
+                    header += "#extension GL_EXT_gpu_shader4 : enable\n";
                     #endif
                 #endif
                 header += defines;
+                pdecl = "out vec4 frag_color;\n" + pdecl;
                 err = sh->Compile(shader.c_str(),
                                   (header + vdecl + vfunctions + "void main()\n{\n" + vertex +
                                    "}\n").c_str(),
@@ -223,8 +225,8 @@ string ParseMaterialFile(char *mbuf) {
                     }
                     last = last.substr(0, pos - last.c_str());
                     string d = " vec" + to_string(comp) + " " + last + ";\n";
-                    if (accum == &vertex) vdecl += "attribute" + d;
-                    else { d = "varying" + d; vdecl += d; pdecl += d; }
+                    if (accum == &vertex) vdecl += "in" + d;
+                    else { vdecl += "out" + d; pdecl += "in" + d; }
                 }
             } else if (last == "LAYOUT") {
                 word();
@@ -269,12 +271,12 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     if (!vs) return string("couldn't compile vertex shader: ") + name + "\n" + err;
     ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
     if (!ps) return string("couldn't compile pixel shader: ") + name + "\n" + err;
-    glBindAttribLocation(program, 0, "apos");
-    glBindAttribLocation(program, 1, "anormal");
-    glBindAttribLocation(program, 2, "atc");
-    glBindAttribLocation(program, 3, "acolor");
-    glBindAttribLocation(program, 4, "aweights");
-    glBindAttribLocation(program, 5, "aindices");
+    GL_CALL(glBindAttribLocation(program, 0, "apos"));
+    GL_CALL(glBindAttribLocation(program, 1, "anormal"));
+    GL_CALL(glBindAttribLocation(program, 2, "atc"));
+    GL_CALL(glBindAttribLocation(program, 3, "acolor"));
+    GL_CALL(glBindAttribLocation(program, 4, "aweights"));
+    GL_CALL(glBindAttribLocation(program, 5, "aindices"));
     Link(name);
     return "";
 }
@@ -293,9 +295,9 @@ string Shader::Compile(const char *name, const char *cscode) {
 }
 
 void Shader::Link(const char *name) {
-    glLinkProgram(program);
+    GL_CALL(glLinkProgram(program));
     GLint status;
-    glGetProgramiv(program, GL_LINK_STATUS, &status);
+    GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &status));
     if (status != GL_TRUE) {
         GLSLError(program, true, nullptr);
         throw string("linking failed for shader: ") + name;
@@ -321,10 +323,10 @@ void Shader::Link(const char *name) {
 }
 
 Shader::~Shader() {
-    if (program) glDeleteProgram(program);
-    if (ps) glDeleteShader(ps);
-    if (vs) glDeleteShader(vs);
-    if (cs) glDeleteShader(cs);
+    if (program) GL_CALL(glDeleteProgram(program));
+    if (ps) GL_CALL(glDeleteShader(ps));
+    if (vs) GL_CALL(glDeleteShader(vs));
+    if (cs) GL_CALL(glDeleteShader(cs));
 }
 
 // FIXME: unlikely to cause ABA problem, but still better to reset once per frame just in case.
@@ -332,30 +334,31 @@ static uint last_program = 0;
 
 void Shader::Activate() {
     if (program != last_program) {
-        glUseProgram(program);
+        GL_CALL(glUseProgram(program));
         last_program = program;
     }
 }
 
 void Shader::Set() {
     Activate();
-    if (mvp_i >= 0) glUniformMatrix4fv(mvp_i, 1, false, view2clip * otransforms.object2view);
-    if (col_i >= 0) glUniform4fv(col_i, 1, curcolor.begin());
-    if (camera_i >= 0) glUniform3fv(camera_i, 1, otransforms.view2object[3].begin());
-    if (pointscale_i >= 0) glUniform1f(pointscale_i, pointscale);
+    if (mvp_i >= 0) GL_CALL(glUniformMatrix4fv(mvp_i, 1, false,
+                                               view2clip * otransforms.object2view));
+    if (col_i >= 0) GL_CALL(glUniform4fv(col_i, 1, curcolor.begin()));
+    if (camera_i >= 0) GL_CALL(glUniform3fv(camera_i, 1, otransforms.view2object[3].begin()));
+    if (pointscale_i >= 0) GL_CALL(glUniform1f(pointscale_i, pointscale));
     if (lights.size() > 0) {
         if (light1_i >= 0)
-            glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin());
+            GL_CALL(glUniform3fv(light1_i, 1, (otransforms.view2object * lights[0].pos).begin()));
         if (lightparams1_i >= 0)
-            glUniform2fv(lightparams1_i, 1, lights[0].params.begin());
+            GL_CALL(glUniform2fv(lightparams1_i, 1, lights[0].params.begin()));
     }
     if (texturesize_i >= 0)
-        glUniform2fv(texturesize_i, 1, float2(GetScreenSize()).begin());
+        GL_CALL(glUniform2fv(texturesize_i, 1, float2(GetScreenSize()).begin()));
 }
 
 void Shader::SetAnim(float3x4 *bones, int num) {
     // FIXME: Check if num fits with shader def.
-    if (bones_i >= 0) glUniform4fv(bones_i, num * 3, (float *)bones);
+    if (bones_i >= 0) GL_CALL(glUniform4fv(bones_i, num * 3, (float *)bones));
 }
 
 void Shader::SetTextures(uint *textures) {
@@ -368,21 +371,22 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
     auto loc = glGetUniformLocation(program, name);
     if (loc < 0) return false;
     switch (components) {
-        case 1: glUniform1fv(loc, elements, val); return true;
-        case 2: glUniform2fv(loc, elements, val); return true;
-        case 3: glUniform3fv(loc, elements, val); return true;
-        case 4: glUniform4fv(loc, elements, val); return true;
+        case 1: GL_CALL(glUniform1fv(loc, elements, val)); return true;
+        case 2: GL_CALL(glUniform2fv(loc, elements, val)); return true;
+        case 3: GL_CALL(glUniform3fv(loc, elements, val)); return true;
+        case 4: GL_CALL(glUniform4fv(loc, elements, val)); return true;
         default: return false;
     }
 }
 
 void DispatchCompute(const int3 &groups) {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-        if (glDispatchCompute) glDispatchCompute(groups.x(), groups.y(), groups.z());
+        if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x(), groups.y(), groups.z()));
         // Make sure any imageStore/VBOasSSBO operations have completed.
         // Would be better to decouple this from DispatchCompute.
         if (glMemoryBarrier)
-            glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+            GL_CALL(glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT |
+                                    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT));
     #else
         assert(false);
     #endif
@@ -398,19 +402,21 @@ uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *
                   glUniformBlockBinding && glGetUniformBlockIndex) {
             sh->Activate();
             auto idx = ssbo
-                ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
-                : glGetUniformBlockIndex(sh->program, uniformblockname);
+                ? GL_CALL(glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK,
+                                                    uniformblockname))
+                : GL_CALL(glGetUniformBlockIndex(sh->program, uniformblockname));
             if (idx != GL_INVALID_INDEX) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                glGenBuffers(1, &bo);
-                glBindBuffer(type, bo);
-                glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW);
-                glBindBuffer(type, 0);
+                GL_CALL(glGenBuffers(1, &bo));
+                GL_CALL(glBindBuffer(type, bo));
+                GL_CALL(glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW));
+                GL_CALL(glBindBuffer(type, 0));
                 static GLuint bo_binding_point_index = 0;
                 bo_binding_point_index++;  // FIXME: how do we allocate these properly?
-                glBindBufferBase(type, bo_binding_point_index, bo);
-                if (ssbo) glShaderStorageBlockBinding(sh->program, idx, bo_binding_point_index);
-                else      glUniformBlockBinding      (sh->program, idx, bo_binding_point_index);
+                GL_CALL(glBindBufferBase(type, bo_binding_point_index, bo));
+                if (ssbo) GL_CALL(glShaderStorageBlockBinding(sh->program, idx,
+                                                              bo_binding_point_index));
+                else GL_CALL(glUniformBlockBinding(sh->program, idx, bo_binding_point_index));
             }
         }
     #else
@@ -422,7 +428,7 @@ uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *
 void BindVBOAsSSBO(uint bind_point_index, uint vbo) {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glBindBufferBase) {
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point_index, vbo);
+            GL_CALL(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point_index, vbo));
         }
     #endif
 }
@@ -430,11 +436,11 @@ void BindVBOAsSSBO(uint bind_point_index, uint vbo) {
 bool Shader::Dump(const char *filename, bool stripnonascii) {
     if (!glGetProgramBinary) return false;
     int len = 0;
-    glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &len);
+    GL_CALL(glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &len));
     vector<char> buf;
     buf.resize(len);
     GLenum format = 0;
-    glGetProgramBinary(program, len, nullptr, &format, buf.data());
+    GL_CALL(glGetProgramBinary(program, len, nullptr, &format, buf.data()));
     if (stripnonascii) {
         buf.erase(remove_if(buf.begin(), buf.end(), [](char c) {
             return (c < ' ' || c > '~') && c != '\n' && c != '\t';

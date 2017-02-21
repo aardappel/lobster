@@ -18,14 +18,14 @@
 
 uint GenBO(GLenum type, int elemsize, int count, const void *verts) {
     uint bo;
-    glGenBuffers(1, &bo);
-    glBindBuffer(type, bo);
-    glBufferData(type, elemsize * count, verts, GL_STATIC_DRAW);
+    GL_CALL(glGenBuffers(1, &bo));
+    GL_CALL(glBindBuffer(type, bo));
+    GL_CALL(glBufferData(type, elemsize * count, verts, GL_STATIC_DRAW));
     return bo;
 }
 
 void DeleteBO(uint id) {
-    glDeleteBuffers(1, &id);
+    GL_CALL(glDeleteBuffers(1, &id));
 }
 
 size_t AttribsSize(const char *fmt) {
@@ -61,12 +61,12 @@ Surface::Surface(const int *indices, size_t _nidx, Primitive _prim) : numidx(_ni
 
 void Surface::Render(Shader *sh) {
     sh->SetTextures(textures);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0);
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0));
 }
 
 Surface::~Surface() {
-    glDeleteBuffers(1, &ibo);
+    GL_CALL(glDeleteBuffers(1, &ibo));
 }
 
 Geometry::Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const char *_fmt,
@@ -74,16 +74,17 @@ Geometry::Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const c
     : vertsize(vertsize1), fmt(_fmt), vbo1(0), vbo2(0), vao(0), nverts(_nverts) {
     vbo1 = GenBO(GL_ARRAY_BUFFER, vertsize1, nverts, verts1);
     if (verts2) vbo2 = GenBO(GL_ARRAY_BUFFER, vertsize2, nverts, verts2);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo1);
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
+    GL_CALL(glGenVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
     size_t offset = 0;
     size_t vs = vertsize1;
     while (*_fmt) {
-        switch (*_fmt++) {
+        auto attr = *_fmt++;
+        switch (attr) {
             #define SETATTRIB(idx, comps, type, norm, size) \
-                glEnableVertexAttribArray(idx); \
-                glVertexAttribPointer(idx, comps, type, norm, vs, (void *)offset); \
+                GL_CALL(glEnableVertexAttribArray(idx)); \
+                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, vs, (void *)offset)); \
                 offset += size; \
                 break;
             case 'P': SETATTRIB(0, 3, GL_FLOAT,         false, 12)
@@ -94,25 +95,27 @@ Geometry::Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const c
             case 'C': SETATTRIB(3, 4, GL_UNSIGNED_BYTE, true,   4)
             case 'W': SETATTRIB(4, 4, GL_UNSIGNED_BYTE, true,   4)
             case 'I': SETATTRIB(5, 4, GL_UNSIGNED_BYTE, false,  4)
-            default: assert(0);
+            default:
+                Output(OUTPUT_ERROR, "unknow attribute type: \"%c\"", attr);
+                assert(false);
         }
         if (vbo2) {
-            glBindBuffer(GL_ARRAY_BUFFER, vbo2);
+            GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2));
             vs = vertsize2;
             offset = 0;
         }
     }
-    glBindVertexArray(0);
+    GL_CALL(glBindVertexArray(0));
 }
 
 void Geometry::RenderSetup() {
-    glBindVertexArray(vao);
+    GL_CALL(glBindVertexArray(vao));
 }
 
 Geometry::~Geometry() {
-    glDeleteBuffers(1, &vbo1);
-    if (vbo2) glDeleteBuffers(1, &vbo2);
-    glDeleteVertexArrays(1, &vao);
+    GL_CALL(glDeleteBuffers(1, &vbo1));
+    if (vbo2) GL_CALL(glDeleteBuffers(1, &vbo2));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 void Geometry::BindAsSSBO(uint bind_point_index) {
@@ -138,7 +141,7 @@ void Mesh::Render(Shader *sh) {
     if (surfs.size()) {
         for (auto s : surfs) s->Render(sh);
     } else {
-        glDrawArrays(GetPrimitive(prim), 0, geom->nverts);
+        GL_CALL(glDrawArrays(GetPrimitive(prim), 0, geom->nverts));
     }
 }
 
@@ -173,8 +176,8 @@ bool Geometry::WritePLY(string &s, int nindices) {
          "property list int int vertex_index\n"
          "end_header\n";
     vector<uchar> vdata(nverts * vertsize);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo1);
-    glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data());
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
+    GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data()));
     s.insert(s.end(), vdata.begin(), vdata.end());
     return true;
     #else
@@ -187,8 +190,8 @@ bool Geometry::WritePLY(string &s, int nindices) {
 void Surface::WritePLY(string &s) {
     #ifndef PLATFORM_ES2
     vector<int> idata(numidx / 3 * 4);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data());
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data()));
     for (int i = numidx - 3; i >= 0; i -= 3) {
         auto di = i / 3 * 4;
         idata[di + 3] = idata[i + 1];
@@ -217,23 +220,25 @@ void SetPointSprite(float scale) {
         // glEnable(GL_POINT_SPRITE_OES);
         // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
     #else
-        glEnable(GL_POINT_SPRITE);
-        glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+        #ifndef __APPLE__
+            GL_CALL(glEnable(GL_POINT_SPRITE));
+            GL_CALL(glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE));
+        #endif
+        GL_CALL(glEnable(GL_VERTEX_PROGRAM_POINT_SIZE));
     #endif
 }
 
 void RenderArray(Primitive prim, int vcount, Geometry *geom) {
     GLenum glprim = GetPrimitive(prim);
     geom->RenderSetup();
-    glDrawArrays(glprim, 0, vcount);
+    GL_CALL(glDrawArrays(glprim, 0, vcount));
 }
 
 void RenderArray(Primitive prim, int tcount, Geometry *geom, uint ibo) {
     GLenum glprim = GetPrimitive(prim);
     geom->RenderSetup();
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glDrawElements(glprim, tcount, GL_UNSIGNED_INT, 0);
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glDrawElements(glprim, tcount, GL_UNSIGNED_INT, 0));
 }
 
 void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt,
@@ -241,7 +246,7 @@ void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt,
     auto geom = new Geometry(vbuf1, vcount, vertsize1, fmt, nullptr, 0);
     uint ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), tcount, ibuf);
     RenderArray(prim, tcount, geom, ibo);
-    glDeleteBuffers(1, &ibo);
+    GL_CALL(glDeleteBuffers(1, &ibo));
     delete geom;
 }
 
@@ -293,7 +298,7 @@ void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2
 
 void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &/*campos*/,
                   float thickness) {
-    glDisable(GL_CULL_FACE);  // An exception in 3d mode.
+    GL_CALL(glDisable(GL_CULL_FACE));  // An exception in 3d mode.
     // FIXME: need to rotate the line also to make it face the camera.
     //auto camvec = normalize(campos - (v1 + v2) / 2);
     auto v = v2 - v1;
@@ -303,7 +308,7 @@ void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &
                  float3x3to4x4(rotation(vq)) *  // FIXME: cheaper?
                  float4x4(float4(length(v) / 2, thickness, 1, 1));
     RenderQuad(sh, PRIM_FAN, true, trans);
-    glEnable(GL_CULL_FACE);
+    GL_CALL(glEnable(GL_CULL_FACE));
 }
 
 Geometry *cube_geom[2] = { nullptr, nullptr };

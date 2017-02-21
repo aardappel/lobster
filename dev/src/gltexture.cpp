@@ -31,7 +31,7 @@ const int nummultisamples = 4;
 
 uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     uint id;
-    glGenTextures(1, &id);
+    GL_CALL(glGenTextures(1, &id));
     assert(id);
     GLenum textype =
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
@@ -42,24 +42,26 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     textype         = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP            : textype;
     teximagetype    = tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP_POSITIVE_X : teximagetype;
     int texnumfaces = tf & TF_CUBEMAP ? 6                              : 1;
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(textype, id);
+    GL_CALL(glActiveTexture(GL_TEXTURE0));
+    GL_CALL(glBindTexture(textype, id));
     auto wrap = tf & TF_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap);
-    glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap);
-    if(tf & TF_3D) glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap);
-    glTexParameteri(textype, GL_TEXTURE_MAG_FILTER, tf & TF_NEAREST_MAG ? GL_NEAREST : GL_LINEAR);
-    glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_S, wrap));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_T, wrap));
+    if(tf & TF_3D) GL_CALL(glTexParameteri(textype, GL_TEXTURE_WRAP_R, wrap));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MAG_FILTER,
+                            tf & TF_NEAREST_MAG ? GL_NEAREST : GL_LINEAR));
+    GL_CALL(glTexParameteri(textype, GL_TEXTURE_MIN_FILTER,
         tf & TF_NOMIPMAP ? (tf & TF_NEAREST_MIN ? GL_NEAREST : GL_LINEAR)
                          : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
-                                                : GL_LINEAR_MIPMAP_LINEAR));
+                                                : GL_LINEAR_MIPMAP_LINEAR)));
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
     auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
     auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uchar) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;
-    if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3))
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // Defaults to 4.
+    if ((tf & TF_SINGLE_CHANNEL) && (dim[0] & 0x3)) {
+        GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));  // Defaults to 4.
+    }
     if (tf & TF_FLOAT) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
             internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
@@ -72,8 +74,8 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     }
     if (tf & TF_MULTISAMPLE) {
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-            glTexImage2DMultisample(teximagetype, nummultisamples, internalformat, dim[0], dim[1],
-                                    true);
+            GL_CALL(glTexImage2DMultisample(teximagetype, nummultisamples, internalformat,
+                                            dim[0], dim[1], true));
         #else
             assert(false);
         #endif
@@ -96,13 +98,12 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         }
     }
     if (!(tf & TF_NOMIPMAP) && !(tf & TF_BUFFER_HAS_MIPS)) {
-        glEnable(textype);  // required on ATI for mipmapping to work?
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
         #endif
-            glGenerateMipmap(textype);
+            GL_CALL(glGenerateMipmap(textype));
     }
-    glBindTexture(textype, 0);
+    GL_CALL(glBindTexture(textype, 0));
     return id;
 }
 
@@ -141,32 +142,32 @@ uint CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
 }
 
 void DeleteTexture(uint &id) {
-    if (id) glDeleteTextures(1, &id);
+    if (id) GL_CALL(glDeleteTextures(1, &id));
     id = 0;
 }
 
 void SetTexture(uint textureunit, uint id, int tf) {
-    glActiveTexture(GL_TEXTURE0 + textureunit);
-    glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
-                                  : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), id);
+    GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
+    GL_CALL(glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
+                                          : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), id));
 }
 
 int2 TextureSize(uint id) {
-    glBindTexture(GL_TEXTURE_2D, id);
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, id));
     int2 size(0);
     // FIXME: need to actually store the size in an object when we create it.
     #ifndef PLATFORM_ES2
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut());
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut());
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut()));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut()));
     #endif
     return size;
 }
 
 uchar *ReadTexture(uint id, const int2 &size) {
     #ifndef PLATFORM_ES2
-        glBindTexture(GL_TEXTURE_2D, id);
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, id));
         auto pixels = new uchar[size.x() * size.y() * 4];
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
         return pixels;
     #else
         return nullptr;
@@ -176,11 +177,11 @@ uchar *ReadTexture(uint id, const int2 &size) {
 void SetImageTexture(uint textureunit, uint id, int tf) {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         if (glBindImageTexture)
-            glBindImageTexture(textureunit, id, 0, GL_TRUE, 0,
+            GL_CALL(glBindImageTexture(textureunit, id, 0, GL_TRUE, 0,
                                tf & TF_WRITEONLY
                                    ? GL_WRITE_ONLY
                                    : (tf & TF_READWRITE ? GL_READ_WRITE : GL_READ_ONLY),
-                               tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8);
+                               tf & TF_FLOAT ? GL_RGBA32F : GL_RGBA8));
     #else
         assert(false);
     #endif
@@ -193,13 +194,13 @@ uint CreateFrameBuffer(uint texture, int tf) {
     if (!glGenFramebuffers)
         return 0;
     uint fb = 0;
-    glGenFramebuffers(1, &fb);
-    glBindFramebuffer(GL_FRAMEBUFFER, fb);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+    GL_CALL(glGenFramebuffers(1, &fb));
+    GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
+    GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
         tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
-        GL_TEXTURE_2D, texture, 0);
+        GL_TEXTURE_2D, texture, 0));
     return fb;
 }
 
@@ -212,24 +213,24 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, u
     if (!glGenRenderbuffers)
         return false;
     if (rb) {
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-        glDeleteRenderbuffers(1, &rb);
+        GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+        GL_CALL(glDeleteRenderbuffers(1, &rb));
         rb = 0;
     }
     if (fb) {
         if (retex) {
             uint refb = CreateFrameBuffer(retex, retf);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
-            glBlitFramebuffer(0, 0, resize.x(), resize.y(),
-                              0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
-            glDeleteFramebuffers(1, &refb);
+            GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
+            GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
+            GL_CALL(glBlitFramebuffer(0, 0, resize.x(), resize.y(),
+                              0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST));
+            GL_CALL(glDeleteFramebuffers(1, &refb));
             retex = 0;
             retf = 0;
             resize = int2_0;
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fb);
+        GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+        GL_CALL(glDeleteFramebuffers(1, &fb));
         fb = 0;
     }
     if (!texture) {
@@ -239,15 +240,17 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, u
     }
     fb = CreateFrameBuffer(texture, tf);
     if (depth) {
-        glGenRenderbuffers(1, &rb);
-        glBindRenderbuffer(GL_RENDERBUFFER, rb);
+        GL_CALL(glGenRenderbuffers(1, &rb));
+        GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
         if (tf & TF_MULTISAMPLE) {
-            glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples, GL_DEPTH_COMPONENT24,
-                                             fbsize.x(), fbsize.y());
+            GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
+                                                     GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y()));
         } else {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y());
+            GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+                                          fbsize.x(), fbsize.y()));
         }
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
+        GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+                                          rb));
     }
     retex = resolvetex;
     retf = tf & ~TF_MULTISAMPLE;

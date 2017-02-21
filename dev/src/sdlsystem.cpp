@@ -81,9 +81,8 @@ double frametime = 1.0f / 60.0f, lasttime = 0;
 uint64_t timefreq = 0, timestart = 0;
 int frames = 0;
 
-int screenscalefactor = 1;  // FIXME: remove this
-
 int2 screensize = int2_0;
+int2 inputscale = int2_1;
 
 bool fullscreen = false;
 bool cursor = true;
@@ -169,7 +168,7 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
             auto xy = ep * float2(screensize);
 
             // FIXME: converting back to int coords even though touch theoretically may have higher res
-            f.mousepos = int2(xy * float(screenscalefactor));
+            f.mousepos = int2(xy * float2(inputscale));
             f.mousedelta += int2(ed * float2(screensize));
             return j;
         }
@@ -231,6 +230,13 @@ int SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
 
 const int2 &GetScreenSize() { return screensize; }
 
+void ScreenSizeChanged() {
+    int2 inputsize;
+    SDL_GetWindowSize(_sdl_window, &inputsize.x_mut(), &inputsize.y_mut());
+    SDL_GL_GetDrawableSize(_sdl_window, &screensize.x_mut(), &screensize.y_mut());
+    inputscale = screensize / inputsize;
+}
+
 string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync,
                int samples) {
     //SDL_SetMainReady();
@@ -244,24 +250,16 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
-    // on demand now
-    //extern bool sfxr_init();
-    //if (!sfxr_init())
-    //   return SDLError("Unable to initialize audio");
-
     #ifdef PLATFORM_ES2
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     #else
-        //certain older Intel HD GPUs and also Nvidia Quadro 1000M don't support 3.1 ? the 1000M is supposed to support 4.2
-        //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-        //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         #ifdef __APPLE__
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
         #elif defined(_WIN32)
-            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
         #endif
         #if defined(__APPLE__) || defined(_WIN32)
             SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples > 1);
@@ -279,7 +277,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
     #ifdef PLATFORM_ES2
         landscape = desired_screensize.x() >= desired_screensize.y();
         int modes = SDL_GetNumDisplayModes(0);
-        screensize = int2(1280, 720);
+        screensize = int2(1920, 1080);
         for (int i = 0; i < modes; i++) {
             SDL_DisplayMode mode;
             SDL_GetDisplayMode(0, i, &mode);
@@ -300,26 +298,17 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
         Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
 
         if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
-
-        int ax = 0, ay = 0;
-        SDL_GetWindowSize(_sdl_window, &ax, &ay);
-        int2 actualscreensize(ax, ay);
-        //screenscalefactor = screensize.x / actualscreensize.x;  // should be 2 on retina
-        #ifdef __IOS__
-            assert(actualscreensize == screensize);
-            screensize = actualscreensize;
-        #else
-            screensize = actualscreensize;  // __ANDROID__
-            Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x(), screensize.y());
-        #endif
     #else
         screensize = desired_screensize;
         _sdl_window = SDL_CreateWindow(title,
-                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                        screensize.x(), screensize.y(),
-                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
+                                       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                       screensize.x(), screensize.y(),
+                                       SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
+                                       SDL_WINDOW_ALLOW_HIGHDPI |
                                             (isfullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
+    ScreenSizeChanged();
+    Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x(), screensize.y());
 
     if (!_sdl_window)
         return SDLError("Unable to create window");
@@ -442,7 +431,7 @@ bool SDLFrame() {
         case SDL_MOUSEBUTTONUP: {
             updatemousebutton(event.button.button, 0, event.button.state != 0);
             if (cursor) {
-                fingers[0].mousepos = int2(event.button.x, event.button.y) * screenscalefactor;
+                fingers[0].mousepos = int2(event.button.x, event.button.y) * inputscale;
             }
             break;
         }
@@ -450,7 +439,7 @@ bool SDLFrame() {
         case SDL_MOUSEMOTION:
             fingers[0].mousedelta += int2(event.motion.xrel, event.motion.yrel);
             if (cursor) {
-                fingers[0].mousepos = int2(event.motion.x, event.motion.y) * screenscalefactor;
+                fingers[0].mousepos = int2(event.motion.x, event.motion.y) * inputscale;
             } else {
                 //if (skipmousemotion) { skipmousemotion--; break; }
                 //if (event.motion.x == screensize.x / 2 && event.motion.y == screensize.y / 2) break;
@@ -498,11 +487,11 @@ bool SDLFrame() {
 
         case SDL_WINDOWEVENT:
             switch (event.window.event) {
-                case SDL_WINDOWEVENT_RESIZED:
-                    screensize = int2(event.window.data1, event.window.data2);
+                case SDL_WINDOWEVENT_RESIZED: {
+                    ScreenSizeChanged();
                     // reload and bind shaders/textures here
                     break;
-
+                }
                 case SDL_WINDOWEVENT_LEAVE:
                     // never gets hit?
                     /*

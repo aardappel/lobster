@@ -18,10 +18,10 @@
     #include "TargetConditionals.h"
     #ifdef __IOS__
         //#include <SDL_opengles2.h>
-        #include <OpenGLES/ES2/gl.h>
-        #include <OpenGLES/ES2/glext.h>
+        #include <OpenGLES/ES3/gl.h>
+        #include <OpenGLES/ES3/glext.h>
     #else
-        #include <OpenGL/gl.h>
+        #include <OpenGL/gl3.h>
     #endif
 #else
     #if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
@@ -119,18 +119,13 @@
         #undef GLEXT
     #endif
 #endif
-#if defined(_DEBUG) || DEBUG == 1 || !defined(NDEBUG)
+#if defined(_DEBUG)
     #define LOG_GL_ERRORS
 #endif
 #ifdef LOG_GL_ERRORS
-    #define GL_CALL(call)                      \
-      {                                        \
-        call;                                  \
-        LogGLError(__FILE__, __LINE__, #call); \
-      }
+    #define GL_CHECK(what) LogGLError(__FILE__, __LINE__, what)
+    #define GL_CALL(call) do { call; GL_CHECK(#call); } while (0)
 #else
-    #define GL_CALL(call) \
-      do {                \
-        call;             \
-      } while (0)
+    #define GL_CHECK(what) (void)what
+    #define GL_CALL(call) do { call; } while (0)
 #endif

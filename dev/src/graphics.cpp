@@ -630,13 +630,13 @@ void AddGraphics() {
             // if no normals were specified, generate them.
             normalize_mesh(&idxs[0], idxs.size(), verts, nverts, vsize, normal_offset);
         }
-        format.DECRT();
-        attributes.DECRT();
         // FIXME: make meshes into points in a more general way.
         auto m = new Mesh(new Geometry(verts, nverts, vsize, fmt),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
         delete[] verts;
+        format.DECRT();
+        attributes.DECRT();
         return Value(g_vm->NewResource(m, &mesh_type));
     }
     ENDDECL3(gl_newmesh, "format,attributes,indices", "SF]]]I]?", "X",

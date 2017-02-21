@@ -42,27 +42,27 @@ int SetBlendMode(BlendMode mode) {
     if (mode == curblendmode) return curblendmode;
     switch (mode) {
         case BLEND_NONE:
-            glDisable(GL_BLEND);
+            GL_CALL(glDisable(GL_BLEND));
             break;
         case BLEND_ALPHA:
-            glEnable (GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            GL_CALL(glEnable(GL_BLEND));
+            GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
             break;
         case BLEND_ADD:
-            glEnable (GL_BLEND);
-            glBlendFunc(GL_ONE, GL_ONE);
+            GL_CALL(glEnable(GL_BLEND));
+            GL_CALL(glBlendFunc(GL_ONE, GL_ONE));
             break;
         case BLEND_ADDALPHA:
-            glEnable (GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            GL_CALL(glEnable(GL_BLEND));
+            GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE));
             break;
         case BLEND_MUL:
-            glEnable (GL_BLEND);
-            glBlendFunc(GL_DST_COLOR, GL_ZERO);
+            GL_CALL(glEnable(GL_BLEND));
+            GL_CALL(glBlendFunc(GL_DST_COLOR, GL_ZERO));
             break;
         case BLEND_PREMULALPHA:
-            glEnable (GL_BLEND);
-            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            GL_CALL(glEnable(GL_BLEND));
+            GL_CALL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
             break;
     }
     int old = curblendmode;
@@ -71,13 +71,13 @@ int SetBlendMode(BlendMode mode) {
 }
 
 void ClearFrameBuffer(const float3 &c) {
-    glClearColor(c.x(), c.y(), c.z(), 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GL_CALL(glClearColor(c.x(), c.y(), c.z(), 1.0));
+    GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
 void Set2DMode(const int2 &ssize, bool lh) {
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+    GL_CALL(glDisable(GL_CULL_FACE));
+    GL_CALL(glDisable(GL_DEPTH_TEST));
     otransforms = objecttransforms();
     auto y = (float)ssize.y();
     view2clip = ortho(0, (float)ssize.x(), lh ? y : 0, lh ? 0 : y, 1, -1);
@@ -85,8 +85,8 @@ void Set2DMode(const int2 &ssize, bool lh) {
 }
 
 void Set3DOrtho(const float3 &center, const float3 &extends) {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    GL_CALL(glEnable(GL_DEPTH_TEST));
+    GL_CALL(glEnable(GL_CULL_FACE));
     otransforms = objecttransforms();
     auto p = center + extends;
     auto m = center - extends;
@@ -95,8 +95,8 @@ void Set3DOrtho(const float3 &center, const float3 &extends) {
 }
 
 void Set3DMode(float fovy, float ratio, float znear, float zfar) {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    GL_CALL(glEnable(GL_DEPTH_TEST));
+    GL_CALL(glEnable(GL_CULL_FACE));
     otransforms = objecttransforms();
     view2clip = perspective(fovy, ratio, znear, zfar, 1);
     mode2d = false;
@@ -107,52 +107,39 @@ bool Is2DMode() { return mode2d; }
 uchar *ReadPixels(const int2 &pos, const int2 &size) {
     uchar *pixels = new uchar[size.x() * size.y() * 4];
     for (int y = 0; y < size.y(); y++)
-        glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGBA, GL_UNSIGNED_BYTE,
-                     pixels + y * (size.x() * 4));
+        GL_CALL(glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGBA, GL_UNSIGNED_BYTE,
+                             pixels + y * (size.x() * 4)));
     return pixels;
 }
 
 void OpenGLFrameStart(const int2 &ssize) {
-    glViewport(0, 0, ssize.x(), ssize.y());
+    GL_CALL(glViewport(0, 0, ssize.x(), ssize.y()));
     SetBlendMode(BLEND_ALPHA);
     curcolor = float4(1);
     lights.clear();
 }
 
 void OpenGLInit(int samples) {
-    #ifndef PLATFORM_ES2
-    //auto vers = (char *)glGetString(GL_VERSION);
-    auto exts = (char *)glGetString(GL_EXTENSIONS);
-    if (exts) {  // GL 4.x doesn't have this.
-        if (!strstr(exts, "GL_ARB_vertex_buffer_object"))
-            throw string("no VBOs!");
-        if (!strstr(exts, "GL_ARB_multitexture"))
-            throw string("no multitexture!");
-        if (!strstr(exts, "GL_ARB_vertex_program") || !strstr(exts, "GL_ARB_fragment_program"))
-            throw string("no shaders!");
-        //if (!strstr(exts, "GL_ARB_shading_language_100") ||
-        //    !strstr(exts, "GL_ARB_shader_objects") ||
-        //    !strstr(exts, "GL_ARB_vertex_shader") ||
-        //    !strstr(exts, "GL_ARB_fragment_shader")) throw string("no GLSL!");
-    }
-    #endif
+    GL_CHECK("before_init");
+    // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
+    ClearFrameBuffer(float3_0);
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-    #define GLEXT(type, name, needed) { \
-            union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
-            funcast.proc = SDL_GL_GetProcAddress(#name); \
-            name = funcast.fun; \
-            if (!name && needed) throw string("no " #name); \
-        }
-    GLBASEEXTS GLEXTS
-    #undef GLEXT
+        #define GLEXT(type, name, needed) { \
+                union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
+                funcast.proc = SDL_GL_GetProcAddress(#name); \
+                name = funcast.fun; \
+                if (!name && needed) throw string("no " #name); \
+            }
+        GLBASEEXTS GLEXTS
+        #undef GLEXT
     #endif
     #ifndef PLATFORM_ES2
-    glEnable(GL_LINE_SMOOTH);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-    if (samples > 1) glEnable(GL_MULTISAMPLE);
+        GL_CALL(glEnable(GL_LINE_SMOOTH));
+        GL_CALL(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
+        GL_CALL(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
+        if (samples > 1) GL_CALL(glEnable(GL_MULTISAMPLE));
     #endif
-    glCullFace(GL_FRONT);
+    GL_CALL(glCullFace(GL_FRONT));
 }
 
 void LogGLError(const char *file, int line, const char *call) {
