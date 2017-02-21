@@ -19,7 +19,7 @@ struct Parser {
     Node *root;
     SymbolTable &st;
     vector<Ident *> maybeundefined;
-    vector<int> functionstack;
+    vector<Function *> functionstack;
     vector<string> trailingkeywordedfunctionvaluestack;
     struct ForwardFunctionCall { string idname; size_t maxscopelevel; Node *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
@@ -457,7 +457,7 @@ struct Parser {
                           " for " + *name);
             }
             f.isprivate = isprivate;
-            functionstack.push_back(f.idx);
+            functionstack.push_back(&f);
         } else {
             f.anonymous = true;
         }
@@ -487,7 +487,8 @@ struct Parser {
             if (!f.istype) {
                 for (auto stat = sf->body; stat; stat = stat->tail())
                     if (!stat->tail() && (stat->head()->type != T_RETURN ||
-                        stat->head()->return_function_idx()->integer() != f.idx /* return from */))
+                        stat->head()->return_subfunction_idx()->integer() !=
+                                          sf->idx /* return from */))
                         ReturnValues(f, 1);
                 assert(f.nretvals);
             }
@@ -698,7 +699,7 @@ struct Parser {
                 if (rv->type == T_CALL)
                     nrv = max(nrv, rv->call_function()->sf()->parent->nretvals);
             }
-            int fid = -2;
+            int sfid = -2;
             if (IsNext(T_FROM)) {
                 if(!IsNext(T_PROGRAM)) {
                     if (!IsNextId())
@@ -709,17 +710,17 @@ struct Parser {
                         Error("return from: not a known function");
                     if (f->sibf || f->multimethod)
                         Error("return from: function must have single implementation");
-                    fid = f->idx;
+                    sfid = f->subf->idx;
                 }
             } else {
                 if (functionstack.size())
-                    fid = functionstack.back();
+                    sfid = functionstack.back()->subf->idx;
             }
-            if (fid >= 0)
-                ReturnValues(*st.functiontable[fid], nrv);
+            if (sfid >= 0)
+                ReturnValues(*st.subfunctiontable[sfid]->parent, nrv);
             else if (nrv > 1)
                 Error("cannot return multiple values from top level");
-            return new Node(lex, T_RETURN, rv, new Node(lex, fid));
+            return new Node(lex, T_RETURN, rv, new Node(lex, sfid));
         }
         auto e = ParseExp(T_LIST);
         while (IsNext(T_SEMICOLON)) {

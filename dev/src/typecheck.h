@@ -535,7 +535,7 @@ struct TypeChecker {
         CleanUpFlow(start_promoted_vars);
         Node *last = Parser::LastInList(sf.body);
         if (last->head()->type != T_RETURN ||
-            last->head()->return_function_idx()->integer() != sf.parent->idx)
+            last->head()->return_subfunction_idx()->integer() != sf.idx)
             RetVal(last->head(), &sf, 0);
         for (auto &back : backup_args.v)   { back.id->cursid = back.sid; }
         for (auto &back : backup_locals.v) { back.id->cursid = back.sid; }
@@ -1579,24 +1579,23 @@ struct TypeChecker {
             case T_RETURN: {
                 TypeCheck(n.aref(), n.type);
                 TypeCheck(n.bref(), n.type);
-                auto fid = n.return_function_idx()->integer();
+                auto sfid = n.return_subfunction_idx()->integer();
+                auto sf = sfid < 0 ? nullptr : st.subfunctiontable[sfid];
                 for (int i = (int)scopes.size() - 1; i >= 0; i--) {
-                    if (scopes[i].sf->parent->idx == fid) break;
+                    if (sf && scopes[i].sf->parent == sf->parent) {
+                        sf = scopes[i].sf;  // Take specialized version.
+                        sfid = sf->idx;
+                        break;
+                    }
                     if (scopes[i].sf->iscoroutine) TypeError("cannot return out of coroutine", n);
                 }
-                if (fid < 0) break;  // return from program
-                auto sf = TopScope(named_scopes);
-                // Even if this function is specialized, the current one should be the top one.
-                auto sf_req = st.functiontable[fid]->subf;
-                if (sf->parent != sf_req->parent) {
+                if (sfid < 0) break;  // return from program
+                auto nsf = TopScope(named_scopes);
+                if (nsf != sf) {
                     // This is a non-local "return from".
-                    // FIXME: this is returnining from a specialized version, should really make VM
-                    // implementation use SubFunction too.
-                    if (!sf_req->typechecked)
-                        parser.Error("return from " + sf_req->parent->name +
+                    if (!sf->typechecked)
+                        parser.Error("return from " + sf->parent->name +
                                      " called out of context", &n);
-                    // Do typechecking below against non-local one:
-                    sf = sf_req;
                 }
                 if (n.return_value()) {
                     type = n.return_value()->exptype;

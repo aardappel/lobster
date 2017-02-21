@@ -62,7 +62,7 @@ namespace lobster {
     T0(T_IDENT, "identifier", 0, false) \
     T0(T_STRUCT, "struct", 0, false) \
     T0(T_FUN, "def", 0, false) \
-    T2(T_RETURN, "return", 2, true, return_value, return_function_idx) \
+    T2(T_RETURN, "return", 2, true, return_value, return_subfunction_idx) \
     T0(T_IS, "is", 2, false) \
     T0(T_TYPEOF, "typeof", 1, false) \
     T0(T_COROUTINE, "coroutine", 1, true) \

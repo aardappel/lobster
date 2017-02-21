@@ -862,11 +862,14 @@ struct CodeGen  {
                         Emit(IsRefNil(temptypestack[i]->t) ? IL_POPREF : IL_POP);
                     }
                 }
-                int fid = n->return_function_idx()->integer();
-                int nretvals = fid >= 0 ? st.functiontable[fid]->nretvals : 1;
+                int sfid = n->return_subfunction_idx()->integer();
+                auto sf = sfid >= 0 ? st.subfunctiontable[sfid] : nullptr;
+                int fid = sf ? sf->parent->idx : sfid;
+                int nretvals = sf ? sf->parent->nretvals : 1;
                 if (nretvals > MAX_RETURN_VALUES) parser.Error("too many return values");
                 if (n->return_value()) Gen(n->return_value(), nretvals, true);
                 else { Emit(IL_PUSHNIL); assert(nretvals == 1); }
+                // FIXME: we could change the VM to instead work with SubFunction ids.
                 Emit(IL_RETURN, fid, nretvals, GetTypeTableOffset(n->exptype));
                 // retval==true is nonsensical here, but can't enforce
                 break;
