@@ -226,9 +226,6 @@
 		33D160671BAB9A2200BAD84D /* SDL_haptic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D7A1BAB9A2100BAD84D /* SDL_haptic.c */; };
 		33D160681BAB9A2200BAD84D /* SDL_haptic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D7A1BAB9A2100BAD84D /* SDL_haptic.c */; };
 		33D160691BAB9A2200BAD84D /* SDL_haptic.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D7A1BAB9A2100BAD84D /* SDL_haptic.c */; };
-		33D160791BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D8B1BAB9A2100BAD84D /* SDL_sysjoystick.c */; };
-		33D1607A1BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D8B1BAB9A2100BAD84D /* SDL_sysjoystick.c */; };
-		33D1607B1BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D8B1BAB9A2100BAD84D /* SDL_sysjoystick.c */; };
 		33D1608E1BAB9A2200BAD84D /* SDL_gamecontroller.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D9B1BAB9A2100BAD84D /* SDL_gamecontroller.c */; };
 		33D1608F1BAB9A2200BAD84D /* SDL_gamecontroller.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D9B1BAB9A2100BAD84D /* SDL_gamecontroller.c */; };
 		33D160901BAB9A2200BAD84D /* SDL_gamecontroller.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15D9B1BAB9A2100BAD84D /* SDL_gamecontroller.c */; };
@@ -487,9 +484,6 @@
 		33D163A01BAB9A2200BAD84D /* SDL.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15F991BAB9A2200BAD84D /* SDL.c */; };
 		33D163A11BAB9A2200BAD84D /* SDL.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15F991BAB9A2200BAD84D /* SDL.c */; };
 		33D163A21BAB9A2200BAD84D /* SDL.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D15F991BAB9A2200BAD84D /* SDL.c */; };
-		33D163A61BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D163A41BAB9AB500BAD84D /* SDL_coreaudio.c */; };
-		33D163A71BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D163A41BAB9AB500BAD84D /* SDL_coreaudio.c */; };
-		33D163A81BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */ = {isa = PBXBuildFile; fileRef = 33D163A41BAB9AB500BAD84D /* SDL_coreaudio.c */; };
 		33D163AA1BAB9F8600BAD84D /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D163A91BAB9F8600BAD84D /* CoreFoundation.framework */; };
 		33D163AB1BAB9FA200BAD84D /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D163A91BAB9F8600BAD84D /* CoreFoundation.framework */; };
 		33D163AD1BAB9FCD00BAD84D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D163AC1BAB9FCD00BAD84D /* AudioToolbox.framework */; };
@@ -516,6 +510,21 @@
 		33D4B5961DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
 		33D4B5971DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
 		33D4B5981DE0CF8300C6FEB9 /* vmlog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */; };
+		33DAC5591E5CC7250003767C /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33DAC5581E5CC7250003767C /* include */; };
+		33DAC55A1E5CC7250003767C /* include in Resources */ = {isa = PBXBuildFile; fileRef = 33DAC5581E5CC7250003767C /* include */; };
+		33DAC55C1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */; };
+		33DAC55D1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */; };
+		33DAC55E1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */; };
+		33DAC5691E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC5681E5CC8A40003767C /* SDL_uikitclipboard.m */; };
+		33DAC56A1E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC5681E5CC8A40003767C /* SDL_uikitclipboard.m */; };
+		33DAC56B1E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC5681E5CC8A40003767C /* SDL_uikitclipboard.m */; };
+		33DAC56F1E5CC9F70003767C /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33DAC56E1E5CC9F70003767C /* AVFoundation.framework */; };
+		33DAC5711E5CCA540003767C /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33DAC5701E5CCA540003767C /* MediaPlayer.framework */; };
+		33DAC5731E5CCA5D0003767C /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33DAC5721E5CCA5D0003767C /* GameController.framework */; };
+		33DAC5751E5CCA850003767C /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33DAC5741E5CCA850003767C /* CoreMotion.framework */; };
+		33DAC57F1E5CCE840003767C /* SDL_sysjoystick.c in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC57D1E5CCE840003767C /* SDL_sysjoystick.c */; };
+		33DAC5801E5CCE840003767C /* SDL_sysjoystick.c in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC57D1E5CCE840003767C /* SDL_sysjoystick.c */; };
+		33DAC5831E5CCE930003767C /* SDL_sysjoystick.m in Sources */ = {isa = PBXBuildFile; fileRef = 33DAC5821E5CCE930003767C /* SDL_sysjoystick.m */; };
 		33EABDEE15D9EE8400C1590D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33EABDED15D9EE8400C1590D /* Cocoa.framework */; };
 		33EABDF815D9EE8400C1590D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 33EABDF615D9EE8400C1590D /* InfoPlist.strings */; };
 		33EABE2715D9EFC200C1590D /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33D4C5F41488BFDC0019C311 /* OpenGL.framework */; };
@@ -844,7 +853,6 @@
 		33D15D081BAB9A2100BAD84D /* SDL_audiocvt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_audiocvt.c; sourceTree = "<group>"; };
 		33D15D091BAB9A2100BAD84D /* SDL_audiodev.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_audiodev.c; sourceTree = "<group>"; };
 		33D15D0A1BAB9A2100BAD84D /* SDL_audiodev_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_audiodev_c.h; sourceTree = "<group>"; };
-		33D15D0B1BAB9A2100BAD84D /* SDL_audiomem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_audiomem.h; sourceTree = "<group>"; };
 		33D15D0C1BAB9A2100BAD84D /* SDL_audiotypecvt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_audiotypecvt.c; sourceTree = "<group>"; };
 		33D15D0D1BAB9A2100BAD84D /* SDL_mixer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_mixer.c; sourceTree = "<group>"; };
 		33D15D0E1BAB9A2100BAD84D /* SDL_sysaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_sysaudio.h; sourceTree = "<group>"; };
@@ -887,8 +895,6 @@
 		33D15D7A1BAB9A2100BAD84D /* SDL_haptic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_haptic.c; sourceTree = "<group>"; };
 		33D15D7B1BAB9A2100BAD84D /* SDL_haptic_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_haptic_c.h; sourceTree = "<group>"; };
 		33D15D7C1BAB9A2100BAD84D /* SDL_syshaptic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_syshaptic.h; sourceTree = "<group>"; };
-		33D15D8B1BAB9A2100BAD84D /* SDL_sysjoystick.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_sysjoystick.c; sourceTree = "<group>"; };
-		33D15D8C1BAB9A2100BAD84D /* SDL_sysjoystick_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_sysjoystick_c.h; sourceTree = "<group>"; };
 		33D15D9B1BAB9A2100BAD84D /* SDL_gamecontroller.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_gamecontroller.c; sourceTree = "<group>"; };
 		33D15D9C1BAB9A2100BAD84D /* SDL_gamecontrollerdb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_gamecontrollerdb.h; sourceTree = "<group>"; };
 		33D15D9D1BAB9A2100BAD84D /* SDL_joystick.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_joystick.c; sourceTree = "<group>"; };
@@ -1041,7 +1047,6 @@
 		33D15F971BAB9A2200BAD84D /* SDL_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_internal.h; path = ../../external/SDL/src/SDL_internal.h; sourceTree = "<group>"; };
 		33D15F981BAB9A2200BAD84D /* SDL_log.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_log.c; path = ../../external/SDL/src/SDL_log.c; sourceTree = "<group>"; };
 		33D15F991BAB9A2200BAD84D /* SDL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL.c; path = ../../external/SDL/src/SDL.c; sourceTree = "<group>"; };
-		33D163A41BAB9AB500BAD84D /* SDL_coreaudio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_coreaudio.c; sourceTree = "<group>"; };
 		33D163A51BAB9AB500BAD84D /* SDL_coreaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_coreaudio.h; sourceTree = "<group>"; };
 		33D163A91BAB9F8600BAD84D /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		33D163AC1BAB9FCD00BAD84D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -1079,6 +1084,19 @@
 		33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitwindow.m; sourceTree = "<group>"; };
 		33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vmlog.cpp; sourceTree = "<group>"; };
 		33D4C5F41488BFDC0019C311 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = /System/Library/Frameworks/OpenGL.framework; sourceTree = "<absolute>"; };
+		33DAC5581E5CC7250003767C /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = ../../external/SDL/include; sourceTree = "<group>"; };
+		33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_coreaudio.m; sourceTree = "<group>"; };
+		33DAC5671E5CC8A40003767C /* SDL_uikitclipboard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_uikitclipboard.h; sourceTree = "<group>"; };
+		33DAC5681E5CC8A40003767C /* SDL_uikitclipboard.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SDL_uikitclipboard.m; sourceTree = "<group>"; };
+		33DAC56C1E5CC9DE0003767C /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		33DAC56E1E5CC9F70003767C /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.2.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
+		33DAC5701E5CCA540003767C /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.2.sdk/System/Library/Frameworks/MediaPlayer.framework; sourceTree = DEVELOPER_DIR; };
+		33DAC5721E5CCA5D0003767C /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.2.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		33DAC5741E5CCA850003767C /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.2.sdk/System/Library/Frameworks/CoreMotion.framework; sourceTree = DEVELOPER_DIR; };
+		33DAC57C1E5CCE840003767C /* SDL_sysjoystick_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SDL_sysjoystick_c.h; sourceTree = "<group>"; };
+		33DAC57D1E5CCE840003767C /* SDL_sysjoystick.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_sysjoystick.c; sourceTree = "<group>"; };
+		33DAC5811E5CCE930003767C /* SDL_sysjoystick_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_sysjoystick_c.h; path = iphoneos/SDL_sysjoystick_c.h; sourceTree = "<group>"; };
+		33DAC5821E5CCE930003767C /* SDL_sysjoystick.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SDL_sysjoystick.m; path = iphoneos/SDL_sysjoystick.m; sourceTree = "<group>"; };
 		33EABDDF15D9DD3B00C1590D /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../lib/libSDL2.a; sourceTree = "<group>"; };
 		33EABDEB15D9EE8400C1590D /* lobsterapp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lobsterapp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33EABDED15D9EE8400C1590D /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
@@ -1280,6 +1298,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				33DAC5751E5CCA850003767C /* CoreMotion.framework in Frameworks */,
+				33DAC5731E5CCA5D0003767C /* GameController.framework in Frameworks */,
+				33DAC5711E5CCA540003767C /* MediaPlayer.framework in Frameworks */,
+				33DAC56F1E5CC9F70003767C /* AVFoundation.framework in Frameworks */,
 				33AB298C148E97CA0073A850 /* QuartzCore.framework in Frameworks */,
 				33AB2989148E96570073A850 /* AudioToolbox.framework in Frameworks */,
 				33AB298A148E96620073A850 /* CoreAudio.framework in Frameworks */,
@@ -1297,6 +1319,7 @@
 		3368FEB21488AA88008B38B6 = {
 			isa = PBXGroup;
 			children = (
+				33DAC5581E5CC7250003767C /* include */,
 				33D15CC81BAB99F700BAD84D /* SDL */,
 				33D15C731BAB7C8E00BAD84D /* FreeType */,
 				3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */,
@@ -1577,7 +1600,6 @@
 				33D15D081BAB9A2100BAD84D /* SDL_audiocvt.c */,
 				33D15D091BAB9A2100BAD84D /* SDL_audiodev.c */,
 				33D15D0A1BAB9A2100BAD84D /* SDL_audiodev_c.h */,
-				33D15D0B1BAB9A2100BAD84D /* SDL_audiomem.h */,
 				33D15D0C1BAB9A2100BAD84D /* SDL_audiotypecvt.c */,
 				33D15D0D1BAB9A2100BAD84D /* SDL_mixer.c */,
 				33D15D0E1BAB9A2100BAD84D /* SDL_sysaudio.h */,
@@ -1719,6 +1741,7 @@
 		33D15D841BAB9A2100BAD84D /* joystick */ = {
 			isa = PBXGroup;
 			children = (
+				33DAC5761E5CCCBD0003767C /* iphoneos */,
 				33D163C11BABA2CA00BAD84D /* dummy */,
 				33D15D8A1BAB9A2100BAD84D /* darwin */,
 				33D15D9B1BAB9A2100BAD84D /* SDL_gamecontroller.c */,
@@ -1734,8 +1757,8 @@
 		33D15D8A1BAB9A2100BAD84D /* darwin */ = {
 			isa = PBXGroup;
 			children = (
-				33D15D8B1BAB9A2100BAD84D /* SDL_sysjoystick.c */,
-				33D15D8C1BAB9A2100BAD84D /* SDL_sysjoystick_c.h */,
+				33DAC57C1E5CCE840003767C /* SDL_sysjoystick_c.h */,
+				33DAC57D1E5CCE840003767C /* SDL_sysjoystick.c */,
 			);
 			path = darwin;
 			sourceTree = "<group>";
@@ -2014,7 +2037,7 @@
 		33D163A31BAB9AB500BAD84D /* coreaudio */ = {
 			isa = PBXGroup;
 			children = (
-				33D163A41BAB9AB500BAD84D /* SDL_coreaudio.c */,
+				33DAC55B1E5CC7BE0003767C /* SDL_coreaudio.m */,
 				33D163A51BAB9AB500BAD84D /* SDL_coreaudio.h */,
 			);
 			path = coreaudio;
@@ -2068,6 +2091,8 @@
 		33D163C81BABA50800BAD84D /* uikit */ = {
 			isa = PBXGroup;
 			children = (
+				33DAC5671E5CC8A40003767C /* SDL_uikitclipboard.h */,
+				33DAC5681E5CC8A40003767C /* SDL_uikitclipboard.m */,
 				33D163C91BABA50800BAD84D /* keyinfotable.h */,
 				33D163CA1BABA50800BAD84D /* SDL_uikitappdelegate.h */,
 				33D163CB1BABA50800BAD84D /* SDL_uikitappdelegate.m */,
@@ -2091,6 +2116,15 @@
 				33D163DD1BABA50800BAD84D /* SDL_uikitwindow.m */,
 			);
 			path = uikit;
+			sourceTree = "<group>";
+		};
+		33DAC5761E5CCCBD0003767C /* iphoneos */ = {
+			isa = PBXGroup;
+			children = (
+				33DAC5811E5CCE930003767C /* SDL_sysjoystick_c.h */,
+				33DAC5821E5CCE930003767C /* SDL_sysjoystick.m */,
+			);
+			name = iphoneos;
 			sourceTree = "<group>";
 		};
 		33EABDEF15D9EE8400C1590D /* Other Frameworks */ = {
@@ -2144,6 +2178,11 @@
 		33F9FE93148DE2DE0029564B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				33DAC5741E5CCA850003767C /* CoreMotion.framework */,
+				33DAC5721E5CCA5D0003767C /* GameController.framework */,
+				33DAC5701E5CCA540003767C /* MediaPlayer.framework */,
+				33DAC56E1E5CC9F70003767C /* AVFoundation.framework */,
+				33DAC56C1E5CC9DE0003767C /* AVFoundation.framework */,
 				33D163B01BABA03700BAD84D /* CoreVideo.framework */,
 				33D163AC1BAB9FCD00BAD84D /* AudioToolbox.framework */,
 				33D163A91BAB9F8600BAD84D /* CoreFoundation.framework */,
@@ -2465,6 +2504,7 @@
 				33EABDF815D9EE8400C1590D /* InfoPlist.strings in Resources */,
 				33EABE5115DAE20D00C1590D /* lobster.gif in Resources */,
 				33EABE5815DAECA100C1590D /* icon.iconset in Resources */,
+				33DAC55A1E5CC7250003767C /* include in Resources */,
 				33F7F3ED1723738E005B7988 /* shaders in Resources */,
 				8C7603CC195E457400EADF6F /* README.txt in Resources */,
 			);
@@ -2474,6 +2514,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				33DAC5591E5CC7250003767C /* include in Resources */,
 				33F9FEA3148DE2DE0029564B /* InfoPlist.strings in Resources */,
 				33EABE5715DAECA100C1590D /* icon.iconset in Resources */,
 				33F7F3EC1723738E005B7988 /* shaders in Resources */,
@@ -2519,6 +2560,7 @@
 				8C7603A0195E457400EADF6F /* b2FrictionJoint.cpp in Sources */,
 				33D15CB71BAB7DD200BAD84D /* psnames.c in Sources */,
 				8C7603BE195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
+				33DAC55E1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33D1637B1BAB9A2200BAD84D /* SDL_x11modes.c in Sources */,
 				33D161241BAB9A2200BAD84D /* SDL_shaders_gl.c in Sources */,
 				33D15FBA1BAB9A2200BAD84D /* SDL_dummyaudio.c in Sources */,
@@ -2535,7 +2577,6 @@
 				33D162111BAB9A2200BAD84D /* SDL_cocoamouse.m in Sources */,
 				33D1621D1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
 				8C7603AF195E457400EADF6F /* b2PrismaticJoint.cpp in Sources */,
-				33D1607B1BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */,
 				3331456617596E1100D488CC /* gltexture.cpp in Sources */,
 				3331456717596E1100D488CC /* audio.cpp in Sources */,
 				8C7603A3195E457400EADF6F /* b2GearJoint.cpp in Sources */,
@@ -2594,6 +2635,7 @@
 				8C760361195E457400EADF6F /* b2Settings.cpp in Sources */,
 				8C760355195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
 				33D162D41BAB9A2200BAD84D /* SDL_fillrect.c in Sources */,
+				33DAC5801E5CCE840003767C /* SDL_sysjoystick.c in Sources */,
 				33D15C951BAB7D3C00BAD84D /* ftdebug.c in Sources */,
 				33D161211BAB9A2200BAD84D /* SDL_render_gl.c in Sources */,
 				33D161BD1BAB9A2200BAD84D /* SDL_thread.c in Sources */,
@@ -2634,6 +2676,7 @@
 				33D15C8C1BAB7D3C00BAD84D /* ftbbox.c in Sources */,
 				33D162B61BAB9A2200BAD84D /* SDL_blit_0.c in Sources */,
 				3331456E17596E1100D488CC /* file.cpp in Sources */,
+				33DAC56B1E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */,
 				3331456F17596E1100D488CC /* graphics.cpp in Sources */,
 				8C76036A195E457400EADF6F /* b2Timer.cpp in Sources */,
 				8C7603C1195E457400EADF6F /* b2Particle.cpp in Sources */,
@@ -2694,7 +2737,6 @@
 				3331457417596E1100D488CC /* stdafx.cpp in Sources */,
 				33D15C891BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C81BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
-				33D163A81BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */,
 				333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */,
 				33D162BF1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
 				33D162B31BAB9A2200BAD84D /* SDL_blit.c in Sources */,
@@ -2740,6 +2782,7 @@
 				8C7603BD195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
 				33D15CB61BAB7DD200BAD84D /* psnames.c in Sources */,
 				8C7603C9195E457400EADF6F /* b2VoronoiDiagram.cpp in Sources */,
+				33DAC55D1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33D1637A1BAB9A2200BAD84D /* SDL_x11modes.c in Sources */,
 				33D161231BAB9A2200BAD84D /* SDL_shaders_gl.c in Sources */,
 				33D15FB91BAB9A2200BAD84D /* SDL_dummyaudio.c in Sources */,
@@ -2756,7 +2799,6 @@
 				33D162101BAB9A2200BAD84D /* SDL_cocoamouse.m in Sources */,
 				33D1621C1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
 				3381CB2C162371AB0069B2E8 /* lobsterreader.cpp in Sources */,
-				33D1607A1BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */,
 				3381CB2D162371AB0069B2E8 /* meshgen.cpp in Sources */,
 				8C7603A2195E457400EADF6F /* b2GearJoint.cpp in Sources */,
 				8C7603A5195E457400EADF6F /* b2Joint.cpp in Sources */,
@@ -2815,6 +2857,7 @@
 				8C760354195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
 				8C7603BA195E457400EADF6F /* b2WeldJoint.cpp in Sources */,
 				33D162D31BAB9A2200BAD84D /* SDL_fillrect.c in Sources */,
+				33DAC57F1E5CCE840003767C /* SDL_sysjoystick.c in Sources */,
 				33D15C941BAB7D3C00BAD84D /* ftdebug.c in Sources */,
 				33D161201BAB9A2200BAD84D /* SDL_render_gl.c in Sources */,
 				33D161BC1BAB9A2200BAD84D /* SDL_thread.c in Sources */,
@@ -2855,6 +2898,7 @@
 				33D15C8B1BAB7D3C00BAD84D /* ftbbox.c in Sources */,
 				33D162B51BAB9A2200BAD84D /* SDL_blit_0.c in Sources */,
 				33F7F3DE17236720005B7988 /* glloadiqm.cpp in Sources */,
+				33DAC56A1E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */,
 				33F7F3E017236720005B7988 /* gltexture.cpp in Sources */,
 				8C760369195E457400EADF6F /* b2Timer.cpp in Sources */,
 				8C7603C0195E457400EADF6F /* b2Particle.cpp in Sources */,
@@ -2915,7 +2959,6 @@
 				33F7F3E817236720005B7988 /* platform.cpp in Sources */,
 				33D15C881BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C71BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
-				33D163A71BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */,
 				333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */,
 				33D162BE1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
 				33D162B21BAB9A2200BAD84D /* SDL_blit.c in Sources */,
@@ -2946,6 +2989,7 @@
 				33D1611F1BAB9A2200BAD84D /* SDL_render_gl.c in Sources */,
 				33D162451BAB9A2200BAD84D /* SDL_nullvideo.c in Sources */,
 				33D162061BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
+				33DAC55C1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33AE2428164ABCE2007F578F /* builtins.cpp in Sources */,
 				33D163971BAB9A2200BAD84D /* SDL_error.c in Sources */,
 				33D15F9A1BAB9A2200BAD84D /* SDL_atomic.c in Sources */,
@@ -2979,8 +3023,8 @@
 				33D162C91BAB9A2200BAD84D /* SDL_bmp.c in Sources */,
 				33D1623F1BAB9A2200BAD84D /* SDL_nullevents.c in Sources */,
 				8C76032F195E457400EADF6F /* b2BroadPhase.cpp in Sources */,
+				33DAC5691E5CC8A40003767C /* SDL_uikitclipboard.m in Sources */,
 				33D15C8A1BAB7D3C00BAD84D /* ftbbox.c in Sources */,
-				33D163A61BAB9AB500BAD84D /* SDL_coreaudio.c in Sources */,
 				33D162DE1BAB9A2200BAD84D /* SDL_shape.c in Sources */,
 				8C760359195E457400EADF6F /* b2FreeList.cpp in Sources */,
 				33D15FE21BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
@@ -3013,7 +3057,6 @@
 				8C76034D195E457400EADF6F /* b2EdgeShape.cpp in Sources */,
 				8C76037D195E457400EADF6F /* b2WorldCallbacks.cpp in Sources */,
 				33D163E11BABA50800BAD84D /* SDL_uikitmodes.m in Sources */,
-				33D160791BAB9A2200BAD84D /* SDL_sysjoystick.c in Sources */,
 				8C760395195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D1610A1BAB9A2200BAD84D /* SDL_power.c in Sources */,
 				33D1638B1BAB9A2200BAD84D /* SDL_x11video.c in Sources */,
@@ -3148,6 +3191,7 @@
 				8C760380195E457400EADF6F /* b2ChainAndCircleContact.cpp in Sources */,
 				33F7F3E917236720005B7988 /* glshader.cpp in Sources */,
 				33D161221BAB9A2200BAD84D /* SDL_shaders_gl.c in Sources */,
+				33DAC5831E5CCE930003767C /* SDL_sysjoystick.m in Sources */,
 				33D161581BAB9A2200BAD84D /* SDL_malloc.c in Sources */,
 				33D161AF1BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
 				33D162181BAB9A2200BAD84D /* SDL_cocoashape.m in Sources */,
