@@ -402,9 +402,8 @@ uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *
                   glUniformBlockBinding && glGetUniformBlockIndex) {
             sh->Activate();
             auto idx = ssbo
-                ? GL_CALL(glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK,
-                                                    uniformblockname))
-                : GL_CALL(glGetUniformBlockIndex(sh->program, uniformblockname));
+                ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
+                : glGetUniformBlockIndex(sh->program, uniformblockname);
             if (idx != GL_INVALID_INDEX) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
                 GL_CALL(glGenBuffers(1, &bo));

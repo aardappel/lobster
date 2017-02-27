@@ -196,11 +196,12 @@ uint CreateFrameBuffer(uint texture, int tf) {
     uint fb = 0;
     GL_CALL(glGenFramebuffers(1, &fb));
     GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
-    GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+    auto target =
         #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-        tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
+            tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
-        GL_TEXTURE_2D, texture, 0));
+        GL_TEXTURE_2D;
+    GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, texture, 0));
     return fb;
 }
 
