@@ -649,3 +649,12 @@ template<typename T> class TimeBool {
 };
 
 typedef TimeBool<char> TimeBool8;
+
+inline uint FNV1A(const char *s) {
+    uint hash = 0x811C9DC5;
+    for (auto c = s; *c; ++c) {
+        hash ^= (uchar)*c;
+        hash *= 0x01000193;
+    }
+    return hash;
+}

@@ -27,6 +27,8 @@
   - make a micro-benchmark to compare against other languages.
   - inlining
     - named functions
+    - how does removing single-use functions relate to function values stored in variables
+      (and in variables of function types), and as arguments to builtins like hash/gl_translate.
   - remove static function arguments
     - or maybe better to generically remove vars that aren't used.
   - remove dynscope

@@ -47,6 +47,7 @@ enum ValueType : int {
 };
 
 inline bool IsScalar (ValueType t) { return t == V_INT || t == V_FLOAT; }
+inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V_FUNCTION; }
 inline bool IsRef    (ValueType t) { return t <  V_NIL; }
 inline bool IsRefNil (ValueType t) { return t <= V_NIL; }
 inline bool IsVector (ValueType t) { return t == V_VECTOR || t == V_STRUCT; }
@@ -169,6 +170,7 @@ struct RefObj : DynAlloc {
 
     void DECDELETE(bool deref);
     void Mark();
+    int Hash();
 };
 
 extern bool RefEqual(const RefObj *a, const RefObj *b, bool structural);
@@ -203,6 +205,8 @@ struct LString : RefObj {
     bool operator<=(LString &o) { return strcmp(str(), o.str()) <= 0; }
     bool operator> (LString &o) { return strcmp(str(), o.str()) >  0; }
     bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
+
+    int Hash();
 };
 
 // There must be a single of these per type, since they are compared by pointer.
@@ -233,7 +237,6 @@ struct InsPtr {
     #endif
     InsPtr() : f(0) {}
     bool operator==(const InsPtr o) const { return f == o.f; }
-    int CallerId() { return (int)f; }
 };
 
 #if RTT_ENABLED
@@ -325,6 +328,7 @@ struct Value {
     bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     void Mark(ValueType vtype);
     void MarkRef();
+    int Hash(ValueType vtype);
 };
 
 template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
@@ -392,6 +396,8 @@ struct ElemObj : RefObj {
     }
 
     string ToString(PrintPrefs &pp);
+
+    int Hash();
 };
 
 struct LStruct : ElemObj {
@@ -600,8 +606,6 @@ struct VM {
                    block_t comp_retip, int tempmask);
 
     void FinalStackVarsCleanup();
-
-    int CallerId();
 
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_OP_ARGS const int *ip

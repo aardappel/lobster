@@ -209,6 +209,36 @@ void RefObj::Mark() {
     }
 }
 
+int RefObj::Hash() {
+    switch (ti.t) {
+        case V_BOXEDINT:    return ((BoxedInt *)this)->val;
+        case V_BOXEDFLOAT:  return *(int *)&((BoxedFloat *)this)->val;
+        case V_STRING:      return ((LString *)this)->Hash();
+        case V_VECTOR:
+        case V_STRUCT:      return ((ElemObj *)this)->Hash();
+        default:            return (int)this;
+    }
+}
+
+int LString::Hash() {
+    return (int)FNV1A(str());
+}
+
+int ElemObj::Hash() {
+    int hash = 0;
+    for (int i = 0; i < Len(); i++) hash ^= At(i).Hash(ElemType(i));
+    return hash;
+}
+
+int Value::Hash(ValueType vtype) {
+    switch (vtype) {
+        case V_INT: return ival_;
+        case V_FLOAT: return *(int *)&fval_;
+        case V_FUNCTION: return (int)ip_.f;
+        default: return refnil() ? ref()->Hash() : 0;
+    }
+}
+
 void Value::Mark(ValueType vtype) {
     if (IsRefNil(vtype) && ref_) ref_->Mark();
 }

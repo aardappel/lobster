@@ -103,7 +103,7 @@ private def block(al, sp, vert, id, f):
         f()
 
 def gui_text(text:string):
-    element(cache_size(caller_id()): gl_textsize(text)):
+    element(cache_size(hash(text)): gl_textsize(text)):
         gl_text(text)
 
 def gui_image(factors, tex):
@@ -123,7 +123,7 @@ def gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
 
 def gui_start(size, alignh, alignv, interact, f):   // top level only
-    id := caller_id()
+    id := hash(f)
     gl_setshader("color")
     gl_blend(blend_alpha):
         parent_size <- size
@@ -145,8 +145,8 @@ def gui_start(size, alignh, alignv, interact, f):   // top level only
             vertical <- true
             f()
 
-def gui_hblock(al, sp, f): block(al, sp, false, caller_id(), f)
-def gui_vblock(al, sp, f): block(al, sp, true,  caller_id(), f)
+def gui_hblock(al, sp, f): block(al, sp, false, hash(f), f)
+def gui_vblock(al, sp, f): block(al, sp, true,  hash(f), f)
 
 def gui_fontscale(factor, f):
     os := gl_getfontsize()
@@ -176,8 +176,8 @@ private def around(m, draw, id, f):
             f()
             forward()
 
-def gui_margin(m, f): around(m, false, caller_id(), f)
-def gui_border(m, f): around(m, true,  caller_id(), f)
+def gui_margin(m, f): around(m, false, hash(f), f)
+def gui_border(m, f): around(m, true,  hash(f), f)
 
 private def overlay(stretch, id, f, g):
     size := cursize_of(id, f)
@@ -191,7 +191,7 @@ private def overlay(stretch, id, f, g):
             f()
 
 def gui_background(col, stretch, f):
-    overlay(stretch, caller_id(), f) size:
+    overlay(stretch, hash(f), f) size:
         gl_color col:
             gl_rect(float(size))
             gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
@@ -218,19 +218,18 @@ private def button(id, f, do, dofocus, focusf):
                         if actionsound: play_sfxr(actionsound) // FIXME: wavs too
                         do()
 
-def gui_button(f, do):                   button(caller_id(), f, do, false): nil
-def gui_button(f, do, focus):            button(caller_id(), f, do, true, focus)
-def gui_button_id(id:int, f, do):        button(id,          f, do, false): nil
-def gui_button_id(id:int, f, do, focus): button(id,          f, do, true, focus)
+def gui_button(f, do):                   button(hash(f), f, do, false): nil
+def gui_button(f, do, focus):            button(hash(f), f, do, true, focus)
+def gui_button_id(id:int, f, do):        button(id,      f, do, false): nil
+def gui_button_id(id:int, f, do, focus): button(id,      f, do, true, focus)
 
-def gui_button_text   (        text, do):         button(caller_id(), def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do):         button(id,          def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do, focus):  button(id,          def(): gui_text(text), do, true, focus)
+def gui_button_text   (        text, do):         button(hash(text), def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do):         button(id,         def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do, focus):  button(id,         def(): gui_text(text), do, true, focus)
 
-def gui_button_image   (        size, tex, do):         button(caller_id(), def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do):         button(id,          def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do, focus):  button(id,          def(): gui_image(size, tex), do, true, focus)
-
+def gui_button_image   (        size, tex, do):         button(hash(tex), def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do):         button(id,        def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do, focus):  button(id,        def(): gui_image(size, tex), do, true, focus)
 
 def gui_custombackground(f): if render_pass: f(overalsize)
 

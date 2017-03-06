@@ -380,10 +380,6 @@ void VM::FinalStackVarsCleanup() {
     #endif
 }
 
-int VM::CallerId() {
-    return stackframes.size() ? stackframes.back().retip.CallerId() : -1;
-}
-
 void VM::JumpTo(InsPtr j) {
     #ifdef VM_COMPILED_CODE_MODE
         next_call_target = j.f;

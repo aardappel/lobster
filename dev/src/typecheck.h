@@ -203,7 +203,7 @@ struct TypeChecker {
             return true;
         }
         switch (sub->t) {
-            case V_ANY:       return genericany || coercions || !IsScalar(type->t);
+            case V_ANY:       return genericany || coercions || !IsUnBoxed(type->t);
             case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_INT:       return type->t == V_TYPEID && coercions;

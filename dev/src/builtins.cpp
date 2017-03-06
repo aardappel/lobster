@@ -902,6 +902,20 @@ void AddBuiltins() {
     ENDDECL1(active, "coroutine", "R", "I",
         "wether the given coroutine is still active");
 
+    STARTDECL(hash) (Value &a) {
+        auto h = a.Hash(V_FUNCTION);
+        return Value(h);
+    }
+    ENDDECL1(hash, "x", "C", "I",
+        "hashes a function value into an int");
+    STARTDECL(hash) (Value &a) {
+        auto h = a.ref()->Hash();
+        a.DECRTNIL();
+        return Value(h);
+    }
+    ENDDECL1(hash, "x", "A", "I",
+        "hashes any value into an int");
+
     STARTDECL(program_name) () {
         return Value(g_vm->NewString(g_vm->GetProgramName()));
     }
@@ -919,12 +933,6 @@ void AddBuiltins() {
     }
     ENDDECL0(vm_compiled_mode, "", "", "I",
         "returns if the VM is running in compiled mode (Lobster -> C++).");
-
-    STARTDECL(caller_id) () {
-        return Value(g_vm->CallerId());
-    }
-    ENDDECL0(caller_id, "", "", "I",
-        "returns an int that uniquely identifies the caller to the current function.");
 
     STARTDECL(seconds_elapsed) () {
         return Value((float)g_vm->Time());

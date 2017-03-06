@@ -863,7 +863,7 @@ struct CodeGen  {
                 // If the value was a scalar, then it always results in a compile time type check,
                 // which means this T_IS would have been optimized out. Which means from here on we
                 // can assume its a ref.
-                assert(!IsScalar(n->left()->exptype->t));
+                assert(!IsUnBoxed(n->left()->exptype->t));
                 if (retval) {
                     Emit(IL_ISTYPE, GetTypeTableOffset(n->right()->typenode()));
                 }
