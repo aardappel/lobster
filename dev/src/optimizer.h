@@ -122,8 +122,7 @@ struct Optimizer {
                      !sf->dynscoperedefs.size() &&
                      sf->returntypes.size() <= 1))
                 {
-                    // FIXME: it misbehaved with numcallers > 1, see any code using gui.lobster
-                    if (sf->numcallers <= 1 /* || CountNodes(sf->body) < 8*/) {  // FIXME: configurable.
+                    if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
                         n_ptr = Inline(n, *sf);
                     }
                 }

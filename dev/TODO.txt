@@ -13,8 +13,6 @@
 
 - memory leaks because of global vars in e.g. glgeom.cpp
 
-- code using gui.lobster can't be inlined correctly if multi-referenced functions are enabled.
-
 - break statement
 
 - support default args?
