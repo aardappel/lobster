@@ -188,7 +188,8 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 }
                 s += "}; g_vm->next_mm_table = mmtable; ";
             // FIXME: make resume a vm op.
-            } else if (opc == IL_BCALL2 && natreg.nfuns[args[0]]->name == "resume") {
+            } else if (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
+                       natreg.nfuns[args[0]]->name == "resume") {
                 s += "g_vm->next_call_target = ";
                 BlockRef(ip - code);
                 s += "; ";
@@ -206,7 +207,7 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
                 BlockRef(args[0]);
             }
             s += ");";
-            if (opc >= IL_BCALL0 && opc <= IL_BCALL6) {
+            if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
                 s += " /* ";
                 s += natreg.nfuns[args[0]]->name;
                 s += " */";
@@ -236,7 +237,8 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
             } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
                        opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
                        // FIXME: make resume a vm op.
-                       (opc == IL_BCALL2 && natreg.nfuns[args[0]]->name == "resume")) {
+                       (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
+                        natreg.nfuns[args[0]]->name == "resume")) {
                 s += " ";
                 JumpIns();
                 already_returned = true;

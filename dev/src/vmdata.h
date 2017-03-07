@@ -19,8 +19,10 @@ namespace lobster {
 
 #ifdef _DEBUG
 #define RTT_ENABLED 1
+#define RTT_TYPE_ERRORS 0
 #else
 #define RTT_ENABLED 0
+#define RTT_TYPE_ERRORS 0
 #endif
 
 enum ValueType : int {
@@ -239,12 +241,18 @@ struct InsPtr {
     bool operator==(const InsPtr o) const { return f == o.f; }
 };
 
+void GVMAssert(bool ok, const char *what);
+
 #if RTT_ENABLED
-#define TYPE_ASSERT(cond) assert(cond)
-#define TYPE_INIT(t) type(t),
+    #if RTT_TYPE_ERRORS
+        #define TYPE_ASSERT(cond) GVMAssert(cond, #cond)
+    #else
+        #define TYPE_ASSERT(cond) assert(cond)
+    #endif
+    #define TYPE_INIT(t) type(t),
 #else
-#define TYPE_ASSERT(cond) ((void)0)
-#define TYPE_INIT(t)
+    #define TYPE_ASSERT(cond) ((void)0)
+    #define TYPE_INIT(t)
 #endif
 
 struct Value {
@@ -510,6 +518,8 @@ struct StackFrame {
     int tempmask;
 };
 
+struct NativeFun;
+
 struct VM {
     Value *stack;
     int stacksize;
@@ -656,7 +666,8 @@ struct VM {
 
     void Div0() { Error("division by zero"); }
     void IDXErr(int i, int n, const RefObj *v);
-    void BCallRetCheck(const void *nf);
+    void BCallProf();
+    void BCallRetCheck(const NativeFun *nf);
     int GrabIndex(const Value &idx);
     int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
                    const TypeInfo &desttype);

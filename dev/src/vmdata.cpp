@@ -18,6 +18,10 @@
 
 namespace lobster {
 
+void GVMAssert(bool ok, const char *what) {
+    g_vm->VMAssert(ok, what);
+}
+
 BoxedInt::BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
 BoxedFloat::BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
 LString::LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}

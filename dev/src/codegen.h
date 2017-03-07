@@ -621,39 +621,50 @@ struct CodeGen  {
                     auto lastarg = GenArgs(n->ncall_args(), nargs, n);
                     TakeTemp(nargs);
                     assert(nargs == (int)nf->args.size() && nargs <= 6);
-                    if (nf->ncm == NCM_CONT_EXIT) { // graphics.h
-                        Emit(IL_BCALL0 + nargs, nf->idx);
+                    int vmop = IL_BCALLRET0 + (nargs * 3);
+                    if (nf->has_body) { // graphics.h
                         if (lastarg->type != T_DEFAULTVAL) {
+                            Emit(vmop, nf->idx);
                             Emit(IL_CALLVCOND);  // FIXME: doesn't need to be COND anymore?
                             EmitTempInfo(n);
                             SplitAttr(Pos());
                             assert(lastarg->exptype->t == V_FUNCTION);
-                            auto sf = lastarg->exptype->sf;
-                            if (sf->reqret) {
-                                assert(false);  // We currently never use the retval.
-                                //GenPop(sf->returntypes[0]);
-                            }
-                            Emit(IL_CONT1, nf->idx);  // FIXME: make this not return a value in the VM
+                            assert(!lastarg->exptype->sf->reqret);  // We never use the retval.
+                            Emit(IL_CONT1, nf->idx);  // Never returns a value.
+                            Dummy(retval);
+                        } else {
+                            if (!retval) vmop += 2;  // These always return nil.
+                            Emit(vmop, nf->idx);
                         }
+                    } else if (nf->name == "resume") {  // FIXME: make a vm op.
+                        Emit(vmop, nf->idx);
+                        SplitAttr(Pos());
+                        if (!retval) GenPop(n->exptype);
                     } else {
-                        Emit(IL_BCALL0 + nargs, nf->idx);
-                        if (nf->name == "resume") SplitAttr(Pos()); // FIXME: make a vm op.
+                        if (!retval) {
+                            // Generate version that never produces top of stack (but still may have
+                            // additional return values)
+                            vmop++;
+                            if (!IsRefNil(n->exptype->t)) vmop++;
+                        }
+                        Emit(vmop, nf->idx);
                     }
                     if (nf->retvals.v.size() > 1) {
                         for (auto &rv : nf->retvals.v) rettypes.push_back(rv.type);
                     } else if (!nf->retvals.v.size() && retval) {
-                        // can't make this an error since these functions are often called as the
-                        // last thing in a function, requiring a return value
+                        // FIXME: can't make this an error since these functions are often called as
+                        // the last thing in a function, sometimes still requiring a return value.
+                        // Check what still causes this to happen.
+                        // parser.Error(nf->name + " returns no value", n);
                     }
                     if (!retval) {
-                        if (rettypes.size()) {
-                            while (rettypes.size()) {
-                                GenPop(rettypes.back());
-                                rettypes.pop_back();
-                            }
-                        } else {
-                            GenPop(n->exptype);
+                        // Top of stack has already been removed by op, but still need to pop any
+                        // additional values.
+                        while (rettypes.size() > 1) {
+                            GenPop(rettypes.back());
+                            rettypes.pop_back();
                         }
+                        rettypes.clear();
                     }
                 } else if (n->type == T_CALL) {
                     GenCall(*n->call_function()->sf(), n->call_args(), n->call_function(), nargs,

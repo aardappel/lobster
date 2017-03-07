@@ -809,7 +809,6 @@ void VM::F_EXIT(VM_OP_ARGS) {
 void VM::F_CONT1(VM_OP_ARGS) {
     auto nf = natreg.nfuns[*ip++];
     nf->cont1();
-    PUSH(Value());
 }
 
 #ifdef VM_COMPILED_CODE_MODE
@@ -857,95 +856,26 @@ void VM::F_FORLOOPI(VM_OP_ARGS) {
     PUSH(i);
 }
 
-void VM::F_BCALL0(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value v = nf->fun.f0();
-    PUSH(v);
-    BCallRetCheck(nf);
+#define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) void VM::F_BCALL##PRE##N(VM_OP_ARGS) { \
+    BCallProf(); \
+    auto nf = natreg.nfuns[*ip++]; \
+    DECLS; \
+    Value v = nf->fun.f##N ARGS; \
+    RETOP; \
 }
 
-void VM::F_BCALL1(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value v = nf->fun.f1(POP());
-    PUSH(v);
-    BCallRetCheck(nf);
-}
+#define BCALLOP(N,DECLS,ARGS) \
+    BCALLOPH(RET,N,DECLS,ARGS,PUSH(v);BCallRetCheck(nf)) \
+    BCALLOPH(REF,N,DECLS,ARGS,v.DECRTNIL()) \
+    BCALLOPH(UNB,N,DECLS,ARGS,(void)v)
 
-void VM::F_BCALL2(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value a1 = POP();
-    Value a0 = POP();
-    Value v = nf->fun.f2(a0, a1);
-    PUSH(v);
-    BCallRetCheck(nf);
-}
-
-void VM::F_BCALL3(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value a2 = POP();
-    Value a1 = POP();
-    Value a0 = POP();
-    Value v = nf->fun.f3(a0, a1, a2);
-    PUSH(v);
-    BCallRetCheck(nf);
-}
-
-void VM::F_BCALL4(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value a3 = POP();
-    Value a2 = POP();
-    Value a1 = POP();
-    Value a0 = POP();
-    Value v = nf->fun.f4(a0, a1, a2, a3);
-    PUSH(v);
-    BCallRetCheck(nf);
-}
-
-void VM::F_BCALL5(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value a4 = POP();
-    Value a3 = POP();
-    Value a2 = POP();
-    Value a1 = POP();
-    Value a0 = POP();
-    Value v = nf->fun.f5(a0, a1, a2, a3, a4);
-    PUSH(v);
-    BCallRetCheck(nf);
-}
-
-void VM::F_BCALL6(VM_OP_ARGS) {
-    #ifdef VM_PROFILER
-        vm_count_bcalls++;
-    #endif
-    auto nf = natreg.nfuns[*ip++];
-    Value a5 = POP();
-    Value a4 = POP();
-    Value a3 = POP();
-    Value a2 = POP();
-    Value a1 = POP();
-    Value a0 = POP();
-    Value v = nf->fun.f6(a0, a1, a2, a3, a4, a5);
-    PUSH(v);
-    BCallRetCheck(nf);
-}
+BCALLOP(0, {}, ());
+BCALLOP(1, auto a0 = POP(), (a0));
+BCALLOP(2, auto a1 = POP();auto a0 = POP(), (a0, a1));
+BCALLOP(3, auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2));
+BCALLOP(4, auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3));
+BCALLOP(5, auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4));
+BCALLOP(6, auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4, a5));
 
 void VM::F_NEWVEC(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
@@ -1466,13 +1396,18 @@ void VM::IDXErr(int i, int n, const RefObj *v) {
     if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
 }
 
-void VM::BCallRetCheck(const void *_nf) {
+void VM::BCallProf() {
+    #ifdef VM_PROFILER
+        vm_count_bcalls++;
+    #endif
+}
+
+void VM::BCallRetCheck(const NativeFun *nf) {
     #if RTT_ENABLED
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
         // values.
-        auto nf = (const NativeFun *)_nf;  // Don't expose type in header :(
-        if (nf->ncm == NCM_NONE) {
+        if (!nf->has_body) {
             for (size_t i = 0; i < nf->retvals.v.size(); i++) {
                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                 auto u = nf->retvals.v[i].type->t;
@@ -1481,7 +1416,7 @@ void VM::BCallRetCheck(const void *_nf) {
             TYPE_ASSERT(nf->retvals.v.size() || TOP().type == V_NIL);
         }
     #else
-        (void)_nf;
+        (void)nf;
     #endif
 }
 

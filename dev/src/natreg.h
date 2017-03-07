@@ -266,7 +266,7 @@ struct NativeFun : Named {
 
     NargVector args, retvals;
 
-    NativeCallMode ncm;
+    bool has_body;
     void (*cont1)();
 
     const char *idlist;
@@ -277,10 +277,11 @@ struct NativeFun : Named {
     NativeFun *overloads, *first;
 
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
-              const char *rets, int nargs, const char *_help, NativeCallMode _ncm, void (*_cont1)(),
+              const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(),
               list<Type> &typestorage)
-        : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr), ncm(_ncm),
-          cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr), first(this) {
+        : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
+          has_body(_has_body), cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr),
+          first(this) {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
         assert(TypeLen(typeids) == nargs);
@@ -315,7 +316,7 @@ struct NativeRegistry {
             if (/*nf->args.v.size() != existing->args.v.size() ||
                 nf->retvals.v.size() != existing->retvals.v.size() || */
                 nf->subsystemid != existing->subsystemid ||
-                nf->ncm != existing->ncm) {
+                nf->has_body != existing->has_body) {
                 // Must have similar signatures.
                 assert(0);
                 throw "native library name clash: " + nf->name;
