@@ -125,6 +125,7 @@ struct Light {
 
 
 extern void OpenGLInit(int samples);
+extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void LogGLError(const char *file, int line, const char *call);
 
@@ -183,15 +184,26 @@ extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *
                             void *vbuf1, int *ibuf);
 extern void RenderArraySlow(Primitive prim, int vcount, const char *fmt, int vertsize,
                             void *vbuf1, int vertsize2 = 0, void *vbuf2 = nullptr);
-extern void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2,
-                         float thickness);
-extern void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos,
-                         float thickness);
-extern void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
-extern void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
-extern void RenderUnitCube(Shader *sh, int inside);
-extern void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
-extern void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
+
+struct GeometryCache {
+    Geometry *quadgeom[2] = { nullptr, nullptr };
+    Geometry *cube_geom[2] = { nullptr, nullptr };
+    uint cube_ibo[2] = { 0, 0 };
+    map<int, Geometry *> circlevbos;
+    map<pair<int, float>, pair<Geometry *, uint>> opencirclevbos;
+
+    ~GeometryCache();
+
+    void RenderUnitSquare(Shader *sh, Primitive prim, bool centered);
+    void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans);
+    void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2,
+                      float thickness);
+    void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &campos,
+                      float thickness);
+    void RenderUnitCube(Shader *sh, int inside);
+    void RenderCircle(Shader *sh, Primitive prim, int segments, float radius);
+    void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
+};
 
 extern size_t AttribsSize(const char *fmt);
 
@@ -213,6 +225,8 @@ extern vector<Light> lights;
 extern float4 curcolor;
 
 extern float pointscale, custompointscale;
+
+extern GeometryCache *geomcache;
 
 // 2D, since this skips view2object needed for lighting.
 template<typename F> void Transform2D(const float4x4 &mat, F body) {

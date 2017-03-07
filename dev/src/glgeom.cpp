@@ -257,10 +257,7 @@ void RenderArraySlow(Primitive prim, int vcount, const char *fmt,
     delete geom;
 }
 
-// FIXME: These (and below) aren't deleted.
-Geometry *quadgeom[2] = { nullptr, nullptr };
-
-void RenderUnitSquare(Shader *sh, Primitive prim, bool centered) {
+void GeometryCache::RenderUnitSquare(Shader *sh, Primitive prim, bool centered) {
     int quadsize = sizeof(float) * 5;
     if (!quadgeom[centered]) {
         static float vb_square[20] = {
@@ -282,11 +279,12 @@ void RenderUnitSquare(Shader *sh, Primitive prim, bool centered) {
     RenderArray(prim, 4, quadgeom[centered]);
 }
 
-void RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans) {
+void GeometryCache::RenderQuad(Shader *sh, Primitive prim, bool centered, const float4x4 &trans) {
     Transform2D(trans, [&]() { RenderUnitSquare(sh, prim, centered); });
 }
 
-void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2, float thickness) {
+void GeometryCache::RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2,
+                                 float thickness) {
     auto v = (v2 - v1) / 2;
     auto len = length(v);
     auto vnorm = v / len;
@@ -296,8 +294,8 @@ void RenderLine2D(Shader *sh, Primitive prim, const float3 &v1, const float3 &v2
     RenderQuad(sh, prim, true, trans);
 }
 
-void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &/*campos*/,
-                  float thickness) {
+void GeometryCache::RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2,
+                                 const float3 &/*campos*/, float thickness) {
     GL_CALL(glDisable(GL_CULL_FACE));  // An exception in 3d mode.
     // FIXME: need to rotate the line also to make it face the camera.
     //auto camvec = normalize(campos - (v1 + v2) / 2);
@@ -311,10 +309,7 @@ void RenderLine3D(Shader *sh, const float3 &v1, const float3 &v2, const float3 &
     GL_CALL(glEnable(GL_CULL_FACE));
 }
 
-Geometry *cube_geom[2] = { nullptr, nullptr };
-uint cube_ibo[2] = { 0, 0 };
-
-void RenderUnitCube(Shader *sh, int inside) {
+void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
     struct cvert { float3 pos; float3 normal; float2 tc; };
     if (!cube_geom[inside]) {
         static float3 normals[] = {
@@ -347,9 +342,7 @@ void RenderUnitCube(Shader *sh, int inside) {
     RenderArray(PRIM_TRIS, 36, cube_geom[inside], cube_ibo[inside]);
 }
 
-map<int, Geometry *> circlevbos;  // FIXME: not global, these are never deallocated!!!
-
-void RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
+void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
     assert(segments >= 3);
     auto &geom = circlevbos[segments];
     if (!geom) {
@@ -369,9 +362,7 @@ void RenderCircle(Shader *sh, Primitive prim, int segments, float radius) {
     });
 }
 
-map<pair<int, float>, pair<Geometry *, uint>> opencirclevbos;  // FIXME: not global;
-
-void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness) {
+void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, float thickness) {
     assert(segments >= 3);
     auto vbo_type = make_pair(segments, thickness);
     auto &vibo = opencirclevbos[vbo_type];
@@ -404,4 +395,14 @@ void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness) {
         sh->Set();
         RenderArray(PRIM_TRIS, nindices, vibo.first, vibo.second);
     });
+}
+
+GeometryCache::~GeometryCache() {
+    for (int i = 0; i < 2; i++) {
+        delete quadgeom[i];
+        delete cube_geom[i];
+        if (cube_ibo[i]) DeleteBO(cube_ibo[i]);
+    }
+    for (auto &p : circlevbos) delete p.second;
+    for (auto &p : opencirclevbos) delete p.second.first;
 }

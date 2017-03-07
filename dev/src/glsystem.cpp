@@ -31,6 +31,7 @@ vector<Light> lights;
 float pointscale = 1.0f;
 float custompointscale = 1.0f;
 bool mode2d = true;
+GeometryCache *geomcache = nullptr;
 
 void AppendTransform(const float4x4 &forward, const float4x4 &backward) {
     otransforms.object2view *= forward;
@@ -140,6 +141,13 @@ void OpenGLInit(int samples) {
         if (samples > 1) GL_CALL(glEnable(GL_MULTISAMPLE));
     #endif
     GL_CALL(glCullFace(GL_FRONT));
+    assert(!geomcache);
+    geomcache = new GeometryCache();
+}
+
+void OpenGLCleanup() {
+    if (geomcache) delete geomcache;
+    geomcache = nullptr;
 }
 
 void LogGLError(const char *file, int line, const char *call) {

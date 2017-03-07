@@ -280,7 +280,7 @@ void AddPhysics() {
                         r->sh->SetTextures(r->textures);  // FIXME
                         auto polyshape = (b2CircleShape *)fixture->GetShape();
                         Transform2D(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
-                            RenderCircle(r->sh, PRIM_FAN, 20, polyshape->m_radius);
+                            geomcache->RenderCircle(r->sh, PRIM_FAN, 20, polyshape->m_radius);
                         });
 						break;
 					}

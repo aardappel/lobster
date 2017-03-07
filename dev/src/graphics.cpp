@@ -49,6 +49,7 @@ void GraphicsShutDown() {
     ShaderShutDown();
     currentshader = NULL;
     colorshader = NULL;
+    OpenGLCleanup();
     SDLSoundClose();
     SDLShutdown();
     // We don't set this to false on most platforms, as currently SDL doesn't like being
@@ -362,7 +363,7 @@ void AddGraphics() {
     STARTDECL(gl_circle) (Value &radius, Value &segments) {
         TestGL();
 
-        RenderCircle(currentshader, polymode, max(segments.ival(), 3), radius.fval());
+        geomcache->RenderCircle(currentshader, polymode, max(segments.ival(), 3), radius.fval());
 
         return Value();
     }
@@ -372,7 +373,8 @@ void AddGraphics() {
     STARTDECL(gl_opencircle) (Value &radius, Value &segments, Value &thickness) {
         TestGL();
 
-        RenderOpenCircle(currentshader, max(segments.ival(), 3), radius.fval(), thickness.fval());
+        geomcache->RenderOpenCircle(currentshader, max(segments.ival(), 3), radius.fval(),
+                                    thickness.fval());
 
         return Value();
     }
@@ -381,7 +383,7 @@ void AddGraphics() {
         " is filled, try e.g. 0.2");
 
     STARTDECL(gl_unitcube) (Value &inside) {
-        RenderUnitCube(currentshader, inside.True());
+        geomcache->RenderUnitCube(currentshader, inside.True());
         return Value();
     }
     ENDDECL1(gl_unitcube, "insideout", "I?", "",
@@ -521,7 +523,8 @@ void AddGraphics() {
 
     STARTDECL(gl_rect) (Value &vec, Value &centered) {
         TestGL();
-        RenderQuad(currentshader, polymode, centered.True(), float4x4(float4(ValueToF<2>(vec), 1)));
+        geomcache->RenderQuad(currentshader, polymode, centered.True(),
+                              float4x4(float4(ValueToF<2>(vec), 1)));
         return vec;
     }
     ENDDECL2(gl_rect, "vec,centered", "F]I?", "F]",
@@ -530,7 +533,7 @@ void AddGraphics() {
 
     STARTDECL(gl_unit_square) (Value &centered) {
         TestGL();
-        RenderUnitSquare(currentshader, polymode, centered.True());
+        geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
         return Value();
     }
     ENDDECL1(gl_unit_square, "centered", "I?", "",
@@ -540,8 +543,8 @@ void AddGraphics() {
         TestGL();
         auto v1 = ValueDecToF<3>(start);
         auto v2 = ValueDecToF<3>(end);
-        if (Is2DMode()) RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
-        else RenderLine3D(currentshader, v1, v2, float3_0, thickness.fval());
+        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
+        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fval());
         return Value();
     }
     ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",
@@ -997,21 +1000,21 @@ void AddGraphics() {
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z(); z += step.x()) {
             for (float x = 0; x <= m.x(); x += step.x()) {
-                RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y(), z), cp,
+                geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y(), z), cp,
                              thickness.fval());
             }
         }
         curcolor = float4(1, 0, 0, 1);
         for (float z = 0; z <= m.z(); z += step.y()) {
             for (float y = 0; y <= m.y(); y += step.y()) {
-                RenderLine3D(currentshader, float3(0, y, z), float3(m.x(), y, z), cp,
+                geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x(), y, z), cp,
                     thickness.fval());
             }
         }
         curcolor = float4(0, 0, 1, 1);
         for (float y = 0; y <= m.y(); y += step.z()) {
             for (float x = 0; x <= m.x(); x += step.z()) {
-                RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z()), cp,
+                geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z()), cp,
                     thickness.fval());
             }
         }
