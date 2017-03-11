@@ -13,7 +13,6 @@ struct Optimizer {
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc, int maxpasses)
         : parser(_p), st(_st), tc(_tc), changes_this_pass(true), total_changes(0),
           dummy_node(nullptr), cursf(nullptr) {
-        //dummy_node = NewNode(T_EMPTY, type_any);
         int i = 0;
         // MUST run at least 1 pass, to guarantee certain unwanted code is gone.
         maxpasses = max(1, maxpasses);
@@ -24,7 +23,9 @@ struct Optimizer {
                 if (f->subf && f->subf->typechecked) {
                     for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) {
                         cursf = sf;
-                        Optimize(sf->body, T_LIST);
+                        auto nb = Optimize(sf->body, typeid(*sf->body));
+                        assert(nb == sf->body);
+                        (void)nb;
                     }
                 }
             }
@@ -41,141 +42,124 @@ struct Optimizer {
         return n;
     }
 
-    void Optimize(Node *&n_ptr, TType parent_type) {
-        Node &n = *n_ptr;
-        switch (n.type) {
-            case T_LIST:
-                // Flatten the Optimize recursion a bit
-                for (Node *stats = &n; stats; stats = stats->b()) Optimize(stats->aref(), T_LIST);
-                return;
-            case T_IF: {  // This optimzation MUST run, since it deletes untypechecked code.
-                Optimize(n.if_condition(), T_IF);
-                Value cval;
-                if (tc.ConstVal(*n.if_condition(), cval)) {
-                    Changed();
-                    auto branch = cval.True() ? n.if_then() : n.if_else();
-                    auto other  = cval.True() ? n.if_else() : n.if_then();
-                    Optimize(branch, T_IF);
-                    n_ptr = branch;
-                    if (other->type != T_DEFAULTVAL) {
-                        if (other->type == T_E2N) other = other->child();
-                        auto &sf = other->call_function()->sf();
-                        if (!sf->typechecked) {
-                            // Typechecker did not typecheck this function for use in this if-then,
-                            // but neither did any other instances, so it can be removed.
-                            sf->parent->RemoveSubFunction(sf);
-                            sf = nullptr;
-                        }
-                    }
-                } else {
-                    Optimize(n.if_then(), T_IF);
-                    Optimize(n.if_else(), T_IF);
+    Node *Optimize(Node *n, const std::type_info &parent_type) {
+        Node *r = n;
+        if (auto ifn = Is<If>(n)) {
+            // This optimzation MUST run, since it deletes untypechecked code.
+            ifn->condition = Optimize(ifn->condition, typeid(*n));
+            Value cval;
+            if (ifn->condition->ConstVal(tc, cval)) {
+                Changed();
+                auto &branch = cval.True() ? ifn->truepart : ifn->falsepart;
+                auto other  = cval.True() ? ifn->falsepart : ifn->truepart;
+                r = Optimize(branch, typeid(*n));
+                branch = nullptr;
+                if (auto tonil = Is<ToNil>(other)) {
+                    other = tonil->child;
                 }
-                return;
+                if (auto call = Is<Call>(other)) {
+                    if (!call->sf->typechecked) {
+                        // Typechecker did not typecheck this function for use in this if-then,
+                        // but neither did any other instances, so it can be removed.
+                        call->sf->parent->RemoveSubFunction(call->sf);
+                        call->sf = nullptr;
+                    }
+                }
+                delete ifn;
+            } else {
+                ifn->truepart = Optimize(ifn->truepart, typeid(*n));
+                ifn->falsepart = Optimize(ifn->falsepart, typeid(*n));
+            }
+            return r;
+        }
+        for (size_t i = 0; i < n->Arity(); i++)
+            n->Children()[i] = Optimize(n->Children()[i], typeid(*n));
+        if (auto is = Is<IsType>(n)) {
+            Value cval;
+            if (is->ConstVal(tc, cval)) {
+                r = Typed(type_int, new IntConstant(is->line, cval.ival()));
+                if (is->child->HasSideEffects()) {
+                    r = Typed(type_int, new Seq(is->line, is->child, r));
+                    is->child = nullptr;
+                }
+                delete is;
+            }
+        } else if (auto dcall = Is<DynCall>(n)) {
+            // This optimization MUST run, to remove redundant arguments.
+            auto ftype = dcall->sid->type;
+            if (ftype->IsFunction()) {
+                auto sf = ftype->sf;
+                size_t i = 0;
+                for (auto c : dcall->children) {
+                    if (i++ >= sf->parent->nargs()) {
+                        delete c;
+                    }
+                }
+                dcall->children.resize(sf->parent->nargs());
+                // Now convert it to a T_CALL if possible. This also allows it to be inlined.
+                assert(sf && sf == dcall->sf);  // Sanity check.
+                // We rely on all these DYNCALLs being converted in the first pass, and only
+                // potentially inlined in the second for this increase to not cause problems.
+                sf->numcallers++;
+                if (!sf->parent->istype) {
+                    auto c = new Call(dcall->line, dcall->sf);
+                    c->children.insert(c->children.end(), dcall->children.begin(),
+                        dcall->children.end());
+                    dcall->children.clear();
+                    r = Typed(dcall->exptype, c);
+                    delete dcall;
+                }
+            }
+        } else if (auto call = Is<Call>(n)) {
+            auto sf = call->sf;
+            // FIXME: Reduce these requirements where possible.
+            if (parent_type == typeid(For) ||  // Always inline for bodies.
+                (sf->parent->anonymous &&
+                    !sf->iscoroutine &&
+                    !sf->dynscoperedefs.size() &&
+                    sf->returntypes.size() <= 1))
+            {
+                if (sf->numcallers <= 1 || sf->body->Count() < 8) {  // FIXME: configurable.
+                    r = Inline(*call, *sf);
+                }
             }
         }
-        if (n.a()) Optimize(n.aref(), n.type);
-        if (n.b()) Optimize(n.bref(), n.type);
-        if (n.c()) Optimize(n.cref(), n.type);
-        switch (n.type) {
-            case T_IS: {
-                Value cval;
-                if (tc.ConstVal(n, cval)) {
-                    n_ptr = Typed(type_int, new Node(n.line, cval.ival()));
-                    if (n.left()->HasSideEffects()) {
-                        n_ptr = Typed(type_int, new Node(n.line, T_SEQ, n.left(), n_ptr));
-                    }
-                }
-                break;
-            }
-            case T_DYNCALL: {  // This optimization MUST run, to remove redundant arguments.
-                auto ftype = n.dcall_fval()->exptype;
-                if (ftype->IsFunction()) {
-                    auto sf = ftype->sf;
-                    int i = 0;
-                    for (auto list = &n.dcall_args(); *list; list = &(*list)->tail()) {
-                        if (i++ == sf->parent->nargs()) {
-                            *list = nullptr;
-                            break;
-                        }
-                    }
-                    // Now convert it to a T_CALL if possible. This also allows it to be inlined.
-                    auto spec_sf = n.dcall_function()->sf();
-                    (void)spec_sf;
-                    assert(sf && sf == spec_sf);  // Sanity check.
-                    // We rely on all these DYNCALLs being converted in the first pass, and only
-                    // potentially inlined in the second for this increase to not cause problems.
-                    sf->numcallers++;
-                    if (!sf->parent->istype && !n.dcall_fval()->HasSideEffects()) {
-                        n_ptr = Typed(n.exptype,
-                                      new Node(n.line, T_CALL, n.dcall_function(), n.dcall_args()));
-                    }
-                }
-                break;
-            }
-            case T_CALL: {
-                auto sf = n.call_function()->sf();
-                // FIXME: Reduce these requirements where possible.
-                if (parent_type == T_FOR ||  // Always inline for bodies.
-                    (sf->parent->anonymous &&
-                     !sf->iscoroutine &&
-                     !sf->dynscoperedefs.size() &&
-                     sf->returntypes.size() <= 1))
-                {
-                    if (sf->numcallers <= 1 || CountNodes(sf->body) < 8) {  // FIXME: configurable.
-                        n_ptr = Inline(n, *sf);
-                    }
-                }
-                break;
-            }
-        }
+        return r;
     }
 
-    void IncreaseCallers(Node &n) {
-        if (n.type == T_CALL)
-            n.call_function()->sf()->numcallers++;
-        if (n.a()) IncreaseCallers(*n.a());
-        if (n.b()) IncreaseCallers(*n.b());
-        if (n.c()) IncreaseCallers(*n.c());
-    }
-
-    Node *Inline(Node &call, SubFunction &sf) {
+    Node *Inline(Call &call, SubFunction &sf) {
         // Note that sf_def in these Ident's being moved is now not correct anymore, but the
         // only use for that field is to determine if the variable is "global" after the optimizer,
         // so we let that slip.
         cursf->locals.v.insert(cursf->locals.v.end(), sf.args.v.begin(), sf.args.v.end());
         cursf->locals.v.insert(cursf->locals.v.end(), sf.locals.v.begin(), sf.locals.v.end());
         int ai = 0;
-        Node *newn = nullptr;
-        Node **tail = &newn;
-        for (auto list = call.call_args(); list; list = list->tail()) {
+        auto list = new Inlined(call.line);
+        for (auto c : call.children) {
             auto &arg = sf.args.v[ai];
-            *tail = Typed(type_any,
-                        new Node(call.line, T_LIST,
-                            Typed(type_any,
-                                new Node(call.line, T_DEF,
-                                    Typed(arg.type,
-                                        new Node(call.line, arg.id, arg.sid)),
-                                    list->head(),
-                                    nullptr)),
-                            nullptr));
-            list->head() = nullptr;
-            tail = &(*tail)->bref();
+            list->Add(Typed(type_any, new Define(call.line, arg.sid, c, nullptr)));
             ai++;
         }
+        call.children.clear();
+        delete &call;
         // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
         // typechecker.
         if (sf.numcallers <= 1) {
-            *tail = sf.body;
-            sf.body = nullptr;
+            list->children.insert(list->children.end(), sf.body->children.begin(),
+                                  sf.body->children.end());
+            sf.body->children.clear();
             sf.parent->RemoveSubFunction(&sf);
         } else {
-            *tail = sf.body->Clone();
-            IncreaseCallers(**tail);
+            for (auto c : sf.body->children) {
+                auto nc = c->Clone();
+                list->children.push_back(nc);
+                nc->Iterate([](Node *i) {
+                    if (auto call = Is<Call>(i)) call->sf->numcallers++;
+                });
+            }
             sf.numcallers--;
         }
-        newn = Typed(sf.returntypes[0], new Node(call.line, T_INLINED, newn));
-        return newn;
+        return Typed(sf.returntypes[0], list);
     }
 };
 

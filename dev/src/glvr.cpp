@@ -85,6 +85,8 @@ void VRShutDown() {
 bool VRInit() {
     #ifdef PLATFORM_VR
     if (vrsys) return true;
+    extern bool noninteractivetestmode;
+    if (noninteractivetestmode) return false;
     button_ids["system"]   = vr::k_EButton_System;
     button_ids["menu"]     = vr::k_EButton_ApplicationMenu;
     button_ids["grip"]     = vr::k_EButton_Grip;

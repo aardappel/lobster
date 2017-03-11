@@ -1,4 +1,4 @@
-- rethink nodes.
+- replace typeof return with something better directly part of the syntax.
 
 - make resume into seperate op.
 

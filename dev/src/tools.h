@@ -658,3 +658,24 @@ inline uint FNV1A(const char *s) {
     }
     return hash;
 }
+
+// dynamic_cast succeeds on both the given type and any derived types, which is frequently
+// undesirable. "is" only succeeds on the exact type given, and is cheaper. It also defaults
+// to pointer arguments.
+template<typename T, typename U> T *Is(U *o) {
+    return typeid(T) == typeid(*o) ? static_cast<T *>(o) : nullptr;
+}
+
+template<typename T, typename U> const T *Is(const U *o) {
+    return typeid(T) == typeid(*o) ? static_cast<const T *>(o) : nullptr;
+}
+
+template<typename T, typename U> T *AssertIs(U *o) {
+    assert(typeid(T) == typeid(*o));
+    return static_cast<T *>(o);
+}
+
+template<typename T, typename U> const T *AssertIs(const U *o) {
+    assert(typeid(T) == typeid(*o));
+    return static_cast<const T *>(o);
+}

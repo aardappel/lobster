@@ -199,10 +199,10 @@ ElemObj *VM::NewVector(int initial, int max, const TypeInfo &ti) {
 LString *VM::NewString(size_t l) {
     return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l);
 }
-CoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, CoRoutine *p, const TypeInfo &cti) {
+LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const TypeInfo &cti) {
     assert(cti.t == V_COROUTINE);
-    return new (vmpool->alloc(sizeof(CoRoutine)))
-               CoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
+    return new (vmpool->alloc(sizeof(LCoRoutine)))
+               LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
                          cti);
 }
 BoxedInt *VM::NewInt(int i) {
@@ -515,7 +515,7 @@ bool VM::FunOut(int towhere, int nrv) {
     return bottom;
 }
 
-void VM::CoVarCleanup(CoRoutine *co) {
+void VM::CoVarCleanup(LCoRoutine *co) {
     // Convenient way to copy everything back onto the stack.
     InsPtr tip(0);
     auto copylen = co->Resume(sp + 1, stack, stackframes, tip, nullptr);
@@ -609,7 +609,7 @@ void VM::CoYield(VM_OP_ARGS_CALL) {
     CoSuspend(retip);
 }
 
-void VM::CoResume(CoRoutine *co) {
+void VM::CoResume(LCoRoutine *co) {
     if (co->stackstart >= 0)
         Error("cannot resume running coroutine");
     if (!co->active)

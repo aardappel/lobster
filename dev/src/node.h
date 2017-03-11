@@ -14,243 +14,388 @@
 
 namespace lobster {
 
-struct SlabAllocatedSmall {
-    #undef new
-    void *operator new(size_t size) { return parserpool->alloc_small(size); }
-    void *operator new(size_t size, int, const char *, int) {
-        return parserpool->alloc_small(size);
-    }
-    void operator delete(void *p) { parserpool->dealloc_small(p); };
-    void operator delete(void *p, int, const char *, int) { parserpool->dealloc_small(p); }
-    #ifdef _WIN32
-    #ifdef _DEBUG
-    #define new DEBUG_NEW
-    #endif
-    #endif
-};
+typedef const function<void (Node *)> &IterateFun;
 
-struct Node : SlabAllocatedSmall {
+struct TypeChecker;
+struct CodeGen;
+
+struct Node {
     Line line;
-    TType type;
     TypeRef exptype;
-
-    private:
-    union {
-        struct { Node *a_, *b_, *c_; };
-        struct { Ident *ident_; SpecIdent *sid_; };
-        int integer_;
-        double flt_;
-        char *str_;
-        Struct *st_;
-        SharedField *fld_;
-        SubFunction *sf_;
-        NativeFun *nf_;
-        TypeRef type_;
-    };
-    public:
-
-    Node(Line &ln, TType t) : line(ln), type(t), a_(nullptr), b_(nullptr), c_(nullptr) {
-        assert(TArity(t) == 0);
+    virtual ~Node() {};
+    virtual size_t Arity() const { return 0; }
+    virtual Node **Children() { return nullptr; }
+    virtual Node *Clone() = 0;
+    virtual bool IsConstInit() const { return false; }
+    virtual const char *Name() const = 0;
+    virtual string Dump() const { return Name(); }
+    void Iterate(IterateFun f) {
+        f(this);
+        auto ch = Children();
+        if (ch) for (size_t i = 0; i < Arity(); i++) ch[i]->Iterate(f);
     }
-
-    Node(Line &ln, TType t, Node *a) : line(ln), type(t), a_(a), b_(nullptr), c_(nullptr) {
-        assert(TArity(t) == 1);
-    }
-
-    Node(Line &ln, TType t, Node *a, Node *b) : line(ln), type(t), a_(a), b_(b), c_(nullptr) {
-        assert(TArity(t) == 2);
-    };
-
-    Node(Line &ln, TType t, Node *a, Node *b, Node *c) : line(ln), type(t), a_(a), b_(b), c_(c) {
-        assert(TArity(t) == 3);
-    }
-
-    Node(Line &ln, TType t, TypeRef tr) : line(ln), type(t), type_(tr) {}  // T_TYPE | T_NIL
-
-    Node(Line &ln, Ident *id, SpecIdent *sid = nullptr)
-        : line(ln), type(T_IDENT), ident_(id), sid_(sid) {}
-
-    Node(Line &ln, int i)            : line(ln), type(T_INT), integer_(i) {}
-    Node(Line &ln, double f)         : line(ln), type(T_FLOAT), flt_(f) {}
-    Node(Line &ln, const string &s)  : line(ln), type(T_STR),
-                                       str_(parserpool->alloc_string_sized(s)) {}
-    Node(Line &ln, Struct *st)       : line(ln), type(T_STRUCT), st_(st) {}
-    Node(Line &ln, SharedField *fld) : line(ln), type(T_FIELD), fld_(fld) {}
-    Node(Line &ln, SubFunction *sf)  : line(ln), type(T_FUN), sf_(sf) {}
-    Node(Line &ln, NativeFun *nf)    : line(ln), type(T_NATIVE), nf_(nf) {}
-
-    int integer()       const { assert(type == T_INT);    return integer_; }
-    double flt()        const { assert(type == T_FLOAT);  return flt_; }
-    char * str()        const { assert(type == T_STR);    return str_; }
-    char *&str()              { assert(type == T_STR);    return str_; }
-    Ident * ident()     const { assert(type == T_IDENT);  return ident_; }
-    Ident *&ident()           { assert(type == T_IDENT);  return ident_; }
-    SpecIdent * sid()   const { assert(type == T_IDENT);  return sid_; }
-    SpecIdent *&sid()         { assert(type == T_IDENT);  return sid_; }
-    Struct *st()        const { assert(type == T_STRUCT); return st_; }
-    SharedField *fld()  const { assert(type == T_FIELD);  return fld_; }
-    NativeFun * nf()    const { assert(type == T_NATIVE); return nf_; }
-    NativeFun *&nf()          { assert(type == T_NATIVE); return nf_; }
-    SubFunction * sf()  const { assert(type == T_FUN);    return sf_; }
-    SubFunction *&sf()        { assert(type == T_FUN);    return sf_; }
-    TypeRef  typenode() const { assert(type == T_TYPE || type == T_NIL); return type_; }
-    TypeRef &typenode()       { assert(type == T_TYPE || type == T_NIL); return type_; }
-
-    Node * a() const { return TArity(type) > 0 ? a_ : nullptr; }
-    Node * b() const { return TArity(type) > 1 ? b_ : nullptr; }
-    Node * c() const { return TArity(type) > 2 ? c_ : nullptr; }
-    Node *&aref()    { assert(TArity(type) > 0); return a_; }
-    Node *&bref()    { assert(TArity(type) > 1); return b_; }
-    Node *&cref()    { assert(TArity(type) > 2); return c_; }
-
-    Node * left()  const { assert(TArity(type) >= 2); return a_; }
-    Node *&left()        { assert(TArity(type) >= 2); return a_; }
-    Node * right() const { assert(TArity(type) >= 2); return b_; }
-    Node *&right()       { assert(TArity(type) >= 2); return b_; }
-
-    Node * child() const { assert(TArity(type) == 1); return a_; }
-    Node *&child()       { assert(TArity(type) == 1); return a_; }
-
-    #define ACCESSOR(ENUM, NAME, AB) \
-              Node *&NAME()       { assert(type == ENUM); return AB; } \
-        const Node * NAME() const { assert(type == ENUM); return AB; }
-    #define T0(ENUM, STR, CAT, SE)
-    #define T1(ENUM, STR, CAT, SE, ONE) \
-                ACCESSOR(ENUM, ONE, a_)
-    #define T2(ENUM, STR, CAT, SE, ONE, TWO) \
-                ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_)
-    #define T3(ENUM, STR, CAT, SE, ONE, TWO, THREE) \
-                ACCESSOR(ENUM, ONE, a_) ACCESSOR(ENUM, TWO, b_) ACCESSOR(ENUM, THREE, c_)
-        TTYPES_LIST
-    #undef T0
-    #undef T1
-    #undef T2
-    #undef T3
-    #undef ACCESSOR
-
-    ~Node() {
-        if (type == T_STR) {
-            parserpool->dealloc_sized(str());
-        } else {
-            if (a()) delete a();
-            if (b()) delete b();
-            if (c()) delete c();
-        }
-    }
-
-    Node *Clone() {
-        auto n = parserpool->clone_obj_small(this);
-        if (a()) n->aref() = a()->Clone();
-        if (b()) n->bref() = b()->Clone();
-        if (c()) n->cref() = c()->Clone();
-        if (type == T_STR) {
-            n->str() = (char *)parserpool->clone_sized(str());
-        }
-        return n;
-    }
-
-    // Used to see if a var is worth outputting in a stacktrace.
-    bool IsConstInit() {
-        switch (type) {
-            case T_INT:
-            case T_FLOAT:
-            case T_STR:
-            case T_FUN:
-                return true;
-            case T_IDENT:
-                return ident()->static_constant;
-            case T_CONSTRUCTOR: {
-                for (Node *n = constructor_args(); n; n = n->tail()) {
-                    if (!n->head()->IsConstInit()) return false;
-                }
-                return true;
-            }
-            // TODO: support more types of exps?
-            default:
-                return false;
-        }
-    }
-
     // Used in the optimizer to see if this node can be discarded without consequences.
-    bool HasSideEffects() {
-        return TSideEffect(type) ||
-               (a() && a()->HasSideEffects()) ||
-               (b() && b()->HasSideEffects()) ||
-               (c() && c()->HasSideEffects());
+    virtual bool SideEffect() const = 0;  // Just this node.
+    bool HasSideEffects() {  // Transitively.
+        bool se = false;
+        Iterate([&](Node *n) { se = se || n->SideEffect(); });
+        return se;
     }
+    size_t Count() {
+        size_t count = 0;
+        Iterate([&](Node *) { count++; });
+        return count;
+    }
+    // Used by type-checker to and optimizer.
+    // If it returns true, sets val to a value that gives the correct True().
+    // Also sets correct scalar values.
+    virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
+    virtual Node *TypeCheck(TypeChecker &tc, bool reqret) = 0;
+    virtual void Generate(CodeGen &cg, int retval) const = 0;
+  protected:
+    Node(const Line &ln) : line(ln) {}
+    Node() : line(0, 0) {}
 };
 
-inline int CountNodes(const Node *n) {
-    if (!n) return 0;
-    int count = 1;
-    if (n->a()) count += CountNodes(n->a());
-    if (n->b()) count += CountNodes(n->b());
-    if (n->c()) count += CountNodes(n->c());
-    return count;
+template<typename T> T *DoClone(T *dest, T *src) {
+    *dest = *src;  // Copy contructor copies all values & non-owned.
+    for (size_t i = 0; i < src->Arity(); i++) dest->Children()[i] = src->Children()[i]->Clone();
+    return dest;
 }
 
-inline void DumpType(const Node &n, string &ns) {
-    if (n.exptype->t != V_ANY) {
-        ns += ":";
-        ns += TypeName(n.exptype);
+#define SHARED_SIGNATURE(NAME, STR, SE) \
+    const char *Name() const { return STR; } \
+    bool SideEffect() const { return SE; } \
+    Node *TypeCheck(TypeChecker &tc, bool reqret); \
+    void Generate(CodeGen &cg, int retval) const; \
+    Node *Clone() { return DoClone<NAME>(new NAME(), this); } \
+  protected: \
+    NAME() {};  // Only used by clone.
+
+#define ZERO_NODE(NAME, STR, SE, METHODS) \
+struct NAME : Node { \
+    NAME(const Line &ln) : Node(ln) {} \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define UNARY_NODE(NAME, STR, SE, A, METHODS) \
+struct NAME : Node { \
+    Node *A; \
+    NAME(const Line &ln, Node *_a) : Node(ln), A(_a) {} \
+    ~NAME() { delete A; } \
+    size_t Arity() const { return 1; } \
+    Node **Children() { return &A; } \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define UNOP_NODE(NAME, STR, SE, METHODS) \
+struct NAME : Unary { \
+    NAME(const Line &ln, Node *_a) : Unary(ln, _a) {} \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define BINARY_NODE(NAME, STR, SE, A, B, METHODS) \
+struct NAME : Node { \
+    Node *A, *B; \
+    NAME(const Line &ln, Node *_a, Node *_b) : Node(ln), A(_a), B(_b) {}; \
+    ~NAME() { delete A; delete B; } \
+    size_t Arity() const { return 2; } \
+    Node **Children() { return &A; } \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define BINOP_NODE(NAME, STR, SE, METHODS) \
+struct NAME : BinOp { \
+    NAME(const Line &ln, Node *_a, Node *_b) : BinOp(ln, _a, _b) {}; \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define TERNARY_NODE(NAME, STR, SE, A, B, C, METHODS) \
+struct NAME : Node { \
+    Node *A, *B, *C; \
+    NAME(const Line &ln, Node *_a, Node *_b, Node *_c) : Node(ln), A(_a), B(_b), C(_c) {} \
+    ~NAME() { delete A; delete B; delete C; } \
+    size_t Arity() const { return 3; } \
+    Node **Children() { return &A; } \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+#define NARY_NODE(NAME, STR, SE, METHODS) \
+struct NAME : Node { \
+    vector<Node *> children; \
+    NAME(const Line &ln) : Node(ln) {}; \
+    ~NAME() { for (auto n : children) delete n; } \
+    size_t Arity() const { return children.size(); } \
+    Node **Children() { return children.data(); } \
+    NAME *Add(Node *a) { children.push_back(a); return this; }; \
+    SHARED_SIGNATURE(NAME, STR, SE) \
+    METHODS \
+};
+
+struct TypeAnnotation : Node {
+    TypeRef giventype;
+    TypeAnnotation(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
+    string Dump() const { return TypeName(giventype); }
+    SHARED_SIGNATURE(TypeAnnotation, "type", false)
+};
+
+#define CONSTVALMETHOD bool ConstVal(TypeChecker &tc, Value &val) const;
+
+// generic node types
+NARY_NODE(List, "list", false, )
+UNARY_NODE(Unary, "unary", false, child, )
+BINARY_NODE(BinOp, "binop", false, left, right, )
+
+BINOP_NODE(Plus, TName(T_PLUS), false, )
+BINOP_NODE(Minus, TName(T_MINUS), false, )
+BINOP_NODE(Multiply, TName(T_MULT), false, )
+BINOP_NODE(Divide, TName(T_DIV), false, )
+BINOP_NODE(Mod, TName(T_MOD), false, )
+BINOP_NODE(PlusEq, TName(T_PLUSEQ), true, )
+BINOP_NODE(MinusEq, TName(T_MINUSEQ), true, )
+BINOP_NODE(MultiplyEq, TName(T_MULTEQ), true, )
+BINOP_NODE(DivideEq, TName(T_DIVEQ), true, )
+BINOP_NODE(ModEq, TName(T_MODEQ), true, )
+BINOP_NODE(And, TName(T_AND), false, CONSTVALMETHOD)
+BINOP_NODE(Or, TName(T_OR), false, CONSTVALMETHOD)
+UNARY_NODE(Not, TName(T_NOT), false, child, CONSTVALMETHOD)
+UNOP_NODE(PreIncr, TName(T_INCR), true, )
+UNOP_NODE(PreDecr, TName(T_DECR), true, )
+BINOP_NODE(Equal, TName(T_EQ), false, )
+BINOP_NODE(NotEqual, TName(T_NEQ), false, )
+BINOP_NODE(LessThan, TName(T_LT), false, )
+BINOP_NODE(GreaterThan, TName(T_GT), false, )
+BINOP_NODE(LessThanEq, TName(T_LTEQ), false, )
+BINOP_NODE(GreaterThanEq, TName(T_GTEQ), false, )
+BINOP_NODE(BitAnd, TName(T_BITAND), false, )
+BINOP_NODE(BitOr, TName(T_BITOR), false, )
+BINOP_NODE(Xor, TName(T_XOR), false, )
+UNARY_NODE(Negate, TName(T_NEG), false, child, )
+BINOP_NODE(ShiftLeft, TName(T_ASL), false, )
+BINOP_NODE(ShiftRight, TName(T_ASR), false, )
+BINOP_NODE(Assign, TName(T_ASSIGN), true, )
+BINOP_NODE(DynAssign, TName(T_DYNASSIGN), true, )
+BINOP_NODE(LogAssign, TName(T_LOGASSIGN), true, )
+BINARY_NODE(CoDot, TName(T_CODOT), false, coroutine, variable, )
+ZERO_NODE(DefaultVal, "default value", false, )
+UNARY_NODE(TypeOf, TName(T_TYPEOF), false, child, )
+UNARY_NODE(CoRoutine, TName(T_COROUTINE), true, call, )
+
+ZERO_NODE(CoClosure, "coroutine yield", false, )
+BINARY_NODE(Seq, "statements", false, head, tail, )
+BINARY_NODE(Indexing, "indexing operation", false, object, index, )
+UNOP_NODE(PostIncr, TName(T_INCR), true, )
+UNOP_NODE(PostDecr, TName(T_DECR), true, )
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, )
+UNOP_NODE(ToFloat, "tofloat", false, )
+UNOP_NODE(ToString, "tostring", false, )
+UNOP_NODE(ToAny, "toany", false, )
+UNOP_NODE(ToNil, "tonil", false, )
+UNOP_NODE(ToBool, "tobool", false, )
+UNOP_NODE(ToInt, "toint", false, )
+TERNARY_NODE(If, "if", false, condition, truepart, falsepart, )
+BINARY_NODE(While, "while", false, condition, body, )
+BINARY_NODE(For, "for", false, iter, body, )
+ZERO_NODE(ForLoopElem, "for loop element", false, )
+ZERO_NODE(ForLoopCounter, "for loop counter", false, )
+NARY_NODE(Inlined, "inlined", false, )
+
+struct Nil : Node {
+	TypeRef giventype;
+    Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
+    bool ConstVal(TypeChecker &, Value &val) const {
+        val = Value();
+        return true;
     }
-}
+    SHARED_SIGNATURE(Nil, TName(T_NIL), false)
+};
 
-inline string Dump(const Node &n, int indent) {
-    switch (n.type) {
-        case T_INT:   return to_string(n.integer());
-        case T_FLOAT: return to_string(n.flt());
-        case T_STR:   return string("\"") + n.str() + "\"";
-        case T_NIL:   return "nil";
-        case T_IDENT:  return n.ident()->name;
-        case T_STRUCT: return n.st()->name;
-        case T_FIELD:  return n.fld()->name;
-        case T_NATIVE: return n.nf()->name;
-        case T_TYPE:   return TypeName(n.typenode());
-        case T_FUN:    return n.sf()
-            ? "[fun " + n.sf()->parent->name + "]" /*+ sf()->body->Dump(indent + 2, symbols) */
-            : "<>";
-        default: {
-            string s = TName(n.type);
-            string as, bs, cs;
-            bool ml = false;
-            auto indenb = indent - (n.type == T_LIST) * 2;
-            if (n.a()) {
-                as = Dump(*n.a(), indent + 2);
-                DumpType(*n.a(), as);
-                if (as[0] == ' ') ml = true;
-            }
-            if (n.b()) {
-                bs = Dump(*n.b(), indenb + 2);
-                DumpType(*n.b(), bs);
-                if (bs[0] == ' ') ml = true;
-            }
-            if (n.c()) {
-                cs = Dump(*n.c(), indenb + 2);
-                DumpType(*n.c(), cs);
-                if (cs[0] == ' ') ml = true;
-            }
-            if (as.size() + bs.size() + cs.size() > 60) ml = true;
-            if (ml) {
-                if (n.a()) { if (as[0] != ' ') as = string(indent + 2, ' ') + as; }
-                if (n.b()) { if (bs[0] != ' ') bs = string(indenb + 2, ' ') + bs; }
-                if (n.c()) { if (cs[0] != ' ') cs = string(indenb + 2, ' ') + cs; }
-                if (n.type == T_LIST) {
-                    s = "";
-                } else {
-                    s = string(indent, ' ') + s;
-                    if (n.a()) s += "\n";
-                }
-                if (n.a()) s += as;
-                if (n.b()) s += "\n" + bs;
-                if (n.c()) s += "\n" + cs;
-                return s;
-            } else {
-                if (n.b()) return n.c() ? "(" + s + " " + as + " " + bs + " " + cs + ")"
-                                        : "(" + s + " " + as + " " + bs + ")";
-                else return "(" + s + " " + as + ")";
-            }
+struct IdentRef : Node {
+    SpecIdent *sid;
+    IdentRef(const Line &ln, SpecIdent *_sid)
+        : Node(ln), sid(_sid) {}
+    bool IsConstInit() const { return sid->id->static_constant; }
+    string Dump() const { return sid->id->name; }
+    SHARED_SIGNATURE(IdentRef, TName(T_IDENT), false)
+};
+
+struct IntConstant : Node {
+    int integer;
+    IntConstant(const Line &ln, int i) : Node(ln), integer(i) {}
+    bool IsConstInit() const { return true; }
+    string Dump() const { return to_string(integer); }
+    bool ConstVal(TypeChecker &, Value &val) const {
+        val = Value(integer);
+        return true;
+    }
+    SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
+};
+
+struct FloatConstant : Node {
+    double flt;
+    FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
+    bool IsConstInit() const { return true; }
+    string Dump() const { return to_string(flt); }
+    bool ConstVal(TypeChecker &, Value &val) const {
+        val = Value(flt);
+        return true;
+    }
+    SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
+};
+
+struct StringConstant : Node {
+    string str;
+    StringConstant(const Line &ln, const string &s) : Node(ln), str(s) {}
+    bool IsConstInit() const { return true; }
+    string Dump() const { return string("\"") + str + "\""; }
+    SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
+};
+
+struct StructRef : Node {
+    Struct *st;
+    StructRef(const Line &ln, Struct *_st) : Node(ln), st(_st) {}
+    string Dump() const { return "struct " + st->name; }
+    SHARED_SIGNATURE(StructRef, TName(T_STRUCT), false)
+};
+
+struct FunRef : Node {
+    SubFunction *sf;
+    FunRef(const Line &ln, SubFunction *_sf) : Node(ln), sf(_sf) {}
+    bool IsConstInit() const { return true; }
+    string Dump() const { return sf ? "(def " + sf->parent->name + ")" : "<>"; }
+    SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
+};
+
+struct NativeRef : Node {
+    NativeFun *nf;
+    NativeRef(const Line &ln, NativeFun *_nf) : Node(ln), nf(_nf) {}
+    string Dump() const { return nf->name; }
+    SHARED_SIGNATURE(NativeRef, "native function", true)
+};
+
+struct Constructor : List {
+    TypeRef giventype;
+    Constructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
+    bool IsConstInit() const {
+        for (auto n : children) {
+            if (!n->IsConstInit()) return false;
         }
+        return true;
+    }
+    SHARED_SIGNATURE(Constructor, "constructor", false)
+};
+
+struct Call : List {
+    SubFunction *sf;
+    Call(const Line &ln, SubFunction *_sf) : List(ln), sf(_sf) {};
+    string Dump() const { return sf->parent->name; }
+    SHARED_SIGNATURE(Call, "call", true)
+};
+
+struct DynCall : Call {
+    SpecIdent *sid;
+    DynCall(const Line &ln, SubFunction *_sf, SpecIdent *_sid)
+        : Call(ln, _sf), sid(_sid) {};
+    string Dump() const { return sid->id->name; }
+    SHARED_SIGNATURE(DynCall, "dynamic call", true)
+};
+
+struct NativeCall : List {
+    NativeFun *nf;
+    NativeCall(const Line &ln, NativeFun *_nf) : List(ln), nf(_nf) {};
+    string Dump() const { return nf->name; }
+    SHARED_SIGNATURE(NativeCall, "native call", true)
+};
+
+struct Return : Unary {
+    int subfunction_idx;
+    Return(const Line &ln, Node *_a, int sfi) : Unary(ln, _a), subfunction_idx(sfi) {}
+    SHARED_SIGNATURE(Return, TName(T_RETURN), true)
+};
+
+struct MultipleReturn : List {
+    MultipleReturn(const Line &ln) : List(ln) {};
+    SHARED_SIGNATURE(MultipleReturn, "multiple return", false)
+};
+
+struct AssignList : Unary {
+    vector<SpecIdent *> sids;
+    AssignList(const Line &ln, SpecIdent *sid, Node *_a)
+        : Unary(ln, _a) { if (sid) sids.push_back(sid); }
+    string Dump() const {
+        string s;
+        for (auto sid : sids) s += sid->id->name + " ";
+        return s + Name();
+    }
+    SHARED_SIGNATURE(AssignList, "assign list", true)
+};
+
+struct Define : AssignList {
+    TypeRef giventype;
+    Define(const Line &ln, SpecIdent *sid, Node *_a, TypeRef gt)
+        : AssignList(ln, sid, _a), giventype(gt) {}
+    SHARED_SIGNATURE(Define, TName(T_DEF), true)
+};
+
+struct Dot : Unary {
+    SharedField *fld;
+    bool maybe;
+    Dot(const Line &ln, Node *_a, SharedField *_fld, bool _maybe)
+        : Unary(ln, _a), fld(_fld), maybe(_maybe) {}
+    string Dump() const { return Name() + fld->name; }
+    SHARED_SIGNATURE(Dot, TName(maybe ? T_DOTMAYBE : T_DOT), false)
+};
+
+struct IsType : Unary {
+    TypeRef giventype;
+    IsType(const Line &ln, Node *_a, TypeRef t) : Unary(ln, _a), giventype(t) {}
+    string Dump() const { return Name() + (":" + TypeName(giventype)); }
+    CONSTVALMETHOD
+    SHARED_SIGNATURE(IsType, TName(T_IS), false)
+};
+
+inline string Dump(Node &n, int indent) {
+    string s = n.Dump();
+    auto arity = n.Arity();
+    if (!arity) return s;
+    bool ml = false;
+    bool islist = Is<List>(&n);
+    auto indenb = indent - islist * 2;
+    auto ch = n.Children();
+    vector<string> ss;
+    size_t total = 0;
+    for (size_t i = 0; i < arity; i++) {
+        auto a = Dump(*ch[i], (i ? indent : indenb) + 2);
+        if (ch[i]->exptype->t != V_ANY) {
+            a += ":";
+            a += TypeName(ch[i]->exptype);
+        }
+        if (a[0] == ' ') ml = true;
+        total += a.length();
+        ss.push_back(a);
+    }
+    if (total > 60) ml = true;
+    if (ml) {
+        for (size_t i = 0; i < ss.size(); i++) {
+            if (ss[i][0] != ' ') ss[i] = string((i ? indent : indenb) + 2, ' ') + ss[i];
+        }
+        if (islist) {
+            s = "";
+        } else {
+            s = string(indent, ' ') + s;
+            s += "\n";
+        }
+        for (size_t i = 0; i < arity; i++) { if (i) s += "\n"; s += ss[i]; }
+        return s;
+    } else {
+        for (size_t i = 0; i < arity; i++) s += " " + ss[i];
+        return "(" + s + ")";
     }
 }
 

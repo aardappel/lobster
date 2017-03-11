@@ -110,7 +110,7 @@ struct LString;
 struct ElemObj;
 struct LVector;
 struct LStruct;
-struct CoRoutine;
+struct LCoRoutine;
 
 struct PrintPrefs {
     int depth;
@@ -271,7 +271,7 @@ struct Value {
         LString *sval_;
         LVector *vval_;
         LStruct *stval_;
-        CoRoutine *cval_;
+        LCoRoutine *cval_;
         LResource *xval_;
 
         // Boxed scalars (never NULL)
@@ -292,7 +292,7 @@ struct Value {
     BoxedFloat *bfval () const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_;       }
     LVector    *vval  () const { TYPE_ASSERT(type == V_VECTOR);     return vval_;        }
     LStruct    *stval () const { TYPE_ASSERT(type == V_STRUCT);     return stval_;       }
-    CoRoutine  *cval  () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;        }
+    LCoRoutine *cval  () const { TYPE_ASSERT(type == V_COROUTINE);  return cval_;        }
     LResource  *xval  () const { TYPE_ASSERT(type == V_RESOURCE);   return xval_;        }
     ElemObj    *eval  () const { TYPE_ASSERT(IsVector(type));       return eval_;        }
     RefObj     *ref   () const { TYPE_ASSERT(IsRef(type));          return ref_;         }
@@ -538,7 +538,7 @@ struct VM {
 
     vector<StackFrame> stackframes;
 
-    CoRoutine *curcoroutine;
+    LCoRoutine *curcoroutine;
 
     Value *vars;
 
@@ -595,7 +595,7 @@ struct VM {
     void DumpLeaks();
 
     ElemObj *NewVector(int initial, int max, const TypeInfo &ti);
-    CoRoutine *NewCoRoutine(InsPtr rip, const int *vip, CoRoutine *p, const TypeInfo &cti);
+    LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const TypeInfo &cti);
     BoxedInt *NewInt(int i);
     BoxedFloat *NewFloat(float f);
     LResource *NewResource(void *v, const ResourceType *t);
@@ -635,13 +635,13 @@ struct VM {
     void FunIntro(VM_OP_ARGS);
     bool FunOut(int towhere, int nrv);
 
-    void CoVarCleanup(CoRoutine *co);
+    void CoVarCleanup(LCoRoutine *co);
     void CoNonRec(const int *varip);
     void CoNew(VM_OP_ARGS_CALL);
     void CoSuspend(InsPtr retip);
     void CoClean();
     void CoYield(VM_OP_ARGS_CALL);
-    void CoResume(CoRoutine *co);
+    void CoResume(LCoRoutine *co);
 
     void EndEval(Value &ret, ValueType vt);
 
@@ -749,7 +749,7 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
 
 void EscapeAndQuote(const string &s, string &r);
 
-struct CoRoutine : RefObj {
+struct LCoRoutine : RefObj {
     bool active;       // Goes to false when it has hit the end of the coroutine instead of a yield.
 
     int stackstart;    // When currently running, otherwise -1
@@ -763,11 +763,11 @@ struct CoRoutine : RefObj {
 
     InsPtr returnip;
     const int *varip;
-    CoRoutine *parent;
+    LCoRoutine *parent;
 
     int tm;  // When yielding from within a for, there will be temps on top of the stack.
 
-    CoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, CoRoutine *_p, const TypeInfo &cti)
+    LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, const TypeInfo &cti)
         : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0),
@@ -798,7 +798,7 @@ struct CoRoutine : RefObj {
     }
 
     int Suspend(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip,
-                CoRoutine *&curco) {
+                LCoRoutine *&curco) {
         assert(stackstart >= 0);
         swap(rip, returnip);
         assert(curco == this);
@@ -826,7 +826,7 @@ struct CoRoutine : RefObj {
         }
     }
 
-    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, CoRoutine *p) {
+    int Resume(int top, Value *stack, vector<StackFrame> &stackframes, InsPtr &rip, LCoRoutine *p) {
         assert(stackstart < 0);
         swap(rip, returnip);
         assert(!parent);
@@ -893,7 +893,7 @@ struct CoRoutine : RefObj {
             DeallocSubBuf(stackcopy, stackcopymax);
         }
         if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
-        vmpool->dealloc(this, sizeof(CoRoutine));
+        vmpool->dealloc(this, sizeof(LCoRoutine));
     }
 
     ValueType ElemType(int i) {

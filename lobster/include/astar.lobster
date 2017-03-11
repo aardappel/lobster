@@ -104,9 +104,11 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
         endcondition(_.state)
     generatenewstates n, f:
         for(goapactions) act:
-            if act.precondition(n.state):
+            pre := act.precondition
+            if pre(n.state):
                 nstate := n.state.copy
-                act.effect(nstate)
+                eff := act.effect
+                eff(nstate)
                 i := existingnodes.find(): equal(_.state, nstate)
                 nn := i >= 0 and existingnodes[i] or goap_node { nstate }
                 f(act, 1, nn)

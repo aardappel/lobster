@@ -233,8 +233,8 @@ struct Lex : LoadedFile {
             case '!': cont = true; second('=', T_NEQ);  cont = false; return T_NOT;
             case '>': cont = true; second('=', T_GTEQ); second('>', T_ASR); return T_GT;
 
-            case '&': cont = true; second('&', T_AND); return T_BINAND;
-            case '|': cont = true; second('|', T_OR);  return T_BINOR;
+            case '&': cont = true; second('&', T_AND); return T_BITAND;
+            case '|': cont = true; second('|', T_OR);  return T_BITOR;
             case '^': cont = true; return T_XOR;
             case '~': cont = true; return T_NEG;
 

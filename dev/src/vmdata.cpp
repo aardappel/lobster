@@ -139,7 +139,7 @@ void RefObj::DECDELETE(bool deref) {
         case V_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
         case V_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
         case V_STRING:     ((LString *)this)->DeleteSelf(); break;
-        case V_COROUTINE:  ((CoRoutine *)this)->DeleteSelf(deref); break;
+        case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(deref); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(deref); break;
         case V_STRUCT:     ((LStruct *)this)->DeleteSelf(deref); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(); break;
@@ -209,7 +209,7 @@ void RefObj::Mark() {
     switch (ti.t) {
         case V_STRUCT:
         case V_VECTOR:     ((ElemObj   *)this)->Mark(); break;
-        case V_COROUTINE:  ((CoRoutine *)this)->Mark(); break;
+        case V_COROUTINE:  ((LCoRoutine *)this)->Mark(); break;
     }
 }
 

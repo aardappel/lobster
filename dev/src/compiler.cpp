@@ -21,12 +21,6 @@
 
 #include "vm.h"
 
-namespace lobster {
-
-static SlabAlloc *parserpool = nullptr;    // set during the lifetime of a Parser object
-
-}
-
 #include "ttypes.h"
 #include "lex.h"
 #include "idents.h"
@@ -85,8 +79,7 @@ void Compile(const char *fn, char *stringsource, vector<uchar> &bytecode,
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
-                 cg.lineinfo, cg.sids, cg.stringtable, bytecode);
-    //parserpool->printstats();
+                 cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
 }
 
 bool VerifyBytecode(const vector<uchar> &bytecode) {
@@ -252,5 +245,13 @@ void RegisterCoreLanguageBuiltins() {
     extern void AddFile();     RegisterBuiltin("file",      AddFile);
     extern void AddReader();   RegisterBuiltin("parsedata", AddReader);
 }
+
+SubFunction::~SubFunction() { delete body; }
+
+Field::~Field() { delete defaultval; }
+
+Field::Field(const Field &o)
+    : Typed(o), id(o.id), fieldref(o.fieldref),
+      defaultval(o.defaultval ? o.defaultval->Clone() : nullptr) {}
 
 }

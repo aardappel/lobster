@@ -115,7 +115,8 @@ def run_test_cases(is_speed_test):
     def factorial(n): 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
-    assert 16 == ((def(f): f(4)) (def(x): x * x))
+    applyto4 := def(f): f(4)
+    assert 16 == applyto4(def(x): x * x)
 
 
     // ////////////////////////////////////////////////////////////////////////

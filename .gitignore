@@ -13,6 +13,7 @@
 *.a
 *.pdb
 *.ilk
+*.bmp
 
 .DS_Store
 *.xcodeproj/

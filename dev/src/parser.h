@@ -16,25 +16,19 @@ namespace lobster {
 
 struct Parser {
     Lex lex;
-    Node *root;
+    List *root;
     SymbolTable &st;
-    vector<Ident *> maybeundefined;
     vector<Function *> functionstack;
     vector<string> trailingkeywordedfunctionvaluestack;
-    struct ForwardFunctionCall { string idname; size_t maxscopelevel; Node *n; };
+    struct ForwardFunctionCall { string idname; size_t maxscopelevel; Call *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
-    vector<TType> expparents;
+    bool call_noparens;
 
     Parser(const char *_src, SymbolTable &_st, char *_stringsource)
-        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st) {
-        assert(parserpool == nullptr);
-        parserpool = new SlabAlloc();
-    }
+        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), call_noparens(false) {}
 
     ~Parser() {
         delete root;
-        delete parserpool;
-        parserpool = nullptr;
     }
 
     void Error(string err, const Node *what = nullptr) {
@@ -49,25 +43,17 @@ struct Parser {
         f.anonymous = true;
         sf->body = ParseStatements();
         st.ScopeCleanup();
-        root = new Node(lex, T_LIST,
-                   new Node(lex, sf),
-                   new Node(lex, T_LIST,
-                       new Node(lex, T_CALL, new Node(lex, sf), nullptr),
-                       nullptr));
+        root = (new List(lex))
+            ->Add(new FunRef(lex, sf))
+            ->Add(new Call(lex, sf));
         Expect(T_ENDOFFILE);
         assert(forwardfunctioncalls.empty());
     }
 
-    void AddTail(Node **&tail, Node *a) {
-        *tail = new Node(lex, T_LIST, a, nullptr);
-        tail = &(*tail)->tail();
-    }
-
-    Node *ParseStatements() {
-        Node *list = nullptr;
-        Node **tail = &list;
+    List *ParseStatements() {
+        auto list = new List(lex);
         for (;;) {
-            ParseTopExp(tail);
+            ParseTopExp(list);
             if (lex.token == T_ENDOFINCLUDE) {
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
@@ -77,23 +63,16 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         ResolveForwardFunctionCalls();
-        for (auto n = list; n; n = n->tail()) {
-            auto def = n->head();
-            switch (def->type) {
-                case T_STRUCTDEF: {
-                    st.UnregisterStruct(def->struct_id()->st(), lex);
-                    break;
-                }
-                case T_FUN: {
-                    auto f = def->sf()->parent;
-                    if (!f->anonymous) st.UnregisterFun(f);
-                    break;
-                }
-                case T_DEF: {
-                    // FIXME: this never makes anything const if def->right() is another T_DEF
-                    auto id = def->left()->ident();
-                    id->static_constant = id->single_assignment && def->right()->IsConstInit();
-                    break;
+        for (auto def : list->children) {
+            if (auto sr = Is<StructRef>(def)) {
+                st.UnregisterStruct(sr->st, lex);
+            } else if (auto fr = Is<FunRef>(def)) {
+                auto f = fr->sf->parent;
+                if (!f->anonymous) st.UnregisterFun(f);
+            } else if (auto d = Is<Define>(def)) {
+                for (auto sid : d->sids) {
+                    sid->id->static_constant =
+                        sid->id->single_assignment && d->child->IsConstInit();
                 }
             }
         }
@@ -115,7 +94,7 @@ struct Parser {
         Expect(closing);
     }
 
-    Node *DefineWith(const string &idname, Node *e, bool isprivate, bool isdef, bool islogvar) {
+    SpecIdent *DefineWith(const string &idname, bool isprivate, bool isdef, bool islogvar) {
         auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true)
                         : st.LookupUse(idname, lex);
         if (islogvar) st.MakeLogVar(id);
@@ -123,12 +102,12 @@ struct Parser {
             if (!isdef) Error("assignment cannot be made private");
             id->isprivate = true;
         }
-        auto idr = new Node(lex, id);
-        return isdef ? new Node(lex, T_DEF, idr, e, nullptr) : new Node(lex, T_ASSIGNLIST, idr, e);
+        return id->cursid;
     }
 
-    Node *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef, bool &islogvar) {
-        Node *e = nullptr;
+    AssignList *RecMultiDef(const string &idname, bool isprivate, int nids, bool &isdef,
+                            bool &islogvar) {
+        AssignList *al = nullptr;
         if (IsNextId()) {
             string id2 = lastid;
             nids++;
@@ -137,31 +116,35 @@ struct Parser {
                 islogvar = lex.token == T_LOGASSIGN;
                 lex.Next();
                 int nrv;
-                e = DefineWith(id2, ParseMultiRet(ParseOpExp(), nrv), isprivate, isdef, islogvar);
+                auto initial = ParseMultiRet(ParseOpExp(), nrv);
+                auto id = DefineWith(id2, isprivate, isdef, islogvar);
+                if (isdef) al = new Define(lex, id, initial, nullptr);
+                else al = new AssignList(lex, id, initial);
                 if (nrv > 1 && nrv != nids)
                     Error("number of values doesn't match number of variables");
             } else if (IsNext(T_COMMA)) {
-                e = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
+                al = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
             } else {
                 lex.Undo(T_IDENT, id2);
             }
         }
-        if (e) {
-            e = DefineWith(idname, e, isprivate, isdef, islogvar);
+        if (al) {
+            auto sid = DefineWith(idname, isprivate, isdef, islogvar);
+            al->sids.insert(al->sids.begin(), sid);
         } else {
             lex.Undo(T_COMMA);
             lex.Undo(T_IDENT, idname);
         }
-        return e;
+        return al;
     }
 
-    void ParseTopExp(Node **&tail, bool isprivate = false) {
+    void ParseTopExp(List *list, bool isprivate = false) {
         switch(lex.token) {
             case T_PRIVATE:
                 if (st.scopelevels.size() != 1 || isprivate)
                     Error("private must be used at file scope");
                 lex.Next();
-                ParseTopExp(tail, true);
+                ParseTopExp(list, true);
                 break;
             case T_INCLUDE: {
                 if (isprivate)
@@ -170,14 +153,14 @@ struct Parser {
                 string fn = lex.sattr;
                 Expect(T_STR);
                 lex.Include((char *)fn.c_str());
-                ParseTopExp(tail);
+                ParseTopExp(list);
                 break;
             }
-            case T_VALUE:  AddTail(tail, ParseTypeDecl(true,  isprivate)); break;
-            case T_STRUCT: AddTail(tail, ParseTypeDecl(false, isprivate)); break;
+            case T_VALUE:  list->Add(ParseTypeDecl(true,  isprivate)); break;
+            case T_STRUCT: list->Add(ParseTypeDecl(false, isprivate)); break;
             case T_FUN: {
                 lex.Next();
-                AddTail(tail, ParseNamedFunctionDefinition(isprivate));
+                list->Add(ParseNamedFunctionDefinition(isprivate));
                 break;
             }
             case T_ENUM: {
@@ -193,8 +176,7 @@ struct Parser {
                         cur = atoi(lex.sattr.c_str());
                         Expect(T_INT);
                     }
-                    AddTail(tail,
-                            new Node(lex, T_DEF, new Node(lex, id), new Node(lex, cur), nullptr));
+                    list->Add(new Define(lex, id->cursid, new IntConstant(lex, cur), nullptr));
                     if (lex.token != T_COMMA) break;
                     lex.Next();
                     if (incremental) cur++; else cur *= 2;
@@ -207,8 +189,7 @@ struct Parser {
                 lex.Next();
                 ExpectId();
                 Expect(T_ASSIGN);
-                auto d = ParseSingleVarDecl(isprivate, isconst, false, false);
-                AddTail(tail, d);
+                list->Add(ParseSingleVarDecl(isprivate, isconst, false, false));
                 break;
                 break;
             }
@@ -216,13 +197,13 @@ struct Parser {
                 if (IsNextId()) {
                     auto d = ParseVarDecl(isprivate);
                     if (d) {
-                        AddTail(tail, d);
+                        list->Add(d);
                         break;
                     }
                 }
                 if (isprivate)
                     Error("private only applies to declarations");
-                AddTail(tail, ParseExpStat());
+                list->Add(ParseExpStat());
                 break;
             }
         }
@@ -243,19 +224,19 @@ struct Parser {
                 for (;;) {
                     spectypes.push_back(make_pair(nullptr, nullptr));
                     ParseType(spectypes.back().first, false);
-                    spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp(T_STRUCTDEF) : nullptr;
+                    spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                     if (IsNext(T_RIGHTPAREN)) break;
                     Expect(T_COMMA);
                 }
             }
         };
-        size_t i = 0;
+        size_t specializer_i = 0;
         auto specialize_field = [&] (Field &field) {
             if (field.flags == AF_ANYTYPE) {
-                if (i >= spectypes.size()) Error("too many type specializers");
-                auto &p = spectypes[i++];
+                if (specializer_i >= spectypes.size()) Error("too few type specializers");
+                auto &p = spectypes[specializer_i++];
                 field.type = p.first;
-                if (p.second) field.defaultval = p.second;
+                if (p.second) { assert(!field.defaultval); field.defaultval = p.second; }
             }
         };
         if (IsNext(T_ASSIGN)) {
@@ -324,7 +305,7 @@ struct Parser {
                     fieldref = ParseType(type, false, struc);
                 }
                 bool generic = st.IsGeneric(type) && fieldref < 0;
-                Node *defaultval = IsNext(T_ASSIGN) ? ParseExp(T_STRUCTDEF) : nullptr;
+                Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                 struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
                 if (generic) struc->generic = true;
             }, T_RIGHTCURLY);
@@ -337,12 +318,13 @@ struct Parser {
             // A pre-declaration.
             struc->predeclaration = true;
         }
-        return new Node(lex, T_STRUCTDEF, new Node(lex, struc));
+        if (specializer_i < spectypes.size()) Error("too many type specializers");
+        return new StructRef(lex, struc);
     }
 
     Node *ParseSingleVarDecl(bool isprivate, bool constant, bool dynscope, bool logvar) {
         auto idname = lastid;
-        auto e = ParseExp(T_DEF);
+        auto e = ParseExp();
         auto id = dynscope
             ? st.LookupDynScopeRedef(idname, lex)
             : st.LookupDef(idname, lex.errorline, lex, false, true);
@@ -350,7 +332,7 @@ struct Parser {
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
         if (logvar)    st.MakeLogVar(id);
-        return new Node(lex, T_DEF, new Node(lex, id), e, nullptr);
+        return new Define(lex, id->cursid, e, nullptr);
     }
 
     Node *ParseVarDecl(bool isprivate) {
@@ -366,13 +348,13 @@ struct Parser {
         bool withtype = lex.token == T_TYPEIN;
         if (lex.token == T_COLON || withtype) {
             lex.Next();
-            auto tn = new Node(lex, T_TYPE, TypeRef());
-            ParseType(tn->typenode(), withtype);
+            TypeRef type;
+            ParseType(type, withtype);
             Expect(T_ASSIGN);
-            auto e = ParseExp(T_DEF);
+            auto e = ParseExp();
             auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
             if (isprivate) id->isprivate = true;
-            return new Node(lex, T_DEF, new Node(lex, id), e, tn);
+            return new Define(lex, id->cursid, e, type);
         }
         if (IsNext(T_COMMA)) {
             bool isdef = false;
@@ -385,19 +367,6 @@ struct Parser {
         return nullptr;
     }
 
-    static size_t CountList(Node *n) {
-        size_t c = 0;
-        for (; n; n = n->tail()) c++;
-        return c;
-    }
-
-    static Node *LastInList(Node *n) {
-        Node *last = nullptr;
-        for (auto l = n; l; l = l->tail()) last = l;
-        assert(last);
-        return last;
-    }
-
     Node *ParseNamedFunctionDefinition(bool isprivate = false) {
         string idname = ExpectId();
         if (natreg.FindNative(idname))
@@ -408,10 +377,10 @@ struct Parser {
     Node *ParseFunction(const string *name,
                         bool isprivate, bool parens, bool parseargs,
                         const string &context,
-                        bool expfunval = false, TType expfunvalparent = T_FUN) {
+                        bool expfunval = false, bool parent_noparens = false) {
         auto sf = st.ScopeStart();
         if (parens) Expect(T_LEFTPAREN);
-        int nargs = 0;
+        size_t nargs = 0;
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
@@ -464,19 +433,19 @@ struct Parser {
         // Parse the body.
         if (!f.istype) {
             if (expfunval) {
-                sf->body = new Node(lex, T_LIST, ParseExp(expfunvalparent), nullptr);
+                sf->body = (new List(lex))->Add(ParseExp(parent_noparens));
             } else if (IsNext(T_INDENT)) {
                 sf->body = ParseStatements();
                 Expect(T_DEDENT);
             } else {
-                sf->body = new Node(lex, T_LIST, ParseExpStat(), nullptr);
+                sf->body = (new List(lex))->Add(ParseExpStat());
             }
         }
         for (auto &arg : sf->args.v) {
-            if (arg.id->anonymous_arg) {
-                if (name) Error("cannot use anonymous argument: " + arg.id->name +
+            if (arg.sid->id->anonymous_arg) {
+                if (name) Error("cannot use anonymous argument: " + arg.sid->id->name +
                     " in named function: " + f.name, sf->body);
-                if (nargs) Error("cannot mix anonymous argument: " + arg.id->name +
+                if (nargs) Error("cannot mix anonymous argument: " + arg.sid->id->name +
                     " with declared arguments in function", sf->body);
             }
         }
@@ -485,25 +454,17 @@ struct Parser {
             functionstack.pop_back();
 
             if (!f.istype) {
-                for (auto stat = sf->body; stat; stat = stat->tail())
-                    if (!stat->tail() && (stat->head()->type != T_RETURN ||
-                        stat->head()->return_subfunction_idx()->integer() !=
-                                          sf->idx /* return from */))
-                        ReturnValues(f, 1);
+                auto last = sf->body->children.back();
+                auto ret = Is<Return>(last);
+                if (!ret ||
+                    ret->subfunction_idx != sf->idx /* return from */)
+                    ReturnValues(f, 1);
                 assert(f.nretvals);
             }
         }
         // Keep copy or arg types from before specialization.
         f.orig_args = sf->args;  // not used for multimethods
-        return new Node(lex, sf);
-    }
-
-    static Type *NewType() {
-        // FIXME: this potentially generates quite a bit of "garbage".
-        // Instead, we could hash these, or store common type variants inside Struct etc.
-        // A quick test revealed that 10% of nodes cause one of these to be allocated, so probably
-        // not worth optimizing.
-        return parserpool->alloc_obj_small<Type>();
+        return new FunRef(lex, sf);
     }
 
     int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr,
@@ -552,7 +513,7 @@ struct Parser {
                 TypeRef elem;
                 ParseType(elem, false);
                 Expect(T_RIGHTBRACKET);
-                dest = elem->Wrap(NewType());
+                dest = elem->Wrap(st.NewType());
                 break;
             }
             case T_LEFTPAREN:
@@ -568,53 +529,51 @@ struct Parser {
         }
         if (IsNext(T_QUESTIONMARK)) {
             if (dest->Numeric()) Error("numeric types can\'t be made nilable");
-            dest = dest->Wrap(NewType(), V_NIL);
+            dest = dest->Wrap(st.NewType(), V_NIL);
         }
         if (withtype && dest->t != V_STRUCT) Error(":: must be used with a struct type");
         return -1;
     }
 
-    Node *ParseFunArgs(bool coroutine, Node *derefarg, const char *fname = "",
-                       GenericArgs *args = nullptr, bool noparens = false) {
+    void ParseFunArgs(List *list, bool coroutine, Node *derefarg, const char *fname = "",
+                      GenericArgs *args = nullptr, bool noparens = false) {
         if (derefarg) {
             CheckArg(args, 0, fname);
+            list->Add(derefarg);
             if (IsNext(T_LEFTPAREN)) {
-                return new Node(lex, T_LIST, derefarg,
-                                ParseFunArgsRec(false, false, args, 1, fname, noparens));
-            } else {
-                return new Node(lex, T_LIST, derefarg, nullptr);
+                ParseFunArgsRec(list, false, false, args, 1, fname, noparens);
             }
         } else {
             if (!noparens) Expect(T_LEFTPAREN);
-            return ParseFunArgsRec(coroutine, false, args, 0, fname, noparens);
+            ParseFunArgsRec(list, coroutine, false, args, 0, fname, noparens);
         }
     }
 
-    Node *ParseFunArgsRec(bool coroutine, bool needscomma, GenericArgs *args, size_t thisarg,
-                          const char *fname, bool noparens) {
+    void ParseFunArgsRec(List *list, bool coroutine, bool needscomma, GenericArgs *args,
+                         size_t thisarg, const char *fname, bool noparens) {
         if (!noparens && IsNext(T_RIGHTPAREN)) {
-            if (expparents.size() && expparents.back() == T_CALL_NOPARENS) {
+            if (call_noparens) {
                 // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
-                return nullptr;
+                return;
             }
-            return ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
+            ParseTrailingFunctionValues(list, coroutine, args, thisarg, fname);
+            return;
         }
         if (needscomma) Expect(T_COMMA);
-        Node *arg = nullptr;
         CheckArg(args, thisarg, fname);
-        auto parent = noparens ? T_CALL_NOPARENS : T_CALL;
         if (args && args->GetType(thisarg)->flags == NF_EXPFUNVAL) {
-            arg = ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true, parent);
+            list->Add(ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true,
+                                    noparens));
         } else {
-            arg = ParseExp(parent);
+            list->Add(ParseExp(noparens));
         }
-        if (noparens)
-            return new Node(lex, T_LIST, arg, lex.token == T_COLON
-                ? ParseTrailingFunctionValues(coroutine, args, thisarg + 1, fname)
-                : nullptr);
-        else
-            return new Node(lex, T_LIST, arg, ParseFunArgsRec(coroutine, !noparens, args,
-                                                              thisarg + 1, fname, noparens));
+
+        if (noparens) {
+            if (lex.token == T_COLON)
+                ParseTrailingFunctionValues(list, coroutine, args, thisarg + 1, fname);
+        } else {
+            ParseFunArgsRec(list, coroutine, !noparens, args, thisarg + 1, fname, noparens);
+        }
     }
 
     void CheckArg(GenericArgs *args, size_t thisarg, const char *fname) {
@@ -622,8 +581,8 @@ struct Parser {
             Error("too many arguments passed to function " + string(fname));
     }
 
-    Node *ParseTrailingFunctionValues(bool coroutine, GenericArgs *args, size_t thisarg,
-                                      const char *fname) {
+    void ParseTrailingFunctionValues(List *list, bool coroutine, GenericArgs *args, size_t thisarg,
+                                     const char *fname) {
         if (args && thisarg + 1 < args->size())
             trailingkeywordedfunctionvaluestack.push_back(args->GetName(thisarg + 1));
         auto name = args && thisarg < args->size() ? args->GetName(thisarg) : "";
@@ -646,38 +605,36 @@ struct Parser {
         if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.pop_back();
         if (!e) {
             if (coroutine) {
-                e = new Node(lex, T_COCLOSURE);
+                e = new CoClosure(lex);
                 coroutine = false;
             } else {
-                return nullptr;
+                return;
             }
         }
+        list->Add(e);
         CheckArg(args, thisarg, fname);
         thisarg++;
-        Node *tail = nullptr;
         bool islf = lex.token == T_LINEFEED;
         if (args && thisarg < args->size() && (lex.token == T_IDENT || islf)) {
             if (islf) lex.Next();
             if (lex.token == T_IDENT && args->GetName(thisarg) == lex.sattr) {
                 lex.Next();
-                tail = ParseTrailingFunctionValues(coroutine, args, thisarg, fname);
+                ParseTrailingFunctionValues(list, coroutine, args, thisarg, fname);
             } else {
                 lex.PushCur();
                 if (islf) lex.Push(T_LINEFEED);
                 lex.Next();
             }
         }
-        return new Node(lex, T_LIST, e, tail);
     }
 
     Node *ParseMultiRet(Node *first, int &nrv) {
         nrv = 1;
         if (lex.token != T_COMMA) return first;
-        auto list = new Node(lex, T_MULTIRET, first, nullptr);
-        auto tail = &list->tailexps();
+        auto list = new MultipleReturn(lex);
+        list->Add(first);
         while (IsNext(T_COMMA)) {
-            *tail = new Node(lex, T_MULTIRET, ParseOpExp(), nullptr);
-            tail = &(*tail)->tailexps();
+            list->Add(ParseOpExp());
             nrv++;
         }
         return list;
@@ -696,8 +653,10 @@ struct Parser {
             int nrv = 0;
             if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
-                if (rv->type == T_CALL)
-                    nrv = max(nrv, rv->call_function()->sf()->parent->nretvals);
+                if (auto call = Is<Call>(rv))
+                    nrv = max(nrv, call->sf->parent->nretvals);
+            } else {
+                rv = new DefaultVal(lex);
             }
             int sfid = -2;
             if (IsNext(T_FROM)) {
@@ -720,44 +679,42 @@ struct Parser {
                 ReturnValues(*st.subfunctiontable[sfid]->parent, nrv);
             else if (nrv > 1)
                 Error("cannot return multiple values from top level");
-            return new Node(lex, T_RETURN, rv, new Node(lex, sfid));
+            return new Return(lex, rv, sfid);
         }
-        auto e = ParseExp(T_LIST);
+        auto e = ParseExp();
         while (IsNext(T_SEMICOLON)) {
             if (IsNext(T_LINEFEED)) {
                 // specialized error for all the C-style language users
                 Error("\';\' is not a statement terminator");
             }
-            e = new Node(lex, T_SEQ, e, ParseExp(T_LIST));
+            e = new Seq(lex, e, ParseExp());
         }
         return e;
     }
 
     void Modify(Node *e) {
-        if (e->type == T_IDENT)
-            e->ident()->Assign(lex);
+        if (auto idr = Is<IdentRef>(e))
+            idr->sid->id->Assign(lex);
     }
 
-    Node *ParseExp(TType parent) {
-        expparents.push_back(parent);
+    void CheckOpEq(Node *e) {
+        if (!Is<IdentRef>(e) && !Is<Dot>(e) && !Is<CoDot>(e) && !Is<Indexing>(e))
+            Error("illegal left hand side of assignment");
+        Modify(e);
+        lex.Next();
+    }
+
+    Node *ParseExp(bool parent_noparens = false) {
+        DS<bool> ds(call_noparens, parent_noparens);
         auto e = ParseOpExp();
         switch (lex.token) {
-            case T_ASSIGN:
-            case T_PLUSEQ:
-            case T_MINUSEQ:
-            case T_MULTEQ:
-            case T_DIVEQ:
-            case T_MODEQ: {
-                auto type = lex.token;
-                if (e->type != T_IDENT && e->type != T_DOT &&
-                    e->type != T_CODOT && e->type != T_INDEX)
-                    Error("illegal left hand side of assignment");
-                Modify(e);
-                lex.Next();
-                e = new Node(lex, type, e, ParseExp(type));
-            }
+            case T_ASSIGN:  CheckOpEq(e); return new Assign(lex, e, ParseExp());
+            case T_PLUSEQ:  CheckOpEq(e); return new PlusEq(lex, e, ParseExp());
+            case T_MINUSEQ: CheckOpEq(e); return new MinusEq(lex, e, ParseExp());
+            case T_MULTEQ:  CheckOpEq(e); return new MultiplyEq(lex, e, ParseExp());
+            case T_DIVEQ:   CheckOpEq(e); return new DivideEq(lex, e, ParseExp());
+            case T_MODEQ:   CheckOpEq(e); return new ModEq(lex, e, ParseExp());
         }
-        expparents.pop_back();
         return e;
     }
 
@@ -766,7 +723,7 @@ struct Parser {
             { T_MULT, T_DIV, T_MOD, T_NONE },
             { T_PLUS, T_MINUS, T_NONE, T_NONE },
             { T_ASL, T_ASR, T_NONE, T_NONE },
-            { T_BINAND, T_BINOR, T_XOR, T_NONE },
+            { T_BITAND, T_BITOR, T_XOR, T_NONE },
             { T_LT, T_GT, T_LTEQ, T_GTEQ },
             { T_EQ, T_NEQ, T_NONE, T_NONE },
             { T_AND, T_OR, T_NONE, T_NONE },
@@ -776,58 +733,84 @@ struct Parser {
         while (Either(o[0], o[1]) || Either(o[2], o[3])) {
             TType op = lex.token;
             lex.Next();
-            exp = new Node(lex, op, exp, level ? ParseOpExp(level - 1) : ParseUnary());
+            auto rhs = level ? ParseOpExp(level - 1) : ParseUnary();
+            switch (op) {
+                case T_MULT:   exp = new Multiply(lex, exp, rhs); break;
+                case T_DIV:    exp = new Divide(lex, exp, rhs); break;
+                case T_MOD:    exp = new Mod(lex, exp, rhs); break;
+                case T_PLUS:   exp = new Plus(lex, exp, rhs); break;
+                case T_MINUS:  exp = new Minus(lex, exp, rhs); break;
+                case T_ASL:    exp = new ShiftLeft(lex, exp, rhs); break;
+                case T_ASR:    exp = new ShiftRight(lex, exp, rhs); break;
+                case T_BITAND: exp = new BitAnd(lex, exp, rhs); break;
+                case T_BITOR:  exp = new BitOr(lex, exp, rhs); break;
+                case T_XOR:    exp = new Xor(lex, exp, rhs); break;
+                case T_LT:     exp = new LessThan(lex, exp, rhs); break;
+                case T_GT:     exp = new GreaterThan(lex, exp, rhs); break;
+                case T_LTEQ:   exp = new LessThanEq(lex, exp, rhs); break;
+                case T_GTEQ:   exp = new GreaterThanEq(lex, exp, rhs); break;
+                case T_EQ:     exp = new Equal(lex, exp, rhs); break;
+                case T_NEQ:    exp = new NotEqual(lex, exp, rhs); break;
+                case T_AND:    exp = new And(lex, exp, rhs); break;
+                case T_OR:     exp = new Or(lex, exp, rhs); break;
+                default: assert(false);
+            }
         }
         return exp;
     }
 
+    Node *UnaryArg() {
+        auto t = lex.token;
+        lex.Next();
+        auto e = ParseUnary();
+        if (t == T_INCR || t == T_DECR) Modify(e);
+        return e;
+    }
+
     Node *ParseUnary() {
         switch (lex.token) {
-            case T_MINUS:
-            case T_NOT:
-            case T_NEG:
-            case T_INCR:
-            case T_DECR: {
-                auto t = lex.token;
-                lex.Next();
-                auto e = ParseUnary();
-                if (t == T_INCR || t == T_DECR) Modify(e);
-                if (t == T_MINUS) t = T_UMINUS;
-                return new Node(lex, t, e);
-            }
-            default:
-                return ParseDeref();
+            case T_MINUS: return new UnaryMinus(lex, UnaryArg());
+            case T_NOT:   return new Not(lex, UnaryArg());
+            case T_NEG:   return new Negate(lex, UnaryArg());
+            case T_INCR:  return new PreIncr(lex, UnaryArg());
+            case T_DECR:  return new PreDecr(lex, UnaryArg());
+            default:      return ParseDeref();
         }
     }
 
-    Node *BuiltinControlClosure(Node *funval, int maxargs) {
-        auto clnargs = 0;
-        if (funval->type == T_FUN)
-            clnargs = funval->sf()->parent->nargs();
-        else if (funval->type != T_DEFAULTVAL)
+    Node *BuiltinControlClosure(Node *funval, size_t maxargs) {
+        size_t clnargs = 0;
+        auto fr = Is<FunRef>(funval);
+        if (fr)
+            clnargs = fr->sf->parent->nargs();
+        else if (!Is<DefaultVal>(funval))
             Error("illegal body", funval);
         if (clnargs > maxargs)
             Error("body has " + to_string(clnargs - maxargs) + " parameters too many", funval);
-        if (funval->type == T_DEFAULTVAL) return funval;
-        return new Node(lex, T_CALL, funval, clnargs > 0
-            ? new Node(lex, T_LIST,
-                new Node(lex, T_FORLOOPELEM),
-                clnargs > 1 ? new Node(lex, T_LIST, new Node(lex, T_FORLOOPI), nullptr) : nullptr)
-            : nullptr);
+        if (Is<DefaultVal>(funval)) return funval;
+        assert(fr);
+        auto call = new Call(lex, fr->sf);
+        delete fr;
+        if (clnargs > 0) {
+            call->Add(new ForLoopElem(lex));
+            if (clnargs > 1) call->Add(new ForLoopCounter(lex));
+        }
+        return call;
     }
 
     Node *ParseFunctionCall(Function *f, NativeFun *nf, const string &idname, Node *firstarg,
                             bool coroutine, bool noparens) {
         if (nf) {
-            auto args = ParseFunArgs(coroutine, firstarg, idname.c_str(), &nf->args, noparens);
-            Node **ai = &args;
+            auto nc = new NativeCall(lex, nf);
+            ParseFunArgs(nc, coroutine, firstarg, idname.c_str(), &nf->args, noparens);
+            size_t i = 0;
             for (auto &arg : nf->args.v) {
-                if (!*ai) {
+                if (i >= nc->Arity()) {
                     auto &type = arg.type;
                     if (type->t == V_NIL) {
-                        *ai = new Node(lex, T_LIST, new Node(lex, T_DEFAULTVAL), nullptr);
+                        nc->Add(new DefaultVal(lex));
                     } else {
-                        auto nargs = CountList(args);
+                        auto nargs = nc->Arity();
                         for (auto ol = nf->overloads; ol; ol = ol->overloads) {
                             // Typechecker will deal with it.
                             if (ol->args.v.size() == nargs) goto argsok;
@@ -835,23 +818,28 @@ struct Parser {
                         Error("missing arg to builtin function: " + idname);
                     }
                 }
-                ai = &(*ai)->tail();
+                i++;
             }
             argsok:
             // Special formats for these functions, for better type checking and performance
-            // TODO: worth deleting the garbage list nodes this creates?
+            auto convertnc = [&](Node *e) {
+                nc->children.clear();
+                delete nc;
+                return e;
+            };
             if (nf->name == "if") {
-                return new Node(lex, T_IF, args->head(),
-                                           BuiltinControlClosure(args->tail()->head(), 0),
-                                           BuiltinControlClosure(args->tail()->tail()->head(), 0));
+                return convertnc(new If(lex, nc->children[0],
+                                             BuiltinControlClosure(nc->children[1], 0),
+                                             BuiltinControlClosure(nc->children[2], 0)));
+
             } else if (nf->name == "while") {
-                return new Node(lex, T_WHILE, BuiltinControlClosure(args->head(), 0),
-                                              BuiltinControlClosure(args->tail()->head(), 0));
+                return convertnc(new While(lex, BuiltinControlClosure(nc->children[0], 0),
+                                                BuiltinControlClosure(nc->children[1], 0)));
             } else if (nf->name == "for") {
-                return new Node(lex, T_FOR, args->head(),
-                                BuiltinControlClosure(args->tail()->head(), 2));
+                return convertnc(new For(lex, nc->children[0],
+                                              BuiltinControlClosure(nc->children[1], 2)));
             }
-            return new Node(lex, T_NATCALL, new Node(lex, nf), args);
+            return nc;
         }
         auto id = st.Lookup(idname);
         // If both a var and a function are in scope, the deepest scope wins.
@@ -861,24 +849,28 @@ struct Parser {
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
-            auto args =
-                ParseFunArgs(coroutine, firstarg, idname.c_str(), &bestf->subf->args, noparens);
-            auto nargs = CountList(args);
+            auto call = new Call(lex, nullptr);
+            ParseFunArgs(call, coroutine, firstarg, idname.c_str(), &bestf->subf->args, noparens);
+            auto nargs = call->Arity();
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
-            return new Node(lex, T_CALL, new Node(lex, f->subf), args);
+            call->sf = f->subf;
+            return call;
         }
-        auto args = ParseFunArgs(coroutine, firstarg);
-        if (id)
-            return new Node(lex, T_DYNCALL, new Node(lex, id),
-                                            new Node(lex, (SubFunction *)nullptr),
-                                            args);
-        auto n = new Node(lex, T_CALL, new Node(lex, (SubFunction *)nullptr), args);
-        ForwardFunctionCall ffc = { idname, st.scopelevels.size(), n };
-        forwardfunctioncalls.push_back(ffc);
-        return n;
+        if (id) {
+            auto dc = new DynCall(lex, nullptr, id->cursid);
+            ParseFunArgs(dc, coroutine, firstarg);
+            return dc;
+        } else {
+            auto call = new Call(lex, nullptr);
+            ParseFunArgs(call, coroutine, firstarg);
+            ForwardFunctionCall ffc = { idname, st.scopelevels.size(), call };
+            forwardfunctioncalls.push_back(ffc);
+            return call;
+        }
     }
 
-    Function *FindFunctionWithNargs(Function *f, int nargs, const string &idname, Node *errnode) {
+    Function *FindFunctionWithNargs(Function *f, size_t nargs, const string &idname,
+                                    Node *errnode) {
         for (; f; f = f->sibf)
             if (f->nargs() == nargs)
                 return f;
@@ -892,8 +884,8 @@ struct Parser {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
                 auto f = st.FindFunction(ffc->idname);
                 if (f) {
-                    ffc->n->call_function()->sf() = FindFunctionWithNargs(f,
-                        CountList(ffc->n->call_args()), ffc->idname, ffc->n)->subf;
+                    ffc->n->sf = FindFunctionWithNargs(f,
+                        ffc->n->Arity(), ffc->idname, ffc->n)->subf;
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
@@ -923,11 +915,11 @@ struct Parser {
                     auto id = st.LookupAny(idname);
                     if (!id)
                         Error("coroutines have no variable named: " + idname);
-                    n = new Node(lex, T_CODOT, n, new Node(lex, id));
+                    n = new CoDot(lex, n, new IdentRef(lex, id->cursid));
                 } else {
                     SharedField *fld = st.FieldUse(idname);
                     if (fld)  {
-                        n = new Node(lex, op, n, new Node(lex, fld));
+                        n = new Dot(lex, n, fld, op == T_DOTMAYBE);
                     } else {
                         auto f = st.FindFunction(idname);
                         auto nf = natreg.FindNative(idname);
@@ -942,26 +934,25 @@ struct Parser {
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                n = new Node(lex, T_INDEX, n, ParseExp(T_INDEX));
+                n = new Indexing(lex, n, ParseExp());
                 Expect(T_RIGHTBRACKET);
                 break;
             }
             case T_INCR:
-            case T_DECR:
                 Modify(n);
-                n = new Node(lex, lex.token == T_INCR ? T_POSTINCR : T_POSTDECR, n);
+                n = new PostIncr(lex, n);
                 lex.Next();
                 return n;
-            case T_LEFTPAREN: {  // only for dyn calls
-                auto args = ParseFunArgs(false, nullptr);
-                n = new Node(lex, T_DYNCALL, n, new Node(lex, (SubFunction *)nullptr), args);
-                break;
-            }
+            case T_DECR:
+                Modify(n);
+                n = new PostDecr(lex, n);
+                lex.Next();
+                return n;
             case T_IS: {
                 lex.Next();
-                auto tn = new Node(lex, T_TYPE, TypeRef());
-                ParseType(tn->typenode(), false);
-                return new Node(lex, T_IS, n, tn);
+                auto is = new IsType(lex, n, TypeRef());
+                ParseType(is->giventype, false);
+                return is;
             }
             default:
                 return n;
@@ -973,47 +964,44 @@ struct Parser {
             case T_INT: {
                 int i = atoi(lex.sattr.c_str());
                 lex.Next();
-                return new Node(lex, i);
+                return new IntConstant(lex, i);
             }
             case T_FLOAT: {
                 double f = atof(lex.sattr.c_str());
                 lex.Next();
-                return new Node(lex, f);
+                return new FloatConstant(lex, f);
             }
             case T_STR: {
                 string s = lex.sattr;
                 lex.Next();
-                return new Node(lex, s);
+                return new StringConstant(lex, s);
             }
             case T_NIL: {
                 lex.Next();
-                auto n = new Node(lex, T_NIL, TypeRef());
+                auto n = new Nil(lex, nullptr);
                 if (IsNext(T_COLON)) {
-                    ParseType(n->typenode(), false);
-                    n->typenode() = n->typenode()->Wrap(NewType(), V_NIL);
+                    ParseType(n->giventype, false);
+                    n->giventype = n->giventype->Wrap(st.NewType(), V_NIL);
                 }
                 return n;
             }
             case T_LEFTPAREN: {
                 lex.Next();
-                auto n = ParseExp(T_LEFTPAREN);
+                auto n = ParseExp();
                 Expect(T_RIGHTPAREN);
                 return n;
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                Node *list = nullptr;
-                Node **tail = &list;
-                ParseVector([this, &tail] () {
-                    AddTail(tail, this->ParseExp(T_CONSTRUCTOR));
+                auto constructor = new Constructor(lex, type_vector_any);
+                ParseVector([this, &constructor] () {
+                    constructor->Add(this->ParseExp());
                 }, T_RIGHTBRACKET);
-                auto tn = new Node(lex, T_TYPE, TypeRef());
-                tn->typenode() = type_vector_any;
                 if (IsNext(T_TYPEIN)) {
-                    ParseType(tn->typenode(), false);
-                    tn->typenode() = tn->typenode()->Wrap(NewType());
+                    ParseType(constructor->giventype, false);
+                    constructor->giventype = constructor->giventype->Wrap(st.NewType());
                 }
-                return new Node(lex, T_CONSTRUCTOR, list, tn);
+                return constructor;
             }
             case T_FUN: {
                 lex.Next();
@@ -1022,8 +1010,13 @@ struct Parser {
             case T_COROUTINE: {
                 lex.Next();
                 string idname = ExpectId();
-                return new Node(lex, T_COROUTINE, ParseFunctionCall(st.FindFunction(idname),
-                                                      nullptr, idname, nullptr, true, false));
+                auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true,
+                                           false);
+                if (auto call = Is<Call>(n)) {
+                    return new CoRoutine(lex, call);
+                } else {
+                    Error("coroutine constructor must be regular function call");
+                }
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
@@ -1039,18 +1032,18 @@ struct Parser {
                 lex.Next();
                 if (lex.token == T_RETURN) {
                     lex.Next();
-                    return new Node(lex, T_TYPEOF, nullptr);
+                    return new TypeOf(lex, new DefaultVal(lex));
                 }
                 if (lex.token == T_IDENT) {
                     auto id = st.Lookup(lex.sattr);
                     if (id) {
                         lex.Next();
-                        return new Node(lex, T_TYPEOF, new Node(lex, id));
+                        return new TypeOf(lex, new IdentRef(lex, id->cursid));
                     }
                 }
-                auto tn = new Node(lex, T_TYPE, TypeRef());
-                ParseType(tn->typenode(), false);
-                return new Node(lex, T_TYPEOF, tn);
+                auto tn = new TypeAnnotation(lex, TypeRef());
+                ParseType(tn->giventype, false);
+                return new TypeOf(lex, tn);
             }
             case T_IDENT: {
                 string idname = lex.sattr;
@@ -1075,7 +1068,7 @@ struct Parser {
                         auto field = struc.Has(fld);
                         if (field < 0) Error("unknown field: " + id);
                         if (exps[field]) Error("field initialized twice: " + id);
-                        exps[field] = ParseExp(T_CONSTRUCTOR);
+                        exps[field] = ParseExp();
                         return;
                     } else {  // Undo
                         lex.PushCur();
@@ -1087,15 +1080,14 @@ struct Parser {
                 // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
                     if (!exps[i] && !struc.fields.v[i].defaultval) {
-                        exps[i] = ParseExp(T_CONSTRUCTOR);
+                        exps[i] = ParseExp();
                         return;
                     }
                 }
                 Error("too many initializers for: " + struc.name);
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
-            Node *list = nullptr;
-            Node **tail = &list;
+            auto constructor = new Constructor(lex, &struc.thistype);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
                     if (struc.fields.v[i].defaultval)
@@ -1103,11 +1095,9 @@ struct Parser {
                     else
                         Error("field not initialized: " + struc.fields.v[i].id->name);
                 }
-                AddTail(tail, exps[i]);
+                constructor->Add(exps[i]);
             }
-            auto tn = new Node(lex, T_TYPE, TypeRef());
-            tn->typenode() = &struc.thistype;
-            return new Node(lex, T_CONSTRUCTOR, list, tn);
+            return constructor;
         } else {
             // If we see "f(" the "(" is the start of an argument list, but for "f (", "(" is
             // part of an expression of a single argument with no extra "()".
@@ -1123,7 +1113,8 @@ struct Parser {
             }
             // Check for implicit variable.
             if (idname[0] == '_') {
-                return new Node(lex, st.LookupDef(idname, lex.errorline, lex, true, false));
+                return new IdentRef(lex,
+                                    st.LookupDef(idname, lex.errorline, lex, true, false)->cursid);
             }
             auto id = st.Lookup(idname);
             // Check for function call without ().
@@ -1134,10 +1125,10 @@ struct Parser {
             id = nullptr;
             auto fld = st.LookupWithStruct(idname, lex, id);
             if (fld) {
-                return new Node(lex, T_DOT, new Node(lex, id), new Node(lex, fld));
+                return new Dot(lex, new IdentRef(lex, id->cursid), fld, false);
             }
             // It's a regular variable.
-            return new Node(lex, st.LookupUse(idname, lex));
+            return new IdentRef(lex, st.LookupUse(idname, lex)->cursid);
         }
     }
 
@@ -1181,7 +1172,7 @@ struct Parser {
                 if (!onlytypechecked || sf->typechecked) {
                     s += "FUNCTION: " + f->name + "(";
                     for (auto &arg : sf->args.v) {
-                        s += arg.id->name + ":" + TypeName(arg.type) + " ";
+                        s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
                     }
                     s += ")\n";
                     if (sf->body) s += Dump(*sf->body, 4);

@@ -88,7 +88,7 @@ bool fullscreen = false;
 bool cursor = true;
 bool landscape = true;
 bool minimized = false;
-bool testmode = false;
+bool noninteractivetestmode = false;
 
 const int MAXAXES = 8;
 float joyaxes[MAXAXES] = { 0 };
@@ -400,7 +400,8 @@ bool SDLFrame() {
             const char *kn = SDL_GetKeyName(event.key.keysym.sym);
             if (!*kn) break;
             string name = kn;
-            std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+            std::transform(name.begin(), name.end(), name.begin(),
+                           [](char c) { return (char)::tolower(c); });
             updatebutton(name, event.key.state==SDL_PRESSED, 0);
             break;
         }
@@ -531,7 +532,7 @@ bool SDLFrame() {
     }
     */
 
-    return closebutton || (testmode && frames == 2 /* has rendered one full frame */);
+    return closebutton || (noninteractivetestmode && frames == 2 /* has rendered one full frame */);
 }
 
 double SDLTime() { return lasttime; }
@@ -614,7 +615,7 @@ bool ScreenShot(const char *filename) {
     return ok != 0;
 }
 
-void SDLTestMode() { testmode = true; }
+void SDLTestMode() { noninteractivetestmode = true; }
 
 int SDLScreenDPI(int screen) {
     int screens = max(1, SDL_GetNumVideoDisplays());

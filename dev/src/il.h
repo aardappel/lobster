@@ -94,7 +94,7 @@ const int MAX_RETURN_VALUES = 16;
     F(IPP) F(IPPR) F(IMM) F(IMMR) F(IPPP) F(IPPPR) F(IMMP) F(IMMPR) \
     F(FPP) F(FPPR) F(FMM) F(FMMR) F(FPPP) F(FPPPR) F(FMMP) F(FMMPR)
 
-enum {
+enum ILOP {
     #define F(N, A) IL_##N,
         ILNAMES
     #undef F

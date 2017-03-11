@@ -16,7 +16,9 @@ namespace lobster {
 
 struct NativeFun;
 struct SymbolTable;
+
 struct Node;
+struct List;
 
 struct SubFunction;
 
@@ -44,7 +46,6 @@ struct Ident : Named {
           identstacklevel(_isl), scopelevel(_sl), prev(nullptr), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
           logvar(false), cursid(nullptr) {}
-    //Ident() : Ident("", -1, 0, SIZE_MAX) {}
 
     void Assign(Lex &lex) {
         single_assignment = false;
@@ -61,11 +62,13 @@ struct Ident : Named {
 struct SpecIdent {
     Ident *id;
     TypeRef type;
-    int idx;
     int logvaridx;
+    int sidx;
 
-    SpecIdent(Ident *_id, TypeRef _type, int _idx)
-        : id(_id), type(_type), idx(_idx), logvaridx(-1) {}
+    SpecIdent(Ident *_id, TypeRef _type)
+        : id(_id), type(_type), sidx(-1), logvaridx(-1) {}
+    int Idx() { assert(sidx >= 0); return sidx; }
+    SpecIdent *&Current() { return id->cursid; }
 };
 
 // Only still needed because we have no idea which struct it refers to at parsing time.
@@ -77,12 +80,14 @@ struct SharedField : Named {
 struct Field : Typed {
     SharedField *id;
     int fieldref;
-    Node *defaultval;  // Not deleted, possibly referred to by multiple structs.
+    Node *defaultval;
 
     Field() : Typed(), id(nullptr), fieldref(-1), defaultval(nullptr) {}
     Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
         : Typed(_type, _generic), id(_id),
           fieldref(_fieldref), defaultval(_defaultval) {}
+    Field(const Field &o);
+    ~Field();
 };
 
 struct FieldVector : GenericArgs {
@@ -151,13 +156,12 @@ struct Struct : Named {
 };
 
 struct Arg : Typed {
-    Ident *id;
     SpecIdent *sid;
 
-    Arg() : Typed(), id(nullptr), sid(nullptr) {}
-    Arg(const Arg &o) : Typed(o), id(o.id), sid(o.sid) {}
-    Arg(Ident *_id, SpecIdent *_sid, TypeRef _type, bool generic)
-        : id(_id), sid(_sid) { SetType(_type, generic); }
+    Arg() : Typed(), sid(nullptr) {}
+    Arg(const Arg &o) : Typed(o), sid(o.sid) {}
+    Arg(SpecIdent *_sid, TypeRef _type, bool generic)
+        : sid(_sid) { SetType(_type, generic); }
 };
 
 struct ArgVector : GenericArgs {
@@ -167,18 +171,14 @@ struct ArgVector : GenericArgs {
 
     size_t size() const { return v.size(); }
     const Typed *GetType(size_t i) const { return &v[i]; }
-    string GetName(size_t i) const { return v[i].id->name; }
+    string GetName(size_t i) const { return v[i].sid->id->name; }
 
     bool Add(const Arg &in) {
         for (auto &arg : v)
-            if (arg.id == in.id)
+            if (arg.sid->id == in.sid->id)
                 return false;
         v.push_back(in);
         return true;
-    }
-
-    void ResetSid() {
-        for (auto &a : v) a.sid = nullptr;
     }
 };
 
@@ -196,7 +196,7 @@ struct SubFunction {
     ArgVector coyieldsave;
     TypeRef coresumetype;
     type_elem_t cotypeinfo;
-    Node *body;
+    List *body;
     SubFunction *next;
     Function *parent;
     int subbytecodestart;
@@ -221,14 +221,7 @@ struct SubFunction {
         link = this;
     }
 
-    void CloneIds(SubFunction &o) {
-        args = o.args;                     args.ResetSid();
-        locals = o.locals;                 locals.ResetSid();
-        dynscoperedefs = o.dynscoperedefs; dynscoperedefs.ResetSid();
-        // Don't clone freevars, these will be accumulated in the new copy anew.
-    }
-
-    ~SubFunction() {}
+    ~SubFunction();
 };
 
 struct Function : Named {
@@ -260,7 +253,7 @@ struct Function : Named {
     }
     ~Function() {}
 
-    int nargs() { return (int)subf->args.v.size(); }
+    size_t nargs() { return subf->args.v.size(); }
 
     int NumSubf() {
         int sum = 0;
@@ -306,7 +299,6 @@ struct SymbolTable {
     vector<Ident *> identtable;
     vector<Ident *> identstack;
     vector<SpecIdent *> specidents;
-    vector<int> speclogvars;  // Index into specidents.
 
     unordered_map<string, Struct *> structs;
     vector<Struct *> structtable;
@@ -331,6 +323,8 @@ struct SymbolTable {
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
 
+    vector<Type *> typelist;
+
     SymbolTable() : toplevel(nullptr) {}
 
     ~SymbolTable() {
@@ -340,6 +334,7 @@ struct SymbolTable {
         for (auto f  : functiontable)    delete f;
         for (auto sf : subfunctiontable) delete sf;
         for (auto f  : fieldtable)       delete f;
+        for (auto t  : typelist)         delete t;
     }
 
     Ident *Lookup(const string &name) {
@@ -363,7 +358,8 @@ struct SymbolTable {
                           scopelevels.size());
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
-        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident, nullptr, type_any, true));
+        ident->cursid = NewSid(ident);
+        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident->cursid, type_any, true));
         if (existing_ident) {
             if (scopelevels.back() == existing_ident->identstacklevel)
                 lex.Error("identifier redefinition: " + ident->name);
@@ -379,7 +375,7 @@ struct SymbolTable {
         auto ident = Lookup(name);
         if (!ident)
             lex.Error("lhs of <- must refer to existing variable: " + name);
-        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident, nullptr, type_any, true));
+        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, true));
         return ident;
     }
 
@@ -529,7 +525,7 @@ struct SymbolTable {
         return *f;
     }
 
-    Function &FunctionDecl(const string &name, int nargs, Lex &lex) {
+    Function &FunctionDecl(const string &name, size_t nargs, Lex &lex) {
         auto fit = functions.find(name);
         if (fit != functions.end()) {
             if (fit->second->scopelevel != scopelevels.size())
@@ -552,6 +548,33 @@ struct SymbolTable {
     Function *FindFunction(const string &name) {
         auto it = functions.find(name);
         return it != functions.end() ? it->second : nullptr;
+    }
+
+    SpecIdent *NewSid(Ident *id, TypeRef type = nullptr) {
+        auto sid = new SpecIdent(id, type);
+        specidents.push_back(sid);
+        return sid;
+    }
+
+    void CloneSids(ArgVector &av) {
+        for (auto &a : av.v) a.sid = NewSid(a.sid->id);
+    }
+
+    void CloneIds(SubFunction &sf, const SubFunction &o) {
+        sf.args = o.args;                     CloneSids(sf.args);
+        sf.locals = o.locals;                 CloneSids(sf.locals);
+        sf.dynscoperedefs = o.dynscoperedefs; // Set to correct one in TypeCheckFunctionDef.
+        // Don't clone freevars, these will be accumulated in the new copy anew.
+    }
+
+    Type *NewType() {
+        // FIXME: this potentially generates quite a bit of "garbage".
+        // Instead, we could hash these, or store common type variants inside Struct etc.
+        // A quick test revealed that 10% of nodes cause one of these to be allocated, so probably
+        // not worth optimizing.
+        auto t = new Type();
+        typelist.push_back(t);
+        return t;
     }
 
     bool          ReadOnlyIdent        (size_t v) const { return identtable[v]->constant; }
@@ -599,6 +622,7 @@ struct SymbolTable {
                    vector<bytecode::LineInfo> &linenumbers,
                    vector<bytecode::SpecIdent> &sids,
                    vector<const char *> &stringtable,
+                   vector<int> &speclogvars,
                    vector<uchar> &bytecode) {
         flatbuffers::FlatBufferBuilder fbb;
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
@@ -615,10 +639,7 @@ struct SymbolTable {
             fbb.CreateVector(code_attr),
             fbb.CreateVector((vector<int> &)typetable),
             fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(stringtable.size(),
-                [&](size_t i) {
-                    return fbb.CreateString(stringtable[i],
-                                            SlabAlloc::size_of_string(stringtable[i]));
-                }
+                [&](size_t i) { return fbb.CreateString(stringtable[i]); }
             ),
             fbb.CreateVectorOfStructs(linenumbers),
             fbb.CreateVector(fns),
