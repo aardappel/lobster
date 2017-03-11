@@ -37,7 +37,9 @@
 /dev/android/apks/
 /dev/android/Android-VS/x86/
 /dev/android/Android-VS/ARM/
+
 /dev/lobster/ARM/
+/dev/lobster/.vs/
 
 /dev/emscripten/assets/
 /dev/emscripten/*.js
