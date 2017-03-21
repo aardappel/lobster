@@ -42,6 +42,9 @@ private actionsound := nil
 
 private focus_id := -1
 
+def guif() :== ()
+def guifs(v:xy_i) :== ()
+
 private def cache_size(id, f):
     if !render_pass:
         e := guielem { id, xy_0i }
@@ -59,15 +62,18 @@ private def cache_size(id, f):
                 return e.size
         xy_0i   // new element inserted by event handler, do not render yet
 
+private def update_size(v:xy_i):
+    cursize =
+        if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y and spacing) }
+        else:         xy { cursize.x + v.x + (cursize.x and spacing), max(cursize.y, v.y) }
+
 private def advance(v:xy_i, f):
     if render_pass:
         f()
     else:
-        cursize =
-            if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y and spacing) }
-            else:         xy { cursize.x + v.x + (cursize.x and spacing), max(cursize.y, v.y) }
+        update_size(v)
 
-private def max_space(v):
+private def max_space(v:xy_i):
     if vertical: xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
 
 private def position(v:xy_i, f):
@@ -122,7 +128,7 @@ def gui_divider(thickness:int):
 def gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
 
-def gui_start(size, alignh, alignv, interact, f):   // top level only
+def gui_start(size, alignh, alignv, interact, f:guif):   // top level only
     id := hash(f)
     gl_setshader("color")
     gl_blend(blend_alpha):
@@ -145,17 +151,17 @@ def gui_start(size, alignh, alignv, interact, f):   // top level only
             vertical <- true
             f()
 
-def gui_hblock(al, sp, f): block(al, sp, false, hash(f), f)
-def gui_vblock(al, sp, f): block(al, sp, true,  hash(f), f)
+def gui_hblock(al, sp, f:guif): block(al, sp, false, hash(f), f)
+def gui_vblock(al, sp, f:guif): block(al, sp, true,  hash(f), f)
 
-def gui_fontscale(factor, f):
+def gui_fontscale(factor, f:guif):
     os := gl_getfontsize()
     gl_setfontsize(round(os * factor))
     f()
     gl_setfontsize(os)
 
-def gui_color(col, f): nest_if(render_pass, def(): gl_color(col, _), f)
-def gui_blend(bli, f): nest_if(render_pass, def(): gl_blend(bli, _), f)
+def gui_color(col, f:guif): nest_if(render_pass, def(): gl_color(col, _), f)
+def gui_blend(bli, f:guif): nest_if(render_pass, def(): gl_blend(bli, _), f)
 
 private def around(m, draw, id, f):
     size := cursize_of(id, f)
@@ -176,8 +182,8 @@ private def around(m, draw, id, f):
             f()
             forward()
 
-def gui_margin(m, f): around(m, false, hash(f), f)
-def gui_border(m, f): around(m, true,  hash(f), f)
+def gui_margin(m, f:guif): around(m, false, hash(f), f)
+def gui_border(m, f:guif): around(m, true,  hash(f), f)
 
 private def overlay(stretch, id, f, g):
     size := cursize_of(id, f)
@@ -190,7 +196,7 @@ private def overlay(stretch, id, f, g):
                     g(size)
             f()
 
-def gui_background(col, stretch, f):
+def gui_background(col, stretch, f:guif):
     overlay(stretch, hash(f), f) size:
         gl_color col:
             gl_rect(float(size))
@@ -218,20 +224,20 @@ private def button(id, f, do, dofocus, focusf):
                         if actionsound: play_sfxr(actionsound) // FIXME: wavs too
                         do()
 
-def gui_button(f, do):                   button(hash(f), f, do, false): nil
-def gui_button(f, do, focus):            button(hash(f), f, do, true, focus)
-def gui_button_id(id:int, f, do):        button(id,      f, do, false): nil
-def gui_button_id(id:int, f, do, focus): button(id,      f, do, true, focus)
+def gui_button(f:guif, do:guif):                        button(hash(f), f, do, false): nil
+def gui_button(f:guif, do:guif, focus:guif):            button(hash(f), f, do, true, focus)
+def gui_button_id(id:int, f:guif, do:guif):             button(id,      f, do, false): nil
+def gui_button_id(id:int, f:guif, do:guif, focus:guif): button(id,      f, do, true, focus)
 
-def gui_button_text   (        text, do):         button(hash(text), def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do):         button(id,         def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do, focus):  button(id,         def(): gui_text(text), do, true, focus)
+def gui_button_text   (        text, do:guif):             button(hash(text), def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do:guif):             button(id,         def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text, do:guif, focus:guif): button(id,         def(): gui_text(text), do, true, focus)
 
-def gui_button_image   (        size, tex, do):         button(hash(tex), def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do):         button(id,        def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do, focus):  button(id,        def(): gui_image(size, tex), do, true, focus)
+def gui_button_image   (        size, tex, do:guif):             button(hash(tex), def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do:guif):             button(id,        def(): gui_image(size, tex), do, false): nil
+def gui_button_id_image(id:int, size, tex, do:guif, focus:guif): button(id,        def(): gui_image(size, tex), do, true, focus)
 
-def gui_custombackground(f): if render_pass: f(overalsize)
+def gui_custombackground(f:guifs): if render_pass: f(overalsize)
 
 def gui_setclickcolors(hover, sel):
     hover_color = hover

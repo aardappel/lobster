@@ -361,6 +361,7 @@ struct CodeGen  {
             }
         } else {
             assert(!retval);
+            Dummy(retval);
         }
         SplitAttr(Pos());
     };
@@ -820,7 +821,11 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
             cg.Emit(IL_CALLV);
             cg.EmitTempInfo(this);
             cg.SplitAttr(cg.Pos());
-            if (!retval) cg.GenPop(exptype);
+            if (sf->reqret) {
+                if (!retval) cg.GenPop(exptype);
+            } else {
+                cg.Dummy(retval);
+            }
         }
     }
 }

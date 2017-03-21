@@ -86,7 +86,7 @@ namespace lobster {
     TOK(T_INTTYPE, "int") \
     TOK(T_FLOATTYPE, "float") \
     TOK(T_STRTYPE, "string") \
-    TOK(T_VECTTYPE, "vector") \
+    TOK(T_ANYTYPE, "any") \
     TOK(T_FROM, "from") \
     TOK(T_PROGRAM, "program") \
     TOK(T_PRIVATE, "private") \

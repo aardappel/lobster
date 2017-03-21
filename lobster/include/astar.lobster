@@ -91,8 +91,8 @@ def goapf(state:[int]) :== int
 
 value goapaction {
     name:string,
-    precondition:def goapf,
-    effect:def goapf
+    precondition:goapf,
+    effect:goapf
 }
 
 struct goap_node = astar_node(goap_node?, [int], goapaction?)

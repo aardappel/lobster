@@ -44,12 +44,12 @@ private def repr(it,        v): v
 
 // match with a particular iterable, all matching functions must be used inside of the function
 // you can use nested match_with calls
-def match_with(it:vector,    f): start(it, it, f)
+def match_with(it:[any],     f): start(it, it, f)
 def match_with(it:string,    f): start(it, string2unicode(it), f)
 def match_with(it:coroutine, f): start(it, [], f)
 
 def match_elem(f):     // match single element
-    assert(iterv)           // if this fails, you're calling match() outside of a match_with() block
+    assert(iterv)      // if this fails, you're calling match() outside of a match_with() block
     (i < iterv.length or grow(iterable)) and f(iterv[i]) and ++i
 
 def match_end(): isend(iterable)
@@ -70,4 +70,4 @@ def match_not(x): match_elem(): x != _
 def match_any(f): while f(): nil
 
 def match_sequence(s:string): match_sequence(string2unicode(s))
-def match_sequence(v:vector): guard(): !exists(v): !match(_)
+def match_sequence(v:[any]):  guard(): !exists(v): !match(_)

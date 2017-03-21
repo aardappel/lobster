@@ -345,6 +345,11 @@ struct TypeChecker {
                             goto error;
                         i++;
                     }
+                    if (sf->typechecked) {
+                        if (sf->reqret != ss->reqret) goto error;
+                    } else {
+                        sf->reqret = ss->reqret;
+                    }
                     TypeCheckFunctionDef(*sf, sf->body);
                     // Covariant again.
                     if (sf->returntypes.size() != ss->returntypes.size() ||
@@ -764,9 +769,14 @@ struct TypeChecker {
                             if (arg.flags == AF_ANYTYPE &&
                                 !ExactType(c->exptype, arg.type)) goto fail;
                         }
-                        if (FreeVarsSameAsCurrent(sf, false) && reqret == sf->reqret)
+                        if (FreeVarsSameAsCurrent(sf, false) && reqret == sf->reqret) {
+                            // This function can be reused.
+                            // But first make sure to add any freevars this call caused to be
+                            // added to its parents also to the current parents, just in case
+                            // they're different.
+                            for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
                             return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
-
+                        }
                         fail:;
                     }
                 }
@@ -1116,7 +1126,7 @@ struct TypeChecker {
         Output(OUTPUT_INFO, "Node count: orig: %d, cloned: %d", orignodes, clonenodes);
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
-        for (auto &p : funstats) if (p.first > orignodes / 50) {
+        for (auto &p : funstats) if (p.first > orignodes / 100) {
             auto &pos = p.second->subf->body->line;
             Output(OUTPUT_INFO, "Most clones: %s (%s:%d) -> %d nodes accross %d clones (+1 orig)",
                 p.second->name.c_str(),

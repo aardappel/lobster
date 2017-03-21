@@ -410,11 +410,11 @@ struct Parser {
             for (auto &arg : f.subf->args.v) {
                 if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
             }
-            ParseType(sf->returntypes[0], false, nullptr, true);
+            ParseType(sf->returntypes[0], false, nullptr, sf);
         } else {
             if (IsNext(T_CODOT)) {  // Return type decl.
                 sf->fixedreturntype = true;
-                ParseType(sf->returntypes[0], false, nullptr, true);
+                ParseType(sf->returntypes[0], false, nullptr, sf);
             }
             if (!expfunval) Expect(T_COLON);
         }
@@ -468,29 +468,14 @@ struct Parser {
     }
 
     int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr,
-                  bool allowany = false) {
+                  SubFunction *sfreturntype = nullptr) {
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
-            case T_VECTTYPE:  dest = type_vector_any; lex.Next(); break;  // FIXME: remove this one?
-            case T_FUN: {
-                lex.Next();
-                auto idname = lex.sattr;
-                if (IsNext(T_IDENT)) {
-                    auto f = st.FindFunction(idname);
-                    if (!f)
-                        Error("unknown function type: " + idname);
-                    if (!f->istype)
-                        Error("function not declared as type: " + idname);
-                    dest = &f->subf->thistype;
-                } else {
-                    dest = type_function_null;  // FIXME: in what cases does this make sense?
-                }
-                break;
-            }
+            case T_ANYTYPE:   dest = type_any;        lex.Next(); break;
             case T_IDENT: {
                 if (fieldrefstruct) {
                     for (auto &field : fieldrefstruct->fields.v) {
@@ -503,8 +488,13 @@ struct Parser {
                         }
                     }
                 }
-                auto &struc = st.StructUse(lex.sattr, lex);
-                dest = &struc.thistype;
+                auto f = st.FindFunction(lex.sattr);
+                if (f && f->istype) {
+                    dest = &f->subf->thistype;
+                } else {
+                    auto &struc = st.StructUse(lex.sattr, lex);
+                    dest = &struc.thistype;
+                }
                 lex.Next();
                 break;
             }
@@ -517,10 +507,11 @@ struct Parser {
                 break;
             }
             case T_LEFTPAREN:
-                if (allowany)  {
+                if (sfreturntype)  {
                     lex.Next();
                     Expect(T_RIGHTPAREN);
                     dest = type_any;
+                    sfreturntype->reqret = false;
                     break;
                 }
                 // FALL-THRU:
@@ -1020,7 +1011,8 @@ struct Parser {
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
-            case T_STRTYPE: {
+            case T_STRTYPE:
+            case T_ANYTYPE: {
                 // These are also used as built-in functions, so allow them to function as
                 // identifier for calls.
                 string idname = lex.sattr;
