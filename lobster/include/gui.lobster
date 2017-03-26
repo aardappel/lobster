@@ -196,11 +196,15 @@ private def overlay(stretch, id, f, g):
                     g(size)
             f()
 
-def gui_background(col, stretch, f:guif):
+def gui_backgroundf(stretch, f:guif, background:guifs):
     overlay(stretch, hash(f), f) size:
+        background(size)
+        gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
+
+def gui_background(col, stretch, f:guif):
+    gui_backgroundf(stretch, f) size:
         gl_color col:
             gl_rect(float(size))
-            gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
 
 private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
@@ -229,9 +233,9 @@ def gui_button(f:guif, do:guif, focus:guif):            button(hash(f), f, do, t
 def gui_button_id(id:int, f:guif, do:guif):             button(id,      f, do, false): nil
 def gui_button_id(id:int, f:guif, do:guif, focus:guif): button(id,      f, do, true, focus)
 
-def gui_button_text   (        text, do:guif):             button(hash(text), def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do:guif):             button(id,         def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text, do:guif, focus:guif): button(id,         def(): gui_text(text), do, true, focus)
+def gui_button_text   (        text:string, do:guif):             button(hash(text), def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text:string, do:guif):             button(id,         def(): gui_text(text), do, false): nil
+def gui_button_id_text(id:int, text:string, do:guif, focus:guif): button(id,         def(): gui_text(text), do, true, focus)
 
 def gui_button_image   (        size, tex, do:guif):             button(hash(tex), def(): gui_image(size, tex), do, false): nil
 def gui_button_id_image(id:int, size, tex, do:guif):             button(id,        def(): gui_image(size, tex), do, false): nil
