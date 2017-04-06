@@ -239,6 +239,7 @@ void ScreenSizeChanged() {
 
 string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync,
                int samples) {
+    MakeDPIAware();
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
         return SDLError("Unable to initialize SDL");
@@ -299,7 +300,17 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
         if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
     #else
-        screensize = desired_screensize;
+        int display = 0;  // FIXME: we're not dealing with multiple displays.
+        float dpi = 0;
+        const float default_dpi =
+            #ifdef __APPLE__
+                72.0f;
+            #else
+                96.0f;
+            #endif
+        if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
+        Output(OUTPUT_INFO, "dpi: %f", dpi);
+        screensize = desired_screensize * dpi / default_dpi;
         _sdl_window = SDL_CreateWindow(title,
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        screensize.x(), screensize.y(),

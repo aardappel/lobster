@@ -12,6 +12,11 @@
   - reqret arg of TypeCheck: if we are sure codegen or optimizer optimizes op out, can
     turn "true" in to passing "reqret" to child.
 
+- In :: blocks, can't call other methods without this value
+  - see cityclicker.lobster
+  - also should be possible without ()
+  - also should be possible to leave out variable name before ::
+
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - break statement
