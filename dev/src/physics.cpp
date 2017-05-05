@@ -38,13 +38,31 @@ struct Renderable : Textured {
 };
 
 b2World *world = nullptr;
-IntResourceManagerCompact<b2Fixture> *fixtures = nullptr;
 b2ParticleSystem *particlesystem = nullptr;
 Renderable *particlematerial = nullptr;
 
+struct PhysicsObject {
+    Renderable r;
+    b2Fixture *fixture;
+    vector<int> *particle_contacts;
+
+    PhysicsObject(const Renderable &_r,  b2Fixture *_f)
+        : r(_r), fixture(_f), particle_contacts(nullptr) {}
+    ~PhysicsObject() {
+        auto body = fixture->GetBody();
+        body->DestroyFixture(fixture);
+        if (!body->GetFixtureList()) world->DestroyBody(body);
+        if (particle_contacts) delete particle_contacts;
+    }
+};
+
+static ResourceType physics_type = { "physical", [](void *v) { delete ((PhysicsObject *)v); } };
+
+PhysicsObject &GetObject(Value &res) {
+    return *GetResourceDec<PhysicsObject *>(res, &physics_type);
+}
+
 void CleanPhysics() {
-	if (fixtures) delete fixtures;
-	fixtures = nullptr;
 	if (world) delete world;
 	world = nullptr;
 	particlesystem = nullptr;
@@ -56,9 +74,6 @@ void InitPhysics(const float2 &gv) {
 	// FIXME: check that shaders are initialized, since renderables depend on that
 	CleanPhysics();
 	world = new b2World(b2Vec2(gv.x(), gv.y()));
-	fixtures = new IntResourceManagerCompact<b2Fixture>([](b2Fixture *fixture) {
-		delete (Renderable *)fixture->GetUserData();
-	});
 }
 
 void CheckPhysics() {
@@ -85,11 +100,7 @@ b2Vec2 ValueDecToB2(Value &vec) {
 
 b2Body &GetBody(Value &id, Value &position) {
 	CheckPhysics();
-	b2Body *body = nullptr;
-	if (id.True()) {
-		auto other_fixture = fixtures->Get(id.ival());
-		if (other_fixture) body = other_fixture->GetBody();
-	}
+	b2Body *body = id.True() ? GetObject(id).fixture->GetBody() : nullptr;
 	auto wpos = ValueDecToF<2>(position);
 	if (!body) {
 		b2BodyDef bd;
@@ -102,18 +113,16 @@ b2Body &GetBody(Value &id, Value &position) {
 
 Value CreateFixture(b2Body &body, b2Shape &shape) {
 	auto fixture = body.CreateFixture(&shape, 1.0f);
-	auto r = new Renderable("color");
-	fixture->SetUserData(r);
-	return Value((int)fixtures->Add(fixture));
+    auto po = new PhysicsObject(Renderable("color"), fixture);
+	fixture->SetUserData(po);
+	return Value(g_vm->NewResource(po, &physics_type));
 }
 
 b2Vec2 OptionalOffset(Value &offset) { return offset.True() ? ValueDecToB2(offset) : b2Vec2_zero; }
 
-Renderable *GetRenderable(int id) {
+Renderable &GetRenderable(Value &id) {
 	CheckPhysics();
-    if (!id) return particlematerial;
-	auto fixture = fixtures->Get(id);
-	return fixture ? (Renderable *)fixture->GetUserData() : nullptr;
+	return id.True() ? GetObject(id).r : *particlematerial;
 }
 
 extern int GetSampler(Value &i); // from graphics
@@ -135,7 +144,7 @@ void AddPhysics() {
 		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
 	}
-	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "F]:2F]:2F]:2?F?I?", "I",
+	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "F]:2F]:2F]:2?F?X?", "X",
         "creates a physical box shape in the world at position, with size the half-extends around"
         " the center, offset from the center if needed, at a particular rotation (in degrees)."
         " attachto is a previous physical object to attach this one to, to become a combined"
@@ -149,7 +158,7 @@ void AddPhysics() {
 		shape.m_radius = radius.fval();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "F]:2FF]:2?I?", "I",
+	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "F]:2FF]:2?X?", "X",
         "creates a physical circle shape in the world at position, with the given radius, offset"
         " from the center if needed. attachto is a previous physical object to attach this one to,"
         " to become a combined physical body.");
@@ -167,61 +176,60 @@ void AddPhysics() {
 		vertices.DECRT();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "F]:2F]]I?", "I",
+	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "F]:2F]]X?", "X",
         "creates a polygon circle shape in the world at position, with the given list of vertices."
         " attachto is a previous physical object to attach this one to, to become a combined"
         " physical body.");
 
 	STARTDECL(ph_dynamic) (Value &fixture_id, Value &on) {
 		CheckPhysics();
-		auto fixture = fixtures->Get(fixture_id.ival());
-		if (fixture) fixture->GetBody()->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
-		return fixture_id;
-	}
-	ENDDECL2(ph_dynamic, "shape,on", "II", "I",
-        "makes a shape dynamic (on = true) or not. returns shape.");
-
-	STARTDECL(ph_deleteshape) (Value &fixture_id) {
-		CheckPhysics();
-		auto fixture = fixtures->Get(fixture_id.ival());
-		if (fixture) {
-			auto body = fixture->GetBody();
-			body->DestroyFixture(fixture);
-			if (!body->GetFixtureList()) world->DestroyBody(body);
-			fixtures->Delete(fixture_id.ival());
-		}
+        GetObject(fixture_id).fixture->GetBody()->SetType(on.ival() ? b2_dynamicBody
+                                                                    : b2_staticBody);
 		return Value();
 	}
-	ENDDECL1(ph_deleteshape, "id", "I", "",
-        "removes a shape from the physical world.");
+	ENDDECL2(ph_dynamic, "shape,on", "XI", "",
+        "makes a shape dynamic (on = true) or not.");
 
 	STARTDECL(ph_setcolor) (Value &fixture_id, Value &color) {
-		auto r = GetRenderable(fixture_id.ival());
+		auto &r = GetRenderable(fixture_id);
 		auto c = ValueDecToF<4>(color);
-		if (r) r->color = c;
+		r.color = c;
 		return Value();
 	}
-	ENDDECL2(ph_setcolor, "id,color", "IF]:4", "",
-        "sets a shape (or 0 for particles) to be rendered with a particular color.");
+	ENDDECL2(ph_setcolor, "id,color", "X?F]:4", "",
+        "sets a shape (or nil for particles) to be rendered with a particular color.");
 
 	STARTDECL(ph_setshader) (Value &fixture_id, Value &shader) {
-		auto r = GetRenderable(fixture_id.ival());
+		auto &r = GetRenderable(fixture_id);
 		auto sh = LookupShader(shader.sval()->str());
 		shader.DECRT();
-		if (r && sh) r->sh = sh;
+		if (sh) r.sh = sh;
 		return Value();
 	}
-	ENDDECL2(ph_setshader, "id,shadername", "IS", "",
-        "sets a shape (or 0 for particles) to be rendered with a particular shader.");
+	ENDDECL2(ph_setshader, "id,shadername", "X?S", "",
+        "sets a shape (or nil for particles) to be rendered with a particular shader.");
 
 	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex_id, Value &tex_unit) {
-		auto r = GetRenderable(fixture_id.ival());
-		if (r) r->textures[GetSampler(tex_unit)] = tex_id.ival();
+		auto &r = GetRenderable(fixture_id);
+		r.textures[GetSampler(tex_unit)] = tex_id.ival();
 		return Value();
 	}
-	ENDDECL3(ph_settexture, "id,texid,texunit", "III?", "",
-        "sets a shape (or 0 for particles) to be rendered with a particular texture"
+	ENDDECL3(ph_settexture, "id,texid,texunit", "X?II?", "",
+        "sets a shape (or nil for particles) to be rendered with a particular texture"
         " (assigned to a texture unit, default 0).");
+
+    STARTDECL(ph_createparticle) (Value &position, Value &velocity, Value &color, Value &type) {
+        CheckParticles();
+        b2ParticleDef pd;
+        pd.flags = type.ival();
+        auto c = ValueDecToF<3>(color);
+        pd.color.Set(b2Color(c.x(), c.y(), c.z()));
+        pd.position = ValueDecToB2(position);
+        pd.velocity = ValueDecToB2(velocity);
+        return Value(particlesystem->CreateParticle(pd));
+    }
+    ENDDECL4(ph_createparticle, "position,velocity,color,flags", "F]:2F]:2F]:4I?", "I",
+        "creates an individual particle. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_createparticlecircle) (Value &position, Value &radius, Value &color, Value &type) {
 		CheckParticles();
@@ -246,15 +254,54 @@ void AddPhysics() {
 	ENDDECL1(ph_initializeparticles, "radius", "F", "",
         "initializes the particle system with a given particle radius.");
 
-	STARTDECL(ph_step) (Value &delta) {
+	STARTDECL(ph_step) (Value &delta, Value &viter, Value &piter) {
 		CheckPhysics();
-		world->Step(min(delta.fval(), 0.1f), 8, 3);
+		world->Step(min(delta.fval(), 0.1f), viter.ival(), piter.ival());
+        if (particlesystem) {
+            for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
+                for (b2Fixture *fixture = body->GetFixtureList(); fixture;
+                     fixture = fixture->GetNext()) {
+                    auto pc = ((PhysicsObject *)fixture->GetUserData())->particle_contacts;
+                    if (pc) pc->clear();
+                }
+            }
+            auto contacts = particlesystem->GetBodyContacts();
+            for (int i = 0; i < particlesystem->GetBodyContactCount(); i++) {
+                auto &c = contacts[i];
+                auto pc = ((PhysicsObject *)c.fixture->GetUserData())->particle_contacts;
+                if (pc) pc->push_back(c.index);
+            }
+        }
 		return Value();
 	}
-	ENDDECL1(ph_step, "seconds", "F", "",
-        "simulates the physical world for the given period (try: gl_deltatime()).");
+	ENDDECL3(ph_step, "seconds,viter,piter", "FII", "",
+        "simulates the physical world for the given period (try: gl_deltatime()). You can specify"
+        " the amount of velocity/position iterations per step, more means more accurate but also"
+        " more expensive computationally (try 8 and 3).");
 
-	STARTDECL(ph_render) () {
+    STARTDECL(ph_particlecontacts) (Value &id) {
+        CheckPhysics();
+        auto &po = GetObject(id);
+        if (!po.particle_contacts) po.particle_contacts = new vector<int>();
+        auto numelems = (int)po.particle_contacts->size();
+        auto v = g_vm->NewVector(numelems, numelems, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+        for (int i = 0; i < numelems; i++) v->At(i) = Value((*po.particle_contacts)[i]);
+        return Value(v);
+    }
+    ENDDECL1(ph_particlecontacts, "id", "X", "I]",
+        "gets the particle indices that are currently contacting a giving physics object."
+        " Call after step(). Indices may be invalid after next step().");
+
+    STARTDECL(ph_deleteparticle) (Value &i) {
+        CheckPhysics();
+        particlesystem->DestroyParticle(i.ival());
+        return Value();
+    }
+    ENDDECL1(ph_deleteparticle, "i", "I", "",
+        "deletes given particle. Deleting particles causes indices to be invalidated at next"
+        " step().");
+
+    STARTDECL(ph_render) () {
 		CheckPhysics();
 		auto oldobject2view = otransforms.object2view;
 		auto oldcolor = curcolor;
@@ -265,11 +312,11 @@ void AddPhysics() {
 			for (b2Fixture *fixture = body->GetFixtureList(); fixture;
                  fixture = fixture->GetNext()) {
 				auto shapetype = fixture->GetType();
-				auto r = (Renderable *)fixture->GetUserData();
-				curcolor = r->color;
+				auto &r = ((PhysicsObject *)fixture->GetUserData())->r;
+				curcolor = r.color;
 				switch (shapetype) {
 					case b2Shape::e_polygon: {
-                        r->Set();
+                        r.Set();
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
 						RenderArraySlow(PRIM_FAN, polyshape->m_count, "pn",
                                         sizeof(b2Vec2), polyshape->m_vertices,
@@ -277,10 +324,10 @@ void AddPhysics() {
 						break;
 					}
 					case b2Shape::e_circle: {
-                        r->sh->SetTextures(r->textures);  // FIXME
+                        r.sh->SetTextures(r.textures);  // FIXME
                         auto polyshape = (b2CircleShape *)fixture->GetShape();
                         Transform2D(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
-                            geomcache->RenderCircle(r->sh, PRIM_FAN, 20, polyshape->m_radius);
+                            geomcache->RenderCircle(r.sh, PRIM_FAN, 20, polyshape->m_radius);
                         });
 						break;
 					}
@@ -305,7 +352,7 @@ void AddPhysics() {
         //Output(OUTPUT_DEBUG, "rendering particles: %d", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
-        auto scale = fabs(otransforms.object2view[0].x());
+        auto scale = length(otransforms.object2view[0].xy());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval());
         particlematerial->Set();
         RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts,

@@ -1,3 +1,16 @@
+- Should we consider default-const?
+  Bit odd for a language without type annotations, but if the syntax for mutation was light,
+  it be a very nice feature to have, especially since the vast majority of args don't need it.
+  Only needed on struct/vector/coroutine.
+  Syntax could be a single char token attached to any ident decl?
+  def f(a, @b): b[0] = a
+  @a := g()
+  where token could be: @ # ~ ! $ & * = ` in that order
+  A keyword like "mut" is a bit too obnoxious?
+  token could also follow the ident.
+  Could allow a command-line arg or annotation in file to indicate that code doesn't care to be
+  const-correct :)
+
 - replace typeof return with something better directly part of the syntax.
 
 - make resume into seperate op.

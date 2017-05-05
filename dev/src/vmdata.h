@@ -739,7 +739,7 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
     auto x = val.xval();
     if (x->refc < 2)
         // This typically does not happen unless resource is not stored in a variable.
-        g_vm->BuiltinError("cannot use temporary resource");
+        g_vm->BuiltinError("cannot use temporary resource (store it first)");
     val.DECRT();
     if (x->type != type)
         g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
