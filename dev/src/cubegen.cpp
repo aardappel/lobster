@@ -64,6 +64,19 @@ struct Voxels {
         }
     }
 
+    void Copy(const int3 &p, const int3 &sz, const int3 &dest, const int3 &flip) {
+        for (int x = max(0, p.x()); x < min(p.x() + sz.x(), grid.dim.x()); x++) {
+            for (int y = max(0, p.y()); y < min(p.y() + sz.y(), grid.dim.y()); y++) {
+                for (int z = max(0, p.z()); z < min(p.z() + sz.z(), grid.dim.z()); z++) {
+                    auto pos = int3(x, y, z);
+                    auto pi = grid.Get(pos);
+                    auto d = (pos - p) * flip + dest;
+                    if (d >= int3_0 && d < grid.dim) grid.Set(d, pi);
+                }
+            }
+        }
+    }
+
     uchar Color2Palette(const float4 &color) {
         uchar pi = transparant;
         if (color.w() >= 0.5f) {
@@ -121,7 +134,21 @@ void AddCubeGen() {
         return Value();
     }
     ENDDECL4(cg_set, "block,pos,size,paletteindex", "XI]:3I]:3I", "",
-        "sets a range of cubes to palette index. index 0 is considered empty space");
+        "sets a range of cubes to palette index. index 0 is considered empty space."
+        "Coordinates automatically clipped to the size of the grid");
+
+    STARTDECL(cg_copy) (Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
+        auto p = ValueDecToI<3>(pos);
+        auto sz = ValueDecToI<3>(size);
+        auto d = ValueDecToI<3>(dest);
+        auto fl = ValueDecToI<3>(flip);
+        GetVoxels(wid).Copy(p, sz, d, fl);
+        return Value();
+    }
+    ENDDECL5(cg_copy, "block,pos,size,dest,flip", "XI]:3I]:3I]:3I]:3", "",
+        "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
+        " each component, indicating the step from dest."
+        " Coordinates automatically clipped to the size of the grid");
 
     STARTDECL(cg_color_to_palette) (Value &wid, Value &color) {
         return Value(GetVoxels(wid).Color2Palette(ValueDecToF<4>(color)));
