@@ -1,3 +1,12 @@
+- in a struct foo { a:float = 1.0 } allow the :float to be left out
+
+- Should consider to allow on-the fly data structures as well.
+  Writing new_type { field1: val, field2: val } would add such specialization to new_type even
+  if it doesn't exist yet.
+  Should change data structure specializations such that the collection of things under new_type
+  doesn't need to share a generic parent, and in fact may have different fields etc.
+  Specialization then takes care of checking the different variants in use.
+
 - Should we consider default-const?
   Bit odd for a language without type annotations, but if the syntax for mutation was light,
   it be a very nice feature to have, especially since the vast majority of args don't need it.
@@ -10,6 +19,8 @@
   token could also follow the ident.
   Could allow a command-line arg or annotation in file to indicate that code doesn't care to be
   const-correct :)
+
+- doesn't type check if c: 0.0 else: 0 correctly, result is any?
 
 - replace typeof return with something better directly part of the syntax.
 

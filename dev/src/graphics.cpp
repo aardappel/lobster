@@ -527,7 +527,7 @@ void AddGraphics() {
                               float4x4(float4(ValueToF<2>(vec), 1)));
         return vec;
     }
-    ENDDECL2(gl_rect, "vec,centered", "F]I?", "F]",
+    ENDDECL2(gl_rect, "size,centered", "F]I?", "F]",
         "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
         " size. returns the argument.");
 
@@ -990,6 +990,25 @@ void AddGraphics() {
         " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
         " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
         " Before calling this, make sure to have the texture set and a textured shader");
+
+    STARTDECL(gl_recttc) (Value &size, Value &tc, Value &tcdim) {
+        TestGL();
+        auto sz = float2(ValueDecToF<2>(size));
+        auto t = float2(ValueDecToF<2>(tc));
+        auto td = float2(ValueDecToF<2>(tcdim));
+        auto te = t + td;
+        float vb_square[20] = {
+            0,      0,      0, t.x(),  t.y(),
+            0,      sz.y(), 0, t.x(),  te.y(),
+            sz.x(), sz.y(), 0, te.x(), te.y(),
+            sz.x(), 0,      0, te.x(), t.y(),
+        };
+        currentshader->Set();
+        RenderArraySlow(PRIM_FAN, 4, "PT", sizeof(float) * 5, vb_square);
+        return Value();
+    }
+    ENDDECL3(gl_recttc, "size,tc,tcsize", "F]:2F]:2F]:2", "",
+        "Like gl_rect renders a sized quad, but allows you to specify texture coordinates. Slow.");
 
     STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness) {
         TestGL();

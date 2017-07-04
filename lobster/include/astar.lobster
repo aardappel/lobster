@@ -18,7 +18,8 @@ def astar_clear(n::astar_node):
     open = closed = false
     previous = nil
 
-// the generic version searches any kind of graph in any kind of search space, use specialized versions below
+// the generic version searches any kind of graph in any kind of search space,
+// use specialized versions below
 
 def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
