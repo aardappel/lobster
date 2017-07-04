@@ -86,9 +86,9 @@ struct Optimizer {
             }
         } else if (auto dcall = Is<DynCall>(n)) {
             // This optimization MUST run, to remove redundant arguments.
-            auto ftype = dcall->sid->type;
-            if (ftype->IsFunction()) {
-                auto sf = ftype->sf;
+            if (auto sf = dcall->sf) {
+                // Note that this is not necessarily the same as dcall->sid->type->sf, since a
+                // single function variable may have 1 specialization per call
                 size_t i = 0;
                 for (auto c : dcall->children) {
                     if (i++ >= sf->parent->nargs()) {
@@ -97,12 +97,11 @@ struct Optimizer {
                 }
                 dcall->children.resize(sf->parent->nargs());
                 // Now convert it to a T_CALL if possible. This also allows it to be inlined.
-                assert(sf && sf == dcall->sf);  // Sanity check.
                 // We rely on all these DYNCALLs being converted in the first pass, and only
                 // potentially inlined in the second for this increase to not cause problems.
                 sf->numcallers++;
                 if (!sf->parent->istype) {
-                    auto c = new Call(dcall->line, dcall->sf);
+                    auto c = new Call(dcall->line, sf);
                     c->children.insert(c->children.end(), dcall->children.begin(),
                         dcall->children.end());
                     dcall->children.clear();
