@@ -16,6 +16,7 @@
 
 #include "stdafx.h"
 #include <stdarg.h>
+#include <time.h>
 
 #ifdef _WIN32
     #define VC_EXTRALEAN
@@ -266,4 +267,13 @@ void MakeDPIAware() {
         if (user32) FreeLibrary(user32);
         if (shcore) FreeLibrary(shcore);
     #endif
+}
+
+string GetDateTime() {
+    time_t t;
+    time(&t);
+    auto tm = localtime(&t);
+    char buf[1024];
+    strftime(buf, sizeof(buf), "%F-%H-%M-%S", tm);
+    return buf;
 }

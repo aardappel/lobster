@@ -55,6 +55,8 @@ extern double SecondsSinceStart();
 extern void ConditionalBreakpoint(bool shouldbreak);
 extern void MakeDPIAware();
 
+extern string GetDateTime();
+
 #if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)
     #define PLATFORM_ES2
 #endif

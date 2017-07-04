@@ -414,6 +414,14 @@ bool SDLFrame() {
             std::transform(name.begin(), name.end(), name.begin(),
                            [](char c) { return (char)::tolower(c); });
             updatebutton(name, event.key.state==SDL_PRESSED, 0);
+            if (event.type == SDL_KEYDOWN) {
+                // Built-in key-press functionality.
+                switch (event.key.keysym.sym) {
+                    case SDLK_PRINTSCREEN:
+                        ScreenShot(("screenshot-" + GetDateTime() + ".jpg").c_str());
+                        break;
+                }
+            }
             break;
         }
 
