@@ -310,7 +310,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
             #endif
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
         Output(OUTPUT_INFO, "dpi: %f", dpi);
-        screensize = desired_screensize * dpi / default_dpi;
+        screensize = desired_screensize * int(dpi) / int(default_dpi);
         _sdl_window = SDL_CreateWindow(title,
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        screensize.x(), screensize.y(),

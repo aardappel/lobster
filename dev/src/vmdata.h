@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "il.h"
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "bytecode_generated.h"
 
 namespace lobster {

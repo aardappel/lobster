@@ -66,3 +66,5 @@
 /lobster/lobster_linux
 /lobster/lobster_cmake
 
+
+dev/compiled_lobster/src/compiled_lobster\.cpp

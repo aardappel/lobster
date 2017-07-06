@@ -650,7 +650,7 @@ struct SymbolTable {
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
             fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
             fbb.CreateVector(speclogvars));
-        fbb.Finish(bcf);
+        bytecode::FinishBytecodeFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };
