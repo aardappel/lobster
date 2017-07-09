@@ -93,7 +93,8 @@ namespace lobster {
     TOK(T_RESOURCE, "resource") \
     TOK(T_ENUM, "enum") \
     TOK(T_VAR, "var") \
-    TOK(T_CONST, "const")
+    TOK(T_CONST, "const") \
+    TOK(T_PAKFILE, "pakfile")
 
 enum TType {
     #define TOK(ENUM, STR) ENUM,

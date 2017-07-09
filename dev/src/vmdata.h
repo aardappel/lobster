@@ -549,7 +549,7 @@ struct VM {
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts;
 
-    vector<uchar> bytecode_buffer;
+    string bytecode_buffer;
     const bytecode::BytecodeFile *bcf;
 
     PrintPrefs programprintprefs;
@@ -578,7 +578,7 @@ struct VM {
 
     const void *compiled_code_ip;
 
-    VM(const char *_pn, vector<uchar> &&_bytecode_buffer, const void *entry_point,
+    VM(const char *_pn, string &&_bytecode_buffer, const void *entry_point,
        const void *static_bytecode);
     ~VM();
 

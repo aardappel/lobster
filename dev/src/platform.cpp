@@ -41,9 +41,6 @@
 #include <android/log.h>
 #endif
 
-#include "sdlincludes.h"
-#include "sdlinterface.h"
-
 // Main dir to load files relative to, on windows this is where lobster.exe resides, on apple
 // platforms it's the Resource folder in the bundle.
 string datadir;
@@ -52,6 +49,8 @@ string datadir;
 string auxdir;
 // Folder to write to, usually the same as auxdir, special folder on mobile platforms.
 string writedir;
+
+FileLoader cur_loader = nullptr;
 
 string StripFilePart(const char *filepath) {
     auto fpos = strrchr(filepath, FILESEP);
@@ -64,7 +63,9 @@ string StripDirPart(const char *filepath) {
     return fpos ? fpos + 1 : filepath;
 }
 
-bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle) {
+bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+                      FileLoader loader) {
+    cur_loader = loader;
     datadir = StripFilePart(exefilepath);
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
     writedir = auxdir;
@@ -91,6 +92,8 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool fro
             #endif
         }
     #elif defined(__ANDROID__)
+        // FIXME: removed SDL dependency for other platforms. So on Android, move calls to
+        // SDL_AndroidGetInternalStoragePath into SDL and pass the results into here somehow.
         SDL_Init(0); // FIXME: Is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
@@ -117,18 +120,39 @@ string SanitizePath(const char *path) {
     return r;
 }
 
-uchar *LoadFilePlatform(const char *absfilename, size_t *lenret) {
-    return SDLLoadFile(absfilename, lenret);
-    //return loadfile(absfilename, lenret);
+map<string, tuple<string, int64_t, int64_t, int64_t>> pakfile_registry;
+
+void AddPakFileEntry(const char *pakfilename, const char *relfilename, int64_t off,
+                     int64_t len, int64_t uncompressed) {
+    pakfile_registry[relfilename] = make_tuple(pakfilename, off, len, uncompressed);
 }
 
-uchar *LoadFile(const char *relfilename, size_t *lenret) {
+int64_t LoadFile(const char *relfilename, string *dest, int64_t start, int64_t len) {
+    assert(cur_loader);
+    auto it = pakfile_registry.find(relfilename);
+    if (it != pakfile_registry.end()) {
+        auto l = cur_loader((datadir + get<0>(it->second)).c_str(), dest, get<1>(it->second),
+                              get<2>(it->second));
+        if (l >= 0) {
+            auto uncompressed = get<3>(it->second);
+            if (uncompressed >= 0) {
+                string uncomp;
+                WEntropyCoder<false>((const uchar *)dest->c_str(), dest->length(),
+                                     (size_t)uncompressed, uncomp);
+                dest->swap(uncomp);
+                return uncompressed;
+            } else {
+                return l;
+            }
+        }
+    }
+    if (len > 0) Output(OUTPUT_INFO, "load: %s", relfilename);
     auto srfn = SanitizePath(relfilename);
-    auto f = LoadFilePlatform((datadir + srfn).c_str(), lenret);
-    if (f) return f;
-    f = LoadFilePlatform((auxdir + srfn).c_str(), lenret);
-    if (f) return f;
-    return LoadFilePlatform((writedir + srfn).c_str(), lenret);
+    auto l = cur_loader((auxdir + srfn).c_str(), dest, start, len);
+    if (l >= 0) return l;
+    l = cur_loader((datadir + srfn).c_str(), dest, start, len);
+    if (l >= 0) return l;
+    return cur_loader((writedir + srfn).c_str(), dest, start, len);
 }
 
 FILE *OpenForWriting(const char *relfilename, bool binary) {
@@ -143,6 +167,55 @@ bool WriteFile(const char *relfilename, bool binary, const char *data, size_t le
         fclose(f);
     }
     return written == 1;
+}
+
+bool ScanDirAbs(const char *absdir, vector<pair<string, int64_t>> &dest) {
+    string folder = SanitizePath(absdir);
+    #ifdef _WIN32
+        WIN32_FIND_DATA fdata;
+        HANDLE fh = FindFirstFile((folder + "\\*.*").c_str(), &fdata);
+        if (fh != INVALID_HANDLE_VALUE) {
+            do {
+                if (strcmp(fdata.cFileName, ".") && strcmp(fdata.cFileName, "..")) {
+                    ULONGLONG size =
+                        (static_cast<ULONGLONG>(fdata.nFileSizeHigh) << (sizeof(uint) * 8)) |
+                        fdata.nFileSizeLow;
+                    dest.push_back(
+                        make_pair(fdata.cFileName,
+                                  fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
+                                      ? -1
+                                      : (int64_t)size));
+                }
+            }
+            while(FindNextFile(fh, &fdata));
+            FindClose(fh);
+            return true;
+        }
+    #elif !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
+        glob_t gl;
+        string mask = folder + "/*";
+        if (!glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) {
+            for (size_t fi = 0; fi < gl.gl_pathc; fi++) {
+                string xFileName = gl.gl_pathv[fi];
+                bool isDir = xFileName[xFileName.length()-1] == '/';
+                if (isDir) xFileName = xFileName.substr(0, xFileName.length() - 1);
+                string cFileName = xFileName.substr(xFileName.find_last_of('/') + 1);
+                struct stat st;
+                stat(gl.gl_pathv[fi], &st);
+                dest.push_back(make_pair(cFileName.c_str(), isDir ? -1 : (int64_t)st.st_size));
+            }
+            globfree(&gl);
+            return true;
+        }
+    #endif
+    return false;
+}
+
+bool ScanDir(const char *reldir, vector<pair<string, int64_t>> &dest) {
+    auto srfn = SanitizePath(reldir);
+    return ScanDirAbs((auxdir + srfn).c_str(), dest) ||
+           ScanDirAbs((datadir + srfn).c_str(), dest) ||
+           ScanDirAbs((writedir + srfn).c_str(), dest);
 }
 
 OutputType min_output_level = OUTPUT_WARN;
@@ -167,7 +240,7 @@ void Output(OutputType ot, const char *msg, ...) {
         OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
-        if (ot >= OUTPUT_WARN) printf("%s\n", buf);
+        if (ot >= OUTPUT_INFO) printf("%s\n", buf);
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
         IOSLog(msg);  // FIXME: args?
@@ -207,17 +280,17 @@ void MsgBox(const char *err) {
     }
 #endif
 
-LARGE_INTEGER freq, start;
+static LARGE_INTEGER time_frequency, time_start;
 
 void InitTime() {
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&start);
+    QueryPerformanceFrequency(&time_frequency);
+    QueryPerformanceCounter(&time_start);
 }
 
 double SecondsSinceStart() {
     LARGE_INTEGER end;
     QueryPerformanceCounter(&end);
-    return double(end.QuadPart - start.QuadPart) / double(freq.QuadPart);
+    return double(end.QuadPart - time_start.QuadPart) / double(time_frequency.QuadPart);
 }
 
 // Use this instead of assert to break on a condition and still be able to continue in the debugger.
@@ -277,3 +350,4 @@ string GetDateTime() {
     strftime(buf, sizeof(buf), "%F-%H-%M-%S", tm);
     return buf;
 }
+

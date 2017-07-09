@@ -310,26 +310,23 @@ void AddCubeGen() {
         "returns the new texture");
 
     STARTDECL(cg_load_vox) (Value &name) {
-        size_t len = 0;
         auto namep = name.sval()->str();
-        auto buf = LoadFile(namep, &len);
+        string buf;
+        auto l = LoadFile(namep, &buf);
         name.DECRT();
-        if (!buf) return Value(0);
-        if (strncmp((char *)buf, "VOX ", 4)) {
-            free(buf);
-            return Value();
-        }
+        if (l < 0) return Value(0);
+        if (strncmp(buf.c_str(), "VOX ", 4)) return Value();
         int3 size = int3_0;
         Voxels *voxels = nullptr;
-        auto p = buf + 8;
-        while (p < buf + len) {
+        auto p = buf.c_str() + 8;
+        while (p < buf.c_str() + buf.length()) {
             auto id = p;
             p += 4;
             auto contentlen = *((int *)p);
             p += 8;
-            if (!strncmp((char *)id, "SIZE", 4)) {
+            if (!strncmp(id, "SIZE", 4)) {
                 size = int3((int *)p);
-            } else if (!strncmp((char *)id, "RGBA", 4)) {
+            } else if (!strncmp(id, "RGBA", 4)) {
                 assert(voxels);
                 voxels->palette.clear();
                 voxels->palette.push_back(byte4_0);
@@ -340,7 +337,7 @@ void AddCubeGen() {
                         break;
                     }
                 }
-            } else if (!strncmp((char *)id, "XYZI", 4)) {
+            } else if (!strncmp(id, "XYZI", 4)) {
                 assert(size.x());
                 voxels = NewWorld(size);
                 auto numvoxels = *((int *)p);
@@ -351,7 +348,6 @@ void AddCubeGen() {
             }
             p += contentlen;
         }
-        free(buf);
         return Value(g_vm->NewResource(voxels, &voxel_type));
     }
     ENDDECL1(cg_load_vox, "name", "S", "X?",

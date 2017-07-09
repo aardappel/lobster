@@ -161,13 +161,12 @@ OutlineFont *LoadFont(const char *name) {
     FT_Error err = 0;
     if (!library) err = FT_Init_FreeType(&library);
     if (!err) {
-        size_t len = 0;
-        auto fbuf = LoadFile(name, &len);
-        if (fbuf) {
+        string fbuf;
+        if (LoadFile(name, &fbuf) >= 0) {
             FT_Face face;
-            err = FT_New_Memory_Face(library, fbuf, (FT_Long)len, 0, &face);
+            err = FT_New_Memory_Face(library, (const FT_Byte *)fbuf.c_str(), (FT_Long)fbuf.length(),
+                                     0, &face);
             if (!err) return new OutlineFont(face, fbuf);
-            free(fbuf);
         }
     }
     return nullptr;
@@ -175,7 +174,6 @@ OutlineFont *LoadFont(const char *name) {
 
 OutlineFont::~OutlineFont() {
     FT_Done_Face((FT_Face)fthandle);
-    free(fbuf);
 }
 
 bool OutlineFont::EnsureCharsPresent(const char *utf8str) {

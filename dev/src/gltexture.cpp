@@ -109,14 +109,12 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
 
 uint CreateTextureFromFile(const char *name, int2 &dim, int tf) {
     tf &= ~TF_FLOAT;  // Not supported yet.
-    size_t len = 0;
-    auto fbuf = LoadFile(name, &len);
-    if (!fbuf)
+    string fbuf;
+    if (LoadFile(name, &fbuf) < 0)
         return 0;
     int x, y, comp;
-    auto buf = stbi_load_from_memory(fbuf, (int)len, &x, &y, &comp, 4);
+    auto buf = stbi_load_from_memory((uchar *)fbuf.c_str(), (int)fbuf.length(), &x, &y, &comp, 4);
     dim = int2(x, y);
-    free(fbuf);
     if (!buf)
         return 0;
     uint id = CreateTexture(buf, dim.data(), tf);

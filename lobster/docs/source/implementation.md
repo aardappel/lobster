@@ -212,13 +212,22 @@ While the above instructions will build you the lobster executable, to
 distribute a Lobster program to others, you will need to distribution files.
 These must be (including correct paths):
 
--   `default.lbc` (this is the Lobster bytecode file you obtain from compiling
-    your program with the `-b` option).
+-   `default.lpak`. This is the Lobster pakfile file you obtain from compiling
+    your program with the `-b` option, it includes:
 
--   `shaders/default.materials` (these are the minimum shader definitions needed
-    for to render anything).
+    -   The bytecode.
 
--   `mypath/myfile.png` (for any file references in your Lobster code like
+    -   `shaders/default.materials` (these are the minimum shader definitions
+        needed for to render anything, and is implicitly loaded by `gl_window`).
+
+    -   Any other files/directories you have specified with `pakfile`, e.g:
+        `gl_loadtexture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
+        filenames or directories (ending in `/`), in which case all files in the
+        directory will (non-recursively) be added. When running with `--verbose`
+        you can see what files are added/loaded from a pakfile, and which are
+        loaded individually.
+
+-   Any files your code references that are not in the pakfile (e.g.
     `gl_loadtexture(”mypath/myfile.png”)` ).
 
 Where you place these files depends on the platform, on Windows / Linux it is

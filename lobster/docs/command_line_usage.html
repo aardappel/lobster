@@ -21,7 +21,7 @@
 <h2 id="command-line-options">Command line options</h2>
 <p>These can be passed to lobster anywhere on the command line.</p>
 <ul>
-<li><p><code>-b</code> : generates a bytecode file (currently always called &quot;<code>default.lbc</code>&quot;) in the same folder as the <code>.lobster</code> file it reads, and doesn't run the program afterwards. If you run lobster with no arguments at all, it will try to load &quot;<code>default.lbc</code>&quot; from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a bytecode file and any data files it may use.</p></li>
+<li><p><code>-b</code> : generates a pakfile (currently always called &quot;<code>default.lpak</code>&quot;) in the same folder as the <code>.lobster</code> file it reads, and doesn't run the program afterwards. If you run lobster with no arguments at all, it will try to load &quot;<code>default.lpak</code>&quot; from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a pakfile. The pakfile contains the bytecode, and any data files you have specified with the <code>pakfile</code> keyword, see “Distributing Lobster programs” in the implementation documentation.</p></li>
 <li><p><code>--to-cpp</code> : compiles to a .cpp file. Useful if you’ve created something in Lobster that could use a bit more speed, for a shipping build. Not recommend to be used during development. See <a href="implementation.html">implementation</a> on how to compile the resulting code.</p></li>
 <li><p><code>-w</code> : makes the compiler wait for commandline input before it exits. Useful on Windows.</p></li>
 <li><p><code>-c</code> : (deprecated, this should now be automatically detected). <em>forces lobster into &quot;command line&quot; mode. This is useful on Apple platforms where by default lobster expects to be run from within an app bundle. With this option, it will not try to look for files in an app bundle, but instead functions much like Windows &amp; Linux.</em></p></li>
@@ -37,7 +37,7 @@
 <li><p>the directory for writing files: the same as auxiliary on desktop platforms, but often a special directory on mobile platforms.</p></li>
 </ul>
 <p>Additionally, if any of these folders contains an &quot;<code>include</code>&quot; directory, it will load source code from there as well.</p>
-<p>Any of the Lobster builtin commands that load data files specify paths relative to either the main or auxiliary directories (and either / or  may be used as path separators). If you package up a Lobster program for distribution, in addition to the executable, the bytecode file and any data files referenced in this way, you'll need <code>shaders/default.materials</code> which is implicitly loaded by <code>gl_window</code>.</p>
+<p>Any of the Lobster builtin commands that load data files specify paths relative to either the main or auxiliary directories (and either / or  may be used as path separators). If you package up a Lobster program for distribution, all these files can be packed into a pakfile, see <code>-b</code>.</p>
 <h2 id="output">Output</h2>
 <p>Running lobster may result in a compiler error, that generally look something like this:</p>
 <pre><code>mygame.lobster(960): error: unknown identifier: highscor</code></pre>

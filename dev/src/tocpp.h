@@ -57,9 +57,9 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     return arity;
 }
 
-void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
+void ToCPP(string &s, const string &bytecode_buffer) {
     int dispatch = VM_DISPATCH_METHOD;
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
+    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.c_str());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     //auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
@@ -265,8 +265,8 @@ void ToCPP(string &s, const uchar *bytecode_buffer, size_t bytecode_len) {
     // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
     // in fact, it be nice if those were in readable format in the generated code.
     s += "\nstatic const int bytecodefb[] =\n{";
-    auto bytecode_ints = (const int *)bytecode_buffer;
-    for (size_t i = 0; i < bytecode_len / sizeof(int); i++) {
+    auto bytecode_ints = (const int *)bytecode_buffer.c_str();
+    for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
         if ((i & 0xF) == 0) s += "\n  ";
         s += to_string(bytecode_ints[i]);
         s += ", ";

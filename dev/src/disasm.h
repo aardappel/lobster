@@ -222,8 +222,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
     return ip;
 }
 
-void DisAsm(string &s, const uchar *bytecode_buffer) {
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer);
+void DisAsm(string &s, const string &bytecode_buffer) {
+    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.c_str());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.

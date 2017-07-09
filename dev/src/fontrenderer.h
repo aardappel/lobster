@@ -18,11 +18,11 @@ struct BitmapFont;
 
 struct OutlineFont {
     void *fthandle;
-    void *fbuf;
+    string fbuf;
     unordered_map<int, int> unicodemap;
     vector<int> unicodetable;
 
-    OutlineFont(void *fth, void *fb) : fthandle(fth), fbuf(fb) {}
+    OutlineFont(void *fth, string &fb) : fthandle(fth) { fbuf.swap(fb); }
     ~OutlineFont();
 
     bool EnsureCharsPresent(const char *utf8str);

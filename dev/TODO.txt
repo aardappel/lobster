@@ -1,5 +1,11 @@
 - in a struct foo { a:float = 1.0 } allow the :float to be left out
 
+- compile-time lobster execution would be super simple: simply allow a string that contains
+  lobster code, spin up a VM to eval it, and insert its result back in the code.
+  print eval "1 + 2" would actuall compile: print 3
+
+- some form or switch or pattern match facility?
+
 - Should consider to allow on-the fly data structures as well.
   Writing new_type { field1: val, field2: val } would add such specialization to new_type even
   if it doesn't exist yet.
@@ -85,8 +91,6 @@
 - Builtin calls that return no value are followed by IL_POPREF, would be better IL_POP or nothing
   at all.
 
-- some form or switch or pattern match facility?
-
 - Make loadtexturecached into something using a generic map. But to declare it, need to be
   able to specify generic vectors in struct decls.
 
@@ -108,15 +112,6 @@
   Currently doesn't work, because we can't change how val is coerced.
   But simple widenings should be possible.
   Also currently no way to specify return types, so having to write val or nil is clumsy
-
-- have some way to pack all loaded files into the bytecode file, to simplify distribution of lobster
-  programs.
-  This would require the compiler to know all files that are going to be needed (though it will fall-back on normal loading
-  for unknown files).
-  1) could spit out a list of files loaded during a run, that is then used on the next compile. simple, but clumsy
-     and potentially fragile.
-  2) make it a compile feature by pre-fixing strings that are filenames with some kind of keyword, so they can be collected.
-     this does mean they cannot be constructed which kinda sucks. Maybe can allow patterns to expand to vectors somehow?
 
 - this crashes on += in codegen:
   team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
@@ -641,6 +636,19 @@
   lot of the combined benefits.. the only thing we lose is not being able to be a plug-in language
   alternatively, we can make on-demand init of SDL a bit more modular, so that it can be called upon when threading is
   needed etc.
+
+  Ideally the dependency graph is:
+  base <- engine    <- bindings <- main
+       ^- compiler  <-/
+  So someone can use just the compiler without the engine.
+  A simplified version would just be (this is the current situation):
+  compiler <- engine <- main
+  In VS, the language project compiles without needing SDL or anything beyond stdlib, we
+  should keep it that way
+  The usefulness of being able to use the engine without the compiler is low.
+  Engines are a dime a dozen, and this one is not particularly featureful, and quite specific to
+  its bindings. If you really ever wanted to do a C++ project with this engine and without
+  using Lobster, the fact that the compiler is compiled in doesn't hurt anyone.
 
 - some kind of profiler:
   - measure instruction inside named function

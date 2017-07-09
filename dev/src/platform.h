@@ -13,17 +13,30 @@
 // limitations under the License.
 
 // Platform independent file access:
+typedef int64_t (* FileLoader)(const char *absfilename, string *dest, int64_t start, int64_t len);
 
 extern string StripFilePart(const char *filepath);
 extern string StripDirPart(const char *filepath);
 
 // Call this at init to determine default folders to load stuff from.
-extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle);
+extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+                             FileLoader loader);
 
-extern uchar *LoadFile(const char *relfilename, size_t *len = nullptr);
+// Read all or part of a file.
+// To read the whole file, pass -1 for len.
+// To just obtain the file length but don't do any reading, pass 0 for len.
+// Returns file length or read length, or -1 if failed.
+extern int64_t LoadFile(const char *relfilename, string *dest, int64_t start = 0, int64_t len = -1);
+
 extern FILE *OpenForWriting(const char *relfilename, bool binary);
 extern bool WriteFile(const char *relfilename, bool binary, const char *data, size_t len);
 extern string SanitizePath(const char *path);
+
+extern void AddPakFileEntry(const char *pakfilename, const char *relfilename, int64_t off,
+                            int64_t len, int64_t uncompressed);
+
+extern bool ScanDir(const char *reldir, vector<pair<string, int64_t>> &dest);
+extern bool ScanDirAbs(const char *absdir, vector<pair<string, int64_t>> &dest);
 
 // Logging:
 

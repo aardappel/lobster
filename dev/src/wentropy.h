@@ -21,13 +21,13 @@
 // not the fastest possible implementation (only 40MB/sec for either compression or decompression
 // on a modern pc), but should be sufficient for many uses
 //
-// uses std::vector and std::swap as its only external dependencies for simplicity, but could made
+// uses std::string and std::swap as its only external dependencies for simplicity, but could made
 // to not rely on them relatively easily.
 
 template<bool compress> void WEntropyCoder(const unsigned char *in,
                                            size_t inlen,    // Size of input.
                                            size_t origlen,  // Uncompressed size.
-                                           vector<unsigned char> &out) {
+                                           string &out) {
     const int NSYM = 256;     // This depends on the fact we're reading from unsigned chars.
     int symbol[NSYM];         // The symbol in this slot. Adaptively sorted by frequency.
     size_t freq[NSYM];        // Its frequency.

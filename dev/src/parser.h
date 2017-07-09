@@ -23,6 +23,7 @@ struct Parser {
     struct ForwardFunctionCall { string idname; size_t maxscopelevel; Call *n; };
     vector<ForwardFunctionCall> forwardfunctioncalls;
     bool call_noparens;
+    set<string> pakfiles;
 
     Parser(const char *_src, SymbolTable &_st, char *_stringsource)
         : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), call_noparens(false) {}
@@ -1041,6 +1042,13 @@ struct Parser {
                 string idname = lex.sattr;
                 lex.Next();
                 return IdentFactor(idname);
+            }
+            case T_PAKFILE: {
+                lex.Next();
+                string s = lex.sattr;
+                Expect(T_STR);
+                pakfiles.insert(s);
+                return new StringConstant(lex, s);
             }
             default:
                 Error("illegal start of expression: " + lex.TokStr());

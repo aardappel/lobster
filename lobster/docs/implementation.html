@@ -84,9 +84,13 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j4</code></pre>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>
-<li><p><code>default.lbc</code> (this is the Lobster bytecode file you obtain from compiling your program with the <code>-b</code> option).</p></li>
-<li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything).</p></li>
-<li><p><code>mypath/myfile.png</code> (for any file references in your Lobster code like <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
+<li><p><code>default.lpak</code>. This is the Lobster pakfile file you obtain from compiling your program with the <code>-b</code> option, it includes:</p>
+<ul>
+<li><p>The bytecode.</p></li>
+<li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything, and is implicitly loaded by <code>gl_window</code>).</p></li>
+<li><p>Any other files/directories you have specified with <code>pakfile</code>, e.g: <code>gl_loadtexture(pakfile ”mypath/myfile.png”)</code>. <code>pakfile</code> can prefix filenames or directories (ending in <code>/</code>), in which case all files in the directory will (non-recursively) be added. When running with <code>--verbose</code> you can see what files are added/loaded from a pakfile, and which are loaded individually.</p></li>
+</ul></li>
+<li><p>Any files your code references that are not in the pakfile (e.g. <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
 </ul>
 <p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk, and with emscripten there’s an assets directory also.</p>
 <h2 id="compiling-lobster-code-to-c">Compiling Lobster code to C++</h2>

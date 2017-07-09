@@ -257,10 +257,9 @@ string ParseMaterialFile(char *mbuf) {
 }
 
 string LoadMaterialFile(const char *mfile) {
-    auto mbuf = (char *)LoadFile(mfile);
-    if (!mbuf) return string("cannot load material file: ") + mfile;
-    auto err = ParseMaterialFile(mbuf);
-    free(mbuf);
+    string mbuf;
+    if (LoadFile(mfile, &mbuf) < 0) return string("cannot load material file: ") + mfile;
+    auto err = ParseMaterialFile((char *)mbuf.c_str());
     return err;
 }
 

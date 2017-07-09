@@ -623,7 +623,7 @@ struct SymbolTable {
                    vector<bytecode::SpecIdent> &sids,
                    vector<const char *> &stringtable,
                    vector<int> &speclogvars,
-                   vector<uchar> &bytecode) {
+                   string &bytecode) {
         flatbuffers::FlatBufferBuilder fbb;
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f));

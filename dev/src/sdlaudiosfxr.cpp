@@ -147,128 +147,97 @@ void ResetParams() {
     p_arp_mod=0.0f;
 }
 
-void fread_mem(void *dest, int s1, int s2, uchar *&file) {
+void fread_mem(void *dest, int s1, int s2, const char *&file) {
     memcpy(dest, file, s1 * s2);
     file += s1 * s2;
 }
 
 struct Sound {
     bool sfxr;
-    uchar *buf;
-    size_t len;
+    string buf;
 };
 
 unordered_map<string, Sound> sound_files;
-Sound cursnd;
-uchar *cursndpos;
+Sound *cursnd = nullptr;
+const char *cursndpos = nullptr;
 
 SDL_AudioSpec playbackspec;
 
 bool LoadSound(const char* filename, bool sfxr) {
     auto it = sound_files.find(filename);
-    Sound snd;
-
     if (it == sound_files.end()) {
-        size_t len = 0;
-        uchar *buf = LoadFile(filename, &len);
-        if (!buf)
+        Sound snd;
+
+        if (LoadFile(filename, &snd.buf) < 0)
             return false;
 
-        if (sfxr) {
-            snd.buf = buf;
-            snd.len = len;
-        } else {
+        if (!sfxr) {
             SDL_AudioSpec wav_spec;
             Uint32 wav_len;
-            auto wav_spec_ret = SDL_LoadWAV_RW(SDL_RWFromMem(buf, (int)len), true, &wav_spec, &snd.buf, &wav_len);
-
-            free(buf);
-
-            if (!wav_spec_ret)
-                return false;
-
-            snd.len = wav_len;
-
-            SDL_AudioCVT  wav_cvt;
+            Uint8 *wav_buf;
+            auto rwops = SDL_RWFromMem((void *)snd.buf.c_str(), (int)snd.buf.length());
+            if (!rwops) return false;
+            auto wav_spec_ret = SDL_LoadWAV_RW(rwops, true, &wav_spec, &wav_buf, &wav_len);
+            SDL_RWclose(rwops);
+            if (!wav_spec_ret) return false;
+            snd.buf.assign((char *)wav_buf, (size_t)wav_len);
+            SDL_FreeWAV(wav_buf);
+            SDL_AudioCVT wav_cvt;
             int ret = SDL_BuildAudioCVT(&wav_cvt,
                         wav_spec.format, wav_spec.channels, wav_spec.freq,
                         playbackspec.format, playbackspec.channels, playbackspec.freq);
-
-            if (ret < 0) {
-                SDL_FreeWAV(snd.buf);
-                return false;
-            }
-
+            if (ret < 0) return false;
             if (ret) {
-                wav_cvt.buf = (uchar *)malloc(snd.len * wav_cvt.len_mult);
-                wav_cvt.len = (int)snd.len;
-                memcpy(wav_cvt.buf, snd.buf, snd.len);
-
-                SDL_FreeWAV(snd.buf);
-
+                auto len = snd.buf.length();
+                snd.buf.resize(len * wav_cvt.len_mult);
+                wav_cvt.buf = (uchar *)snd.buf.c_str();
+                wav_cvt.len = (int)len;
                 SDL_ConvertAudio(&wav_cvt);
-
-                snd.buf = wav_cvt.buf;
-                // caution: len is not size of buffer anymore, but size of valid data..
-                // that works ok with SDL_FreeWAV/free
-                snd.len = size_t(wav_cvt.len * wav_cvt.len_ratio);
+                snd.buf.resize(size_t(wav_cvt.len * wav_cvt.len_ratio));
+                snd.buf.shrink_to_fit();
             }
         }
-
         snd.sfxr = sfxr;
-
-        sound_files[filename] = snd;
+        cursnd = &(sound_files[filename] = std::move(snd));
     } else {
-        snd = it->second;
-
-        if (sfxr != snd.sfxr)   // wav file and sfxr file with same name? should be very rare :)
+        cursnd = &it->second;
+        // wav file and sfxr file with same name? should be very rare :)
+        if (sfxr != cursnd->sfxr)
             return false;
     }
-
     if (sfxr) {
-        uchar *file = snd.buf;
-
+        auto file = cursnd->buf.c_str();
         int version = 0;
         fread_mem(&version, 1, sizeof(int), file);
         if(version!=102)
             return false;
-
         fread_mem(&wave_type, 1, sizeof(int), file);
-
         fread_mem(&sound_vol, 1, sizeof(float), file);
-
         fread_mem(&p_base_freq, 1, sizeof(float), file);
         fread_mem(&p_freq_limit, 1, sizeof(float), file);
         fread_mem(&p_freq_ramp, 1, sizeof(float), file);
         fread_mem(&p_freq_dramp, 1, sizeof(float), file);
         fread_mem(&p_duty, 1, sizeof(float), file);
         fread_mem(&p_duty_ramp, 1, sizeof(float), file);
-
         fread_mem(&p_vib_strength, 1, sizeof(float), file);
         fread_mem(&p_vib_speed, 1, sizeof(float), file);
         fread_mem(&p_vib_delay, 1, sizeof(float), file);
-
         fread_mem(&p_env_attack, 1, sizeof(float), file);
         fread_mem(&p_env_sustain, 1, sizeof(float), file);
         fread_mem(&p_env_decay, 1, sizeof(float), file);
         fread_mem(&p_env_punch, 1, sizeof(float), file);
-
         fread_mem(&filter_on, 1, sizeof(bool), file);
         fread_mem(&p_lpf_resonance, 1, sizeof(float), file);
         fread_mem(&p_lpf_freq, 1, sizeof(float), file);
         fread_mem(&p_lpf_ramp, 1, sizeof(float), file);
         fread_mem(&p_hpf_freq, 1, sizeof(float), file);
         fread_mem(&p_hpf_ramp, 1, sizeof(float), file);
-
         fread_mem(&p_pha_offset, 1, sizeof(float), file);
         fread_mem(&p_pha_ramp, 1, sizeof(float), file);
         fread_mem(&p_repeat_speed, 1, sizeof(float), file);
         fread_mem(&p_arp_speed, 1, sizeof(float), file);
         fread_mem(&p_arp_mod, 1, sizeof(float), file);
     }
-
-    cursnd = snd;
-
     return true;
 }
 
@@ -482,7 +451,7 @@ void SynthSample(int length, float* buffer, FILE* file) {
 
 static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len) {
     if (playing_sample) {
-        if (cursnd.sfxr) {
+        if (cursnd->sfxr) {
             uint l = len/2;
             float *fbuf = new float[l];
             memset(fbuf, 0, sizeof(float)*l);
@@ -495,11 +464,12 @@ static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len) {
             }
             delete[] fbuf;
         } else {
-            size_t amount = min((size_t)len, cursnd.len - (cursndpos - cursnd.buf));
+            size_t amount = min((size_t)len,
+                                cursnd->buf.length() - (cursndpos - cursnd->buf.c_str()));
             memcpy(stream, cursndpos, amount);
             memset(stream + amount, 0, len - amount);
             cursndpos += amount;
-            if (cursndpos == cursnd.buf + cursnd.len)
+            if (cursndpos == cursnd->buf.c_str() + cursnd->buf.length())
                 playing_sample = false;
         }
     } else {
@@ -544,11 +514,6 @@ bool SDLSoundInit() {
 void SDLSoundClose() {
     if (audioid) SDL_PauseAudioDevice(audioid, 1);
 
-    for (auto &it : sound_files) {
-        Sound &snd = it.second;
-        if (snd.sfxr) free(snd.buf);
-        else SDL_FreeWAV(snd.buf);
-    }
     sound_files.clear();
 
     if (audioid) SDL_CloseAudioDevice(audioid);
@@ -566,10 +531,10 @@ bool SDLPlaySound(const char *filename, bool sfxr) {
     ResetParams();
     bool ok = SDLSoundInit() && LoadSound(filename, sfxr);
     if (ok) {
-        if (cursnd.sfxr) {
+        if (cursnd->sfxr) {
             ResetSample(false);
         } else {
-            cursndpos = cursnd.buf;
+            cursndpos = cursnd->buf.c_str();
         }
         SDL_PauseAudioDevice(audioid, 0);
         playing_sample=true;

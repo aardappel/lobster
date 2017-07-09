@@ -24,7 +24,8 @@ struct Line {
 };
 
 struct LoadedFile : Line {
-    char *p, *linestart, *tokenstart, *source, *stringsource;
+    const char *p, *linestart, *tokenstart, *stringsource;
+    shared_ptr<string> source;
     TType token;
     int errorline;  // line before, if current token crossed a line
     bool islf;
@@ -43,23 +44,22 @@ struct LoadedFile : Line {
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
         : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss), token(T_NONE),
-          errorline(1), islf(false), cont(false), whitespacebefore(0),
+          errorline(1), islf(false), cont(false), whitespacebefore(0), source(new string()),
           prevline(nullptr), prevlinetok(nullptr)
           /* prevlineindenttype(0) */ {
-        source = stringsource;
-        if (!source) source = (char *)LoadFile((string("include/") + fn).c_str());
-        if (!source) source = (char *)LoadFile(fn);
-        if (!source) throw string("can't open file: ") + fn;
-
-        linestart = p = source;
+        if (stringsource) {
+            linestart = p = stringsource;
+        } else {
+            if (LoadFile((string("include/") + fn).c_str(), source.get()) < 0 &&
+                LoadFile(fn, source.get()) < 0) {
+                throw string("can't open file: ") + fn;
+            }
+            linestart = p = source.get()->c_str();
+        }
 
         indentstack.push_back(make_pair(0, false));
 
         fns.push_back(fn);
-    }
-
-    void Clean() {
-        if (source && source != stringsource) free(source);
     }
 };
 
@@ -72,10 +72,6 @@ struct Lex : LoadedFile {
     Lex(const char *fn, vector<string> &fns, char *_ss = nullptr)
         : LoadedFile(fn, fns, _ss), filenames(fns) {
         FirstToken();
-    }
-
-    ~Lex() {
-        Clean();
     }
 
     void FirstToken() {
@@ -95,7 +91,6 @@ struct Lex : LoadedFile {
     }
 
     void PopIncludeContinue() {
-        Clean();
         *((LoadedFile *)this) = parentfiles.back();
         parentfiles.pop_back();
         Next();
@@ -303,6 +298,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "typeof")    return T_TYPEOF;
                     else if (sattr == "var")       return T_VAR;
                     else if (sattr == "const")     return T_CONST;
+                    else if (sattr == "pakfile")   return T_PAKFILE;
                     else if (sattr == "not")       return T_NOT;
                     else if (sattr == "and")       { cont = true; return T_AND; }
                     else if (sattr == "or")        { cont = true; return T_OR; }

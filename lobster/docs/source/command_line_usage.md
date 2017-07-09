@@ -20,12 +20,14 @@ Command line options
 
 These can be passed to lobster anywhere on the command line.
 
--   `-b` : generates a bytecode file (currently always called "`default.lbc`")
-    in the same folder as the `.lobster` file it reads, and doesn't run the
-    program afterwards. If you run lobster with no arguments at all, it will try
-    to load "`default.lbc`" from the same folder it resides in. Thus
-    distributing programs created in lobster is as simple as packaging up the
-    lobster executable with a bytecode file and any data files it may use.
+-   `-b` : generates a pakfile (currently always called "`default.lpak`") in the
+    same folder as the `.lobster` file it reads, and doesn't run the program
+    afterwards. If you run lobster with no arguments at all, it will try to load
+    "`default.lpak`" from the same folder it resides in. Thus distributing
+    programs created in lobster is as simple as packaging up the lobster
+    executable with a pakfile. The pakfile contains the bytecode, and any data
+    files you have specified with the `pakfile` keyword, see “Distributing
+    Lobster programs” in the implementation documentation.
 
 -   `--to-cpp` : compiles to a .cpp file. Useful if you’ve created something in
     Lobster that could use a bit more speed, for a shipping build. Not recommend
@@ -75,10 +77,8 @@ load source code from there as well.
 
 Any of the Lobster builtin commands that load data files specify paths relative
 to either the main or auxiliary directories (and either / or  may be used as
-path separators). If you package up a Lobster program for distribution, in
-addition to the executable, the bytecode file and any data files referenced in
-this way, you'll need `shaders/default.materials` which is implicitly loaded by
-`gl_window`.
+path separators). If you package up a Lobster program for distribution, all
+these files can be packed into a pakfile, see `-b`.
 
 Output
 ------

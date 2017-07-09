@@ -41,14 +41,14 @@ int main(int argc, char* argv[]) {
         bool parsedump = false;
         bool disasm = false;
         bool to_cpp = false;
-        const char *default_bcf = "default.lbc";
-        const char *bcf = nullptr;
+        const char *default_lpak = "default.lpak";
+        const char *lpak = nullptr;
         const char *fn = nullptr;
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ]\n"
-            "Compile & run FILE, or omit FILE to load default.lbc\n"
+            "Compile & run FILE, or omit FILE to load default.lpak\n"
             "-w                     Wait for input before exiting.\n"
-            "-b                     Compile to bytecode file, don't run.\n"
+            "-b                     Compile to pakfile, don't run.\n"
             "--to-cpp               Compile to C++ code, don't run.\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
             if (argv[arg][0] == '-') {
                 string a = argv[arg];
                 if (a == "-w") { wait = true; }
-                else if (a == "-b") { bcf = default_bcf; }
+                else if (a == "-b") { lpak = default_lpak; }
                 else if (a == "--to-cpp") { to_cpp = true; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
@@ -83,28 +83,33 @@ int main(int argc, char* argv[]) {
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
-        if (!SetupDefaultDirs(argv[0], fn, from_bundle))
+        if (!SetupDefaultDirs(argv[0], fn, from_bundle, SDLLoadFile))
             throw string("cannot find location to read/write data on this platform!");
-        vector<uchar> bytecode;
+        string bytecode;
         if (!fn) {
-            if (!LoadByteCode(default_bcf, bytecode))
+            if (!LoadPakDir(default_lpak))
                 throw "Lobster programming language compiler/runtime (version " __DATE__
-                      ")\nno arguments given - cannot load " + (default_bcf + helptext);
+                      ")\nno arguments given - cannot load " + (default_lpak + helptext);
+            // This will now come from the pakfile.
+            if (!LoadByteCode(bytecode))
+                throw string("Cannot load bytecode from pakfile!");
         } else {
             Output(OUTPUT_INFO, "compiling...");
             string dump;
-            Compile(StripDirPart(fn).c_str(), nullptr, bytecode, parsedump ? &dump : nullptr);
+            string pakfile;
+            Compile(StripDirPart(fn).c_str(), nullptr, bytecode, parsedump ? &dump : nullptr,
+                lpak ? &pakfile : nullptr);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump.c_str(), dump.length());
             }
-            if (bcf) {
-                SaveByteCode(bcf, bytecode);
+            if (lpak) {
+                WriteFile(lpak, true, (char *)pakfile.data(), pakfile.size());
                 return 0;
             }
         }
         if (disasm) {
             string s;
-            DisAsm(s, bytecode.data());
+            DisAsm(s, bytecode);
             WriteFile("disasm.txt", false, s.c_str(), s.length());
         }
         if (to_cpp) {
@@ -113,7 +118,7 @@ int main(int argc, char* argv[]) {
                             "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(), "w");
             if (f) {
                 string s;
-                ToCPP(s, bytecode.data(), bytecode.size());
+                ToCPP(s, bytecode);
                 fputs(s.c_str(), f);
                 fclose(f);
             }

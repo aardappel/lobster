@@ -41,7 +41,7 @@ extern bool SDLGrab(bool on);
 extern bool SDLPlaySound(const char *filename, bool sfxr);
 extern void SDLSoundClose();
 
-extern uchar *SDLLoadFile(const char *absfilename, size_t *len);
+extern int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_t len);
 
 extern bool ScreenShot(const char *filename);
 
@@ -54,7 +54,7 @@ extern void RegisterCoreEngineBuiltins();
 extern bool GraphicsFrameStart();
 extern void GraphicsShutDown();
 extern void EngineExit(int code);
-extern bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point,
+extern bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_point,
                               const void *static_bytecode);
 extern int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb);
 

@@ -71,6 +71,7 @@ static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *),
 #define nullptr nullptr
 
 // Our universally used headers.
+#include "wentropy.h"
 #include "platform.h"
 #include "tools.h"
 #include "slaballoc.h"

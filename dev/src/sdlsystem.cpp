@@ -612,19 +612,20 @@ bool SDLGrab(bool on) {
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
 
-uchar *SDLLoadFile(const char *absfilename, size_t *lenret) {
+int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_t len) {
     auto f = SDL_RWFromFile(absfilename, "rb");
-    if (!f) return nullptr;
-    auto len = (size_t)SDL_RWseek(f, 0, RW_SEEK_END);
-    SDL_RWseek(f, 0, RW_SEEK_SET);
-    uchar *buf = (uchar *)malloc(len + 1);
-    if (!buf) { SDL_RWclose(f); return nullptr; }
-    buf[len] = 0;
-    size_t rlen = (size_t)SDL_RWread(f, buf, 1, len);
+    if (!f) return -1;
+    auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);
+    if (!len) {  // Just the file length requested.
+        SDL_RWclose(f);
+        return filelen;
+    }
+    if (len < 0) len = filelen;
+    SDL_RWseek(f, start, RW_SEEK_SET);
+    dest->resize((size_t)len);
+    auto rlen = SDL_RWread(f, &(*dest)[0], 1, (size_t)len);
     SDL_RWclose(f);
-    if (len != rlen || len <= 0) { free(buf); return nullptr; }
-    if (lenret) *lenret = len;
-    return buf;
+    return len != (int64_t)rlen || !len ? -1 : len;
 }
 
 bool ScreenShot(const char *filename) {
@@ -687,7 +688,7 @@ void one_frame_callback() {
     }
 }
 
-bool EngineRunByteCode(const char *fn, vector<uchar> &&bytecode, const void *entry_point, const void *static_bytecode) {
+bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_point, const void *static_bytecode) {
     try {
         lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point, static_bytecode);
     }
@@ -726,10 +727,10 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
     InitTime();
 
     try {
-        SetupDefaultDirs("", "../../lobster/", false);  // FIXME
+        SetupDefaultDirs("", "../../lobster/", false, SDLLoadFile);  // FIXME
         RegisterCoreEngineBuiltins();
 
-        vector<uchar> empty;
+        string empty;
         if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb))
             return 0;  // Emscripten.
     }

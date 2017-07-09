@@ -141,7 +141,7 @@ template<class T> T getval(FILE *f) { T n; return fread(&n, 1, sizeof(n), f) == 
 template<class T> T getlil(FILE *f) { return lilswap(getval<T>(f)); }
 template<class T> T getbig(FILE *f) { return bigswap(getval<T>(f)); }
 
-static uchar *filebuffer = nullptr;
+static string filebuffer;
 static float *inposition = nullptr, *innormal = nullptr, *intangent = nullptr,
              *intexcoord = nullptr;
 static uchar *inblendindex = nullptr, *inblendweight = nullptr, *incolor = nullptr;
@@ -160,7 +160,7 @@ void cleanupiqm() {
     delete[] baseframe;        baseframe = nullptr;
     delete[] inversebaseframe; inversebaseframe = nullptr;
     delete[] frames;           frames = nullptr;
-    free(filebuffer);          filebuffer = nullptr;
+    string().swap(filebuffer);
     inposition = nullptr;
     innormal = nullptr;
     intangent = nullptr;
@@ -183,7 +183,7 @@ void cleanupiqm() {
     bounds = nullptr;
 }
 
-bool loadiqmmeshes(const iqmheader &hdr, uchar *buf) {
+bool loadiqmmeshes(const iqmheader &hdr, const char *buf) {
     lilswap((uint *)&buf[hdr.ofs_vertexarrays],
             hdr.num_vertexarrays*sizeof(iqmvertexarray)/sizeof(uint));
     lilswap((uint *)&buf[hdr.ofs_triangles],
@@ -201,7 +201,7 @@ bool loadiqmmeshes(const iqmheader &hdr, uchar *buf) {
     numjoints = hdr.num_joints;
     textures = new const char *[nummeshes];
     memset(textures, 0, nummeshes*sizeof(const char *));
-    const char *str = hdr.ofs_text ? (char *)&buf[hdr.ofs_text] : "";
+    const char *str = hdr.ofs_text ? &buf[hdr.ofs_text] : "";
     iqmvertexarray *vas = (iqmvertexarray *)&buf[hdr.ofs_vertexarrays];
     for(int i = 0; i < (int)hdr.num_vertexarrays; i++) {
         iqmvertexarray &va = vas[i];
@@ -259,7 +259,7 @@ bool loadiqmmeshes(const iqmheader &hdr, uchar *buf) {
     return true;
 }
 
-bool loadiqmanims(const iqmheader &hdr, uchar *buf) {
+bool loadiqmanims(const iqmheader &hdr, const char *buf) {
     if((int)hdr.num_poses != numjoints) return false;
     lilswap((uint *)&buf[hdr.ofs_poses], hdr.num_poses*sizeof(iqmpose)/sizeof(uint));
     lilswap((uint *)&buf[hdr.ofs_anims], hdr.num_anims*sizeof(iqmanim)/sizeof(uint));
@@ -304,19 +304,17 @@ bool loadiqmanims(const iqmheader &hdr, uchar *buf) {
 }
 
 bool loadiqm(const char *filename) {
-    size_t len = 0;
-    filebuffer = LoadFile(filename, &len);
-    if(!filebuffer) return false;
-    iqmheader hdr = *(iqmheader *)filebuffer;
+    if(LoadFile(filename, &filebuffer) < 0) return false;
+    iqmheader hdr = *(iqmheader *)filebuffer.c_str();
     if(memcmp(hdr.magic, IQM_MAGIC, sizeof(hdr.magic)))
         return false;
     lilswap(&hdr.version, (sizeof(hdr) - sizeof(hdr.magic))/sizeof(uint));
     if(hdr.version != IQM_VERSION)
         return false;
-    if(len != hdr.filesize || hdr.filesize > (16<<20))
+    if(filebuffer.length() != hdr.filesize || hdr.filesize > (16<<20))
         return false; // sanity check... don't load files bigger than 16 MB
-    if(hdr.num_meshes > 0 && !loadiqmmeshes(hdr, filebuffer)) return false;
-    if(hdr.num_anims  > 0 && !loadiqmanims (hdr, filebuffer)) return false;
+    if(hdr.num_meshes > 0 && !loadiqmmeshes(hdr, filebuffer.c_str())) return false;
+    if(hdr.num_anims  > 0 && !loadiqmanims (hdr, filebuffer.c_str())) return false;
     return true;
 }
 

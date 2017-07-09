@@ -59,7 +59,7 @@ void FontCleanup() {
 void AddFont() {
     STARTDECL(gl_setfontname) (Value &fname)    {
         extern void TestGL(); TestGL();
-        string piname = SanitizePath(fname.sval()->str());
+        string piname = fname.sval()->str();
         fname.DECRT();
         auto faceit = loadedfaces.find(piname);
         if (faceit != loadedfaces.end()) {
