@@ -1,3 +1,9 @@
+- can't analyze return value for:
+  def foo():
+      if ..:
+         return ""
+      nil
+
 - in a struct foo { a:float = 1.0 } allow the :float to be left out
 
 - compile-time lobster execution would be super simple: simply allow a string that contains

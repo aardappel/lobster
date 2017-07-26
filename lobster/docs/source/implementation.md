@@ -230,6 +230,10 @@ These must be (including correct paths):
 -   Any files your code references that are not in the pakfile (e.g.
     `gl_loadtexture(”mypath/myfile.png”)` ).
 
+-   On Windows, you’ll need to include `openvr_api.dll` (and possibly
+    `steam_api.dll`) next to `lobster.exe` even if you don’t use any VR
+    functionality, this will hopefully be fixed in the future.
+
 Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under
 Contents, on Android it’s under assets in the .apk, and with emscripten there’s
