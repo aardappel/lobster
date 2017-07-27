@@ -303,5 +303,14 @@
 <tr class="a" valign=top><td class="a"><tt><b>vr_motioncontrollervec</b>(n<font color="#666666">:int</font>, i<font color="#666666">:int</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos. These are in Y up space.</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>vr_hmdvec</b>(i<font color="#666666">:int</font>) -> <font color="#666666">[float]</font></tt></td><td class="a">returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos. These are in Y up space.</td></tr>
 </table>
+<h3>steam</h3>
+<table class="a" border=1 cellspacing=0 cellpadding=4>
+<tr class="a" valign=top><td class="a"><tt><b>steam_init</b>(appid<font color="#666666">:int</font>, allowscreenshots<font color="#666666">:int</font>) -> <font color="#666666">int</font></tt></td><td class="a">initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you want to restart from steam if this wasn't started from steam (the return value in this case will be -1 to indicate you should terminate this instance). If you don't specify an appid here or in steam_appid.txt, init will likely fail. The other functions can still be called even if steam isn't active. allowscreenshots automatically uploads screenshots to steam (triggered by steam).</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam_overlay</b>() -> <font color="#666666">int</font></tt></td><td class="a">returns true if the steam overlay is currently on (you may want to auto-pause if so)</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam_username</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the name of the steam user, or empty string if not available.</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam_unlock_achievement</b>(achievementname<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a">Unlocks an achievement and shows the achievement overlay if not already achieved before. Will also Q-up saving achievement to Steam. Returns true if succesful.</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam_write_file</b>(file<font color="#666666">:string</font>, contents<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a">writes a file with the contents of a string to the steam cloud, or local storage if that fails, returns false if writing wasn't possible at all</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam_read_file</b>(file<font color="#666666">:string</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns the contents of a file as a string from the steam cloud if available, or otherwise from local storage, or nil if the file can't be found at all.</td></tr>
+</table>
 </td></tr></table></center></body>
 </html>

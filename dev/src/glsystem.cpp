@@ -106,10 +106,10 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar) {
 bool Is2DMode() { return mode2d; }
 
 uchar *ReadPixels(const int2 &pos, const int2 &size) {
-    uchar *pixels = new uchar[size.x() * size.y() * 4];
+    uchar *pixels = new uchar[size.x() * size.y() * 3];
     for (int y = 0; y < size.y(); y++)
-        GL_CALL(glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGBA, GL_UNSIGNED_BYTE,
-                             pixels + y * (size.x() * 4)));
+        GL_CALL(glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGB, GL_UNSIGNED_BYTE,
+                             pixels + y * (size.x() * 3)));
     return pixels;
 }
 

@@ -44,6 +44,9 @@
     <Filter Include="compiler">
       <UniqueIdentifier>{5b6e2421-9663-4999-a2ce-f1589fbbd7ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\steam">
+      <UniqueIdentifier>{d702a622-4917-41d5-a8c2-6f609fe925a0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -1010,6 +1013,9 @@
     </ClCompile>
     <ClCompile Include="..\src\cubegen.cpp">
       <Filter>engine\meshgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\steamworks.cpp">
+      <Filter>engine\steam</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

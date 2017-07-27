@@ -630,7 +630,7 @@ int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_
 
 bool ScreenShot(const char *filename) {
     auto pixels = ReadPixels(int2(0), screensize);
-    auto ok = stbi_write_png(filename, screensize.x(), screensize.y(), 4, pixels, screensize.x() * 4);
+    auto ok = stbi_write_png(filename, screensize.x(), screensize.y(), 3, pixels, screensize.x() * 3);
     delete[] pixels;
     return ok != 0;
 }
@@ -659,6 +659,7 @@ void RegisterCoreEngineBuiltins() {
     extern void AddMeshGen();  lobster::RegisterBuiltin("meshgen",   AddMeshGen);
     extern void AddCubeGen();  lobster::RegisterBuiltin("cubegen",   AddCubeGen);
     extern void AddVR();       lobster::RegisterBuiltin("vr",        AddVR);
+    extern void AddSteam();    lobster::RegisterBuiltin("steam",     AddSteam);
 }
 
 void EngineExit(int code) {

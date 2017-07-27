@@ -40,7 +40,9 @@ uint GetTexture(Value &res) {
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
+// FIXME: move this elsewhere.
 void GraphicsShutDown() {
+    extern void SteamShutDown(); SteamShutDown();
     VRShutDown();
     extern void CleanPhysics(); CleanPhysics();
     extern void MeshGenClear(); MeshGenClear();
@@ -62,6 +64,7 @@ void GraphicsShutDown() {
 
 bool GraphicsFrameStart() {
     extern void CullFonts(); CullFonts();
+    extern void SteamUpdate(); SteamUpdate();
     bool cb = SDLFrame();
     lastframehitsize = lasthitsize;
     lasthitsize = float3_0;

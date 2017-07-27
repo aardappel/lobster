@@ -80,4 +80,5 @@ extern string GetDateTime();
 
 #if defined(_WIN32)  // FIXME: Also make work on Linux/OS X.
     #define PLATFORM_VR
+    #define PLATFORM_STEAMWORKS
 #endif
