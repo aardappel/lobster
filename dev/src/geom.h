@@ -24,6 +24,8 @@
                   { const int i = 3; F; } } } }
 
 #define DOVECR(F) { vec<T,N> _t; DOVEC(_t.set(i, F)); return _t; }
+#define DOVECF(I,F) { T x = I; DOVEC(x = F); return x; }
+#define DOVECB(I,F) { bool x = I; DOVEC(x = F); return x; }
 
 union int2float { int i; float f; };
 inline void default_debug_value(float  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
@@ -109,31 +111,31 @@ template<typename T, int N> class vec {
     vec &operator/=(T e) { DOVEC(c[i] /= e); return *this; }
 
     bool operator<=(const vec &v) const {
-        bool all = true; DOVEC(all = all && c[i] <= v[i]); return all;
+        DOVECB(true, x && c[i] <= v[i]);
     }
     bool operator< (const vec &v) const {
-        bool all = true; DOVEC(all = all && c[i] <  v[i]); return all;
+        DOVECB(true, x && c[i] <  v[i]);
     }
     bool operator>=(const vec &v) const {
-        bool all = true; DOVEC(all = all && c[i] >= v[i]); return all;
+        DOVECB(true, x && c[i] >= v[i]);
     }
     bool operator> (const vec &v) const {
-        bool all = true; DOVEC(all = all && c[i] >  v[i]); return all;
+        DOVECB(true, x && c[i] >  v[i]);
     }
     bool operator==(const vec &v) const {
-        bool all = true;  DOVEC(all = all && c[i] == v[i]); return all;
+        DOVECB(true, x && c[i] == v[i]);
     }
     bool operator!=(const vec &v) const {
-        bool any = false; DOVEC(any = any || c[i] != v[i]); return any;
+        DOVECB(false, x || c[i] != v[i]);
     }
 
-    bool operator<=(T e) const { bool all = true; DOVEC(all = all && c[i] <= e); return all; }
-    bool operator< (T e) const { bool all = true; DOVEC(all = all && c[i] <  e); return all; }
-    bool operator>=(T e) const { bool all = true; DOVEC(all = all && c[i] >= e); return all; }
-    bool operator> (T e) const { bool all = true; DOVEC(all = all && c[i] >  e); return all; }
+    bool operator<=(T e) const { DOVECB(true, x && c[i] <= e); }
+    bool operator< (T e) const { DOVECB(true, x && c[i] <  e); }
+    bool operator>=(T e) const { DOVECB(true, x && c[i] >= e); }
+    bool operator> (T e) const { DOVECB(true, x && c[i] >  e); }
 
-    bool operator==(T e) const { bool all = true;  DOVEC(all = all && c[i] == e); return all; }
-    bool operator!=(T e) const { bool any = false; DOVEC(any = any || c[i] != e); return any; }
+    bool operator==(T e) const { DOVECB(true, x && c[i] == e); }
+    bool operator!=(T e) const { DOVECB(false, x || c[i] != e); }
 
     vec iflt(T e, const vec &a, const vec &b) const { DOVECR(c[i] < e ? a[i] : b[i]); }
 
@@ -143,7 +145,7 @@ template<typename T, int N> class vec {
         return s + ")";
     }
 
-    T volume() const { T r = 1; DOVEC(r *= c[i]); return r; }
+    T volume() const { DOVECF(1, x * c[i]); }
 
     template<typename T2, int C, int R> friend class matrix;
 };
@@ -165,8 +167,7 @@ template<typename T, int N> inline vec<T,N> operator*(T f, const vec<T,N> &v) { 
 template<typename T, int N> inline vec<T,N> operator/(T f, const vec<T,N> &v) { DOVECR(f / v[i]); }
 
 template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b) {
-    T t = 0; DOVEC(t += a[i] * b[i]);
-    return t;
+    DOVECF(0, x + a[i] * b[i]);
 }
 template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return dot(v, v); }
 template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrtf(squaredlength(v)); }
@@ -189,6 +190,13 @@ template<typename T, int N> inline vec<T,N> pow(const vec<T,N> &a, const vec<T,N
 }
 template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,N> &b) {
     DOVECR(rpowf(a[i], b[i]));
+}
+
+template<typename T, int N> inline T min(const vec<T,N> &a) {
+    DOVECF(FLT_MAX, x = min(a[i], x));
+}
+template<typename T, int N> inline T max(const vec<T,N> &a) {
+    DOVECF(-FLT_MAX, x = max(a[i], x));
 }
 
 template<typename T, int N> inline vec<T,N> ceilf(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
@@ -696,6 +704,10 @@ inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, 
            b                 * (-2*s3 + 3*s2    ) +
            (b - z) * tension * (   s3 - 2*s2 + s) +
            (c - a) * tension * (   s3 -   s2    );
+}
+
+inline float triangle_area(const float3 &a, const float3 &b, const float3 &c) {
+    return length(cross(b - a, c - a)) / 2;
 }
 
 inline bool line_intersect(const float2 &l1a, const float2 &l1b, const float2 &l2a,

@@ -20,10 +20,17 @@ def mg_mirror_y(dist, body):
 aspoints := false
 mg_set_pointmode(aspoints)
 if !aspoints:
-    mg_set_polygonreduction(3, 0.98, 0.95)
+    //mg_set_polygonreduction(3, 0.98, 0.95)
     mg_set_vertrandomize(0)
 
 density := 80
+
+abstract := nil
+if true:
+    mg_rotate(xyz_y, 45):
+        //mg_cube(xyz_1)
+        mg_superquadric(xyz_1 * 20, xyz_1)  // Cube with rounded edges
+    abstract = mg_polygonize(density, [ color_white ])
 
 gun := nil
 if true:
@@ -31,24 +38,19 @@ if true:
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
             mg_supertoroid(3.0, [3.0, 3.0, 5.0])
     mg_translate([ 0.0, -1.3, 2.0 ]):
-        mg_scalevec([ 0.5, 0.5, 3.5 ]):
-            mg_rotate(xyz_x, 20.0):
-                mg_superquadric([ 3.0, 3.0, 3.0 ])
+        mg_rotate(xyz_x, 20.0):
+            mg_superquadric([ 3.0, 3.0, 3.0 ], [ 0.5, 0.5, 3.5 ])
     mg_translate([ 0.0, -8.0, 4.0 ]):
-        mg_scalevec([ 0.5, 0.5, 2.5 ]):
-            mg_rotate(xyz_x, 30.0):
-                mg_superquadric([ 3.0, 3.0, 3.0 ])
+        mg_rotate(xyz_x, 30.0):
+            mg_superquadric([ 3.0, 3.0, 3.0 ], [ 0.5, 0.5, 2.5 ])
     mg_translate([ 0.0, -5.5, -3.0 ]):
-        mg_scalevec([ 1.5, 2.5, 6.5 ]):
-            mg_rotate(xyz_x, -20.0):
-                mg_superquadric([ 5.0, 5.0, 100.0 ])
+        mg_rotate(xyz_x, -20.0):
+            mg_superquadric([ 5.0, 5.0, 100.0 ], [ 1.5, 2.5, 6.5 ])
     mg_translate([ 0.0, 2.0, 4.2 ]):
-        mg_scalevec([ 2.0, 10.0, 3.0 ]):
-            mg_superquadric([ 3.0, 100.0, 3.0 ])
+        mg_superquadric([ 3.0, 100.0, 3.0 ], [ 2.0, 10.0, 3.0 ])
     mg_translate([ 0.0, 14.0, 5.0 ]):
-        mg_scalevec([ 1.0, 1.0, 3.0 ]):
-            mg_rotate(xyz_x, 90.0):
-                mg_cylinder()
+        mg_rotate(xyz_x, 90.0):
+            mg_cylinder(1, 3)
     gun = mg_polygonize(density, [ [ 1.0, 1.0, 1.0 ], [ 1.0, 1.0, 1.0 ] ])
 
 spaceship := nil
@@ -59,39 +61,34 @@ if true:
         mg_superquadric_non_uniform([ 2.0, 2.0, 1.0 ], [ 2.0, 2.0, 2.0 ], [ 1.0, 0.5, 0.4 ], [ 0.5, 0.5, 0.5 ])
     mg_mirror_y(1.5):
         mg_translate(xyz_x):
-            mg_scalevec([ 1.3, 0.2, 0.2 ]):
-                mg_superquadric([ 100.0, 2.0, 2.0 ])
+            mg_superquadric([ 100.0, 2.0, 2.0 ], [ 1.3, 0.2, 0.2 ])
     mg_mirror_y(2):
         mg_translate(xyz_x):
-            mg_scalevec([ 1.0, 0.15, 0.15 ]):
-                mg_superquadric([ 100.0, 2.0, 2.0 ])
+            mg_superquadric([ 100.0, 2.0, 2.0 ], [ 1.0, 0.15, 0.15 ])
     mg_mirror_y(1):
         mg_translate(xyz_x * -0.6):
             mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 1.0, 2.0, 2.0 ], [ 1.5, 0.5, 0.5 ], [ 0.01, 0.5, 0.5 ])
             mg_fill(0):
-                mg_scalevec([ 0.35, 0.35, 0.35 ]):
-                    mg_rotate(xyz_y, 90.0):
-                        mg_cylinder()
+                mg_rotate(xyz_y, 90.0):
+                    mg_cylinder(0.35, 0.25)
     spaceship = mg_polygonize(density * 2, [ [ 1.0, 1.0, 1.0 ], [ 0.5, 0.5, 1.0 ] ])
 
 def model_tree(numb, branchl, narrowf, leafs):
     if numb:
-        mg_scalevec(xyz_1 * [ 1, 1, branchl ]):
-            mg_translate(xyz_z):
-                mg_tapered_cylinder(1, narrowf)
-        mg_translate(xyz_z * branchl * 2):
-            axis := sincos(rnd(360))
-            branches := rnd(3) + 1
-            for(branches) i:
-                mg_rotate(xyz_z, 360 * i / branches):
-                    mg_rotate(axis, 12 * branches):
-                        mg_scalevec(xyz_1 * narrowf):
-                            mg_sphere()
-                            model_tree(numb - 1, branchl, narrowf, leafs)
+        mg_translate(xyz_z * branchl):
+            mg_tapered_cylinder(1, narrowf, branchl)
+            mg_translate(xyz_z * branchl):
+                axis := sincos(rnd(360))
+                branches := rnd(3) + 1
+                for(branches) i:
+                    mg_rotate(xyz_z, 360 * i / branches):
+                        mg_rotate(axis, 12 * branches):
+                            mg_scale(narrowf):
+                                mg_sphere(1)
+                                model_tree(numb - 1, branchl, narrowf, leafs)
     else:
         mg_fill(2):
-            mg_scalevec(xyz_1 * leafs):
-                mg_sphere()
+            mg_sphere(leafs)
 
 trees := []
 
@@ -114,6 +111,7 @@ if true:
 if gun: print "vertcount: gun " + gl_meshsize(gun)
 if spaceship: print "vertcount: ship " + gl_meshsize(spaceship)
 for trees: print("vertcount: tree1 " + gl_meshsize(_))
+if abstract: print "vertcount: abstract " + gl_meshsize(abstract)
 
 print seconds_elapsed()
 
@@ -160,6 +158,12 @@ while gl_frame():
                 gl_scale(5):
                     gl_pointscale(5 * fovscale)
                     gl_rendermesh(landscape)
+
+        if abstract:
+            gl_translate(xy_y * 40):
+                gl_scale(5):
+                    gl_pointscale(5 * fovscale)
+                    gl_rendermesh(abstract)
 
         for(10) j:
             gl_translate(xyz_y * j * -5):

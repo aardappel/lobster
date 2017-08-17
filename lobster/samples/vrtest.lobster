@@ -13,27 +13,25 @@ fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640, false, vrm
 
 def model_tree(numb, branchl, narrowf, leafs):
     if numb:
-        mg_scalevec(xyz_1 * [ 1, 1, branchl ]):
-            mg_translate(xyz_z):
-                mg_tapered_cylinder(1, narrowf)
+        mg_translate(xyz_z * branchl):
+            mg_tapered_cylinder(1, narrowf, branchl)
         mg_translate(xyz_z * branchl * 2):
             axis := sincos(rnd(360))
             branches := rnd(3) + 1
             for(branches) i:
                 mg_rotate(xyz_z, 360 * i / branches):
                     mg_rotate(axis, 12 * branches):
-                        mg_scalevec(xyz_1 * narrowf):
-                            mg_sphere()
+                        mg_scale(narrowf):
+                            mg_sphere(1)
                             model_tree(numb - 1, branchl, narrowf, leafs)
     else:
         mg_fill(2):
-            mg_scalevec(xyz_1 * leafs):
-                mg_sphere()
+            mg_sphere(leafs)
 
 model_tree(10, 1.5, 0.75, 12)
 tree := mg_polygonize(50, [[ 0.7, 0.6, 0.5 ], [ 0.6, 1.0, 0.6 ]])
 
-mg_sphere()
+mg_sphere(1)
 sphere := mg_polygonize(3, [ color_red ])
 
 camera_position = xyz { 0.0, 0.0, 3.0 }

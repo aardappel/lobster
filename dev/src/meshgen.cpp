@@ -41,7 +41,7 @@ struct ImplicitFunction {
 
     virtual ~ImplicitFunction() {}
 
-    inline bool Eval(const float3 & /*pos*/) const { return false; }
+    inline float Eval(const float3 & /*pos*/) const = delete;
 
     virtual float3 ComputeSize() { return size; };
     virtual void FillGrid(const int3 &start, const int3 &end, FIndexGrid *fcellindices,
@@ -67,7 +67,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
             pos -= gridtrans;
             pos = pos * gridrot;
             pos /= gridscale;
-            bool inside = static_cast<const T *>(this)->Eval(pos);
+            bool inside = static_cast<const T *>(this)->Eval(pos) < 0.0f;
             // Bounding box is supposed to cover the entire shape with 1 empty cell surrounding in
             // all directions.
             assert(!inside || (ipos > start && ipos < end - 1));
@@ -87,7 +87,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
                         // FIXME: factor this out, or make cell lookup
                         if (inside ||
                             static_cast<const T *>(this)->Eval(pos - (axesf[i] * gridrot) /
-                                                               gridscale)) {
+                                                               gridscale) < 0.0f) {
                             auto solidpos = float3(tmat ? ipos : opos);
                             auto emptypos = float3(tmat ? opos : ipos);
                             auto p1f = solidpos;
@@ -103,7 +103,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
                                 p2 -= gridtrans;
                                 p2 = p2 * gridrot;
                                 p2 /= gridscale;
-                                if (static_cast<const T *>(this)->Eval(p2) == (material != 0))
+                                if ((static_cast<const T *>(this)->Eval(p2) < 0.0f) == (material != 0))
                                     p1f = p;
                                 else
                                     p2f = p;
@@ -135,81 +135,104 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
 };
 
 struct IFSphere : ImplicitFunctionImpl<IFSphere> {
-    inline bool Eval(const float3 &pos) const { return dot(pos, pos) <= 1; }
+    float rad;
+
+    inline float Eval(const float3 &pos) const {
+        return length(pos) - rad;
+    }
+
+    float3 ComputeSize() { return size * rad; }
 };
 
 struct IFCube : ImplicitFunctionImpl<IFCube> {
-    inline bool Eval(const float3 &pos) const { return abs(pos) <= 1; }
+    float3 extents;
+
+    inline float Eval(const float3 &pos) const {
+        auto d = abs(pos) - extents;
+        //return max(d);
+        return length(max(d, float3_0)) + max(min(d, float3_0));
+    }
+
+    float3 ComputeSize() { return size * extents; }
 };
 
 struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
-    inline bool Eval(const float3 &pos) const {
-        return pos.z() <= 1 && pos.z() >= -1 && dot(pos.xy(), pos.xy()) <= 1;
+    float radius, height;
+
+    inline float Eval(const float3 &pos) const {
+        return max(length(pos.xy()) - radius, abs(pos.z()) - height);
     }
+
+    float3 ComputeSize() { return size * float3(radius, radius, height); }
 };
 
 struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
-    float bot, top;
+    float bot, top, height;
 
-    inline bool Eval(const float3 &pos) const {
+    inline float Eval(const float3 &pos) const {
         auto xy = pos.xy();
-        auto r = mix(bot, top, pos.z() / 2 + 0.5f);
-        return pos.z() <= 1 && pos.z() >= -1 && dot(xy, xy) <= r * r;
+        auto r = mix(bot, top, pos.z() / (height * 2) + 0.5f);
+        // FIXME: this is probably not the correct distance.
+        return max(abs(pos.z()) - height, dot(xy, xy) - r * r);
     }
 
     float3 ComputeSize() {
         auto rad = max(top, bot);
-        return size * float3(rad, rad, 1);
+        return size * float3(rad, rad, height);
     }
 };
 
 // TODO: pow is rather slow...
-
 struct IFSuperQuadric : ImplicitFunctionImpl<IFSuperQuadric> {
     float3 exp;
+    float3 scale;
 
-    inline bool Eval(const float3 &pos) const {
-        return dot(pow(abs(pos), exp), float3_1) <= 1;
-    }
-};
-
-struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
-    float r;
-    float3 exp;
-
-    inline bool Eval(const float3 &pos) const {
-        auto p = pow(abs(pos), exp);
-        auto xy = r - sqrtf(p.x() + p.y());
-        return powf(fabsf(xy), exp.z()) + p.z() <= 1;
+    inline float Eval(const float3 &pos) const {
+        return dot(pow(abs(pos) / scale, exp), float3_1) - 1;
     }
 
-    float3 ComputeSize() { return size * float3(r * 2 + 1, r * 2 + 1, 1); }
+    float3 ComputeSize() { return size * scale; }
 };
 
 struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform> {
     float3 exppos, expneg;
     float3 scalepos, scaleneg;
 
-    inline bool Eval(const float3 &pos) const {
+    inline float Eval(const float3 &pos) const {
         auto d = pos.iflt(0, scaleneg, scalepos);
         auto e = pos.iflt(0, expneg, exppos);
         auto p = abs(pos) / d;
-        return p < 1 && dot(pow(p, e), float3_1) <= 1;
+        // FIXME: why is max(p) even needed? not needed in IFSuperQuadric
+        return max(max(p), dot(pow(p, e), float3_1)) - 1;
     }
 
     float3 ComputeSize() { return size * max(scalepos, scaleneg); }
 };
 
+struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
+    float r;
+    float3 exp;
+
+    inline float Eval(const float3 &pos) const {
+        auto p = pow(abs(pos), exp);
+        auto xy = r - sqrtf(p.x() + p.y());
+        return powf(fabsf(xy), exp.z()) + p.z() - 1;
+    }
+
+    float3 ComputeSize() { return size * float3(r * 2 + 1, r * 2 + 1, 1); }
+};
+
 struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
     float zscale, xyscale;
 
-    inline bool Eval(const float3 &pos) const {
+    inline float Eval(const float3 &pos) const {
         if (!(abs(pos) <= 1)) return false;
         auto dpos = pos + float3(SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 1, 0)),
                                  SimplexNoise(8, 0.5f, 1, float4(pos.xy() + 2, 0)),
                                  0) / 2;
         auto f = SimplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
-        return dpos.z() < f;
+        // FIXME: this is obviously not the correct distance for anything but peaks.
+        return dpos.z() - f;
     }
 };
 
@@ -220,7 +243,7 @@ struct Group : ImplicitFunctionImpl<Group> {
         for (auto c : children) delete c;
     }
 
-    static inline bool Eval(const float3 & /*pos*/) { return false; }
+    static inline float Eval(const float3 & /*pos*/) { return 0.0f; }
 
     float3 ComputeSize() {
         float3 p1, p2;
@@ -239,12 +262,13 @@ struct Group : ImplicitFunctionImpl<Group> {
                   vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans,
                   const float3x3 & /*gridrot*/) const {
         for (auto c : children) {
-            if (dot(c->size, gridscale) > 3) {
+            auto csize = c->ComputeSize();
+            if (dot(csize, gridscale) > 3) {
                 auto trans = gridtrans + c->orig * gridscale;
                 auto scale = gridscale * c->size;
                 //auto _start = int3(trans - c->size * gridscale - 0.01f);
                 //auto _end   = int3(trans + c->size * gridscale + 2.01f);
-                auto rsize = rotated_size(c->rot, c->ComputeSize());
+                auto rsize = rotated_size(c->rot, csize);
                 auto start = int3(trans - rsize * gridscale - 0.01f);
                 auto end   = int3(trans + rsize * gridscale + 2.01f);
                 auto bs    = end - start;
@@ -328,8 +352,14 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                 }
                 vertlist[i] = idx;
             }
-            for (int i = 0; mc_tri_table[ci][i] != -1; i++) {
-                mctriangles.push_back(vertlist[mc_tri_table[ci][i]]);
+            for (int i = 0; mc_tri_table[ci][i] != -1; ) {
+                auto e1 = vertlist[mc_tri_table[ci][i++]];
+                auto e2 = vertlist[mc_tri_table[ci][i++]];
+                auto e3 = vertlist[mc_tri_table[ci][i++]];
+                mctriangles.push_back(e1);
+                mctriangles.push_back(e2);
+                mctriangles.push_back(e3);
+                assert(triangle_area(edges[e1].fmid, edges[e2].fmid, edges[e3].fmid) < 1);
             }
         }
     } else {
@@ -672,45 +702,53 @@ Value AddShape(ImplicitFunction *f) {
 }
 
 void AddMeshGen() {
-    STARTDECL(mg_sphere) () { return AddShape(new IFSphere()); }
-    ENDDECL0(mg_sphere, "", "", "",
-        "a unit sphere");
-    STARTDECL(mg_cube) () { return AddShape(new IFCube()); }
-    ENDDECL0(mg_cube,  "", "", "",
-        "a unit cube (fits around unit sphere)");
-    STARTDECL(mg_cylinder) () { return AddShape(new IFCylinder()); }
-    ENDDECL0(mg_cylinder, "", "", "",
-        "a unit cylinder (fits around unit sphere)");
+    STARTDECL(mg_sphere) (Value &rad) {
+        auto s = new IFSphere();
+        s->rad = rad.fval();
+        return AddShape(s);
+    }
+    ENDDECL1(mg_sphere, "radius", "F", "",
+        "a sphere");
 
-    STARTDECL(mg_tapered_cylinder) (Value &bot, Value &top) {
+    STARTDECL(mg_cube) (Value &ext) {
+        auto c = new IFCube();
+        c->extents = ValueDecToF<3>(ext);
+        return AddShape(c);
+    }
+    ENDDECL1(mg_cube,  "extents", "F]:3", "",
+        "a cube (extents are size from center)");
+
+    STARTDECL(mg_cylinder) (Value &radius, Value &height) {
+        auto c = new IFCylinder();
+        c->radius = radius.fval();
+        c->height = height.fval();
+        return AddShape(c);
+    }
+    ENDDECL2(mg_cylinder, "radius,height", "FF", "",
+        "a unit cylinder (height is from center)");
+
+    STARTDECL(mg_tapered_cylinder) (Value &bot, Value &top, Value &height) {
         auto tc = new IFTaperedCylinder();
         tc->bot = bot.fval();
         tc->top = top.fval();
+        tc->height = height.fval();
         return AddShape(tc);
     }
-    ENDDECL2(mg_tapered_cylinder, "bot,top", "FF", "",
-        "a cyclinder where you specify the top and bottom radius, height still 2");
+    ENDDECL3(mg_tapered_cylinder, "bot,top,height", "FFF", "",
+        "a cyclinder where you specify the top and bottom radius (height is from center)");
 
-    STARTDECL(mg_superquadric) (Value &exps) {
+    STARTDECL(mg_superquadric) (Value &exps, Value &scale) {
         auto sq = new IFSuperQuadric();
         sq->exp = ValueDecToF<3>(exps);
+        sq->scale = ValueDecToF<3>(scale);
         return AddShape(sq);
     }
-    ENDDECL1(mg_superquadric, "exponents", "F]", "",
+    ENDDECL2(mg_superquadric, "exponents,scale", "F]F]", "",
         "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
         " squares");
 
-    STARTDECL(mg_supertoroid) (Value &r, Value &exps) {
-        auto t = new IFSuperToroid();
-        t->r = r.fval();
-        t->exp = ValueDecToF<3>(exps);
-        return AddShape(t);
-    }
-    ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
-        "a super toroid. R is the distance from the origin to the center of the ring.");
-
     STARTDECL(mg_superquadric_non_uniform) (Value &posexps, Value &negexps, Value &posscale,
-                                            Value &negscale) {
+        Value &negscale) {
         auto sq = new IFSuperQuadricNonUniform();
         sq->exppos   = ValueDecToF<3>(posexps);
         sq->expneg   = ValueDecToF<3>(negexps);
@@ -723,6 +761,15 @@ void AddMeshGen() {
         "",
         "a superquadric that allows you to specify exponents and sizes in all 6 directions"
         " independently for maximum modelling possibilities");
+
+    STARTDECL(mg_supertoroid) (Value &r, Value &exps) {
+        auto t = new IFSuperToroid();
+        t->r = r.fval();
+        t->exp = ValueDecToF<3>(exps);
+        return AddShape(t);
+    }
+    ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
+        "a super toroid. R is the distance from the origin to the center of the ring.");
 
     STARTDECL(mg_landscape) (Value &zscale, Value &xyscale) {
         auto ls = new IFLandscape();
@@ -801,6 +848,18 @@ void AddMeshGen() {
     ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
+
+    STARTDECL(mg_scale) (Value &f, Value &body) {
+        if (body.True()) g_vm->Push(ToValueF(cursize));
+        cursize *= f.fval();
+        return body;
+    }
+    MIDDECL(mg_scale) () {
+        cursize = ValueDecToF<3>(g_vm->Pop());
+    }
+    ENDDECL2CONTEXIT(mg_scale, "f,body", "FC?", "",
+        "scales the current coordinate system by the given factor."
+        " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_scalevec) (Value &vec, Value &body) {
         if (body.True()) g_vm->Push(ToValueF(cursize));
