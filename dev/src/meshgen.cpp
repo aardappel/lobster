@@ -86,8 +86,10 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
                     if ((omat != 0) != (tmat != 0)) {
                         // FIXME: factor this out, or make cell lookup
                         if (inside ||
+                            // FIXME: 0.001f epsilon needed because of float rounding, could
+                            // cause edge not to be set at all.
                             static_cast<const T *>(this)->Eval(pos - (axesf[i] * gridrot) /
-                                                               gridscale) < 0.0f) {
+                                                               gridscale) < 0.001f) {
                             auto solidpos = float3(tmat ? ipos : opos);
                             auto emptypos = float3(tmat ? opos : ipos);
                             auto p1f = solidpos;
@@ -334,7 +336,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                 int3 &p1 = gridpos[i1];
                 int3 &p2 = gridpos[i2];
                 int cidx = celli[i2].geti();
-                assert(cidx);  // FIXME: this triggers at certain resolutions?
+                assert(cidx);
                 int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
                 fcell &fc = fcells[cidx];
                 int &idx = fc.edgeidx[dir];
