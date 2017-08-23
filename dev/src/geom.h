@@ -199,6 +199,14 @@ template<typename T, int N> inline T max(const vec<T,N> &a) {
     DOVECF(-FLT_MAX, x = max(a[i], x));
 }
 
+template<typename T, int N> inline T sum(const vec<T,N> &a) {
+    DOVECF(0, x += a[i]);
+}
+template<typename T, int N> inline T average(const vec<T,N> &a) {
+    return sum(a) / N;
+}
+
+
 template<typename T, int N> inline vec<T,N> ceilf(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
 template<typename T, int N> inline vec<T,N> floorf(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
 
@@ -240,6 +248,23 @@ const byte4 byte4_255 = byte4((uchar)255);
 
 inline float3 cross(const float3 &a, const float3 &b)		 {
     return float3(a.y()*b.z()-a.z()*b.y(), a.z()*b.x()-a.x()*b.z(), a.x()*b.y()-a.y()*b.x());
+}
+
+inline float smoothminh(float a, float b, float k) {
+    return min(max(0.5f + 0.5f * (b - a) / k, 0.0f), 1.0f);
+}
+
+inline float smoothmix(float a, float b, float k, float h) {
+    return mix(b, a, h) - k * h * (1.0f - h);
+}
+
+inline float smoothmin(float a, float b, float k) {
+    return smoothmix(a, b, k, smoothminh(a, b, k));
+}
+
+inline float smoothmax(float a, float b, float r) {
+    auto u = max(float2(r + a, r + b), float2_0);
+    return min(-r, max(a, b)) + length(u);
 }
 
 template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r) {

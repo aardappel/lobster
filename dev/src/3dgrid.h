@@ -24,12 +24,8 @@ template<typename T> class Chunk3DGrid : NonCopyable {
         for (auto p : grid) delete[] p;
     }
 
-    T Get(const int3 &pos) const {
+    T &Get(const int3 &pos) const {
         return Access(pos);
-    }
-
-    void Set(const int3 &pos, T newval) {
-        Access(pos) = newval;
     }
 
     // This creates a Z-major continuous buffer, whereas the original data is X-major.

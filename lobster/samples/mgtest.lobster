@@ -27,13 +27,17 @@ density := 80
 
 abstract := nil
 if true:
-    mg_rotate(xyz_y, 45):
+    mg_smooth(1)
+    mg_color(color_white)
+    mg_rotate(xyz_1, 45):
         //mg_cube(xyz_1)
-        mg_superquadric(xyz_1 * 20, xyz_1)  // Cube with rounded edges
-    abstract = mg_polygonize(density, [ color_white ])
+        mg_superquadric(xyz_1 * 10, xyz_1)  // Cube with rounded edges
+    abstract = mg_polygonize(density)
 
 gun := nil
 if true:
+    mg_smooth(0.5)
+    mg_color(color_white)
     mg_rotate(xyz_y, 90.0):
         mg_scalevec([ 1.0, 1.3, 1.0 ]):
             mg_supertoroid(3.0, [3.0, 3.0, 5.0])
@@ -51,10 +55,12 @@ if true:
     mg_translate([ 0.0, 14.0, 5.0 ]):
         mg_rotate(xyz_x, 90.0):
             mg_cylinder(1, 3)
-    gun = mg_polygonize(density, [ [ 1.0, 1.0, 1.0 ], [ 1.0, 1.0, 1.0 ] ])
+    gun = mg_polygonize(density)
 
 spaceship := nil
 if true:
+    mg_smooth(0.5)
+    mg_color(color_white)
     mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 2.0, 2.0, 2.0 ], [ 2.0, 3.5, 0.3 ], [ 0.5, 3.5, 0.3 ])
     mg_superquadric_non_uniform([ 2.0, 1.5, 1.0 ], [ 2.0, 1.5, 2.0 ], [ 4.0, 1.0, 0.7 ], [ 0.7, 1.0, 0.4 ])
     mg_translate([ 1.0, 0.0, 0.4 ]):
@@ -68,12 +74,13 @@ if true:
     mg_mirror_y(1):
         mg_translate(xyz_x * -0.6):
             mg_superquadric_non_uniform([ 1.0, 2.0, 2.0 ], [ 1.0, 2.0, 2.0 ], [ 1.5, 0.5, 0.5 ], [ 0.01, 0.5, 0.5 ])
-            mg_fill(0):
+            mg_color([ 1.0, 1.0, 1.0, 0.0 /* carve */ ]):
                 mg_rotate(xyz_y, 90.0):
-                    mg_cylinder(0.35, 0.25)
-    spaceship = mg_polygonize(density * 2, [ [ 1.0, 1.0, 1.0 ], [ 0.5, 0.5, 1.0 ] ])
+                    mg_smooth(0.0):
+                        mg_cylinder(0.35, 0.25)
+    spaceship = mg_polygonize(density * 2)
 
-def model_tree(numb, branchl, narrowf, leafs):
+def model_tree(numb, branchl, narrowf, leafs, leafc):
     if numb:
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)
@@ -85,28 +92,34 @@ def model_tree(numb, branchl, narrowf, leafs):
                         mg_rotate(axis, 12 * branches):
                             mg_scale(narrowf):
                                 mg_sphere(1)
-                                model_tree(numb - 1, branchl, narrowf, leafs)
+                                model_tree(numb - 1, branchl, narrowf, leafs, leafc)
     else:
-        mg_fill(2):
+        mg_color(leafc):
             mg_sphere(leafs)
 
 trees := []
 
 if true:
-    model_tree(10, 1.5, 0.75, 12)
-    trees.push(mg_polygonize(density, [[ 0.7, 0.6, 0.5 ], [ 0.6, 1.0, 0.6 ]]))
+    mg_smooth(0.5)
+    mg_color([ 0.7, 0.6, 0.5, 1.0 ])
+    model_tree(10, 1.5, 0.75, 12, [ 0.6, 1.0, 0.6, 1.0 ])
+    trees.push(mg_polygonize(density))
 
-    model_tree(10, 1.2, 0.8, 1.2)
-    trees.push(mg_polygonize(density, [[ 0.5, 0.4, 0.3 ], [ 0.8, 1.0, 0.5 ]]))
+    mg_color([ 0.5, 0.4, 0.3, 1.0 ])
+    model_tree(10, 1.2, 0.8, 1.2, [ 0.8, 1.0, 0.5, 1.0 ])
+    trees.push(mg_polygonize(density))
 
-    model_tree(9, 2.0, 0.7, 15)
-    trees.push(mg_polygonize(density, [[ 0.6, 0.5, 0.4 ], [ 0.5, 0.7, 0.5 ]]))
+    mg_color([ 0.6, 0.5, 0.4, 1.0 ])
+    model_tree(9, 2.0, 0.7, 15, [ 0.5, 0.7, 0.5, 1.0 ])
+    trees.push(mg_polygonize(density))
 
 landscape := nil
 // Currently expensive way to do a landscape.
 if true:
+    mg_smooth(0.1)
+    mg_color([ 0.7, 0.6, 0.5, 1.0 ])
     mg_landscape(0.5, 1.0)
-    landscape = mg_polygonize(density, [ [ 0.7, 0.6, 0.5 ], [ 0.5, 1.0, 0.5 ] ])
+    landscape = mg_polygonize(density)
 
 if gun: print "vertcount: gun " + gl_meshsize(gun)
 if spaceship: print "vertcount: ship " + gl_meshsize(spaceship)
@@ -160,8 +173,8 @@ while gl_frame():
                     gl_rendermesh(landscape)
 
         if abstract:
-            gl_translate(xy_y * 40):
-                gl_scale(5):
+            gl_translate(xy_y * 30):
+                gl_scale(2):
                     gl_pointscale(5 * fovscale)
                     gl_rendermesh(abstract)
 

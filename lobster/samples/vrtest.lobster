@@ -11,28 +11,32 @@ fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640, false, vrm
 
 // Make a quick sample scene out of some trees.
 
-def model_tree(numb, branchl, narrowf, leafs):
+def model_tree(numb, branchl, narrowf, leafs, leafc):
     if numb:
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)
-        mg_translate(xyz_z * branchl * 2):
-            axis := sincos(rnd(360))
-            branches := rnd(3) + 1
-            for(branches) i:
-                mg_rotate(xyz_z, 360 * i / branches):
-                    mg_rotate(axis, 12 * branches):
-                        mg_scale(narrowf):
-                            mg_sphere(1)
-                            model_tree(numb - 1, branchl, narrowf, leafs)
+            mg_translate(xyz_z * branchl):
+                axis := sincos(rnd(360))
+                branches := rnd(3) + 1
+                for(branches) i:
+                    mg_rotate(xyz_z, 360 * i / branches):
+                        mg_rotate(axis, 12 * branches):
+                            mg_scale(narrowf):
+                                mg_sphere(1)
+                                model_tree(numb - 1, branchl, narrowf, leafs, leafc)
     else:
-        mg_fill(2):
+        mg_color(leafc):
             mg_sphere(leafs)
 
-model_tree(10, 1.5, 0.75, 12)
-tree := mg_polygonize(50, [[ 0.7, 0.6, 0.5 ], [ 0.6, 1.0, 0.6 ]])
+mg_smooth(0.5)
+mg_color([ 0.7, 0.6, 0.5, 1.0 ])
+model_tree(10, 1.5, 0.75, 12, [ 0.6, 1.0, 0.6, 1.0 ])
+tree := mg_polygonize(50)
 
+mg_smooth(0.0)
+mg_color(color_red)
 mg_sphere(1)
-sphere := mg_polygonize(3, [ color_red ])
+sphere := mg_polygonize(3)
 
 camera_position = xyz { 0.0, 0.0, 3.0 }
 camera_yaw = 135

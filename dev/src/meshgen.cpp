@@ -37,28 +37,34 @@ struct ImplicitFunction {
     float3 orig;
     float3 size;
     float3x3 rot;
-    int material;
+    float4 material;
+    float smoothmink;
 
     virtual ~ImplicitFunction() {}
 
     inline float Eval(const float3 & /*pos*/) const = delete;
 
-    virtual float3 ComputeSize() { return size; };
-    virtual void FillGrid(const int3 &start, const int3 &end, FIndexGrid *fcellindices,
-                          vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans,
+    float3 Sized(const float3 &unit_size) { return unit_size * size + smoothmink; }
+    virtual float3 Size() { return Sized(float3_1); };
+    virtual void FillGrid(const int3 &start, const int3 &end, DistGrid *distgrid,
+                          const float3 &gridscale, const float3 &gridtrans,
                           const float3x3 &gridrot) const = 0;
 };
 
 static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
 static float3 axesf[] = { float3_x, float3_y, float3_z };
 
+float max_smoothmink = 0;
+
 // use curiously recurring template pattern to allow implicit function to be inlined in
 // rasterization loop
 template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
-    void FillGrid(const int3 &start, const int3 &end, FIndexGrid *fcellindices,
-                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans,
+    void FillGrid(const int3 &start, const int3 &end, DistGrid *distgrid,
+                  const float3 &gridscale, const float3 &gridtrans,
                   const float3x3 &gridrot) const {
-        assert(end <= fcellindices->dim && int3(0) <= start);
+        assert(end <= distgrid->dim && int3(0) <= start);
+        auto uniform_scale = average(size);
+        max_smoothmink = max(max_smoothmink, uniform_scale * smoothmink);
         for (int x = start.x(); x < end.x(); x++)
             for (int y = start.y(); y < end.y(); y++)
                 for (int z = start.z(); z < end.z(); z++) {
@@ -67,70 +73,19 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
             pos -= gridtrans;
             pos = pos * gridrot;
             pos /= gridscale;
-            bool inside = static_cast<const T *>(this)->Eval(pos) < 0.0f;
-            // Bounding box is supposed to cover the entire shape with 1 empty cell surrounding in
-            // all directions.
-            assert(!inside || (ipos > start && ipos < end - 1));
-            findex fi = fcellindices->Get(ipos);
-            int tmat = fi.getm();
-            if (inside) {
-                tmat = material;
-                fi.setm(tmat);
-                fcellindices->Set(ipos, fi);
-            }
-            for (int i = 0; i < 3; i++) {
-                int3 opos = ipos - axesi[i];
-                if (opos[i] >= 0) {
-                    findex fio = fcellindices->Get(opos);
-                    int omat = fio.getm();
-                    if ((omat != 0) != (tmat != 0)) {
-                        // FIXME: factor this out, or make cell lookup
-                        if (inside ||
-                            // FIXME: 0.001f epsilon needed because of float rounding, could
-                            // cause edge not to be set at all.
-                            static_cast<const T *>(this)->Eval(pos - (axesf[i] * gridrot) /
-                                                               gridscale) < 0.001f) {
-                            auto solidpos = float3(tmat ? ipos : opos);
-                            auto emptypos = float3(tmat ? opos : ipos);
-                            auto p1f = solidpos;
-                            auto p2f = emptypos;
-                            float iso;
-                            for (int j = 0; ; j++) {
-                                auto p = (p1f + p2f) / 2;
-                                if (j == 10) {
-                                    iso = dot(p - solidpos, emptypos - solidpos);
-                                    break;
-                                }
-                                auto p2 = p;
-                                p2 -= gridtrans;
-                                p2 = p2 * gridrot;
-                                p2 /= gridscale;
-                                if ((static_cast<const T *>(this)->Eval(p2) < 0.0f) == (material != 0))
-                                    p1f = p;
-                                else
-                                    p2f = p;
-                            }
-                            auto e = int(iso * fcell::MAXEDGE);
-                            assert(iso >= 0 && iso <= 1);
-                            e = max(1, min(fcell::MAXEDGE - 1, e));
-                            if (!fi.geti()) {
-                                fi.seti((int)fcells.size());
-                                fcellindices->Set(ipos, fi);
-                                fcells.push_back(fcell());
-                            }
-                            fcell &fc = fcells[fi.geti()];
-                            if (fc.edges[i]) {
-                                int oe = tmat ? fcell::MAXEDGE - fc.edges[i] : fc.edges[i];
-                                e = material ? max(e, oe) : min(e, oe);
-                            }
-                            fc.edges[i] = ushort(tmat ? fcell::MAXEDGE - e : e);
-                            // FIXME: make this depend on who is closer
-                            fc.material[i] = short(tmat ? tmat : omat);
-                        }
-                    } else {
-                        fcells[fi.geti()].edges[i] = 0;
-                    }
-                }
+            auto dist = static_cast<const T *>(this)->Eval(pos);
+            // dist was evaluated in the local coordinate system of the primitive. This is correct
+            // for trans/rot, but the scale makes it give the wrong distance globally.
+            // Most uses of mg_scale(vec) are uniform so this should be close enough:
+            dist *= uniform_scale;
+            auto &dv = distgrid->Get(ipos);
+            // Could move this if outside loop, but should be branch predicted, so probably ok.
+            if (material.w() >= 0.5f) {
+                auto h = smoothminh(dv.dist, dist, smoothmink);
+                dv.dist = smoothmix(dv.dist, dist, smoothmink, h);
+                dv.color = quantizec(dv.color.w() ? mix(material, color2vec(dv.color), h) : material);
+            } else {
+                dv.dist = smoothmax(-dist, dv.dist, smoothmink);
             }
         }
     }
@@ -143,7 +98,7 @@ struct IFSphere : ImplicitFunctionImpl<IFSphere> {
         return length(pos) - rad;
     }
 
-    float3 ComputeSize() { return size * rad; }
+    float3 Size() { return Sized(float3(rad)); }
 };
 
 struct IFCube : ImplicitFunctionImpl<IFCube> {
@@ -155,7 +110,7 @@ struct IFCube : ImplicitFunctionImpl<IFCube> {
         return length(max(d, float3_0)) + max(min(d, float3_0));
     }
 
-    float3 ComputeSize() { return size * extents; }
+    float3 Size() { return Sized(extents); }
 };
 
 struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
@@ -165,7 +120,7 @@ struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
         return max(length(pos.xy()) - radius, abs(pos.z()) - height);
     }
 
-    float3 ComputeSize() { return size * float3(radius, radius, height); }
+    float3 Size() { return Sized(float3(radius, radius, height)); }
 };
 
 struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
@@ -178,9 +133,9 @@ struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
         return max(abs(pos.z()) - height, dot(xy, xy) - r * r);
     }
 
-    float3 ComputeSize() {
+    float3 Size() {
         auto rad = max(top, bot);
-        return size * float3(rad, rad, height);
+        return Sized(float3(rad, rad, height));
     }
 };
 
@@ -193,7 +148,7 @@ struct IFSuperQuadric : ImplicitFunctionImpl<IFSuperQuadric> {
         return dot(pow(abs(pos) / scale, exp), float3_1) - 1;
     }
 
-    float3 ComputeSize() { return size * scale; }
+    float3 Size() { return Sized(scale); }
 };
 
 struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform> {
@@ -208,7 +163,7 @@ struct IFSuperQuadricNonUniform : ImplicitFunctionImpl<IFSuperQuadricNonUniform>
         return max(max(p), dot(pow(p, e), float3_1)) - 1;
     }
 
-    float3 ComputeSize() { return size * max(scalepos, scaleneg); }
+    float3 Size() { return Sized(max(scalepos, scaleneg)); }
 };
 
 struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
@@ -221,7 +176,7 @@ struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
         return powf(fabsf(xy), exp.z()) + p.z() - 1;
     }
 
-    float3 ComputeSize() { return size * float3(r * 2 + 1, r * 2 + 1, 1); }
+    float3 Size() { return Sized(float3(r * 2 + 1, r * 2 + 1, 1)); }
 };
 
 struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
@@ -247,10 +202,10 @@ struct Group : ImplicitFunctionImpl<Group> {
 
     static inline float Eval(const float3 & /*pos*/) { return 0.0f; }
 
-    float3 ComputeSize() {
+    float3 Size() {
         float3 p1, p2;
         for (auto c : children) {
-            auto csz = c->ComputeSize();
+            auto csz = c->Size();
             csz = rotated_size(c->rot, csz);
             p1 = c == children[0] ? c->orig - csz : min(p1, c->orig - csz);
             p2 = c == children[0] ? c->orig + csz : max(p2, c->orig + csz);
@@ -260,21 +215,19 @@ struct Group : ImplicitFunctionImpl<Group> {
         return sz;
     }
 
-    void FillGrid(const int3 & /*start*/, const int3 & /*end*/, FIndexGrid *fcellindices,
-                  vector<fcell> &fcells, const float3 &gridscale, const float3 &gridtrans,
+    void FillGrid(const int3 & /*start*/, const int3 & /*end*/, DistGrid *distgrid,
+                  const float3 &gridscale, const float3 &gridtrans,
                   const float3x3 & /*gridrot*/) const {
         for (auto c : children) {
-            auto csize = c->ComputeSize();
+            auto csize = c->Size();
             if (dot(csize, gridscale) > 3) {
                 auto trans = gridtrans + c->orig * gridscale;
                 auto scale = gridscale * c->size;
-                //auto _start = int3(trans - c->size * gridscale - 0.01f);
-                //auto _end   = int3(trans + c->size * gridscale + 2.01f);
                 auto rsize = rotated_size(c->rot, csize);
                 auto start = int3(trans - rsize * gridscale - 0.01f);
                 auto end   = int3(trans + rsize * gridscale + 2.01f);
                 auto bs    = end - start;
-                if (bs > 1) c->FillGrid(start, end, fcellindices, fcells, scale, trans, c->rot);
+                if (bs > 1) c->FillGrid(start, end, distgrid, scale, trans, c->rot);
             }
         }
     }
@@ -289,14 +242,14 @@ bool pointmode = false;
 float3 id_grid_to_world(const int3 &pos) { return float3(pos); }
 
 Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
-                    const FIndexGrid *fcellindices, vector<fcell> &fcells,
-                    const vector<float3> &materials, float3 (* grid_to_world)(const int3 &pos)) {
+                    const DistGrid *distgrid, float3 (* grid_to_world)(const int3 &pos)) {
     struct edge {
         int3 iclosest;
         float3 fmid;
-        int material;
+        byte4 material;
 
-        edge(const int3 &_iclosest, const float3 &_fmid, int _m)
+        edge() : iclosest(int3_0), fmid(float3_0), material(byte4_0) {}
+        edge(const int3 &_iclosest, const float3 &_fmid, const byte4 &_m)
             : iclosest(_iclosest), fmid(_fmid), material(_m) {}
     };
     vector<int> mctriangles;
@@ -305,9 +258,27 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     bool flat_triangles_opt = true;
     bool simple_occlusion = false;
     bool marching_cubes = true;
+    auto verts2edge = [&](const int3 &p1, const int3 &p2, const DistVert &dv1, const DistVert &dv2) {
+        auto wp1 = grid_to_world(p1);
+        auto wp2 = grid_to_world(p2);
+        float3 mid;
+        int3 iclosest;
+        if (abs(dv1.dist) < 0.00001f || abs(dv2.dist - dv1.dist) < 0.00001f) {
+            mid = wp1;
+            iclosest = p1;
+        } else if (abs(dv2.dist) < 0.00001f) {
+            mid = wp2;
+            iclosest = p2;
+        } else {
+            auto mu = -dv1.dist / (dv2.dist - dv1.dist);
+            mid = wp1 + mu * (wp2 - wp1);
+            iclosest = abs(mu) < 0.5 ? p1 : p2;
+        }
+        return edge(iclosest, mid, dv1.dist < dv2.dist ? dv1.color : dv2.color);
+    };
     if (marching_cubes) {
         int3 gridpos[8];
-        findex celli[8];
+        DistVert dv[8];
         int vertlist[12];
         const int3 corners[8] = {
             int3(0, 0, 0),
@@ -319,6 +290,8 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
             int3(1, 1, 1),
             int3(0, 1, 1),
         };
+        // FIXME: this uses even more memory than the distgrid.
+        EdgeGrid edgeidx(gridsize, int3(-1));
         for (int x = 0; x < gridsize.x() - 1; x++)
             for (int y = 0; y < gridsize.y() - 1; y++)
                 for (int z = 0; z < gridsize.z() - 1; z++) {
@@ -326,33 +299,25 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
             int ci = 0;
             for (int i = 0; i < 8; i++) {
                 gridpos[i] = pos + corners[i];
-                celli[i] = fcellindices->Get(gridpos[i]);
-                ci |= (celli[i].getm() != 0) << i;
+                dv[i] = distgrid->Get(gridpos[i]);
+                ci |= (dv[i].dist < 0) << i;
             }
             if (mc_edge_table[ci] == 0) continue;
             for (int i = 0; i < 12; i++) if (mc_edge_table[ci] & (1 << i)) {
                 int i1 = mc_edge_to_vert[i][0];
                 int i2 = mc_edge_to_vert[i][1];
-                int3 &p1 = gridpos[i1];
-                int3 &p2 = gridpos[i2];
-                int cidx = celli[i2].geti();
-                assert(cidx);
+                auto &p1 = gridpos[i1];
+                auto &p2 = gridpos[i2];
                 int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
-                fcell &fc = fcells[cidx];
-                int &idx = fc.edgeidx[dir];
-                if (idx < 0) {
-                    idx = (int)edges.size();
-                    auto e = fc.edges[dir];
-                    assert(e);
-                    auto wp1 = grid_to_world(p1);
-                    auto wp2 = grid_to_world(p2);
-                    auto mid = mix(wp1, wp2, float(e) / fcell::MAXEDGE);
-                    auto iclosest = e >= fcell::MAXEDGE / 2 ? p2 : p1;
-                    assert(fc.material[dir]);
-                    auto material = min(fc.material[dir] - 1, (int)materials.size() - 1);
-                    edges.push_back(edge(iclosest, mid, material));
+                auto &ei = edgeidx.Get(p2);
+                if (ei[dir]  < 0) {
+                    ei.set(dir, (int)edges.size());
+                    auto &dv1 = dv[i1];
+                    auto &dv2 = dv[i2];
+                    assert(dv1.dist * dv2.dist < 0);
+                    edges.push_back(verts2edge(p1, p2, dv1, dv2));
                 }
-                vertlist[i] = idx;
+                vertlist[i] = ei[dir];
             }
             for (int i = 0; mc_tri_table[ci][i] != -1; ) {
                 auto e1 = vertlist[mc_tri_table[ci][i++]];
@@ -370,8 +335,8 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         flat_triangles_opt = false;
         polyreductionpasses = 0;
         int3 gridpos[3][4];
-        findex celli[3][4];
-        float3 edgev[4];
+        DistVert dv[3][4];
+        edge edgev[4];
         int3 corners[4] = {
             int3(0, 0, 0),
             int3(1, 0, 0),
@@ -389,38 +354,11 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
             { 3, 5, 4, 0, 7, 1, -1 }, { 1, 4, 2, 4, 1, 5, -1 }, { 0, 7, 2, 7, 5, 2, 5, 4, 2, -1 },
             { 5, 7, 6, -1 }, { 0, 5, 1, 5, 0, 6, -1 }, { 1, 3, 2, 5, 7, 6, -1 },
             { 0, 6, 5, 0, 5, 3, 0, 3, 2, -1 }, { 7, 4, 3, 4, 7, 6, -1 },
-            { 6, 4, 3, 6, 3, 1, 6, 1, 0, -1 }, { 4, 3, 1, 4, 1, 7, 4, 7, 6, -1 },
+            { 6, 4, 3, 6, 3, 1, 6, 1, 0, -1 }, { 4, 2, 1, 4, 1, 7, 4, 7, 6, -1 },
             { 0, 4, 2, 4, 0, 6, -1 },
         };
-        int edgestartcell[4] = { 1, 2, 2, 3 };
-        #ifdef MERGE_VERTICAL_EDGES
-        // FIXME: only do this for continguous sections
-        for (int x = 0; x < gridsize.x() - 1; x++)
-            for (int y = 0; y < gridsize.y() - 1; y++) {
-            uint edgecountx = 0;
-            uint edgecounty = 0;
-            uint edgex = 0;
-            uint edgey = 0;
-            for (int z = 0; z < gridsize.z() - 1; z++) {
-                int3 pos(x, y, z);
-                auto fci = fcellindices[IndexGrid(pos, gridsize)].geti();
-                if (fci) {
-                    auto &fc = fcells[fci];
-                    if (fc.edges[0]) { edgex += fc.edges[0]; edgecountx++; }
-                    if (fc.edges[1]) { edgey += fc.edges[1]; edgecounty++; }
-                }
-            }
-            for (int z = 0; z < gridsize.z() - 1; z++) {
-                int3 pos(x, y, z);
-                auto fci = fcellindices[IndexGrid(pos, gridsize)].geti();
-                if (fci) {
-                    auto &fc = fcells[fci];
-                    if (edgecountx > 1 && fc.edges[0]) fc.edges[0] = ushort(edgex / edgecountx);
-                    if (edgecounty > 1 && fc.edges[1]) fc.edges[1] = ushort(edgey / edgecounty);
-                }
-            }
-        }
-        #endif
+        float3 zup(0, 0,  0.5f);
+        float3 zdn(0, 0, -0.5f);
         for (int z = 1; z < gridsize.z() - 1; z++)
             for (int x = 0; x < gridsize.x() - 1; x++)
                 for (int y = 0; y < gridsize.y() - 1; y++) {
@@ -429,63 +367,51 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
             for (int lz = 0; lz < 3; lz++) {
                 for (int i = 0; i < 4; i++) {
                     gridpos[lz][i] = pos + corners[i] + int3(0, 0, lz - 1);
-                    celli[lz][i] = fcellindices->Get(gridpos[lz][i]);
-                    ci[lz] |= (celli[lz][i].getm() != 0) << i;
+                    dv[lz][i] = distgrid->Get(gridpos[lz][i]);
+                    ci[lz] |= (dv[lz][i].dist < 0) << i;
                 }
             }
             if (linelist[ci[1]][0] < 0 && ci[1] == ci[0] && ci[1] == ci[2]) continue;
             for (int i = 0; i < 4; i++) {
-                auto fi = celli[1][edgestartcell[i]].geti();
-                auto &fc = fcells[fi];
-                auto e = fc.edges[i & 1];
-                auto mid = e / float(fcell::MAXEDGE) - ((i & 2) / 2);
-                edgev[i] = float3(gridpos[1][i]).add(i & 1, mid);
+                auto &p1 = gridpos[1][i];
+                auto &p2 = gridpos[1][(i + 1) & 3];
+                auto &dv1 = dv[1][i];
+                auto &dv2 = dv[1][(i + 1) & 3];
+                edgev[i] = verts2edge(p1, p2, dv1, dv2);
             }
-            float3 zup(0, 0,  0.5f);
-            float3 zdn(0, 0, -0.5f);
             // Side polys.
             for (int i = 0; linelist[ci[1]][i] >= 0; i += 2) {
                 // FIXME: disambiguate saddles?
-                auto a = linelist[ci[1]][i];
-                auto b = linelist[ci[1]][i + 1];
-                // FIXME: duplicate verts. reuse thru edgeidx.
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[a] + zup, 0));
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[b] + zup, 0));
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[b] + zdn, 0));
-
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[b] + zdn, 0));
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[a] + zdn, 0));
-                mctriangles.push_back(edges.size());
-                edges.push_back(edge(int3_0, edgev[a] + zup, 0));
+                // FIXME: duplicate verts. reuse.
+                for (int o = 0; o < 6; o++) {
+                    auto a = linelist[ci[1]][i + (o > 0 && o < 4)];
+                    mctriangles.push_back(edges.size());
+                    auto e = edgev[a];
+                    e.fmid += o > 1 && o < 5 ? zdn : zup;
+                    edges.push_back(e);
+                }
             }
             // Top polys.
-            if (ci[1] != ci[2] || linelist[ci[1]][0] >= 0) {
+            if (ci[1] != ci[2] || linelist[ci[1]][0] >= 0)
+            {
                 // FIXME: clip against adjacent level.
                 for (int i = 0; trilist[ci[1]][i] >= 0; i += 3) {
-                    auto a = trilist[ci[1]][i];
-                    auto b = trilist[ci[1]][i + 1];
-                    auto c = trilist[ci[1]][i + 2];
-                    // FIXME: duplicate verts.
-                    mctriangles.push_back(edges.size());
-                    edges.push_back(edge(int3_0, (a & 1 ? edgev[a / 2] : float3(gridpos[1][a / 2]))
-                                                 + zup, 1));
-                    mctriangles.push_back(edges.size());
-                    edges.push_back(edge(int3_0, (b & 1 ? edgev[b / 2] : float3(gridpos[1][b / 2]))
-                                                 + zup, 1));
-                    mctriangles.push_back(edges.size());
-                    edges.push_back(edge(int3_0, (c & 1 ? edgev[c / 2] : float3(gridpos[1][c / 2]))
-                                                 + zup, 1));
+                    for (int o = 0; o < 3; o++) {
+                        auto a = trilist[ci[1]][i + o];
+                        // FIXME: duplicate verts.
+                        mctriangles.push_back(edges.size());
+                        auto e = edgev[a / 2];
+                        if (!(a & 1)) e.fmid = float3(gridpos[1][a / 2]);
+                        else { assert(length(e.fmid - float3(gridpos[1][a / 2])) < 2); }
+                        e.fmid += zup;
+                        edges.push_back(e);
+                    }
                 }
             }
             // FIXME: bottom polys missing.
         }
     }
-    delete fcellindices;
+    delete distgrid;
     vector<int> triangles;
     vector<mgvert> verts;
     RandomNumberGenerator<PCG32> r;
@@ -505,15 +431,14 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         vector<int3> iverts;
         vector<dcell> cells;
         for (edge &e : edges) {
-            int idx = dcellindices->Get(e.iclosest);
+            int &idx = dcellindices->Get(e.iclosest);
             if (idx < 0) {
                 idx = (int)cells.size();
-                dcellindices->Set(e.iclosest, idx);
                 cells.push_back(dcell());
             }
             dcell &c = cells[idx];
             c.accum += e.fmid;
-            c.col += materials[e.material];
+            c.col += color2vec(e.material).xyz();
             c.n--;
             iverts.push_back(e.iclosest);
         }
@@ -544,8 +469,9 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         for (edge &e : edges) {
             verts.push_back(mgvert());
             auto &v = verts.back();
+            assert(e.fmid >= 0 && e.fmid <= float3(gridsize));
             v.pos = e.fmid;
-            v.col = quantizec(materials[e.material]);
+            v.col = e.material;
             v.norm = float3_0;
         }
         triangles.assign(mctriangles.begin(), mctriangles.end());
@@ -641,8 +567,8 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         delete[] cfactor;
     }
     Output(OUTPUT_DEBUG, "meshgen verts = %lu, edgeverts = %lu, tris = %lu, mctris = %lu,"
-           " fcells = %lu, scale = %f\n", verts.size(), edges.size(), triangles.size() / 3,
-           mctriangles.size() / 3, fcells.size(), gridscale);
+           " scale = %f\n", verts.size(), edges.size(), triangles.size() / 3,
+           mctriangles.size() / 3, gridscale);
     auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(mgvert), "PNC"),
                       pointmode ? PRIM_POINT : PRIM_TRIS);
     if (pointmode) {
@@ -653,20 +579,15 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     return m;
 }
 
-Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize,
-                          const vector<float3> &materials) {
-    auto scenesize = root->ComputeSize() * 2;
+Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize) {
+    auto scenesize = root->Size() * 2;
     float biggestdim = max(scenesize.x(), max(scenesize.y(), scenesize.z()));
     auto gridscale = targetgridsize / biggestdim;
     auto gridsize = int3(scenesize * gridscale + float3(2.5f));
     auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
-    auto fcellindices = new FIndexGrid(gridsize, findex());
-    vector<fcell> fcells;
-    fcells.push_back(fcell());  // index 0 means no per cell data
-    root->FillGrid(int3(0), gridsize, fcellindices, fcells, float3(gridscale), gridtrans,
-                   float3x3_1);
-    return polygonize_mc(gridsize, gridscale, gridtrans, fcellindices, fcells, materials,
-                         id_grid_to_world);
+    auto distgrid = new DistGrid(gridsize, DistVert());
+    root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1);
+    return polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
 }
 
 Group *root = nullptr;
@@ -674,15 +595,17 @@ Group *curgroup = nullptr;
 float3 cursize = float3_1;
 float3 curorig = float3_0;
 float3x3 currot  = float3x3_1;
-int curcol   = 1;
+float cursmoothmink = 1.0f;
+float4 curcol = float4_1;
 
 void MeshGenClear() {
     if (root) delete root;
     root = curgroup = nullptr;
     cursize = float3_1;
     curorig = float3_0;
-    currot  = float3x3_1;
-    curcol  = 1;
+    currot = float3x3_1;
+    curcol = float4_1;
+    max_smoothmink = 0;
 }
 
 Group *GetGroup() {
@@ -699,6 +622,7 @@ Value AddShape(ImplicitFunction *f) {
     f->orig = curorig;
     f->rot  = currot;
     f->material = curcol;
+    f->smoothmink = cursmoothmink;
     GetGroup()->children.push_back(f);
     return Value();
 }
@@ -820,22 +744,17 @@ void AddMeshGen() {
     ENDDECL1(mg_set_pointmode, "on", "I", "",
              "generates a point mesh instead of polygons");
 
-    STARTDECL(mg_polygonize) (Value &subdiv, Value &color) {
-        vector<float3> materials;
-        for (int i = 0; i < color.eval()->Len(); i++)
-            materials.push_back(ValueToF<3>(color.eval()->At(i)));
-        color.DECRT();
-        auto mesh = eval_and_polygonize(root, subdiv.ival(), materials);
+    STARTDECL(mg_polygonize) (Value &subdiv) {
+        auto mesh = eval_and_polygonize(root, subdiv.ival());
         MeshGenClear();
         extern ResourceType mesh_type;
         return Value(g_vm->NewResource(mesh, &mesh_type));
     }
-    ENDDECL2(mg_polygonize, "subdiv,colors", "IF]]", "X",
+    ENDDECL1(mg_polygonize, "subdiv", "I", "X",
         "returns a generated mesh from past mg_ commands."
         " subdiv determines detail and number of polygons (relative to the largest dimension of the"
         " model), try 30.. 300 depending on the subject."
-        " values much higher than that will likely make you run out of memory (or take very long)."
-        " colors is a list of colors to be used with mg_fill()");
+        " values much higher than that will likely make you run out of memory (or take very long).");
 
     STARTDECL(mg_translate) (Value &vec, Value &body) {
         if (body.True()) g_vm->Push(ToValueF(curorig));
@@ -893,18 +812,29 @@ void AddMeshGen() {
         "rotates using axis/angle. when a body is given, restores the previous transform"
         " afterwards");
 
-    STARTDECL(mg_fill) (Value &fill, Value &body) {
-        if (body.True()) g_vm->Push(Value(curcol));
-        curcol = fill.ival() & findex::MATMASK;   // FIXME: error if doesn't fit?
+    STARTDECL(mg_color) (Value &vec, Value &body) {
+        if (body.True()) g_vm->Push(ToValueF(curcol));
+        curcol = ValueDecToF<4>(vec);
         return body;
     }
-    MIDDECL(mg_fill) () {
-        auto fill = g_vm->Pop();
-        TYPE_ASSERT(fill.type == V_INT);
-        curcol = fill.ival();
+    MIDDECL(mg_color) () {
+        curcol = ValueDecToF<4>(g_vm->Pop());
     }
-    ENDDECL2CONTEXIT(mg_fill, "fill,body", "IC?", "",
-        "sets the fill mode, where 1.. means to add shapes to the scene (union), and 0 substracts"
-        " them (carves). when a body is given, restores the previous fill mode afterwards."
-        " Values 1.. refer to colors 0.. of the colors passed to mg_polygonize");
+    ENDDECL2CONTEXIT(mg_color, "color,body", "F]C?", "",
+        "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
+        " substracts them (carves). when a body is given, restores the previous color afterwards.");
+
+    STARTDECL(mg_smooth) (Value &smooth, Value &body) {
+        if (body.True()) g_vm->Push(Value(cursmoothmink));
+        cursmoothmink = smooth.fval();
+        return body;
+    }
+    MIDDECL(mg_smooth) () {
+        auto smooth = g_vm->Pop();
+        TYPE_ASSERT(smooth.type == V_FLOAT);
+        cursmoothmink = smooth.fval();
+    }
+    ENDDECL2CONTEXIT(mg_smooth, "smooth,body", "FC?", "",
+        "sets the smoothness in terms of the range of distance from the shape smoothing happens."
+        " when a body is given, restores the previous value afterwards.");
 }

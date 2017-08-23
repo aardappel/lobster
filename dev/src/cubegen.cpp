@@ -58,7 +58,7 @@ struct Voxels {
         for (int x = max(0, p.x()); x < min(p.x() + sz.x(), grid.dim.x()); x++) {
             for (int y = max(0, p.y()); y < min(p.y() + sz.y(), grid.dim.y()); y++) {
                 for (int z = max(0, p.z()); z < min(p.z() + sz.z(), grid.dim.z()); z++) {
-                    grid.Set(int3(x, y, z), pi);
+                    grid.Get(int3(x, y, z)) = pi;
                 }
             }
         }
@@ -71,7 +71,7 @@ struct Voxels {
                     auto pos = int3(x, y, z);
                     auto pi = grid.Get(pos);
                     auto d = (pos - p) * flip + dest;
-                    if (d >= int3_0 && d < grid.dim) grid.Set(d, pi);
+                    if (d >= int3_0 && d < grid.dim) grid.Get(d) = pi;
                 }
             }
         }
@@ -343,7 +343,7 @@ void AddCubeGen() {
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uchar *)(p + i * 4 + 4));
-                    voxels->grid.Set(int3(vox.xyz()), vox.w());  // FIXME: check bounds.
+                    voxels->grid.Get(int3(vox.xyz())) = vox.w();  // FIXME: check bounds.
                 }
             }
             p += contentlen;
