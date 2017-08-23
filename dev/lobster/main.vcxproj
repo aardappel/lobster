@@ -175,11 +175,12 @@
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>..\external\openvr\lib\win32\openvr_api.lib;..\external\steamworks\lib\win32\steam_api.lib;../../build/lobster/language/language.lib;../../build/lobster/engine/engine.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(TargetPath)</OutputFile>
-      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
       <StackReserveSize>
       </StackReserveSize>
+      <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>

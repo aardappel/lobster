@@ -979,6 +979,13 @@ void AddBuiltins() {
     }
     ENDDECL1(reference_count, "val", "A", "I",
         "get the reference count of any value. for compiler debugging, mostly");
+
+    STARTDECL(set_console) (Value &x) {
+        SetConsole(x.True());
+        return Value();
+    }
+    ENDDECL1(set_console, "on", "I", "",
+             "lets you turn on/off the console window (on Windows)");
 }
 
 }

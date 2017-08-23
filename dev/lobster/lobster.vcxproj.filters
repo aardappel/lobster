@@ -47,6 +47,9 @@
     <Filter Include="engine\steam">
       <UniqueIdentifier>{d702a622-4917-41d5-a8c2-6f609fe925a0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="base\win32">
+      <UniqueIdentifier>{25538f26-ef11-46c3-b9e9-3e6bae1aa115}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -348,6 +351,12 @@
     </ClInclude>
     <ClInclude Include="..\src\simplex.h">
       <Filter>engine\lobster_bindings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\StackWalker\StackWalker.h">
+      <Filter>base\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\StackWalker\StackWalkerHelpers.h">
+      <Filter>base\win32</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1016,6 +1025,12 @@
     </ClCompile>
     <ClCompile Include="..\src\steamworks.cpp">
       <Filter>engine\steam</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\StackWalker\StackWalker.cpp">
+      <Filter>base\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\StackWalker\StackWalkerHelpers.cpp">
+      <Filter>base\win32</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

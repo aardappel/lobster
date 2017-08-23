@@ -50,7 +50,11 @@ string auxdir;
 // Folder to write to, usually the same as auxdir, special folder on mobile platforms.
 string writedir;
 
+string exefile;
+
 FileLoader cur_loader = nullptr;
+
+bool have_console = true;
 
 string StripFilePart(const char *filepath) {
     auto fpos = strrchr(filepath, FILESEP);
@@ -65,6 +69,7 @@ string StripDirPart(const char *filepath) {
 
 bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
+    exefile = exefilepath;
     cur_loader = loader;
     datadir = StripFilePart(exefilepath);
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
@@ -72,6 +77,7 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool fro
     // FIXME: use SDL_GetBasePath() instead?
     #ifdef __APPLE__
         if (from_bundle) {
+            have_console = false;
             // Default data dir is the Resources folder inside the .app bundle.
             CFBundleRef mainBundle = CFBundleGetMainBundle();
             CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -240,7 +246,17 @@ void Output(OutputType ot, const char *msg, ...) {
         OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
-        if (ot >= OUTPUT_INFO) printf("%s\n", buf);
+        if (ot >= OUTPUT_INFO) {
+            printf("%s\n", buf);
+            if (!have_console) {  // Also do this on OS X?
+                auto f = fopen((exefile + ".con.log").c_str(), "a");
+                if (f) {
+                    fputs(buf, f);
+                    fputs("\n", f);
+                    fclose(f);
+                }
+            }
+        }
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
         IOSLog(msg);  // FIXME: args?
@@ -351,3 +367,10 @@ string GetDateTime() {
     return buf;
 }
 
+void SetConsole(bool on) {
+    have_console = on;
+    #ifdef _WIN32
+        if (on) AllocConsole();
+        else FreeConsole();
+    #endif
+}

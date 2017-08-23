@@ -26,6 +26,7 @@ using namespace lobster;
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+        InitUnhandledExceptionFilter();
     #endif
     Output(OUTPUT_INFO, "Lobster running...");
     InitTime();
@@ -69,6 +70,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
+                else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-html") { DumpBuiltins(false); return 0; }
                 else if (a == "--gen-builtins-names") { DumpBuiltins(true); return 0; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
