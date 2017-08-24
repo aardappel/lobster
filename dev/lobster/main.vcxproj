@@ -113,12 +113,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\external\openvr\lib\win32\openvr_api.lib;..\external\steamworks\lib\win32\steam_api.lib;../../build/lobster/language/languageDBG.lib;../../build/lobster/engine/engineDBG.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\external\openvr\lib\win32\openvr_api.lib;..\external\steamworks\lib\win32\steam_api.lib;../../build/lobster/language/languageDBG.lib;../../build/lobster/engine/engineDBG.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
       <StackCommitSize>
       </StackCommitSize>
       <StackReserveSize>
       </StackReserveSize>
+      <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -141,12 +142,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api.lib;../../build/lobster/language/languageDBG64.lib;../../build/lobster/engine/engineDBG64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api.lib;../../build/lobster/language/languageDBG64.lib;../../build/lobster/engine/engineDBG64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
       <StackCommitSize>
       </StackCommitSize>
       <StackReserveSize>
       </StackReserveSize>
+      <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -173,7 +175,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>..\external\openvr\lib\win32\openvr_api.lib;..\external\steamworks\lib\win32\steam_api.lib;../../build/lobster/language/language.lib;../../build/lobster/engine/engine.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\external\openvr\lib\win32\openvr_api.lib;..\external\steamworks\lib\win32\steam_api.lib;../../build/lobster/language/language.lib;../../build/lobster/engine/engine.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(TargetPath)</OutputFile>
       <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>false</GenerateMapFile>
@@ -181,6 +183,7 @@
       <StackReserveSize>
       </StackReserveSize>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
+      <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -207,13 +210,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api.lib;../../build/lobster/language/language64.lib;../../build/lobster/engine/engine64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\external\openvr\lib\win64\openvr_api.lib;..\external\steamworks\lib\win64\steam_api.lib;../../build/lobster/language/language64.lib;../../build/lobster/engine/engine64.lib;opengl32.lib;winmm.lib;imm32.lib;version.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(TargetPath)</OutputFile>
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
       <StackReserveSize>
       </StackReserveSize>
+      <DelayLoadDLLs>openvr_api.dll;steam_api.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>

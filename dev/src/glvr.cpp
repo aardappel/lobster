@@ -71,8 +71,8 @@ static vector<MotionController> motioncontrollers;
 void VRShutDown() {
     #ifdef PLATFORM_VR
     button_ids.clear();
+    if (vrsys) vr::VR_Shutdown();
     vrsys = NULL;
-    vr::VR_Shutdown();
     for (int i = 0; i < 2; i++) {
         DeleteTexture(mstex[i]);
         DeleteTexture(retex[i]);

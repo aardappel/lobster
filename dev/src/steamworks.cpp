@@ -87,7 +87,7 @@ int SteamInit(uint appid, bool screenshots) {
 
 void SteamUpdate() {
     #ifdef PLATFORM_STEAMWORKS
-        SteamAPI_RunCallbacks();
+        if (steam) SteamAPI_RunCallbacks();
     #endif  // PLATFORM_STEAMWORKS
 }
 
