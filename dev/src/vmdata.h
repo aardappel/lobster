@@ -578,8 +578,10 @@ struct VM {
 
     const void *compiled_code_ip;
 
+    const vector<string> &program_args;
+
     VM(const char *_pn, string &&_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode);
+       const void *static_bytecode, const vector<string> &args);
     ~VM();
 
     void OneMoreFrame();
@@ -746,6 +748,13 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
         g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
             x->type->name);
     return (T)x->val;
+}
+
+inline vector<string> VectorOfStrings(Value &v) {
+    vector<string> r;
+    for (int i = 0; i < v.vval()->len; i++) r.push_back(v.vval()->At(i).sval()->str());
+    v.DECRT();
+    return r;
 }
 
 void EscapeAndQuote(const string &s, string &r);

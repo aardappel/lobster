@@ -54,7 +54,7 @@ enum {
 #define TOPPTR() (stack + sp + 1)
 
 VM::VM(const char *_pn, string &&_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode)
+       const void *static_bytecode, const vector<string> &args)
       : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
         #ifdef VM_COMPILED_CODE_MODE
             next_call_target(0), next_mm_table(nullptr), next_mm_call(nullptr),
@@ -69,7 +69,7 @@ VM::VM(const char *_pn, string &&_bytecode_buffer, const void *entry_point,
         debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
         trace(false), trace_tail(false),
         vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
-        compiled_code_ip(entry_point) {
+        compiled_code_ip(entry_point), program_args(args) {
     assert(vmpool == nullptr);
     vmpool = new SlabAlloc();
     bcf = bytecode::GetBytecodeFile(static_bytecode ? static_bytecode : bytecode_buffer.data());
@@ -1491,8 +1491,9 @@ int VM::GC() {  // shouldn't really be used, but just in case
 }
 
 void RunBytecode(const char *programname, string &&bytecode, const void *entry_point,
-                 const void *static_bytecode) {
-    new VM(programname, std::move(bytecode), entry_point, static_bytecode);  // Sets up g_vm
+                 const void *static_bytecode, const vector<string> &program_args) {
+    // Sets up g_vm
+    new VM(programname, std::move(bytecode), entry_point, static_bytecode, program_args);
     g_vm->EvalProgram();
 }
 

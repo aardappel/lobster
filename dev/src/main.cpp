@@ -45,8 +45,9 @@ int main(int argc, char* argv[]) {
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
+        vector<string> program_args;
         string helptext = "\nUsage:\n"
-            "lobster [ OPTIONS ] [ FILE ]\n"
+            "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "-w                     Wait for input before exiting.\n"
             "-b                     Compile to pakfile, don't run.\n"
@@ -56,10 +57,12 @@ int main(int argc, char* argv[]) {
             "--verbose              Output additional informational text.\n"
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
+            "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
             "--non-interactive-test Quit after running 1 frame.\n";
-        for (int arg = 1; arg < argc; arg++) {
+        int arg = 1;
+        for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
                 string a = argv[arg];
                 if (a == "-w") { wait = true; }
@@ -74,6 +77,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { DumpBuiltins(false); return 0; }
                 else if (a == "--gen-builtins-names") { DumpBuiltins(true); return 0; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
+                else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
                 else throw "unknown command line argument: " + (argv[arg] + helptext);
@@ -82,6 +86,8 @@ int main(int argc, char* argv[]) {
                 fn = argv[arg];
             }
         }
+        for (; arg < argc; arg++) { program_args.push_back(argv[arg]); }
+
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
@@ -125,7 +131,7 @@ int main(int argc, char* argv[]) {
                 fclose(f);
             }
         } else {
-            if (EngineRunByteCode(fn, std::move(bytecode), nullptr, nullptr))
+            if (EngineRunByteCode(fn, std::move(bytecode), nullptr, nullptr, program_args))
                 return 0;  // Emscripten inverted control.
         }
     }

@@ -986,6 +986,16 @@ void AddBuiltins() {
     }
     ENDDECL1(set_console, "on", "I", "",
              "lets you turn on/off the console window (on Windows)");
+
+    STARTDECL(command_line_arguments) () {
+        auto v = (LVector *)g_vm->NewVector(0, (int)g_vm->program_args.size(),
+                                            g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
+        for (auto &a : g_vm->program_args) v->Push(g_vm->NewString(a));
+        return Value(v);
+    }
+    ENDDECL0(command_line_arguments, "", "", "S]",
+             "");
+
 }
 
 }

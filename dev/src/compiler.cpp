@@ -271,7 +271,7 @@ void DumpBuiltins(bool justnames) {
     }
 }
 
-Value CompileRun(Value &source, bool stringiscode) {
+Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
     string fn = stringiscode ? "string" : source.sval()->str();  // fixme: datadir + sanitize?
     SlabAlloc *parentpool = vmpool; vmpool = nullptr;
     VM        *parentvm   = g_vm;   g_vm = nullptr;
@@ -284,7 +284,7 @@ Value CompileRun(Value &source, bool stringiscode) {
             // interpreted mode anymore.
             throw string("cannot execute bytecode in compiled mode");
         #endif
-        RunBytecode(fn.c_str(), std::move(bytecode), nullptr, nullptr);
+        RunBytecode(fn.c_str(), std::move(bytecode), nullptr, nullptr, args);
         auto ret = g_vm->evalret;
         delete g_vm;
         assert(!vmpool && !g_vm);
@@ -305,20 +305,20 @@ Value CompileRun(Value &source, bool stringiscode) {
 }
 
 void AddCompiler() {  // it knows how to call itself!
-    STARTDECL(compile_run_code) (Value &filename) {
-        return CompileRun(filename, true);
+    STARTDECL(compile_run_code) (Value &filename, Value &args) {
+        return CompileRun(filename, true, VectorOfStrings(args));
     }
-    ENDDECL1(compile_run_code, "code", "S", "SS?",
+    ENDDECL2(compile_run_code, "code,args", "SS]", "SS?",
         "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
         " the argument is a string of code. returns the return value of the program as a string,"
         " with an error string as second return value, or nil if none. using parse_data(),"
         " two program can communicate more complex data structures even if they don't have the same"
         " version of struct definitions.");
 
-    STARTDECL(compile_run_file) (Value &filename) {
-        return CompileRun(filename, false);
+    STARTDECL(compile_run_file) (Value &filename, Value &args) {
+        return CompileRun(filename, false, VectorOfStrings(args));
     }
-    ENDDECL1(compile_run_file, "filename", "S", "SS?",
+    ENDDECL2(compile_run_file, "filename,args", "SS]", "SS?",
         "same as compile_run_code(), only now you pass a filename.");
 }
 

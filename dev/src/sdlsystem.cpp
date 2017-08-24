@@ -689,9 +689,11 @@ void one_frame_callback() {
     }
 }
 
-bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_point, const void *static_bytecode) {
+bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_point,
+                       const void *static_bytecode, const vector<string> &program_args) {
     try {
-        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point, static_bytecode);
+        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point,
+                             static_bytecode, program_args);
     }
     catch (string &s) {
         #ifdef USE_MAIN_LOOP_CALLBACK
@@ -732,7 +734,9 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         RegisterCoreEngineBuiltins();
 
         string empty;
-        if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb))
+        vector<string> args;
+        for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
+        if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb, args))
             return 0;  // Emscripten.
     }
     catch (string &s) {
