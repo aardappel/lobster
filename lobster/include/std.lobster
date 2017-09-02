@@ -68,6 +68,18 @@ def find_best(xs, fun):
             best = v
     i
 
+def weightedpick(list, zero, wf):
+    // FIXME: "zero" is an easy way to select float vs int implementation, explicit template
+    // arg would be better here.
+    weights := fold(list, zero): _a + wf(_x)
+    assert(weights)
+    pick := rndfloat() * weights
+    acc := zero
+    i := list.find():
+        acc += wf(_)
+        pick < acc
+    list[i]
+
 def sum(xs):     fold(xs, 0): _x + _y
 def product(xs): fold(xs, 1): _x * _y
 
