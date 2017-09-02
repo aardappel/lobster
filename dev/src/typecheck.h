@@ -877,7 +877,7 @@ struct TypeChecker {
             // had no args, or all typed args, but we have no way of telling which T_FUN's
             // will end up this way.
             // For now, just error.
-            TypeError("cannot infer type of function in call", *args);
+            TypeError("function call value has type: " + TypeName(ftype), *args);
             return type_any;
         }
     }
