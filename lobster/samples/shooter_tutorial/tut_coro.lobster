@@ -13,7 +13,7 @@ def menu(lastscore, highscore, frame):
         if gl_button("space") == 1:
             mode = coroutine level(highscore)
 
-def level(highscore, frame):
+def level(highscore, lframe):
     score := 0
 
     worldsize :== 20.0
@@ -89,7 +89,7 @@ def level(highscore, frame):
                 e.active
 
     while playerhealth > 0:
-        frame()
+        lframe()
         gl_translate float(gl_windowsize()) / 2.0:
             scale := gl_windowsize().y / worldsize
             gl_scale(scale)

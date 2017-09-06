@@ -62,14 +62,12 @@ spheres := [ //Scene: radius, position, emission, color, material
 def radiance(r:Ray, depth):
     t := 1000000000000.0                            // distance to intersection
     id := -1                             // id of intersected object
-    def intersectray(r:Ray):
-        for(spheres) s, i:
-            d := s.intersect(r)
-            if d != 0 and d<t:
-                t = d
-                id = i
-        return id >= 0
-    if !intersectray(r): return xyz_0 // if miss, return black
+    for(spheres) s, i:
+        d := s.intersect(r)
+        if d != 0 and d<t:
+            t = d
+            id = i
+    if id < 0: return xyz_0 // if miss, return black
     obj := spheres[id]        // the hit object
     x := r.o+r.d*t
     n := normalize(x-obj.p)
@@ -145,7 +143,7 @@ def onesample():
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[h-y-1][x] += r
     samples++
-    c2 := map c: map _: map _: pow(clamp(_ / samples, 0, 1),1/2.2)
+    c2 := map(c) row: map(row) col: map(col): pow(clamp(_ / samples, 0, 1),1/2.2)
     //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_windowtitle("smallpt: " + samples + " samples computed")
     gl_createtexture(c2)

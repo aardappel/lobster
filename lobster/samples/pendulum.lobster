@@ -10,6 +10,9 @@ mass := 1
 max_steps := 2000
 
 struct link { len:float = 180, dtheta:float = 0, theta:float = 181 }
+
+def ddl(l::link): dtheta * dtheta * len
+
 links := map(2): link {}
 
 pts := []
@@ -23,7 +26,6 @@ while gl_frame():
     sc := sincos(links[0].theta - links[1].theta)
     for(links) l, i:
         o := links[1 - i]
-        def ddl(l): l.dtheta * l.dtheta * l.len
         d2theta :=  ((i + 1) * g * (sin(o.theta) * sc.x - (2 - i) * sin(l.theta)) +
                      (i * 2 - 1) * ((i + 1) * ddl(o) + ddl(l) * sc.x) * sc.y) /
                     (l.len * (2 - sc.x * sc.x))

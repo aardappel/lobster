@@ -78,16 +78,18 @@ def run_test_cases(is_speed_test):
             assert x == 1
             assert y == 2
         def g():
-            x := 2
+            // This used to be legal, but now shadowing is disabled.
+            // x := 2
             y <- 2
             f()
         g()
     scopetest()
-    a := 0
-    assert a++ + ++a + a-- + --a == 4
-    b := [0]
-    assert b[0]++ + ++b[0] + b[0]-- + --b[0] == 4
 
+    do():
+        a := 0
+        assert a++ + ++a + a-- + --a == 4
+        b := [0]
+        assert b[0]++ + ++b[0] + b[0]-- + --b[0] == 4
 
     testvector := [ 3, 9, 5, 4, 1, 3, 9, 5, 4, 1 ]
 
@@ -259,14 +261,14 @@ def run_test_cases(is_speed_test):
         co1 := coroutine mycoro()   // out of nested HOFs
         co2 := coroutine myfor(4)   // out of a simple function
 
-        def interleave(co1, co2, f):   // test using 2 at once
-            while co1.active or co2.active:
-                if co1.active:
-                    f(co1.returnvalue)
-                    co1.resume
-                if co2.active:
-                    f(co2.returnvalue)
-                    co2.resume
+        def interleave(a, b, f):   // test using 2 at once
+            while a.active or b.active:
+                if a.active:
+                    f(a.returnvalue)
+                    a.resume
+                if b.active:
+                    f(b.returnvalue)
+                    b.resume
 
         //interleave(co1, co2): print(_)
 

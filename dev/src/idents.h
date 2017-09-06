@@ -26,9 +26,7 @@ struct SpecIdent;
 
 struct Ident : Named {
     int line;
-    size_t identstacklevel, scopelevel;
-
-    Ident *prev;
+    size_t scopelevel;
 
     // TODO: remove this from Ident, only makes sense during parsing really.
     SubFunction *sf_def;    // Where it is defined, including anonymous functions.
@@ -41,9 +39,9 @@ struct Ident : Named {
 
     SpecIdent *cursid;
 
-    Ident(const string &_name, int _l, int _idx, size_t _isl, size_t _sl)
+    Ident(const string &_name, int _l, int _idx, size_t _sl)
         : Named(_name, _idx), line(_l),
-          identstacklevel(_isl), scopelevel(_sl), prev(nullptr), sf_def(nullptr),
+          scopelevel(_sl), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
           logvar(false), cursid(nullptr) {}
 
@@ -354,16 +352,13 @@ struct SymbolTable {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = new Ident(name, line, (int)identtable.size(), scopelevels.back(),
-                          scopelevels.size());
+        ident = new Ident(name, line, (int)identtable.size(), scopelevels.size());
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
         ident->cursid = NewSid(ident);
         (islocal ? sf->locals : sf->args).v.push_back(Arg(ident->cursid, type_any, true));
         if (existing_ident) {
-            if (scopelevels.back() == existing_ident->identstacklevel)
-                lex.Error("identifier redefinition: " + ident->name);
-            ident->prev = existing_ident;
+            lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
         idents[name] = ident;
         identstack.push_back(ident);
@@ -429,8 +424,7 @@ struct SymbolTable {
             auto ident = identstack.back();
             auto it = idents.find(ident->name);
             if (it != idents.end()) {  // can already have been removed by private var cleanup
-                if (ident->prev) it->second = ident->prev;
-                else idents.erase(it);
+                idents.erase(it);
             }
             identstack.pop_back();
         }
@@ -455,7 +449,6 @@ struct SymbolTable {
         auto it = idents.begin();
         while (it != idents.end()) {
             if (it->second->isprivate) {
-                assert(!it->second->prev);
                 idents.erase(it++);
             } else
                 it++;

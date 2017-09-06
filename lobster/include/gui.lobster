@@ -243,8 +243,8 @@ def gui_button_id_image(id:int, size, tex, do:guif, focus:guif): button(id,     
 
 def gui_custombackground(f:guifs): if render_pass: f(overalsize)
 
-def gui_multiselect(labels, selected, spacing):
-    gui_hblock(1, spacing):
+def gui_multiselect(labels, selected, mspacing):
+    gui_hblock(1, mspacing):
         for(labels) name, i:
             gui_color(if selected == i: color_white else: color_grey):
                 gui_button_text(name):
