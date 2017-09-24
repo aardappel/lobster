@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -778,8 +778,8 @@ SDL_UpperBlitScaled(SDL_Surface * src, const SDL_Rect * srcrect,
 
     final_src.x = (int)SDL_floor(src_x0 + 0.5);
     final_src.y = (int)SDL_floor(src_y0 + 0.5);
-    final_src.w = (int)SDL_floor(src_x1 - src_x0 + 1.5);
-    final_src.h = (int)SDL_floor(src_y1 - src_y0 + 1.5);
+    final_src.w = (int)SDL_floor(src_x1 + 1 + 0.5) - (int)SDL_floor(src_x0 + 0.5);
+    final_src.h = (int)SDL_floor(src_y1 + 1 + 0.5) - (int)SDL_floor(src_y0 + 0.5);
 
     final_dst.x = (int)SDL_floor(dst_x0 + 0.5);
     final_dst.y = (int)SDL_floor(dst_y0 + 0.5);
@@ -871,6 +871,15 @@ SDL_UnlockSurface(SDL_Surface * surface)
 }
 
 /*
+ * Creates a new surface identical to the existing surface
+ */
+SDL_Surface *
+SDL_DuplicateSurface(SDL_Surface * surface)
+{
+    return SDL_ConvertSurface(surface, surface->format, surface->flags);
+}
+
+/*
  * Convert a surface into the specified pixel format.
  */
 SDL_Surface *
@@ -881,6 +890,15 @@ SDL_ConvertSurface(SDL_Surface * surface, const SDL_PixelFormat * format,
     Uint32 copy_flags;
     SDL_Color copy_color;
     SDL_Rect bounds;
+
+    if (!surface) {
+        SDL_InvalidParamError("surface");
+        return NULL;
+    }
+    if (!format) {
+        SDL_InvalidParamError("format");
+        return NULL;
+    }
 
     /* Check for empty destination palette! (results in empty image) */
     if (format->palette != NULL) {
@@ -970,13 +988,37 @@ SDL_ConvertSurface(SDL_Surface * surface, const SDL_PixelFormat * format,
         }
 
         if (set_colorkey_by_color) {
-            /* Set the colorkey by color, which needs to be unique */
-            Uint8 keyR, keyG, keyB, keyA;
+            SDL_Surface *tmp;
+            SDL_Surface *tmp2;
+            int converted_colorkey = 0;
 
-            SDL_GetRGBA(surface->map->info.colorkey, surface->format, &keyR,
-                        &keyG, &keyB, &keyA);
-            SDL_SetColorKey(convert, 1,
-                            SDL_MapRGBA(convert->format, keyR, keyG, keyB, keyA));
+            /* Create a dummy surface to get the colorkey converted */
+            tmp = SDL_CreateRGBSurface(0, 1, 1,
+                                   surface->format->BitsPerPixel, surface->format->Rmask,
+                                   surface->format->Gmask, surface->format->Bmask,
+                                   surface->format->Amask);
+
+            /* Share the palette, if any */
+            if (surface->format->palette) {
+                SDL_SetSurfacePalette(tmp, surface->format->palette);
+            }
+            
+            SDL_FillRect(tmp, NULL, surface->map->info.colorkey);
+
+            tmp->map->info.flags &= ~SDL_COPY_COLORKEY;
+
+            /* Convertion of the colorkey */
+            tmp2 = SDL_ConvertSurface(tmp, format, 0);
+
+            /* Get the converted colorkey */
+            SDL_memcpy(&converted_colorkey, tmp2->pixels, tmp2->format->BytesPerPixel);
+
+            SDL_FreeSurface(tmp);
+            SDL_FreeSurface(tmp2);
+
+            /* Set the converted colorkey on the new surface */
+            SDL_SetColorKey(convert, 1, converted_colorkey);
+
             /* This is needed when converting for 3D texture upload */
             SDL_ConvertColorkeyToAlpha(convert);
         }
@@ -986,7 +1028,7 @@ SDL_ConvertSurface(SDL_Surface * surface, const SDL_PixelFormat * format,
     /* Enable alpha blending by default if the new surface has an
      * alpha channel or alpha modulation */
     if ((surface->format->Amask && format->Amask) ||
-        (copy_flags & (SDL_COPY_COLORKEY|SDL_COPY_MODULATE_ALPHA))) {
+        (copy_flags & SDL_COPY_MODULATE_ALPHA)) {
         SDL_SetSurfaceBlendMode(convert, SDL_BLENDMODE_BLEND);
     }
     if ((copy_flags & SDL_COPY_RLE_DESIRED) || (flags & SDL_RLEACCEL)) {
@@ -1156,6 +1198,10 @@ SDL_FreeSurface(SDL_Surface * surface)
     if (surface->flags & SDL_DONTFREE) {
         return;
     }
+    if (surface->map != NULL) {
+        SDL_FreeBlitMap(surface->map);
+        surface->map = NULL;
+    }
     if (--surface->refcount > 0) {
         return;
     }
@@ -1169,10 +1215,6 @@ SDL_FreeSurface(SDL_Surface * surface)
         SDL_SetSurfacePalette(surface, NULL);
         SDL_FreeFormat(surface->format);
         surface->format = NULL;
-    }
-    if (surface->map != NULL) {
-        SDL_FreeBlitMap(surface->map);
-        surface->map = NULL;
     }
     if (!(surface->flags & SDL_PREALLOC)) {
         SDL_free(surface->pixels);

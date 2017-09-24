@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -55,22 +55,22 @@ static void Cocoa_DispatchEvent(NSEvent *theEvent)
     SDL_VideoDevice *_this = SDL_GetVideoDevice();
 
     switch ([theEvent type]) {
-        case NSLeftMouseDown:
-        case NSOtherMouseDown:
-        case NSRightMouseDown:
-        case NSLeftMouseUp:
-        case NSOtherMouseUp:
-        case NSRightMouseUp:
-        case NSLeftMouseDragged:
-        case NSRightMouseDragged:
-        case NSOtherMouseDragged: /* usually middle mouse dragged */
-        case NSMouseMoved:
-        case NSScrollWheel:
+        case NSEventTypeLeftMouseDown:
+        case NSEventTypeOtherMouseDown:
+        case NSEventTypeRightMouseDown:
+        case NSEventTypeLeftMouseUp:
+        case NSEventTypeOtherMouseUp:
+        case NSEventTypeRightMouseUp:
+        case NSEventTypeLeftMouseDragged:
+        case NSEventTypeRightMouseDragged:
+        case NSEventTypeOtherMouseDragged: /* usually middle mouse dragged */
+        case NSEventTypeMouseMoved:
+        case NSEventTypeScrollWheel:
             Cocoa_HandleMouseEvent(_this, theEvent);
             break;
-        case NSKeyDown:
-        case NSKeyUp:
-        case NSFlagsChanged:
+        case NSEventTypeKeyDown:
+        case NSEventTypeKeyUp:
+        case NSEventTypeFlagsChanged:
             Cocoa_HandleKeyEvent(_this, theEvent);
             break;
         default:
@@ -289,7 +289,7 @@ CreateApplicationMenus(void)
     [appleMenu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
 
     menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
-    [menuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
+    [menuItem setKeyEquivalentModifierMask:(NSEventModifierFlagOption|NSEventModifierFlagCommand)];
 
     [appleMenu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
 
@@ -335,7 +335,7 @@ CreateApplicationMenus(void)
 
         /* Add menu items */
         menuItem = [viewMenu addItemWithTitle:@"Toggle Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"];
-        [menuItem setKeyEquivalentModifierMask:NSControlKeyMask | NSCommandKeyMask];
+        [menuItem setKeyEquivalentModifierMask:NSEventModifierFlagControl | NSEventModifierFlagCommand];
 
         /* Put menu into the menubar */
         menuItem = [[NSMenuItem alloc] initWithTitle:@"View" action:nil keyEquivalent:@""];
@@ -394,6 +394,7 @@ void
 Cocoa_PumpEvents(_THIS)
 { @autoreleasepool
 {
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070
     /* Update activity every 30 seconds to prevent screensaver */
     SDL_VideoData *data = (SDL_VideoData *)_this->driverdata;
     if (_this->suspend_screensaver && !data->screensaver_use_iopm) {
@@ -404,9 +405,10 @@ Cocoa_PumpEvents(_THIS)
             data->screensaver_activity = now;
         }
     }
+#endif
 
     for ( ; ; ) {
-        NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES ];
+        NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES ];
         if ( event == nil ) {
             break;
         }

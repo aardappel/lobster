@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -2946,13 +2946,17 @@ static void
 internal_malloc_stats(mstate m)
 {
     if (!PREACTION(m)) {
+#ifndef LACKS_STDIO_H
         size_t maxfp = 0;
+#endif
         size_t fp = 0;
         size_t used = 0;
         check_malloc_state(m);
         if (is_initialized(m)) {
             msegmentptr s = &m->seg;
+#ifndef LACKS_STDIO_H
             maxfp = m->max_footprint;
+#endif
             fp = m->footprint;
             used = fp - (m->topsize + TOP_FOOT_SIZE);
 

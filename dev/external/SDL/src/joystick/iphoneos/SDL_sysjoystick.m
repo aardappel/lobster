@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -251,7 +251,7 @@ SDL_SYS_RemoveJoystickDevice(SDL_JoystickDeviceItem *device)
 }
 
 #if TARGET_OS_TV
-static void
+static void SDLCALL
 SDL_AppleTVRemoteRotationHintChanged(void *udata, const char *name, const char *oldValue, const char *newValue)
 {
     BOOL allowRotation = newValue != NULL && *newValue != '0';
@@ -326,12 +326,14 @@ SDL_SYS_JoystickInit(void)
     return numjoysticks;
 }
 
-int SDL_SYS_NumJoysticks()
+int
+SDL_SYS_NumJoysticks(void)
 {
     return numjoysticks;
 }
 
-void SDL_SYS_JoystickDetect()
+void
+SDL_SYS_JoystickDetect(void)
 {
 }
 
@@ -514,7 +516,7 @@ SDL_SYS_MFIJoystickUpdate(SDL_Joystick * joystick)
                  * initializes its values to 0. We only want to make sure the
                  * player index is up to date if the user actually moves an axis. */
                 if ((i != 2 && i != 5) || axes[i] != -32768) {
-                    updateplayerindex |= (joystick->axes[i] != axes[i]);
+                    updateplayerindex |= (joystick->axes[i].value != axes[i]);
                 }
                 SDL_PrivateJoystickAxis(joystick, i, axes[i]);
             }
@@ -551,7 +553,7 @@ SDL_SYS_MFIJoystickUpdate(SDL_Joystick * joystick)
             };
 
             for (i = 0; i < SDL_arraysize(axes); i++) {
-                updateplayerindex |= (joystick->axes[i] != axes[i]);
+                updateplayerindex |= (joystick->axes[i].value != axes[i]);
                 SDL_PrivateJoystickAxis(joystick, i, axes[i]);
             }
 
