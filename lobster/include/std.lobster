@@ -134,6 +134,13 @@ def insertion_sort(xs, lt):
                 xs[j--] = xs[j - 1]
             xs[j] = key
 
+def insert_ordered(xs, x, lt):
+    for(xs) key, i:
+        if lt(x, key):
+            xs.insert(i, x)
+            return
+    xs.push(x)
+
 def randomize(xs):
     // Simple and effective, but remove makes it expensive.
     for(xs.length) i: xs.push(xs.remove(rnd(xs.length - i)))

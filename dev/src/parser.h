@@ -586,6 +586,9 @@ struct Parser {
             case T_IDENT:
                 // skip if this function value starts with an ID that's equal to the parents next
                 // keyworded function val ID, e.g. "else" in: if(..): currentcall(..) else: ..
+                // FIXME: if you forget : after else, it is going to try to declare any following
+                // identifier as the first arg of a new function, leading to weird errors.
+                // Should ideally know here how many args to expect.
                 if (trailingkeywordedfunctionvaluestack.empty() ||
                     trailingkeywordedfunctionvaluestack.back() != lex.sattr)
                     e = ParseFunction(nullptr, false, false, true, name);

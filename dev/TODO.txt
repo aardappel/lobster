@@ -10,6 +10,9 @@
   lobster code, spin up a VM to eval it, and insert its result back in the code.
   print eval "1 + 2" would actuall compile: print 3
 
+- if your forget ":" after "else", it is going to try and declare a following identifier as a
+  function parameter, see FIXME in ParseTrailingFunctionValues
+
 - some form or switch or pattern match facility?
 
 - Should consider to allow on-the fly data structures as well.
@@ -31,6 +34,38 @@
   token could also follow the ident.
   Could allow a command-line arg or annotation in file to indicate that code doesn't care to be
   const-correct :)
+
+- Have a simpler/better C++ binding interface.
+  - for starters, should allow current binding system to be loaded from a DLL/so such that
+    extensions don't have to be compiled into the main binary.
+    - needs some versioning.
+  - Worth discovering if the current macro glue can be improved, maybe with automatically
+    deduced arguments from a C function or C++ method.
+  - Could do something similar to CryScript: declare external functions in lobster, generate
+    glue code automatically.
+    - causes a code-gen step whenever adding new functions.
+    - You declare in one place, and the second use is a copy, but the two have to be kept in sync.
+      - enforcing the two are in sync is done by the C++ compiler, which is nice.
+  - One fun idea is to support Python DLLs/so's.
+    There's a TON of C/C++ libraries out there for Python.
+    - Such a DLL returns a DLL module structure, which we could traverse to find out what
+      functions are in there.
+      - They are of course untyped, showing up in Lobster as any functions?
+      https://docs.python.org/2/extending/extending.html
+      (see also e.g. dynload_win.c in CPython)
+    - Not obvious how this would work in terms of memory management, as Lobster would have to
+      allocate potentially complicated Python values from Lobster values that then get accessed
+      by the DLL (which contains a subset of the Python runtime?)
+    - Most interesting libraries like Numpy come with a ton of wrapper code in Python, which means
+      just exposing the DLL functions would end up with a very different API, or you'd have to port
+      all that Python code.
+    Frankly while it would be cool, there's too much of a mismatch for this to make sense?
+
+- Should consider type-safe type aliases, where converting from the base type is explicit, mixing
+  with the base type degrades the type, and mixing aliases is a type error. Would be a feature
+  entirely implemented in the type checker only, as an additional tag on type values.
+
+- would be nice to have on the fly pairs/tuples.
 
 - doesn't type check if c: 0.0 else: 0 correctly, result is any?
 
