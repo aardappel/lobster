@@ -1032,6 +1032,18 @@
     <ClCompile Include="..\include\StackWalker\StackWalkerHelpers.cpp">
       <Filter>base\win32</Filter>
     </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\windows\SDL_windowsvulkan.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_vulkan_utils.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\SDL_dataqueue.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\wasapi\SDL_wasapi.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
