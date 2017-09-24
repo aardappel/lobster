@@ -178,7 +178,8 @@ bool LoadSound(const char* filename, bool sfxr) {
             auto rwops = SDL_RWFromMem((void *)snd.buf.c_str(), (int)snd.buf.length());
             if (!rwops) return false;
             auto wav_spec_ret = SDL_LoadWAV_RW(rwops, true, &wav_spec, &wav_buf, &wav_len);
-            SDL_RWclose(rwops);
+            // This crashes, not sure why. Leak it instead for now :(
+            //SDL_RWclose(rwops);
             if (!wav_spec_ret) return false;
             snd.buf.assign((char *)wav_buf, (size_t)wav_len);
             SDL_FreeWAV(wav_buf);
@@ -485,13 +486,14 @@ bool SDLSoundInit() {
         Output(OUTPUT_INFO, "Audio driver available %s", SDL_GetAudioDriver(i));
     }
 
-    #ifdef _WIN32
-        //auto err = SDL_AudioInit("xaudio2");
-        //if (err) Output(OUTPUT_INFO, "Forcing driver failed %d", err);
-    #endif
-
     if (SDL_InitSubSystem(SDL_INIT_AUDIO))
         return false;
+
+    #ifdef _WIN32
+
+        auto err = SDL_AudioInit("directsound");
+        if (err) Output(OUTPUT_INFO, "Forcing driver failed %d", err);
+    #endif
 
     int count = SDL_GetNumAudioDevices(0);
     for (int i = 0; i < count; ++i) {
@@ -507,6 +509,9 @@ bool SDLSoundInit() {
     playbackspec.userdata = nullptr;
     SDL_AudioSpec obtained;
     audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+    // Note: this id is unrelated to the device indices above!
+    Output(OUTPUT_INFO, "Audio device id %d (using %s)", audioid, SDL_GetCurrentAudioDriver());
 
     return !!audioid;
 }
