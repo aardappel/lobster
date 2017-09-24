@@ -50,6 +50,9 @@
     <Filter Include="base\win32">
       <UniqueIdentifier>{25538f26-ef11-46c3-b9e9-3e6bae1aa115}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\sdl\mixer">
+      <UniqueIdentifier>{ecbf119d-9004-40cf-9417-af0a5d7f3346}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\stdafx.h">
@@ -1043,6 +1046,78 @@
     </ClCompile>
     <ClCompile Include="..\external\SDL\src\audio\wasapi\SDL_wasapi.c">
       <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_flac.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_fluidsynth.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_mod.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_modplug.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_mp3.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\dynamic_ogg.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\effect_position.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\effect_stereoreverse.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\effects_internal.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\fluidsynth.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\load_aiff.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\load_flac.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\load_mp3.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\load_ogg.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\load_voc.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\mixer.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_cmd.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_flac.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_mad.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_mod.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_modplug.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\music_ogg.c">
+      <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDLMixer\wavestream.c">
+      <Filter>engine\sdl\mixer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
