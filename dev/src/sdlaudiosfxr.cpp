@@ -19,8 +19,15 @@
 
 #include "sdlincludes.h"
 
+#define USE_SDL_MIXER
 
+#ifdef USE_SDL_MIXER
+#include "SDL_mixer.h"
+#else
 SDL_AudioDeviceID audioid = 0;
+#endif
+
+bool sound_init = false;
 
 #define rnd(n) (rand()%(n+1))
 
@@ -154,7 +161,13 @@ void fread_mem(void *dest, int s1, int s2, const char *&file) {
 
 struct Sound {
     bool sfxr;
-    string buf;
+    string buf;  // FIXME: not needed for mixer
+
+    #ifdef USE_SDL_MIXER
+    unique_ptr<Mix_Chunk, decltype(&Mix_FreeChunk)> chunk;
+
+    Sound() : chunk(nullptr, Mix_FreeChunk) {}
+    #endif
 };
 
 unordered_map<string, Sound> sound_files;
@@ -172,31 +185,37 @@ bool LoadSound(const char* filename, bool sfxr) {
             return false;
 
         if (!sfxr) {
-            SDL_AudioSpec wav_spec;
-            Uint32 wav_len;
-            Uint8 *wav_buf;
             auto rwops = SDL_RWFromMem((void *)snd.buf.c_str(), (int)snd.buf.length());
             if (!rwops) return false;
-            auto wav_spec_ret = SDL_LoadWAV_RW(rwops, true, &wav_spec, &wav_buf, &wav_len);
-            // This crashes, not sure why. Leak it instead for now :(
-            //SDL_RWclose(rwops);
-            if (!wav_spec_ret) return false;
-            snd.buf.assign((char *)wav_buf, (size_t)wav_len);
-            SDL_FreeWAV(wav_buf);
-            SDL_AudioCVT wav_cvt;
-            int ret = SDL_BuildAudioCVT(&wav_cvt,
-                        wav_spec.format, wav_spec.channels, wav_spec.freq,
-                        playbackspec.format, playbackspec.channels, playbackspec.freq);
-            if (ret < 0) return false;
-            if (ret) {
-                auto len = snd.buf.length();
-                snd.buf.resize(len * wav_cvt.len_mult);
-                wav_cvt.buf = (uchar *)snd.buf.c_str();
-                wav_cvt.len = (int)len;
-                SDL_ConvertAudio(&wav_cvt);
-                snd.buf.resize(size_t(wav_cvt.len * wav_cvt.len_ratio));
-                snd.buf.shrink_to_fit();
-            }
+            #ifdef USE_SDL_MIXER
+                snd.chunk.reset(Mix_LoadWAV_RW(rwops, 1));
+                if (!snd.chunk) return false;
+                //Mix_VolumeChunk(snd.chunk.get(), MIX_MAX_VOLUME / 2);
+            #else
+                SDL_AudioSpec wav_spec;
+                Uint32 wav_len;
+                Uint8 *wav_buf;
+                auto wav_spec_ret = SDL_LoadWAV_RW(rwops, true, &wav_spec, &wav_buf, &wav_len);
+                // This crashes, not sure why. Leak it instead for now :(
+                //SDL_RWclose(rwops);
+                if (!wav_spec_ret) return false;
+                snd.buf.assign((char *)wav_buf, (size_t)wav_len);
+                SDL_FreeWAV(wav_buf);
+                SDL_AudioCVT wav_cvt;
+                int ret = SDL_BuildAudioCVT(&wav_cvt,
+                            wav_spec.format, wav_spec.channels, wav_spec.freq,
+                            playbackspec.format, playbackspec.channels, playbackspec.freq);
+                if (ret < 0) return false;
+                if (ret) {
+                    auto len = snd.buf.length();
+                    snd.buf.resize(len * wav_cvt.len_mult);
+                    wav_cvt.buf = (uchar *)snd.buf.c_str();
+                    wav_cvt.len = (int)len;
+                    SDL_ConvertAudio(&wav_cvt);
+                    snd.buf.resize(size_t(wav_cvt.len * wav_cvt.len_ratio));
+                    snd.buf.shrink_to_fit();
+                }
+            #endif
         }
         snd.sfxr = sfxr;
         cursnd = &(sound_files[filename] = std::move(snd));
@@ -238,6 +257,14 @@ bool LoadSound(const char* filename, bool sfxr) {
         fread_mem(&p_repeat_speed, 1, sizeof(float), file);
         fread_mem(&p_arp_speed, 1, sizeof(float), file);
         fread_mem(&p_arp_mod, 1, sizeof(float), file);
+        #ifdef USE_SDL_MIXER
+            if (!cursnd->chunk) {
+                Mix_Chunk *RenderSample();
+                auto chunk = RenderSample();
+                cursnd->chunk.reset(chunk);
+                if (!cursnd->chunk) return false;
+            }
+        #endif
     }
     return true;
 }
@@ -302,10 +329,10 @@ void ResetSample(bool restart) {
     }
 }
 
-void SynthSample(int length, float* buffer, FILE* file) {
+int SynthSample(int length, float* buffer) {
     for(int i=0;i<length;i++) {
         if(!playing_sample)
-            break;
+            return i;
 
         rep_time++;
         if(rep_limit!=0 && rep_time>=rep_limit) {
@@ -323,8 +350,10 @@ void SynthSample(int length, float* buffer, FILE* file) {
         fperiod*=fslide;
         if(fperiod>fmaxperiod) {
             fperiod=fmaxperiod;
-            if(p_freq_limit>0.0f)
+            if(p_freq_limit>0.0f) {
                 playing_sample=false;
+                return i;
+            }
         }
         float rfperiod=(float)fperiod;
         if(vib_amp>0.0f) {
@@ -341,8 +370,10 @@ void SynthSample(int length, float* buffer, FILE* file) {
         if(env_time>env_length[env_stage]) {
             env_time=0;
             env_stage++;
-            if(env_stage==3)
+            if(env_stage==3) {
                 playing_sample=false;
+                return i;
+            }
         }
         if(env_stage==0)
             env_vol=(float)env_time/env_length[0];
@@ -425,31 +456,35 @@ void SynthSample(int length, float* buffer, FILE* file) {
             if(ssample<-1.0f) ssample=-1.0f;
             *buffer++=ssample;
         }
-        if(file!=nullptr) {
-            // quantize depending on format
-            // accumulate/count to accomodate variable sample rate?
-            ssample*=4.0f; // arbitrary gain to get reasonable output volume...
-            if(ssample>1.0f) ssample=1.0f;
-            if(ssample<-1.0f) ssample=-1.0f;
-            filesample+=ssample;
-            fileacc++;
-            if(wav_freq==44100 || fileacc==2) {
-                filesample/=fileacc;
-                fileacc=0;
-                if(wav_bits==16) {
-                    short isample=(short)(filesample*32000);
-                    fwrite(&isample, 1, 2, file);
-                } else {
-                    uchar isample=(uchar)(filesample*127+128);
-                    fwrite(&isample, 1, 1, file);
-                }
-                filesample=0.0f;
-            }
-            file_sampleswritten++;
-        }
     }
+    return length;
 }
 
+#ifdef USE_SDL_MIXER
+Mix_Chunk *RenderSample() {
+    ResetSample(false);
+    vector<Sint16> synth;
+    playing_sample=true;
+    for (;;) {
+        float sample;
+        auto gen = SynthSample(1, &sample);
+        if (!gen) break;
+        synth.push_back((Sint16)(sample * 0x7FFF));
+    }
+    Uint16 format;
+    Mix_QuerySpec(nullptr, &format, nullptr);
+    if (format != AUDIO_S16SYS) {
+        assert(false);
+        return nullptr;
+    }
+    auto buf = malloc(synth.size() * 2);
+    memcpy(buf, synth.data(), synth.size() * 2);
+    return Mix_QuickLoad_RAW((Uint8 *)buf, synth.size() * 2);
+}
+#endif
+
+
+#ifndef USE_SDL_MIXER
 static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len) {
     if (playing_sample) {
         if (cursnd->sfxr) {
@@ -478,9 +513,10 @@ static void SDLAudioCallback(void * /*userdata*/, Uint8 *stream, int len) {
         SDL_PauseAudioDevice(audioid, 1);
     }
 }
+#endif
 
 bool SDLSoundInit() {
-    if (audioid) return true;
+    if (sound_init) return true;
 
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
         Output(OUTPUT_INFO, "Audio driver available %s", SDL_GetAudioDriver(i));
@@ -490,7 +526,7 @@ bool SDLSoundInit() {
         return false;
 
     #ifdef _WIN32
-
+        // It defaults to wasapi which doesn't output any sound?
         auto err = SDL_AudioInit("directsound");
         if (err) Output(OUTPUT_INFO, "Forcing driver failed %d", err);
     #endif
@@ -500,31 +536,49 @@ bool SDLSoundInit() {
         Output(OUTPUT_INFO, "Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
     }
 
-    SDL_zero(playbackspec);
-    playbackspec.freq = 44100;
-    playbackspec.format = AUDIO_S16SYS;
-    playbackspec.channels = 1;
-    playbackspec.samples = 1024;
-    playbackspec.callback = SDLAudioCallback;
-    playbackspec.userdata = nullptr;
-    SDL_AudioSpec obtained;
-    audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    #ifdef USE_SDL_MIXER
+        Mix_Init(0);
+        // For some reason this distorts when set to 44100 and samples at 22050 are played.
+        if (Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024) == -1) {
+            Output(OUTPUT_ERROR, "Mix_OpenAudio: %s\n", Mix_GetError());
+            return false;
+        }
+        // This seems to be needed to not distort when multiple sounds are played.
+        Mix_Volume(-1, MIX_MAX_VOLUME / 2);
+        sound_init = true;
+        return true;
+    #else
+        SDL_zero(playbackspec);
+        playbackspec.freq = 44100;
+        playbackspec.format = AUDIO_S16SYS;
+        playbackspec.channels = 1;
+        playbackspec.samples = 1024;
+        playbackspec.callback = SDLAudioCallback;
+        playbackspec.userdata = nullptr;
+        SDL_AudioSpec obtained;
+        audioid = SDL_OpenAudioDevice(nullptr, 0, &playbackspec, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
-    // Note: this id is unrelated to the device indices above!
-    Output(OUTPUT_INFO, "Audio device id %d (using %s)", audioid, SDL_GetCurrentAudioDriver());
+        // Note: this id is unrelated to the device indices above!
+        Output(OUTPUT_INFO, "Audio device id %d (using %s)", audioid, SDL_GetCurrentAudioDriver());
 
-    return !!audioid;
+        sound_init = true;
+        return !!audioid;
+    #endif
 }
 
 void SDLSoundClose() {
-    if (audioid) SDL_PauseAudioDevice(audioid, 1);
-
     sound_files.clear();
 
-    if (audioid) SDL_CloseAudioDevice(audioid);
+    #ifdef USE_SDL_MIXER
+        Mix_CloseAudio();
+        while (Mix_Init(0)) Mix_Quit();
+    #else
+        if (audioid) SDL_PauseAudioDevice(audioid, 1);
+        if (audioid) SDL_CloseAudioDevice(audioid);
+        audioid = 0;
+    #endif
 
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
-    audioid = 0;
 }
 
 bool SDLPlaySound(const char *filename, bool sfxr) {
@@ -536,13 +590,17 @@ bool SDLPlaySound(const char *filename, bool sfxr) {
     ResetParams();
     bool ok = SDLSoundInit() && LoadSound(filename, sfxr);
     if (ok) {
-        if (cursnd->sfxr) {
-            ResetSample(false);
-        } else {
-            cursndpos = cursnd->buf.c_str();
-        }
-        SDL_PauseAudioDevice(audioid, 0);
-        playing_sample=true;
+        #ifdef USE_SDL_MIXER
+            Mix_PlayChannel(-1, cursnd->chunk.get(), 0);
+        #else
+            if (cursnd->sfxr) {
+                ResetSample(false);
+            } else {
+                cursndpos = cursnd->buf.c_str();
+            }
+            SDL_PauseAudioDevice(audioid, 0);
+            playing_sample=true;
+        #endif
     }
     return ok;
 }
