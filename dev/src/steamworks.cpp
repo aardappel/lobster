@@ -193,7 +193,7 @@ void AddSteam() {
         auto s = g_vm->NewString(buf);
         return Value(s);
     }
-    ENDDECL1(steam_read_file, "file", "S", "S",
+    ENDDECL1(steam_read_file, "file", "S", "S?",
         "returns the contents of a file as a string from the steam cloud if available, or otherwise"
         " from local storage, or nil if the file can't be found at all.");
 }
