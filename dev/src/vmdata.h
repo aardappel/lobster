@@ -747,7 +747,7 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
     if (x->type != type)
         g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
             x->type->name);
-    return (T)x->val;
+    return (T)(size_t)x->val;
 }
 
 inline vector<string> VectorOfStrings(Value &v) {

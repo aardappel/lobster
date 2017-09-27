@@ -30,7 +30,7 @@ float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
 ResourceType mesh_type = { "mesh", [](void *m) { delete (Mesh *)m; } };
-ResourceType texture_type = { "texture", [](void *t) { uint tex = (int)t; DeleteTexture(tex); } };
+ResourceType texture_type = { "texture", [](void *t) { uint tex = (uint)(size_t)t; DeleteTexture(tex); } };
 
 Mesh &GetMesh(Value &res) {
     return *GetResourceDec<Mesh *>(res, &mesh_type);
@@ -832,7 +832,7 @@ void AddGraphics() {
         int2 dim(0);
         uint id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
         name.DECRT();
-        g_vm->Push(id ? g_vm->NewResource((void *)id, &texture_type) : Value());
+        g_vm->Push(id ? g_vm->NewResource((void *)(size_t)id, &texture_type) : Value());
         return ToValueI(dim);
     }
     ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I]:2",
@@ -890,7 +890,7 @@ void AddGraphics() {
         matv.DECRT();
         uint id = CreateTexture(buf, int2(xs, ys).data(), tf.ival());
         delete[] buf;
-        return Value(g_vm->NewResource((void *)id, &texture_type));
+        return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
     ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "X",
         "creates a texture from a 2d array of color vectors."
@@ -899,7 +899,7 @@ void AddGraphics() {
     STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf) {
         TestGL();
         auto id = CreateBlankTexture(ValueDecToI<2>(size_), ValueDecToF<4>(col), tf.ival());
-        return Value(g_vm->NewResource((void *)id, &texture_type));
+        return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
     ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "X",
         "creates a blank texture (for use as frame buffer or with compute shaders)."

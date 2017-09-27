@@ -24,8 +24,8 @@
                   { const int i = 3; F; } } } }
 
 #define DOVECR(F) { vec<T,N> _t; DOVEC(_t.set(i, F)); return _t; }
-#define DOVECF(I,F) { T x = I; DOVEC(x = F); return x; }
-#define DOVECB(I,F) { bool x = I; DOVEC(x = F); return x; }
+#define DOVECF(I,F) { T _ = I; DOVEC(_ = F); return _; }
+#define DOVECB(I,F) { bool _ = I; DOVEC(_ = F); return _; }
 
 union int2float { int i; float f; };
 inline void default_debug_value(float  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
@@ -111,31 +111,31 @@ template<typename T, int N> class vec {
     vec &operator/=(T e) { DOVEC(c[i] /= e); return *this; }
 
     bool operator<=(const vec &v) const {
-        DOVECB(true, x && c[i] <= v[i]);
+        DOVECB(true, _ && c[i] <= v[i]);
     }
     bool operator< (const vec &v) const {
-        DOVECB(true, x && c[i] <  v[i]);
+        DOVECB(true, _ && c[i] <  v[i]);
     }
     bool operator>=(const vec &v) const {
-        DOVECB(true, x && c[i] >= v[i]);
+        DOVECB(true, _ && c[i] >= v[i]);
     }
     bool operator> (const vec &v) const {
-        DOVECB(true, x && c[i] >  v[i]);
+        DOVECB(true, _ && c[i] >  v[i]);
     }
     bool operator==(const vec &v) const {
-        DOVECB(true, x && c[i] == v[i]);
+        DOVECB(true, _ && c[i] == v[i]);
     }
     bool operator!=(const vec &v) const {
-        DOVECB(false, x || c[i] != v[i]);
+        DOVECB(false, _ || c[i] != v[i]);
     }
 
-    bool operator<=(T e) const { DOVECB(true, x && c[i] <= e); }
-    bool operator< (T e) const { DOVECB(true, x && c[i] <  e); }
-    bool operator>=(T e) const { DOVECB(true, x && c[i] >= e); }
-    bool operator> (T e) const { DOVECB(true, x && c[i] >  e); }
+    bool operator<=(T e) const { DOVECB(true, _ && c[i] <= e); }
+    bool operator< (T e) const { DOVECB(true, _ && c[i] <  e); }
+    bool operator>=(T e) const { DOVECB(true, _ && c[i] >= e); }
+    bool operator> (T e) const { DOVECB(true, _ && c[i] >  e); }
 
-    bool operator==(T e) const { DOVECB(true, x && c[i] == e); }
-    bool operator!=(T e) const { DOVECB(false, x || c[i] != e); }
+    bool operator==(T e) const { DOVECB(true, _ && c[i] == e); }
+    bool operator!=(T e) const { DOVECB(false, _ || c[i] != e); }
 
     vec iflt(T e, const vec &a, const vec &b) const { DOVECR(c[i] < e ? a[i] : b[i]); }
 
@@ -145,7 +145,7 @@ template<typename T, int N> class vec {
         return s + ")";
     }
 
-    T volume() const { DOVECF(1, x * c[i]); }
+    T volume() const { DOVECF(1, _ * c[i]); }
 
     template<typename T2, int C, int R> friend class matrix;
 };
@@ -167,7 +167,7 @@ template<typename T, int N> inline vec<T,N> operator*(T f, const vec<T,N> &v) { 
 template<typename T, int N> inline vec<T,N> operator/(T f, const vec<T,N> &v) { DOVECR(f / v[i]); }
 
 template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b) {
-    DOVECF(0, x + a[i] * b[i]);
+    DOVECF(0, _ + a[i] * b[i]);
 }
 template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return dot(v, v); }
 template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrtf(squaredlength(v)); }
@@ -193,14 +193,14 @@ template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,
 }
 
 template<typename T, int N> inline T min(const vec<T,N> &a) {
-    DOVECF(FLT_MAX, x = min(a[i], x));
+    DOVECF(FLT_MAX, _ = min(a[i], _));
 }
 template<typename T, int N> inline T max(const vec<T,N> &a) {
-    DOVECF(-FLT_MAX, x = max(a[i], x));
+    DOVECF(-FLT_MAX, _ = max(a[i], _));
 }
 
 template<typename T, int N> inline T sum(const vec<T,N> &a) {
-    DOVECF(0, x += a[i]);
+    DOVECF(0, _ += a[i]);
 }
 template<typename T, int N> inline T average(const vec<T,N> &a) {
     return sum(a) / N;

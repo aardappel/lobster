@@ -304,7 +304,7 @@ void AddCubeGen() {
             TF_BUFFER_HAS_MIPS);
         delete[] buf;
         extern ResourceType texture_type;
-        return Value(g_vm->NewResource((void *)tex, &texture_type));
+        return Value(g_vm->NewResource((void *)(size_t)tex, &texture_type));
     }
     ENDDECL1(cg_create_3d_texture, "block", "X", "X",
         "returns the new texture");

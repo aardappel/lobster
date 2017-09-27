@@ -64,7 +64,7 @@ struct SpecIdent {
     int sidx;
 
     SpecIdent(Ident *_id, TypeRef _type)
-        : id(_id), type(_type), sidx(-1), logvaridx(-1) {}
+        : id(_id), type(_type), logvaridx(-1), sidx(-1) {}
     int Idx() { assert(sidx >= 0); return sidx; }
     SpecIdent *&Current() { return id->cursid; }
 };

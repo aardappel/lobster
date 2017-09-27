@@ -42,7 +42,8 @@
         #include <GL/glext.h>
         #ifdef _WIN32
             #define GLBASEEXTS \
-                GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture            , 1)
+                GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture            , 1) \
+                GLEXT(PFNGLTEXIMAGE3DPROC             , glTexImage3D               , 1)
         #else
             #define GLBASEEXTS
         #endif
@@ -88,7 +89,6 @@
             GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/   , glUniformMatrix3x4fv            , 1) \
             GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \
             GLEXT(PFNGLGETACTIVEUNIFORMARBPROC           , glGetActiveUniform              , 1) \
-            GLEXT(PFNGLTEXIMAGE3DPROC                    , glTexImage3D                    , 1) \
             GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 0) \
             GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 0) \
             GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 0) \

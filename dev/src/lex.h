@@ -35,7 +35,6 @@ struct LoadedFile : Line {
 
     vector<pair<char, char>> bracketstack;
     vector<pair<int, bool>> indentstack;
-    //char prevlineindenttype;
     const char *prevline, *prevlinetok;
 
     struct Tok { TType t; string a; };
@@ -43,10 +42,10 @@ struct LoadedFile : Line {
     vector<Tok> gentokens;
 
     LoadedFile(const char *fn, vector<string> &fns, char *_ss)
-        : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss), token(T_NONE),
-          errorline(1), islf(false), cont(false), whitespacebefore(0), source(new string()),
-          prevline(nullptr), prevlinetok(nullptr)
-          /* prevlineindenttype(0) */ {
+        : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss),
+          source(new string()), token(T_NONE),
+          errorline(1), islf(false), cont(false), whitespacebefore(0),
+          prevline(nullptr), prevlinetok(nullptr) {
         if (stringsource) {
             linestart = p = stringsource;
         } else {

@@ -220,7 +220,7 @@ int RefObj::Hash() {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:
         case V_STRUCT:      return ((ElemObj *)this)->Hash();
-        default:            return (int)this;
+        default:            return (int)(size_t)this;
     }
 }
 
@@ -238,7 +238,7 @@ int Value::Hash(ValueType vtype) {
     switch (vtype) {
         case V_INT: return ival_;
         case V_FLOAT: return *(int *)&fval_;
-        case V_FUNCTION: return (int)ip_.f;
+        case V_FUNCTION: return (int)(size_t)ip_.f;
         default: return refnil() ? ref()->Hash() : 0;
     }
 }

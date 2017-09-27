@@ -24,6 +24,7 @@ file(GLOB LOBSTER_SRCS
 file(GLOB_RECURSE EXTERNAL_SRCS
     "include/Box2D/*.cpp"
     "lib/stb_image.c"
+    "external/SDLMixer/*.c"
 	external/freetype/src/autofit/autofit.c
 	external/freetype/src/base/basepic.c
 	external/freetype/src/base/ftapi.c
@@ -56,13 +57,13 @@ set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value")
 
 if(APPLE)
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++ ${COMMON_GCC_STYLE}")
+    "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++ ${COMMON_GCC_STYLE}")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++0x ${COMMON_GCC_STYLE}")
+    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++0x -stdlib=libc++ ${COMMON_GCC_STYLE}")
+    "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++ ${COMMON_GCC_STYLE}")
 endif()
 
 if(MSVC)
@@ -71,7 +72,10 @@ if(MSVC)
   #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif()
 
-include_directories(include external/SDL/include external/freetype/include)
+include_directories(include
+                    external/SDL/include
+                    external/SDLMixer
+                    external/freetype/include)
 
 find_package(OpenGL REQUIRED)
 set(SDL_LIBRARIES SDL2-static)
