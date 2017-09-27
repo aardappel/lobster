@@ -132,6 +132,13 @@ bool SteamWriteFile(const char *fn, const void *buf, int len) {
     return false;
 }
 
+bool OverlayActive() {
+    #ifdef PLATFORM_STEAMWORKS
+        return steam && steam->steamoverlayactive;
+    #endif  // PLATFORM_STEAMWORKS
+    return false;
+}
+
 using namespace lobster;
 
 void AddSteam() {
@@ -147,7 +154,7 @@ void AddSteam() {
         " allowscreenshots automatically uploads screenshots to steam (triggered by steam).");
 
     STARTDECL(steam_overlay) () {
-        return Value(steam && steam->steamoverlayactive);
+        return Value(OverlayActive());
     }
     ENDDECL0(steam_overlay, "", "", "I",
         "returns true if the steam overlay is currently on (you may want to auto-pause if so)");

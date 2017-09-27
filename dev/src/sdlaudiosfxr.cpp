@@ -112,7 +112,7 @@ Mix_Chunk *RenderSFXR(const string &buf) {
     int version = 0;
     fread_mem(version);
     if(version!=102)
-        return false;
+        return nullptr;
     fread_mem(wave_type);
     fread_mem(sound_vol);
     fread_mem(p_base_freq);
@@ -358,16 +358,16 @@ Sound *LoadSound(const char* filename, bool sfxr) {
     }
     string buf;
     if (LoadFile(filename, &buf) < 0)
-        return false;
+        return nullptr;
     Mix_Chunk *chunk;
     if (!sfxr) {
         auto rwops = SDL_RWFromMem((void *)buf.c_str(), (int)buf.length());
-        if (!rwops) return false;
+        if (!rwops) return nullptr;
         chunk = Mix_LoadWAV_RW(rwops, 1);
     } else {
         chunk = RenderSFXR(buf);
     }
-    if (!chunk) return false;
+    if (!chunk) return nullptr;
     //Mix_VolumeChunk(chunk, MIX_MAX_VOLUME / 2);
     Sound snd;
     snd.chunk.reset(chunk);

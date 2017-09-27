@@ -865,6 +865,10 @@ void MultipleReturn::Generate(CodeGen &cg, int retval) const {
     for (auto c : children) cg.rettypes.push_back(c->exptype);
 }
 
+void NativeRef::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+    assert(false);
+}
+
 void And::Generate(CodeGen &cg, int retval) const {
     cg.Gen(left, 1, true);
     cg.Emit(cg.JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, left->exptype), 0);

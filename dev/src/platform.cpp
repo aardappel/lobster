@@ -27,6 +27,8 @@
     #include <intrin.h>
 #else
     #include <sys/time.h>
+    #include <glob.h>
+    #include <sys/stat.h>
     #define FILESEP '/'
 #endif
 
