@@ -27,8 +27,10 @@
     #include <intrin.h>
 #else
     #include <sys/time.h>
-    #include <glob.h>
-    #include <sys/stat.h>
+	#ifndef PLATFORM_ES2
+		#include <glob.h>
+		#include <sys/stat.h>
+	#endif
     #define FILESEP '/'
 #endif
 
@@ -41,6 +43,7 @@
 
 #ifdef __ANDROID__
 #include <android/log.h>
+#include "sdlincludes.h"  // FIXME
 #endif
 
 // Main dir to load files relative to, on windows this is where lobster.exe resides, on apple
@@ -199,7 +202,7 @@ bool ScanDirAbs(const char *absdir, vector<pair<string, int64_t>> &dest) {
             FindClose(fh);
             return true;
         }
-    #elif !defined(__ANDROID__) && !defined(__EMSCRIPTEN__)
+    #elif !defined(PLATFORM_ES2)
         glob_t gl;
         string mask = folder + "/*";
         if (!glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) {

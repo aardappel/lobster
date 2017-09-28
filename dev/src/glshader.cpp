@@ -432,17 +432,19 @@ void BindVBOAsSSBO(uint bind_point_index, uint vbo) {
 }
 
 bool Shader::Dump(const char *filename, bool stripnonascii) {
-    if (!glGetProgramBinary) return false;
-    int len = 0;
-    GL_CALL(glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &len));
-    vector<char> buf;
-    buf.resize(len);
-    GLenum format = 0;
-    GL_CALL(glGetProgramBinary(program, len, nullptr, &format, buf.data()));
-    if (stripnonascii) {
-        buf.erase(remove_if(buf.begin(), buf.end(), [](char c) {
-            return (c < ' ' || c > '~') && c != '\n' && c != '\t';
-        }), buf.end());
-    }
-    return WriteFile(filename, true, buf.data(), buf.size());
+	#ifdef PLATFORM_WINNIX
+		if (!glGetProgramBinary) return false;
+	#endif
+	int len = 0;
+	GL_CALL(glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &len));
+	vector<char> buf;
+	buf.resize(len);
+	GLenum format = 0;
+	GL_CALL(glGetProgramBinary(program, len, nullptr, &format, buf.data()));
+	if (stripnonascii) {
+		buf.erase(remove_if(buf.begin(), buf.end(), [](char c) {
+			return (c < ' ' || c > '~') && c != '\n' && c != '\t';
+		}), buf.end());
+	}
+	return WriteFile(filename, true, buf.data(), buf.size());
 }

@@ -13,6 +13,7 @@ BOX2D_PATH := $(LOBSTER_PATH)/include/Box2D
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/$(SDL_PATH)/include \
+	$(LOCAL_PATH)/$(SDL_MIXER_PATH) \
     $(LOCAL_PATH)/$(FREETYPE_PATH)/include \
     $(LOBSTER_PATH)/src \
     $(LOCAL_PATH)/$(LOBSTER_PATH)/include
@@ -31,6 +32,7 @@ LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/src/glsystem.cpp \
 	$(LOBSTER_PATH)/src/gltexture.cpp \
 	$(LOBSTER_PATH)/src/glvr.cpp \
+	$(LOBSTER_PATH)/src/steamworks.cpp \
 	$(LOBSTER_PATH)/src/graphics.cpp \
 	$(LOBSTER_PATH)/src/physics.cpp \
 	$(LOBSTER_PATH)/src/lobsterreader.cpp \
@@ -90,7 +92,7 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/events/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/file/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/*.c) \
-	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/dummy/*.c) \
+	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/haptic/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/joystick/android/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/loadso/dlopen/*.c) \
@@ -112,7 +114,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES :=
 LOCAL_STATIC_LIBRARIES :=
 
-LOCAL_CPPFLAGS := -std=c++11
+LOCAL_CPPFLAGS := -std=c++14
 LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY=1 -DGL_GLEXT_PROTOTYPES
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -lGLESv3 -llog -ldl -landroid

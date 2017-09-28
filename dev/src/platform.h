@@ -80,6 +80,10 @@ extern void SetConsole(bool on);
     #define PLATFORM_TOUCH
 #endif
 
+#if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+	#define PLATFORM_WINNIX
+#endif
+
 #if defined(_WIN32)  // FIXME: Also make work on Linux/OS X.
     #define PLATFORM_VR
     #define PLATFORM_STEAMWORKS

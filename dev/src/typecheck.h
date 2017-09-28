@@ -23,6 +23,11 @@ struct FlowItem {
         }
     }
     bool IsValid() { return sid; }
+	bool DerefsEqual(const FlowItem &o) {
+		if (derefs.size() != o.derefs.size()) return false;
+		for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
+		return true;
+	}
 };
 
 struct TypeChecker {
@@ -964,8 +969,7 @@ struct TypeChecker {
                         goto found;
                     }
                 } else {
-                    if (equal(flow.derefs.begin(), flow.derefs.end(),
-                              left.derefs.begin(), left.derefs.end())) {
+                    if (flow.DerefsEqual(left)) {
                         type = flow.old;
                         goto found;
                     }
@@ -991,10 +995,8 @@ struct TypeChecker {
         if (left.now->Numeric()) return left.now;  // Early out, same as above.
         for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it) {
             auto &flow = *it;
-            if (flow.sid == left.sid &&
-                equal(flow.derefs.begin(), flow.derefs.end(),
-                      left.derefs.begin(), left.derefs.end())) {
-                    return flow.now;
+            if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
+                return flow.now;
             }
         }
         return left.now;

@@ -189,9 +189,11 @@ void SetImageTexture(uint textureunit, uint id, int tf) {
 int MaxTextureSize() { int mts = 0; glGetIntegerv(GL_MAX_TEXTURE_SIZE, &mts); return mts; }
 
 uint CreateFrameBuffer(uint texture, int tf) {
-    if (!glGenFramebuffers)
-        return 0;
-    uint fb = 0;
+	#ifdef PLATFORM_WINNIX
+		if (!glGenFramebuffers)
+			return 0;
+	#endif
+	uint fb = 0;
     GL_CALL(glGenFramebuffers(1, &fb));
     GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
     auto target =
@@ -209,8 +211,10 @@ static uint retex = 0;  // Texture to resolve to at the end when fb refers to a 
 static int retf = 0;
 static int2 resize = int2_0;
 bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex) {
-    if (!glGenRenderbuffers)
-        return false;
+	#ifdef PLATFORM_WINNIX
+		if (!glGenRenderbuffers)
+			return false;
+	#endif
     if (rb) {
         GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
         GL_CALL(glDeleteRenderbuffers(1, &rb));
