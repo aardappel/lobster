@@ -7,12 +7,12 @@ CC= emcc
 OPTLEVEL= -g4 -O2
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
-override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++11 -Wall -pedantic -Wno-switch \
+override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++14 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
 override CFLAGS+= -Wall
 
-INCLUDES= -I. -I../include -I../external/freetype/include
+INCLUDES= -I. -I../include -I../external/freetype/include -I../external/SDLMixer
 LIBS=
 
 CPPSRCS= \
@@ -26,8 +26,12 @@ CPPSRCS= \
 	../src/glshader.cpp \
 	../src/glsystem.cpp \
 	../src/gltexture.cpp \
+	../src/glvr.cpp \
+	../src/steamworks.cpp \
+	../src/cubegen.cpp \
 	../src/graphics.cpp \
 	../src/compiler.cpp \
+	../src/vmlog.cpp \
     ../src/vm.cpp \
     ../src/main.cpp \
 	../src/lobsterreader.cpp \

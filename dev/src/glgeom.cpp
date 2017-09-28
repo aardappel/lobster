@@ -183,6 +183,7 @@ bool Geometry::WritePLY(string &s, int nindices) {
     #else
     (void)s;
     (void)nindices;
+	(void)vertsize;
     return false;
     #endif
 }

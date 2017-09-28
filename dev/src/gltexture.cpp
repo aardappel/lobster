@@ -27,7 +27,9 @@
     #pragma warning(pop)
 #endif
 
+#ifndef __EMSCRIPTEN__
 const int nummultisamples = 4;
+#endif
 
 uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     uint id;
@@ -80,13 +82,17 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
             assert(false);
         #endif
     } else if(tf & TF_3D) {
-        int mipl = 0;
-        for (auto d = int3(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
-            GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x(), d.y(), d.z(), 0,
-                                 bufferformat, buffercomponent, buf));
-            mipl++;
-            buf += d.volume() * buffersize;
-        }
+		#ifndef __EMSCRIPTEN__
+			int mipl = 0;
+			for (auto d = int3(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x(), d.y(), d.z(), 0,
+									 bufferformat, buffercomponent, buf));
+				mipl++;
+				buf += d.volume() * buffersize;
+			}
+		#else
+			assert(false);
+		#endif
     } else {
         int mipl = 0;
         for (auto d = int2(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
@@ -205,63 +211,70 @@ uint CreateFrameBuffer(uint texture, int tf) {
     return fb;
 }
 
+#ifndef __EMSCRIPTEN__
 static uint fb = 0;
 static uint rb = 0;
 static uint retex = 0;  // Texture to resolve to at the end when fb refers to a multisample texture.
 static int retf = 0;
 static int2 resize = int2_0;
+#endif
+
 bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, uint resolvetex) {
 	#ifdef PLATFORM_WINNIX
 		if (!glGenRenderbuffers)
 			return false;
 	#endif
-    if (rb) {
-        GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
-        GL_CALL(glDeleteRenderbuffers(1, &rb));
-        rb = 0;
-    }
-    if (fb) {
-        if (retex) {
-            uint refb = CreateFrameBuffer(retex, retf);
-            GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
-            GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
-            GL_CALL(glBlitFramebuffer(0, 0, resize.x(), resize.y(),
-                              0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST));
-            GL_CALL(glDeleteFramebuffers(1, &refb));
-            retex = 0;
-            retf = 0;
-            resize = int2_0;
-        }
-        GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        GL_CALL(glDeleteFramebuffers(1, &fb));
-        fb = 0;
-    }
-    if (!texture) {
-        OpenGLFrameStart(fbsize);
-        Set2DMode(fbsize, true);
-        return true;
-    }
-    fb = CreateFrameBuffer(texture, tf);
-    if (depth) {
-        GL_CALL(glGenRenderbuffers(1, &rb));
-        GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
-        if (tf & TF_MULTISAMPLE) {
-            GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
-                                                     GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y()));
-        } else {
-            GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-                                          fbsize.x(), fbsize.y()));
-        }
-        GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                                          rb));
-    }
-    retex = resolvetex;
-    retf = tf & ~TF_MULTISAMPLE;
-    resize = fbsize;
-    OpenGLFrameStart(fbsize);
-    Set2DMode(fbsize, false);  // Have to use rh mode here, otherwise texture is filled flipped.
-    auto ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-    assert(ok);
-    return ok;
+	#ifndef __EMSCRIPTEN__
+		if (rb) {
+			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+			GL_CALL(glDeleteRenderbuffers(1, &rb));
+			rb = 0;
+		}
+		if (fb) {
+			if (retex) {
+				uint refb = CreateFrameBuffer(retex, retf);
+				GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
+				GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
+				GL_CALL(glBlitFramebuffer(0, 0, resize.x(), resize.y(),
+								  0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST));
+				GL_CALL(glDeleteFramebuffers(1, &refb));
+				retex = 0;
+				retf = 0;
+				resize = int2_0;
+			}
+			GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+			GL_CALL(glDeleteFramebuffers(1, &fb));
+			fb = 0;
+		}
+		if (!texture) {
+			OpenGLFrameStart(fbsize);
+			Set2DMode(fbsize, true);
+			return true;
+		}
+		fb = CreateFrameBuffer(texture, tf);
+		if (depth) {
+			GL_CALL(glGenRenderbuffers(1, &rb));
+			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
+			if (tf & TF_MULTISAMPLE) {
+				GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
+														 GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y()));
+			} else {
+				GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+											  fbsize.x(), fbsize.y()));
+			}
+			GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+											  rb));
+		}
+		retex = resolvetex;
+		retf = tf & ~TF_MULTISAMPLE;
+		resize = fbsize;
+		OpenGLFrameStart(fbsize);
+		Set2DMode(fbsize, false);  // Have to use rh mode here, otherwise texture is filled flipped.
+		auto ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+		assert(ok);
+		return ok;
+	#else
+		return false;
+	#endif
 }
 

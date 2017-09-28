@@ -704,7 +704,7 @@ bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_poin
             #ifdef __EMSCRIPTEN__
             emscripten_set_main_loop(one_frame_callback, 0, false);
             // Return from main() here (!) since we don't actually want to run any shutdown code yet.
-            assert(g_vm);
+            assert(lobster::g_vm);
             return true;
             #else
             // Emulate this behavior so we can debug it.
