@@ -1009,6 +1009,7 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
         if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);
         else { cg.Emit(IL_PUSHNIL); assert(nretvals == 1); }
     } else {
+        if (!Is<DefaultVal>(child)) cg.Gen(child, 0, true);
         nretvals = 0;
     }
     // FIXME: we could change the VM to instead work with SubFunction ids.
