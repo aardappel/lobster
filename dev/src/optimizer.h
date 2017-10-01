@@ -112,15 +112,16 @@ struct Optimizer {
         } else if (auto call = Is<Call>(n)) {
             auto sf = call->sf;
             // FIXME: Reduce these requirements where possible.
+            // FIXME: currently a function called 10x whose body is only a gigantic for loop will be inlined,
+            // because the for body does not count towards its nodes. maybe inline all fors first?
             if (parent_type == typeid(For) ||  // Always inline for bodies.
                 (sf->parent->anonymous &&
-                    !sf->iscoroutine &&
-                    !sf->dynscoperedefs.size() &&
-                    sf->returntypes.size() <= 1))
+                 !sf->iscoroutine &&
+                 !sf->dynscoperedefs.size() &&
+                 sf->returntypes.size() <= 1) &&
+                 (sf->numcallers <= 1 || sf->body->Count() < 8))  // FIXME: configurable.
             {
-                if (sf->numcallers <= 1 || sf->body->Count() < 8) {  // FIXME: configurable.
-                    r = Inline(*call, *sf);
-                }
+                r = Inline(*call, *sf);
             }
         }
         return r;

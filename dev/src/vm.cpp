@@ -851,7 +851,7 @@ void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->AtInc(i.ival())); }
 void VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
 
 void VM::F_FORLOOPI(VM_OP_ARGS) {
-    auto &i = TOPM(1);
+    auto &i = TOPM(1);  // This relies on for being inlined, otherwise it would be 2.
     TYPE_ASSERT(i.type == V_INT);
     PUSH(i);
 }
