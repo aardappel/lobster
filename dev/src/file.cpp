@@ -75,7 +75,7 @@ void AddFile() {
         auto s = g_vm->NewString(buf);
         return Value(s);
     }
-    ENDDECL1(read_file, "file", "S", "S",
+    ENDDECL1(read_file, "file", "S", "S?",
         "returns the contents of a file as a string, or nil if the file can't be found."
         " you may use either \\ or / as path separators");
 

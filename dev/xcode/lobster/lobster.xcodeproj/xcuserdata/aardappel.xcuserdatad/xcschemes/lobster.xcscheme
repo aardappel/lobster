@@ -26,6 +26,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
       </Testables>
@@ -45,6 +46,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
       customWorkingDirectory = "~/lobster/lobster"
@@ -67,16 +69,20 @@
       </MacroExpansion>
       <CommandLineArguments>
          <CommandLineArgument
+            argument = "--verbose"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "tapdefense.lobster"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--debug"
-            isEnabled = "NO">
+            argument = "../projects/trafficsim/trafficsim.lobster"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--verbose"
-            isEnabled = "YES">
+            argument = "--debug"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "unittest.lobster"
@@ -84,7 +90,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "../projects/rtsclicker.lobster"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-B../projects/totslike/default.lbc"
