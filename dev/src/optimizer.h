@@ -118,8 +118,8 @@ struct Optimizer {
                 (sf->parent->anonymous &&
                  !sf->iscoroutine &&
                  !sf->dynscoperedefs.size() &&
-                 sf->returntypes.size() <= 1) &&
-                 (sf->numcallers <= 1 || sf->body->Count() < 8))  // FIXME: configurable.
+                 sf->returntypes.size() <= 1 &&
+                 (sf->numcallers <= 1 || sf->body->Count() < 8)))  // FIXME: configurable.
             {
                 r = Inline(*call, *sf);
             }

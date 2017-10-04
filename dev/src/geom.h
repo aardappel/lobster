@@ -193,14 +193,14 @@ template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,
 }
 
 template<typename T, int N> inline T min(const vec<T,N> &a) {
-    DOVECF(FLT_MAX, _ = min(a[i], _));
+    DOVECF(FLT_MAX, min(a[i], _));
 }
 template<typename T, int N> inline T max(const vec<T,N> &a) {
-    DOVECF(-FLT_MAX, _ = max(a[i], _));
+    DOVECF(-FLT_MAX, max(a[i], _));
 }
 
 template<typename T, int N> inline T sum(const vec<T,N> &a) {
-    DOVECF(0, _ += a[i]);
+    DOVECF(0, _ + a[i]);
 }
 template<typename T, int N> inline T average(const vec<T,N> &a) {
     return sum(a) / N;
