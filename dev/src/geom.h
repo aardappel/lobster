@@ -325,15 +325,19 @@ template<typename T, int C, int R> class matrix {
     matrix() {}
 
     explicit matrix(T e) {
-        for (int x = 0; x < C; x++)
-            for (int y = 0; y < R; y++)
-                m[x].c[y] = e * (T)(x == y);
+        /* this used to be the following code that triggered a codegen bug in VS2017 (version 15.3)
+           release mode. Fixed in 15.4. Can reinstate in the future once 15.3 is unlikely in use anymore?
+            for (int x = 0; x < C; x++)
+                for (int y = 0; y < R; y++)
+                    m[x].c[y] = e * (T)(x == y);
+        */
+        memset(this, 0, sizeof(*this));
+        for (int x = 0; x < min(C, R); x++) m[x].c[x] = e;
     }
 
     explicit matrix(const V &v) {
-        for (int x = 0; x < C; x++)
-            for (int y = 0; y < R; y++)
-                m[x].c[y] = x == y ? v[x] : 0;
+        memset(this, 0, sizeof(*this));
+        for (int x = 0; x < min(C, R); x++) m[x].c[x] = v[x];
     }
 
     explicit matrix(const T *mat_data) {
@@ -423,6 +427,15 @@ template<typename T, int C, int R> class matrix {
         for (int x = 0; x < C; x++)
             res.m[x] = m[x] + o.m[x];
         return res;
+    }
+
+    string to_string() const {
+        string s = "(";
+        for (int x = 0; x < C; x++) {
+            if (x) s += ", ";
+            s += m[x].to_string();
+        }
+        return s + ")";
     }
 };
 
