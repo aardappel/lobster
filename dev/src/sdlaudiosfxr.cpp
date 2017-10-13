@@ -397,6 +397,7 @@ bool SDLSoundInit() {
 
     Mix_Init(0);
     // For some reason this distorts when set to 44100 and samples at 22050 are played.
+    // Also SFXR seems hard-coded to 22050, so that's what we'll use for now.
     if (Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024) == -1) {
         Output(OUTPUT_ERROR, "Mix_OpenAudio: %s\n", Mix_GetError());
         return false;

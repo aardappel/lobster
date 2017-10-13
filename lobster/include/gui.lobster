@@ -38,7 +38,8 @@ private overalsize := xy_0i
 
 private interactive := true
 
-private actionsound := nil
+private actionsfxr := nil
+private actionwav := nil
 
 private focus_id := -1
 
@@ -225,7 +226,8 @@ private def button(id, f, do, dofocus, focusf):
                         focus_id = id
                         focusf()
                     else: if mouse1 == 0:
-                        if actionsound: play_sfxr(actionsound) // FIXME: wavs too
+                        if actionsfxr: play_sfxr(actionsfxr)
+                        else: if actionwav: play_wav(actionwav)
                         do()
 
 def gui_button(f:guif, do:guif):                        button(hash(f), f, do, false): nil
@@ -255,8 +257,8 @@ def gui_setclickcolors(hover, sel):
     hover_color = hover
     select_color = sel
 
-def gui_setactionsound(snd):
-    actionsound = snd
+def gui_setactionsfxr(snd): actionsfxr = snd
+def gui_setactionwav(snd): actionwav = snd
 
 if program_name() == "gui.lobster": // run example
 
