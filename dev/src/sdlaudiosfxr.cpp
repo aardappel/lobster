@@ -417,7 +417,7 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-bool SDLPlaySound(const char *filename, bool sfxr) {
+bool SDLPlaySound(const char *filename, bool sfxr, int vol) {
     #ifdef __EMSCRIPTEN__
     // Distorted in firefox and no audio at all in chrome, disable for now.
     return false;
@@ -428,7 +428,7 @@ bool SDLPlaySound(const char *filename, bool sfxr) {
 
     auto snd = LoadSound(filename, sfxr);
     if (snd) {
-        Mix_PlayChannel(-1, snd->chunk.get(), 0);
+        Mix_Volume(Mix_PlayChannel(-1, snd->chunk.get(), 0), vol);
     }
     return !!snd;
 }

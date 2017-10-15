@@ -38,7 +38,7 @@ extern int SDLWheelDelta();
 extern bool SDLCursor(bool on);
 extern bool SDLGrab(bool on);
 
-extern bool SDLPlaySound(const char *filename, bool sfxr);
+extern bool SDLPlaySound(const char *filename, bool sfxr, int vol = 128);
 extern void SDLSoundClose();
 
 extern int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_t len);
