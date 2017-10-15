@@ -6,14 +6,9 @@ Running Lobster programs from within the editor
 -   Copy `lobster/docs/vscode/tasks.json` to a `.vscode` workspace folder that
     is in the root of where you keep your lobster code.
 
--   Load some lobster code. pressing `ctrl+shift+b` should run it. Press
-    `ctrl+shift+m` (or click on the error icon in the status bar) to get problem
-    pane, which allows you to click on the error to go to it.
-
-    -   Output is set to `silent` in `tasks.json` because otherwise the output
-        window obscures the problem pane, and errors in the output are not
-        clickable in VSCode. If you want to see any `print` output however,
-        change this setting to `always`.
+-   Load some lobster code. pressing `ctrl+shift+b` should run it. If there was
+    an error, press `F8` to go to it, and/or `` ctrl+` `` (shell) to show
+    program output.
 
 Syntax Highlighting
 -------------------

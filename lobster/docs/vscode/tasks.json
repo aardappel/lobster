@@ -1,30 +1,42 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // See https://code.visualstudio.com/docs/editor/tasks
     // for the documentation about the tasks.json format
-    "version": "0.1.0",
-    "windows": {
-        "command": "lobster\\lobster.exe"
-    },
-    "linux": {
-        "command": "lobster/lobster_cmake"
-    },    
-    "osx": {
-        "command": "lobster/lobster"
-    },  
-    "isShellCommand": true,
-    "args": ["${file}"],
-    "showOutput": "always",
-    "echoCommand": true,
-    "isBuildCommand": true,
-    "problemMatcher": {
-        "owner": "lobster",
-        "fileLocation": ["relative", "${fileDirname}"],
-        "pattern": {
-            "regexp": "^(.*)\\((.+)\\): (warning|error): (.*)$",
-            "file": 1,
-            "line": 2,
-            "severity": 3,
-            "message": 4
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "taskName": "Lobster",
+            "windows": {
+                "command": "lobster\\lobster.exe"
+            },
+            "linux": {
+                "command": "lobster_cmake"
+            },
+            "osx": {
+                "command": "lobster"
+            },
+            "type": "shell",
+            "args": [ "${file}" ],
+            "presentation": {
+                "reveal": "silent",
+                "echo": true,
+                "panel": "shared",
+                "focus": false
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": {
+                "owner": "lobster",
+                "fileLocation": [ "relative", "${fileDirname}" ],
+                "pattern": {
+                    "regexp": "^(.*)\\((.+)\\): (warning|error): (.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            }
         }
-    }
+    ]
 }
