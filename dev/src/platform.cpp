@@ -80,7 +80,9 @@ bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool fro
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
     writedir = auxdir;
     // FIXME: use SDL_GetBasePath() instead?
-    #ifdef __APPLE__
+    #ifdef _WIN32
+        have_console = GetConsoleWindow() != nullptr;
+    #elif defined(__APPLE__)
         if (from_bundle) {
             have_console = false;
             // Default data dir is the Resources folder inside the .app bundle.
@@ -235,41 +237,40 @@ void Output(OutputType ot, const char *msg, ...) {
     if (ot < min_output_level) return;
     va_list args;
     va_start(args, msg);
+    char buf[1024 * 4];
+    vsnprintf(buf, sizeof(buf), msg, args);
+    buf[sizeof(buf) - 1] = 0;
+    va_end(args);
     #ifdef __ANDROID__
         auto tag = "lobster";
         switch (ot) {
-            case OUTPUT_DEBUG:   __android_log_vprint(ANDROID_LOG_DEBUG, tag, msg, args); break;
-            case OUTPUT_INFO:    __android_log_vprint(ANDROID_LOG_INFO,  tag, msg, args); break;
-            case OUTPUT_WARN:    __android_log_vprint(ANDROID_LOG_WARN,  tag, msg, args); break;
-            case OUTPUT_PROGRAM: __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
-            case OUTPUT_ERROR:   __android_log_vprint(ANDROID_LOG_ERROR, tag, msg, args); break;
+            case OUTPUT_DEBUG:   __android_log_print(ANDROID_LOG_DEBUG, tag, "%s", buf); break;
+            case OUTPUT_INFO:    __android_log_print(ANDROID_LOG_INFO,  tag, "%s", buf); break;
+            case OUTPUT_WARN:    __android_log_print(ANDROID_LOG_WARN,  tag, "%s", buf); break;
+            case OUTPUT_PROGRAM: __android_log_print(ANDROID_LOG_ERROR, tag, "%s", buf); break;
+            case OUTPUT_ERROR:   __android_log_print(ANDROID_LOG_ERROR, tag, "%s", buf); break;
         }
     #elif defined(_WIN32)
-        char buf[1024 * 16];
-        vsnprintf(buf, sizeof(buf), msg, args);
-        buf[sizeof(buf) - 1] = 0;
         OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
         if (ot >= OUTPUT_INFO) {
             printf("%s\n", buf);
-            if (!have_console) {  // Also do this on OS X?
-                auto f = fopen((exefile + ".con.log").c_str(), "a");
-                if (f) {
-                    fputs(buf, f);
-                    fputs("\n", f);
-                    fclose(f);
-                }
-            }
         }
     #elif defined(__IOS__)
         extern void IOSLog(const char *msg);
-        IOSLog(msg);  // FIXME: args?
+        IOSLog(buf);
     #else
-        vprintf(msg, args);
-        printf("\n");
+        printf("%s\n", buf);
     #endif
-    va_end(args);
+    if (!have_console) {
+        auto f = fopen((exefile + ".con.log").c_str(), "a");
+        if (f) {
+            fputs(buf, f);
+            fputs("\n", f);
+            fclose(f);
+        }
+    }
 }
 
 void MsgBox(const char *err) {
