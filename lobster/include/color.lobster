@@ -1,6 +1,10 @@
 // standard color constants
 
-value color { red:float, green:float, blue:float, alpha:float }
+value color:
+    red:float
+    green:float
+    blue:float
+    alpha:float
 
 color_black :== color { 0, 0, 0, 1 }
 color_white :== color { 1, 1, 1, 1 }

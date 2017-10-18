@@ -313,7 +313,8 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
-    vector<pair<TypeRef, Ident *>> withstack;
+    typedef pair<TypeRef, Ident *> WithStackElem;
+    vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 
     vector<TypeRef> default_int_vector_types, default_float_vector_types;
@@ -403,6 +404,12 @@ struct SymbolTable {
             }
         }
         return id ? fld : nullptr;
+    }
+
+    WithStackElem *GetWithStack(size_t n) {
+        return withstacklevels.back() + n < withstack.size()
+            ? &withstack[withstacklevels.back() + n]
+            : nullptr;
     }
 
     void MakeLogVar(Ident *id) {

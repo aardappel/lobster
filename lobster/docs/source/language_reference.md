@@ -152,7 +152,7 @@ a value of one of the following types:
     -   `nil` : a special value of any reference type above, that indicates the
         absence of a legal value. `nil` is only allowed if the type is
         "nilable", for more on that see the document on type checking,
-        [here](<type_checker.html>).
+        [here](type_checker.html).
 
 Lobster does not have a separate boolean type. Instead, for boolean tests such
 as the `! & |` operators (see below) or the builtin function `if`, the values `0
@@ -182,7 +182,7 @@ functional style of programming.
 
 You specify a list of fields between `{` and `}`. The above example has no types
 specified, which makes it a generic type, more about the [type
-system](<type_checker.html>).
+system](type_checker.html).
 
 Optionally, you specify a supertype, which has the effect of adding all the
 fields of the supertype to the current type, thus making it an extension of the
@@ -198,10 +198,21 @@ The type ensures that the right number of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
 
 Optionally, you may declare types of elements, which will cause these types to
-be checked upon construction:
+be checked upon construction.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy { x:float, y:float }
+value xy { x:float = 0.0, y:float = 0.0 }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Additionally, you may specify default values, if these are given, then these
+values are not arguments to the constructor, e.g. `xy {}`.
+
+For larger struct definitions, you can use the indentation based syntax instead:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+value xy:
+    x:float = 0.0
+    y:float = 0.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Operators
@@ -382,12 +393,16 @@ will be checked at run-time, and cause the incoming value to either be converted
 to that type, or rejected with a run-time error.
 
 You can use :: instead of : for typed vector arguments, which allows you to
-access all fields of that vector directly, without having to prefix them with
-the argument name, e.g.:
+access all fields / functions of that vector directly, without having to prefix
+them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def magnitude(v::xy): sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also leave out the `v::xy` entirely if you define this function as part
+of a `struct` / `value` definition of type `xy` (see above). Both types of
+definition are equivalent.
 
 Additionally, types allow the definition of multimethods, whereby all functions
 of the same name and number of arguments inside the program (not necessarily
@@ -604,40 +619,20 @@ governing lexically scoped variable.
 Typing
 ------
 
-While Lobster is dynamically typed by default, it does allow optional type
-annotations that have many uses:
+Lobster is statically typed, though most of the time you don’t notice, since
+most types can be inferred. You specify types:
 
--   to cause type errors to happen earlier (where the values are created rather
-    than used)
+-   Used to create multi-methods (see earlier)
 
--   used to create multi-methods (see earlier)
+-   To provide coercion (`int` -\> `float`, anything -\> `string`)
 
--   to provide coercion (`int` -\> `float`, anything -\> `string`)
+-   As documentation
 
--   as documentation
+-   To get simpler type errors.
 
--   (future) to receive some type errors at compile time
+As we've seen, you can type function arguments and UDT fields.
 
--   (future) for faster execution
-
-As we've seen, you can type function arguments and UDT fields. Important to note
-is that these are checked when called / constructed, there are still cases when
-the exact types may change afterwards (though not in the case of `value`, whose
-fields are immutable).
-
-Lobster performs type checking when variables/fields are overwritten, and
-requires the new value to be the same as the old one, with some exceptions:
-
--   `nil` may overwrite anything, and anything may overwrite `nil`
-
--   an `int` may overwrite a `float` (and will become a `float`)
-
--   any UDT may overwrite any other UDT type
-
-Note that a type annotation specifying a type only allows that type initially,
-it does not accept `nil` also. If you want to accept `nil` additionally,
-currently you just have to leave it typeless, though there may be a way to
-express that you accept a type or `nil` in the future.
+For more detail, see the [type system](type_checker.html).
 
 Coroutines
 ----------
@@ -770,7 +765,7 @@ Built-in Functions
 Built-in functions are not strictly part of the language, but since Lobster
 relegates so much core functionality to them, it is useful to have a look how
 the important ones work. For a complete list, please refer to the [built-in
-function reference](<builtin_functions_reference.html>).
+function reference](builtin_functions_reference.html).
 
 ### Control Structures
 
@@ -823,4 +818,4 @@ run the body and restore the previous transform afterwards.
 Type Checking
 -------------
 
-This has its own document, [here](<type_checker.html>).
+This has its own document, [here](type_checker.html).

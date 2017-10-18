@@ -225,13 +225,14 @@ version</big></td>
 </tr>
 <tr>
 <td style="white-space: nowrap;">def&nbsp;magnitude(v::xy): sqrt(x * x + y * y)</td>
-<td style="white-space: nowrap;">/* inside class xy */<br>
+<td style="white-space: nowrap;">// inside class xy<br>
 float&nbsp;magnitude() { return x * x + y * y; }</td>
 <td>the :: way to indicate a type (v is of type xy) allows you to access
 object elements directly rather than having to write v.x etc. This is
 similar to writing a&nbsp;method, though Lobster makes no such distinction.</td>
 </tr>
-<tr>
+<tr><td>// inside struct/value xy<br>def&nbsp;magnitude(): sqrt(x * x + y * y)</td><td>// inside class xy<br>
+float&nbsp;magnitude() { return x * x + y * y; }</td><td>this is an equivalent way of writing the above when inside the scope of a struct/value (see below).</td></tr><tr>
 <td>v.magnitude()</td>
 <td>v.magnitude()</td>
 <td>on a function call, you can move the first argument to
@@ -392,7 +393,8 @@ version</big></td>
 <td>var v = new xyz(1, 0, 0)</td>
 <td>you'd actually have to define the constructor in C# to
 be able to do this</td>
-</tr>
+</tr><tr><td>struct xy:<br>&nbsp; &nbsp; x:float<br>&nbsp; &nbsp; y:float<br>&nbsp; &nbsp; def&nbsp;magnitude():<br>&nbsp; &nbsp; &nbsp; &nbsp; sqrt(x * x + y * y)</td><td>public class xy {<br>&nbsp; &nbsp; float x;<br>&nbsp; &nbsp; float y;<br>
+&nbsp; &nbsp; float&nbsp;magnitude() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return x * x + y * y;<br>&nbsp; &nbsp; }<br>}</td><td>Intendation based syntax, with inline function definition (automatic this argument)</td></tr>
 
 
 

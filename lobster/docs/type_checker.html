@@ -82,7 +82,7 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>You can do something similar with multi-methods, but that may require more code or may be less efficient.</p>
 <h2 id="generic-objects">Generic objects</h2>
 <p>Besides functions, objects can also be generic. If you define any field without types:</p>
-<pre><code>struct foo: [ a:string, b ]</code></pre>
+<pre><code>struct foo { a:string, b }</code></pre>
 <p>You create a generic type.</p>
 <p>Unlike functions however, Lobster is a bit more strict here in that it requires you to explicitly define a specialization before you can use it<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>:</p>
 <pre><code>struct foo_f: foo(float)</code></pre>

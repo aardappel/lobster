@@ -1,6 +1,9 @@
 include "vec.lobster"
 
-struct pathmap { steps:int, dir:xy_i, pos:xy_i }
+struct pathmap:
+    steps:int
+    dir:xy_i
+    pos:xy_i
 
 // This creates a 2d flood fill map where each cell has a direction that points to a the
 // neighboring cell that eventually brings it to the target location. Useful for games where lots

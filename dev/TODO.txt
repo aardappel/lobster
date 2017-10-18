@@ -83,11 +83,6 @@
   - reqret arg of TypeCheck: if we are sure codegen or optimizer optimizes op out, can
     turn "true" in to passing "reqret" to child.
 
-- In :: blocks, can't call other methods without this value
-  - see cityclicker.lobster
-  - also should be possible without ()
-  - also should be possible to leave out variable name before ::
-
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - break statement
@@ -359,6 +354,10 @@
     - It also does more accurate flow based tracking of variable types, e.g. an assignment inside
       an if() in Lobster only destroys the type promotion, here it changes the type promotion.
       That be easy to add, by storing the type promoted to rather than just the fact that something was promoted.
+
+- In :: blocks, can now call other methods without "this", but:
+  - also should be possible without () (see capped_storage() in cityclicker.lobster)
+  - also should be possible to leave out variable name before ::
 
 - There's a possibility gl_setmeshtexture will hold on to texture ids that get deleted.
   Would be nice to avoid this, but don't want Mesh to have to hold on to an LResource, or

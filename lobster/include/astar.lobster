@@ -3,16 +3,15 @@
 include "std.lobster"
 include "vec.lobster"
 
-struct astar_node {
-    G:float = 0.0,
-    H:float = 0.0,
-    F:float = 0.0,
-    previous = nil,
-    state,
-    delta = nil,
-    open:int = false,
+struct astar_node:
+    G:float = 0.0
+    H:float = 0.0
+    F:float = 0.0
+    previous = nil
+    state
+    delta = nil
+    open:int = false
     closed:int = false
-}
 
 def astar_clear(n::astar_node):
     open = closed = false

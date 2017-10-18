@@ -95,6 +95,21 @@ struct Parser {
         Expect(closing);
     }
 
+    void ParseIdentedorVector(const function<void()> &f, TType opening, TType closing) {
+        bool isindent = IsNext(T_INDENT);
+        if (!isindent) {
+            Expect(opening);
+            ParseVector(f, closing);
+        } else {
+            for (;;) {
+                f();
+                if (!IsNext(T_LINEFEED)) break;
+                if (Either(T_ENDOFFILE, T_DEDENT)) break;
+            }
+            Expect(T_DEDENT);
+        }
+    }
+
     SpecIdent *DefineWith(const string &idname, bool isprivate, bool isdef, bool islogvar) {
         auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true)
                         : st.LookupUse(idname, lex);
@@ -157,11 +172,11 @@ struct Parser {
                 ParseTopExp(list);
                 break;
             }
-            case T_VALUE:  list->Add(ParseTypeDecl(true,  isprivate)); break;
-            case T_STRUCT: list->Add(ParseTypeDecl(false, isprivate)); break;
+            case T_VALUE:  ParseTypeDecl(true,  isprivate, list); break;
+            case T_STRUCT: ParseTypeDecl(false, isprivate, list); break;
             case T_FUN: {
                 lex.Next();
-                list->Add(ParseNamedFunctionDefinition(isprivate));
+                list->Add(ParseNamedFunctionDefinition(isprivate, nullptr));
                 break;
             }
             case T_ENUM: {
@@ -210,7 +225,7 @@ struct Parser {
         }
     }
 
-    Node *ParseTypeDecl(bool isvalue, bool isprivate) {
+    void ParseTypeDecl(bool isvalue, bool isprivate, List *parent_list) {
         lex.Next();
         auto sname = ExpectId();
         Struct *struc = &st.StructDecl(lastid, lex);
@@ -276,11 +291,11 @@ struct Parser {
                 done:
                 struc->superclass = sti;  // Either a match or nullptr.
             }
-        } else if (lex.token == T_COLON || lex.token == T_LEFTCURLY) {
+        } else if (Either(T_COLON, T_LEFTCURLY)) {
             // A regular struct declaration
             struc->readonly = isvalue;
             struc->isprivate = isprivate;
-            if (IsNext(T_COLON)) {
+            if (IsNext(T_COLON) && lex.token != T_INDENT) {
                 parse_sup();
                 parse_specializers();
             }
@@ -296,31 +311,44 @@ struct Parser {
                 }
                 fieldid = (int)sup->fields.size();
             }
-            Expect(T_LEFTCURLY);
-            ParseVector([this, &fieldid, &struc] () {
-                ExpectId();
-                auto &sfield = st.FieldDecl(lastid);
-                TypeRef type;
-                int fieldref = -1;
-                if (IsNext(T_COLON)) {
-                    fieldref = ParseType(type, false, struc);
+            bool fieldsdone = false;
+            auto finishfields = [&]() {
+                if (!fieldsdone) {
+                    // Loop thru fields again, because this type may have become generic just now,
+                    // and may refer to itself.
+                    for (auto &field : struc->fields.v) {
+                        if (st.IsGeneric(field.type) && field.fieldref < 0)
+                            field.flags = AF_ANYTYPE;
+                    }
+                    fieldsdone = true;
                 }
-                bool generic = st.IsGeneric(type) && fieldref < 0;
-                Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
-                if (generic) struc->generic = true;
-            }, T_RIGHTCURLY);
-            // Loop thru a second time, because this type may have become generic just now, and may
-            // refer to itself.
-            for (auto &field : struc->fields.v) {
-                if (st.IsGeneric(field.type) && field.fieldref < 0) field.flags = AF_ANYTYPE;
-            }
+            };
+            ParseIdentedorVector([&] () {
+                if (IsNext(T_FUN)) {
+                    finishfields();
+                    parent_list->Add(ParseNamedFunctionDefinition(false, struc));
+                } else {
+                    ExpectId();
+                    if (fieldsdone) Error("fields must be declared before methods");
+                    auto &sfield = st.FieldDecl(lastid);
+                    TypeRef type;
+                    int fieldref = -1;
+                    if (IsNext(T_COLON)) {
+                        fieldref = ParseType(type, false, struc);
+                    }
+                    bool generic = st.IsGeneric(type) && fieldref < 0;
+                    Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                    struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
+                    if (generic) struc->generic = true;
+                }
+            }, T_LEFTCURLY, T_RIGHTCURLY);
+            finishfields();
         } else {
             // A pre-declaration.
             struc->predeclaration = true;
         }
         if (specializer_i < spectypes.size()) Error("too many type specializers");
-        return new StructRef(lex, struc);
+        parent_list->Add(new StructRef(lex, struc));
     }
 
     Node *ParseSingleVarDecl(bool isprivate, bool constant, bool dynscope, bool logvar) {
@@ -368,20 +396,27 @@ struct Parser {
         return nullptr;
     }
 
-    Node *ParseNamedFunctionDefinition(bool isprivate = false) {
+    Node *ParseNamedFunctionDefinition(bool isprivate, Struct *self) {
         string idname = ExpectId();
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
-        return ParseFunction(&idname, isprivate, true, true, "");
+        return ParseFunction(&idname, isprivate, true, true, "", false, false, self);
     }
 
     Node *ParseFunction(const string *name,
                         bool isprivate, bool parens, bool parseargs,
                         const string &context,
-                        bool expfunval = false, bool parent_noparens = false) {
+                        bool expfunval = false, bool parent_noparens = false, Struct *self = nullptr) {
         auto sf = st.ScopeStart();
         if (parens) Expect(T_LEFTPAREN);
         size_t nargs = 0;
+        if (self) {
+            nargs++;
+            auto id = st.LookupDef("this", lex.errorline, lex, false, false);
+            auto type = &self->thistype;
+            st.AddWithStruct(type, id, lex);
+            sf->args.v.back().SetType(type, st.IsGeneric(type));
+        }
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
@@ -845,6 +880,15 @@ struct Parser {
             for (auto fi = f->sibf; fi; fi = fi->sibf)
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
             auto call = new Call(lex, nullptr);
+            if (!firstarg && f->nargs()) {
+                auto wse = st.GetWithStack(0);
+                // If we're in the context of a withtype, calling a function that starts with an
+                // arg of the same type we pass it in automatically.
+                // This is maybe a bit very liberal, should maybe restrict it?
+                if (wse && wse->first == f->subf->args.v[0].type) {
+                    firstarg = new IdentRef(lex, wse->second->cursid);
+                }
+            }
             ParseFunArgs(call, coroutine, firstarg, idname.c_str(), &bestf->subf->args, noparens);
             auto nargs = call->Arity();
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);

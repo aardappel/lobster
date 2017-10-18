@@ -86,8 +86,13 @@ value xyz : xy { z }</code></pre>
 <p>You construct values of these types you use a similar syntax:</p>
 <pre><code>var v = xyz { 1, 0, 0 }</code></pre>
 <p>The type ensures that the right number of values are given, and they can now be accessed as <code>v.x</code> etc. in addition to <code>v[0]</code>.</p>
-<p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction:</p>
-<pre><code>value xy { x:float, y:float }</code></pre>
+<p>Optionally, you may declare types of elements, which will cause these types to be checked upon construction.</p>
+<pre><code>value xy { x:float = 0.0, y:float = 0.0 }</code></pre>
+<p>Additionally, you may specify default values, if these are given, then these values are not arguments to the constructor, e.g. <code>xy {}</code>.</p>
+<p>For larger struct definitions, you can use the indentation based syntax instead:</p>
+<pre><code>value xy:
+    x:float = 0.0
+    y:float = 0.0</code></pre>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from other languages that attempt to work on as many of the above types as makes sense. In particular, unlike most languages, many of them work on whole vectors, which makes typical game code both convenient and fast.</p>
 <h3 id="assignment-and-definition">Assignment and Definition</h3>
@@ -139,8 +144,9 @@ print mat[pos]</code></pre>
     exp2</code></pre>
 <p>The return value of a function is always that of the last expression evaluated, or given by <code>return</code> (see below).</p>
 <p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types will be checked at run-time, and cause the incoming value to either be converted to that type, or rejected with a run-time error.</p>
-<p>You can use :: instead of : for typed vector arguments, which allows you to access all fields of that vector directly, without having to prefix them with the argument name, e.g.:</p>
+<p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
 <pre><code>def magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
+<p>You can also leave out the <code>v::xy</code> entirely if you define this function as part of a <code>struct</code> / <code>value</code> definition of type <code>xy</code> (see above). Both types of definition are equivalent.</p>
 <p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
 <pre><code>def intersect(a, b): &quot;no idea how to intersect these two!&quot;
 def intersect(c:circle, p:xy): &quot;point in circle&quot;
@@ -206,23 +212,15 @@ f()
 y = oldy</code></pre>
 <p>This is very useful for when you want to change a variable for the duration of a function, which is a common programming pattern. It is also safe because unlike other programming languages with dynamic scope, it can't function without a governing lexically scoped variable.</p>
 <h2 id="typing">Typing</h2>
-<p>While Lobster is dynamically typed by default, it does allow optional type annotations that have many uses:</p>
+<p>Lobster is statically typed, though most of the time you don’t notice, since most types can be inferred. You specify types:</p>
 <ul>
-<li><p>to cause type errors to happen earlier (where the values are created rather than used)</p></li>
-<li><p>used to create multi-methods (see earlier)</p></li>
-<li><p>to provide coercion (<code>int</code> -&gt; <code>float</code>, anything -&gt; <code>string</code>)</p></li>
-<li><p>as documentation</p></li>
-<li><p>(future) to receive some type errors at compile time</p></li>
-<li><p>(future) for faster execution</p></li>
+<li><p>Used to create multi-methods (see earlier)</p></li>
+<li><p>To provide coercion (<code>int</code> -&gt; <code>float</code>, anything -&gt; <code>string</code>)</p></li>
+<li><p>As documentation</p></li>
+<li><p>To get simpler type errors.</p></li>
 </ul>
-<p>As we've seen, you can type function arguments and UDT fields. Important to note is that these are checked when called / constructed, there are still cases when the exact types may change afterwards (though not in the case of <code>value</code>, whose fields are immutable).</p>
-<p>Lobster performs type checking when variables/fields are overwritten, and requires the new value to be the same as the old one, with some exceptions:</p>
-<ul>
-<li><p><code>nil</code> may overwrite anything, and anything may overwrite <code>nil</code></p></li>
-<li><p>an <code>int</code> may overwrite a <code>float</code> (and will become a <code>float</code>)</p></li>
-<li><p>any UDT may overwrite any other UDT type</p></li>
-</ul>
-<p>Note that a type annotation specifying a type only allows that type initially, it does not accept <code>nil</code> also. If you want to accept <code>nil</code> additionally, currently you just have to leave it typeless, though there may be a way to express that you accept a type or <code>nil</code> in the future.</p>
+<p>As we've seen, you can type function arguments and UDT fields.</p>
+<p>For more detail, see the <a href="type_checker.html">type system</a>.</p>
 <h2 id="coroutines">Coroutines</h2>
 <p>The higher order functions (function that take a function argument) we saw above often perform iteration, and then call the function value back 0..N times. But what if you want to iterate, but you don't want to run all iterations all at once? For example, what if you want the iteration to happen across frames in a game? In most languages, that means writing iteration code that is a lot clumsier than the nice functions you already have. In Lobster however, you can turn any such function into a coroutine, which is a higher order function that can be resumed on demand. Kind of like a separate thread that only runs when you want to (<em>cooperative multitasking</em>). For example:</p>
 <pre><code>co := coroutine cofor(10)</code></pre>
