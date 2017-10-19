@@ -2,86 +2,83 @@
 
 include "vec.lobster"
 
-// inertia scroll: call this once a frame to receive a panning offset for any 2D scrolling item,
-// as it has been dragged by the user using "button" (e.g. "mouse1")
-// scale: the size in pixels of one unit in the scrollable area
-// mino/maxo: bounding box of the scrollable area (in its own units)
-// viewsize: in pixels
+// This struct manages the scale & translation values for a zooming & scrolling view.
+// For zoom it supports mousewheel and touch screen pinching.
+// For translation it supports mouse button or finger dragging (with inertia).
 
-private panoffset := xy_0
-private touchvelocity := xy_0
+struct scrollzoomview:
+    // Mousewheel / zoom related:
+    rate:float   // Zoom base rate, determines how rapid you want to zoom, try 1.2.
+    mins:int     // The range of exponents, try e.g. (10, 15, 20) and tweak from there.
+    default:int
+    maxs:int
+    // Scroll related:
+    buttonname:string  // The button to do dragging with (e.g. "mouse1")
+    // Internal state:
+    panoffset:xy_f = xy_0
+    touchvelocity:xy_f = xy_0
+    viewsteps:int = 0
+    pinchfactor:float = 1.0
+    lastdistance:float = 0.0
 
-def ui_inertiascroll(buttonname, scale, mino:xy_f, maxo:xy_f, viewsize):
-    if gl_button(buttonname) >= 1:
-        delta := float(gl_mousedelta(0)) / scale
-        panoffset -= delta
-        // mild amount of dampening/smoothing from previous frames:
-        touchvelocity = (touchvelocity + delta / gl_deltatime()) / 2
-    else:
-        panoffset -= touchvelocity * gl_deltatime()
-        speed := touchvelocity.magnitude()
-        if speed > 0:
-            reduction := gl_deltatime() / scale * 1000
-            if reduction < speed:
-                speed -= reduction
-                touchvelocity = touchvelocity.normalize() * speed
-            else:
-                touchvelocity = xy_0
-    maxo -= float(viewsize) / scale
-    if(maxo.x < mino.x):
-        mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!
-        maxo = xy { (mino.x + maxo.x) / 2, maxo.y }
-    if(maxo.y < mino.y):
-        mino = xy { mino.x, (mino.y + maxo.y) / 2 }
-        maxo = xy { maxo.x, (mino.y + maxo.y) / 2 }
+    // mino/maxo: Bounding box of the scrollable area (in its own units)
+    // viewsize: In pixels.
+    def update(mino:xy_f, maxo:xy_f, viewsize:xy_i):
+        // Update zooming:
+        if viewsteps == 0: viewsteps = default
+        oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
+        oldpanoffset := panoffset
+        mousewheeldelta := gl_mousewheeldelta()
+        viewsteps -= mousewheeldelta
+        viewsteps = max(min(viewsteps, maxs), mins)
+        viewscale := pow(rate, viewsteps)
+        center := float(gl_mousepos(0))
+        if gl_button("mouse1") >= 1 and gl_button("mouse11") >= 1:
+            dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
+            center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
+            if(lastdistance):
+                pinchfactor *= dist / lastdistance
+            lastdistance = dist
+        else:
+            lastdistance = 0
+        scale := gl_windowsize().x / viewscale * pinchfactor
+        center /= oldscale
+        panoffset -= center / (scale / oldscale) - center
+        // Update panning:
+        if gl_button(buttonname) >= 1:
+            delta := float(gl_mousedelta(0)) / scale
+            panoffset -= delta
+            // mild amount of dampening/smoothing from previous frames:
+            touchvelocity = (touchvelocity + delta / gl_deltatime()) / 2
+        else:
+            panoffset -= touchvelocity * gl_deltatime()
+            speed := touchvelocity.magnitude()
+            if speed > 0:
+                reduction := gl_deltatime() / scale * 1000
+                if reduction < speed:
+                    speed -= reduction
+                    touchvelocity = touchvelocity.normalize() * speed
+                else:
+                    touchvelocity = xy_0
+        if !equal(oldpanoffset, panoffset) and mousewheeldelta <= 0:
+            print oldpanoffset + " " + panoffset + " " + mousewheeldelta
+            maxo -= float(viewsize) / scale
+            if(maxo.x < mino.x):
+                mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!
+                maxo = xy { (mino.x + maxo.x) / 2, maxo.y }
+            if(maxo.y < mino.y):
+                mino = xy { mino.x, (mino.y + maxo.y) / 2 }
+                maxo = xy { maxo.x, (mino.y + maxo.y) / 2 }
+            panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
+                            max(min(maxo.y, panoffset.y), mino.y) }
+        return scale, -panoffset
 
-    panoffset = xy { max(min(maxo.x, panoffset.x), mino.x),        // FIXME: vector ops
-                     max(min(maxo.y, panoffset.y), mino.y) }
-    panoffset
-
-def ui_inertiascroll_reset(startoffset:xy_f):
-    panoffset = startoffset
-    touchvelocity = xy_0
-
-
-// Mouse wheel or pinch zoom: call each frame to receive a current zoom factor depending on the mousewheel of pinch
-// on touch devices.
-// Zooms centered around the mouse cursor or the middle of the two fingers, so affects the panning offset returned
-// by ui_inertiascroll()
-// rate: determines how rapid you want to zoom, try 1.2
-// mins/default/maxs: the range of exponents, try e.g. (10, 15, 20) and tweak from there
-// origin is the translation that has been set so far, if gl_translate hasn't been called yet, pass in xy_0
-
-private viewsteps := 0
-private pinchfactor := 1.0
-private lastdistance := 0.0
-
-def ui_mousewheelorpinchzoom(rate:float, mins:int, default:int, maxs:int, origin:xy_f):
-    if viewsteps == 0: viewsteps = default
-    oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
-    viewsteps -= gl_mousewheeldelta()
-    viewsteps = max(min(viewsteps, maxs), mins)
-    viewscale := pow(rate, viewsteps)
-    center := float(gl_mousepos(0))
-    if gl_button("mouse1") >= 1 and gl_button("mouse11") >= 1:
-        dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
-        center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
-        if(lastdistance):
-            pinchfactor *= dist / lastdistance
-        lastdistance = dist
-    else:
+    def reset(startoffset:xy_f):
+        panoffset = startoffset
+        touchvelocity = xy_0
+        viewsteps = 0
+        pinchfactor = 1
         lastdistance = 0
-    scale := gl_windowsize().x / viewscale * pinchfactor
-    center -= origin
-    center /= oldscale
-    panoffset -= center / (scale / oldscale) - center
-    //if(scale != oldscale): print(oldscale + " " + scale + " " + center + " " + panoffset)
-    scale
-
-def ui_mousewheelzoom_reset():
-    viewsteps = 0
-    pinchfactor = 1
-    lastdistance = 0
 
 
 // helper for rendering text at arbitrary scaled locations with maximum precision

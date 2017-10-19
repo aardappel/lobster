@@ -6,6 +6,8 @@
 
 - in a struct foo { a:float = 1.0 } allow the :float to be left out
 
+- bring indent based syntax for struct defs also to struct use, vectors, enums..
+
 - compile-time lobster execution would be super simple: simply allow a string that contains
   lobster code, spin up a VM to eval it, and insert its result back in the code.
   print eval "1 + 2" would actuall compile: print 3
