@@ -284,7 +284,7 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
             // interpreted mode anymore.
             throw string("cannot execute bytecode in compiled mode");
         #endif
-        RunBytecode(fn.c_str(), std::move(bytecode), nullptr, nullptr, args);
+        RunBytecode(fn.c_str(), bytecode, nullptr, nullptr, args);
         auto ret = g_vm->evalret;
         delete g_vm;
         assert(!vmpool && !g_vm);

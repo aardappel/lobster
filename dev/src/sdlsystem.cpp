@@ -689,10 +689,10 @@ void one_frame_callback() {
     }
 }
 
-bool EngineRunByteCode(const char *fn, string &&bytecode, const void *entry_point,
+bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
                        const void *static_bytecode, const vector<string> &program_args) {
     try {
-        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", std::move(bytecode), entry_point,
+        lobster::RunBytecode(fn ? StripDirPart(fn).c_str() : "", bytecode, entry_point,
                              static_bytecode, program_args);
     }
     catch (string &s) {
@@ -736,7 +736,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         string empty;
         vector<string> args;
         for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        if (EngineRunByteCode(argv[0], std::move(empty), entry_point, bytecodefb, args))
+        if (EngineRunByteCode(argv[0], empty, entry_point, bytecodefb, args))
             return 0;  // Emscripten.
     }
     catch (string &s) {

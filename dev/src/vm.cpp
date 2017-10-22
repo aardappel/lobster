@@ -53,7 +53,7 @@ enum {
 #define POPN(n) (sp -= (n))
 #define TOPPTR() (stack + sp + 1)
 
-VM::VM(const char *_pn, string &&_bytecode_buffer, const void *entry_point,
+VM::VM(const char *_pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
       : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
         #ifdef VM_COMPILED_CODE_MODE
@@ -1490,10 +1490,10 @@ int VM::GC() {  // shouldn't really be used, but just in case
     return (int)leaks.size();
 }
 
-void RunBytecode(const char *programname, string &&bytecode, const void *entry_point,
+void RunBytecode(const char *programname, string &bytecode, const void *entry_point,
                  const void *static_bytecode, const vector<string> &program_args) {
     // Sets up g_vm
-    new VM(programname, std::move(bytecode), entry_point, static_bytecode, program_args);
+    new VM(programname, bytecode, entry_point, static_bytecode, program_args);
     g_vm->EvalProgram();
 }
 
