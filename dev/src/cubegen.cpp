@@ -264,7 +264,7 @@ void AddCubeGen() {
     ENDDECL1(cg_create_mesh, "block", "X", "X",
         "converts block to a mesh");
 
-    STARTDECL(cg_create_3d_texture) (Value &wid) {
+    STARTDECL(cg_create_3d_texture) (Value &wid, Value &textureflags, Value &monochrome) {
         auto &v = GetVoxels(wid);
         auto mipsizes = 0;
         for (auto d = v.grid.dim; d.x(); d /= 2) mipsizes += d.volume();
@@ -299,15 +299,19 @@ void AddCubeGen() {
             }
             mipb = mips;
         }
+        if (monochrome.True()) {
+            for (int i = 0; i < mipsizes; i++) buf[i] = buf[i] ? 255 : 0;
+        }
         auto tex = CreateTexture(buf, v.grid.dim.data(),
-            TF_3D | TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP | TF_SINGLE_CHANNEL |
-            TF_BUFFER_HAS_MIPS);
+            TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
+            TF_BUFFER_HAS_MIPS | textureflags.ival());
         delete[] buf;
         extern ResourceType texture_type;
         return Value(g_vm->NewResource((void *)(size_t)tex, &texture_type));
     }
-    ENDDECL1(cg_create_3d_texture, "block", "X", "X",
-        "returns the new texture");
+    ENDDECL3(cg_create_3d_texture, "block,textureformat,monochrome", "XII?", "X",
+        "returns the new texture, for format, pass flags you want in addition to"
+        " 3d|single_channel|has_mips");
 
     STARTDECL(cg_load_vox) (Value &name) {
         auto namep = name.sval()->str();
