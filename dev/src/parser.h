@@ -95,7 +95,7 @@ struct Parser {
         Expect(closing);
     }
 
-    void ParseIdentedorVector(const function<void()> &f, TType opening, TType closing) {
+    void ParseIndentedorVector(const function<void()> &f, TType opening, TType closing) {
         bool isindent = IsNext(T_INDENT);
         if (!isindent) {
             Expect(opening);
@@ -323,7 +323,7 @@ struct Parser {
                     fieldsdone = true;
                 }
             };
-            ParseIdentedorVector([&] () {
+            ParseIndentedorVector([&] () {
                 if (IsNext(T_FUN)) {
                     finishfields();
                     parent_list->Add(ParseNamedFunctionDefinition(false, struc));
@@ -881,7 +881,7 @@ struct Parser {
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
             auto call = new Call(lex, nullptr);
             if (!firstarg && f->nargs()) {
-                auto wse = st.GetWithStack(0);
+                auto wse = st.GetWithStackBack();
                 // If we're in the context of a withtype, calling a function that starts with an
                 // arg of the same type we pass it in automatically.
                 // This is maybe a bit very liberal, should maybe restrict it?

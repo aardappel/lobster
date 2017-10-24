@@ -406,9 +406,9 @@ struct SymbolTable {
         return id ? fld : nullptr;
     }
 
-    WithStackElem *GetWithStack(size_t n) {
-        return withstacklevels.back() + n < withstack.size()
-            ? &withstack[withstacklevels.back() + n]
+    WithStackElem *GetWithStackBack() {
+        return withstack.size()
+            ? &withstack.back()
             : nullptr;
     }
 
