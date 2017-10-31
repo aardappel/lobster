@@ -1,3 +1,15 @@
+- need some way to typecheck append([type_A], [type_B])
+  neither either:
+  - some kind of cast (may be universally useful), or compile-time C# "as" (never nil)
+  - a way to annotate append as returning the super-type of both inputs.
+  - some generic type system smarts that when arg N is supposed to match arg 1,
+    if it fails, it first tries to both make them into superclasses before erroring.
+  How many functions are there likely to be like this, beyond append?
+
+- typeof gives static type, needs to be dynamic when used with ref objects.
+
+- type errors should skip large amounts of globals for __top_level_expression()
+
 - can't analyze return value for:
   def foo():
       if ..:
@@ -373,6 +385,12 @@
 - This doesn't parse well (see std.lobster):
   for xs: acc1, acc2 = fun(acc1, acc2, _)
 
+- improve indentation parsing, e.g. here it needs else to be at the same level as the var:
+  v := if ..:
+           ...
+       else:
+           ...
+
 - should add readint/readfloat builtins, from any location in a string, with a given byte width, as little endian..
   allows things reading binary file formats, FlatBuffers, or custom memory efficient arrays etc.
 
@@ -458,8 +476,7 @@
 
 - add support for http://vallentinsource.com/opengl/debug-output
 
-- might be fun to see how hard it is to write an integration for http://lighttable.com/
-  which could be used as a debugger and maybe for live-coding.
+- Add #line to C++ output: http://yosefk.com/blog/c-as-an-intermediate-language.html
 
 - Implement these examples in gui.lobster: https://github.com/eugenkiss/7guis/wiki
 
@@ -526,15 +543,7 @@
     though complicates things a tiny bit, as now you have to decide manually when to re-render certain display lists
   - have an additional retained mode system (probably combined with physics) that would be doubly useful
     in some cases
-  - work on optimizing the language a bit
-    - inlining to undo all the small function value calling -> giving correct scope for inlined variables still
-      requires a stack frame of sorts?
-    - could do some C++ generation that turns bytecodes into function calls and can be plugged into a Lobster build
-      easily
-      a lot easier than LLVM generation, and could give a modest speedup with little effort, especially if the C++
-      optimizer can inline/simplify a lot of the simpler ops
-      also see this for nice debugging: http://yosefk.com/blog/c-as-an-intermediate-language.html
-      If we use C, then we can link in libtcc to compile on the fly (on all but iOS) for a medium speedboost.
+  - work on optimizing the language a bit more
 
 - when running with no args (trying to load a .lbc), current dir should be aux dir when running from commandline
 
@@ -542,16 +551,19 @@
   - add functionality to call individual functions inside a script
 
 - think about how to support a debugger
-  would be great if it could be written in Lobster itself:
-  have to figure out how to have a frozen VM, and have debugger code running
-  and how they can share graphics state
-  maybe we can allow multiple windows to start? can make objects that hold window+context+all other graphics state,
-  and allow each VM to open 1, or even multiple per vm
-  if that approach doesn't work, can make a debugger that is a webserver inside the lobster exe, as that's nice and
-  cross platform.
-  But better to try multiple windows first, that be good for threading and other features anyway.
-  Actually a web-server based debugging interface might be good, use e.g. this:
-  http://runtimelegend.com/tech/webserver/
+  - would be great if it could be written in Lobster itself:
+    have to figure out how to have a frozen VM, and have debugger code running
+    and how they can share graphics state
+    maybe we can allow multiple windows to start? can make objects that hold window+context+all other graphics state,
+    and allow each VM to open 1, or even multiple per vm
+    if that approach doesn't work, can make a debugger that is a webserver inside the lobster exe, as that's nice and
+    cross platform.
+    But better to try multiple windows first, that be good for threading and other features anyway.
+  - Actually a web-server based debugging interface might be good, use e.g. this:
+    http://runtimelegend.com/tech/webserver/
+  - might be fun to see how hard it is to write an integration for http://lighttable.com/
+    which could be used as a debugger and maybe for live-coding.
+  - Could integrate with VSCode instead. 
 
 - function f(): x := 1; x + x
   gives error on x... should disallow

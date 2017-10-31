@@ -82,8 +82,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
             small := min(x, y)
             sqrt(2) * small + big - small
     else:
-        astar_distance() v:
-            abs(v.x) + abs(v.y)
+        astar_distance(): manhattan(_)
 
 // specialized to do GOAP (nodes created on the fly)
 

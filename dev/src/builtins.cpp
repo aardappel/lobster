@@ -639,6 +639,10 @@ void AddBuiltins() {
     ENDDECL1(magnitude, "v", "F]", "F",
         "the geometric length of a vector");
 
+    STARTDECL(manhattan) (Value &a) { return Value(manhattan(ValueDecToI<4>(a))); }
+    ENDDECL1(manhattan, "v", "I]", "I",
+        "the manhattan distance of a vector");
+
     STARTDECL(cross) (Value &a, Value &b) {
         return ToValueF(cross(ValueDecToF<3>(a), ValueDecToF<3>(b)));
     }
@@ -873,7 +877,7 @@ void AddBuiltins() {
     ENDDECL4(circles_within_range, "dist,positions,radiuses,prefilter", "FF]]F]I]", "I]]",
         "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
         " a vector of vectors of indices of the circles that are within dist of eachothers radius."
-        " pre-filter indicates objects that should not appear in the inner vectors.");
+        " pre-filter indicates objects that should appear in the inner vectors.");
 
     STARTDECL(resume) (Value &co, Value &ret) {
         g_vm->CoResume(co.cval());

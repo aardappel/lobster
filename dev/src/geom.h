@@ -205,7 +205,9 @@ template<typename T, int N> inline T sum(const vec<T,N> &a) {
 template<typename T, int N> inline T average(const vec<T,N> &a) {
     return sum(a) / N;
 }
-
+template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
+    DOVECF(0, _ + abs(a[i]));
+}
 
 template<typename T, int N> inline vec<T,N> ceilf(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
 template<typename T, int N> inline vec<T,N> floorf(const vec<T,N> &v) { DOVECR(floorf(v[i])); }

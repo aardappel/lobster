@@ -58,6 +58,7 @@ def find(xs, fun):
     for(xs) x, i: if fun(x): return i
     -1
 
+// return element for which fun returns biggest float value.
 def find_best(xs, fun):
     best := 0.0
     i := -1
