@@ -73,6 +73,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "../projects/settlement/settlement.lobster"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "tapdefense.lobster"
             isEnabled = "NO">
          </CommandLineArgument>

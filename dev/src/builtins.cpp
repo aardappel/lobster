@@ -166,7 +166,6 @@ void AddBuiltins() {
     STARTDECL(append) (Value &v1, Value &v2) {
         RealVector(v1);
         auto &type = v1.eval()->ti;
-        assert(&type == &v2.eval()->ti);  // FIXME: need to guarantee this in typechecking
         auto nv = (LVector *)g_vm->NewVector(0, v1.eval()->Len() + v2.eval()->Len(), type);
         nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
         nv->Append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
