@@ -1872,7 +1872,15 @@ Node *NativeRef::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
     return this;
 }
 
-Node *StructRef::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
+    /*
+    for (auto &f : st->fields.v) {
+        if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_ANYTYPE) && f.defaultval->exptype.Null()) {
+            f.defaultval->TypeCheck(tc, true);
+            f.type = f.defaultval->exptype;
+        }
+    }
+    */
     return this;
 }
 

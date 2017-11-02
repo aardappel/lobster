@@ -336,8 +336,8 @@ struct Parser {
                     if (IsNext(T_COLON)) {
                         fieldref = ParseType(type, false, struc);
                     }
-                    bool generic = st.IsGeneric(type) && fieldref < 0;
                     Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                    bool generic = st.IsGeneric(type) && fieldref < 0; // && !defaultval;
                     struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
                     if (generic) struc->generic = true;
                 }

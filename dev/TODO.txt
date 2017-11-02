@@ -1,3 +1,8 @@
+- This doesn't typecheck correctly:
+  if !lhs:
+      lhs = ...
+  // lhs here required to be non-nil.
+
 - need some way to typecheck append([type_A], [type_B])
   neither either:
   - some kind of cast (may be universally useful), or compile-time C# "as" (never nil)
@@ -16,7 +21,15 @@
          return ""
       nil
 
+- In this kind of code, without the type annotation, the list specializes it to subclass
+  and fails the removeobj:
+  def supermethod(.., list:[supertype])
+      list.removeobj(this)  // Type error without the annotation.
+  Not sure how to solve that, as auto-specializing "this" based on other args may be weird.
+
 - in a struct foo { a:float = 1.0 } allow the :float to be left out
+  problem is, we already have default values on fields that are intended to be generic, in
+  e.g. astar.lobster
 
 - bring indent based syntax for struct defs also to struct use, vectors, enums..
 
