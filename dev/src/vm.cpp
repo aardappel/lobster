@@ -26,7 +26,6 @@ SlabAlloc *vmpool = nullptr;         // set during the lifetime of a VM object
 
 #ifdef _DEBUG
     #define VM_PROFILER              // tiny VM slowdown and memory usage when enabled
-    #define VM_PROFILER
 #endif
 
 #ifdef VM_COMPILED_CODE_MODE

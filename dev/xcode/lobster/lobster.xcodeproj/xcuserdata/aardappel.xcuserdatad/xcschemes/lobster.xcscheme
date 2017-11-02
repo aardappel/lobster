@@ -73,6 +73,10 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "../projects/scrollrpg/scrollrpgfow.lobster"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "../projects/settlement/settlement.lobster"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -82,7 +86,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "../projects/trafficsim/trafficsim.lobster"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--debug"
