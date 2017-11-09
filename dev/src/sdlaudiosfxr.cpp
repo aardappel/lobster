@@ -346,7 +346,7 @@ Mix_Chunk *RenderSFXR(const string &buf) {
     }
     auto sbuf = SDL_malloc(synth.size() * 2);
     memcpy(sbuf, synth.data(), synth.size() * 2);
-    auto chunk = Mix_QuickLoad_RAW((Uint8 *)sbuf, synth.size() * 2);
+    auto chunk = Mix_QuickLoad_RAW((Uint8 *)sbuf, (Uint32)synth.size() * 2);
     chunk->allocated = 1;
     return chunk;
 }

@@ -862,7 +862,7 @@ void AddBuiltins() {
                     }
                 }
             }
-            auto vec = (LVector *)g_vm->NewVector(0, within_range.size(),
+            auto vec = (LVector *)g_vm->NewVector(0, (int)within_range.size(),
                                                   g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
             for (auto i : within_range) vec->Push(Value(i));
             within_range.clear();

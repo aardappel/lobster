@@ -236,7 +236,7 @@ int ElemObj::Hash() {
 
 int Value::Hash(ValueType vtype) {
     switch (vtype) {
-        case V_INT: return ival_;
+        case V_INT: return (int)ival_;
         case V_FLOAT: return *(int *)&fval_;
         case V_FUNCTION: return (int)(size_t)ip_.f;
         default: return refnil() ? ref()->Hash() : 0;

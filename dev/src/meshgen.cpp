@@ -385,7 +385,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                 // FIXME: duplicate verts. reuse.
                 for (int o = 0; o < 6; o++) {
                     auto a = linelist[ci[1]][i + (o > 0 && o < 4)];
-                    mctriangles.push_back(edges.size());
+                    mctriangles.push_back((int)edges.size());
                     auto e = edgev[a];
                     e.fmid += o > 1 && o < 5 ? zdn : zup;
                     edges.push_back(e);
@@ -399,7 +399,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                     for (int o = 0; o < 3; o++) {
                         auto a = trilist[ci[1]][i + o];
                         // FIXME: duplicate verts.
-                        mctriangles.push_back(edges.size());
+                        mctriangles.push_back((int)edges.size());
                         auto e = edgev[a / 2];
                         if (!(a & 1)) e.fmid = float3(gridpos[1][a / 2]);
                         else { assert(length(e.fmid - float3(gridpos[1][a / 2])) < 2); }

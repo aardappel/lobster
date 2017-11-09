@@ -66,6 +66,8 @@
   - for starters, should allow current binding system to be loaded from a DLL/so such that
     extensions don't have to be compiled into the main binary.
     - needs some versioning.
+    - also, if those extensions need the basic engine functionality, need to first refactor the
+      engine functionality to sit in an interface pointer or something.
   - Worth discovering if the current macro glue can be improved, maybe with automatically
     deduced arguments from a C function or C++ method.
   - Could do something similar to CryScript: declare external functions in lobster, generate
@@ -87,6 +89,15 @@
       just exposing the DLL functions would end up with a very different API, or you'd have to port
       all that Python code.
     Frankly while it would be cool, there's too much of a mismatch for this to make sense?
+
+- function-level profiling of actual time spent.
+  The current line level profiler is useful, but counting VM ops is imprecise, and doing it once
+  per instruction is wasteful.
+  If its inside the function-calling mechanism behind an if (profiling) that is branch predicted,
+  it can be always in there (maybe #ifdeffed out for --tocpp).
+  Can also count all builtins automatically.
+  To do exclusive counts, can simply have a global that counts how much time children have
+  accumulated so far, to substract from a parent. This works recursively because it is postfix!
 
 - Should consider type-safe type aliases, where converting from the base type is explicit, mixing
   with the base type degrades the type, and mixing aliases is a type error. Would be a feature

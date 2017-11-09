@@ -33,8 +33,8 @@ struct CodeGen  {
 
     int Pos() { return (int)code.size(); }
 
-    void GrowCodeAttr(int mins) {
-        while (mins > (int)code_attr.size()) code_attr.push_back(bytecode::Attr_NONE);
+    void GrowCodeAttr(size_t mins) {
+        while (mins > code_attr.size()) code_attr.push_back(bytecode::Attr_NONE);
     }
 
     void Emit(int i) {
@@ -737,7 +737,7 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     auto lastarg = cg.GenArgs(this, nargs, this);
     cg.TakeTemp(nargs);
     assert(nargs == nf->args.size() && nargs <= 6);
-    int vmop = IL_BCALLRET0 + (nargs * 3);
+    int vmop = IL_BCALLRET0 + (int)(nargs * 3);
     if (nf->has_body) { // graphics.h
         if (!Is<DefaultVal>(lastarg)) {
             cg.Emit(vmop, nf->idx);

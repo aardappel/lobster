@@ -1106,8 +1106,8 @@ struct TypeChecker {
     void Stats() {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, multisf = 0, clonesf = 0;
-        int orignodes = 0, clonenodes = 0;
-        typedef pair<int, Function *> Pair;
+        size_t orignodes = 0, clonenodes = 0;
+        typedef pair<size_t, Function *> Pair;
         vector<Pair> funstats;
         for (auto f : st.functiontable) funstats.push_back(make_pair(0, f));
         for (auto sf : st.subfunctiontable) {

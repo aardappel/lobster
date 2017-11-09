@@ -97,7 +97,7 @@ class Geometry  {
 
     void RenderSetup();
     void BindAsSSBO(uint bind_point_index);
-    bool WritePLY(string &s, int nindices);
+    bool WritePLY(string &s, size_t nindices);
 };
 
 struct Mesh {

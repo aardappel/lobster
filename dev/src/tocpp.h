@@ -64,7 +64,7 @@ void ToCPP(string &s, const string &bytecode_buffer) {
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     //auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
     map<int, const bytecode::Function *> function_lookup;
-    for (size_t i = 0; i < bcf->functions()->size(); i++) {
+    for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
         auto f = bcf->functions()->Get(i);
         function_lookup[f->bytecodestart()] = f;
     }
@@ -83,11 +83,11 @@ void ToCPP(string &s, const string &bytecode_buffer) {
     auto len = bcf->bytecode()->Length();
     auto ilnames = ILNames();
     vector<int> block_ids(bcf->bytecode_attr()->size());
-    auto BlockRef = [&](int ip) {
+    auto BlockRef = [&](ptrdiff_t ip) {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) s += "block";
         s += to_string(dispatch == VM_DISPATCH_TRAMPOLINE ? ip : block_ids[ip]);
     };
-    auto JumpIns = [&](int ip = 0) {
+    auto JumpIns = [&](ptrdiff_t ip = 0) {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
             s += "return ";
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
@@ -107,7 +107,7 @@ void ToCPP(string &s, const string &bytecode_buffer) {
     auto starting_point = *ip++;
     int block_id = 1;
     while (ip < code + len) {
-        if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT) {
+        if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - code)) & bytecode::Attr_SPLIT) {
             if (dispatch == VM_DISPATCH_TRAMPOLINE) {
                 s += "static void *block";
                 s += to_string(ip - code);
@@ -137,12 +137,12 @@ void ToCPP(string &s, const string &bytecode_buffer) {
         int opc = *ip++;
         if (opc == IL_FUNSTART) {
             s += "\n";
-            auto it = function_lookup.find(ip - 1 - code);
+            auto it = function_lookup.find((int)(ip - 1 - code));
             if (it != function_lookup.end()) s += "// " + it->second->name()->str() + "\n";
         }
         auto ilname = ilnames[opc];
         auto args = ip;
-        if (bcf->bytecode_attr()->Get(ip - 1 - code) & bytecode::Attr_SPLIT) {
+        if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - 1 - code)) & bytecode::Attr_SPLIT) {
             if (dispatch == VM_DISPATCH_TRAMPOLINE) {
                 s += "static void *block";
                 s += to_string(args - 1 - code);
@@ -248,7 +248,7 @@ void ToCPP(string &s, const string &bytecode_buffer) {
             }
             s += " }\n";
         }
-        if (bcf->bytecode_attr()->Get(ip - code) & bytecode::Attr_SPLIT) {
+        if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - code)) & bytecode::Attr_SPLIT) {
             if (dispatch == VM_DISPATCH_TRAMPOLINE) {
                 if (!already_returned) {
                     s += "  ";

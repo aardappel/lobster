@@ -610,7 +610,7 @@ void AddGraphics() {
             auto fmt_it = fmt;
             float3 pos;
             while (*fmt_it) {
-                auto attrv = attrs->At(fmt_it - fmt).vval();
+                auto attrv = attrs->At((int)(fmt_it - fmt)).vval();
                 switch (*fmt_it++) {
                     case 'P':
                         *((float3 *&)p)++ = pos = ValueToF<3>(attrv->At(i));

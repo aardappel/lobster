@@ -199,7 +199,7 @@ void VRFinish() {
     if (!vrsys) return;
     SwitchToFrameBuffer(0, GetScreenSize(), false, 0, 0);
     for (int i = 0; i < 2; i++) {
-        vr::Texture_t vrtex = { (void *)retex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t vrtex = { (void *)(size_t)retex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);
         (void)err;
         assert(!err);

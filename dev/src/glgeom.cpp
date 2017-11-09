@@ -16,7 +16,7 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-uint GenBO(GLenum type, int elemsize, int count, const void *verts) {
+uint GenBO(GLenum type, size_t elemsize, size_t count, const void *verts) {
     uint bo;
     GL_CALL(glGenBuffers(1, &bo));
     GL_CALL(glBindBuffer(type, bo));
@@ -84,7 +84,7 @@ Geometry::Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const c
         switch (attr) {
             #define SETATTRIB(idx, comps, type, norm, size) \
                 GL_CALL(glEnableVertexAttribArray(idx)); \
-                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, vs, (void *)offset)); \
+                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vs, (void *)offset)); \
                 offset += size; \
                 break;
             case 'P': SETATTRIB(0, 3, GL_FLOAT,         false, 12)
@@ -141,7 +141,7 @@ void Mesh::Render(Shader *sh) {
     if (surfs.size()) {
         for (auto s : surfs) s->Render(sh);
     } else {
-        GL_CALL(glDrawArrays(GetPrimitive(prim), 0, geom->nverts));
+        GL_CALL(glDrawArrays(GetPrimitive(prim), 0, (GLsizei)geom->nverts));
     }
 }
 
@@ -151,7 +151,7 @@ Mesh::~Mesh() {
     if (mats) delete[] mats;
 }
 
-bool Geometry::WritePLY(string &s, int nindices) {
+bool Geometry::WritePLY(string &s, size_t nindices) {
     #ifndef PLATFORM_ES2
     s += "ply\n"
          "format binary_little_endian 1.0\n"
@@ -193,7 +193,7 @@ void Surface::WritePLY(string &s) {
     vector<int> idata(numidx / 3 * 4);
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
     GL_CALL(glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data()));
-    for (int i = numidx - 3; i >= 0; i -= 3) {
+    for (int i = (int)numidx - 3; i >= 0; i -= 3) {
         auto di = i / 3 * 4;
         idata[di + 3] = idata[i + 1];
         idata[di + 2] = idata[i + 2];  // we cull GL_FRONT
@@ -207,7 +207,7 @@ void Surface::WritePLY(string &s) {
 }
 
 bool Mesh::SaveAsPLY(const char *filename) {
-    int nindices = 0;
+    size_t nindices = 0;
     for (auto &surf : surfs) nindices += surf->numidx;
     string s;
     if (!geom->WritePLY(s, nindices)) return false;

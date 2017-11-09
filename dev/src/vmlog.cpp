@@ -21,7 +21,7 @@ VMLog::VMLog(VM &_vm) : vm(_vm) {}
 
 void VMLog::LogInit(const bytecode::BytecodeFile *bcf) {
     logvars.resize(bcf->logvars()->size());
-    size_t i = 0;
+    flatbuffers::uoffset_t i = 0;
     for (auto &l : logvars) {
         auto sid = bcf->logvars()->Get(i++);
         l.read = 0;
