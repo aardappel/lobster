@@ -74,9 +74,9 @@ string StripDirPart(const char *filepath) {
 
 bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
-    exefile = exefilepath;
+    exefile = SanitizePath(exefilepath);
     cur_loader = loader;
-    datadir = StripFilePart(exefilepath);
+    datadir = StripFilePart(exefile.c_str());
     auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath).c_str()) : datadir;
     writedir = auxdir;
     // FIXME: use SDL_GetBasePath() instead?

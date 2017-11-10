@@ -613,6 +613,7 @@ bool SDLGrab(bool on) {
 }
 
 int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_t len) {
+    Output(OUTPUT_INFO, "SDLLoadFile: %s", absfilename);
     auto f = SDL_RWFromFile(absfilename, "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);
@@ -730,7 +731,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
     InitTime();
 
     try {
-        SetupDefaultDirs("", "../../lobster/", false, SDLLoadFile);  // FIXME
+        SetupDefaultDirs("../../lobster/", "", false, SDLLoadFile);  // FIXME
         RegisterCoreEngineBuiltins();
 
         string empty;
