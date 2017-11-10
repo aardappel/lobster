@@ -311,7 +311,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                 int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
                 auto &ei = edgeidx.Get(p2);
                 if (ei[dir]  < 0) {
-                    ei.set(dir, (int)edges.size());
+                    ei[dir] = (int)edges.size();
                     auto &dv1 = dv[i1];
                     auto &dv2 = dv[i2];
                     assert(dv1.dist * dv2.dist < 0);

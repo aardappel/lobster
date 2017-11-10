@@ -232,8 +232,8 @@ const int2 &GetScreenSize() { return screensize; }
 
 void ScreenSizeChanged() {
     int2 inputsize;
-    SDL_GetWindowSize(_sdl_window, &inputsize.x_mut(), &inputsize.y_mut());
-    SDL_GL_GetDrawableSize(_sdl_window, &screensize.x_mut(), &screensize.y_mut());
+    SDL_GetWindowSize(_sdl_window, &inputsize.x(), &inputsize.y());
+    SDL_GL_GetDrawableSize(_sdl_window, &screensize.x(), &screensize.y());
     inputscale = screensize / inputsize;
 }
 

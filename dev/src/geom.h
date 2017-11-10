@@ -23,7 +23,7 @@
                   { const int i = 2; F; if (N > 3) \
                   { const int i = 3; F; } } } }
 
-#define DOVECR(F) { vec<T,N> _t; DOVEC(_t.set(i, F)); return _t; }
+#define DOVECR(F) { vec<T,N> _t; DOVEC(_t[i] = F); return _t; }
 #define DOVECF(I,F) { T _ = I; DOVEC(_ = F); return _; }
 #define DOVECB(I,F) { bool _ = I; DOVEC(_ = F); return _; }
 
@@ -67,19 +67,13 @@ template<typename T, int N> class vec {
     T y() const {                return c[1]; }
     T z() const { assert(N > 2); return c[2]; }
     T w() const { assert(N > 3); return c[3]; }
+    T &x() { return c[0]; }
+    T &y() { return c[1]; }
+    T &z() { assert(N > 2); return c[2]; }
+    T &w() { assert(N > 3); return c[3]; }
 
     T operator[](int i) const { return c[i]; }
-
-    // No operator for this on purpose, you shouldn't be using this outside of this header
-    // (trying to encourage a functional style).
-    void set(int i, const T a) { c[i] = a; }
-    vec &add(int i, const T a) { c[i] += a; return *this; }
-
-    // Nasty name to discourage use :)
-    T &x_mut() {                return c[0]; }
-    T &y_mut() {                return c[1]; }
-    T &z_mut() { assert(N > 2); return c[2]; }
-    T &w_mut() { assert(N > 3); return c[3]; }
+    T &operator[](int i) { return c[i]; }
 
     vec(const vec<T,3> &v, T e) { DOVEC(c[i] = i < 3 ? v[i] : e); }
     vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
@@ -209,8 +203,8 @@ template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
     DOVECF(0, _ + abs(a[i]));
 }
 
-template<typename T, int N> inline vec<T,N> ceilf(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
-template<typename T, int N> inline vec<T,N> floorf(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
+template<typename T, int N> inline vec<T,N> ceil(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
+template<typename T, int N> inline vec<T,N> floor(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
 
 #undef DOVEC
 #undef DOVECR
@@ -444,7 +438,7 @@ template<typename T, int C, int R> class matrix {
 template<typename T, int C, int R> inline vec<T,R> operator*(const vec<T,R> &v,
                                                              const matrix<T,C,R> &m) {
     vec<T,R> t;
-    for (int i = 0; i < R; i++) t.set(i, dot(v, m[i]));
+    for (int i = 0; i < R; i++) t[i] = dot(v, m[i]);
     return t;
 }
 
@@ -458,9 +452,9 @@ const float3x3 float3x3_1 = float3x3(1);
 
 inline float3x4 operator*(const float3x4 &m, const float3x4 &o) {  // FIXME: clean this up
     return float3x4(
-        (o[0]*m[0].x() + o[1]*m[0].y() + o[2]*m[0].z()).add(3, m[0].w()),
-        (o[0]*m[1].x() + o[1]*m[1].y() + o[2]*m[1].z()).add(3, m[1].w()),
-        (o[0]*m[2].x() + o[1]*m[2].y() + o[2]*m[2].z()).add(3, m[2].w()));
+        (o[0]*m[0].x() + o[1]*m[0].y() + o[2]*m[0].z() + float4(0, 0, 0, m[0].w())),
+        (o[0]*m[1].x() + o[1]*m[1].y() + o[2]*m[1].z() + float4(0, 0, 0, m[1].w())),
+        (o[0]*m[2].x() + o[1]*m[2].y() + o[2]*m[2].z() + float4(0, 0, 0, m[2].w())));
 }
 
 inline float4x4 translation(const float3 &t) {

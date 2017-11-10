@@ -101,7 +101,7 @@ bool VRInit() {
                vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
-    vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x_mut(), (uint *)&rtsize.y_mut());
+    vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x(), (uint *)&rtsize.y());
     auto devicename = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                              vr::Prop_TrackingSystemName_String);
     auto displayname = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,

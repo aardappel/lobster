@@ -141,7 +141,7 @@ void AddFont() {
         auto size = f->TextSize(s.sval()->str());
         s.DECRT();
         if (curfontsize > maxfontsize) {
-            size = int2(ceilf(float2(size) * float(curfontsize) / float(maxfontsize)));
+            size = int2(ceil(float2(size) * float(curfontsize) / float(maxfontsize)));
         }
         return ToValueI(size);
     }

@@ -161,8 +161,8 @@ int2 TextureSize(uint id) {
     int2 size(0);
     // FIXME: need to actually store the size in an object when we create it.
     #ifndef PLATFORM_ES2
-        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x_mut()));
-        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y_mut()));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x()));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y()));
     #endif
     return size;
 }

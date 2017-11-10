@@ -329,7 +329,7 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
             for (int vn = 0; vn < 4; vn++) {
                 cvert vert;
                 for (int d = 0; d < 3; d++) {
-                    vert.pos.set(d, float((face[vn] & (1 << (2 - d))) != 0));
+                    vert.pos[d] = float((face[vn] & (1 << (2 - d))) != 0);
                 }
                 vert.normal = normals[n];
                 vert.tc = tcs[vn];

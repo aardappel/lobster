@@ -220,7 +220,7 @@ void AddCubeGen() {
                                 for (int vn = 0; vn < 4; vn++) {
                                     int3 vpos;
                                     for (int d = 0; d < 3; d++) {
-                                        vpos.set(d, (face[vn] & (1 << (2 - d))) != 0);
+                                        vpos[d] = (face[vn] & (1 << (2 - d))) != 0;
                                     }
                                     vpos += pos;
                                     VKey vkey { vec<short, 3>(vpos), c, (uchar)n };

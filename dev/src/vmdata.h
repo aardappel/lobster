@@ -688,13 +688,13 @@ struct VM {
 
 template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0) {
     vec<float,N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).fval() : def);
+    for (int i = 0; i < N; i++) t[i] = v.eval()->Len() > i ? v.eval()->At(i).fval() : def;
     return t;
 }
 
 template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0) {
     vec<int, N> t;
-    for (int i = 0; i < N; i++) t.set(i, v.eval()->Len() > i ? v.eval()->At(i).ival() : def);
+    for (int i = 0; i < N; i++) t[i] = v.eval()->Len() > i ? v.eval()->At(i).ival() : def;
     return t;
 }
 
