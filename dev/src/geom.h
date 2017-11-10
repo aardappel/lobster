@@ -206,6 +206,13 @@ template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
 template<typename T, int N> inline vec<T,N> ceil(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
 template<typename T, int N> inline vec<T,N> floor(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
 
+template<typename T> inline T clamp(T v, T lo, T hi) {
+    return min(hi, max(lo, v));
+}
+template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T hi) {
+    DOVECR(clamp(v[i], lo, hi));
+}
+
 #undef DOVEC
 #undef DOVECR
 

@@ -666,13 +666,13 @@ void AddBuiltins() {
         "forces two ints to be divided as floats");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c) {
-        return Value(max(min(a.ival(), c.ival()), b.ival()));
+        return Value(clamp(a.ival(), c.ival(), b.ival()));
     }
     ENDDECL3(clamp, "x,min,max", "III", "I",
         "forces an integer to be in the range between min and max (inclusive)");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c) {
-        return Value(max(min(a.fval(), c.fval()), b.fval()));
+        return Value(clamp(a.fval(), c.fval(), b.fval()));
     }
     ENDDECL3(clamp, "x,min,max", "FFF", "F",
              "forces a float to be in the range between min and max (inclusive)");
