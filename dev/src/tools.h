@@ -679,3 +679,12 @@ template<typename T, typename U> const T *AssertIs(const U *o) {
     assert(typeid(T) == typeid(*o));
     return static_cast<const T *>(o);
 }
+
+
+inline int PopCount(uint val) {
+    #ifdef _WIN32
+        return (int)__popcnt(val);
+    #else
+        return __builtin_popcount(val);
+    #endif
+}

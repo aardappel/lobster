@@ -25,6 +25,7 @@
         #define new DEBUG_NEW
     #endif
     #include "StackWalker\StackWalkerHelpers.h"
+    #include <intrin.h>
 #endif
 
 #include <stdio.h>
@@ -45,6 +46,7 @@
 #include <algorithm>
 #include <iterator>
 #include <functional>
+#include <array>
 
 #include <sstream>
 #include <iostream>
