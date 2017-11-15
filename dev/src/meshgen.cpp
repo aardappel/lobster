@@ -52,7 +52,6 @@ struct ImplicitFunction {
 };
 
 static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
-static float3 axesf[] = { float3_x, float3_y, float3_z };
 
 float max_smoothmink = 0;
 

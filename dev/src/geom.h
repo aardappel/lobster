@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace geom {
+
 #define PI 3.14159265f
 #define RAD (PI/180.0f)
 
@@ -178,10 +180,10 @@ template<typename T, int N> inline vec<T,N> mix(const vec<T,N> &a, const vec<T,N
     return a * (1 - f) + b * f;
 }
 template<typename T, int N> inline vec<T,N> min(const vec<T,N> &a, const vec<T,N> &b) {
-    DOVECR(min(a[i], b[i]));
+    DOVECR(std::min(a[i], b[i]));
 }
 template<typename T, int N> inline vec<T,N> max(const vec<T,N> &a, const vec<T,N> &b) {
-    DOVECR(max(a[i], b[i]));
+    DOVECR(std::max(a[i], b[i]));
 }
 template<typename T, int N> inline vec<T,N> pow(const vec<T,N> &a, const vec<T,N> &b) {
     DOVECR(powf(a[i], b[i]));
@@ -191,10 +193,10 @@ template<typename T, int N> inline vec<T,N> rpow(const vec<T,N> &a, const vec<T,
 }
 
 template<typename T, int N> inline T min(const vec<T,N> &a) {
-    DOVECF(FLT_MAX, min(a[i], _));
+    DOVECF(FLT_MAX, std::min(a[i], _));
 }
 template<typename T, int N> inline T max(const vec<T,N> &a) {
-    DOVECF(-FLT_MAX, max(a[i], _));
+    DOVECF(-FLT_MAX, std::max(a[i], _));
 }
 
 template<typename T, int N> inline T sum(const vec<T,N> &a) {
@@ -204,14 +206,14 @@ template<typename T, int N> inline T average(const vec<T,N> &a) {
     return sum(a) / N;
 }
 template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
-    DOVECF(0, _ + abs(a[i]));
+    DOVECF(0, _ + std::abs(a[i]));
 }
 
 template<typename T, int N> inline vec<T,N> ceil(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
 template<typename T, int N> inline vec<T,N> floor(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
 
 template<typename T> inline T clamp(T v, T lo, T hi) {
-    return min(hi, max(lo, v));
+    return std::min(hi, std::max(lo, v));
 }
 template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T hi) {
     DOVECR(clamp(v[i], lo, hi));
@@ -258,7 +260,7 @@ inline float3 cross(const float3 &a, const float3 &b)		 {
 }
 
 inline float smoothminh(float a, float b, float k) {
-    return min(max(0.5f + 0.5f * (b - a) / k, 0.0f), 1.0f);
+    return std::min(std::max(0.5f + 0.5f * (b - a) / k, 0.0f), 1.0f);
 }
 
 inline float smoothmix(float a, float b, float k, float h) {
@@ -271,7 +273,7 @@ inline float smoothmin(float a, float b, float k) {
 
 inline float smoothmax(float a, float b, float r) {
     auto u = max(float2(r + a, r + b), float2_0);
-    return min(-r, max(a, b)) + length(u);
+    return std::min(-r, std::max(a, b)) + length(u);
 }
 
 template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r) {
@@ -305,7 +307,7 @@ struct quat : float4 {
         float s = sinf(0.5f*angle);
         *this = quat(s * axis, cosf(0.5f * angle));
     }
-    explicit quat(const float3 &v) : float4(v, -sqrtf(max(1.0f - squaredlength(v), 0.0f))) {}
+    explicit quat(const float3 &v) : float4(v, -sqrtf(std::max(1.0f - squaredlength(v), 0.0f))) {}
     explicit quat(const float *v) : float4(v[0], v[1], v[2], v[3]) {}
 
     quat operator*(const quat &o) const {
@@ -339,12 +341,12 @@ template<typename T, int C, int R> class matrix {
                     m[x].c[y] = e * (T)(x == y);
         */
         memset(this, 0, sizeof(*this));
-        for (int x = 0; x < min(C, R); x++) m[x].c[x] = e;
+        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = e;
     }
 
     explicit matrix(const V &v) {
         memset(this, 0, sizeof(*this));
-        for (int x = 0; x < min(C, R); x++) m[x].c[x] = v[x];
+        for (int x = 0; x < std::min(C, R); x++) m[x].c[x] = v[x];
     }
 
     explicit matrix(const T *mat_data) {
@@ -812,3 +814,6 @@ inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen
             norm = normalize(norm);
     }
 }
+    
+}  // namespace geom
+
