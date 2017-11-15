@@ -626,7 +626,7 @@ int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_
     dest->resize((size_t)len);
     auto rlen = SDL_RWread(f, &(*dest)[0], 1, (size_t)len);
     SDL_RWclose(f);
-    return len != (int64_t)rlen || !len ? -1 : len;
+    return len != (int64_t)rlen ? -1 : len;
 }
 
 bool ScreenShot(const char *filename) {

@@ -47,6 +47,7 @@
 #include <iterator>
 #include <functional>
 #include <array>
+#include <thread>
 
 #include <sstream>
 #include <iostream>

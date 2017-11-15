@@ -206,6 +206,7 @@ template<typename T> struct RandomNumberGenerator {
     void seed(uint s) { rnd.ReSeed(s); }
 
     int operator()(int max) { return rnd.Random() % max; }
+    int operator()() { return rnd.Random(); }
 
     double rnddouble() { return rnd.Random() * (1.0 / 4294967296.0); }
     float rndfloat() { return (float)rnddouble(); } // FIXME: performance?

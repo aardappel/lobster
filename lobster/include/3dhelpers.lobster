@@ -66,6 +66,18 @@ def gl_deltatime_over_time():
     (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
 
 private fstex := nil
+def texture_post_process(shader, tex, size):
+    texture_format :== texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
+    if !fstex:
+        fstex = gl_createblanktexture(size, color_black, texture_format)
+    assert fstex  // FIXME
+    assert gl_switchtoframebuffer(fstex, size, false, texture_format)
+    gl_setprimitivetexture(0, tex)
+    gl_setshader(shader)
+    gl_rect(float(size))
+    gl_switchtoframebuffer(nil)
+    fstex
+
 private fssize := xy_0i
 def fs_post_process(shader, on, f):
     if on:
