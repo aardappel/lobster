@@ -48,6 +48,7 @@
 #include <functional>
 #include <array>
 #include <thread>
+#include <type_traits>
 
 #include <sstream>
 #include <iostream>

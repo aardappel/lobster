@@ -38,11 +38,31 @@ inline void default_debug_value(uchar  &a) { a = 0x1B; }
 
 template<typename T, int C, int R> class matrix;
 
-template<typename T, int N> class vec {
-    protected:
-    T c[N];
+template<typename T, int N> struct basevec {
+};
 
-    public:
+template<typename T> struct basevec<T, 2> {
+	union {
+		T c[2];
+		struct { T x; T y; };
+	};
+};
+
+template<typename T> struct basevec<T, 3> {
+	union {
+		T c[3];
+		struct { T x; T y; T z; };
+	};
+};
+
+template<typename T> struct basevec<T, 4> {
+	union {
+		T c[4];
+		struct { T x; T y; T z; T w; };
+	};
+};
+
+template<typename T, int N> struct vec : basevec<T, N> {
     enum { NUM_ELEMENTS = N };
     typedef T CTYPE;
 
@@ -57,22 +77,13 @@ template<typename T, int N> class vec {
 
     template<typename U> explicit vec(const vec<U,N> &v) { DOVEC(c[i] = (T)v[i]); }
 
-    vec(T x, T y, T z, T w) { assert(N == 4); c[0] = x; c[1] = y; c[2] = z; c[3] = w; }
-    vec(T x, T y, T z)      { assert(N == 3); c[0] = x; c[1] = y; c[2] = z; }
-    vec(T x, T y)           { assert(N == 2); c[0] = x; c[1] = y; }
+    vec(T _x, T _y, T _z, T _w) { x = _x; y = _y; assert(N == 4); c[2] = _z; c[3] = _w; }
+    vec(T _x, T _y, T _z)       { x = _x; y = _y; assert(N == 3); c[2] = _z; }
+    vec(T _x, T _y)             { x = _x; y = _y; assert(N == 2); }
 
     const T *data()  const { return c; }
     const T *begin() const { return c; }
     const T *end()   const { return c + N; }
-
-    T x() const {                return c[0]; }
-    T y() const {                return c[1]; }
-    T z() const { assert(N > 2); return c[2]; }
-    T w() const { assert(N > 3); return c[3]; }
-    T &x() { return c[0]; }
-    T &y() { return c[1]; }
-    T &z() { assert(N > 2); return c[2]; }
-    T &w() { assert(N > 3); return c[3]; }
 
     T operator[](int i) const { return c[i]; }
     T &operator[](int i) { return c[i]; }
@@ -222,13 +233,13 @@ template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T h
 #undef DOVEC
 #undef DOVECR
 
-typedef vec<float,2> float2;
-typedef vec<float,3> float3;
-typedef vec<float,4> float4;
+typedef vec<float, 2> float2;
+typedef vec<float, 3> float3;
+typedef vec<float, 4> float4;
 
-typedef vec<int,2> int2;
-typedef vec<int,3> int3;
-typedef vec<int,4> int4;
+typedef vec<int, 2> int2;
+typedef vec<int, 3> int3;
+typedef vec<int, 4> int4;
 
 typedef vec<uchar,4> byte4;
 
@@ -256,7 +267,7 @@ const byte4 byte4_0   = byte4((uchar)0);
 const byte4 byte4_255 = byte4((uchar)255);
 
 inline float3 cross(const float3 &a, const float3 &b)		 {
-    return float3(a.y()*b.z()-a.z()*b.y(), a.z()*b.x()-a.x()*b.z(), a.x()*b.y()-a.y()*b.x());
+    return float3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);
 }
 
 inline float smoothminh(float a, float b, float k) {
@@ -285,13 +296,13 @@ template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<
 }
 
 inline float3 rotateX(const float3 &v, const float2 &a) {
-    return float3(v.x(), v.y() * a.x() - v.z() * a.y(), v.y() * a.y() + v.z() * a.x());
+    return float3(v.x, v.y * a.x - v.z * a.y, v.y * a.y + v.z * a.x);
 }
 inline float3 rotateY(const float3 &v, const float2 &a) {
-    return float3(v.x() * a.x() + v.z() * a.y(), v.y(), v.z() * a.x() - v.x() * a.y());
+    return float3(v.x * a.x + v.z * a.y, v.y, v.z * a.x - v.x * a.y);
 }
 inline float3 rotateZ(const float3 &v, const float2 &a) {
-    return float3(v.x() * a.x() - v.y() * a.y(), v.x() * a.y() + v.y() * a.x(), v.z());
+    return float3(v.x * a.x - v.y * a.y, v.x * a.y + v.y * a.x, v.z);
 }
 
 inline float3 rotateX(const float3 &v, float a) { return rotateX(v, float2(cosf(a), sinf(a))); }
@@ -311,18 +322,18 @@ struct quat : float4 {
     explicit quat(const float *v) : float4(v[0], v[1], v[2], v[3]) {}
 
     quat operator*(const quat &o) const {
-        return quat(w()*o.x() + x()*o.w() + y()*o.z() - z()*o.y(),
-                    w()*o.y() - x()*o.z() + y()*o.w() + z()*o.x(),
-                    w()*o.z() + x()*o.y() - y()*o.x() + z()*o.w(),
-                    w()*o.w() - x()*o.x() - y()*o.y() - z()*o.z());
+        return quat(w * o.x + x * o.w + y * o.z - z * o.y,
+                    w * o.y - x * o.z + y * o.w + z * o.x,
+                    w * o.z + x * o.y - y * o.x + z * o.w,
+                    w * o.w - x * o.x - y * o.y - z * o.z);
     }
 
-    quat operator-() const { return quat(-xyz(), w()); }
+    quat operator-() const { return quat(-xyz(), w); }
 
     void flip() { *this = quat(-(float4)*this); }
 
     float3 transform(const float3 &p) const {
-        return p + cross(xyz(), cross(xyz(), p) + p * w()) * 2.0f;
+        return p + cross(xyz(), cross(xyz(), p) + p * w) * 2.0f;
     }
 };
 
@@ -368,19 +379,19 @@ template<typename T, int C, int R> class matrix {
 
         const float	t = 1.f - c;
         const float3 n = normalize(v);
-        const float	x = n.x();
-        const float	y = n.y();
-        const float	z = n.z();
+        const float	x = n.x;
+        const float	y = n.y;
+        const float	z = n.z;
 
-        m[0].c[0] = t*x*x + c;
-        m[0].c[1] = t*x*y + z*s;
-        m[0].c[2] = t*x*z - y*s;
-        m[1].c[0] = t*x*y - z*s;
-        m[1].c[1] = t*y*y + c;
-        m[1].c[2] = t*y*z + x*s;
-        m[2].c[0] = t*x*z + y*s;
-        m[2].c[1] = t*y*z - x*s;
-        m[2].c[2] = t*z*z + c;
+        m[0].x = t*x*x + c;
+        m[0].y = t*x*y + z*s;
+        m[0].z = t*x*z - y*s;
+        m[1].x = t*x*y - z*s;
+        m[1].y = t*y*y + c;
+        m[1].z = t*y*z + x*s;
+        m[2].x = t*x*z + y*s;
+        m[2].y = t*y*z - x*s;
+        m[2].z = t*z*z + c;
     }
 
     const T *data()  const { return m[0].c; }
@@ -465,9 +476,9 @@ const float3x3 float3x3_1 = float3x3(1);
 
 inline float3x4 operator*(const float3x4 &m, const float3x4 &o) {  // FIXME: clean this up
     return float3x4(
-        (o[0]*m[0].x() + o[1]*m[0].y() + o[2]*m[0].z() + float4(0, 0, 0, m[0].w())),
-        (o[0]*m[1].x() + o[1]*m[1].y() + o[2]*m[1].z() + float4(0, 0, 0, m[1].w())),
-        (o[0]*m[2].x() + o[1]*m[2].y() + o[2]*m[2].z() + float4(0, 0, 0, m[2].w())));
+        (o[0]*m[0].x + o[1]*m[0].y + o[2]*m[0].z + float4(0, 0, 0, m[0].w)),
+        (o[0]*m[1].x + o[1]*m[1].y + o[2]*m[1].z + float4(0, 0, 0, m[1].w)),
+        (o[0]*m[2].x + o[1]*m[2].y + o[2]*m[2].z + float4(0, 0, 0, m[2].w)));
 }
 
 inline float4x4 translation(const float3 &t) {
@@ -488,41 +499,41 @@ inline float4x4 scaling(float s) {
 
 inline float4x4 scaling(const float3 &s) {
     return float4x4(
-        float4(s.x(), 0, 0, 0),
-        float4(0, s.y(), 0, 0),
-        float4(0, 0, s.z(), 0),
+        float4(s.x, 0, 0, 0),
+        float4(0, s.y, 0, 0),
+        float4(0, 0, s.z, 0),
         float4(0, 0, 0, 1));
 }
 
 inline float4x4 rotationX(const float2 &v) {
     return float4x4(
         float4(1, 0,     0,     0),
-        float4(0, v.x(), v.y(), 0),
-        float4(0,-v.y(), v.x(), 0),
+        float4(0, v.x, v.y, 0),
+        float4(0,-v.y, v.x, 0),
         float4(0, 0,     0,     1));
 }
 
 inline float4x4 rotationY(const float2 &v) {
     return float4x4(
-        float4(v.x(), 0,-v.y(), 0),
+        float4(v.x, 0,-v.y, 0),
         float4(0,     1, 0,     0),
-        float4(v.y(), 0, v.x(), 0),
+        float4(v.y, 0, v.x, 0),
         float4(0,     0, 0,     1));
 }
 
 inline float4x4 rotationZ(const float2 &v) {
     return float4x4(
-        float4( v.x(), v.y(), 0, 0),
-        float4(-v.y(), v.x(), 0, 0),
+        float4( v.x, v.y, 0, 0),
+        float4(-v.y, v.x, 0, 0),
         float4( 0,     0,     1, 0),
         float4( 0,     0,     0, 1));
 }
 
 inline float4x4 rotation3D(const float3 &v) {
     return float4x4(
-        float4( 0,     -v.z(),  v.y(), 0),
-        float4( v.z(),  0,     -v.x(), 0),
-        float4(-v.y(),  v.x(),  0,     0),
+        float4( 0,     -v.z,  v.y, 0),
+        float4( v.z,  0,     -v.x, 0),
+        float4(-v.y,  v.x,  0,     0),
         float4( 0,      0,      0,     1));
 }
 
@@ -539,8 +550,8 @@ inline quat quatfromtwovectors(const float3 &u, const float3 &v) {
         // around an arbitrary orthogonal axis. Axis normalisation
         // can happen later, when we normalise the quaternion.
         real_part = 0.0f;
-        w = fabsf(u.x()) > fabsf(u.z()) ? float3(-u.y(), u.x(), 0.f)
-                                        : float3(0.f,   -u.z(), u.y());
+        w = fabsf(u.x) > fabsf(u.z) ? float3(-u.y, u.x, 0.f)
+                                        : float3(0.f,   -u.z, u.y);
     } else {
         // Otherwise, build quaternion the standard way.
         w = cross(u, v);
@@ -549,7 +560,7 @@ inline quat quatfromtwovectors(const float3 &u, const float3 &v) {
 }
 
 inline float3x3 rotation(const quat &q) {
-    float x = q.x(), y = q.y(), z = q.z(), w = q.w(),
+    float x = q.x, y = q.y, z = q.z, w = q.w,
               tx = 2*x, ty = 2*y, tz = 2*z,
               txx = tx*x, tyy = ty*y, tzz = tz*z,
               txy = tx*y, txz = tx*z, tyz = ty*z,
@@ -563,9 +574,9 @@ inline float3x3 rotation(const quat &q) {
 inline float3x4 rotationscaletrans(const quat &q, const float3 &s, const float3 &t) {
     float3x3 m = rotation(q);
     for (int i = 0; i < 3; i++) m.set(i, m[i] * s);
-    return float3x4(float4(m[0], t.x()),
-                    float4(m[1], t.y()),
-                    float4(m[2], t.z()));
+    return float3x4(float4(m[0], t.x),
+                    float4(m[1], t.y),
+                    float4(m[2], t.z));
 }
 
 inline float4x4 float3x3to4x4(const float3x3 &m) {
@@ -761,11 +772,11 @@ inline bool line_intersect(const float2 &l1a, const float2 &l1b, const float2 &l
                            const float2 &l2b, float2 *out = nullptr) {
     float2 a(l1b - l1a);
     float2 b(l2b - l2a);
-    float2 aperp(-a.y(), a.x());
+    float2 aperp(-a.y, a.x);
     auto f = dot(aperp, b);
     if (!f) return false;     // Parallel.
     float2 c(l2b - l1b);
-    float2 bperp(-b.y(), b.x());
+    float2 bperp(-b.y, b.x);
     auto aa = dot(aperp, c);
     auto bb = dot(bperp, c);
     if(f < 0) {

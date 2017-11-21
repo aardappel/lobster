@@ -356,7 +356,7 @@ float SimplexNoise(const int octaves, const float persistence, const float scale
     // because each octave adds more, and we need a value in [-1, 1].
     float maxAmplitude = 0;
     for( int i=0; i < octaves; i++ ) {
-        total += SimplexRawNoise(v.x() * frequency, v.y() * frequency) * amplitude;
+        total += SimplexRawNoise(v.x * frequency, v.y * frequency) * amplitude;
         frequency *= 2;
         maxAmplitude += amplitude;
         amplitude *= persistence;
@@ -376,7 +376,7 @@ float SimplexNoise(const int octaves, const float persistence, const float scale
     // because each octave adds more, and we need a value in [-1, 1].
     float maxAmplitude = 0;
     for( int i=0; i < octaves; i++ ) {
-        total += SimplexRawNoise(v.x() * frequency, v.y() * frequency, v.z() * frequency) *
+        total += SimplexRawNoise(v.x * frequency, v.y * frequency, v.z * frequency) *
                  amplitude;
         frequency *= 2;
         maxAmplitude += amplitude;
@@ -397,8 +397,8 @@ float SimplexNoise(const int octaves, const float persistence, const float scale
     // because each octave adds more, and we need a value in [-1, 1].
     float maxAmplitude = 0;
     for( int i=0; i < octaves; i++ ) {
-        total += SimplexRawNoise(v.x() * frequency, v.y() * frequency, v.z() * frequency,
-                                 v.w() * frequency) * amplitude;
+        total += SimplexRawNoise(v.x * frequency, v.y * frequency, v.z * frequency,
+                                 v.w * frequency) * amplitude;
         frequency *= 2;
         maxAmplitude += amplitude;
         amplitude *= persistence;

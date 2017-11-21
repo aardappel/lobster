@@ -85,7 +85,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
 		#ifndef __EMSCRIPTEN__
 			int mipl = 0;
 			for (auto d = int3(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
-				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x(), d.y(), d.z(), 0,
+				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
 									 bufferformat, buffercomponent, buf));
 				mipl++;
 				buf += d.volume() * buffersize;
@@ -97,7 +97,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         int mipl = 0;
         for (auto d = int2(dim); tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
             for (int i = 0; i < texnumfaces; i++)
-                GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x(), d.y(), 0,
+                GL_CALL(glTexImage2D(teximagetype + i, mipl, internalformat, d.x, d.y, 0,
                                      bufferformat, buffercomponent, buf));
             mipl++;
             buf += d.volume() * buffersize;
@@ -133,9 +133,9 @@ uint CreateBlankTexture(const int2 &size, const float4 &color, int tf) {
         return CreateTexture(nullptr, size.data(), tf);  // No buffer required.
     } else {
         auto sz = tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
-        auto buf = new uchar[size.x() * size.y() * sz];
-        for (int y = 0; y < size.y(); y++) for (int x = 0; x < size.x(); x++) {
-            auto idx = y * size.x() + x;
+        auto buf = new uchar[size.x * size.y * sz];
+        for (int y = 0; y < size.y; y++) for (int x = 0; x < size.x; x++) {
+            auto idx = y * size.x + x;
             if (tf & TF_FLOAT) ((float4 *)buf)[idx] = color;
             else               ((byte4  *)buf)[idx] = quantizec(color);
         }
@@ -161,8 +161,8 @@ int2 TextureSize(uint id) {
     int2 size(0);
     // FIXME: need to actually store the size in an object when we create it.
     #ifndef PLATFORM_ES2
-        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x()));
-        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y()));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y));
     #endif
     return size;
 }
@@ -170,7 +170,7 @@ int2 TextureSize(uint id) {
 uchar *ReadTexture(uint id, const int2 &size) {
     #ifndef PLATFORM_ES2
         GL_CALL(glBindTexture(GL_TEXTURE_2D, id));
-        auto pixels = new uchar[size.x() * size.y() * 4];
+        auto pixels = new uchar[size.x * size.y * 4];
         GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
         return pixels;
     #else
@@ -235,8 +235,8 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, u
 				uint refb = CreateFrameBuffer(retex, retf);
 				GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
 				GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
-				GL_CALL(glBlitFramebuffer(0, 0, resize.x(), resize.y(),
-								  0, 0, resize.x(), resize.y(), GL_COLOR_BUFFER_BIT, GL_NEAREST));
+				GL_CALL(glBlitFramebuffer(0, 0, resize.x, resize.y,
+								  0, 0, resize.x, resize.y, GL_COLOR_BUFFER_BIT, GL_NEAREST));
 				GL_CALL(glDeleteFramebuffers(1, &refb));
 				retex = 0;
 				retf = 0;
@@ -257,10 +257,10 @@ bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf, u
 			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
 			if (tf & TF_MULTISAMPLE) {
 				GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
-														 GL_DEPTH_COMPONENT24, fbsize.x(), fbsize.y()));
+														 GL_DEPTH_COMPONENT24, fbsize.x, fbsize.y));
 			} else {
 				GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-											  fbsize.x(), fbsize.y()));
+											  fbsize.x, fbsize.y));
 			}
 			GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
 											  rb));

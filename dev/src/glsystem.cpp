@@ -72,7 +72,7 @@ int SetBlendMode(BlendMode mode) {
 }
 
 void ClearFrameBuffer(const float3 &c) {
-    GL_CALL(glClearColor(c.x(), c.y(), c.z(), 1.0));
+    GL_CALL(glClearColor(c.x, c.y, c.z, 1.0));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
@@ -80,8 +80,8 @@ void Set2DMode(const int2 &ssize, bool lh) {
     GL_CALL(glDisable(GL_CULL_FACE));
     GL_CALL(glDisable(GL_DEPTH_TEST));
     otransforms = objecttransforms();
-    auto y = (float)ssize.y();
-    view2clip = ortho(0, (float)ssize.x(), lh ? y : 0, lh ? 0 : y, 1, -1);
+    auto y = (float)ssize.y;
+    view2clip = ortho(0, (float)ssize.x, lh ? y : 0, lh ? 0 : y, 1, -1);
     mode2d = true;
 }
 
@@ -91,7 +91,7 @@ void Set3DOrtho(const float3 &center, const float3 &extends) {
     otransforms = objecttransforms();
     auto p = center + extends;
     auto m = center - extends;
-    view2clip = ortho(m.x(), p.x(), p.y(), m.y(), m.z(), p.z()); // left handed coordinate system
+    view2clip = ortho(m.x, p.x, p.y, m.y, m.z, p.z); // left handed coordinate system
     mode2d = false;
 }
 
@@ -106,15 +106,15 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar) {
 bool Is2DMode() { return mode2d; }
 
 uchar *ReadPixels(const int2 &pos, const int2 &size) {
-    uchar *pixels = new uchar[size.x() * size.y() * 3];
-    for (int y = 0; y < size.y(); y++)
-        GL_CALL(glReadPixels(pos.x(), pos.y() + size.y() - y - 1, size.x(), 1, GL_RGB, GL_UNSIGNED_BYTE,
-                             pixels + y * (size.x() * 3)));
+    uchar *pixels = new uchar[size.x * size.y * 3];
+    for (int y = 0; y < size.y; y++)
+        GL_CALL(glReadPixels(pos.x, pos.y + size.y - y - 1, size.x, 1, GL_RGB, GL_UNSIGNED_BYTE,
+                             pixels + y * (size.x * 3)));
     return pixels;
 }
 
 void OpenGLFrameStart(const int2 &ssize) {
-    GL_CALL(glViewport(0, 0, ssize.x(), ssize.y()));
+    GL_CALL(glViewport(0, 0, ssize.x, ssize.y));
     SetBlendMode(BLEND_ALPHA);
     curcolor = float4(1);
     lights.clear();

@@ -117,10 +117,10 @@ void BitmapFont::RenderText(const char *text) {
     for (int i = 0; i < len; i++) {
         int c = FromUTF8(text);
         int3 &pos = positions[font->unicodemap[c]];
-        float x1 = pos.x() / float(texw);
-        float x2 = (pos.x() + pos.z()) / float(texw);
-        float y1 = pos.y() / float(texh);
-        float advance = float(pos.z());
+        float x1 = pos.x / float(texw);
+        float x2 = (pos.x + pos.z) / float(texw);
+        float y1 = pos.y / float(texh);
+        float advance = float(pos.z);
         int j = i * 4;
         auto &v0 = vbuf[j + 0]; v0.t = float2(x1, y1);
                                 v0.p = float3(x, y, 0);
@@ -151,7 +151,7 @@ const int2 BitmapFont::TextSize(const char *text) {
     for (;;) {
         int c = FromUTF8(text);
         if (c <= 0) return int2(x, height);
-        x += positions[font->unicodemap[c]].z();
+        x += positions[font->unicodemap[c]].z;
     }
 }
 

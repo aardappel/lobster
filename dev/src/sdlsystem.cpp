@@ -232,8 +232,8 @@ const int2 &GetScreenSize() { return screensize; }
 
 void ScreenSizeChanged() {
     int2 inputsize;
-    SDL_GetWindowSize(_sdl_window, &inputsize.x(), &inputsize.y());
-    SDL_GL_GetDrawableSize(_sdl_window, &screensize.x(), &screensize.y());
+    SDL_GetWindowSize(_sdl_window, &inputsize.x, &inputsize.y);
+    SDL_GL_GetDrawableSize(_sdl_window, &screensize.x, &screensize.y);
     inputscale = screensize / inputsize;
 }
 
@@ -276,24 +276,24 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
     Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
     #ifdef PLATFORM_ES2
-        landscape = desired_screensize.x() >= desired_screensize.y();
+        landscape = desired_screensize.x >= desired_screensize.y;
         int modes = SDL_GetNumDisplayModes(0);
         screensize = int2(1920, 1080);
         for (int i = 0; i < modes; i++) {
             SDL_DisplayMode mode;
             SDL_GetDisplayMode(0, i, &mode);
             Output(OUTPUT_INFO, "mode: %d %d", mode.w, mode.h);
-            if (landscape ? mode.w > screensize.x() : mode.h > screensize.y()) {
+            if (landscape ? mode.w > screensize.x : mode.h > screensize.y) {
                 screensize = int2(mode.w, mode.h);
             }
         }
 
-        Output(OUTPUT_INFO, "chosen resolution: %d %d", screensize.x(), screensize.y());
+        Output(OUTPUT_INFO, "chosen resolution: %d %d", screensize.x, screensize.y);
         Output(OUTPUT_INFO, "SDL about to create window...");
 
         _sdl_window = SDL_CreateWindow(title,
                                         0, 0,
-                                        screensize.x(), screensize.y(),
+                                        screensize.x, screensize.y,
                                         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
 
         Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
@@ -313,13 +313,13 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
         screensize = desired_screensize * int(dpi) / int(default_dpi);
         _sdl_window = SDL_CreateWindow(title,
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                       screensize.x(), screensize.y(),
+                                       screensize.x, screensize.y,
                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
                                        SDL_WINDOW_ALLOW_HIGHDPI |
                                             (isfullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
     ScreenSizeChanged();
-    Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x(), screensize.y());
+    Output(OUTPUT_INFO, "obtained resolution: %d %d", screensize.x, screensize.y);
 
     if (!_sdl_window)
         return SDLError("Unable to create window");
@@ -631,7 +631,7 @@ int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_
 
 bool ScreenShot(const char *filename) {
     auto pixels = ReadPixels(int2(0), screensize);
-    auto ok = stbi_write_png(filename, screensize.x(), screensize.y(), 3, pixels, screensize.x() * 3);
+    auto ok = stbi_write_png(filename, screensize.x, screensize.y, 3, pixels, screensize.x * 3);
     delete[] pixels;
     return ok != 0;
 }

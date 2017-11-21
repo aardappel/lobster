@@ -39,7 +39,7 @@ void SteamState::OnScreenshotRequested(ScreenshotRequested_t *) {
     Output(OUTPUT_INFO, "steam screenshot requested");
     auto size = GetScreenSize();
     auto pixels = ReadPixels(int2(0), size);
-    SteamScreenshots()->WriteScreenshot(pixels, size.x() * size.y() * 3, size.x(), size.y());
+    SteamScreenshots()->WriteScreenshot(pixels, size.x * size.y * 3, size.x, size.y);
     delete[] pixels;
 }
 

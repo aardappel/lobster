@@ -604,7 +604,7 @@ void AddBuiltins() {
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2) (Value &vec) {
-        auto v = ValueDecToF<3>(vec); return Value(atan2f(v.y(), v.x()) / RAD);
+        auto v = ValueDecToF<3>(vec); return Value(atan2f(v.y, v.x) / RAD);
     }
     ENDDECL1(atan2, "vec",  "F]" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
@@ -838,7 +838,7 @@ void AddBuiltins() {
         for (int i = 0; i < len; i++) {
             auto &n = nodes[i];
             auto cp = tocellspace(n.pos);
-            auto &c = cells[cp.x() + cp.y() * ncelld];
+            auto &c = cells[cp.x + cp.y * ncelld];
             n.next = c;
             c = &n;
         }
@@ -850,8 +850,8 @@ void AddBuiltins() {
             float scanrad = n.rad + maxrad + qdist;
             auto minc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos - scanrad)));
             auto maxc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos + scanrad)));
-            for (int y = minc.y(); y <= maxc.y(); y++) {
-                for (int x = minc.x(); x <= maxc.x(); x++) {
+            for (int y = minc.y; y <= maxc.y; y++) {
+                for (int x = minc.x; x <= maxc.x; x++) {
                     for (auto c = cells[x + y * ncelld]; c; c = c->next) {
                         if (c->filter && c != &n) {
                             auto d = length(c->pos - n.pos) - n.rad - c->rad;

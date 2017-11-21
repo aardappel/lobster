@@ -460,7 +460,7 @@ void AddGraphics() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_origin) () {
-        auto pos = float2(otransforms.object2view[3].x(), otransforms.object2view[3].y());
+        auto pos = float2(otransforms.object2view[3].x, otransforms.object2view[3].y);
         return ToValueF(pos);
     }
     ENDDECL0(gl_origin, "", "", "F]:2",
@@ -468,7 +468,7 @@ void AddGraphics() {
         " only makes sense in 2D mode (no gl_perspective called).");
 
     STARTDECL(gl_scaling) () {
-        auto sc = float2(otransforms.object2view[0].x(), otransforms.object2view[1].y());
+        auto sc = float2(otransforms.object2view[0].x, otransforms.object2view[1].y);
         return ToValueF(sc);
     }
     ENDDECL0(gl_scaling, "", "", "F]:2",
@@ -499,10 +499,10 @@ void AddGraphics() {
     STARTDECL(gl_hit) (Value &vec, Value &i) {
         auto size = ValueDecToF<3>(vec);
         auto localmousepos = localfingerpos(i.ival());
-        auto hit = localmousepos.x() >= 0 &&
-                   localmousepos.y() >= 0 &&
-                   localmousepos.x() < size.x() &&
-                   localmousepos.y() < size.y();
+        auto hit = localmousepos.x >= 0 &&
+                   localmousepos.y >= 0 &&
+                   localmousepos.x < size.x &&
+                   localmousepos.y < size.y;
         if (hit) lasthitsize = size;
         /*
         #ifdef PLATFORM_TOUCH
@@ -554,7 +554,7 @@ void AddGraphics() {
         "renders a line with the given thickness");
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar) {
-        Set3DMode(fovy.fval()*RAD, GetScreenSize().x() / (float)GetScreenSize().y(), znear.fval(),
+        Set3DMode(fovy.fval()*RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fval(),
                   zfar.fval());
         return Value();
     }
@@ -917,7 +917,7 @@ void AddGraphics() {
         TestGL();
         uint tex = GetTexture(t);
         auto size = TextureSize(tex);
-        auto numpixels = size.x() * size.y();
+        auto numpixels = size.x * size.y;
         if (!numpixels) return Value();
         auto buf = ReadTexture(tex, size);
         if (!buf) return Value();
@@ -1001,10 +1001,10 @@ void AddGraphics() {
         auto td = float2(ValueDecToF<2>(tcdim));
         auto te = t + td;
         float vb_square[20] = {
-            0,      0,      0, t.x(),  t.y(),
-            0,      sz.y(), 0, t.x(),  te.y(),
-            sz.x(), sz.y(), 0, te.x(), te.y(),
-            sz.x(), 0,      0, te.x(), t.y(),
+            0,      0,      0, t.x,  t.y,
+            0,      sz.y, 0, t.x,  te.y,
+            sz.x, sz.y, 0, te.x, te.y,
+            sz.x, 0,      0, te.x, t.y,
         };
         currentshader->Set();
         RenderArraySlow(PRIM_FAN, 4, "PT", sizeof(float) * 5, vb_square);
@@ -1020,23 +1020,23 @@ void AddGraphics() {
         auto step = ValueDecToF<3>(dist);
         auto oldcolor = curcolor;
         curcolor = float4(0, 1, 0, 1);
-        for (float z = 0; z <= m.z(); z += step.x()) {
-            for (float x = 0; x <= m.x(); x += step.x()) {
-                geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y(), z), cp,
+        for (float z = 0; z <= m.z; z += step.x) {
+            for (float x = 0; x <= m.x; x += step.x) {
+                geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y, z), cp,
                              thickness.fval());
             }
         }
         curcolor = float4(1, 0, 0, 1);
-        for (float z = 0; z <= m.z(); z += step.y()) {
-            for (float y = 0; y <= m.y(); y += step.y()) {
-                geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x(), y, z), cp,
+        for (float z = 0; z <= m.z; z += step.y) {
+            for (float y = 0; y <= m.y; y += step.y) {
+                geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x, y, z), cp,
                     thickness.fval());
             }
         }
         curcolor = float4(0, 0, 1, 1);
-        for (float y = 0; y <= m.y(); y += step.z()) {
-            for (float x = 0; x <= m.x(); x += step.z()) {
-                geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z()), cp,
+        for (float y = 0; y <= m.y; y += step.z) {
+            for (float x = 0; x <= m.x; x += step.z) {
+                geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z), cp,
                     thickness.fval());
             }
         }

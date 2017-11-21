@@ -64,9 +64,9 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
         assert(end <= distgrid->dim && int3(0) <= start);
         auto uniform_scale = average(size);
         max_smoothmink = max(max_smoothmink, uniform_scale * smoothmink);
-        for (int x = start.x(); x < end.x(); x++)
-            for (int y = start.y(); y < end.y(); y++)
-                for (int z = start.z(); z < end.z(); z++) {
+        for (int x = start.x; x < end.x; x++)
+            for (int y = start.y; y < end.y; y++)
+                for (int z = start.z; z < end.z; z++) {
             int3 ipos(x, y, z);
             auto pos = float3(ipos);
             pos -= gridtrans;
@@ -79,10 +79,10 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
             dist *= uniform_scale;
             auto &dv = distgrid->Get(ipos);
             // Could move this if outside loop, but should be branch predicted, so probably ok.
-            if (material.w() >= 0.5f) {
+            if (material.w >= 0.5f) {
                 auto h = smoothminh(dv.dist, dist, smoothmink);
                 dv.dist = smoothmix(dv.dist, dist, smoothmink, h);
-                dv.color = quantizec(dv.color.w() ? mix(material, color2vec(dv.color), h) : material);
+                dv.color = quantizec(dv.color.w ? mix(material, color2vec(dv.color), h) : material);
             } else {
                 dv.dist = smoothmax(-dist, dv.dist, smoothmink);
             }
@@ -116,7 +116,7 @@ struct IFCylinder : ImplicitFunctionImpl<IFCylinder> {
     float radius, height;
 
     inline float Eval(const float3 &pos) const {
-        return max(length(pos.xy()) - radius, abs(pos.z()) - height);
+        return max(length(pos.xy()) - radius, abs(pos.z) - height);
     }
 
     float3 Size() { return Sized(float3(radius, radius, height)); }
@@ -127,9 +127,9 @@ struct IFTaperedCylinder : ImplicitFunctionImpl<IFTaperedCylinder> {
 
     inline float Eval(const float3 &pos) const {
         auto xy = pos.xy();
-        auto r = mix(bot, top, pos.z() / (height * 2) + 0.5f);
+        auto r = mix(bot, top, pos.z / (height * 2) + 0.5f);
         // FIXME: this is probably not the correct distance.
-        return max(abs(pos.z()) - height, dot(xy, xy) - r * r);
+        return max(abs(pos.z) - height, dot(xy, xy) - r * r);
     }
 
     float3 Size() {
@@ -171,8 +171,8 @@ struct IFSuperToroid : ImplicitFunctionImpl<IFSuperToroid> {
 
     inline float Eval(const float3 &pos) const {
         auto p = pow(abs(pos), exp);
-        auto xy = r - sqrtf(p.x() + p.y());
-        return powf(fabsf(xy), exp.z()) + p.z() - 1;
+        auto xy = r - sqrtf(p.x + p.y);
+        return powf(fabsf(xy), exp.z) + p.z - 1;
     }
 
     float3 Size() { return Sized(float3(r * 2 + 1, r * 2 + 1, 1)); }
@@ -188,7 +188,7 @@ struct IFLandscape : ImplicitFunctionImpl<IFLandscape> {
                                  0) / 2;
         auto f = SimplexNoise(8, 0.5f, xyscale, float4(dpos.xy(), 0)) * zscale;
         // FIXME: this is obviously not the correct distance for anything but peaks.
-        return dpos.z() - f;
+        return dpos.z - f;
     }
 };
 
@@ -291,9 +291,9 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         };
         // FIXME: this uses even more memory than the distgrid.
         EdgeGrid edgeidx(gridsize, int3(-1));
-        for (int x = 0; x < gridsize.x() - 1; x++)
-            for (int y = 0; y < gridsize.y() - 1; y++)
-                for (int z = 0; z < gridsize.z() - 1; z++) {
+        for (int x = 0; x < gridsize.x - 1; x++)
+            for (int y = 0; y < gridsize.y - 1; y++)
+                for (int z = 0; z < gridsize.z - 1; z++) {
             int3 pos(x, y, z);
             int ci = 0;
             for (int i = 0; i < 8; i++) {
@@ -307,7 +307,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                 int i2 = mc_edge_to_vert[i][1];
                 auto &p1 = gridpos[i1];
                 auto &p2 = gridpos[i2];
-                int dir = p1.x() < p2.x() ? 0 : p1.y() < p2.y() ? 1 : 2;
+                int dir = p1.x < p2.x ? 0 : p1.y < p2.y ? 1 : 2;
                 auto &ei = edgeidx.Get(p2);
                 if (ei[dir]  < 0) {
                     ei[dir] = (int)edges.size();
@@ -358,9 +358,9 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
         };
         float3 zup(0, 0,  0.5f);
         float3 zdn(0, 0, -0.5f);
-        for (int z = 1; z < gridsize.z() - 1; z++)
-            for (int x = 0; x < gridsize.x() - 1; x++)
-                for (int y = 0; y < gridsize.y() - 1; y++) {
+        for (int z = 1; z < gridsize.z - 1; z++)
+            for (int x = 0; x < gridsize.x - 1; x++)
+                for (int y = 0; y < gridsize.y - 1; y++) {
             int3 pos(x, y, z);
             int ci[3] = { 0, 0, 0 };
             for (int lz = 0; lz < 3; lz++) {
@@ -580,7 +580,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
 
 Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize) {
     auto scenesize = root->Size() * 2;
-    float biggestdim = max(scenesize.x(), max(scenesize.y(), scenesize.z()));
+    float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
     auto gridscale = targetgridsize / biggestdim;
     auto gridsize = int3(scenesize * gridscale + float3(2.5f));
     auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;

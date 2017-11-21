@@ -380,7 +380,7 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
 
 void DispatchCompute(const int3 &groups) {
     #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
-        if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x(), groups.y(), groups.z()));
+        if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));
         // Make sure any imageStore/VBOasSSBO operations have completed.
         // Would be better to decouple this from DispatchCompute.
         if (glMemoryBarrier)

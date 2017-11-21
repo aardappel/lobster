@@ -73,7 +73,7 @@ void CleanPhysics() {
 void InitPhysics(const float2 &gv) {
 	// FIXME: check that shaders are initialized, since renderables depend on that
 	CleanPhysics();
-	world = new b2World(b2Vec2(gv.x(), gv.y()));
+	world = new b2World(b2Vec2(gv.x, gv.y));
 }
 
 void CheckPhysics() {
@@ -90,7 +90,7 @@ void CheckParticles(float size = 0.1f) {
 	}
 }
 
-b2Vec2 Float2ToB2(const float2 &v) { return b2Vec2(v.x(), v.y()); }
+b2Vec2 Float2ToB2(const float2 &v) { return b2Vec2(v.x, v.y); }
 float2 B2ToFloat2(const b2Vec2 &v) { return float2(v.x, v.y); }
 
 b2Vec2 ValueDecToB2(Value &vec) {
@@ -105,7 +105,7 @@ b2Body &GetBody(Value &id, Value &position) {
 	if (!body) {
 		b2BodyDef bd;
 		bd.type = b2_staticBody;
-		bd.position.Set(wpos.x(), wpos.y());
+		bd.position.Set(wpos.x, wpos.y);
 		body = world->CreateBody(&bd);
 	}
 	return *body;
@@ -141,7 +141,7 @@ void AddPhysics() {
 		auto sz = ValueDecToF<2>(size);
 		auto r = rot.fval();
 		b2PolygonShape shape;
-		shape.SetAsBox(sz.x(), sz.y(), OptionalOffset(offset), r * RAD);
+		shape.SetAsBox(sz.x, sz.y, OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
 	}
 	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "F]:2F]:2F]:2?F?X?", "X",
@@ -223,7 +223,7 @@ void AddPhysics() {
         b2ParticleDef pd;
         pd.flags = type.ival();
         auto c = ValueDecToF<3>(color);
-        pd.color.Set(b2Color(c.x(), c.y(), c.z()));
+        pd.color.Set(b2Color(c.x, c.y, c.z));
         pd.position = ValueDecToB2(position);
         pd.velocity = ValueDecToB2(velocity);
         return Value(particlesystem->CreateParticle(pd));
@@ -240,7 +240,7 @@ void AddPhysics() {
 		pgd.flags = type.ival();
 		pgd.position = ValueDecToB2(position);
 		auto c = ValueDecToF<3>(color);
-		pgd.color.Set(b2Color(c.x(), c.y(), c.z()));
+		pgd.color.Set(b2Color(c.x, c.y, c.z));
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();
 	}

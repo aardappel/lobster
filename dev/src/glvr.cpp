@@ -101,13 +101,13 @@ bool VRInit() {
                vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
-    vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x(), (uint *)&rtsize.y());
+    vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x, (uint *)&rtsize.y);
     auto devicename = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                              vr::Prop_TrackingSystemName_String);
     auto displayname = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                               vr::Prop_SerialNumber_String);
     Output(OUTPUT_INFO, "VR running on device: \"%s\", display: \"%s\", rt size: (%d, %d)",
-        devicename.c_str(), displayname.c_str(), rtsize.x(), rtsize.y());
+        devicename.c_str(), displayname.c_str(), rtsize.x, rtsize.y);
     vrmodels = (vr::IVRRenderModels *)vr::VR_GetGenericInterface(vr::IVRRenderModels_Version, &err);
     if(!vrmodels) {
         VRShutDown();

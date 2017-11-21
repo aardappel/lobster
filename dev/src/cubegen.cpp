@@ -55,9 +55,9 @@ struct Voxels {
     Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant), idx(0) {}
 
     void Set(const int3 &p, const int3 &sz, uchar pi) {
-        for (int x = max(0, p.x()); x < min(p.x() + sz.x(), grid.dim.x()); x++) {
-            for (int y = max(0, p.y()); y < min(p.y() + sz.y(), grid.dim.y()); y++) {
-                for (int z = max(0, p.z()); z < min(p.z() + sz.z(), grid.dim.z()); z++) {
+        for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {
+            for (int y = max(0, p.y); y < min(p.y + sz.y, grid.dim.y); y++) {
+                for (int z = max(0, p.z); z < min(p.z + sz.z, grid.dim.z); z++) {
                     grid.Get(int3(x, y, z)) = pi;
                 }
             }
@@ -65,9 +65,9 @@ struct Voxels {
     }
 
     void Copy(const int3 &p, const int3 &sz, const int3 &dest, const int3 &flip) {
-        for (int x = max(0, p.x()); x < min(p.x() + sz.x(), grid.dim.x()); x++) {
-            for (int y = max(0, p.y()); y < min(p.y() + sz.y(), grid.dim.y()); y++) {
-                for (int z = max(0, p.z()); z < min(p.z() + sz.z(), grid.dim.z()); z++) {
+        for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {
+            for (int y = max(0, p.y); y < min(p.y + sz.y, grid.dim.y); y++) {
+                for (int z = max(0, p.z); z < min(p.z + sz.z, grid.dim.z); z++) {
                     auto pos = int3(x, y, z);
                     auto pi = grid.Get(pos);
                     auto d = (pos - p) * flip + dest;
@@ -79,12 +79,12 @@ struct Voxels {
 
     uchar Color2Palette(const float4 &color) {
         uchar pi = transparant;
-        if (color.w() >= 0.5f) {
+        if (color.w >= 0.5f) {
             if (is_default_palette) {  // Fast path.
                 auto ic = byte4((int4(quantizec(color)) + (0x33 / 2)) / 0x33);
-                pi = (5 - ic.x()) * 36 +
-                     (5 - ic.y()) * 6 +
-                     (5 - ic.z()) + 1;
+                pi = (5 - ic.x) * 36 +
+                     (5 - ic.y) * 6 +
+                     (5 - ic.z) + 1;
             } else {
                 float error = 999999;
                 for (size_t i = 1; i < palette.size(); i++) {
@@ -197,16 +197,16 @@ void AddCubeGen() {
             };
         };
         auto hasher = [](const VKey &k) {
-            return k.pos.x() ^ (k.pos.y() << 3) ^ (k.pos.z() << 6) ^ (k.pal << 3) ^ k.dir;
+            return k.pos.x ^ (k.pos.y << 3) ^ (k.pos.z << 6) ^ (k.pal << 3) ^ k.dir;
         };
         unordered_map<VKey, int, decltype(hasher)> vertlookup(optimize_verts ? 100000 : 10, hasher);
         RandomNumberGenerator<PCG32> rnd;
         vector<float> rnd_offset(1024);
         for (auto &f : rnd_offset) { f = (rnd.rndfloat() - 0.5f) * 0.15f; }
         // Woah nested loops!
-        for (int x = 0; x < v.grid.dim.x(); x++) {
-            for (int y = 0; y < v.grid.dim.y(); y++) {
-                for (int z = 0; z < v.grid.dim.z(); z++) {
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
                     auto pos = int3(x, y, z);
                     auto c = v.grid.Get(pos);
                     if (c != transparant) {
@@ -232,7 +232,7 @@ void AddCubeGen() {
                                         }
                                     }
                                     cvert vert;
-                                    auto oi = ((vpos.z() << 8) ^ (vpos.y() << 4) ^ vpos.x()) %
+                                    auto oi = ((vpos.z << 8) ^ (vpos.y << 4) ^ vpos.x) %
                                               (rnd_offset.size() - 2);
                                     auto offset = float3(&rnd_offset[oi]);
                                     vert.pos = float3(vpos) + offset;
@@ -267,33 +267,33 @@ void AddCubeGen() {
     STARTDECL(cg_create_3d_texture) (Value &wid, Value &textureflags, Value &monochrome) {
         auto &v = GetVoxels(wid);
         auto mipsizes = 0;
-        for (auto d = v.grid.dim; d.x(); d /= 2) mipsizes += d.volume();
+        for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
         auto buf = new uchar[mipsizes];
         v.grid.ToContinousGrid(buf);
         auto mipb = buf;
-        for (auto db = v.grid.dim; db.x() > 1; db /= 2) {
+        for (auto db = v.grid.dim; db.x > 1; db /= 2) {
             auto ds = db / 2;
             auto mips = mipb + db.volume();
-            for (int z = 0; z < ds.z(); z++) {
+            for (int z = 0; z < ds.z; z++) {
                 auto zb = z * 2;
-                for (int y = 0; y < ds.y(); y++) {
+                for (int y = 0; y < ds.y; y++) {
                     auto yb = y * 2;
-                    for (int x = 0; x < ds.x(); x++) {
+                    for (int x = 0; x < ds.x; x++) {
                         auto xb = x * 2;
                         auto sum = float4_0;
                         int filled = 0;
                         for (int sz = 0; sz < 2; sz++) {
                             for (int sy = 0; sy < 2; sy++) {
                                 for (int sx = 0; sx < 2; sx++) {
-                                    auto i = mipb[(zb + sz) * db.x() * db.y() +
-                                                    (yb + sy) * db.x() + xb + sx];
+                                    auto i = mipb[(zb + sz) * db.x * db.y +
+                                                    (yb + sy) * db.x + xb + sx];
                                     if (i != transparant) { sum += float4(v.palette[i]); filled++; }
                                 }
                             }
                         }
                         auto pi = filled >= 4 ? v.Color2Palette(sum / (filled * 255.0f))
                                               : transparant;
-                        mips[z * ds.x() * ds.y() + y * ds.x() + x] = pi;
+                        mips[z * ds.x * ds.y + y * ds.x + x] = pi;
                     }
                 }
             }
@@ -342,12 +342,12 @@ void AddCubeGen() {
                     }
                 }
             } else if (!strncmp(id, "XYZI", 4)) {
-                assert(size.x());
+                assert(size.x);
                 voxels = NewWorld(size);
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uchar *)(p + i * 4 + 4));
-                    voxels->grid.Get(int3(vox.xyz())) = vox.w();  // FIXME: check bounds.
+                    voxels->grid.Get(int3(vox.xyz())) = vox.w;  // FIXME: check bounds.
                 }
             }
             p += contentlen;
@@ -365,9 +365,9 @@ void AddCubeGen() {
             return Value(false);
         }
         vector<byte4> voxels;
-        for (int x = 0; x < v.grid.dim.x(); x++) {
-            for (int y = 0; y < v.grid.dim.y(); y++) {
-                for (int z = 0; z < v.grid.dim.z(); z++) {
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
                     auto pos = int3(x, y, z);
                     auto i = v.grid.Get(pos);
                     if (i) voxels.push_back(byte4(int4(pos, i)));
@@ -387,9 +387,9 @@ void AddCubeGen() {
         wstr("SIZE");
         wint(12);
         wint(0);
-        wint(v.grid.dim.x());
-        wint(v.grid.dim.y());
-        wint(v.grid.dim.z());
+        wint(v.grid.dim.x);
+        wint(v.grid.dim.y);
+        wint(v.grid.dim.z);
         wstr("RGBA");
         wint(256 * 4);
         wint(0);
