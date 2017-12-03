@@ -230,6 +230,13 @@ template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T h
     DOVECR(clamp(v[i], lo, hi));
 }
 
+template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNumberGenerator<R> &r) {
+    DOVECR(r.rndfloat());
+}
+template<typename T, int N, typename R> inline vec<float, N> rndsignedvec(RandomNumberGenerator<R> &r) {
+    DOVECR(r.rndfloatsigned());
+}
+
 #undef DOVEC
 #undef DOVECR
 
