@@ -29,7 +29,6 @@ int main(int argc, char* argv[]) {
         InitUnhandledExceptionFilter();
     #endif
     Output(OUTPUT_INFO, "Lobster running...");
-    InitTime();
     bool wait = false;
     bool from_bundle =
     #ifdef __IOS__
@@ -91,7 +90,7 @@ int main(int argc, char* argv[]) {
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
-        if (!SetupDefaultDirs(argv[0], fn, from_bundle, SDLLoadFile))
+        if (!InitPlatform(argv[0], fn, from_bundle, SDLLoadFile))
             throw string("cannot find location to read/write data on this platform!");
         string bytecode;
         if (!fn) {

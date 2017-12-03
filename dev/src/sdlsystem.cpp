@@ -728,10 +728,9 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
     (void)argc;
 
     min_output_level = OUTPUT_INFO;
-    InitTime();
 
     try {
-        SetupDefaultDirs("../../lobster/", "", false, SDLLoadFile);  // FIXME
+        InitPlatform ("../../lobster/", "", false, SDLLoadFile);  // FIXME
         RegisterCoreEngineBuiltins();
 
         string empty;

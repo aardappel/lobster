@@ -15,12 +15,13 @@
 // Platform independent file access:
 typedef int64_t (* FileLoader)(const char *absfilename, string *dest, int64_t start, int64_t len);
 
+// Call this at init to determine default folders to load stuff from.
+// Also initializes anything else functions in this file need.
+extern bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+                             FileLoader loader);
+
 extern string StripFilePart(const char *filepath);
 extern string StripDirPart(const char *filepath);
-
-// Call this at init to determine default folders to load stuff from.
-extern bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
-                             FileLoader loader);
 
 // Read all or part of a file.
 // To read the whole file, pass -1 for len.
@@ -61,8 +62,11 @@ extern void Output(OutputType ot, const char *msg, ...);
 extern void MsgBox(const char *err);
 
 // Time:
-extern void InitTime();
 extern double SecondsSinceStart();
+
+// CPU:
+extern uint NumHWThreads();
+extern uint NumHWCores();
 
 // Misc:
 extern void ConditionalBreakpoint(bool shouldbreak);

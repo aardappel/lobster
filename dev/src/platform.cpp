@@ -61,6 +61,50 @@ FileLoader cur_loader = nullptr;
 
 bool have_console = true;
 
+
+static LARGE_INTEGER time_frequency, time_start;
+void InitTime() {
+    QueryPerformanceFrequency(&time_frequency);
+    QueryPerformanceCounter(&time_start);
+}
+
+double SecondsSinceStart() {
+    LARGE_INTEGER end;
+    QueryPerformanceCounter(&end);
+    return double(end.QuadPart - time_start.QuadPart) / double(time_frequency.QuadPart);
+}
+
+uint hwthreads = 2, hwcores = 1;
+void InitCPU() {
+    // This can fail and return 0, so default to 2 threads:
+    hwthreads = max(2U, thread::hardware_concurrency());
+    // As a baseline, assume desktop CPUs are hyperthreaded, and mobile ones are not.
+    #ifdef PLATFORM_ES2
+        hwcores = hwthreads;
+    #else
+        hwcores = max(1U, hwthreads / 2);
+    #endif
+    // On Windows, we can do better and actually count cores.
+    #ifdef _WIN32
+        DWORD buflen = 0;
+        if (!GetLogicalProcessorInformation(nullptr, &buflen) && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+            vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buf(buflen / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+            if (GetLogicalProcessorInformation(buf.data(), &buflen)) {
+                uint cores = 0;
+                for (auto &lpi : buf) {
+                    if (lpi.Relationship == RelationProcessorCore) cores++;
+                }
+                // Only overwrite our baseline if we actually found any cores.
+                if (cores) hwcores = cores;
+            }
+        }
+    #endif
+}
+
+uint NumHWThreads() { return hwthreads; }
+uint NumHWCores() { return hwcores; }
+
+
 string StripFilePart(const char *filepath) {
     auto fpos = strrchr(filepath, FILESEP);
     return fpos ? string(filepath, fpos - filepath + 1) : "";
@@ -72,8 +116,10 @@ string StripDirPart(const char *filepath) {
     return fpos ? fpos + 1 : filepath;
 }
 
-bool SetupDefaultDirs(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
+    InitTime();
+    InitCPU();
     exefile = SanitizePath(exefilepath);
     cur_loader = loader;
     datadir = StripFilePart(exefile.c_str());
@@ -302,19 +348,6 @@ void MsgBox(const char *err) {
     }
 #endif
 
-static LARGE_INTEGER time_frequency, time_start;
-
-void InitTime() {
-    QueryPerformanceFrequency(&time_frequency);
-    QueryPerformanceCounter(&time_start);
-}
-
-double SecondsSinceStart() {
-    LARGE_INTEGER end;
-    QueryPerformanceCounter(&end);
-    return double(end.QuadPart - time_start.QuadPart) / double(time_frequency.QuadPart);
-}
-
 // Use this instead of assert to break on a condition and still be able to continue in the debugger.
 void ConditionalBreakpoint(bool shouldbreak) {
     if (shouldbreak) {
@@ -327,7 +360,7 @@ void ConditionalBreakpoint(bool shouldbreak) {
 }
 
 void MakeDPIAware() {
-    #ifdef WIN32
+    #ifdef _WIN32
         // Without this, Windows scales the GL window if scaling is set in display settings.
         #ifndef DPI_ENUMS_DECLARED
             typedef enum PROCESS_DPI_AWARENESS
