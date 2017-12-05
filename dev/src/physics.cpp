@@ -284,7 +284,7 @@ void AddPhysics() {
         auto &po = GetObject(id);
         if (!po.particle_contacts) po.particle_contacts = new vector<int>();
         auto numelems = (int)po.particle_contacts->size();
-        auto v = g_vm->NewVector(numelems, numelems, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+        auto v = g_vm->NewVector(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
         for (int i = 0; i < numelems; i++) v->At(i) = Value((*po.particle_contacts)[i]);
         return Value(v);
     }

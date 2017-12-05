@@ -60,20 +60,17 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun) {
 }
 
 // int <-> float
-const TypeInfo &SwapVectType(const TypeInfo *available, const TypeInfo &existing) {
-    // FIXME: this is slow, cache these.
-    if (&existing == &g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT))
-        return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT);
-    if (&existing == &g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT))
-        return g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_FLOAT);
+type_elem_t SwapVectType(type_elem_t available, type_elem_t existing) {
+    if (existing == TYPE_ELEM_VECTOR_OF_FLOAT) return TYPE_ELEM_VECTOR_OF_INT;
+    if (existing == TYPE_ELEM_VECTOR_OF_INT) return TYPE_ELEM_VECTOR_OF_FLOAT;
     // Structs:
     // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
-    return existing.t != V_STRUCT || !available ? existing : *available;
+    return g_vm->GetTypeInfo(existing).t != V_STRUCT || available < 0 ? existing : available;
 }
 
 void RealVector(Value &v) {
     // FIXME: need to guarantee this in typechecking
-    if (v.eval()->ti.t != V_VECTOR)
+    if (v.eval()->ti().t != V_VECTOR)
         g_vm->BuiltinError("vector operation cannot use struct");
 }
 
@@ -86,7 +83,7 @@ void AddBuiltins() {
         "output any value to the console (with linefeed). returns its argument.");
 
     STARTDECL(string) (Value &a) {
-        if (a.ref() && &a.ref()->ti == &g_vm->GetTypeInfo(TYPE_ELEM_STRING)) return a;
+        if (a.ref() && a.ref()->tti == TYPE_ELEM_STRING) return a;
         auto str = g_vm->NewString(RefToString(a.ref(), g_vm->programprintprefs));
         a.DECRT();
         return str;
@@ -165,7 +162,7 @@ void AddBuiltins() {
 
     STARTDECL(append) (Value &v1, Value &v2) {
         RealVector(v1);
-        auto &type = v1.eval()->ti;
+        auto type = v1.eval()->tti;
         auto nv = (LVector *)g_vm->NewVector(0, v1.eval()->Len() + v2.eval()->Len(), type);
         nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
         nv->Append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
@@ -175,7 +172,7 @@ void AddBuiltins() {
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (Value &type, Value &len) {
-        return Value(g_vm->NewVector(0, len.ival(), g_vm->GetTypeInfo((type_elem_t)type.ival())));
+        return Value(g_vm->NewVector(0, len.ival(), (type_elem_t)type.ival()));
     }
     ENDDECL2(vector_reserve, "typeid,len", "TI", "V*",
         "creates a new empty vector much like [] would, except now ensures"
@@ -245,7 +242,7 @@ void AddBuiltins() {
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
         auto len = l.eval()->Len();
         if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
-        auto nv = g_vm->NewVector(len, len, l.eval()->ti);
+        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
         if (len) nv->Init(&l.eval()->At(0), len, true);
         l.DECRT();
         nv->Dec(i.ival());
@@ -285,7 +282,7 @@ void AddBuiltins() {
     STARTDECL(removeobj) (Value &l, Value &o) {
         RealVector(l);
         intp removed = 0;
-        auto vt = g_vm->GetTypeInfo(l.vval()->ti.subt).t;
+        auto vt = g_vm->GetTypeInfo(l.vval()->ti().subt).t;
         for (intp i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vt, o, vt, false)) {
@@ -329,7 +326,7 @@ void AddBuiltins() {
 
     STARTDECL(copy) (Value &v) {
         auto len = v.eval()->Len();
-        auto nv = g_vm->NewVector(len, len, v.eval()->ti);
+        auto nv = g_vm->NewVector(len, len, v.eval()->tti);
         if (len) nv->Init(&v.eval()->At(0), len, true);
         v.DECRT();
         return Value(nv);
@@ -345,7 +342,7 @@ void AddBuiltins() {
         if (start < 0) start = l.eval()->Len() + start;
         if (start < 0 || start + size > l.eval()->Len())
             g_vm->BuiltinError("slice: values out of range");
-        auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->ti);
+        auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->tti);
         nv->Append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
@@ -415,7 +412,7 @@ void AddBuiltins() {
         "converts a string to a float. returns 0.0 if no numeric data could be parsed");
 
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace) {
-        auto v = (LVector *)g_vm->NewVector(0, 0, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
+        auto v = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->str();
         auto dl = delims.sval()->str();
         auto p = s.sval()->str();
@@ -459,8 +456,7 @@ void AddBuiltins() {
         "converts a vector of ints representing unicode values to a UTF-8 string.");
 
     STARTDECL(string2unicode) (Value &s) {
-        auto v = (LVector *)g_vm->NewVector(0, s.sval()->len,
-                                            g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+        auto v = (LVector *)g_vm->NewVector(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         const char *p = s.sval()->str();
         while (*p) {
             int u = FromUTF8(p);
@@ -523,7 +519,7 @@ void AddBuiltins() {
     STARTDECL(sqrt) (Value &a) { return Value(sqrt(a.fval())); } ENDDECL1(sqrt, "f", "F", "F",
         "square root");
 
-    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor((int)len) : nullptr, a.eval()->ti)
+    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor((int)len) : (type_elem_t)-1, a.eval()->tti)
 
     #define VECTOROPT(op, typeinfo) \
         TYPE_ASSERT(IsVector(a.type)); \
@@ -535,7 +531,7 @@ void AddBuiltins() {
         } \
         a.DECRT(); \
         return Value(v);
-    #define VECTOROP(op) VECTOROPT(op, a.eval()->ti)
+    #define VECTOROP(op) VECTOROPT(op, a.eval()->tti)
 
     STARTDECL(ceiling) (Value &a) { return Value(intp(ceil(a.fval()))); }
     ENDDECL1(ceiling, "f", "F", "I",
@@ -714,8 +710,8 @@ void AddBuiltins() {
     #define VECBINOP(name,access) \
         auto len = x.eval()->Len(); \
         if (len != y.eval()->Len()) g_vm->BuiltinError(#name "() arguments must be equal length"); \
-        auto &type = x.eval()->ti; \
-        assert(&type == &y.eval()->ti); \
+        auto type = x.eval()->tti; \
+        assert(type == y.eval()->tti); \
         auto v = g_vm->NewVector(len, len, type); \
         for (intp i = 0; i < x.eval()->Len(); i++) { \
             v->At(i) = Value(name(x.eval()->At(i).access(), y.eval()->At(i).access())); \
@@ -863,13 +859,12 @@ void AddBuiltins() {
                 }
             }
             auto vec = (LVector *)g_vm->NewVector(0, (int)within_range.size(),
-                                                  g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+                                                  TYPE_ELEM_VECTOR_OF_INT);
             for (auto i : within_range) vec->Push(Value(i));
             within_range.clear();
             results[i] = vec;
         }
-        auto rvec = (LVector *)g_vm->NewVector(0, len,
-                                              g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT));
+        auto rvec = (LVector *)g_vm->NewVector(0, len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
         for (auto vec : results) rvec->Push(Value(vec));
         return Value(rvec);
     }
@@ -992,7 +987,7 @@ void AddBuiltins() {
 
     STARTDECL(command_line_arguments) () {
         auto v = (LVector *)g_vm->NewVector(0, (int)g_vm->program_args.size(),
-                                            g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
+                                            TYPE_ELEM_VECTOR_OF_STRING);
         for (auto &a : g_vm->program_args) v->Push(g_vm->NewString(a));
         return Value(v);
     }

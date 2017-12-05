@@ -132,13 +132,13 @@ const TypeInfo &VM::GetVarTypeInfo(int varidx) {
     return GetTypeInfo((type_elem_t)bcf->specidents()->Get(varidx)->typeidx());
 }
 
-const TypeInfo *VM::GetIntVectorType(int which) {
+type_elem_t VM::GetIntVectorType(int which) {
     auto i = bcf->default_int_vector_types()->Get(which);
-    return i < 0 ? nullptr : &GetTypeInfo((type_elem_t)i);
+    return type_elem_t(i < 0 ? -1 : i);
 }
-const TypeInfo *VM::GetFloatVectorType(int which) {
+type_elem_t VM::GetFloatVectorType(int which) {
     auto i = bcf->default_float_vector_types()->Get(which);
-    return i < 0 ? nullptr : &GetTypeInfo((type_elem_t)i);
+    return type_elem_t(i < 0 ? -1 : i);
 }
 
 static bool _LeakSorter(void *va, void *vb) {
@@ -146,8 +146,8 @@ static bool _LeakSorter(void *va, void *vb) {
     auto b = (RefObj *)vb;
     return a->refc != b->refc
     ? a->refc > b->refc
-    : (&a->ti != &b->ti
-        ? &a->ti > &b->ti
+    : (a->tti != b->tti
+        ? a->tti > b->tti
         : false);
 }
 
@@ -165,7 +165,7 @@ void VM::DumpLeaks() {
             leakpp.cycles = 0;
             for (auto p : leaks) {
                 auto ro = (RefObj *)p;
-                switch(ro->ti.t) {
+                switch(ro->ti().t) {
                     case V_VALUEBUF:
                     case V_STACKFRAMEBUF:
                         break;
@@ -189,17 +189,18 @@ void VM::DumpLeaks() {
 }
 
 #undef new
-ElemObj *VM::NewVector(intp initial, intp max, const TypeInfo &ti) {
+ElemObj *VM::NewVector(intp initial, intp max, type_elem_t tti) {
+    auto &ti = GetTypeInfo(tti);
     if (ti.t == V_VECTOR)
-        return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, ti);
+        return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, tti);
     assert(ti.t == V_STRUCT && max == initial && max == ti.len);
-    return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(ti);
+    return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
 }
 LString *VM::NewString(size_t l) {
     return new (vmpool->alloc(sizeof(LString) + l + 1)) LString((int)l);
 }
-LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const TypeInfo &cti) {
-    assert(cti.t == V_COROUTINE);
+LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
+    assert(GetTypeInfo(cti).t == V_COROUTINE);
     return new (vmpool->alloc(sizeof(LCoRoutine)))
                LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
                          cti);
@@ -329,13 +330,14 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
     for (int i = 0; i < nsubf; i++) {
         // TODO: rather than going thru all args, only go thru those that have types
         for (int j = 0; j < nargs; j++) {
-            auto &desired = GetTypeInfo((type_elem_t)*mip++);
+            auto desiredi = (type_elem_t)*mip++;
+            auto &desired = GetTypeInfo(desiredi);
             if (desired.t != V_ANY) {
                 auto &given = GetTypeInfo((type_elem_t)call_arg_types[j]);
                 // Have to check the actual value, since given may be a supertype.
                 // FIXME: this is slow.
                 if ((given.t != desired.t && given.t != V_ANY) ||
-                    (IsRef(given.t) && &stack[sp - nargs + j + 1].ref()->ti != &desired)) {
+                    (IsRef(given.t) && stack[sp - nargs + j + 1].ref()->tti != desiredi)) {
                     mip += nargs - j;  // Includes the code starting point.
                     goto fail;
                 }
@@ -360,7 +362,7 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
     for (int j = 0; j < nargs; j++) {
         auto &ti = GetTypeInfo((type_elem_t)call_arg_types[j]);
         Value &v = stack[sp - nargs + j + 1];
-        argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti : ti);
+        argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti() : ti);
         if (j < nargs - 1) argtypes += ", ";
     }
     Error(string("the call ") + bcf->functions()->Get(definedfunction)->name()->c_str() + "(" +
@@ -559,7 +561,7 @@ void VM::CoNew(VM_OP_ARGS_CALL) {
     #endif
     auto ctidx = (type_elem_t)*ip++;
     CoNonRec(ip);
-    curcoroutine = NewCoRoutine(returnip, ip, curcoroutine, GetTypeInfo(ctidx));
+    curcoroutine = NewCoRoutine(returnip, ip, curcoroutine, ctidx);
     curcoroutine->BackupParentVars(vars);
     int nvars = *ip++;
     ip += nvars;
@@ -624,7 +626,7 @@ void VM::CoResume(LCoRoutine *co) {
     VMASSERT(curcoroutine->stackcopymax >=  *curcoroutine->varip);
     curcoroutine->stackcopylen = *curcoroutine->varip;
     //curcoroutine->BackupParentVars(vars);
-    POP().DECTYPE(GetTypeInfo(curcoroutine->ti.yieldtype).t);    // previous current value
+    POP().DECTYPE(GetTypeInfo(curcoroutine->ti().yieldtype).t);    // previous current value
     for (int i = *curcoroutine->varip; i > 0; i--) {
         auto &var = vars[curcoroutine->varip[i]];
         // No INC, since parent is still on the stack and hold ref for us.
@@ -889,7 +891,7 @@ BCALLOP(6, auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto 
 void VM::F_NEWVEC(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
     auto len = *ip++;
-    auto vec = NewVector(len, len, GetTypeInfo(type));
+    auto vec = NewVector(len, len, type);
     if (len) vec->Init(TOPPTR() - len, len, false);
     POPN(len);
     PUSH(Value(vec));
@@ -913,8 +915,8 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 
 #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-    auto len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) \
-                                                     : a.eval()->ti); \
+    auto len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT \
+                                                     : a.eval()->tti); \
     for (intp j = 0; j < len; j++) { \
         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) \
         else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
@@ -1047,7 +1049,7 @@ void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
     Value res; \
-    auto len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
+    auto len = VectorLoop(a, Value((type)1), res, true, a.eval()->tti); \
     if (len >= 0) { \
         for (intp i = 0; i < len; i++) { \
             VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
@@ -1090,7 +1092,7 @@ void VM::F_I2F(VM_OP_ARGS) {
 void VM::F_A2S(VM_OP_ARGS) {
     Value a = POP();
     TYPE_ASSERT(IsRefNil(a.type));
-    PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti.t : V_NIL, programprintprefs)));
+    PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti().t : V_NIL, programprintprefs)));
     a.DECRTNIL();
 }
 
@@ -1176,10 +1178,9 @@ GJUMP(F_JUMPNOFAILRREF, auto x = POP(),             ,  x.True(), PUSH(x)      , 
 void VM::F_ISTYPE(VM_OP_ARGS) {
     auto to = (type_elem_t)*ip++;
     auto v = POP();
-    auto &ti = GetTypeInfo(to);
     // Optimizer guarantees we don't have to deal with scalars.
-    if (v.refnil()) PUSH(&v.ref()->ti == &ti);
-    else PUSH(ti.t == V_NIL);
+    if (v.refnil()) PUSH(v.ref()->tti == to);
+    else PUSH(GetTypeInfo(to).t == V_NIL);  // FIXME: can replace by fixed type_elem_t ?
     v.DECRTNIL();
 }
 
@@ -1263,17 +1264,17 @@ void VM::EvalProgram() {
     }
 }
 
-void VM::PushDerefField(int i)  {
+void VM::PushDerefField(int i) {
     Value r = POP();
     if (!r.ref()) { PUSH(r); return; }  // ?.
     PUSH(r.eval()->AtInc(i));
     r.DECRT();
 }
 
-void VM::PushDerefIdx(intp i)  {
+void VM::PushDerefIdx(intp i) {
     Value r = POP();
     if (!r.ref()) { PUSH(r); return; }  // ?.
-    switch (r.ref()->ti.t)  {
+    switch (r.ref()->ti().t)  {  // FIXME: split this up into multiple ops, this is slow.
         case V_STRUCT:  // Struct::vectortype
         case V_VECTOR:
             IDXErr(i, r.eval()->Len(), r.eval());
@@ -1447,7 +1448,7 @@ intp VM::GrabIndex(const Value &idx) {
 }
 
 intp VM::VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
-                    const TypeInfo &desttype) {
+                    type_elem_t desttype) {
     TYPE_ASSERT(IsVector(a.type));
     auto len = a.eval()->Len();
     if (!withscalar) {
@@ -1486,8 +1487,8 @@ int VM::GC() {  // shouldn't really be used, but just in case
     vmpool->findleaks([&](void *p) {
         total++;
         auto r = (RefObj *)p;
-        if (&r->ti == &GetTypeInfo(TYPE_ELEM_VALUEBUF) ||
-            &r->ti == &GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF)) return;
+        if (r->tti == TYPE_ELEM_VALUEBUF ||
+            r->tti == TYPE_ELEM_STACKFRAMEBUF) return;
         if (r->refc > 0) leaks.push_back(r);
         r->refc = -r->refc;
     });

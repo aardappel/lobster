@@ -22,11 +22,11 @@ void GVMAssert(bool ok, const char *what) {
     g_vm->VMAssert(ok, what);
 }
 
-BoxedInt::BoxedInt(intp _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
-BoxedFloat::BoxedFloat(floatp _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
-LString::LString(intp _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
+BoxedInt::BoxedInt(intp _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}
+BoxedFloat::BoxedFloat(floatp _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
+LString::LString(intp _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
 LResource::LResource(void *v, const ResourceType *t)
-    : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_RESOURCE)), val(v), type(t) {}
+    : RefObj(TYPE_ELEM_RESOURCE), val(v), type(t) {}
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
@@ -65,9 +65,10 @@ string LString::ToString(PrintPrefs &pp) {
 }
 
 intp ElemObj::Len() const {
-    if (ti.t == V_VECTOR) return ((LVector *)this)->len;
-    assert(ti.t == V_STRUCT);
-    return ti.len;
+    auto &_ti = ti();
+    if (_ti.t == V_VECTOR) return ((LVector *)this)->len;
+    assert(_ti.t == V_STRUCT);
+    return _ti.len;
 }
 
 int ElemObj::IntLen() const {
@@ -76,19 +77,21 @@ int ElemObj::IntLen() const {
 }
 
 Value &ElemObj::At(intp i) const {
-    if (ti.t == V_VECTOR) return ((LVector *)this)->At(i);
-    assert(ti.t == V_STRUCT);
+    auto &_ti = ti();
+    if (_ti.t == V_VECTOR) return ((LVector *)this)->At(i);
+    assert(_ti.t == V_STRUCT);
     return ((LStruct *)this)->At(i);
 };
 
 ValueType ElemObj::ElemType(intp i) const {
-    auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.subt : ti.elems[i]);
+    auto &_ti = ti();
+    auto &sti = g_vm->GetTypeInfo(_ti.t == V_VECTOR ? _ti.subt : _ti.elems[i]);
     auto vt = sti.t;
     if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.subt).t;
     #if RTT_ENABLED
     // FIXME: for testing
     if(vt != At(i).type && At(i).type != V_NIL && !(vt == V_VECTOR && At(i).type == V_STRUCT)) {
-        Output(OUTPUT_INFO, "elemtype of %s != %s", ti.Debug().c_str(), BaseTypeName(At(i).type));
+        Output(OUTPUT_INFO, "elemtype of %s != %s", _ti.Debug().c_str(), BaseTypeName(At(i).type));
         //g_vm->BuiltinError("");
         assert(false);
     }
@@ -102,27 +105,28 @@ string ElemObj::ToString(PrintPrefs &pp) {
             return CycleStr();
         CycleDone(pp.cycles);
     }
-    string s = ti.t == V_STRUCT ? g_vm->ReverseLookupType(ti.structidx) + string("{") : "[";
+    auto &_ti = ti();
+    string s = _ti.t == V_STRUCT ? g_vm->ReverseLookupType(_ti.structidx) + string("{") : "[";
     for (int i = 0; i < Len(); i++) {
         if (i) s += ", ";
         if ((int)s.size() > pp.budget) { s += "...."; break; }
         PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark);
         s += pp.depth || !IsRef(ElemType(i)) ? At(i).ToString(ElemType(i), subpp) : "..";
     }
-    s += ti.t == V_STRUCT ? "}" : "]";
+    s += _ti.t == V_STRUCT ? "}" : "]";
     return s;
 }
 
-LVector::LVector(intp _initial, intp _max, const TypeInfo &_ti)
-    : ElemObj(_ti), len(_initial), maxl(_max) {
-    v = maxl ? AllocSubBuf<Value>(maxl, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF)) : nullptr;
+LVector::LVector(intp _initial, intp _max, type_elem_t _tti)
+    : ElemObj(_tti), len(_initial), maxl(_max) {
+    v = maxl ? AllocSubBuf<Value>(maxl, TYPE_ELEM_VALUEBUF) : nullptr;
 }
 
-const TypeInfo &LVector::ElemTypeInfo() const { return g_vm->GetTypeInfo(ti.subt); }
+const TypeInfo &LVector::ElemTypeInfo() const { return g_vm->GetTypeInfo(ti().subt); }
 
 void LVector::Resize(intp newmax) {
     // FIXME: check overflow
-    auto mem = AllocSubBuf<Value>(newmax, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
+    auto mem = AllocSubBuf<Value>(newmax, TYPE_ELEM_VALUEBUF);
     if (len) memcpy(mem, v, sizeof(Value) * len);
     DeallocBuf();
     maxl = newmax;
@@ -140,7 +144,7 @@ void LVector::Append(LVector *from, intp start, intp amount) {
 
 void RefObj::DECDELETE(bool deref) {
     assert(refc == 0);
-    switch (ti.t) {
+    switch (ti().t) {
         case V_BOXEDINT:   vmpool->dealloc(this, sizeof(BoxedInt)); break;
         case V_BOXEDFLOAT: vmpool->dealloc(this, sizeof(BoxedFloat)); break;
         case V_STRING:     ((LString *)this)->DeleteSelf(); break;
@@ -155,8 +159,8 @@ void RefObj::DECDELETE(bool deref) {
 bool RefEqual(const RefObj *a, const RefObj *b, bool structural) {
     if (a == b) return true;
     if (!a || !b) return false;
-    if (&a->ti != &b->ti) return false;
-    switch (a->ti.t) {
+    if (a->tti != b->tti) return false;
+    switch (a->ti().t) {
         case V_BOXEDINT:    return ((BoxedInt *)a)->val == ((BoxedInt *)b)->val;
         case V_BOXEDFLOAT:  return ((BoxedFloat *)a)->val == ((BoxedFloat *)b)->val;
         case V_STRING:      return *((LString *)a) == *((LString *)b);
@@ -179,7 +183,8 @@ bool Value::Equal(ValueType vtype, const Value &o, ValueType otype, bool structu
 
 string RefToString(const RefObj *ro, PrintPrefs &pp) {
     if (!ro) return "nil";
-    switch (ro->ti.t) {
+    auto &roti = ro->ti();
+    switch (roti.t) {
         case V_BOXEDINT: {
             auto s = to_string(((BoxedInt *)ro)->val);
             return pp.anymark ? "#" + s : s;
@@ -192,7 +197,7 @@ string RefToString(const RefObj *ro, PrintPrefs &pp) {
         case V_COROUTINE:  return "(coroutine)";
         case V_VECTOR:
         case V_STRUCT:     return ((ElemObj *)ro)->ToString(pp);
-        default:           return string("(") + BaseTypeName(ro->ti.t) + ")";
+        default:           return string("(") + BaseTypeName(roti.t) + ")";
     }
 }
 
@@ -211,7 +216,7 @@ void RefObj::Mark() {
     if (refc < 0) return;
     assert(refc);
     refc = -refc;
-    switch (ti.t) {
+    switch (ti().t) {
         case V_STRUCT:
         case V_VECTOR:     ((ElemObj   *)this)->Mark(); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->Mark(); break;
@@ -219,7 +224,7 @@ void RefObj::Mark() {
 }
 
 intp RefObj::Hash() {
-    switch (ti.t) {
+    switch (ti().t) {
         case V_BOXEDINT:    return ((BoxedInt *)this)->val;
         case V_BOXEDFLOAT:  return *(intp *)&((BoxedFloat *)this)->val;
         case V_STRING:      return ((LString *)this)->Hash();

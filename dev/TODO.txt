@@ -427,55 +427,62 @@
 - add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function
   correctly at high fps.
 
-- A better solution for 64bit builds.
-  Currently uses twice as much memory and stores scalars as int64_t & double, but the rest of the vm
-  still reads them as int/float. This at least works, but is not optimal (compiler has to generate
-  conversion instructions, and the extra precision goes unused). We could:
-  NOTE: decision so far is 2) + 3)
-  1) Be lazy: Wait until the average smartphone supports 64bit apps, and then switch to 64bit permanently.
-     Even in 64bit mode things like vertices are still floats, so mixed 32/64 will always make sense.
-  2) Could make the rest of the vm also read the native type instead of int/float.
-     That will require a lot of casting/type changes thruout.
-     Actually, can do this gradually, by providing additional accessors, and then do it where it makes sense.
-     the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
-     choose wether they think they need 64bit on a per project basis.
-     - Actually, apart from Windows, it's getting harder to build for 32bit, so people will be forced to use
-       twice the memory.
-     Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
-     - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
-  3) Could allow types of different sizes at least in vectors and structs where they take the most space, and
-     leave them uniform on the stack.
-     Start with vectors as that's easiest and most impactful.
+- Improve 64bit builds.
+  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives 
+  bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
+  of these values.
+  Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
+  23% faster (VM mode, only 16% in C++ compilation mode), despite using more memory, that is
+  apparently how much the VM code benefits from extra regs etc.
+  Now this benchmark probably touches so little memory it all fits in cache, but for most
+  Lobster programs that don't touch a ton of data, 64-bit mode is thus not a problem, in fact,
+  it is a speedup.
+  We can still improve this situation in two ways:
+  1) Could allow types of different sizes at least in vectors and structs where they take the most space, and
+     leave them uniform on the stack. Start with vectors as that's easiest and most impactful.
      Have a way to specify bit-width for both scalar types (only allowed to be smaller or equal to machine type).
      default would always be machine size everywhere.
      If we're lazy and don't want to deal with different sizes in structs, can at least allow size to specified
-     for struct as a whole if all elements are scalar.
-     How to implement?
-     - hard to do just dynamically, since there's no "read an int of n bytes" instruction in C++
-       on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
-       that preserves the sign (>> is an ASR):
-       value = ((value << 32) >> 32)
-       to convert 32 to 64.
-       though note: http://blog.regehr.org/archives/738
-       On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
-       a non-problem.
-       It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
-       Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
-       Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
-       a conditional to check for floats.
-       Maybe allow bit sizes only for ints?
-       If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
-       would only be for 16/32 bit int vectors.
-       Hmm, that's a mess, better (also) go with:
-     - could do it statically by generating different load/store instructions, but that doesn't work for all the
-       code that accesses vectors generically (which would have to go thru a dynamic version above, or we simply
-       have to forbid such typed vectors to be used with generic functions, making them less useful).
-       Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
-	   can still allow them to work on these vectors.
-       Also means it has to be taken into account properly thruout the typesystem, i.e. an [int8] value cannot be
-       passed to an [int] variable etc. That means that rather than allow them to be a size specifier to the int/float
-       types, they have to be their own types.
-     3b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
+     for struct as a whole if all elements are scalar. This not only simplifies things by keeping
+     indexing the as-is, but it allows faster vector ops by only having to check the bit-width
+     once rather than every element.
+     The advantage of the stack staying 64-bit is that you can then actually make use of 64-bit
+     precision when you want to, something which is not the case in 2)
+     How to implement:
+     - Vectors can be created with an annotation to their desired bit-width, which becomes part of
+       its type.
+       - We have to ensure these get checked thru-out, so maybe safer to have special VECTOR_INT
+         types etc.
+     - Similarly, structs can be declared with a particular bit-width. They can be specialized into
+       other bit-widths.
+       - sub-typing check, cannot allow these specializations to be compatible with eachother.
+     - In both cases, the bitwitdth is actually stored in the header of the object.
+     - For direct loads and stores, we use specialized VM instructions, causing no overhead.
+     - For generic code (builtins) that wants to read vector/struct elements, we provide a generic
+       accessor function that dynamically loads the right size.
+       - Sadly, there's no "read an int of n bytes" instruction in C++.
+         Edit: there kinda is, see use of __movsb in flexbuffers.h
+         on x86 you could read an int64 from the memory location, then use shifts to clear the unused bits
+         that preserves the sign (>> is an ASR):
+         value = ((value << 32) >> 32)
+         to convert 32 to 64.
+         though note: http://blog.regehr.org/archives/738
+         On arm, unaligned access is allowed for single scalars on most v6 and all v7 architectures, so maybe its
+         a non-problem.
+         It will be slower, but since it only occurs for vectors that try to save memory, its probably ok.
+         Can we avoid the unnecessary shifts when reading default size value (shifts will be 0) ?
+         Still need a conditional for floats since the shift trick doesn't work there. Worse, now we generically need
+         a conditional to check for floats.
+         Maybe allow bit sizes only for ints?
+         If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
+         would only be for 16/32 bit int vectors.
+       - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
+	     can still allow them to work on these vectors.
+       - Should consider if we can separate vectors and structs properly in the VM before we do
+         this: get rid of ElemObj (use of eval() and "F]" in type annotations etc. basically
+         "F]:3" must be a struct, and "F]" must be a vector)
+     - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
+     1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
          and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
          data structures.
          Also cool for serialization.
@@ -485,7 +492,7 @@
 		 Hmm, trailing vectors means reallocation, so not good to have in regular structs.
          Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
          Only valid for structs that look like a vector.
-  4) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
+  2) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
      pointers in 32bit).
      This would generally be good, since using less memory in 64bit could be quite a speedup.
      Problem is, there's no super elegant way of doing this.
@@ -504,10 +511,8 @@
      - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
        though for small objects.
      The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
-  Can actually combine these approaches:
-  - make most functions use intp/floatp for native values.
-  - in 64bit, either make those 64bit with native pointers, or define them as 32bit still with mmapped-pointers.
-  - add ability to store 8/16/32/64 bit types in structs/vectors as desired.
+     Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
+     be indirected.
 
 - add support for http://vallentinsource.com/opengl/debug-output
 

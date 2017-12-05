@@ -61,7 +61,6 @@ struct scrollzoomview:
                 else:
                     touchvelocity = xy_0
         if !equal(oldpanoffset, panoffset) and mousewheeldelta <= 0:
-            print oldpanoffset + " " + panoffset + " " + mousewheeldelta
             maxo -= float(viewsize) / scale
             if(maxo.x < mino.x):
                 mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!

@@ -45,10 +45,8 @@ void AddFile() {
             return Value();
         }
         if (divisor.ival() <= 0) divisor.setival(1);
-        auto nlist =
-            (LVector *)g_vm->NewVector(0, 0, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_STRING));
-        auto slist =
-            (LVector *)g_vm->NewVector(0, 0, g_vm->GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT));
+        auto nlist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto slist = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_INT);
         for (auto &p : dir) {
             nlist->Push(Value(g_vm->NewString(p.first.c_str(), strlen(p.first.c_str()))));
             auto size = p.second;

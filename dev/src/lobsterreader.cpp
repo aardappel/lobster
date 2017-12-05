@@ -71,7 +71,7 @@ struct ValueParser {
                 }
             }
         }
-        auto vec = g_vm->NewVector((int)elems.size(), (int)elems.size(), ti);
+        auto vec = g_vm->NewVector((int)elems.size(), (int)elems.size(), typeoff);
         vec->Inc();
         allocated.push_back(vec);
         int i = 0;

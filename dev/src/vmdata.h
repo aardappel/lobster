@@ -156,7 +156,7 @@ struct PrintPrefs {
     intp budget;
     bool quoted;
     intp decimals;
-    intp cycles;
+    int cycles;
     bool anymark;
 
     PrintPrefs(intp _depth, intp _budget, bool _quoted, intp _decimals, bool _anymark)
@@ -184,15 +184,16 @@ extern SlabAlloc *vmpool;
 
 // ANY memory allocated by the VM must inherit from this, so we can identify leaked memory
 struct DynAlloc {
-    const TypeInfo &ti;    // offset into the VM's typetable
+    type_elem_t tti;  // offset into the VM's typetable
+    const TypeInfo &ti() const;
 
-    DynAlloc(const TypeInfo &_ti) : ti(_ti) {}
+    DynAlloc(type_elem_t _tti) : tti(_tti) {}
 };
 
 struct RefObj : DynAlloc {
-    intp refc;
+    int refc;
 
-    RefObj(const TypeInfo &_ti) : DynAlloc(_ti), refc(1) {}
+    RefObj(type_elem_t _tti) : DynAlloc(_tti), refc(1) {}
 
     void Inc() {
         refc++;
@@ -203,7 +204,7 @@ struct RefObj : DynAlloc {
         if (refc <= 0) DECDELETE(true);
     }
 
-    void CycleDone(intp &cycles) {
+    void CycleDone(int &cycles) {
         refc = -(++cycles);
     }
 
@@ -352,7 +353,7 @@ struct Value {
     inline Value(float f)                    : TYPE_INIT(V_FLOAT)    fval_(f)         {}
     inline Value(double f)                   : TYPE_INIT(V_FLOAT)    fval_((floatp)f) {}
     inline Value(InsPtr i)                   : TYPE_INIT(V_FUNCTION) ip_(i)           {}
-    inline Value(RefObj *r)                  : TYPE_INIT(r->ti.t)    ref_(r)          {}
+    inline Value(RefObj *r)                  : TYPE_INIT(r->ti().t)  ref_(r)          {}
 
     inline bool True() const { return ival_ != 0; }
 
@@ -380,21 +381,22 @@ struct Value {
     intp Hash(ValueType vtype);
 };
 
-template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
-    auto mem = (const TypeInfo **)vmpool->alloc(size * sizeof(T) + sizeof(TypeInfo *));
-    *mem = &ti;  // DynAlloc header.
-    mem++;
+template<typename T> inline T *AllocSubBuf(size_t size, type_elem_t tti) {
+    auto header_sz = max(alignof(T), sizeof(DynAlloc));
+    auto mem = (uchar *)vmpool->alloc(size * sizeof(T) + header_sz);
+    ((DynAlloc *)mem)->tti = tti;
+    mem += header_sz;
     return (T *)mem;
 }
 
 template<typename T> inline void DeallocSubBuf(T *v, size_t size) {
-    auto mem = (TypeInfo **)v;
-    mem--;
-    vmpool->dealloc(mem, size * sizeof(T) + sizeof(TypeInfo *));
+    auto header_sz = max(alignof(T), sizeof(DynAlloc));
+    auto mem = ((uchar *)v) - header_sz;
+    vmpool->dealloc(mem, size * sizeof(T) + header_sz);
 }
 
 struct ElemObj : RefObj {
-    ElemObj(const TypeInfo &_ti) : RefObj(_ti) {}
+    ElemObj(type_elem_t _tti) : RefObj(_tti) {}
 
     intp Len() const;
     int IntLen() const;
@@ -451,10 +453,10 @@ struct ElemObj : RefObj {
 };
 
 struct LStruct : ElemObj {
-    LStruct(const TypeInfo &_ti) : ElemObj(_ti) {}
+    LStruct(type_elem_t _tti) : ElemObj(_tti) {}
 
-    intp Len() const { return ti.len; }
-    int IntLen() const { return (int)ti.len; }
+    intp Len() const { return ti().len; }
+    int IntLen() const { return (int)ti().len; }
 
     Value *Elems() const { return (Value *)(this + 1); }
 
@@ -478,7 +480,7 @@ struct LVector : ElemObj {
     public:
     intp maxl;
 
-    LVector(intp _initial, intp _max, const TypeInfo &_ti);
+    LVector(intp _initial, intp _max, type_elem_t _tti);
 
     ~LVector() { assert(0); }   // destructed by DECREF
 
@@ -635,13 +637,13 @@ struct VM {
     void SetMaxStack(int ms) { maxstacksize = ms; }
     const char *GetProgramName() { return programname.c_str(); }
 
-    const TypeInfo *GetIntVectorType(int which);
-    const TypeInfo *GetFloatVectorType(int which);
+    type_elem_t GetIntVectorType(int which);
+    type_elem_t GetFloatVectorType(int which);
 
     void DumpLeaks();
 
-    ElemObj *NewVector(intp initial, intp max, const TypeInfo &ti);
-    LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const TypeInfo &cti);
+    ElemObj *NewVector(intp initial, intp max, type_elem_t tti);
+    LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
     BoxedInt *NewInt(intp i);
     BoxedFloat *NewFloat(floatp f);
     LResource *NewResource(void *v, const ResourceType *t);
@@ -716,7 +718,7 @@ struct VM {
     void BCallRetCheck(const NativeFun *nf);
     intp GrabIndex(const Value &idx);
     intp VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
-                   const TypeInfo &desttype);
+                    type_elem_t desttype);
 
     void Push(const Value &v);
     Value Pop();
@@ -728,6 +730,9 @@ struct VM {
 
     int GC();
 };
+
+inline const TypeInfo &DynAlloc::ti() const { return g_vm->GetTypeInfo(tti); }
+
 
 template<int N> inline vec<floatp, N> ValueToF(const Value &v, floatp def = 0) {
     vec<floatp,N> t;
@@ -770,14 +775,18 @@ template<int N> inline vec<int, N> ValueDecToINT(const Value &v, intp def = 0) {
 
 template <int N> inline Value ToValueI(const vec<intp, N> &v, intp maxelems = 4) {
     auto numelems = min(maxelems, (intp)N);
-    auto nv = g_vm->NewVector(numelems, numelems, *g_vm->GetIntVectorType((int)numelems));
+    auto tti = g_vm->GetIntVectorType((int)numelems);
+    assert(tti >= 0);
+    auto nv = g_vm->NewVector(numelems, numelems, tti);
     for (intp i = 0; i < numelems; i++) nv->At(i) = Value(v[i]);
     return Value(nv);
 }
 
 template <int N> inline Value ToValueF(const vec<floatp, N> &v, intp maxelems = 4) {
     auto numelems = min(maxelems, (intp)N);
-    auto nv = g_vm->NewVector(numelems, numelems, *g_vm->GetFloatVectorType((int)numelems));
+    auto tti = g_vm->GetFloatVectorType((int)numelems);
+    assert(tti >= 0);
+    auto nv = g_vm->NewVector(numelems, numelems, tti);
     for (intp i = 0; i < numelems; i++) nv->At(i) = Value(v[i]);
     return Value(nv);
 }
@@ -844,7 +853,7 @@ struct LCoRoutine : RefObj {
 
     int tm;  // When yielding from within a for, there will be temps on top of the stack.
 
-    LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, const TypeInfo &cti)
+    LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, type_elem_t cti)
         : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0),
@@ -853,14 +862,13 @@ struct LCoRoutine : RefObj {
 
     Value &Current() {
         if (stackstart >= 0) g_vm->BuiltinError("cannot get value of active coroutine");
-        return stackcopy[stackcopylen - 1].INCTYPE(g_vm->GetTypeInfo(ti.yieldtype).t);
+        return stackcopy[stackcopylen - 1].INCTYPE(g_vm->GetTypeInfo(ti().yieldtype).t);
     }
 
     void Resize(int newlen) {
         if (newlen > stackcopymax) {
             if (stackcopy) DeallocSubBuf(stackcopy, stackcopymax);
-            stackcopy = AllocSubBuf<Value>(stackcopymax = newlen,
-                                           g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
+            stackcopy = AllocSubBuf<Value>(stackcopymax = newlen, TYPE_ELEM_VALUEBUF);
         }
         stackcopylen = newlen;
     }
@@ -869,7 +877,7 @@ struct LCoRoutine : RefObj {
         if (newlen > stackframecopymax) {
             if (stackframescopy) DeallocSubBuf(stackframescopy, stackframecopymax);
             stackframescopy = AllocSubBuf<StackFrame>(stackframecopymax = newlen,
-                                                      g_vm->GetTypeInfo(TYPE_ELEM_STACKFRAMEBUF));
+                                                      TYPE_ELEM_STACKFRAMEBUF);
         }
         stackframecopylen = newlen;
     }
@@ -952,7 +960,7 @@ struct LCoRoutine : RefObj {
     void DeleteSelf(bool deref) {
         assert(stackstart < 0);
         if (stackcopy) {
-            auto curvaltype = g_vm->GetTypeInfo(ti.yieldtype).t;
+            auto curvaltype = g_vm->GetTypeInfo(ti().yieldtype).t;
             stackcopy[--stackcopylen].DECTYPE(curvaltype);
             if (active) {
                 if (deref) {
