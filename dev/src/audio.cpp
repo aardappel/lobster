@@ -23,7 +23,7 @@ using namespace lobster;
 
 void AddSound() {
     STARTDECL(play_wav) (Value &ins, Value &vol) {
-        bool ok = SDLPlaySound(ins.sval()->str(), false, vol.True() ? vol.ival() : 128);
+        bool ok = SDLPlaySound(ins.sval()->str(), false, vol.True() ? vol.intval() : 128);
         ins.DECRT();
         return Value(ok);
     }
@@ -33,7 +33,7 @@ void AddSound() {
         " returns false on error");
 
     STARTDECL(play_sfxr) (Value &ins, Value &vol) {
-        bool ok = SDLPlaySound(ins.sval()->str(), true, vol.True() ? vol.ival() : 128);
+        bool ok = SDLPlaySound(ins.sval()->str(), true, vol.True() ? vol.intval() : 128);
         ins.DECRT();
         return Value(ok);
     }

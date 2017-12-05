@@ -22,9 +22,9 @@ void GVMAssert(bool ok, const char *what) {
     g_vm->VMAssert(ok, what);
 }
 
-BoxedInt::BoxedInt(int _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
-BoxedFloat::BoxedFloat(float _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
-LString::LString(int _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
+BoxedInt::BoxedInt(intp _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDINT)), val(_v) {}
+BoxedFloat::BoxedFloat(floatp _v) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_BOXEDFLOAT)), val(_v) {}
+LString::LString(intp _l) : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_STRING)), len(_l) {}
 LResource::LResource(void *v, const ResourceType *t)
     : RefObj(g_vm->GetTypeInfo(TYPE_ELEM_RESOURCE)), val(v), type(t) {}
 
@@ -64,19 +64,24 @@ string LString::ToString(PrintPrefs &pp) {
     }
 }
 
-int ElemObj::Len() const {
+intp ElemObj::Len() const {
     if (ti.t == V_VECTOR) return ((LVector *)this)->len;
     assert(ti.t == V_STRUCT);
     return ti.len;
 }
 
-Value &ElemObj::At(int i) const {
+int ElemObj::IntLen() const {
+    assert(Len() <= INT_MAX);
+    return (int)Len();
+}
+
+Value &ElemObj::At(intp i) const {
     if (ti.t == V_VECTOR) return ((LVector *)this)->At(i);
     assert(ti.t == V_STRUCT);
     return ((LStruct *)this)->At(i);
 };
 
-ValueType ElemObj::ElemType(int i) const {
+ValueType ElemObj::ElemType(intp i) const {
     auto &sti = g_vm->GetTypeInfo(ti.t == V_VECTOR ? ti.subt : ti.elems[i]);
     auto vt = sti.t;
     if (vt == V_NIL) vt = g_vm->GetTypeInfo(sti.subt).t;
@@ -108,14 +113,14 @@ string ElemObj::ToString(PrintPrefs &pp) {
     return s;
 }
 
-LVector::LVector(int _initial, int _max, const TypeInfo &_ti)
+LVector::LVector(intp _initial, intp _max, const TypeInfo &_ti)
     : ElemObj(_ti), len(_initial), maxl(_max) {
     v = maxl ? AllocSubBuf<Value>(maxl, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF)) : nullptr;
 }
 
 const TypeInfo &LVector::ElemTypeInfo() const { return g_vm->GetTypeInfo(ti.subt); }
 
-void LVector::Resize(int newmax) {
+void LVector::Resize(intp newmax) {
     // FIXME: check overflow
     auto mem = AllocSubBuf<Value>(newmax, g_vm->GetTypeInfo(TYPE_ELEM_VALUEBUF));
     if (len) memcpy(mem, v, sizeof(Value) * len);
@@ -124,7 +129,7 @@ void LVector::Resize(int newmax) {
     v = mem;
 }
 
-void LVector::Append(LVector *from, int start, int amount) {
+void LVector::Append(LVector *from, intp start, intp amount) {
     if (len + amount > maxl) Resize(len + amount);  // FIXME: check overflow
     memcpy(v + len, from->v + start, sizeof(Value) * amount);
     if (IsRefNil(from->ElemTypeInfo().t)) {
@@ -180,7 +185,7 @@ string RefToString(const RefObj *ro, PrintPrefs &pp) {
             return pp.anymark ? "#" + s : s;
         }
         case V_BOXEDFLOAT: {
-            auto s = to_string_float(((BoxedFloat *)ro)->val, pp.decimals);
+            auto s = to_string_float(((BoxedFloat *)ro)->val, (int)pp.decimals);
             return pp.anymark ? "#" + s : s;
         }
         case V_STRING:     return ((LString *)ro)->ToString(pp);
@@ -195,7 +200,7 @@ string Value::ToString(ValueType vtype, PrintPrefs &pp) const {
     if (IsRefNil(vtype)) return ref_ ? RefToString(ref_, pp) : "nil";
     switch (vtype) {
         case V_INT:        return to_string(ival());
-        case V_FLOAT:      return to_string_float(fval(), pp.decimals);
+        case V_FLOAT:      return to_string_float(fval(), (int)pp.decimals);
         case V_FUNCTION:   return "<FUNCTION>";
         default:           return string("(") + BaseTypeName(vtype) + ")";
     }
@@ -213,10 +218,10 @@ void RefObj::Mark() {
     }
 }
 
-int RefObj::Hash() {
+intp RefObj::Hash() {
     switch (ti.t) {
         case V_BOXEDINT:    return ((BoxedInt *)this)->val;
-        case V_BOXEDFLOAT:  return *(int *)&((BoxedFloat *)this)->val;
+        case V_BOXEDFLOAT:  return *(intp *)&((BoxedFloat *)this)->val;
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:
         case V_STRUCT:      return ((ElemObj *)this)->Hash();
@@ -224,21 +229,21 @@ int RefObj::Hash() {
     }
 }
 
-int LString::Hash() {
+intp LString::Hash() {
     return (int)FNV1A(str());
 }
 
-int ElemObj::Hash() {
-    int hash = 0;
+intp ElemObj::Hash() {
+    intp hash = 0;
     for (int i = 0; i < Len(); i++) hash ^= At(i).Hash(ElemType(i));
     return hash;
 }
 
-int Value::Hash(ValueType vtype) {
+intp Value::Hash(ValueType vtype) {
     switch (vtype) {
-        case V_INT: return (int)ival_;
-        case V_FLOAT: return *(int *)&fval_;
-        case V_FUNCTION: return (int)(size_t)ip_.f;
+        case V_INT: return ival_;
+        case V_FLOAT: return *(intp *)&fval_;
+        case V_FUNCTION: return (intp)(size_t)ip_.f;
         default: return refnil() ? ref()->Hash() : 0;
     }
 }

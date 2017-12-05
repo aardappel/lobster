@@ -285,7 +285,7 @@ void AddVR() {
         "initializes VR mode. returns true if a hmd was found and initialized");
 
     STARTDECL(vr_starteye) (Value &isright, Value &znear, Value &zfar) {
-        VREye(isright.True(), znear.fval(), zfar.fval());
+        VREye(isright.True(), znear.fltval(), zfar.fltval());
         return Value();
     }
     ENDDECL3(vr_starteye, "isright,znear,zfar", "IFF", "",
@@ -373,9 +373,9 @@ void AddVR() {
 
     STARTDECL(vr_motioncontrollervec) (Value &mc, Value &idx) {
         auto mcd = GetMC(mc);
-        if (!mcd) return Value(ToValueF(float3_0));
+        if (!mcd) return Value(ToValueFLT(float3_0));
         auto i = RangeCheck(idx, 4);
-        return Value(ToValueF(mcd->mat[i].xyz()));
+        return Value(ToValueFLT(mcd->mat[i].xyz()));
     }
     ENDDECL2(vr_motioncontrollervec, "n,i", "II", "F]:3",
         "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
@@ -383,7 +383,7 @@ void AddVR() {
 
     STARTDECL(vr_hmdvec) (Value &idx) {
         auto i = RangeCheck(idx, 4);
-        return Value(ToValueF(hmdpose[i].xyz()));
+        return Value(ToValueFLT(hmdpose[i].xyz()));
     }
     ENDDECL1(vr_hmdvec, "i", "I", "F]:3",
         "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."

@@ -60,16 +60,6 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 
-// Pointer-sized scalars.
-#if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
-    typedef double floatp;
-#else
-    typedef float floatp;
-#endif
-typedef ptrdiff_t intp;
-static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *),
-              "typedefs need fixing");
-
 #ifdef nullptr
 #undef nullptr
 #endif

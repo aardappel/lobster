@@ -89,6 +89,13 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += to_string(*ip++);
             break;
 
+        case IL_PUSHINT64: {
+            int64_t v = (uint)*ip++;
+            v |= ((int64_t)*ip++) << 32;
+            s += to_string(v);
+            break;
+        }
+
         case IL_LOGWRITE:
             s += to_string(*ip++);
             s += " ";

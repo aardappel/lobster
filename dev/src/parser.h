@@ -885,6 +885,7 @@ struct Parser {
                 // If we're in the context of a withtype, calling a function that starts with an
                 // arg of the same type we pass it in automatically.
                 // This is maybe a bit very liberal, should maybe restrict it?
+                // This also hits when 
                 if (wse && wse->first == f->subf->args.v[0].type) {
                     firstarg = new IdentRef(lex, wse->second->cursid);
                 }
@@ -1001,7 +1002,7 @@ struct Parser {
     Node *ParseFactor() {
         switch (lex.token) {
             case T_INT: {
-                int i = atoi(lex.sattr.c_str());
+                int64_t i = atoll(lex.sattr.c_str());
                 lex.Next();
                 return new IntConstant(lex, i);
             }

@@ -26,6 +26,44 @@ namespace lobster {
 #define RTT_TYPE_ERRORS 0
 #endif
 
+// Typedefs to make pointers and scalars the same size.
+#if !defined(FORCE_32_BIT_MODEL) && (_WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__)
+    #define VALUE_MODEL_64 1 
+#else
+    #define VALUE_MODEL_64 0
+#endif
+
+#if VALUE_MODEL_64
+    typedef int64_t intp;
+    typedef uint64_t uintp;
+    typedef double floatp;
+#else
+    typedef int32_t intp;
+    typedef uint32_t uintp;
+    typedef float floatp;
+#endif
+
+// FIXME: if FORCE_32_BIT_MODEL is on, we need to define a bounded 32-bit pointer for 64-bit systems.
+static_assert(sizeof(intp) == sizeof(floatp) && sizeof(intp) == sizeof(void *),
+              "typedefs need fixing");
+
+typedef vec<floatp, 2> floatp2;
+typedef vec<floatp, 3> floatp3;
+typedef vec<floatp, 4> floatp4;
+
+typedef vec<intp, 2> intp2;
+typedef vec<intp, 3> intp3;
+typedef vec<intp, 4> intp4;
+
+const floatp4 floatp4_0 = floatp4(0.0f);
+const floatp3 floatp3_0 = floatp3(0.0f);
+const floatp2 floatp2_0 = floatp2(0.0f);
+
+const intp2 intp2_0 = intp2((intp)0);
+const intp2 intp2_1 = intp2(1);
+const intp3 intp3_0 = intp3((intp)0);
+
+
 enum ValueType : int {
     // refc types are negative
     V_MINVMTYPES = -11,
@@ -114,14 +152,14 @@ struct LStruct;
 struct LCoRoutine;
 
 struct PrintPrefs {
-    int depth;
-    int budget;
+    intp depth;
+    intp budget;
     bool quoted;
-    int decimals;
-    int cycles;
+    intp decimals;
+    intp cycles;
     bool anymark;
 
-    PrintPrefs(int _depth, int _budget, bool _quoted, int _decimals, bool _anymark)
+    PrintPrefs(intp _depth, intp _budget, bool _quoted, intp _decimals, bool _anymark)
         : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1),
           anymark(_anymark) {}
 };
@@ -135,7 +173,7 @@ typedef void *(*block_base_t)();
 #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
     typedef block_base_t block_t;
 #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
-    typedef int block_t;
+    typedef intp block_t;
 #endif
 
 struct VM;
@@ -152,7 +190,7 @@ struct DynAlloc {
 };
 
 struct RefObj : DynAlloc {
-    int refc;
+    intp refc;
 
     RefObj(const TypeInfo &_ti) : DynAlloc(_ti), refc(1) {}
 
@@ -165,7 +203,7 @@ struct RefObj : DynAlloc {
         if (refc <= 0) DECDELETE(true);
     }
 
-    void CycleDone(int &cycles) {
+    void CycleDone(intp &cycles) {
         refc = -(++cycles);
     }
 
@@ -173,28 +211,28 @@ struct RefObj : DynAlloc {
 
     void DECDELETE(bool deref);
     void Mark();
-    int Hash();
+    intp Hash();
 };
 
 extern bool RefEqual(const RefObj *a, const RefObj *b, bool structural);
 extern string RefToString(const RefObj *ro, PrintPrefs &pp);
 
 struct BoxedInt : RefObj {
-    int val;
+    intp val;
 
-    BoxedInt(int _v);
+    BoxedInt(intp _v);
 };
 
 struct BoxedFloat : RefObj {
-    float val;
+    floatp val;
 
-    BoxedFloat(float _v);
+    BoxedFloat(floatp _v);
 };
 
 struct LString : RefObj {
-    int len;    // has to match the Value integer type, since we allow the length to be obtained
+    intp len;    // has to match the Value integer type, since we allow the length to be obtained
 
-    LString(int _l);
+    LString(intp _l);
 
     char *str() { return (char *)(this + 1); }
 
@@ -209,7 +247,7 @@ struct LString : RefObj {
     bool operator> (LString &o) { return strcmp(str(), o.str()) >  0; }
     bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
 
-    int Hash();
+    intp Hash();
 };
 
 // There must be a single of these per type, since they are compared by pointer.
@@ -286,8 +324,10 @@ struct Value {
     public:
 
     // These asserts help track down any invalid code generation issues.
-    int         ival  () const { TYPE_ASSERT(type == V_INT);        return (int)ival_;   }
-    float       fval  () const { TYPE_ASSERT(type == V_FLOAT);      return (float)fval_; }
+    intp        ival  () const { TYPE_ASSERT(type == V_INT);        return ival_;        }
+    floatp      fval  () const { TYPE_ASSERT(type == V_FLOAT);      return fval_;        }
+    int         intval() const { TYPE_ASSERT(type == V_INT);        return (int)ival_;   }
+    float       fltval() const { TYPE_ASSERT(type == V_FLOAT);      return (float)fval_; }
     LString    *sval  () const { TYPE_ASSERT(type == V_STRING);     return sval_;        }
     BoxedInt   *bival () const { TYPE_ASSERT(type == V_BOXEDINT);   return bival_;       }
     BoxedFloat *bfval () const { TYPE_ASSERT(type == V_BOXEDFLOAT); return bfval_;       }
@@ -301,8 +341,8 @@ struct Value {
     InsPtr      ip    () const { TYPE_ASSERT(type >= V_FUNCTION);   return ip_;          }
     void       *any   () const {                                    return ref_;         }
 
-    void setival(int i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
-    void setfval(float f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
+    void setival(intp i)   { TYPE_ASSERT(type == V_INT);   ival_ = i; }
+    void setfval(floatp f) { TYPE_ASSERT(type == V_FLOAT); fval_ = f; }
 
     inline Value()                           : TYPE_INIT(V_NIL)      ref_(nullptr)    {}
     inline Value(int i)                      : TYPE_INIT(V_INT)      ival_(i)         {}
@@ -337,7 +377,7 @@ struct Value {
     bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     void Mark(ValueType vtype);
     void MarkRef();
-    int Hash(ValueType vtype);
+    intp Hash(ValueType vtype);
 };
 
 template<typename T> inline T *AllocSubBuf(size_t size, const TypeInfo &ti) {
@@ -356,11 +396,12 @@ template<typename T> inline void DeallocSubBuf(T *v, size_t size) {
 struct ElemObj : RefObj {
     ElemObj(const TypeInfo &_ti) : RefObj(_ti) {}
 
-    int Len() const;
+    intp Len() const;
+    int IntLen() const;
 
-    Value &At(int i) const;
+    Value &At(intp i) const;
 
-    void Init(Value *from, int len, bool inc) {
+    void Init(Value *from, intp len, bool inc) {
         assert(len == Len());
         if (len) {
             memcpy(&At(0), from, len * sizeof(Value));
@@ -368,54 +409,56 @@ struct ElemObj : RefObj {
         }
     }
 
-    ValueType ElemType(int i) const;
+    ValueType ElemType(intp i) const;
 
     // TODO: If any of the methods below ever become performance critical, we can duplicate them
     // over LVector/LStruct, such that the check for which type it is only is made once.
 
-    Value &AtInc(int i) const {
+    Value &AtInc(intp i) const {
         return At(i).INCTYPE(ElemType(i));
     }
 
-    void Dec(int i) const {
+    void Dec(intp i) const {
         At(i).DECTYPE(ElemType(i));
     }
 
     void DecAll() const {
-        for (int i = 0; i < Len(); i++) Dec(i);
+        for (intp i = 0; i < Len(); i++) Dec(i);
     }
 
     void IncAll() const {
-        for (int i = 0; i < Len(); i++) AtInc(i);
+        for (intp i = 0; i < Len(); i++) AtInc(i);
     }
 
     bool Equal(const ElemObj &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
-        int len = Len();
+        auto len = Len();
         if (len != o.Len()) return false;
-        for (int i = 0; i < len; i++)
+        for (intp i = 0; i < len; i++)
             if (!At(i).Equal(ElemType(i), o.At(i), o.ElemType(i), true))
                 return false;
         return true;
     }
 
     void Mark() {
-        for (int i = 0; i < Len(); i++)
+        for (intp i = 0; i < Len(); i++)
             At(i).Mark(ElemType(i));
     }
 
     string ToString(PrintPrefs &pp);
 
-    int Hash();
+    intp Hash();
 };
 
 struct LStruct : ElemObj {
     LStruct(const TypeInfo &_ti) : ElemObj(_ti) {}
 
-    int Len() const { return ti.len; }
+    intp Len() const { return ti.len; }
+    int IntLen() const { return (int)ti.len; }
+
     Value *Elems() const { return (Value *)(this + 1); }
 
-    Value &At(int i) const {
+    Value &At(intp i) const {
         assert(i < Len());
         return Elems()[i];
     }
@@ -427,15 +470,15 @@ struct LStruct : ElemObj {
 };
 
 struct LVector : ElemObj {
-    int len;    // has to match the Value integer type, since we allow the length to be obtained
+    intp len;    // has to match the Value integer type, since we allow the length to be obtained
 
     private:
     Value *v;   // use At()
 
     public:
-    int maxl;
+    intp maxl;
 
-    LVector(int _initial, int _max, const TypeInfo &_ti);
+    LVector(intp _initial, intp _max, const TypeInfo &_ti);
 
     ~LVector() { assert(0); }   // destructed by DECREF
 
@@ -451,7 +494,7 @@ struct LVector : ElemObj {
 
     const TypeInfo &ElemTypeInfo() const;
 
-    void Resize(int newmax);
+    void Resize(intp newmax);
 
     void Push(const Value &val) {
         if (len == maxl) Resize(maxl ? maxl * 2 : 4);
@@ -466,7 +509,7 @@ struct LVector : ElemObj {
         return v[len - 1].INCTYPE(ElemTypeInfo().t);
     }
 
-    void Insert(Value &val, int i) {
+    void Insert(Value &val, intp i) {
         assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <=
         if (len + 1 > maxl) Resize(max(len + 1, maxl ? maxl * 2 : 4));
         memmove(v + i + 1, v + i, sizeof(Value) * (len - i));
@@ -474,21 +517,21 @@ struct LVector : ElemObj {
         v[i] = val;
     }
 
-    Value Remove(int i, int n, int decfrom) {
+    Value Remove(intp i, intp n, intp decfrom) {
         assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
         auto x = v[i];
-        for (int j = decfrom; j < n; j++) Dec(i + j);
+        for (intp j = decfrom; j < n; j++) Dec(i + j);
         memmove(v + i, v + i + n, sizeof(Value) * (len - i - n));
         len -= n;
         return x;
     }
 
-    Value &At(int i) const {
+    Value &At(intp i) const {
         assert(i < len);
         return v[i];
     }
 
-    void Append(LVector *from, int start, int amount);
+    void Append(LVector *from, intp start, intp amount);
 };
 
 struct VMLog {
@@ -597,10 +640,10 @@ struct VM {
 
     void DumpLeaks();
 
-    ElemObj *NewVector(int initial, int max, const TypeInfo &ti);
+    ElemObj *NewVector(intp initial, intp max, const TypeInfo &ti);
     LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const TypeInfo &cti);
-    BoxedInt *NewInt(int i);
-    BoxedFloat *NewFloat(float f);
+    BoxedInt *NewInt(intp i);
+    BoxedFloat *NewFloat(floatp f);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
     LString *NewString(const char *c, size_t l);
@@ -661,18 +704,18 @@ struct VM {
     void EvalProgram();
 
     void PushDerefField(int i);
-    void PushDerefIdx(int i);
-    void LvalueObj(int lvalop, int i);
+    void PushDerefIdx(intp i);
+    void LvalueObj(int lvalop, intp i);
     void LvalueOp(int op, Value &a);
 
     string ProperTypeName(const TypeInfo &ti);
 
     void Div0() { Error("division by zero"); }
-    void IDXErr(int i, int n, const RefObj *v);
+    void IDXErr(intp i, intp n, const RefObj *v);
     void BCallProf();
     void BCallRetCheck(const NativeFun *nf);
-    int GrabIndex(const Value &idx);
-    int VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
+    intp GrabIndex(const Value &idx);
+    intp VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
                    const TypeInfo &desttype);
 
     void Push(const Value &v);
@@ -686,46 +729,70 @@ struct VM {
     int GC();
 };
 
-template<int N> inline vec<float,N> ValueToF(const Value &v, float def = 0) {
-    vec<float,N> t;
+template<int N> inline vec<floatp, N> ValueToF(const Value &v, floatp def = 0) {
+    vec<floatp,N> t;
     for (int i = 0; i < N; i++) t[i] = v.eval()->Len() > i ? v.eval()->At(i).fval() : def;
     return t;
 }
 
-template<int N> inline vec<int, N> ValueToI(const Value &v, int def = 0) {
-    vec<int, N> t;
+template<int N> inline vec<intp, N> ValueToI(const Value &v, intp def = 0) {
+    vec<intp, N> t;
     for (int i = 0; i < N; i++) t[i] = v.eval()->Len() > i ? v.eval()->At(i).ival() : def;
     return t;
 }
 
-template<int N> inline vec<float,N> ValueDecToF(const Value &v, float def = 0) {
+template<int N> inline vec<floatp, N> ValueDecToF(const Value &v, floatp def = 0) {
     auto r = ValueToF<N>(v, def);
     v.DECRT();
     return r;
 }
 
-template<int N> inline vec<int, N> ValueDecToI(const Value &v, int def = 0) {
+template<int N> inline vec<intp, N> ValueDecToI(const Value &v, intp def = 0) {
     auto r = ValueToI<N>(v, def);
     v.DECRT();
     return r;
 }
 
-template <int N> inline Value ToValueI(const vec<int, N> &vec, int maxelems = 4) {
-    auto numelems = min(maxelems, N);
-    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetIntVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
-    return Value(v);
+// Versions that cast to int/float regardless of the size of intp/floatp.
+template<int N> inline vec<float, N> ValueToFLT(const Value &v, floatp def = 0) {
+    return vec<float, N>(ValueToF<N>(v, def));
+}
+template<int N> inline vec<int, N> ValueToINT(const Value &v, intp def = 0) {
+    return vec<int, N>(ValueToI<N>(v, def));
+}
+template<int N> inline vec<float, N> ValueDecToFLT(const Value &v, floatp def = 0) {
+    return vec<float, N>(ValueDecToF<N>(v, def));
+}
+template<int N> inline vec<int, N> ValueDecToINT(const Value &v, intp def = 0) {
+    return vec<int, N>(ValueDecToI<N>(v, def));
 }
 
-template <int N> inline Value ToValueF(const vec<float, N> &vec, int maxelems = 4) {
-    auto numelems = min(maxelems, N);
-    auto v = g_vm->NewVector(numelems, numelems, *g_vm->GetFloatVectorType(numelems));
-    for (int i = 0; i < numelems; i++) v->At(i) = Value(vec[i]);
-    return Value(v);
+
+template <int N> inline Value ToValueI(const vec<intp, N> &v, intp maxelems = 4) {
+    auto numelems = min(maxelems, (intp)N);
+    auto nv = g_vm->NewVector(numelems, numelems, *g_vm->GetIntVectorType((int)numelems));
+    for (intp i = 0; i < numelems; i++) nv->At(i) = Value(v[i]);
+    return Value(nv);
 }
 
-inline int RangeCheck(const Value &idx, int range, int bias = 0) {
-    int i = idx.ival();
+template <int N> inline Value ToValueF(const vec<floatp, N> &v, intp maxelems = 4) {
+    auto numelems = min(maxelems, (intp)N);
+    auto nv = g_vm->NewVector(numelems, numelems, *g_vm->GetFloatVectorType((int)numelems));
+    for (intp i = 0; i < numelems; i++) nv->At(i) = Value(v[i]);
+    return Value(nv);
+}
+
+template <int N> inline Value ToValueINT(const vec<int, N> &v, int maxelems = 4) {
+    return ToValueI<N>(vec<intp, N>(v), maxelems);
+}
+template <int N> inline Value ToValueFLT(const vec<float, N> &v, int maxelems = 4) {
+    return ToValueF<N>(vec<floatp, N>(v), maxelems);
+}
+
+
+
+inline intp RangeCheck(const Value &idx, intp range, intp bias = 0) {
+    auto i = idx.ival();
     if (i < bias || i >= bias + range)
         g_vm->BuiltinError("index out of range [" + to_string(bias) + ".." +
                            to_string(bias + range) + "): " + to_string(i));

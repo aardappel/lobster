@@ -94,14 +94,14 @@ b2Vec2 Float2ToB2(const float2 &v) { return b2Vec2(v.x, v.y); }
 float2 B2ToFloat2(const b2Vec2 &v) { return float2(v.x, v.y); }
 
 b2Vec2 ValueDecToB2(Value &vec) {
-	auto v = ValueDecToF<2>(vec);
+	auto v = ValueDecToFLT<2>(vec);
 	return Float2ToB2(v);
 }
 
 b2Body &GetBody(Value &id, Value &position) {
 	CheckPhysics();
 	b2Body *body = id.True() ? GetObject(id).fixture->GetBody() : nullptr;
-	auto wpos = ValueDecToF<2>(position);
+	auto wpos = ValueDecToFLT<2>(position);
 	if (!body) {
 		b2BodyDef bd;
 		bd.type = b2_staticBody;
@@ -129,7 +129,7 @@ extern int GetSampler(Value &i); // from graphics
 
 void AddPhysics() {
 	STARTDECL(ph_initialize) (Value &gravity) {
-		InitPhysics(ValueDecToF<2>(gravity));
+		InitPhysics(ValueDecToFLT<2>(gravity));
 		return Value();
 	}
 	ENDDECL1(ph_initialize, "gravityvector", "F]", "",
@@ -138,8 +138,8 @@ void AddPhysics() {
 	STARTDECL(ph_createbox) (Value &position, Value &size, Value &offset, Value &rot,
                              Value &other_id) {
 		auto &body = GetBody(other_id, position);
-		auto sz = ValueDecToF<2>(size);
-		auto r = rot.fval();
+		auto sz = ValueDecToFLT<2>(size);
+		auto r = rot.fltval();
 		b2PolygonShape shape;
 		shape.SetAsBox(sz.x, sz.y, OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
@@ -155,7 +155,7 @@ void AddPhysics() {
 		b2CircleShape shape;
 		auto off = OptionalOffset(offset);
 		shape.m_p.Set(off.x, off.y);
-		shape.m_radius = radius.fval();
+		shape.m_radius = radius.fltval();
 		return CreateFixture(body, shape);
 	}
 	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "F]:2FF]:2?X?", "X",
@@ -168,10 +168,10 @@ void AddPhysics() {
         b2PolygonShape shape;
 		auto verts = new b2Vec2[vertices.eval()->Len()];
         for (int i = 0; i < vertices.eval()->Len(); i++) {
-            auto vert = ValueToF<2>(vertices.eval()->At(i));
+            auto vert = ValueToFLT<2>(vertices.eval()->At(i));
             verts[i] = Float2ToB2(vert);
         }
-		shape.Set(verts, vertices.eval()->Len());
+		shape.Set(verts, vertices.eval()->IntLen());
 		delete[] verts;
 		vertices.DECRT();
 		return CreateFixture(body, shape);
@@ -192,7 +192,7 @@ void AddPhysics() {
 
 	STARTDECL(ph_setcolor) (Value &fixture_id, Value &color) {
 		auto &r = GetRenderable(fixture_id);
-		auto c = ValueDecToF<4>(color);
+		auto c = ValueDecToFLT<4>(color);
 		r.color = c;
 		return Value();
 	}
@@ -211,7 +211,7 @@ void AddPhysics() {
 
 	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex_id, Value &tex_unit) {
 		auto &r = GetRenderable(fixture_id);
-		r.textures[GetSampler(tex_unit)] = tex_id.ival();
+		r.textures[GetSampler(tex_unit)] = tex_id.intval();
 		return Value();
 	}
 	ENDDECL3(ph_settexture, "id,texid,texunit", "X?II?", "",
@@ -221,8 +221,8 @@ void AddPhysics() {
     STARTDECL(ph_createparticle) (Value &position, Value &velocity, Value &color, Value &type) {
         CheckParticles();
         b2ParticleDef pd;
-        pd.flags = type.ival();
-        auto c = ValueDecToF<3>(color);
+        pd.flags = type.intval();
+        auto c = ValueDecToFLT<3>(color);
         pd.color.Set(b2Color(c.x, c.y, c.z));
         pd.position = ValueDecToB2(position);
         pd.velocity = ValueDecToB2(velocity);
@@ -235,11 +235,11 @@ void AddPhysics() {
 		CheckParticles();
 		b2ParticleGroupDef pgd;
 		b2CircleShape shape;
-		shape.m_radius = radius.fval();
+		shape.m_radius = radius.fltval();
 		pgd.shape = &shape;
-		pgd.flags = type.ival();
+		pgd.flags = type.intval();
 		pgd.position = ValueDecToB2(position);
-		auto c = ValueDecToF<3>(color);
+		auto c = ValueDecToFLT<3>(color);
 		pgd.color.Set(b2Color(c.x, c.y, c.z));
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();
@@ -248,7 +248,7 @@ void AddPhysics() {
         "creates a circle filled with particles. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_initializeparticles) (Value &size) {
-		CheckParticles(size.fval());
+		CheckParticles(size.fltval());
 		return Value();
 	}
 	ENDDECL1(ph_initializeparticles, "radius", "F", "",
@@ -256,7 +256,7 @@ void AddPhysics() {
 
 	STARTDECL(ph_step) (Value &delta, Value &viter, Value &piter) {
 		CheckPhysics();
-		world->Step(min(delta.fval(), 0.1f), viter.ival(), piter.ival());
+		world->Step(min(delta.fltval(), 0.1f), viter.intval(), piter.intval());
         if (particlesystem) {
             for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
                 for (b2Fixture *fixture = body->GetFixtureList(); fixture;
@@ -294,7 +294,7 @@ void AddPhysics() {
 
     STARTDECL(ph_deleteparticle) (Value &i) {
         CheckPhysics();
-        particlesystem->DestroyParticle(i.ival());
+        particlesystem->DestroyParticle(i.intval());
         return Value();
     }
     ENDDECL1(ph_deleteparticle, "i", "I", "",
@@ -353,7 +353,7 @@ void AddPhysics() {
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
         auto scale = length(otransforms.object2view[0].xy());
-        SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fval());
+        SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
         particlematerial->Set();
         RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts,
                         sizeof(byte4), colors);

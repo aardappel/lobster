@@ -30,7 +30,9 @@ float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
 ResourceType mesh_type = { "mesh", [](void *m) { delete (Mesh *)m; } };
-ResourceType texture_type = { "texture", [](void *t) { uint tex = (uint)(size_t)t; DeleteTexture(tex); } };
+ResourceType texture_type = { "texture", [](void *t) {
+    uint tex = (uint)(size_t)t; DeleteTexture(tex);
+} };
 
 Mesh &GetMesh(Value &res) {
     return *GetResourceDec<Mesh *>(res, &mesh_type);
@@ -106,14 +108,14 @@ void PopTransform() {
 int GetSampler(Value &i) {
     if (i.ival() < 0 || i.ival() >= Shader::MAX_SAMPLERS)
         g_vm->BuiltinError("graphics: illegal texture unit");
-    return i.ival();
+    return i.intval();
 }
 
 Mesh *CreatePolygon(Value &vl) {
     TestGL();
     if (vl.eval()->Len() < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
     auto vbuf = new BasicVert[vl.eval()->Len()];
-    for (int i = 0; i < vl.eval()->Len(); i++) vbuf[i].pos = ValueToF<3>(vl.eval()->At(i));
+    for (int i = 0; i < vl.eval()->Len(); i++) vbuf[i].pos = ValueToFLT<3>(vl.eval()->At(i));
     auto v1 = vbuf[1].pos - vbuf[0].pos;
     auto v2 = vbuf[2].pos - vbuf[0].pos;
     auto norm = normalize(cross(v2, v1));
@@ -132,8 +134,9 @@ void AddGraphics() {
                           Value &samples) {
         if (graphics_initialized)
             g_vm->BuiltinError("cannot call gl_window() twice");
-        string err = SDLInit(title.sval()->str(), int2(xs.ival(), ys.ival()),
-                             fullscreen.ival() != 0, novsync.ival() == 0, max(1, samples.ival()));
+        string err = SDLInit(title.sval()->str(), int2(intp2(xs.ival(), ys.ival())),
+                             fullscreen.ival() != 0, novsync.ival() == 0,
+                             max(1, samples.intval()));
         title.DECRT();
         if (err.empty()) {
             err = LoadMaterialFile("shaders/default.materials");
@@ -167,8 +170,8 @@ void AddGraphics() {
     STARTDECL(gl_frame) () {
         TestGL();
         #ifdef USE_MAIN_LOOP_CALLBACK
-            // Here we have to something hacky: emscripten requires us to not take over the main loop.
-            // So we use this exception to suspend the VM right inside the gl_frame() call.
+            // Here we have to something hacky: emscripten requires us to not take over the main
+            // loop. So we use this exception to suspend the VM right inside the gl_frame() call.
             // FIXME: do this at the start of the frame instead?
             throw string("SUSPEND-VM-MAINLOOP");
         #endif
@@ -250,27 +253,27 @@ void AddGraphics() {
         "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)");
 
     STARTDECL(gl_dpi) (Value &screen) {
-        return Value(SDLScreenDPI(screen.ival()));
+        return Value(SDLScreenDPI(screen.intval()));
     }
     ENDDECL1(gl_dpi, "screen", "I", "I",
-        "the DPI of the screen. always returns a value for screen 0, any other screens may return 0"
-        " to indicate the screen doesn\'t exist");
+        "the DPI of the screen. always returns a value for screen 0, any other screens may return"
+        " 0 to indicate the screen doesn\'t exist");
 
     STARTDECL(gl_windowsize) () {
-        return ToValueI(GetScreenSize());
+        return ToValueINT(GetScreenSize());
     }
     ENDDECL0(gl_windowsize, "", "", "I]:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
     STARTDECL(gl_mousepos) (Value &i) {
-        return ToValueI(GetFinger(i.ival(), false));
+        return ToValueINT(GetFinger(i.intval(), false));
     }
     ENDDECL1(gl_mousepos, "i", "I", "I]:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
         " fingers (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_mousedelta) (Value &i) {
-        return ToValueI(GetFinger(i.ival(), true));
+        return ToValueINT(GetFinger(i.intval(), true));
     }
     ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
         "number of pixels the mouse/finger has moved since the last frame. use this instead of"
@@ -278,24 +281,24 @@ void AddGraphics() {
         " (gl_cursor(0))");
 
     STARTDECL(gl_localmousepos) (Value &i) {
-        return ToValueF(localfingerpos(i.ival()));
+        return ToValueFLT(localfingerpos(i.intval()));
     }
     ENDDECL1(gl_localmousepos, "i", "I", "F]:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_lastpos) (Value &name, Value &on) {
-        auto p = GetKeyPos(name.sval()->str(), on.ival());
+        auto p = GetKeyPos(name.sval()->str(), on.intval());
         name.DECRT();
-        return ToValueI(p);
+        return ToValueINT(p);
     }
     ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_locallastpos) (Value &name, Value &on) {
-        auto p = localpos(GetKeyPos(name.sval()->str(), on.ival()));
+        auto p = localpos(GetKeyPos(name.sval()->str(), on.intval()));
         name.DECRT();
-        return ToValueF(p);
+        return ToValueFLT(p);
     }
     ENDDECL2(gl_locallastpos, "name,down", "SI", "F]:2",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or"
@@ -308,47 +311,48 @@ void AddGraphics() {
         "amount the mousewheel scrolled this frame, in number of notches");
 
     STARTDECL(gl_joyaxis) (Value &i) {
-        return Value(GetJoyAxis(i.ival()));
+        return Value(GetJoyAxis(i.intval()));
     }
     ENDDECL1(gl_joyaxis, "i", "I", "F",
         "the current joystick orientation for axis i, as -1 to 1 value");
 
     STARTDECL(gl_deltatime) () {
-        return Value((float)SDLDeltaTime());
+        return Value(SDLDeltaTime());
     }
     ENDDECL0(gl_deltatime, "", "", "F",
         "seconds since the last frame, updated only once per frame");
 
     STARTDECL(gl_time) () {
-        return Value((float)SDLTime());
+        return Value(SDLTime());
     }
     ENDDECL0(gl_time, "", "", "F",
         "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
         " seconds_elapsed() for continuous timing)");
 
     STARTDECL(gl_lasttime) (Value &name, Value &on) {
-        auto t = GetKeyTime(name.sval()->str(), on.ival());
+        auto t = GetKeyTime(name.sval()->str(), on.intval());
         name.DECRT();
-        return Value((float)t);
+        return Value(t);
     }
     ENDDECL2(gl_lasttime, "name,down", "SI", "F",
         "time key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_clear) (Value &col) {
         TestGL();
-        ClearFrameBuffer(ValueDecToF<3>(col));
+        ClearFrameBuffer(ValueDecToFLT<3>(col));
         return Value();
     }
     ENDDECL1(gl_clear, "col", "F]", "",
         "clears the framebuffer (and depth buffer) to the given color");
 
     STARTDECL(gl_color) (Value &col, Value &body) {
-        if (body.True()) g_vm->Push(ToValueF(curcolor));  // FIXME: maybe more efficient as an int
-        curcolor = ValueDecToF<4>(col);
+        // FIXME: maybe more efficient as an int
+        if (body.True()) g_vm->Push(ToValueFLT(curcolor));
+        curcolor = ValueDecToFLT<4>(col);
         return body;
     }
     MIDDECL(gl_color) () {
-        curcolor = ValueDecToF<4>(g_vm->Pop());
+        curcolor = ValueDecToFLT<4>(g_vm->Pop());
     }
     ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "",
         "sets the current color. when a body is given, restores the previous color afterwards");
@@ -366,7 +370,7 @@ void AddGraphics() {
     STARTDECL(gl_circle) (Value &radius, Value &segments) {
         TestGL();
 
-        geomcache->RenderCircle(currentshader, polymode, max(segments.ival(), 3), radius.fval());
+        geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
 
         return Value();
     }
@@ -376,8 +380,8 @@ void AddGraphics() {
     STARTDECL(gl_opencircle) (Value &radius, Value &segments, Value &thickness) {
         TestGL();
 
-        geomcache->RenderOpenCircle(currentshader, max(segments.ival(), 3), radius.fval(),
-                                    thickness.fval());
+        geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
+                                    thickness.fltval());
 
         return Value();
     }
@@ -394,7 +398,7 @@ void AddGraphics() {
         " out");
 
     STARTDECL(gl_rotate_x) (Value &angle, Value &body) {
-        auto a = ValueDecToF<2>(angle);
+        auto a = ValueDecToFLT<2>(angle);
         return PushTransform(rotationX(a), rotationX(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_x) () {
@@ -405,7 +409,7 @@ void AddGraphics() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_y) (Value &angle, Value &body) {
-        auto a = ValueDecToF<2>(angle);
+        auto a = ValueDecToFLT<2>(angle);
         return PushTransform(rotationY(a), rotationY(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_y) () {
@@ -416,7 +420,7 @@ void AddGraphics() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_z) (Value &angle, Value &body) {
-        auto a = ValueDecToF<2>(angle);
+        auto a = ValueDecToFLT<2>(angle);
         return PushTransform(rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_z) () {
@@ -427,7 +431,7 @@ void AddGraphics() {
         " as angle. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_translate) (Value &vec, Value &body) {
-        auto v = ValueDecToF<3>(vec);
+        auto v = ValueDecToFLT<3>(vec);
         return PushTransform(translation(v), translation(-v), body);
     }
     MIDDECL(gl_translate) () {
@@ -438,7 +442,7 @@ void AddGraphics() {
         " restores the previous transform afterwards");
 
     STARTDECL(gl_scale) (Value &f, Value &body) {
-        auto v = f.fval() * float3_1;
+        auto v = f.fltval() * float3_1;
         return PushTransform(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) () {
@@ -449,7 +453,7 @@ void AddGraphics() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_scale) (Value &vec, Value &body) {
-        auto v = ValueDecToF<3>(vec, 1);
+        auto v = ValueDecToFLT<3>(vec, 1);
         return PushTransform(float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) () {
@@ -460,7 +464,7 @@ void AddGraphics() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_origin) () {
-        auto pos = float2(otransforms.object2view[3].x, otransforms.object2view[3].y);
+        auto pos = floatp2(otransforms.object2view[3].x, otransforms.object2view[3].y);
         return ToValueF(pos);
     }
     ENDDECL0(gl_origin, "", "", "F]:2",
@@ -468,7 +472,7 @@ void AddGraphics() {
         " only makes sense in 2D mode (no gl_perspective called).");
 
     STARTDECL(gl_scaling) () {
-        auto sc = float2(otransforms.object2view[0].x, otransforms.object2view[1].y);
+        auto sc = floatp2(otransforms.object2view[0].x, otransforms.object2view[1].y);
         return ToValueF(sc);
     }
     ENDDECL0(gl_scaling, "", "", "F]:2",
@@ -476,7 +480,7 @@ void AddGraphics() {
         " only makes sense in 2D mode (no gl_perspective called).");
 
     STARTDECL(gl_pointscale) (Value &f) {
-        custompointscale = f.fval();
+        custompointscale = f.fltval();
         return Value();
     }
     ENDDECL1(gl_pointscale, "factor", "F", "",
@@ -485,7 +489,7 @@ void AddGraphics() {
         " the ideal size may also be FOV dependent.");
 
     STARTDECL(gl_linemode) (Value &on, Value &body) {
-        if (body.True()) g_vm->Push(Value((int)polymode));
+        if (body.True()) g_vm->Push(Value(polymode));
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }
@@ -497,8 +501,8 @@ void AddGraphics() {
         " restores the previous mode afterwards");
 
     STARTDECL(gl_hit) (Value &vec, Value &i) {
-        auto size = ValueDecToF<3>(vec);
-        auto localmousepos = localfingerpos(i.ival());
+        auto size = ValueDecToFLT<3>(vec);
+        auto localmousepos = localfingerpos(i.intval());
         auto hit = localmousepos.x >= 0 &&
                    localmousepos.y >= 0 &&
                    localmousepos.x < size.x &&
@@ -527,7 +531,7 @@ void AddGraphics() {
     STARTDECL(gl_rect) (Value &vec, Value &centered) {
         TestGL();
         geomcache->RenderQuad(currentshader, polymode, centered.True(),
-                              float4x4(float4(ValueToF<2>(vec), 1)));
+                              float4x4(float4(ValueToFLT<2>(vec), 1)));
         return vec;
     }
     ENDDECL2(gl_rect, "size,centered", "F]I?", "F]",
@@ -544,18 +548,18 @@ void AddGraphics() {
 
     STARTDECL(gl_line) (Value &start, Value &end, Value &thickness) {
         TestGL();
-        auto v1 = ValueDecToF<3>(start);
-        auto v2 = ValueDecToF<3>(end);
-        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fval());
-        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fval());
+        auto v1 = ValueDecToFLT<3>(start);
+        auto v2 = ValueDecToFLT<3>(end);
+        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fltval());
+        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fltval());
         return Value();
     }
     ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",
         "renders a line with the given thickness");
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar) {
-        Set3DMode(fovy.fval()*RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fval(),
-                  zfar.fval());
+        Set3DMode(fovy.fltval() * RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fltval(),
+                  zfar.fltval());
         return Value();
     }
     ENDDECL3(gl_perspective, "fovy,znear,zfar", "FFF", "",
@@ -573,7 +577,7 @@ void AddGraphics() {
         " call to get back to that after gl_perspective.");
 
     STARTDECL(gl_ortho3d) (Value &center, Value &extends) {
-        Set3DOrtho(ValueDecToF<3>(center), ValueDecToF<3>(extends));
+        Set3DOrtho(ValueDecToFLT<3>(center), ValueDecToFLT<3>(extends));
         return Value();
     }
     ENDDECL2(gl_ortho3d, "center,extends", "F]F]", "",
@@ -596,15 +600,15 @@ void AddGraphics() {
                 auto &e = indices.eval()->At(i);
                 if (e.ival() < 0 || e.ival() >= positions.eval()->Len())
                     g_vm->BuiltinError("newmesh: index out of range of vertex list");
-                idxs.push_back(e.ival());
+                idxs.push_back(e.intval());
             }
             indices.DECRT();
         }
-        int nverts = positions.eval()->Len();
+        intp nverts = positions.eval()->Len();
         size_t vsize = AttribsSize(fmt);
         size_t normal_offset = 0;
         auto verts = new uchar[nverts * vsize];
-        for (int i = 0; i < nverts; i++) {
+        for (intp i = 0; i < nverts; i++) {
             auto start = &verts[i * vsize];
             auto p = start;
             auto fmt_it = fmt;
@@ -613,20 +617,20 @@ void AddGraphics() {
                 auto attrv = attrs->At((int)(fmt_it - fmt)).vval();
                 switch (*fmt_it++) {
                     case 'P':
-                        *((float3 *&)p)++ = pos = ValueToF<3>(attrv->At(i));
+                        *((float3 *&)p)++ = pos = ValueToFLT<3>(attrv->At(i));
                         break;
                     case 'C':
                         *((byte4  *&)p)++ =
-                            i < attrv->Len() ? quantizec(ValueToF<4>(attrv->At(i), 1)) : byte4_255;
+                            i < attrv->Len() ? quantizec(ValueToFLT<4>(attrv->At(i), 1)) : byte4_255;
                         break;
                     case 'T':
                         *((float2 *&)p)++ =
-                            i < attrv->Len() ? ValueToF<2>(attrv->At(i), 0) : pos.xy();
+                            i < attrv->Len() ? ValueToFLT<2>(attrv->At(i), 0) : pos.xy();
                         break;
                     case 'N':
                         if (!attrv->Len()) normal_offset = p - start;
                         *((float3 *&)p)++ =
-                            i < attrv->Len() ? ValueToF<3>(attrv->At(i), 0) : float3_0;
+                            i < attrv->Len() ? ValueToFLT<3>(attrv->At(i), 0) : float3_0;
                         break;
                     default: assert(0);
                 }
@@ -691,7 +695,7 @@ void AddGraphics() {
         "returns the number of verts in this mesh");
 
     STARTDECL(gl_animatemesh) (Value &i, Value &f) {
-        GetMesh(i).curanim = f.fval();
+        GetMesh(i).curanim = f.fltval();
         return Value();
     }
     ENDDECL2(gl_animatemesh, "m,frame", "XF", "",
@@ -730,9 +734,9 @@ void AddGraphics() {
     STARTDECL(gl_setuniform) (Value &name, Value &vec) {
         TestGL();
         auto len = vec.eval()->Len();
-        auto v = ValueDecToF<4>(vec);
+        auto v = ValueDecToFLT<4>(vec);
         currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), len);
+        auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), (int)len);
         name.DECRT();
         return Value(ok);
     }
@@ -743,7 +747,7 @@ void AddGraphics() {
     STARTDECL(gl_setuniformarray) (Value &name, Value &vec) {
         TestGL();
         vector<float4> vals(vec.eval()->Len());
-        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToF<4>(vec.eval()->At(i));
+        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToFLT<4>(vec.eval()->At(i));
         vec.DECRT();
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4,
@@ -758,7 +762,7 @@ void AddGraphics() {
     STARTDECL(gl_uniformbufferobject) (Value &name, Value &vec, Value &ssbo) {
         TestGL();
         vector<float4> vals(vec.eval()->Len());
-        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToF<4>(vec.eval()->At(i));
+        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToFLT<4>(vec.eval()->At(i));
         vec.DECRT();
         auto id = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(),
                                       name.sval()->str(), ssbo.True());
@@ -775,7 +779,7 @@ void AddGraphics() {
         TestGL();
         // FIXME: should route this thru a IntResourceManagerCompact to be safe?
         // I guess GL doesn't care about illegal id's?
-        DeleteBO(id.ival());
+        DeleteBO(id.intval());
         return Value();
     }
     ENDDECL1(gl_deletebufferobject, "id", "I", "",
@@ -783,8 +787,8 @@ void AddGraphics() {
 
     STARTDECL(gl_bindmeshtocompute) (Value &mesh, Value &bpi) {
         TestGL();
-        if (mesh.True()) GetMesh(mesh).geom->BindAsSSBO(bpi.ival());
-        else BindVBOAsSSBO(bpi.ival(), 0);
+        if (mesh.True()) GetMesh(mesh).geom->BindAsSSBO(bpi.intval());
+        else BindVBOAsSSBO(bpi.intval(), 0);
         return Value();
     }
     ENDDECL2(gl_bindmeshtocompute, "mesh,binding", "X?I", "",
@@ -793,7 +797,7 @@ void AddGraphics() {
 
     STARTDECL(gl_dispatchcompute) (Value &groups) {
         TestGL();
-        DispatchCompute(ValueDecToI<3>(groups));
+        DispatchCompute(ValueDecToINT<3>(groups));
         return Value();
     }
     ENDDECL1(gl_dispatchcompute, "groups", "I]", "",
@@ -830,10 +834,10 @@ void AddGraphics() {
     STARTDECL(gl_loadtexture) (Value &name, Value &tf) {
         TestGL();
         int2 dim(0);
-        uint id = CreateTextureFromFile(name.sval()->str(), dim, tf.ival());
+        uint id = CreateTextureFromFile(name.sval()->str(), dim, tf.intval());
         name.DECRT();
         g_vm->Push(id ? g_vm->NewResource((void *)(size_t)id, &texture_type) : Value());
-        return ToValueI(dim);
+        return ToValueINT(dim);
     }
     ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I]:2",
         "returns texture if succesfully loaded from file name, otherwise nil."
@@ -844,7 +848,7 @@ void AddGraphics() {
 
     STARTDECL(gl_setprimitivetexture) (Value &i, Value &id, Value &tf) {
         TestGL();
-        SetTexture(GetSampler(i), GetTexture(id), tf.ival());
+        SetTexture(GetSampler(i), GetTexture(id), tf.intval());
         return Value();
     }
     ENDDECL3(gl_setprimitivetexture, "i,tex,textureformat", "IXI?", "",
@@ -862,7 +866,7 @@ void AddGraphics() {
 
     STARTDECL(gl_setimagetexture) (Value &i, Value &id, Value &tf) {
         TestGL();
-        SetImageTexture(GetSampler(i), GetTexture(id), tf.ival());
+        SetImageTexture(GetSampler(i), GetTexture(id), tf.intval());
         return Value();
     }
     ENDDECL3(gl_setimagetexture, "i,tex,textureformat", "IXI", "",
@@ -873,22 +877,22 @@ void AddGraphics() {
     STARTDECL(gl_createtexture) (Value &matv, Value &tf) {
         TestGL();
         ElemObj *mat = matv.eval();
-        int ys = mat->Len();
-        int xs = mat->At(0).eval()->Len();
+        auto ys = mat->Len();
+        auto xs = mat->At(0).eval()->Len();
         auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[xs * ys * sz];
         memset(buf, 0, xs * ys * sz);
         for (int i = 0; i < ys; i++) {
             ElemObj *row = mat->At(i).eval();
             for (int j = 0; j < min(xs, row->Len()); j++) {
-                float4 col = ValueToF<4>(row->At(j));
+                float4 col = ValueToFLT<4>(row->At(j));
                 auto idx = i * xs + j;
                 if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
         matv.DECRT();
-        uint id = CreateTexture(buf, int2(xs, ys).data(), tf.ival());
+        uint id = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
         delete[] buf;
         return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
@@ -898,7 +902,7 @@ void AddGraphics() {
 
     STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf) {
         TestGL();
-        auto id = CreateBlankTexture(ValueDecToI<2>(size_), ValueDecToF<4>(col), tf.ival());
+        auto id = CreateBlankTexture(ValueDecToINT<2>(size_), ValueDecToFLT<4>(col), tf.intval());
         return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
     ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "X",
@@ -908,7 +912,7 @@ void AddGraphics() {
     STARTDECL(gl_texturesize) (Value &tex) {
         TestGL();
         auto size = TextureSize(GetTexture(tex));
-        return ToValueI(size);
+        return ToValueINT(size);
     }
     ENDDECL1(gl_texturesize, "tex", "X", "I:2]",
         "returns the size of a texture");
@@ -931,10 +935,10 @@ void AddGraphics() {
     STARTDECL(gl_switchtoframebuffer) (Value &t, Value &fbsize, Value &depth, Value &tf,
                                        Value &retex) {
         TestGL();
-        auto sz = fbsize.True() ? ValueDecToI<2>(fbsize) : int2_0;
+        auto sz = fbsize.True() ? ValueDecToINT<2>(fbsize) : int2_0;
         auto tex = GetTexture(t);
         return Value(SwitchToFrameBuffer(tex, tex ? sz : GetScreenSize(),
-                                         depth.True(), tf.ival(), retex.ival()));
+                                         depth.True(), tf.intval(), retex.intval()));
     }
     ENDDECL5(gl_switchtoframebuffer, "tex,fbsize,hasdepth,textureformat,resolvetex", "X?I]?I?I?I?",
         "I",
@@ -947,8 +951,8 @@ void AddGraphics() {
 
     STARTDECL(gl_light) (Value &pos, Value &params) {
         Light l;
-        l.pos = otransforms.object2view * float4(ValueDecToF<3>(pos), 1);
-        l.params = ValueDecToF<2>(params);
+        l.pos = otransforms.object2view * float4(ValueDecToFLT<3>(pos), 1);
+        l.params = ValueDecToFLT<2>(params);
         lights.push_back(l);
         return Value();
     }
@@ -961,12 +965,12 @@ void AddGraphics() {
     STARTDECL(gl_rendertiles) (Value &pos, Value &tile, Value &mapsize) {
         TestGL();
         auto msize = float2(ValueDecToI<2>(mapsize));
-        int len = pos.vval()->Len();
+        auto len = pos.vval()->Len();
         if (len != tile.vval()->Len())
             g_vm->BuiltinError("rendertiles: vectors of different size");
         auto vbuf = new SpriteVert[len * 6];
-        for (int i = 0; i < len; i++) {
-            auto p = ValueToF<2>(pos.vval()->At(i));
+        for (intp i = 0; i < len; i++) {
+            auto p = ValueToFLT<2>(pos.vval()->At(i));
             auto t = float2(ValueToI<2>(tile.vval()->At(i))) / msize;
             vbuf[i * 6 + 0].pos = p;
             vbuf[i * 6 + 1].pos = p + float2_y;
@@ -984,7 +988,7 @@ void AddGraphics() {
         pos.DECRT();
         tile.DECRT();
         currentshader->Set();
-        RenderArraySlow(PRIM_TRIS, len * 6, "pT", sizeof(SpriteVert), vbuf);
+        RenderArraySlow(PRIM_TRIS, (int)len * 6, "pT", sizeof(SpriteVert), vbuf);
         delete[] vbuf;
         return Value();
     }
@@ -996,9 +1000,9 @@ void AddGraphics() {
 
     STARTDECL(gl_recttc) (Value &size, Value &tc, Value &tcdim) {
         TestGL();
-        auto sz = float2(ValueDecToF<2>(size));
-        auto t = float2(ValueDecToF<2>(tc));
-        auto td = float2(ValueDecToF<2>(tcdim));
+        auto sz = ValueDecToFLT<2>(size);
+        auto t = ValueDecToFLT<2>(tc);
+        auto td = ValueDecToFLT<2>(tcdim);
         auto te = t + td;
         float vb_square[20] = {
             0,      0,      0, t.x,  t.y,
@@ -1017,27 +1021,27 @@ void AddGraphics() {
         TestGL();
         float3 cp = otransforms.view2object[3].xyz();
         auto m = float3(ValueDecToI<3>(num));
-        auto step = ValueDecToF<3>(dist);
+        auto step = ValueDecToFLT<3>(dist);
         auto oldcolor = curcolor;
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z; z += step.x) {
             for (float x = 0; x <= m.x; x += step.x) {
                 geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y, z), cp,
-                             thickness.fval());
+                             thickness.fltval());
             }
         }
         curcolor = float4(1, 0, 0, 1);
         for (float z = 0; z <= m.z; z += step.y) {
             for (float y = 0; y <= m.y; y += step.y) {
                 geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x, y, z), cp,
-                    thickness.fval());
+                    thickness.fltval());
             }
         }
         curcolor = float4(0, 0, 1, 1);
         for (float y = 0; y <= m.y; y += step.z) {
             for (float x = 0; x <= m.x; x += step.z) {
                 geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z), cp,
-                    thickness.fval());
+                    thickness.fltval());
             }
         }
         curcolor = oldcolor;

@@ -629,7 +629,7 @@ Value AddShape(ImplicitFunction *f) {
 void AddMeshGen() {
     STARTDECL(mg_sphere) (Value &rad) {
         auto s = new IFSphere();
-        s->rad = rad.fval();
+        s->rad = rad.fltval();
         return AddShape(s);
     }
     ENDDECL1(mg_sphere, "radius", "F", "",
@@ -637,7 +637,7 @@ void AddMeshGen() {
 
     STARTDECL(mg_cube) (Value &ext) {
         auto c = new IFCube();
-        c->extents = ValueDecToF<3>(ext);
+        c->extents = ValueDecToFLT<3>(ext);
         return AddShape(c);
     }
     ENDDECL1(mg_cube,  "extents", "F]:3", "",
@@ -645,8 +645,8 @@ void AddMeshGen() {
 
     STARTDECL(mg_cylinder) (Value &radius, Value &height) {
         auto c = new IFCylinder();
-        c->radius = radius.fval();
-        c->height = height.fval();
+        c->radius = radius.fltval();
+        c->height = height.fltval();
         return AddShape(c);
     }
     ENDDECL2(mg_cylinder, "radius,height", "FF", "",
@@ -654,9 +654,9 @@ void AddMeshGen() {
 
     STARTDECL(mg_tapered_cylinder) (Value &bot, Value &top, Value &height) {
         auto tc = new IFTaperedCylinder();
-        tc->bot = bot.fval();
-        tc->top = top.fval();
-        tc->height = height.fval();
+        tc->bot = bot.fltval();
+        tc->top = top.fltval();
+        tc->height = height.fltval();
         return AddShape(tc);
     }
     ENDDECL3(mg_tapered_cylinder, "bot,top,height", "FFF", "",
@@ -664,8 +664,8 @@ void AddMeshGen() {
 
     STARTDECL(mg_superquadric) (Value &exps, Value &scale) {
         auto sq = new IFSuperQuadric();
-        sq->exp = ValueDecToF<3>(exps);
-        sq->scale = ValueDecToF<3>(scale);
+        sq->exp = ValueDecToFLT<3>(exps);
+        sq->scale = ValueDecToFLT<3>(scale);
         return AddShape(sq);
     }
     ENDDECL2(mg_superquadric, "exponents,scale", "F]F]", "",
@@ -675,10 +675,10 @@ void AddMeshGen() {
     STARTDECL(mg_superquadric_non_uniform) (Value &posexps, Value &negexps, Value &posscale,
         Value &negscale) {
         auto sq = new IFSuperQuadricNonUniform();
-        sq->exppos   = ValueDecToF<3>(posexps);
-        sq->expneg   = ValueDecToF<3>(negexps);
-        sq->scalepos = max(float3(0.01f), ValueDecToF<3>(posscale));
-        sq->scaleneg = max(float3(0.01f), ValueDecToF<3>(negscale));
+        sq->exppos   = ValueDecToFLT<3>(posexps);
+        sq->expneg   = ValueDecToFLT<3>(negexps);
+        sq->scalepos = max(float3(0.01f), ValueDecToFLT<3>(posscale));
+        sq->scaleneg = max(float3(0.01f), ValueDecToFLT<3>(negscale));
 
         return AddShape(sq);
     }
@@ -689,8 +689,8 @@ void AddMeshGen() {
 
     STARTDECL(mg_supertoroid) (Value &r, Value &exps) {
         auto t = new IFSuperToroid();
-        t->r = r.fval();
-        t->exp = ValueDecToF<3>(exps);
+        t->r = r.fltval();
+        t->exp = ValueDecToFLT<3>(exps);
         return AddShape(t);
     }
     ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
@@ -698,17 +698,17 @@ void AddMeshGen() {
 
     STARTDECL(mg_landscape) (Value &zscale, Value &xyscale) {
         auto ls = new IFLandscape();
-        ls->zscale = zscale.fval();
-        ls->xyscale = xyscale.fval();
+        ls->zscale = zscale.fltval();
+        ls->xyscale = xyscale.fltval();
         return AddShape(ls);
     } ENDDECL2(mg_landscape, "zscale,xyscale", "FF", "",
         "a simplex landscape of unit size");
 
     STARTDECL(mg_set_polygonreduction) (Value &_polyreductionpasses, Value &_epsilon,
                                         Value &_maxtricornerdot) {
-        polyreductionpasses = _polyreductionpasses.ival();
-        epsilon = _epsilon.fval();
-        maxtricornerdot = _maxtricornerdot.fval();
+        polyreductionpasses = _polyreductionpasses.intval();
+        epsilon = _epsilon.fltval();
+        maxtricornerdot = _maxtricornerdot.fltval();
         return Value();
     }
     ENDDECL3(mg_set_polygonreduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
@@ -719,8 +719,8 @@ void AddMeshGen() {
         " 0.95 as a good tradeoff, up to 0.99 to get more compression");
 
     STARTDECL(mg_set_colornoise) (Value &_noiseintensity, Value &_noisestretch) {
-        noisestretch = _noisestretch.fval();
-        noiseintensity = _noiseintensity.fval();
+        noisestretch = _noisestretch.fltval();
+        noiseintensity = _noiseintensity.fltval();
         return Value();
     }
     ENDDECL2(mg_set_colornoise, "noiseintensity,noisestretch", "FF", "",
@@ -728,7 +728,7 @@ void AddMeshGen() {
         " stretch scales the pattern over the model");
 
     STARTDECL(mg_set_vertrandomize) (Value &factor) {
-        randomizeverts = factor.fval();
+        randomizeverts = factor.fltval();
         return Value();
     }
     ENDDECL1(mg_set_vertrandomize, "factor", "F", "",
@@ -744,7 +744,7 @@ void AddMeshGen() {
              "generates a point mesh instead of polygons");
 
     STARTDECL(mg_polygonize) (Value &subdiv) {
-        auto mesh = eval_and_polygonize(root, subdiv.ival());
+        auto mesh = eval_and_polygonize(root, subdiv.intval());
         MeshGenClear();
         extern ResourceType mesh_type;
         return Value(g_vm->NewResource(mesh, &mesh_type));
@@ -756,39 +756,39 @@ void AddMeshGen() {
         " values much higher than that will likely make you run out of memory (or take very long).");
 
     STARTDECL(mg_translate) (Value &vec, Value &body) {
-        if (body.True()) g_vm->Push(ToValueF(curorig));
-        auto v = ValueDecToF<3>(vec);
+        if (body.True()) g_vm->Push(ToValueFLT(curorig));
+        auto v = ValueDecToFLT<3>(vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
         return body;
     }
     MIDDECL(mg_translate) () {
-        curorig = ValueDecToF<3>(g_vm->Pop());
+        curorig = ValueDecToFLT<3>(g_vm->Pop());
     }
     ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
     STARTDECL(mg_scale) (Value &f, Value &body) {
-        if (body.True()) g_vm->Push(ToValueF(cursize));
-        cursize *= f.fval();
+        if (body.True()) g_vm->Push(ToValueFLT(cursize));
+        cursize *= f.fltval();
         return body;
     }
     MIDDECL(mg_scale) () {
-        cursize = ValueDecToF<3>(g_vm->Pop());
+        cursize = ValueDecToFLT<3>(g_vm->Pop());
     }
     ENDDECL2CONTEXIT(mg_scale, "f,body", "FC?", "",
         "scales the current coordinate system by the given factor."
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_scalevec) (Value &vec, Value &body) {
-        if (body.True()) g_vm->Push(ToValueF(cursize));
-        auto v = ValueDecToF<3>(vec);
+        if (body.True()) g_vm->Push(ToValueFLT(cursize));
+        auto v = ValueDecToFLT<3>(vec);
         cursize *= v;
         return body;
     }
     MIDDECL(mg_scalevec) () {
-        cursize = ValueDecToF<3>(g_vm->Pop());
+        cursize = ValueDecToFLT<3>(g_vm->Pop());
     }
     ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis."
@@ -796,8 +796,8 @@ void AddMeshGen() {
 
     STARTDECL(mg_rotate) (Value &axis, Value &angle, Value &body) {
         if (body.True()) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
-        auto v = ValueDecToF<3>(axis);
-        currot *= float3x3(angle.fval()*RAD, v);
+        auto v = ValueDecToFLT<3>(axis);
+        currot *= float3x3(angle.fltval() * RAD, v);
         return body;
     }
     MIDDECL(mg_rotate) () {
@@ -812,12 +812,12 @@ void AddMeshGen() {
         " afterwards");
 
     STARTDECL(mg_color) (Value &vec, Value &body) {
-        if (body.True()) g_vm->Push(ToValueF(curcol));
-        curcol = ValueDecToF<4>(vec);
+        if (body.True()) g_vm->Push(ToValueFLT(curcol));
+        curcol = ValueDecToFLT<4>(vec);
         return body;
     }
     MIDDECL(mg_color) () {
-        curcol = ValueDecToF<4>(g_vm->Pop());
+        curcol = ValueDecToFLT<4>(g_vm->Pop());
     }
     ENDDECL2CONTEXIT(mg_color, "color,body", "F]C?", "",
         "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
@@ -825,13 +825,13 @@ void AddMeshGen() {
 
     STARTDECL(mg_smooth) (Value &smooth, Value &body) {
         if (body.True()) g_vm->Push(Value(cursmoothmink));
-        cursmoothmink = smooth.fval();
+        cursmoothmink = smooth.fltval();
         return body;
     }
     MIDDECL(mg_smooth) () {
         auto smooth = g_vm->Pop();
         TYPE_ASSERT(smooth.type == V_FLOAT);
-        cursmoothmink = smooth.fval();
+        cursmoothmink = smooth.fltval();
     }
     ENDDECL2CONTEXIT(mg_smooth, "smooth,body", "FC?", "",
         "sets the smoothness in terms of the range of distance from the shape smoothing happens."

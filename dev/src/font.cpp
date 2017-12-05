@@ -84,7 +84,7 @@ void AddFont() {
 
     STARTDECL(gl_setfontsize) (Value &fontsize)  {
         if (!curface) g_vm->BuiltinError("gl_setfontsize: no current font set with gl_setfontname");
-        int size = max(1, fontsize.ival());
+        int size = max(1, fontsize.intval());
         int csize = min(size, maxfontsize);
         string fontname = curfacename;
         fontname += to_string(csize);
@@ -106,7 +106,7 @@ void AddFont() {
         " returns true if success");
 
     STARTDECL(gl_setmaxfontsize) (Value &fontsize) {
-        maxfontsize = fontsize.ival();
+        maxfontsize = fontsize.intval();
         return Value(0);
     }
     ENDDECL1(gl_setmaxfontsize, "size", "I", "",
@@ -143,7 +143,7 @@ void AddFont() {
         if (curfontsize > maxfontsize) {
             size = int2(ceil(float2(size) * float(curfontsize) / float(maxfontsize)));
         }
-        return ToValueI(size);
+        return ToValueINT(size);
     }
     ENDDECL1(gl_textsize, "text", "S", "I]:2",
         "the x/y size in pixels the given text would need");

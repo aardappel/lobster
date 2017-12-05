@@ -189,7 +189,7 @@ void VM::DumpLeaks() {
 }
 
 #undef new
-ElemObj *VM::NewVector(int initial, int max, const TypeInfo &ti) {
+ElemObj *VM::NewVector(intp initial, intp max, const TypeInfo &ti) {
     if (ti.t == V_VECTOR)
         return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, ti);
     assert(ti.t == V_STRUCT && max == initial && max == ti.len);
@@ -204,10 +204,10 @@ LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, const Ty
                LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
                          cti);
 }
-BoxedInt *VM::NewInt(int i) {
+BoxedInt *VM::NewInt(intp i) {
     return new (vmpool->alloc(sizeof(BoxedInt))) BoxedInt(i);
 }
-BoxedFloat *VM::NewFloat(float f) {
+BoxedFloat *VM::NewFloat(floatp f) {
     return new (vmpool->alloc(sizeof(BoxedFloat))) BoxedFloat(f);
 }
 LResource *VM::NewResource(void *v, const ResourceType *t) {
@@ -694,6 +694,16 @@ void VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); }
 void VM::F_PUSHFLT(VM_OP_ARGS) { PUSH(Value(*(float *)ip)); ip++; }
 void VM::F_PUSHNIL(VM_OP_ARGS) { PUSH(Value()); }
 
+void VM::F_PUSHINT64(VM_OP_ARGS) {
+    #if !VALUE_MODEL_64
+        Error("Code containing 64-bit constants cannot run on a 32-bit build.");
+    #endif
+    int64_t v = (uint)*ip++;
+    v |= ((int64_t)*ip++) << 32;
+    PUSH(Value(v));
+}
+
+
 void VM::F_PUSHFUN(VM_OP_ARGS_CALL) {
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
@@ -825,7 +835,7 @@ void VM::F_CONT1(VM_OP_ARGS) {
     auto &i = TOPM(1); \
     TYPE_ASSERT(i.type == V_INT); \
     i.setival(i.ival() + 1); \
-    int len = 0; \
+    intp len = 0; \
     if (i.ival() < (len = (L))) { \
         FOR_CONTINUE; \
     } else { \
@@ -903,9 +913,9 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 
 #define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-    int len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) \
+    auto len = VectorLoop(a, b, res, withscalar, comp ? GetTypeInfo(TYPE_ELEM_VECTOR_OF_INT) \
                                                      : a.eval()->ti); \
-    for (int j = 0; j < len; j++) { \
+    for (intp j = 0; j < len; j++) { \
         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) \
         else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
@@ -916,8 +926,8 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
     a.DECRT(); \
     if (!withscalar) b.DECRT(); \
 }
-#define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, int, false, withscalar, icomp)
-#define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, float, true, withscalar, fcomp)
+#define _IVOP(op, extras, withscalar, icomp) _VOP(op, extras, intp, false, withscalar, icomp)
+#define _FVOP(op, extras, withscalar, fcomp) _VOP(op, extras, floatp, true, withscalar, fcomp)
 
 #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
 #define _SCAT() Value res; \
@@ -1037,9 +1047,9 @@ void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
     Value res; \
-    int len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
+    auto len = VectorLoop(a, Value((type)1), res, true, a.eval()->ti); \
     if (len >= 0) { \
-        for (int i = 0; i < len; i++) { \
+        for (intp i = 0; i < len; i++) { \
             VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
             res.eval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
         } \
@@ -1049,8 +1059,8 @@ void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
     } \
     VMASSERT(false); \
     }
-void VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, int) }
-void VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, float) }
+void VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, intp) }
+void VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, floatp) }
 
 void VM::F_LOGNOT(VM_OP_ARGS) {
     Value a = POP();
@@ -1260,7 +1270,7 @@ void VM::PushDerefField(int i)  {
     r.DECRT();
 }
 
-void VM::PushDerefIdx(int i)  {
+void VM::PushDerefIdx(intp i)  {
     Value r = POP();
     if (!r.ref()) { PUSH(r); return; }  // ?.
     switch (r.ref()->ti.t)  {
@@ -1279,7 +1289,7 @@ void VM::PushDerefIdx(int i)  {
     r.DECRT();
 }
 
-void VM::LvalueObj(int lvalop, int i) {
+void VM::LvalueObj(int lvalop, intp i) {
     Value vec = POP();
     TYPE_ASSERT(IsVector(vec.type));
     IDXErr(i, (int)vec.eval()->Len(), vec.eval());
@@ -1391,7 +1401,7 @@ string VM::ProperTypeName(const TypeInfo &ti) {
     return BaseTypeName(ti.t);
 }
 
-void VM::IDXErr(int i, int n, const RefObj *v) {
+void VM::IDXErr(intp i, intp n, const RefObj *v) {
     if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
 }
 
@@ -1419,9 +1429,9 @@ void VM::BCallRetCheck(const NativeFun *nf) {
     #endif
 }
 
-int VM::GrabIndex(const Value &idx) {
+intp VM::GrabIndex(const Value &idx) {
     auto &v = TOP();
-    for (int i = idx.eval()->Len() - 1; ; i--) {
+    for (auto i = idx.eval()->Len() - 1; ; i--) {
         auto sidx = idx.eval()->At(i);
         VMTYPEEQ(sidx, V_INT);
         if (!i) {
@@ -1436,10 +1446,10 @@ int VM::GrabIndex(const Value &idx) {
     }
 }
 
-int VM::VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
-                   const TypeInfo &desttype) {
+intp VM::VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
+                    const TypeInfo &desttype) {
     TYPE_ASSERT(IsVector(a.type));
-    int len = a.eval()->Len();
+    auto len = a.eval()->Len();
     if (!withscalar) {
         TYPE_ASSERT(IsVector(b.type));
         if (b.eval()->Len() != len)

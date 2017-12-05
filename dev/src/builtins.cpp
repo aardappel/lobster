@@ -36,12 +36,12 @@ static int StringCompare(const Value &a, const Value &b) {
 }
 
 template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun) {
-    int size = l.eval()->Len();
-    int i = 0;
+    intp size = l.eval()->Len();
+    intp i = 0;
     for (;;) {
         if (!size) break;
-        int mid = size / 2;
-        int comp = comparefun(key, l.eval()->At(i + mid));
+        intp mid = size / 2;
+        intp comp = comparefun(key, l.eval()->At(i + mid));
         if (comp) {
             if (comp < 0) size = mid;
             else { mid++; i += mid; size -= mid; }
@@ -268,7 +268,7 @@ void AddBuiltins() {
 
     STARTDECL(remove) (Value &l, Value &i, Value &n) {
         RealVector(l);
-        int amount = max(n.ival(), 1);
+        auto amount = max(n.ival(), (intp)1);
         if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 ||
             i.ival() > l.vval()->len - amount)
             g_vm->BuiltinError("remove: index (" + to_string(i.ival()) +
@@ -284,9 +284,9 @@ void AddBuiltins() {
 
     STARTDECL(removeobj) (Value &l, Value &o) {
         RealVector(l);
-        int removed = 0;
+        intp removed = 0;
         auto vt = g_vm->GetTypeInfo(l.vval()->ti.subt).t;
-        for (int i = 0; i < l.vval()->len; i++) {
+        for (intp i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vt, o, vt, false)) {
                 l.vval()->Remove(i--, 1, 0);
@@ -339,11 +339,11 @@ void AddBuiltins() {
 
     STARTDECL(slice) (Value &l, Value &s, Value &e) {
         RealVector(l);
-        int size = e.ival();
+        auto size = e.ival();
         if (size < 0) size = l.eval()->Len() + size;
-        int start = s.ival();
+        auto start = s.ival();
         if (start < 0) start = l.eval()->Len() + start;
-        if (start < 0 || start + size > (int)l.eval()->Len())
+        if (start < 0 || start + size > l.eval()->Len())
             g_vm->BuiltinError("slice: values out of range");
         auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->ti);
         nv->Append(l.vval(), start, size);
@@ -356,7 +356,7 @@ void AddBuiltins() {
 
     STARTDECL(any) (Value &v) {
         Value r(false);
-        for (int i = 0; i < v.eval()->Len(); i++) {
+        for (auto i = 0; i < v.eval()->Len(); i++) {
             if (v.eval()->At(i).True()) {
                 r = Value(true);
                 break;
@@ -370,7 +370,7 @@ void AddBuiltins() {
 
     STARTDECL(all) (Value &v) {
         Value r(true);
-        for (int i = 0; i < v.eval()->Len(); i++) {
+        for (intp i = 0; i < v.eval()->Len(); i++) {
             if (!v.eval()->At(i).True()) {
                 r = Value(false);
                 break;
@@ -383,11 +383,11 @@ void AddBuiltins() {
         "returns wether all elements of the vector are true values");
 
     STARTDECL(substring) (Value &l, Value &s, Value &e) {
-        int size = e.ival();
+        intp size = e.ival();
         if (size < 0) size = l.sval()->len + size;
-        int start = s.ival();
+        intp start = s.ival();
         if (start < 0) start = l.sval()->len + start;
-        if (start < 0 || start + size > (int)l.sval()->len)
+        if (start < 0 || start + size > l.sval()->len)
             g_vm->BuiltinError("substring: values out of range");
 
         auto ns = g_vm->NewString(l.sval()->str() + start, size);
@@ -446,10 +446,10 @@ void AddBuiltins() {
     STARTDECL(unicode2string) (Value &v) {
         char buf[7];
         string s;
-        for (int i = 0; i < v.eval()->Len(); i++) {
+        for (intp i = 0; i < v.eval()->Len(); i++) {
             auto &c = v.eval()->At(i);
             TYPE_ASSERT(c.type == V_INT);
-            ToUTF8(c.ival(), buf);
+            ToUTF8((int)c.ival(), buf);
             s += buf;
         }
         v.DECRT();
@@ -476,10 +476,10 @@ void AddBuiltins() {
     STARTDECL(number2string) (Value &n, Value &b, Value &mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
             g_vm->BuiltinError("number2string: values out of range");
-        uint i = (uint)n.ival();
+        auto i = (uintp)n.ival();
         string s;
         const char *from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        while (i || (int)s.length() < mc.ival()) {
+        while (i || (intp)s.length() < mc.ival()) {
             s.insert(0, 1, from[i % b.ival()]);
             i /= b.ival();
         }
@@ -513,23 +513,23 @@ void AddBuiltins() {
     ENDDECL1(uppercase, "s", "S", "S",
              "converts a UTF-8 string from any case to upper case, affecting only a-z");
 
-    STARTDECL(pow) (Value &a, Value &b) { return Value(powf(a.fval(), b.fval())); }
+    STARTDECL(pow) (Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); }
     ENDDECL2(pow, "a,b", "FF", "F",
         "a raised to the power of b");
 
-    STARTDECL(log) (Value &a) { return Value(logf(a.fval())); } ENDDECL1(log, "a", "F", "F",
+    STARTDECL(log) (Value &a) { return Value(log(a.fval())); } ENDDECL1(log, "a", "F", "F",
         "natural logaritm of a");
 
-    STARTDECL(sqrt) (Value &a) { return Value(sqrtf(a.fval())); } ENDDECL1(sqrt, "f", "F", "F",
+    STARTDECL(sqrt) (Value &a) { return Value(sqrt(a.fval())); } ENDDECL1(sqrt, "f", "F", "F",
         "square root");
 
-    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor(len) : nullptr, a.eval()->ti)
+    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor((int)len) : nullptr, a.eval()->ti)
 
     #define VECTOROPT(op, typeinfo) \
         TYPE_ASSERT(IsVector(a.type)); \
         auto len = a.eval()->Len(); \
         auto v = g_vm->NewVector(len, len, typeinfo); \
-        for (int i = 0; i < a.eval()->Len(); i++) { \
+        for (intp i = 0; i < a.eval()->Len(); i++) { \
             auto f = a.eval()->At(i); \
             v->At(i) = Value(op); \
         } \
@@ -537,74 +537,74 @@ void AddBuiltins() {
         return Value(v);
     #define VECTOROP(op) VECTOROPT(op, a.eval()->ti)
 
-    STARTDECL(ceiling) (Value &a) { return Value(int(ceilf(a.fval()))); }
+    STARTDECL(ceiling) (Value &a) { return Value(intp(ceil(a.fval()))); }
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROPT(int(ceilf(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(ceil(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(ceiling, "v", "F]", "I]:/",
         "the nearest ints >= each component of v");
 
-    STARTDECL(floor) (Value &a) { return Value(int(floorf(a.fval()))); }
+    STARTDECL(floor) (Value &a) { return Value(intp(floor(a.fval()))); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor) (Value &a) { VECTOROPT(int(floorf(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(floor) (Value &a) { VECTOROPT(intp(floor(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(floor, "v", "F]", "I]:/",
         "the nearest ints <= each component of v");
 
-    STARTDECL(int) (Value &a) { return Value(int(a.fval())); }
+    STARTDECL(int) (Value &a) { return Value(intp(a.fval())); }
     ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int) (Value &a) { VECTOROPT(int(f.fval()), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(int) (Value &a) { VECTOROPT(intp(f.fval()), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(int, "v", "F]", "I]:/",
         "converts a vector of floats to ints by dropping the fraction");
 
-    STARTDECL(round) (Value &a) { return Value(int(a.fval() + 0.5f)); }
+    STARTDECL(round) (Value &a) { return Value(intp(a.fval() + 0.5f)); }
     ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
         " negative numbers");
-    STARTDECL(round) (Value &a) { VECTOROPT(int(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(round) (Value &a) { VECTOROPT(intp(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); }
     ENDDECL1(round, "v", "F]", "I]:/",
         "converts a vector of floats to the closest ints");
 
-    STARTDECL(fraction) (Value &a) { return Value(a.fval() - floorf(a.fval())); }
+    STARTDECL(fraction) (Value &a) { return Value(a.fval() - floor(a.fval())); }
     ENDDECL1(fraction, "f", "F", "F",
         "returns the fractional part of a float: short for f - floor(f)");
-    STARTDECL(fraction) (Value &a) { VECTOROP(f.fval() - floorf(f.fval())); }
+    STARTDECL(fraction) (Value &a) { VECTOROP(f.fval() - floor(f.fval())); }
     ENDDECL1(fraction, "v", "F]", "F]:/",
         "returns the fractional part of a vector of floats");
 
     STARTDECL(float) (Value &a) { return Value(float(a.ival())); }
     ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float) (Value &a) { VECTOROPT(float(f.ival()), SWAPVECTYPE(GetFloatVectorType)); }
+    STARTDECL(float) (Value &a) { VECTOROPT(floatp(f.ival()), SWAPVECTYPE(GetFloatVectorType)); }
     ENDDECL1(float, "v", "I]", "F]:/",
         "converts a vector of ints to floats");
 
-    STARTDECL(sin) (Value &a) { return Value(sinf(a.fval() * RAD)); }
+    STARTDECL(sin) (Value &a) { return Value(sin(a.fval() * RAD)); }
     ENDDECL1(sin, "angle", "F", "F",
         "the y coordinate of the normalized vector indicated by angle (in degrees)");
-    STARTDECL(cos) (Value &a) { return Value(cosf(a.fval() * RAD)); }
+    STARTDECL(cos) (Value &a) { return Value(cos(a.fval() * RAD)); }
     ENDDECL1(cos, "angle", "F", "F",
         "the x coordinate of the normalized vector indicated by angle (in degrees)");
-    STARTDECL(tan) (Value &a) { return Value(tanf(a.fval() * RAD)); }
+    STARTDECL(tan) (Value &a) { return Value(tan(a.fval() * RAD)); }
     ENDDECL1(tan, "angle", "F", "F",
         "the tangent of an angle (in degrees)");
 
     STARTDECL(sincos) (Value &a) {
-        return ToValueF(float2(cosf(a.fval() * RAD), sinf(a.fval() * RAD)));
+        return ToValueF(floatp2(cos(a.fval() * RAD), sin(a.fval() * RAD)));
     }
     ENDDECL1(sincos, "angle", "F", "F]:2",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]");
 
-    STARTDECL(arcsin) (Value &y) { return Value(asinf(y.fval()) / RAD); }
+    STARTDECL(arcsin) (Value &y) { return Value(asin(y.fval()) / RAD); }
     ENDDECL1(arcsin, "y", "F", "F",
         "the angle (in degrees) indicated by the y coordinate projected to the unit circle");
-    STARTDECL(arccos) (Value &x) { return Value(acosf(x.fval()) / RAD); }
+    STARTDECL(arccos) (Value &x) { return Value(acos(x.fval()) / RAD); }
     ENDDECL1(arccos, "x", "F", "F",
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2) (Value &vec) {
-        auto v = ValueDecToF<3>(vec); return Value(atan2f(v.y, v.x) / RAD);
+        auto v = ValueDecToF<3>(vec); return Value(atan2(v.y, v.x) / RAD);
     }
     ENDDECL1(atan2, "vec",  "F]" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
@@ -619,11 +619,11 @@ void AddBuiltins() {
     STARTDECL(normalize) (Value &vec) {
         switch (vec.eval()->Len()) {
             case 2: { auto v = ValueDecToF<2>(vec);
-                      return ToValueF(v == float2_0 ? v : normalize(v)); }
+                      return ToValueF(v == floatp2_0 ? v : normalize(v)); }
             case 3: { auto v = ValueDecToF<3>(vec);
-                      return ToValueF(v == float3_0 ? v : normalize(v)); }
+                      return ToValueF(v == floatp3_0 ? v : normalize(v)); }
             case 4: { auto v = ValueDecToF<4>(vec);
-                      return ToValueF(v == float4_0 ? v : normalize(v)); }
+                      return ToValueF(v == floatp4_0 ? v : normalize(v)); }
             default: return g_vm->BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
     }
@@ -648,16 +648,16 @@ void AddBuiltins() {
     ENDDECL2(cross, "a,b", "F]F]", "F]:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
-    STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, a.ival()))); }
+    STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, (int)a.ival()))); }
     ENDDECL1(rnd, "max", "I", "I",
         "a random value [0..max).");
-    STARTDECL(rnd) (Value &a) { VECTOROP(rnd(max(1, f.ival()))); }
+    STARTDECL(rnd) (Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); }
     ENDDECL1(rnd, "max", "I]", "I]:/",
         "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); }
     ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");
-    STARTDECL(rndseed) (Value &seed) { rnd.seed(seed.ival()); return Value(); }
+    STARTDECL(rndseed) (Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
     ENDDECL1(rndseed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");
 
@@ -686,7 +686,7 @@ void AddBuiltins() {
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueDecToI<3>(xv);
         auto range = ValueDecToI<3>(rangev, 1);
-        auto bias  = biasv.True() ? ValueDecToI<3>(biasv) : int3_0;
+        auto bias  = biasv.True() ? ValueDecToI<3>(biasv) : intp3_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "I]I]I]?", "I",
@@ -695,7 +695,7 @@ void AddBuiltins() {
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueDecToF<3>(xv);
         auto range = ValueDecToF<3>(rangev, 1);
-        auto bias  = biasv.True() ? ValueDecToF<3>(biasv) : float3_0;
+        auto bias  = biasv.True() ? ValueDecToF<3>(biasv) : floatp3_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(inrange, "x,range,bias", "F]F]F]?", "I",
@@ -703,11 +703,11 @@ void AddBuiltins() {
 
     STARTDECL(abs) (Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
         "absolute value of an integer");
-    STARTDECL(abs) (Value &a) { return Value(fabsf(a.fval())); } ENDDECL1(abs, "x", "F", "F",
+    STARTDECL(abs) (Value &a) { return Value(fabs(a.fval())); } ENDDECL1(abs, "x", "F", "F",
         "absolute value of a float");
     STARTDECL(abs) (Value &a) { VECTOROP(abs(f.ival())); } ENDDECL1(abs, "x", "I]", "I]:/",
         "absolute value of an int vector");
-    STARTDECL(abs) (Value &a) { VECTOROP(fabsf(f.fval())); } ENDDECL1(abs, "x", "F]", "F]:/",
+    STARTDECL(abs) (Value &a) { VECTOROP(fabs(f.fval())); } ENDDECL1(abs, "x", "F]", "F]:/",
         "absolute value of a float vector");
 
     // FIXME: need to guarantee this assert in typechecking
@@ -717,7 +717,7 @@ void AddBuiltins() {
         auto &type = x.eval()->ti; \
         assert(&type == &y.eval()->ti); \
         auto v = g_vm->NewVector(len, len, type); \
-        for (int i = 0; i < x.eval()->Len(); i++) { \
+        for (intp i = 0; i < x.eval()->Len(); i++) { \
             v->At(i) = Value(name(x.eval()->At(i).access(), y.eval()->At(i).access())); \
         } \
         x.DECRT(); y.DECRT(); \
@@ -725,7 +725,7 @@ void AddBuiltins() {
 
     #define VECSCALAROP(type, init, fun) \
         type v = init; \
-        for (int i = 0; i < x.eval()->Len(); i++) { \
+        for (intp i = 0; i < x.eval()->Len(); i++) { \
             auto f = x.eval()->At(i); \
             fun; \
         } \
@@ -744,10 +744,10 @@ void AddBuiltins() {
     STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,fval) }
     ENDDECL2(min, "x,y", "F]F]", "F]:/",
         "smallest components of 2 float vectors");
-    STARTDECL(min) (Value &x) { VECSCALAROP(int, INT_MAX, v = min(v, f.ival())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival())) }
     ENDDECL1(min, "v", "I]", "I",
         "smallest component of a int vector. returns smallest possible int for empty vector");
-    STARTDECL(min) (Value &x) { VECSCALAROP(float, FLT_MAX, v = min(v, f.fval())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval())) }
     ENDDECL1(min, "v", "F]", "F",
         "smallest component of a float vector. returns smallest possible float for empty vector");
 
@@ -763,22 +763,22 @@ void AddBuiltins() {
     STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,fval) }
     ENDDECL2(max, "x,y", "F]F]", "F]:/",
         "largest components of 2 float vectors");
-    STARTDECL(max) (Value &x) { VECSCALAROP(int, INT_MIN, v = max(v, f.ival())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival())) }
     ENDDECL1(max, "v", "I]", "I",
         "largest component of a int vector. returns largest possible int for empty vector");
-    STARTDECL(max) (Value &x) { VECSCALAROP(float, FLT_MIN, v = max(v, f.fval())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval())) }
     ENDDECL1(max, "v", "F]", "F",
         "largest component of a float vector. returns largest possible float for empty vector");
 
     STARTDECL(lerp) (Value &x, Value &y, Value &f) {
-        return Value(mix(x.fval(), y.fval(), f.fval()));
+        return Value(mix(x.fval(), y.fval(), (float)f.fval()));
     }
     ENDDECL3(lerp, "x,y,f", "FFF", "F",
         "linearly interpolates between x and y with factor f [0..1]");
 
     STARTDECL(lerp) (Value &x, Value &y, Value &f) {
         auto numelems = x.eval()->Len();
-        return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), f.fval()), numelems);
+        return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), (float)f.fval()), numelems);
     }
     ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
         "linearly interpolates between x and y vectors with factor f [0..1]");
@@ -794,7 +794,7 @@ void AddBuiltins() {
         " (after b) to form a cardinal spline (tension at 0.5 is a good default)");
 
     STARTDECL(line_intersect) (Value &l1a, Value &l1b, Value &l2a, Value &l2b) {
-        float2 ipoint;
+        floatp2 ipoint;
         auto r = line_intersect(ValueDecToF<2>(l1a), ValueDecToF<2>(l1b),
                                 ValueDecToF<2>(l2a), ValueDecToF<2>(l2b), &ipoint);
         return r ? ToValueF(ipoint) : Value();
@@ -808,11 +808,11 @@ void AddBuiltins() {
         if (radiuses.vval()->len != len || prefilter.vval()->len != len)
             return g_vm->BuiltinError(
                 "circles_within_range: all input vectors must be the same size");
-        struct Node { float2 pos; float rad; bool filter; int idx; Node *next; };
+        struct Node { floatp2 pos; floatp rad; bool filter; intp idx; Node *next; };
         vector<Node> nodes(len, Node());
-        float maxrad = 0;
-        float2 minpos = float2(FLT_MAX), maxpos(FLT_MIN);
-        for (int i = 0; i < len; i++) {
+        floatp maxrad = 0;
+        floatp2 minpos = floatp2(FLT_MAX), maxpos(FLT_MIN);
+        for (intp i = 0; i < len; i++) {
             auto &n = nodes[i];
             auto p = ValueToF<2>(positions.vval()->At(i));
             minpos = min(minpos, p);
@@ -828,14 +828,14 @@ void AddBuiltins() {
         positions.DECRT();
         radiuses.DECRT();
         prefilter.DECRT();
-        auto ncelld = (int)sqrtf(float(len + 1) * 4);
+        auto ncelld = (intp)sqrtf(float(len + 1) * 4);
         vector<Node *> cells(ncelld * ncelld, nullptr);
         auto wsize = maxpos - minpos;
         wsize *= 1.00001f;  // No objects may fall exactly on the far border.
-        auto tocellspace = [&](const float2 &pos) {
-            return int2((pos - minpos) / wsize * float(ncelld));
+        auto tocellspace = [&](const floatp2 &pos) {
+            return intp2((pos - minpos) / wsize * float(ncelld));
         };
-        for (int i = 0; i < len; i++) {
+        for (intp i = 0; i < len; i++) {
             auto &n = nodes[i];
             auto cp = tocellspace(n.pos);
             auto &c = cells[cp.x + cp.y * ncelld];
@@ -843,15 +843,15 @@ void AddBuiltins() {
             c = &n;
         }
         auto qdist = dist.fval();
-        vector<int> within_range;
+        vector<intp> within_range;
         vector<LVector *> results(len, nullptr);
-        for (int i = 0; i < len; i++) {
+        for (intp i = 0; i < len; i++) {
             auto &n = nodes[i];
-            float scanrad = n.rad + maxrad + qdist;
-            auto minc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos - scanrad)));
-            auto maxc = max(int2_0, min((ncelld - 1) * int2_1, tocellspace(n.pos + scanrad)));
-            for (int y = minc.y; y <= maxc.y; y++) {
-                for (int x = minc.x; x <= maxc.x; x++) {
+            auto scanrad = n.rad + maxrad + qdist;
+            auto minc = max(intp2_0, min((ncelld - 1) * intp2_1, tocellspace(n.pos - scanrad)));
+            auto maxc = max(intp2_0, min((ncelld - 1) * intp2_1, tocellspace(n.pos + scanrad)));
+            for (intp y = minc.y; y <= maxc.y; y++) {
+                for (intp x = minc.x; x <= maxc.x; x++) {
                     for (auto c = cells[x + y * ncelld]; c; c = c->next) {
                         if (c->filter && c != &n) {
                             auto d = length(c->pos - n.pos) - n.rad - c->rad;
@@ -969,7 +969,7 @@ void AddBuiltins() {
         " created a cycle. returns number of objects collected.");
 
     STARTDECL(set_max_stack_size) (Value &max) {
-        g_vm->SetMaxStack(max.ival() * 1024 * 1024 / sizeof(Value));
+        g_vm->SetMaxStack((int)max.ival() * 1024 * 1024 / sizeof(Value));
         return Value();
     }
     ENDDECL1(set_max_stack_size, "max",  "I", "",

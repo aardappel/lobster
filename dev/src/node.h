@@ -226,12 +226,12 @@ struct IdentRef : Node {
 };
 
 struct IntConstant : Node {
-    int integer;
-    IntConstant(const Line &ln, int i) : Node(ln), integer(i) {}
+    int64_t integer;
+    IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i) {}
     bool IsConstInit() const { return true; }
     string Dump() const { return to_string(integer); }
     bool ConstVal(TypeChecker &, Value &val) const {
-        val = Value(integer);
+        val = Value(integer);  // FIXME: this clips.
         return true;
     }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)

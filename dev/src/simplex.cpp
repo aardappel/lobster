@@ -410,7 +410,7 @@ void AddNoise() {
     STARTDECL(simplex) (Value &pos, Value &octaves, Value &scale, Value &persistence) {
         auto v = ValueDecToF<4>(pos);
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version
-        return Value(SimplexNoise(octaves.ival(), persistence.fval(), scale.fval(), v));
+        return Value(SimplexNoise(octaves.intval(), persistence.fltval(), scale.fltval(), float4(v)));
     }
     ENDDECL4(simplex, "pos,octaves,scale,persistence", "F]IFF", "F",
         "returns a simplex noise value [-1..1] given a 2D/3D or 4D location, the number of octaves"

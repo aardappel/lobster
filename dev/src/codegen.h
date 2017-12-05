@@ -538,7 +538,10 @@ void Nil::Generate(CodeGen &cg, int retval) const {
 }
 
 void IntConstant::Generate(CodeGen &cg, int retval) const {
-    if (retval) { cg.Emit(IL_PUSHINT, integer); };
+    if (retval) {
+        if (integer == (int)integer) cg.Emit(IL_PUSHINT, (int)integer); 
+        else cg.Emit(IL_PUSHINT64, (int)integer, (int)(integer >> 32));
+    };
 }
 
 void FloatConstant::Generate(CodeGen &cg, int retval) const {

@@ -341,7 +341,7 @@ void Shader::Activate() {
 void Shader::Set() {
     Activate();
     if (mvp_i >= 0) GL_CALL(glUniformMatrix4fv(mvp_i, 1, false,
-                                               view2clip * otransforms.object2view));
+                                               (view2clip * otransforms.object2view).data()));
     if (col_i >= 0) GL_CALL(glUniform4fv(col_i, 1, curcolor.begin()));
     if (camera_i >= 0) GL_CALL(glUniform3fv(camera_i, 1, otransforms.view2object[3].begin()));
     if (pointscale_i >= 0) GL_CALL(glUniform1f(pointscale_i, pointscale));

@@ -22,6 +22,7 @@ const int MAX_RETURN_VALUES = 16;
 
 #define ILBASENAMES \
     F(PUSHINT, 1) \
+    F(PUSHINT64, 1) \
     F(PUSHFLT, 1) \
     F(PUSHSTR, 1) \
     F(PUSHNIL, 0) \

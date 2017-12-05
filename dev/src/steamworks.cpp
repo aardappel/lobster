@@ -123,10 +123,10 @@ int SteamReadFile(const char *fn, string &buf) {
     return 0;
 }
 
-bool SteamWriteFile(const char *fn, const void *buf, int len) {
+bool SteamWriteFile(const char *fn, const void *buf, size_t len) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            return SteamRemoteStorage()->FileWrite(fn, buf, len);
+            return SteamRemoteStorage()->FileWrite(fn, buf, (int)len);
         }
     #endif  // PLATFORM_STEAMWORKS
     return false;

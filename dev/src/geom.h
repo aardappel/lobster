@@ -30,11 +30,12 @@ namespace geom {
 #define DOVECB(I,F) { bool _ = I; DOVEC(_ = F); return _; }
 
 union int2float { int i; float f; };
-inline void default_debug_value(float  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(double &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
-inline void default_debug_value(int    &a) { a = 0x1BADCAFE; }
-inline void default_debug_value(short  &a) { a = 0x1BAD; }
-inline void default_debug_value(uchar  &a) { a = 0x1B; }
+inline void default_debug_value(float   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
+inline void default_debug_value(double  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
+inline void default_debug_value(int     &a) { a = 0x1BADCAFE; }
+inline void default_debug_value(int64_t &a) { a = 0x1BADCAFEABADD00D; }
+inline void default_debug_value(short   &a) { a = 0x1BAD; }
+inline void default_debug_value(uchar   &a) { a = 0x1B; }
 
 template<typename T, int C, int R> class matrix;
 
@@ -85,8 +86,8 @@ template<typename T, int N> struct vec : basevec<T, N> {
     const T *begin() const { return c; }
     const T *end()   const { return c + N; }
 
-    T operator[](int i) const { return c[i]; }
-    T &operator[](int i) { return c[i]; }
+    T operator[](size_t i) const { return c[i]; }
+    T &operator[](size_t i) { return c[i]; }
 
     vec(const vec<T,3> &v, T e) { DOVEC(c[i] = i < 3 ? v[i] : e); }
     vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
@@ -181,14 +182,11 @@ template<typename T, int N> inline T dot(const vec<T,N> &a, const vec<T,N> &b) {
     DOVECF(0, _ + a[i] * b[i]);
 }
 template<typename T, int N> inline T squaredlength(const vec<T,N> &v) { return dot(v, v); }
-template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrtf(squaredlength(v)); }
+template<typename T, int N> inline T length(const vec<T,N> &v) { return sqrt(squaredlength(v)); }
 template<typename T, int N> inline vec<T,N> normalize(const vec<T,N> &v) { return v / length(v); }
 template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(fabsf(v[i])); }
 template<typename T, int N> inline vec<T,N> sign(const vec<T,N> &v) {
     DOVECR((T)(v[i] >= 0 ? 1 : -1));
-}
-template<typename T, int N> inline vec<T,N> mix(const vec<T,N> &a, const vec<T,N> &b, float f) {
-    return a * (1 - f) + b * f;
 }
 template<typename T, int N> inline vec<T,N> min(const vec<T,N> &a, const vec<T,N> &b) {
     DOVECR(std::min(a[i], b[i]));
@@ -270,18 +268,19 @@ const int2 int2_1 = int2(1);
 const int3 int3_0 = int3(0);
 const int3 int3_1 = int3(1);
 
+
 const byte4 byte4_0   = byte4((uchar)0);
 const byte4 byte4_255 = byte4((uchar)255);
 
-inline float3 cross(const float3 &a, const float3 &b)		 {
-    return float3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);
+template<typename T> vec<T, 3> cross(const vec<T, 3> &a, const vec<T, 3> &b) {
+    return vec<T, 3>(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
 inline float smoothminh(float a, float b, float k) {
     return std::min(std::max(0.5f + 0.5f * (b - a) / k, 0.0f), 1.0f);
 }
 
-inline float smoothmix(float a, float b, float k, float h) {
+template<typename T> float smoothmix(T a, T b, T k, T h) {
     return mix(b, a, h) - k * h * (1.0f - h);
 }
 
@@ -406,9 +405,7 @@ template<typename T, int C, int R> class matrix {
     const T *begin() const { return m[0].c; }
     const T *end()   const { return m[C].c; }
 
-    const V &operator[](int i) const { return m[i]; }
-
-    operator const T *() const { return m[0].c; }
+    const V &operator[](size_t i) const { return m[i]; }
 
     // not an operator on purpose, don't use outside this header
     void set(int i, const V &v) { m[i] = v; }
@@ -761,10 +758,11 @@ inline byte4 quantizec(const float4 &v) { return byte4(v            * 255); }
 inline float4 color2vec(byte4 &col) { return float4(col) / 255; }
 
 // Spline interpolation.
-inline float3 cardinalspline(const float3 &z, const float3 &a, const float3 &b, const float3 &c,
-                             float s, float tension = 0.5) {
-    float s2 = s*s;
-    float s3 = s*s2;
+template <typename T> inline vec<T, 3> cardinalspline(const vec<T, 3> &z, const vec<T, 3> &a,
+                                                      const vec<T, 3> &b, const vec<T, 3> &c,
+                                                      T s, T tension = 0.5) {
+    T s2 = s*s;
+    T s3 = s*s2;
     return a                 * ( 2*s3 - 3*s2 + 1) +
            b                 * (-2*s3 + 3*s2    ) +
            (b - z) * tension * (   s3 - 2*s2 + s) +
@@ -775,21 +773,21 @@ inline float triangle_area(const float3 &a, const float3 &b, const float3 &c) {
     return length(cross(b - a, c - a)) / 2;
 }
 
-inline bool line_intersect(const float2 &l1a, const float2 &l1b, const float2 &l2a,
-                           const float2 &l2b, float2 *out = nullptr) {
-    float2 a(l1b - l1a);
-    float2 b(l2b - l2a);
-    float2 aperp(-a.y, a.x);
+template<typename T> bool line_intersect(const vec<T, 2> &l1a, const vec<T, 2> &l1b, const vec<T, 2> &l2a,
+                           const vec<T, 2> &l2b, vec<T, 2> *out = nullptr) {
+    vec<T, 2> a(l1b - l1a);
+    vec<T, 2> b(l2b - l2a);
+    vec<T, 2> aperp(-a.y, a.x);
     auto f = dot(aperp, b);
     if (!f) return false;     // Parallel.
-    float2 c(l2b - l1b);
-    float2 bperp(-b.y, b.x);
+    vec<T, 2> c(l2b - l1b);
+    vec<T, 2> bperp(-b.y, b.x);
     auto aa = dot(aperp, c);
     auto bb = dot(bperp, c);
     if(f < 0) {
-        if(aa > 0 || bb > 0 || aa < f || bb < f)     return false;
+        if(aa > 0 || bb > 0 || aa < f || bb < f) return false;
     } else {
-        if(aa < 0 || bb < 0 || aa > f || bb > f)     return false;
+        if(aa < 0 || bb < 0 || aa > f || bb > f) return false;
     }
     if(out) {
         auto lerp = 1.0f - (aa / f);

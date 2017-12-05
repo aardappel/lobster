@@ -114,7 +114,7 @@ Voxels *NewWorld(const int3 &size) {
 
 void AddCubeGen() {
     STARTDECL(cg_init) (Value &size) {
-        auto v = NewWorld(ValueDecToI<3>(size));
+        auto v = NewWorld(ValueDecToINT<3>(size));
         return Value(g_vm->NewResource(v, &voxel_type));
     }
     ENDDECL1(cg_init, "size", "I]:3", "X",
@@ -122,14 +122,14 @@ void AddCubeGen() {
         " returns the block");
 
     STARTDECL(cg_size) (Value &wid) {
-        return Value(ToValueI(GetVoxels(wid).grid.dim));
+        return Value(ToValueINT(GetVoxels(wid).grid.dim));
     }
     ENDDECL1(cg_size, "block", "X", "I]:3",
         "returns the current block size");
 
     STARTDECL(cg_set) (Value &wid, Value &pos, Value &size, Value &color) {
-        auto p = ValueDecToI<3>(pos);
-        auto sz = ValueDecToI<3>(size);
+        auto p = ValueDecToINT<3>(pos);
+        auto sz = ValueDecToINT<3>(size);
         GetVoxels(wid).Set(p, sz, (uchar)color.ival());
         return Value();
     }
@@ -138,10 +138,10 @@ void AddCubeGen() {
         "Coordinates automatically clipped to the size of the grid");
 
     STARTDECL(cg_copy) (Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
-        auto p = ValueDecToI<3>(pos);
-        auto sz = ValueDecToI<3>(size);
-        auto d = ValueDecToI<3>(dest);
-        auto fl = ValueDecToI<3>(flip);
+        auto p = ValueDecToINT<3>(pos);
+        auto sz = ValueDecToINT<3>(size);
+        auto d = ValueDecToINT<3>(dest);
+        auto fl = ValueDecToINT<3>(flip);
         GetVoxels(wid).Copy(p, sz, d, fl);
         return Value();
     }
@@ -151,7 +151,7 @@ void AddCubeGen() {
         " Coordinates automatically clipped to the size of the grid");
 
     STARTDECL(cg_color_to_palette) (Value &wid, Value &color) {
-        return Value(GetVoxels(wid).Color2Palette(ValueDecToF<4>(color)));
+        return Value(GetVoxels(wid).Color2Palette(float4(ValueDecToF<4>(color))));
     }
     ENDDECL2(cg_color_to_palette, "block,color", "XF]:4", "I",
         "converts a color to a palette index. alpha < 0.5 is considered empty space."
@@ -159,7 +159,7 @@ void AddCubeGen() {
 
     STARTDECL(cg_palette_to_color) (Value &wid, Value &pal) {
         auto p = uchar(pal.ival());
-        return Value(ToValueF(color2vec(GetVoxels(wid).palette[p])));
+        return Value(ToValueFLT(color2vec(GetVoxels(wid).palette[p])));
     }
     ENDDECL2(cg_palette_to_color, "block,paletteindex", "XI", "F]:4",
         "converts a palette index to a color. empty space (index 0) will have 0 alpha");
@@ -304,7 +304,7 @@ void AddCubeGen() {
         }
         auto tex = CreateTexture(buf, v.grid.dim.data(),
             TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
-            TF_BUFFER_HAS_MIPS | textureflags.ival());
+            TF_BUFFER_HAS_MIPS | textureflags.intval());
         delete[] buf;
         extern ResourceType texture_type;
         return Value(g_vm->NewResource((void *)(size_t)tex, &texture_type));
