@@ -14,7 +14,7 @@ selected := root
 entries := []
 
 def fullpath(n::node):
-    if parent: fullpath(parent) + "/" + name else: name
+    if parent: parent.fullpath() + "/" + name else: name
 
 def scan(n:node):
     entries = []
@@ -31,7 +31,7 @@ def select(n:node):
 
 def unparent(n::node):
     parent = nil
-    for(children): unparent(_)
+    for(children): _.unparent()
 
 select(root)
 

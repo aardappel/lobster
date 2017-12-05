@@ -111,7 +111,7 @@ struct Parser {
     }
 
     SpecIdent *DefineWith(const string &idname, bool isprivate, bool isdef, bool islogvar) {
-        auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true)
+        auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true, false)
                         : st.LookupUse(idname, lex);
         if (islogvar) st.MakeLogVar(id);
         if (isprivate) {
@@ -185,7 +185,7 @@ struct Parser {
                 int cur = incremental ? 0 : 1;
                 for (;;) {
                     ExpectId();
-                    auto id = st.LookupDef(lastid, lex.errorline, lex, false, true);
+                    auto id = st.LookupDef(lastid, lex.errorline, lex, false, true, false);
                     id->constant = true;
                     if (isprivate) id->isprivate = true;
                     if (IsNext(T_ASSIGN)) {
@@ -248,7 +248,7 @@ struct Parser {
         };
         size_t specializer_i = 0;
         auto specialize_field = [&] (Field &field) {
-            if (field.flags == AF_ANYTYPE) {
+            if (field.flags & AF_ANYTYPE) {
                 if (specializer_i >= spectypes.size()) Error("too few type specializers");
                 auto &p = spectypes[specializer_i++];
                 field.type = p.first;
@@ -356,7 +356,7 @@ struct Parser {
         auto e = ParseExp();
         auto id = dynscope
             ? st.LookupDynScopeRedef(idname, lex)
-            : st.LookupDef(idname, lex.errorline, lex, false, true);
+            : st.LookupDef(idname, lex.errorline, lex, false, true, false);
         if (dynscope)  id->Assign(lex);
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
@@ -381,7 +381,7 @@ struct Parser {
             ParseType(type, withtype);
             Expect(T_ASSIGN);
             auto e = ParseExp();
-            auto id = st.LookupDef(idname, lex.errorline, lex, false, true);
+            auto id = st.LookupDef(idname, lex.errorline, lex, false, true, withtype);
             if (isprivate) id->isprivate = true;
             return new Define(lex, id->cursid, e, type);
         }
@@ -412,16 +412,16 @@ struct Parser {
         size_t nargs = 0;
         if (self) {
             nargs++;
-            auto id = st.LookupDef("this", lex.errorline, lex, false, false);
+            auto id = st.LookupDef("this", lex.errorline, lex, false, false, true);
             auto type = &self->thistype;
             st.AddWithStruct(type, id, lex);
-            sf->args.v.back().SetType(type, st.IsGeneric(type));
+            sf->args.v.back().SetType(type, st.IsGeneric(type), true);
         }
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
                 nargs++;
-                auto id = st.LookupDef(lastid, lex.errorline, lex, false, false);
+                auto id = st.LookupDef(lastid, lex.errorline, lex, false, false, false);
                 TypeRef type;
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype)) {
@@ -429,7 +429,7 @@ struct Parser {
                     ParseType(type, withtype);
                     if (withtype) st.AddWithStruct(type, id, lex);
                 }
-                sf->args.v.back().SetType(type, st.IsGeneric(type));
+                sf->args.v.back().SetType(type, st.IsGeneric(type), withtype);
                 if (!IsNext(T_COMMA)) break;
             }
         }
@@ -444,7 +444,7 @@ struct Parser {
             // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
             // which specialization that refers to).
             for (auto &arg : f.subf->args.v) {
-                if (arg.flags == AF_ANYTYPE) arg.flags = AF_NONE;
+                if (arg.flags & AF_ANYTYPE) arg.flags = AF_NONE;
             }
             ParseType(sf->returntypes[0], false, nullptr, sf);
         } else {
@@ -516,7 +516,7 @@ struct Parser {
                 if (fieldrefstruct) {
                     for (auto &field : fieldrefstruct->fields.v) {
                         if (field.id->name == lex.sattr) {
-                            if (field.flags != AF_ANYTYPE)
+                            if (!(field.flags & AF_ANYTYPE))
                                 Error("field reference must be to generic field: " + lex.sattr);
                             lex.Next();
                             dest = field.type;
@@ -885,8 +885,9 @@ struct Parser {
                 // If we're in the context of a withtype, calling a function that starts with an
                 // arg of the same type we pass it in automatically.
                 // This is maybe a bit very liberal, should maybe restrict it?
-                // This also hits when 
-                if (wse && wse->first == f->subf->args.v[0].type) {
+                if (wse &&
+                    wse->first == f->subf->args.v[0].type &&
+                    f->subf->args.v[0].flags & AF_WITHTYPE) {
                     firstarg = new IdentRef(lex, wse->second->cursid);
                 }
             }
@@ -1161,8 +1162,8 @@ struct Parser {
             }
             // Check for implicit variable.
             if (idname[0] == '_') {
-                return new IdentRef(lex,
-                                    st.LookupDef(idname, lex.errorline, lex, true, false)->cursid);
+                return new IdentRef(lex, st.LookupDef(idname, lex.errorline, lex, true, false,
+                                                      false)->cursid);
             }
             auto id = st.Lookup(idname);
             // Check for function call without ().

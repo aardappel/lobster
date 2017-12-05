@@ -153,7 +153,8 @@ enum ArgFlags {
     NF_SUBARG2 = 8,
     NF_SUBARG3 = 16,
     NF_ANYVAR = 32,
-    NF_CORESUME = 64
+    NF_CORESUME = 64,
+    AF_WITHTYPE = 128
 };
 
 struct Ident;
@@ -165,11 +166,11 @@ struct Typed {
 
     Typed() : flags(AF_NONE) {}
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
-    Typed(TypeRef _type, bool generic) { SetType(_type, generic); }
+    Typed(TypeRef _type, bool generic, bool withtype) { SetType(_type, generic, withtype); }
 
-    void SetType(TypeRef _type, bool generic) {
+    void SetType(TypeRef _type, bool generic, bool withtype) {
         type = _type;
-        flags = generic ? AF_ANYTYPE : AF_NONE;
+        flags = ArgFlags((generic ? AF_ANYTYPE : AF_NONE) | (withtype ? AF_WITHTYPE : AF_NONE));
     }
 };
 

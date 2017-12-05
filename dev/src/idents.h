@@ -82,7 +82,7 @@ struct Field : Typed {
 
     Field() : Typed(), id(nullptr), fieldref(-1), defaultval(nullptr) {}
     Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
-        : Typed(_type, _generic), id(_id),
+        : Typed(_type, _generic, false), id(_id),
           fieldref(_fieldref), defaultval(_defaultval) {}
     Field(const Field &o);
     ~Field();
@@ -158,8 +158,8 @@ struct Arg : Typed {
 
     Arg() : Typed(), sid(nullptr) {}
     Arg(const Arg &o) : Typed(o), sid(o.sid) {}
-    Arg(SpecIdent *_sid, TypeRef _type, bool generic)
-        : sid(_sid) { SetType(_type, generic); }
+    Arg(SpecIdent *_sid, TypeRef _type, bool generic, bool withtype)
+        : sid(_sid) { SetType(_type, generic, withtype); }
 };
 
 struct ArgVector : GenericArgs {
@@ -346,7 +346,8 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *LookupDef(const string &name, int line, Lex &lex, bool anonymous_arg, bool islocal) {
+    Ident *LookupDef(const string &name, int line, Lex &lex, bool anonymous_arg, bool islocal,
+                     bool withtype) {
         auto sf = defsubfunctionstack.back();
         auto existing_ident = Lookup(name);
         if (anonymous_arg && existing_ident && existing_ident->sf_def == sf) return existing_ident;
@@ -357,7 +358,7 @@ struct SymbolTable {
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
         ident->cursid = NewSid(ident);
-        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident->cursid, type_any, true));
+        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident->cursid, type_any, true, withtype));
         if (existing_ident) {
             lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
@@ -371,7 +372,7 @@ struct SymbolTable {
         auto ident = Lookup(name);
         if (!ident)
             lex.Error("lhs of <- must refer to existing variable: " + name);
-        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, true));
+        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, true, false));
         return ident;
     }
 
