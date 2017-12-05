@@ -70,3 +70,9 @@
 dev/compiled_lobster/src/compiled_lobster\.cpp
 
 lobster/lobster\.exe
+
+*.tmp
+
+dev/compiled_lobster/compiled_lobster/x64/Debug/
+
+dev/compiled_lobster/compiled_lobster/x64/Release/
