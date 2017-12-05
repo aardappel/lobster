@@ -349,6 +349,7 @@ struct CodeGen  {
         if (f.multimethod) {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
+        SplitAttr(Pos());
         auto nretvals = max(f.nretvals, 1);
         assert(nretvals == (int)sf.returntypes.size());
         if (sf.reqret) {
@@ -363,7 +364,6 @@ struct CodeGen  {
             assert(!retval);
             Dummy(retval);
         }
-        SplitAttr(Pos());
     };
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
