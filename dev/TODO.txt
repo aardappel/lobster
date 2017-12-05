@@ -1,3 +1,7 @@
+- 64bit mode improvements:
+  - pushflt64?
+  - Optimizer can't use 32bit values.
+
 - This doesn't typecheck correctly:
   if !lhs:
       lhs = ...
@@ -435,6 +439,8 @@
      Actually, can do this gradually, by providing additional accessors, and then do it where it makes sense.
      the code though. definitely the easiest / cleanest solution, and has the additional benefit that people can
      choose wether they think they need 64bit on a per project basis.
+     - Actually, apart from Windows, it's getting harder to build for 32bit, so people will be forced to use
+       twice the memory.
      Also, lifts the limit of being able to load 4gig files, and hack in the directory scanning code etc.
      - if we go this route, can use original sizes for spheres in smallpt, and can actually implement project euler
   3) Could allow types of different sizes at least in vectors and structs where they take the most space, and
@@ -497,6 +503,11 @@
        Also means we can't use the base allocator anymore.
      - Could track all allocations in an IntResourceManagerCompact.. that's a fair bit of extra memory usage
        though for small objects.
+     The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
+  Can actually combine these approaches:
+  - make most functions use intp/floatp for native values.
+  - in 64bit, either make those 64bit with native pointers, or define them as 32bit still with mmapped-pointers.
+  - add ability to store 8/16/32/64 bit types in structs/vectors as desired.
 
 - add support for http://vallentinsource.com/opengl/debug-output
 
@@ -845,11 +856,18 @@ SPEED TESTS
 ===========
 secs measured in release win32 on speedtest.lobster, all other figures in debug.
 
-VM: last_dynamically_typed: secs 10.11, ins 599572240, fcall 57534476, bcall 2534535, totalallocs 4501531,  59.3m ins/sec.
-VM: last_switch_statement : secs  7.65, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586,  69.1m ins/sec.
-VM: over function pointer : secs  6.99, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586,  75.6m ins/sec.
-C++: first compiled       : secs  4.85, ins 528287030, fcall 53352301, bcall 3283290, totalallocs 4528586, 108.9m ins/sec.
-VM: first inlining        : secs  6.55, ins 511702691, fcall 34036002, bcall 3289786, totalallocs 4559054,  78.1m ins/sec.
-C++: first inlining       : secs  4.31, ins 511702691, fcall 34036002, bcall 3289786, totalallocs 4559054, 118.7m ins/sec.
-VM: inlined for           : secs  5:19, ins 532311325, fcall 10848019, bcall 3285282, totalallocs 4528342, 102.7m ins/sec.
-C++: inlined for          : secs  2.86, ins 532311325, fcall 10848019, bcall 3285282, totalallocs 4528342, 186.1m ins/sec.
+2600K
+VM: last_dyn_typed: secs 10.11, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531,  59.3m ins/sec.
+VM: last_switch   : secs  7.65, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586,  69.1m ins/sec.
+VM: over fun ptr  : secs  6.99, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586,  75.6m ins/sec.
+C++: first comp   : secs  4.85, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586, 108.9m ins/sec.
+VM: first inline  : secs  6.55, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054,  78.1m ins/sec.
+C++: first inline : secs  4.31, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054, 118.7m ins/sec.
+VM: inlined for   : secs  5:19, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342, 102.7m ins/sec.
+C++: inlined for  : secs  2.86, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342, 186.1m ins/sec.
+
+8700K
+VM: inlined for   : secs  2.92, 1.77x vs 2600K
+C++: inlined for  : secs  2.00, 1.43x vs 2600K
+VM64: inlined for : secs  2.38, 1.23x vs 32bit
+C++64: inlined for: secs  1.72, 1.16x vs 32bit
