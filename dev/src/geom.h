@@ -66,6 +66,11 @@ template<typename T> struct basevec<T, 4> {
 template<typename T, int N> struct vec : basevec<T, N> {
     enum { NUM_ELEMENTS = N };
     typedef T CTYPE;
+    
+    // Clang needs these, but VS is cool without them?
+    using basevec<T, N>::c;
+    using basevec<T, N>::x;
+    using basevec<T, N>::y;
 
     vec() {
         #ifdef _DEBUG

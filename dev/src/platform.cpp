@@ -62,6 +62,22 @@ FileLoader cur_loader = nullptr;
 bool have_console = true;
 
 
+#ifndef _WIN32   // Emulate QPC on *nix, thanks Lee.
+struct LARGE_INTEGER {
+    long long int QuadPart;
+};
+
+void QueryPerformanceCounter(LARGE_INTEGER *dst) {
+    struct timeval t;
+    gettimeofday (& t, nullptr);
+    dst->QuadPart = t.tv_sec * 1000000LL + t.tv_usec;
+}
+
+void QueryPerformanceFrequency(LARGE_INTEGER *dst) {
+    dst->QuadPart = 1000000LL;
+}
+#endif
+
 static LARGE_INTEGER time_frequency, time_start;
 void InitTime() {
     QueryPerformanceFrequency(&time_frequency);
@@ -331,22 +347,6 @@ void MsgBox(const char *err) {
         (void)err;
     #endif
 }
-
-#ifndef _WIN32   // Emulate QPC on *nix, thanks Lee.
-    struct LARGE_INTEGER {
-        long long int QuadPart;
-    };
-
-    void QueryPerformanceCounter(LARGE_INTEGER *dst) {
-        struct timeval t;
-        gettimeofday (& t, nullptr);
-        dst->QuadPart = t.tv_sec * 1000000LL + t.tv_usec;
-    }
-
-    void QueryPerformanceFrequency(LARGE_INTEGER *dst) {
-        dst->QuadPart = 1000000LL;
-    }
-#endif
 
 // Use this instead of assert to break on a condition and still be able to continue in the debugger.
 void ConditionalBreakpoint(bool shouldbreak) {
