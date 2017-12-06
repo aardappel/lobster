@@ -2,23 +2,6 @@
 
 include "std.lobster"
 
-// vector types: generally for float elements, but useful for other types as well
-
-value xy { x, y:x }
-value xyz : xy { z:x }
-value xyzw : xyz { w:x }
-
-// Specialized type names:
-
-value xy_f = xy(float)
-value xy_i = xy(int)
-
-value xyz_f = xyz(float)
-value xyz_i = xyz(int)
-
-value xyzw_f = xyzw(float)
-value xyzw_i = xyzw(int)
-
 // Convenient constants:
 
 xy_0 :== xy { 0.0, 0.0 }
@@ -84,6 +67,11 @@ def xyz(v): xyz { v.x, v.y, v.z }
 // lengthen vectors
 def xyz(v, z):  xyz  { v.x, v.y, z }
 def xyzw(v, w): xyzw { v.x, v.y, v.z, w }
+
+// create from vector types
+def xy_v(v): xy { v[0], v[1] }
+def xyz_v(v): xyz { v[0], v[1], v[2] }
+def xyzw_v(v): xyzw { v[0], v[1], v[2], v[3] }
 
 // flip vectors
 def yx(v): xy { v.y, v.x }

@@ -23,11 +23,12 @@ Impressively.. empty.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 include "vec.lobster"
+include "color.lobster"
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
 while gl_frame() and gl_button("escape") != 1:
-    gl_clear([ 0.0, 0.0, 0.0, 1.0 ])
+    gl_clear(color_black)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `gl_window` is our graphics initialization routine, and is the first thing we
@@ -54,9 +55,8 @@ they press the escape key, so we check for that too (the `&` symbol means and
 *and* `!` is *not*).
 
 Then inside the frame loop, we clear the screen (remember that we draw
-repeatedly), and then we're ready to draw. The `[ ]` indicate a vector, in this
-case with 4 elements, corresponding to RGBA color components (in this case
-black, with opaque alpha).
+repeatedly), and then we're ready to draw. `color_black` is a constant
+from `color.lobster`, representing a 4 component RGBA.
 
 ### 2: Drawing and World Space
 
@@ -83,11 +83,6 @@ while gl_frame() and gl_button("escape") != 1:
     gl_scale(gl_windowsize().y / worldsize)
     gl_circle(1, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-What changed: first, we pulled in two more standard lobster includes.
-`color.lobster` gives us convenient color presets, useful for the `gl_clear` we
-already had, and now we set `gl_color` to determine the default color to draw
-with.
 
 Before we can actually draw, we have to talk about coordinate systems. By
 default, coordinates in Lobster correspond directly to pixels, with (0,0) in the
@@ -288,7 +283,7 @@ while gl_frame() and gl_button("escape") != 1:
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
-            gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
+            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To be able to shoot, first we have to worry about giving our player an
@@ -381,7 +376,7 @@ modifications to the existing code:
 def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
+            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, let's take the code for rendering the player and put it in it's own

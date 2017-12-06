@@ -50,11 +50,11 @@ def render_tree(n:node):
             gl_color color_yellow:
                 gl_rect(size)
         gl_text(text)
-        gl_translate([ 0.0, fontsize ])
+        gl_translate(xy { 0.0, fontsize })
         if n.size < 0:
-            gl_translate([ indentsize, 0.0 ])
+            gl_translate xy_f { indentsize, 0.0 }
             for(n.children): render_tree(_)
-            gl_translate([ -indentsize, 0.0 ])
+            gl_translate xy_f { -indentsize, 0.0 }
 
 def render_entries():
     for(entries) e:
@@ -73,16 +73,16 @@ def render_entries():
                 gl_color color_light_grey:
                     gl_rect(size)
             gl_text(e.name)
-            gl_translate([ 0.0, fontsize ])
+            gl_translate xy { 0.0, fontsize }
 
 def render_sizes():
     for(entries) e:
         gl_color color_dark_green:
             text := if e.size < 0: "---" else: e.size + 1 + "K"
             size := gl_textsize(text)
-            gl_translate [ 90.0 - size.x, 0.0 ]:
+            gl_translate xy { 90.0 - size.x, 0.0 }:
                 gl_text(text)
-            gl_translate([ 0.0, fontsize ])
+            gl_translate xy { 0.0, fontsize }
 
 fatal(gl_window("dirbrowsing", 1024, 768))
 check(gl_setfontname("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_setfontsize(fontsize), "can\'t load font!")
@@ -91,12 +91,12 @@ while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:
-        gl_rect([ 400.0, gl_windowsize().y ])
+        gl_rect(xy { 400.0, gl_windowsize().y })
     gl_translate xy_0:
         render_tree(root)
-    gl_translate [ 400.0, 0.0 ]:
+    gl_translate xy { 400.0, 0.0 }:
         render_sizes()
-    gl_translate [ 500.0, 0.0 ]:
+    gl_translate xy { 500.0, 0.0 }:
         render_entries()
 
 // the parent links cause cycles that our refcount VM can't handle. could GC it instead, but that could mask bugs:

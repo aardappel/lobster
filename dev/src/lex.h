@@ -78,9 +78,8 @@ struct Lex : LoadedFile {
         if (token == T_LINEFEED) Next();
     }
 
-    void Include(char *_fn) {
+    void Include(const char *_fn) {
         if (allfiles.find(_fn) != allfiles.end()) {
-            Next();
             return;
         }
         allfiles.insert(_fn);
@@ -92,7 +91,6 @@ struct Lex : LoadedFile {
     void PopIncludeContinue() {
         *((LoadedFile *)this) = parentfiles.back();
         parentfiles.pop_back();
-        Next();
     }
 
     void Push(TType t, const string &a = string()) {

@@ -262,20 +262,20 @@ void AddGraphics() {
     STARTDECL(gl_windowsize) () {
         return ToValueINT(GetScreenSize());
     }
-    ENDDECL0(gl_windowsize, "", "", "I]:2",
+    ENDDECL0(gl_windowsize, "", "", "I}:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
     STARTDECL(gl_mousepos) (Value &i) {
         return ToValueINT(GetFinger(i.intval(), false));
     }
-    ENDDECL1(gl_mousepos, "i", "I", "I]:2",
+    ENDDECL1(gl_mousepos, "i", "I", "I}:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
         " fingers (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_mousedelta) (Value &i) {
         return ToValueINT(GetFinger(i.intval(), true));
     }
-    ENDDECL1(gl_mousedelta, "i", "I", "I]:2",
+    ENDDECL1(gl_mousedelta, "i", "I", "I}:2",
         "number of pixels the mouse/finger has moved since the last frame. use this instead of"
         " substracting positions to correctly deal with lifted fingers and FPS mode"
         " (gl_cursor(0))");
@@ -283,7 +283,7 @@ void AddGraphics() {
     STARTDECL(gl_localmousepos) (Value &i) {
         return ToValueFLT(localfingerpos(i.intval()));
     }
-    ENDDECL1(gl_localmousepos, "i", "I", "F]:2",
+    ENDDECL1(gl_localmousepos, "i", "I", "F}:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
@@ -292,7 +292,7 @@ void AddGraphics() {
         name.DECRT();
         return ToValueINT(p);
     }
-    ENDDECL2(gl_lastpos, "name,down", "SI", "I]:2",
+    ENDDECL2(gl_lastpos, "name,down", "SI", "I}:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_locallastpos) (Value &name, Value &on) {
@@ -300,7 +300,7 @@ void AddGraphics() {
         name.DECRT();
         return ToValueFLT(p);
     }
-    ENDDECL2(gl_locallastpos, "name,down", "SI", "F]:2",
+    ENDDECL2(gl_locallastpos, "name,down", "SI", "F}:2",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or"
         " up (false)");
 
@@ -342,7 +342,7 @@ void AddGraphics() {
         ClearFrameBuffer(ValueDecToFLT<3>(col));
         return Value();
     }
-    ENDDECL1(gl_clear, "col", "F]", "",
+    ENDDECL1(gl_clear, "col", "F}:4", "",
         "clears the framebuffer (and depth buffer) to the given color");
 
     STARTDECL(gl_color) (Value &col, Value &body) {
@@ -354,7 +354,7 @@ void AddGraphics() {
     MIDDECL(gl_color) () {
         curcolor = ValueDecToFLT<4>(g_vm->Pop());
     }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "F]C?", "",
+    ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4C?", "",
         "sets the current color. when a body is given, restores the previous color afterwards");
 
     STARTDECL(gl_polygon) (Value &vl) {
@@ -363,7 +363,7 @@ void AddGraphics() {
         delete m;
         return vl;
     }
-    ENDDECL1(gl_polygon, "vertlist", "F]]", "A1",
+    ENDDECL1(gl_polygon, "vertlist", "F}]", "A1",
         "renders a polygon using the list of points given. returns the argument."
         " warning: gl_polygon creates a new mesh every time, gl_newpoly/gl_rendermesh is faster.");
 
@@ -404,7 +404,7 @@ void AddGraphics() {
     MIDDECL(gl_rotate_x) () {
         PopTransform();
     }
-    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F]:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F}:2C?", "",
         "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -415,7 +415,7 @@ void AddGraphics() {
     MIDDECL(gl_rotate_y) () {
         PopTransform();
     }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F]:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F}:2C?", "",
         "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -426,7 +426,7 @@ void AddGraphics() {
     MIDDECL(gl_rotate_z) () {
         PopTransform();
     }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F]:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F}:2C?", "",
         "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
         " as angle. when a body is given, restores the previous transform afterwards");
 
@@ -437,7 +437,7 @@ void AddGraphics() {
     MIDDECL(gl_translate) () {
         PopTransform();
     }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F]C?", "",
+    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F}C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -459,7 +459,7 @@ void AddGraphics() {
     MIDDECL(gl_scale) () {
         PopTransform();
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F]C?", "",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F}C?", "",
         "scales the current coordinate system using a vector."
         " when a body is given, restores the previous transform afterwards");
 
@@ -467,7 +467,7 @@ void AddGraphics() {
         auto pos = floatp2(otransforms.object2view[3].x, otransforms.object2view[3].y);
         return ToValueF(pos);
     }
-    ENDDECL0(gl_origin, "", "", "F]:2",
+    ENDDECL0(gl_origin, "", "", "F}:2",
         "returns a vector representing the current transform origin in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
@@ -475,7 +475,7 @@ void AddGraphics() {
         auto sc = floatp2(otransforms.object2view[0].x, otransforms.object2view[1].y);
         return ToValueF(sc);
     }
-    ENDDECL0(gl_scaling, "", "", "F]:2",
+    ENDDECL0(gl_scaling, "", "", "F}:2",
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
@@ -522,7 +522,7 @@ void AddGraphics() {
         */
         return Value(size == lastframehitsize && hit);
     }
-    ENDDECL2(gl_hit, "vec,i", "F]I", "I",
+    ENDDECL2(gl_hit, "vec,i", "F}I", "I",
         "wether the mouse/finger is inside of the rectangle specified in terms of the current"
         " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
         " the last rectangle for which gl_hit was true last frame is of the same size as this one"
@@ -534,7 +534,7 @@ void AddGraphics() {
                               float4x4(float4(ValueToFLT<2>(vec), 1)));
         return vec;
     }
-    ENDDECL2(gl_rect, "size,centered", "F]I?", "F]",
+    ENDDECL2(gl_rect, "size,centered", "F}I?", "F}",
         "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
         " size. returns the argument.");
 
@@ -554,7 +554,7 @@ void AddGraphics() {
         else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fltval());
         return Value();
     }
-    ENDDECL3(gl_line, "start,end,thickness", "F]F]F", "",
+    ENDDECL3(gl_line, "start,end,thickness", "F}F}F", "",
         "renders a line with the given thickness");
 
     STARTDECL(gl_perspective) (Value &fovy, Value &znear, Value &zfar) {
@@ -580,31 +580,30 @@ void AddGraphics() {
         Set3DOrtho(ValueDecToFLT<3>(center), ValueDecToFLT<3>(extends));
         return Value();
     }
-    ENDDECL2(gl_ortho3d, "center,extends", "F]F]", "",
+    ENDDECL2(gl_ortho3d, "center,extends", "F}F}", "",
         "sets a custom ortho projection as 3D projection.");
 
-    STARTDECL(gl_newmesh) (Value &format, Value &attributes, Value &indices) {
+    STARTDECL(gl_newmesh) (Value &format, Value &positions, Value &colors,
+                           Value &normals, Value &texcoords1, Value &texcoords2, Value &indices) {
         TestGL();
         auto nattr = format.sval()->len;
-        if (nattr < 1 || nattr > 10 || nattr != attributes.vval()->len)
+        if (nattr < 1 || nattr > 10)
             g_vm->BuiltinError("newmesh: illegal format/attributes size");
         auto fmt = format.sval()->str();
         if (nattr != (int)strspn(fmt, "PCTN") || fmt[0] != 'P')
             g_vm->BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
-        auto attrs = attributes.vval();
-        auto positions = attrs->At(0);
+        intp nverts = positions.vval()->Len();
         vector<int> idxs;
         if (indices.True()) {
-            for (int i = 0; i < indices.eval()->Len(); i++) {
-                auto &e = indices.eval()->At(i);
-                if (e.ival() < 0 || e.ival() >= positions.eval()->Len())
+            for (int i = 0; i < indices.vval()->Len(); i++) {
+                auto &e = indices.vval()->At(i);
+                if (e.ival() < 0 || e.ival() >= nverts)
                     g_vm->BuiltinError("newmesh: index out of range of vertex list");
                 idxs.push_back(e.intval());
             }
-            indices.DECRT();
+            indices.DECRTNIL();
         }
-        intp nverts = positions.eval()->Len();
         size_t vsize = AttribsSize(fmt);
         size_t normal_offset = 0;
         auto verts = new uchar[nverts * vsize];
@@ -613,24 +612,33 @@ void AddGraphics() {
             auto p = start;
             auto fmt_it = fmt;
             float3 pos;
+            int texcoordn = 0;
             while (*fmt_it) {
-                auto attrv = attrs->At((int)(fmt_it - fmt)).vval();
                 switch (*fmt_it++) {
                     case 'P':
-                        *((float3 *&)p)++ = pos = ValueToFLT<3>(attrv->At(i));
+                        *((float3 *&)p)++ = pos = ValueToFLT<3>(positions.vval()->At(i));
                         break;
                     case 'C':
                         *((byte4  *&)p)++ =
-                            i < attrv->Len() ? quantizec(ValueToFLT<4>(attrv->At(i), 1)) : byte4_255;
+                            i < colors.vval()->Len()
+                                ? quantizec(ValueToFLT<4>(colors.vval()->At(i), 1))
+                                : byte4_255;
                         break;
-                    case 'T':
+                    case 'T': {
+                        auto &texcoords = texcoordn ? texcoords2 : texcoords1;
                         *((float2 *&)p)++ =
-                            i < attrv->Len() ? ValueToFLT<2>(attrv->At(i), 0) : pos.xy();
+                            i < texcoords.vval()->Len()
+                                ? ValueToFLT<2>(texcoords.vval()->At(i), 0)
+                                : pos.xy();
+                        texcoordn++;
                         break;
+                    }
                     case 'N':
-                        if (!attrv->Len()) normal_offset = p - start;
+                        if (!normals.vval()->Len()) normal_offset = p - start;
                         *((float3 *&)p)++ =
-                            i < attrv->Len() ? ValueToFLT<3>(attrv->At(i), 0) : float3_0;
+                            i < normals.vval()->Len()
+                                ? ValueToFLT<3>(normals.vval()->At(i), 0)
+                                : float3_0;
                         break;
                     default: assert(0);
                 }
@@ -646,24 +654,28 @@ void AddGraphics() {
         if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
         delete[] verts;
         format.DECRT();
-        attributes.DECRT();
+        positions.DECRT();
+        colors.DECRT();
+        normals.DECRT();
+        texcoords1.DECRT();
+        texcoords2.DECRT();
         return Value(g_vm->NewResource(m, &mesh_type));
     }
-    ENDDECL3(gl_newmesh, "format,attributes,indices", "SF]]]I]?", "X",
+    ENDDECL7(gl_newmesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
+             "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "X",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
-        " position is obligatory and must come first."
-        " attributes is a vector with the same number of attribute vectors as format elements."
-        " you may specify [] to get defaults for colors (white) / texcoords (position x & y) /"
-        " normals (generated from adjacent triangles)."
-        " example: mymesh := gl_newmesh(\"PCN\", [ positions, colors, [] ], indices)");
+        " indices may be []. positions is obligatory."
+        " you may specify [] for any of the other attributes if not required by format,"
+        " or to get defaults for colors (white) / texcoords (position x & y) /"
+        " normals (generated from adjacent triangles).")
 
     STARTDECL(gl_newpoly) (Value &positions) {
         auto m = CreatePolygon(positions);
         positions.DECRT();
         return Value(g_vm->NewResource(m, &mesh_type));
     }
-    ENDDECL1(gl_newpoly, "positions", "F]]", "X",
+    ENDDECL1(gl_newpoly, "positions", "F}]", "X",
         "creates a mesh out of a loop of points, much like gl_polygon."
         " gl_linemode determines how this gets drawn (fan or loop)."
         " returns mesh id");
@@ -730,18 +742,35 @@ void AddGraphics() {
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
         " color / textured / phong");
 
-    STARTDECL(gl_setuniform) (Value &name, Value &vec) {
+    // FIXME: duplication.
+    STARTDECL(gl_setuniform) (Value &name, Value &vec, Value &ignore_errors) {
         TestGL();
         auto len = vec.eval()->Len();
         auto v = ValueDecToFLT<4>(vec);
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), (int)len);
+        if (!ok && !ignore_errors.True())
+            g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
         name.DECRT();
         return Value(ok);
     }
-    ENDDECL2(gl_setuniform, "name,value", "SF]", "I",
+    ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SF}I?", "I",
         "set a uniform on the current shader. size of float vector must match size of uniform"
-        " in the shader. returns false on error.");
+        " in the shader.");
+
+    STARTDECL(gl_setuniform) (Value &name, Value &vec, Value &ignore_errors) {
+        TestGL();
+        currentshader->Activate();
+        auto f = vec.fltval();
+        auto ok = currentshader->SetUniform(name.sval()->str(), &f, 1);
+        if (!ok && !ignore_errors.True())
+            g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SFI?", "I",
+        "set a uniform on the current shader. uniform"
+        " in the shader must be a single float.");
 
     STARTDECL(gl_setuniformarray) (Value &name, Value &vec) {
         TestGL();
@@ -754,7 +783,7 @@ void AddGraphics() {
         name.DECRT();
         return Value(ok);
     }
-    ENDDECL2(gl_setuniformarray, "name,value", "SF]]", "I",
+    ENDDECL2(gl_setuniformarray, "name,value", "SF}:4]", "I",
              "set a uniform on the current shader. uniform in the shader must be an array of vec4."
              " returns false on error.");
 
@@ -768,7 +797,7 @@ void AddGraphics() {
         name.DECRT();
         return Value((int)id);
     }
-    ENDDECL3(gl_uniformbufferobject, "name,value,ssbo", "SF]]I?", "I",
+    ENDDECL3(gl_uniformbufferobject, "name,value,ssbo", "SF}:4]I?", "I",
         "creates a uniform buffer object, and attaches it to the current shader at the given"
         " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
         " ssbo indicates if you want a shader storage block instead."
@@ -799,7 +828,7 @@ void AddGraphics() {
         DispatchCompute(ValueDecToINT<3>(groups));
         return Value();
     }
-    ENDDECL1(gl_dispatchcompute, "groups", "I]", "",
+    ENDDECL1(gl_dispatchcompute, "groups", "I}:3", "",
         "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
         " values.");
 
@@ -838,7 +867,7 @@ void AddGraphics() {
         g_vm->Push(id ? g_vm->NewResource((void *)(size_t)id, &texture_type) : Value());
         return ToValueINT(dim);
     }
-    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I]:2",
+    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I}:2",
         "returns texture if succesfully loaded from file name, otherwise nil."
         " see color.lobster for texture format. Returns the size of the loaded textures in pixels"
         " as second return value (xy_i), or (0, 0) otherwise. Uses stb_image internally"
@@ -895,7 +924,7 @@ void AddGraphics() {
         delete[] buf;
         return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
-    ENDDECL2(gl_createtexture, "matrix,textureformat", "F]]]I?", "X",
+    ENDDECL2(gl_createtexture, "matrix,textureformat", "F}:4]]I?", "X",
         "creates a texture from a 2d array of color vectors."
         " see texture.lobster for texture format");
 
@@ -904,7 +933,7 @@ void AddGraphics() {
         auto id = CreateBlankTexture(ValueDecToINT<2>(size_), ValueDecToFLT<4>(col), tf.intval());
         return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
     }
-    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I]F]I?", "X",
+    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I}:2F}:4I?", "X",
         "creates a blank texture (for use as frame buffer or with compute shaders)."
         " see texture.lobster for texture format");
 
@@ -913,7 +942,7 @@ void AddGraphics() {
         auto size = TextureSize(GetTexture(tex));
         return ToValueINT(size);
     }
-    ENDDECL1(gl_texturesize, "tex", "X", "I:2]",
+    ENDDECL1(gl_texturesize, "tex", "X", "I}:2",
         "returns the size of a texture");
 
     STARTDECL(gl_readtexture) (Value &t) {
@@ -939,7 +968,7 @@ void AddGraphics() {
         return Value(SwitchToFrameBuffer(tex, tex ? sz : GetScreenSize(),
                                          depth.True(), tf.intval(), retex.intval()));
     }
-    ENDDECL5(gl_switchtoframebuffer, "tex,fbsize,hasdepth,textureformat,resolvetex", "X?I]?I?I?I?",
+    ENDDECL5(gl_switchtoframebuffer, "tex,fbsize,hasdepth,textureformat,resolvetex", "X?I}:2?I?I?I?",
         "I",
         "switches to a new framebuffer, that renders into the given texture. pass the texture size."
         " also allocates a depth buffer for it if depth is true."
@@ -955,7 +984,7 @@ void AddGraphics() {
         lights.push_back(l);
         return Value();
     }
-    ENDDECL2(gl_light, "pos,params", "F]F]", "",
+    ENDDECL2(gl_light, "pos,params", "F}:3F}:2", "",
         "sets up a light at the given position for this frame. make sure to call this after your"
         " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
         " params contains specular exponent in x (try 32/64/128 for different material looks) and"
@@ -991,7 +1020,7 @@ void AddGraphics() {
         delete[] vbuf;
         return Value();
     }
-    ENDDECL3(gl_rendertiles, "positions,tilecoords,mapsize", "F]]I]]I]", "",
+    ENDDECL3(gl_rendertiles, "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
         "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
         " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
         " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
@@ -1013,7 +1042,7 @@ void AddGraphics() {
         RenderArraySlow(PRIM_FAN, 4, "PT", sizeof(float) * 5, vb_square);
         return Value();
     }
-    ENDDECL3(gl_recttc, "size,tc,tcsize", "F]:2F]:2F]:2", "",
+    ENDDECL3(gl_recttc, "size,tc,tcsize", "F}:2F}:2F}:2", "",
         "Like gl_rect renders a sized quad, but allows you to specify texture coordinates. Slow.");
 
     STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness) {
@@ -1046,7 +1075,7 @@ void AddGraphics() {
         curcolor = oldcolor;
         return Value();
     }
-    ENDDECL3(gl_debug_grid, "num,dist,thickness", "I]F]F", "",
+    ENDDECL3(gl_debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
         "renders a grid in space for debugging purposes. num is the number of lines in all 3"
         " directions, and dist their spacing. thickness of the lines in the same units");
 

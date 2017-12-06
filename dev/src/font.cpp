@@ -145,6 +145,6 @@ void AddFont() {
         }
         return ToValueINT(size);
     }
-    ENDDECL1(gl_textsize, "text", "S", "I]:2",
+    ENDDECL1(gl_textsize, "text", "S", "I}:2",
         "the x/y size in pixels the given text would need");
 }

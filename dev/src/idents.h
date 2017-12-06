@@ -107,7 +107,7 @@ struct Struct : Named {
     bool generic;
     bool predeclaration;
     Type thistype;         // convenient place to store the type corresponding to this.
-    TypeRef vectortype;    // What kind of vector this can be demoted to.
+    TypeRef sametype;      // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo;  // Runtime type.
 
     Struct(const string &_name, int _idx)
@@ -115,7 +115,7 @@ struct Struct : Named {
           firstsubclass(nullptr), nextsubclass(nullptr),
           readonly(false), generic(false), predeclaration(false),
           thistype(V_STRUCT, this),
-          vectortype(type_vector_any),
+          sametype(type_any),
           typeinfo((type_elem_t)-1) {}
     Struct() : Struct("", 0) {}
 
@@ -273,25 +273,6 @@ struct Function : Named {
     }
 };
 
-inline string TypeName(TypeRef type) {
-    switch (type->t) {
-        case V_STRUCT: return type->struc->name;
-        case V_VECTOR: return type->Element()->t == V_VAR
-            ? "[]"
-            : "[" + TypeName(type->Element()) + "]";
-        case V_FUNCTION: return type->sf // || type->sf->anonymous
-            ? type->sf->parent->name
-            : "function";
-        case V_NIL: return type->Element()->t == V_VAR
-            ? "nil"
-            : TypeName(type->Element()) + "?";
-        case V_COROUTINE: return type->sf
-            ? "coroutine(" + type->sf->parent->name + ")"
-            : "coroutine";
-        default: return BaseTypeName(type->t);
-    }
-}
-
 struct SymbolTable {
     unordered_map<string, Ident *> idents;
     vector<Ident *> identtable;
@@ -317,7 +298,9 @@ struct SymbolTable {
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 
-    vector<TypeRef> default_int_vector_types, default_float_vector_types;
+    enum { NUM_VECTOR_TYPE_WRAPPINGS = 3 };
+    vector<TypeRef> default_int_vector_types[NUM_VECTOR_TYPE_WRAPPINGS],
+                    default_float_vector_types[NUM_VECTOR_TYPE_WRAPPINGS];
 
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
@@ -583,30 +566,43 @@ struct SymbolTable {
     const string &ReverseLookupType    (size_t v) const { return structtable[v]->name;    }
     const string &ReverseLookupFunction(size_t v) const { return functiontable[v]->name;  }
 
-    void RegisterTypeVector(vector<TypeRef> &sv, const char **names, bool isint) {
-        if (sv.size()) return;  // Already initialized.
-        sv.push_back(nullptr);
-        sv.push_back(nullptr);
+    bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
+        if (sv[0].size()) return true;  // Already initialized.
+        for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
+            sv[i].push_back(nullptr);
+            sv[i].push_back(nullptr);
+        }
         for (auto name = names; *name; name++) {
             // Can't use stucts.find, since all are out of scope.
             for (auto struc : structtable) if (struc->name == *name) {
-                sv.push_back(&struc->thistype);
+                for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
+                    auto vt = &struc->thistype;
+                    for (size_t j = 0; j < i; j++) vt = vt->Wrap(NewType());
+                    sv[i].push_back(vt);
+                }
                 goto found;
             }
-            sv.push_back(isint ? type_vector_int : type_vector_float);
+            return false;
             found:;
         }
+        return true;
     }
 
-    void RegisterDefaultVectorTypes() {
+    bool RegisterDefaultVectorTypes() {
         // TODO: This isn't great hardcoded in the compiler, would be better if it was declared in
         // lobster code.
         static const char *default_int_vector_type_names[]   =
             { "xy_i", "xyz_i", "xyzw_i", nullptr };
         static const char *default_float_vector_type_names[] =
             { "xy_f", "xyz_f", "xyzw_f", nullptr };
-        RegisterTypeVector(default_int_vector_types, default_int_vector_type_names, true);
-        RegisterTypeVector(default_float_vector_types, default_float_vector_type_names, false);
+        return RegisterTypeVector(default_int_vector_types, default_int_vector_type_names) &&
+               RegisterTypeVector(default_float_vector_types, default_float_vector_type_names);
+    }
+
+    TypeRef VectorType(TypeRef vt, size_t level, int arity) const {
+        return vt->sub->t == V_INT
+            ? default_int_vector_types[level][arity]
+            : default_float_vector_types[level][arity];
     }
 
     bool IsGeneric(TypeRef type) {
@@ -655,5 +651,34 @@ struct SymbolTable {
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };
+
+inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullptr) {
+    switch (type->t) {
+    case V_STRUCT:
+        return type->struc->name;
+    case V_VECTOR:
+        return flen && type->Element()->Numeric()
+            ? (flen < 0
+                ? (type->Element()->t == V_INT ? "xy_z_w_i" : "xy_z_w_f")  // FIXME: better names?
+                : TypeName(st->VectorType(type, 0, flen)))
+            : (type->Element()->t == V_VAR
+                ? "[]"
+                : "[" + TypeName(type->Element(), flen, st) + "]");
+    case V_FUNCTION:
+        return type->sf // || type->sf->anonymous
+            ? type->sf->parent->name
+            : "function";
+    case V_NIL:
+        return type->Element()->t == V_VAR
+            ? "nil"
+            : TypeName(type->Element(), flen, st) + "?";
+    case V_COROUTINE:
+        return type->sf
+            ? "coroutine(" + type->sf->parent->name + ")"
+            : "coroutine";
+    default:
+        return BaseTypeName(type->t);
+    }
+}
 
 }  // namespace lobster

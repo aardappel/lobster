@@ -20,7 +20,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
                 branches := rnd(3) + 1
                 for(branches) i:
                     mg_rotate(xyz_z, 360 * i / branches):
-                        mg_rotate(axis, 12 * branches):
+                        mg_rotate(xyz(axis, 0), 12 * branches):
                             mg_scale(narrowf):
                                 mg_sphere(1)
                                 model_tree(numb - 1, branchl, narrowf, leafs, leafc)
@@ -29,8 +29,8 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
             mg_sphere(leafs)
 
 mg_smooth(0.5)
-mg_color([ 0.7, 0.6, 0.5, 1.0 ])
-model_tree(10, 1.5, 0.75, 12, [ 0.6, 1.0, 0.6, 1.0 ])
+mg_color(color { 0.7, 0.6, 0.5, 1.0 })
+model_tree(10, 1.5, 0.75, 12, color { 0.6, 1.0, 0.6, 1.0 })
 tree := mg_polygonize(50)
 
 mg_smooth(0.0)
@@ -50,7 +50,7 @@ def drawworld():
     gl_clear(color_grey)
     gl_blend(blend_none)
 
-    gl_light(camera_position, [ 64.0, 1.0 ])
+    gl_light(camera_position, xy { 64.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_setshader("flat")
@@ -66,7 +66,7 @@ def drawworld():
                     gl_rendermesh(sphere)
 
     gl_setshader("color")
-    gl_debug_grid([ 20, 20, 0 ], xyz_1, 0.005)
+    gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -104,8 +104,8 @@ while gl_frame():
 
         for(2) e:
             vr_seteyetex(0, e)
-            gl_translate([ gl_windowsize().x * e / 2.0, gl_windowsize().y ]):
-                    gl_rect([ gl_windowsize().x / 2.0, -gl_windowsize().y ])
+            gl_translate(xy { gl_windowsize().x * e / 2.0, gl_windowsize().y }):
+                    gl_rect(xy { gl_windowsize().x / 2.0, -gl_windowsize().y })
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(0)

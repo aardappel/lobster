@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
         bool parsedump = false;
         bool disasm = false;
         bool to_cpp = false;
+        bool dump_builtins = false;
+        bool dump_names = false;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
@@ -73,8 +75,8 @@ int main(int argc, char* argv[]) {
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
                 else if (a == "--noconsole") { SetConsole(false); }
-                else if (a == "--gen-builtins-html") { DumpBuiltins(false); return 0; }
-                else if (a == "--gen-builtins-names") { DumpBuiltins(true); return 0; }
+                else if (a == "--gen-builtins-html") { dump_builtins = true; }
+                else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
@@ -105,7 +107,7 @@ int main(int argc, char* argv[]) {
             string dump;
             string pakfile;
             Compile(StripDirPart(fn).c_str(), nullptr, bytecode, parsedump ? &dump : nullptr,
-                lpak ? &pakfile : nullptr);
+                lpak ? &pakfile : nullptr, dump_builtins, dump_names);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump.c_str(), dump.length());
             }

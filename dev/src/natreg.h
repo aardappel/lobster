@@ -196,7 +196,7 @@ struct Narg : Typed {
             default:  assert(0);
         }
         while (*tid && !isalpha(*tid)) {
-            switch (*tid++) {
+            switch (auto c = *tid++) {
                 case 0: break;
                 case '1': flags = ArgFlags(flags | NF_SUBARG1); break;
                 case '2': flags = ArgFlags(flags | NF_SUBARG2); break;
@@ -205,8 +205,10 @@ struct Narg : Typed {
                 case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
                 case '%': flags = ArgFlags(flags | NF_CORESUME); break; // FIXME: make a vm op.
                 case ']':
+                case '}':
                     typestorage.push_back(Type());
                     type = type->Wrap(&typestorage.back());
+                    if (c == '}') fixed_len = -1;
                     break;
                 case '?':
                     typestorage.push_back(Type());
@@ -257,6 +259,7 @@ struct BuiltinPtr {
         Value (*f4)(Value &, Value &, Value &, Value &);
         Value (*f5)(Value &, Value &, Value &, Value &, Value &);
         Value (*f6)(Value &, Value &, Value &, Value &, Value &, Value &);
+        Value (*f7)(Value &, Value &, Value &, Value &, Value &, Value &, Value &);
     };
 };
 
@@ -362,6 +365,8 @@ extern NativeRegistry natreg;
     ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
 #define ENDDECL6(name, ids, types, rets, help) \
     ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
+#define ENDDECL7(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 7, NCM_NONE, nullptr)
 #define ENDDECL2CONTEXIT(name, ids, types, rets, help) \
     ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, &___##name::mid_##name)
 #define ENDDECL3CONTEXIT(name, ids, types, rets, help) \

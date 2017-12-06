@@ -33,7 +33,8 @@ nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
-nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s: gl_newpoly(map(s) c: map(3) i: float(c & (1 << (2 - i)) != 0))
+nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
+    gl_newpoly(map(s) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -42,7 +43,7 @@ while gl_frame():
     gl_perspective(70, 0.1, 1000)
     camera_FPS_update("w", "a", "s", "d", 10, 4, true)
     camera_FPS_view()
-    gl_light(camera_position, [ 64.0, 0.25 ])
+    gl_light(camera_position, xy { 64.0, 0.25 })
     gl_blend(blend_none)
     gl_setshader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
@@ -68,8 +69,9 @@ while gl_frame():
     gl_setshader("color")
     gl_blend(blend_alpha)
     wh := 11.7  // let's add some water!
-    gl_color([ 0.5, 0.5, 1.0, 0.5 ])
-    gl_polygon([ [1, 1, wh], [1, lssize - 1, wh], [lssize - 1, lssize - 1, wh], [lssize - 1, 1, wh] ])
+    gl_color(color { 0.5, 0.5, 1.0, 0.5 })
+    gl_polygon([ xyz { 1.0, 1.0, wh }, xyz { 1.0, lssize - 1.0, wh },
+                 xyz { lssize - 1.0, lssize - 1.0, wh }, xyz {lssize - 1.0, 1.0, wh } ])
     gl_ortho()
     gl_color(color_white)
     gl_translate float(gl_windowsize()) / 2:

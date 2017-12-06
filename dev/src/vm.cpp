@@ -855,10 +855,12 @@ void VM::F_CONT1(VM_OP_ARGS) {
 
 VM_JUMP_RET VM::F_IFOR() { FORLOOP(iter.ival(), false); }
 VM_JUMP_RET VM::F_VFOR() { FORLOOP(iter.eval()->Len(), true); }
+VM_JUMP_RET VM::F_NFOR() { FORLOOP(iter.eval()->Len(), true); }
 VM_JUMP_RET VM::F_SFOR() { FORLOOP(iter.sval()->len, true); }
 
 void VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
 void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->AtInc(i.ival())); }
+void VM::F_NFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->At(i.ival())); }
 void VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
 
 void VM::F_FORLOOPI(VM_OP_ARGS) {
@@ -887,6 +889,7 @@ BCALLOP(3, auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2));
 BCALLOP(4, auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3));
 BCALLOP(5, auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4));
 BCALLOP(6, auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4, a5));
+BCALLOP(7, auto a6 = POP();auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4, a5, a6));
 
 void VM::F_NEWVEC(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
@@ -1275,7 +1278,7 @@ void VM::PushDerefIdx(intp i) {
     Value r = POP();
     if (!r.ref()) { PUSH(r); return; }  // ?.
     switch (r.ref()->ti().t)  {  // FIXME: split this up into multiple ops, this is slow.
-        case V_STRUCT:  // Struct::vectortype
+        case V_STRUCT:
         case V_VECTOR:
             IDXErr(i, r.eval()->Len(), r.eval());
             PUSH(r.eval()->AtInc(i));

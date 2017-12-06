@@ -198,6 +198,22 @@ void AddBuiltins() {
         a.DECRT();
         return Value(len);
     }
+    ENDDECL1(length, "s", "F}", "I",
+        "number of fields in a numerical struct");
+
+    STARTDECL(length) (Value &a) {
+        auto len = a.eval()->Len();
+        a.DECRT();
+        return Value(len);
+    }
+    ENDDECL1(length, "s", "I}", "I",
+        "number of fields in a numerical struct");
+
+    STARTDECL(length) (Value &a) {
+        auto len = a.eval()->Len();
+        a.DECRT();
+        return Value(len);
+    }
     ENDDECL1(length, "xs", "V*", "I",
         "length of vector");
 
@@ -238,6 +254,33 @@ void AddBuiltins() {
     }
     ENDDECL1(top, "xs", "V*", "A1",
         "returns last element from vector");
+
+    // FIXME: duplication.
+    STARTDECL(replace) (Value &l, Value &i, Value &a) {
+        auto len = l.eval()->Len();
+        if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
+        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
+        if (len) nv->Init(&l.eval()->At(0), len, true);
+        l.DECRT();
+        nv->Dec(i.ival());
+        nv->At(i.ival()) = a;
+        return Value(nv);
+    }
+    ENDDECL3(replace, "xs,i,x", "F}IF", "F}",
+        "returns a copy of a numeric struct with the element at i replaced by x");
+
+    STARTDECL(replace) (Value &l, Value &i, Value &a) {
+        auto len = l.eval()->Len();
+        if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
+        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
+        if (len) nv->Init(&l.eval()->At(0), len, true);
+        l.DECRT();
+        nv->Dec(i.ival());
+        nv->At(i.ival()) = a;
+        return Value(nv);
+    }
+    ENDDECL3(replace, "xs,i,x", "I}II", "I}",
+        "returns a copy of a numeric struct with the element at i replaced by x");
 
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
         auto len = l.eval()->Len();
@@ -325,14 +368,16 @@ void AddBuiltins() {
         "string version.");
 
     STARTDECL(copy) (Value &v) {
+        auto &ti = g_vm->GetTypeInfo(v.eval()->tti);
+        if (ti.t != V_VECTOR && ti.t != V_STRUCT) g_vm->Error("copy: not a vector/struct");
         auto len = v.eval()->Len();
         auto nv = g_vm->NewVector(len, len, v.eval()->tti);
         if (len) nv->Init(&v.eval()->At(0), len, true);
         v.DECRT();
         return Value(nv);
     }
-    ENDDECL1(copy, "xs", "V*", "V1",
-        "makes a shallow copy of vector/object.");
+    ENDDECL1(copy, "xs", "A", "A1",
+        "makes a shallow copy of a vector/struct.");
 
     STARTDECL(slice) (Value &l, Value &s, Value &e) {
         RealVector(l);
@@ -351,6 +396,21 @@ void AddBuiltins() {
         "xs,start,size", "V*II", "V1", "returns a sub-vector of size elements from index start."
         " start & size can be negative to indicate an offset from the vector length.");
 
+    // FIXME: duplication.
+    STARTDECL(any) (Value &v) {
+        Value r(false);
+        for (auto i = 0; i < v.eval()->Len(); i++) {
+            if (v.eval()->At(i).True()) {
+                r = Value(true);
+                break;
+            }
+        }
+        v.DECRT();
+        return r;
+    }
+    ENDDECL1(any, "xs", "I}", "I",
+        "returns wether any elements of the numeric struct are true values");
+
     STARTDECL(any) (Value &v) {
         Value r(false);
         for (auto i = 0; i < v.eval()->Len(); i++) {
@@ -364,6 +424,20 @@ void AddBuiltins() {
     }
     ENDDECL1(any, "xs", "V*", "I",
         "returns wether any elements of the vector are true values");
+
+    STARTDECL(all) (Value &v) {
+        Value r(true);
+        for (intp i = 0; i < v.eval()->Len(); i++) {
+            if (!v.eval()->At(i).True()) {
+                r = Value(false);
+                break;
+            }
+        }
+        v.DECRT();
+        return r;
+    }
+    ENDDECL1(all, "xs", "I}", "I",
+        "returns wether all elements of the numeric struct are true values");
 
     STARTDECL(all) (Value &v) {
         Value r(true);
@@ -537,21 +611,21 @@ void AddBuiltins() {
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
     STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(ceil(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
-    ENDDECL1(ceiling, "v", "F]", "I]:/",
+    ENDDECL1(ceiling, "v", "F}", "I}",
         "the nearest ints >= each component of v");
 
     STARTDECL(floor) (Value &a) { return Value(intp(floor(a.fval()))); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
     STARTDECL(floor) (Value &a) { VECTOROPT(intp(floor(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
-    ENDDECL1(floor, "v", "F]", "I]:/",
+    ENDDECL1(floor, "v", "F}", "I}",
         "the nearest ints <= each component of v");
 
     STARTDECL(int) (Value &a) { return Value(intp(a.fval())); }
     ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
     STARTDECL(int) (Value &a) { VECTOROPT(intp(f.fval()), SWAPVECTYPE(GetIntVectorType)); }
-    ENDDECL1(int, "v", "F]", "I]:/",
+    ENDDECL1(int, "v", "F}", "I}",
         "converts a vector of floats to ints by dropping the fraction");
 
     STARTDECL(round) (Value &a) { return Value(intp(a.fval() + 0.5f)); }
@@ -559,21 +633,21 @@ void AddBuiltins() {
         "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
         " negative numbers");
     STARTDECL(round) (Value &a) { VECTOROPT(intp(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); }
-    ENDDECL1(round, "v", "F]", "I]:/",
+    ENDDECL1(round, "v", "F}", "I}",
         "converts a vector of floats to the closest ints");
 
     STARTDECL(fraction) (Value &a) { return Value(a.fval() - floor(a.fval())); }
     ENDDECL1(fraction, "f", "F", "F",
         "returns the fractional part of a float: short for f - floor(f)");
     STARTDECL(fraction) (Value &a) { VECTOROP(f.fval() - floor(f.fval())); }
-    ENDDECL1(fraction, "v", "F]", "F]:/",
+    ENDDECL1(fraction, "v", "F}", "F}",
         "returns the fractional part of a vector of floats");
 
     STARTDECL(float) (Value &a) { return Value(float(a.ival())); }
     ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
     STARTDECL(float) (Value &a) { VECTOROPT(floatp(f.ival()), SWAPVECTYPE(GetFloatVectorType)); }
-    ENDDECL1(float, "v", "I]", "F]:/",
+    ENDDECL1(float, "v", "I}", "F}",
         "converts a vector of ints to floats");
 
     STARTDECL(sin) (Value &a) { return Value(sin(a.fval() * RAD)); }
@@ -589,7 +663,7 @@ void AddBuiltins() {
     STARTDECL(sincos) (Value &a) {
         return ToValueF(floatp2(cos(a.fval() * RAD), sin(a.fval() * RAD)));
     }
-    ENDDECL1(sincos, "angle", "F", "F]:2",
+    ENDDECL1(sincos, "angle", "F", "F}:2",
         "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]");
 
     STARTDECL(arcsin) (Value &y) { return Value(asin(y.fval()) / RAD); }
@@ -602,7 +676,7 @@ void AddBuiltins() {
     STARTDECL(atan2) (Value &vec) {
         auto v = ValueDecToF<3>(vec); return Value(atan2(v.y, v.x) / RAD);
     }
-    ENDDECL1(atan2, "vec",  "F]" , "F",
+    ENDDECL1(atan2, "vec", "F}" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
 
     STARTDECL(radians) (Value &a) { return Value(a.fval() * RAD); }
@@ -623,32 +697,32 @@ void AddBuiltins() {
             default: return g_vm->BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
     }
-    ENDDECL1(normalize, "vec",  "F]" , "F]:/",
+    ENDDECL1(normalize, "vec",  "F}" , "F}",
         "returns a vector of unit length");
 
     STARTDECL(dot) (Value &a, Value &b) { return Value(dot(ValueDecToF<4>(a), ValueDecToF<4>(b))); }
-    ENDDECL2(dot,   "a,b", "F]F]", "F",
+    ENDDECL2(dot,   "a,b", "F}F}", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
     STARTDECL(magnitude) (Value &a)  { return Value(length(ValueDecToF<4>(a))); }
-    ENDDECL1(magnitude, "v", "F]", "F",
+    ENDDECL1(magnitude, "v", "F}", "F",
         "the geometric length of a vector");
 
     STARTDECL(manhattan) (Value &a) { return Value(manhattan(ValueDecToI<4>(a))); }
-    ENDDECL1(manhattan, "v", "I]", "I",
+    ENDDECL1(manhattan, "v", "I}", "I",
         "the manhattan distance of a vector");
 
     STARTDECL(cross) (Value &a, Value &b) {
         return ToValueF(cross(ValueDecToF<3>(a), ValueDecToF<3>(b)));
     }
-    ENDDECL2(cross, "a,b", "F]F]", "F]:3",
+    ENDDECL2(cross, "a,b", "F}:3F}:3", "F}:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
     STARTDECL(rnd) (Value &a) { return Value(rnd(max(1, (int)a.ival()))); }
     ENDDECL1(rnd, "max", "I", "I",
         "a random value [0..max).");
     STARTDECL(rnd) (Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); }
-    ENDDECL1(rnd, "max", "I]", "I]:/",
+    ENDDECL1(rnd, "max", "I}", "I}",
         "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); }
     ENDDECL0(rndfloat, "", "", "F",
@@ -662,13 +736,13 @@ void AddBuiltins() {
         "forces two ints to be divided as floats");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c) {
-        return Value(geom::clamp(a.ival(), c.ival(), b.ival()));
+        return Value(geom::clamp(a.ival(), b.ival(), c.ival()));
     }
     ENDDECL3(clamp, "x,min,max", "III", "I",
         "forces an integer to be in the range between min and max (inclusive)");
 
     STARTDECL(clamp) (Value &a, Value &b, Value &c) {
-        return Value(geom::clamp(a.fval(), c.fval(), b.fval()));
+        return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
     }
     ENDDECL3(clamp, "x,min,max", "FFF", "F",
              "forces a float to be in the range between min and max (inclusive)");
@@ -685,7 +759,7 @@ void AddBuiltins() {
         auto bias  = biasv.True() ? ValueDecToI<3>(biasv) : intp3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "I]I]I]?", "I",
+    ENDDECL3(inrange, "x,range,bias", "I}I}I}?", "I",
              "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(inrange) (Value &xv, Value &rangev, Value &biasv) {
@@ -694,16 +768,16 @@ void AddBuiltins() {
         auto bias  = biasv.True() ? ValueDecToF<3>(biasv) : floatp3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "F]F]F]?", "I",
+    ENDDECL3(inrange, "x,range,bias", "F}F}F}?", "I",
         "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(abs) (Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
         "absolute value of an integer");
     STARTDECL(abs) (Value &a) { return Value(fabs(a.fval())); } ENDDECL1(abs, "x", "F", "F",
         "absolute value of a float");
-    STARTDECL(abs) (Value &a) { VECTOROP(abs(f.ival())); } ENDDECL1(abs, "x", "I]", "I]:/",
+    STARTDECL(abs) (Value &a) { VECTOROP(abs(f.ival())); } ENDDECL1(abs, "x", "I}", "I}",
         "absolute value of an int vector");
-    STARTDECL(abs) (Value &a) { VECTOROP(fabs(f.fval())); } ENDDECL1(abs, "x", "F]", "F]:/",
+    STARTDECL(abs) (Value &a) { VECTOROP(fabs(f.fval())); } ENDDECL1(abs, "x", "F}", "F}",
         "absolute value of a float vector");
 
     // FIXME: need to guarantee this assert in typechecking
@@ -735,17 +809,23 @@ void AddBuiltins() {
     ENDDECL2(min, "x,y", "FF", "F",
         "smallest of 2 floats.");
     STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,ival) }
-    ENDDECL2(min, "x,y", "I]I]", "I]:/",
+    ENDDECL2(min, "x,y", "I}I}", "I}",
         "smallest components of 2 int vectors");
     STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,fval) }
-    ENDDECL2(min, "x,y", "F]F]", "F]:/",
+    ENDDECL2(min, "x,y", "F}F}", "F}",
         "smallest components of 2 float vectors");
     STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival())) }
+    ENDDECL1(min, "v", "I}", "I",
+        "smallest component of a int vector.");
+    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval())) }
+    ENDDECL1(min, "v", "F}", "F",
+        "smallest component of a float vector.");
+    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival())) }
     ENDDECL1(min, "v", "I]", "I",
-        "smallest component of a int vector. returns smallest possible int for empty vector");
+        "smallest component of a int vector, or INT_MAX if length 0.");
     STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval())) }
     ENDDECL1(min, "v", "F]", "F",
-        "smallest component of a float vector. returns smallest possible float for empty vector");
+        "smallest component of a float vector, or FLT_MAX if length 0.");
 
     STARTDECL(max) (Value &x, Value &y) { return Value(max(x.ival(), y.ival())); }
     ENDDECL2(max, "x,y", "II", "I",
@@ -754,17 +834,23 @@ void AddBuiltins() {
     ENDDECL2(max, "x,y", "FF", "F",
         "largest of 2 floats.");
     STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,ival) }
-    ENDDECL2(max, "x,y", "I]I]", "I]:/",
+    ENDDECL2(max, "x,y", "I}I}", "I}",
         "largest components of 2 int vectors");
     STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,fval) }
-    ENDDECL2(max, "x,y", "F]F]", "F]:/",
+    ENDDECL2(max, "x,y", "F}F}", "F}",
         "largest components of 2 float vectors");
     STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival())) }
+    ENDDECL1(max, "v", "I}", "I",
+        "largest component of a int vector.");
+    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval())) }
+    ENDDECL1(max, "v", "F}", "F",
+        "largest component of a float vector.");
+    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival())) }
     ENDDECL1(max, "v", "I]", "I",
-        "largest component of a int vector. returns largest possible int for empty vector");
+        "largest component of a int vector, or INT_MIN if length 0.");
     STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval())) }
     ENDDECL1(max, "v", "F]", "F",
-        "largest component of a float vector. returns largest possible float for empty vector");
+        "largest component of a float vector, or FLT_MIN if length 0.");
 
     STARTDECL(lerp) (Value &x, Value &y, Value &f) {
         return Value(mix(x.fval(), y.fval(), (float)f.fval()));
@@ -776,8 +862,8 @@ void AddBuiltins() {
         auto numelems = x.eval()->Len();
         return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), (float)f.fval()), numelems);
     }
-    ENDDECL3(lerp, "x,y,f", "F]F]F", "F]:/",
-        "linearly interpolates between x and y vectors with factor f [0..1]");
+    ENDDECL3(lerp, "a,b,f", "F}F}F", "F}",
+        "linearly interpolates between a and b vectors with factor f [0..1]");
 
     STARTDECL(cardinalspline) (Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
         return ToValueF(cardinalspline(ValueDecToF<3>(z),
@@ -785,7 +871,7 @@ void AddBuiltins() {
                                        ValueDecToF<3>(b),
                                        ValueDecToF<3>(c), f.fval(), t.fval()));
     }
-    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F]F]F]F]FF", "F]:3",
+    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c"
         " (after b) to form a cardinal spline (tension at 0.5 is a good default)");
 
@@ -795,7 +881,7 @@ void AddBuiltins() {
                                 ValueDecToF<2>(l2a), ValueDecToF<2>(l2b), &ipoint);
         return r ? ToValueF(ipoint) : Value();
     }
-    ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F]F]F]F]", "F]:2?",
+    ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "F}:2?",
         "computes the intersection point between 2 line segments, or nil if no intersection");
 
     STARTDECL(circles_within_range) (Value &dist, Value &positions, Value &radiuses,
@@ -868,7 +954,7 @@ void AddBuiltins() {
         for (auto vec : results) rvec->Push(Value(vec));
         return Value(rvec);
     }
-    ENDDECL4(circles_within_range, "dist,positions,radiuses,prefilter", "FF]]F]I]", "I]]",
+    ENDDECL4(circles_within_range, "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "I]]",
         "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
         " a vector of vectors of indices of the circles that are within dist of eachothers radius."
         " pre-filter indicates objects that should appear in the inner vectors.");

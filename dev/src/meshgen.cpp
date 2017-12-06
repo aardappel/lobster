@@ -640,7 +640,7 @@ void AddMeshGen() {
         c->extents = ValueDecToFLT<3>(ext);
         return AddShape(c);
     }
-    ENDDECL1(mg_cube,  "extents", "F]:3", "",
+    ENDDECL1(mg_cube,  "extents", "F}:3", "",
         "a cube (extents are size from center)");
 
     STARTDECL(mg_cylinder) (Value &radius, Value &height) {
@@ -668,7 +668,7 @@ void AddMeshGen() {
         sq->scale = ValueDecToFLT<3>(scale);
         return AddShape(sq);
     }
-    ENDDECL2(mg_superquadric, "exponents,scale", "F]F]", "",
+    ENDDECL2(mg_superquadric, "exponents,scale", "F}:3F}:3", "",
         "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
         " squares");
 
@@ -682,7 +682,8 @@ void AddMeshGen() {
 
         return AddShape(sq);
     }
-    ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F]F]F]F]",
+    ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale",
+        "F}:3F}:3F}:3F}:3",
         "",
         "a superquadric that allows you to specify exponents and sizes in all 6 directions"
         " independently for maximum modelling possibilities");
@@ -693,7 +694,7 @@ void AddMeshGen() {
         t->exp = ValueDecToFLT<3>(exps);
         return AddShape(t);
     }
-    ENDDECL2(mg_supertoroid, "R,exponents", "FF]", "",
+    ENDDECL2(mg_supertoroid, "R,exponents", "FF}:3", "",
         "a super toroid. R is the distance from the origin to the center of the ring.");
 
     STARTDECL(mg_landscape) (Value &zscale, Value &xyscale) {
@@ -765,7 +766,7 @@ void AddMeshGen() {
     MIDDECL(mg_translate) () {
         curorig = ValueDecToFLT<3>(g_vm->Pop());
     }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F]C?", "",
+    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3C?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -790,7 +791,7 @@ void AddMeshGen() {
     MIDDECL(mg_scalevec) () {
         cursize = ValueDecToFLT<3>(g_vm->Pop());
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F]C?", "",
+    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F}:3C?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis."
         " when a body is given, restores the previous transform afterwards");
 
@@ -807,7 +808,7 @@ void AddMeshGen() {
         currot = *(float3x3 *)s.sval()->str();
         s.DECRT();
     }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F]FC?", "",
+    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FC?", "",
         "rotates using axis/angle. when a body is given, restores the previous transform"
         " afterwards");
 
@@ -819,7 +820,7 @@ void AddMeshGen() {
     MIDDECL(mg_color) () {
         curcol = ValueDecToFLT<4>(g_vm->Pop());
     }
-    ENDDECL2CONTEXIT(mg_color, "color,body", "F]C?", "",
+    ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4C?", "",
         "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
         " substracts them (carves). when a body is given, restores the previous color afterwards.");
 

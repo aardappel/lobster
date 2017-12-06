@@ -137,9 +137,9 @@ struct CodeGen  {
         Type type_v_v_int(V_VECTOR, &*type_vector_int);     GetTypeTableOffset(&type_v_v_int);
         Type type_v_v_float(V_VECTOR, &*type_vector_float); GetTypeTableOffset(&type_v_v_float);
         assert(type_table.size() == TYPE_ELEM_FIXED_OFFSET_END);
-        for (auto type : st.default_int_vector_types)
+        for (auto type : st.default_int_vector_types[0])
             vint_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
-        for (auto type : st.default_float_vector_types)
+        for (auto type : st.default_float_vector_types[0])
             vfloat_typeoffsets.push_back(!type.Null() ? GetTypeTableOffset(type) : (type_elem_t)-1);
         int sidx = 0;
         for (auto sid : st.specidents) {
@@ -430,11 +430,8 @@ struct CodeGen  {
                 assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD;
             } else if (type->t == V_STRING) {
                 assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
-            } else {
-                TypeRef sub;
-                if      (type->t == V_VECTOR) sub = type->sub;
-                else if (type->t == V_STRUCT) sub = type->struc->vectortype->sub;
-                else assert(false);
+            } else if (type->t == V_STRUCT) {
+                auto sub = type->struc->sametype;
                 bool withscalar = IsScalar(rhs->exptype->t);
                 if (sub->t == V_INT) {
                     lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD;
@@ -442,6 +439,8 @@ struct CodeGen  {
                     assert(lvalop != LVO_IMOD);
                     lvalop += (withscalar ? LVO_FVSADD : LVO_FVVADD) - LVO_IADD;
                 } else assert(false);
+            } else {
+                assert(false);
             }
         } else if (lvalop >= LVO_IPP && lvalop <= LVO_IMMP) {
             if (type->t == V_FLOAT) lvalop += LVO_FPP - LVO_IPP;
@@ -508,12 +507,10 @@ struct CodeGen  {
                 } else {
                     // If this is a comparison op, be sure to use the child type.
                     TypeRef vectype = opc >= 5 ? n->left->exptype : n->exptype;
-                    TypeRef sub;
-                    if      (vectype->t == V_VECTOR) sub = vectype->sub;
-                    else if (vectype->t == V_STRUCT) sub = vectype->struc->vectortype->sub;
-                    else assert(false);
+                    assert(vectype->t == V_STRUCT);
+                    auto sub = vectype->struc->sametype;
                     bool withscalar = IsScalar(n->right->exptype->t);
-                    if      (sub->t == V_INT)
+                    if (sub->t == V_INT)
                         Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
                     else if (sub->t == V_FLOAT)
                         Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
@@ -657,9 +654,7 @@ void UnaryMinus::Generate(CodeGen &cg, int retval) const {
             case V_FLOAT: cg.Emit(IL_FUMINUS); break;
             case V_STRUCT:
             case V_VECTOR: {
-                auto elem = ctype->t == V_VECTOR
-                    ? ctype->Element()->t
-                    : ctype->struc->vectortype->Element()->t;
+                auto elem = ctype->struc->sametype->t;
                 cg.Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
                 break;
             }
@@ -739,7 +734,7 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     size_t nargs = 0;
     auto lastarg = cg.GenArgs(this, nargs, this);
     cg.TakeTemp(nargs);
-    assert(nargs == nf->args.size() && nargs <= 6);
+    assert(nargs == nf->args.size() && nargs <= 7);
     int vmop = IL_BCALLRET0 + (int)(nargs * 3);
     if (nf->has_body) { // graphics.h
         if (!Is<DefaultVal>(lastarg)) {
@@ -938,9 +933,7 @@ void For::Generate(CodeGen &cg, int retval) const {
         case V_INT:    cg.Emit(IL_IFOR); break;
         case V_STRING: cg.Emit(IL_SFOR); break;
         case V_VECTOR: cg.Emit(IL_VFOR); break;
-        case V_STRUCT: assert(iter->exptype->struc->vectortype->t == V_VECTOR);
-                       cg.Emit(IL_VFOR);
-                       break;
+        case V_STRUCT: cg.Emit(IL_NFOR); break;
         default:       assert(false);
     }
     cg.Emit(startloop);
@@ -954,9 +947,7 @@ void ForLoopElem::Generate(CodeGen &cg, int /*retval*/) const {
         case V_INT:    cg.Emit(IL_IFORELEM); break;
         case V_STRING: cg.Emit(IL_SFORELEM); break;
         case V_VECTOR: cg.Emit(IL_VFORELEM); break;
-        case V_STRUCT: assert(cg.temptypestack.back()->struc->vectortype->t == V_VECTOR);
-                       cg.Emit(IL_VFORELEM);
-                       break;
+        case V_STRUCT: cg.Emit(IL_NFORELEM); break;
         default:       assert(false);
     }
 }

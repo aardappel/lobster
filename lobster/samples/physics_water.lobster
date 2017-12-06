@@ -10,24 +10,24 @@ fatal(gl_window("Physics demo : water", 1024, 768))
 
 worldsize :== xy { 60.0, 40.0 }
 
-ph_initialize([ 0.0, -10.0 ])
+ph_initialize(xy { 0.0, -10.0 })
 ph_initializeparticles(0.15)
 ph_setshader(nil, "color_attr_particle")
 
-floor := ph_createbox([   0.0, 1.0 ], [ 20.0, 1.0 ])
-wall1 := ph_createbox([ -20.0, 7.0 ], [  1.0, 7.0 ])
-wall2 := ph_createbox([  20.0, 7.0 ], [  1.0, 7.0 ])
+floor := ph_createbox(xy {   0.0, 1.0 }, xy { 20.0, 1.0 })
+wall1 := ph_createbox(xy { -20.0, 7.0 }, xy {  1.0, 7.0 })
+wall2 := ph_createbox(xy {  20.0, 7.0 }, xy {  1.0, 7.0 })
 
 floor.ph_setcolor(color_grey)
 wall1.ph_setcolor(color_grey)
 wall2.ph_setcolor(color_grey)
 
 boxes := map 5:
-    b := ph_createbox([ 0.0, 10.0 + _ * 3.0 ], [ 1.0, 1.0 ])
+    b := ph_createbox(xy { 0.0, 10.0 + _ * 3.0 }, xy { 1.0, 1.0 })
     b.ph_dynamic(true)
     b
 
-ph_createparticlecircle([ 0.0, 5.0 ], 7.0, color_light_red, ph_colormixingparticle)
+ph_createparticlecircle(xy { 0.0, 5.0 }, 7.0, color_light_red, ph_colormixingparticle)
 
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)

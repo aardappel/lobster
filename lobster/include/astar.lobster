@@ -1,6 +1,5 @@
 // A* search functionality
 
-include "std.lobster"
 include "vec.lobster"
 
 struct astar_node:

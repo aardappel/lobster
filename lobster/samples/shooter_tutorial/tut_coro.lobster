@@ -28,7 +28,7 @@ def level(highscore, lframe):
     def renderpointytriangle(pos, dir):
         gl_translate pos:
             gl_rotate_z dir:
-                gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
+                gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 
     def bullet(pos, dir, frame):
         bulletspeed :== 15

@@ -27,7 +27,7 @@ lastenemy := gl_time()
 def renderpointytriangle(pos, dir):
     gl_translate pos:
         gl_rotate_z dir:
-            gl_polygon([ [ -0.5, 0.5 ], xy_x, [ -0.5, -0.5 ] ])
+            gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)

@@ -31,7 +31,7 @@ while gl_frame():
     if gl_button("space") >= 1: camera_direction(xyz_1 * 10 - camera_position)
     camera_FPS_view()
 
-    gl_light(camera_position, [ 128.0, 1.0 ])
+    gl_light(camera_position, xy { 128.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_blend(blend_none)
@@ -42,4 +42,4 @@ while gl_frame():
             gl_rendermesh(iqmtest)
 
     gl_setshader("color")
-    gl_debug_grid([20, 20, 0], xyz_1, 0.005)
+    gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)

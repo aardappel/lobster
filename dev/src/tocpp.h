@@ -163,7 +163,7 @@ void ToCPP(string &s, const string &bytecode_buffer) {
             JumpIns(args[0]);
             s += "\n";
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILRREF) ||
-                   (opc >= IL_IFOR && opc <= IL_VFOR)) {
+                   (opc >= IL_IFOR && opc <= IL_NFOR)) {
             s += "if (g_vm->F_";
             s += ilname;
             s += "()) ";

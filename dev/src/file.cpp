@@ -52,9 +52,9 @@ void AddFile() {
             auto size = p.second;
             if (size >= 0) {
                 size /= divisor.ival();
-                if (size > 0x7FFFFFFF) size = 0x7FFFFFFF;
+                if (sizeof(intp) == sizeof(int) && size > 0x7FFFFFFF) size = 0x7FFFFFFF;
             }
-            slist->Push(Value(int(size)));
+            slist->Push(Value(size));
         }
         g_vm->Push(Value(nlist));
         return Value(slist);
@@ -63,7 +63,7 @@ void AddFile() {
         "returns two vectors representing all elements in a folder, the first vector containing all"
         " names, the second vector containing sizes (or -1 if a directory)."
         " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be"
-        " clamped. Returns nil if folder couldn't be scanned.");
+        " clamped in 32-bit builds. Returns nil if folder couldn't be scanned.");
 
     STARTDECL(read_file) (Value &file) {
         string buf;

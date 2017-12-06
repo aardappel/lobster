@@ -185,29 +185,13 @@ bool LoadByteCode(string &bytecode) {
     return ok;
 }
 
-void Compile(const char *fn, char *stringsource, string &bytecode,
-    string *parsedump = nullptr, string *pakfile = nullptr) {
-    SymbolTable st;
-    Parser parser(fn, st, stringsource);
-    parser.Parse();
-    TypeChecker tc(parser, st);
-    // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
-    // rely on it culling const if-thens and other things.
-    Optimizer opt(parser, st, tc, 100);
-    if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st);
-    st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
-        cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
-    if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
-}
-
 void RegisterBuiltin(const char *name, void (* regfun)()) {
     Output(OUTPUT_DEBUG, "subsystem: %s", name);
     natreg.NativeSubSystemStart(name);
     regfun();
 }
 
-void DumpBuiltins(bool justnames) {
+void DumpBuiltins(bool justnames, const SymbolTable &st) {
     if (justnames) {
         FILE *f = OpenForWriting("builtin_functions_names.txt", false);
         if (f) {
@@ -249,7 +233,8 @@ void DumpBuiltins(bool justnames) {
                     i ? ", " : "",
                     nf->args.GetName(i).c_str(),
                     a.type->t == V_ANY ? "" : (string(":") +
-                        TypeName(a.type->t == V_NIL ? a.type->Element() : a.type)).c_str(),
+                        TypeName(a.type->t == V_NIL ? a.type->Element() : a.type,
+                                 a.fixed_len, &st)).c_str(),
                     a.type->t == V_NIL ? "]" : ""
                 );
                 i++;
@@ -260,7 +245,7 @@ void DumpBuiltins(bool justnames) {
                 size_t i = 0;
                 for (auto &a : nf->retvals.v) {
                     fprintf(f, "<font color=\"#666666\">%s</font>%s",
-                                TypeName(a.type).c_str(),
+                                TypeName(a.type, a.fixed_len, &st).c_str(),
                                 i++ < nf->retvals.v.size() - 1 ? ", " : "");
                 }
             }
@@ -269,6 +254,25 @@ void DumpBuiltins(bool justnames) {
         fprintf(f, "</table>\n</td></tr></table></center></body>\n</html>\n");
         fclose(f);
     }
+}
+
+void Compile(const char *fn, char *stringsource, string &bytecode,
+    string *parsedump = nullptr, string *pakfile = nullptr,
+    bool dump_builtins = false, bool dump_names = false) {
+    SymbolTable st;
+    Parser parser(fn, st, stringsource);
+    parser.Parse();
+    TypeChecker tc(parser, st);
+    // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
+    // rely on it culling const if-thens and other things.
+    Optimizer opt(parser, st, tc, 100);
+    if (parsedump) *parsedump = parser.DumpAll(true);
+    CodeGen cg(parser, st);
+    st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
+        cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
+    if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
+    if (dump_builtins) DumpBuiltins(false, st);
+    if (dump_names) DumpBuiltins(true, st);
 }
 
 Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {

@@ -1,3 +1,5 @@
+- split PushDerefIdx
+
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.
@@ -224,9 +226,6 @@
   - flow analysis should also know about if !a: return; a // not nil here
 
   - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
-
-  - ComputeStructVectorType is broken. It would a scalar field to become any without boxing.
-    This is not an issue as long as we ensure that if its [any] its values do not get used, but its easy to leak.
 
   - multimethods
     - multimethods are very restricted right now, having to declare an explicit return type or having to match

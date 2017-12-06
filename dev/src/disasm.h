@@ -84,6 +84,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         case IL_IFOR:
         case IL_VFOR:
         case IL_SFOR:
+        case IL_NFOR:
         case IL_YIELD:
         case IL_FUNEND:
             s += to_string(*ip++);

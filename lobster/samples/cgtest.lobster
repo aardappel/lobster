@@ -36,7 +36,7 @@ while gl_frame():
     speed := 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
     camera_FPS_view()
-    gl_light(camera_position, [ 128.0, 0.1 ])
+    gl_light(camera_position, xy { 128.0, 0.1 })
 
     gl_blend 0:
         gl_setshader("flat")

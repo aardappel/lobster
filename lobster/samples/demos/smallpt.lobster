@@ -143,7 +143,7 @@ def onesample():
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[h-y-1][x] += r
     samples++
-    c2 := map(c) row: map(row) col: map(col): pow(clamp(_ / samples, 0, 1),1/2.2)
+    c2 := map(c) row: map(row) col: xyzw(xyz_v(map(col): pow(clamp(_ / samples, 0, 1), 1 / 2.2)), 1)
     //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_windowtitle("smallpt: " + samples + " samples computed")
     gl_createtexture(c2)

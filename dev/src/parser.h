@@ -42,6 +42,9 @@ struct Parser {
         auto &f = st.CreateFunction("__top_level_expression", "");
         sf->SetParent(f, f.subf);
         f.anonymous = true;
+
+        lex.Include("stdtype.lobster");
+
         sf->body = ParseStatements();
         st.ScopeCleanup();
         root = (new List(lex))
@@ -168,6 +171,7 @@ struct Parser {
                 lex.Next();
                 string fn = lex.sattr;
                 Expect(T_STR);
+                Expect(T_LINEFEED);
                 lex.Include((char *)fn.c_str());
                 ParseTopExp(list);
                 break;

@@ -15,7 +15,7 @@ def ddl(l::link): dtheta * dtheta * len
 
 links := map(2): link {}
 
-pts := []
+pts := []::xy_f
 
 fatal(gl_window("double pendulum", 800, 800))
 while gl_frame():

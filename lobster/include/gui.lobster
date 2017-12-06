@@ -87,7 +87,7 @@ private def cursize_of(id, f):
         f()
         cursize
 
-private def element(size, f):
+private def element(size:xy_i, f):
     if size != xy_0i:   // (note: object identity compare!) will be xy_0i if we're in the render pass and element was just deleted
         advance(size):
             position(size, f)
@@ -124,7 +124,7 @@ def gui_image(factors, tex):
 def gui_divider(thickness:int):
     align <- 0
     element(xy_1i * thickness):
-        gl_rect(float(if vertical: [ parent_size.x, thickness ] else: [ thickness, parent_size.y ]))
+        gl_rect(if vertical: xy_f { parent_size.x, thickness } else: xy_f { thickness, parent_size.y })
 
 def gui_space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
@@ -171,12 +171,12 @@ private def around(m, draw, id, f):
         advance(size):
             if draw:
                 position(size): // FIXME: clean this up
-                    gl_rect(float([ size.x, m.y ]))
-                    gl_rect(float([ m.x, size.y ]))
-                    gl_translate float([ size.x - m.x, 0]):
-                        gl_rect(float([ m.x, size.y ]))
-                    gl_translate [ 0.0, size.y - m.y]:
-                        gl_rect(float([ size.x, m.y ]))
+                    gl_rect(xy_f{ size.x, m.y })
+                    gl_rect(xy_f { m.x, size.y })
+                    gl_translate xy_f { size.x - m.x, 0 }:
+                        gl_rect(xy_f { m.x, size.y })
+                    gl_translate xy_f { 0.0, size.y - m.y }:
+                        gl_rect(xy_f { size.x, m.y })
             def forward():
                 gl_translate([ xy_x, xy_y ][vertical] * m[vertical])
             forward()

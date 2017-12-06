@@ -56,7 +56,7 @@ def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
     ws := float(gl_windowsize())
     gl_translate(ws * origin)
     sc := ws / size
-    gl_scale(scale * min(sc.x, sc.y))
+    gl_scale(scale * min(sc))
 
 private delta_time_log :== map(60): 1 / 30.0
 

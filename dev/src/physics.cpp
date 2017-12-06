@@ -132,7 +132,7 @@ void AddPhysics() {
 		InitPhysics(ValueDecToFLT<2>(gravity));
 		return Value();
 	}
-	ENDDECL1(ph_initialize, "gravityvector", "F]", "",
+	ENDDECL1(ph_initialize, "gravityvector", "F}:2", "",
         "initializes or resets the physical world, gravity typically [0, -10].");
 
 	STARTDECL(ph_createbox) (Value &position, Value &size, Value &offset, Value &rot,
@@ -144,7 +144,7 @@ void AddPhysics() {
 		shape.SetAsBox(sz.x, sz.y, OptionalOffset(offset), r * RAD);
 		return CreateFixture(body, shape);
 	}
-	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "F]:2F]:2F]:2?F?X?", "X",
+	ENDDECL5(ph_createbox, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?X?", "X",
         "creates a physical box shape in the world at position, with size the half-extends around"
         " the center, offset from the center if needed, at a particular rotation (in degrees)."
         " attachto is a previous physical object to attach this one to, to become a combined"
@@ -158,7 +158,7 @@ void AddPhysics() {
 		shape.m_radius = radius.fltval();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "F]:2FF]:2?X?", "X",
+	ENDDECL4(ph_createcircle, "position,radius,offset,attachto", "F}:2FF}:2?X?", "X",
         "creates a physical circle shape in the world at position, with the given radius, offset"
         " from the center if needed. attachto is a previous physical object to attach this one to,"
         " to become a combined physical body.");
@@ -176,7 +176,7 @@ void AddPhysics() {
 		vertices.DECRT();
 		return CreateFixture(body, shape);
 	}
-	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "F]:2F]]X?", "X",
+	ENDDECL3(ph_createpolygon, "position,vertices,attachto", "F}:2F}:2]X?", "X",
         "creates a polygon circle shape in the world at position, with the given list of vertices."
         " attachto is a previous physical object to attach this one to, to become a combined"
         " physical body.");
@@ -196,7 +196,7 @@ void AddPhysics() {
 		r.color = c;
 		return Value();
 	}
-	ENDDECL2(ph_setcolor, "id,color", "X?F]:4", "",
+	ENDDECL2(ph_setcolor, "id,color", "X?F}:4", "",
         "sets a shape (or nil for particles) to be rendered with a particular color.");
 
 	STARTDECL(ph_setshader) (Value &fixture_id, Value &shader) {
@@ -228,7 +228,7 @@ void AddPhysics() {
         pd.velocity = ValueDecToB2(velocity);
         return Value(particlesystem->CreateParticle(pd));
     }
-    ENDDECL4(ph_createparticle, "position,velocity,color,flags", "F]:2F]:2F]:4I?", "I",
+    ENDDECL4(ph_createparticle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
         "creates an individual particle. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_createparticlecircle) (Value &position, Value &radius, Value &color, Value &type) {
@@ -244,7 +244,7 @@ void AddPhysics() {
 		particlesystem->CreateParticleGroup(pgd);
 		return Value();
 	}
-	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "F]:2FF]:4I?", "",
+	ENDDECL4(ph_createparticlecircle, "position,radius,color,flags", "F}:2FF}:4I?", "",
         "creates a circle filled with particles. For flags, see include/physics.lobster");
 
 	STARTDECL(ph_initializeparticles) (Value &size) {
