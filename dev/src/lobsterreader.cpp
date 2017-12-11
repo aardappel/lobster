@@ -71,12 +71,20 @@ struct ValueParser {
                 }
             }
         }
-        auto vec = g_vm->NewVector((int)elems.size(), (int)elems.size(), typeoff);
-        vec->Inc();
-        allocated.push_back(vec);
-        int i = 0;
-        for (auto &e : elems) vec->At(i++) = e;
-        return Value(vec);
+        RefObj *ro;
+        if (end == T_RIGHTCURLY) {
+            auto vec = g_vm->NewStruct((intp)elems.size(), typeoff);
+            if (elems.size()) vec->Init(elems.data(), (intp)elems.size(), false);
+            ro = vec;
+        } else {
+            auto vec = g_vm->NewVec((intp)elems.size(), (intp)elems.size(), typeoff);
+            if (elems.size()) vec->Init(elems.data(), false);
+            ro = vec;
+        }
+        ro->Inc();
+        allocated.push_back(ro);
+        return Value(ro);
+
     }
 
     void ExpectType(ValueType given, ValueType needed) {

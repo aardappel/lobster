@@ -1,5 +1,3 @@
-- split PushDerefIdx
-
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.
@@ -477,9 +475,6 @@
          would only be for 16/32 bit int vectors.
        - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
 	     can still allow them to work on these vectors.
-       - Should consider if we can separate vectors and structs properly in the VM before we do
-         this: get rid of ElemObj (use of eval() and "F]" in type annotations etc. basically
-         "F]:3" must be a struct, and "F]" must be a vector)
      - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
      1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
          and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
@@ -875,3 +870,5 @@ VM: inlined for   : secs  2.92, 1.77x vs 2600K
 C++: inlined for  : secs  2.00, 1.43x vs 2600K
 VM64: inlined for : secs  2.38, 1.23x vs 32bit
 C++64: inlined for: secs  1.72, 1.16x vs 32bit
+VM: vec/struct    : secs  2.64
+VM64: vec/struct  : secs  2.11

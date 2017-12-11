@@ -135,11 +135,15 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         }
 
         case IL_NEWVEC: {
-            auto ti = (TypeInfo *)(typetable + *ip++);
+            ip++;  // ti
             auto nargs = *ip++;
-            s += ti->t == V_STRUCT ? bcf->structs()->Get(ti->structidx)->name()->c_str() : "vector";
-            s += " ";
+            s += "vector ";
             s += to_string(nargs);
+            break;
+        }
+        case IL_NEWSTRUCT: {
+            auto ti = (TypeInfo *)(typetable + *ip++);
+            s += bcf->structs()->Get(ti->structidx)->name()->c_str();
             break;
         }
 
@@ -186,7 +190,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             s += to_string(*ip++);
             break;
 
-        case IL_LVALIDXI:
+        case IL_VLVALIDXI:
+        case IL_NLVALIDXI:
         case IL_LVALIDXV:
             LvalDisAsm(s, ip);
             break;

@@ -166,12 +166,12 @@ void AddPhysics() {
 	STARTDECL(ph_createpolygon) (Value &position, Value &vertices, Value &other_id) {
 		auto &body = GetBody(other_id, position);
         b2PolygonShape shape;
-		auto verts = new b2Vec2[vertices.eval()->Len()];
-        for (int i = 0; i < vertices.eval()->Len(); i++) {
-            auto vert = ValueToFLT<2>(vertices.eval()->At(i));
+		auto verts = new b2Vec2[vertices.vval()->len];
+        for (int i = 0; i < vertices.vval()->len; i++) {
+            auto vert = ValueToFLT<2>(vertices.vval()->At(i));
             verts[i] = Float2ToB2(vert);
         }
-		shape.Set(verts, vertices.eval()->IntLen());
+		shape.Set(verts, (int)vertices.vval()->len);
 		delete[] verts;
 		vertices.DECRT();
 		return CreateFixture(body, shape);
@@ -284,7 +284,7 @@ void AddPhysics() {
         auto &po = GetObject(id);
         if (!po.particle_contacts) po.particle_contacts = new vector<int>();
         auto numelems = (int)po.particle_contacts->size();
-        auto v = g_vm->NewVector(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
+        auto v = g_vm->NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
         for (int i = 0; i < numelems; i++) v->At(i) = Value((*po.particle_contacts)[i]);
         return Value(v);
     }

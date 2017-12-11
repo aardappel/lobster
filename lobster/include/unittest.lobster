@@ -361,7 +361,6 @@ def run_test_cases(is_speed_test):
             cycle.loop = cycle
             assert cycle.next
             cycle.next.loop = cycle.next
-
         cycletest()
         garbage_objects := collect_garbage()
         assert garbage_objects == 4 // 2 vectors, 2 strings

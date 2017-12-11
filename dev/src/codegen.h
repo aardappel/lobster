@@ -465,7 +465,21 @@ struct CodeGen  {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
             TakeTemp(na + 2);
-            Emit(indexing->index->exptype->t == V_INT ? IL_LVALIDXI : IL_LVALIDXV, lvalop);
+            switch (indexing->object->exptype->t) {
+                case V_VECTOR:
+                    Emit(indexing->index->exptype->t == V_INT ? IL_VLVALIDXI : IL_LVALIDXV, lvalop);
+                    break;
+                case V_STRUCT:
+                    assert(indexing->index->exptype->t == V_INT);
+                    Emit(IL_NLVALIDXI, lvalop);
+                    break;
+                case V_STRING:
+                    // FIXME: Would be better to catch this in typechecking, but typechecker does
+                    // not currently distinquish lvalues.
+                    parser.Error("cannot use string index as lvalue", lval);
+                default:
+                    assert(false);
+            }
         } else {
             parser.Error("lvalue required", lval);
         }
@@ -577,7 +591,12 @@ void Indexing::Generate(CodeGen &cg, int retval) const {
     cg.Gen(index, retval);
     if (retval) {
         cg.TakeTemp(2);
-        cg.Emit(index->exptype->t == V_INT ? IL_PUSHIDXI : IL_PUSHIDXV);
+        switch (object->exptype->t) {
+            case V_VECTOR: cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV); break;
+            case V_STRUCT: assert(index->exptype->t == V_INT); cg.Emit(IL_NPUSHIDXI); break;
+            case V_STRING: assert(index->exptype->t == V_INT); cg.Emit(IL_SPUSHIDXI); break;
+            default: assert(false);
+        }
     }
 }
 
@@ -958,16 +977,17 @@ void ForLoopCounter::Generate(CodeGen &cg, int /*retval*/) const {
 
 void Constructor::Generate(CodeGen &cg, int retval) const {
     // FIXME: a malicious script can exploit this for a stack overflow.
-    for (auto c : children)  cg.Gen(c, 1);
+    for (auto c : children) cg.Gen(c, 1);
     cg.TakeTemp(Arity());
     auto vtype = exptype;
     auto offset = cg.GetTypeTableOffset(vtype);
     if (vtype->t == V_STRUCT) {
         assert(vtype->struc->fields.size() == Arity());
+        cg.Emit(IL_NEWSTRUCT, offset);
     } else {
         assert(vtype->t == V_VECTOR);
+        cg.Emit(IL_NEWVEC, offset, (int)Arity());
     }
-    cg.Emit(IL_NEWVEC, offset, (int)Arity());
     if (!retval) cg.Emit(IL_POPREF);
 }
 

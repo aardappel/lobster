@@ -189,11 +189,12 @@ void VM::DumpLeaks() {
 }
 
 #undef new
-ElemObj *VM::NewVector(intp initial, intp max, type_elem_t tti) {
-    auto &ti = GetTypeInfo(tti);
-    if (ti.t == V_VECTOR)
-        return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, tti);
-    assert(ti.t == V_STRUCT && max == initial && max == ti.len);
+LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
+    assert(GetTypeInfo(tti).t == V_VECTOR);
+    return new (vmpool->alloc_small(sizeof(LVector))) LVector(initial, max, tti);
+}
+LStruct *VM::NewStruct(intp max, type_elem_t tti) {
+    assert(GetTypeInfo(tti).t == V_STRUCT);
     return new (vmpool->alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
 }
 LString *VM::NewString(size_t l) {
@@ -854,13 +855,13 @@ void VM::F_CONT1(VM_OP_ARGS) {
     PUSH(V);
 
 VM_JUMP_RET VM::F_IFOR() { FORLOOP(iter.ival(), false); }
-VM_JUMP_RET VM::F_VFOR() { FORLOOP(iter.eval()->Len(), true); }
-VM_JUMP_RET VM::F_NFOR() { FORLOOP(iter.eval()->Len(), true); }
+VM_JUMP_RET VM::F_VFOR() { FORLOOP(iter.vval()->len, true); }
+VM_JUMP_RET VM::F_NFOR() { FORLOOP(iter.stval()->Len(), true); }
 VM_JUMP_RET VM::F_SFOR() { FORLOOP(iter.sval()->len, true); }
 
 void VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
-void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->AtInc(i.ival())); }
-void VM::F_NFORELEM(VM_OP_ARGS) { FORELEM(iter.eval()->At(i.ival())); }
+void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.vval()->AtInc(i.ival())); }
+void VM::F_NFORELEM(VM_OP_ARGS) { FORELEM(iter.stval()->At(i.ival())); }
 void VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
 
 void VM::F_FORLOOPI(VM_OP_ARGS) {
@@ -894,7 +895,16 @@ BCALLOP(7, auto a6 = POP();auto a5 = POP();auto a4 = POP();auto a3 = POP();auto 
 void VM::F_NEWVEC(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
     auto len = *ip++;
-    auto vec = NewVector(len, len, type);
+    auto vec = NewVec(len, len, type);
+    if (len) vec->Init(TOPPTR() - len, false);
+    POPN(len);
+    PUSH(Value(vec));
+}
+
+void VM::F_NEWSTRUCT(VM_OP_ARGS) {
+    auto type = (type_elem_t)*ip++;
+    auto len = GetTypeInfo(type).len;
+    auto vec = NewStruct(len, type);
     if (len) vec->Init(TOPPTR() - len, len, false);
     POPN(len);
     PUSH(Value(vec));
@@ -916,17 +926,19 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 #define _FOP(op, extras) \
     TYPEOP(op, extras, fval(), VMASSERT(a.type == V_FLOAT && b.type == V_FLOAT))
 
-#define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.eval()->At(i).fval() : (T)a.eval()->At(i).ival())
+#define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.stval()->At(i).fval() : (T)a.stval()->At(i).ival())
 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-    auto len = VectorLoop(a, b, res, withscalar, comp ? TYPE_ELEM_VECTOR_OF_INT \
-                                                     : a.eval()->tti); \
+    auto len = a.stval()->Len(); \
+    assert(withscalar || b.stval()->Len() == len); \
+    auto v = NewStruct(len, comp ? GetIntVectorType((int)a.stval()->Len()) : a.stval()->tti); \
+    res = Value(v); \
     for (intp j = 0; j < len; j++) { \
         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) \
-        else VMTYPEEQ(b.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
+        else VMTYPEEQ(b.stval()->At(j), isfloat ? V_FLOAT : V_INT); \
         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
         if (extras&1 && bv == 0) Div0(); \
-        VMTYPEEQ(a.eval()->At(j), isfloat ? V_FLOAT : V_INT); \
-        res.eval()->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
+        VMTYPEEQ(a.stval()->At(j), isfloat ? V_FLOAT : V_INT); \
+        v->At(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
     } \
     a.DECRT(); \
     if (!withscalar) b.DECRT(); \
@@ -1052,17 +1064,14 @@ void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
     Value res; \
-    auto len = VectorLoop(a, Value((type)1), res, true, a.eval()->tti); \
-    if (len >= 0) { \
-        for (intp i = 0; i < len; i++) { \
-            VMTYPEEQ(a.eval()->At(i), isfloat ? V_FLOAT : V_INT); \
-            res.eval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
-        } \
-        a.DECRT(); \
-        PUSH(res); \
-        return; \
+    auto len = a.stval()->Len(); \
+    res = Value(NewStruct(len, a.stval()->tti)); \
+    for (intp i = 0; i < len; i++) { \
+        VMTYPEEQ(a.stval()->At(i), isfloat ? V_FLOAT : V_INT); \
+        res.stval()->At(i) = Value(-_VELEM(a, i, isfloat, type)); \
     } \
-    VMASSERT(false); \
+    a.DECRT(); \
+    PUSH(res); \
     }
 void VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, intp) }
 void VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, floatp) }
@@ -1127,8 +1136,11 @@ void VM::F_PUSHVARREF(VM_OP_ARGS) { PUSH(vars[*ip++].INCRTNIL()); }
 
 void VM::F_PUSHFLD(VM_OP_ARGS)  { PushDerefField(*ip++); }
 void VM::F_PUSHFLDM(VM_OP_ARGS) { PushDerefField(*ip++); }
-void VM::F_PUSHIDXI(VM_OP_ARGS) { PushDerefIdx(POP().ival()); }
-void VM::F_PUSHIDXV(VM_OP_ARGS) { PushDerefIdx(GrabIndex(POP())); }
+
+void VM::F_VPUSHIDXI(VM_OP_ARGS) { PushDerefIdxVector(POP().ival()); }
+void VM::F_VPUSHIDXV(VM_OP_ARGS) { PushDerefIdxVector(GrabIndex(POP())); }
+void VM::F_NPUSHIDXI(VM_OP_ARGS) { PushDerefIdxStruct(POP().ival()); }
+void VM::F_SPUSHIDXI(VM_OP_ARGS) { PushDerefIdxString(POP().ival()); }
 
 void VM::F_PUSHLOC(VM_OP_ARGS) {
     int i = *ip++;
@@ -1154,9 +1166,10 @@ void VM::F_LVALVAR(VM_OP_ARGS)    {
     LvalueOp(lvalop, vars[*ip++]);
 }
 
-void VM::F_LVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueObj(lvalop, POP().ival()); }
-void VM::F_LVALIDXV(VM_OP_ARGS) { int lvalop = *ip++; LvalueObj(lvalop, GrabIndex(POP())); }
-void VM::F_LVALFLD(VM_OP_ARGS)  { int lvalop = *ip++; LvalueObj(lvalop, *ip++); }
+void VM::F_VLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxVector(lvalop, POP().ival()); }
+void VM::F_NLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxStruct(lvalop, POP().ival()); }
+void VM::F_LVALIDXV(VM_OP_ARGS)  { int lvalop = *ip++; LvalueIdxVector(lvalop, GrabIndex(POP())); }
+void VM::F_LVALFLD(VM_OP_ARGS)   { int lvalop = *ip++; LvalueField(lvalop, *ip++); }
 
 #ifdef VM_COMPILED_CODE_MODE
     #define GJUMP(N, V, D1, C, P, D2) VM_JUMP_RET VM::N() \
@@ -1269,35 +1282,55 @@ void VM::EvalProgram() {
 
 void VM::PushDerefField(int i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // ?.
-    PUSH(r.eval()->AtInc(i));
+    if (!r.ref()) { PUSH(r); return; }  // nil.
+    PUSH(r.stval()->AtInc(i));
     r.DECRT();
 }
 
-void VM::PushDerefIdx(intp i) {
+void VM::PushDerefIdxVector(intp i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // ?.
-    switch (r.ref()->ti().t)  {  // FIXME: split this up into multiple ops, this is slow.
-        case V_STRUCT:
-        case V_VECTOR:
-            IDXErr(i, r.eval()->Len(), r.eval());
-            PUSH(r.eval()->AtInc(i));
-            break;
-        case V_STRING:
-            IDXErr(i, r.sval()->len, r.sval());
-            PUSH(Value((int)((uchar *)r.sval()->str())[i]));
-            break;
-        default:
-            VMASSERT(false);
-    }
+    if (!r.ref()) { PUSH(r); return; }  // nil.
+    IDXErr(i, r.vval()->len, r.vval());
+    PUSH(r.vval()->AtInc(i));
     r.DECRT();
 }
 
-void VM::LvalueObj(int lvalop, intp i) {
+void VM::PushDerefIdxStruct(intp i) {
+    Value r = POP();
+    if (!r.ref()) { PUSH(r); return; }  // nil.
+    IDXErr(i, r.stval()->Len(), r.stval());
+    PUSH(r.stval()->AtInc(i));
+    r.DECRT();
+}
+
+void VM::PushDerefIdxString(intp i) {
+    Value r = POP();
+    if (!r.ref()) { PUSH(r); return; }  // nil.
+    IDXErr(i, r.sval()->len, r.sval());
+    PUSH(Value((int)((uchar *)r.sval()->str())[i]));
+    r.DECRT();
+}
+
+void VM::LvalueIdxVector(int lvalop, intp i) {
     Value vec = POP();
-    TYPE_ASSERT(IsVector(vec.type));
-    IDXErr(i, (int)vec.eval()->Len(), vec.eval());
-    Value &a = vec.eval()->At(i);
+    IDXErr(i, (int)vec.vval()->len, vec.vval());
+    Value &a = vec.vval()->At(i);
+    LvalueOp(lvalop, a);
+    vec.DECRT();
+}
+
+void VM::LvalueIdxStruct(int lvalop, intp i) {
+    Value vec = POP();
+    IDXErr(i, (int)vec.stval()->Len(), vec.stval());
+    Value &a = vec.stval()->At(i);
+    LvalueOp(lvalop, a);
+    vec.DECRT();
+}
+
+void VM::LvalueField(int lvalop, intp i) {
+    Value vec = POP();
+    IDXErr(i, (int)vec.stval()->Len(), vec.stval());
+    Value &a = vec.stval()->At(i);
     LvalueOp(lvalop, a);
     vec.DECRT();
 }
@@ -1435,32 +1468,18 @@ void VM::BCallRetCheck(const NativeFun *nf) {
 
 intp VM::GrabIndex(const Value &idx) {
     auto &v = TOP();
-    for (auto i = idx.eval()->Len() - 1; ; i--) {
-        auto sidx = idx.eval()->At(i);
+    for (auto i = idx.stval()->Len() - 1; ; i--) {
+        auto sidx = idx.stval()->At(i);
         VMTYPEEQ(sidx, V_INT);
         if (!i) {
             idx.DECRT();
             return sidx.ival();
         }
-        TYPE_ASSERT(IsVector(v.type));
-        IDXErr(sidx.ival(), v.eval()->Len(), v.eval());
-        auto nv = v.eval()->At(sidx.ival()).INCRT();
+        IDXErr(sidx.ival(), v.vval()->len, v.vval());
+        auto nv = v.vval()->At(sidx.ival()).INCRT();
         v.DECRT();
         v = nv;
     }
-}
-
-intp VM::VectorLoop(const Value &a, const Value &b, Value &res, bool withscalar,
-                    type_elem_t desttype) {
-    TYPE_ASSERT(IsVector(a.type));
-    auto len = a.eval()->Len();
-    if (!withscalar) {
-        TYPE_ASSERT(IsVector(b.type));
-        if (b.eval()->Len() != len)
-            Error("vectors operation: vector must be same length", a.eval(), b.eval());
-    }
-    res = Value(NewVector(len, len, desttype));
-    return len;
 }
 
 void VM::Push(const Value &v) { PUSH(v); }

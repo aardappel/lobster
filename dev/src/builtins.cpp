@@ -36,20 +36,20 @@ static int StringCompare(const Value &a, const Value &b) {
 }
 
 template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun) {
-    intp size = l.eval()->Len();
+    intp size = l.vval()->len;
     intp i = 0;
     for (;;) {
         if (!size) break;
         intp mid = size / 2;
-        intp comp = comparefun(key, l.eval()->At(i + mid));
+        intp comp = comparefun(key, l.vval()->At(i + mid));
         if (comp) {
             if (comp < 0) size = mid;
             else { mid++; i += mid; size -= mid; }
         } else {
             i += mid;
             size = 1;
-            while (i && !comparefun(key, l.eval()->At(i - 1))) { i--; size++; }
-            while (i + size < l.eval()->Len() && !comparefun(key, l.eval()->At(i + size))) {
+            while (i && !comparefun(key, l.vval()->At(i - 1))) { i--; size++; }
+            while (i + size < l.vval()->len && !comparefun(key, l.vval()->At(i + size))) {
                 size++;
             }
             break;
@@ -59,19 +59,15 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun) {
     return Value(i);
 }
 
-// int <-> float
-type_elem_t SwapVectType(type_elem_t available, type_elem_t existing) {
-    if (existing == TYPE_ELEM_VECTOR_OF_FLOAT) return TYPE_ELEM_VECTOR_OF_INT;
-    if (existing == TYPE_ELEM_VECTOR_OF_INT) return TYPE_ELEM_VECTOR_OF_FLOAT;
-    // Structs:
-    // FIXME: this is not entirely correct, it could replace a color by an xyzw_i
-    return g_vm->GetTypeInfo(existing).t != V_STRUCT || available < 0 ? existing : available;
-}
-
-void RealVector(Value &v) {
-    // FIXME: need to guarantee this in typechecking
-    if (v.eval()->ti().t != V_VECTOR)
-        g_vm->BuiltinError("vector operation cannot use struct");
+Value ReplaceStruct(Value &l, Value &i, Value &a) {
+    auto len = l.stval()->Len();
+    if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
+    auto nv = g_vm->NewStruct(len, l.stval()->tti);
+    if (len) nv->Init(&l.stval()->At(0), len, true);
+    l.DECRT();
+    nv->Dec(i.ival());
+    nv->At(i.ival()) = a;
+    return Value(nv);
 }
 
 void AddBuiltins() {
@@ -161,9 +157,8 @@ void AddBuiltins() {
         "iterates over int/vector/string, body may take [ element [ , index ] ] arguments");
 
     STARTDECL(append) (Value &v1, Value &v2) {
-        RealVector(v1);
-        auto type = v1.eval()->tti;
-        auto nv = (LVector *)g_vm->NewVector(0, v1.eval()->Len() + v2.eval()->Len(), type);
+        auto type = v1.vval()->tti;
+        auto nv = (LVector *)g_vm->NewVec(0, v1.vval()->len + v2.vval()->len, type);
         nv->Append(v1.vval(), 0, v1.vval()->len); v1.DECRT();
         nv->Append(v2.vval(), 0, v2.vval()->len); v2.DECRT();
         return Value(nv);
@@ -172,7 +167,7 @@ void AddBuiltins() {
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (Value &type, Value &len) {
-        return Value(g_vm->NewVector(0, len.ival(), (type_elem_t)type.ival()));
+        return Value(g_vm->NewVec(0, len.ival(), (type_elem_t)type.ival()));
     }
     ENDDECL2(vector_reserve, "typeid,len", "TI", "V*",
         "creates a new empty vector much like [] would, except now ensures"
@@ -194,7 +189,7 @@ void AddBuiltins() {
         "length of string");
 
     STARTDECL(length) (Value &a) {
-        auto len = a.eval()->Len();
+        auto len = a.stval()->Len();
         a.DECRT();
         return Value(len);
     }
@@ -202,7 +197,7 @@ void AddBuiltins() {
         "number of fields in a numerical struct");
 
     STARTDECL(length) (Value &a) {
-        auto len = a.eval()->Len();
+        auto len = a.stval()->Len();
         a.DECRT();
         return Value(len);
     }
@@ -210,7 +205,7 @@ void AddBuiltins() {
         "number of fields in a numerical struct");
 
     STARTDECL(length) (Value &a) {
-        auto len = a.eval()->Len();
+        auto len = a.vval()->len;
         a.DECRT();
         return Value(len);
     }
@@ -228,7 +223,6 @@ void AddBuiltins() {
         " unlike == which is only true for vectors/objects if they are the same object)");
 
     STARTDECL(push) (Value &l, Value &x) {
-        RealVector(l);
         l.vval()->Push(x);
         return l;
     }
@@ -236,7 +230,6 @@ void AddBuiltins() {
         "appends one element to a vector, returns existing vector");
 
     STARTDECL(pop) (Value &l) {
-        RealVector(l);
         if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("pop: empty vector"); }
         auto v = l.vval()->Pop();
         l.DECRT();
@@ -246,7 +239,6 @@ void AddBuiltins() {
         "removes last element from vector and returns it");
 
     STARTDECL(top) (Value &l) {
-        RealVector(l);
         if (!l.vval()->len) { l.DECRT(); g_vm->BuiltinError("top: empty vector"); }
         auto v = l.vval()->Top();
         l.DECRT();
@@ -255,40 +247,26 @@ void AddBuiltins() {
     ENDDECL1(top, "xs", "V*", "A1",
         "returns last element from vector");
 
-    // FIXME: duplication.
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
-        auto len = l.eval()->Len();
-        if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
-        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
-        if (len) nv->Init(&l.eval()->At(0), len, true);
-        l.DECRT();
-        nv->Dec(i.ival());
-        nv->At(i.ival()) = a;
-        return Value(nv);
+        return ReplaceStruct(l, i, a);
     }
     ENDDECL3(replace, "xs,i,x", "F}IF", "F}",
         "returns a copy of a numeric struct with the element at i replaced by x");
 
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
-        auto len = l.eval()->Len();
-        if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
-        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
-        if (len) nv->Init(&l.eval()->At(0), len, true);
-        l.DECRT();
-        nv->Dec(i.ival());
-        nv->At(i.ival()) = a;
-        return Value(nv);
+        return ReplaceStruct(l, i, a);
     }
     ENDDECL3(replace, "xs,i,x", "I}II", "I}",
         "returns a copy of a numeric struct with the element at i replaced by x");
 
+    // FIXME: duplication with ReplaceStruct.
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
-        auto len = l.eval()->Len();
+        auto len = l.vval()->len;
         if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
-        auto nv = g_vm->NewVector(len, len, l.eval()->tti);
-        if (len) nv->Init(&l.eval()->At(0), len, true);
+        auto nv = g_vm->NewVec(len, len, l.vval()->tti);
+        if (len) nv->Init(&l.vval()->At(0), true);
         l.DECRT();
-        nv->Dec(i.ival());
+        nv->Dec(i.ival(), nv->ElemType());
         nv->At(i.ival()) = a;
         return Value(nv);
     }
@@ -296,7 +274,6 @@ void AddBuiltins() {
         "returns a copy of a vector with the element at i replaced by x");
 
     STARTDECL(insert) (Value &l, Value &i, Value &a) {
-        RealVector(l);
         if (i.ival() < 0 || i.ival() > l.vval()->len)
             g_vm->BuiltinError("insert: index or n out of range");  // note: i==len is legal
         l.vval()->Insert(a, i.ival());
@@ -307,7 +284,6 @@ void AddBuiltins() {
         " returns original vector");
 
     STARTDECL(remove) (Value &l, Value &i, Value &n) {
-        RealVector(l);
         auto amount = max(n.ival(), (intp)1);
         if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 ||
             i.ival() > l.vval()->len - amount)
@@ -323,7 +299,6 @@ void AddBuiltins() {
         " to remove as an optional argument, default 1. returns the first element removed.");
 
     STARTDECL(removeobj) (Value &l, Value &o) {
-        RealVector(l);
         intp removed = 0;
         auto vt = g_vm->GetTypeInfo(l.vval()->ti().subt).t;
         for (intp i = 0; i < l.vval()->len; i++) {
@@ -368,26 +343,19 @@ void AddBuiltins() {
         "string version.");
 
     STARTDECL(copy) (Value &v) {
-        auto &ti = g_vm->GetTypeInfo(v.eval()->tti);
-        if (ti.t != V_VECTOR && ti.t != V_STRUCT) g_vm->Error("copy: not a vector/struct");
-        auto len = v.eval()->Len();
-        auto nv = g_vm->NewVector(len, len, v.eval()->tti);
-        if (len) nv->Init(&v.eval()->At(0), len, true);
-        v.DECRT();
-        return Value(nv);
+        return v.Copy();
     }
     ENDDECL1(copy, "xs", "A", "A1",
-        "makes a shallow copy of a vector/struct.");
+        "makes a shallow copy of any object.");
 
     STARTDECL(slice) (Value &l, Value &s, Value &e) {
-        RealVector(l);
         auto size = e.ival();
-        if (size < 0) size = l.eval()->Len() + size;
+        if (size < 0) size = l.vval()->len + size;
         auto start = s.ival();
-        if (start < 0) start = l.eval()->Len() + start;
-        if (start < 0 || start + size > l.eval()->Len())
+        if (start < 0) start = l.vval()->len + start;
+        if (start < 0 || start + size > l.vval()->len)
             g_vm->BuiltinError("slice: values out of range");
-        auto nv = (LVector *)g_vm->NewVector(0, size, l.eval()->tti);
+        auto nv = (LVector *)g_vm->NewVec(0, size, l.vval()->tti);
         nv->Append(l.vval(), start, size);
         l.DECRT();
         return Value(nv);
@@ -396,39 +364,30 @@ void AddBuiltins() {
         "xs,start,size", "V*II", "V1", "returns a sub-vector of size elements from index start."
         " start & size can be negative to indicate an offset from the vector length.");
 
-    // FIXME: duplication.
+    #define ANY_F(acc, len) \
+        Value r(false); \
+        for (auto i = 0; i < v.acc()->len; i++) { \
+            if (v.acc()->At(i).True()) { r = Value(true); break; } \
+        } \
+        v.DECRT(); \
+        return r; \
+
     STARTDECL(any) (Value &v) {
-        Value r(false);
-        for (auto i = 0; i < v.eval()->Len(); i++) {
-            if (v.eval()->At(i).True()) {
-                r = Value(true);
-                break;
-            }
-        }
-        v.DECRT();
-        return r;
+        ANY_F(stval, Len())
     }
     ENDDECL1(any, "xs", "I}", "I",
         "returns wether any elements of the numeric struct are true values");
 
     STARTDECL(any) (Value &v) {
-        Value r(false);
-        for (auto i = 0; i < v.eval()->Len(); i++) {
-            if (v.eval()->At(i).True()) {
-                r = Value(true);
-                break;
-            }
-        }
-        v.DECRT();
-        return r;
+        ANY_F(vval, len)
     }
     ENDDECL1(any, "xs", "V*", "I",
         "returns wether any elements of the vector are true values");
 
     STARTDECL(all) (Value &v) {
         Value r(true);
-        for (intp i = 0; i < v.eval()->Len(); i++) {
-            if (!v.eval()->At(i).True()) {
+        for (intp i = 0; i < v.stval()->Len(); i++) {
+            if (!v.stval()->At(i).True()) {
                 r = Value(false);
                 break;
             }
@@ -441,8 +400,8 @@ void AddBuiltins() {
 
     STARTDECL(all) (Value &v) {
         Value r(true);
-        for (intp i = 0; i < v.eval()->Len(); i++) {
-            if (!v.eval()->At(i).True()) {
+        for (intp i = 0; i < v.vval()->len; i++) {
+            if (!v.vval()->At(i).True()) {
                 r = Value(false);
                 break;
             }
@@ -486,7 +445,7 @@ void AddBuiltins() {
         "converts a string to a float. returns 0.0 if no numeric data could be parsed");
 
     STARTDECL(tokenize) (Value &s, Value &delims, Value &whitespace) {
-        auto v = (LVector *)g_vm->NewVector(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        auto v = (LVector *)g_vm->NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->str();
         auto dl = delims.sval()->str();
         auto p = s.sval()->str();
@@ -517,8 +476,8 @@ void AddBuiltins() {
     STARTDECL(unicode2string) (Value &v) {
         char buf[7];
         string s;
-        for (intp i = 0; i < v.eval()->Len(); i++) {
-            auto &c = v.eval()->At(i);
+        for (intp i = 0; i < v.vval()->len; i++) {
+            auto &c = v.vval()->At(i);
             TYPE_ASSERT(c.type == V_INT);
             ToUTF8((int)c.ival(), buf);
             s += buf;
@@ -530,7 +489,7 @@ void AddBuiltins() {
         "converts a vector of ints representing unicode values to a UTF-8 string.");
 
     STARTDECL(string2unicode) (Value &s) {
-        auto v = (LVector *)g_vm->NewVector(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
+        auto v = (LVector *)g_vm->NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         const char *p = s.sval()->str();
         while (*p) {
             int u = FromUTF8(p);
@@ -593,38 +552,35 @@ void AddBuiltins() {
     STARTDECL(sqrt) (Value &a) { return Value(sqrt(a.fval())); } ENDDECL1(sqrt, "f", "F", "F",
         "square root");
 
-    #define SWAPVECTYPE(accessor) SwapVectType(len <= 4 ? g_vm->accessor((int)len) : (type_elem_t)-1, a.eval()->tti)
-
     #define VECTOROPT(op, typeinfo) \
-        TYPE_ASSERT(IsVector(a.type)); \
-        auto len = a.eval()->Len(); \
-        auto v = g_vm->NewVector(len, len, typeinfo); \
-        for (intp i = 0; i < a.eval()->Len(); i++) { \
-            auto f = a.eval()->At(i); \
+        auto len = a.stval()->Len(); \
+        auto v = g_vm->NewStruct(len, typeinfo); \
+        for (intp i = 0; i < a.stval()->Len(); i++) { \
+            auto f = a.stval()->At(i); \
             v->At(i) = Value(op); \
         } \
         a.DECRT(); \
         return Value(v);
-    #define VECTOROP(op) VECTOROPT(op, a.eval()->tti)
+    #define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
 
     STARTDECL(ceiling) (Value &a) { return Value(intp(ceil(a.fval()))); }
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(ceil(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(ceil(f.fval())), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(ceiling, "v", "F}", "I}",
         "the nearest ints >= each component of v");
 
     STARTDECL(floor) (Value &a) { return Value(intp(floor(a.fval()))); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor) (Value &a) { VECTOROPT(intp(floor(f.fval())), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(floor) (Value &a) { VECTOROPT(intp(floor(f.fval())), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(floor, "v", "F}", "I}",
         "the nearest ints <= each component of v");
 
     STARTDECL(int) (Value &a) { return Value(intp(a.fval())); }
     ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int) (Value &a) { VECTOROPT(intp(f.fval()), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(int) (Value &a) { VECTOROPT(intp(f.fval()), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(int, "v", "F}", "I}",
         "converts a vector of floats to ints by dropping the fraction");
 
@@ -632,7 +588,7 @@ void AddBuiltins() {
     ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
         " negative numbers");
-    STARTDECL(round) (Value &a) { VECTOROPT(intp(f.fval() + 0.5f), SWAPVECTYPE(GetIntVectorType)); }
+    STARTDECL(round) (Value &a) { VECTOROPT(intp(f.fval() + 0.5f), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(round, "v", "F}", "I}",
         "converts a vector of floats to the closest ints");
 
@@ -646,7 +602,7 @@ void AddBuiltins() {
     STARTDECL(float) (Value &a) { return Value(float(a.ival())); }
     ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float) (Value &a) { VECTOROPT(floatp(f.ival()), SWAPVECTYPE(GetFloatVectorType)); }
+    STARTDECL(float) (Value &a) { VECTOROPT(floatp(f.ival()), g_vm->GetFloatVectorType((int)len)); }
     ENDDECL1(float, "v", "I}", "F}",
         "converts a vector of ints to floats");
 
@@ -687,7 +643,7 @@ void AddBuiltins() {
         "converts an angle in radians to degrees");
 
     STARTDECL(normalize) (Value &vec) {
-        switch (vec.eval()->Len()) {
+        switch (vec.stval()->Len()) {
             case 2: { auto v = ValueDecToF<2>(vec);
                       return ToValueF(v == floatp2_0 ? v : normalize(v)); }
             case 3: { auto v = ValueDecToF<3>(vec);
@@ -782,21 +738,21 @@ void AddBuiltins() {
 
     // FIXME: need to guarantee this assert in typechecking
     #define VECBINOP(name,access) \
-        auto len = x.eval()->Len(); \
-        if (len != y.eval()->Len()) g_vm->BuiltinError(#name "() arguments must be equal length"); \
-        auto type = x.eval()->tti; \
-        assert(type == y.eval()->tti); \
-        auto v = g_vm->NewVector(len, len, type); \
-        for (intp i = 0; i < x.eval()->Len(); i++) { \
-            v->At(i) = Value(name(x.eval()->At(i).access(), y.eval()->At(i).access())); \
+        auto len = x.stval()->Len(); \
+        if (len != y.stval()->Len()) g_vm->BuiltinError(#name "() arguments must be equal length"); \
+        auto type = x.stval()->tti; \
+        assert(type == y.stval()->tti); \
+        auto v = g_vm->NewStruct(len, type); \
+        for (intp i = 0; i < x.stval()->Len(); i++) { \
+            v->At(i) = Value(name(x.stval()->At(i).access(), y.stval()->At(i).access())); \
         } \
         x.DECRT(); y.DECRT(); \
         return Value(v);
 
-    #define VECSCALAROP(type, init, fun) \
+    #define VECSCALAROP(type, init, fun, acc, len) \
         type v = init; \
-        for (intp i = 0; i < x.eval()->Len(); i++) { \
-            auto f = x.eval()->At(i); \
+        for (intp i = 0; i < x.acc()->len; i++) { \
+            auto f = x.acc()->At(i); \
             fun; \
         } \
         x.DECRT(); \
@@ -814,16 +770,16 @@ void AddBuiltins() {
     STARTDECL(min) (Value &x, Value &y) { VECBINOP(min,fval) }
     ENDDECL2(min, "x,y", "F}F}", "F}",
         "smallest components of 2 float vectors");
-    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), stval, Len()) }
     ENDDECL1(min, "v", "I}", "I",
         "smallest component of a int vector.");
-    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), stval, Len()) }
     ENDDECL1(min, "v", "F}", "F",
         "smallest component of a float vector.");
-    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len) }
     ENDDECL1(min, "v", "I]", "I",
         "smallest component of a int vector, or INT_MAX if length 0.");
-    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval())) }
+    STARTDECL(min) (Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len) }
     ENDDECL1(min, "v", "F]", "F",
         "smallest component of a float vector, or FLT_MAX if length 0.");
 
@@ -839,16 +795,16 @@ void AddBuiltins() {
     STARTDECL(max) (Value &x, Value &y) { VECBINOP(max,fval) }
     ENDDECL2(max, "x,y", "F}F}", "F}",
         "largest components of 2 float vectors");
-    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), stval, Len()) }
     ENDDECL1(max, "v", "I}", "I",
         "largest component of a int vector.");
-    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), stval, Len()) }
     ENDDECL1(max, "v", "F}", "F",
         "largest component of a float vector.");
-    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len) }
     ENDDECL1(max, "v", "I]", "I",
         "largest component of a int vector, or INT_MIN if length 0.");
-    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval())) }
+    STARTDECL(max) (Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len) }
     ENDDECL1(max, "v", "F]", "F",
         "largest component of a float vector, or FLT_MIN if length 0.");
 
@@ -859,7 +815,7 @@ void AddBuiltins() {
         "linearly interpolates between x and y with factor f [0..1]");
 
     STARTDECL(lerp) (Value &x, Value &y, Value &f) {
-        auto numelems = x.eval()->Len();
+        auto numelems = x.stval()->Len();
         return ToValueF(mix(ValueDecToF<4>(x), ValueDecToF<4>(y), (float)f.fval()), numelems);
     }
     ENDDECL3(lerp, "a,b,f", "F}F}F", "F}",
@@ -944,13 +900,13 @@ void AddBuiltins() {
                     }
                 }
             }
-            auto vec = (LVector *)g_vm->NewVector(0, (int)within_range.size(),
+            auto vec = (LVector *)g_vm->NewVec(0, (int)within_range.size(),
                                                   TYPE_ELEM_VECTOR_OF_INT);
             for (auto i : within_range) vec->Push(Value(i));
             within_range.clear();
             results[i] = vec;
         }
-        auto rvec = (LVector *)g_vm->NewVector(0, len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
+        auto rvec = (LVector *)g_vm->NewVec(0, len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
         for (auto vec : results) rvec->Push(Value(vec));
         return Value(rvec);
     }
@@ -1072,8 +1028,8 @@ void AddBuiltins() {
              "lets you turn on/off the console window (on Windows)");
 
     STARTDECL(command_line_arguments) () {
-        auto v = (LVector *)g_vm->NewVector(0, (int)g_vm->program_args.size(),
-                                            TYPE_ELEM_VECTOR_OF_STRING);
+        auto v = (LVector *)g_vm->NewVec(0, (int)g_vm->program_args.size(),
+                                         TYPE_ELEM_VECTOR_OF_STRING);
         for (auto &a : g_vm->program_args) v->Push(g_vm->NewString(a));
         return Value(v);
     }

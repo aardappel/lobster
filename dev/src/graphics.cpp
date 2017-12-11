@@ -113,20 +113,31 @@ int GetSampler(Value &i) {
 
 Mesh *CreatePolygon(Value &vl) {
     TestGL();
-    if (vl.eval()->Len() < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
-    auto vbuf = new BasicVert[vl.eval()->Len()];
-    for (int i = 0; i < vl.eval()->Len(); i++) vbuf[i].pos = ValueToFLT<3>(vl.eval()->At(i));
+    auto len = vl.vval()->len;
+    if (len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
+    auto vbuf = new BasicVert[len];
+    for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vl.vval()->At(i));
     auto v1 = vbuf[1].pos - vbuf[0].pos;
     auto v2 = vbuf[2].pos - vbuf[0].pos;
     auto norm = normalize(cross(v2, v1));
-    for (int i = 0; i < vl.eval()->Len(); i++) {
+    for (int i = 0; i < len; i++) {
         vbuf[i].norm = norm;
         vbuf[i].tc = vbuf[i].pos.xy();
         vbuf[i].col = byte4_255;
     }
-    auto m = new Mesh(new Geometry(vbuf, vl.eval()->Len(), sizeof(BasicVert), "PNTC"), polymode);
+    auto m = new Mesh(new Geometry(vbuf, len, sizeof(BasicVert), "PNTC"), polymode);
     delete[] vbuf;
     return m;
+}
+
+Value SetUniform(Value &name, const float *data, int len, bool ignore_errors) {
+    TestGL();
+    currentshader->Activate();
+    auto ok = currentshader->SetUniform(name.sval()->str(), data, len);
+    if (!ok && !ignore_errors)
+        g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
+    name.DECRT();
+    return Value(ok);
 }
 
 void AddGraphics() {
@@ -593,10 +604,10 @@ void AddGraphics() {
         if (nattr != (int)strspn(fmt, "PCTN") || fmt[0] != 'P')
             g_vm->BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
-        intp nverts = positions.vval()->Len();
+        intp nverts = positions.vval()->len;
         vector<int> idxs;
         if (indices.True()) {
-            for (int i = 0; i < indices.vval()->Len(); i++) {
+            for (int i = 0; i < indices.vval()->len; i++) {
                 auto &e = indices.vval()->At(i);
                 if (e.ival() < 0 || e.ival() >= nverts)
                     g_vm->BuiltinError("newmesh: index out of range of vertex list");
@@ -620,23 +631,23 @@ void AddGraphics() {
                         break;
                     case 'C':
                         *((byte4  *&)p)++ =
-                            i < colors.vval()->Len()
+                            i < colors.vval()->len
                                 ? quantizec(ValueToFLT<4>(colors.vval()->At(i), 1))
                                 : byte4_255;
                         break;
                     case 'T': {
                         auto &texcoords = texcoordn ? texcoords2 : texcoords1;
                         *((float2 *&)p)++ =
-                            i < texcoords.vval()->Len()
+                            i < texcoords.vval()->len
                                 ? ValueToFLT<2>(texcoords.vval()->At(i), 0)
                                 : pos.xy();
                         texcoordn++;
                         break;
                     }
                     case 'N':
-                        if (!normals.vval()->Len()) normal_offset = p - start;
+                        if (!normals.vval()->len) normal_offset = p - start;
                         *((float3 *&)p)++ =
-                            i < normals.vval()->Len()
+                            i < normals.vval()->len
                                 ? ValueToFLT<3>(normals.vval()->At(i), 0)
                                 : float3_0;
                         break;
@@ -691,7 +702,7 @@ void AddGraphics() {
 
     STARTDECL(gl_meshparts) (Value &i) {
         auto &m = GetMesh(i);
-        auto v = (LVector *)g_vm->NewVector(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
+        auto v = (LVector *)g_vm->NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(Value(g_vm->NewString(s->name)));
         return Value(v);
     }
@@ -742,31 +753,19 @@ void AddGraphics() {
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
         " color / textured / phong");
 
-    // FIXME: duplication.
     STARTDECL(gl_setuniform) (Value &name, Value &vec, Value &ignore_errors) {
-        TestGL();
-        auto len = vec.eval()->Len();
-        auto v = ValueDecToFLT<4>(vec);
-        currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->str(), v.begin(), (int)len);
-        if (!ok && !ignore_errors.True())
-            g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
-        name.DECRT();
-        return Value(ok);
+        auto v = ValueToFLT<4>(vec);
+        auto r = SetUniform(name, v.begin(), (int)vec.stval()->Len(), ignore_errors.True());
+        vec.DECRT();
+        return r;
     }
     ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SF}I?", "I",
         "set a uniform on the current shader. size of float vector must match size of uniform"
         " in the shader.");
 
     STARTDECL(gl_setuniform) (Value &name, Value &vec, Value &ignore_errors) {
-        TestGL();
-        currentshader->Activate();
         auto f = vec.fltval();
-        auto ok = currentshader->SetUniform(name.sval()->str(), &f, 1);
-        if (!ok && !ignore_errors.True())
-            g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
-        name.DECRT();
-        return Value(ok);
+        return SetUniform(name, &f, 1, ignore_errors.True());
     }
     ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SFI?", "I",
         "set a uniform on the current shader. uniform"
@@ -774,8 +773,8 @@ void AddGraphics() {
 
     STARTDECL(gl_setuniformarray) (Value &name, Value &vec) {
         TestGL();
-        vector<float4> vals(vec.eval()->Len());
-        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToFLT<4>(vec.eval()->At(i));
+        vector<float4> vals(vec.vval()->len);
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vec.vval()->At(i));
         vec.DECRT();
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4,
@@ -789,8 +788,8 @@ void AddGraphics() {
 
     STARTDECL(gl_uniformbufferobject) (Value &name, Value &vec, Value &ssbo) {
         TestGL();
-        vector<float4> vals(vec.eval()->Len());
-        for (int i = 0; i < vec.eval()->Len(); i++) vals[i] = ValueToFLT<4>(vec.eval()->At(i));
+        vector<float4> vals(vec.vval()->len);
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vec.vval()->At(i));
         vec.DECRT();
         auto id = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(),
                                       name.sval()->str(), ssbo.True());
@@ -904,15 +903,15 @@ void AddGraphics() {
 
     STARTDECL(gl_createtexture) (Value &matv, Value &tf) {
         TestGL();
-        ElemObj *mat = matv.eval();
-        auto ys = mat->Len();
-        auto xs = mat->At(0).eval()->Len();
+        auto mat = matv.vval();
+        auto ys = mat->len;
+        auto xs = mat->At(0).vval()->len;
         auto sz = tf.ival() & TF_FLOAT ? sizeof(float4) : sizeof(byte4);
         auto buf = new uchar[xs * ys * sz];
         memset(buf, 0, xs * ys * sz);
         for (int i = 0; i < ys; i++) {
-            ElemObj *row = mat->At(i).eval();
-            for (int j = 0; j < min(xs, row->Len()); j++) {
+            auto row = mat->At(i).vval();
+            for (int j = 0; j < min(xs, row->len); j++) {
                 float4 col = ValueToFLT<4>(row->At(j));
                 auto idx = i * xs + j;
                 if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
@@ -993,8 +992,8 @@ void AddGraphics() {
     STARTDECL(gl_rendertiles) (Value &pos, Value &tile, Value &mapsize) {
         TestGL();
         auto msize = float2(ValueDecToI<2>(mapsize));
-        auto len = pos.vval()->Len();
-        if (len != tile.vval()->Len())
+        auto len = pos.vval()->len;
+        if (len != tile.vval()->len)
             g_vm->BuiltinError("rendertiles: vectors of different size");
         auto vbuf = new SpriteVert[len * 6];
         for (intp i = 0; i < len; i++) {

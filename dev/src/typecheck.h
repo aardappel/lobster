@@ -1844,6 +1844,8 @@ Node *Indexing::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
                 : (vtype->t == V_STRUCT ? vtype->struc->sametype : type_int);
             break;
         case V_STRUCT: {
+            if (vtype->t != V_VECTOR)
+                tc.TypeError("multi-dimensional indexing on non-vector", *this);
             auto &struc = *itype->struc;
             exptype = vtype;
             for (auto &field : struc.fields.v) {
