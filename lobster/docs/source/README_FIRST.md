@@ -1,4 +1,6 @@
-Welcome to Lobster!
+---
+title: Welcome to Lobster!
+---
 
 This document is the starting point for all the Lobster documentation.
 

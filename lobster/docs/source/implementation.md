@@ -20,9 +20,10 @@ out of the box with no further external dependencies.
 All source code and other files related to building Lobster for all platforms
 sit in the `dev` folder, which is usually parallel to the main lobster folder.
 
-Lobster is ideally built in 32bit mode on all platforms. For a high speed
-interpreter, sizes of data are a bit more critical than most programs, and while
-mobile platforms are still default to 32bit, this uniformity is helpful.
+Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all
+Lobster values will take double the size (and precision), and thus use more
+memory. Despite that, for most programs, 64-bit is still a speed-up (the VM
+benefits a lot from extra registers).
 
 ### Windows
 
@@ -60,30 +61,11 @@ You can build with CMake on Linux (and possibly other platforms, untested):
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 cd dev
-cmake -DCMAKE_BUILD_TYPE=Release && make -j4
+cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It creates in `lobster/lobster_cmake`. Run it from that directory to access the
 samples, e.g. `./lobster_cmake samples/pythtree.lobster`
-
-NOTE: by default this builds Lobster for your architecture, which nowadays is
-likely 64bit. Lobster's VM implementation is currently still such that doubling
-the pointer size will double the memory used by all VM objects. This is fine for
-testing, but if you ever release a lobster program where you care for
-efficiency, it should really be built as a 32bit executable, even on a 64bit
-system. This is tricky however, and I don't have an out of the box solution for
-that yet. The future plan is of course for the VM not to have this limitation.
-
-### Linux
-
-Use CMake as mentioned above.
-
-There is still a Makefile if for some reason that works better, but it is
-deprecated, as it requires SDL 2.0.4 (or better) and Freetype 2 libraries to
-already be installed to build, whereas the cmake file is self-contained.
-
-The `Makefile` is in `dev/src/`, go there and type `make`. Then `make install`
-will move the executable to `lobster/`.
 
 ### Android
 
@@ -196,7 +178,7 @@ Before you build, gather your lobster distribution files (see below) and place
 them in `dev/emscripten/assets`. They will be automatically picked up by the
 build process this way.
 
-To build, go to `dev/emscripten`, and type `make -j4`. This should produce a
+To build, go to `dev/emscripten`, and type `make -j8`. This should produce a
 lobster.[js\|html\|data] in the same directory (the latter containing whatever
 you placed in `assets`).
 

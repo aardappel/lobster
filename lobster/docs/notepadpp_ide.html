@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-  <meta charset="utf-8">
-  <meta name="generator" content="pandoc">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Notepad++ as Lobster IDE</title>
-  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
   <link rel="stylesheet" href="github.css">
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
@@ -21,9 +27,9 @@
 <li><p>Open menu Plugins -&gt; NppExec -&gt; Execute and enter:</p>
 <pre><code>NPP_SAVE
 cmd /C C:\path_to_lobster_goes_here\lobster.exe &quot;$(FULL_CURRENT_PATH)&quot;</code></pre></li>
-<li><p>Save script under name &quot;<code>lobster</code>&quot;</p></li>
-<li><p>Load some lobster code. pressing <code>F6</code> and then &quot;ok&quot; should run it. Next time press <code>Ctrl+F6</code> to bypass the dialog.</p></li>
-<li><p>NOTE: running from within Notepad++ doesn't work for programs that do console input thru e.g. <code>getline()</code>. Output (thru <code>print()</code>) does work, but is sometimes delayed. Graphical programs work well.</p></li>
+<li><p>Save script under name “<code>lobster</code>”</p></li>
+<li><p>Load some lobster code. pressing <code>F6</code> and then “ok” should run it. Next time press <code>Ctrl+F6</code> to bypass the dialog.</p></li>
+<li><p>NOTE: running from within Notepad++ doesn’t work for programs that do console input thru e.g. <code>getline()</code>. Output (thru <code>print()</code>) does work, but is sometimes delayed. Graphical programs work well.</p></li>
 </ul>
 <h2 id="editing">Editing</h2>
 <p>By default, Notepad++ comes set up insert tabs into your code, which is against the Lobster <a href="style_guide.html">style guide</a>, and can result in errors if you modify the existing examples. In Settings -&gt; Preferences -&gt; Language Menu / Tab Settings you can change this.</p>
@@ -38,9 +44,9 @@ in block -&gt; %FILE%(%LINE%)</code></pre></li>
 </ul>
 <h2 id="syntax-highlighting">Syntax Highlighting</h2>
 <ul>
-<li><p>NOTE: this file currently only seems to work with a dark background theme, so be sure to choose in menu Settings -&gt; Style Configurator under &quot;Select Theme&quot; something like Zenburn first.</p></li>
-<li><p>Language -&gt; Define your language.., then Import... and choose the <code>docs/notepad++/notepadpp_udl_lobster.xml</code> file.</p></li>
-<li><p>Save As... &quot;<code>lobster</code>&quot;</p></li>
+<li><p>NOTE: this file currently only seems to work with a dark background theme, so be sure to choose in menu Settings -&gt; Style Configurator under “Select Theme” something like Zenburn first.</p></li>
+<li><p>Language -&gt; Define your language.., then Import… and choose the <code>docs/notepad++/notepadpp_udl_lobster.xml</code> file.</p></li>
+<li><p>Save As… “<code>lobster</code>”</p></li>
 <li><p>It should now show <code>.lobster</code> files with correct highlighting, or you can set it explicitly from the Language menu.</p></li>
 </ul>
 <h2 id="optionally">Optionally</h2>

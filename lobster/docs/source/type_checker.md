@@ -1,4 +1,6 @@
-The Lobster Type System
+---
+title: The Lobster Type System
+---
 
 This document is about how to make most effective use of the type system..
 
@@ -271,3 +273,24 @@ struct bar : foo(float) { c:int }
 The first version subclasses `foo` into another generic type, and the second
 specializes and subclasses at the same time, creating a non-generic type
 instead.
+
+Numeric Structs (math vector types)
+-----------------------------------
+Structs whose fields are either all int or all float, and have between 2-4
+fields have a special status in the type system, as they are accepted as
+arguments to vector versions of the built-in operators (`+ - * /` etc) as
+well as many vector operations part of the built-in functions (e.g. `normalize`).
+
+You can see the default types for these (`xy`, `xyz`, and `xyzw`) defined in
+`include/stdtype.lobster`. Other types also work with these operations, though
+(e.g. `color`).
+
+Confusingly, in math, such 2-4 dimensional things are commonly referred to as
+"vectors", whereas Lobster calls its resizable arrays "vectors". So in Lobster
+these things are "numeric structs", but on occasion may still also be called
+"vectors", sorry for the confusion.
+
+Originally, vector operations would work on any size structs/vectors, but to
+make the type system more precise (clearly distinguish between structs and vectors),
+make the VM faster, allow SIMD use, and generally simplify things, they are focussed
+on the common dimensions of 2-4.

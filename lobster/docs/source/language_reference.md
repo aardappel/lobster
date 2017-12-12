@@ -1,4 +1,6 @@
-Lobster Language Reference
+---
+title: Lobster Language Reference
+---
 
 This is the definition of the language that tries to be a more exact a
 description of how the language works (the most exact description, however, will

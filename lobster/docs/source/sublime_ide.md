@@ -1,4 +1,6 @@
-SublimeText as Lobster IDE
+---
+title: SublimeText as Lobster IDE
+---
 
 ## Running Lobster programs from within the editor
 
@@ -34,6 +36,6 @@ get you to the line of the error.
 The `lobster.tmLanguage` file you copied should provide automatic syntax
 highlighting for any .lobster files.
 
-## 
+##
 
   [style guide]: style_guide.html

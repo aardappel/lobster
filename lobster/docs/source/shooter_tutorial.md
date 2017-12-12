@@ -1,4 +1,6 @@
-Learn Lobster: Let's create a 2D shooter!
+---
+title: "Learn Lobster: Let's create a 2D shooter!"
+---
 
 Let's walk through all the steps required to make a simple game in Lobster by
 making a shooter in the same vein as "Geometry Wars": enemies come at you from

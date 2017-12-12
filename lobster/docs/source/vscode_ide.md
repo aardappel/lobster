@@ -1,4 +1,6 @@
-VSCode as Lobster IDE
+---
+title: VSCode as Lobster IDE
+---
 
 Running Lobster programs from within the editor
 -----------------------------------------------

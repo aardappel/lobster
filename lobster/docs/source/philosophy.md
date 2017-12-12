@@ -1,6 +1,6 @@
 ---
 title: "Lobster Design Philosophy, History, and Future"
-...
+---
 
 This document tries to clarify why certain design choices were made in the
 Lobster language and system.

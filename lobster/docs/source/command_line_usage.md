@@ -1,4 +1,6 @@
-Using Lobster from the command line
+---
+title: Using Lobster from the command line
+---
 
 Basic usage
 -----------
@@ -36,12 +38,6 @@ These can be passed to lobster anywhere on the command line.
 
 -   `-w` : makes the compiler wait for commandline input before it exits. Useful
     on Windows.
-
--   `-c` : (deprecated, this should now be automatically detected). *forces
-    lobster into "command line" mode. This is useful on Apple platforms where by
-    default lobster expects to be run from within an app bundle. With this
-    option, it will not try to look for files in an app bundle, but instead
-    functions much like Windows & Linux.*
 
 -   `--gen-builtins-html` : dumps a help file of all builtin functions the
     compiler knows about to `builtin_functions_reference.html`.
