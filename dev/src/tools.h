@@ -682,10 +682,22 @@ template<typename T, typename U> const T *AssertIs(const U *o) {
 }
 
 
-inline int PopCount(uint val) {
+inline int PopCount32(uint val) {
     #ifdef _WIN32
         return (int)__popcnt(val);
     #else
         return __builtin_popcount(val);
+    #endif
+}
+
+inline int PopCount64(uint64_t val) {
+    #ifdef _WIN32
+        #ifdef _WIN64
+            return (int)__popcnt64(val);
+        #else
+            return (int)(__popcnt((uint)val) + __popcnt((uint)(val >> 32)));
+        #endif
+    #else
+        return __builtin_popcountll(val);
     #endif
 }
