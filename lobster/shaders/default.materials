@@ -104,7 +104,7 @@ SHADER phong_particle
         icol = acolor;
         ipos = apos.xyz;
 		// Do our own backface culling. Also scale point relative to on-screen size.
-        gl_PointSize = dot(anormal, apos.xyz - camera) < 0 ? pointscale / gl_Position.w : 0.0;
+        gl_PointSize = dot(anormal, apos.xyz - camera) < 0.0 ? pointscale / gl_Position.w : 0.0;
     PIXEL
         INPUTS inormal:3 ipos:3 icol:4
         UNIFORMS col camera light1 lightparams1

@@ -313,7 +313,9 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
                     ei[dir] = (int)edges.size();
                     auto &dv1 = dv[i1];
                     auto &dv2 = dv[i2];
-                    assert(dv1.dist * dv2.dist < 0);
+                    #ifndef __EMSCRIPTEN__  // FIXME
+                        assert(dv1.dist * dv2.dist < 0);
+                    #endif
                     edges.push_back(verts2edge(p1, p2, dv1, dv2));
                 }
                 vertlist[i] = ei[dir];

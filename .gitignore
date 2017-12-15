@@ -48,11 +48,14 @@
 /dev/emscripten/*.data
 /dev/emscripten/*.map
 /dev/emscripten/*.mem
+/dev/emscripten/*.wasm
+/dev/emscripten/*.wast
 
 /dev/CMakeCache.txt
 /dev/CMakeFiles/
 /dev/Makefile
 /dev/cmake_install.cmake
+/dev/SDL2ConfigVersion.cmake
 /dev/CMakeLists.txt.user
 /dev/Lobster.cbp
 

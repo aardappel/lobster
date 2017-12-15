@@ -252,7 +252,14 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
     #ifdef PLATFORM_ES2
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        #ifdef __EMSCRIPTEN__
+            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        #else
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        #endif
     #else
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         #ifdef __APPLE__
