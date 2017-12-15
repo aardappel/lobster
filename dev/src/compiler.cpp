@@ -155,9 +155,10 @@ bool LoadPakDir(const char *lpak) {
     string header;
     if (LoadFile(lpak, &header, plen - (int64_t)header_size, header_size) < 0 ||
         memcmp(header.c_str() + header_size - magic_size, magic, magic_size)) return false;
-    auto num = (size_t)LE(*((int64_t *)header.c_str()));
-    auto dirstart = LE(*((int64_t *)header.c_str() + 1));
-    auto version = LE(*((int64_t *)header.c_str() + 2));
+    auto read_unaligned = [](int64_t *p) { int64_t r; memcpy(&r, p, sizeof(int64_t)); return LE(r); };
+    auto num = (size_t)read_unaligned(((int64_t *)header.c_str()));
+    auto dirstart = read_unaligned(((int64_t *)header.c_str() + 1));
+    auto version = read_unaligned(((int64_t *)header.c_str() + 2));
     if (version > 1) return false;
     if (dirstart > plen) return false;
     string dir;
@@ -167,12 +168,12 @@ bool LoadPakDir(const char *lpak) {
     auto filestarts = namestarts - num;
     auto uncompressed = filestarts - num;
     for (size_t i = 0; i < num; i++) {
-        auto name = (char *)(dir.c_str() + (LE(namestarts[i]) - dirstart));
-        auto off = LE(filestarts[i]);
-        auto end = i < num + 1 ? LE(filestarts[i + 1]) : dirstart;
+        auto name = (char *)(dir.c_str() + (read_unaligned(namestarts + i) - dirstart));
+        auto off = read_unaligned(filestarts + i);
+        auto end = i < num + 1 ? read_unaligned(filestarts + i + 1) : dirstart;
         auto len = end - off;
         Output(OUTPUT_INFO, "pakfile dir: %s (%d)", name, (size_t)len);
-        AddPakFileEntry(lpak, name, off, len, uncompressed[i]);
+        AddPakFileEntry(lpak, name, off, len, read_unaligned(uncompressed + i));
     }
     return true;
 }
