@@ -4,7 +4,7 @@ CXX= emcc
 CC= emcc
 
 # use -g4 for maximum debug info.
-OPTLEVEL= -g4 -O2
+OPTLEVEL= -g4 -O3
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
 override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++14 -Wall -pedantic -Wno-switch \
@@ -82,8 +82,12 @@ $(CPPOBJS): CXXFLAGS += $(INCLUDES)
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
 # add -s ASSERTIONS=2 when troubleshooting.
+# FIXME: can remove Pointer_stringify once https://github.com/kripken/emscripten/pull/5945 is in.
 lobster: $(COBJS) $(CPPOBJS)
-	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ -s DEMANGLE_SUPPORT=1 --emrun
+	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
+	  -s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
+	  -s 'EXTRA_EXPORTED_RUNTIME_METHODS=["Pointer_stringify"]' \
+	  -s DEMANGLE_SUPPORT=1 --emrun
 
 install: all
 	cp lobster ../../lobster/
