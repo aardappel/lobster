@@ -47,8 +47,10 @@
 #include <iterator>
 #include <functional>
 #include <array>
-#include <thread>
 #include <type_traits>
+
+#include <thread>
+#include <future>
 
 #include <sstream>
 #include <iostream>
