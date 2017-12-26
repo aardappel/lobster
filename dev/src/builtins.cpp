@@ -563,17 +563,17 @@ void AddBuiltins() {
         return Value(v);
     #define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
 
-    STARTDECL(ceiling) (Value &a) { return Value(intp(ceil(a.fval()))); }
+    STARTDECL(ceiling) (Value &a) { return Value(fceil(a.fval())); }
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(ceil(f.fval())), g_vm->GetIntVectorType((int)len)); }
+    STARTDECL(ceiling) (Value &a) { VECTOROPT(intp(fceil(f.fval())), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(ceiling, "v", "F}", "I}",
         "the nearest ints >= each component of v");
 
-    STARTDECL(floor) (Value &a) { return Value(intp(floor(a.fval()))); }
+    STARTDECL(floor) (Value &a) { return Value(ffloor(a.fval())); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor) (Value &a) { VECTOROPT(intp(floor(f.fval())), g_vm->GetIntVectorType((int)len)); }
+    STARTDECL(floor) (Value &a) { VECTOROPT(ffloor(f.fval()), g_vm->GetIntVectorType((int)len)); }
     ENDDECL1(floor, "v", "F}", "I}",
         "the nearest ints <= each component of v");
 
@@ -592,10 +592,10 @@ void AddBuiltins() {
     ENDDECL1(round, "v", "F}", "I}",
         "converts a vector of floats to the closest ints");
 
-    STARTDECL(fraction) (Value &a) { return Value(a.fval() - floor(a.fval())); }
+    STARTDECL(fraction) (Value &a) { return Value(a.fval() - int(a.fval())); }
     ENDDECL1(fraction, "f", "F", "F",
-        "returns the fractional part of a float: short for f - floor(f)");
-    STARTDECL(fraction) (Value &a) { VECTOROP(f.fval() - floor(f.fval())); }
+        "returns the fractional part of a float: short for f - int(f)");
+    STARTDECL(fraction) (Value &a) { VECTOROP(f.fval() - int(f.fval())); }
     ENDDECL1(fraction, "v", "F}", "F}",
         "returns the fractional part of a vector of floats");
 

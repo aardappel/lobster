@@ -127,7 +127,7 @@ void Mesh::Render(Shader *sh) {
     if (prim == PRIM_POINT) SetPointSprite(pointsize);
     sh->Set();
     if (numbones && numframes) {
-        int frame1 = (int)floor(curanim);
+        int frame1 = ffloor(curanim);
         int frame2 = frame1 + 1;
         float frameoffset = curanim - frame1;
         float3x4 *mat1 = &mats[(frame1 % numframes) * numbones],

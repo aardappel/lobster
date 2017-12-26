@@ -25,7 +25,8 @@ namespace geom {
                   { const int i = 2; F; if (N > 3) \
                   { const int i = 3; F; } } } }
 
-#define DOVECR(F) { vec<T,N> _t; DOVEC(_t[i] = F); return _t; }
+#define DOVECR(F) { vec<T, N> _t; DOVEC(_t[i] = F); return _t; }
+#define DOVECRI(F) { vec<int, N> _t; DOVEC(_t[i] = F); return _t; }
 #define DOVECF(I,F) { T _ = I; DOVEC(_ = F); return _; }
 #define DOVECB(I,F) { bool _ = I; DOVEC(_ = F); return _; }
 
@@ -126,6 +127,7 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec &operator-=(T e) { DOVEC(c[i] -= e); return *this; }
     vec &operator*=(T e) { DOVEC(c[i] *= e); return *this; }
     vec &operator/=(T e) { DOVEC(c[i] /= e); return *this; }
+    vec &operator&=(T e) { DOVEC(c[i] &= e); return *this; }
 
     bool operator<=(const vec &v) const {
         DOVECB(true, _ && c[i] <= v[i]);
@@ -150,9 +152,15 @@ template<typename T, int N> struct vec : basevec<T, N> {
     bool operator< (T e) const { DOVECB(true, _ && c[i] <  e); }
     bool operator>=(T e) const { DOVECB(true, _ && c[i] >= e); }
     bool operator> (T e) const { DOVECB(true, _ && c[i] >  e); }
-
     bool operator==(T e) const { DOVECB(true, _ && c[i] == e); }
     bool operator!=(T e) const { DOVECB(false, _ || c[i] != e); }
+
+    vec<int, N> lte(T e) const { DOVECRI(c[i] <= e); }
+    vec<int, N> lt (T e) const { DOVECRI(c[i] <  e); }
+    vec<int, N> gte(T e) const { DOVECRI(c[i] >= e); }
+    vec<int, N> gt (T e) const { DOVECRI(c[i] >  e); }
+    vec<int, N> eq (T e) const { DOVECRI(c[i] == e); }
+    vec<int, N> ne (T e) const { DOVECRI(c[i] != e); }
 
     vec iflt(T e, const vec &a, const vec &b) const { DOVECR(c[i] < e ? a[i] : b[i]); }
 
@@ -177,6 +185,9 @@ template<typename T> inline T mix(T a, T b, float f) { return a * (1 - f) + b * 
 //    assert(t >= 0 && t <= 1); e = 1 / e + 1.85f/* wtf */; return t / (e + (1 - e) * t);
 //}
 inline float rpowf(float t, float e) { return expf(e * logf(t)); }
+
+template<typename T> int ffloor(T f) { int i = (int)f; return i - (f < i); }
+template<typename T> int fceil(T f) { int i = (int)f; return i + (f > i); }
 
 template<typename T, int N> inline vec<T,N> operator+(T f, const vec<T,N> &v) { DOVECR(f + v[i]); }
 template<typename T, int N> inline vec<T,N> operator-(T f, const vec<T,N> &v) { DOVECR(f - v[i]); }
@@ -223,8 +234,9 @@ template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
     DOVECF(0, _ + std::abs(a[i]));
 }
 
-template<typename T, int N> inline vec<T,N> ceil(const vec<T,N> &v) { DOVECR(ceilf(v[i])); }
-template<typename T, int N> inline vec<T,N> floor(const vec<T,N> &v) { DOVECR(floorf(v[i])); }
+template<typename T, int N> inline vec<int, N> fceil(const vec<T,N> &v) { DOVECRI(fceil(v[i])); }
+template<typename T, int N> inline vec<int, N> ffloor(const vec<T,N> &v) { DOVECRI(ffloor(v[i])); }
+template<typename T, int N> inline vec<T, N> round(const vec<T, N> &v) { DOVECR(roundf(v[i])); }
 
 template<typename T> inline T clamp(T v, T lo, T hi) {
     return std::min(hi, std::max(lo, v));
@@ -799,6 +811,36 @@ template<typename T> bool line_intersect(const vec<T, 2> &l1a, const vec<T, 2> &
         *out = ((l2b - l2a) * lerp) + l2a;
     }
     return true;
+}
+
+// Return the enter and exit t value.
+inline float2 ray_bb_intersect(const float3 &bbmin, const float3 &bbmax,
+                               const float3 &rayo, const float3 &reciprocal_raydir) {
+    auto v1 = (bbmin - rayo) * reciprocal_raydir;
+    auto v2 = (bbmax - rayo) * reciprocal_raydir;
+    auto tmin = std::min(v1.x, v2.x);
+    auto tmax = std::max(v1.x, v2.x);
+    tmin = std::max(tmin, std::min(std::min(v1.y, v2.y), tmax));
+    tmax = std::min(tmax, std::max(std::max(v1.y, v2.y), tmin));
+    tmin = std::max(tmin, std::min(std::min(v1.z, v2.z), tmax));
+    tmax = std::min(tmax, std::max(std::max(v1.z, v2.z), tmin));
+    return float2(tmin, tmax);
+}
+
+// Call this on the result of ray_bb_intersect() if it isn't known wether there is an intersection.
+inline bool does_intersect(const float2 &minmax) {
+    return minmax.y >= std::max(minmax.x, 0.0f);
+}
+
+// Moves start of ray to first intersection point if one exists, otherwise leaves it in place.
+// returns false for no intersection.
+inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &rayo,
+                     const float3 &raydir, const float3 &reciprocal_raydir, float3 &dest) {
+    auto minmax = ray_bb_intersect(bbmin, bbmax, rayo, reciprocal_raydir);
+    auto ok = does_intersect(minmax);
+    dest = rayo;
+    if (ok && minmax.x >= 0) dest += raydir * minmax.x;
+    return ok;
 }
 
 inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen, size_t vsize,
