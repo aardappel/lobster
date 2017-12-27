@@ -166,6 +166,14 @@ void AddGraphics() {
         "opens a window for OpenGL rendering. returns error string if any problems, nil"
         " otherwise.");
 
+    STARTDECL(gl_require_version) (Value &major, Value &minor) {
+        SDLRequireGLVersion(major.intval(), minor.intval());
+        return Value();
+    }
+    ENDDECL2(gl_require_version, "major,minor", "II", "",
+             "Call this before gl_window to request a certain version of OpenGL context."
+             " Currently only works on win/nix, minimum is 3.2.");
+
     STARTDECL(gl_loadmaterials) (Value &fn, Value &isinline) {
         TestGL();
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->str())
@@ -791,7 +799,8 @@ void AddGraphics() {
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vec.vval()->At(i));
         vec.DECRT();
-        auto id = UniformBufferObject(currentshader, vals.data()->data(), 4 * vals.size(),
+        auto id = UniformBufferObject(currentshader, vals.data()->data(),
+                                      4 * sizeof(float) * vals.size(),
                                       name.sval()->str(), ssbo.True());
         name.DECRT();
         return Value((int)id);

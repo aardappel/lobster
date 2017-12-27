@@ -18,7 +18,7 @@
 #include "glinterface.h"
 #include "sdlincludes.h"
 
-#if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+#ifdef PLATFORM_WINNIX
 #define GLEXT(type, name, needed) type name = nullptr;
 GLBASEEXTS GLEXTS
 #undef GLEXT
@@ -124,7 +124,7 @@ void OpenGLInit(int samples) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
     ClearFrameBuffer(float3_0);
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         #define GLEXT(type, name, needed) { \
                 union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
                 funcast.proc = SDL_GL_GetProcAddress(#name); \
@@ -134,7 +134,7 @@ void OpenGLInit(int samples) {
         GLBASEEXTS GLEXTS
         #undef GLEXT
     #endif
-    #ifndef PLATFORM_ES2
+    #ifndef PLATFORM_ES3
         GL_CALL(glEnable(GL_LINE_SMOOTH));
         GL_CALL(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
         GL_CALL(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));

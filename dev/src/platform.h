@@ -77,14 +77,14 @@ extern string GetDateTime();
 extern void SetConsole(bool on);
 
 #if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)
-    #define PLATFORM_ES2
+    #define PLATFORM_ES3
 #endif
 
 #if defined(__IOS__) || defined(__ANDROID__)
     #define PLATFORM_TOUCH
 #endif
 
-#if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+#if !defined(PLATFORM_ES3) && !defined(__APPLE__)
 	#define PLATFORM_WINNIX
 #endif
 

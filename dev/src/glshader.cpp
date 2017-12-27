@@ -86,12 +86,17 @@ string ParseMaterialFile(char *mbuf) {
         if (!shader.empty()) {
             auto sh = new Shader();
             if (compute.length()) {
-                auto header = "#version 430\n" + defines;
+                #ifdef PLATFORM_WINNIX
+                    extern string glslversion;
+                    auto header = "#version " + glslversion + "\n" + defines;
+                #else
+                    auto header = "#version 430\n" + defines;
+                #endif
                 err = sh->Compile(shader.c_str(), (header + csdecl + cfunctions +
                                                    "void main()\n{\n" + compute + "}\n").c_str());
             } else {
                 string header;
-                #ifdef PLATFORM_ES2
+                #ifdef PLATFORM_ES3
                     #ifdef __EMSCRIPTEN__
                         header += "#version 300 es\n";
                     #endif
@@ -103,7 +108,8 @@ string ParseMaterialFile(char *mbuf) {
                     header += string("#version ") + char(supported[0]) + char(supported[2]) +
                               char(supported[3]) + "\n";
                     #else
-                    header += "#version 130\n";
+                    extern string glslversion;
+                    header += "#version " + glslversion + "\n";
                     header += "#extension GL_EXT_gpu_shader4 : enable\n";
                     #endif
                 #endif
@@ -284,7 +290,7 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
 }
 
 string Shader::Compile(const char *name, const char *cscode) {
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         program = glCreateProgram();
         string err;
         cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
@@ -382,7 +388,7 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
 }
 
 void DispatchCompute(const int3 &groups) {
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));
         // Make sure any imageStore/VBOasSSBO operations have completed.
         // Would be better to decouple this from DispatchCompute.
@@ -396,21 +402,24 @@ void DispatchCompute(const int3 &groups) {
 
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
-uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *uniformblockname,
+uint UniformBufferObject(Shader *sh, const void *data, size_t len, const char *uniformblockname,
                          bool ssbo) {
     GLuint bo = 0;
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         if (sh && glGetProgramResourceIndex && glShaderStorageBlockBinding && glBindBufferBase &&
                   glUniformBlockBinding && glGetUniformBlockIndex) {
             sh->Activate();
             auto idx = ssbo
                 ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
                 : glGetUniformBlockIndex(sh->program, uniformblockname);
-            if (idx != GL_INVALID_INDEX) {
+
+            GLint maxsize;
+            // FIXME: call glGetInteger64v if we ever want buffers >2GB.
+            if (ssbo) glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxsize);
+            else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
+            if (idx != GL_INVALID_INDEX && len <= maxsize) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                GL_CALL(glGenBuffers(1, &bo));
-                GL_CALL(glBindBuffer(type, bo));
-                GL_CALL(glBufferData(type, sizeof(float) * len, data, GL_STATIC_DRAW));
+                bo = GenBO(type, 1, len, data);
                 GL_CALL(glBindBuffer(type, 0));
                 static GLuint bo_binding_point_index = 0;
                 bo_binding_point_index++;  // FIXME: how do we allocate these properly?
@@ -427,7 +436,7 @@ uint UniformBufferObject(Shader *sh, const float *data, size_t len, const char *
 }
 
 void BindVBOAsSSBO(uint bind_point_index, uint vbo) {
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         if (glBindBufferBase) {
             GL_CALL(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point_index, vbo));
         }

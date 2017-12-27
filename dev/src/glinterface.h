@@ -146,7 +146,7 @@ extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, uint id, int tf);
-extern uint UniformBufferObject(Shader *sh, const float *data, size_t len,
+extern uint UniformBufferObject(Shader *sh, const void *data, size_t len,
                                 const char *uniformblockname, bool ssbo);
 extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
 
@@ -179,6 +179,7 @@ extern bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, in
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
+extern uint GenBO(uint type, size_t elemsize, size_t count, const void *data);
 extern void DeleteBO(uint id);
 extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, int vertsize,
                             void *vbuf1, int *ibuf);

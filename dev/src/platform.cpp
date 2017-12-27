@@ -27,7 +27,7 @@
     #include <intrin.h>
 #else
     #include <sys/time.h>
-	#ifndef PLATFORM_ES2
+	#ifndef PLATFORM_ES3
 		#include <glob.h>
 		#include <sys/stat.h>
 	#endif
@@ -95,7 +95,7 @@ void InitCPU() {
     // This can fail and return 0, so default to 2 threads:
     hwthreads = max(2U, thread::hardware_concurrency());
     // As a baseline, assume desktop CPUs are hyperthreaded, and mobile ones are not.
-    #ifdef PLATFORM_ES2
+    #ifdef PLATFORM_ES3
         hwcores = hwthreads;
     #else
         hwcores = max(1U, hwthreads / 2);
@@ -266,7 +266,7 @@ bool ScanDirAbs(const char *absdir, vector<pair<string, int64_t>> &dest) {
             FindClose(fh);
             return true;
         }
-    #elif !defined(PLATFORM_ES2)
+    #elif !defined(PLATFORM_ES3)
         glob_t gl;
         string mask = folder + "/*";
         if (!glob(mask.c_str(), GLOB_MARK | GLOB_TILDE, nullptr, &gl)) {

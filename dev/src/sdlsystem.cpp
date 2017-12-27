@@ -237,6 +237,20 @@ void ScreenSizeChanged() {
     inputscale = screensize / inputsize;
 }
 
+#ifdef PLATFORM_ES3
+int gl_major = 3, gl_minor = 0;
+#else
+int gl_major = 3, gl_minor = 2;
+string glslversion = "150";
+#endif
+void SDLRequireGLVersion(int major, int minor) {
+    #ifdef PLATFORM_WINNIX
+        gl_major = major;
+        gl_minor = minor;
+        glslversion = to_string(major) + to_string(minor) + "0";
+    #endif
+};
+
 string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync,
                int samples) {
     MakeDPIAware();
@@ -251,24 +265,14 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
-    #ifdef PLATFORM_ES2
+    #ifndef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
+    #endif
+    #ifdef PLATFORM_ES3
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-        #ifdef __EMSCRIPTEN__
-            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-            //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-        #else
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-        #endif
     #else
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-        #ifdef __APPLE__
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-        #elif defined(_WIN32)
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-        #endif
         #if defined(__APPLE__) || defined(_WIN32)
             SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples > 1);
             SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
@@ -282,7 +286,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
 
     Output(OUTPUT_INFO, "SDL about to figure out display mode...");
 
-    #ifdef PLATFORM_ES2
+    #ifdef PLATFORM_ES3
         landscape = desired_screensize.x >= desired_screensize.y;
         int modes = SDL_GetNumDisplayModes(0);
         screensize = int2(1920, 1080);

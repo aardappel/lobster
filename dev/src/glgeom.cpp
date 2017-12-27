@@ -16,11 +16,11 @@
 #include "glinterface.h"
 #include "glincludes.h"
 
-uint GenBO(GLenum type, size_t elemsize, size_t count, const void *verts) {
+uint GenBO(GLenum type, size_t elemsize, size_t count, const void *data) {
     uint bo;
     GL_CALL(glGenBuffers(1, &bo));
     GL_CALL(glBindBuffer(type, bo));
-    GL_CALL(glBufferData(type, elemsize * count, verts, GL_STATIC_DRAW));
+    GL_CALL(glBufferData(type, elemsize * count, data, GL_STATIC_DRAW));
     return bo;
 }
 
@@ -152,7 +152,7 @@ Mesh::~Mesh() {
 }
 
 bool Geometry::WritePLY(string &s, size_t nindices) {
-    #ifndef PLATFORM_ES2
+    #ifndef PLATFORM_ES3
     s += "ply\n"
          "format binary_little_endian 1.0\n"
          "element vertex " + to_string(nverts) + "\n";
@@ -189,7 +189,7 @@ bool Geometry::WritePLY(string &s, size_t nindices) {
 }
 
 void Surface::WritePLY(string &s) {
-    #ifndef PLATFORM_ES2
+    #ifndef PLATFORM_ES3
     vector<int> idata(numidx / 3 * 4);
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
     GL_CALL(glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numidx * sizeof(int), idata.data()));
@@ -217,7 +217,7 @@ bool Mesh::SaveAsPLY(const char *filename) {
 
 void SetPointSprite(float scale) {
     pointscale = scale * custompointscale;
-    #ifdef PLATFORM_ES2
+    #ifdef PLATFORM_ES3
         // glEnable(GL_POINT_SPRITE_OES);
         // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
     #else

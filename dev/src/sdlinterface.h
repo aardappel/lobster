@@ -16,6 +16,7 @@
 
 extern string SDLInit(const char *title, const int2 &screensize, bool fullscreen, int vsync,
                       int samples);
+extern void SDLRequireGLVersion(int major, int minor);
 extern bool SDLFrame();
 extern void SDLFakeFrame(double delta);
 extern void SDLShutdown();

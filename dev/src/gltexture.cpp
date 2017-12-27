@@ -36,7 +36,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
     GL_CALL(glGenTextures(1, &id));
     assert(id);
     GLenum textype =
-        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        #ifdef PLATFORM_WINNIX
         tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
         (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D);
@@ -65,7 +65,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));  // Defaults to 4.
     }
     if (tf & TF_FLOAT) {
-        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        #ifdef PLATFORM_WINNIX
             internalformat = tf & TF_SINGLE_CHANNEL ? GL_R32F : GL_RGBA32F;
             bufferformat = internalformat;
             buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(float) : sizeof(float4);
@@ -75,7 +75,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         #endif
     }
     if (tf & TF_MULTISAMPLE) {
-        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        #ifdef PLATFORM_WINNIX
             GL_CALL(glTexImage2DMultisample(teximagetype, nummultisamples, internalformat,
                                             dim[0], dim[1], true));
         #else
@@ -104,7 +104,7 @@ uint CreateTexture(const uchar *buf, const int *dim, int tf) {
         }
     }
     if (!(tf & TF_NOMIPMAP) && !(tf & TF_BUFFER_HAS_MIPS)) {
-        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        #ifdef PLATFORM_WINNIX
         if (glGenerateMipmap)     // only exists in 3.0 contexts and up.
         #endif
             GL_CALL(glGenerateMipmap(textype));
@@ -160,7 +160,7 @@ int2 TextureSize(uint id) {
     GL_CALL(glBindTexture(GL_TEXTURE_2D, id));
     int2 size(0);
     // FIXME: need to actually store the size in an object when we create it.
-    #ifndef PLATFORM_ES2
+    #ifndef PLATFORM_ES3
         GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size.x));
         GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &size.y));
     #endif
@@ -168,7 +168,7 @@ int2 TextureSize(uint id) {
 }
 
 uchar *ReadTexture(uint id, const int2 &size) {
-    #ifndef PLATFORM_ES2
+    #ifndef PLATFORM_ES3
         GL_CALL(glBindTexture(GL_TEXTURE_2D, id));
         auto pixels = new uchar[size.x * size.y * 4];
         GL_CALL(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
@@ -179,7 +179,7 @@ uchar *ReadTexture(uint id, const int2 &size) {
 }
 
 void SetImageTexture(uint textureunit, uint id, int tf) {
-    #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+    #ifdef PLATFORM_WINNIX
         if (glBindImageTexture)
             GL_CALL(glBindImageTexture(textureunit, id, 0, GL_TRUE, 0,
                                tf & TF_WRITEONLY
@@ -203,7 +203,7 @@ uint CreateFrameBuffer(uint texture, int tf) {
     GL_CALL(glGenFramebuffers(1, &fb));
     GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
     auto target =
-        #if !defined(PLATFORM_ES2) && !defined(__APPLE__)
+        #ifdef PLATFORM_WINNIX
             tf & TF_MULTISAMPLE ? GL_TEXTURE_2D_MULTISAMPLE :
         #endif
         GL_TEXTURE_2D;
