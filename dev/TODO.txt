@@ -424,6 +424,43 @@
 - add a way to limit fps, regardless of what system is capable of.. particles in physics in particular doesn't function
   correctly at high fps.
 
+- A path towards value types, less reference counting, and less runtime type information.
+  - We can start with builtin functions, and mark arguments as not requiring reference counts
+    increased, and thus all dec-refs can be removed from their code.
+  - We add a set of pushvar and related instructions that does not inc-ref.
+  - initially just in codegen, and extra arg to codegen for an exp says that the code should
+    not inc-ref (using these new instructions, or if too complicated, just add a dec-ref).
+    - actually adding a dec-ref is complicated, if an arg is a new string, or some exp that
+      returns a new string, the dec-ref needs to be after the call if the builtin isn't going to
+      dec-ref.
+  - now in the type checker we can do an analysis wether any variable will ever have inc/dec-ref
+    applied to it, this then transitively works through functions.
+  - initially this just reduces reference counting overhead, but this paves the way for
+    efficient value types.
+  - We can now split reference types (initially just structs, later maybe vectors) in two types,
+    where the value based one points to the memory after the reference count in a struct type.
+    Value types are stored in-line, are passed by pointer, and assigned (and returned) by copy.
+    Maybe the ref count can live before the pointer to keep the two compatible?
+    To be precise, we got 3 types:
+    - Value types, never ref-counted.
+    - Struct non-ref-count, passed as if value type, only if can be analyzed to not need ref-counts.
+    - Struct ref-counted, can be passed to non-ref-count context.
+    Since there is already a value/struct distinction, we can start by making values stored
+    in-line, before we even do analysis for structs.
+    All of this is completely transparent for the user, as there will be no new errors generated,
+    unlike say Rust. They will get the benefit from in-line types and low ref-count overhead
+    pretty much for free.
+  - Related to this is the removal of the type field currently in structs (and vectors), such
+    that values can become completely naked and maximally efficient.
+    In the type system, types are almost always already known statically, so we should be
+    able to remove the type value, and have the compiler insert it as separate value (a hidden
+    arg when needed for builtin calls that want an any type).
+    This is of course best done once most uses of this type field have already been factored
+    out.
+    Or better yet, change the encoding of "any" such that it is a generic object that just
+    bundles a type and a generic value, and is like a built-in value type. This can be used
+    for "any" and dynamic dispatch.
+
 - Improve 64bit builds.
   We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives 
   bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
@@ -473,6 +510,12 @@
          Maybe allow bit sizes only for ints?
          If its only for ints, how useful is it to have it at all? We already have a [byte], namely string, so it
          would only be for 16/32 bit int vectors.
+       - frankly, a generic accessor function is a bad idea. Pretty much all builtins take a statically typed
+         2/3/4 int/float structs, so we should be able to change the accessors to directly access these.
+         Only problem is requiring them to be one size, e.g. 32bit. Even though we can maybe make the
+         default specializations 32bit, people might expect to be able to specialize xyz for 64bit and
+         still have all these functions work.
+         We could overload all these functions..
        - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
 	     can still allow them to work on these vectors.
      - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
