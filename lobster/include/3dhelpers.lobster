@@ -71,6 +71,7 @@ def texture_post_process(shader, tex, size):
     texture_format :== texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
     if !equal(fstexsize, size):
         fstex = gl_createblanktexture(size, color_black, texture_format)
+        fstexsize = size
     assert fstex  // FIXME
     assert gl_switchtoframebuffer(fstex, size, false, texture_format)
     gl_setprimitivetexture(0, tex)
@@ -79,22 +80,24 @@ def texture_post_process(shader, tex, size):
     gl_switchtoframebuffer(nil)
     fstex
 
-private fssize := xy_0i
-def fs_post_process(shader, on, f):
+def fs_post_process(shader, on, flip, f):
     if on:
         texture_format :== texture_format_clamp | texture_format_nomipmap
-        if !fstex:
-            fssize = gl_windowsize()
-            fstex = gl_createblanktexture(fssize, color_black, texture_format)
+        if !equal(fstexsize, gl_windowsize()):
+            fstexsize = gl_windowsize()
+            fstex = gl_createblanktexture(fstexsize, color_black, texture_format)
         assert fstex  // FIXME
-        assert gl_switchtoframebuffer(fstex, fssize, true, texture_format)
+        assert gl_switchtoframebuffer(fstex, fstexsize, true, texture_format)
         f()
         gl_switchtoframebuffer(nil)
         //gl_clear(color_light_grey)
         gl_setprimitivetexture(0, fstex, texture_format)
         gl_setshader(shader)
-        gl_translate(xy_f { 0, fssize.y }):
-            gl_rect(xy_f { fssize.x, -fssize.y })
+        if flip:
+            gl_translate(xy_f { 0, fstexsize.y }):
+                gl_rect(xy_f { fstexsize.x, -fstexsize.y })
+        else:
+            gl_rect(float(fstexsize))
     else:
         f()
 
