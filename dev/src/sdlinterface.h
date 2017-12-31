@@ -38,6 +38,8 @@ extern int SDLWheelDelta();
 extern bool SDLCursor(bool on);
 extern bool SDLGrab(bool on);
 
+extern void SDLMessageBox(const char *title, const char *msg);
+
 extern bool SDLPlaySound(const char *filename, bool sfxr, int vol = 128);
 extern void SDLSoundClose();
 

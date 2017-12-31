@@ -59,8 +59,6 @@ extern OutputType min_output_level;  // Defaults to showing OUTPUT_WARN and up.
 
 extern void Output(OutputType ot, const char *msg, ...);
 
-extern void MsgBox(const char *err);
-
 // Time:
 extern double SecondsSinceStart();
 

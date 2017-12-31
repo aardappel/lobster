@@ -335,19 +335,6 @@ void Output(OutputType ot, const char *msg, ...) {
     }
 }
 
-void MsgBox(const char *err) {
-    #if defined(__APPLE__) && !defined(__IOS__)
-        // FIXME: this code should never be run when running from command line
-        DialogRef alertDialog;
-        CFStringRef sr = //CFStringCreateWithCharacters(nullptr, err, strlen(err));
-        CFStringCreateWithCString(kCFAllocatorDefault, err, ::GetApplicationTextEncoding());
-        CreateStandardAlert(kAlertStopAlert, CFSTR("Error:"), sr, nullptr, &alertDialog);
-        RunStandardAlert (alertDialog, nullptr, nullptr);
-    #else
-        (void)err;
-    #endif
-}
-
 // Use this instead of assert to break on a condition and still be able to continue in the debugger.
 void ConditionalBreakpoint(bool shouldbreak) {
     if (shouldbreak) {
