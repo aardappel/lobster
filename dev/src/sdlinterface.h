@@ -22,6 +22,7 @@ extern void SDLFakeFrame(double delta);
 extern void SDLShutdown();
 extern void SDLTitle(const char *title);
 extern bool SDLIsMinimized();
+extern void SDLWindowMinMax(int dir);
 
 extern const int2 &GetScreenSize();
 

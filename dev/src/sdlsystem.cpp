@@ -565,6 +565,13 @@ bool SDLFrame() {
     return closebutton || (noninteractivetestmode && frames == 2 /* has rendered one full frame */);
 }
 
+void SDLWindowMinMax(int dir) {
+    if (!_sdl_window) return;
+    if (dir < 0) SDL_MinimizeWindow(_sdl_window);
+    else if (dir > 0) SDL_MaximizeWindow(_sdl_window);
+    else SDL_RestoreWindow(_sdl_window);
+}
+
 double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 

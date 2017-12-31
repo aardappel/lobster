@@ -228,6 +228,14 @@ void AddGraphics() {
     ENDDECL1(gl_windowtitle, "title", "S", "S",
         "changes the window title.");
 
+    STARTDECL(gl_windowminmax) (Value &dir) {
+        TestGL();
+        SDLWindowMinMax(dir.intval());
+        return Value();
+    }
+    ENDDECL1(gl_windowminmax, "dir", "I", "",
+             ">0 to maximize, <0 to minimize or 0 to restore.");
+
     STARTDECL(gl_visible) () {
         return Value(!SDLIsMinimized());
     }
