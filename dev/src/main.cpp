@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
     }
     catch (string &s) {
         Output(OUTPUT_ERROR, s.c_str());
-        if (from_bundle) MsgBox(s.c_str());
+        if (from_bundle) SDLMessageBox("Lobster", s.c_str());
         if (wait) {
             Output(OUTPUT_PROGRAM, "press <ENTER> to continue:\n");
             getchar();

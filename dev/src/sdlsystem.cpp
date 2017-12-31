@@ -630,6 +630,10 @@ bool SDLGrab(bool on) {
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
 
+void SDLMessageBox(const char *title, const char *msg) {
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, msg, _sdl_window);
+}
+
 int64_t SDLLoadFile(const char *absfilename, string *dest, int64_t start, int64_t len) {
     Output(OUTPUT_INFO, "SDLLoadFile: %s", absfilename);
     auto f = SDL_RWFromFile(absfilename, "rb");
