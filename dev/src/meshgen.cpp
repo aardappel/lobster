@@ -11,6 +11,8 @@
 
 #include "simplex.h"
 
+#include "ThreadPool/ThreadPool.h"
+
 using namespace lobster;
 
 
@@ -48,7 +50,7 @@ struct ImplicitFunction {
     virtual float3 Size() { return Sized(float3_1); };
     virtual void FillGrid(const int3 &start, const int3 &end, DistGrid *distgrid,
                           const float3 &gridscale, const float3 &gridtrans,
-                          const float3x3 &gridrot) const = 0;
+                          const float3x3 &gridrot, ThreadPool &threadpool) const = 0;
 };
 
 static int3 axesi[] = { int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1) };
@@ -60,33 +62,44 @@ float max_smoothmink = 0;
 template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
     void FillGrid(const int3 &start, const int3 &end, DistGrid *distgrid,
                   const float3 &gridscale, const float3 &gridtrans,
-                  const float3x3 &gridrot) const {
+                  const float3x3 &gridrot, ThreadPool &threadpool) const {
         assert(end <= distgrid->dim && int3(0) <= start);
         auto uniform_scale = average(size);
         max_smoothmink = max(max_smoothmink, uniform_scale * smoothmink);
-        for (int x = start.x; x < end.x; x++)
-            for (int y = start.y; y < end.y; y++)
-                for (int z = start.z; z < end.z; z++) {
-            int3 ipos(x, y, z);
-            auto pos = float3(ipos);
-            pos -= gridtrans;
-            pos = pos * gridrot;
-            pos /= gridscale;
-            auto dist = static_cast<const T *>(this)->Eval(pos);
-            // dist was evaluated in the local coordinate system of the primitive. This is correct
-            // for trans/rot, but the scale makes it give the wrong distance globally.
-            // Most uses of mg_scale(vec) are uniform so this should be close enough:
-            dist *= uniform_scale;
-            auto &dv = distgrid->Get(ipos);
-            // Could move this if outside loop, but should be branch predicted, so probably ok.
-            if (material.w >= 0.5f) {
-                auto h = smoothminh(dv.dist, dist, smoothmink);
-                dv.dist = smoothmix(dv.dist, dist, smoothmink, h);
-                dv.color = quantizec(dv.color.w ? mix(material, color2vec(dv.color), h) : material);
-            } else {
-                dv.dist = smoothmax(-dist, dv.dist, smoothmink);
-            }
+        vector<future<void>> results(end.x - start.x);
+        for (int x = start.x; x < end.x; x++) {
+            results[x - start.x] = threadpool.enqueue([&, x]() {
+                for (int y = start.y; y < end.y; y++) {
+                    for (int z = start.z; z < end.z; z++) {
+                        int3 ipos(x, y, z);
+                        auto pos = float3(ipos);
+                        pos -= gridtrans;
+                        pos = pos * gridrot;
+                        pos /= gridscale;
+                        auto dist = static_cast<const T *>(this)->Eval(pos);
+                        // dist was evaluated in the local coordinate system of the primitive.
+                        // This is correct for trans/rot, but the scale makes it give the wrong
+                        // distance globally.
+                        // Most uses of mg_scale(vec) are uniform so this should be close enough:
+                        dist *= uniform_scale;
+                        // This is our only state access, but is thread-safe:
+                        auto &dv = distgrid->Get(ipos);
+                        // Could move this if outside loop, but should be branch predicted, so
+                        // probably ok.
+                        if (material.w >= 0.5f) {
+                            auto h = smoothminh(dv.dist, dist, smoothmink);
+                            dv.dist = smoothmix(dv.dist, dist, smoothmink, h);
+                            dv.color = quantizec(dv.color.w
+                                                 ? mix(material, color2vec(dv.color), h)
+                                                 : material);
+                        } else {
+                            dv.dist = smoothmax(-dist, dv.dist, smoothmink);
+                        }
+                    }
+                }
+            });
         }
+        for (auto &r : results) r.get();
     }
 };
 
@@ -216,7 +229,8 @@ struct Group : ImplicitFunctionImpl<Group> {
 
     void FillGrid(const int3 & /*start*/, const int3 & /*end*/, DistGrid *distgrid,
                   const float3 &gridscale, const float3 &gridtrans,
-                  const float3x3 & /*gridrot*/) const {
+                  const float3x3 & /*gridrot*/,
+                  ThreadPool &threadpool) const {
         for (auto c : children) {
             auto csize = c->Size();
             if (dot(csize, gridscale) > 3) {
@@ -226,7 +240,7 @@ struct Group : ImplicitFunctionImpl<Group> {
                 auto start = int3(trans - rsize * gridscale - 0.01f);
                 auto end   = int3(trans + rsize * gridscale + 2.01f);
                 auto bs    = end - start;
-                if (bs > 1) c->FillGrid(start, end, distgrid, scale, trans, c->rot);
+                if (bs > 1) c->FillGrid(start, end, distgrid, scale, trans, c->rot, threadpool);
             }
         }
     }
@@ -587,7 +601,9 @@ Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize) {
     auto gridsize = int3(scenesize * gridscale + float3(2.5f));
     auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
     auto distgrid = new DistGrid(gridsize, DistVert());
-    root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1);
+    ThreadPool threadpool(NumHWThreads());
+    root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1,
+                   threadpool);
     return polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
 }
 
