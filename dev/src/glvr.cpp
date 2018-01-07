@@ -246,7 +246,7 @@ Mesh *VRCreateMesh(uint device) {
         indices[i + 2] = model->rIndexData[i + 1];
     }
     auto surf = new Surface(indices.data(), nindices, PRIM_TRIS);
-    surf->textures[0] = tex;
+    surf->Get(0) = tex;
     m->surfs.push_back(surf);
     vr::VRRenderModels()->FreeRenderModel(model);
     vr::VRRenderModels()->FreeTexture(modeltex);

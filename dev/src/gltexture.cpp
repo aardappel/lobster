@@ -151,7 +151,7 @@ void DeleteTexture(Texture &tex) {
     tex.id = 0;
 }
 
-void SetTexture(uint textureunit, const Texture &tex, int tf) {
+void SetTexture(int textureunit, const Texture &tex, int tf) {
     GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
     GL_CALL(glBindTexture(tf & TF_CUBEMAP ? GL_TEXTURE_CUBE_MAP
                                           : (tf & TF_3D ? GL_TEXTURE_3D : GL_TEXTURE_2D), tex.id));

@@ -51,10 +51,6 @@ GLenum GetPrimitive(Primitive prim) {
     }
 }
 
-Textured::Textured() {
-    memset(textures, 0, sizeof(uint) * Shader::MAX_SAMPLERS);
-}
-
 Surface::Surface(const int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim) {
     ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), numidx, indices);
 }

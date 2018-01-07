@@ -905,7 +905,7 @@ void AddGraphics() {
         auto &m = GetMesh(mid);
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             g_vm->BuiltinError("setmeshtexture: illegal part index");
-        m.surfs[part.ival()]->textures[GetSampler(i)] = GetTexture(id);
+        m.surfs[part.ival()]->Get(GetSampler(i)) = GetTexture(id);
         return Value();
     }
     ENDDECL4(gl_setmeshtexture, "mesh,part,i,texture", "XIIX", "",

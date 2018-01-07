@@ -321,12 +321,14 @@ void Shader::Link(const char *name) {
     Activate();
     for (int i = 0; i < MAX_SAMPLERS; i++) {
         auto is = to_string(i);
-        tex_i[i] = glGetUniformLocation(program, ("tex" + is).c_str());
-        if (tex_i[i] < 0) {
-            tex_i[i] = glGetUniformLocation(program, ("texcube" + is).c_str());
-            if (tex_i[i] < 0) tex_i[i] = glGetUniformLocation(program, ("tex3d" + is).c_str());
+        auto loc = glGetUniformLocation(program, ("tex" + is).c_str());
+        if (loc < 0) {
+            loc = glGetUniformLocation(program, ("texcube" + is).c_str());
+            if (loc < 0) loc = glGetUniformLocation(program, ("tex3d" + is).c_str());
         }
-        if (tex_i[i] >= 0) glUniform1i(tex_i[i], i);
+        if (loc < 0) break;
+        glUniform1i(loc, i);
+        max_tex_defined = i + 1;
     }
 }
 
@@ -369,10 +371,10 @@ void Shader::SetAnim(float3x4 *bones, int num) {
     if (bones_i >= 0) GL_CALL(glUniform4fv(bones_i, num * 3, (float *)bones));
 }
 
-void Shader::SetTextures(const Texture *textures) {
-    for (int i = 0; i < MAX_SAMPLERS; i++)
-        if (tex_i[i] >= 0)
-            SetTexture(i, textures[i]);
+void Shader::SetTextures(const vector<Texture> &textures) {
+    for (int i = 0; i < max(max_tex_defined, (int)textures.size()); i++) {
+        SetTexture(i, textures[i]);
+    }
 }
 
 bool Shader::SetUniform(const char *name, const float *val, int components, int elements) {

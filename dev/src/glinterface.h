@@ -36,10 +36,12 @@ struct Texture {
 };
 
 struct Shader {
-    enum { MAX_SAMPLERS = 4 };
     uint vs, ps, cs, program;
-    int mvp_i, tex_i[MAX_SAMPLERS], col_i, camera_i, light1_i, lightparams1_i, texturesize_i,
+    int mvp_i, col_i, camera_i, light1_i, lightparams1_i, texturesize_i,
         bones_i, pointscale_i;
+    int max_tex_defined;
+
+    enum { MAX_SAMPLERS = 64 };
 
     Shader() : vs(0), ps(0), cs(0), program(0) {}
     ~Shader();
@@ -50,7 +52,7 @@ struct Shader {
     void Activate();                            // Makes shader current;
     void Set();                                 // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
-    void SetTextures(const Texture *textures);  // Optionally, after Activate().
+    void SetTextures(const vector<Texture> &textures);  // Optionally, after Activate().
     bool SetUniform(const char *name,           // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
@@ -58,9 +60,12 @@ struct Shader {
 };
 
 struct Textured {
-    Texture textures[Shader::MAX_SAMPLERS];
+    vector<Texture> textures;
 
-	Textured();
+    Texture &Get(size_t i) {
+        textures.resize(max(i + 1, textures.size()));
+        return textures[i];
+    }
 };
 
 struct Surface : Textured {
@@ -180,7 +185,7 @@ extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE)
 extern Texture CreateTextureFromFile(const char *name, int tf = TF_NONE);
 extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
-extern void SetTexture(uint textureunit, const Texture &tex, int tf = TF_NONE);
+extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
 extern uchar *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
 extern bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf,

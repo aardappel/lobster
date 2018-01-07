@@ -212,7 +212,7 @@ void AddPhysics() {
 	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex, Value &tex_unit) {
 		auto &r = GetRenderable(fixture_id);
         extern Texture GetTexture(Value &res);
-		r.textures[GetSampler(tex_unit)] = GetTexture(tex);
+		r.Get(GetSampler(tex_unit)) = GetTexture(tex);
 		return Value();
 	}
 	ENDDECL3(ph_settexture, "id,tex,texunit", "X?XI?", "",
