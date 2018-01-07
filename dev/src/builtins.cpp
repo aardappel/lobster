@@ -72,7 +72,7 @@ Value ReplaceStruct(Value &l, Value &i, Value &a) {
 
 void AddBuiltins() {
     STARTDECL(print) (Value &a) {
-        Output(OUTPUT_PROGRAM, RefToString(a.ref(), g_vm->programprintprefs).c_str());
+        Output(OUTPUT_PROGRAM, "%s", RefToString(a.ref(), g_vm->programprintprefs).c_str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A1",
