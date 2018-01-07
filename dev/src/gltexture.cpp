@@ -74,6 +74,12 @@ Texture CreateTexture(const uchar *buf, const int *dim, int tf) {
             assert(false);  // buf points to float data, which we don't support.
         #endif
     }
+    if (tf & TF_DEPTH) {
+        internalformat = GL_DEPTH_COMPONENT32F;
+        bufferformat = GL_DEPTH_COMPONENT;
+        buffersize = sizeof(float);
+        buffercomponent = GL_FLOAT;
+    }
     if (tf & TF_MULTISAMPLE) {
         #ifdef PLATFORM_WINNIX
             GL_CALL(glTexImage2DMultisample(teximagetype, nummultisamples, internalformat,
@@ -206,16 +212,22 @@ static uint fb = 0;
 static uint rb = 0;
 static Texture retex;  // Texture to resolve to at the end when fb refers to a multisample texture.
 static int retf = 0;
-static int2 resize = int2_0;
+static bool hasdepthtex = false;
 #endif
 
-bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf, const Texture &resolvetex) {
+bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf, const Texture &resolvetex,
+                         const Texture &depthtex) {
 	#ifdef PLATFORM_WINNIX
 		if (!glGenRenderbuffers)
 			return false;
 	#endif
 	#ifndef __EMSCRIPTEN__
-		if (rb) {
+        if (hasdepthtex) {
+            GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                                           0, 0));
+            hasdepthtex = false;
+        }
+        if (rb) {
 			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 			GL_CALL(glDeleteRenderbuffers(1, &rb));
 			rb = 0;
@@ -225,12 +237,12 @@ bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf, const Texture &
 				uint refb = CreateFrameBuffer(retex, retf);
 				GL_CALL(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, refb));
 				GL_CALL(glBindFramebuffer(GL_READ_FRAMEBUFFER, fb));
-				GL_CALL(glBlitFramebuffer(0, 0, resize.x, resize.y,
-								  0, 0, resize.x, resize.y, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+				GL_CALL(glBlitFramebuffer(0, 0, retex.size.x, retex.size.y,
+								          0, 0, retex.size.x, retex.size.y,
+                                          GL_COLOR_BUFFER_BIT, GL_NEAREST));
 				GL_CALL(glDeleteFramebuffers(1, &refb));
-				retex.id = 0;
+				retex = Texture();
 				retf = 0;
-				resize = int2_0;
 			}
 			GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 			GL_CALL(glDeleteFramebuffers(1, &fb));
@@ -238,29 +250,36 @@ bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf, const Texture &
 		}
 		if (!tex.id) {
 			OpenGLFrameStart(tex.size.xy());
-			Set2DMode(tex.size.xy(), true);
+			Set2DMode(tex.size.xy(), true, depth);
 			return true;
 		}
 		fb = CreateFrameBuffer(tex, tf);
 		if (depth) {
-			GL_CALL(glGenRenderbuffers(1, &rb));
-			GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
-			if (tf & TF_MULTISAMPLE) {
-				GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
-														 GL_DEPTH_COMPONENT24, tex.size.x, tex.size.y));
-			} else {
-				GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-											  tex.size.x, tex.size.y));
-			}
-			GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-											  rb));
+            if (depthtex.id) {
+                GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                                               depthtex.id, 0));
+                hasdepthtex = true;
+            } else {
+                GL_CALL(glGenRenderbuffers(1, &rb));
+                GL_CALL(glBindRenderbuffer(GL_RENDERBUFFER, rb));
+                if (tf & TF_MULTISAMPLE) {
+                    GL_CALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, nummultisamples,
+                                                             GL_DEPTH_COMPONENT24, tex.size.x,
+                                                             tex.size.y));
+                } else {
+                    GL_CALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+                                                  tex.size.x, tex.size.y));
+                }
+                GL_CALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                                  GL_RENDERBUFFER, rb));
+            }
 		}
 		retex = resolvetex;
 		retf = tf & ~TF_MULTISAMPLE;
-		resize = tex.size.xy();
 		OpenGLFrameStart(tex.size.xy());
-		Set2DMode(tex.size.xy(), false);  // Have to use rh mode here, otherwise texture is filled flipped.
-		auto ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+		Set2DMode(tex.size.xy(), false, depth);  // Have to use rh mode here, otherwise texture is filled flipped.
+        auto stat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		auto ok = stat == GL_FRAMEBUFFER_COMPLETE;
 		assert(ok);
 		return ok;
 	#else

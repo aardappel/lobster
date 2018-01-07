@@ -144,7 +144,7 @@ extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void LogGLError(const char *file, int line, const char *call);
 
-extern void Set2DMode(const int2 &ssize, bool lh);
+extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void Set3DOrtho(const float3 &center, const float3 &extends);
 extern bool Is2DMode();
@@ -179,6 +179,7 @@ enum TextureFlag {
     TF_SINGLE_CHANNEL = 512,                // Default is RGBA.
     TF_3D = 1024,
     TF_BUFFER_HAS_MIPS = 2048,
+    TF_DEPTH = 4092
 };
 
 extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
@@ -188,8 +189,9 @@ extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
 extern uchar *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
-extern bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf,
-                                const Texture &resolvetex);
+extern bool SwitchToFrameBuffer(const Texture &tex, bool depth = false, int tf = 0,
+                                const Texture &resolvetex = Texture(),
+                                const Texture &depthtex = Texture());
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 

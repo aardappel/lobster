@@ -76,9 +76,10 @@ void ClearFrameBuffer(const float3 &c) {
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
-void Set2DMode(const int2 &ssize, bool lh) {
+void Set2DMode(const int2 &ssize, bool lh, bool depthtest) {
     GL_CALL(glDisable(GL_CULL_FACE));
-    GL_CALL(glDisable(GL_DEPTH_TEST));
+    if (depthtest) GL_CALL(glEnable(GL_DEPTH_TEST));
+    else GL_CALL(glDisable(GL_DEPTH_TEST));
     otransforms = objecttransforms();
     auto y = (float)ssize.y;
     view2clip = ortho(0, (float)ssize.x, lh ? y : 0, lh ? 0 : y, 1, -1);

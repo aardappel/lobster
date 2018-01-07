@@ -977,18 +977,21 @@ void AddGraphics() {
     ENDDECL1(gl_readtexture, "tex", "X", "S?",
         "read back RGBA texture data into a string or nil on failure");
 
-    STARTDECL(gl_switchtoframebuffer) (Value &t, Value &depth, Value &tf, Value &retex) {
+    STARTDECL(gl_switchtoframebuffer) (Value &t, Value &depth, Value &tf, Value &retex,
+                                       Value &depthtex) {
         TestGL();
         auto tex = GetTexture(t);
         return Value(SwitchToFrameBuffer(tex.id ? tex : Texture(0, GetScreenSize()),
-                                         depth.True(), tf.intval(), GetTexture(retex)));
+                                         depth.True(), tf.intval(), GetTexture(retex),
+                                         GetTexture(depthtex)));
     }
-    ENDDECL4(gl_switchtoframebuffer, "tex,hasdepth,textureformat,resolvetex", "X?I?I?X?",
+    ENDDECL5(gl_switchtoframebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "X?I?I?X?X?",
         "I",
         "switches to a new framebuffer, that renders into the given texture."
         " also allocates a depth buffer for it if depth is true."
         " pass the textureformat that was used for this texture."
         " pass a resolve texture if the base texture is multisample."
+        " pass your own depth texture if desired."
         " pass a nil texture to switch back to the original framebuffer."
         " performance note: do not recreate texture passed in unless necessary.");
 

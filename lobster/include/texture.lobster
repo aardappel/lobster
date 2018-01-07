@@ -12,7 +12,8 @@ enum * texture_format_none = 0,
        texture_format_multisample,
        texture_format_single_channel,
        texture_format_3d,
-       texture_format_buffer_has_mips
+       texture_format_buffer_has_mips,
+       texture_format_depth
 
 // blending constants
 

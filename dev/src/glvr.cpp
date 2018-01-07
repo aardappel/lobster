@@ -197,7 +197,7 @@ void VREye(int eye, float znear, float zfar) {
 void VRFinish() {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
-    SwitchToFrameBuffer(Texture(0, GetScreenSize()), false, 0, Texture());
+    SwitchToFrameBuffer(Texture(0, GetScreenSize()));
     for (int i = 0; i < 2; i++) {
         vr::Texture_t vrtex = { (void *)(size_t)retex[i].id, vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);
