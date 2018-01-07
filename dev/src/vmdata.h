@@ -846,7 +846,7 @@ inline const char *IdName(const bytecode::BytecodeFile *bcf, int i) {
 
 template<typename T> inline T GetResourceDec(Value &val, const ResourceType *type) {
     if (!val.True())
-        return (T)0;
+        return nullptr;
     auto x = val.xval();
     if (x->refc < 2)
         // This typically does not happen unless resource is not stored in a variable.
@@ -855,7 +855,7 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
     if (x->type != type)
         g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
             x->type->name);
-    return (T)(size_t)x->val;
+    return (T)x->val;
 }
 
 inline vector<string> VectorOfStrings(Value &v) {

@@ -29,10 +29,9 @@ struct OutlineFont {
 };
 
 struct BitmapFont {
-    uint texid;
+    Texture tex;
     vector<int3> positions;
     int height;
-    int texh, texw;
     int usedcount;
     int size;
     OutlineFont *font;

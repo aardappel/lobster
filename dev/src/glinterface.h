@@ -25,6 +25,16 @@ enum BlendMode {
 
 enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
+// Meant to be passed by value.
+struct Texture {
+    uint id;
+    int3 size;
+
+    Texture() : id(0), size(0) {}
+    Texture(int _id, const int2 &_size) : id(_id), size(int3(_size, 0)) {}
+    Texture(int _id, const int3 &_size) : id(_id), size(_size) {}
+};
+
 struct Shader {
     enum { MAX_SAMPLERS = 4 };
     uint vs, ps, cs, program;
@@ -37,18 +47,18 @@ struct Shader {
     string Compile(const char *name, const char *vscode, const char *pscode);
     string Compile(const char *name, const char *comcode);
     void Link(const char *name);
-    void Activate();                         // Makes shader current;
-    void Set();                              // Activate + sets common uniforms.
-    void SetAnim(float3x4 *bones, int num);  // Optionally, after Activate().
-    void SetTextures(uint *textures);        // Optionally, after Activate().
-    bool SetUniform(const char *name,        // Optionally, after Activate().
+    void Activate();                            // Makes shader current;
+    void Set();                                 // Activate + sets common uniforms.
+    void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
+    void SetTextures(const Texture *textures);  // Optionally, after Activate().
+    bool SetUniform(const char *name,           // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
     bool Dump(const char *filename, bool stripnonascii);
 };
 
 struct Textured {
-    uint textures[Shader::MAX_SAMPLERS];
+    Texture textures[Shader::MAX_SAMPLERS];
 
 	Textured();
 };
@@ -145,7 +155,7 @@ extern Shader *LookupShader(const char *name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
-extern void SetImageTexture(uint textureunit, uint id, int tf);
+extern void SetImageTexture(uint textureunit, const Texture &tex, int tf);
 extern uint UniformBufferObject(Shader *sh, const void *data, size_t len,
                                 const char *uniformblockname, bool ssbo);
 extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
@@ -166,16 +176,15 @@ enum TextureFlag {
     TF_BUFFER_HAS_MIPS = 2048,
 };
 
-extern uint CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
-extern uint CreateTextureFromFile(const char *name, int2 &dim, int tf = TF_NONE);
-extern uint CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
-extern void DeleteTexture(uint &id);
-extern void SetTexture(uint textureunit, uint id, int tf = TF_NONE);
-extern int2 TextureSize(uint id);
-extern uchar *ReadTexture(uint id, const int2 &size);
+extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
+extern Texture CreateTextureFromFile(const char *name, int tf = TF_NONE);
+extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
+extern void DeleteTexture(Texture &id);
+extern void SetTexture(uint textureunit, const Texture &tex, int tf = TF_NONE);
+extern uchar *ReadTexture(const Texture &tex);
 extern int MaxTextureSize();
-extern bool SwitchToFrameBuffer(uint texture, const int2 &fbsize, bool depth, int tf,
-                                uint resolvetex);
+extern bool SwitchToFrameBuffer(const Texture &tex, bool depth, int tf,
+                                const Texture &resolvetex);
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 

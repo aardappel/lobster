@@ -307,7 +307,7 @@ void AddCubeGen() {
             TF_BUFFER_HAS_MIPS | textureflags.intval());
         delete[] buf;
         extern ResourceType texture_type;
-        return Value(g_vm->NewResource((void *)(size_t)tex, &texture_type));
+        return Value(g_vm->NewResource(new Texture(tex), &texture_type));
     }
     ENDDECL3(cg_create_3d_texture, "block,textureformat,monochrome", "XII?", "X",
         "returns the new texture, for format, pass flags you want in addition to"

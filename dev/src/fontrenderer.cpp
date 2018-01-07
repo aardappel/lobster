@@ -30,25 +30,25 @@
 #include "unicode.h"
 
 BitmapFont::~BitmapFont() {
-    DeleteTexture(texid);
+    DeleteTexture(tex);
 }
 
 BitmapFont::BitmapFont(OutlineFont *_font, int _size)
-    : texid(0), height(0), texh(0), texw(0), usedcount(1), size(_size), font(_font) {}
+    : height(0), usedcount(1), size(_size), font(_font) {}
 
 bool BitmapFont::CacheChars(const char *text) {
     usedcount++;
     font->EnsureCharsPresent(text);
     if (positions.size() == font->unicodetable.size())
         return true;
-    DeleteTexture(texid);
+    DeleteTexture(tex);
     positions.clear();
     if (FT_Set_Pixel_Sizes((FT_Face)font->fthandle, 0, size))
         return false;
     auto face = (FT_Face)font->fthandle;
     const int margin = 3;
-    texh = 0;
-    texw = MaxTextureSize();
+    int texh = 0;
+    int texw = MaxTextureSize();
     int max_descent = 0;
     int max_ascent = 0;
     int space_on_line = texw - margin, lines = 1;
@@ -96,7 +96,7 @@ bool BitmapFont::CacheChars(const char *text) {
         }
         x += advance;
     }
-    texid = CreateTexture(image, int2(texw, texh).data(), TF_CLAMP | TF_NOMIPMAP);
+    tex = CreateTexture(image, int2(texw, texh).data(), TF_CLAMP | TF_NOMIPMAP);
     delete[] image;
     return true;
 }
@@ -112,14 +112,14 @@ void BitmapFont::RenderText(const char *text) {
     auto ibuf = new int[len * 6];
     auto x = 0.0f;
     auto y = 0.0f;
-    float fontheighttex = height / float(texh);
+    float fontheighttex = height / float(tex.size.y);
     auto idx = ibuf;
     for (int i = 0; i < len; i++) {
         int c = FromUTF8(text);
         int3 &pos = positions[font->unicodemap[c]];
-        float x1 = pos.x / float(texw);
-        float x2 = (pos.x + pos.z) / float(texw);
-        float y1 = pos.y / float(texh);
+        float x1 = pos.x / float(tex.size.x);
+        float x2 = (pos.x + pos.z) / float(tex.size.x);
+        float y1 = pos.y / float(tex.size.y);
         float advance = float(pos.z);
         int j = i * 4;
         auto &v0 = vbuf[j + 0]; v0.t = float2(x1, y1);
@@ -138,7 +138,7 @@ void BitmapFont::RenderText(const char *text) {
         *idx++ = j + 0;
         x += advance;
     }
-    SetTexture(0, texid);
+    SetTexture(0, tex);
     RenderArraySlow(PRIM_TRIS, len * 6, len * 4, "PT", sizeof(PT), vbuf, ibuf);
     delete[] ibuf;
     delete[] vbuf;

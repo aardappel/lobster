@@ -55,8 +55,8 @@ float4x4 FromOpenVR(const vr::HmdMatrix34_t &mat) {
 #endif  // PLATFORM_VR
 
 static int2 rtsize = int2_0;
-static uint mstex[2] = { 0, 0 };
-static uint retex[2] = { 0, 0 };
+static Texture mstex[2];
+static Texture retex[2];
 static float4x4 hmdpose = float4x4_1;
 struct MotionController {
     float4x4 mat;
@@ -176,9 +176,9 @@ void VREye(int eye, float znear, float zfar) {
     if (!vrsys) return;
     auto retf = TF_CLAMP | TF_NOMIPMAP;
     auto mstf = retf | TF_MULTISAMPLE;
-    if (!mstex[eye]) mstex[eye] = CreateBlankTexture(rtsize, float4_0, mstf);
-    if (!retex[eye]) retex[eye] = CreateBlankTexture(rtsize, float4_0, retf);
-    SwitchToFrameBuffer(mstex[eye], rtsize, true, mstf, retex[eye]);
+    if (!mstex[eye].id) mstex[eye] = CreateBlankTexture(rtsize, float4_0, mstf);
+    if (!retex[eye].id) retex[eye] = CreateBlankTexture(rtsize, float4_0, retf);
+    SwitchToFrameBuffer(mstex[eye], true, mstf, retex[eye]);
     auto proj =
         FromOpenVR(vrsys->GetProjectionMatrix((vr::EVREye)eye, znear, zfar, vr::API_OpenGL));
     Set3DMode(80, 1, znear, zfar);
@@ -197,9 +197,9 @@ void VREye(int eye, float znear, float zfar) {
 void VRFinish() {
     #ifdef PLATFORM_VR
     if (!vrsys) return;
-    SwitchToFrameBuffer(0, GetScreenSize(), false, 0, 0);
+    SwitchToFrameBuffer(Texture(0, GetScreenSize()), false, 0, Texture());
     for (int i = 0; i < 2; i++) {
-        vr::Texture_t vrtex = { (void *)(size_t)retex[i], vr::API_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t vrtex = { (void *)(size_t)retex[i].id, vr::API_OpenGL, vr::ColorSpace_Gamma };
         auto err = vr::VRCompositor()->Submit((vr::EVREye)i, &vrtex);
         (void)err;
         assert(!err);

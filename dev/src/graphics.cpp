@@ -29,16 +29,22 @@ float3 lasthitsize = float3_0;
 float3 lastframehitsize = float3_0;
 bool graphics_initialized = false;
 
-ResourceType mesh_type = { "mesh", [](void *m) { delete (Mesh *)m; } };
+ResourceType mesh_type = { "mesh", [](void *m) {
+    delete (Mesh *)m;
+} };
+
 ResourceType texture_type = { "texture", [](void *t) {
-    uint tex = (uint)(size_t)t; DeleteTexture(tex);
+    auto tex = (Texture *)t;
+    DeleteTexture(*tex);
+    delete tex;
 } };
 
 Mesh &GetMesh(Value &res) {
     return *GetResourceDec<Mesh *>(res, &mesh_type);
 }
-uint GetTexture(Value &res) {
-    return GetResourceDec<uint>(res, &texture_type);
+Texture GetTexture(Value &res) {
+    auto tex = GetResourceDec<Texture *>(res, &texture_type);
+    return tex ? *tex : Texture();
 }
 
 // Should be safe to call even if it wasn't initialized partially or at all.
@@ -877,16 +883,13 @@ void AddGraphics() {
 
     STARTDECL(gl_loadtexture) (Value &name, Value &tf) {
         TestGL();
-        int2 dim(0);
-        uint id = CreateTextureFromFile(name.sval()->str(), dim, tf.intval());
+        auto tex = CreateTextureFromFile(name.sval()->str(), tf.intval());
         name.DECRT();
-        g_vm->Push(id ? g_vm->NewResource((void *)(size_t)id, &texture_type) : Value());
-        return ToValueINT(dim);
+        return tex.id ? g_vm->NewResource(new Texture(tex), &texture_type) : Value();
     }
-    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?I}:2",
+    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?",
         "returns texture if succesfully loaded from file name, otherwise nil."
-        " see color.lobster for texture format. Returns the size of the loaded textures in pixels"
-        " as second return value (xy_i), or (0, 0) otherwise. Uses stb_image internally"
+        " see color.lobster for texture format. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
         " PIC.");
 
@@ -936,9 +939,9 @@ void AddGraphics() {
             }
         }
         matv.DECRT();
-        uint id = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
+        auto tex = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
         delete[] buf;
-        return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
+        return Value(g_vm->NewResource(new Texture(tex), &texture_type));
     }
     ENDDECL2(gl_createtexture, "matrix,textureformat", "F}:4]]I?", "X",
         "creates a texture from a 2d array of color vectors."
@@ -946,8 +949,8 @@ void AddGraphics() {
 
     STARTDECL(gl_createblanktexture) (Value &size_, Value &col, Value &tf) {
         TestGL();
-        auto id = CreateBlankTexture(ValueDecToINT<2>(size_), ValueDecToFLT<4>(col), tf.intval());
-        return Value(g_vm->NewResource((void *)(size_t)id, &texture_type));
+        auto tex = CreateBlankTexture(ValueDecToINT<2>(size_), ValueDecToFLT<4>(col), tf.intval());
+        return Value(g_vm->NewResource(new Texture(tex), &texture_type));
     }
     ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I}:2F}:4I?", "X",
         "creates a blank texture (for use as frame buffer or with compute shaders)."
@@ -955,19 +958,17 @@ void AddGraphics() {
 
     STARTDECL(gl_texturesize) (Value &tex) {
         TestGL();
-        auto size = TextureSize(GetTexture(tex));
-        return ToValueINT(size);
+        return ToValueINT(GetTexture(tex).size.xy());
     }
     ENDDECL1(gl_texturesize, "tex", "X", "I}:2",
         "returns the size of a texture");
 
     STARTDECL(gl_readtexture) (Value &t) {
         TestGL();
-        uint tex = GetTexture(t);
-        auto size = TextureSize(tex);
-        auto numpixels = size.x * size.y;
+        auto tex = GetTexture(t);
+        auto numpixels = tex.size.x * tex.size.y;
         if (!numpixels) return Value();
-        auto buf = ReadTexture(tex, size);
+        auto buf = ReadTexture(tex);
         if (!buf) return Value();
         auto s = g_vm->NewString((char *)buf, numpixels * 4);
         delete[] buf;
@@ -976,17 +977,15 @@ void AddGraphics() {
     ENDDECL1(gl_readtexture, "tex", "X", "S?",
         "read back RGBA texture data into a string or nil on failure");
 
-    STARTDECL(gl_switchtoframebuffer) (Value &t, Value &fbsize, Value &depth, Value &tf,
-                                       Value &retex) {
+    STARTDECL(gl_switchtoframebuffer) (Value &t, Value &depth, Value &tf, Value &retex) {
         TestGL();
-        auto sz = fbsize.True() ? ValueDecToINT<2>(fbsize) : int2_0;
         auto tex = GetTexture(t);
-        return Value(SwitchToFrameBuffer(tex, tex ? sz : GetScreenSize(),
-                                         depth.True(), tf.intval(), retex.intval()));
+        return Value(SwitchToFrameBuffer(tex.id ? tex : Texture(0, GetScreenSize()),
+                                         depth.True(), tf.intval(), GetTexture(retex)));
     }
-    ENDDECL5(gl_switchtoframebuffer, "tex,fbsize,hasdepth,textureformat,resolvetex", "X?I}:2?I?I?I?",
+    ENDDECL4(gl_switchtoframebuffer, "tex,hasdepth,textureformat,resolvetex", "X?I?I?X?",
         "I",
-        "switches to a new framebuffer, that renders into the given texture. pass the texture size."
+        "switches to a new framebuffer, that renders into the given texture."
         " also allocates a depth buffer for it if depth is true."
         " pass the textureformat that was used for this texture."
         " pass a resolve texture if the base texture is multisample."

@@ -209,12 +209,13 @@ void AddPhysics() {
 	ENDDECL2(ph_setshader, "id,shadername", "X?S", "",
         "sets a shape (or nil for particles) to be rendered with a particular shader.");
 
-	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex_id, Value &tex_unit) {
+	STARTDECL(ph_settexture) (Value &fixture_id, Value &tex, Value &tex_unit) {
 		auto &r = GetRenderable(fixture_id);
-		r.textures[GetSampler(tex_unit)] = tex_id.intval();
+        extern Texture GetTexture(Value &res);
+		r.textures[GetSampler(tex_unit)] = GetTexture(tex);
 		return Value();
 	}
-	ENDDECL3(ph_settexture, "id,texid,texunit", "X?II?", "",
+	ENDDECL3(ph_settexture, "id,tex,texunit", "X?XI?", "",
         "sets a shape (or nil for particles) to be rendered with a particular texture"
         " (assigned to a texture unit, default 0).");
 

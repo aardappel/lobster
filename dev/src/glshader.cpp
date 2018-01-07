@@ -369,7 +369,7 @@ void Shader::SetAnim(float3x4 *bones, int num) {
     if (bones_i >= 0) GL_CALL(glUniform4fv(bones_i, num * 3, (float *)bones));
 }
 
-void Shader::SetTextures(uint *textures) {
+void Shader::SetTextures(const Texture *textures) {
     for (int i = 0; i < MAX_SAMPLERS; i++)
         if (tex_i[i] >= 0)
             SetTexture(i, textures[i]);

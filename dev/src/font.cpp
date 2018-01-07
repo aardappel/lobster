@@ -126,7 +126,7 @@ void AddFont() {
             oldobject2view = otransforms.object2view;
             otransforms.object2view *= scaling(curfontsize / float(maxfontsize));
         }
-        SetTexture(0, f->texid);
+        SetTexture(0, f->tex);
         texturedshader->Set();
         f->RenderText(s.sval()->str());
         if (curfontsize > maxfontsize) otransforms.object2view = oldobject2view;
