@@ -41,9 +41,9 @@ struct Shader {
         bones_i, pointscale_i;
     int max_tex_defined;
 
-    enum { MAX_SAMPLERS = 64 };
+    enum { MAX_SAMPLERS = 32 };
 
-    Shader() : vs(0), ps(0), cs(0), program(0) {}
+    Shader() : vs(0), ps(0), cs(0), program(0), max_tex_defined(0) {}
     ~Shader();
 
     string Compile(const char *name, const char *vscode, const char *pscode);

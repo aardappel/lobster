@@ -326,9 +326,10 @@ void Shader::Link(const char *name) {
             loc = glGetUniformLocation(program, ("texcube" + is).c_str());
             if (loc < 0) loc = glGetUniformLocation(program, ("tex3d" + is).c_str());
         }
-        if (loc < 0) break;
-        glUniform1i(loc, i);
-        max_tex_defined = i + 1;
+        if (loc >= 0) {
+            glUniform1i(loc, i);
+            max_tex_defined = i + 1;
+        }
     }
 }
 
@@ -372,7 +373,7 @@ void Shader::SetAnim(float3x4 *bones, int num) {
 }
 
 void Shader::SetTextures(const vector<Texture> &textures) {
-    for (int i = 0; i < max(max_tex_defined, (int)textures.size()); i++) {
+    for (int i = 0; i < min(max_tex_defined, (int)textures.size()); i++) {
         SetTexture(i, textures[i]);
     }
 }
