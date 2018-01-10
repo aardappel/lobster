@@ -390,6 +390,18 @@ bool Shader::SetUniform(const char *name, const float *val, int components, int 
     }
 }
 
+bool Shader::SetUniformMatrix(const char *name, const float *val, int components, int elements) {
+    auto loc = glGetUniformLocation(program, name);
+    if (loc < 0) return false;
+    switch (components) {
+        case 4:  GL_CALL(glUniformMatrix2fv(loc, elements, false, val)); return true;
+        case 9:  GL_CALL(glUniformMatrix3fv(loc, elements, false, val)); return true;
+        case 12: GL_CALL(glUniformMatrix3x4fv(loc, elements, false, val)); return true;
+        case 16: GL_CALL(glUniformMatrix4fv(loc, elements, false, val)); return true;
+        default: return false;
+    }
+}
+
 void DispatchCompute(const int3 &groups) {
     #ifdef PLATFORM_WINNIX
         if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));

@@ -91,15 +91,12 @@ def render_to_texture_from(tex, shader, srctex):
         gl_rect(float(gl_texturesize(srctex)))
 
 // Same but renders to the screen.
-def post_process(tex, size, shader, flip, depth, f):
+def post_process(tex, size, shader, depth, f):
     texture_format :== texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
     gl_setprimitivetexture(0, tex, texture_format)
     gl_setshader(shader)
-    if flip:
-        gl_translate(xy_f { 0, size.y }):
-            gl_rect(xy_f { size.x, -size.y })
-    else:
-        gl_rect(float(size))
+    gl_translate(xy_f { 0, size.y }):
+        gl_rect(xy_f { size.x, -size.y })
     tex
 

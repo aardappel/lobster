@@ -88,6 +88,8 @@
         GLEXT(PFNGLUNIFORM3FVARBPROC                 , glUniform3fv                    , 1) \
         GLEXT(PFNGLUNIFORM4FVARBPROC                 , glUniform4fv                    , 1) \
         GLEXT(PFNGLUNIFORM1IARBPROC                  , glUniform1i                     , 1) \
+        GLEXT(PFNGLUNIFORMMATRIX2FVARBPROC           , glUniformMatrix2fv              , 1) \
+        GLEXT(PFNGLUNIFORMMATRIX3FVARBPROC           , glUniformMatrix3fv              , 1) \
         GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC           , glUniformMatrix4fv              , 1) \
         GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/   , glUniformMatrix3x4fv            , 1) \
         GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \

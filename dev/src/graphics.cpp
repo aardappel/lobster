@@ -512,6 +512,16 @@ void AddGraphics() {
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
+    STARTDECL(gl_modelviewprojection) () {
+        auto v = g_vm->NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
+        auto mvp = view2clip * otransforms.object2view;
+        for (int i = 0; i < 16; i++) v->At(i) = mvp.data()[i];
+        return Value(v);
+    }
+    ENDDECL0(gl_modelviewprojection, "", "", "F]",
+             "returns a vector representing the current model view projection matrix"
+             " (16 elements)");
+
     STARTDECL(gl_pointscale) (Value &f) {
         custompointscale = f.fltval();
         return Value();
@@ -807,6 +817,21 @@ void AddGraphics() {
     ENDDECL2(gl_setuniformarray, "name,value", "SF}:4]", "I",
              "set a uniform on the current shader. uniform in the shader must be an array of vec4."
              " returns false on error.");
+
+    STARTDECL(gl_setuniformmatrix) (Value &name, Value &vec) {
+        TestGL();
+        vector<float> vals(vec.vval()->len);
+        for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
+        vec.DECRT();
+        currentshader->Activate();
+        auto ok = currentshader->SetUniformMatrix(name.sval()->str(), vals.data(),
+                                                  (int)vals.size(), 1);
+        name.DECRT();
+        return Value(ok);
+    }
+    ENDDECL2(gl_setuniformmatrix, "name,value", "SF]", "I",
+             "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
+             " mat2/mat3/mat3x4/mat4 respectively. returns false on error.");
 
     STARTDECL(gl_uniformbufferobject) (Value &name, Value &vec, Value &ssbo) {
         TestGL();

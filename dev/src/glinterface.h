@@ -56,6 +56,7 @@ struct Shader {
     bool SetUniform(const char *name,           // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
+    bool SetUniformMatrix(const char *name, const float *val, int components, int elements = 1);
     bool Dump(const char *filename, bool stripnonascii);
 };
 
@@ -179,7 +180,7 @@ enum TextureFlag {
     TF_SINGLE_CHANNEL = 512,                // Default is RGBA.
     TF_3D = 1024,
     TF_BUFFER_HAS_MIPS = 2048,
-    TF_DEPTH = 4092
+    TF_DEPTH = 4096
 };
 
 extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
