@@ -83,6 +83,7 @@ $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
 # add -s ASSERTIONS=2 when troubleshooting.
 lobster: $(COBJS) $(CPPOBJS)
+	EMCC_WASM_BACKEND=1 \
 	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 	  -s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
 	  -s DEMANGLE_SUPPORT=1 --emrun
