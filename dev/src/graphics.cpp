@@ -610,14 +610,15 @@ void AddGraphics() {
         " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
         " 1)");
 
-    STARTDECL(gl_ortho) () {
-        Set2DMode(GetScreenSize(), true);
+    STARTDECL(gl_ortho) (Value &rh) {
+        Set2DMode(GetScreenSize(), !rh.True());
         return Value();
     }
-    ENDDECL0(gl_ortho, "", "", "",
+    ENDDECL1(gl_ortho, "rh", "I?", "",
         "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the"
         " screen size in pixels bottom right. this is the default at the start of a frame, use this"
-        " call to get back to that after gl_perspective.");
+        " call to get back to that after gl_perspective."
+        " Pass true to have (0,0) bottom-left instead");
 
     STARTDECL(gl_ortho3d) (Value &center, Value &extends) {
         Set3DOrtho(ValueDecToFLT<3>(center), ValueDecToFLT<3>(extends));
