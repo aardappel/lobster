@@ -703,6 +703,20 @@ void AddBuiltins() {
     ENDDECL3(clamp, "x,min,max", "FFF", "F",
              "forces a float to be in the range between min and max (inclusive)");
 
+    STARTDECL(clamp) (Value &a, Value &b, Value &c) {
+        return ToValueI(geom::clamp(ValueDecToI<4>(a), ValueDecToI<4>(b), ValueDecToI<4>(c)),
+                        a.stval()->Len());
+    }
+    ENDDECL3(clamp, "x,min,max", "I}I}I}", "I}",
+             "forces an integer vector to be in the range between min and max (inclusive)");
+
+    STARTDECL(clamp) (Value &a, Value &b, Value &c) {
+        return ToValueF(geom::clamp(ValueDecToF<4>(a), ValueDecToF<4>(b), ValueDecToF<4>(c)),
+                        a.stval()->Len());
+    }
+    ENDDECL3(clamp, "x,min,max", "F}F}F}", "F}",
+             "forces a float vector to be in the range between min and max (inclusive)");
+
     STARTDECL(inrange) (Value &x, Value &range, Value &bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     }
