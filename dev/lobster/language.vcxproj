@@ -272,14 +272,6 @@
     <ClCompile Include="..\src\vmlog.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\lobster\include\3dhelpers.lobster" />
-    <None Include="..\..\lobster\include\color.lobster" />
-    <None Include="..\..\lobster\include\physics.lobster" />
-    <None Include="..\..\lobster\include\std.lobster" />
-    <None Include="..\..\lobster\samples\physics_boxes.lobster" />
-    <None Include="..\..\lobster\samples\physics_water.lobster" />
-    <None Include="..\..\lobster\samples\pythtree.lobster" />
-    <None Include="..\..\lobster\samples\tests\tctest.lobster" />
     <None Include="..\src\bytecode.fbs" />
     <None Include="..\TODO.txt" />
   </ItemGroup>

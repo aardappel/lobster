@@ -12,9 +12,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="_samples">
-      <UniqueIdentifier>{4c462cb2-4690-4eef-a9af-7a94fbf24856}</UniqueIdentifier>
-    </Filter>
     <Filter Include="dvm">
       <UniqueIdentifier>{da60f2b4-0659-4c6d-957e-6436692322c3}</UniqueIdentifier>
     </Filter>
@@ -124,30 +121,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
-    <None Include="..\..\lobster\samples\pythtree.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\physics_boxes.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\physics_water.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\std.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\color.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\3dhelpers.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\include\physics.lobster">
-      <Filter>_samples</Filter>
-    </None>
-    <None Include="..\..\lobster\samples\tests\tctest.lobster">
-      <Filter>_samples</Filter>
-    </None>
     <None Include="..\src\bytecode.fbs">
       <Filter>common</Filter>
     </None>
