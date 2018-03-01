@@ -20,77 +20,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\stdafx.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\lex.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\parser.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\codegen.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\node.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\idents.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tools.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\slaballoc.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\geom.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\unicode.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\platform.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\wentropy.h">
-      <Filter>base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\typecheck.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ttypes.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\optimizer.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vmdata.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\disasm.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\il.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\natreg.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\bytecode_generated.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\compiler.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vm.h">
-      <Filter>dvm</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tocpp.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
       <Filter>base</Filter>
     </ClCompile>
@@ -127,5 +56,76 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="NatvisFile.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\lobster\geom.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\platform.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\slaballoc.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\stdafx.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\tools.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\unicode.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\wentropy.h">
+      <Filter>base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\vmdata.h">
+      <Filter>dvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\vm.h">
+      <Filter>dvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\disasm.h">
+      <Filter>dvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\compiler.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\idents.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\lex.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\node.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\optimizer.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\parser.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\tocpp.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\ttypes.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\bytecode_generated.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\il.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\natreg.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

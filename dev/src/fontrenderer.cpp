@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
-#include "glinterface.h"
-#include "fontrenderer.h"
+#include "lobster/stdafx.h"
+#include "lobster/glinterface.h"
+#include "lobster/fontrenderer.h"
 
 #define USE_FREETYPE
 
@@ -27,7 +27,7 @@
     #include "stb/stb_truetype.h"
 #endif
 
-#include "unicode.h"
+#include "lobster/unicode.h"
 
 BitmapFont::~BitmapFont() {
     DeleteTexture(tex);

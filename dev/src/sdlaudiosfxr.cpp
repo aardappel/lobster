@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
-#include "sdlincludes.h"
+#include "lobster/sdlincludes.h"
 
 #include "SDL_mixer.h"
 #include "SDL_stdinc.h"

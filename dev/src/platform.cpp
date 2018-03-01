@@ -14,7 +14,7 @@
 
 // Misc platform specific stuff.
 
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 #include <stdarg.h>
 #include <time.h>
 

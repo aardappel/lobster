@@ -14,23 +14,23 @@
 
 // lobster.cpp : Defines the entry point for the console application.
 //
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
-#include "vm.h"
+#include "lobster/vm.h"
 
-#include "ttypes.h"
-#include "lex.h"
-#include "idents.h"
-#include "node.h"
-#include "parser.h"
-#include "typecheck.h"
-#include "optimizer.h"
-#include "codegen.h"
+#include "lobster/ttypes.h"
+#include "lobster/lex.h"
+#include "lobster/idents.h"
+#include "lobster/node.h"
+#include "lobster/parser.h"
+#include "lobster/typecheck.h"
+#include "lobster/optimizer.h"
+#include "lobster/codegen.h"
 
-#include "tocpp.h"
+#include "lobster/tocpp.h"
 
 namespace lobster {
 

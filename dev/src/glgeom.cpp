@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
-#include "glinterface.h"
-#include "glincludes.h"
+#include "lobster/stdafx.h"
+#include "lobster/glinterface.h"
+#include "lobster/glincludes.h"
 
 uint GenBO(GLenum type, size_t elemsize, size_t count, const void *data) {
     uint bo;

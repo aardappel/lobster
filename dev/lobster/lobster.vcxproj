@@ -102,7 +102,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <EnablePREfast>false</EnablePREfast>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
@@ -110,6 +110,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,12 +133,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -161,12 +163,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -194,12 +197,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDLMixer;..\external\openvr\headers;..\external\steamworks\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -302,26 +306,17 @@
     <ClInclude Include="..\external\SDL\include\SDL_video.h" />
     <ClInclude Include="..\include\StackWalker\StackWalker.h" />
     <ClInclude Include="..\include\StackWalker\StackWalkerHelpers.h" />
-    <ClInclude Include="..\src\3dgrid.h" />
-    <ClInclude Include="..\src\compiler.h" />
-    <ClInclude Include="..\src\fontrenderer.h" />
-    <ClInclude Include="..\src\geom.h" />
-    <ClInclude Include="..\src\glincludes.h" />
-    <ClInclude Include="..\src\mctables.h" />
-    <ClInclude Include="..\src\meshgen.h" />
-    <ClInclude Include="..\src\natreg.h" />
     <ClInclude Include="..\src\glinterface.h" />
-    <ClInclude Include="..\src\platform.h" />
-    <ClInclude Include="..\src\polyreduce.h" />
-    <ClInclude Include="..\src\sdlincludes.h" />
-    <ClInclude Include="..\src\sdlinterface.h" />
-    <ClInclude Include="..\src\simplex.h" />
-    <ClInclude Include="..\src\slaballoc.h" />
-    <ClInclude Include="..\src\stdafx.h" />
-    <ClInclude Include="..\src\tools.h" />
-    <ClInclude Include="..\src\unicode.h" />
-    <ClInclude Include="..\src\vmdata.h" />
-    <ClInclude Include="..\src\wentropy.h" />
+    <ClInclude Include="..\src\lobster\3dgrid.h" />
+    <ClInclude Include="..\src\lobster\fontrenderer.h" />
+    <ClInclude Include="..\src\lobster\glincludes.h" />
+    <ClInclude Include="..\src\lobster\glinterface.h" />
+    <ClInclude Include="..\src\lobster\mctables.h" />
+    <ClInclude Include="..\src\lobster\meshgen.h" />
+    <ClInclude Include="..\src\lobster\polyreduce.h" />
+    <ClInclude Include="..\src\lobster\sdlincludes.h" />
+    <ClInclude Include="..\src\lobster\sdlinterface.h" />
+    <ClInclude Include="..\src\lobster\simplex.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\external\freetype\src\autofit\autofit.c">

@@ -1,7 +1,7 @@
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
 using namespace lobster;
 

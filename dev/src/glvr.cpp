@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
-#include "glinterface.h"
-#include "glincludes.h"
+#include "lobster/glinterface.h"
+#include "lobster/glincludes.h"
 
-#include "sdlinterface.h"
-#include "sdlincludes.h"
+#include "lobster/sdlinterface.h"
+#include "lobster/sdlincludes.h"
 
 #ifdef PLATFORM_VR
 

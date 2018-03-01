@@ -66,6 +66,11 @@
   Could allow a command-line arg or annotation in file to indicate that code doesn't care to be
   const-correct :)
 
+- for easier integration of the language part into other projects:
+  - rename stdafx.h
+    - make public headers explicitly depend on it.
+    - try to reduce the scope of it.
+
 - Have a simpler/better C++ binding interface.
   - for starters, should allow current binding system to be loaded from a DLL/so such that
     extensions don't have to be compiled into the main binary.

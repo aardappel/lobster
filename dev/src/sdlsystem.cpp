@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "sdlincludes.h"
-#include "sdlinterface.h"
+#include "lobster/sdlincludes.h"
+#include "lobster/sdlinterface.h"
 
-#include "glinterface.h"
+#include "lobster/glinterface.h"
 
-#include "compiler.h"  // For RegisterBuiltin().
-#include "vm.h"
-#include "vmdata.h"
+#include "lobster/compiler.h"  // For RegisterBuiltin().
+#include "lobster/vm.h"
+#include "lobster/vmdata.h"
 #ifdef __EMSCRIPTEN__
 #include "emscripten.h"
 #endif

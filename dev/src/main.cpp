@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "compiler.h"
-#include "vm.h"
+#include "lobster/compiler.h"
+#include "lobster/vm.h"
 
 // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
-#include "sdlincludes.h"
-#include "sdlinterface.h"
+#include "lobster/sdlincludes.h"
+#include "lobster/sdlinterface.h"
 
 using namespace lobster;
 

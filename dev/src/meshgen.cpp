@@ -1,15 +1,15 @@
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
-#include "glinterface.h"
+#include "lobster/glinterface.h"
 
-#include "meshgen.h"
-#include "mctables.h"
-#include "polyreduce.h"
+#include "lobster/meshgen.h"
+#include "lobster/mctables.h"
+#include "lobster/polyreduce.h"
 
-#include "simplex.h"
+#include "lobster/simplex.h"
 
 #include "ThreadPool/ThreadPool.h"
 

@@ -1,11 +1,11 @@
-#include "stdafx.h"
+#include "lobster/stdafx.h"
 
-#include "vmdata.h"
-#include "natreg.h"
+#include "lobster/vmdata.h"
+#include "lobster/natreg.h"
 
-#include "glinterface.h"
+#include "lobster/glinterface.h"
 
-#include "3dgrid.h"
+#include "lobster/3dgrid.h"
 
 using namespace lobster;
 

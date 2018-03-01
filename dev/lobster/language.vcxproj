@@ -102,7 +102,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <EnablePREfast>false</EnablePREfast>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
@@ -110,6 +110,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,12 +133,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -161,12 +163,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -194,12 +197,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;SDL_XAUDIO2_HAS_SDK=1;BUILD_CONTEXT_$(SolutionName);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\include;..\external\freetype\include;..\external\SDL\include;$(DXSDK_DIR)\Include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4127;4512;4201;4146;4456;4702</DisableSpecificWarnings>
+      <PrecompiledHeaderFile>lobster/stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -219,31 +223,6 @@
       <OutputFile>..\..\build\$(SolutionName)\$(ProjectName)\$(TargetName)$(TargetExt)</OutputFile>
     </Lib>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\bytecode_generated.h" />
-    <ClInclude Include="..\src\codegen.h" />
-    <ClInclude Include="..\src\compiler.h" />
-    <ClInclude Include="..\src\disasm.h" />
-    <ClInclude Include="..\src\geom.h" />
-    <ClInclude Include="..\src\idents.h" />
-    <ClInclude Include="..\src\il.h" />
-    <ClInclude Include="..\src\lex.h" />
-    <ClInclude Include="..\src\natreg.h" />
-    <ClInclude Include="..\src\node.h" />
-    <ClInclude Include="..\src\optimizer.h" />
-    <ClInclude Include="..\src\parser.h" />
-    <ClInclude Include="..\src\platform.h" />
-    <ClInclude Include="..\src\slaballoc.h" />
-    <ClInclude Include="..\src\stdafx.h" />
-    <ClInclude Include="..\src\tocpp.h" />
-    <ClInclude Include="..\src\tools.h" />
-    <ClInclude Include="..\src\ttypes.h" />
-    <ClInclude Include="..\src\typecheck.h" />
-    <ClInclude Include="..\src\unicode.h" />
-    <ClInclude Include="..\src\vm.h" />
-    <ClInclude Include="..\src\vmdata.h" />
-    <ClInclude Include="..\src\wentropy.h" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\builtins.cpp" />
     <ClCompile Include="..\src\file.cpp" />
@@ -279,6 +258,31 @@
     <Natvis Include="NatvisFile.natvis">
       <SubType>Designer</SubType>
     </Natvis>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\lobster\bytecode_generated.h" />
+    <ClInclude Include="..\src\lobster\codegen.h" />
+    <ClInclude Include="..\src\lobster\compiler.h" />
+    <ClInclude Include="..\src\lobster\disasm.h" />
+    <ClInclude Include="..\src\lobster\geom.h" />
+    <ClInclude Include="..\src\lobster\idents.h" />
+    <ClInclude Include="..\src\lobster\il.h" />
+    <ClInclude Include="..\src\lobster\lex.h" />
+    <ClInclude Include="..\src\lobster\natreg.h" />
+    <ClInclude Include="..\src\lobster\node.h" />
+    <ClInclude Include="..\src\lobster\optimizer.h" />
+    <ClInclude Include="..\src\lobster\parser.h" />
+    <ClInclude Include="..\src\lobster\platform.h" />
+    <ClInclude Include="..\src\lobster\slaballoc.h" />
+    <ClInclude Include="..\src\lobster\stdafx.h" />
+    <ClInclude Include="..\src\lobster\tocpp.h" />
+    <ClInclude Include="..\src\lobster\tools.h" />
+    <ClInclude Include="..\src\lobster\ttypes.h" />
+    <ClInclude Include="..\src\lobster\typecheck.h" />
+    <ClInclude Include="..\src\lobster\unicode.h" />
+    <ClInclude Include="..\src\lobster\vm.h" />
+    <ClInclude Include="..\src\lobster\vmdata.h" />
+    <ClInclude Include="..\src\lobster\wentropy.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

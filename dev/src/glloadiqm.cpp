@@ -14,8 +14,8 @@
 
 // IQM model loader, see: http://lee.fov120.com/iqm/
 
-#include "stdafx.h"
-#include "glinterface.h"
+#include "lobster/stdafx.h"
+#include "lobster/glinterface.h"
 
 #define IQM_MAGIC "INTERQUAKEMODEL"
 #define IQM_VERSION 2
