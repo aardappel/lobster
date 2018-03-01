@@ -737,12 +737,14 @@ bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point
         #endif
         {
             if (lobster::g_vm) delete lobster::g_vm;
+            lobster::g_vm = nullptr;
             // An actual error.
             throw s;
         }
     }
 
     delete lobster::g_vm;
+    lobster::g_vm = nullptr;
     return false;
 }
 

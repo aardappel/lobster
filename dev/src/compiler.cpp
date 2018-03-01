@@ -261,7 +261,7 @@ void DumpBuiltins(bool justnames, const SymbolTable &st) {
     }
 }
 
-void Compile(const char *fn, char *stringsource, string &bytecode,
+void Compile(const char *fn, const char *stringsource, string &bytecode,
     string *parsedump = nullptr, string *pakfile = nullptr,
     bool dump_builtins = false, bool dump_names = false) {
     SymbolTable st;

@@ -25,7 +25,7 @@ struct Parser {
     bool call_noparens;
     set<string> pakfiles;
 
-    Parser(const char *_src, SymbolTable &_st, char *_stringsource)
+    Parser(const char *_src, SymbolTable &_st, const char *_stringsource)
         : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), call_noparens(false) {}
 
     ~Parser() {

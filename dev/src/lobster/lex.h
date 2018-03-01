@@ -41,7 +41,7 @@ struct LoadedFile : Line {
 
     vector<Tok> gentokens;
 
-    LoadedFile(const char *fn, vector<string> &fns, char *_ss)
+    LoadedFile(const char *fn, vector<string> &fns, const char *_ss)
         : Line(1, (int)fns.size()), tokenstart(nullptr), stringsource(_ss),
           source(new string()), token(T_NONE),
           errorline(1), islf(false), cont(false), whitespacebefore(0),
@@ -68,7 +68,7 @@ struct Lex : LoadedFile {
 
     vector<string> &filenames;
 
-    Lex(const char *fn, vector<string> &fns, char *_ss = nullptr)
+    Lex(const char *fn, vector<string> &fns, const char *_ss = nullptr)
         : LoadedFile(fn, fns, _ss), filenames(fns) {
         FirstToken();
     }
