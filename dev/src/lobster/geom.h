@@ -87,6 +87,7 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec(T _x, T _y, T _z, T _w) { x = _x; y = _y; assert(N == 4); c[2] = _z; c[3] = _w; }
     vec(T _x, T _y, T _z)       { x = _x; y = _y; assert(N == 3); c[2] = _z; }
     vec(T _x, T _y)             { x = _x; y = _y; assert(N == 2); }
+    vec(const pair<T, T> &p)    { x = p.first; y = p.second; assert(N == 2); }
 
     const T *data()  const { return c; }
     const T *begin() const { return c; }
@@ -98,8 +99,9 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec(const vec<T,3> &v, T e) { DOVEC(c[i] = i < 3 ? v[i] : e); }
     vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
 
-    vec<T,3> xyz() const { assert(N == 4); return vec<T,3>(c); }
-    vec<T,2> xy()  const { assert(N == 3); return vec<T,2>(c); }
+    vec<T,3>   xyz()  const { assert(N == 4); return vec<T,3>(c); }
+    vec<T,2>   xy()   const { assert(N == 3); return vec<T,2>(c); }
+    pair<T, T> pair() const { assert(N == 2); return make_pair(x, y); }
 
     vec operator+(const vec &v) const { DOVECR(c[i] + v[i]); }
     vec operator-(const vec &v) const { DOVECR(c[i] - v[i]); }
@@ -238,15 +240,16 @@ template<typename T, int N> inline vec<int, N> fceil(const vec<T,N> &v) { DOVECR
 template<typename T, int N> inline vec<int, N> ffloor(const vec<T,N> &v) { DOVECRI(ffloor(v[i])); }
 template<typename T, int N> inline vec<T, N> round(const vec<T, N> &v) { DOVECR(roundf(v[i])); }
 
+template<typename T> inline T clamp(T v, T lo, T hi) {
+    static_assert(is_scalar<T>(), "");
+    return std::min(hi, std::max(lo, v));
+}
 template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, const vec<T, N> &lo,
                                                    const vec<T, N> &hi) {
     DOVECR(clamp(v[i], lo[i], hi[i]));
 }
 template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T hi) {
     DOVECR(clamp(v[i], lo, hi));
-}
-template<typename T> inline T clamp(T v, T lo, T hi) {
-    return std::min(hi, std::max(lo, v));
 }
 
 template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNumberGenerator<R> &r) {

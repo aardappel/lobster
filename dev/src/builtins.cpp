@@ -542,6 +542,43 @@ void AddBuiltins() {
     ENDDECL1(uppercase, "s", "S", "S",
              "converts a UTF-8 string from any case to upper case, affecting only a-z");
 
+    STARTDECL(escapestring) (Value &s, Value &set, Value &prefix, Value &postfix) {
+        string out;
+        for (auto p = s.sval()->str();;) {
+            auto loc = strpbrk(p, set.sval()->str());
+            if (loc) {
+                out += string_view(p, loc - p);
+                out += prefix.sval()->strv();
+                out += *loc++;
+                out += postfix.sval()->strv();
+                p = loc;
+            } else {
+                out += p;
+                break;
+            }
+        }
+        s.DECRT();
+        set.DECRT();
+        prefix.DECRT();
+        postfix.DECRT();
+        return Value(g_vm->NewString(out));
+    }
+    ENDDECL4(escapestring, "s,set,prefix,postfix", "SSSS", "S",
+             "prefixes & postfixes any occurrences or characters in set in string s");
+
+    STARTDECL(concatstring) (Value &v, Value &sep) {
+        string s;
+        for (intp i = 0; i < v.vval()->len; i++) {
+            if (i) s += sep.sval()->strv();
+            s += v.vval()->At(i).sval()->strv();
+        }
+        v.DECRT();
+        sep.DECRT();
+        return Value(g_vm->NewString(s));
+    }
+    ENDDECL2(concatstring, "v,sep", "S]S", "S",
+             "concatenates all elements of the string vector, separated with sep.");
+
     STARTDECL(pow) (Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); }
     ENDDECL2(pow, "a,b", "FF", "F",
         "a raised to the power of b");

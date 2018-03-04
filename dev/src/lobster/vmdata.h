@@ -234,6 +234,7 @@ struct LString : RefObj {
     LString(intp _l);
 
     char *str() { return (char *)(this + 1); }
+    string_view strv() { return string_view(str(), len); }
 
     string ToString(PrintPrefs &pp);
 
