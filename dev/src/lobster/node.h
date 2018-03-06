@@ -27,8 +27,8 @@ struct Node {
     virtual Node **Children() { return nullptr; }
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
-    virtual const char *Name() const = 0;
-    virtual string Dump() const { return Name(); }
+    virtual string_view Name() const = 0;
+    virtual string Dump() const { return string(Name()); }
     void Iterate(IterateFun f) {
         f(this);
         auto ch = Children();
@@ -64,7 +64,7 @@ template<typename T> T *DoClone(T *dest, T *src) {
 }
 
 #define SHARED_SIGNATURE(NAME, STR, SE) \
-    const char *Name() const { return STR; } \
+    string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
     Node *TypeCheck(TypeChecker &tc, bool reqret); \
     void Generate(CodeGen &cg, int retval) const; \
@@ -251,9 +251,9 @@ struct FloatConstant : Node {
 
 struct StringConstant : Node {
     string str;
-    StringConstant(const Line &ln, const string &s) : Node(ln), str(s) {}
+    StringConstant(const Line &ln, string_view s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
-    string Dump() const { return string("\"") + str + "\""; }
+    string Dump() const { return "\"" + str + "\""; }
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
 };
 

@@ -30,7 +30,7 @@ struct Optimizer {
                 }
             }
         }
-        Output(OUTPUT_INFO, "optimizer: %d passes, %d optimizations", i, total_changes);
+        Output(OUTPUT_INFO, "optimizer: ", i, " passes, ", total_changes, " optimizations");
         assert(i);  // Must run at least one pass.
     }
 

@@ -107,7 +107,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             auto id = *ip++;
             ip++;  // retvals
             ip++;  // rettype
-            s += id >= 0 ? bcf->functions()->Get(id)->name()->c_str() : to_string(id);
+            s += id >= 0 ? flat_string_view(bcf->functions()->Get(id)->name()) : to_string(id);
             break;
         }
 
@@ -126,7 +126,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
             s += to_string(nargs);
             s += " ";
-            s += bcf->functions()->Get(id)->name()->c_str();
+            s += flat_string_view(bcf->functions()->Get(id)->name());
             s += " ";
             s += to_string(bc);
             s += " m:";
@@ -143,7 +143,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
         }
         case IL_NEWSTRUCT: {
             auto ti = (TypeInfo *)(typetable + *ip++);
-            s += bcf->structs()->Get(ti->structidx)->name()->c_str();
+            s += flat_string_view(bcf->structs()->Get(ti->structidx)->name());
             break;
         }
 
@@ -202,7 +202,7 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
             break;
 
         case IL_PUSHSTR:
-            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->c_str(), s);
+            EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(*ip++)), s);
             break;
 
         case IL_FUNSTART: {
@@ -235,8 +235,8 @@ static const int *DisAsmIns(string &s, const int *ip, const int *code, const typ
     return ip;
 }
 
-void DisAsm(string &s, const string &bytecode_buffer) {
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.c_str());
+void DisAsm(string &s, string_view bytecode_buffer) {
+    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.

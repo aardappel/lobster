@@ -100,22 +100,6 @@ template<typename T> T *Prev(T *n) { return (T *)n->prev; }
 #define loopdllistreverse(L, n) \
     for (auto n = (L).Prev(), p = Prev(n); n != (void *)&(L); (n = p),(p = Prev(n)))
 
-inline uchar *loadfile(const char *fn, size_t *lenret = nullptr) {
-    FILE *f = fopen(fn, "rb");
-    if (!f) return nullptr;
-    fseek(f, 0, SEEK_END);
-    size_t len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    uchar *buf = (uchar *)malloc(len+1);
-    if (!buf) { fclose(f); return nullptr; }
-    buf[len] = 0;
-    size_t rlen = fread(buf, 1, len, f);
-    fclose(f);
-    if (len!=rlen || len<=0) { free(buf); return nullptr; }
-    if (lenret) *lenret = len;
-    return buf;
-}
-
 class MersenneTwister          {
     const static uint N = 624;
     const static uint M = 397;
@@ -700,4 +684,26 @@ inline int PopCount64(uint64_t val) {
     #else
         return __builtin_popcountll(val);
     #endif
+}
+
+
+// string & string_view helpers.
+
+inline string operator+(string_view a, string_view b) {
+    string r;
+    r.reserve(a.size() + b.size());
+    r += a;
+    r += b;
+    return r;
+}
+
+inline void cat_helper(stringstream &ss) {}
+template<typename T, typename ...Ts> void cat_helper(stringstream &ss, const T &t, const Ts&... args) {
+    ss << t;
+    cat_helper(ss, args...);
+}
+template<typename ...Ts> string cat(const Ts&... args) {
+    stringstream ss;
+    cat_helper(ss, args...);
+    return ss.str();
 }

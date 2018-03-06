@@ -72,7 +72,7 @@ Value ReplaceStruct(Value &l, Value &i, Value &a) {
 
 void AddBuiltins() {
     STARTDECL(print) (Value &a) {
-        Output(OUTPUT_PROGRAM, "%s", RefToString(a.ref(), g_vm->programprintprefs).c_str());
+        Output(OUTPUT_PROGRAM, RefToString(a.ref(), g_vm->programprintprefs));
         return a;
     }
     ENDDECL1(print, "x", "A", "A1",
@@ -123,7 +123,7 @@ void AddBuiltins() {
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
         buf[MAXSIZE - 1] = 0;
         for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n') { buf[i] = 0; break; }
-        return Value(g_vm->NewString(buf, strlen(buf)));
+        return Value(g_vm->NewString(buf));
     }
     ENDDECL0(getline, "", "", "S",
         "reads a string from the console if possible (followed by enter)");
@@ -420,7 +420,7 @@ void AddBuiltins() {
         if (start < 0 || start + size > l.sval()->len)
             g_vm->BuiltinError("substring: values out of range");
 
-        auto ns = g_vm->NewString(l.sval()->str() + start, size);
+        auto ns = g_vm->NewString(string_view(l.sval()->str() + start, size));
         l.DECRT();
         return Value(ns);
     }
@@ -437,7 +437,7 @@ void AddBuiltins() {
         "converts a string to an int. returns 0 if no numeric data could be parsed");
 
     STARTDECL(string2float) (Value &s) {
-        auto f = (float)atof(s.sval()->str());
+        auto f = strtod(s.sval()->str(), nullptr);
         s.DECRT();
         return Value(f);
     }
@@ -458,7 +458,7 @@ void AddBuiltins() {
             auto delim = p + strcspn(p, dl);
             auto end = delim;
             while (end > p && strspn1(end[-1], ws)) end--;
-            v->Push(g_vm->NewString(p, end - p));
+            v->Push(g_vm->NewString(string_view(p, end - p)));
             p = delim + strspn(delim, dl);
             p += strspn(p, ws);
         }
@@ -519,7 +519,7 @@ void AddBuiltins() {
         " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).");
 
     STARTDECL(lowercase) (Value &s) {
-        auto ns = g_vm->NewString(s.sval()->str(), s.sval()->len);
+        auto ns = g_vm->NewString(s.sval()->strv());
         for (auto p = ns->str(); *p; p++) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (*p >= 'A' && *p <= 'Z') *p += 'a' - 'A';
@@ -531,7 +531,7 @@ void AddBuiltins() {
              "converts a UTF-8 string from any case to lower case, affecting only A-Z");
 
     STARTDECL(uppercase) (Value &s) {
-        auto ns = g_vm->NewString(s.sval()->str(), s.sval()->len);
+        auto ns = g_vm->NewString(s.sval()->strv());
         for (auto p = ns->str(); *p; p++) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (*p >= 'a' && *p <= 'z') *p -= 'a' - 'A';

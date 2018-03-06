@@ -97,7 +97,8 @@ float2 localfingerpos(int i) {
 
 Value PushTransform(const float4x4 &forward, const float4x4 &backward, const Value &body) {
     if (body.True()) {
-        g_vm->Push(Value(g_vm->NewString((char *)&otransforms, sizeof(objecttransforms))));
+        g_vm->Push(Value(g_vm->NewString(string_view((char *)&otransforms,
+                                                     sizeof(objecttransforms)))));
     }
     AppendTransform(forward, backward);
     return body;
@@ -141,7 +142,7 @@ Value SetUniform(Value &name, const float *data, int len, bool ignore_errors) {
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->str(), data, len);
     if (!ok && !ignore_errors)
-        g_vm->Error("failed to set uniform: " + string(name.sval()->str()));
+        g_vm->Error("failed to set uniform: " + name.sval()->strv());
     name.DECRT();
     return Value(ok);
 }
@@ -159,7 +160,7 @@ void AddGraphics() {
             err = LoadMaterialFile("shaders/default.materials");
         }
         if (!err.empty()) {
-            Output(OUTPUT_INFO, err.c_str());
+            Output(OUTPUT_INFO, err);
             return Value(g_vm->NewString(err));
         }
         colorshader = LookupShader("color");
@@ -554,7 +555,7 @@ void AddGraphics() {
         /*
         #ifdef PLATFORM_TOUCH
         // Inefficient for fingers other than 0, which is going to be rare.
-        auto ks = i ? GetKS((string("mouse1") + (char)('0' + i)).c_str()) : GetKS("mouse1");
+        auto ks = i ? GetKS((string_view("mouse1") + (char)('0' + i)).c_str()) : GetKS("mouse1");
         // On mobile, if the finger just went down, we wont have meaningfull lastframehitsize, so if
         // the programmer checks for the combination of gl_hit and gl_wentdown, that would fail.
         // Instead, we bypass that check.
@@ -777,7 +778,7 @@ void AddGraphics() {
     STARTDECL(gl_setshader) (Value &shader) {
         TestGL();
         auto sh = LookupShader(shader.sval()->str());
-        if (!sh) g_vm->BuiltinError(string("no such shader: ") + shader.sval()->str());
+        if (!sh) g_vm->BuiltinError("no such shader: " + shader.sval()->strv());
         shader.DECRT();
         currentshader = sh;
         return Value();
@@ -996,7 +997,7 @@ void AddGraphics() {
         if (!numpixels) return Value();
         auto buf = ReadTexture(tex);
         if (!buf) return Value();
-        auto s = g_vm->NewString((char *)buf, numpixels * 4);
+        auto s = g_vm->NewString(string_view((char *)buf, numpixels * 4));
         delete[] buf;
         return Value(s);
     }

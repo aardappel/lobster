@@ -106,20 +106,20 @@ int main(int argc, char* argv[]) {
             Output(OUTPUT_INFO, "compiling...");
             string dump;
             string pakfile;
-            Compile(StripDirPart(fn).c_str(), nullptr, bytecode, parsedump ? &dump : nullptr,
+            Compile(StripDirPart(fn), nullptr, bytecode, parsedump ? &dump : nullptr,
                 lpak ? &pakfile : nullptr, dump_builtins, dump_names);
             if (parsedump) {
-                WriteFile("parsedump.txt", false, dump.c_str(), dump.length());
+                WriteFile("parsedump.txt", false, dump);
             }
             if (lpak) {
-                WriteFile(lpak, true, (char *)pakfile.data(), pakfile.size());
+                WriteFile(lpak, true, pakfile);
                 return 0;
             }
         }
         if (disasm) {
             string s;
             DisAsm(s, bytecode);
-            WriteFile("disasm.txt", false, s.c_str(), s.length());
+            WriteFile("disasm.txt", false, s);
         }
         if (to_cpp) {
             // FIXME: make less hard-coded.
@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
         }
     }
     catch (string &s) {
-        Output(OUTPUT_ERROR, s.c_str());
+        Output(OUTPUT_ERROR, s);
         if (from_bundle) SDLMessageBox("Lobster", s.c_str());
         if (wait) {
             Output(OUTPUT_PROGRAM, "press <ENTER> to continue:\n");

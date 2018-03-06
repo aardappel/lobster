@@ -69,7 +69,7 @@ void AddFont() {
         }
         texturedshader = LookupShader("textured");
         assert(texturedshader);
-        curface = LoadFont(piname.c_str());
+        curface = LoadFont(piname);
         if (curface)  {
             curfacename = piname;
             loadedfaces[piname] = curface;

@@ -57,9 +57,9 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     return arity;
 }
 
-void ToCPP(string &s, const string &bytecode_buffer) {
+void ToCPP(string &s, string_view bytecode_buffer) {
     int dispatch = VM_DISPATCH_METHOD;
-    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.c_str());
+    auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
     //auto typetable = (const type_elem_t *)bcf->typetable()->Data();  // Same.
@@ -223,11 +223,11 @@ void ToCPP(string &s, const string &bytecode_buffer) {
                 s += " */";
             } else if (opc == IL_PUSHSTR) {
                 s += " /* ";
-                EscapeAndQuote(bcf->stringtable()->Get(args[0])->c_str(), s);
+                EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(args[0])), s);
                 s += " */";
             } else if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 s += " /* ";
-                s += bcf->functions()->Get(args[0])->name()->c_str();
+                s += flat_string_view(bcf->functions()->Get(args[0])->name());
                 s += " */";
             }
             if (opc == IL_CALL || opc == IL_CALLMULTI) {
@@ -265,7 +265,7 @@ void ToCPP(string &s, const string &bytecode_buffer) {
     // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
     // in fact, it be nice if those were in readable format in the generated code.
     s += "\nstatic const int bytecodefb[] =\n{";
-    auto bytecode_ints = (const int *)bytecode_buffer.c_str();
+    auto bytecode_ints = (const int *)bytecode_buffer.data();
     for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
         if ((i & 0xF) == 0) s += "\n  ";
         s += to_string(bytecode_ints[i]);

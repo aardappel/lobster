@@ -97,8 +97,8 @@ bool VRInit() {
     vrsys = vr::VR_Init(&err, vr::VRApplication_Scene);
     if (err != vr::VRInitError_None) {
         vrsys = nullptr;
-        Output(OUTPUT_ERROR, "VR system init failed: %s",
-               vr::VR_GetVRInitErrorAsEnglishDescription(err));
+        Output(OUTPUT_ERROR, "VR system init failed: ",
+                             vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
     vrsys->GetRecommendedRenderTargetSize((uint *)&rtsize.x, (uint *)&rtsize.y);
@@ -106,13 +106,13 @@ bool VRInit() {
                                              vr::Prop_TrackingSystemName_String);
     auto displayname = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                               vr::Prop_SerialNumber_String);
-    Output(OUTPUT_INFO, "VR running on device: \"%s\", display: \"%s\", rt size: (%d, %d)",
-        devicename.c_str(), displayname.c_str(), rtsize.x, rtsize.y);
+    Output(OUTPUT_INFO, "VR running on device: \"", devicename, "\", display: \"", displayname,
+                        "\", rt size: (", rtsize.x, ", ", rtsize.y, ")");
     vrmodels = (vr::IVRRenderModels *)vr::VR_GetGenericInterface(vr::IVRRenderModels_Version, &err);
     if(!vrmodels) {
         VRShutDown();
-        Output(OUTPUT_ERROR, "VR get render models failed: %s",
-               vr::VR_GetVRInitErrorAsEnglishDescription(err));
+        Output(OUTPUT_ERROR, "VR get render models failed: ",
+                             vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
     if (!vr::VRCompositor()) {
@@ -270,7 +270,7 @@ MotionController *GetMC(Value &mc) {
 vr::EVRButtonId GetButtonId(Value &button) {
     auto it = button_ids.find(button.sval()->str());
     if (it == button_ids.end())
-        g_vm->BuiltinError(string("unknown button name: ") + button.sval()->str());
+        g_vm->BuiltinError("unknown button name: " + button.sval()->strv());
     button.DECRT();
     return it->second;
 }

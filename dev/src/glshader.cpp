@@ -45,8 +45,8 @@ string GLSLError(uint obj, bool isprogram, const char *source) {
             err += to_string(++i);
             err += ": ";
             const char *next = strchr(source, '\n');
-            if (next) { err += string(source, next - source + 1); source = next + 1; }
-            else { err += string(source) + "\n"; break; }
+            if (next) { err += string_view(source, next - source + 1); source = next + 1; }
+            else { err += string_view(source) + "\n"; break; }
         }
         delete[] log;
         return err;
@@ -79,7 +79,7 @@ string ParseMaterialFile(char *mbuf) {
     auto word = [&]() {
         p += strspn(p, " \t\r");
         size_t len = strcspn(p, " \t\r\0");
-        last = string(p, len);
+        last = string_view(p, len);
         p += len;
     };
     auto finish = [&]() -> bool {
@@ -105,7 +105,7 @@ string ParseMaterialFile(char *mbuf) {
                     #ifdef __APPLE__
                     auto supported = glGetString(GL_SHADING_LANGUAGE_VERSION);
                     // Apple randomly changes what it supports, so just ask for that.
-                    header += string("#version ") + char(supported[0]) + char(supported[2]) +
+                    header += string_view("#version ") + char(supported[0]) + char(supported[2]) +
                               char(supported[3]) + "\n";
                     #else
                     extern string glslversion;
@@ -252,7 +252,8 @@ string ParseMaterialFile(char *mbuf) {
                 defines += "#define " + def + "\n";
             } else {
                 if (!accum)
-                    return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " + string(start);
+                    return "GLSL code outside of FUNCTIONS/VERTEX/PIXEL block: " +
+                           string_view(start);
                 *accum += start;
                 *accum += "\n";
             }
@@ -267,7 +268,7 @@ string ParseMaterialFile(char *mbuf) {
 
 string LoadMaterialFile(const char *mfile) {
     string mbuf;
-    if (LoadFile(mfile, &mbuf) < 0) return string("cannot load material file: ") + mfile;
+    if (LoadFile(mfile, &mbuf) < 0) return string_view("cannot load material file: ") + mfile;
     auto err = ParseMaterialFile((char *)mbuf.c_str());
     return err;
 }
@@ -276,9 +277,9 @@ string Shader::Compile(const char *name, const char *vscode, const char *pscode)
     program = glCreateProgram();
     string err;
     vs = CompileGLSLShader(GL_VERTEX_SHADER,   program, vscode, err);
-    if (!vs) return string("couldn't compile vertex shader: ") + name + "\n" + err;
+    if (!vs) return string_view("couldn't compile vertex shader: ") + name + "\n" + err;
     ps = CompileGLSLShader(GL_FRAGMENT_SHADER, program, pscode, err);
-    if (!ps) return string("couldn't compile pixel shader: ") + name + "\n" + err;
+    if (!ps) return string_view("couldn't compile pixel shader: ") + name + "\n" + err;
     GL_CALL(glBindAttribLocation(program, 0, "apos"));
     GL_CALL(glBindAttribLocation(program, 1, "anormal"));
     GL_CALL(glBindAttribLocation(program, 2, "atc"));
@@ -294,7 +295,7 @@ string Shader::Compile(const char *name, const char *cscode) {
         program = glCreateProgram();
         string err;
         cs = CompileGLSLShader(GL_COMPUTE_SHADER, program, cscode, err);
-        if (!cs) return string("couldn't compile compute shader: ") + name + "\n" + err;
+        if (!cs) return string_view("couldn't compile compute shader: ") + name + "\n" + err;
         Link(name);
         return "";
     #else
@@ -308,7 +309,7 @@ void Shader::Link(const char *name) {
     GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &status));
     if (status != GL_TRUE) {
         GLSLError(program, true, nullptr);
-        throw string("linking failed for shader: ") + name;
+        throw string_view("linking failed for shader: ") + name;
     }
     mvp_i          = glGetUniformLocation(program, "mvp");
     col_i          = glGetUniformLocation(program, "col");
@@ -465,7 +466,7 @@ bool Shader::Dump(const char *filename, bool stripnonascii) {
 	#ifndef __EMSCRIPTEN__
 		int len = 0;
 		GL_CALL(glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &len));
-		vector<char> buf;
+		string buf;
 		buf.resize(len);
 		GLenum format = 0;
 		GL_CALL(glGetProgramBinary(program, len, nullptr, &format, buf.data()));
@@ -474,7 +475,7 @@ bool Shader::Dump(const char *filename, bool stripnonascii) {
 				return (c < ' ' || c > '~') && c != '\n' && c != '\t';
 			}), buf.end());
 		}
-		return WriteFile(filename, true, buf.data(), buf.size());
+		return WriteFile(filename, true, buf);
 	#else
 		return false;
 	#endif

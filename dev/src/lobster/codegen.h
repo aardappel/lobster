@@ -27,7 +27,7 @@ struct CodeGen  {
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeRef> rettypes, temptypestack;
     size_t nested_fors;
-    vector<const char *> stringtable;  // sized strings.
+    vector<string_view> stringtable;  // sized strings.
     const Node *temp_parent = nullptr; // FIXME
     vector<int> speclogvars;  // Index into specidents.
 
@@ -234,10 +234,10 @@ struct CodeGen  {
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs) {
                 auto gendispatch = [&] (size_t override_j, TypeRef override_type) {
-                    Output(OUTPUT_DEBUG, "dispatch %s", f.name.c_str());
+                    Output(OUTPUT_DEBUG, "dispatch ", f.name);
                     for (size_t j = 0; j < f.nargs(); j++) {
                         auto type = j == override_j ? override_type : sf->args.v[j].type;
-                        Output(OUTPUT_DEBUG, "arg %d: %s", j, TypeName(type).c_str());
+                        Output(OUTPUT_DEBUG, "arg ", j, ": ", TypeName(type));
                         Emit(GetTypeTableOffset(type));
                     }
                     Emit(sf->subbytecodestart);
@@ -273,7 +273,7 @@ struct CodeGen  {
         sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
             auto s = Dump(*sf.body, 0);
-            Output(OUTPUT_DEBUG, "untypechecked: %s : %s", sf.parent->name.c_str(), s.c_str());
+            Output(OUTPUT_DEBUG, "untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
         vector<SpecIdent *> defs;
@@ -562,7 +562,7 @@ void FloatConstant::Generate(CodeGen &cg, int retval) const {
 void StringConstant::Generate(CodeGen &cg, int retval) const {
     if (retval) {
         cg.Emit(IL_PUSHSTR, (int)cg.stringtable.size());
-        cg.stringtable.push_back(str.c_str());
+        cg.stringtable.push_back(str);
     };
 }
 

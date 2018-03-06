@@ -814,7 +814,8 @@ void AddMeshGen() {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(mg_rotate) (Value &axis, Value &angle, Value &body) {
-        if (body.True()) g_vm->Push(Value(g_vm->NewString((char *)&currot, sizeof(float3x3))));
+        if (body.True()) g_vm->Push(Value(g_vm->NewString(string_view((char *)&currot,
+                                                                      sizeof(float3x3)))));
         auto v = ValueDecToFLT<3>(axis);
         currot *= float3x3(angle.fltval() * RAD, v);
         return body;

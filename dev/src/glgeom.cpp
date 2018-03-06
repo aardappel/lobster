@@ -92,7 +92,7 @@ Geometry::Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const c
             case 'W': SETATTRIB(4, 4, GL_UNSIGNED_BYTE, true,   4)
             case 'I': SETATTRIB(5, 4, GL_UNSIGNED_BYTE, false,  4)
             default:
-                Output(OUTPUT_ERROR, "unknow attribute type: \"%c\"", attr);
+                Output(OUTPUT_ERROR, "unknown attribute type: ", string() + attr);
                 assert(false);
         }
         if (vbo2) {
@@ -208,7 +208,7 @@ bool Mesh::SaveAsPLY(const char *filename) {
     string s;
     if (!geom->WritePLY(s, nindices)) return false;
     for (auto &surf : surfs) surf->WritePLY(s);
-    return WriteFile(filename, true, s.c_str(), s.size());
+    return WriteFile(filename, true, s);
 }
 
 void SetPointSprite(float scale) {

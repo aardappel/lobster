@@ -45,6 +45,6 @@ struct BitmapFont {
     bool CacheChars(const char *text);
 };
 
-extern OutlineFont *LoadFont(const char *name);
+extern OutlineFont *LoadFont(string_view name);
 
 extern void FTClosedown();

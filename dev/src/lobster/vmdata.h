@@ -93,7 +93,7 @@ inline bool IsRef    (ValueType t) { return t <  V_NIL; }
 inline bool IsRefNil (ValueType t) { return t <= V_NIL; }
 inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 
-inline const char *BaseTypeName(ValueType t) {
+inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<value_buffer>", "<stackframe_buffer>",
         "boxed_float", "boxed_int", "resource", "coroutine", "string", "struct", "vector",
@@ -566,6 +566,10 @@ struct LVector : RefObj {
     }
 };
 
+inline string_view flat_string_view(const flatbuffers::String *s) {
+    return string_view(s->c_str(), s->size());
+}
+
 struct VMLog {
     struct LogVar {
         vector<Value> values;
@@ -655,7 +659,7 @@ struct VM {
 
     const vector<string> &program_args;
 
-    VM(const char *_pn, string &_bytecode_buffer, const void *entry_point,
+    VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args);
     ~VM();
 
@@ -665,7 +669,7 @@ struct VM {
     const TypeInfo &GetVarTypeInfo(int varidx);
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
-    const char *GetProgramName() { return programname.c_str(); }
+    string_view GetProgramName() { return programname; }
 
     type_elem_t GetIntVectorType(int which);
     type_elem_t GetFloatVectorType(int which);
@@ -679,9 +683,8 @@ struct VM {
     BoxedFloat *NewFloat(floatp f);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
-    LString *NewString(const char *c, size_t l);
-    LString *NewString(const string &s);
-    LString *NewString(const char *c1, size_t l1, const char *c2, size_t l2);
+    LString *NewString(string_view s);
+    LString *NewString(string_view s1, string_view s2);
 
     Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr);
     Value BuiltinError(string err) { return Error(err); }
@@ -756,8 +759,8 @@ struct VM {
     void Push(const Value &v);
     Value Pop();
 
-    string StructName(const TypeInfo &ti);
-    const char *ReverseLookupType(uint v);
+    string_view StructName(const TypeInfo &ti);
+    string_view ReverseLookupType(uint v);
     void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
     double Time() { return SecondsSinceStart(); }
 
@@ -831,8 +834,6 @@ template <int N> inline Value ToValueFLT(const vec<float, N> &v, int maxelems = 
     return ToValueF<N>(vec<floatp, N>(v), maxelems);
 }
 
-
-
 inline intp RangeCheck(const Value &idx, intp range, intp bias = 0) {
     auto i = idx.ival();
     if (i < bias || i >= bias + range)
@@ -841,8 +842,9 @@ inline intp RangeCheck(const Value &idx, intp range, intp bias = 0) {
     return i;
 }
 
-inline const char *IdName(const bytecode::BytecodeFile *bcf, int i) {
-    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->c_str();
+inline string_view IdName(const bytecode::BytecodeFile *bcf, int i) {
+    auto s = bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name();
+    return flat_string_view(s);
 }
 
 template<typename T> inline T GetResourceDec(Value &val, const ResourceType *type) {
@@ -854,7 +856,7 @@ template<typename T> inline T GetResourceDec(Value &val, const ResourceType *typ
         g_vm->BuiltinError("cannot use temporary resource (store it first)");
     val.DECRT();
     if (x->type != type)
-        g_vm->BuiltinError(string("needed resource type: ") + type->name + ", got: " +
+        g_vm->BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
             x->type->name);
     return (T)x->val;
 }
@@ -866,7 +868,7 @@ inline vector<string> VectorOfStrings(Value &v) {
     return r;
 }
 
-void EscapeAndQuote(const string &s, string &r);
+void EscapeAndQuote(string_view s, string &r);
 
 struct LCoRoutine : RefObj {
     bool active;       // Goes to false when it has hit the end of the coroutine instead of a yield.
@@ -1024,7 +1026,7 @@ struct LCoRoutine : RefObj {
         auto &var = AccessVar(i);
         // FIXME: For testing.
         if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_STRUCT)) {
-            Output(OUTPUT_INFO, "coro elem %s != %s", vti.Debug().c_str(), BaseTypeName(var.type));
+            Output(OUTPUT_INFO, "coro elem ", vti.Debug(), " != ", BaseTypeName(var.type));
             assert(false);
         }
         #endif

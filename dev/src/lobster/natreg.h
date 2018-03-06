@@ -20,7 +20,7 @@ struct Named {
     bool isprivate;
 
     Named() : idx(-1), isprivate(false) {}
-    Named(const string &_name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
+    Named(string_view _name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
 };
 
 struct SubFunction;
@@ -222,7 +222,7 @@ struct Narg : Typed {
 };
 
 struct GenericArgs {
-    virtual string GetName(size_t i) const = 0;
+    virtual string_view GetName(size_t i) const = 0;
     virtual const Typed *GetType(size_t i) const = 0;
     virtual size_t size() const = 0;
 };
@@ -235,7 +235,7 @@ struct NargVector : GenericArgs {
 
     size_t size() const { return v.size(); }
     const Typed *GetType(size_t i) const { return &v[i]; }
-    string GetName(size_t i) const {
+    string_view GetName(size_t i) const {
         auto ids = idlist;
         for (;;) {
             const char *idend = strchr(ids, ',');
@@ -244,7 +244,7 @@ struct NargVector : GenericArgs {
                 assert(!i);
                 idend = ids + strlen(ids);
             }
-            if (!i--) return string(ids, idend);
+            if (!i--) return string_view(ids, idend - ids);
             ids = idend + 1;
         }
     }
@@ -283,7 +283,7 @@ struct NativeFun : Named {
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
               const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(),
               list<Type> &typestorage)
-        : Named(string(_name), 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
+        : Named(_name, 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
           has_body(_has_body), cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr),
           first(this) {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
@@ -302,7 +302,7 @@ struct NativeFun : Named {
 
 struct NativeRegistry {
     vector<NativeFun *> nfuns;
-    unordered_map<string, NativeFun *> nfunlookup;
+    unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
     list<Type> typestorage;  // For any native functions with types that rely on Wrap().
 
@@ -315,7 +315,7 @@ struct NativeRegistry {
     void Register(NativeFun *nf) {
         nf->idx = (int)nfuns.size();
         nf->subsystemid = (int)subsystems.size() - 1;
-        auto existing = nfunlookup[nf->name];
+        auto existing = FindNative(nf->name);
         if (existing) {
             if (/*nf->args.v.size() != existing->args.v.size() ||
                 nf->retvals.v.size() != existing->retvals.v.size() || */
@@ -329,12 +329,12 @@ struct NativeRegistry {
             existing->overloads = nf;
             nf->first = existing->first;
         } else {
-            nfunlookup[nf->name] = nf;
+            nfunlookup[nf->name /* must be in value */] = nf;
         }
         nfuns.push_back(nf);
     }
 
-    NativeFun *FindNative(const string &name) {
+    NativeFun *FindNative(string_view name) {
         auto it = nfunlookup.find(name);
         return it != nfunlookup.end() ? it->second : nullptr;
     }

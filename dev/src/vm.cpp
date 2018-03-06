@@ -52,7 +52,7 @@ enum {
 #define POPN(n) (sp -= (n))
 #define TOPPTR() (stack + sp + 1)
 
-VM::VM(const char *_pn, string &_bytecode_buffer, const void *entry_point,
+VM::VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
       : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
         #ifdef VM_COMPILED_CODE_MODE
@@ -157,33 +157,31 @@ void VM::DumpLeaks() {
     if (!leaks.empty()) {
         Output(OUTPUT_ERROR, "LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster, details in leaks.txt)");
-        FILE *leakf = OpenForWriting("leaks.txt", false);
-        if (leakf) {
-            //qsort(&leaks[0], leaks.size(), sizeof(void *), &LeakSorter);
-            sort(leaks.begin(), leaks.end(), _LeakSorter);
-            PrintPrefs leakpp = debugpp;
-            leakpp.cycles = 0;
-            for (auto p : leaks) {
-                auto ro = (RefObj *)p;
-                switch(ro->ti().t) {
-                    case V_VALUEBUF:
-                    case V_STACKFRAMEBUF:
-                        break;
-                    case V_STRING:
-                    case V_COROUTINE:
-                    case V_BOXEDINT:
-                    case V_BOXEDFLOAT:
-                    case V_VECTOR:
-                    case V_STRUCT: {
-                        auto s = RefToString(ro, leakpp);
-                        fputs((ro->CycleStr() + " = " + s + "\n").c_str(), leakf);
-                        break;
-                    }
-                    default: assert(false);
+        string s;
+        //qsort(&leaks[0], leaks.size(), sizeof(void *), &LeakSorter);
+        sort(leaks.begin(), leaks.end(), _LeakSorter);
+        PrintPrefs leakpp = debugpp;
+        leakpp.cycles = 0;
+        for (auto p : leaks) {
+            auto ro = (RefObj *)p;
+            switch(ro->ti().t) {
+                case V_VALUEBUF:
+                case V_STACKFRAMEBUF:
+                    break;
+                case V_STRING:
+                case V_COROUTINE:
+                case V_BOXEDINT:
+                case V_BOXEDFLOAT:
+                case V_VECTOR:
+                case V_STRUCT: {
+                    auto s = RefToString(ro, leakpp);
+                    s += cat(ro->CycleStr(), " = ", s, "\n");
+                    break;
                 }
+                default: assert(false);
             }
-            fclose(leakf);
         }
+        WriteFile("leaks.txt", false, s);
     }
     vmpool->printstats(false);
 }
@@ -221,22 +219,18 @@ LResource *VM::NewResource(void *v, const ResourceType *t) {
 #endif
 #endif
 
-LString *VM::NewString(const char *c, size_t l) {
-    auto s = NewString(l);
-    memcpy(s->str(), c, l);
-    s->str()[l] = 0;
-    return s;
+LString *VM::NewString(string_view s) {
+    auto r = NewString(s.size());
+    memcpy(r->str(), s.data(), s.size());
+    r->str()[s.size()] = 0;
+    return r;
 }
 
-LString *VM::NewString(const string &s) {
-    return NewString(s.c_str(), s.size());
-}
-
-LString *VM::NewString(const char *c1, size_t l1, const char *c2, size_t l2) {
-    auto s = NewString(l1 + l2);
-    memcpy(s->str(),      c1, l1);
-    memcpy(s->str() + l1, c2, l2);
-    s->str()[l1 + l2] = 0;
+LString *VM::NewString(string_view s1, string_view s2) {
+    auto s = NewString(s1.size() + s2.size());
+    memcpy(s->str(), s1.data(), s1.size());
+    memcpy(s->str() + s1.size(), s2.data(), s2.size());
+    s->str()[s1.size() + s2.size()] = 0;
     return s;
 }
 
@@ -248,7 +242,7 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     #ifndef VM_COMPILED_CODE_MODE
         // error is usually in the byte before the current ip.
         auto li = LookupLine(ip - 1, codestart, bcf);
-        s += string(bcf->filenames()->Get(li->fileidx())->c_str()) + "(" + to_string(li->line()) +
+        s += flat_string_view(bcf->filenames()->Get(li->fileidx())) + "(" + to_string(li->line()) +
              "): ";
     #endif
     s += "VM error: " + err;
@@ -268,13 +262,13 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         int deffun = stackframes.back().definedfunction;
         VarCleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
         if (deffun >= 0) {
-            s += string("\nin function: ") + bcf->functions()->Get(deffun)->name()->c_str();
+            s += "\nin function: " + flat_string_view(bcf->functions()->Get(deffun)->name());
         } else {
             s += "\nin block";
         }
         #ifndef VM_COMPILED_CODE_MODE
         auto li = LookupLine(ip - 1, codestart, bcf);
-        s += string(" -> ") + bcf->filenames()->Get(li->fileidx())->c_str() + "(" +
+        s += " -> " + flat_string_view(bcf->filenames()->Get(li->fileidx())) + "(" +
              to_string(li->line()) + ")";
         #endif
         s += locals;
@@ -316,7 +310,7 @@ string VM::DumpVar(const Value &x, size_t idx, bool dumpglobals) {
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
     if (id->readonly() || id->global() != dumpglobals) return "";
-    string name = id->name()->c_str();
+    auto name = flat_string_view(id->name());
     auto static_type = GetVarTypeInfo((int)idx).t;
     #if RTT_ENABLED
         if (static_type != x.type) return "";  // Likely uninitialized.
@@ -366,7 +360,7 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
         argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti() : ti);
         if (j < nargs - 1) argtypes += ", ";
     }
-    Error(string("the call ") + bcf->functions()->Get(definedfunction)->name()->c_str() + "(" +
+    Error("the call " + flat_string_view(bcf->functions()->Get(definedfunction)->name()) + "(" +
           argtypes + ") did not match any function variants");
 }
 
@@ -374,11 +368,12 @@ void VM::FinalStackVarsCleanup() {
     VMASSERT(sp < 0 && !stackframes.size());
     for (size_t i = 0; i < bcf->specidents()->size(); i++) {
         auto sid = bcf->specidents()->Get((uint)i);
-        //Output(OUTPUT_INFO, "destructing: %s", bcf->idents()->Get(sid->ididx())->name()->c_str());
+        //Output(OUTPUT_INFO, "destructing: ",
+        //                    flat_string_view(bcf->idents()->Get(sid->ididx())->name()));
         vars[i].DECTYPE(GetTypeInfo((type_elem_t)sid->typeidx()).t);
     }
     #ifdef _DEBUG
-        Output(OUTPUT_INFO, "stack at its highest was: %d", maxsp);
+        Output(OUTPUT_INFO, "stack at its highest was: ", maxsp);
     #endif
 }
 
@@ -472,7 +467,7 @@ void VM::FunIntro(VM_OP_ARGS) {
         delete[] stack;
         stack = nstack;
 
-        Output(OUTPUT_DEBUG, "stack grew to: %d", stacksize);
+        Output(OUTPUT_DEBUG, "stack grew to: ", stacksize);
     }
     auto nargs_fun = *ip++;
     for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], stack[sp - nargs_fun + i + 1]);
@@ -505,7 +500,7 @@ bool VM::FunOut(int towhere, int nrv) {
     for(;;) {
         if (!stackframes.size()) {
             if (towhere >= 0)
-                Error(string("\"return from ") + bcf->functions()->Get(towhere)->name()->c_str() +
+                Error("\"return from " + flat_string_view(bcf->functions()->Get(towhere)->name()) +
                       "\" outside of function");
             bottom = true;
             break;
@@ -682,13 +677,13 @@ void VM::EndEval(Value &ret, ValueType vt) {
             ++it;
         }
         for (auto &u : uniques) {
-            Output(OUTPUT_INFO, "%s(%d%s): %.1f %%", bcf->filenames()->Get(u.fileidx)->c_str(),
-                   u.line, u.lastline != u.line ? ("-" + to_string(u.lastline)).c_str() : "",
-                   u.count * 100.0f / total);
+            Output(OUTPUT_INFO, flat_string_view(bcf->filenames()->Get(u.fileidx)), "(", u.line,
+                   u.lastline != u.line ? "-" + to_string(u.lastline) : "",
+                   "): ", u.count * 100.0f / total, " %");
         }
         if (vm_count_fcalls)  // remove trivial VM executions from output
-            Output(OUTPUT_INFO, "ins %lld, fcall %lld, bcall %lld", vm_count_ins, vm_count_fcalls,
-                   vm_count_bcalls);
+            Output(OUTPUT_INFO, "ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
+                                vm_count_bcalls);
     #endif
     throw string("end-eval");
 }
@@ -721,7 +716,7 @@ void VM::F_PUSHSTR(VM_OP_ARGS) {
     // FIXME: have a way that constant strings can stay in the bytecode,
     // or at least preallocate them all
     auto fb_s = bcf->stringtable()->Get(*ip++);
-    auto s = NewString(fb_s->c_str(), fb_s->Length());
+    auto s = NewString(flat_string_view(fb_s));
     PUSH(Value(s));
 }
 
@@ -948,7 +943,7 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 
 #define _SOP(op) Value res; REFOP((*a.sval()) op (*b.sval()))
 #define _SCAT() Value res; \
-                REFOP(NewString(a.sval()->str(), a.sval()->len, b.sval()->str(), b.sval()->len))
+                REFOP(NewString(a.sval()->strv(), b.sval()->strv()))
 
 #define ACOMPEN(op) { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); }
 
@@ -1255,7 +1250,7 @@ void VM::EvalProgram() {
                             if (trace_output.length() > trace_max)
                                 trace_output.erase(0, trace_max / 2);
                         } else {
-                            Output(OUTPUT_INFO, "%s", trace_output.c_str());
+                            Output(OUTPUT_INFO, trace_output);
                         }
                     }
                     //currentline = LookupLine(ip).line;
@@ -1431,11 +1426,11 @@ void VM::LvalueOp(int op, Value &a) {
 
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
-        case V_STRUCT: return ReverseLookupType(ti.structidx);
+        case V_STRUCT: return string(ReverseLookupType(ti.structidx));
         case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
         case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
     }
-    return BaseTypeName(ti.t);
+    return string(BaseTypeName(ti.t));
 }
 
 void VM::IDXErr(intp i, intp n, const RefObj *v) {
@@ -1486,12 +1481,13 @@ void VM::Push(const Value &v) { PUSH(v); }
 
 Value VM::Pop() { return POP(); }
 
-string VM::StructName(const TypeInfo &ti) {
-    return bcf->structs()->Get(ti.structidx)->name()->c_str();
+string_view VM::StructName(const TypeInfo &ti) {
+    return flat_string_view(bcf->structs()->Get(ti.structidx)->name());
 }
 
-const char *VM::ReverseLookupType(uint v) {
-    return bcf->structs()->Get(v)->name()->c_str();
+string_view VM::ReverseLookupType(uint v) {
+    auto s = bcf->structs()->Get(v)->name();
+    return flat_string_view(s);
 }
 
 int VM::GC() {  // shouldn't really be used, but just in case
@@ -1522,7 +1518,7 @@ int VM::GC() {  // shouldn't really be used, but just in case
     return (int)leaks.size();
 }
 
-void RunBytecode(const char *programname, string &bytecode, const void *entry_point,
+void RunBytecode(string_view programname, string &bytecode, const void *entry_point,
                  const void *static_bytecode, const vector<string> &program_args) {
     // Sets up g_vm
     new VM(programname, bytecode, entry_point, static_bytecode, program_args);

@@ -30,7 +30,7 @@ LResource::LResource(void *v, const ResourceType *t)
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-void EscapeAndQuote(const string &s, string &r) {
+void EscapeAndQuote(string_view s, string &r) {
     r += "\"";
     for (size_t i = 0; i < s.length(); i++) switch(s[i]) {
         case '\n': r += "\\n"; break;
@@ -54,7 +54,7 @@ string LString::ToString(PrintPrefs &pp) {
             return CycleStr();
         CycleDone(pp.cycles);
     }
-    string s = len > pp.budget ? string(str()).substr(0, pp.budget) + ".." : str();
+    string s = len > pp.budget ? strv().substr(0, pp.budget) + ".." : str();
     if (pp.quoted) {
         string r;
         EscapeAndQuote(s, r);
@@ -142,7 +142,7 @@ string RefToString(const RefObj *ro, PrintPrefs &pp) {
         case V_COROUTINE:  return "(coroutine)";
         case V_VECTOR:     return ((LVector *)ro)->ToString(pp);
         case V_STRUCT:     return ((LStruct *)ro)->ToString(pp);
-        default:           return string("(") + BaseTypeName(roti.t) + ")";
+        default:           return "(" + BaseTypeName(roti.t) + ")";
     }
 }
 
@@ -152,7 +152,7 @@ string Value::ToString(ValueType vtype, PrintPrefs &pp) const {
         case V_INT:        return to_string(ival());
         case V_FLOAT:      return to_string_float(fval(), (int)pp.decimals);
         case V_FUNCTION:   return "<FUNCTION>";
-        default:           return string("(") + BaseTypeName(vtype) + ")";
+        default:           return "(" + BaseTypeName(vtype) + ")";
     }
 }
 
@@ -219,7 +219,7 @@ Value Value::Copy() {
         return Value(nv);
     }
     case V_STRING: {
-        auto s = g_vm->NewString(sval()->str(), sval()->len);
+        auto s = g_vm->NewString(sval()->strv());
         DECRT();
         return Value(s);
     }
@@ -243,7 +243,8 @@ Value Value::Copy() {
 }
 
 string TypeInfo::Debug(bool rec) const {
-    string s = BaseTypeName(t);
+    string s;
+    s += BaseTypeName(t);
     if (t == V_VECTOR || t == V_NIL) {
         s += "[" + g_vm->GetTypeInfo(subt).Debug(false) + "]";
     } else if (t == V_STRUCT) {
@@ -281,7 +282,7 @@ ValueType LVector::ElemType() const {
         CycleDone(pp.cycles); \
     } \
     auto &_ti = ti(); (void)_ti; \
-    string s = openb; \
+    string s; s += openb; \
     for (int i = 0; i < len; i++) { \
         if (i) s += ", "; \
         if ((int)s.size() > pp.budget) { s += "...."; break; } \
@@ -294,7 +295,7 @@ ValueType LVector::ElemType() const {
 
 string LStruct::ToString(PrintPrefs &pp) {
     VECTORORSTRUCTTOSTRING(Len(), ElemType(i),
-                           g_vm->ReverseLookupType(_ti.structidx) + string("{"), "}");
+                           g_vm->ReverseLookupType(_ti.structidx) + string_view("{"), "}");
 }
 
 string LVector::ToString(PrintPrefs &pp) {

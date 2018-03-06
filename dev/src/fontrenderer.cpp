@@ -157,7 +157,7 @@ const int2 BitmapFont::TextSize(const char *text) {
 
 FT_Library library = nullptr;
 
-OutlineFont *LoadFont(const char *name) {
+OutlineFont *LoadFont(string_view name) {
     FT_Error err = 0;
     if (!library) err = FT_Init_FreeType(&library);
     if (!err) {

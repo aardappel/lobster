@@ -350,7 +350,7 @@ void AddPhysics() {
     STARTDECL(ph_renderparticles) (Value &particlescale) {
         CheckPhysics();
         if (!particlesystem) return Value();
-        //Output(OUTPUT_DEBUG, "rendering particles: %d", particlesystem->GetParticleCount());
+        //Output(OUTPUT_DEBUG, "rendering particles: ", particlesystem->GetParticleCount());
         auto verts = (float2 *)particlesystem->GetPositionBuffer();
         auto colors = (byte4 *)particlesystem->GetColorBuffer();
         auto scale = length(otransforms.object2view[0].xy());

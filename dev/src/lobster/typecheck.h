@@ -90,7 +90,8 @@ struct TypeChecker {
     }
 
     string TypedArg(const GenericArgs &args, size_t i, bool withtype = true) {
-        string s = args.GetName(i);
+        string s;
+        s += args.GetName(i);
         if (args.GetType(i)->type->t != V_ANY && withtype)
             s += ":" + TypeName(args.GetType(i)->type);
         return s;
@@ -141,17 +142,11 @@ struct TypeChecker {
         }
     }
 
-    void TypeError(const char *required, TypeRef got, const Node &n, const char *argname,
-                   const char *context = nullptr) {
-        TypeError(string("\"") +
-                  (context ? context : n.Name()) +
-                  "\" " +
-                  (argname ? string("(") + argname + " argument) " : "") +
-                  "requires type: " +
-                  required +
-                  ", got: " +
-                  TypeName(got).c_str(),
-                  n);
+    void TypeError(string_view required, TypeRef got, const Node &n, string_view argname,
+                   string_view context = nullptr) {
+        TypeError(cat("\"", (context.data() ? context : n.Name()), "\" ",
+                      (argname.data() ? "(" + argname + " argument) " : ""),
+                      "requires type: ", required, ", got: ", TypeName(got)), n);
     }
 
     void TypeError(string err, const Node &n) {
@@ -172,7 +167,7 @@ struct TypeChecker {
         parser.Error(err, &n);
     }
 
-    void NatCallError(const char *errstr, const NativeFun *nf, const NativeCall &callnode) {
+    void NatCallError(string_view errstr, const NativeFun *nf, const NativeCall &callnode) {
         auto err = errstr + nf->name;
         err += "\n  got:";
         for (auto c : callnode.children) {
@@ -308,10 +303,10 @@ struct TypeChecker {
         SubType(n.right, sub, "right", n);
     }
 
-    void SubType(Node *&a, TypeRef sub, const char *argname, const Node &context) {
+    void SubType(Node *&a, TypeRef sub, string_view argname, const Node &context) {
         SubType(a, sub, argname, context.Name());
     }
-    void SubType(Node *&a, TypeRef sub, const char *argname, const char *context) {
+    void SubType(Node *&a, TypeRef sub, string_view argname, string_view context) {
         if (ConvertsTo(a->exptype, sub, false)) return;
         switch (sub->t) {
             case V_FLOAT:
@@ -364,13 +359,13 @@ struct TypeChecker {
                 break;
         }
         error:
-        TypeError(TypeName(sub).c_str(), a->exptype, *a, argname, context);
+        TypeError(TypeName(sub), a->exptype, *a, argname, context);
     }
 
-    void SubTypeT(TypeRef type, TypeRef sub, const Node &n, const char *argname,
-                  const char *context = nullptr) {
+    void SubTypeT(TypeRef type, TypeRef sub, const Node &n, string_view argname,
+                  string_view context = string_view()) {
         if (!ConvertsTo(type, sub, false))
-            TypeError(TypeName(sub).c_str(), type, n, argname, context);
+            TypeError(TypeName(sub), type, n, argname, context);
     }
 
     bool MathCheckVector(TypeRef &type, Node *&left, Node *&right) {
@@ -437,7 +432,7 @@ struct TypeChecker {
                 TypeError(err, n.left->exptype, n, "left");
             if (MathCheck(n.right->exptype, n, unionchecked, typechangeallowed))
                 TypeError(err, n.right->exptype, n, "right");
-            TypeError(string("can\'t use \"") +
+            TypeError("can\'t use \"" +
                       n.Name() +
                       "\" on " +
                       TypeName(n.left->exptype) +
@@ -543,7 +538,7 @@ struct TypeChecker {
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context) {
         if (sf.typechecked) return;
-        Output(OUTPUT_DEBUG, "function start: %s", SignatureWithFreeVars(sf, nullptr).c_str());
+        Output(OUTPUT_DEBUG, "function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
         scope.sf = &sf;
         scope.call_context = call_context;
@@ -586,8 +581,8 @@ struct TypeChecker {
         }
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
-        Output(OUTPUT_DEBUG, "function end %s returns %s", Signature(sf).c_str(),
-               TypeName(sf.returntypes[0]).c_str());
+        Output(OUTPUT_DEBUG, "function end ", Signature(sf), " returns ",
+                             TypeName(sf.returntypes[0]));
     }
 
     Struct *FindStructSpecialization(Struct *given, const Constructor *cons) {
@@ -615,30 +610,30 @@ struct TypeChecker {
     }
 
     void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n,
-                               const char *argname, const char *req = nullptr,
-                               bool subtypeok = false, const char *context = nullptr) {
+                               string_view argname, string_view req = string_view(),
+                               bool subtypeok = false, string_view context = string_view()) {
         auto givenu = given->UnWrapped();
         if (given->t != V_STRUCT ||
             (!spec_struc->IsSpecialization(givenu->struc) &&
              (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->struc)))) {
-            TypeError(req ? req : spec_struc->name.c_str(), given, n, argname, context);
+            TypeError(req.data() ? req : spec_struc->name, given, n, argname, context);
         }
     }
 
-    void CheckGenericArg(TypeRef otype, TypeRef argtype, const char *argname, const Node &n,
-                         const char *context) {
+    void CheckGenericArg(TypeRef otype, TypeRef argtype, string_view argname, const Node &n,
+                         string_view context) {
         // Check if argument is a generic struct type, or wrapped in vector/nilable.
         if (otype->t != V_ANY) {
             auto u = otype->UnWrapped();
             assert(u->t == V_STRUCT);
             if (otype->EqNoIndex(*argtype)) {
-                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype).c_str(), true,
+                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype), true,
                                       context);
             } else {
                 // This likely generates either an error, or contains an unbound var that will get
                 // bound.
                 SubTypeT(argtype, otype, n, argname, context);
-                //TypeError(TypeName(otype).c_str(), argtype, n, argname, context);
+                //TypeError(TypeName(otype), argtype, n, argname, context);
             }
         }
     }
@@ -660,7 +655,7 @@ struct TypeChecker {
     }
 
     SubFunction *CloneFunction(SubFunction *csf) {
-        Output(OUTPUT_DEBUG, "cloning: %s", csf->parent->name.c_str());
+        Output(OUTPUT_DEBUG, "cloning: ", csf->parent->name);
         auto sf = st.CreateSubFunction();
         sf->SetParent(*csf->parent, csf->parent->subf);
         // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
@@ -681,7 +676,7 @@ struct TypeChecker {
         for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
             auto &arg = sf->args.v[i];
             if (!(arg.flags & AF_ANYTYPE))
-                SubType(c, arg.type, ArgName(i).c_str(), f.name.c_str());
+                SubType(c, arg.type, ArgName(i), f.name);
             if (Is<CoClosure>(c))
                 sf->iscoroutine = true;
             i++;
@@ -771,17 +766,16 @@ struct TypeChecker {
                 auto &arg = sf->args.v[i];
                 if (arg.flags & AF_ANYTYPE) {
                     arg.type = c->exptype;  // Specialized to arg.
-                    CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name.c_str(),
-                                    *c, f.name.c_str());
-                    Output(OUTPUT_DEBUG, "arg: %s:%s", arg.sid->id->name.c_str(),
-                            TypeName(arg.type).c_str());
+                    CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,
+                                    *c, f.name);
+                    Output(OUTPUT_DEBUG, "arg: ", arg.sid->id->name, ":", TypeName(arg.type));
                 }
                 i++;
             }
             // This must be the correct freevar specialization.
             assert(!f.anonymous || sf->freevarchecked);
             assert(!sf->freevars.v.size());
-            Output(OUTPUT_DEBUG, "specialization: %s", Signature(*sf).c_str());
+            Output(OUTPUT_DEBUG, "specialization: ", Signature(*sf));
             return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
         }
     }
@@ -803,8 +797,8 @@ struct TypeChecker {
         }
         assert(!sf->freevars.v.size());
         // Output without arg types, since those are yet to be overwritten.
-        Output(OUTPUT_DEBUG, "pre-specialization: %s",
-               SignatureWithFreeVars(*sf, nullptr, false).c_str());
+        Output(OUTPUT_DEBUG, "pre-specialization: ",
+               SignatureWithFreeVars(*sf, nullptr, false));
         return sf;
     }
 
@@ -1022,7 +1016,7 @@ struct TypeChecker {
         return n;
     }
 
-    void CheckReturnValues(size_t nretvals, size_t i, const string &name, const Node &n) {
+    void CheckReturnValues(size_t nretvals, size_t i, string_view name, const Node &n) {
         if (nretvals <= i) {
             parser.Error("function " + name + " returns " + to_string(nretvals) + " values, " +
                          to_string(i + 1) + " requested", &n);
@@ -1053,8 +1047,8 @@ struct TypeChecker {
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
             if (sf->freevars.Add(Arg(&sid, sid.type, true, false))) {
-                //Output(OUTPUT_DEBUG, "freevar added: %s (%s) in %s",
-                //       id.name.c_str(), TypeName(id.type).c_str(), sf->parent->name.c_str());
+                //Output(OUTPUT_DEBUG, "freevar added: ", id.name, " (", TypeName(id.type),
+                //                     ") in ", sf->parent->name);
             }
         }
     }
@@ -1155,18 +1149,16 @@ struct TypeChecker {
                 funstats[sf->parent->idx].first += count;
             }
         }
-        Output(OUTPUT_INFO, "SF count: multi: %d, orig: %d, cloned: %d", multisf, origsf, clonesf);
-        Output(OUTPUT_INFO, "Node count: orig: %d, cloned: %d", orignodes, clonenodes);
+        Output(OUTPUT_INFO, "SF count: multi: ", multisf, ", orig: ", origsf, ", cloned: ",
+                            clonesf);
+        Output(OUTPUT_INFO, "Node count: orig: ", orignodes, ", cloned: ", clonenodes);
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
         for (auto &p : funstats) if (p.first > orignodes / 100) {
             auto &pos = p.second->subf->body->line;
-            Output(OUTPUT_INFO, "Most clones: %s (%s:%d) -> %d nodes accross %d clones (+1 orig)",
-                p.second->name.c_str(),
-                st.filenames[pos.fileidx].c_str(),
-                pos.line,
-                p.first,
-                p.second->NumSubf() - 1);
+            Output(OUTPUT_INFO, "Most clones: ", p.second->name, " (", st.filenames[pos.fileidx],
+                                ":", pos.line, ") -> ", p.first, " nodes accross ",
+                                p.second->NumSubf() - 1, " clones (+1 orig)");
         }
     }
 };
@@ -1355,8 +1347,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             // that may have been bound by the initializer already.
             tc.SubTypeT(vartype, sid->type, *def, "initializer");
             sid->type = vartype;
-            Output(OUTPUT_DEBUG, "var: %s:%s", sid->id->name.c_str(),
-                    TypeName(vartype).c_str());
+            Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(vartype));
             if (sid->id->logvar) {
                 for (auto &sc : tc.scopes)
                     if (sc.sf->iscoroutine)
@@ -1589,8 +1580,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
                         nf->args.v[sa].type->t == V_VECTOR && argtype->t != V_VECTOR
                             ? argtypes[sa]->sub
                             : argtypes[sa],
-                        tc.ArgName(i).c_str(),
-                        nf->name.c_str());
+                        tc.ArgName(i),
+                        nf->name);
                 // Stop these generic params being turned into any by SubType below.
                 typed = true;
             }
@@ -1620,7 +1611,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             typed = true;
         }
         if (!typed)
-            tc.SubType(c, argtype, tc.ArgName(i).c_str(), nf->name.c_str());
+            tc.SubType(c, argtype, tc.ArgName(i), nf->name);
         auto actualtype = c->exptype;
         if (actualtype->IsFunction()) {
             // We must assume this is going to get called and type-check it
@@ -1804,7 +1795,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     for (auto &c : children) {
         TypeRef elemtype = exptype->t == V_STRUCT ? exptype->struc->fields.v[i].type
                                                   : exptype->Element();
-        tc.SubType(c, elemtype, tc.ArgName(i).c_str(), *this);
+        tc.SubType(c, elemtype, tc.ArgName(i), *this);
         i++;
     }
     return this;
