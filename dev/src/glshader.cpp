@@ -105,8 +105,8 @@ string ParseMaterialFile(char *mbuf) {
                     #ifdef __APPLE__
                     auto supported = glGetString(GL_SHADING_LANGUAGE_VERSION);
                     // Apple randomly changes what it supports, so just ask for that.
-                    header += string_view("#version ") + char(supported[0]) + char(supported[2]) +
-                              char(supported[3]) + "\n";
+                    header += string_view("#version ") + string_view((const char *)supported, 1) +
+                              string_view((const char *)supported + 2, 2) + "\n";
                     #else
                     extern string glslversion;
                     header += "#version " + glslversion + "\n";
