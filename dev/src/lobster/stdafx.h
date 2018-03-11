@@ -70,8 +70,8 @@ typedef unsigned int uint;
 
 // Our universally used headers.
 #include "wentropy.h"
-#include "platform.h"
 #include "tools.h"
+#include "platform.h"
 #include "slaballoc.h"
 #include "geom.h"
 

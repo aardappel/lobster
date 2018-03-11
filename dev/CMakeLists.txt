@@ -53,7 +53,7 @@ file(GLOB_RECURSE EXTERNAL_SRCS
 
 add_definitions(-DFT2_BUILD_LIBRARY=1)
 
-set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value")
+set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-misleading-indentation")
 
 if(APPLE)
   set(CMAKE_CXX_FLAGS

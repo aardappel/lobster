@@ -303,7 +303,6 @@ struct Parser {
                 parse_sup();
                 parse_specializers();
             }
-            int fieldid = 0;
             if (sup) {
                 struc->superclass = sup;
                 for (auto &fld : sup->fields.v) {
@@ -313,7 +312,6 @@ struct Parser {
                     if (spectypes.size()) specialize_field(field);
                     if (st.IsGeneric(field.type)) struc->generic = true;
                 }
-                fieldid = (int)sup->fields.size();
             }
             bool fieldsdone = false;
             auto finishfields = [&]() {

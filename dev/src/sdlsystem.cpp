@@ -375,8 +375,8 @@ double GetSeconds() { return (double)(SDL_GetPerformanceCounter() - timestart) /
 
 void SDLShutdown() {
     // FIXME: SDL gives ERROR: wglMakeCurrent(): The handle is invalid. upon SDL_GL_DeleteContext
-    if (_sdl_context) /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = nullptr;
-    if (_sdl_window)  SDL_DestroyWindow(_sdl_window);     _sdl_window = nullptr;
+    if (_sdl_context) { /*SDL_GL_DeleteContext(_sdl_context);*/ _sdl_context = nullptr; }
+    if (_sdl_window) { SDL_DestroyWindow(_sdl_window); _sdl_window = nullptr; }
 
     SDL_Quit();
 }

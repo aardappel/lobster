@@ -429,11 +429,11 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, const char *u
                 ? glGetProgramResourceIndex(sh->program, GL_SHADER_STORAGE_BLOCK, uniformblockname)
                 : glGetUniformBlockIndex(sh->program, uniformblockname);
 
-            GLint maxsize;
+            GLint maxsize = 0;
             // FIXME: call glGetInteger64v if we ever want buffers >2GB.
             if (ssbo) glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxsize);
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
-            if (idx != GL_INVALID_INDEX && len <= maxsize) {
+            if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
                 bo = GenBO(type, 1, len, data);
                 GL_CALL(glBindBuffer(type, 0));
