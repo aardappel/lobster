@@ -143,8 +143,8 @@ struct TypeChecker {
     }
 
     void TypeError(string_view required, TypeRef got, const Node &n, string_view argname,
-                   string_view context = nullptr) {
-        TypeError(cat("\"", (context.data() ? context : n.Name()), "\" ",
+                   string_view context = "") {
+        TypeError(cat("\"", (context.size() ? context : n.Name()), "\" ",
                       (argname.data() ? "(" + argname + " argument) " : ""),
                       "requires type: ", required, ", got: ", TypeName(got)), n);
     }
