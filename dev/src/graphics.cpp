@@ -661,29 +661,29 @@ void AddGraphics() {
             while (*fmt_it) {
                 switch (*fmt_it++) {
                     case 'P':
-                        *((float3 *&)p)++ = pos = ValueToFLT<3>(positions.vval()->At(i));
+                        WriteMemInc(p, pos = ValueToFLT<3>(positions.vval()->At(i)));
                         break;
                     case 'C':
-                        *((byte4  *&)p)++ =
+                        WriteMemInc(p,
                             i < colors.vval()->len
                                 ? quantizec(ValueToFLT<4>(colors.vval()->At(i), 1))
-                                : byte4_255;
+                                : byte4_255);
                         break;
                     case 'T': {
                         auto &texcoords = texcoordn ? texcoords2 : texcoords1;
-                        *((float2 *&)p)++ =
+                        WriteMemInc(p,
                             i < texcoords.vval()->len
                                 ? ValueToFLT<2>(texcoords.vval()->At(i), 0)
-                                : pos.xy();
+                                : pos.xy());
                         texcoordn++;
                         break;
                     }
                     case 'N':
                         if (!normals.vval()->len) normal_offset = p - start;
-                        *((float3 *&)p)++ =
+                        WriteMemInc(p,
                             i < normals.vval()->len
                                 ? ValueToFLT<3>(normals.vval()->At(i), 0)
-                                : float3_0;
+                                : float3_0);
                         break;
                     default: assert(0);
                 }

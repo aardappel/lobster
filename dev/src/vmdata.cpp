@@ -171,7 +171,7 @@ void RefObj::Mark() {
 intp RefObj::Hash() {
     switch (ti().t) {
         case V_BOXEDINT:    return ((BoxedInt *)this)->val;
-        case V_BOXEDFLOAT:  return *(intp *)&((BoxedFloat *)this)->val;
+        case V_BOXEDFLOAT:  return ReadMem<intp>(&((BoxedFloat *)this)->val);
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash();
         case V_STRUCT:      return ((LStruct *)this)->Hash();
@@ -186,7 +186,7 @@ intp LString::Hash() {
 intp Value::Hash(ValueType vtype) {
     switch (vtype) {
         case V_INT: return ival_;
-        case V_FLOAT: return *(intp *)&fval_;
+        case V_FLOAT: return ReadMem<intp>(&fval_);
         case V_FUNCTION: return (intp)(size_t)ip_.f;
         default: return refnil() ? ref()->Hash() : 0;
     }

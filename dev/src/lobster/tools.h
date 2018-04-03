@@ -707,3 +707,19 @@ template<typename ...Ts> string cat(const Ts&... args) {
     cat_helper(ss, args...);
     return ss.str();
 }
+
+
+// Strict aliasing safe memory reading and writing.
+// memcpy with a constant size is replaced by a single instruction in VS release mode, and for
+// clang/gcc always.
+
+template<typename T> T ReadMem(const void *p) {
+    T dest;
+    memcpy(&dest, p, sizeof(T));
+    return dest;
+}
+
+template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
+    memcpy(dest, &src, sizeof(T));
+    dest += sizeof(T);
+}
