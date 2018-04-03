@@ -1,3 +1,10 @@
+- try again having --tocpp output basic blocks as switch case rather than function pointers.
+  - try with clang to see if it optimizes that case better
+  - try and explicitly jump to the next function where known statically rather than using the trampoline?
+
+- make extensions (and --tocpp code) into DLLs rather than statically linked?
+  - check performance consequences for --tocpp
+
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.

@@ -200,12 +200,19 @@ void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t o
     pakfile_registry[string(relfilename)] = make_tuple(pakfilename, off, len, uncompressed);
 }
 
+int64_t LoadFileFromAny(string_view srelfilename, string *dest, int64_t start, int64_t len) {
+    auto l = cur_loader(auxdir + srelfilename, dest, start, len);
+    if (l >= 0) return l;
+    l = cur_loader(datadir + srelfilename, dest, start, len);
+    if (l >= 0) return l;
+    return cur_loader(writedir + srelfilename, dest, start, len);
+}
+
 int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t len) {
     assert(cur_loader);
     auto it = pakfile_registry.find(relfilename);
     if (it != pakfile_registry.end()) {
-        auto l = cur_loader(datadir + get<0>(it->second), dest, get<1>(it->second),
-                              get<2>(it->second));
+        auto l = LoadFileFromAny(get<0>(it->second), dest, get<1>(it->second), get<2>(it->second));
         if (l >= 0) {
             auto uncompressed = get<3>(it->second);
             if (uncompressed >= 0) {
@@ -220,12 +227,7 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
         }
     }
     if (len > 0) Output(OUTPUT_INFO, "load: ", relfilename);
-    auto srfn = SanitizePath(relfilename);
-    auto l = cur_loader(auxdir + srfn, dest, start, len);
-    if (l >= 0) return l;
-    l = cur_loader(datadir + srfn, dest, start, len);
-    if (l >= 0) return l;
-    return cur_loader(writedir + srfn, dest, start, len);
+    return LoadFileFromAny(SanitizePath(relfilename), dest, start, len);
 }
 
 FILE *OpenForWriting(string_view relfilename, bool binary) {

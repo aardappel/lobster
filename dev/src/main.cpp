@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
-        if (!InitPlatform(argv[0], fn, from_bundle, SDLLoadFile))
+        if (!InitPlatform(argv[0], fn ? fn : default_lpak, from_bundle, SDLLoadFile))
             throw string("cannot find location to read/write data on this platform!");
         string bytecode;
         if (!fn) {

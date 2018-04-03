@@ -172,7 +172,7 @@ bool LoadPakDir(const char *lpak) {
     auto filestarts = namestarts - num;
     auto uncompressed = filestarts - num;
     for (size_t i = 0; i < num; i++) {
-        auto name = string_view(dir).substr((read_unaligned64(namestarts + i) - dirstart));
+        auto name = string_view(dir.c_str() + (read_unaligned64(namestarts + i) - dirstart));
         auto off = read_unaligned64(filestarts + i);
         auto end = i < num + 1 ? read_unaligned64(filestarts + i + 1) : dirstart;
         auto len = end - off;
