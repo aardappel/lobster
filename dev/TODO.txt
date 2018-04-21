@@ -9,10 +9,27 @@
   - pushflt64?
   - Optimizer can't use 32bit values.
 
+- Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
+  of unfortunate casting going on that be nice to remove. Many (including the C++ standards
+  committee) seem to agree unsigned size_t was a mistake, so would be nice to move the whole
+  codebase towards default-signed for everything, with less casts, and less possible gotchas.
+  Could do this by having a global size() for STL containers that returns signed.
+  Could repurpose the already existing "intp" type, but that might not always be pointer sized,
+  so maybe better a new type (like gsl::index).
+
 - This doesn't typecheck correctly:
   if !lhs:
       lhs = ...
   // lhs here required to be non-nil.
+
+- This doesn't parse:
+  somestruct { def ():
+    multi-line-anonymous-function-body
+  }
+
+- Can't call o.f() where f is anonymous function value, need to first assign to temp var.
+
+- "assign false" should count as unreachable and not require a well-typed return value after it.
 
 - need some way to typecheck append([type_A], [type_B])
   neither either:

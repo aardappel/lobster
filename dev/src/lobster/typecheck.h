@@ -142,10 +142,10 @@ struct TypeChecker {
         }
     }
 
-    void TypeError(string_view required, TypeRef got, const Node &n, string_view argname,
+    void TypeError(string_view required, TypeRef got, const Node &n, string_view argname = "",
                    string_view context = "") {
         TypeError(cat("\"", (context.size() ? context : n.Name()), "\" ",
-                      (argname.data() ? "(" + argname + " argument) " : ""),
+                      (argname.size() ? "(" + argname + " argument) " : ""),
                       "requires type: ", required, ", got: ", TypeName(got)), n);
     }
 
@@ -475,7 +475,7 @@ struct TypeChecker {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // pointer comparison
                 if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NIL)
-                    TypeError("numeric / string / vector / struct", u, n, nullptr);
+                    TypeError("numeric / string / vector / struct", u, n);
             } else {
                 // comparison vector op
                 if (u->t == V_STRUCT && u->struc->sametype->Numeric()) {
@@ -486,7 +486,7 @@ struct TypeChecker {
                     // appropriate anyway.
                     return &n;
                 } else {
-                    TypeError("numeric / string / numeric struct", u, n, nullptr);
+                    TypeError("numeric / string / numeric struct", u, n);
                 }
             }
         }
@@ -507,7 +507,7 @@ struct TypeChecker {
         CheckReadOnly(*n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
-            TypeError("numeric", n.exptype, n, nullptr);
+            TypeError("numeric", n.exptype, n);
         return &n;
     }
 
@@ -1502,7 +1502,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     exptype = child->exptype;
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT || !exptype->struc->sametype->Numeric()))
-        tc.TypeError("numeric / numeric struct", exptype, *this, nullptr);
+        tc.TypeError("numeric / numeric struct", exptype, *this);
     return this;
 }
 
