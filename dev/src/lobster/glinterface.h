@@ -100,16 +100,29 @@ struct SpriteVert {   // "pT"
 };
 
 class Geometry  {
-    const size_t vertsize;
+    const size_t vertsize1, vertsize2;
     string fmt;
     uint vbo1, vbo2, vao;
 
     public:
     const size_t nverts;
 
-    Geometry(const void *verts1, size_t _nverts, size_t vertsize1, const char *_fmt,
-             const void *verts2 = nullptr, size_t vertsize2 = 0);
+    template<typename T, typename U = float>
+    Geometry(span<T> verts1, string_view _fmt, span<U> verts2 = span<float>())
+        : Geometry(verts1.data(), verts1.size(), sizeof(T), _fmt,
+                   verts2.data(), verts2.size(), sizeof(U)) {}
+
+    Geometry(const void *verts1, size_t nverts1, size_t _vertsize1, string_view _fmt,
+             const void *verts2, size_t nverts2, size_t _vertsize2)
+        : vertsize1(_vertsize1), vertsize2(_vertsize2), fmt(_fmt), vbo1(0), vbo2(0), vao(0),
+          nverts(nverts1) {
+        assert(!nverts2 || nverts2 == nverts1);
+        Init(verts1, verts2);
+    }
+
     ~Geometry();
+
+    void Init(const void *verts1, const void *verts2);
 
     void RenderSetup();
     void BindAsSSBO(uint bind_point_index);
@@ -198,10 +211,19 @@ extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
 extern uint GenBO(uint type, size_t elemsize, size_t count, const void *data);
 extern void DeleteBO(uint id);
-extern void RenderArraySlow(Primitive prim, int tcount, int vcount, const char *fmt, int vertsize,
-                            void *vbuf1, int *ibuf);
-extern void RenderArraySlow(Primitive prim, int vcount, const char *fmt, int vertsize,
-                            void *vbuf1, int vertsize2 = 0, void *vbuf2 = nullptr);
+extern void RenderArray(Primitive prim, Geometry *geom, uint ibo = 0, size_t tcount = 0);
+
+template<typename T, typename U = float>
+void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
+                     span<int> ibuf = span<int>(), span<U> vbuf2 = span<float>()) {
+    Geometry geom(vbuf1, fmt, vbuf2);
+    if (ibuf.empty()) {
+        RenderArray(prim, &geom);
+    } else {
+        Surface surf(ibuf.data(), ibuf.size(), prim);
+        RenderArray(prim, &geom, surf.ibo, ibuf.size());
+    }
+}
 
 struct GeometryCache {
     Geometry *quadgeom[2] = { nullptr, nullptr };
@@ -223,7 +245,7 @@ struct GeometryCache {
     void RenderOpenCircle(Shader *sh, int segments, float radius, float thickness);
 };
 
-extern size_t AttribsSize(const char *fmt);
+extern size_t AttribsSize(string_view fmt);
 
 extern Mesh *LoadIQM(const char *filename);
 

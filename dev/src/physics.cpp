@@ -319,9 +319,11 @@ void AddPhysics() {
 					case b2Shape::e_polygon: {
                         r.Set();
                         auto polyshape = (b2PolygonShape *)fixture->GetShape();
-						RenderArraySlow(PRIM_FAN, polyshape->m_count, "pn",
-                                        sizeof(b2Vec2), polyshape->m_vertices,
-							            sizeof(b2Vec2), polyshape->m_normals);
+						RenderArraySlow(PRIM_FAN,
+                                        make_span(polyshape->m_vertices, polyshape->m_count),
+                                        "pn",
+							            span<int>(),
+                                        make_span(polyshape->m_normals, polyshape->m_count));
 						break;
 					}
 					case b2Shape::e_circle: {
@@ -356,8 +358,11 @@ void AddPhysics() {
         auto scale = length(otransforms.object2view[0].xy());
         SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
         particlematerial->Set();
-        RenderArraySlow(PRIM_POINT, particlesystem->GetParticleCount(), "pC", sizeof(float2), verts,
-                        sizeof(byte4), colors);
+        RenderArraySlow(PRIM_POINT,
+                        make_span(verts, particlesystem->GetParticleCount()),
+                        "pC",
+                        span<int>(),
+                        make_span(colors, particlesystem->GetParticleCount()));
         return Value();
     }
     ENDDECL1(ph_renderparticles, "scale", "F", "",

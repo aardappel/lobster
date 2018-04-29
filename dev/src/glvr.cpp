@@ -236,8 +236,8 @@ Mesh *VRCreateMesh(uint device) {
     }
     auto tex = CreateTexture(modeltex->rubTextureMapData,
                              int2(modeltex->unWidth, modeltex->unHeight).data(), TF_CLAMP);
-    auto m = new Mesh(new Geometry(&model->rVertexData[0].vPosition.v[0], model->unVertexCount,
-                                   sizeof(vr::RenderModel_Vertex_t), "PNT"), PRIM_TRIS);
+    auto m = new Mesh(new Geometry(make_span(model->rVertexData, model->unVertexCount),
+                                   "PNT"), PRIM_TRIS);
     auto nindices = model->unTriangleCount * 3;
     vector<int> indices(nindices);
     for (uint i = 0; i < nindices; i += 3) {

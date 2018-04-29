@@ -254,7 +254,7 @@ void AddCubeGen() {
                        sizeof(cvert), (uchar *)&verts.data()->normal - (uchar *)&verts.data()->pos,
                        false);
         Output(OUTPUT_INFO, "cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
-        auto m = new Mesh(new Geometry(verts.data(), verts.size(), sizeof(cvert), "PNC"),
+        auto m = new Mesh(new Geometry(make_span(verts), "PNC"),
                           PRIM_TRIS);
         m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
         extern ResourceType mesh_type;

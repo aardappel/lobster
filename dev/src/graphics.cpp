@@ -122,7 +122,7 @@ Mesh *CreatePolygon(Value &vl) {
     TestGL();
     auto len = vl.vval()->len;
     if (len < 3) g_vm->BuiltinError("polygon: must have at least 3 verts");
-    auto vbuf = new BasicVert[len];
+    vector<BasicVert> vbuf(len);
     for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vl.vval()->At(i));
     auto v1 = vbuf[1].pos - vbuf[0].pos;
     auto v2 = vbuf[2].pos - vbuf[0].pos;
@@ -132,8 +132,7 @@ Mesh *CreatePolygon(Value &vl) {
         vbuf[i].tc = vbuf[i].pos.xy();
         vbuf[i].col = byte4_255;
     }
-    auto m = new Mesh(new Geometry(vbuf, len, sizeof(BasicVert), "PNTC"), polymode);
-    delete[] vbuf;
+    auto m = new Mesh(new Geometry(make_span(vbuf), "PNTC"), polymode);
     return m;
 }
 
@@ -588,7 +587,8 @@ void AddGraphics() {
         auto t = ValueDecToFLT<2>(tc);
         auto td = ValueDecToFLT<2>(tcdim);
         auto te = t + td;
-        struct { float x, y, z, u, v; byte4 c; } vb_square[4] = {
+        struct Vert { float x, y, z, u, v; byte4 c; };
+        Vert vb_square[4] = {
             #define _GETCOL(N) \
                 cols.vval()->len > N ? quantizec(ValueToFLT<4>(cols.vval()->At(N))) : byte4_255
             { 0,    0,    0, t.x,  t.y,  _GETCOL(0) },
@@ -597,7 +597,7 @@ void AddGraphics() {
             { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
         };
         currentshader->Set();
-        RenderArraySlow(PRIM_FAN, 4, "PTC", sizeof(float) * 6, vb_square);
+        RenderArraySlow(PRIM_FAN, make_span(vb_square, 4), "PTC");
         cols.DECRT();
         return Value();
     }
@@ -657,8 +657,8 @@ void AddGraphics() {
         auto nattr = format.sval()->len;
         if (nattr < 1 || nattr > 10)
             g_vm->BuiltinError("newmesh: illegal format/attributes size");
-        auto fmt = format.sval()->str();
-        if (nattr != (int)strspn(fmt, "PCTN") || fmt[0] != 'P')
+        auto fmt = format.sval()->strv();
+        if (nattr != (int)strspn(fmt.data(), "PCTN") || fmt[0] != 'P')
             g_vm->BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
         intp nverts = positions.vval()->len;
@@ -678,11 +678,10 @@ void AddGraphics() {
         for (intp i = 0; i < nverts; i++) {
             auto start = &verts[i * vsize];
             auto p = start;
-            auto fmt_it = fmt;
             float3 pos;
             int texcoordn = 0;
-            while (*fmt_it) {
-                switch (*fmt_it++) {
+            for (auto c : fmt) {
+                switch (c) {
                     case 'P':
                         WriteMemInc(p, pos = ValueToFLT<3>(positions.vval()->At(i)));
                         break;
@@ -717,7 +716,7 @@ void AddGraphics() {
             normalize_mesh(&idxs[0], idxs.size(), verts, nverts, vsize, normal_offset);
         }
         // FIXME: make meshes into points in a more general way.
-        auto m = new Mesh(new Geometry(verts, nverts, vsize, fmt),
+        auto m = new Mesh(new Geometry(verts, nverts, vsize, fmt, nullptr, 0, 0),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
         delete[] verts;
@@ -1064,7 +1063,7 @@ void AddGraphics() {
         auto len = pos.vval()->len;
         if (len != tile.vval()->len)
             g_vm->BuiltinError("rendertiles: vectors of different size");
-        auto vbuf = new SpriteVert[len * 6];
+        vector<SpriteVert> vbuf(len * 6);
         for (intp i = 0; i < len; i++) {
             auto p = ValueToFLT<2>(pos.vval()->At(i));
             auto t = float2(ValueToI<2>(tile.vval()->At(i))) / msize;
@@ -1084,8 +1083,7 @@ void AddGraphics() {
         pos.DECRT();
         tile.DECRT();
         currentshader->Set();
-        RenderArraySlow(PRIM_TRIS, (int)len * 6, "pT", sizeof(SpriteVert), vbuf);
-        delete[] vbuf;
+        RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
         return Value();
     }
     ENDDECL3(gl_rendertiles, "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",

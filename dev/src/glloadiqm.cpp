@@ -324,7 +324,7 @@ Mesh *LoadIQM(const char *filename) {
         return nullptr;
     }
     // FIXME: Can save 8 bytes on non-animated verts by using BasicVert.
-    AnimVert *verts = new AnimVert[numverts];
+    vector<AnimVert> verts(numverts);
     for (int i = 0; i < numverts; i++) {
         auto &v = verts[i];
         v.pos     = inposition    ? *(float3 *)&inposition   [i * 3] : float3_0;
@@ -335,10 +335,9 @@ Mesh *LoadIQM(const char *filename) {
         v.indices = inblendindex  ? *(byte4  *)&inblendindex [i * 4] : byte4_0;
     }
     if (!innormal)
-        normalize_mesh((int *)tris, numtris * 3, verts, numverts, sizeof(AnimVert),
+        normalize_mesh((int *)tris, numtris * 3, verts.data(), numverts, sizeof(AnimVert),
                        (uchar *)&verts[0].norm - (uchar *)&verts[0].pos);
-    auto geom = new Geometry(verts, numverts, sizeof(AnimVert), "PNTCWI");
-    delete[] verts;
+    auto geom = new Geometry(make_span(verts), "PNTCWI");
     auto mesh = new Mesh(geom);
     for (int i = 0; i < nummeshes; i++) {
         auto surf =

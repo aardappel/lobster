@@ -108,12 +108,12 @@ void BitmapFont::RenderText(const char *text) {
     int len = StrLenUTF8(text);
     if (len <= 0)
         return;
-    auto vbuf = new PT[len * 4];
-    auto ibuf = new int[len * 6];
+    vector<PT> vbuf(len * 4);
+    vector<int> ibuf(len * 6);
     auto x = 0.0f;
     auto y = 0.0f;
     float fontheighttex = height / float(tex.size.y);
-    auto idx = ibuf;
+    int idx = 0;
     for (int i = 0; i < len; i++) {
         int c = FromUTF8(text);
         int3 &pos = positions[font->unicodemap[c]];
@@ -130,18 +130,16 @@ void BitmapFont::RenderText(const char *text) {
                                 v2.p = float3(x + advance, y + height, 0);
         auto &v3 = vbuf[j + 3]; v3.t = float2(x2, y1);
                                 v3.p = float3(x + advance, y, 0);
-        *idx++ = j + 0;
-        *idx++ = j + 1;
-        *idx++ = j + 2;
-        *idx++ = j + 2;
-        *idx++ = j + 3;
-        *idx++ = j + 0;
+        ibuf[idx++] = j + 0;
+        ibuf[idx++] = j + 1;
+        ibuf[idx++] = j + 2;
+        ibuf[idx++] = j + 2;
+        ibuf[idx++] = j + 3;
+        ibuf[idx++] = j + 0;
         x += advance;
     }
     SetTexture(0, tex);
-    RenderArraySlow(PRIM_TRIS, len * 6, len * 4, "PT", sizeof(PT), vbuf, ibuf);
-    delete[] ibuf;
-    delete[] vbuf;
+    RenderArraySlow(PRIM_TRIS, make_span(vbuf), "PT", make_span(ibuf));
 }
 
 const int2 BitmapFont::TextSize(const char *text) {
