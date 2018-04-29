@@ -41,6 +41,7 @@ private interactive := true
 private actionsfxr := nil
 private actionwav := nil
 
+private num_interactive_elements_hit := 0
 private focus_id := -1
 
 def guif() :== ()
@@ -136,6 +137,7 @@ def gui_start(size, alignh, alignv, interact, f:guif):   // top level only
         parent_size <- size
         vertical <- false
         interactive <- interact
+        num_interactive_elements_hit = 0
 
         render_pass = false
         size_list = []
@@ -151,6 +153,9 @@ def gui_start(size, alignh, alignv, interact, f:guif):   // top level only
             align <- alignh
             vertical <- true
             f()
+
+        if !num_interactive_elements_hit and !gl_touchscreen():
+            focus_id = -1
 
 def gui_hblock(al, sp, f:guif): block(al, sp, false, hash(f), f)
 def gui_vblock(al, sp, f:guif): block(al, sp, true,  hash(f), f)
@@ -216,6 +221,7 @@ private def button(id, f, do, dofocus, focusf):
                 gl_color hover_color:
                     gl_rect(float(size))
                 if hit:
+                    num_interactive_elements_hit++
                     mouse1 := gl_button("mouse1")
                     if mouse1 >= 1:
                         gl_color(select_color):
