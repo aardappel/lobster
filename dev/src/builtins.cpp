@@ -640,7 +640,7 @@ void AddBuiltins() {
     ENDDECL1(fraction, "v", "F}", "F}",
         "returns the fractional part of a vector of floats");
 
-    STARTDECL(float) (Value &a) { return Value(float(a.ival())); }
+    STARTDECL(float) (Value &a) { return Value(floatp(a.ival())); }
     ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
     STARTDECL(float) (Value &a) { VECTOROPT(floatp(f.ival()), g_vm->GetFloatVectorType((int)len)); }
@@ -721,14 +721,14 @@ void AddBuiltins() {
     STARTDECL(rnd) (Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); }
     ENDDECL1(rnd, "max", "I}", "I}",
         "a random vector within the range of an input vector.");
-    STARTDECL(rndfloat)() { return Value((float)rnd.rnddouble()); }
+    STARTDECL(rndfloat)() { return Value(rnd.rnddouble()); }
     ENDDECL0(rndfloat, "", "", "F",
         "a random float [0..1)");
     STARTDECL(rndseed) (Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
     ENDDECL1(rndseed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");
 
-    STARTDECL(div) (Value &a, Value &b) { return Value(float(a.ival()) / float(b.ival())); }
+    STARTDECL(div) (Value &a, Value &b) { return Value(floatp(a.ival()) / floatp(b.ival())); }
     ENDDECL2(div, "a,b", "II", "F",
         "forces two ints to be divided as floats");
 
@@ -1030,7 +1030,7 @@ void AddBuiltins() {
         "returns if the VM is running in compiled mode (Lobster -> C++).");
 
     STARTDECL(seconds_elapsed) () {
-        return Value((float)g_vm->Time());
+        return Value(g_vm->Time());
     }
     ENDDECL0(seconds_elapsed, "", "", "F",
         "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
