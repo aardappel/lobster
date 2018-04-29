@@ -32,7 +32,7 @@ char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
 void EscapeAndQuote(string_view s, string &r) {
     r += "\"";
-    for (size_t i = 0; i < s.length(); i++) switch(s[i]) {
+    for (auto c : s) switch(c) {
         case '\n': r += "\\n"; break;
         case '\t': r += "\\t"; break;
         case '\r': r += "\\r"; break;
@@ -40,9 +40,9 @@ void EscapeAndQuote(string_view s, string &r) {
         case '\"': r += "\\\""; break;
         case '\'': r += "\\\'"; break;
         default:
-            if (s[i] >= ' ' && s[i] <= '~') r += s[i];
+            if (c >= ' ' && c <= '~') r += c;
             else {
-                r += "\\x"; r += HexChar(((uchar)s[i]) >> 4); r += HexChar(s[i] & 0xF); }
+                r += "\\x"; r += HexChar(((uchar)c) >> 4); r += HexChar(c & 0xF); }
             break;
     }
     r += "\"";
