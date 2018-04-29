@@ -582,6 +582,29 @@ void AddGraphics() {
         "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
         " size. returns the argument.");
 
+    STARTDECL(gl_recttccol) (Value &size, Value &tc, Value &tcdim, Value &cols) {
+        TestGL();
+        auto sz = ValueDecToFLT<2>(size);
+        auto t = ValueDecToFLT<2>(tc);
+        auto td = ValueDecToFLT<2>(tcdim);
+        auto te = t + td;
+        struct { float x, y, z, u, v; byte4 c; } vb_square[4] = {
+            #define _GETCOL(N) \
+                cols.vval()->len > N ? quantizec(ValueToFLT<4>(cols.vval()->At(N))) : byte4_255
+            { 0,    0,    0, t.x,  t.y,  _GETCOL(0) },
+            { 0,    sz.y, 0, t.x,  te.y, _GETCOL(1) },
+            { sz.x, sz.y, 0, te.x, te.y, _GETCOL(2) },
+            { sz.x, 0,    0, te.x, t.y,  _GETCOL(3) }
+        };
+        currentshader->Set();
+        RenderArraySlow(PRIM_FAN, 4, "PTC", sizeof(float) * 6, vb_square);
+        cols.DECRT();
+        return Value();
+    }
+    ENDDECL4(gl_recttccol, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
+             "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
+             " optionally colors (empty list for all white). Slow.");
+
     STARTDECL(gl_unit_square) (Value &centered) {
         TestGL();
         geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
@@ -1070,25 +1093,6 @@ void AddGraphics() {
         " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
         " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
         " Before calling this, make sure to have the texture set and a textured shader");
-
-    STARTDECL(gl_recttc) (Value &size, Value &tc, Value &tcdim) {
-        TestGL();
-        auto sz = ValueDecToFLT<2>(size);
-        auto t = ValueDecToFLT<2>(tc);
-        auto td = ValueDecToFLT<2>(tcdim);
-        auto te = t + td;
-        float vb_square[20] = {
-            0,      0,      0, t.x,  t.y,
-            0,      sz.y, 0, t.x,  te.y,
-            sz.x, sz.y, 0, te.x, te.y,
-            sz.x, 0,      0, te.x, t.y,
-        };
-        currentshader->Set();
-        RenderArraySlow(PRIM_FAN, 4, "PT", sizeof(float) * 5, vb_square);
-        return Value();
-    }
-    ENDDECL3(gl_recttc, "size,tc,tcsize", "F}:2F}:2F}:2", "",
-        "Like gl_rect renders a sized quad, but allows you to specify texture coordinates. Slow.");
 
     STARTDECL(gl_debug_grid) (Value &num, Value &dist, Value &thickness) {
         TestGL();

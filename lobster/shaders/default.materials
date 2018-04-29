@@ -40,6 +40,18 @@ SHADER textured
         UNIFORMS tex0 col
         frag_color = texture(tex0, itc) * col;
 
+SHADER textured_color
+    VERTEX
+        INPUTS apos:4 atc:2 acolor:4
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        itc = atc;
+        icolor = acolor;
+    PIXEL
+        INPUTS itc:2 icolor:4
+        UNIFORMS tex0 col
+        frag_color = texture(tex0, itc) * col * icolor;
+
 PIXELFUNCTIONS
     vec4 Phong(vec3 inormal, vec3 ipos)
     {
