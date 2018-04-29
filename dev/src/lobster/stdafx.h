@@ -59,6 +59,10 @@
 
 using namespace std;
 
+#include "gsl/gsl-lite.hpp"
+
+using namespace gsl;
+
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
