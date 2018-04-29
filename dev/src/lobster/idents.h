@@ -259,13 +259,13 @@ struct Function : Named {
         return sum;
     }
 
-    void RemoveSubFunction(SubFunction *sf) {
+    bool RemoveSubFunction(SubFunction *sf) {
         for (auto sfp = &subf; *sfp; sfp = &(*sfp)->next) if (*sfp == sf) {
             *sfp = sf->next;
             sf->next = nullptr;
-            return;
+            return true;
         }
-        assert(false);
+        return false;
     }
 
     flatbuffers::Offset<bytecode::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
