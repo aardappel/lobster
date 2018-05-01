@@ -697,7 +697,7 @@ inline string operator+(string_view a, string_view b) {
     return r;
 }
 
-inline void cat_helper(stringstream &ss) {}
+inline void cat_helper(stringstream &) {}
 template<typename T, typename ...Ts> void cat_helper(stringstream &ss, const T &t, const Ts&... args) {
     ss << t;
     cat_helper(ss, args...);

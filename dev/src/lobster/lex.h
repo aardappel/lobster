@@ -312,8 +312,12 @@ struct Lex : LoadedFile {
                         sattr = string_view(tokenstart, p - tokenstart);
                         return T_INT;
                     } else {
-                        while (isdigit(*p) ||
-                               (*p == '.' && !isalpha(*(p + 1)) && (isfloat = true))) p++;
+                        for (;;) {
+                            auto isdot = *p == '.' && !isalpha(*(p + 1));
+                            if (isdot) isfloat = true;
+                            if (!isdigit(*p) && !isdot) break;
+                            p++;
+                        }
                         sattr = string_view(tokenstart, p - tokenstart);
                         return isfloat ? T_FLOAT : T_INT;
                     }
@@ -394,18 +398,18 @@ struct Lex : LoadedFile {
     }
 
     string StringVal() {
-        auto p = sattr.data();
-        auto initial = *p++;
+        auto s = sattr.data();
+        auto initial = *s++;
         // Check if its a multi-line constant.
-        if (initial == '\"' && p[0] == '\"' && p[1] == '\"') {
-            return string(p + 2, sattr.data() + sattr.size() - 3);
+        if (initial == '\"' && s[0] == '\"' && s[1] == '\"') {
+            return string(s + 2, sattr.data() + sattr.size() - 3);
         }
         // Regular string or character constant.
-        string s;
+        string r;
         char c = 0;
-        while ((c = *p++) != initial) switch (c) {
+        while ((c = *s++) != initial) switch (c) {
             case '\\':
-                switch(c = *p++) {
+                switch(c = *s++) {
                     case 'n': c = '\n'; break;
                     case 't': c = '\t'; break;
                     case 'r': c = '\r'; break;
@@ -413,21 +417,21 @@ struct Lex : LoadedFile {
                     case '\"':
                     case '\'': break;
                     case 'x':
-                        if (!isxdigit(*p) || !isxdigit(p[1]))
+                        if (!isxdigit(*s) || !isxdigit(s[1]))
                             Error("illegal hexadecimal escape code in string constant");
-                        c = HexDigit(*p++) << 4;
-                        c |= HexDigit(*p++);
+                        c = HexDigit(*s++) << 4;
+                        c |= HexDigit(*s++);
                         break;
                     default:
-                        p--;
+                        s--;
                         Error("unknown control code in string constant");
                 };
-                s += c;
+                r += c;
                 break;
             default:
-                s += c;
+                r += c;
         };
-        return s;
+        return r;
     };
 
     string_view TokStr(TType t = T_NONE) {
