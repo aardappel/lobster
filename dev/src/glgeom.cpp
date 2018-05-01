@@ -215,8 +215,8 @@ void SetPointSprite(float scale) {
         // glTexEnvi(GL_POINT_SPRITE_OES, GL_COORD_REPLACE_OES, GL_TRUE);
     #else
         #ifndef __APPLE__
-            GL_CALL(glEnable(GL_POINT_SPRITE));
-            GL_CALL(glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE));
+            // GL_CALL(glEnable(GL_POINT_SPRITE));
+            // GL_CALL(glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE));
         #endif
         GL_CALL(glEnable(GL_VERTEX_PROGRAM_POINT_SIZE));
     #endif
