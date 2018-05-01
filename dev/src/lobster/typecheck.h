@@ -671,17 +671,24 @@ struct TypeChecker {
         // Here we have a SubFunction witch matching specialized types.
         sf->numcallers++;
         Function &f = *sf->parent;
-        // First check all the manually typed args.
         size_t i = 0;
+        // See if this is going to be a coroutine.
         for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
-            auto &arg = sf->args.v[i];
-            if (!(arg.flags & AF_ANYTYPE))
-                SubType(c, arg.type, ArgName(i), f.name);
             if (Is<CoClosure>(c))
                 sf->iscoroutine = true;
             i++;
         }
         if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
+        // Finally check all the manually typed args. We do this after checking the function
+        // definition, since SubType below can cause specializations of the current function
+        // to be typechecked with strongly typed function value arguments.
+        i = 0;
+        for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
+            auto &arg = sf->args.v[i];
+            if (!(arg.flags & AF_ANYTYPE))
+                SubType(c, arg.type, ArgName(i), f.name);
+            i++;
+        }
         chosen = sf;
         for (auto &freevar : sf->freevars.v) {
             // New freevars may have been added during the function def typecheck above.
