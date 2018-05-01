@@ -100,7 +100,7 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec(const vec<T,2> &v, T e) { DOVEC(c[i] = i < 2 ? v[i] : e); }
 
     vec<T,3>   xyz()     const { assert(N == 4); return vec<T,3>(c); }
-    vec<T,2>   xy()      const { assert(N == 3); return vec<T,2>(c); }
+    vec<T,2>   xy()      const { assert(N >= 3); return vec<T,2>(c); }
     pair<T, T> to_pair() const { assert(N == 2); return make_pair(x, y); }
 
     vec operator+(const vec &v) const { DOVECR(c[i] + v[i]); }
