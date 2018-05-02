@@ -435,7 +435,7 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, const char *u
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                bo = GenBO(type, 1, len, data);
+                bo = GenBO(type, len, data);
                 GL_CALL(glBindBuffer(type, 0));
                 static GLuint bo_binding_point_index = 0;
                 bo_binding_point_index++;  // FIXME: how do we allocate these properly?

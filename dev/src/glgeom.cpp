@@ -16,11 +16,11 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-uint GenBO(GLenum type, size_t elemsize, size_t count, const void *data) {
+uint GenBO(GLenum type, size_t bytesize, const void *data) {
     uint bo;
     GL_CALL(glGenBuffers(1, &bo));
     GL_CALL(glBindBuffer(type, bo));
-    GL_CALL(glBufferData(type, elemsize * count, data, GL_STATIC_DRAW));
+    GL_CALL(glBufferData(type, bytesize, data, GL_STATIC_DRAW));
     return bo;
 }
 
@@ -51,8 +51,8 @@ GLenum GetPrimitive(Primitive prim) {
     }
 }
 
-Surface::Surface(const int *indices, size_t _nidx, Primitive _prim) : numidx(_nidx), prim(_prim) {
-    ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), numidx, indices);
+Surface::Surface(span<int> indices, Primitive _prim) : numidx(indices.size()), prim(_prim) {
+    ibo = GenBO(GL_ELEMENT_ARRAY_BUFFER, indices);
 }
 
 void Surface::Render(Shader *sh) {
@@ -66,8 +66,8 @@ Surface::~Surface() {
 }
 
 void Geometry::Init(const void *verts1, const void *verts2) {
-    vbo1 = GenBO(GL_ARRAY_BUFFER, vertsize1, nverts, verts1);
-    if (verts2) vbo2 = GenBO(GL_ARRAY_BUFFER, vertsize2, nverts, verts2);
+    vbo1 = GenBO(GL_ARRAY_BUFFER, vertsize1 * nverts, verts1);
+    if (verts2) vbo2 = GenBO(GL_ARRAY_BUFFER, vertsize2 * nverts, verts2);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
     GL_CALL(glGenVertexArrays(1, &vao));
     GL_CALL(glBindVertexArray(vao));
@@ -311,7 +311,7 @@ void GeometryCache::RenderUnitCube(Shader *sh, int inside) {
             }
         }
         cube_geom[inside] = new Geometry(make_span(verts), "PNT");
-        cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), 36, triangles.data());
+        cube_ibo[inside] = GenBO(GL_ELEMENT_ARRAY_BUFFER, make_span(triangles));
     }
     sh->Set();
     RenderArray(PRIM_TRIS, cube_geom[inside], cube_ibo[inside], 36);
@@ -361,7 +361,7 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
             ibuf[i * 6 + 5] = ((i + 1) * 2 + 0) % nverts;
         }
         vibo.first = new Geometry(make_span(vbuf), "P");
-        vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, sizeof(int), nindices, ibuf.data());
+        vibo.second = GenBO(GL_ELEMENT_ARRAY_BUFFER, make_span(ibuf));
     }
     Transform2D(float4x4(float4(float2_1 * radius, 1)), [&]() {
         sh->Set();

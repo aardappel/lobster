@@ -713,12 +713,12 @@ void AddGraphics() {
         }
         if (normal_offset) {
             // if no normals were specified, generate them.
-            normalize_mesh(&idxs[0], idxs.size(), verts, nverts, vsize, normal_offset);
+            normalize_mesh(make_span(idxs), verts, nverts, vsize, normal_offset);
         }
         // FIXME: make meshes into points in a more general way.
-        auto m = new Mesh(new Geometry(verts, nverts, vsize, fmt, nullptr, 0, 0),
+        auto m = new Mesh(new Geometry(make_span(verts, nverts * vsize), fmt, span<uchar>(), vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
-        if (idxs.size()) m->surfs.push_back(new Surface(&idxs[0], idxs.size()));
+        if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
         delete[] verts;
         format.DECRT();
         positions.DECRT();

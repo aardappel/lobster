@@ -589,7 +589,7 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     if (pointmode) {
         m->pointsize = 1000 / gridscale;
     } else {
-        m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
+        m->surfs.push_back(new Surface(make_span(triangles), PRIM_TRIS));
     }
     return m;
 }

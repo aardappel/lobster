@@ -75,7 +75,7 @@ struct Surface : Textured {
     string name;
     Primitive prim;
 
-    Surface(const int *indices, size_t _nidx, Primitive _prim = PRIM_TRIS);
+    Surface(span<int> indices, Primitive _prim = PRIM_TRIS);
     ~Surface();
 
     void Render(Shader *sh);
@@ -108,16 +108,12 @@ class Geometry  {
     const size_t nverts;
 
     template<typename T, typename U = float>
-    Geometry(span<T> verts1, string_view _fmt, span<U> verts2 = span<float>())
-        : Geometry(verts1.data(), verts1.size(), sizeof(T), _fmt,
-                   verts2.data(), verts2.size(), sizeof(U)) {}
-
-    Geometry(const void *verts1, size_t nverts1, size_t _vertsize1, string_view _fmt,
-             const void *verts2, size_t nverts2, size_t _vertsize2)
-        : vertsize1(_vertsize1), vertsize2(_vertsize2), fmt(_fmt), vbo1(0), vbo2(0), vao(0),
-          nverts(nverts1) {
-        assert(!nverts2 || nverts2 == nverts1);
-        Init(verts1, verts2);
+    Geometry(span<T> verts1, string_view _fmt, span<U> verts2 = span<float>(),
+             size_t elem_multiple = 1)
+        : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
+          vbo1(0), vbo2(0), vao(0), nverts(verts1.size() / elem_multiple) {
+        assert(verts2.empty() || verts2.size() == verts1.size());
+        Init(verts1.data(), verts2.data());
     }
 
     ~Geometry();
@@ -209,7 +205,10 @@ extern bool SwitchToFrameBuffer(const Texture &tex, bool depth = false, int tf =
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
-extern uint GenBO(uint type, size_t elemsize, size_t count, const void *data);
+template <typename T> uint GenBO(uint type, span<T> d) {
+    return GenBO(type, sizeof(T) * d.size(), d.data());
+}
+extern uint GenBO(uint type, size_t bytesize, const void *data);
 extern void DeleteBO(uint id);
 extern void RenderArray(Primitive prim, Geometry *geom, uint ibo = 0, size_t tcount = 0);
 
@@ -220,7 +219,7 @@ void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
     if (ibuf.empty()) {
         RenderArray(prim, &geom);
     } else {
-        Surface surf(ibuf.data(), ibuf.size(), prim);
+        Surface surf(make_span(ibuf), prim);
         RenderArray(prim, &geom, surf.ibo, ibuf.size());
     }
 }

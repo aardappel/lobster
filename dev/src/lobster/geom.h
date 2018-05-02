@@ -850,12 +850,12 @@ inline bool clamp_bb(const float3 &bbmin, const float3 &bbmax, const float3 &ray
     return ok;
 }
 
-inline void normalize_mesh(int *idxs, size_t idxlen, void *verts, size_t vertlen, size_t vsize,
+inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t vsize,
                            size_t normaloffset, bool ignore_bad_tris = true) {
     for (size_t i = 0; i < vertlen; i++) {
         *(float3 *)((uchar *)verts + i * vsize + normaloffset) = float3_0;
     }
-    for (size_t t = 0; t < idxlen; t += 3) {
+    for (size_t t = 0; t < idxs.size(); t += 3) {
         int v1i = idxs[t + 0];
         int v2i = idxs[t + 1];
         int v3i = idxs[t + 2];

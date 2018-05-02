@@ -250,13 +250,13 @@ void AddCubeGen() {
                 }
             }
         }
-        normalize_mesh(triangles.data(), triangles.size(), verts.data(), verts.size(),
+        normalize_mesh(make_span(triangles), verts.data(), verts.size(),
                        sizeof(cvert), (uchar *)&verts.data()->normal - (uchar *)&verts.data()->pos,
                        false);
         Output(OUTPUT_INFO, "cubegen verts = ", verts.size(), ", tris = ", triangles.size() / 3);
         auto m = new Mesh(new Geometry(make_span(verts), "PNC"),
                           PRIM_TRIS);
-        m->surfs.push_back(new Surface(triangles.data(), triangles.size(), PRIM_TRIS));
+        m->surfs.push_back(new Surface(make_span(triangles), PRIM_TRIS));
         extern ResourceType mesh_type;
         return Value(g_vm->NewResource(m, &mesh_type));
     }

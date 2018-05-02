@@ -153,6 +153,7 @@ struct Optimizer {
             sf.body->children.clear();
             bool wasremoved = sf.parent->RemoveSubFunction(&sf);
             assert(wasremoved);
+            (void)wasremoved;
         } else {
             for (auto c : sf.body->children) {
                 auto nc = c->Clone();
