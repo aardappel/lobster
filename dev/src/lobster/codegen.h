@@ -167,6 +167,14 @@ struct CodeGen  {
         for (auto f : parser.st.functiontable)
             if (f->subf && f->subf->typechecked)
                 GenFunction(*f);
+        // Generate a dummmy function for function values that are never called.
+        // Would be good if the optimizer guarantees these don't exist, but for now this is
+        // more debuggable if it does happen to get called.
+        auto dummyfun = Pos();
+        Emit(IL_FUNSTART, 0, 0);
+        Emit(IL_ABORT);
+        Emit(IL_FUNEND, 0);
+        // Emit the root function.
         SetLabel(fundefjump);
         SplitAttr(Pos());
         BodyGen(parser.root, true);
@@ -177,7 +185,7 @@ struct CodeGen  {
             auto &sf = *fixup.second;
             auto &f = *sf.parent;
             auto bytecodestart = f.multimethod ? f.bytecodestart : sf.subbytecodestart;
-            assert(bytecodestart);
+            if (!bytecodestart) bytecodestart = dummyfun;
             assert(!code[fixup.first]);
             code[fixup.first] = bytecodestart;
         }

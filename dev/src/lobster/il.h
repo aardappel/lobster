@@ -44,7 +44,7 @@ const int MAX_RETURN_VALUES = 16;
     F(NEWVEC, 2) F(NEWSTRUCT, 1) \
     F(POP, 0) F(POPREF, 0) \
     F(DUP, 0) F(DUPREF, 0) \
-    F(EXIT, 1) \
+    F(EXIT, 1) F(ABORT, 0) \
     F(IADD, 0)  F(ISUB, 0)  F(IMUL, 0)  F(IDIV, 0)  F(IMOD, 0) \
     F(ILT, 0)  F(IGT, 0)  F(ILE, 0)  F(IGE, 0)  F(IEQ, 0) F(INE, 0) \
     F(FADD, 0)  F(FSUB, 0)  F(FMUL, 0)  F(FDIV, 0)  F(FMOD, 0) \

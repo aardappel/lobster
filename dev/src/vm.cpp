@@ -1215,6 +1215,10 @@ void VM::F_LOGWRITE(VM_OP_ARGS) {
     vml.LogWrite(vars[vidx], lidx);
 }
 
+void VM::F_ABORT(VM_OP_ARGS) {
+    Error("VM internal error: abort");
+}
+
 void VM::EvalProgram() {
     try {
         for (;;) {
