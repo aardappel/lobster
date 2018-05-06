@@ -81,8 +81,8 @@ struct Field : Typed {
     Node *defaultval;
 
     Field() : Typed(), id(nullptr), fieldref(-1), defaultval(nullptr) {}
-    Field(SharedField *_id, TypeRef _type, bool _generic, int _fieldref, Node *_defaultval)
-        : Typed(_type, _generic, false), id(_id),
+    Field(SharedField *_id, TypeRef _type, ArgFlags _flags, int _fieldref, Node *_defaultval)
+        : Typed(_type, _flags), id(_id),
           fieldref(_fieldref), defaultval(_defaultval) {}
     Field(const Field &o);
     ~Field();
@@ -158,8 +158,7 @@ struct Arg : Typed {
 
     Arg() : Typed(), sid(nullptr) {}
     Arg(const Arg &o) : Typed(o), sid(o.sid) {}
-    Arg(SpecIdent *_sid, TypeRef _type, bool generic, bool withtype)
-        : sid(_sid) { SetType(_type, generic, withtype); }
+    Arg(SpecIdent *_sid, TypeRef _type, ArgFlags _flags) : Typed(_type, _flags), sid(_sid) {}
 };
 
 struct ArgVector : GenericArgs {
@@ -341,7 +340,8 @@ struct SymbolTable {
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
         ident->cursid = NewSid(ident);
-        (islocal ? sf->locals : sf->args).v.push_back(Arg(ident->cursid, type_any, true, withtype));
+        (islocal ? sf->locals : sf->args).v.push_back(
+            Arg(ident->cursid, type_any, AF_GENERIC | (withtype ? AF_WITHTYPE : AF_NONE)));
         if (existing_ident) {
             lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
@@ -355,7 +355,7 @@ struct SymbolTable {
         auto ident = Lookup(name);
         if (!ident)
             lex.Error("lhs of <- must refer to existing variable: " + name);
-        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, true, false));
+        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, AF_GENERIC));
         return ident;
     }
 

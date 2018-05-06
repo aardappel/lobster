@@ -723,3 +723,11 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
     memcpy(dest, &src, sizeof(T));
     dest += sizeof(T);
 }
+
+
+#define DEFINE_BITWISE_OPERATORS_FOR_ENUM(T) \
+    inline T operator~ (T a) { return (T)~(int)a; } \
+    inline T operator| (T a, T b) { return (T)((int)a | (int)b); } \
+    inline T operator& (T a, T b) { return (T)((int)a & (int)b); } \
+    inline T &operator|= (T &a, T b) { return (T &)((int &)a |= (int)b); } \
+    inline T &operator&= (T &a, T b) { return (T &)((int &)a &= (int)b); }

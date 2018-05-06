@@ -252,7 +252,7 @@ struct Parser {
         };
         size_t specializer_i = 0;
         auto specialize_field = [&] (Field &field) {
-            if (field.flags & AF_ANYTYPE) {
+            if (field.flags & AF_GENERIC) {
                 if (specializer_i >= spectypes.size()) Error("too few type specializers");
                 auto &p = spectypes[specializer_i++];
                 field.type = p.first;
@@ -276,7 +276,7 @@ struct Parser {
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
             for (auto &field : struc->fields.v) {
-                // We don't reset AF_ANYTYPE here, because its used to know which fields to select
+                // We don't reset AF_GENERIC here, because its used to know which fields to select
                 // a specialization on.
                 specialize_field(field);
                 struc->Resolve(field);
@@ -320,7 +320,7 @@ struct Parser {
                     // and may refer to itself.
                     for (auto &field : struc->fields.v) {
                         if (st.IsGeneric(field.type) && field.fieldref < 0)
-                            field.flags = AF_ANYTYPE;
+                            field.flags = AF_GENERIC;
                     }
                     fieldsdone = true;
                 }
@@ -340,7 +340,8 @@ struct Parser {
                     }
                     Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                     bool generic = st.IsGeneric(type) && fieldref < 0; // && !defaultval;
-                    struc->fields.v.push_back(Field(&sfield, type, generic, fieldref, defaultval));
+                    struc->fields.v.push_back(Field(&sfield, type,
+                        (generic ? AF_GENERIC : AF_NONE), fieldref, defaultval));
                     if (generic) struc->generic = true;
                 }
             }, T_LEFTCURLY, T_RIGHTCURLY);
@@ -412,26 +413,31 @@ struct Parser {
         auto sf = st.ScopeStart();
         if (parens) Expect(T_LEFTPAREN);
         size_t nargs = 0;
+        auto SetArgFlags = [&](Arg &arg, bool withtype) {
+            if (!st.IsGeneric(arg.type)) arg.flags &= ~AF_GENERIC;
+            if (withtype) arg.flags |= AF_WITHTYPE;
+        };
         if (self) {
             nargs++;
             auto id = st.LookupDef("this", lex.errorline, lex, false, false, true);
-            auto type = &self->thistype;
-            st.AddWithStruct(type, id, lex);
-            sf->args.v.back().SetType(type, st.IsGeneric(type), true);
+            auto &arg = sf->args.v.back();
+            arg.type = &self->thistype;
+            st.AddWithStruct(arg.type, id, lex);
+            SetArgFlags(arg, true);
         }
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
                 ExpectId();
                 nargs++;
                 auto id = st.LookupDef(lastid, lex.errorline, lex, false, false, false);
-                TypeRef type;
+                auto &arg = sf->args.v.back();
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
-                    ParseType(type, withtype);
-                    if (withtype) st.AddWithStruct(type, id, lex);
+                    ParseType(arg.type, withtype);
+                    if (withtype) st.AddWithStruct(arg.type, id, lex);
                 }
-                sf->args.v.back().SetType(type, st.IsGeneric(type), withtype);
+                SetArgFlags(arg, withtype);
                 if (!IsNext(T_COMMA)) break;
             }
         }
@@ -446,7 +452,7 @@ struct Parser {
             // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
             // which specialization that refers to).
             for (auto &arg : f.subf->args.v) {
-                if (arg.flags & AF_ANYTYPE) arg.flags = AF_NONE;
+                if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
             }
             ParseType(sf->returntypes[0], false, nullptr, sf);
         } else {
@@ -518,7 +524,7 @@ struct Parser {
                 if (fieldrefstruct) {
                     for (auto &field : fieldrefstruct->fields.v) {
                         if (field.id->name == lex.sattr) {
-                            if (!(field.flags & AF_ANYTYPE))
+                            if (!(field.flags & AF_GENERIC))
                                 Error("field reference must be to generic field: " + lex.sattr);
                             lex.Next();
                             dest = field.type;
@@ -590,7 +596,7 @@ struct Parser {
         }
         if (needscomma) Expect(T_COMMA);
         CheckArg(args, thisarg, fname);
-        if (args && args->GetType(thisarg)->flags == NF_EXPFUNVAL) {
+        if (args && (args->GetType(thisarg)->flags & AF_EXPFUNVAL)) {
             list->Add(ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true,
                                     noparens));
         } else {

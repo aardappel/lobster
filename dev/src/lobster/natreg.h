@@ -147,8 +147,8 @@ extern TypeRef type_typeid;
 
 enum ArgFlags {
     AF_NONE = 0,
-    NF_EXPFUNVAL = 1,
-    AF_ANYTYPE = 2,
+    AF_EXPFUNVAL = 1,
+    AF_GENERIC = 2,
     NF_SUBARG1 = 4,
     NF_SUBARG2 = 8,
     NF_SUBARG3 = 16,
@@ -156,6 +156,7 @@ enum ArgFlags {
     NF_CORESUME = 64,
     AF_WITHTYPE = 128
 };
+DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 
 struct Ident;
 struct SpecIdent;
@@ -166,12 +167,7 @@ struct Typed {
 
     Typed() : flags(AF_NONE) {}
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
-    Typed(TypeRef _type, bool generic, bool withtype) { SetType(_type, generic, withtype); }
-
-    void SetType(TypeRef _type, bool generic, bool withtype) {
-        type = _type;
-        flags = ArgFlags((generic ? AF_ANYTYPE : AF_NONE) | (withtype ? AF_WITHTYPE : AF_NONE));
-    }
+    Typed(TypeRef _type, ArgFlags _flags) : type(_type), flags(_flags) {}
 };
 
 struct Narg : Typed {
@@ -198,12 +194,12 @@ struct Narg : Typed {
         while (*tid && !isalpha(*tid)) {
             switch (auto c = *tid++) {
                 case 0: break;
-                case '1': flags = ArgFlags(flags | NF_SUBARG1); break;
-                case '2': flags = ArgFlags(flags | NF_SUBARG2); break;
-                case '3': flags = ArgFlags(flags | NF_SUBARG3); break;
-                case '*': flags = ArgFlags(flags | NF_ANYVAR); break;
-                case '@': flags = ArgFlags(flags | NF_EXPFUNVAL); break;
-                case '%': flags = ArgFlags(flags | NF_CORESUME); break; // FIXME: make a vm op.
+                case '1': flags = flags | NF_SUBARG1; break;
+                case '2': flags = flags | NF_SUBARG2; break;
+                case '3': flags = flags | NF_SUBARG3; break;
+                case '*': flags = flags | NF_ANYVAR; break;
+                case '@': flags = flags | AF_EXPFUNVAL; break;
+                case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
                 case ']':
                 case '}':
                     typestorage.push_back(Type());

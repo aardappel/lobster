@@ -334,7 +334,7 @@ struct TypeChecker {
                     int i = 0;
                     for (auto &arg : sf->args.v) {
                         // Specialize to the function type, if requested.
-                        if (!sf->typechecked && arg.flags & AF_ANYTYPE) {
+                        if (!sf->typechecked && arg.flags & AF_GENERIC) {
                             arg.type = ss->args.v[i].type;
                         }
                         // Note this has the args in reverse: function args are contravariant.
@@ -597,7 +597,7 @@ struct TypeChecker {
             int i = 0;
             for (auto &arg : cons->children) {
                 auto &field = struc->fields.v[i++];
-                if (field.flags & AF_ANYTYPE && !ExactType(arg->exptype, field.type)) goto fail;
+                if (field.flags & AF_GENERIC && !ExactType(arg->exptype, field.type)) goto fail;
             }
             return struc;  // Found a match.
             fail:;
@@ -685,7 +685,7 @@ struct TypeChecker {
         i = 0;
         for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
             auto &arg = sf->args.v[i];
-            if (!(arg.flags & AF_ANYTYPE))
+            if (!(arg.flags & AF_GENERIC))
                 SubType(c, arg.type, ArgName(i), f.name);
             i++;
         }
@@ -749,7 +749,7 @@ struct TypeChecker {
                         // TypeCheckDynCall). Optimizer always removes these.
                         for (auto c : call_args->children) if (i < f.nargs()) {
                             auto &arg = sf->args.v[i++];
-                            if (arg.flags & AF_ANYTYPE &&
+                            if (arg.flags & AF_GENERIC &&
                                 !ExactType(c->exptype, arg.type)) goto fail;
                         }
                         if (FreeVarsSameAsCurrent(sf, false) && reqret == sf->reqret) {
@@ -771,7 +771,7 @@ struct TypeChecker {
             size_t i = 0;
             for (auto c : call_args->children) if (i < f.nargs()) /* see above */ {
                 auto &arg = sf->args.v[i];
-                if (arg.flags & AF_ANYTYPE) {
+                if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,
                                     *c, f.name);
@@ -843,8 +843,7 @@ struct TypeChecker {
                     for (auto &arg : ssf->args.v)
                         sf->coyieldsave.Add(arg);
                     for (auto &loc : ssf->locals.v)
-                        sf->coyieldsave.Add(Arg(loc.sid, loc.sid->type, false,
-                                                loc.flags & AF_WITHTYPE));
+                        sf->coyieldsave.Add(Arg(loc.sid, loc.sid->type, loc.flags & AF_WITHTYPE));
                     for (auto &dyn : ssf->dynscoperedefs.v)
                         sf->coyieldsave.Add(dyn);
                 }
@@ -1053,7 +1052,7 @@ struct TypeChecker {
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
-            if (sf->freevars.Add(Arg(&sid, sid.type, true, false))) {
+            if (sf->freevars.Add(Arg(&sid, sid.type, AF_GENERIC))) {
                 //Output(OUTPUT_DEBUG, "freevar added: ", id.name, " (", TypeName(id.type),
                 //                     ") in ", sf->parent->name);
             }
@@ -1900,7 +1899,7 @@ Node *NativeRef::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
 Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
     /*
     for (auto &f : st->fields.v) {
-        if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_ANYTYPE) && f.defaultval->exptype.Null()) {
+        if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_GENERIC) && f.defaultval->exptype.Null()) {
             f.defaultval->TypeCheck(tc, true);
             f.type = f.defaultval->exptype;
         }
