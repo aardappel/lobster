@@ -434,7 +434,7 @@ struct Parser {
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
-                    ParseType(arg.type, withtype);
+                    ParseType(arg.type, withtype, nullptr, nullptr, &sf->args.v.back());
                     if (withtype) st.AddWithStruct(arg.type, id, lex);
                 }
                 SetArgFlags(arg, withtype);
@@ -512,7 +512,7 @@ struct Parser {
     }
 
     int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr,
-                  SubFunction *sfreturntype = nullptr) {
+                  SubFunction *sfreturntype = nullptr, Arg *funarg = nullptr) {
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
@@ -531,6 +531,11 @@ struct Parser {
                             return int(&field - &fieldrefstruct->fields.v[0]);
                         }
                     }
+                }
+                if (funarg && lex.sattr == "lazy_expression") {  // TODO: make keyword?
+                    lex.Next();
+                    funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
+                    return -1;
                 }
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {

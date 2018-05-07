@@ -347,6 +347,13 @@ def run_test_cases(is_speed_test):
     try():
         recursive_exceptions(10)
 
+    // Define your own HOFs with lazy expressions, much like the built-in while loop:
+    def whilenot(cond:lazy_expression, body):
+        while not cond(): body()
+    wnt := 0
+    whilenot wnt == 10: wnt++
+    assert wnt == 10
+
     starttime := seconds_elapsed()
     for 1000:
         7.factorial
