@@ -24,5 +24,8 @@ matrix:
         - cd dev && cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make
     - os: "osx"
       language: cpp
+      install:
+        - "[ $CXX = clang++ ] && export CXX=clang++ || true"
       script:
-        - cd dev/xcode/lobster && xcodebuild -target lobster
+        - cd dev/xcode/lobster && xcodebuild -toolchain clang -scheme lobster build
+

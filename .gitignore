@@ -79,3 +79,5 @@ lobster/lobster\.exe
 dev/compiled_lobster/compiled_lobster/x64/Debug/
 
 dev/compiled_lobster/compiled_lobster/x64/Release/
+
+/dev/xcode/lobster/build/**
