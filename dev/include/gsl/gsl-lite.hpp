@@ -585,7 +585,7 @@ protected:
         invoke_ = false;
     }
 
-#if gsl_CPP17_OR_GREATER
+#if 0//gsl_CPP17_OR_GREATER
     gsl_api int uncaught_exceptions() gsl_noexcept
     {
         return std::uncaught_exceptions();
