@@ -1,0 +1,28 @@
+#
+matrix:
+  include:
+    - os: "linux"
+      language: cpp
+      compiler:
+        - gcc
+        - clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - g++-7
+            - clang-5.0
+      install:
+        - "[ $CXX = g++ ] && export CXX=g++-7 || true"
+        - "[ $CXX = clang++ ] && export CXX=clang++-5.0 || true"
+      env:
+        - BUILD_TYPE=Debug
+        - BUILD_TYPE=Release
+      script:
+        - cd dev && cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make
+    - os: "osx"
+      language: cpp
+      script:
+        - cd dev/xcode/lobster && xcodebuild -target lobster
