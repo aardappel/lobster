@@ -2,15 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Lobster)
 
-# note: the way the VM works, Lobster should really be built as a 32bit binary
-# even on a 64bit system. It will work as 64bit binary, but will be inefficient
-# (use twice as much memory for Lobster runtime data).
-# Change the flag below to override this:
-
-# This sadly requires too much stuff to be installed on a 64bit system..
-# set(ARCH_FLAGS "-m32")
-# add_definitions(${ARCH_FLAGS})
-
 set(SDL_SHARED OFF CACHE BOOL "Build a shared version of the library")
 function(install)
 endfunction(install)
@@ -18,6 +9,7 @@ add_subdirectory("external/SDL")
 
 file(GLOB LOBSTER_SRCS
     "src/*.h"
+    "src/lobster/*.h"
     "src/*.cpp"
 )
 
@@ -97,7 +89,6 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../lobster)
 
 add_executable(lobster_cmake ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
-# set_target_properties(lobster_cmake PROPERTIES COMPILE_FLAGS ${ARCH_FLAGS} LINK_FLAGS ${ARCH_FLAGS})
 
 target_link_libraries(lobster_cmake
   ${SDL_LIBRARIES}

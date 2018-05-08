@@ -16,7 +16,7 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-uint GenBO(GLenum type, size_t bytesize, const void *data) {
+uint GenBO_(GLenum type, size_t bytesize, const void *data) {
     uint bo;
     GL_CALL(glGenBuffers(1, &bo));
     GL_CALL(glBindBuffer(type, bo));
@@ -66,8 +66,8 @@ Surface::~Surface() {
 }
 
 void Geometry::Init(const void *verts1, const void *verts2) {
-    vbo1 = GenBO(GL_ARRAY_BUFFER, vertsize1 * nverts, verts1);
-    if (verts2) vbo2 = GenBO(GL_ARRAY_BUFFER, vertsize2 * nverts, verts2);
+    vbo1 = GenBO_(GL_ARRAY_BUFFER, vertsize1 * nverts, verts1);
+    if (verts2) vbo2 = GenBO_(GL_ARRAY_BUFFER, vertsize2 * nverts, verts2);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
     GL_CALL(glGenVertexArrays(1, &vao));
     GL_CALL(glBindVertexArray(vao));

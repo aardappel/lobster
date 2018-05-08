@@ -205,10 +205,10 @@ extern bool SwitchToFrameBuffer(const Texture &tex, bool depth = false, int tf =
 
 extern uchar *ReadPixels(const int2 &pos, const int2 &size);
 
+extern uint GenBO_(uint type, size_t bytesize, const void *data);
 template <typename T> uint GenBO(uint type, span<T> d) {
-    return GenBO(type, sizeof(T) * d.size(), d.data());
+    return GenBO_(type, sizeof(T) * d.size(), d.data());
 }
-extern uint GenBO(uint type, size_t bytesize, const void *data);
 extern void DeleteBO(uint id);
 extern void RenderArray(Primitive prim, Geometry *geom, uint ibo = 0, size_t tcount = 0);
 
