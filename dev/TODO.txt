@@ -1,3 +1,43 @@
+- try to measure the cost of removing exception handling from lobster: turning exceptions of will 
+  have a gain that my compensate for the branch not taken needed for explicit error handling. 
+  - Both VS and gcc appears to be 1% faster with exceptions off. 
+ 
+- besides exception.lobster, another nice error-handling strategy would be to use nillable to 
+  signal errors. returning nil is a bit primitive, but in lobster it has the nice property that 
+  it forces the caller to check for nil, making errors not-ignorable. It also means we can 
+  use standard language tools like if/and/assert rather than special purpose error handling. 
+  - would need some way to store additional error information external to the value. 
+    in the simplest case a global last_error:string 
+  - doesn't work on functions that want to return scalars. should really make boxed values 
+    possible outside of any, such that you can actually have int? types. 
+  - the best language addition for this which is generally useful would be to have 
+    a := return if not f() 
+    where f returns a nillable, a is non-nillable, an the surrounding function again returns a 
+    nillable. 
+    as an easy way to perculate errors. 
+    in e.g. Rust this is a macro that looks like: let a = try!(f()) 
+    Probably a more verbose syntax that contains "return" is better, since returning from a 
+    function is major control-flow that you don't want hidden in a macro. Also nice that in an 
+    editor you can highlight all the returns. 
+    Can also have "return if" that does the reverse: return a non-nillable if true, otherwise 
+    continue execution. This is like doing "return f() or .." except here it is easier to 
+    make the ".." contain multiple statements. 
+    This is nice, because "return if not" is for NOT dealing with errors locally, whereas 
+    "return if" is for dealing with errors locally (coming up with an alternative return value 
+    upon failure). 
+    "return if" also usefully turns a value non-nil without needing a temp var, normally you'd need: 
+    temp := f(); if temp: return temp 
+    Also, both of them promote more linear code. 
+    - note there is some code in the impl that assumes "return" has no temps on the stack, 
+      which isn't the case for: 1 + 2 + 3 + (return if not ..)
+    - for completeness, can even have "a := return b if not c", which is still better than
+      "a := c; if not a: return b"
+  - so far there isn't a lot of error handling going on anywhere in lobster code.. I guess 
+    because games don't do a lot of error handling beyond loading files. And GL errors are 
+    wrapped in native code. 
+    Could be good to write something that does a lot of error handling like a parser, then 
+    again the above constructs sound generally useful 
+    
 - try again having --tocpp output basic blocks as switch case rather than function pointers.
   - try with clang to see if it optimizes that case better
   - try and explicitly jump to the next function where known statically rather than using the trampoline?
