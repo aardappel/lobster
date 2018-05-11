@@ -641,6 +641,11 @@ int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_
     auto f = SDL_RWFromFile(absfilename.data(), "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);
+    if (filelen < 0 || filelen == LLONG_MAX) {
+        // If SDL_RWseek fails it is supposed to return -1, but on Linux it returns LLONG_MAX instead.
+        SDL_RWclose(f);
+        return -1;
+    }
     if (!len) {  // Just the file length requested.
         SDL_RWclose(f);
         return filelen;
