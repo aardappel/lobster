@@ -377,4 +377,6 @@ def run_test_cases(is_speed_test):
     //"press enter to continue...".print
     //getline()
 
-run_test_cases(false)
+if program_name() == "unittest.lobster":
+    run_test_cases(false)
+

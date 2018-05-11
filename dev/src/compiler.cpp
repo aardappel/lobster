@@ -112,7 +112,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
         } else {
             vector<pair<string, int64_t>> dir;
             if (!ScanDir(filename, dir))
-                throw "cannot load file/dir for pakfile: " + filename;
+                THROW_OR_ABORT("cannot load file/dir for pakfile: " + filename);
             for (auto &p : dir) {
                 auto fn = filename + p.first;
                 if (p.second >= 0 && LoadFile(fn, &buf) >= 0)
@@ -281,14 +281,17 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     SlabAlloc *parentpool = vmpool; vmpool = nullptr;
     VM        *parentvm   = g_vm;   g_vm = nullptr;
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         string bytecode;
         Compile(fn, stringiscode ? source.sval()->str() : nullptr, bytecode);
         //string s; DisAsm(s, bytecode); Output(OUTPUT_INFO, s);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.
-            throw string("cannot execute bytecode in compiled mode");
+            THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
         RunBytecode(fn, bytecode, nullptr, nullptr, args);
         auto ret = g_vm->evalret;
@@ -300,6 +303,7 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
         g_vm->Push(Value(g_vm->NewString(ret)));
         return Value();
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         if (g_vm) delete g_vm;
         vmpool = parentpool;
@@ -308,6 +312,7 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
         g_vm->Push(Value(g_vm->NewString("nil")));
         return Value(g_vm->NewString(s));
     }
+    #endif
 }
 
 void AddCompiler() {  // it knows how to call itself!

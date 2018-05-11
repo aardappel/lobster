@@ -130,7 +130,7 @@ void OpenGLInit(int samples) {
                 union { void *proc; type fun; } funcast; /* regular cast causes gcc warning */ \
                 funcast.proc = SDL_GL_GetProcAddress(#name); \
                 name = funcast.fun; \
-                if (!name && needed) throw string_view("no " #name); \
+                if (!name && needed) THROW_OR_ABORT(string("no " #name)); \
             }
         GLBASEEXTS GLEXTS
         #undef GLEXT

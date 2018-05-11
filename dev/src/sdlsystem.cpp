@@ -703,13 +703,17 @@ void EngineExit(int code) {
 }
 
 void one_frame_callback() {
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         GraphicsFrameStart();
         assert(lobster::g_vm);
         lobster::g_vm->OneMoreFrame();
         // If this returns, we didn't hit a gl_frame() again and exited normally.
         EngineExit(0);
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         if (s != "SUSPEND-VM-MAINLOOP") {
             // An actual error.
@@ -717,14 +721,19 @@ void one_frame_callback() {
             EngineExit(1);
         }
     }
+    #endif
 }
 
 bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
                        const void *static_bytecode, const vector<string> &program_args) {
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         lobster::RunBytecode(fn ? StripDirPart(fn) : "", bytecode, entry_point,
                              static_bytecode, program_args);
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         #ifdef USE_MAIN_LOOP_CALLBACK
         if (s == "SUSPEND-VM-MAINLOOP") {
@@ -746,9 +755,10 @@ bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point
             if (lobster::g_vm) delete lobster::g_vm;
             lobster::g_vm = nullptr;
             // An actual error.
-            throw s;
+            THROW_OR_ABORT(s);
         }
     }
+    #endif
 
     delete lobster::g_vm;
     lobster::g_vm = nullptr;
@@ -760,7 +770,10 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
 
     min_output_level = OUTPUT_INFO;
 
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         InitPlatform ("../../lobster/", "", false, SDLLoadFile);  // FIXME
         RegisterCoreEngineBuiltins();
 
@@ -770,11 +783,12 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         if (EngineRunByteCode(argv[0], empty, entry_point, bytecodefb, args))
             return 0;  // Emscripten.
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         Output(OUTPUT_ERROR, s);
         EngineExit(1);
     }
-
+    #endif
     EngineExit(0);
     return 0;
 }

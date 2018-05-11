@@ -731,3 +731,11 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
     inline T operator& (T a, T b) { return (T)((int)a & (int)b); } \
     inline T &operator|= (T &a, T b) { return (T &)((int &)a |= (int)b); } \
     inline T &operator&= (T &a, T b) { return (T &)((int &)a &= (int)b); }
+
+#define USE_EXCEPTION_HANDLING
+#ifdef USE_EXCEPTION_HANDLING
+    #define THROW_OR_ABORT(X) { throw (X); }
+#else
+    #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
+#endif
+

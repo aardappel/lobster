@@ -51,7 +51,7 @@ struct LoadedFile : Line {
         } else {
             if (LoadFile("include/" + fn, source.get()) < 0 &&
                 LoadFile(fn, source.get()) < 0) {
-                throw "can't open file: " + fn;
+                THROW_OR_ABORT("can't open file: " + fn);
             }
         }
         linestart = p = source.get()->c_str();
@@ -455,7 +455,7 @@ struct Lex : LoadedFile {
     void Error(string_view msg, const Line *ln = nullptr) {
         auto err = Location(ln ? *ln : Line(errorline, fileidx)) + ": error: " + msg;
         //Output(OUTPUT_DEBUG, err);
-        throw err;
+        THROW_OR_ABORT(err);
     }
 };
 

@@ -319,7 +319,7 @@ struct NativeRegistry {
                 nf->has_body != existing->has_body) {
                 // Must have similar signatures.
                 assert(0);
-                throw "native library name clash: " + nf->name;
+                THROW_OR_ABORT("native library name clash: " + nf->name);
             }
             nf->overloads = existing->overloads;
             existing->overloads = nf;

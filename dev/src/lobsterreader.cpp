@@ -173,15 +173,20 @@ struct ValueParser {
 };
 
 static Value ParseData(type_elem_t typeoff, char *inp) {
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         ValueParser parser(inp);
         g_vm->Push(parser.Parse(typeoff));
         return Value();
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         g_vm->Push(Value());
         return Value(g_vm->NewString(s));
     }
+    #endif
 }
 
 void AddReader() {

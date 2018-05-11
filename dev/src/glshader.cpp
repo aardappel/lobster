@@ -309,7 +309,7 @@ void Shader::Link(const char *name) {
     GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &status));
     if (status != GL_TRUE) {
         GLSLError(program, true, nullptr);
-        throw string_view("linking failed for shader: ") + name;
+        THROW_OR_ABORT(string_view("linking failed for shader: ") + name);
     }
     mvp_i          = glGetUniformLocation(program, "mvp");
     col_i          = glGetUniformLocation(program, "col");

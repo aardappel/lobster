@@ -36,7 +36,10 @@ int main(int argc, char* argv[]) {
     #else
         false;
     #endif
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         RegisterCoreEngineBuiltins();
         bool parsedump = false;
         bool disasm = false;
@@ -81,9 +84,9 @@ int main(int argc, char* argv[]) {
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
-                else throw "unknown command line argument: " + (argv[arg] + helptext);
+                else THROW_OR_ABORT("unknown command line argument: " + (argv[arg] + helptext));
             } else {
-                if (fn) throw "more than one file specified" + helptext;
+                if (fn) THROW_OR_ABORT("more than one file specified" + helptext);
                 fn = argv[arg];
             }
         }
@@ -93,15 +96,15 @@ int main(int argc, char* argv[]) {
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
         if (!InitPlatform(argv[0], fn ? fn : default_lpak, from_bundle, SDLLoadFile))
-            throw string("cannot find location to read/write data on this platform!");
+            THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
         string bytecode;
         if (!fn) {
             if (!LoadPakDir(default_lpak))
-                throw "Lobster programming language compiler/runtime (version " __DATE__
-                      ")\nno arguments given - cannot load " + (default_lpak + helptext);
+                THROW_OR_ABORT("Lobster programming language compiler/runtime (version " __DATE__
+                               ")\nno arguments given - cannot load " + (default_lpak + helptext));
             // This will now come from the pakfile.
             if (!LoadByteCode(bytecode))
-                throw string("Cannot load bytecode from pakfile!");
+                THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
         } else {
             Output(OUTPUT_INFO, "compiling...");
             string dump;
@@ -136,6 +139,7 @@ int main(int argc, char* argv[]) {
                 return 0;  // Emscripten inverted control.
         }
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         Output(OUTPUT_ERROR, s);
         if (from_bundle) SDLMessageBox("Lobster", s.c_str());
@@ -148,6 +152,7 @@ int main(int argc, char* argv[]) {
         #endif
         EngineExit(1);
     }
+    #endif
     EngineExit(0);
     return 0;
 }

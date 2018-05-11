@@ -73,7 +73,7 @@ VM::VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
     vmpool = new SlabAlloc();
     bcf = bytecode::GetBytecodeFile(static_bytecode ? static_bytecode : bytecode_buffer.data());
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
-        throw string("bytecode is from a different version of Lobster");
+        THROW_OR_ABORT(string("bytecode is from a different version of Lobster"));
     codelen = bcf->bytecode()->Length();
     if (FLATBUFFERS_LITTLEENDIAN) {
         // We can use the buffer directly.
@@ -237,7 +237,7 @@ LString *VM::NewString(string_view s1, string_view s2) {
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(string err, const RefObj *a, const RefObj *b) {
-    if (trace_tail && trace_output.length()) throw trace_output + err;
+    if (trace_tail && trace_output.length()) THROW_OR_ABORT(trace_output + err);
     string s;
     #ifndef VM_COMPILED_CODE_MODE
         // error is usually in the byte before the current ip.
@@ -277,7 +277,7 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     for (size_t i = 0; i < bcf->specidents()->size(); i++) {
         s += DumpVar(vars[i], i, true);
     }
-    throw s;
+    THROW_OR_ABORT(s);
 }
 
 void VM::VMAssert(bool ok, const char *what)  {
@@ -685,7 +685,7 @@ void VM::EndEval(Value &ret, ValueType vt) {
             Output(OUTPUT_INFO, "ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
                                 vm_count_bcalls);
     #endif
-    throw string("end-eval");
+    THROW_OR_ABORT(string("end-eval"));
 }
 
 void VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); }
@@ -1220,7 +1220,10 @@ void VM::F_ABORT(VM_OP_ARGS) {
 }
 
 void VM::EvalProgram() {
-    try {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
         for (;;) {
             #ifdef VM_COMPILED_CODE_MODE
                 #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
@@ -1274,9 +1277,11 @@ void VM::EvalProgram() {
             #endif
         }
     }
+    #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        if (s != "end-eval") throw s;
+        if (s != "end-eval") THROW_OR_ABORT(s);
     }
+    #endif
 }
 
 void VM::PushDerefField(int i) {

@@ -75,7 +75,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 
         // don't allow enqueueing after stopping the pool
         if(stop)
-            throw std::runtime_error("enqueue on stopped ThreadPool");
+            THROW_OR_ABORT(string("enqueue on stopped ThreadPool"));
 
         tasks.emplace([task](){ (*task)(); });
     }
