@@ -1,7 +1,3 @@
-- try to measure the cost of removing exception handling from lobster: turning exceptions of will 
-  have a gain that my compensate for the branch not taken needed for explicit error handling. 
-  - Both VS and gcc appears to be 1% faster with exceptions off. 
- 
 - besides exception.lobster, another nice error-handling strategy would be to use nillable to 
   signal errors. returning nil is a bit primitive, but in lobster it has the nice property that 
   it forces the caller to check for nil, making errors not-ignorable. It also means we can 
@@ -922,6 +918,15 @@ TYPECHECKER NOTES:
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================
+- try to measure the cost of removing exception handling from lobster: turning exceptions of will 
+  have a gain that my compensate for the branch not taken needed for explicit error handling. 
+  - Both VS and gcc appears to be 1% faster with exceptions off.
+  - adding an extra termination conditional in EvalProgram is 7% slower in VS, and 0.5% faster
+    with gcc (manages to infer no exception can be thrown?)
+    Combining the conditional with no-exceptions doesn't seem to make much of a difference for
+    either compiler.
+  Conclusion: stick with exceptions for now.
+ 
 - you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong
     - if you added z-layers to rendering such that you could do inverse order

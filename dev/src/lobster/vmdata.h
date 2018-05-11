@@ -652,7 +652,18 @@ struct VM {
     int64_t vm_count_fcalls;
     int64_t vm_count_bcalls;
 
-    typedef void (VM::* f_ins_pointer)();
+    //#define VM_ERROR_RET_EXPERIMENT
+    #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
+    #define VM_INS_RET bool
+    #define VM_RET return false
+    #define VM_TERMINATE return true
+    #else 
+    #define VM_INS_RET void
+    #define VM_RET
+    #define VM_TERMINATE
+    #endif
+
+    typedef VM_INS_RET (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
     const void *compiled_code_ip;
@@ -706,7 +717,7 @@ struct VM {
     #else
         #define VM_OP_ARGS
         #define VM_OP_ARGS_CALL
-        #define VM_JUMP_RET void
+        #define VM_JUMP_RET VM_INS_RET
     #endif
 
     void JumpTo(InsPtr j);
@@ -727,10 +738,10 @@ struct VM {
 
     void EndEval(Value &ret, ValueType vt);
 
-    #define F(N, A) void F_##N(VM_OP_ARGS);
+    #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
         ILBASENAMES
     #undef F
-    #define F(N, A) void F_##N(VM_OP_ARGS_CALL);
+    #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
         ILCALLNAMES
     #undef F
     #define F(N, A) VM_JUMP_RET F_##N();
@@ -738,6 +749,7 @@ struct VM {
     #undef F
 
     void EvalProgram();
+    void EvalProgramInner();
 
     void PushDerefField(int i);
     void PushDerefIdxVector(intp i);

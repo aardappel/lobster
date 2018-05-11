@@ -685,24 +685,27 @@ void VM::EndEval(Value &ret, ValueType vt) {
             Output(OUTPUT_INFO, "ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
                                 vm_count_bcalls);
     #endif
+    #ifndef VM_ERROR_RET_EXPERIMENT
     THROW_OR_ABORT(string("end-eval"));
+    #endif
 }
 
-void VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); }
-void VM::F_PUSHFLT(VM_OP_ARGS) { PUSH(Value(*(float *)ip)); ip++; }
-void VM::F_PUSHNIL(VM_OP_ARGS) { PUSH(Value()); }
+VM_INS_RET VM::F_PUSHINT(VM_OP_ARGS) { PUSH(Value(*ip++)); VM_RET; }
+VM_INS_RET VM::F_PUSHFLT(VM_OP_ARGS) { PUSH(Value(*(float *)ip)); ip++; VM_RET; }
+VM_INS_RET VM::F_PUSHNIL(VM_OP_ARGS) { PUSH(Value()); VM_RET; }
 
-void VM::F_PUSHINT64(VM_OP_ARGS) {
+VM_INS_RET VM::F_PUSHINT64(VM_OP_ARGS) {
     #if !VALUE_MODEL_64
         Error("Code containing 64-bit constants cannot run on a 32-bit build.");
     #endif
     int64_t v = (uint)*ip++;
     v |= ((int64_t)*ip++) << 32;
     PUSH(Value(v));
+    VM_RET;
 }
 
 
-void VM::F_PUSHFUN(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::F_PUSHFUN(VM_OP_ARGS_CALL) {
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
     #else
@@ -710,17 +713,19 @@ void VM::F_PUSHFUN(VM_OP_ARGS_CALL) {
         auto fcont = codestart + start;
     #endif
     PUSH(Value(InsPtr(fcont)));
+    VM_RET;
 }
 
-void VM::F_PUSHSTR(VM_OP_ARGS) {
+VM_INS_RET VM::F_PUSHSTR(VM_OP_ARGS) {
     // FIXME: have a way that constant strings can stay in the bytecode,
     // or at least preallocate them all
     auto fb_s = bcf->stringtable()->Get(*ip++);
     auto s = NewString(flat_string_view(fb_s));
     PUSH(Value(s));
+    VM_RET;
 }
 
-void VM::F_CALL(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::F_CALL(VM_OP_ARGS_CALL) {
     auto fvar = *ip++;
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
@@ -733,9 +738,10 @@ void VM::F_CALL(VM_OP_ARGS_CALL) {
     #endif
     StartStackFrame(fvar, InsPtr(fcont), tm);
     FunIntroPre(InsPtr(fun));
+    VM_RET;
 }
 
-void VM::F_CALLMULTI(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::F_CALLMULTI(VM_OP_ARGS_CALL) {
     #ifdef VM_COMPILED_CODE_MODE
         next_mm_call = ip;
         next_call_target = fcont;  // Used just to transfer value here.
@@ -748,9 +754,10 @@ void VM::F_CALLMULTI(VM_OP_ARGS_CALL) {
         mip++;
         EvalMulti(mip, fvar, ip, 0, tm);
     #endif
+    VM_RET;
 }
 
-void VM::F_FUNMULTI(VM_OP_ARGS) {
+VM_INS_RET VM::F_FUNMULTI(VM_OP_ARGS) {
     #ifdef VM_COMPILED_CODE_MODE
         auto cip = next_mm_call;
         auto fvar = *cip++;
@@ -760,9 +767,10 @@ void VM::F_FUNMULTI(VM_OP_ARGS) {
     #else
         VMASSERT(false);
     #endif
+    VM_RET;
 }
 
-void VM::F_CALLVCOND(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::F_CALLVCOND(VM_OP_ARGS_CALL) {
     // FIXME: don't need to check for function value again below if false
     if (!TOP().True()) {
         ip++;
@@ -772,9 +780,10 @@ void VM::F_CALLVCOND(VM_OP_ARGS_CALL) {
     } else {
         F_CALLV(VM_OP_PASSTHRU);
     }
+    VM_RET;
 }
 
-void VM::F_CALLV(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::F_CALLV(VM_OP_ARGS_CALL) {
     Value fun = POP();
     VMTYPEEQ(fun, V_FUNCTION);
     auto tm = *ip++;
@@ -783,39 +792,46 @@ void VM::F_CALLV(VM_OP_ARGS_CALL) {
     #endif
     StartStackFrame(-1, InsPtr(fcont), tm);
     FunIntroPre(fun.ip());
+    VM_RET;
 }
 
-void VM::F_FUNSTART(VM_OP_ARGS) {
+VM_INS_RET VM::F_FUNSTART(VM_OP_ARGS) {
     #ifdef VM_COMPILED_CODE_MODE
         FunIntro(ip);
     #else
         VMASSERT(false);
     #endif
+    VM_RET;
 }
 
-void VM::F_FUNEND(VM_OP_ARGS) {
+VM_INS_RET VM::F_FUNEND(VM_OP_ARGS) {
     int nrv = *ip++;
     FunOut(-1, nrv);
+    VM_RET;
 }
 
-void VM::F_RETURN(VM_OP_ARGS) {
+VM_INS_RET VM::F_RETURN(VM_OP_ARGS) {
     int df = *ip++;
     int nrv = *ip++;
     int tidx = *ip++;
     if(FunOut(df, nrv)) {
         assert(nrv == 1);
         EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
+        VM_TERMINATE;
     }
+    VM_RET;
 }
 
-void VM::F_EXIT(VM_OP_ARGS) {
+VM_INS_RET VM::F_EXIT(VM_OP_ARGS) {
     int tidx = *ip++;
     EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
+    VM_TERMINATE;
 }
 
-void VM::F_CONT1(VM_OP_ARGS) {
+VM_INS_RET VM::F_CONT1(VM_OP_ARGS) {
     auto nf = natreg.nfuns[*ip++];
     nf->cont1();
+    VM_RET;
 }
 
 #ifdef VM_COMPILED_CODE_MODE
@@ -842,35 +858,39 @@ void VM::F_CONT1(VM_OP_ARGS) {
         (void)POP(); /* i */ \
         FOR_FINISHED; \
     } \
+    VM_RET; \
 }
 #define FORELEM(V) \
     auto &iter = TOP(); (void)iter; \
     auto &i = TOPM(1); \
     TYPE_ASSERT(i.type == V_INT); \
-    PUSH(V);
+    PUSH(V); \
+    VM_RET;
 
 VM_JUMP_RET VM::F_IFOR() { FORLOOP(iter.ival(), false); }
 VM_JUMP_RET VM::F_VFOR() { FORLOOP(iter.vval()->len, true); }
 VM_JUMP_RET VM::F_NFOR() { FORLOOP(iter.stval()->Len(), true); }
 VM_JUMP_RET VM::F_SFOR() { FORLOOP(iter.sval()->len, true); }
 
-void VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
-void VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.vval()->AtInc(i.ival())); }
-void VM::F_NFORELEM(VM_OP_ARGS) { FORELEM(iter.stval()->At(i.ival())); }
-void VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
+VM_INS_RET VM::F_IFORELEM(VM_OP_ARGS) { FORELEM(i); }
+VM_INS_RET VM::F_VFORELEM(VM_OP_ARGS) { FORELEM(iter.vval()->AtInc(i.ival())); }
+VM_INS_RET VM::F_NFORELEM(VM_OP_ARGS) { FORELEM(iter.stval()->At(i.ival())); }
+VM_INS_RET VM::F_SFORELEM(VM_OP_ARGS) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
 
-void VM::F_FORLOOPI(VM_OP_ARGS) {
+VM_INS_RET VM::F_FORLOOPI(VM_OP_ARGS) {
     auto &i = TOPM(1);  // This relies on for being inlined, otherwise it would be 2.
     TYPE_ASSERT(i.type == V_INT);
     PUSH(i);
+    VM_RET;
 }
 
-#define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) void VM::F_BCALL##PRE##N(VM_OP_ARGS) { \
+#define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_INS_RET VM::F_BCALL##PRE##N(VM_OP_ARGS) { \
     BCallProf(); \
     auto nf = natreg.nfuns[*ip++]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
     RETOP; \
+    VM_RET; \
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
@@ -887,29 +907,31 @@ BCALLOP(5, auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto 
 BCALLOP(6, auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4, a5));
 BCALLOP(7, auto a6 = POP();auto a5 = POP();auto a4 = POP();auto a3 = POP();auto a2 = POP();auto a1 = POP();auto a0 = POP(), (a0, a1, a2, a3, a4, a5, a6));
 
-void VM::F_NEWVEC(VM_OP_ARGS) {
+VM_INS_RET VM::F_NEWVEC(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
     auto len = *ip++;
     auto vec = NewVec(len, len, type);
     if (len) vec->Init(TOPPTR() - len, false);
     POPN(len);
     PUSH(Value(vec));
+    VM_RET;
 }
 
-void VM::F_NEWSTRUCT(VM_OP_ARGS) {
+VM_INS_RET VM::F_NEWSTRUCT(VM_OP_ARGS) {
     auto type = (type_elem_t)*ip++;
     auto len = GetTypeInfo(type).len;
     auto vec = NewStruct(len, type);
     if (len) vec->Init(TOPPTR() - len, len, false);
     POPN(len);
     PUSH(Value(vec));
+    VM_RET;
 }
 
-void VM::F_POP(VM_OP_ARGS)    { POP(); }
-void VM::F_POPREF(VM_OP_ARGS) { POP().DECRTNIL(); }
+VM_INS_RET VM::F_POP(VM_OP_ARGS)    { POP(); VM_RET; }
+VM_INS_RET VM::F_POPREF(VM_OP_ARGS) { POP().DECRTNIL(); VM_RET; }
 
-void VM::F_DUP(VM_OP_ARGS)    { auto x = TOP();            PUSH(x); }
-void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
+VM_INS_RET VM::F_DUP(VM_OP_ARGS)    { auto x = TOP();            PUSH(x); VM_RET; }
+VM_INS_RET VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); VM_RET; }
 
 #define REFOP(exp) { res = exp; a.DECRTNIL(); b.DECRTNIL(); }
 #define GETARGS() Value b = POP(); Value a = POP()
@@ -945,20 +967,19 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 #define _SCAT() Value res; \
                 REFOP(NewString(a.sval()->strv(), b.sval()->strv()))
 
-#define ACOMPEN(op) { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); }
-
-#define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); }
-#define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); }
-#define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); }
-#define IVVOPC(op, extras) { GETARGS(); _IVOP(op, extras, false, true);  PUSH(res); }
-#define FVVOP(op, extras)  { GETARGS(); _FVOP(op, extras, false, false); PUSH(res); }
-#define FVVOPC(op, extras) { GETARGS(); _FVOP(op, extras, false, true);  PUSH(res); }
-#define IVSOP(op, extras)  { GETARGS(); _IVOP(op, extras, true, false);  PUSH(res); }
-#define IVSOPC(op, extras) { GETARGS(); _IVOP(op, extras, true, true);   PUSH(res); }
-#define FVSOP(op, extras)  { GETARGS(); _FVOP(op, extras, true, false);  PUSH(res); }
-#define FVSOPC(op, extras) { GETARGS(); _FVOP(op, extras, true, true);   PUSH(res); }
-#define SOP(op)            { GETARGS(); _SOP(op);                        PUSH(res); }
-#define SCAT()             { GETARGS(); _SCAT();                         PUSH(res); }
+#define ACOMPEN(op)        { GETARGS(); Value res; REFOP(a.any() op b.any()); PUSH(res); VM_RET; }
+#define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); VM_RET; }
+#define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); VM_RET; }
+#define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); VM_RET; }
+#define IVVOPC(op, extras) { GETARGS(); _IVOP(op, extras, false, true);  PUSH(res); VM_RET; }
+#define FVVOP(op, extras)  { GETARGS(); _FVOP(op, extras, false, false); PUSH(res); VM_RET; }
+#define FVVOPC(op, extras) { GETARGS(); _FVOP(op, extras, false, true);  PUSH(res); VM_RET; }
+#define IVSOP(op, extras)  { GETARGS(); _IVOP(op, extras, true, false);  PUSH(res); VM_RET; }
+#define IVSOPC(op, extras) { GETARGS(); _IVOP(op, extras, true, true);   PUSH(res); VM_RET; }
+#define FVSOP(op, extras)  { GETARGS(); _FVOP(op, extras, true, false);  PUSH(res); VM_RET; }
+#define FVSOPC(op, extras) { GETARGS(); _FVOP(op, extras, true, true);   PUSH(res); VM_RET; }
+#define SOP(op)            { GETARGS(); _SOP(op);                        PUSH(res); VM_RET; }
+#define SCAT()             { GETARGS(); _SCAT();                         PUSH(res); VM_RET; }
 
 // +  += I F Vif S
 // -  -= I F Vif
@@ -976,85 +997,85 @@ void VM::F_DUPREF(VM_OP_ARGS) { auto x = TOP().INCRTNIL(); PUSH(x); }
 // U-    I F Vif
 // U!    A
 
-void VM::F_IVVADD(VM_OP_ARGS) { IVVOP(+,  0);  }
-void VM::F_IVVSUB(VM_OP_ARGS) { IVVOP(-,  0);  }
-void VM::F_IVVMUL(VM_OP_ARGS) { IVVOP(*,  0);  }
-void VM::F_IVVDIV(VM_OP_ARGS) { IVVOP(/,  1);  }
-void VM::F_IVVMOD(VM_OP_ARGS) { VMASSERT(0);   }
-void VM::F_IVVLT(VM_OP_ARGS)  { IVVOP(<,  0);  }
-void VM::F_IVVGT(VM_OP_ARGS)  { IVVOP(>,  0);  }
-void VM::F_IVVLE(VM_OP_ARGS)  { IVVOP(<=, 0);  }
-void VM::F_IVVGE(VM_OP_ARGS)  { IVVOP(>=, 0);  }
-void VM::F_FVVADD(VM_OP_ARGS) { FVVOP(+,  0);  }
-void VM::F_FVVSUB(VM_OP_ARGS) { FVVOP(-,  0);  }
-void VM::F_FVVMUL(VM_OP_ARGS) { FVVOP(*,  0);  }
-void VM::F_FVVDIV(VM_OP_ARGS) { FVVOP(/,  1);  }
-void VM::F_FVVMOD(VM_OP_ARGS) { VMASSERT(0);   }
-void VM::F_FVVLT(VM_OP_ARGS)  { FVVOPC(<,  0); }
-void VM::F_FVVGT(VM_OP_ARGS)  { FVVOPC(>,  0); }
-void VM::F_FVVLE(VM_OP_ARGS)  { FVVOPC(<=, 0); }
-void VM::F_FVVGE(VM_OP_ARGS)  { FVVOPC(>=, 0); }
+VM_INS_RET VM::F_IVVADD(VM_OP_ARGS) { IVVOP(+,  0);  }
+VM_INS_RET VM::F_IVVSUB(VM_OP_ARGS) { IVVOP(-,  0);  }
+VM_INS_RET VM::F_IVVMUL(VM_OP_ARGS) { IVVOP(*,  0);  }
+VM_INS_RET VM::F_IVVDIV(VM_OP_ARGS) { IVVOP(/,  1);  }
+VM_INS_RET VM::F_IVVMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_IVVLT(VM_OP_ARGS)  { IVVOP(<,  0);  }
+VM_INS_RET VM::F_IVVGT(VM_OP_ARGS)  { IVVOP(>,  0);  }
+VM_INS_RET VM::F_IVVLE(VM_OP_ARGS)  { IVVOP(<=, 0);  }
+VM_INS_RET VM::F_IVVGE(VM_OP_ARGS)  { IVVOP(>=, 0);  }
+VM_INS_RET VM::F_FVVADD(VM_OP_ARGS) { FVVOP(+,  0);  }
+VM_INS_RET VM::F_FVVSUB(VM_OP_ARGS) { FVVOP(-,  0);  }
+VM_INS_RET VM::F_FVVMUL(VM_OP_ARGS) { FVVOP(*,  0);  }
+VM_INS_RET VM::F_FVVDIV(VM_OP_ARGS) { FVVOP(/,  1);  }
+VM_INS_RET VM::F_FVVMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_FVVLT(VM_OP_ARGS)  { FVVOPC(<,  0); }
+VM_INS_RET VM::F_FVVGT(VM_OP_ARGS)  { FVVOPC(>,  0); }
+VM_INS_RET VM::F_FVVLE(VM_OP_ARGS)  { FVVOPC(<=, 0); }
+VM_INS_RET VM::F_FVVGE(VM_OP_ARGS)  { FVVOPC(>=, 0); }
 
-void VM::F_IVSADD(VM_OP_ARGS) { IVSOP(+,  0);  }
-void VM::F_IVSSUB(VM_OP_ARGS) { IVSOP(-,  0);  }
-void VM::F_IVSMUL(VM_OP_ARGS) { IVSOP(*,  0);  }
-void VM::F_IVSDIV(VM_OP_ARGS) { IVSOP(/,  1);  }
-void VM::F_IVSMOD(VM_OP_ARGS) { VMASSERT(0);   }
-void VM::F_IVSLT(VM_OP_ARGS)  { IVSOP(<,  0);  }
-void VM::F_IVSGT(VM_OP_ARGS)  { IVSOP(>,  0);  }
-void VM::F_IVSLE(VM_OP_ARGS)  { IVSOP(<=, 0);  }
-void VM::F_IVSGE(VM_OP_ARGS)  { IVSOP(>=, 0);  }
-void VM::F_FVSADD(VM_OP_ARGS) { FVSOP(+,  0);  }
-void VM::F_FVSSUB(VM_OP_ARGS) { FVSOP(-,  0);  }
-void VM::F_FVSMUL(VM_OP_ARGS) { FVSOP(*,  0);  }
-void VM::F_FVSDIV(VM_OP_ARGS) { FVSOP(/,  1);  }
-void VM::F_FVSMOD(VM_OP_ARGS) { VMASSERT(0);   }
-void VM::F_FVSLT(VM_OP_ARGS)  { FVSOPC(<,  0); }
-void VM::F_FVSGT(VM_OP_ARGS)  { FVSOPC(>,  0); }
-void VM::F_FVSLE(VM_OP_ARGS)  { FVSOPC(<=, 0); }
-void VM::F_FVSGE(VM_OP_ARGS)  { FVSOPC(>=, 0); }
+VM_INS_RET VM::F_IVSADD(VM_OP_ARGS) { IVSOP(+,  0);  }
+VM_INS_RET VM::F_IVSSUB(VM_OP_ARGS) { IVSOP(-,  0);  }
+VM_INS_RET VM::F_IVSMUL(VM_OP_ARGS) { IVSOP(*,  0);  }
+VM_INS_RET VM::F_IVSDIV(VM_OP_ARGS) { IVSOP(/,  1);  }
+VM_INS_RET VM::F_IVSMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_IVSLT(VM_OP_ARGS)  { IVSOP(<,  0);  }
+VM_INS_RET VM::F_IVSGT(VM_OP_ARGS)  { IVSOP(>,  0);  }
+VM_INS_RET VM::F_IVSLE(VM_OP_ARGS)  { IVSOP(<=, 0);  }
+VM_INS_RET VM::F_IVSGE(VM_OP_ARGS)  { IVSOP(>=, 0);  }
+VM_INS_RET VM::F_FVSADD(VM_OP_ARGS) { FVSOP(+,  0);  }
+VM_INS_RET VM::F_FVSSUB(VM_OP_ARGS) { FVSOP(-,  0);  }
+VM_INS_RET VM::F_FVSMUL(VM_OP_ARGS) { FVSOP(*,  0);  }
+VM_INS_RET VM::F_FVSDIV(VM_OP_ARGS) { FVSOP(/,  1);  }
+VM_INS_RET VM::F_FVSMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_FVSLT(VM_OP_ARGS)  { FVSOPC(<,  0); }
+VM_INS_RET VM::F_FVSGT(VM_OP_ARGS)  { FVSOPC(>,  0); }
+VM_INS_RET VM::F_FVSLE(VM_OP_ARGS)  { FVSOPC(<=, 0); }
+VM_INS_RET VM::F_FVSGE(VM_OP_ARGS)  { FVSOPC(>=, 0); }
 
-void VM::F_AEQ(VM_OP_ARGS) { ACOMPEN(==); }
-void VM::F_ANE(VM_OP_ARGS) { ACOMPEN(!=); }
+VM_INS_RET VM::F_AEQ(VM_OP_ARGS) { ACOMPEN(==); }
+VM_INS_RET VM::F_ANE(VM_OP_ARGS) { ACOMPEN(!=); }
 
-void VM::F_IADD(VM_OP_ARGS) { IOP(+,  0); }
-void VM::F_ISUB(VM_OP_ARGS) { IOP(-,  0); }
-void VM::F_IMUL(VM_OP_ARGS) { IOP(*,  0); }
-void VM::F_IDIV(VM_OP_ARGS) { IOP(/ , 1); }
-void VM::F_IMOD(VM_OP_ARGS) { IOP(%,  1); }
-void VM::F_ILT(VM_OP_ARGS)  { IOP(<,  0); }
-void VM::F_IGT(VM_OP_ARGS)  { IOP(>,  0); }
-void VM::F_ILE(VM_OP_ARGS)  { IOP(<=, 0); }
-void VM::F_IGE(VM_OP_ARGS)  { IOP(>=, 0); }
-void VM::F_IEQ(VM_OP_ARGS)  { IOP(==, 0); }
-void VM::F_INE(VM_OP_ARGS)  { IOP(!=, 0); }
+VM_INS_RET VM::F_IADD(VM_OP_ARGS) { IOP(+,  0); }
+VM_INS_RET VM::F_ISUB(VM_OP_ARGS) { IOP(-,  0); }
+VM_INS_RET VM::F_IMUL(VM_OP_ARGS) { IOP(*,  0); }
+VM_INS_RET VM::F_IDIV(VM_OP_ARGS) { IOP(/ , 1); }
+VM_INS_RET VM::F_IMOD(VM_OP_ARGS) { IOP(%,  1); }
+VM_INS_RET VM::F_ILT(VM_OP_ARGS)  { IOP(<,  0); }
+VM_INS_RET VM::F_IGT(VM_OP_ARGS)  { IOP(>,  0); }
+VM_INS_RET VM::F_ILE(VM_OP_ARGS)  { IOP(<=, 0); }
+VM_INS_RET VM::F_IGE(VM_OP_ARGS)  { IOP(>=, 0); }
+VM_INS_RET VM::F_IEQ(VM_OP_ARGS)  { IOP(==, 0); }
+VM_INS_RET VM::F_INE(VM_OP_ARGS)  { IOP(!=, 0); }
 
-void VM::F_FADD(VM_OP_ARGS) { FOP(+,  0); }
-void VM::F_FSUB(VM_OP_ARGS) { FOP(-,  0); }
-void VM::F_FMUL(VM_OP_ARGS) { FOP(*,  0); }
-void VM::F_FDIV(VM_OP_ARGS) { FOP(/,  1); }
-void VM::F_FMOD(VM_OP_ARGS) { VMASSERT(0); }
-void VM::F_FLT(VM_OP_ARGS)  { FOP(<,  0); }
-void VM::F_FGT(VM_OP_ARGS)  { FOP(>,  0); }
-void VM::F_FLE(VM_OP_ARGS)  { FOP(<=, 0); }
-void VM::F_FGE(VM_OP_ARGS)  { FOP(>=, 0); }
-void VM::F_FEQ(VM_OP_ARGS)  { FOP(==, 0); }
-void VM::F_FNE(VM_OP_ARGS)  { FOP(!=, 0); }
+VM_INS_RET VM::F_FADD(VM_OP_ARGS) { FOP(+,  0); }
+VM_INS_RET VM::F_FSUB(VM_OP_ARGS) { FOP(-,  0); }
+VM_INS_RET VM::F_FMUL(VM_OP_ARGS) { FOP(*,  0); }
+VM_INS_RET VM::F_FDIV(VM_OP_ARGS) { FOP(/,  1); }
+VM_INS_RET VM::F_FMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_FLT(VM_OP_ARGS)  { FOP(<,  0); }
+VM_INS_RET VM::F_FGT(VM_OP_ARGS)  { FOP(>,  0); }
+VM_INS_RET VM::F_FLE(VM_OP_ARGS)  { FOP(<=, 0); }
+VM_INS_RET VM::F_FGE(VM_OP_ARGS)  { FOP(>=, 0); }
+VM_INS_RET VM::F_FEQ(VM_OP_ARGS)  { FOP(==, 0); }
+VM_INS_RET VM::F_FNE(VM_OP_ARGS)  { FOP(!=, 0); }
 
-void VM::F_SADD(VM_OP_ARGS) { SCAT();  }
-void VM::F_SSUB(VM_OP_ARGS) { VMASSERT(0); }
-void VM::F_SMUL(VM_OP_ARGS) { VMASSERT(0); }
-void VM::F_SDIV(VM_OP_ARGS) { VMASSERT(0); }
-void VM::F_SMOD(VM_OP_ARGS) { VMASSERT(0); }
-void VM::F_SLT(VM_OP_ARGS)  { SOP(<);  }
-void VM::F_SGT(VM_OP_ARGS)  { SOP(>);  }
-void VM::F_SLE(VM_OP_ARGS)  { SOP(<=); }
-void VM::F_SGE(VM_OP_ARGS)  { SOP(>=); }
-void VM::F_SEQ(VM_OP_ARGS)  { SOP(==); }
-void VM::F_SNE(VM_OP_ARGS)  { SOP(!=); }
+VM_INS_RET VM::F_SADD(VM_OP_ARGS) { SCAT();  }
+VM_INS_RET VM::F_SSUB(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_SMUL(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_SDIV(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_SMOD(VM_OP_ARGS) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::F_SLT(VM_OP_ARGS)  { SOP(<);  }
+VM_INS_RET VM::F_SGT(VM_OP_ARGS)  { SOP(>);  }
+VM_INS_RET VM::F_SLE(VM_OP_ARGS)  { SOP(<=); }
+VM_INS_RET VM::F_SGE(VM_OP_ARGS)  { SOP(>=); }
+VM_INS_RET VM::F_SEQ(VM_OP_ARGS)  { SOP(==); }
+VM_INS_RET VM::F_SNE(VM_OP_ARGS)  { SOP(!=); }
 
-void VM::F_IUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.ival())); }
-void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
+VM_INS_RET VM::F_IUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.ival())); VM_RET; }
+VM_INS_RET VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); VM_RET; }
 
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
@@ -1067,86 +1088,96 @@ void VM::F_FUMINUS(VM_OP_ARGS) { Value a = POP(); PUSH(Value(-a.fval())); }
     } \
     a.DECRT(); \
     PUSH(res); \
+    VM_RET; \
     }
-void VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, intp) }
-void VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, floatp) }
+VM_INS_RET VM::F_IVUMINUS(VM_OP_ARGS) { VUMINUS(false, intp) }
+VM_INS_RET VM::F_FVUMINUS(VM_OP_ARGS) { VUMINUS(true, floatp) }
 
-void VM::F_LOGNOT(VM_OP_ARGS) {
+VM_INS_RET VM::F_LOGNOT(VM_OP_ARGS) {
     Value a = POP();
     PUSH(!a.True());
+    VM_RET;
 }
-void VM::F_LOGNOTREF(VM_OP_ARGS) {
+VM_INS_RET VM::F_LOGNOTREF(VM_OP_ARGS) {
     Value a = POP();
     bool b = a.True();
     PUSH(!b);
     if (b) a.DECRT();
+    VM_RET; 
 }
 
-#define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); }
-void VM::F_BINAND(VM_OP_ARGS) { BITOP(&);  }
-void VM::F_BINOR(VM_OP_ARGS)  { BITOP(|);  }
-void VM::F_XOR(VM_OP_ARGS)    { BITOP(^);  }
-void VM::F_ASL(VM_OP_ARGS)    { BITOP(<<); }
-void VM::F_ASR(VM_OP_ARGS)    { BITOP(>>); }
-void VM::F_NEG(VM_OP_ARGS)    { auto a = POP(); PUSH(~a.ival()); }
+#define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); VM_RET; }
+VM_INS_RET VM::F_BINAND(VM_OP_ARGS) { BITOP(&);  }
+VM_INS_RET VM::F_BINOR(VM_OP_ARGS)  { BITOP(|);  }
+VM_INS_RET VM::F_XOR(VM_OP_ARGS)    { BITOP(^);  }
+VM_INS_RET VM::F_ASL(VM_OP_ARGS)    { BITOP(<<); }
+VM_INS_RET VM::F_ASR(VM_OP_ARGS)    { BITOP(>>); }
+VM_INS_RET VM::F_NEG(VM_OP_ARGS)    { auto a = POP(); PUSH(~a.ival()); VM_RET; }
 
-void VM::F_I2F(VM_OP_ARGS) {
+VM_INS_RET VM::F_I2F(VM_OP_ARGS) {
     Value a = POP();
     VMTYPEEQ(a, V_INT);
     PUSH((float)a.ival());
+    VM_RET;
 }
 
-void VM::F_A2S(VM_OP_ARGS) {
+VM_INS_RET VM::F_A2S(VM_OP_ARGS) {
     Value a = POP();
     TYPE_ASSERT(IsRefNil(a.type));
     PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti().t : V_NIL, programprintprefs)));
     a.DECRTNIL();
+    VM_RET;
 }
 
-void VM::F_I2A(VM_OP_ARGS) {
+VM_INS_RET VM::F_I2A(VM_OP_ARGS) {
     Value i = POP();
     VMTYPEEQ(i, V_INT);
     PUSH(NewInt(i.ival()));
+    VM_RET;
 }
 
-void VM::F_F2A(VM_OP_ARGS) {
+VM_INS_RET VM::F_F2A(VM_OP_ARGS) {
     Value f = POP();
     VMTYPEEQ(f, V_FLOAT);
     PUSH(NewFloat(f.fval()));
+    VM_RET;
 }
 
-void VM::F_E2B(VM_OP_ARGS) {
+VM_INS_RET VM::F_E2B(VM_OP_ARGS) {
     Value a = POP();
     PUSH(a.True());
+    VM_RET;
 }
 
-void VM::F_E2BREF(VM_OP_ARGS) {
+VM_INS_RET VM::F_E2BREF(VM_OP_ARGS) {
     Value a = POP();
     PUSH(a.True());
     a.DECRTNIL();
+    VM_RET;
 }
 
-void VM::F_PUSHVAR(VM_OP_ARGS)    { PUSH(vars[*ip++]); }
-void VM::F_PUSHVARREF(VM_OP_ARGS) { PUSH(vars[*ip++].INCRTNIL()); }
+VM_INS_RET VM::F_PUSHVAR(VM_OP_ARGS)    { PUSH(vars[*ip++]); VM_RET; }
+VM_INS_RET VM::F_PUSHVARREF(VM_OP_ARGS) { PUSH(vars[*ip++].INCRTNIL()); VM_RET; }
 
-void VM::F_PUSHFLD(VM_OP_ARGS)  { PushDerefField(*ip++); }
-void VM::F_PUSHFLDM(VM_OP_ARGS) { PushDerefField(*ip++); }
+VM_INS_RET VM::F_PUSHFLD(VM_OP_ARGS)  { PushDerefField(*ip++); VM_RET; }
+VM_INS_RET VM::F_PUSHFLDM(VM_OP_ARGS) { PushDerefField(*ip++); VM_RET; }
 
-void VM::F_VPUSHIDXI(VM_OP_ARGS) { PushDerefIdxVector(POP().ival()); }
-void VM::F_VPUSHIDXV(VM_OP_ARGS) { PushDerefIdxVector(GrabIndex(POP())); }
-void VM::F_NPUSHIDXI(VM_OP_ARGS) { PushDerefIdxStruct(POP().ival()); }
-void VM::F_SPUSHIDXI(VM_OP_ARGS) { PushDerefIdxString(POP().ival()); }
+VM_INS_RET VM::F_VPUSHIDXI(VM_OP_ARGS) { PushDerefIdxVector(POP().ival()); VM_RET; }
+VM_INS_RET VM::F_VPUSHIDXV(VM_OP_ARGS) { PushDerefIdxVector(GrabIndex(POP())); VM_RET; }
+VM_INS_RET VM::F_NPUSHIDXI(VM_OP_ARGS) { PushDerefIdxStruct(POP().ival()); VM_RET; }
+VM_INS_RET VM::F_SPUSHIDXI(VM_OP_ARGS) { PushDerefIdxString(POP().ival()); VM_RET; }
 
-void VM::F_PUSHLOC(VM_OP_ARGS) {
+VM_INS_RET VM::F_PUSHLOC(VM_OP_ARGS) {
     int i = *ip++;
     Value coro = POP();
     VMTYPEEQ(coro, V_COROUTINE);
     PUSH(coro.cval()->GetVar(i));
     TOP().INCTYPE(GetVarTypeInfo(i).t);
     coro.DECRT();
+    VM_RET;
 }
 
-void VM::F_LVALLOC(VM_OP_ARGS) {
+VM_INS_RET VM::F_LVALLOC(VM_OP_ARGS) {
     int lvalop = *ip++;
     int i = *ip++;
     Value coro = POP();
@@ -1154,24 +1185,26 @@ void VM::F_LVALLOC(VM_OP_ARGS) {
     Value &a = coro.cval()->GetVar(i);
     LvalueOp(lvalop, a);
     coro.DECRT();
+    VM_RET;
 }
 
-void VM::F_LVALVAR(VM_OP_ARGS)    {
+VM_INS_RET VM::F_LVALVAR(VM_OP_ARGS)    {
     int lvalop = *ip++;
     LvalueOp(lvalop, vars[*ip++]);
+    VM_RET;
 }
 
-void VM::F_VLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxVector(lvalop, POP().ival()); }
-void VM::F_NLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxStruct(lvalop, POP().ival()); }
-void VM::F_LVALIDXV(VM_OP_ARGS)  { int lvalop = *ip++; LvalueIdxVector(lvalop, GrabIndex(POP())); }
-void VM::F_LVALFLD(VM_OP_ARGS)   { int lvalop = *ip++; LvalueField(lvalop, *ip++); }
+VM_INS_RET VM::F_VLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxVector(lvalop, POP().ival()); VM_RET; }
+VM_INS_RET VM::F_NLVALIDXI(VM_OP_ARGS) { int lvalop = *ip++; LvalueIdxStruct(lvalop, POP().ival()); VM_RET; }
+VM_INS_RET VM::F_LVALIDXV(VM_OP_ARGS)  { int lvalop = *ip++; LvalueIdxVector(lvalop, GrabIndex(POP())); VM_RET; }
+VM_INS_RET VM::F_LVALFLD(VM_OP_ARGS)   { int lvalop = *ip++; LvalueField(lvalop, *ip++); VM_RET; }
 
 #ifdef VM_COMPILED_CODE_MODE
     #define GJUMP(N, V, D1, C, P, D2) VM_JUMP_RET VM::N() \
         { V; D1; if (C) { P; return true; } else { D2; return false; } }
 #else
     #define GJUMP(N, V, D1, C, P, D2) VM_JUMP_RET VM::N() \
-        { V; auto nip = *ip++; D1; if (C) { ip = codestart + nip; P; } else { D2; } }
+        { V; auto nip = *ip++; D1; if (C) { ip = codestart + nip; P; } else { D2; } VM_RET; }
 #endif
 
 GJUMP(F_JUMP          ,               ,             , true     ,              ,             )
@@ -1186,102 +1219,118 @@ GJUMP(F_JUMPFAILNREF  , auto x = POP(), x.DECRTNIL(), !x.True(), PUSH(Value()), 
 GJUMP(F_JUMPNOFAILREF , auto x = POP(), x.DECRTNIL(),  x.True(),              ,             )
 GJUMP(F_JUMPNOFAILRREF, auto x = POP(),             ,  x.True(), PUSH(x)      , x.DECRTNIL())
 
-void VM::F_ISTYPE(VM_OP_ARGS) {
+VM_INS_RET VM::F_ISTYPE(VM_OP_ARGS) {
     auto to = (type_elem_t)*ip++;
     auto v = POP();
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) PUSH(v.ref()->tti == to);
     else PUSH(GetTypeInfo(to).t == V_NIL);  // FIXME: can replace by fixed type_elem_t ?
     v.DECRTNIL();
+    VM_RET;
 }
 
-void VM::F_YIELD(VM_OP_ARGS_CALL) { CoYield(VM_OP_PASSTHRU); }
+VM_INS_RET VM::F_YIELD(VM_OP_ARGS_CALL) { CoYield(VM_OP_PASSTHRU); VM_RET; }
 
 // This value never gets used anywhere, just a placeholder.
-void VM::F_COCL(VM_OP_ARGS) { PUSH(Value(0, V_YIELD)); }
+VM_INS_RET VM::F_COCL(VM_OP_ARGS) { PUSH(Value(0, V_YIELD)); VM_RET; }
 
-void VM::F_CORO(VM_OP_ARGS_CALL) { CoNew(VM_OP_PASSTHRU); }
+VM_INS_RET VM::F_CORO(VM_OP_ARGS_CALL) { CoNew(VM_OP_PASSTHRU); VM_RET; }
 
-void VM::F_COEND(VM_OP_ARGS) { CoClean(); }
+VM_INS_RET VM::F_COEND(VM_OP_ARGS) { CoClean(); VM_RET; }
 
-void VM::F_LOGREAD(VM_OP_ARGS) {
+VM_INS_RET VM::F_LOGREAD(VM_OP_ARGS) {
     auto val = POP();
     PUSH(vml.LogGet(val, *ip++));
+    VM_RET;
 }
 
-void VM::F_LOGWRITE(VM_OP_ARGS) {
+VM_INS_RET VM::F_LOGWRITE(VM_OP_ARGS) {
     auto vidx = *ip++;
     auto lidx = *ip++;
     vml.LogWrite(vars[vidx], lidx);
+    VM_RET;
 }
 
-void VM::F_ABORT(VM_OP_ARGS) {
+VM_INS_RET VM::F_ABORT(VM_OP_ARGS) {
     Error("VM internal error: abort");
+    VM_RET;
 }
 
 void VM::EvalProgram() {
+    // Keep exception handling code in seperate function from hot loop in EvalProgramInner()
+    // just in case it affects the compiler.
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        for (;;) {
-            #ifdef VM_COMPILED_CODE_MODE
-                #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
-                    compiled_code_ip = ((block_t)compiled_code_ip)();
-                #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
-                    ((block_base_t)compiled_code_ip)();
-                    assert(false);  // Should not return here.
-                #endif
-            #else
-                #ifdef _DEBUG
-                    if (trace) {
-                        if (!trace_tail) trace_output.clear();
-                        DisAsmIns(trace_output, ip, codestart, typetable, bcf);
-                        trace_output += " [";
-                        trace_output += to_string(sp + 1);
-                        trace_output += "] - ";
-                        #if RTT_ENABLED
-                        if (sp >= 0) {
-                            auto x = TOP();
-                            trace_output += x.ToString(x.type, debugpp);
-                        }
-                        if (sp >= 1) {
-                            auto x = TOPM(1);
-                            trace_output += " ";
-                            trace_output += x.ToString(x.type, debugpp);
-                        }
-                        #endif
-                        if (trace_tail) {
-                            trace_output += "\n";
-                            const int trace_max = 10000;
-                            if (trace_output.length() > trace_max)
-                                trace_output.erase(0, trace_max / 2);
-                        } else {
-                            Output(OUTPUT_INFO, trace_output);
-                        }
-                    }
-                    //currentline = LookupLine(ip).line;
-                #endif
-                #ifdef VM_PROFILER
-                    auto code_idx = size_t(ip - codestart);
-                    assert(code_idx < codelen);
-                    byteprofilecounts[code_idx]++;
-                    vm_count_ins++;
-                #endif
-                auto op = *ip++;
-                #ifdef _DEBUG
-                    if (op < 0 || op >= IL_MAX_OPS)
-                        Error("bytecode format problem: " + to_string(op));
-                #endif
-                ((*this).*(f_ins_pointers[op]))();
-            #endif
-        }
+        EvalProgramInner();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         if (s != "end-eval") THROW_OR_ABORT(s);
     }
     #endif
+}
+
+void VM::EvalProgramInner() {
+    for (;;) {
+        #ifdef VM_COMPILED_CODE_MODE
+            #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
+                compiled_code_ip = ((block_t)compiled_code_ip)();
+            #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
+                ((block_base_t)compiled_code_ip)();
+                assert(false);  // Should not return here.
+            #endif
+        #else
+            #ifdef _DEBUG
+                if (trace) {
+                    if (!trace_tail) trace_output.clear();
+                    DisAsmIns(trace_output, ip, codestart, typetable, bcf);
+                    trace_output += " [";
+                    trace_output += to_string(sp + 1);
+                    trace_output += "] - ";
+                    #if RTT_ENABLED
+                    if (sp >= 0) {
+                        auto x = TOP();
+                        trace_output += x.ToString(x.type, debugpp);
+                    }
+                    if (sp >= 1) {
+                        auto x = TOPM(1);
+                        trace_output += " ";
+                        trace_output += x.ToString(x.type, debugpp);
+                    }
+                    #endif
+                    if (trace_tail) {
+                        trace_output += "\n";
+                        const int trace_max = 10000;
+                        if (trace_output.length() > trace_max)
+                            trace_output.erase(0, trace_max / 2);
+                    } else {
+                        Output(OUTPUT_INFO, trace_output);
+                    }
+                }
+                //currentline = LookupLine(ip).line;
+            #endif
+            #ifdef VM_PROFILER
+                auto code_idx = size_t(ip - codestart);
+                assert(code_idx < codelen);
+                byteprofilecounts[code_idx]++;
+                vm_count_ins++;
+            #endif
+            auto op = *ip++;
+            #ifdef _DEBUG
+                if (op < 0 || op >= IL_MAX_OPS)
+                    Error("bytecode format problem: " + to_string(op));
+            #endif
+            #ifdef VM_ERROR_RET_EXPERIMENT
+                bool terminate =
+            #endif
+            ((*this).*(f_ins_pointers[op]))();
+            #ifdef VM_ERROR_RET_EXPERIMENT
+                if (terminate) return;
+            #endif
+        #endif
+    }
 }
 
 void VM::PushDerefField(int i) {
