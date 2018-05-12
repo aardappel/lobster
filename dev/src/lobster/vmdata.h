@@ -652,19 +652,35 @@ struct VM {
     int64_t vm_count_fcalls;
     int64_t vm_count_bcalls;
 
-    //#define VM_ERROR_RET_EXPERIMENT
-    #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
-    #define VM_INS_RET bool
-    #define VM_RET return false
-    #define VM_TERMINATE return true
-    #else 
-    #define VM_INS_RET void
-    #define VM_RET
-    #define VM_TERMINATE
+    #ifndef VM_COMPILED_CODE_MODE
+        //#define VM_INS_SWITCH
     #endif
 
+    //#define VM_ERROR_RET_EXPERIMENT
+    #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
+        #define VM_INS_RET bool
+        #ifdef VM_INS_SWITCH
+            #define VM_RET break
+            #define VM_TERMINATE return
+        #else
+            #define VM_RET return false
+            #define VM_TERMINATE return true
+        #endif
+    #else 
+        #define VM_INS_RET void
+        #ifdef VM_INS_SWITCH
+            #define VM_RET break
+            #define VM_TERMINATE return
+        #else
+            #define VM_RET
+            #define VM_TERMINATE
+        #endif
+    #endif
+
+    #ifndef VM_INS_SWITCH
     typedef VM_INS_RET (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
+    #endif
 
     const void *compiled_code_ip;
 
@@ -713,11 +729,11 @@ struct VM {
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_OP_ARGS const int *ip
         #define VM_OP_ARGS_CALL const int *ip, block_t fcont
-        #define VM_JUMP_RET bool
+        #define VM_JMP_RET bool
     #else
         #define VM_OP_ARGS
         #define VM_OP_ARGS_CALL
-        #define VM_JUMP_RET VM_INS_RET
+        #define VM_JMP_RET VM_INS_RET
     #endif
 
     void JumpTo(InsPtr j);
@@ -738,15 +754,17 @@ struct VM {
 
     void EndEval(Value &ret, ValueType vt);
 
-    #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
-        ILBASENAMES
-    #undef F
-    #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
-        ILCALLNAMES
-    #undef F
-    #define F(N, A) VM_JUMP_RET F_##N();
-        ILJUMPNAMES
-    #undef F
+    #ifndef VM_INS_SWITCH
+        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
+            ILBASENAMES
+        #undef F
+        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
+            ILCALLNAMES
+        #undef F
+        #define F(N, A) VM_JMP_RET F_##N();
+            ILJUMPNAMES
+        #undef F
+    #endif
 
     void EvalProgram();
     void EvalProgramInner();

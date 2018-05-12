@@ -925,7 +925,9 @@ CURRENT SOLUTION FROM TRADEOFS:
     with gcc (manages to infer no exception can be thrown?)
     Combining the conditional with no-exceptions doesn't seem to make much of a difference for
     either compiler.
-  Conclusion: stick with exceptions for now.
+  - Would need to revert to a switch to make this exit cheaper, but switch is also about 7%
+    slower in VS than trampoline, with or without exceptions.
+  Conclusion: stick with exceptions (and trampoline) for now.
  
 - you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong
