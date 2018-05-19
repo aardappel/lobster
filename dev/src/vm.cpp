@@ -346,8 +346,8 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
                 InsPtr retip(comp_retip);
                 InsPtr fun(next_mm_table[i]);
             #else
-                InsPtr retip(call_arg_types);
-                InsPtr fun(codestart + *mip);
+                InsPtr retip(call_arg_types - codestart);
+                InsPtr fun(*mip);
                 (void)comp_retip;
             #endif
             StartStackFrame(definedfunction, retip, tempmask);
@@ -383,7 +383,7 @@ void VM::JumpTo(InsPtr j) {
     #ifdef VM_COMPILED_CODE_MODE
         next_call_target = j.f;
     #else
-        ip = j.f;
+        ip = j.f + codestart;
     #endif
 }
 
@@ -391,7 +391,7 @@ InsPtr VM::GetIP() {
     #ifdef VM_COMPILED_CODE_MODE
         return InsPtr(next_call_target);
     #else
-        return InsPtr(ip);
+        return InsPtr(ip - codestart);
     #endif
 }
 
@@ -555,7 +555,7 @@ void VM::CoNew(VM_OP_ARGS_CALL) {
         ip++;
         InsPtr returnip(fcont);
     #else
-        InsPtr returnip(codestart + *ip++);
+        InsPtr returnip(*ip++);
     #endif
     auto ctidx = (type_elem_t)*ip++;
     CoNonRec(ip);
@@ -595,7 +595,7 @@ void VM::CoYield(VM_OP_ARGS_CALL) {
         (void)ip;
         InsPtr retip(fcont);
     #else
-        InsPtr retip(ip);
+        InsPtr retip(ip - codestart);
     #endif
     auto ret = POP();
     for (int i = 1; i <= *curcoroutine->varip; i++) {
@@ -804,7 +804,7 @@ VM_DEF_CAL(PUSHFUN) {
         ip++;
     #else
         int start = *ip++;
-        auto fcont = codestart + start;
+        auto fcont = start;
     #endif
     PUSH(Value(InsPtr(fcont)));
     VM_RET;
@@ -826,9 +826,9 @@ VM_DEF_CAL(CALL) {
         auto tm = *ip++;
         block_t fun = 0;  // Dynamic calls need this set, but for CALL it is ignored.
     #else
-        auto fun = codestart + *ip++;
+        auto fun = *ip++;
         auto tm = *ip++;
-        auto fcont = ip;
+        auto fcont = ip - codestart;
     #endif
     StartStackFrame(fvar, InsPtr(fcont), tm);
     FunIntroPre(InsPtr(fun));
@@ -890,7 +890,7 @@ VM_DEF_CAL(CALLV) {
         VMTYPEEQ(fun, V_FUNCTION);
         auto tm = *ip++;
         #ifndef VM_COMPILED_CODE_MODE
-        auto fcont = ip;
+            auto fcont = ip - codestart;
         #endif
         StartStackFrame(-1, InsPtr(fcont), tm);
         FunIntroPre(fun.ip());

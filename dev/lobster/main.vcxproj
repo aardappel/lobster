@@ -153,6 +153,7 @@
       <StackReserveSize>
       </StackReserveSize>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalOptions>/HIGHENTROPYVA:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
@@ -226,6 +227,7 @@
       <StackReserveSize>
       </StackReserveSize>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalOptions>/HIGHENTROPYVA:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
