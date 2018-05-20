@@ -18,8 +18,8 @@
 
 namespace lobster {
 
-void GVMAssert(bool ok, const char *what) {
-    g_vm->VMAssert(ok, what);
+void GVMAssert(const char *what) {
+    g_vm->VMAssert(what);
 }
 
 BoxedInt::BoxedInt(intp _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}

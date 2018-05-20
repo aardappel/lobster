@@ -282,19 +282,17 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     THROW_OR_ABORT(s);
 }
 
-void VM::VMAssert(bool ok, const char *what)  {
-    if (!ok)
-        Error(string("VM internal assertion failure: ") + what);
+void VM::VMAssert(const char *what)  {
+    Error(string("VM internal assertion failure: ") + what);
 }
-void VM::VMAssert(bool ok, const char *what, const RefObj *a, const RefObj *b)  {
-    if (!ok)
-        Error(string("VM internal assertion failure: ") + what, a, b);
+void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
+    Error(string("VM internal assertion failure: ") + what, a, b);
 }
 
 #if defined(_DEBUG) && RTT_ENABLED
     #define STRINGIFY(x) #x
     #define TOSTRING(x) STRINGIFY(x)
-    #define VMASSERT(test) { VMAssert(test, __FILE__ ": " TOSTRING(__LINE__) ": " #test); }
+    #define VMASSERT(test) { if (!(test)) VMAssert(__FILE__ ": " TOSTRING(__LINE__) ": " #test); }
 #else
     #define VMASSERT(test) {}
 #endif
@@ -397,7 +395,7 @@ InsPtr VM::GetIP() {
 
 int VM::VarCleanup(string *error, int towhere) {
     auto &stf = stackframes.back();
-    assert(sp == stf.spstart);
+    VMASSERT(sp == stf.spstart);
     auto fip = stf.funstart;
     auto nargs = *fip++;
     auto freevars = fip + nargs;

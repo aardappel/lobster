@@ -287,11 +287,11 @@ struct InsPtr {
     bool operator==(const InsPtr o) const { return f == o.f; }
 };
 
-void GVMAssert(bool ok, const char *what);
+void GVMAssert(const char *what);
 
 #if RTT_ENABLED
     #if RTT_TYPE_ERRORS
-        #define TYPE_ASSERT(cond) GVMAssert(cond, #cond)
+        #define TYPE_ASSERT(cond) if (!(cond)) GVMAssert(#cond)
     #else
         #define TYPE_ASSERT(cond) assert(cond)
     #endif
@@ -769,8 +769,8 @@ struct VM {
 
     Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr);
     Value BuiltinError(string err) { return Error(err); }
-    void VMAssert(bool ok, const char *what);
-    void VMAssert(bool ok, const char *what, const RefObj *a, const RefObj *b);
+    void VMAssert(const char *what);
+    void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
     string ValueDBG(const RefObj *a);
     string DumpVar(const Value &x, size_t idx, bool dumpglobals);
