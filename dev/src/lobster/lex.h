@@ -297,7 +297,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "enum")      return T_ENUM;
                     else if (sattr == "typeof")    return T_TYPEOF;
                     else if (sattr == "var")       return T_VAR;
-                    else if (sattr == "const")     return T_CONST;
+                    else if (sattr == "let")       return T_CONST;
                     else if (sattr == "pakfile")   return T_PAKFILE;
                     else if (sattr == "not")       return T_NOT;
                     else if (sattr == "and")       { cont = true; return T_AND; }

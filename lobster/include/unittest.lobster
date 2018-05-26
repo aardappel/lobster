@@ -17,8 +17,8 @@ def run_test_cases(is_speed_test):
     assert 2 >> 1 == 1
     assert ~1 == -2
 
-    var vardef = 1      // shorter form: vardef := 1
-    const constdef = 1  // shorter form: constdef :== 1
+    var vardef = 1    // shorter form: vardef := 1
+    let constdef = 1  // shorter form: constdef :== 1
 
     value testa { a:int }
     value testb : testa { b:int }
