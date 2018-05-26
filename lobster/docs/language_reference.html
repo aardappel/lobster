@@ -40,7 +40,7 @@
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( <code>def</code> ident functiondef | struct | vardef | enumdef ) | expstat</p>
 <p>struct = ( <code>struct</code> | <code>value</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
-<p>vardef = ( <code>var</code> | <code>const</code> ) ident <code>=</code> opexp | list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
+<p>vardef = ( <code>var</code> | <code>let</code> ) ident <code>=</code> opexp | list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
 <p>enumdef = <code>enum</code> [ <code>+</code> | <code>*</code> ] list( ident [ <code>=</code> integer_constant ] )</p>
 <p>functiondef = <code>(</code> args <code>) :</code> body</p>
 <p>block = args <code>:</code> body | functiondef</p>
@@ -108,10 +108,10 @@ value xyz : xy { z }</code></pre>
 <pre><code>a = 1
 v[0] = 1
 v.x = 1</code></pre>
-<p>All variables must already have been declared, or this will result in an error. Instead, <code>var</code> defines and assigns in one go, and requires the variable to not have been declared yet in this scope. <code>const</code> does the same for variables which cannot be modified afterwards:</p>
+<p>All variables must already have been declared, or this will result in an error. Instead, <code>var</code> defines and assigns in one go, and requires the variable to not have been declared yet in this scope. <code>let</code> does the same for variables which cannot be modified afterwards:</p>
 <pre><code>var a = 1
-const a = 1</code></pre>
-<p><code>:=</code> and <code>:==</code> are shorthand for <code>var =</code> and <code>const =</code> respectively:</p>
+let a = 1</code></pre>
+<p><code>:=</code> and <code>:==</code> are shorthand for <code>var =</code> and <code>let =</code> respectively:</p>
 <pre><code>a := 1
 b :== 1</code></pre>
 <pre><code>enum x = 1, y, z</code></pre>

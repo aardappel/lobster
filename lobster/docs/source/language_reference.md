@@ -62,7 +62,7 @@ topexp = `include` string\_constant \| [ `private` ] ( `def` ident functiondef
 
 struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
-vardef = ( `var` \| `const` ) ident `=` opexp \| list( ident ) ( `:=` \| `:==`
+vardef = ( `var` \| `let` ) ident `=` opexp \| list( ident ) ( `:=` \| `:==`
 \| `<-` ) list( opexp )
 
 enumdef = `enum` [ `+` \| `*` ] list( ident [ `=` integer\_constant ] )
@@ -238,15 +238,15 @@ v.x = 1
 
 All variables must already have been declared, or this will result in an error.
 Instead, `var` defines and assigns in one go, and requires the variable to not
-have been declared yet in this scope. `const` does the same for variables which
+have been declared yet in this scope. `let` does the same for variables which
 cannot be modified afterwards:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var a = 1
-const a = 1
+let a = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`:=` and `:==` are shorthand for `var =` and `const =` respectively:
+`:=` and `:==` are shorthand for `var =` and `let =` respectively:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 a := 1
