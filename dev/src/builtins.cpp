@@ -74,7 +74,7 @@ void AddBuiltins() {
     STARTDECL(print) (Value &a) {
         g_vm->ss_reuse.str(string());
         g_vm->ss_reuse.clear();
-        RefToString(g_vm->ss_reuse, a.ref(), g_vm->programprintprefs);
+        RefToString(g_vm->ss_reuse, a.refnil(), g_vm->programprintprefs);
         Output(OUTPUT_PROGRAM, g_vm->ss_reuse.str());
         return a;
     }
@@ -85,7 +85,7 @@ void AddBuiltins() {
         if (a.ref() && a.ref()->tti == TYPE_ELEM_STRING) return a;
         g_vm->ss_reuse.str(string());
         g_vm->ss_reuse.clear();
-        RefToString(g_vm->ss_reuse, a.ref(), g_vm->programprintprefs);
+        RefToString(g_vm->ss_reuse, a.refnil(), g_vm->programprintprefs);
         auto str = g_vm->NewString(g_vm->ss_reuse.str());
         a.DECRT();
         return str;
