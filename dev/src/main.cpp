@@ -120,18 +120,18 @@ int main(int argc, char* argv[]) {
             }
         }
         if (disasm) {
-            string s;
-            DisAsm(s, bytecode);
-            WriteFile("disasm.txt", false, s);
+            ostringstream ss;
+            DisAsm(ss, bytecode);
+            WriteFile("disasm.txt", false, ss.str());
         }
         if (to_cpp) {
             // FIXME: make less hard-coded.
             FILE *f = fopen((StripFilePart(argv[0]) +
                             "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(), "w");
             if (f) {
-                string s;
-                ToCPP(s, bytecode);
-                fputs(s.c_str(), f);
+                ostringstream ss;
+                ToCPP(ss, bytecode);
+                fputs(ss.str().c_str(), f);
                 fclose(f);
             }
         } else {

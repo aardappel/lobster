@@ -685,8 +685,8 @@ struct Parser {
 
     void ReturnValues(Function &f, int nrv) {
         if (f.nretvals && f.nretvals != nrv)
-            Error("all return statements of this function must return the same number of"
-                  " return values. previously: " + to_string(f.nretvals));
+            Error(cat("all return statements of this function must return the same number of"
+                      " return values. previously: ", f.nretvals));
         f.nretvals = nrv;
     }
 
@@ -829,7 +829,7 @@ struct Parser {
         else if (!Is<DefaultVal>(funval))
             Error("illegal body", funval);
         if (clnargs > maxargs)
-            Error("body has " + to_string(clnargs - maxargs) + " parameters too many", funval);
+            Error(cat("body has ", clnargs - maxargs, " parameters too many"), funval);
         if (Is<DefaultVal>(funval)) return funval;
         assert(fr);
         auto call = new Call(lex, fr->sf);
@@ -927,8 +927,7 @@ struct Parser {
         for (; f; f = f->sibf)
             if (f->nargs() == nargs)
                 return f;
-        Error("no version of function " + idname + " takes " + to_string(nargs) + " arguments",
-              errnode);
+        Error(cat("no version of function ", idname, " takes ", nargs, " arguments"), errnode);
         return nullptr;
     }
 

@@ -247,7 +247,7 @@ void SDLRequireGLVersion(int major, int minor) {
     #ifdef PLATFORM_WINNIX
         gl_major = major;
         gl_minor = minor;
-        glslversion = to_string(major) + to_string(minor) + "0";
+        glslversion = cat(major, minor, "0");
     #endif
 };
 

@@ -287,7 +287,6 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
     {
         string bytecode;
         Compile(fn, stringiscode ? source.sval()->str() : nullptr, bytecode);
-        //string s; DisAsm(s, bytecode); Output(OUTPUT_INFO, s);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.

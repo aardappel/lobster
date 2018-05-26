@@ -199,9 +199,9 @@ template<typename T> struct RandomNumberGenerator {
 
 // Special case for to_string to get exact float formatting we need.
 template<typename T> string to_string_float(T x, int decimals = -1) {
-    // stringstream gives more consistent cross-platform results than to_string() for floats, and
+    // ostringstream gives more consistent cross-platform results than to_string() for floats, and
     // can at least be configured to turn scientific notation off.
-    std::stringstream ss;
+    ostringstream ss;
     // Suppress scientific notation.
     ss << std::fixed;
     // There's no way to tell it to just output however many decimals are actually significant,
@@ -225,10 +225,8 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
     return s;
 }
 
-inline string to_string_hex(size_t x) {
-    stringstream ss;
-    ss << "0x" << std::hex << x;
-    return ss.str();
+inline void to_string_hex(ostringstream &ss, size_t x) {
+    ss << "0x" << std::hex << x << std::dec;
 }
 
 /* Accumulator: a container that is great for accumulating data like std::vector,

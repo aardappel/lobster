@@ -42,8 +42,7 @@ string GLSLError(uint obj, bool isprogram, const char *source) {
         err += log;
         int i = 0;
         if (source) for (;;) {
-            err += to_string(++i);
-            err += ": ";
+            err += cat(++i, ": ");
             const char *next = strchr(source, '\n');
             if (next) { err += string_view(source, next - source + 1); source = next + 1; }
             else { err += string_view(source) + "\n"; break; }
@@ -200,8 +199,8 @@ string ParseMaterialFile(char *mbuf) {
                         }
                         auto unit = atoi(p);
                         if (accum == &compute) {
-                            decl += "layout(binding = " + to_string(unit) + ", " +
-                                    (floatingp ? "rgba32f" : "rgba8") + ") ";
+                            decl += cat("layout(binding = ", unit, ", ", 
+                                        (floatingp ? "rgba32f" : "rgba8"), ") ");
                         }
                         decl += "uniform ";
                         decl += accum == &compute ? (cubemap ? "imageCube" : "image2D")
@@ -233,7 +232,7 @@ string ParseMaterialFile(char *mbuf) {
                         return "input " + last + " can only use 1..4 components";
                     }
                     last = last.substr(0, pos - last.c_str());
-                    string d = " vec" + to_string(comp) + " " + last + ";\n";
+                    string d = cat(" vec", comp, " ", last, ";\n");
                     if (accum == &vertex) vdecl += "in" + d;
                     else { vdecl += "out" + d; pdecl += "in" + d; }
                 }
@@ -321,11 +320,10 @@ void Shader::Link(const char *name) {
     pointscale_i   = glGetUniformLocation(program, "pointscale");
     Activate();
     for (int i = 0; i < MAX_SAMPLERS; i++) {
-        auto is = to_string(i);
-        auto loc = glGetUniformLocation(program, ("tex" + is).c_str());
+        auto loc = glGetUniformLocation(program, cat("tex", i).c_str());
         if (loc < 0) {
-            loc = glGetUniformLocation(program, ("texcube" + is).c_str());
-            if (loc < 0) loc = glGetUniformLocation(program, ("tex3d" + is).c_str());
+            loc = glGetUniformLocation(program, cat("texcube", i).c_str());
+            if (loc < 0) loc = glGetUniformLocation(program, cat("tex3d", i).c_str());
         }
         if (loc >= 0) {
             glUniform1i(loc, i);

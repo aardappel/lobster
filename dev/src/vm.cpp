@@ -66,7 +66,7 @@ VM::VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
         programprintprefs(10, 10000, false, -1, false), typetable(nullptr),
         currentline(-1), maxsp(-1),
         debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
-        trace(false), trace_tail(false),
+        trace(false), trace_tail(false), trace_ring_idx(0),
         vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
         compiled_code_ip(entry_point), program_args(args) {
     assert(vmpool == nullptr);
@@ -176,8 +176,11 @@ void VM::DumpLeaks() {
                 case V_BOXEDFLOAT:
                 case V_VECTOR:
                 case V_STRUCT: {
-                    auto s = RefToString(ro, leakpp);
-                    s += cat(ro->CycleStr(), " = ", s, "\n");
+                    ostringstream ss;
+                    ro->CycleStr(ss);
+                    ss << " = ";
+                    RefToString(ss, ro, leakpp);
+                    ss << "\n";
                     break;
                 }
                 default: assert(false);
@@ -239,47 +242,53 @@ LString *VM::NewString(string_view s1, string_view s2) {
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(string err, const RefObj *a, const RefObj *b) {
-    if (trace_tail && trace_output.length()) THROW_OR_ABORT(trace_output + err);
-    string s;
+    if (trace_tail && trace_output.size()) {
+        string s;
+        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) s += trace_output[i].str();
+        for (size_t i = 0; i < trace_ring_idx; i++) s += trace_output[i].str();
+        s += err;
+        THROW_OR_ABORT(s);
+    }
+    ostringstream ss;
     #ifndef VM_COMPILED_CODE_MODE
         // error is usually in the byte before the current ip.
         auto li = LookupLine(ip - 1, codestart, bcf);
-        s += flat_string_view(bcf->filenames()->Get(li->fileidx())) + "(" + to_string(li->line()) +
-             "): ";
+        ss << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '(' << li->line() << "): ";
     #endif
-    s += "VM error: " + err;
-    if (a) s += "\n   arg: " + ValueDBG(a);
-    if (b) s += "\n   arg: " + ValueDBG(b);
+    ss << "VM error: " << err;
+    if (a) { ss << "\n   arg: "; RefToString(ss, a, debugpp); }
+    if (b) { ss << "\n   arg: "; RefToString(ss, b, debugpp); }
     while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart)) {
         // Sadly can't print this properly.
-        s += "\n   stack: " + to_string_hex((size_t)TOP().any());
-        if (vmpool->pointer_is_in_allocator(TOP().any()))
-            s += ", maybe: " + RefToString(TOP().ref(), debugpp);
+        ss << "\n   stack: ";
+        to_string_hex(ss, (size_t)TOP().any());
+        if (vmpool->pointer_is_in_allocator(TOP().any())) {
+            ss << ", maybe: ";
+            RefToString(ss, TOP().ref(), debugpp);
+        }
         POP();  // We don't DEC here, as we can't know what type it is.
                 // This is ok, as we ignore leaks in case of an error anyway.
     }
     for (;;) {
         if (!stackframes.size()) break;
-        string locals;
         int deffun = stackframes.back().definedfunction;
-        VarCleanup(s.length() < 10000 ? &locals : nullptr, -2 /* clean up temps always */);
         if (deffun >= 0) {
-            s += "\nin function: " + flat_string_view(bcf->functions()->Get(deffun)->name());
+            ss << "\nin function: " << flat_string_view(bcf->functions()->Get(deffun)->name());
         } else {
-            s += "\nin block";
+            ss << "\nin block";
         }
         #ifndef VM_COMPILED_CODE_MODE
         auto li = LookupLine(ip - 1, codestart, bcf);
-        s += " -> " + flat_string_view(bcf->filenames()->Get(li->fileidx())) + "(" +
-             to_string(li->line()) + ")";
+        ss << " -> " << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '('
+           << li->line() << ')';
         #endif
-        s += locals;
+        VarCleanup(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
     }
-    s += "\nglobals:";
+    ss << "\nglobals:";
     for (size_t i = 0; i < bcf->specidents()->size(); i++) {
-        s += DumpVar(vars[i], i, true);
+        DumpVar(ss, vars[i], i, true);
     }
-    THROW_OR_ABORT(s);
+    THROW_OR_ABORT(ss.str());
 }
 
 void VM::VMAssert(const char *what)  {
@@ -302,20 +311,17 @@ void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
 #endif
 
-string VM::ValueDBG(const RefObj *a) {
-    return RefToString(a, debugpp);
-}
-
-string VM::DumpVar(const Value &x, size_t idx, bool dumpglobals) {
+void VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals) {
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
-    if (id->readonly() || id->global() != dumpglobals) return "";
+    if (id->readonly() || id->global() != dumpglobals) return;
     auto name = flat_string_view(id->name());
     auto static_type = GetVarTypeInfo((int)idx).t;
     #if RTT_ENABLED
-        if (static_type != x.type) return "";  // Likely uninitialized.
+        if (static_type != x.type) return;  // Likely uninitialized.
     #endif
-    return "\n   " + name + " = " + x.ToString(static_type, debugpp);
+    ss << "\n   " << name << " = ";
+    x.ToString(ss, static_type, debugpp);
 }
 
 void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_types,
@@ -393,7 +399,7 @@ InsPtr VM::GetIP() {
     #endif
 }
 
-int VM::VarCleanup(string *error, int towhere) {
+int VM::VarCleanup(ostringstream *error, int towhere) {
     auto &stf = stackframes.back();
     VMASSERT(sp == stf.spstart);
     auto fip = stf.funstart;
@@ -404,13 +410,13 @@ int VM::VarCleanup(string *error, int towhere) {
     auto defvars = fip + ndef;
     while (ndef--) {
         auto i = *--defvars;
-        if (error) (*error) += DumpVar(vars[i], i, false);
+        if (error) DumpVar(*error, vars[i], i, false);
         else vars[i].DECTYPE(GetVarTypeInfo(i).t);
         vars[i] = POP();
     }
     while (nargs--) {
         auto i = *--freevars;
-        if (error) (*error) += DumpVar(vars[i], i, false);
+        if (error) DumpVar(*error, vars[i], i, false);
         else vars[i].DECTYPE(GetVarTypeInfo(i).t);
         vars[i] = POP();
     }
@@ -633,7 +639,9 @@ void VM::CoResume(LCoRoutine *co) {
 }
 
 void VM::EndEval(Value &ret, ValueType vt) {
-    evalret = ret.ToString(vt, programprintprefs);
+    ostringstream ss;
+    ret.ToString(ss, vt, programprintprefs);
+    evalret = ss.str();
     ret.DECTYPE(vt);
     assert(sp == -1);
     FinalStackVarsCleanup();
@@ -718,29 +726,28 @@ void VM::EvalProgramInner() {
         #else
             #ifdef _DEBUG
                 if (trace) {
-                    if (!trace_tail) trace_output.clear();
-                    DisAsmIns(trace_output, ip, codestart, typetable, bcf);
-                    trace_output += " [";
-                    trace_output += to_string(sp + 1);
-                    trace_output += "] - ";
+                    size_t trace_size = trace_tail ? 50 : 1;
+                    if (trace_output.size() < trace_size) trace_output.resize(trace_size);
+                    if (trace_ring_idx == trace_size) trace_ring_idx = 0;
+                    auto &ss = trace_output[trace_ring_idx++];
+                    ss.str(string());
+                    DisAsmIns(ss, ip, codestart, typetable, bcf);
+                    ss << " [" << (sp + 1) << "] - ";
                     #if RTT_ENABLED
                     if (sp >= 0) {
                         auto x = TOP();
-                        trace_output += x.ToString(x.type, debugpp);
+                        x.ToString(ss, x.type, debugpp);
                     }
                     if (sp >= 1) {
                         auto x = TOPM(1);
-                        trace_output += " ";
-                        trace_output += x.ToString(x.type, debugpp);
+                        ss << ' ';
+                        x.ToString(ss, x.type, debugpp);
                     }
                     #endif
                     if (trace_tail) {
-                        trace_output += "\n";
-                        const int trace_max = 10000;
-                        if (trace_output.length() > trace_max)
-                            trace_output.erase(0, trace_max / 2);
+                        ss << '\n';
                     } else {
-                        Output(OUTPUT_INFO, trace_output);
+                        Output(OUTPUT_INFO, ss.str());
                     }
                 }
                 //currentline = LookupLine(ip).line;
@@ -754,7 +761,7 @@ void VM::EvalProgramInner() {
             auto op = *ip++;
             #ifdef _DEBUG
                 if (op < 0 || op >= IL_MAX_OPS)
-                    Error("bytecode format problem: " + to_string(op));
+                    Error(cat("bytecode format problem: ", op));
             #endif
             #ifndef VM_INS_SWITCH
                 #ifdef VM_ERROR_RET_EXPERIMENT
@@ -1225,7 +1232,10 @@ VM_DEF_INS(I2F) {
 VM_DEF_INS(A2S) {
     Value a = POP();
     TYPE_ASSERT(IsRefNil(a.type));
-    PUSH(NewString(a.ToString(a.ref() ? a.ref()->ti().t : V_NIL, programprintprefs)));
+    g_vm->ss_reuse.str(string());
+    g_vm->ss_reuse.clear();
+    a.ToString(g_vm->ss_reuse, a.ref() ? a.ref()->ti().t : V_NIL, programprintprefs);
+    PUSH(NewString(g_vm->ss_reuse.str()));
     a.DECRTNIL();
     VM_RET;
 }
@@ -1508,7 +1518,7 @@ void VM::LvalueOp(int op, Value &a) {
         case LVO_FMMPR: { PPOP(op == LVO_FMMPR, -, false, fval); break; }
 
         default:
-            Error("bytecode format problem (lvalue): " + to_string(op));
+            Error(cat("bytecode format problem (lvalue): ", op));
     }
 }
 
@@ -1522,7 +1532,7 @@ string VM::ProperTypeName(const TypeInfo &ti) {
 }
 
 void VM::IDXErr(intp i, intp n, const RefObj *v) {
-    if (i < 0 || i >= n) Error("index " + to_string(i) + " out of range " + to_string(n), v);
+    if (i < 0 || i >= n) Error(cat("index ", i, " out of range ", n), v);
 }
 
 void VM::BCallProf() {

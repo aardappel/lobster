@@ -17,7 +17,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 11;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 12;
 const int MAX_RETURN_VALUES = 16;
 
 #define ILBASENAMES \

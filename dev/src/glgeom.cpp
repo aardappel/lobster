@@ -146,9 +146,9 @@ Mesh::~Mesh() {
 
 bool Geometry::WritePLY(string &s, size_t nindices) {
     #ifndef PLATFORM_ES3
-    s += "ply\n"
-         "format binary_little_endian 1.0\n"
-         "element vertex " + to_string(nverts) + "\n";
+    s += cat("ply\n"
+             "format binary_little_endian 1.0\n"
+             "element vertex ", nverts, "\n");
     for (auto fc : fmt) {
         switch (fc) {
             case 'P': s += "property float x\nproperty float y\nproperty float z\n"; break;
@@ -165,9 +165,9 @@ bool Geometry::WritePLY(string &s, size_t nindices) {
             default: assert(0);
         }
     }
-    s += "element face " + to_string(nindices / 3) + "\n"
-         "property list int int vertex_index\n"
-         "end_header\n";
+    s += cat("element face ", nindices / 3, "\n"
+             "property list int int vertex_index\n"
+             "end_header\n");
     vector<uchar> vdata(nverts * vertsize1);
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo1));
     GL_CALL(glGetBufferSubData(GL_ARRAY_BUFFER, 0, vdata.size(), vdata.data()));

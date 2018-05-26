@@ -22,6 +22,6 @@ extern bool LoadByteCode(string &bytecode);
 extern void RegisterBuiltin(const char *name, void (* regfun)());
 extern void RegisterCoreLanguageBuiltins();
 
-extern void ToCPP(string &s, string_view bytecode_buffer);
+extern void ToCPP(ostringstream &ss, string_view bytecode_buffer);
 
 }

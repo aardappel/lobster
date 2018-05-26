@@ -323,7 +323,7 @@ struct Lex : LoadedFile {
                     }
                 }
                 if (c == '.') return T_DOT;
-                auto tok = c <= ' ' ? "[ascii " + to_string(c) + "]" : string("") + c;
+                auto tok = c <= ' ' ? cat("[ascii ", int(c), "]") : cat(int(c));
                 Error("illegal token: " + tok);
                 return T_NONE;
             }
@@ -449,7 +449,7 @@ struct Lex : LoadedFile {
     }
 
     string Location(const Line &ln) {
-        return filenames[ln.fileidx] + "(" + to_string(ln.line) + ")";
+        return cat(filenames[ln.fileidx], "(", ln.line, ")");
     }
 
     void Error(string_view msg, const Line *ln = nullptr) {

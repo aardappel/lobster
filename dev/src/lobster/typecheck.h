@@ -138,7 +138,7 @@ struct TypeChecker {
             case 0: return "1st";
             case 1: return "2nd";
             case 2: return "3rd";
-            default: return to_string(i + 1) + string("th");
+            default: return cat(i + 1, "th");
         }
     }
 
@@ -1024,8 +1024,8 @@ struct TypeChecker {
 
     void CheckReturnValues(size_t nretvals, size_t i, string_view name, const Node &n) {
         if (nretvals <= i) {
-            parser.Error("function " + name + " returns " + to_string(nretvals) + " values, " +
-                         to_string(i + 1) + " requested", &n);
+            parser.Error(cat("function ", name, " returns ", nretvals, " values, ",
+                             i + 1, " requested"), &n);
         }
     }
 
@@ -1127,7 +1127,7 @@ struct TypeChecker {
             // Not sure if there is a better solution.
             if (!test_overloads)
                 TypeError("cannot deduce struct type for " +
-                (argn ? "argument " + to_string(argn) : "return value") +
+                (argn ? cat("argument ", argn) : "return value") +
                     " of " + nf->name + (!etype.Null() ? ", got: " + TypeName(etype) : ""),
                     errorn);
         }
@@ -1657,8 +1657,8 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
 
                 if (ret.type->t == V_NIL) {
                     if (!IsRef(exptype->t))
-                        tc.TypeError("argument " + to_string(sa + 1) + " to " + nf->name +
-                                    " can't be scalar", *this);
+                        tc.TypeError(cat("argument ", sa + 1, " to ", nf->name,
+                                    " can't be scalar"), *this);
                     exptype = exptype->Wrap(tc.st.NewType(), V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     exptype = exptype->sub;

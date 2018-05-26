@@ -72,7 +72,10 @@ Value ReplaceStruct(Value &l, Value &i, Value &a) {
 
 void AddBuiltins() {
     STARTDECL(print) (Value &a) {
-        Output(OUTPUT_PROGRAM, RefToString(a.ref(), g_vm->programprintprefs));
+        g_vm->ss_reuse.str(string());
+        g_vm->ss_reuse.clear();
+        RefToString(g_vm->ss_reuse, a.ref(), g_vm->programprintprefs);
+        Output(OUTPUT_PROGRAM, g_vm->ss_reuse.str());
         return a;
     }
     ENDDECL1(print, "x", "A", "A1",
@@ -80,7 +83,10 @@ void AddBuiltins() {
 
     STARTDECL(string) (Value &a) {
         if (a.ref() && a.ref()->tti == TYPE_ELEM_STRING) return a;
-        auto str = g_vm->NewString(RefToString(a.ref(), g_vm->programprintprefs));
+        g_vm->ss_reuse.str(string());
+        g_vm->ss_reuse.clear();
+        RefToString(g_vm->ss_reuse, a.ref(), g_vm->programprintprefs);
+        auto str = g_vm->NewString(g_vm->ss_reuse.str());
         a.DECRT();
         return str;
     }
@@ -287,9 +293,8 @@ void AddBuiltins() {
         auto amount = max(n.ival(), (intp)1);
         if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 ||
             i.ival() > l.vval()->len - amount)
-            g_vm->BuiltinError("remove: index (" + to_string(i.ival()) +
-                               ") or n (" + to_string(amount) +
-                               ") out of range (" + to_string(l.vval()->len) + ")");
+            g_vm->BuiltinError(cat("remove: index (", i.ival(), ") or n (", amount,
+                                   ") out of range (", l.vval()->len, ")"));
         auto v = l.vval()->Remove(i.ival(), amount, 1);
         l.DECRT();
         return v;

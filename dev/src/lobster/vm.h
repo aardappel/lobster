@@ -19,6 +19,6 @@ namespace lobster {
                             const void *entry_point, const void *static_bytecode,
                             const vector<string> &program_args);
 
-    extern void DisAsm(string &s, string_view bytecode_buffer);
+    extern void DisAsm(ostringstream &ss, string_view bytecode_buffer);
 
 }

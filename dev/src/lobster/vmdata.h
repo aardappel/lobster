@@ -209,7 +209,7 @@ struct RefObj : DynAlloc {
         refc = -(++cycles);
     }
 
-    string CycleStr() const { return "_" + to_string(-refc) + "_"; }
+    void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
 
     void DECDELETE(bool deref);
     void Mark();
@@ -217,7 +217,7 @@ struct RefObj : DynAlloc {
 };
 
 extern bool RefEqual(const RefObj *a, const RefObj *b, bool structural);
-extern string RefToString(const RefObj *ro, PrintPrefs &pp);
+extern void RefToString(ostringstream &ss, const RefObj *ro, PrintPrefs &pp);
 
 struct BoxedInt : RefObj {
     intp val;
@@ -239,7 +239,7 @@ struct LString : RefObj {
     char *str() { return (char *)(this + 1); }
     string_view strv() { return string_view(str(), len); }
 
-    string ToString(PrintPrefs &pp);
+    void ToString(ostringstream &ss, PrintPrefs &pp);
 
     void DeleteSelf() { vmpool->dealloc(this, sizeof(LString) + len + 1); }
 
@@ -426,7 +426,7 @@ struct Value {
     inline void DECRTNIL() const { if (ref_) DECRT(); }
     inline void DECTYPE(ValueType t) const { if (IsRefNil(t)) DECRTNIL(); }
 
-    string ToString(ValueType vtype, PrintPrefs &pp) const;
+    void ToString(ostringstream &ss, ValueType vtype, PrintPrefs &pp) const;
     bool Equal(ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     void Mark(ValueType vtype);
     void MarkRef();
@@ -472,7 +472,7 @@ struct LStruct : RefObj {
 
     ValueType ElemType(intp i) const;
 
-    string ToString(PrintPrefs &pp);
+    void ToString(ostringstream &ss, PrintPrefs &pp);
 
     bool Equal(const LStruct &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -579,7 +579,7 @@ struct LVector : RefObj {
 
     void Append(LVector *from, intp start, intp amount);
 
-    string ToString(PrintPrefs &pp);
+    void ToString(ostringstream &ss, PrintPrefs &pp);
 
     bool Equal(const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -698,9 +698,12 @@ struct VM {
 
     VMLog vml;
 
+    ostringstream ss_reuse;
+
     bool trace;
     bool trace_tail;
-    string trace_output;
+    vector<ostringstream> trace_output;
+    size_t trace_ring_idx;
 
     int64_t vm_count_ins;
     int64_t vm_count_fcalls;
@@ -772,8 +775,7 @@ struct VM {
     void VMAssert(const char *what);
     void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
-    string ValueDBG(const RefObj *a);
-    string DumpVar(const Value &x, size_t idx, bool dumpglobals);
+    void DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
 
     void EvalMulti(const int *mip, int definedfunction, const int *call_arg_types,
                    block_t comp_retip, int tempmask);
@@ -792,7 +794,7 @@ struct VM {
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
-    int VarCleanup(string *error, int towhere);
+    int VarCleanup(ostringstream *error, int towhere);
     void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
@@ -921,8 +923,7 @@ template <int N> inline Value ToValueFLT(const vec<float, N> &v, int maxelems = 
 inline intp RangeCheck(const Value &idx, intp range, intp bias = 0) {
     auto i = idx.ival();
     if (i < bias || i >= bias + range)
-        g_vm->BuiltinError("index out of range [" + to_string(bias) + ".." +
-                           to_string(bias + range) + "): " + to_string(i));
+        g_vm->BuiltinError(cat("index out of range [", bias, "..", bias + range, "): ", i));
     return i;
 }
 
@@ -952,7 +953,7 @@ inline vector<string> VectorOfStrings(Value &v) {
     return r;
 }
 
-void EscapeAndQuote(string_view s, string &r);
+void EscapeAndQuote(string_view s, ostringstream &ss);
 
 struct LCoRoutine : RefObj {
     bool active;       // Goes to false when it has hit the end of the coroutine instead of a yield.

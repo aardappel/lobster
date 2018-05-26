@@ -30,38 +30,40 @@ LResource::LResource(void *v, const ResourceType *t)
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-void EscapeAndQuote(string_view s, string &r) {
-    r += "\"";
+void EscapeAndQuote(string_view s, ostringstream &ss) {
+    ss << '\"';
     for (auto c : s) switch(c) {
-        case '\n': r += "\\n"; break;
-        case '\t': r += "\\t"; break;
-        case '\r': r += "\\r"; break;
-        case '\\': r += "\\\\"; break;
-        case '\"': r += "\\\""; break;
-        case '\'': r += "\\\'"; break;
+        case '\n': ss << "\\n"; break;
+        case '\t': ss << "\\t"; break;
+        case '\r': ss << "\\r"; break;
+        case '\\': ss << "\\\\"; break;
+        case '\"': ss << "\\\""; break;
+        case '\'': ss << "\\\'"; break;
         default:
-            if (c >= ' ' && c <= '~') r += c;
-            else {
-                r += "\\x"; r += HexChar(((uchar)c) >> 4); r += HexChar(c & 0xF); }
+            if (c >= ' ' && c <= '~') ss << c;
+            else ss << "\\x" << HexChar(((uchar)c) >> 4) << HexChar(c & 0xF);
             break;
     }
-    r += "\"";
+    ss << "\"";
 }
 
-string LString::ToString(PrintPrefs &pp) {
+void LString::ToString(ostringstream &ss, PrintPrefs &pp) {
     if (pp.cycles >= 0) {
-        if (refc < 0)
-            return CycleStr();
+        if (refc < 0) { CycleStr(ss); return; }
         CycleDone(pp.cycles);
     }
-    string s = len > pp.budget ? strv().substr(0, pp.budget) + ".." : str();
-    if (pp.quoted) {
-        string r;
-        EscapeAndQuote(s, r);
-        return r;
-    } else {
-        return s;
+    auto sv = strv();
+    auto dd = string_view();
+    if (len > pp.budget) {
+        sv = sv.substr(0, pp.budget);
+        dd = "..";
     }
+    if (pp.quoted) {
+        EscapeAndQuote(sv, ss);
+    } else {
+        ss << sv;
+    }
+    ss << dd;
 }
 
 LVector::LVector(intp _initial, intp _max, type_elem_t _tti)
@@ -126,33 +128,36 @@ bool Value::Equal(ValueType vtype, const Value &o, ValueType otype, bool structu
     }
 }
 
-string RefToString(const RefObj *ro, PrintPrefs &pp) {
-    if (!ro) return "nil";
+void RefToString(ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
+    if (!ro) { ss << "nil"; return; }
     auto &roti = ro->ti();
     switch (roti.t) {
         case V_BOXEDINT: {
-            auto s = to_string(((BoxedInt *)ro)->val);
-            return pp.anymark ? "#" + s : s;
+            if (pp.anymark) ss << '#';
+            ss << ((BoxedInt *)ro)->val;
+            break;
         }
         case V_BOXEDFLOAT: {
-            auto s = to_string_float(((BoxedFloat *)ro)->val, (int)pp.decimals);
-            return pp.anymark ? "#" + s : s;
+            if (pp.anymark) ss << '#';
+            ss << to_string_float(((BoxedFloat *)ro)->val, (int)pp.decimals);
         }
-        case V_STRING:     return ((LString *)ro)->ToString(pp);
-        case V_COROUTINE:  return "(coroutine)";
-        case V_VECTOR:     return ((LVector *)ro)->ToString(pp);
-        case V_STRUCT:     return ((LStruct *)ro)->ToString(pp);
-        default:           return "(" + BaseTypeName(roti.t) + ")";
+        case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
+        case V_COROUTINE: ss << "(coroutine)";                      break;
+        case V_VECTOR:    ((LVector *)ro)->ToString(ss, pp);        break;
+        case V_STRUCT:    ((LStruct *)ro)->ToString(ss, pp);        break;
+        default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
     }
 }
 
-string Value::ToString(ValueType vtype, PrintPrefs &pp) const {
-    if (IsRefNil(vtype)) return ref_ ? RefToString(ref_, pp) : "nil";
-    switch (vtype) {
-        case V_INT:        return to_string(ival());
-        case V_FLOAT:      return to_string_float(fval(), (int)pp.decimals);
-        case V_FUNCTION:   return "<FUNCTION>";
-        default:           return "(" + BaseTypeName(vtype) + ")";
+void Value::ToString(ostringstream &ss, ValueType vtype, PrintPrefs &pp) const {
+    if (IsRefNil(vtype)) {
+        if (ref_) RefToString(ss, ref_, pp); else ss << "nil";
+    }
+    else switch (vtype) {
+        case V_INT:      ss << ival();                                    break;
+        case V_FLOAT:    ss << to_string_float(fval(), (int)pp.decimals); break;
+        case V_FUNCTION: ss << "<FUNCTION>";                              break;
+        default:         ss << '(' << BaseTypeName(vtype) << ')';         break;
     }
 }
 
@@ -275,31 +280,46 @@ ValueType LVector::ElemType() const {
     ELEMTYPE(subt)
 }
 
-#define VECTORORSTRUCTTOSTRING(len, elemtype, openb, closeb) \
-    if (pp.cycles >= 0) { \
-        if (refc < 0) \
-            return CycleStr(); \
-        CycleDone(pp.cycles); \
-    } \
-    auto &_ti = ti(); (void)_ti; \
-    string s; s += openb; \
-    for (int i = 0; i < len; i++) { \
-        if (i) s += ", "; \
-        if ((int)s.size() > pp.budget) { s += "...."; break; } \
-        PrintPrefs subpp(pp.depth - 1, pp.budget - (int)s.size(), true, pp.decimals, pp.anymark); \
-        s += pp.depth || !IsRef(elemtype) ? At(i).ToString(elemtype, subpp) : ".."; \
-    } \
-    s += closeb; \
-    return s;
-
-
-string LStruct::ToString(PrintPrefs &pp) {
-    VECTORORSTRUCTTOSTRING(Len(), ElemType(i),
-                           g_vm->ReverseLookupType(_ti.structidx) + string_view("{"), "}");
+template<typename T, bool is_vect> void VectorOrStructToString(
+        ostringstream &ss, PrintPrefs &pp, T &o, char openb, char closeb) {
+    if (pp.cycles >= 0) {
+        if (o.refc < 0) {
+            o.CycleStr(ss);
+            return;
+        }
+        o.CycleDone(pp.cycles);
+    }
+    auto &_ti = o.ti();
+    (void)_ti;
+    if constexpr(!is_vect) ss << g_vm->ReverseLookupType(_ti.structidx);
+    ss << openb;
+    auto start_size = ss.tellp();
+    intp len;
+    if constexpr(is_vect) len = o.len; else len = o.Len();
+    for (intp i = 0; i < len; i++) {
+        if (i) ss << ", ";
+        if ((int)ss.tellp() - start_size > pp.budget) {
+            ss << "....";
+            break;
+        }
+        PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
+                         pp.decimals, pp.anymark);
+        ValueType elemtype;
+        if constexpr(is_vect) elemtype = o.ElemType(); else elemtype = o.ElemType(i);
+        if (pp.depth || !IsRef(elemtype))
+            o.At(i).ToString(ss, elemtype, subpp);
+        else
+            ss << "..";
+    }
+    ss << closeb;
 }
 
-string LVector::ToString(PrintPrefs &pp) {
-    VECTORORSTRUCTTOSTRING(len, ElemType(), "[", "]");
+void LStruct::ToString(ostringstream &ss, PrintPrefs &pp) {
+    VectorOrStructToString<LStruct, false>(ss, pp, *this, '{', '}');
+}
+
+void LVector::ToString(ostringstream &ss, PrintPrefs &pp) {
+    VectorOrStructToString<LVector, true>(ss, pp, *this, '[', ']');
 }
 
 }  // namespace lobster

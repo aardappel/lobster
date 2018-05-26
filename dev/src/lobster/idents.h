@@ -503,7 +503,7 @@ struct SymbolTable {
     }
 
     Function &CreateFunction(string_view name, string_view context) {
-        auto fname = name.length() ? name : "function" + to_string(functiontable.size()) + context;
+        auto fname = name.length() ? string(name) : cat("function", functiontable.size(), context);
         auto f = new Function(fname, (int)functiontable.size(), scopelevels.size());
         functiontable.push_back(f);
         return *f;
