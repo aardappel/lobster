@@ -369,34 +369,27 @@ inline string Dump(Node &n, int indent) {
     auto arity = n.Arity();
     if (!arity) return s;
     bool ml = false;
-    bool islist = Is<List>(&n);
-    auto indenb = indent - islist * 2;
     auto ch = n.Children();
     vector<string> sv;
     size_t total = 0;
     for (size_t i = 0; i < arity; i++) {
-        auto a = Dump(*ch[i], (i ? indent : indenb) + 2);
-        if (ch[i]->exptype->t != V_ANY) {
-            a += ":";
-            a += TypeName(ch[i]->exptype);
-        }
+        auto a = Dump(*ch[i], indent + 2);
+        a += ":";
+        a += TypeName(ch[i]->exptype);
         if (a[0] == ' ') ml = true;
         total += a.length();
         sv.push_back(a);
     }
     if (total > 60) ml = true;
     if (ml) {
-        if (islist) {
-            s = "";
-        } else {
-            s = string(indent, ' ') + s;
-            s += "\n";
-        }
+        s = string(indent, ' ') + "(" + s;
+        s += "\n";
         for (size_t i = 0; i < arity; i++) {
-            if (i) s += "\n"; if (sv[i][0] != ' ') s += string((i ? indent : indenb) + 2, ' ');
+            if (i) s += "\n";
+            if (sv[i][0] != ' ') s += string(indent + 2, ' ');
             s += sv[i];
         }
-        return s;
+        return s + ")";
     } else {
         for (size_t i = 0; i < arity; i++) s += " " + sv[i];
         return "(" + s + ")";

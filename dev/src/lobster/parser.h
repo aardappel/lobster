@@ -1234,7 +1234,9 @@ struct Parser {
                     for (auto &arg : sf->args.v) {
                         s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
                     }
-                    s += ")\n";
+                    s += ") ->";
+                    for (auto &ret : sf->returntypes) s += " " + TypeName(ret);
+                    s += "\n";
                     if (sf->body) s += Dump(*sf->body, 4);
                     s += "\n\n";
                 }
