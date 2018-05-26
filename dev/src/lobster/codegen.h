@@ -1022,9 +1022,8 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
             cg.GenPop(cg.temptypestack[i]);
         }
     }
-    int sfid = subfunction_idx;
-    auto sf = sfid >= 0 ? cg.st.subfunctiontable[sfid] : nullptr;
-    int fid = sf ? sf->parent->idx : sfid;
+    auto sf = subfunction_idx >= 0 ? cg.st.subfunctiontable[subfunction_idx] : nullptr;
+    int fid = subfunction_idx >= 0 ? sf->parent->idx : subfunction_idx;
     int nretvals = sf ? sf->parent->nretvals : 1;
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (!sf || sf->reqret) {

@@ -1721,17 +1721,16 @@ Node *DynCall::TypeCheck(TypeChecker &tc, bool reqret) {
 
 Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     child = child->TypeCheck(tc, true);
-    auto sfid = subfunction_idx;
-    auto sf = sfid < 0 ? nullptr : tc.st.subfunctiontable[sfid];
+    auto sf = subfunction_idx < 0 ? nullptr : tc.st.subfunctiontable[subfunction_idx];
     for (int i = (int)tc.scopes.size() - 1; i >= 0; i--) {
         if (sf && tc.scopes[i].sf->parent == sf->parent) {
             sf = tc.scopes[i].sf;  // Take specialized version.
-            sfid = sf->idx;
+            subfunction_idx = sf->idx;
             break;
         }
         if (tc.scopes[i].sf->iscoroutine) tc.TypeError("cannot return out of coroutine", *this);
     }
-    if (sfid < 0) return this;  // return from program
+    if (subfunction_idx < 0) return this;  // return from program
     auto nsf = tc.TopScope(tc.named_scopes);
     if (nsf != sf) {
         // This is a non-local "return from".
