@@ -1,3 +1,30 @@
+- Ways to represent "value" structs as in-line values.
+  Easiest may be to make a 3 field struct actually take up 3 fields in the parent, that way
+  quite a bit of code can ignore the distinction.
+  "pos.x" instructions can be emitted as just "x"
+  Still, the amount of places in the code that assume they can pass along a single Value for
+  a struct is gigantic, and these all would need to be made in-inline specialized.
+  Unless, we allow a Value that is a pointer to a struct, as a short-lived thing to allow
+  it to be passed to built-in functions etc. But that is also tricky, because now we need
+  to guarantee it is short-lived enough to create a dangling pointer. Certainly with co-routines
+  etc this may be hard.
+  If its only used with built-in functions this may be ok, since they never call into additional
+  code.
+  Additional issue is how to know the type, or at least the number of elements. The parent should
+  be able to provide this, but it needs to be plumbed thru.
+  Vectors of such structs now need to be size aware.
+  Would it be nice to generally make everything size-aware if we do this, so we can also have
+  8/16/32/64 bit values etc. Though that is certainly a lot harder.
+  A way to make a gradual path to this is:
+  - First put structs inside other structs by making the inner one still have its own refc,
+    and increasing the parent refc. Then when the destructor is called, it can decrease the
+    parent refc. This way, pointers to inner structs can be passed along safely lifetime wise.
+  - For stack frames something similar, but now the stack unwind can generate a runtime error if
+    the inline struct refc is not 0.
+    - Probably better to first transition to unwinding being done by code, which would simplify
+      this.
+  - Must of course have new assignment ops for these structs since it needs to overwrite.
+
 - 32-bit pointers in 64-bit
   - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
   - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
@@ -14,6 +41,8 @@
         work without additional work.
   - will NOT work in the default trampoline compiled mode, since we store function pointers in
     values there. Have to use the switch mode instead.
+  - More good tips in the comments here:
+    https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.
@@ -64,6 +93,17 @@
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.
+
+- refactor function return-value tracking as it is highly confusing.
+  - Function::nretvals shouldn't exists as it depends on the specialization.
+  - SubFunction::returntypes should be allowed to have length 0.
+  - Codegen shouldn't have weird exceptions for more than 1 return value.
+  - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.
+  - Functions that have no meaningful return value but happen to be called as last exp can have
+    the requirement of a return value perculate far thru, and occasionally cause 2 specializations
+    for no reason.
+    - But we also don't want to disallow simple function defs that just return an exp.
+    - Maybe if its multi-line it requires an explicit return?
 
 - Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
   of unfortunate casting going on that be nice to remove. Many (including the C++ standards
