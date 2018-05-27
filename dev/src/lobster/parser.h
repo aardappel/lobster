@@ -45,16 +45,15 @@ struct Parser {
 
         lex.Include("stdtype.lobster");
 
-        sf->body = ParseStatements();
+        sf->body = ParseStatements(T_ENDOFFILE);
         st.ScopeCleanup();
         root = (new List(lex))
             ->Add(new FunRef(lex, sf))
             ->Add(new Call(lex, sf));
-        Expect(T_ENDOFFILE);
         assert(forwardfunctioncalls.empty());
     }
 
-    List *ParseStatements() {
+    List *ParseStatements(TType terminator) {
         auto list = new List(lex);
         for (;;) {
             ParseTopExp(list);
@@ -66,6 +65,7 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
+        Expect(terminator);
         ResolveForwardFunctionCalls();
         for (auto def : list->children) {
             if (auto sr = Is<StructRef>(def)) {
@@ -479,8 +479,7 @@ struct Parser {
             if (expfunval) {
                 sf->body = (new List(lex))->Add(ParseExp(parent_noparens));
             } else if (IsNext(T_INDENT)) {
-                sf->body = ParseStatements();
-                Expect(T_DEDENT);
+                sf->body = ParseStatements(T_DEDENT);
             } else {
                 sf->body = (new List(lex))->Add(ParseExpStat());
             }
