@@ -162,9 +162,10 @@ def gui_vblock(al, sp, f:guif): block(al, sp, true,  hash(f), f)
 
 def gui_fontscale(factor, f:guif):
     os := gl_getfontsize()
-    gl_setfontsize(round(os * factor))
+    ool := gl_getoutlinesize()
+    gl_setfontsize(round(os * factor), ool * factor)
     f()
-    gl_setfontsize(os)
+    gl_setfontsize(os, ool)
 
 def gui_color(col, f:guif): nest_if(render_pass, def(): gl_color(col, _), f)
 def gui_blend(bli, f:guif): nest_if(render_pass, def(): gl_blend(bli, _), f)
@@ -266,7 +267,7 @@ def gui_setclickcolors(hover, sel):
 def gui_setactionsfxr(snd): actionsfxr = snd
 def gui_setactionwav(snd): actionwav = snd
 
-if program_name() == "gui.lobster": // run example
+if program_name() == "gui.lobster" or program_name() == "include/gui.lobster": // run example
 
     fatal(gl_window("gui test", 960, 640))
     check(gl_setfontname("data/fonts/US101/US101.ttf"), "can\'t load font!")
@@ -282,10 +283,11 @@ if program_name() == "gui.lobster": // run example
         if gl_button("escape") == 1:
             return
 
-        gl_setfontsize(gl_windowsize().y / 10)
+        fontsize := gl_windowsize().y / 10
+        gl_setfontsize(fontsize, fontsize / 40.0)
         //gl_setmaxfontsize(512)
 
-        gl_clear(color_black)
+        gl_clear(color_grey)
         gl_color(color_white)
 
         gui_setclickcolors(color_dark_green, color_green)

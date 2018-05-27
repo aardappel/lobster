@@ -178,7 +178,7 @@ template<typename T, int N> struct vec : basevec<T, N> {
 };
 
 
-template<typename T> inline T mix(T a, T b, float f) { return a * (1 - f) + b * f; }
+template<typename T> inline T mix(T a, T b, float f) { return (T)(a * (1 - f) + b * f); }
 
 // Rational replacement for powf (when t = 0..1), due to
 // "Ratioquadrics: An Alternative Model for Superquadrics"

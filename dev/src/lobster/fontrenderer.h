@@ -34,10 +34,11 @@ struct BitmapFont {
     int height;
     int usedcount;
     int size;
+    float outlinesize;
     OutlineFont *font;
 
     ~BitmapFont();
-    BitmapFont(OutlineFont *_font, int _size);
+    BitmapFont(OutlineFont *_font, int _size, float _osize);
 
     void RenderText(const char *text);
     const int2 TextSize(const char *text);
