@@ -252,7 +252,10 @@ struct TypeChecker {
     TypeRef Union(TypeRef at, TypeRef bt, bool coercions) {
         if (ConvertsTo(at, bt, coercions)) return bt;
         if (ConvertsTo(bt, at, coercions)) return at;
-        if (at->t == V_VECTOR && bt->t == V_VECTOR) return type_vector_any;
+        if (at->t == V_VECTOR && bt->t == V_VECTOR) {
+            auto et = Union(at->Element(), bt->Element(), false);
+            return et->Wrap(st.NewType());
+        }
         if (at->t == V_STRUCT && bt->t == V_STRUCT) {
             auto sstruc = st.CommonSuperType(at->struc, bt->struc);
             if (sstruc) return &sstruc->thistype;
@@ -1216,7 +1219,7 @@ Node *If::TypeCheck(TypeChecker &tc, bool reqret) {
             } else if (Is<Return>(falsec->sf->body->children.back())) {
                 exptype = tleft;
             } else {
-                exptype = tc.Union(tleft, tright, false);
+                exptype = tc.Union(tleft, tright, true);
                 // These will potentially make either body from T_CALL into some
                 // coercion.
 				tc.SubType(truepart, exptype, "then branch", *this);
