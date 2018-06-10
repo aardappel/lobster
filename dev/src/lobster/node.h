@@ -97,16 +97,18 @@ struct NAME : Unary { \
     METHODS \
 };
 
-#define BINARY_NODE(NAME, STR, SE, A, B, METHODS) \
+#define BINARY_NODE_T(NAME, STR, SE, AT, A, BT, B, METHODS) \
 struct NAME : Node { \
-    Node *A, *B; \
-    NAME(const Line &ln, Node *_a, Node *_b) : Node(ln), A(_a), B(_b) {}; \
+    AT *A; BT *B; \
+    NAME(const Line &ln, AT *_a, BT *_b) : Node(ln), A(_a), B(_b) {}; \
     ~NAME() { delete A; delete B; } \
     size_t Arity() const { return 2; } \
-    Node **Children() { return &A; } \
+    Node **Children() { return (Node **)&A; } \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
 };
+#define BINARY_NODE(NAME, STR, SE, A, B, METHODS) \
+    BINARY_NODE_T(NAME, STR, SE, Node, A, Node, B, METHODS)
 
 #define BINOP_NODE(NAME, STR, SE, METHODS) \
 struct NAME : BinOp { \
