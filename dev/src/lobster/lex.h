@@ -362,6 +362,7 @@ struct Lex : LoadedFile {
         // Regular string or character constant.
         while ((c = *p++) != initial) switch (c) {
             case 0:
+            case '\r':
             case '\n':
                 p--;
                 Error("end of line found in string constant");
