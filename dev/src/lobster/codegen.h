@@ -883,11 +883,12 @@ void Seq::Generate(CodeGen &cg, int retval) const {
 }
 
 void MultipleReturn::Generate(CodeGen &cg, int retval) const {
-    assert(retval);
-    (void)retval;
-    for (auto c : children) cg.Gen(c, 1);
-    cg.TakeTemp(Arity());
-    for (auto c : children) cg.rettypes.push_back(c->exptype);
+    for (auto c : children) cg.Gen(c, retval != 0);
+    if (retval) {
+        assert(Arity() == retval);
+        cg.TakeTemp(Arity());
+        for (auto c : children) cg.rettypes.push_back(c->exptype);
+    }
 }
 
 void NativeRef::Generate(CodeGen & /*cg*/, int /*retval*/) const {
