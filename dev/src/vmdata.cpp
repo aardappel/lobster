@@ -140,6 +140,7 @@ void RefToString(ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
         case V_BOXEDFLOAT: {
             if (pp.anymark) ss << '#';
             ss << to_string_float(((BoxedFloat *)ro)->val, (int)pp.decimals);
+            break;
         }
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
