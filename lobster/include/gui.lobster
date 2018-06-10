@@ -44,6 +44,8 @@ private actionwav := nil
 private num_interactive_elements_hit := 0
 private focus_id := -1
 
+private button_key := "<none>"
+
 def guif() :== ()
 def guifs(v:xy_i) :== ()
 
@@ -213,18 +215,24 @@ def gui_background(col, stretch, f:guif):
         gl_color col:
             gl_rect(float(size))
 
+def gui_key(key_name, f):  // Surround a gui_button with this to also allow keyboard activation.
+    button_key <- key_name
+    f()
+
 private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
         if interactive:
             hit := gl_hit(float(size), 0)
-            if hit or (focus_id == id and gl_touchscreen()):
+            key := gl_button(button_key)
+            active := hit or key >= 0
+            if active or (focus_id == id and gl_touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
                 gl_color hover_color:
                     gl_rect(float(size))
-                if hit:
+                if active:
                     num_interactive_elements_hit++
                     mouse1 := gl_button("mouse1")
-                    if mouse1 >= 1:
+                    if mouse1 >= 1 or key >= 1:
                         gl_color(select_color):
                             gl_rect(float(size))
                     if dofocus and focus_id != id and (mouse1 == 0 or !gl_touchscreen()):
@@ -232,7 +240,7 @@ private def button(id, f, do, dofocus, focusf):
                         // we're going to give this button focus on touch, and on desktop merely on hover.
                         focus_id = id
                         focusf()
-                    else: if mouse1 == 0:
+                    else: if mouse1 == 0 or key == 0:
                         if actionsfxr: play_sfxr(actionsfxr)
                         else: if actionwav: play_wav(actionwav)
                         do()
