@@ -20,6 +20,11 @@ namespace lobster {
 const int LOBSTER_BYTECODE_FORMAT_VERSION = 12;
 const int MAX_RETURN_VALUES = 16;
 
+// Any type specialized ops below must always have this ordering.
+enum MathOp {
+    MOP_ADD, MOP_SUB, MOP_MUL, MOP_DIV, MOP_MOD, MOP_LT, MOP_GT, MOP_LE, MOP_GE, MOP_EQ, MOP_NE
+};
+
 #define ILBASENAMES \
     F(PUSHINT, 1) \
     F(PUSHINT64, 1) \

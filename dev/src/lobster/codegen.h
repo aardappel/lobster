@@ -505,39 +505,38 @@ struct CodeGen  {
         Emit(idx);
     }
 
-    void GenMathOp(const BinOp *n, int retval, int opc) {
+    void GenMathOp(const BinOp *n, int retval, MathOp opc) {
         Gen(n->left, retval);
         Gen(n->right, retval);
-        if (retval) {
-            TakeTemp(2);
-            // Have to check right and left because comparison ops generate ints for node
-            // overall.
-            if (n->right->exptype->t == V_INT &&
-                n->left->exptype->t == V_INT) {
-                Emit(IL_IADD + opc);
-            } else if (n->right->exptype->t == V_FLOAT &&
-                n->left->exptype->t == V_FLOAT) {
-                Emit(IL_FADD + opc);
-            } else if (n->right->exptype->t == V_STRING &&
-                n->left->exptype->t == V_STRING) {
-                Emit(IL_SADD + opc);
+        if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, opc);
+    }
+
+    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp opc) {
+        TakeTemp(2);
+        // Have to check right and left because comparison ops generate ints for node
+        // overall.
+        if (rtype->t == V_INT && ltype->t == V_INT) {
+            Emit(IL_IADD + opc);
+        } else if (rtype->t == V_FLOAT && ltype->t == V_FLOAT) {
+            Emit(IL_FADD + opc);
+        } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
+            Emit(IL_SADD + opc);
+        } else {
+            if (opc >= MOP_EQ) {  // EQ/NEQ
+                assert(IsRefNil(ltype->t) &&
+                        IsRefNil(rtype->t));
+                Emit(IL_AEQ + opc - MOP_EQ);
             } else {
-                if (opc >= 9) {  // EQ/NEQ
-                    assert(IsRefNil(n->left->exptype->t) &&
-                           IsRefNil(n->right->exptype->t));
-                    Emit(IL_AEQ + opc - 9);
-                } else {
-                    // If this is a comparison op, be sure to use the child type.
-                    TypeRef vectype = opc >= 5 ? n->left->exptype : n->exptype;
-                    assert(vectype->t == V_STRUCT);
-                    auto sub = vectype->struc->sametype;
-                    bool withscalar = IsScalar(n->right->exptype->t);
-                    if (sub->t == V_INT)
-                        Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
-                    else if (sub->t == V_FLOAT)
-                        Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
-                    else assert(false);
-                }
+                // If this is a comparison op, be sure to use the child type.
+                TypeRef vectype = opc >= MOP_LT ? ltype : ptype;
+                assert(vectype->t == V_STRUCT);
+                auto sub = vectype->struc->sametype;
+                bool withscalar = IsScalar(rtype->t);
+                if (sub->t == V_INT)
+                    Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
+                else if (sub->t == V_FLOAT)
+                    Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
+                else assert(false);
             }
         }
     }
@@ -660,17 +659,17 @@ void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO
 void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, exptype); }
 void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, exptype); }
 
-void NotEqual     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 10); }
-void Equal        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 9); }
-void GreaterThanEq::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 8); }
-void LessThanEq   ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 7); }
-void GreaterThan  ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 6); }
-void LessThan     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 5); }
-void Mod          ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 4); }
-void Divide       ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 3); }
-void Multiply     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 2); }
-void Minus        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 1); }
-void Plus         ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, 0); }
+void NotEqual     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
+void Equal        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
+void GreaterThanEq::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_GE);  }
+void LessThanEq   ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_LE);  }
+void GreaterThan  ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_GT);  }
+void LessThan     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_LT);  }
+void Mod          ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_MOD); }
+void Divide       ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
+void Multiply     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
+void Minus        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
+void Plus         ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_ADD); }
 
 void UnaryMinus::Generate(CodeGen &cg, int retval) const {
     cg.Gen(child, retval, true);
