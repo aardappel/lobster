@@ -102,8 +102,9 @@ static LONG __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS *pExPtrs) {
     sw.OnOutput("===== Crash Log =====\n");
     SYSTEMTIME st;
     GetSystemTime(&st);
-    TCHAR lString[500] = { 0 };
-    _stprintf_s(lString, _T("Date: %d-%02d-%02d, Time: %02d:%02d:%02d\n"),
+    const size_t buflen = 1024;
+    TCHAR lString[buflen] = { 0 };
+    sprintf_s(lString, buflen, _T("Date: %d-%02d-%02d, Time: %02d:%02d:%02d\n"),
                 st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
     sw.OnOutput(lString);
     sw.OnOutput("CMD: ");
@@ -112,12 +113,18 @@ static LONG __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS *pExPtrs) {
         sw.OnOutput(" ");
     }
     sw.OnOutput("\n");
-    _stprintf_s(lString, _T("ExpCode: 0x%8.8X, ExpFlags: %d, ExpAddress: 0x%8.8X\n"),
+    sprintf_s(lString, buflen, _T("ExpCode: 0x%8.8X, ExpFlags: %d, ExpAddress: 0x%8.8X\n"),
                 pExPtrs->ExceptionRecord->ExceptionCode, pExPtrs->ExceptionRecord->ExceptionFlags,
                 pExPtrs->ExceptionRecord->ExceptionAddress);
     sw.OnOutput(lString);
     sw.ShowCallstack(GetCurrentThread(), pExPtrs->ContextRecord);
-    _stprintf_s(lString, _T("Please send %s to the developer!\n"), s_szExceptionLogFileName);
+    sw.OnOutput("\n");
+    sprintf_s(lString, buflen, _T("Please send %s to the developer!\n"), s_szExceptionLogFileName);
+    for (int i = 1; i < argc; i++) {
+        strcat_s(lString, buflen, argv[i]);
+        strcat_s(lString, buflen, " ");
+    }
+    strcat_s(lString, buflen, "\n");
     FatalAppExit(-1, lString);
     return EXCEPTION_CONTINUE_SEARCH;
 }
