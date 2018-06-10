@@ -13,7 +13,7 @@ angle := 0.0
 szv := scrollzoomview {
     rate: 1.3,
     mins: 5,
-    default: 10,
+    defaults: 10,
     maxs: 22,
     buttonname: "mouse1"
 }

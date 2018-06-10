@@ -10,7 +10,7 @@ struct scrollzoomview:
     // Mousewheel / zoom related:
     rate:float   // Zoom base rate, determines how rapid you want to zoom, try 1.2.
     mins:int     // The range of exponents, try e.g. (10, 15, 20) and tweak from there.
-    default:int
+    defaults:int
     maxs:int
     // Scroll related:
     buttonname:string  // The button to do dragging with (e.g. "mouse1")
@@ -25,7 +25,7 @@ struct scrollzoomview:
     // viewsize: In pixels.
     def update(mino:xy_f, maxo:xy_f, viewsize:xy_i):
         // Update zooming:
-        if viewsteps == 0: viewsteps = default
+        if viewsteps == 0: viewsteps = defaults
         oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
         oldpanoffset := panoffset
         mousewheeldelta := gl_mousewheeldelta()
