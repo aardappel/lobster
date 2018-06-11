@@ -161,7 +161,7 @@ while (a) list.Add(b);</td>
 <td>foreach (var a in list) print(a);</td>
 <td></td>
 </tr>
-<tr>
+<tr><td>a := switch i:<br>&nbsp; &nbsp; case 1: "no"<br>&nbsp; &nbsp; case 2, 4..6: "yes"<br>&nbsp; &nbsp; default: "maybe"</td><td>switch (i) {<br>&nbsp; &nbsp; case 1:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "no";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; case 2:<br>&nbsp; &nbsp; case 4:<br>&nbsp; &nbsp; case 5:<br>&nbsp; &nbsp; case 6:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "yes";<br>&nbsp; &nbsp; &nbsp; &nbsp; break;<br>&nbsp; &nbsp; default:<br>&nbsp; &nbsp; &nbsp; &nbsp; a = "maybe";<br>}</td><td></td></tr><tr>
 <td>r := map(list) x: x * x</td>
 <td>var r = new List();<br>
 foreach(var x in list) r.Add(x * x);</td>

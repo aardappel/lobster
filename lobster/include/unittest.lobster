@@ -85,6 +85,23 @@ def run_test_cases(is_speed_test):
         g()
     scopetest()
 
+    st := map(10) i: switch i:
+            case 1: "no"
+            case 2, 3:
+                x := i
+                "yes" + x
+            case 4..6, 8: "maybe"
+            default:
+                "what?"
+    assert st.equal([ "what?", "no", "yes2", "yes3", "maybe", "maybe", "maybe", "what?", "maybe", "what?" ])
+    assert switch st[2]:
+        case "yes2": true
+        case st[3]: false  // Can use variables and expressions :)
+        default: false
+    assert switch 3.14:
+        case 10.0..20.0: false  // Inclusive float ranges.
+        default: true
+
     do():
         a := 0
         assert a++ + ++a + a-- + --a == 4

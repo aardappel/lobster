@@ -299,12 +299,15 @@ struct Lex : LoadedFile {
                     else if (sattr == "var")       return T_VAR;
                     else if (sattr == "let")       return T_CONST;
                     else if (sattr == "pakfile")   return T_PAKFILE;
+                    else if (sattr == "switch")    return T_SWITCH;
+                    else if (sattr == "case")      return T_CASE;
+                    else if (sattr == "default")   return T_DEFAULT;
                     else if (sattr == "not")       return T_NOT;
                     else if (sattr == "and")       { cont = true; return T_AND; }
                     else if (sattr == "or")        { cont = true; return T_OR; }
                     else return T_IDENT;
                 }
-                bool isfloat = c == '.';
+                bool isfloat = c == '.' && *p != '.';
                 if (isdigit(c) || (isfloat && isdigit(*p))) {
                     if (c == '0' && *p == 'x') {
                         p++;
@@ -313,7 +316,7 @@ struct Lex : LoadedFile {
                         return T_INT;
                     } else {
                         for (;;) {
-                            auto isdot = *p == '.' && !isalpha(*(p + 1));
+                            auto isdot = *p == '.' && *(p + 1) != '.' && !isalpha(*(p + 1));
                             if (isdot) isfloat = true;
                             if (!isdigit(*p) && !isdot) break;
                             p++;
@@ -322,7 +325,10 @@ struct Lex : LoadedFile {
                         return isfloat ? T_FLOAT : T_INT;
                     }
                 }
-                if (c == '.') return T_DOT;
+                if (c == '.') {
+                    if (*p == '.') { p++; return T_DOTDOT; }
+                    return T_DOT;
+                }
                 auto tok = c <= ' ' ? cat("[ascii ", int(c), "]") : cat(int(c));
                 Error("illegal token: " + tok);
                 return T_NONE;

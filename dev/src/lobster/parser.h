@@ -1109,6 +1109,41 @@ struct Parser {
                 pakfiles.insert(s);
                 return new StringConstant(lex, s);
             }
+            case T_SWITCH: {
+                lex.Next();
+                auto value = ParseExp();
+                Expect(T_COLON);
+                Expect(T_INDENT);
+                bool have_default = false;
+                auto cases = new List(lex);
+                for (;;) {
+                    List *pattern = new List(lex);
+                    if (lex.token == T_DEFAULT) {
+                        if (have_default) Error("cannot have more than one default in a switch");
+                        lex.Next();
+                        have_default = true;
+                    } else {
+                        Expect(T_CASE);
+                        for (;;) {
+                            auto f = ParseDeref();
+                            if (lex.token == T_DOTDOT) {
+                                lex.Next();
+                                f = new Range(lex, f, ParseDeref());
+                            }
+                            pattern->Add(f);
+                            if (lex.token == T_COLON) break;
+                            Expect(T_COMMA);
+                        }
+                    }
+                    auto body = BuiltinControlClosure(
+                        ParseFunction(nullptr, false, false, false, "case"), 0);
+                    cases->Add(new Case(lex, pattern, body));
+                    if (!IsNext(T_LINEFEED)) break;
+                    if (lex.token == T_DEDENT) break;
+                }
+                Expect(T_DEDENT);
+                return new Switch(lex, value, cases);
+            }
             default:
                 Error("illegal start of expression: " + lex.TokStr());
                 return nullptr;

@@ -382,6 +382,10 @@ struct CodeGen  {
         Emit(IsRefNil(type->t) ? IL_POPREF : IL_POP);
     }
 
+    void GenDup(TypeRef type) {
+        Emit(IsRefNil(type->t) ? IL_DUPREF : IL_DUP);
+    }
+
     void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr) {
         // The cases below generate no retvals if retval==0, otherwise they generate however many
         // they can irrespective of retval, optionally record that in rettypes for the more complex
@@ -404,7 +408,7 @@ struct CodeGen  {
             if (rettypes.size() == 1) {
                 for (; retval > 1; retval--) {
                     rettypes.push_back(rettypes.back());
-                    Emit(IsRefNil(rettypes.back()->t) ? IL_DUPREF : IL_DUP);
+                    GenDup(rettypes.back());
                 }
             // if the caller doesn't want all return values, just pop em
             } else if((int)rettypes.size() > retval) {
@@ -981,6 +985,62 @@ void ForLoopElem::Generate(CodeGen &cg, int /*retval*/) const {
 
 void ForLoopCounter::Generate(CodeGen &cg, int /*retval*/) const {
     cg.Emit(IL_FORLOOPI);
+}
+
+void Switch::Generate(CodeGen &cg, int retval) const {
+    // TODO: create specialized version for dense range of ints with jump table.
+    cg.Gen(value, 1, true);
+    vector<int> nextcase, thiscase, exitswitch;
+    for (auto n : cases->children) {
+        for (auto loc : nextcase) cg.SetLabel(loc);
+        nextcase.clear();
+        auto cas = AssertIs<Case>(n);
+        for (auto c : cas->pattern->children) {
+            auto is_last = c == cas->pattern->children.back();
+            cg.GenDup(value->exptype);
+            cg.temptypestack.push_back(value->exptype);
+            auto compare_one = [&](MathOp op, Node *cn) {
+                cg.Gen(cn, 1);
+                cg.GenMathOp(value->exptype, c->exptype, value->exptype, op);
+            };
+            auto compare_one_jump = [&](MathOp op, Node *cn) {
+                compare_one(op, cn);
+                cg.Emit(is_last ? IL_JUMPFAIL : IL_JUMPNOFAIL, 0);
+                (is_last ? nextcase : thiscase).push_back(cg.Pos());
+            };
+            if (auto r = Is<Range>(c)) {
+                compare_one(MOP_GE, r->start);
+                cg.Emit(IL_JUMPFAIL, 0);
+                auto loc = cg.Pos();
+                if (is_last) nextcase.push_back(loc);
+                cg.GenDup(value->exptype);
+                cg.temptypestack.push_back(value->exptype);
+                compare_one_jump(MOP_LE, r->end);
+                if (!is_last) cg.SetLabel(loc);
+            } else {
+                // FIXME: if this is a string, will alloc a temp string object just for the sake of
+                // comparison. Better to create special purpose opcode to compare with const string.
+                compare_one_jump(MOP_EQ, c);
+            }
+        }
+        for (auto loc : thiscase) cg.SetLabel(loc);
+        thiscase.clear();
+        cg.GenPop(value->exptype);
+        cg.Gen(cas->body, retval, true);
+        if (n != cases->children.back()) {
+            cg.Emit(IL_JUMP, 0);
+            exitswitch.push_back(cg.Pos());
+        }
+    }
+    for (auto loc : exitswitch) cg.SetLabel(loc);
+}
+
+void Case::Generate(CodeGen &/*cg*/, int /*retval*/) const {
+    assert(false);
+}
+
+void Range::Generate(CodeGen &/*cg*/, int /*retval*/) const {
+    assert(false);
 }
 
 void Constructor::Generate(CodeGen &cg, int retval) const {

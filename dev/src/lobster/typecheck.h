@@ -1289,6 +1289,51 @@ Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
     return this;
 }
 
+Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
+    // TODO: much like If, should only typecheck one case if the value is constant, and do
+    // the corresponding work in the optimizer.
+    value->TypeCheck(tc, true);
+    auto ptype = value->exptype;
+    if (!ptype->Numeric() && ptype->t != V_STRING)
+        tc.TypeError("switch value must be int / float / string", *this);
+    exptype = nullptr;
+    bool have_default = false;
+    for (auto n : cases->children) {
+        auto cas = AssertIs<Case>(n);
+        cas->TypeCheck(tc, reqret);
+        if (cas->pattern->children.empty()) have_default = true;
+        for (auto c : cas->pattern->children) {
+            tc.SubTypeT(c->exptype, ptype, *c, "", "case");
+        }
+        exptype = exptype.Null() ? cas->body->exptype
+                                 : tc.Union(exptype, cas->body->exptype, true);
+    }
+    assert(!exptype.Null());
+    for (auto n : cases->children) {
+        auto cas = AssertIs<Case>(n);
+        tc.SubType(cas->body, exptype, "", "case block");
+    }
+    if (reqret && !have_default)
+        tc.TypeError("switch that returns a value must have a default case", *this);
+    return this;
+}
+
+Node *Case::TypeCheck(TypeChecker &tc, bool reqret) {
+    tc.TypeCheckList(pattern, false);
+    body = body->TypeCheck(tc, reqret);
+    exptype = body->exptype;
+    return this;
+}
+
+Node *Range::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+    start = start->TypeCheck(tc, true);
+    end = end->TypeCheck(tc, true);
+    exptype = start->exptype;
+    if (exptype->t != end->exptype->t || !exptype->Numeric())
+        tc.TypeError("range can only be two equal numeric types", *this);
+    return this;
+}
+
 Node *CoDot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     coroutine = coroutine->TypeCheck(tc, true);
     // Leave right ident untypechecked.

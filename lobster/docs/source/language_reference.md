@@ -817,6 +817,22 @@ structures, like many of the graphics function that change the current rendering
 state. An example is `gl_translate()`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
+`switch` has its own special syntax, since it does a lot of things different:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+st := switch i:
+        case 1: "no"
+        case 2, 3:
+            x := i
+            "yes" + x
+        case 4..6, 8: "maybe"
+        default: "what?"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The value you switch on may be int, float or string. Cases may test for multiple
+values, even ranges (which are inclusive)
+
+
 Type Checking
 -------------
 

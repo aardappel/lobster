@@ -1,3 +1,5 @@
+- switch jump table based version.
+
 - Ways to represent "value" structs as in-line values.
   Easiest may be to make a 3 field struct actually take up 3 fields in the parent, that way
   quite a bit of code can ignore the distinction.
@@ -164,7 +166,7 @@
 - if your forget ":" after "else", it is going to try and declare a following identifier as a
   function parameter, see FIXME in ParseTrailingFunctionValues
 
-- some form or switch or pattern match facility?
+- extend switch with pattern match facility?
 
 - Should consider to allow on-the fly data structures as well.
   Writing new_type { field1: val, field2: val } would add such specialization to new_type even
@@ -930,8 +932,6 @@
   uniform
 
 - fix localmousepos to be a position in front of the camera in 3d mode? and in the middle in no cursor mode?
-
-- switch can actually be a standard library function?
 
 - hiding the console unless there's output for graphical applications
   note this screws up notepad++ capturing output

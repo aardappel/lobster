@@ -207,6 +207,9 @@ BINARY_NODE(For, "for", false, iter, body, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
 NARY_NODE(Inlined, "inlined", false, )
+BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, )
+BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
+BINARY_NODE(Range, "range", false, start, end, )
 
 struct Nil : Node {
 	TypeRef giventype;
