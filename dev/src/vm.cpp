@@ -1311,7 +1311,7 @@ VM_DEF_INS(LVALIDXV)  { int lvalop = *ip++; LvalueIdxVector(lvalop, GrabIndex(PO
 VM_DEF_INS(LVALFLD)   { int lvalop = *ip++; LvalueField(lvalop, *ip++); VM_RET; }
 
 #ifdef VM_COMPILED_CODE_MODE
-    #define GJUMP(N, V, D1, C, P, D2) VM_JMP_RET VM::N() \
+    #define GJUMP(N, V, D1, C, P, D2) VM_JMP_RET VM::F_##N() \
         { V; D1; if (C) { P; return true; } else { D2; return false; } }
 #else
     #define GJUMP(N, V, D1, C, P, D2) VM_DEF_JMP(N) \

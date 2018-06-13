@@ -1,3 +1,18 @@
+- things that would help making --to-cpp faster:
+  - fmul/fadd are expensive??
+  - inline LvalueOp.
+  - specialize PushDerefIdxVector for scalars such that it doesn't need to call AtInc which calls ElemType.
+    - see where else the use of these two functions can be reduced.
+  - specialized indexing op that gets vector variable instead of vector on stack, this way
+    you can avoid an inc and a dec.
+    - find other opportunities to reduce inc and dec.
+    - or, generically, make specialized pushvar that does not inc, and ops that consume it
+      that do not dec, and analyze when such pairs can be used.
+  - find places where the trampoline can be avoided, especially for for() and its body.
+    - should be easy when return X is followed by X:
+    - with the switch based version could do direct jumps, but switch trashes the branch cache?
+    - experiment with real gotos?
+
 - switch jump table based version.
 
 - Ways to represent "value" structs as in-line values.

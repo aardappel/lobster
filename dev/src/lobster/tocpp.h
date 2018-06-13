@@ -68,9 +68,9 @@ void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
         auto f = bcf->functions()->Get(i);
         function_lookup[f->bytecodestart()] = f;
     }
-    ss << "#include \"stdafx.h\"\n"
-          "#include \"vmdata.h\"\n"
-          "#include \"sdlinterface.h\"\n"
+    ss << "#include \"lobster/stdafx.h\"\n"
+          "#include \"lobster/vmdata.h\"\n"
+          "#include \"lobster/sdlinterface.h\"\n"
           "\n"
           "#ifndef VM_COMPILED_CODE_MODE\n"
           "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
