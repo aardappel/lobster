@@ -495,11 +495,7 @@ struct LStruct : RefObj {
     void Init(Value *from, intp len, bool inc) {
         assert(len && len == Len());
         memcpy(&At(0), from, len * sizeof(Value));
-        if (inc) for (intp i = 0; i < len; i++) AtInc(i);
-    }
-
-    Value &AtInc(intp i) const {
-        return At(i).INCTYPE(ElemType(i));
+        if (inc) for (intp i = 0; i < len; i++) At(i).INCTYPE(ElemType(i));
     }
 
     void Mark() {
@@ -606,10 +602,6 @@ struct LVector : RefObj {
         if (inc && IsRefNil(et))
             for (intp i = 0; i < len; i++)
                 At(i).INCRTNIL();
-    }
-
-    Value &AtInc(intp i) const {
-        return At(i).INCTYPE(ElemType());
     }
 
     void Mark() {
@@ -825,8 +817,8 @@ struct VM {
     void EvalProgram();
     void EvalProgramInner();
 
-    void PushDerefField(int i);
-    void PushDerefIdxVector(intp i);
+    void PushDerefIdxVectorSc(intp i);
+    void PushDerefIdxVectorRef(intp i);
     void PushDerefIdxStruct(intp i);
     void PushDerefIdxString(intp i);
     void LvalueIdxVector(int lvalop, intp i);

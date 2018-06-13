@@ -1865,6 +1865,8 @@ Node *Dot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     if (fieldidx < 0)
         tc.TypeError("type " + struc->name + " has no field named " + fld->name, *this);
     auto &uf = struc->fields.v[fieldidx];
+    if (maybe && !IsRefNil(uf.type->t))
+        tc.TypeError(cat("cannot dereference scalar field ", fld->name, " with ?."), *this);
     exptype = maybe && smtype->t == V_NIL && uf.type->t != V_NIL
             ? uf.type->Wrap(tc.st.NewType(), V_NIL)
             : uf.type;

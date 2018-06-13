@@ -61,7 +61,7 @@ template<typename T> Value BinarySearch(Value &l, Value &key, T comparefun) {
 
 Value ReplaceStruct(Value &l, Value &i, Value &a) {
     auto len = l.stval()->Len();
-    if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
+    if ((uintp)i.ival() >= (uintp)len) g_vm->BuiltinError("replace: index out of range");
     auto nv = g_vm->NewStruct(len, l.stval()->tti);
     if (len) nv->Init(&l.stval()->At(0), len, true);
     l.DECRT();
@@ -268,7 +268,7 @@ void AddBuiltins() {
     // FIXME: duplication with ReplaceStruct.
     STARTDECL(replace) (Value &l, Value &i, Value &a) {
         auto len = l.vval()->len;
-        if (i.ival() < 0 || i.ival() >= len) g_vm->BuiltinError("replace: index out of range");
+        if ((uintp)i.ival() >= (uintp)len) g_vm->BuiltinError("replace: index out of range");
         auto nv = g_vm->NewVec(len, len, l.vval()->tti);
         if (len) nv->Init(&l.vval()->At(0), true);
         l.DECRT();

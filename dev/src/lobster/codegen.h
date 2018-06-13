@@ -482,7 +482,8 @@ struct CodeGen  {
                     Emit(indexing->index->exptype->t == V_INT ? IL_VLVALIDXI : IL_LVALIDXV, lvalop);
                     break;
                 case V_STRUCT:
-                    assert(indexing->index->exptype->t == V_INT);
+                    assert(indexing->index->exptype->t == V_INT &&
+                           indexing->object->exptype->struc->sametype->Numeric());
                     Emit(IL_NLVALIDXI, lvalop);
                     break;
                 case V_STRING:
@@ -502,10 +503,11 @@ struct CodeGen  {
         auto stype = n.maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
         auto f = n.fld;
         assert(stype->t == V_STRUCT);  // Ensured by typechecker.
-        if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
-        else Emit(IL_PUSHFLD + (int)maybe);
         auto idx = stype->struc->Has(f);
         assert(idx >= 0);
+        if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
+        else Emit(IsRefNil(stype->struc->fields.v[idx].type->t) ? IL_PUSHFLDREF + (int)maybe
+                                                                : IL_PUSHFLD);
         Emit(idx);
     }
 
@@ -603,10 +605,32 @@ void Indexing::Generate(CodeGen &cg, int retval) const {
     if (retval) {
         cg.TakeTemp(2);
         switch (object->exptype->t) {
-            case V_VECTOR: cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV); break;
-            case V_STRUCT: assert(index->exptype->t == V_INT); cg.Emit(IL_NPUSHIDXI); break;
-            case V_STRING: assert(index->exptype->t == V_INT); cg.Emit(IL_SPUSHIDXI); break;
-            default: assert(false);
+            case V_VECTOR: {
+                auto etype = object->exptype;
+                if (index->exptype->t == V_INT) {
+                    etype = etype->Element();
+                } else {
+                    auto &struc = *index->exptype->struc;
+                    for (auto &field : struc.fields.v) {
+                        (void)field;
+                        etype = etype->Element();
+                    }
+                }
+                cg.Emit(IsRefNil(etype->t)
+                        ? (index->exptype->t == V_INT ? IL_VPUSHIDXIREF : IL_VPUSHIDXVREF)
+                        : (index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV));
+                break;
+            }
+            case V_STRUCT:
+                assert(index->exptype->t == V_INT && object->exptype->struc->sametype->Numeric());
+                cg.Emit(IL_NPUSHIDXI);
+                break;
+            case V_STRING:
+                assert(index->exptype->t == V_INT);
+                cg.Emit(IL_SPUSHIDXI);
+                break;
+            default:
+                assert(false);
         }
     }
 }
@@ -888,7 +912,7 @@ void Seq::Generate(CodeGen &cg, int retval) const {
 void MultipleReturn::Generate(CodeGen &cg, int retval) const {
     for (auto c : children) cg.Gen(c, retval != 0);
     if (retval) {
-        assert(Arity() == retval);
+        assert((int)Arity() == retval);
         cg.TakeTemp(Arity());
         for (auto c : children) cg.rettypes.push_back(c->exptype);
     }
@@ -974,10 +998,11 @@ void For::Generate(CodeGen &cg, int retval) const {
 }
 
 void ForLoopElem::Generate(CodeGen &cg, int /*retval*/) const {
-    switch (cg.temptypestack.back()->t) {
+    auto type = cg.temptypestack.back();
+    switch (type->t) {
         case V_INT:    cg.Emit(IL_IFORELEM); break;
         case V_STRING: cg.Emit(IL_SFORELEM); break;
-        case V_VECTOR: cg.Emit(IL_VFORELEM); break;
+        case V_VECTOR: cg.Emit(IsRefNil(type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
         case V_STRUCT: cg.Emit(IL_NFORELEM); break;
         default:       assert(false);
     }

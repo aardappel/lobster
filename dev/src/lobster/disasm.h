@@ -170,7 +170,8 @@ static const int *DisAsmIns(ostringstream &ss, const int *ip, const int *code,
         case IL_LVALLOC:
            LvalDisAsm(ss, ip);
         case IL_PUSHFLD:
-        case IL_PUSHFLDM:
+        case IL_PUSHFLDREF:
+        case IL_PUSHFLDMREF:
         case IL_PUSHLOC:
             ss << *ip++;
             break;

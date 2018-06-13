@@ -972,7 +972,7 @@ VM_DEF_INS(CONT1) {
     auto &iter = TOP(); (void)iter; \
     auto &i = TOPM(1); \
     TYPE_ASSERT(i.type == V_INT); \
-    PUSH(V); \
+    V; \
     VM_RET;
 
 VM_DEF_JMP(IFOR) { FORLOOP(iter.ival(), false); }
@@ -980,10 +980,11 @@ VM_DEF_JMP(VFOR) { FORLOOP(iter.vval()->len, true); }
 VM_DEF_JMP(NFOR) { FORLOOP(iter.stval()->Len(), true); }
 VM_DEF_JMP(SFOR) { FORLOOP(iter.sval()->len, true); }
 
-VM_DEF_INS(IFORELEM) { FORELEM(i); }
-VM_DEF_INS(VFORELEM) { FORELEM(iter.vval()->AtInc(i.ival())); }
-VM_DEF_INS(NFORELEM) { FORELEM(iter.stval()->At(i.ival())); }
-VM_DEF_INS(SFORELEM) { FORELEM(Value((int)((uchar *)iter.sval()->str())[i.ival()])); }
+VM_DEF_INS(IFORELEM)    { FORELEM(PUSH(i)); }
+VM_DEF_INS(VFORELEM)    { FORELEM(PUSH(iter.vval()->At(i.ival()))); }
+VM_DEF_INS(VFORELEMREF) { FORELEM(auto el = iter.vval()->At(i.ival()); el.INCRTNIL(); PUSH(el)); }
+VM_DEF_INS(NFORELEM)    { FORELEM(PUSH(iter.stval()->At(i.ival()))); }
+VM_DEF_INS(SFORELEM)    { FORELEM(PUSH(Value((int)((uchar *)iter.sval()->str())[i.ival()]))); }
 
 VM_DEF_INS(FORLOOPI) {
     auto &i = TOPM(1);  // This relies on for being inlined, otherwise it would be 2.
@@ -1270,13 +1271,44 @@ VM_DEF_INS(E2BREF) {
 VM_DEF_INS(PUSHVAR)    { PUSH(vars[*ip++]); VM_RET; }
 VM_DEF_INS(PUSHVARREF) { PUSH(vars[*ip++].INCRTNIL()); VM_RET; }
 
-VM_DEF_INS(PUSHFLD)  { PushDerefField(*ip++); VM_RET; }
-VM_DEF_INS(PUSHFLDM) { PushDerefField(*ip++); VM_RET; }
+VM_DEF_INS(PUSHFLD) {
+    auto i = *ip++;
+    Value r = POP();
+    VMASSERT(r.ref());
+    PUSH(r.stval()->At(i));
+    r.DECRT();
+    VM_RET;
+}
+VM_DEF_INS(PUSHFLDREF) {
+    auto i = *ip++;
+    Value r = POP();
+    VMASSERT(r.ref());
+    auto el = r.stval()->At(i);
+    el.INCRTNIL();
+    PUSH(el);
+    r.DECRT();
+    VM_RET;
+}
+VM_DEF_INS(PUSHFLDMREF) {
+    auto i = *ip++;
+    Value r = POP();
+    if (!r.ref()) {
+        PUSH(r);
+    } else {
+        auto el = r.stval()->At(i);
+        el.INCRTNIL();
+        PUSH(el);
+        r.DECRT();
+    }
+    VM_RET;
+}
 
-VM_DEF_INS(VPUSHIDXI) { PushDerefIdxVector(POP().ival()); VM_RET; }
-VM_DEF_INS(VPUSHIDXV) { PushDerefIdxVector(GrabIndex(POP())); VM_RET; }
-VM_DEF_INS(NPUSHIDXI) { PushDerefIdxStruct(POP().ival()); VM_RET; }
-VM_DEF_INS(SPUSHIDXI) { PushDerefIdxString(POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXI)    { PushDerefIdxVectorSc(POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXV)    { PushDerefIdxVectorSc(GrabIndex(POP())); VM_RET; }
+VM_DEF_INS(VPUSHIDXIREF) { PushDerefIdxVectorRef(POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXVREF) { PushDerefIdxVectorRef(GrabIndex(POP())); VM_RET; }
+VM_DEF_INS(NPUSHIDXI)    { PushDerefIdxStruct(POP().ival()); VM_RET; }
+VM_DEF_INS(SPUSHIDXI)    { PushDerefIdxString(POP().ival()); VM_RET; }
 
 VM_DEF_INS(PUSHLOC) {
     int i = *ip++;
@@ -1373,40 +1405,48 @@ VM_DEF_INS(ABORT) {
 }  // EvalProgramInner()
 #endif
 
-void VM::PushDerefField(int i) {
+void VM::IDXErr(intp i, intp n, const RefObj *v) {
+    Error(cat("index ", i, " out of range ", n), v);
+}
+#define RANGECHECK(I, BOUND, VEC) if ((uintp)I >= (uintp)BOUND) IDXErr(I, BOUND, VEC);
+
+void VM::PushDerefIdxVectorSc(intp i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // nil.
-    PUSH(r.stval()->AtInc(i));
+    VMASSERT(r.ref());
+    RANGECHECK(i, r.vval()->len, r.vval());
+    PUSH(r.vval()->At(i));
     r.DECRT();
 }
 
-void VM::PushDerefIdxVector(intp i) {
+void VM::PushDerefIdxVectorRef(intp i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // nil.
-    IDXErr(i, r.vval()->len, r.vval());
-    PUSH(r.vval()->AtInc(i));
+    VMASSERT(r.ref());
+    RANGECHECK(i, r.vval()->len, r.vval());
+    auto el = r.vval()->At(i);
+    el.INCRTNIL();
+    PUSH(el);
     r.DECRT();
 }
 
 void VM::PushDerefIdxStruct(intp i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // nil.
-    IDXErr(i, r.stval()->Len(), r.stval());
-    PUSH(r.stval()->AtInc(i));
+    VMASSERT(r.ref());
+    RANGECHECK(i, r.stval()->Len(), r.stval());
+    PUSH(r.stval()->At(i));
     r.DECRT();
 }
 
 void VM::PushDerefIdxString(intp i) {
     Value r = POP();
-    if (!r.ref()) { PUSH(r); return; }  // nil.
-    IDXErr(i, r.sval()->len, r.sval());
+    VMASSERT(r.ref());
+    RANGECHECK(i, r.sval()->len, r.sval());
     PUSH(Value((int)((uchar *)r.sval()->str())[i]));
     r.DECRT();
 }
 
 void VM::LvalueIdxVector(int lvalop, intp i) {
     Value vec = POP();
-    IDXErr(i, (int)vec.vval()->len, vec.vval());
+    RANGECHECK(i, vec.vval()->len, vec.vval());
     Value &a = vec.vval()->At(i);
     LvalueOp(lvalop, a);
     vec.DECRT();
@@ -1414,7 +1454,7 @@ void VM::LvalueIdxVector(int lvalop, intp i) {
 
 void VM::LvalueIdxStruct(int lvalop, intp i) {
     Value vec = POP();
-    IDXErr(i, (int)vec.stval()->Len(), vec.stval());
+    RANGECHECK(i, vec.stval()->Len(), vec.stval());
     Value &a = vec.stval()->At(i);
     LvalueOp(lvalop, a);
     vec.DECRT();
@@ -1422,7 +1462,7 @@ void VM::LvalueIdxStruct(int lvalop, intp i) {
 
 void VM::LvalueField(int lvalop, intp i) {
     Value vec = POP();
-    IDXErr(i, (int)vec.stval()->Len(), vec.stval());
+    RANGECHECK(i, vec.stval()->Len(), vec.stval());
     Value &a = vec.stval()->At(i);
     LvalueOp(lvalop, a);
     vec.DECRT();
@@ -1531,10 +1571,6 @@ string VM::ProperTypeName(const TypeInfo &ti) {
     return string(BaseTypeName(ti.t));
 }
 
-void VM::IDXErr(intp i, intp n, const RefObj *v) {
-    if (i < 0 || i >= n) Error(cat("index ", i, " out of range ", n), v);
-}
-
 void VM::BCallProf() {
     #ifdef VM_PROFILER
         vm_count_bcalls++;
@@ -1568,7 +1604,7 @@ intp VM::GrabIndex(const Value &idx) {
             idx.DECRT();
             return sidx.ival();
         }
-        IDXErr(sidx.ival(), v.vval()->len, v.vval());
+        RANGECHECK(sidx.ival(), v.vval()->len, v.vval());
         auto nv = v.vval()->At(sidx.ival()).INCRT();
         v.DECRT();
         v = nv;
