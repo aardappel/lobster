@@ -728,7 +728,10 @@ void AddBuiltins() {
         "a random vector within the range of an input vector.");
     STARTDECL(rndfloat)() { return Value(rnd.rnddouble()); }
     ENDDECL0(rndfloat, "", "", "F",
-        "a random float [0..1)");
+             "a random float [0..1)");
+    STARTDECL(rndgaussian)() { return Value(rnd.rndgaussian()); }
+    ENDDECL0(rndgaussian, "", "", "F",
+             "a random float in a gaussian distribution with mean 0 and stddev 1");
     STARTDECL(rndseed) (Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
     ENDDECL1(rndseed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");

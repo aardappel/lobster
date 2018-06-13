@@ -105,50 +105,50 @@ class MersenneTwister          {
     const static uint M = 397;
     const static uint K = 0x9908B0DFU;
 
-    uint hiBit(uint u)  { return u & 0x80000000U; }
-    uint loBit(uint u)  { return u & 0x00000001U; }
+    uint hiBit(uint u) { return u & 0x80000000U; }
+    uint loBit(uint u) { return u & 0x00000001U; }
     uint loBits(uint u) { return u & 0x7FFFFFFFU; }
 
-    uint mixBits(uint u, uint v) { return hiBit(u)|loBits(v); }
+    uint mixBits(uint u, uint v) { return hiBit(u) | loBits(v); }
 
-    uint state[N+1];
+    uint state[N + 1];
     uint *next;
     int left;
 
     public:
-
     MersenneTwister() : left(-1) {}
 
     void Seed(uint seed) {
         uint x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
         int j;
-        for(left=0, *s++=x, j=N; --j; *s++ = (x*=69069U) & 0xFFFFFFFFU);
+        for (left = 0, *s++ = x, j = N; --j; *s++ = (x *= 69069U) & 0xFFFFFFFFU)
+            ;
     }
 
     uint Reload() {
-        uint *p0=state, *p2=state+2, *pM=state+M, s0, s1;
+        uint *p0 = state, *p2 = state + 2, *pM = state + M, s0, s1;
         int j;
-        if(left < -1) Seed(4357U);
-        left=N-1, next=state+1;
-        for(s0=state[0], s1=state[1], j=N-M+1; --j; s0=s1, s1=*p2++)
+        if (left < -1) Seed(4357U);
+        left = N - 1, next = state + 1;
+        for (s0 = state[0], s1 = state[1], j = N - M + 1; --j; s0 = s1, s1 = *p2++)
             *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
-        for(pM=state, j=M; --j; s0=s1, s1=*p2++)
+        for (pM = state, j = M; --j; s0 = s1, s1 = *p2++)
             *p0++ = *pM++ ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
-        s1=state[0], *p0 = *pM ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
+        s1 = state[0], *p0 = *pM ^ (mixBits(s0, s1) >> 1) ^ (loBit(s1) ? K : 0U);
         s1 ^= (s1 >> 11);
-        s1 ^= (s1 <<  7) & 0x9D2C5680U;
+        s1 ^= (s1 << 7) & 0x9D2C5680U;
         s1 ^= (s1 << 15) & 0xEFC60000U;
-        return(s1 ^ (s1 >> 18));
+        return (s1 ^ (s1 >> 18));
     }
 
     uint Random() {
         uint y;
-        if(--left < 0) return(Reload());
-        y  = *next++;
+        if (--left < 0) return (Reload());
+        y = *next++;
         y ^= (y >> 11);
-        y ^= (y <<  7) & 0x9D2C5680U;
+        y ^= (y << 7) & 0x9D2C5680U;
         y ^= (y << 15) & 0xEFC60000U;
-        return(y ^ (y >> 18));
+        return (y ^ (y >> 18));
     }
 
     void ReSeed(uint seed) {
@@ -158,17 +158,14 @@ class MersenneTwister          {
     }
 };
 
-
 class PCG32 {
     // This is apparently better than the Mersenne Twister, and its also smaller/faster!
     // Adapted from *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
     // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website).
-
     uint64_t state;
     uint64_t inc;
 
     public:
-
     PCG32() : state(0xABADCAFEDEADBEEF), inc(0xDEADBABEABADD00D) {}
 
     uint32_t Random() {
@@ -181,7 +178,10 @@ class PCG32 {
         return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
     }
 
-    void ReSeed(uint32_t s) { state = s; inc = 0xDEADBABEABADD00D; }
+    void ReSeed(uint32_t s) {
+        state = s;
+        inc = 0xDEADBABEABADD00D;
+    }
 };
 
 template<typename T> struct RandomNumberGenerator {
@@ -195,6 +195,28 @@ template<typename T> struct RandomNumberGenerator {
     double rnddouble() { return rnd.Random() * (1.0 / 4294967296.0); }
     float rndfloat() { return (float)rnddouble(); } // FIXME: performance?
     float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
+
+    double n2 = 0.0;
+    bool n2_cached = false;
+    // Returns gaussian with stddev of 1 and mean of 0.
+    // Box Muller method.
+    double rndgaussian() {
+        n2_cached = !n2_cached;
+        if (n2_cached) {
+            double x, y, r;
+            do {
+                x = 2.0 * rnddouble() - 1;
+                y = 2.0 * rnddouble() - 1;
+                r = x * x + y * y;
+            } while (r == 0.0 || r > 1.0);
+            double d = sqrt(-2.0 * log(r) / r);
+            double n1 = x * d;
+            n2 = y * d;
+            return n1;
+        } else {
+            return n2;
+        }
+    }
 };
 
 // Special case for to_string to get exact float formatting we need.
