@@ -63,7 +63,7 @@ struct ValueParser {
         }
         if (numelems >= 0) {
             while ((int)elems.size() < numelems) {
-                switch (ti.elems[elems.size()]) {
+                switch (g_vm->GetTypeInfo(ti.elems[elems.size()]).t) {
                     case V_INT:   elems.push_back(Value(0)); break;
                     case V_FLOAT: elems.push_back(Value(0.0f)); break;
                     case V_NIL:   elems.push_back(Value()); break;
