@@ -242,8 +242,8 @@ struct TypeChecker {
                                      (sub->sf == type->sf ||
                                       (!sub->sf && ConvertsTo(type->sf->coresumetype,
                                                               NewNilTypeVar(), false)));
+            default:          return false;
         }
-        return false;
     }
 
     TypeRef Union(const Node *a, const Node *b, bool coercions) {
@@ -360,6 +360,8 @@ struct TypeChecker {
                     return;
                 }
                 break;
+            default:
+                ;
         }
         error:
         TypeError(TypeName(sub), a->exptype, *a, argname, context);

@@ -1567,8 +1567,8 @@ string VM::ProperTypeName(const TypeInfo &ti) {
         case V_STRUCT: return string(ReverseLookupType(ti.structidx));
         case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
         case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
+        default: return string(BaseTypeName(ti.t));
     }
-    return string(BaseTypeName(ti.t));
 }
 
 void VM::BCallProf() {

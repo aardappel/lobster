@@ -171,6 +171,7 @@ void RefObj::Mark() {
         case V_STRUCT:     ((LStruct    *)this)->Mark(); break;
         case V_VECTOR:     ((LVector    *)this)->Mark(); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->Mark(); break;
+        default:                                         break;
     }
 }
 

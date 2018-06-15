@@ -442,17 +442,16 @@ struct Lex : LoadedFile {
     };
 
     string_view TokStr(TType t = T_NONE) {
-        if (t == T_NONE) {
-            t = token;
-            switch (t) {
-                case T_IDENT:
-                case T_FLOAT:
-                case T_INT:
-                case T_STR:
-                    return sattr;
-            }
+        if (t == T_NONE) t = token;
+        switch (t) {
+            case T_IDENT:
+            case T_FLOAT:
+            case T_INT:
+            case T_STR:
+                return sattr;
+            default:
+                return TName(t);
         }
-        return TName(t);
     }
 
     string Location(const Line &ln) {

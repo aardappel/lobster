@@ -124,6 +124,7 @@ bool VRInit() {
     vr::VRCompositor()->WaitGetPoses(trackeddeviceposes, vr::k_unMaxTrackedDeviceCount, NULL, 0);
     return true;
     #else
+    (void)rtsize;
     return false;
     #endif  // PLATFORM_VR
 }

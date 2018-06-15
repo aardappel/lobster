@@ -643,6 +643,8 @@ struct Parser {
             case T_LEFTPAREN:
                 e = ParseFunction(nullptr, false, true, true, name);
                 break;
+            default:
+                break;
         }
         if (args && thisarg + 1 < args->size()) trailingkeywordedfunctionvaluestack.pop_back();
         if (!e) {
@@ -756,8 +758,8 @@ struct Parser {
             case T_MULTEQ:  CheckOpEq(e); return new MultiplyEq(lex, e, ParseExp());
             case T_DIVEQ:   CheckOpEq(e); return new DivideEq(lex, e, ParseExp());
             case T_MODEQ:   CheckOpEq(e); return new ModEq(lex, e, ParseExp());
+            default:        return e;
         }
-        return e;
     }
 
     Node *ParseOpExp(uint level = 6) {
