@@ -38,7 +38,6 @@
 #include <limits.h>
 
 #include <string>
-#include <string_view>
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -49,6 +48,12 @@
 #include <functional>
 #include <array>
 #include <type_traits>
+
+#if defined(__has_include) && __has_include(<string_view>)
+    #include <string_view>
+#else
+    #include <experimental/string_view>
+#endif
 
 #include <thread>
 #include <future>
