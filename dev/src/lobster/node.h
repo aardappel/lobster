@@ -335,10 +335,9 @@ struct AssignList : Unary {
     vector<SpecIdent *> sids;
     AssignList(const Line &ln, SpecIdent *sid, Node *_a)
         : Unary(ln, _a) { if (sid) sids.push_back(sid); }
-    string Dump() const {
-        string s;
-        for (auto sid : sids) s += sid->id->name + " ";
-        return s + Name();
+    void Dump(ostringstream &ss) const {
+        for (auto sid : sids) ss << sid->id->name << " ";
+        ss << Name();
     }
     SHARED_SIGNATURE(AssignList, "assign list", true)
 };
