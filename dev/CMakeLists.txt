@@ -45,14 +45,14 @@ file(GLOB_RECURSE EXTERNAL_SRCS
 
 add_definitions(-DFT2_BUILD_LIBRARY=1)
 
-set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-misleading-indentation") # -fno-exceptions
+set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value") # -fno-exceptions
 
 if(APPLE)
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++ ${COMMON_GCC_STYLE}")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
+    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE} -Wno-misleading-indentation")
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++ ${COMMON_GCC_STYLE}")
