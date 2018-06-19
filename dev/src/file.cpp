@@ -47,9 +47,8 @@ void AddFile() {
         if (divisor.ival() <= 0) divisor.setival(1);
         auto nlist = (LVector *)g_vm->NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto slist = (LVector *)g_vm->NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
-        for (auto &p : dir) {
-            nlist->Push(Value(g_vm->NewString(p.first)));
-            auto size = p.second;
+        for (auto &[name, size] : dir) {
+            nlist->Push(Value(g_vm->NewString(name)));
             if (size >= 0) {
                 size /= divisor.ival();
                 if (sizeof(intp) == sizeof(int) && size > 0x7FFFFFFF) size = 0x7FFFFFFF;

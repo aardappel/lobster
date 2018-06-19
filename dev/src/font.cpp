@@ -101,7 +101,7 @@ void AddFont() {
             return Value(true);
         }
         curfont = new BitmapFont(curface, csize, osize);
-        fontcache.insert(make_pair(fontname, curfont));
+        fontcache.insert({ fontname, curfont });
         return Value(true);
     }
     ENDDECL2(gl_setfontsize, "size,outlinesize", "IF?", "I",

@@ -242,7 +242,7 @@ struct Parser {
         auto parse_specializers = [&] () {
             if (IsNext(T_LEFTPAREN)) {
                 for (;;) {
-                    spectypes.push_back(make_pair(nullptr, nullptr));
+                    spectypes.push_back({ nullptr, nullptr });
                     ParseType(spectypes.back().first, false);
                     spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
                     if (IsNext(T_RIGHTPAREN)) break;
@@ -254,9 +254,9 @@ struct Parser {
         auto specialize_field = [&] (Field &field) {
             if (field.flags & AF_GENERIC) {
                 if (specializer_i >= spectypes.size()) Error("too few type specializers");
-                auto &p = spectypes[specializer_i++];
-                field.type = p.first;
-                if (p.second) { assert(!field.defaultval); field.defaultval = p.second; }
+                auto &[stype, snode] = spectypes[specializer_i++];
+                field.type = stype;
+                if (snode) { assert(!field.defaultval); field.defaultval = snode; }
             }
         };
         if (IsNext(T_ASSIGN)) {

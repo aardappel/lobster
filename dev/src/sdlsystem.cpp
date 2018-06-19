@@ -107,11 +107,10 @@ Finger fingers[MAXFINGERS];
 
 
 void updatebutton(string &name, bool on, int posfinger) {
-    auto kmit = keymap.find(name);
-    auto ks = &(kmit != keymap.end() ? kmit : keymap.insert(make_pair(name, KeyState())).first)->second;
-    ks->button.Set(on);
-    ks->lasttime[on] = lasttime;
-    ks->lastpos[on] = fingers[posfinger].mousepos;
+    auto &ks = keymap[name];
+    ks.button.Set(on);
+    ks.lasttime[on] = lasttime;
+    ks.lastpos[on] = fingers[posfinger].mousepos;
 }
 
 void updatemousebutton(int button, int finger, bool on) {
@@ -579,7 +578,7 @@ double SDLDeltaTime() { return frametime; }
 
 TimeBool8 GetKS(const char *name) {
     auto ks = keymap.find(name);
-    if (ks == keymap.end()) return TimeBool8();
+    if (ks == keymap.end()) return {};
     #ifdef PLATFORM_TOUCH
         // delayed results by one frame, that way they get 1 frame over finger hovering over target,
         // which makes gl_hit work correctly

@@ -113,9 +113,9 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
             vector<pair<string, int64_t>> dir;
             if (!ScanDir(filename, dir))
                 THROW_OR_ABORT("cannot load file/dir for pakfile: " + filename);
-            for (auto &p : dir) {
-                auto fn = filename + p.first;
-                if (p.second >= 0 && LoadFile(fn, &buf) >= 0)
+            for (auto &[name, size] : dir) {
+                auto fn = filename + name;
+                if (size >= 0 && LoadFile(fn, &buf) >= 0)
                     add_file(buf, fn);
             }
         }
