@@ -58,7 +58,7 @@ extern void RegisterCoreEngineBuiltins();
 extern bool GraphicsFrameStart();
 extern void GraphicsShutDown();
 extern void EngineExit(int code);
-extern bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
+extern void EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
                               const void *static_bytecode, const vector<string> &program_args);
 extern int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb);
 

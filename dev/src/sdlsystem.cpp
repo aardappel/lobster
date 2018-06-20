@@ -723,7 +723,7 @@ void one_frame_callback() {
     #endif
 }
 
-bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
+void EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
                        const void *static_bytecode, const vector<string> &program_args) {
     #ifdef USE_EXCEPTION_HANDLING
     try
@@ -740,10 +740,14 @@ bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point
             // We just got to the start of the first frame inside gl_frame(), and the VM is suspended.
             // Install the one-frame callback:
             #ifdef __EMSCRIPTEN__
-            emscripten_set_main_loop(one_frame_callback, 0, false);
-            // Return from main() here (!) since we don't actually want to run any shutdown code yet.
-            assert(lobster::g_vm);
-            return true;
+            // This has a better explanation of the last argument than the emscripten docs:
+            // http://flohofwoe.blogspot.com/2013/09/emscripten-and-pnacl-app-entry-in.html
+            // We're passing true as last argument, which means emscripten is not going to
+            // return from this function until completely done, emulating behavior as if we
+            // control the main loop. What it really does is throw a JS exception to escape from
+            // C++ execution, leaving this main loop in a frozen state to later return to.
+            emscripten_set_main_loop(one_frame_callback, 0, true);
+            // When we return here, we're done and exit normally.
             #else
             // Emulate this behavior so we can debug it.
             while (g_vm->evalret == "") one_frame_callback();
@@ -758,10 +762,8 @@ bool EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point
         }
     }
     #endif
-
     delete lobster::g_vm;
     lobster::g_vm = nullptr;
-    return false;
 }
 
 int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb) {
@@ -779,8 +781,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         string empty;
         vector<string> args;
         for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        if (EngineRunByteCode(argv[0], empty, entry_point, bytecodefb, args))
-            return 0;  // Emscripten.
+        EngineRunByteCode(argv[0], empty, entry_point, bytecodefb, args);
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

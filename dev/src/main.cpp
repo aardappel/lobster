@@ -135,8 +135,7 @@ int main(int argc, char* argv[]) {
                 fclose(f);
             }
         } else {
-            if (EngineRunByteCode(fn, bytecode, nullptr, nullptr, program_args))
-                return 0;  // Emscripten inverted control.
+            EngineRunByteCode(fn, bytecode, nullptr, nullptr, program_args);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING
