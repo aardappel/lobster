@@ -277,10 +277,8 @@ void Compile(string_view fn, const char *stringsource, string &bytecode,
     if (dump_names) DumpBuiltins(true, st);
 }
 
-Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
+Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<string> &args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
-    SlabAlloc *parentpool = vmpool; vmpool = nullptr;
-    VM        *parentvm   = g_vm;   g_vm = nullptr;
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
@@ -292,31 +290,25 @@ Value CompileRun(Value &source, bool stringiscode, const vector<string> &args) {
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        RunBytecode(fn, bytecode, nullptr, nullptr, args);
-        auto ret = g_vm->evalret;
-        delete g_vm;
-        assert(!vmpool && !g_vm);
-        vmpool = parentpool;
-        g_vm = parentvm;
-        source.DECRT();
-        g_vm->Push(Value(g_vm->NewString(ret)));
+        VM vm(fn, bytecode, nullptr, nullptr, args);
+        vm.EvalProgram();
+        auto ret = vm.evalret;
+        source.DECRT(parent_vm);
+        parent_vm.Push(Value(parent_vm.NewString(ret)));
         return Value();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        if (g_vm) delete g_vm;
-        vmpool = parentpool;
-        g_vm = parentvm;
-        source.DECRT();
-        g_vm->Push(Value(g_vm->NewString("nil")));
-        return Value(g_vm->NewString(s));
+        source.DECRT(parent_vm);
+        parent_vm.Push(Value(parent_vm.NewString("nil")));
+        return Value(parent_vm.NewString(s));
     }
     #endif
 }
 
 void AddCompiler() {  // it knows how to call itself!
-    STARTDECL(compile_run_code) (Value &filename, Value &args) {
-        return CompileRun(filename, true, VectorOfStrings(args));
+    STARTDECL(compile_run_code) (VM &vm, Value &filename, Value &args) {
+        return CompileRun(vm, filename, true, VectorOfStrings(vm, args));
     }
     ENDDECL2(compile_run_code, "code,args", "SS]", "SS?",
         "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
@@ -325,8 +317,8 @@ void AddCompiler() {  // it knows how to call itself!
         " two program can communicate more complex data structures even if they don't have the same"
         " version of struct definitions.");
 
-    STARTDECL(compile_run_file) (Value &filename, Value &args) {
-        return CompileRun(filename, false, VectorOfStrings(args));
+    STARTDECL(compile_run_file) (VM &vm, Value &filename, Value &args) {
+        return CompileRun(vm, filename, false, VectorOfStrings(vm, args));
     }
     ENDDECL2(compile_run_file, "filename,args", "SS]", "SS?",
         "same as compile_run_code(), only now you pass a filename.");

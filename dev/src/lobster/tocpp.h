@@ -94,7 +94,7 @@ void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
             if (ip) ss << "goto block_label";
             else ss << "{ ip = ";
         }
-        if (ip) BlockRef(ip); else ss << "g_vm->next_call_target";
+        if (ip) BlockRef(ip); else ss << "vm.next_call_target";
         ss << ";";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             if (!ip) ss << " continue; }";
@@ -159,7 +159,7 @@ void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
             ss << "\n";
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILRREF) ||
                    (opc >= IL_IFOR && opc <= IL_NFOR)) {
-            ss << "if (g_vm->F_" << ilname << "()) ";
+            ss << "if (vm.F_" << ilname << "()) ";
             JumpIns(args[0]);
             ss << "\n";
         } else {
@@ -179,15 +179,15 @@ void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
                     BlockRef(args[2 + (nargs + 1) * i + nargs]);
                     ss << ", ";
                 }
-                ss << "}; g_vm->next_mm_table = mmtable; ";
+                ss << "}; vm.next_mm_table = mmtable; ";
             // FIXME: make resume a vm op.
             } else if (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
                        natreg.nfuns[args[0]]->name == "resume") {
-                ss << "g_vm->next_call_target = ";
+                ss << "vm.next_call_target = ";
                 BlockRef(ip - code);
                 ss << "; ";
             }
-            ss << "g_vm->F_" << ilname << "(" << (arity ? "args" : "nullptr");
+            ss << "vm.F_" << ilname << "(" << (arity ? "args" : "nullptr");
             if (opc == IL_CALL || opc == IL_CALLMULTI || opc == IL_CALLV || opc == IL_CALLVCOND ||
                 opc == IL_YIELD) {
                 ss << ", ";
@@ -223,7 +223,7 @@ void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
                 JumpIns();
                 already_returned = true;
             } else if (opc == IL_CALLVCOND) {
-                ss << " if (g_vm->next_call_target) ";
+                ss << " if (vm.next_call_target) ";
                 JumpIns();
             }
             ss << " }\n";

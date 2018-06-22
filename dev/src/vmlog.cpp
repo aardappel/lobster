@@ -32,7 +32,7 @@ void VMLog::LogInit(const bytecode::BytecodeFile *bcf) {
 void VMLog::LogPurge() {
     for (auto &l : logvars) {
         if (IsRefNil(l.type->t)) {
-            for (size_t i = l.read; i < l.values.size(); i++) l.values[i].DECRTNIL();
+            for (size_t i = l.read; i < l.values.size(); i++) l.values[i].DECRTNIL(vm);
         }
         l.values.resize(l.read);
     }
@@ -55,7 +55,7 @@ Value VMLog::LogGet(Value def, int idx) {
     } else {
         // Get existing value, ignore default.
         auto v = l.values[l.read++];
-        if (isref) { v.INCRTNIL(); def.DECRTNIL(); }
+        if (isref) { v.INCRTNIL(); def.DECRTNIL(vm); }
         return v;
     }
 }
@@ -65,7 +65,7 @@ void VMLog::LogWrite(Value newval, int idx) {
     bool isref = IsRefNil(l.type->t);
     assert(l.read > 0);
     auto &slot = l.values[l.read - 1];
-    if (isref) { slot.DECRTNIL(); newval.INCRTNIL(); }
+    if (isref) { slot.DECRTNIL(vm); newval.INCRTNIL(); }
     slot = newval;
 }
 
@@ -76,7 +76,7 @@ void VMLog::LogCleanup() {
 
 void VMLog::LogMark() {
     for (auto &l : logvars) {
-        if (IsRefNil(l.type->t)) for (auto v : l.values) v.MarkRef();
+        if (IsRefNil(l.type->t)) for (auto v : l.values) v.MarkRef(vm);
     }
 }
 

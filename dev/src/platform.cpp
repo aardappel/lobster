@@ -244,6 +244,9 @@ bool WriteFile(string_view relfilename, bool binary, string_view contents) {
     return written == 1;
 }
 
+// TODO: can now replace all this platform specific stuff with std::filesystem code.
+// https://github.com/tvaneerd/cpp17_in_TTs/blob/master/ALL_IN_ONE.md
+// http://en.cppreference.com/w/cpp/experimental/fs
 bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
     string folder = SanitizePath(absdir);
     #ifdef _WIN32

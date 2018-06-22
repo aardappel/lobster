@@ -701,14 +701,15 @@ void EngineExit(int code) {
     exit(code); // Needed at least on iOS to forcibly shut down the wrapper main()
 }
 
-void one_frame_callback() {
+void one_frame_callback(void *arg) {
+    auto &vm = *(lobster::VM *)arg;
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
         GraphicsFrameStart();
-        assert(lobster::g_vm);
-        lobster::g_vm->OneMoreFrame();
+        vm.vml.LogFrame();
+        vm.OneMoreFrame();
         // If this returns, we didn't hit a gl_frame() again and exited normally.
         EngineExit(0);
     }
@@ -725,12 +726,13 @@ void one_frame_callback() {
 
 void EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point,
                        const void *static_bytecode, const vector<string> &program_args) {
+    lobster::VM vm(fn ? StripDirPart(fn) : "", bytecode, entry_point,
+           static_bytecode, program_args);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        lobster::RunBytecode(fn ? StripDirPart(fn) : "", bytecode, entry_point,
-                             static_bytecode, program_args);
+        vm.EvalProgram();
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
@@ -746,24 +748,20 @@ void EngineRunByteCode(const char *fn, string &bytecode, const void *entry_point
             // return from this function until completely done, emulating behavior as if we
             // control the main loop. What it really does is throw a JS exception to escape from
             // C++ execution, leaving this main loop in a frozen state to later return to.
-            emscripten_set_main_loop(one_frame_callback, 0, true);
+            emscripten_set_main_loop_arg(one_frame_callback, &vm, 0, true);
             // When we return here, we're done and exit normally.
             #else
             // Emulate this behavior so we can debug it.
-            while (g_vm->evalret == "") one_frame_callback();
+            while (vm.evalret == "") one_frame_callback(&vm);
             #endif
         } else
         #endif
         {
-            if (lobster::g_vm) delete lobster::g_vm;
-            lobster::g_vm = nullptr;
             // An actual error.
             THROW_OR_ABORT(s);
         }
     }
     #endif
-    delete lobster::g_vm;
-    lobster::g_vm = nullptr;
 }
 
 int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb) {
