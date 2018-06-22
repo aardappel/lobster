@@ -72,13 +72,11 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
     }
     ss << "#include \"lobster/stdafx.h\"\n"
           "#include \"lobster/vmdata.h\"\n"
-          "#include \"lobster/sdlinterface.h\"\n"
+          "#include \"lobster/engine.h\"\n"
           "\n"
           "#ifndef VM_COMPILED_CODE_MODE\n"
           "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
           "#endif\n"
-          "\n"
-          "using lobster::g_vm;\n"
           "\n"
           "#pragma warning (disable: 4102)  // Unused label.\n"
           "\n";
@@ -111,7 +109,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
     while (ip < code + len) {
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - code)) & bytecode::Attr_SPLIT) {
             if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-                ss << "static void *block" << (ip - code) << "();\n";
+                ss << "static void *block" << (ip - code) << "(lobster::VM &);\n";
             } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
                 block_ids[ip - code] = block_id++;
             }
@@ -143,7 +141,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
         auto args = ip;
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - 1 - code)) & bytecode::Attr_SPLIT) {
             if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-                ss << "static void *block" << (args - 1 - code) << "() {\n";
+                ss << "static void *block" << (args - 1 - code) << "(lobster::VM &vm) {\n";
             } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
                 ss << "  case ";
                 BlockRef(args - 1 - code);
@@ -253,7 +251,8 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
         ss << bytecode_ints[i] << ", ";
     }
     ss << "\n};\n\n";
-    ss << "int main(int argc, char *argv[])\n{\n  return EngineRunCompiledCodeMain(argc, argv, ";
+    ss << "int main(int argc, char *argv[]){\n";
+    ss << "    return EngineRunCompiledCodeMain(argc, argv, ";
     if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
         ss << "one_gigantic_function";
     } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {

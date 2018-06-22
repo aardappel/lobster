@@ -1,8 +1,22 @@
 - things that would help making --to-cpp faster:
+  - a central problem is that improving a lot of these means duplicating large segments of
+    the instruction space for refc and not, or the 5 instructions that use an lvalop.
+    The reason we have to keep doing this is factoring it into lots of smaller instructions
+    is too slow for an interpreter.
+    So we could probably make a lot more progress if we could first default to an execution
+    method that does not have as much instruction overhead.
+    Options:
+    - A simple jit would not be hard since most are calls, but would miss inlining. Now
+      we'll have extra work to do to special purpose compile things to the JIT that so far
+      have been simple instructions.
+      - Maybe LLVM as jit can do inlining assuming I have the rest of the code also available
+        as .ll, but that becomes almost as unwieldy as going thru C++.
+    - Always invoking C++ means easy inlining and easy instruction definition, but complicates
+      things / slows things down in always needing to invoke a C++ toolchain.
+      - Also easy to profile and debug compared to JIT.
+    - Just keep moving forward with an unwieldy instruction set, since it is the simplest.
   - fmul/fadd are expensive??
   - inline LvalueOp.
-  - specialize PushDerefIdxVector for scalars such that it doesn't need to call AtInc which calls ElemType.
-    - see where else the use of these two functions can be reduced.
   - specialized indexing op that gets vector variable instead of vector on stack, this way
     you can avoid an inc and a dec.
     - find other opportunities to reduce inc and dec.
@@ -12,6 +26,9 @@
     - should be easy when return X is followed by X:
     - with the switch based version could do direct jumps, but switch trashes the branch cache?
     - experiment with real gotos?
+  - reduce use of ElemType.
+
+- Make includes explicitly depend on eachother.
 
 - switch jump table based version.
 
@@ -104,6 +121,15 @@
   - try with clang to see if it optimizes that case better
   - try and explicitly jump to the next function where known statically rather than using the trampoline?
 
+- always fun to rewrite the implementation in itself..
+  - this would actually not be super hard.. the frontend and the VM can easily be in different
+    languages.
+  - can even implement any part of the compiler in lobster itself, by just calling it from C++.
+    For example, the parser. it would just need a built-in to construct nodes etc.
+    Either interpreted or to-cpp would work.
+  - Maybe more productively, as noted elsewhere, could write the graphical debugger UI in
+    Lobster itself.
+
 - make extensions (and --tocpp code) into DLLs rather than statically linked?
   - check performance consequences for --tocpp
 
@@ -139,6 +165,17 @@
   somestruct { def ():
     multi-line-anonymous-function-body
   }
+
+- This gives: all return statements of this function must return the same number of return values. previously: 1
+    do():
+        for 100:
+            if true:
+                return from do // fixme
+
+- font rendering:
+  - it is possible when only very few chars are cached, that they are placed higher in the bitmap
+    if all their bounding boxes are small.
+  - outline rendering needs to do a better job that pixels stay in the bounding box.
 
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
 
@@ -876,7 +913,6 @@
 - compressed loading/saving using my entropy encoder
 
 - threading might be fun to try out for something like smallpt
-  - must either make g_vm into TLS, or make vm an arg to everything
   - can then either launch threads using the same mechanism as compile_run (pass strings between threads)
     or maybe better just instantiate more VMs based on the same bytecode, that way we can
     - pass data structures with refc==1 (if we share an alloc, though then all allocs must be threadsafe)
@@ -1068,3 +1104,25 @@ VM: vec/struct    : secs  2.64
 VM64: vec/struct  : secs  2.11
 VM64: may 2018    : secs  2.15
 VM64: compr_ptr   : secs  2.02, 1.07x vs native pointers
+
+
+DEPENDENCIES
+============
+
+
+node.h
+    [typechecker.h]
+    [codegen.h]
+
+lex.h
+    ttypes.h
+
+idents.h
+    [node.h]
+    natreg.h
+
+disasm.h
+    natreg.h
+        vmdata.h
+            il.h
+    bytecode_generated.h

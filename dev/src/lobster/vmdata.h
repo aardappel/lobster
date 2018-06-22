@@ -175,7 +175,7 @@ struct PrintPrefs {
           anymark(_anymark) {}
 };
 
-typedef void *(*block_base_t)();
+typedef void *(*block_base_t)(VM &);
 #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
     typedef block_base_t block_t;
 #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
@@ -286,7 +286,6 @@ struct InsPtr {
 #if RTT_ENABLED
     #define TYPE_INIT(t) type(t),
 #else
-    #define assert(cond) ((void)0)
     #define TYPE_INIT(t)
 #endif
 
