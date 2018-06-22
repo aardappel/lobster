@@ -430,19 +430,8 @@ struct Value {
     Value Copy(VM &vm);  // Shallow.
 };
 
-template<typename T> inline T *AllocSubBuf(VM &vm, size_t size, type_elem_t tti) {
-    auto header_sz = max(alignof(T), sizeof(DynAlloc));
-    auto mem = (uchar *)vm.pool.alloc(size * sizeof(T) + header_sz);
-    ((DynAlloc *)mem)->tti = tti;
-    mem += header_sz;
-    return (T *)mem;
-}
-
-template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size) {
-    auto header_sz = max(alignof(T), sizeof(DynAlloc));
-    auto mem = ((uchar *)v) - header_sz;
-    vm.pool.dealloc(mem, size * sizeof(T) + header_sz);
-}
+template<typename T> inline T *AllocSubBuf(VM &vm, size_t size, type_elem_t tti);
+template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size);
 
 struct LStruct : RefObj {
     LStruct(type_elem_t _tti) : RefObj(_tti) {}
@@ -838,6 +827,20 @@ struct VM {
 
 inline const TypeInfo &DynAlloc::ti(VM &vm) const { return vm.GetTypeInfo(tti); }
 
+template<typename T> inline T *AllocSubBuf(VM &vm, size_t size, type_elem_t tti) {
+    auto header_sz = max(alignof(T), sizeof(DynAlloc));
+    auto mem = (uchar *)vm.pool.alloc(size * sizeof(T) + header_sz);
+    ((DynAlloc *)mem)->tti = tti;
+    mem += header_sz;
+    return (T *)mem;
+}
+
+template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size) {
+    auto header_sz = max(alignof(T), sizeof(DynAlloc));
+    auto mem = ((uchar *)v) - header_sz;
+    vm.pool.dealloc(mem, size * sizeof(T) + header_sz);
+}
+    
 
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
 template<int N> inline vec<floatp, N> ValueToF(VM &vm, const Value &v, floatp def = 0) {
