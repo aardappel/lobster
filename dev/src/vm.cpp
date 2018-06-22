@@ -14,9 +14,6 @@
 
 #include "lobster/stdafx.h"
 
-#include "lobster/vmdata.h"
-#include "lobster/natreg.h"
-
 #include "lobster/disasm.h"
 
 namespace lobster {
@@ -66,7 +63,8 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         trace(false), trace_tail(false), trace_ring_idx(0),
         vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
         compiled_code_ip(entry_point), program_args(args) {
-    bcf = bytecode::GetBytecodeFile(static_bytecode ? static_bytecode : bytecode_buffer.data());
+    auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
+    bcf = bytecode::GetBytecodeFile(bcfb);
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
         THROW_OR_ABORT(string("bytecode is from a different version of Lobster"));
     codelen = bcf->bytecode()->Length();
@@ -92,7 +90,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         byteprofilecounts = new uint64_t[codelen];
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
-    vml.LogInit(bcf);
+    vml.LogInit(bcfb);
     #ifndef VM_INS_SWITCH
         #ifdef VM_COMPILED_CODE_MODE
             #define F(N, A) f_ins_pointers[IL_##N] = nullptr;

@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_NATREG
+#define LOBSTER_NATREG
+
+#include "lobster/vmdata.h"
+
 namespace lobster {
 
 struct Named {
@@ -367,3 +372,5 @@ struct NativeRegistry {
     ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, &___##name::mid_##name)
 
 }  // namespace lobster
+
+#endif  // LOBSTER_NATREG

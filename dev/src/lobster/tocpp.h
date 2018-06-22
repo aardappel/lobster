@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "lobster/disasm.h"  // Some shared bytecode utilities.
+
 namespace lobster {
 
 int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {

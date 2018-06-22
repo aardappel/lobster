@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_COMPILER
+#define LOBSTER_COMPILER
+
+#include "lobster/natreg.h"
+
 namespace lobster {
 
 extern void Compile(NativeRegistry &natreg, string_view fn, const char *stringsource,
@@ -26,3 +31,5 @@ extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 extern void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer);
 
 }
+
+#endif  // LOBSTER_COMPILER

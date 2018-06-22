@@ -14,10 +14,8 @@
 
 #include "lobster/stdafx.h"
 
-#include "lobster/vmdata.h"
 #include "lobster/natreg.h"
 
-#include "lobster/ttypes.h"
 #include "lobster/lex.h"
 
 namespace lobster {

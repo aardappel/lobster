@@ -14,6 +14,9 @@
 
 namespace lobster {
 
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include "lobster/bytecode_generated.h"
+
 struct CodeGen  {
     vector<int> code;
     vector<uchar> code_attr;

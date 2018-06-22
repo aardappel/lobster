@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_VMDATA
+#define LOBSTER_VMDATA
+
 #include "il.h"
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "bytecode_generated.h"
+
+namespace bytecode { struct BytecodeFile; }  // FIXME
 
 namespace lobster {
 
@@ -600,10 +603,6 @@ struct LVector : RefObj {
     }
 };
 
-inline string_view flat_string_view(const flatbuffers::String *s) {
-    return string_view(s->c_str(), s->size());
-}
-
 struct VMLog {
     struct LogVar {
         vector<Value> values;
@@ -615,7 +614,7 @@ struct VMLog {
     VM &vm;
     VMLog(VM &_vm);
 
-    void LogInit(const bytecode::BytecodeFile *bcf);
+    void LogInit(const uchar *bcf);
     void LogPurge();
     void LogFrame();
     Value LogGet(Value def, int idx);
@@ -913,11 +912,6 @@ inline intp RangeCheck(VM &vm, const Value &idx, intp range, intp bias = 0) {
     return i;
 }
 
-inline string_view IdName(const bytecode::BytecodeFile *bcf, int i) {
-    auto s = bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name();
-    return flat_string_view(s);
-}
-
 template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceType *type) {
     if (!val.True())
         return nullptr;
@@ -1116,6 +1110,6 @@ struct LCoRoutine : RefObj {
     }
 };
 
-
-
 }  // namespace lobster
+
+#endif  // LOBSTER_VMDATA

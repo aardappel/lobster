@@ -14,10 +14,8 @@
 
 #include "lobster/stdafx.h"
 
-#include "lobster/vmdata.h"
-#include "lobster/natreg.h"
 #include "lobster/compiler.h"
-#include "lobster/vm.h"
+#include "lobster/disasm.h"
 
 #include "lobster/engine.h"
 

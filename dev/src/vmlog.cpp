@@ -13,13 +13,18 @@
 // limitations under the License.
 
 #include "lobster/stdafx.h"
+
 #include "lobster/vmdata.h"
+
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include "lobster/bytecode_generated.h"
 
 namespace lobster {
 
 VMLog::VMLog(VM &_vm) : vm(_vm) {}
 
-void VMLog::LogInit(const bytecode::BytecodeFile *bcf) {
+void VMLog::LogInit(const uchar *bcfb) {
+    auto bcf = bytecode::GetBytecodeFile(bcfb);
     logvars.resize(bcf->logvars()->size());
     flatbuffers::uoffset_t i = 0;
     for (auto &l : logvars) {

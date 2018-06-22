@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_LEX
+#define LOBSTER_LEX
+
+#include "lobster/ttypes.h"
+
 namespace lobster {
 
 struct Line {
@@ -466,3 +471,5 @@ struct Lex : LoadedFile {
 };
 
 }  // namespace lobster
+
+#endif  // LOBSTER_LEX

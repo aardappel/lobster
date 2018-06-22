@@ -16,12 +16,6 @@
 //
 #include "lobster/stdafx.h"
 
-#include "lobster/vmdata.h"
-#include "lobster/natreg.h"
-
-#include "lobster/vm.h"
-
-#include "lobster/ttypes.h"
 #include "lobster/lex.h"
 #include "lobster/idents.h"
 #include "lobster/node.h"
@@ -29,7 +23,6 @@
 #include "lobster/typecheck.h"
 #include "lobster/optimizer.h"
 #include "lobster/codegen.h"
-
 #include "lobster/tocpp.h"
 
 namespace lobster {

@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_IDENTS
+#define LOBSTER_IDENTS
+
+#include "lobster/natreg.h"
+
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
+#include "lobster/bytecode_generated.h"
+
 namespace lobster {
 
 struct NativeFun;
@@ -679,3 +687,5 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
 }
 
 }  // namespace lobster
+
+#endif  // LOBSTER_IDENTS
