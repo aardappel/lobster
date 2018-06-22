@@ -18,6 +18,7 @@ LIBS=
 CPPSRCS= \
 	../src/audio.cpp \
 	../src/builtins.cpp \
+	../src/engine.cpp \
 	../src/file.cpp \
 	../src/font.cpp \
 	../src/fontrenderer.cpp \

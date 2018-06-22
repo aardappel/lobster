@@ -21,7 +21,7 @@
 
 using namespace lobster;
 
-void AddSound() {
+void AddSound(NativeRegistry &natreg) {
     STARTDECL(play_wav) (VM &vm, Value &ins, Value &vol) {
         bool ok = SDLPlaySound(ins.sval()->str(), false, vol.True() ? vol.intval() : 128);
         ins.DECRT(vm);

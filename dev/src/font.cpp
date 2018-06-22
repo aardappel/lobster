@@ -57,7 +57,7 @@ void FontCleanup() {
     FTClosedown();
 }
 
-void AddFont() {
+void AddFont(NativeRegistry &natreg) {
     STARTDECL(gl_setfontname) (VM &vm, Value &fname) {
         extern void TestGL(VM &vm); TestGL(vm);
         string piname = fname.sval()->str();

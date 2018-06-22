@@ -57,7 +57,7 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     return arity;
 }
 
-void ToCPP(ostringstream &ss, string_view bytecode_buffer) {
+void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer) {
     int dispatch = VM_DISPATCH_METHOD;
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);

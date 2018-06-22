@@ -112,7 +112,7 @@ Voxels *NewWorld(const int3 &size) {
     return v;
 }
 
-void AddCubeGen() {
+void AddCubeGen(NativeRegistry &natreg) {
     STARTDECL(cg_init) (VM &vm, Value &size) {
         auto v = NewWorld(ValueDecToINT<3>(vm, size));
         return Value(vm.NewResource(v, &voxel_type));

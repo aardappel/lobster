@@ -14,6 +14,6 @@
 
 namespace lobster {
 
-    extern void DisAsm(ostringstream &ss, string_view bytecode_buffer);
+    extern void DisAsm(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer);
 
 }

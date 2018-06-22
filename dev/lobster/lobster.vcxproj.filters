@@ -328,6 +328,9 @@
     <ClInclude Include="..\src\lobster\glinterface.h">
       <Filter>engine\opengl</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\engine.h">
+      <Filter>engine\lobster_bindings</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -1085,6 +1088,9 @@
     </ClCompile>
     <ClCompile Include="..\external\SDLMixer\wavestream.c">
       <Filter>engine\sdl\mixer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\engine.cpp">
+      <Filter>engine\lobster_bindings</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

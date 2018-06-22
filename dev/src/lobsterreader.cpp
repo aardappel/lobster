@@ -189,7 +189,7 @@ static Value ParseData(VM &vm, type_elem_t typeoff, char *inp) {
     #endif
 }
 
-void AddReader() {
+void AddReader(NativeRegistry &natreg) {
     STARTDECL(parse_data) (VM &vm, Value &type, Value &ins) {
         Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->str());
         ins.DECRT(vm);

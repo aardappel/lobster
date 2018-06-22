@@ -20,6 +20,8 @@
 #include "lobster/glinterface.h"
 #include "lobster/sdlinterface.h"
 
+#include "lobster/engine.h"
+
 using namespace lobster;
 
 Primitive polymode = PRIM_FAN;
@@ -145,7 +147,7 @@ Value SetUniform(VM &vm, Value &name, const float *data, int len, bool ignore_er
     return Value(ok);
 }
 
-void AddGraphics() {
+void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_window) (VM &vm, Value &title, Value &xs, Value &ys, Value &fullscreen, Value &novsync,
                           Value &samples) {
         if (graphics_initialized)
@@ -193,12 +195,7 @@ void AddGraphics() {
 
     STARTDECL(gl_frame) (VM &vm) {
         TestGL(vm);
-        #ifdef USE_MAIN_LOOP_CALLBACK
-            // Here we have to something hacky: emscripten requires us to not take over the main
-            // loop. So we use this exception to suspend the VM right inside the gl_frame() call.
-            // FIXME: do this at the start of the frame instead?
-            THROW_OR_ABORT(string("SUSPEND-VM-MAINLOOP"));
-        #endif
+        EngineSuspendIfNeeded();
         auto cb = GraphicsFrameStart();
         vm.vml.LogFrame();
         return Value(!cb);

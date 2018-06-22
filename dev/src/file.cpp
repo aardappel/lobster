@@ -35,7 +35,7 @@
 
 namespace lobster {
 
-void AddFile() {
+void AddFile(NativeRegistry &natreg) {
     STARTDECL(scan_folder) (VM &vm, Value &fld, Value &divisor) {
         vector<pair<string, int64_t>> dir;
         auto ok = ScanDirAbs(fld.sval()->strv(), dir);

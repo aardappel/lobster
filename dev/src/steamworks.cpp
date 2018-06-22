@@ -141,7 +141,7 @@ bool OverlayActive() {
 
 using namespace lobster;
 
-void AddSteam() {
+void AddSteam(NativeRegistry &natreg) {
     STARTDECL(steam_init) (VM &, Value &appid, Value &ss) {
         return Value(SteamInit((uint)appid.ival(), ss.True()));
     }

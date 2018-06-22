@@ -311,6 +311,7 @@
     <ClInclude Include="..\include\StackWalker\StackWalker.h" />
     <ClInclude Include="..\include\StackWalker\StackWalkerHelpers.h" />
     <ClInclude Include="..\src\lobster\3dgrid.h" />
+    <ClInclude Include="..\src\lobster\engine.h" />
     <ClInclude Include="..\src\lobster\fontrenderer.h" />
     <ClInclude Include="..\src\lobster\glincludes.h" />
     <ClInclude Include="..\src\lobster\glinterface.h" />
@@ -1574,6 +1575,7 @@
     </ClCompile>
     <ClCompile Include="..\src\audio.cpp" />
     <ClCompile Include="..\src\cubegen.cpp" />
+    <ClCompile Include="..\src\engine.cpp" />
     <ClCompile Include="..\src\font.cpp" />
     <ClCompile Include="..\src\fontrenderer.cpp" />
     <ClCompile Include="..\src\glgeom.cpp">

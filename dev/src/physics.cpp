@@ -128,7 +128,7 @@ Renderable &GetRenderable(VM &vm, Value &id) {
 
 extern int GetSampler(VM &vm, Value &i); // from graphics
 
-void AddPhysics() {
+void AddPhysics(NativeRegistry &natreg) {
 	STARTDECL(ph_initialize) (VM &vm, Value &gravity) {
 		InitPhysics(ValueDecToFLT<2>(vm, gravity));
 		return Value();

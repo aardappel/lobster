@@ -633,9 +633,12 @@ struct StackFrame {
 };
 
 struct NativeFun;
+struct NativeRegistry;
 
 struct VM {
     SlabAlloc pool;
+
+    NativeRegistry &natreg;
 
     Value *stack;
     int stacksize;
@@ -725,7 +728,7 @@ struct VM {
 
     const vector<string> &program_args;
 
-    VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
+    VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args);
     ~VM();
 

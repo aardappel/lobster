@@ -15,6 +15,7 @@
 namespace lobster {
 
 struct Parser {
+    NativeRegistry &natreg;
     Lex lex;
     List *root;
     SymbolTable &st;
@@ -25,8 +26,9 @@ struct Parser {
     bool call_noparens;
     set<string> pakfiles;
 
-    Parser(string_view _src, SymbolTable &_st, const char *_stringsource)
-        : lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st), call_noparens(false) {}
+    Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, const char *_stringsource)
+        : natreg(natreg), lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st),
+          call_noparens(false) {}
 
     ~Parser() {
         delete root;

@@ -40,7 +40,7 @@ static void LvalDisAsm(ostringstream &ss, const int *&ip) {
     ss << lvonames[*ip++] << ' ';
 }
 
-static const int *DisAsmIns(ostringstream &ss, const int *ip, const int *code,
+static const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, const int *code,
                             const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
     auto li = LookupLine(ip, code, bcf);
@@ -219,7 +219,7 @@ static const int *DisAsmIns(ostringstream &ss, const int *ip, const int *code,
     return ip;
 }
 
-void DisAsm(ostringstream &ss, string_view bytecode_buffer) {
+void DisAsm(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
@@ -227,7 +227,7 @@ void DisAsm(ostringstream &ss, string_view bytecode_buffer) {
     auto len = bcf->bytecode()->Length();
     const int *ip = code;
     while (ip < code + len) {
-        ip = DisAsmIns(ss, ip, code, typetable, bcf);
+        ip = DisAsmIns(natreg, ss, ip, code, typetable, bcf);
         ss << "\n";
         if (!ip) break;
     }

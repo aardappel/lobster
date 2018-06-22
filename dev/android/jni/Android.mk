@@ -23,6 +23,7 @@ LOCAL_SRC_FILES := \
     $(LOBSTER_PATH)/src/compiler.cpp \
 	$(LOBSTER_PATH)/src/audio.cpp \
 	$(LOBSTER_PATH)/src/builtins.cpp \
+	$(LOBSTER_PATH)/src/engine.cpp \
 	$(LOBSTER_PATH)/src/file.cpp \
 	$(LOBSTER_PATH)/src/font.cpp \
 	$(LOBSTER_PATH)/src/fontrenderer.cpp \

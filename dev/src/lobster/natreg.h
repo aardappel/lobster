@@ -336,8 +336,6 @@ struct NativeRegistry {
     }
 };
 
-extern NativeRegistry natreg;
-
 #define STARTDECL(name) { struct ___##name { static Value s_##name
 
 #define MIDDECL(name) static void mid_##name

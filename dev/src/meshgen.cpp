@@ -644,7 +644,7 @@ Value AddShape(ImplicitFunction *f) {
     return Value();
 }
 
-void AddMeshGen() {
+void AddMeshGen(NativeRegistry &natreg) {
     STARTDECL(mg_sphere) (VM &, Value &rad) {
         auto s = new IFSphere();
         s->rad = rad.fltval();

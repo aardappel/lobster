@@ -406,7 +406,7 @@ float SimplexNoise(const int octaves, const float persistence, const float scale
     return total / maxAmplitude;
 }
 
-void AddNoise() {
+void AddNoise(NativeRegistry &natreg) {
     STARTDECL(simplex) (VM &vm, Value &pos, Value &octaves, Value &scale, Value &persistence) {
         auto v = ValueDecToF<4>(vm, pos);
         // TODO: if performance is ever an issue, could add an arg to indicate 2/3/4d version

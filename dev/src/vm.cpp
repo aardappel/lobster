@@ -49,9 +49,9 @@ enum {
 #define POPN(n) (sp -= (n))
 #define TOPPTR() (stack + sp + 1)
 
-VM::VM(string_view _pn, string &_bytecode_buffer, const void *entry_point,
+VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
-      : stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
+      : natreg(natreg), stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
         #ifdef VM_COMPILED_CODE_MODE
             next_call_target(0), next_mm_table(nullptr), next_mm_call(nullptr),
         #else
@@ -718,7 +718,7 @@ void VM::EvalProgramInner() {
                     if (trace_ring_idx == trace_size) trace_ring_idx = 0;
                     auto &ss = trace_output[trace_ring_idx++];
                     ss.str(string());
-                    DisAsmIns(ss, ip, codestart, typetable, bcf);
+                    DisAsmIns(natreg, ss, ip, codestart, typetable, bcf);
                     ss << " [" << (sp + 1) << "] - ";
                     #if RTT_ENABLED
                     if (sp >= 0) {

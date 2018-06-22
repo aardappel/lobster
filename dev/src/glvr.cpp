@@ -278,7 +278,7 @@ vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
 
 #endif  // PLATFORM_VR
 
-void AddVR() {
+void AddVR(NativeRegistry &natreg) {
     STARTDECL(vr_init) (VM &) {
         return Value(VRInit());
     }

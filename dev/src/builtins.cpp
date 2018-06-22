@@ -70,7 +70,7 @@ Value ReplaceStruct(VM &vm, Value &l, Value &i, Value &a) {
     return Value(nv);
 }
 
-void AddBuiltins() {
+void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(print) (VM &vm, Value &a) {
         vm.ss_reuse.str(string());
         vm.ss_reuse.clear();

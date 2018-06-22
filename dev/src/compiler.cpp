@@ -34,7 +34,6 @@
 
 namespace lobster {
 
-NativeRegistry natreg;
 const Type g_type_int(V_INT);
 const Type g_type_float(V_FLOAT);
 const Type g_type_string(V_STRING);
@@ -190,13 +189,14 @@ bool LoadByteCode(string &bytecode) {
     return ok;
 }
 
-void RegisterBuiltin(const char *name, void (* regfun)()) {
+void RegisterBuiltin(NativeRegistry &natreg, const char *name,
+                     void (* regfun)(NativeRegistry &)) {
     Output(OUTPUT_DEBUG, "subsystem: ", name);
     natreg.NativeSubSystemStart(name);
-    regfun();
+    regfun(natreg);
 }
 
-void DumpBuiltins(bool justnames, const SymbolTable &st) {
+void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st) {
     string s;
     if (justnames) {
         for (auto nf : natreg.nfuns) { s += nf->name; s += " "; }
@@ -258,11 +258,11 @@ void DumpBuiltins(bool justnames, const SymbolTable &st) {
     WriteFile("builtin_functions_reference.html", false, s);
 }
 
-void Compile(string_view fn, const char *stringsource, string &bytecode,
+void Compile(NativeRegistry &natreg, string_view fn, const char *stringsource, string &bytecode,
     string *parsedump = nullptr, string *pakfile = nullptr,
     bool dump_builtins = false, bool dump_names = false) {
     SymbolTable st;
-    Parser parser(fn, st, stringsource);
+    Parser parser(natreg, fn, st, stringsource);
     parser.Parse();
     TypeChecker tc(parser, st);
     // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
@@ -273,8 +273,8 @@ void Compile(string_view fn, const char *stringsource, string &bytecode,
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
         cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
-    if (dump_builtins) DumpBuiltins(false, st);
-    if (dump_names) DumpBuiltins(true, st);
+    if (dump_builtins) DumpBuiltins(natreg, false, st);
+    if (dump_names) DumpBuiltins(natreg, true, st);
 }
 
 Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<string> &args) {
@@ -284,13 +284,13 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     #endif
     {
         string bytecode;
-        Compile(fn, stringiscode ? source.sval()->str() : nullptr, bytecode);
+        Compile(parent_vm.natreg, fn, stringiscode ? source.sval()->str() : nullptr, bytecode);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        VM vm(fn, bytecode, nullptr, nullptr, args);
+        VM vm(parent_vm.natreg, fn, bytecode, nullptr, nullptr, args);
         vm.EvalProgram();
         auto ret = vm.evalret;
         source.DECRT(parent_vm);
@@ -306,7 +306,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     #endif
 }
 
-void AddCompiler() {  // it knows how to call itself!
+void AddCompiler(NativeRegistry &natreg) {  // it knows how to call itself!
     STARTDECL(compile_run_code) (VM &vm, Value &filename, Value &args) {
         return CompileRun(vm, filename, true, VectorOfStrings(vm, args));
     }
@@ -324,11 +324,11 @@ void AddCompiler() {  // it knows how to call itself!
         "same as compile_run_code(), only now you pass a filename.");
 }
 
-void RegisterCoreLanguageBuiltins() {
-    extern void AddBuiltins(); RegisterBuiltin("builtin",   AddBuiltins);
-    extern void AddCompiler(); RegisterBuiltin("compiler",  AddCompiler);
-    extern void AddFile();     RegisterBuiltin("file",      AddFile);
-    extern void AddReader();   RegisterBuiltin("parsedata", AddReader);
+void RegisterCoreLanguageBuiltins(NativeRegistry &natreg) {
+    extern void AddBuiltins(NativeRegistry &natreg); RegisterBuiltin(natreg, "builtin",   AddBuiltins);
+    extern void AddCompiler(NativeRegistry &natreg); RegisterBuiltin(natreg, "compiler",  AddCompiler);
+    extern void AddFile(NativeRegistry &natreg);     RegisterBuiltin(natreg, "file",      AddFile);
+    extern void AddReader(NativeRegistry &natreg);   RegisterBuiltin(natreg, "parsedata", AddReader);
 }
 
 SubFunction::~SubFunction() { delete body; }
