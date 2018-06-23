@@ -21,7 +21,7 @@ namespace bytecode { struct BytecodeFile; }  // FIXME
 
 namespace lobster {
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #define RTT_ENABLED 1
 #define RTT_TYPE_ERRORS 1
 #else
