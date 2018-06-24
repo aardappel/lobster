@@ -1,3 +1,88 @@
+- reference counting is a good default, but it is a source of much more inefficiency than I had
+  guessed. Should consider what it would take to add a friendly ownership model.
+  Examples:
+  - My past languages SHEEP and CryScript
+    - SHEEP has full value semantics, which to the user looks like copies, with lots of built-in
+      operators and functions that make use of linearity to do in-place updates.
+      it has: newvec, oldelem = oldvec[i <- newelem] as a way to update a data structure, which
+      ensures nothing is copied or thrown away. If newelem is nil, it becomes a cheap way to
+      take an expensive element out of a vector without copying.
+      It has limited borrowing, with built-in functions annotated as "promise I won't keep a
+      reference"
+    - CryScript produced a tree of regions at runtime, where regions are attached to certain
+      object types. regions would be entered and excited automatically with methods on that type.
+      You can explicitly designate a parent region to e.g. allocate things to be returned from
+      a boundary method. Trying to create a reference from outside a region to inside was
+      disallowed at runtime.
+  - ParaSail
+    the semantics of all data structures are by value, sees an object with a nillable field
+    as "extending" a flat value when set. does copy/move/swap, but does not have borrow.
+    Has an interesting loop syntax that "hides" borrowing to get around the lack of borrowing.
+    https://en.wikipedia.org/wiki/ParaSail_(programming_language)
+    https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view
+  - Rust. needs waaay to many type annotations and relatively complex analysis to work.
+    definitely needs to be simpler than this.
+    - Example of the horror to avoid:
+      https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/
+      (his library does NOT even implement a delete method!)
+    - https://stackoverflow.com/questions/34747464/implement-graph-like-datastructure-in-rust
+      Basically, you either use an arena (and leak!) or you use a hashmap (and have potentially
+      dangling references).
+    - So rust is really only nice if you can keep to really simple data structures?
+  - Nim: seems to have a nice middle ground inspired by ParaSail.
+    https://nim-lang.org/araq/destructors.html
+    https://github.com/nim-lang/Nim/wiki/Destructors
+  We'd want to keep Lobsters light syntax, so any system that requires type annotations
+  frequently can't be used. 99% of code should "just work", even if it occasionally makes
+  copies you don't expect.
+  Unlike Rust, we don't have to care about a single mutable borrow, since we don't have any
+  interior pointers nor do we intend to do shared memory concurrency.
+  In terms of ownership, we have two modes: move (transfer ownership) vs borrow (can be mutable
+  or not).
+  - an expression/constructor always moves.
+  - an assigment wants to move.
+  - a variable can be initialized either by a move (most expressions) or a borrow (an expression
+    that reads from a data structure or variable).
+    - if it was a borrow, all its uses must be borrows as well. The parent variable must be
+      be marked as having been borrowed from, which disallows deletion etc., and must outlive
+      the borrow.
+    - if it was a move, it owns the data. all uses must be borrows, except the last one may
+      be a move.
+      - a special case can be made to allow moves into data structures that are not the last
+        use, e.g. a := newobject; x.y = a; use(a), since the code after the can be transformed into
+        a` := x.y; use(a`)
+        Can do the same with push(), i.e. code afterwards becomes a borrow on the last element
+        of a vector, which locks the vector as "borrowed from"
+  - function arguments should default to borrow (mutable or not), but can be marked as move
+    in special cases. Move is used for:
+    - putting inside a data structure, such as push()
+    - arguments that are lobster "value" types when the result is also a value, this way
+      the memory can be used in-place.
+  - function return values usually move. they can borrow if the exp is field/var reference,
+    if we can correlate the parent to var in the caller?
+  So now, for any value being passed, if source and dest modes are NOT equal, we get:
+  - if src wants to move, and dest wants to borrow, then src has to delete after borrow ends.
+  - if src wants to borrow, and dest wants to move:
+    - if it is non-mutable, a copy is made.
+    - if it is mutable, error. This is because a copy would change semantics.
+      (see variables above for how this can be overcome in some situations)
+  In both cases the "fix" is done by the src (caller), which increases the chances the fix
+  can be avoided (as opposed to the callee always allocating/deallocating).
+  In theory we could use lobster specialization to let the caller determine if they want
+  move/borrow for each param, and specialize if they differ per call. That way each code
+  pattern is efficient. Sadly that also means that a mutable borrow after move will error
+  at the move, rather than at the borrow.
+  So maybe better to resolve these after the function has type checked.
+  Implementation wise, we have the advantage that for a while we can keep refc, so we can
+  check the inserted deletions against the refc to see if they're correct.
+  The good news is that this system can be entirely done without annotations of any kind,
+  and is efficient (only values are copied, which currently are always small).
+  The big downsides are that you can't form DAGs or graphs anymore.
+  Would adding non-mutable vectors have any advantages? those could always be consumed by a move.
+  Another way to look at it is this simple starting point: for each function block, end by
+  deallocating eveything locals hold, but never deallocate arguments. Then most of the lifetime
+  analysis is about when to change those defaults for particular variables.
+
 - things that would help making --to-cpp faster:
   - a central problem is that improving a lot of these means duplicating large segments of
     the instruction space for refc and not, or the 5 instructions that use an lvalop.
@@ -180,6 +265,11 @@
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
 
 - "assign false" should count as unreachable and not require a well-typed return value after it.
+
+- if we make assert a language feature rather than a builtin, we can make it understand
+  equality operators directly, and create specialized asserts that have better errors, i.e.
+  any "assert A == B" can actually output the values of A and B.
+  or "assert var" is pretty common, which can output the name of the var, etc.
 
 - need some way to typecheck append([type_A], [type_B])
   neither either:
