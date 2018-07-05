@@ -25,7 +25,7 @@ struct OutlineFont {
     OutlineFont(void *fth, string &fb) : fthandle(fth) { fbuf.swap(fb); }
     ~OutlineFont();
 
-    bool EnsureCharsPresent(const char *utf8str);
+    bool EnsureCharsPresent(string_view utf8str);
 };
 
 struct BitmapFont {
@@ -40,10 +40,10 @@ struct BitmapFont {
     ~BitmapFont();
     BitmapFont(OutlineFont *_font, int _size, float _osize);
 
-    void RenderText(const char *text);
-    const int2 TextSize(const char *text);
+    void RenderText(string_view text);
+    const int2 TextSize(string_view text);
 
-    bool CacheChars(const char *text);
+    bool CacheChars(string_view text);
 };
 
 extern OutlineFont *LoadFont(string_view name);

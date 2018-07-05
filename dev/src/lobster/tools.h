@@ -657,10 +657,10 @@ template<typename T> class TimeBool {
 
 typedef TimeBool<char> TimeBool8;
 
-inline uint FNV1A(const char *s) {
+inline uint FNV1A(string_view s) {
     uint hash = 0x811C9DC5;
-    for (auto c = s; *c; ++c) {
-        hash ^= (uchar)*c;
+    for (auto c : s) {
+        hash ^= (uchar)c;
         hash *= 0x01000193;
     }
     return hash;
@@ -730,6 +730,29 @@ template<typename ...Ts> string cat(const Ts&... args) {
     return ss.str();
 }
 
+// This method is in C++20, but quite essential.
+inline bool starts_with(string_view sv, string_view start) {
+    return start.size() <= sv.size() && sv.substr(0, start.size()) == start;
+}
+
+// Efficient passing of string_view to old APIs wanting a null-terminated
+// const char *: only go thru a string if not null-terminated already, which is
+// often the case.
+// NOTE: uses static string, so to call twice inside the same statement supply
+// template args <0>, <1> etc.
+template<int I = 0> const char *null_terminated(string_view sv) {
+  if (!sv.data()[sv.size()]) return sv.data();
+  static string temp;
+  temp = sv;
+  return temp.data();
+}
+
+template<typename T> T parse_int(string_view sv, int base = 10) {
+  // This should be using from_chars(), which apparently is not supported by
+  // gcc/clang yet :(
+  return (T)strtoll(null_terminated(sv), nullptr, base);
+}
+
 
 // Strict aliasing safe memory reading and writing.
 // memcpy with a constant size is replaced by a single instruction in VS release mode, and for
@@ -761,3 +784,8 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
     #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
 #endif
 
+
+inline void unit_test_tools() {
+    assert(strcmp(null_terminated<0>(string_view("aa", 1)),
+                  null_terminated<1>(string_view("bb", 1))) != 0);
+}

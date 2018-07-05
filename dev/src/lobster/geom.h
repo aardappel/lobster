@@ -44,30 +44,30 @@ template<typename T, int N> struct basevec {
 };
 
 template<typename T> struct basevec<T, 2> {
-	union {
-		T c[2];
-		struct { T x; T y; };
-	};
+  union {
+    T c[2];
+    struct { T x; T y; };
+  };
 };
 
 template<typename T> struct basevec<T, 3> {
-	union {
-		T c[3];
-		struct { T x; T y; T z; };
-	};
+  union {
+    T c[3];
+    struct { T x; T y; T z; };
+  };
 };
 
 template<typename T> struct basevec<T, 4> {
-	union {
-		T c[4];
-		struct { T x; T y; T z; T w; };
-	};
+  union {
+    T c[4];
+    struct { T x; T y; T z; T w; };
+  };
 };
 
 template<typename T, int N> struct vec : basevec<T, N> {
     enum { NUM_ELEMENTS = N };
     typedef T CTYPE;
-    
+
     // Clang needs these, but VS is cool without them?
     using basevec<T, N>::c;
     using basevec<T, N>::x;
@@ -438,9 +438,9 @@ template<typename T, int C, int R> class matrix {
     void set(int i, const V &v) { m[i] = v; }
 
     vec<T,C> row(int i) const {
-        if (C == 2) return vec<T,C>(m[0][i], m[1][i]);
-        if (C == 3) return vec<T,C>(m[0][i], m[1][i], m[2][i]);
-        if (C == 4) return vec<T,C>(m[0][i], m[1][i], m[2][i], m[3][i]);
+        if constexpr (C == 2) return vec<T,C>(m[0][i], m[1][i]);
+        if constexpr (C == 3) return vec<T,C>(m[0][i], m[1][i], m[2][i]);
+        if constexpr (C == 4) return vec<T,C>(m[0][i], m[1][i], m[2][i], m[3][i]);
     }
 
     matrix<T,R,C> transpose() const {
@@ -887,6 +887,6 @@ inline void normalize_mesh(span<int> idxs, void *verts, size_t vertlen, size_t v
             norm = normalize(norm);
     }
 }
-    
+
 }  // namespace geom
 

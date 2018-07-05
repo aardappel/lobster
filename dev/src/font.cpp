@@ -27,7 +27,7 @@ int curfontsize = -1;
 float curoutlinesize = 0;
 int maxfontsize = 128;
 
-map<string, OutlineFont *> loadedfaces;
+map<string, OutlineFont *, less<>> loadedfaces;
 OutlineFont *curface = nullptr;
 string curfacename;
 
@@ -59,7 +59,7 @@ void FontCleanup() {
 void AddFont(NativeRegistry &natreg) {
     STARTDECL(gl_setfontname) (VM &vm, Value &fname) {
         extern void TestGL(VM &vm); TestGL(vm);
-        string piname = fname.sval()->str();
+        auto piname = string(fname.sval()->strv());
         fname.DECRT(vm);
         auto faceit = loadedfaces.find(piname);
         if (faceit != loadedfaces.end()) {
@@ -137,7 +137,7 @@ void AddFont(NativeRegistry &natreg) {
         }
         SetTexture(0, f->tex);
         texturedshader->Set();
-        f->RenderText(s.sval()->str());
+        f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) otransforms.object2view = oldobject2view;
         return s;
     }
@@ -147,7 +147,7 @@ void AddFont(NativeRegistry &natreg) {
     STARTDECL(gl_textsize) (VM &vm, Value &s) {
         auto f = curfont;
         if (!f) { s.DECRT(vm); return vm.BuiltinError("gl_textsize: no font size set"); }
-        auto size = f->TextSize(s.sval()->str());
+        auto size = f->TextSize(s.sval()->strv());
         s.DECRT(vm);
         if (curfontsize > maxfontsize) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));

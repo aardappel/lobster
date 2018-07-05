@@ -19,17 +19,30 @@
 
 #include "lobster/engine.h"
 
+#include "lobster/unicode.h"
+
 // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
 #include "lobster/sdlincludes.h"
 #include "lobster/sdlinterface.h"
 
 using namespace lobster;
 
+void unit_test_all() {
+    // We don't really have unit tests, but let's collect some that always
+    // run in debug mode:
+    #ifdef NDEBUG
+        return;
+    #endif
+    unit_test_tools();
+    unit_test_unicode();
+}
+
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
         InitUnhandledExceptionFilter(argc, argv);
     #endif
+    unit_test_all();
     Output(OUTPUT_INFO, "Lobster running...");
     bool wait = false;
     bool from_bundle =
@@ -115,7 +128,7 @@ int main(int argc, char* argv[]) {
             Output(OUTPUT_INFO, "compiling...");
             string dump;
             string pakfile;
-            Compile(natreg, StripDirPart(fn), nullptr, bytecode, parsedump ? &dump : nullptr,
+            Compile(natreg, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
                 lpak ? &pakfile : nullptr, dump_builtins, dump_names);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);

@@ -26,7 +26,7 @@ struct Parser {
     bool call_noparens;
     set<string> pakfiles;
 
-    Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, const char *_stringsource)
+    Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, string_view _stringsource)
         : natreg(natreg), lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st),
           call_noparens(false) {}
 

@@ -28,7 +28,7 @@ struct Sound {
     Sound() : chunk(nullptr, Mix_FreeChunk) {}
 };
 
-unordered_map<string, Sound> sound_files;
+map<string, Sound, less<>> sound_files;
 
 Mix_Chunk *RenderSFXR(string_view buf) {
     int wave_type = 0;
@@ -351,7 +351,7 @@ Mix_Chunk *RenderSFXR(string_view buf) {
     return chunk;
 }
 
-Sound *LoadSound(const char *filename, bool sfxr) {
+Sound *LoadSound(string_view filename, bool sfxr) {
     auto it = sound_files.find(filename);
     if (it != sound_files.end()) {
         return &it->second;
@@ -371,7 +371,7 @@ Sound *LoadSound(const char *filename, bool sfxr) {
     //Mix_VolumeChunk(chunk, MIX_MAX_VOLUME / 2);
     Sound snd;
     snd.chunk.reset(chunk);
-    return &(sound_files[filename] = std::move(snd));
+    return &(sound_files.insert({ string(filename), std::move(snd) }).first->second);
 }
 
 bool SDLSoundInit() {
@@ -417,7 +417,7 @@ void SDLSoundClose() {
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
-bool SDLPlaySound(const char *filename, bool sfxr, int vol) {
+bool SDLPlaySound(string_view filename, bool sfxr, int vol) {
     #ifdef __EMSCRIPTEN__
     // Distorted in firefox and no audio at all in chrome, disable for now.
     return false;

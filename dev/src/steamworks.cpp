@@ -97,10 +97,10 @@ const char *UserName() {
     return "";
 }
 
-bool UnlockAchievement(const char *name) {
+bool UnlockAchievement(string_view name) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            auto ok = SteamUserStats()->SetAchievement(name);
+            auto ok = SteamUserStats()->SetAchievement(null_terminated(name));
             return SteamUserStats()->StoreStats() && ok;  // Force this to run.
         }
     #else
@@ -109,23 +109,23 @@ bool UnlockAchievement(const char *name) {
     return false;
 }
 
-int SteamReadFile(const char *fn, string &buf) {
+int SteamReadFile(string_view fn, string &buf) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            auto len = SteamRemoteStorage()->GetFileSize(fn);
+            auto len = SteamRemoteStorage()->GetFileSize(null_terminated(fn));
             if (len) {
                 buf.resize(len);
-                return SteamRemoteStorage()->FileRead(fn, (void *)buf.data(), len);
+                return SteamRemoteStorage()->FileRead(null_terminated(fn), (void *)buf.data(), len);
             }
         }
     #endif  // PLATFORM_STEAMWORKS
     return 0;
 }
 
-bool SteamWriteFile(const char *fn, const void *buf, size_t len) {
+bool SteamWriteFile(string_view fn, string_view buf) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            return SteamRemoteStorage()->FileWrite(fn, buf, (int)len);
+            return SteamRemoteStorage()->FileWrite(null_terminated(fn), buf.data(), (int)buf.size());
         }
     #endif  // PLATFORM_STEAMWORKS
     return false;
@@ -165,7 +165,7 @@ void AddSteam(NativeRegistry &natreg) {
         "returns the name of the steam user, or empty string if not available.");
 
     STARTDECL(steam_unlock_achievement) (VM &vm, Value &name) {
-        auto ok = UnlockAchievement(name.sval()->str());
+        auto ok = UnlockAchievement(name.sval()->strv());
         name.DECRT(vm);
         return Value(ok);
     }
@@ -175,9 +175,9 @@ void AddSteam(NativeRegistry &natreg) {
         " Returns true if succesful.");
 
     STARTDECL(steam_write_file) (VM &vm, Value &file, Value &contents) {
-        auto fn = file.sval()->str();
+        auto fn = file.sval()->strv();
         auto s = contents.sval();
-        auto ok = SteamWriteFile(fn, s->str(), s->len);
+        auto ok = SteamWriteFile(fn, s->strv());
         if (!ok) {
             ok = WriteFile(fn, true, s->strv());
         }
@@ -190,7 +190,7 @@ void AddSteam(NativeRegistry &natreg) {
         " fails, returns false if writing wasn't possible at all");
 
     STARTDECL(steam_read_file) (VM &vm, Value &file) {
-        auto fn = file.sval()->str();
+        auto fn = file.sval()->strv();
         string buf;
         auto len = SteamReadFile(fn, buf);
         if (!len) len = (int)LoadFile(fn, &buf);

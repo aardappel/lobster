@@ -199,7 +199,7 @@ void Surface::WritePLY(string &s) {
     #endif
 }
 
-bool Mesh::SaveAsPLY(const char *filename) {
+bool Mesh::SaveAsPLY(string_view filename) {
     size_t nindices = 0;
     for (auto &surf : surfs) nindices += surf->numidx;
     string s;

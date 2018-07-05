@@ -26,7 +26,7 @@ struct ValueParser {
     Lex lex;
     VM &vm;
 
-    ValueParser(VM &vm, char *_src) : lex("string", filenames, _src), vm(vm) {}
+    ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {}
 
     ~ValueParser() {
         for (auto v : allocated) v.DECRT(vm);
@@ -170,7 +170,7 @@ struct ValueParser {
     }
 };
 
-static Value ParseData(VM &vm, type_elem_t typeoff, char *inp) {
+static Value ParseData(VM &vm, type_elem_t typeoff, string_view inp) {
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
@@ -189,7 +189,7 @@ static Value ParseData(VM &vm, type_elem_t typeoff, char *inp) {
 
 void AddReader(NativeRegistry &natreg) {
     STARTDECL(parse_data) (VM &vm, Value &type, Value &ins) {
-        Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->str());
+        Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->strv());
         ins.DECRT(vm);
         return v;
     }

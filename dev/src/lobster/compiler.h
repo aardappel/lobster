@@ -19,7 +19,7 @@
 
 namespace lobster {
 
-extern void Compile(NativeRegistry &natreg, string_view fn, const char *stringsource,
+extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
                     string &bytecode, string *parsedump = nullptr, string *pakfile = nullptr,
                     bool dump_builtins = false, bool dump_names = false);
 extern bool LoadPakDir(const char *lpak);

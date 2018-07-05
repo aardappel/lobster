@@ -251,7 +251,7 @@ void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st)
     WriteFile("builtin_functions_reference.html", false, s);
 }
 
-void Compile(NativeRegistry &natreg, string_view fn, const char *stringsource, string &bytecode,
+void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource, string &bytecode,
     string *parsedump = nullptr, string *pakfile = nullptr,
     bool dump_builtins = false, bool dump_names = false) {
     SymbolTable st;
@@ -277,7 +277,8 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     #endif
     {
         string bytecode;
-        Compile(parent_vm.natreg, fn, stringiscode ? source.sval()->str() : nullptr, bytecode);
+        Compile(parent_vm.natreg, fn, stringiscode ? source.sval()->strv() : string_view(),
+                bytecode);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.

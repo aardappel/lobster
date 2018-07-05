@@ -303,7 +303,7 @@ bool loadiqmanims(const iqmheader &hdr, const char *buf) {
     return true;
 }
 
-bool loadiqm(const char *filename) {
+bool loadiqm(string_view filename) {
     if(LoadFile(filename, &filebuffer) < 0) return false;
     iqmheader hdr = *(iqmheader *)filebuffer.c_str();
     if(memcmp(hdr.magic, IQM_MAGIC, sizeof(hdr.magic)))
@@ -318,7 +318,7 @@ bool loadiqm(const char *filename) {
     return true;
 }
 
-Mesh *LoadIQM(const char *filename) {
+Mesh *LoadIQM(string_view filename) {
     if (!loadiqm(filename)) {
         cleanupiqm();
         return nullptr;

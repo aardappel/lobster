@@ -312,7 +312,7 @@ void AddCubeGen(NativeRegistry &natreg) {
         " 3d|single_channel|has_mips");
 
     STARTDECL(cg_load_vox) (VM &vm, Value &name) {
-        auto namep = name.sval()->str();
+        auto namep = name.sval()->strv();
         string buf;
         auto l = LoadFile(namep, &buf);
         name.DECRT(vm);

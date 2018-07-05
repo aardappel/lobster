@@ -31,7 +31,9 @@ static int FloatCompare(const Value &a, const Value &b) {
 }
 
 static int StringCompare(const Value &a, const Value &b) {
-    return strcmp(a.sval()->str(), b.sval()->str());
+    auto _a = a.sval()->strv();
+    auto _b = b.sval()->strv();
+    return (_a > _b) - (_b > _a);
 }
 
 template<typename T> Value BinarySearch(VM &vm, Value &l, Value &key, T comparefun) {
@@ -426,7 +428,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         if (start < 0 || start + size > l.sval()->len)
             vm.BuiltinError("substring: values out of range");
 
-        auto ns = vm.NewString(string_view(l.sval()->str() + start, size));
+        auto ns = vm.NewString(string_view(l.sval()->data() + start, size));
         l.DECRT(vm);
         return Value(ns);
     }
@@ -435,7 +437,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         " start & size can be negative to indicate an offset from the string length.");
 
     STARTDECL(string2int) (VM &vm, Value &s) {
-        auto i = atoi(s.sval()->str());
+        auto i = parse_int<intp>(s.sval()->strv());
         s.DECRT(vm);
         return Value(i);
     }
@@ -443,7 +445,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "converts a string to an int. returns 0 if no numeric data could be parsed");
 
     STARTDECL(string2float) (VM &vm, Value &s) {
-        auto f = strtod(s.sval()->str(), nullptr);
+        auto f = strtod(null_terminated(s.sval()->strv()), nullptr);
         s.DECRT(vm);
         return Value(f);
     }
@@ -452,21 +454,17 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(tokenize) (VM &vm, Value &s, Value &delims, Value &whitespace) {
         auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-        auto ws = whitespace.sval()->str();
-        auto dl = delims.sval()->str();
-        auto p = s.sval()->str();
-        p += strspn(p, ws);
-        auto strspn1 = [](char c, const char *set) {
-            while (*set) if (*set == c) return 1;
-            return 0;
-        };
-        while (*p) {
-            auto delim = p + strcspn(p, dl);
-            auto end = delim;
-            while (end > p && strspn1(end[-1], ws)) end--;
-            v->Push(vm, vm.NewString(string_view(p, end - p)));
-            p = delim + strspn(delim, dl);
-            p += strspn(p, ws);
+        auto ws = whitespace.sval()->strv();
+        auto dl = delims.sval()->strv();
+        auto p = s.sval()->strv();
+        p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
+        while (!p.empty()) {
+            auto delim = min(p.find_first_of(dl), p.size());
+            auto end = min(p.find_last_not_of(ws) + 1, delim);
+            v->Push(vm, vm.NewString(string_view(p.data(), end)));
+            p.remove_prefix(delim);
+            p.remove_prefix(min(p.find_first_not_of(dl), p.size()));
+            p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
         }
         s.DECRT(vm);
         delims.DECRT(vm);
@@ -495,8 +493,8 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(string2unicode) (VM &vm, Value &s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
-        const char *p = s.sval()->str();
-        while (*p) {
+        auto p = s.sval()->strv();
+        while (!p.empty()) {
             int u = FromUTF8(p);
             if (u < 0) { s.DECRT(vm); Value(v).DECRT(vm); return Value(); }
             v->Push(vm, u);
@@ -525,9 +523,9 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(lowercase) (VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
-        for (auto p = ns->str(); *p; p++) {
+        for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
-            if (*p >= 'A' && *p <= 'Z') *p += 'a' - 'A';
+            if (c >= 'A' && c <= 'Z') (char &)c += 'a' - 'A';
         }
         s.DECRT(vm);
         return Value(ns);
@@ -537,9 +535,9 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(uppercase) (VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
-        for (auto p = ns->str(); *p; p++) {
+        for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
-            if (*p >= 'a' && *p <= 'z') *p -= 'a' - 'A';
+            if (c >= 'a' && c <= 'z') (char &)c -= 'a' - 'A';
         }
         s.DECRT(vm);
         return Value(ns);
@@ -549,16 +547,16 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(escapestring) (VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
         string out;
-        for (auto p = s.sval()->str();;) {
-            auto loc = strpbrk(p, set.sval()->str());
-            if (loc) {
-                out.append(p, loc);
+        for (auto p = s.sval()->strv();;) {
+            auto loc = p.find_first_of(set.sval()->strv());
+            if (loc != string_view::npos) {
+                out.append(p.data(), loc);
                 auto presv = prefix.sval()->strv();
                 out.append(presv.data(), presv.size());
-                out += *loc++;
+                out += p[loc++];
                 auto postsv = postfix.sval()->strv();
                 out.append(postsv.data(), postsv.size());
-                p = loc;
+                p.remove_prefix(loc);
             } else {
                 out += p;
                 break;
@@ -577,9 +575,9 @@ void AddBuiltins(NativeRegistry &natreg) {
         string s;
         auto sepsv = sep.sval()->strv();
         for (intp i = 0; i < v.vval()->len; i++) {
-            if (i) s.append(sepsv.data(), sepsv.size());
+            if (i) s.append(sepsv);
             auto esv = v.vval()->At(i).sval()->strv();
-            s.append(esv.data(), esv.size());
+            s.append(esv);
         }
         v.DECRT(vm);
         sep.DECRT(vm);

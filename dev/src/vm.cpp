@@ -211,16 +211,18 @@ LResource *VM::NewResource(void *v, const ResourceType *t) {
 
 LString *VM::NewString(string_view s) {
     auto r = NewString(s.size());
-    memcpy(r->str(), s.data(), s.size());
-    r->str()[s.size()] = 0;
+    auto dest = (char *)r->data();
+    memcpy(dest, s.data(), s.size());
+    dest[s.size()] = 0;
     return r;
 }
 
 LString *VM::NewString(string_view s1, string_view s2) {
     auto s = NewString(s1.size() + s2.size());
-    memcpy(s->str(), s1.data(), s1.size());
-    memcpy(s->str() + s1.size(), s2.data(), s2.size());
-    s->str()[s1.size() + s2.size()] = 0;
+    auto dest = (char *)s->data();
+    memcpy(dest, s1.data(), s1.size());
+    memcpy(dest + s1.size(), s2.data(), s2.size());
+    dest[s1.size() + s2.size()] = 0;
     return s;
 }
 
@@ -970,7 +972,7 @@ VM_DEF_INS(IFORELEM)    { FORELEM(iter.ival(), PUSH(i)); }
 VM_DEF_INS(VFORELEM)    { FORELEM(iter.vval()->len, PUSH(iter.vval()->At(i.ival()))); }
 VM_DEF_INS(VFORELEMREF) { FORELEM(iter.vval()->len, auto el = iter.vval()->At(i.ival()); el.INCRTNIL(); PUSH(el)); }
 VM_DEF_INS(NFORELEM)    { FORELEM(iter.stval()->Len(*this), PUSH(iter.stval()->AtS(i.ival()))); }
-VM_DEF_INS(SFORELEM)    { FORELEM(iter.sval()->len, PUSH(Value((int)((uchar *)iter.sval()->str())[i.ival()]))); }
+VM_DEF_INS(SFORELEM)    { FORELEM(iter.sval()->len, PUSH(Value((int)((uchar *)iter.sval()->data())[i.ival()]))); }
 
 VM_DEF_INS(FORLOOPI) {
     auto &i = TOPM(1);  // This relies on for being inlined, otherwise it would be 2.
@@ -1429,7 +1431,7 @@ void VM::PushDerefIdxString(intp i) {
     Value r = POP();
     VMASSERT(r.ref());
     RANGECHECK(i, r.sval()->len, r.sval());
-    PUSH(Value((int)((uchar *)r.sval()->str())[i]));
+    PUSH(Value((int)((uchar *)r.sval()->data())[i]));
     r.DECRT(*this);
 }
 

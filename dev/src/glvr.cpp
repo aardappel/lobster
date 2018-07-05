@@ -29,7 +29,7 @@
 static vr::IVRSystem *vrsys = nullptr;
 static vr::IVRRenderModels *vrmodels = nullptr;
 static vr::TrackedDevicePose_t trackeddeviceposes[vr::k_unMaxTrackedDeviceCount];
-static map<string, vr::EVRButtonId> button_ids;
+static map<string, vr::EVRButtonId, less<>> button_ids;
 
 string GetTrackedDeviceString(vr::TrackedDeviceIndex_t device, vr::TrackedDeviceProperty prop) {
     assert(vrsys);
@@ -268,7 +268,7 @@ MotionController *GetMC(Value &mc) {
 #ifdef PLATFORM_VR
 
 vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
-    auto it = button_ids.find(button.sval()->str());
+    auto it = button_ids.find(button.sval()->strv());
     if (it == button_ids.end())
         vm.BuiltinError("unknown button name: " + button.sval()->strv());
     button.DECRT(vm);

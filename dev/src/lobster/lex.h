@@ -46,12 +46,12 @@ struct LoadedFile : Line {
 
     vector<Tok> gentokens;
 
-    LoadedFile(string_view fn, vector<string> &fns, const char *stringsource)
+    LoadedFile(string_view fn, vector<string> &fns, string_view stringsource)
         : Line(1, (int)fns.size()), tokenstart(nullptr),
           source(new string()), token(T_NONE),
           errorline(1), islf(false), cont(false), whitespacebefore(0),
           prevline(nullptr), prevlinetok(nullptr) {
-        if (stringsource) {
+        if (!stringsource.empty()) {
             *source.get() = stringsource;
         } else {
             if (LoadFile("include/" + fn, source.get()) < 0 &&
@@ -74,7 +74,7 @@ struct Lex : LoadedFile {
 
     vector<string> &filenames;
 
-    Lex(string_view fn, vector<string> &fns, const char *_ss = nullptr)
+    Lex(string_view fn, vector<string> &fns, string_view _ss = {})
         : LoadedFile(fn, fns, _ss), filenames(fns) {
         allsources.push_back(source);
         FirstToken();
@@ -91,7 +91,7 @@ struct Lex : LoadedFile {
         }
         allfiles.insert(string(_fn));
         parentfiles.push_back(*this);
-        *((LoadedFile *)this) = LoadedFile(_fn, filenames, nullptr);
+        *((LoadedFile *)this) = LoadedFile(_fn, filenames, {});
         allsources.push_back(source);
         FirstToken();
     }
@@ -101,7 +101,7 @@ struct Lex : LoadedFile {
         parentfiles.pop_back();
     }
 
-    void Push(TType t, string_view a = string_view()) {
+    void Push(TType t, string_view a = {}) {
         Tok tok;
         tok.t = t;
         if (a.data()) tok.a = a;
@@ -110,7 +110,7 @@ struct Lex : LoadedFile {
 
     void PushCur() { Push(token, sattr); }
 
-    void Undo(TType t, string_view a = string_view()) {
+    void Undo(TType t, string_view a = {}) {
         PushCur();
         Push(t, a);
         Next();
@@ -403,14 +403,14 @@ struct Lex : LoadedFile {
             return ival;
         } else if (sattr[0] == '0' && sattr.size() > 1 && sattr[1] == 'x') {
             // Test for hex explicitly since we don't want to allow octal parsing.
-            return strtoll(sattr.data(), nullptr, 16);
+            return parse_int<int64_t>(sattr, 16);
         } else {
-            return strtoll(sattr.data(), nullptr, 10);
+            return parse_int<int64_t>(sattr);
         }
     }
 
     string StringVal() {
-        auto s = sattr.data();
+        auto s = sattr.data();  // This is ok, because has been parsed before and is inside buf.
         auto initial = *s++;
         // Check if its a multi-line constant.
         if (initial == '\"' && s[0] == '\"' && s[1] == '\"') {

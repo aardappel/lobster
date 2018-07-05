@@ -108,7 +108,7 @@ void PopTransform(VM &vm) {
     auto s = vm.Pop();
     assert(s.type == V_STRING);
     assert(s.sval()->len == sizeof(objecttransforms));
-    otransforms = *(objecttransforms *)s.sval()->str();
+    otransforms = *(objecttransforms *)s.sval()->strv().data();
     s.DECRT(vm);
 }
 
@@ -139,7 +139,7 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
 Value SetUniform(VM &vm, Value &name, const float *data, int len, bool ignore_errors) {
     TestGL(vm);
     currentshader->Activate();
-    auto ok = currentshader->SetUniform(name.sval()->str(), data, len);
+    auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
     if (!ok && !ignore_errors)
         vm.Error("failed to set uniform: " + name.sval()->strv());
     name.DECRT(vm);
@@ -151,7 +151,7 @@ void AddGraphics(NativeRegistry &natreg) {
                           Value &samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl_window() twice");
-        string err = SDLInit(title.sval()->str(), int2(intp2(xs.ival(), ys.ival())),
+        string err = SDLInit(title.sval()->strv(), int2(intp2(xs.ival(), ys.ival())),
                              fullscreen.ival() != 0, novsync.ival() == 0,
                              max(1, samples.intval()));
         title.DECRT(vm);
@@ -182,8 +182,8 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_loadmaterials) (VM &vm, Value &fn, Value &isinline) {
         TestGL(vm);
-        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->str())
-                                   : LoadMaterialFile(fn.sval()->str());
+        auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
+                                   : LoadMaterialFile(fn.sval()->strv());
         fn.DECRT(vm);
         return err[0] ? Value(vm.NewString(err)) : Value();
     }
@@ -224,7 +224,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_windowtitle) (VM &vm, Value &s) {
         TestGL(vm);
-        SDLTitle(s.sval()->str());
+        SDLTitle(s.sval()->strv());
         return s;
     }
     ENDDECL1(gl_windowtitle, "title", "S", "S",
@@ -261,7 +261,7 @@ void AddGraphics(NativeRegistry &natreg) {
         "grabs the mouse when the window is active. return wether it's on.");
 
     STARTDECL(gl_button) (VM &vm, Value &name) {
-        auto ks = GetKS(name.sval()->str());
+        auto ks = GetKS(name.sval()->strv());
         name.DECRT(vm);
         return Value(ks.Step());
     }
@@ -317,7 +317,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " (for touch screens only if the corresponding gl_isdown is true)");
 
     STARTDECL(gl_lastpos) (VM &vm, Value &name, Value &on) {
-        auto p = GetKeyPos(name.sval()->str(), on.intval());
+        auto p = GetKeyPos(name.sval()->strv(), on.intval());
         name.DECRT(vm);
         return ToValueINT(vm, p);
     }
@@ -325,7 +325,7 @@ void AddGraphics(NativeRegistry &natreg) {
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_locallastpos) (VM &vm, Value &name, Value &on) {
-        auto p = localpos(GetKeyPos(name.sval()->str(), on.intval()));
+        auto p = localpos(GetKeyPos(name.sval()->strv(), on.intval()));
         name.DECRT(vm);
         return ToValueFLT(vm, p);
     }
@@ -359,7 +359,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " seconds_elapsed() for continuous timing)");
 
     STARTDECL(gl_lasttime) (VM &vm, Value &name, Value &on) {
-        auto t = GetKeyTime(name.sval()->str(), on.intval());
+        auto t = GetKeyTime(name.sval()->strv(), on.intval());
         name.DECRT(vm);
         return Value(t);
     }
@@ -654,7 +654,7 @@ void AddGraphics(NativeRegistry &natreg) {
         if (nattr < 1 || nattr > 10)
             vm.BuiltinError("newmesh: illegal format/attributes size");
         auto fmt = format.sval()->strv();
-        if (nattr != (int)strspn(fmt.data(), "PCTN") || fmt[0] != 'P')
+        if (nattr > (int)min(fmt.find_first_not_of("PCTN"), fmt.size()) || fmt[0] != 'P')
             vm.BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                                " first");
         intp nverts = positions.vval()->len;
@@ -745,7 +745,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_newmesh_iqm) (VM &vm, Value &fn) {
         TestGL(vm);
-        auto m = LoadIQM(fn.sval()->str());
+        auto m = LoadIQM(fn.sval()->strv());
         fn.DECRT(vm);
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
     }
@@ -785,7 +785,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_savemesh) (VM &vm, Value &i, Value &name) {
         TestGL(vm);
-        bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->str());
+        bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
         name.DECRT(vm);
         return Value(ok);
     }
@@ -795,7 +795,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_setshader) (VM &vm, Value &shader) {
         TestGL(vm);
-        auto sh = LookupShader(shader.sval()->str());
+        auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         shader.DECRT(vm);
         currentshader = sh;
@@ -829,7 +829,7 @@ void AddGraphics(NativeRegistry &natreg) {
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
         vec.DECRT(vm);
         currentshader->Activate();
-        auto ok = currentshader->SetUniform(name.sval()->str(), vals.data()->data(), 4,
+        auto ok = currentshader->SetUniform(name.sval()->strv(), vals.data()->data(), 4,
                                             (int)vals.size());
         name.DECRT(vm);
         return Value(ok);
@@ -844,7 +844,7 @@ void AddGraphics(NativeRegistry &natreg) {
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
         vec.DECRT(vm);
         currentshader->Activate();
-        auto ok = currentshader->SetUniformMatrix(name.sval()->str(), vals.data(),
+        auto ok = currentshader->SetUniformMatrix(name.sval()->strv(), vals.data(),
                                                   (int)vals.size(), 1);
         name.DECRT(vm);
         return Value(ok);
@@ -860,7 +860,7 @@ void AddGraphics(NativeRegistry &natreg) {
         vec.DECRT(vm);
         auto id = UniformBufferObject(currentshader, vals.data()->data(),
                                       4 * sizeof(float) * vals.size(),
-                                      name.sval()->str(), ssbo.True());
+                                      name.sval()->strv(), ssbo.True());
         name.DECRT(vm);
         return Value((int)id);
     }
@@ -902,7 +902,7 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_dumpshader) (VM &vm, Value &filename, Value &stripnonascii) {
         TestGL(vm);
         currentshader->Activate();
-        auto ok = currentshader->Dump(filename.sval()->str(), stripnonascii.True());
+        auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
         filename.DECRT(vm);
         return Value(ok);
     }
@@ -928,7 +928,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_loadtexture) (VM &vm, Value &name, Value &tf) {
         TestGL(vm);
-        auto tex = CreateTextureFromFile(name.sval()->str(), tf.intval());
+        auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         name.DECRT(vm);
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
     }
@@ -1123,7 +1123,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " directions, and dist their spacing. thickness of the lines in the same units");
 
     STARTDECL(gl_screenshot) (VM &vm, Value &fn) {
-        bool ok = ScreenShot(fn.sval()->str());
+        bool ok = ScreenShot(fn.sval()->strv());
         fn.DECRT(vm);
         return Value(ok);
     }

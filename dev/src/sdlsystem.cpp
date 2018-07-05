@@ -64,7 +64,7 @@ struct KeyState {
     }
 };
 
-unordered_map<string, KeyState> keymap;
+map<string, KeyState, less<>> keymap;
 
 int mousewheeldelta = 0;
 
@@ -243,7 +243,7 @@ void SDLRequireGLVersion(int major, int minor) {
     #endif
 };
 
-string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscreen, int vsync,
+string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscreen, int vsync,
                int samples) {
     MakeDPIAware();
     //SDL_SetMainReady();
@@ -294,7 +294,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
         Output(OUTPUT_INFO, "chosen resolution: ", screensize.x, " ", screensize.y);
         Output(OUTPUT_INFO, "SDL about to create window...");
 
-        _sdl_window = SDL_CreateWindow(title,
+        _sdl_window = SDL_CreateWindow(null_terminated(title),
                                         0, 0,
                                         screensize.x, screensize.y,
                                         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
@@ -314,7 +314,7 @@ string SDLInit(const char *title, const int2 &desired_screensize, bool isfullscr
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
         Output(OUTPUT_INFO, cat("dpi: ", dpi));
         screensize = desired_screensize * int(dpi) / int(default_dpi);
-        _sdl_window = SDL_CreateWindow(title,
+        _sdl_window = SDL_CreateWindow(null_terminated(title),
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        screensize.x, screensize.y,
                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
@@ -423,7 +423,7 @@ bool SDLFrame() {
                 // Built-in key-press functionality.
                 switch (event.key.keysym.sym) {
                     case SDLK_PRINTSCREEN:
-                        ScreenShot(("screenshot-" + GetDateTime() + ".jpg").c_str());
+                        ScreenShot("screenshot-" + GetDateTime() + ".jpg");
                         break;
                 }
             }
@@ -569,7 +569,7 @@ void SDLWindowMinMax(int dir) {
 double SDLTime() { return lasttime; }
 double SDLDeltaTime() { return frametime; }
 
-TimeBool8 GetKS(const char *name) {
+TimeBool8 GetKS(string_view name) {
     auto ks = keymap.find(name);
     if (ks == keymap.end()) return {};
     #ifdef PLATFORM_TOUCH
@@ -583,18 +583,17 @@ TimeBool8 GetKS(const char *name) {
     #endif
 }
 
-double GetKeyTime(const char *name, int on) {
+double GetKeyTime(string_view name, int on) {
     auto ks = keymap.find(name);
     return ks == keymap.end() ? -3600 : ks->second.lasttime[on];
 }
 
-int2 GetKeyPos(const char *name, int on) {
+int2 GetKeyPos(string_view name, int on) {
     auto ks = keymap.find(name);
     return ks == keymap.end() ? int2(-1, -1) : ks->second.lastpos[on];
 }
 
-void SDLTitle(const char *title) { SDL_SetWindowTitle(_sdl_window, title); }
-
+void SDLTitle(string_view title) { SDL_SetWindowTitle(_sdl_window, null_terminated(title)); }
 
 int SDLWheelDelta() { return mousewheeldelta; }
 bool SDLIsMinimized() { return minimized; }
@@ -624,13 +623,13 @@ bool SDLGrab(bool on) {
     return SDL_GetWindowGrab(_sdl_window) == SDL_TRUE;
 }
 
-void SDLMessageBox(const char *title, const char *msg) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, msg, _sdl_window);
+void SDLMessageBox(string_view title, string_view msg) {
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, null_terminated<0>(title), null_terminated<1>(msg), _sdl_window);
 }
 
 int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
     Output(OUTPUT_INFO, "SDLLoadFile: ", absfilename);
-    auto f = SDL_RWFromFile(absfilename.data(), "rb");
+    auto f = SDL_RWFromFile(null_terminated(absfilename), "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);
     if (filelen < 0 || filelen == LLONG_MAX) {
@@ -650,9 +649,10 @@ int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_
     return len != (int64_t)rlen ? -1 : len;
 }
 
-bool ScreenShot(const char *filename) {
+bool ScreenShot(string_view filename) {
     auto pixels = ReadPixels(int2(0), screensize);
-    auto ok = stbi_write_png(filename, screensize.x, screensize.y, 3, pixels, screensize.x * 3);
+    auto ok = stbi_write_png(null_terminated(filename), screensize.x, screensize.y, 3, pixels,
+                             screensize.x * 3);
     delete[] pixels;
     return ok != 0;
 }

@@ -83,6 +83,78 @@
   deallocating eveything locals hold, but never deallocate arguments. Then most of the lifetime
   analysis is about when to change those defaults for particular variables.
 
+  Its pretty easy to still have refcounting as well, simply by having a level of indirection
+  (a cell object referring to a refc object) this way the cost of refc is only paid by these
+  objects, and inc/dec can happen at creation/destruction of the cell object (so is cheaper
+  than the refcounting we have now, since you don't pay the cost on any parameter passing).
+  Interestingly, you could actually use this for all values: an ownership analysis, which all
+  it does is compute lifetimes for all refs, and inserts an incref where the above algo would
+  do a copy/error.
+  Or more generally, you could allow the programmer to specify what he wants to happen on a
+  multi-ref: a copy (for non mutable / small / stack alloc), an error (for efficient mutables),
+  or an incref (for flexible mutables).
+  We can achieve this with a 3rd type beyond value / struct.. maybe "owned" or "linear"?
+  Or make struct linear, and have a "reference" or "shared" type.
+  The other cool thing in terms of seeing things this way is that you can first implement
+  the reference count for all types, see that it works, and then only after introduce the other
+  two.
+
+- a buffer type.
+  Similar to Go slices and https://docs.oracle.com/javase/7/docs/api/java/nio/ByteBuffer.html
+  similar to a string but resizable.
+  similar to a vector, but bytes, and with multiple views on one buffer.
+  user-facing type is the view, which simply has buffer pointer, start & size.
+  buffer is hidden and has refc, capacity (at negative offsets), and data.
+  (this is a different refc from the one used by all language values.. this buffer will always
+  be refc even if views become linear/value)
+  When you write data, it is always an append on the view, i.e. at offset size, and size then
+  grows for that view.
+  When you read data, you consume data from start, and start increases. You cannot read past
+  size.
+  If you'd write past capacity, the buffer gets reallocated.
+  The new buffer is only visible to the current view. It is up to the programmer to share this
+  buffer when growing. This could of course be avoided with yet another indirection, but it
+  would be a problem very infrequently.
+  It would be cleanest if all write functions returned a new view, but thats maybe a bit wasteful.
+  These views can be the basis of FlatBuffer handles for example, and can even have special
+  purpose FlatBuffer ops.
+  Hmm.. rather than a buffer type, why not reuse the existing string type for this? would be
+  even more versatile, and all the new functionality can also make more complex string builders
+  possible.
+  One downside of buffers also being strings is that having all these kinds
+  of buffers in your program that are all "string" gets potentially confusing,
+  so would be good to add strong typedefs:
+
+- strong typedefs.
+  Will basically add a tag to any base type.
+  If a functionally specifically requests the tag, the tags must match.
+  In any context a type is allowed to lose its tags (coerced to base).
+  This way, we can have the few functions that actually want string to contain
+  utf-8 take this typedef. Or strings can specify they contain a FlatBuffer
+  or some other specific binary layout.
+  For scalars and vectors, the tricky thing is that you want some weird
+  defaults for operators:
+  for +, strong + strong = strong, anything else results in base type.
+  for *, strong * base = strong, since you're often scaling a unit.
+  It should be possible to override these defaults, disable operators, or
+  specify relations with other types, but the default for a type should work
+  intuitively for most types (especially spatial quantities, as Lobster is
+  game oriented). This overriding is something for later.
+  Besides the type system dealing correctly with tags, we now need general
+  casts (allow a typedef as function name). We may also need to make string
+  constants result in a utf-8 typedef by default.
+
+- Features to make it easier to use structs ADT style as opposed to inheritance
+  - ADT is similar to a base class with no members and a fixed set of sub-classes.
+    - So make that use case into a simpler declaration syntax.
+  - extend switch to do pattern matching.
+  - do we still want multi-methods? certainly allowing both ADT and inheritance
+    styles is more flexible, but multimethods aren't particularly fast right
+    now and probably don't support inheritance that well. Either just:
+    - support inheritance well and efficiently.
+    - reduce their use case to be an alternative to pattern matching on an ADT.
+    - remove them altogether.
+
 - things that would help making --to-cpp faster:
   - a central problem is that improving a lot of these means duplicating large segments of
     the instruction space for refc and not, or the 5 instructions that use an lvalop.
@@ -166,42 +238,42 @@
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.
 
-- besides exception.lobster, another nice error-handling strategy would be to use nillable to 
-  signal errors. returning nil is a bit primitive, but in lobster it has the nice property that 
-  it forces the caller to check for nil, making errors not-ignorable. It also means we can 
-  use standard language tools like if/and/assert rather than special purpose error handling. 
-  - would need some way to store additional error information external to the value. 
-    in the simplest case a global last_error:string 
-  - doesn't work on functions that want to return scalars. should really make boxed values 
-    possible outside of any, such that you can actually have int? types. 
-  - the best language addition for this which is generally useful would be to have 
-    a := return if not f() 
-    where f returns a nillable, a is non-nillable, an the surrounding function again returns a 
-    nillable. 
-    as an easy way to perculate errors. 
-    in e.g. Rust this is a macro that looks like: let a = try!(f()) 
-    Probably a more verbose syntax that contains "return" is better, since returning from a 
-    function is major control-flow that you don't want hidden in a macro. Also nice that in an 
-    editor you can highlight all the returns. 
-    Can also have "return if" that does the reverse: return a non-nillable if true, otherwise 
-    continue execution. This is like doing "return f() or .." except here it is easier to 
-    make the ".." contain multiple statements. 
-    This is nice, because "return if not" is for NOT dealing with errors locally, whereas 
-    "return if" is for dealing with errors locally (coming up with an alternative return value 
-    upon failure). 
-    "return if" also usefully turns a value non-nil without needing a temp var, normally you'd need: 
-    temp := f(); if temp: return temp 
-    Also, both of them promote more linear code. 
-    - note there is some code in the impl that assumes "return" has no temps on the stack, 
+- besides exception.lobster, another nice error-handling strategy would be to use nillable to
+  signal errors. returning nil is a bit primitive, but in lobster it has the nice property that
+  it forces the caller to check for nil, making errors not-ignorable. It also means we can
+  use standard language tools like if/and/assert rather than special purpose error handling.
+  - would need some way to store additional error information external to the value.
+    in the simplest case a global last_error:string
+  - doesn't work on functions that want to return scalars. should really make boxed values
+    possible outside of any, such that you can actually have int? types.
+  - the best language addition for this which is generally useful would be to have
+    a := return if not f()
+    where f returns a nillable, a is non-nillable, an the surrounding function again returns a
+    nillable.
+    as an easy way to perculate errors.
+    in e.g. Rust this is a macro that looks like: let a = try!(f())
+    Probably a more verbose syntax that contains "return" is better, since returning from a
+    function is major control-flow that you don't want hidden in a macro. Also nice that in an
+    editor you can highlight all the returns.
+    Can also have "return if" that does the reverse: return a non-nillable if true, otherwise
+    continue execution. This is like doing "return f() or .." except here it is easier to
+    make the ".." contain multiple statements.
+    This is nice, because "return if not" is for NOT dealing with errors locally, whereas
+    "return if" is for dealing with errors locally (coming up with an alternative return value
+    upon failure).
+    "return if" also usefully turns a value non-nil without needing a temp var, normally you'd need:
+    temp := f(); if temp: return temp
+    Also, both of them promote more linear code.
+    - note there is some code in the impl that assumes "return" has no temps on the stack,
       which isn't the case for: 1 + 2 + 3 + (return if not ..)
     - for completeness, can even have "a := return b if not c", which is still better than
       "a := c; if not a: return b"
-  - so far there isn't a lot of error handling going on anywhere in lobster code.. I guess 
-    because games don't do a lot of error handling beyond loading files. And GL errors are 
-    wrapped in native code. 
-    Could be good to write something that does a lot of error handling like a parser, then 
-    again the above constructs sound generally useful 
-    
+  - so far there isn't a lot of error handling going on anywhere in lobster code.. I guess
+    because games don't do a lot of error handling beyond loading files. And GL errors are
+    wrapped in native code.
+    Could be good to write something that does a lot of error handling like a parser, then
+    again the above constructs sound generally useful
+
 - try again having --tocpp output basic blocks as switch case rather than function pointers.
   - try with clang to see if it optimizes that case better
   - try and explicitly jump to the next function where known statically rather than using the trampoline?
@@ -731,7 +803,7 @@
     for "any" and dynamic dispatch.
 
 - Improve 64bit builds.
-  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives 
+  We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
   bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
   of these values.
   Suprisingly, for our unit-test path-finding benchmark, 64-bit mode this way is actually
@@ -909,7 +981,7 @@
     http://runtimelegend.com/tech/webserver/
   - might be fun to see how hard it is to write an integration for http://lighttable.com/
     which could be used as a debugger and maybe for live-coding.
-  - Could integrate with VSCode instead. 
+  - Could integrate with VSCode instead.
 
 - function f(): x := 1; x + x
   gives error on x... should disallow
@@ -1119,8 +1191,8 @@ TYPECHECKER NOTES:
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================
-- try to measure the cost of removing exception handling from lobster: turning exceptions of will 
-  have a gain that my compensate for the branch not taken needed for explicit error handling. 
+- try to measure the cost of removing exception handling from lobster: turning exceptions of will
+  have a gain that my compensate for the branch not taken needed for explicit error handling.
   - Both VS and gcc appears to be 1% faster with exceptions off.
   - adding an extra termination conditional in EvalProgram is 7% slower in VS, and 0.5% faster
     with gcc (manages to infer no exception can be thrown?)
@@ -1129,7 +1201,7 @@ CURRENT SOLUTION FROM TRADEOFS:
   - Would need to revert to a switch to make this exit cheaper, but switch is also about 7%
     slower in VS than trampoline, with or without exceptions.
   Conclusion: stick with exceptions (and trampoline) for now.
- 
+
 - you can hit multiple overlapping hit boxes with gl_hit(). problem is, you render back to front, but want to hit test front to back...
     - if you simply clear that a hit happened this frame when its tested, you get that order wrong
     - if you added z-layers to rendering such that you could do inverse order

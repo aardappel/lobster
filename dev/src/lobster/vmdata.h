@@ -229,28 +229,51 @@ struct BoxedFloat : RefObj {
 
     BoxedFloat(floatp _v);
 };
+/*
+struct LStringBuf : DynAlloc {
+  intp srefc;
+  intp capacity;
+  // String data starts here, and LString points here:
+};
+
+
+struct LString : RefObj {
+    const char *sb;
+    intp start;
+    intp len;    // has to match the Value integer type, since we allow the length to be obtained
+
+    LString(const char *_b, intp _s, intp _l);
+
+    const char *data() { return sb + start; }
+    string_view strv() { return string_view(data(), len); }
+
+    LStringBuf *buf() { return ((LStringBuf *)sb) - 1; }
+
+    */
+
 
 struct LString : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
-
     LString(intp _l);
 
-    char *str() { return (char *)(this + 1); }
-    string_view strv() { return string_view(str(), len); }
+    const char *data() { return (char *)(this + 1); }
+    string_view strv() { return string_view(data(), len); }
 
     void ToString(ostringstream &ss, PrintPrefs &pp);
 
     void DeleteSelf(VM &vm);
 
-    bool operator==(LString &o) { return strcmp(str(), o.str()) == 0; }
-    bool operator!=(LString &o) { return strcmp(str(), o.str()) != 0; }
-    bool operator< (LString &o) { return strcmp(str(), o.str()) <  0; }
-    bool operator<=(LString &o) { return strcmp(str(), o.str()) <= 0; }
-    bool operator> (LString &o) { return strcmp(str(), o.str()) >  0; }
-    bool operator>=(LString &o) { return strcmp(str(), o.str()) >= 0; }
+    bool operator==(LString &o) { return strv() == o.strv(); }
+    bool operator!=(LString &o) { return strv() != o.strv(); }
+    bool operator< (LString &o) { return strv() <  o.strv(); }
+    bool operator<=(LString &o) { return strv() <= o.strv(); }
+    bool operator> (LString &o) { return strv() >  o.strv(); }
+    bool operator>=(LString &o) { return strv() >= o.strv(); }
 
     intp Hash();
 };
+
+
 
 // There must be a single of these per type, since they are compared by pointer.
 struct ResourceType {
@@ -695,7 +718,7 @@ struct VM {
             #define VM_RET return false
             #define VM_TERMINATE return true
         #endif
-    #else 
+    #else
         #define VM_INS_RET void
         #ifdef VM_INS_SWITCH
             #define VM_RET break
@@ -840,7 +863,7 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size) {
     auto mem = ((uchar *)v) - header_sz;
     vm.pool.dealloc(mem, size * sizeof(T) + header_sz);
 }
-    
+
 
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
 template<int N> inline vec<floatp, N> ValueToF(VM &vm, const Value &v, floatp def = 0) {
@@ -930,7 +953,7 @@ template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceT
 
 inline vector<string> VectorOfStrings(VM &vm, Value &v) {
     vector<string> r;
-    for (int i = 0; i < v.vval()->len; i++) r.push_back(v.vval()->At(i).sval()->str());
+    for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->At(i).sval()->strv()));
     v.DECRT(vm);
     return r;
 }

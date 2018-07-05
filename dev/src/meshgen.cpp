@@ -823,7 +823,7 @@ void AddMeshGen(NativeRegistry &natreg) {
         auto s = vm.Pop();
         assert(s.type == V_STRING);
         assert(s.sval()->len == sizeof(float3x3));
-        currot = *(float3x3 *)s.sval()->str();
+        currot = *(float3x3 *)s.sval()->data();
         s.DECRT(vm);
     }
     ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FC?", "",

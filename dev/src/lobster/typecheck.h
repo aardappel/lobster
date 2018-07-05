@@ -368,7 +368,7 @@ struct TypeChecker {
     }
 
     void SubTypeT(TypeRef type, TypeRef sub, const Node &n, string_view argname,
-                  string_view context = string_view()) {
+                  string_view context = {}) {
         if (!ConvertsTo(type, sub, false))
             TypeError(TypeName(sub), type, n, argname, context);
     }
@@ -615,8 +615,8 @@ struct TypeChecker {
     }
 
     void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n,
-                               string_view argname, string_view req = string_view(),
-                               bool subtypeok = false, string_view context = string_view()) {
+                               string_view argname, string_view req = {},
+                               bool subtypeok = false, string_view context = {}) {
         auto givenu = given->UnWrapped();
         if (given->t != V_STRUCT ||
             (!spec_struc->IsSpecialization(givenu->struc) &&

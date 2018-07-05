@@ -53,11 +53,11 @@ struct Shader {
     void Set();                                 // Activate + sets common uniforms.
     void SetAnim(float3x4 *bones, int num);     // Optionally, after Activate().
     void SetTextures(const vector<Texture> &textures);  // Optionally, after Activate().
-    bool SetUniform(const char *name,           // Optionally, after Activate().
+    bool SetUniform(string_view name,           // Optionally, after Activate().
                     const float *val,
                     int components, int elements = 1);
-    bool SetUniformMatrix(const char *name, const float *val, int components, int elements = 1);
-    bool Dump(const char *filename, bool stripnonascii);
+    bool SetUniformMatrix(string_view name, const float *val, int components, int elements = 1);
+    bool Dump(string_view filename, bool stripnonascii);
 };
 
 struct Textured {
@@ -140,7 +140,7 @@ struct Mesh {
     ~Mesh();
 
     void Render(Shader *sh);
-    bool SaveAsPLY(const char *filename);
+    bool SaveAsPLY(string_view filename);
 };
 
 struct Light {
@@ -164,15 +164,15 @@ extern void SetPointSprite(float size);
 
 extern void AppendTransform(const float4x4 &forward, const float4x4 &backward);
 
-extern string LoadMaterialFile(const char *mfile);
-extern string ParseMaterialFile(char *mfile);
-extern Shader *LookupShader(const char *name);
+extern string LoadMaterialFile(string_view mfile);
+extern string ParseMaterialFile(string_view mfile);
+extern Shader *LookupShader(string_view name);
 extern void ShaderShutDown();
 
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, const Texture &tex, int tf);
 extern uint UniformBufferObject(Shader *sh, const void *data, size_t len,
-                                const char *uniformblockname, bool ssbo);
+                                string_view uniformblockname, bool ssbo);
 extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
 
 // These must correspond to the constants in color.lobster
@@ -193,7 +193,7 @@ enum TextureFlag {
 };
 
 extern Texture CreateTexture(const uchar *buf, const int *dim, int tf = TF_NONE);
-extern Texture CreateTextureFromFile(const char *name, int tf = TF_NONE);
+extern Texture CreateTextureFromFile(string_view name, int tf = TF_NONE);
 extern Texture CreateBlankTexture(const int2 &size, const float4 &color, int tf = TF_NONE);
 extern void DeleteTexture(Texture &id);
 extern void SetTexture(int textureunit, const Texture &tex, int tf = TF_NONE);
@@ -246,7 +246,7 @@ struct GeometryCache {
 
 extern size_t AttribsSize(string_view fmt);
 
-extern Mesh *LoadIQM(const char *filename);
+extern Mesh *LoadIQM(string_view filename);
 
 extern float4x4 view2clip;
 

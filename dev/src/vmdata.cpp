@@ -20,7 +20,13 @@ namespace lobster {
 
 BoxedInt::BoxedInt(intp _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}
 BoxedFloat::BoxedFloat(floatp _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
+
+/*
+LString::LString(const char *_b, intp _s, intp _l)
+  : RefObj(TYPE_ELEM_STRING), sb(_b), start(_s), len(_l) {}
+*/
 LString::LString(intp _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
+
 LResource::LResource(void *v, const ResourceType *t)
     : RefObj(TYPE_ELEM_RESOURCE), val(v), type(t) {}
 
@@ -205,7 +211,7 @@ intp RefObj::Hash(VM &vm) {
 }
 
 intp LString::Hash() {
-    return (int)FNV1A(str());
+    return (int)FNV1A(strv());
 }
 
 intp Value::Hash(VM &vm, ValueType vtype) {
