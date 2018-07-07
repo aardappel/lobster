@@ -123,7 +123,26 @@
   possible.
   One downside of buffers also being strings is that having all these kinds
   of buffers in your program that are all "string" gets potentially confusing,
-  so would be good to add strong typedefs:
+  so would be good to add strong typedefs.
+  Hmm, the above is not the greatest for a few reasons:
+  - it makes what are currently always immutable shared strings mutable, which can cause
+    problems. For example can't make all static strings into just slices, as then a single
+    in place append somewhere can overwrite other static strings.
+    Or in general, you pass a slice to a function that wants to append, and get unexpected
+    results (overwrites).
+    Also, the fact that these slices are shared and modified in place makes it worse.
+    string_view is always copied. Go's slices you get a new copy upon a mutation.
+    Here you'd need to explicitly call copy() all the time to make sure different users can
+    have different views.
+    So every single string having this semantics is not great, especially when the functionality
+    is not useful to 95% of their uses.
+  - so maybe they should be different things, each with their own strengths.
+    Maybe we should forget about slices, since they don't fit the language that well until
+    we can guarantee copy in implementation. So the buffer itself should have a cursor.
+    Also the idea of writes being appends doesn't fit all use cases, like FlatBuffers.
+    so maybe indexed reads and writes are better.
+    Though in that case, you're almost better of just using a string as backing store, and
+    doing explicit string resizes..
 
 - strong typedefs.
   Will basically add a tag to any base type.

@@ -229,28 +229,6 @@ struct BoxedFloat : RefObj {
 
     BoxedFloat(floatp _v);
 };
-/*
-struct LStringBuf : DynAlloc {
-  intp srefc;
-  intp capacity;
-  // String data starts here, and LString points here:
-};
-
-
-struct LString : RefObj {
-    const char *sb;
-    intp start;
-    intp len;    // has to match the Value integer type, since we allow the length to be obtained
-
-    LString(const char *_b, intp _s, intp _l);
-
-    const char *data() { return sb + start; }
-    string_view strv() { return string_view(data(), len); }
-
-    LStringBuf *buf() { return ((LStringBuf *)sb) - 1; }
-
-    */
-
 
 struct LString : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
@@ -272,8 +250,6 @@ struct LString : RefObj {
 
     intp Hash();
 };
-
-
 
 // There must be a single of these per type, since they are compared by pointer.
 struct ResourceType {
