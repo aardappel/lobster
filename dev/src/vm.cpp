@@ -269,7 +269,7 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         ss << " -> " << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '('
            << li->line() << ')';
         #endif
-        VarCleanup(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
+        VarCleanup<1>(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
     }
     ss << "\nglobals:";
     for (size_t i = 0; i < bcf->specidents()->size(); i++) {
@@ -386,7 +386,7 @@ InsPtr VM::GetIP() {
     #endif
 }
 
-int VM::VarCleanup(ostringstream *error, int towhere) {
+template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     auto &stf = stackframes.back();
     VMASSERT(sp == stf.spstart);
     auto fip = stf.funstart;
@@ -397,13 +397,13 @@ int VM::VarCleanup(ostringstream *error, int towhere) {
     auto defvars = fip + ndef;
     while (ndef--) {
         auto i = *--defvars;
-        if (error) DumpVar(*error, vars[i], i, false);
+        if constexpr (is_error) DumpVar(*error, vars[i], i, false);
         else vars[i].DECTYPE(*this, GetVarTypeInfo(i).t);
         vars[i] = POP();
     }
     while (nargs--) {
         auto i = *--freevars;
-        if (error) DumpVar(*error, vars[i], i, false);
+        if constexpr (is_error) DumpVar(*error, vars[i], i, false);
         else vars[i].DECTYPE(*this, GetVarTypeInfo(i).t);
         vars[i] = POP();
     }
@@ -413,7 +413,7 @@ int VM::VarCleanup(ostringstream *error, int towhere) {
     stackframes.pop_back();
     if (!lastunwind) {
         auto untilsp = stackframes.size() ? stackframes.back().spstart : -1;
-        if (tempmask && !error) {
+        if (tempmask && !is_error) {
             for (uint i = 0; i < (uint)min(32, sp - untilsp); i++)
                 if (((uint)tempmask) & (1u << i))
                     stack[untilsp + 1 + i].DECRTNIL(*this);
@@ -498,7 +498,7 @@ bool VM::FunOut(int towhere, int nrv) {
             bottom = true;
             break;
         }
-        if(VarCleanup(nullptr, towhere)) break;
+        if (VarCleanup<0>(nullptr, towhere)) break;
     }
     memcpy(TOPPTR(), retvalstemp, nrv * sizeof(Value));
     sp += nrv;
@@ -523,7 +523,7 @@ void VM::CoVarCleanup(LCoRoutine *co) {
         }
         // Save the ip, because VarCleanup will jump to it.
         auto bip = GetIP();
-        VarCleanup(nullptr, !i ? stf.definedfunction : -2);
+        VarCleanup<0>(nullptr, !i ? stf.definedfunction : -2);
         JumpTo(bip);
     }
     assert(sp == startsp);

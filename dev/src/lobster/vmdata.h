@@ -765,7 +765,7 @@ struct VM {
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
-    int VarCleanup(ostringstream *error, int towhere);
+    template<int is_error> int VarCleanup(ostringstream *error, int towhere);
     void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
