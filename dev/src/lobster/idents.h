@@ -314,6 +314,12 @@ struct SymbolTable {
 
     vector<Type *> typelist;
 
+    string current_namespace;
+    // FIXME: because we cleverly use string_view's into source code everywhere, we now have
+    // no way to refer to constructed strings, and need to store them seperately :(
+    // TODO: instead use larger buffers and constuct directly into those, so no temp string?
+    vector<const char *> stored_names;
+
     SymbolTable() : toplevel(nullptr) {}
 
     ~SymbolTable() {
@@ -324,6 +330,25 @@ struct SymbolTable {
         for (auto sf : subfunctiontable) delete sf;
         for (auto f  : fieldtable)       delete f;
         for (auto t  : typelist)         delete t;
+        for (auto n  : stored_names)     delete[] n;
+    }
+
+    string NameSpaced(string_view name) {
+        assert(!current_namespace.empty());
+        return cat(current_namespace, "_", name);
+    }
+
+    string_view StoreName(const string &s) {
+        auto buf = new char[s.size()];
+        memcpy(buf, s.data(), s.size());  // Look ma, no terminator :)
+        stored_names.push_back(buf);
+        return string_view(buf, s.size());
+    }
+
+    string_view MaybeNameSpace(string_view name, bool other_conditions) {
+        return other_conditions && !current_namespace.empty() && scopelevels.size() == 1
+            ? StoreName(NameSpaced(name))
+            : name;
     }
 
     Ident *Lookup(string_view name) {
@@ -445,6 +470,7 @@ struct SymbolTable {
     }
 
     void EndOfInclude() {
+        current_namespace.clear();
         auto it = idents.begin();
         while (it != idents.end()) {
             if (it->second->isprivate) {
@@ -470,7 +496,10 @@ struct SymbolTable {
 
     Struct &StructUse(string_view name, Lex &lex) {
         auto stit = structs.find(name);
-        if (stit == structs.end()) lex.Error("unknown type: " + name);
+        if (stit == structs.end()) {
+            stit = structs.find(NameSpaced(name));
+            if (stit == structs.end()) lex.Error("unknown type: " + name);
+        }
         return *stit->second;
     }
 
@@ -539,7 +568,12 @@ struct SymbolTable {
 
     Function *FindFunction(string_view name) {
         auto it = functions.find(name);
-        return it != functions.end() ? it->second : nullptr;
+        if (it != functions.end()) return it->second;
+        if (!current_namespace.empty()) {
+            auto it = functions.find(NameSpaced(name));
+            if (it != functions.end()) return it->second;
+        }
+        return nullptr;
     }
 
     SpecIdent *NewSid(Ident *id, TypeRef type = nullptr) {

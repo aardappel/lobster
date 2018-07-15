@@ -307,6 +307,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "switch")    return T_SWITCH;
                     else if (sattr == "case")      return T_CASE;
                     else if (sattr == "default")   return T_DEFAULT;
+                    else if (sattr == "namespace") return T_NAMESPACE;
                     else if (sattr == "not")       return T_NOT;
                     else if (sattr == "and")       { cont = true; return T_AND; }
                     else if (sattr == "or")        { cont = true; return T_OR; }
@@ -446,16 +447,19 @@ struct Lex : LoadedFile {
         return r;
     };
 
-    string_view TokStr(TType t = T_NONE) {
-        if (t == T_NONE) t = token;
-        switch (t) {
+    string_view TokStr(TType t) {
+        return TName(t);
+    }
+
+    string_view TokStr() {
+        switch (token) {
             case T_IDENT:
             case T_FLOAT:
             case T_INT:
             case T_STR:
                 return sattr;
             default:
-                return TName(t);
+                return TName(token);
         }
     }
 

@@ -16,7 +16,9 @@ TODO:
 
 */
 
-private struct guielem { id:int, size:xy_i }
+namespace gui
+
+private struct elem { id:int, size:xy_i }
 
 private cursize := xy_0i
 
@@ -46,12 +48,12 @@ private focus_id := -1
 
 private button_key := "<none>"
 
-def guif() :== ()
-def guifs(v:xy_i) :== ()
+def fun() :== ()
+def funs(v:xy_i) :== ()
 
 private def cache_size(id, f):
     if !render_pass:
-        e := guielem { id, xy_0i }
+        e := elem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
         e.size = f()
@@ -112,11 +114,11 @@ private def block(al, sp, vert, id, f):
         parent_size <- size
         f()
 
-def gui_text(text:string):
+def text(text:string):
     element(cache_size(hash(text)): gl_textsize(text)):
         gl_text(text)
 
-def gui_image(factors, tex):
+def image(factors, tex):
     size := round(factors * gl_getfontsize())
     element(size):
         gl_setshader("textured")
@@ -124,15 +126,15 @@ def gui_image(factors, tex):
         gl_rect(float(size))
         gl_setshader("color")
 
-def gui_divider(thickness:int):
+def divider(thickness:int):
     align <- 0
     element(xy_1i * thickness):
         gl_rect(if vertical: xy_f { parent_size.x, thickness } else: xy_f { thickness, parent_size.y })
 
-def gui_space(thickness:float):
+def space(thickness:float):
     element(xy_1i * round(thickness * gl_getfontsize())): nil
 
-def gui_start(size, alignh, alignv, interact, f:guif):   // top level only
+def start(size, alignh, alignv, interact, f:fun):   // top level only
     id := hash(f)
     gl_setshader("color")
     gl_blend(blend_alpha):
@@ -159,18 +161,18 @@ def gui_start(size, alignh, alignv, interact, f:guif):   // top level only
         if !num_interactive_elements_hit and !gl_touchscreen():
             focus_id = -1
 
-def gui_hblock(al, sp, f:guif): block(al, sp, false, hash(f), f)
-def gui_vblock(al, sp, f:guif): block(al, sp, true,  hash(f), f)
+def hblock(al, sp, f:fun): block(al, sp, false, hash(f), f)
+def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
 
-def gui_fontscale(factor, f:guif):
+def fontscale(factor, f:fun):
     os := gl_getfontsize()
     ool := gl_getoutlinesize()
     gl_setfontsize(round(os * factor), ool * factor)
     f()
     gl_setfontsize(os, ool)
 
-def gui_color(col, f:guif): nest_if(render_pass, def(): gl_color(col, _), f)
-def gui_blend(bli, f:guif): nest_if(render_pass, def(): gl_blend(bli, _), f)
+def color(col, f:fun): nest_if(render_pass, def(): gl_color(col, _), f)
+def blend(bli, f:fun): nest_if(render_pass, def(): gl_blend(bli, _), f)
 
 private def around(m, draw, id, f):
     size := cursize_of(id, f)
@@ -191,8 +193,8 @@ private def around(m, draw, id, f):
             f()
             forward()
 
-def gui_margin(m, f:guif): around(m, false, hash(f), f)
-def gui_border(m, f:guif): around(m, true,  hash(f), f)
+def margin(m, f:fun): around(m, false, hash(f), f)
+def border(m, f:fun): around(m, true,  hash(f), f)
 
 private def overlay(stretch, id, f, g):
     size := cursize_of(id, f)
@@ -205,17 +207,17 @@ private def overlay(stretch, id, f, g):
                     g(size)
             f()
 
-def gui_backgroundf(stretch, f:guif, background:guifs):
+def backgroundf(stretch, f:fun, background:funs):
     overlay(stretch, hash(f), f) size:
         background(size)
         gl_hit(float(size), 0)    // stop clicks from reaching whatevers beneath this
 
-def gui_background(col, stretch, f:guif):
-    gui_backgroundf(stretch, f) size:
+def background(col, stretch, f:fun):
+    backgroundf(stretch, f) size:
         gl_color col:
             gl_rect(float(size))
 
-def gui_key(key_name, f):  // Surround a gui_button with this to also allow keyboard activation.
+def key(key_name, f):  // Surround a button with this to also allow keyboard activation.
     button_key <- key_name
     f()
 
@@ -245,35 +247,35 @@ private def button(id, f, do, dofocus, focusf):
                         else: if actionwav: play_wav(actionwav)
                         do()
 
-def gui_button(f:guif, do:guif):                        button(hash(f), f, do, false): nil
-def gui_button(f:guif, do:guif, focus:guif):            button(hash(f), f, do, true, focus)
-def gui_button_id(id:int, f:guif, do:guif):             button(id,      f, do, false): nil
-def gui_button_id(id:int, f:guif, do:guif, focus:guif): button(id,      f, do, true, focus)
+def button(f:fun, do:fun):                       button(hash(f), f, do, false): nil
+def button(f:fun, do:fun, focus:fun):            button(hash(f), f, do, true, focus)
+def button_id(id:int, f:fun, do:fun):            button(id,      f, do, false): nil
+def button_id(id:int, f:fun, do:fun, focus:fun): button(id,      f, do, true, focus)
 
-def gui_button_text   (        text:string, do:guif):             button(hash(text), def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text:string, do:guif):             button(id,         def(): gui_text(text), do, false): nil
-def gui_button_id_text(id:int, text:string, do:guif, focus:guif): button(id,         def(): gui_text(text), do, true, focus)
+def button_text   (        text:string, do:fun):            button(hash(text), def(): text(text), do, false): nil
+def button_id_text(id:int, text:string, do:fun):            button(id,         def(): text(text), do, false): nil
+def button_id_text(id:int, text:string, do:fun, focus:fun): button(id,         def(): text(text), do, true, focus)
 
-def gui_button_image   (        size, tex, do:guif):             button(hash(tex), def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do:guif):             button(id,        def(): gui_image(size, tex), do, false): nil
-def gui_button_id_image(id:int, size, tex, do:guif, focus:guif): button(id,        def(): gui_image(size, tex), do, true, focus)
+def button_image   (        size, tex, do:fun):            button(hash(tex), def(): image(size, tex), do, false): nil
+def button_id_image(id:int, size, tex, do:fun):            button(id,        def(): image(size, tex), do, false): nil
+def button_id_image(id:int, size, tex, do:fun, focus:fun): button(id,        def(): image(size, tex), do, true, focus)
 
-def gui_custombackground(f:guifs): if render_pass: f(overalsize)
+def custombackground(f:funs): if render_pass: f(overalsize)
 
-def gui_multiselect(labels, selected, mspacing):
-    gui_hblock(1, mspacing):
+def multiselect(labels, selected, mspacing):
+    hblock(1, mspacing):
         for(labels) name, i:
-            gui_color(if selected == i: color_white else: color_grey):
-                gui_button_text(name):
+            color(if selected == i: color_white else: color_grey):
+                button_text(name):
                     selected = i
     selected
 
-def gui_setclickcolors(hover, sel):
+def setclickcolors(hover, sel):
     hover_color = hover
     select_color = sel
 
-def gui_setactionsfxr(snd): actionsfxr = snd
-def gui_setactionwav(snd): actionwav = snd
+def setactionsfxr(snd): actionsfxr = snd
+def setactionwav(snd): actionwav = snd
 
 if program_name() == "gui.lobster" or program_name() == "include/gui.lobster": // run example
 

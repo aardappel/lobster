@@ -161,6 +161,13 @@ struct Parser {
 
     void ParseTopExp(List *list, bool isprivate = false) {
         switch(lex.token) {
+            case T_NAMESPACE:
+                if (st.scopelevels.size() != 1 || isprivate)
+                    Error("namespace must be used at file scope");
+                lex.Next();
+                st.current_namespace = lex.sattr;
+                Expect(T_IDENT);
+                break;
             case T_PRIVATE:
                 if (st.scopelevels.size() != 1 || isprivate)
                     Error("private must be used at file scope");
@@ -233,7 +240,7 @@ struct Parser {
 
     void ParseTypeDecl(bool isvalue, bool isprivate, List *parent_list) {
         lex.Next();
-        auto sname = ExpectId();
+        auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
         Struct *struc = &st.StructDecl(lastid, lex);
         Struct *sup = nullptr;
         auto parse_sup = [&] () {
@@ -402,7 +409,9 @@ struct Parser {
     }
 
     Node *ParseNamedFunctionDefinition(bool isprivate, Struct *self) {
-        auto idname = ExpectId();
+        // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
+        // current namespace (which is same as !self).
+        auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
         if (natreg.FindNative(idname))
             Error("cannot override built-in function: " + idname);
         return ParseFunction(&idname, isprivate, true, true, "", false, false, self);

@@ -1210,6 +1210,37 @@ TYPECHECKER NOTES:
 
 CURRENT SOLUTION FROM TRADEOFS:
 ===============================
+- namespaces:
+  Syntax-wise we've been using _ for hardcoded namespaces so far for both builtins (gl_text)
+  and libraries (gui_text). I kinda prefer that syntax to . or ::, it makes the namespace
+  obvious part of the name and feels more lightweight.
+  Though . will be more familiar to people, and makes leaving it out more natural.
+  If we change to . then builtins should also use it.
+  The advantage of _ is flexibility, for example string_to_unicode could be considered to be part
+  of a string namespace, but it is kinda not since length doesn't use it, and for
+  unicode_to_string the namespace is on the other end. Also string.to_unicode doesn' look as
+  good. And since string is not a "class with methods", i.e. length is a free-standing function,
+  we wouldn't want to namespace it since string.length is too verbose.
+  _ allows you to fluently mix namespacing and names, as long as things are "unique enough"
+  Ok, so assuming we keep using _, how do you create a namespace?
+  We could simply have a "namespace gui" declaration, and all top level names get automatically
+  prefixed when used outside the namespace.
+  Alternatively we could have namespacing be decided by the user, by having
+  include "gui.lobster" as gui. If you leave out the as-part, you instead get it dumped in the
+  current namespace.
+  Hmm.. defaulting to namespaced as declared is probably better, "as" could be optional renaming.
+  Again multi-methods don't help here, since a function that is supposed to be a "method" should
+  really not be namespaced, but a free standing top level function should. We cannot easily
+  make such a distinction, unless you say something like "functions whose first argument (or any?)
+  is a type thats namespaced (by the current namespace or any?) then it should not itself be
+  namespaced", which is somewhat yucky.
+  Probably should be first arg only, since the . syntax makes names look "not global".
+  Of course that the . syntax is optional makes this less ideal.
+  And should be current namespace, since it should be discouraged to have a "method" declared
+  in essentially the wrong namespace.
+  Or we could tie non-namespacing of function to inline definition? That would be cleaner
+  though potentially less flexible.
+
 - try to measure the cost of removing exception handling from lobster: turning exceptions of will
   have a gain that my compensate for the branch not taken needed for explicit error handling.
   - Both VS and gcc appears to be 1% faster with exceptions off.
