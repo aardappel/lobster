@@ -1,3 +1,5 @@
+- rename builtin functions that still use snakecase instead of snake_case
+
 - reference counting is a good default, but it is a source of much more inefficiency than I had
   guessed. Should consider what it would take to add a friendly ownership model.
   Examples:
@@ -99,50 +101,12 @@
   the reference count for all types, see that it works, and then only after introduce the other
   two.
 
-- a buffer type.
-  Similar to Go slices and https://docs.oracle.com/javase/7/docs/api/java/nio/ByteBuffer.html
-  similar to a string but resizable.
-  similar to a vector, but bytes, and with multiple views on one buffer.
-  user-facing type is the view, which simply has buffer pointer, start & size.
-  buffer is hidden and has refc, capacity (at negative offsets), and data.
-  (this is a different refc from the one used by all language values.. this buffer will always
-  be refc even if views become linear/value)
-  When you write data, it is always an append on the view, i.e. at offset size, and size then
-  grows for that view.
-  When you read data, you consume data from start, and start increases. You cannot read past
-  size.
-  If you'd write past capacity, the buffer gets reallocated.
-  The new buffer is only visible to the current view. It is up to the programmer to share this
-  buffer when growing. This could of course be avoided with yet another indirection, but it
-  would be a problem very infrequently.
-  It would be cleanest if all write functions returned a new view, but thats maybe a bit wasteful.
-  These views can be the basis of FlatBuffer handles for example, and can even have special
-  purpose FlatBuffer ops.
-  Hmm.. rather than a buffer type, why not reuse the existing string type for this? would be
-  even more versatile, and all the new functionality can also make more complex string builders
-  possible.
-  One downside of buffers also being strings is that having all these kinds
-  of buffers in your program that are all "string" gets potentially confusing,
-  so would be good to add strong typedefs.
-  Hmm, the above is not the greatest for a few reasons:
-  - it makes what are currently always immutable shared strings mutable, which can cause
-    problems. For example can't make all static strings into just slices, as then a single
-    in place append somewhere can overwrite other static strings.
-    Or in general, you pass a slice to a function that wants to append, and get unexpected
-    results (overwrites).
-    Also, the fact that these slices are shared and modified in place makes it worse.
-    string_view is always copied. Go's slices you get a new copy upon a mutation.
-    Here you'd need to explicitly call copy() all the time to make sure different users can
-    have different views.
-    So every single string having this semantics is not great, especially when the functionality
-    is not useful to 95% of their uses.
-  - so maybe they should be different things, each with their own strengths.
-    Maybe we should forget about slices, since they don't fit the language that well until
-    we can guarantee copy in implementation. So the buffer itself should have a cursor.
-    Also the idea of writes being appends doesn't fit all use cases, like FlatBuffers.
-    so maybe indexed reads and writes are better.
-    Though in that case, you're almost better of just using a string as backing store, and
-    doing explicit string resizes..
+- binary string ops:
+  - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
+    version of Lobster (which may be needed to be supported for a while, because wasm)
+  - memcpy, memmove
+  - write_string
+  - ops for doing things with unsigned values stored inside signed ones?
 
 - strong typedefs.
   Will basically add a tag to any base type.
@@ -163,16 +127,56 @@
   casts (allow a typedef as function name). We may also need to make string
   constants result in a utf-8 typedef by default.
 
+- A minimalistic error catching feature.
+  I'm not a fan of exceptions anymore (though they can be emulated in Lobster in user code),
+  and I generally don't think runtime errors should be catchable.
+  But functions that bounds-check indices stored in user-generated data such as for reading
+  file formats and serialized data break this model, in that you do NOT want user code to
+  error/bounds check every single read, yet program terminating upon corrupt data is also
+  not that great.
+  For that purpose it is maybe useful to have a minimalistic error catching mechanism.
+  Since we already have code that rolls back the stack upon an error (and generates an error
+  string), we can simply use that code to check if the current function is a function that
+  would like to return the error string and continue executing as normal.
+  This function must have a return value of type string? (such that nil can mean no error),
+  or string if so desired,
+  and must somehow be marked as error-catching. If the unroller finds such a function it stops
+  unrolling and returns the current error string. The function can also return other strings
+  under normal execution.
+  We can even provide a function to generate such runtime errors, so that people can abuse it
+  as a simple form of (string only) exception handling if they wish.
+  Of course can complicate this feature to not make it string only, but I don't think that is
+  necessary. If you want to create complex exception hierarchies you are probably using the
+  wrong language.
+  Might be worth doing at least the initial version of strong typedefs first since that will
+  allow a runtime_error string type. Though that tag would have to survive into the vm data.
+
 - Features to make it easier to use structs ADT style as opposed to inheritance
   - ADT is similar to a base class with no members and a fixed set of sub-classes.
     - So make that use case into a simpler declaration syntax.
   - extend switch to do pattern matching.
   - do we still want multi-methods? certainly allowing both ADT and inheritance
     styles is more flexible, but multimethods aren't particularly fast right
-    now and probably don't support inheritance that well. Either just:
+    now and probably don't support inheritance that well.
+    Also complicates namespacing see above.
+    Either just:
     - support inheritance well and efficiently.
     - reduce their use case to be an alternative to pattern matching on an ADT.
     - remove them altogether.
+- It would be better if we could leave the decision wether something is a builtin or a user
+  defined function to the type checker, since that would allow user defined types to have
+  a length function, or anything else that clashes with builtins.
+  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
+  and optional things etc.
+  Maybe if both are available, we could simply require that the user function corresponds to
+  the builtin one in terms of these features, and otherwise error?
+
+- namespaces improvements:
+  - also implement them for global variables.
+  - extend non-namespaced "methods" to out of line declarations.
+  - Private functions and data types do not appear to be deleted at the end of an include
+    currently, see EndOfInclude.
+    - what if they participate in a multimethod?
 
 - things that would help making --to-cpp faster:
   - a central problem is that improving a lot of these means duplicating large segments of
