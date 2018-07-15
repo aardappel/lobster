@@ -234,8 +234,8 @@ struct LString : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
     LString(intp _l);
 
-    const char *data() { return (char *)(this + 1); }
-    string_view strv() { return string_view(data(), len); }
+    const char *data() const { return (char *)(this + 1); }
+    string_view strv() const { return string_view(data(), len); }
 
     void ToString(ostringstream &ss, PrintPrefs &pp);
 
@@ -379,14 +379,21 @@ struct Value {
     RefObj     *ref   () const { assert(IsRef(type));          return ref_;         }
     RefObj     *refnil() const { assert(IsRefNil(type));       return ref_;         }
     InsPtr      ip    () const { assert(type >= V_FUNCTION);   return ip_;          }
-    void       *any   () const {                                    return ref_;         }
+    void       *any   () const {                               return ref_;         }
+
+    template<typename T, bool IF> T ifval() const {
+        if constexpr (IF) { assert(type == V_FLOAT); return (T)fval_; }
+        else              { assert(type == V_INT);   return (T)ival_; }
+    }
 
     void setival(intp i)   { assert(type == V_INT);   ival_ = i; }
     void setfval(floatp f) { assert(type == V_FLOAT); fval_ = f; }
 
     inline Value()                   : TYPE_INIT(V_NIL)        ref_(nullptr)    {}
     inline Value(int i)              : TYPE_INIT(V_INT)        ival_(i)         {}
+    inline Value(uint i)             : TYPE_INIT(V_INT)        ival_((intp)i)   {}
     inline Value(int64_t i)          : TYPE_INIT(V_INT)        ival_((intp)i)   {}
+    inline Value(uint64_t i)         : TYPE_INIT(V_INT)        ival_((intp)i)   {}
     inline Value(int i, ValueType t) : TYPE_INIT(t)            ival_(i)         { (void)t; }
     inline Value(bool b)             : TYPE_INIT(V_INT)        ival_(b)         {}
     inline Value(float f)            : TYPE_INIT(V_FLOAT)      fval_(f)         {}
@@ -740,6 +747,7 @@ struct VM {
     LString *NewString(size_t l);
     LString *NewString(string_view s);
     LString *NewString(string_view s1, string_view s2);
+    LString *ResizeString(LString *s, intp size, int c, bool back);
 
     Value Error(string err, const RefObj *a = nullptr, const RefObj *b = nullptr);
     Value BuiltinError(string err) { return Error(err); }
@@ -840,6 +848,19 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size) {
     vm.pool.dealloc(mem, size * sizeof(T) + header_sz);
 }
 
+template<typename T, bool back> LString *WriteValLE(VM &vm, LString *s, intp i, T val) {
+    auto minsize = i + (intp)sizeof(T);
+    if (s->len < minsize) s = vm.ResizeString(s, minsize * 2, 0, back);
+    T t = flatbuffers::EndianScalar(val);
+    memcpy((void *)(s->data() + (back ? s->len - i - sizeof(T) : i)), &t, sizeof(T));
+    return s;
+}
+
+template<typename T, bool back> T ReadValLE(const LString *s, intp i) {
+    T val;
+    memcpy(&val, (void *)(s->data() + (back ? s->len - i - sizeof(T) : i)), sizeof(T));
+    return flatbuffers::EndianScalar(val);
+}
 
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
 template<int N> inline vec<floatp, N> ValueToF(VM &vm, const Value &v, floatp def = 0) {

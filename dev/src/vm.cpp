@@ -226,6 +226,19 @@ LString *VM::NewString(string_view s1, string_view s2) {
     return s;
 }
 
+LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
+    auto ns = NewString(size);
+    auto sdest = (char *)ns->data();
+    auto cdest = sdest;
+    auto remain = size - s->len;
+    if (back) sdest += remain;
+    else cdest += s->len;
+    memcpy(sdest, s->data(), s->len);
+    memset(cdest, c, remain);
+    s->Dec(*this);
+    return ns;
+}
+
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(string err, const RefObj *a, const RefObj *b) {

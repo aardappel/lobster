@@ -145,6 +145,15 @@ def run_test_cases(is_speed_test):
     applyto4 := def(f): f(4)
     assert 16 == applyto4(def(x): x * x)
 
+    assert ensure_size("abc", 3, 'z') == "abc"
+    assert ensure_size("abc", 5, 'z') == "abczz"
+    assert ensure_size("abc", -5, 'z') == "zzabc"
+    ns, ni := "".write_int16_le(0, 1027)
+    assert ns == "\x03\x04\x00\x00" and ni == 2
+    assert ns.read_int32_le(0) == 1027
+    ns, ni = "".write_int16_le_back(0, 2050)
+    assert ns == "\x00\x00\x02\x08" and ni == 2
+    assert ns.read_int16_le_back(0) == 2050
 
     // ////////////////////////////////////////////////////////////////////////
     // typechecking
