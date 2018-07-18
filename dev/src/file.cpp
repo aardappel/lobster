@@ -75,6 +75,18 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
     return def;
 }
 
+LString *GetString(VM &vm, intp fi, LString *buf) {
+    if (fi) {
+        auto len = Read<flatbuffers::uoffset_t, false>(vm, fi, buf);
+        auto fdata = fi + sizeof(flatbuffers::uoffset_t);
+        // Read zero terminator just to make sure all string data is in bounds.
+        Read<char, false>(vm, fdata + len, buf);
+        return vm.NewString(buf->strv().substr(fdata, len));
+    } else {
+        return vm.NewString(0);
+    }
+}
+
 void AddFile(NativeRegistry &natreg) {
     STARTDECL(scan_folder) (VM &vm, Value &fld, Value &divisor) {
         vector<pair<string, int64_t>> dir;
@@ -206,16 +218,7 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(flatbuffers_field_string) (VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
-        Value ret;
-        if (fi) {
-            auto len = Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval());
-            auto fdata = fi + sizeof(flatbuffers::uoffset_t);
-            // Read zero terminator just to make sure all string data is in bounds.
-            Read<char, false>(vm, fdata + len, str.sval());
-            ret = Value(vm.NewString(str.sval()->strv().substr(fdata, len)));
-        } else {
-            ret = Value(vm.NewString(0));
-        }
+        auto ret = Value(GetString(vm, fi, str.sval()));
         str.DECRT(vm);
         return ret;
     }
@@ -255,6 +258,21 @@ void AddFile(NativeRegistry &natreg) {
     }
     ENDDECL3(flatbuffers_field_struct, "string,tablei,vo", "SII", "I",
              "returns a flatbuffer struct field start, or 0 if not present");
+    STARTDECL(flatbuffers_indirect) (VM &vm, Value &str, Value &idx) {
+        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
+        str.DECRT(vm);
+        return off + idx.ival();
+    }
+    ENDDECL2(flatbuffers_indirect, "string,index", "SI", "I",
+             "returns a flatbuffer offset at index relative to itself");
+    STARTDECL(flatbuffers_string) (VM &vm, Value &str, Value &idx) {
+        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
+        auto ret = GetString(vm, off + idx.ival(), str.sval());
+        str.DECRT(vm);
+        return ret;
+    }
+    ENDDECL2(flatbuffers_string, "string,index", "SI", "S",
+             "returns a flatbuffer string whose offset is at given index");
 }
 
 }
