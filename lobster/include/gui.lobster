@@ -252,9 +252,9 @@ def button(f:fun, do:fun, focus:fun):            button(hash(f), f, do, true, fo
 def button_id(id:int, f:fun, do:fun):            button(id,      f, do, false): nil
 def button_id(id:int, f:fun, do:fun, focus:fun): button(id,      f, do, true, focus)
 
-def button_text   (        text:string, do:fun):            button(hash(text), def(): text(text), do, false): nil
-def button_id_text(id:int, text:string, do:fun):            button(id,         def(): text(text), do, false): nil
-def button_id_text(id:int, text:string, do:fun, focus:fun): button(id,         def(): text(text), do, true, focus)
+def button_text   (        msg:string, do:fun):            button(hash(msg), def(): text(msg), do, false): nil
+def button_id_text(id:int, msg:string, do:fun):            button(id,        def(): text(msg), do, false): nil
+def button_id_text(id:int, msg:string, do:fun, focus:fun): button(id,        def(): text(msg), do, true, focus)
 
 def button_image   (        size, tex, do:fun):            button(hash(tex), def(): image(size, tex), do, false): nil
 def button_id_image(id:int, size, tex, do:fun):            button(id,        def(): image(size, tex), do, false): nil
