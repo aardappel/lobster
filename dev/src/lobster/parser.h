@@ -178,11 +178,17 @@ struct Parser {
                 if (isprivate)
                     Error("include cannot be private");
                 lex.Next();
-                string fn = lex.StringVal();
-                Expect(T_STR);
-                Expect(T_LINEFEED);
-                lex.Include(fn);
-                ParseTopExp(list);
+                if (IsNext(T_FROM)) {
+                    auto fn = lex.StringVal();
+                    Expect(T_STR);
+                    AddDataDir(move(fn));
+                } else {
+                    auto fn = lex.StringVal();
+                    Expect(T_STR);
+                    Expect(T_LINEFEED);
+                    lex.Include(fn);
+                    ParseTopExp(list);
+                }
                 break;
             }
             case T_VALUE:  ParseTypeDecl(true,  isprivate, list); break;

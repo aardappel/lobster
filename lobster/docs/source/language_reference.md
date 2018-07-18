@@ -57,7 +57,7 @@ program = stats end\_of\_file
 
 stats = topexp … linefeed
 
-topexp = `include` string\_constant \| [ `private` ] ( `def` ident functiondef
+topexp = `include` [ `from` ] string\_constant \| [ `private` ] ( `def` ident functiondef
 \| struct \| vardef \| enumdef ) \| expstat
 
 struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
@@ -704,6 +704,14 @@ include "std.lobster"
 The contents of that file will be merged into your main file at the location of
 the `include` for the purpose of compilation. If you you include the same file
 twice, the second occurrence will be ignored.
+
+Include files will typically be loaded relative to 2 locations: the current
+main .lobster file being compiled, and whereever the lobster compiler is installed.
+In both those locations, files may be optionally be found under an `include`
+sub-directory.
+You can use `include from "path/to/"` to provide additional such starting directories
+(relative to the current main `.lobster` file being compiled) that any following include
+statements (recursively) can use.
 
 You may use the keyword `private` at the top level in a file to prefix structs,
 variables, and functions that you don't want to be visible outside that file.

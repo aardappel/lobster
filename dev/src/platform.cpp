@@ -46,16 +46,20 @@
 #include "sdlincludes.h"  // FIXME
 #endif
 
-// Main dir to load files relative to, on windows this is where lobster.exe resides, on apple
-// platforms it's the Resource folder in the bundle.
-string datadir;
-// Auxiliary dir to load files from, this is where the bytecode file you're running or the main
-// .lobster file you're compiling reside.
-string auxdir;
-// Folder to write to, usually the same as auxdir, special folder on mobile platforms.
-string writedir;
+// Dirs to load files relative to, they typically contain, and will be searched in this order:
+// - The project specific files. This is where the bytecode file you're running or the main
+//   .lobster file you're compiling reside.
+// - The standard lobster files. On windows this is where lobster.exe resides, on apple
+//   platforms it's the Resource folder in the bundle.
+// - The same as writedir below (to be able to load files the program has been written).
+// - Any additional dirs declared with "include from".
+vector<string> data_dirs;
+
+// Folder to write to, usually the same as project dir, special folder on mobile platforms.
+string write_dir;
 
 string exefile;
+string projectdir;
 
 FileLoader cur_loader = nullptr;
 
@@ -138,13 +142,8 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
     InitCPU();
     exefile = SanitizePath(exefilepath);
     cur_loader = loader;
-    datadir = StripFilePart(exefile);
-    auxdir = auxfilepath ? StripFilePart(SanitizePath(auxfilepath)) : datadir;
-    writedir = auxdir;
     // FIXME: use SDL_GetBasePath() instead?
-    #ifdef _WIN32
-        have_console = GetConsoleWindow() != nullptr;
-    #elif defined(__APPLE__)
+    #if defined(__APPLE__)
         if (from_bundle) {
             have_console = false;
             // Default data dir is the Resources folder inside the .app bundle.
@@ -156,14 +155,16 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
             CFRelease(resourcesURL);
             if (!res)
                 return false;
-            datadir = string_view(path) + "/";
+            auto resources_dir = string(path) + "/";
+            data_dirs.push_back(resources_dir);
             #ifdef __IOS__
                 // There's probably a better way to do this in CF.
-                writedir = StripFilePart(path) + "Documents/";
+                write_dir = StripFilePart(path) + "Documents/";
+                data_dirs.push_back(write_dir);
             #else
                 // FIXME: This should probably be ~/Library/Application Support/AppName,
                 // but for now this works for non-app store apps.
-                writedir = datadir;
+                write_dir = resources_dir;
             #endif
         }
     #elif defined(__ANDROID__)
@@ -174,15 +175,34 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
         Output(OUTPUT_INFO, internalstoragepath);
         Output(OUTPUT_INFO, externalstoragepath);
-        if (internalstoragepath) datadir = internalstoragepath + string_view("/");
-        if (externalstoragepath) writedir = externalstoragepath + string_view("/");
+        if (internalstoragepath) data_dirs.push_back(internalstoragepath + string_view("/"));
+        if (externalstoragepath) write_dir = externalstoragepath + string_view("/");
         // For some reason, the above SDL functionality doesn't actually work,
         // we have to use the relative path only to access APK files:
-        datadir = "";
-        auxdir = writedir;
+        data_dirs.clear();  // FIXME.
+        data_dirs.push_back("");
+        data_dirs.push_back(write_dir);
+    #else  // Linux & Windows.
+        auto exepath = StripFilePart(exefile);
+        if (auxfilepath) {
+            projectdir = StripFilePart(SanitizePath(auxfilepath));
+            data_dirs.push_back(projectdir);
+            write_dir = projectdir;
+        } else {
+            write_dir = exepath;
+        }
+        data_dirs.push_back(string(exepath));
+        #ifdef _WIN32
+            have_console = GetConsoleWindow() != nullptr;
+        #endif
     #endif
     (void)from_bundle;
     return true;
+}
+
+void AddDataDir(string_view path) {
+    for (auto &dir : data_dirs) if (dir == path) return;
+    data_dirs.push_back(projectdir + SanitizePath(path));
 }
 
 string SanitizePath(string_view path) {
@@ -201,11 +221,11 @@ void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t o
 }
 
 int64_t LoadFileFromAny(string_view srelfilename, string *dest, int64_t start, int64_t len) {
-    auto l = cur_loader(auxdir + srelfilename, dest, start, len);
-    if (l >= 0) return l;
-    l = cur_loader(datadir + srelfilename, dest, start, len);
-    if (l >= 0) return l;
-    return cur_loader(writedir + srelfilename, dest, start, len);
+    for (auto &dir : data_dirs) {
+        auto l = cur_loader(dir + srelfilename, dest, start, len);
+        if (l >= 0) return l;
+    }
+    return -1;
 }
 
 int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t len) {
@@ -231,7 +251,7 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
 }
 
 FILE *OpenForWriting(string_view relfilename, bool binary) {
-    return fopen((writedir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
+    return fopen((write_dir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
 }
 
 bool WriteFile(string_view relfilename, bool binary, string_view contents) {
@@ -291,9 +311,10 @@ bool ScanDirAbs(string_view absdir, vector<pair<string, int64_t>> &dest) {
 
 bool ScanDir(string_view reldir, vector<pair<string, int64_t>> &dest) {
     auto srfn = SanitizePath(reldir);
-    return ScanDirAbs(auxdir + srfn, dest) ||
-           ScanDirAbs(datadir + srfn, dest) ||
-           ScanDirAbs(writedir + srfn, dest);
+    for (auto &dir : data_dirs) {
+        if (ScanDirAbs(dir + srfn, dest)) return true;
+    }
+    return false;
 }
 
 OutputType min_output_level = OUTPUT_WARN;
