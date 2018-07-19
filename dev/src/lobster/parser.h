@@ -247,7 +247,7 @@ struct Parser {
     void ParseTypeDecl(bool isvalue, bool isprivate, List *parent_list) {
         lex.Next();
         auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
-        Struct *struc = &st.StructDecl(lastid, lex);
+        Struct *struc = &st.StructDecl(sname, lex);
         Struct *sup = nullptr;
         auto parse_sup = [&] () {
             ExpectId();

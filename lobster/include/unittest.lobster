@@ -7,6 +7,13 @@ include "exception.lobster"
 include "vec.lobster"
 include "astar.lobster"
 
+namespace test_namespace
+
+def f(): 1
+struct g { x:int = 1 }
+
+namespace test
+
 def run_test_cases(is_speed_test):
     trace_bytecode(false, true)
 
@@ -19,6 +26,9 @@ def run_test_cases(is_speed_test):
 
     var vardef = 1    // shorter form: vardef := 1
     let constdef = 1  // shorter form: constdef :== 1
+
+    assert test_namespace_f() == 1
+    assert (test_namespace_g {}).x == 1
 
     value testa { a:int }
     value testb : testa { b:int }
