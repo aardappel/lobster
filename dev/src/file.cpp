@@ -47,6 +47,14 @@ template<typename T, bool B, bool IF> Value WriteVal(VM &vm, const Value &str, c
     return Value(i + (intp)sizeof(T));
 }
 
+template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, const LString *s,
+                                intp extra) {
+    auto i = idx.ival();
+    if (i < 0) vm.IDXErr(i, 0, str.sval());
+    vm.Push(WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
+    return Value(i + s->len + extra);
+}
+
 template<typename T, bool B> Value ReadVal(VM &vm, const Value &str, const Value &idx) {
     auto i = idx.ival();
     auto val = Read<T, B>(vm, i, str.sval());
@@ -174,6 +182,31 @@ void AddFile(NativeRegistry &natreg) {
     WRITEOP(write_int8_le_back, int8_t, true, write_val_desc2, "I")
     WRITEOP(write_float64_le_back, double, true, write_val_desc2, "F")
     WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F")
+
+    STARTDECL(write_substring) (VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+        return WriteStr<false>(vm, str, idx, val.sval(), term.True());
+    }
+    ENDDECL4(write_substring, "string,i,substr,nullterm", "SISI", "SI",
+             "writes a substring into another string at i (see also write_int64_le)");
+    STARTDECL(write_substring_back) (VM &vm, Value &str, Value &idx, Value &val, Value &term) {
+        return WriteStr<true>(vm, str, idx, val.sval(), term.True());
+    }
+    ENDDECL4(write_substring_back, "string,i,substr,nullterm", "SISI", "SI", "");
+
+    STARTDECL(compare_substring) (VM &vm, Value &str1, Value &idx1, Value &str2, Value &idx2,
+                                  Value &len) {
+        auto s1 = str1.sval();
+        auto s2 = str2.sval();
+        auto i1 = idx1.ival();
+        auto i2 = idx2.ival();
+        auto l = len.ival();
+        if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
+            vm.Error("compare_substring: index out of bounds");
+        auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
+        return eq;
+    }
+    ENDDECL5(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",
+             "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).");
 
     auto read_val_desc1 =
         "reads a value as little endian from a string at location i. The value must be within"

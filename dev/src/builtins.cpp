@@ -356,9 +356,8 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(slice) (VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
-        if (size < 0) size = l.vval()->len + size;
         auto start = s.ival();
-        if (start < 0) start = l.vval()->len + start;
+        if (size < 0) size = l.vval()->len - start;
         if (start < 0 || start + size > l.vval()->len)
             vm.BuiltinError("slice: values out of range");
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
@@ -368,7 +367,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     }
     ENDDECL3(slice,
         "xs,start,size", "V*II", "V1", "returns a sub-vector of size elements from index start."
-        " start & size can be negative to indicate an offset from the vector length.");
+        " size can be negative to indicate the rest of the vector.");
 
     #define ANY_F(acc, at, len) \
         Value r(false); \
@@ -422,9 +421,8 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(substring) (VM &vm, Value &l, Value &s, Value &e) {
         intp size = e.ival();
-        if (size < 0) size = l.sval()->len + size;
         intp start = s.ival();
-        if (start < 0) start = l.sval()->len + start;
+        if (size < 0) size = l.sval()->len - start;
         if (start < 0 || start + size > l.sval()->len)
             vm.BuiltinError("substring: values out of range");
 
@@ -434,7 +432,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     }
     ENDDECL3(substring, "s,start,size", "SII", "S",
         "returns a substring of size characters from index start."
-        " start & size can be negative to indicate an offset from the string length.");
+        " size can be negative to indicate the rest of the string.");
 
     STARTDECL(string2int) (VM &vm, Value &s) {
         auto i = parse_int<intp>(s.sval()->strv());
@@ -585,6 +583,17 @@ void AddBuiltins(NativeRegistry &natreg) {
     }
     ENDDECL2(concatstring, "v,sep", "S]S", "S",
              "concatenates all elements of the string vector, separated with sep.");
+
+    STARTDECL(repeat_string) (VM &vm, Value &s, Value &_n) {
+        auto n = max(intp(0), _n.ival());
+        auto len = s.sval()->len;
+        auto ns = vm.NewString(len * n);
+        for (intp i = 0; i < n; i++) memcpy((char *)ns->data() + i * len, s.sval()->data(), len);
+        s.DECRT(vm);
+        return ns;
+    }
+    ENDDECL2(repeat_string, "s,n", "SI", "S",
+             "returns a string consisting of n copies of the input string.");
 
     STARTDECL(pow) (VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); }
     ENDDECL2(pow, "a,b", "FF", "F",

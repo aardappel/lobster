@@ -848,12 +848,16 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size) {
     vm.pool.dealloc(mem, size * sizeof(T) + header_sz);
 }
 
-template<typename T, bool back> LString *WriteValLE(VM &vm, LString *s, intp i, T val) {
-    auto minsize = i + (intp)sizeof(T);
+template<bool back> LString *WriteMem(VM &vm, LString *s, intp i, const void *data, size_t size) {
+    auto minsize = i + (intp)size;
     if (s->len < minsize) s = vm.ResizeString(s, minsize * 2, 0, back);
-    T t = flatbuffers::EndianScalar(val);
-    memcpy((void *)(s->data() + (back ? s->len - i - sizeof(T) : i)), &t, sizeof(T));
+    memcpy((void *)(s->data() + (back ? s->len - i - size : i)), data, size);
     return s;
+}
+
+template<typename T, bool back> LString *WriteValLE(VM &vm, LString *s, intp i, T val) {
+    T t = flatbuffers::EndianScalar(val);
+    return WriteMem<back>(vm, s, i, &t, sizeof(T));
 }
 
 template<typename T, bool back> T ReadValLE(const LString *s, intp i) {
