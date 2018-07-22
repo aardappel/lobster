@@ -498,7 +498,8 @@ struct Parser {
             } else if (IsNext(T_INDENT)) {
                 sf->body = ParseStatements(T_DEDENT);
             } else {
-                sf->body = (new List(lex))->Add(ParseExpStat());
+                sf->body = new List(lex);
+                ParseTopExp(sf->body);
             }
         }
         for (auto &arg : sf->args.v) {
