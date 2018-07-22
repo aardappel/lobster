@@ -258,7 +258,7 @@ struct Function : Named {
     }
     ~Function() {}
 
-    size_t nargs() { return subf->args.v.size(); }
+    size_t nargs() const { return subf->args.v.size(); }
 
     int NumSubf() {
         int sum = 0;
@@ -423,10 +423,10 @@ struct SymbolTable {
         return id ? fld : nullptr;
     }
 
-    WithStackElem *GetWithStackBack() {
+    WithStackElem GetWithStackBack() {
         return withstack.size()
-            ? &withstack.back()
-            : nullptr;
+            ? withstack.back()
+            : WithStackElem();
     }
 
     void MakeLogVar(Ident *id) {

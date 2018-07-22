@@ -21,7 +21,13 @@ struct Parser {
     SymbolTable &st;
     vector<Function *> functionstack;
     vector<string_view> trailingkeywordedfunctionvaluestack;
-    struct ForwardFunctionCall { string_view idname; size_t maxscopelevel; Call *n; };
+    struct ForwardFunctionCall {
+        string_view idname;
+        size_t maxscopelevel;
+        Call *n;
+        bool has_firstarg;
+        SymbolTable::WithStackElem wse;
+    };
     vector<ForwardFunctionCall> forwardfunctioncalls;
     bool call_noparens;
     set<string> pakfiles;
@@ -912,25 +918,16 @@ struct Parser {
             return nc;
         }
         auto id = st.Lookup(idname);
+        auto wse = st.GetWithStackBack();
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
-        if (f && (!id || id->scopelevel < f->scopelevel)) {
+         if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
             auto call = new Call(lex, nullptr);
-            if (!firstarg && f->nargs()) {
-                auto wse = st.GetWithStackBack();
-                // If we're in the context of a withtype, calling a function that starts with an
-                // arg of the same type we pass it in automatically.
-                // This is maybe a bit very liberal, should maybe restrict it?
-                if (wse &&
-                    wse->first == f->subf->args.v[0].type &&
-                    f->subf->args.v[0].flags & AF_WITHTYPE) {
-                    firstarg = new IdentRef(lex, wse->second->cursid);
-                }
-            }
+            if (!firstarg) firstarg = SelfArg(f, wse);
             ParseFunArgs(call, coroutine, firstarg, idname, &bestf->subf->args, noparens);
             auto nargs = call->Arity();
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
@@ -944,10 +941,24 @@ struct Parser {
         } else {
             auto call = new Call(lex, nullptr);
             ParseFunArgs(call, coroutine, firstarg);
-            ForwardFunctionCall ffc = { idname, st.scopelevels.size(), call };
+            ForwardFunctionCall ffc = { idname, st.scopelevels.size(), call, !!firstarg, wse };
             forwardfunctioncalls.push_back(ffc);
             return call;
         }
+    }
+
+    IdentRef *SelfArg(const Function *f, const SymbolTable::WithStackElem &wse) {
+        if (f->nargs()) {
+            // If we're in the context of a withtype, calling a function that starts with an
+            // arg of the same type we pass it in automatically.
+            // This is maybe a bit very liberal, should maybe restrict it?
+            if (wse.second &&
+                wse.first == f->subf->args.v[0].type &&
+                f->subf->args.v[0].flags & AF_WITHTYPE) {
+                return new IdentRef(lex, wse.second->cursid);
+            }
+        }
+        return nullptr;
     }
 
     Function *FindFunctionWithNargs(Function *f, size_t nargs, string_view idname, Node *errnode) {
@@ -963,6 +974,10 @@ struct Parser {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
                 auto f = st.FindFunction(ffc->idname);
                 if (f) {
+                    if (!ffc->has_firstarg) {
+                        auto self = SelfArg(f, ffc->wse);
+                        if (self) ffc->n->children.insert(ffc->n->children.begin(), self);
+                    }
                     ffc->n->sf = FindFunctionWithNargs(f,
                         ffc->n->Arity(), ffc->idname, ffc->n)->subf;
                     ffc = forwardfunctioncalls.erase(ffc);
