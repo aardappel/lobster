@@ -437,7 +437,7 @@ struct CodeGen  {
     }
 
     void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
-                   const Node *rhs = nullptr) {
+                   const Node *rhs, int take_temp) {
         if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
             if (type->t == V_INT) {
             } else if (type->t == V_FLOAT)  {
@@ -461,24 +461,23 @@ struct CodeGen  {
             else assert(type->t == V_INT);
         }
         if (retval) lvalop++;
-        int na = 0;
-        if (rhs) { Gen(rhs, 1); na++; }
+        if (rhs) Gen(rhs, 1);
         if (auto idr = Is<IdentRef>(lval)) {
-            TakeTemp(na);
+            TakeTemp(take_temp);
             Emit(IL_LVALVAR, lvalop, idr->sid->Idx());
             VarModified(idr->sid);
         } else if (auto dot = Is<Dot>(lval)) {
             Gen(dot->child, 1);
-            TakeTemp(na + 1);
+            TakeTemp(take_temp + 1);
             GenFieldAccess(*dot, lvalop, false);
         } else if (auto cod = Is<CoDot>(lval)) {
             Gen(cod->coroutine, 1);
-            TakeTemp(na + 1);
+            TakeTemp(take_temp + 1);
             Emit(IL_LVALLOC, lvalop, AssertIs<IdentRef>(cod->variable)->sid->Idx());
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
-            TakeTemp(na + 2);
+            TakeTemp(take_temp + 2);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
                     Emit(indexing->index->exptype->t == V_INT ? IL_VLVALIDXI : IL_LVALIDXV, lvalop);
@@ -643,12 +642,21 @@ void CoDot::Generate(CodeGen &cg, int retval) const {
 }
 
 void AssignList::Generate(CodeGen &cg, int retval) const {
+    cg.Gen(children.back(), (int)children.size() - 1);
+    for (int i = (int)children.size() - 2; i >= 0; i--) {
+        auto left = children[i];
+        cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, 0, nullptr,
+                     nullptr, 1);
+    }
+    // currently can only happen with assign on last line of body, which is nonsensical
+    cg.Dummy(retval);
+}
+
+void Define::Generate(CodeGen &cg, int retval) const {
     cg.Gen(child, (int)sids.size());
     for (int i = (int)sids.size() - 1; i >= 0; i--) {
-        if (Is<Define>(this)) {
-            if (sids[i]->id->logvar)
-                cg.Emit(IL_LOGREAD, sids[i]->logvaridx);
-        }
+        if (sids[i]->id->logvar)
+            cg.Emit(IL_LOGREAD, sids[i]->logvaridx);
         cg.TakeTemp(1);
         cg.Emit(IL_LVALVAR, IsRefNil(sids[i]->type->t) ? LVO_WRITEREF : LVO_WRITE, sids[i]->Idx());
         cg.VarModified(sids[i]);
@@ -657,37 +665,31 @@ void AssignList::Generate(CodeGen &cg, int retval) const {
     cg.Dummy(retval);
 }
 
-void Define::Generate(CodeGen &cg, int retval) const {
-    AssignList::Generate(cg, retval);
-}
-
 void Assign::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left,
-        IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, retval,
-        nullptr,
-        right);
+    cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, retval, nullptr,
+                 right, 1);
 }
 
-void PlusEq    ::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IADD, retval, exptype, right);
+void PlusEq::Generate(CodeGen &cg, int retval) const {
+    cg.GenAssign(left, LVO_IADD, retval, exptype, right, 1);
 }
-void MinusEq   ::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_ISUB, retval, exptype, right);
+void MinusEq::Generate(CodeGen &cg, int retval) const {
+    cg.GenAssign(left, LVO_ISUB, retval, exptype, right, 1);
 }
 void MultiplyEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IMUL, retval, exptype, right);
+    cg.GenAssign(left, LVO_IMUL, retval, exptype, right, 1);
 }
-void DivideEq  ::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IDIV, retval, exptype, right);
+void DivideEq::Generate(CodeGen &cg, int retval) const {
+    cg.GenAssign(left, LVO_IDIV, retval, exptype, right, 1);
 }
-void ModEq     ::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IMOD, retval, exptype, right);
+void ModEq::Generate(CodeGen &cg, int retval) const {
+    cg.GenAssign(left, LVO_IMOD, retval, exptype, right, 1);
 }
 
-void PostDecr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMMP, retval, exptype); }
-void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPPP, retval, exptype); }
-void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, exptype); }
-void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, exptype); }
+void PostDecr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMMP, retval, exptype, nullptr, 0); }
+void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPPP, retval, exptype, nullptr, 0); }
+void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, exptype, nullptr, 0); }
+void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, exptype, nullptr, 0); }
 
 void NotEqual     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
 void Equal        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }

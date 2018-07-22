@@ -1,5 +1,10 @@
 - rename builtin functions that still use snakecase instead of snake_case
 
+- Try out threads, should be easy now that we have vm as a parameter.
+  - Would be good to reduce globals, and/or not make builtins that rely on globals available
+    to worker threads.
+  - a string is the natural thing to communicate right now, given the new binary writing functionality.
+
 - reference counting is a good default, but it is a source of much more inefficiency than I had
   guessed. Should consider what it would take to add a friendly ownership model.
   Examples:
@@ -352,6 +357,8 @@
             if true:
                 return from do // fixme
 
+- a file with only an include statement in it gives: error: linefeed expected, found: end of file
+
 - font rendering:
   - it is possible when only very few chars are cached, that they are placed higher in the bitmap
     if all their bounding boxes are small.
@@ -360,6 +367,9 @@
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
 
 - "assign false" should count as unreachable and not require a well-typed return value after it.
+
+- also allow explicit a.x, a.y = f() multi assign, this should be easy now that AssignList
+  takes lvalues because of with defs.
 
 - if we make assert a language feature rather than a builtin, we can make it understand
   equality operators directly, and create specialized asserts that have better errors, i.e.

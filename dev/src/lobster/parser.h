@@ -115,20 +115,31 @@ struct Parser {
         }
     }
 
-    SpecIdent *DefineWith(string_view idname, bool isprivate, bool isdef, bool islogvar) {
-        auto id = isdef ? st.LookupDef(idname, lex.errorline, lex, false, true, false)
-                        : st.LookupUse(idname, lex);
-        if (islogvar) st.MakeLogVar(id);
-        if (isprivate) {
-            if (!isdef) Error("assignment cannot be made private");
-            id->isprivate = true;
+    Node *DefineWith(string_view idname, bool isprivate, bool isdef, bool islogvar,
+                     Node *parent, Node *initial) {
+        if (isdef) {
+            auto id = st.LookupDef(idname, lex.errorline, lex, false, true, false);
+            if (islogvar) st.MakeLogVar(id);
+            if (isprivate) id->isprivate = true;
+            if (parent) {
+                auto p = (Define *)parent;
+                p->sids.insert(p->sids.begin(), id->cursid);
+            }
+            return initial ? new Define(lex, id->cursid, initial, nullptr) : nullptr;
+        } else {
+            auto lhs = IdentUseOrWithStruct(idname);
+            if (isprivate) Error("assignment cannot be made private");
+            if (parent) {
+                auto p = (AssignList *)parent;
+                p->children.insert(p->children.begin(), lhs);
+            }
+            return initial ? new AssignList(lex, lhs, initial) : nullptr;
         }
-        return id->cursid;
     }
 
-    AssignList *RecMultiDef(string_view idname, bool isprivate, int nids, bool &isdef,
+    Node *RecMultiDef(string_view idname, bool isprivate, int nids, bool &isdef,
                             bool &islogvar) {
-        AssignList *al = nullptr;
+        Node *al = nullptr;
         if (IsNextId()) {
             auto id2 = lastid;
             nids++;
@@ -138,9 +149,7 @@ struct Parser {
                 lex.Next();
                 int nrv;
                 auto initial = ParseMultiRet(ParseOpExp(), nrv);
-                auto id = DefineWith(id2, isprivate, isdef, islogvar);
-                if (isdef) al = new Define(lex, id, initial, nullptr);
-                else al = new AssignList(lex, id, initial);
+                al = DefineWith(id2, isprivate, isdef, islogvar, nullptr, initial);
                 if (nrv > 1 && nrv != nids)
                     Error("number of values doesn't match number of variables");
             } else if (IsNext(T_COMMA)) {
@@ -150,8 +159,7 @@ struct Parser {
             }
         }
         if (al) {
-            auto sid = DefineWith(idname, isprivate, isdef, islogvar);
-            al->sids.insert(al->sids.begin(), sid);
+            DefineWith(idname, isprivate, isdef, islogvar, al, nullptr);
         } else {
             lex.Undo(T_COMMA);
             lex.Undo(T_IDENT, idname);
@@ -1235,15 +1243,19 @@ struct Parser {
             if (!id && (nf || f) && lex.whitespacebefore > 0) {
                 return ParseFunctionCall(f, nf, idname, nullptr, false, true);
             }
-            // Check for field reference in function with :: arguments.
-            id = nullptr;
-            auto fld = st.LookupWithStruct(idname, lex, id);
-            if (fld) {
-                return new Dot(lex, new IdentRef(lex, id->cursid), fld, false);
-            }
-            // It's a regular variable.
-            return new IdentRef(lex, st.LookupUse(idname, lex)->cursid);
+            return IdentUseOrWithStruct(idname);
         }
+    }
+
+    Node *IdentUseOrWithStruct(string_view idname) {
+        // Check for field reference in function with :: arguments.
+        Ident *id = nullptr;
+        auto fld = st.LookupWithStruct(idname, lex, id);
+        if (fld) {
+            return new Dot(lex, new IdentRef(lex, id->cursid), fld, false);
+        }
+        // It's a regular variable.
+        return new IdentRef(lex, st.LookupUse(idname, lex)->cursid);
     }
 
     bool IsNext(TType t) {

@@ -6,7 +6,7 @@ struct FlowItem {
     const SpecIdent *sid;
     vector<SharedField *> derefs;
     TypeRef old, now;
-    FlowItem(SpecIdent *_sid) : sid(_sid), old(sid->type), now(sid->type) {}
+    //FlowItem(SpecIdent *_sid) : sid(_sid), old(sid->type), now(sid->type) {}
     FlowItem(const Node &n, TypeRef type) {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
@@ -1139,6 +1139,26 @@ struct TypeChecker {
         return type;
     };
 
+    TypeRef TypeCheckMultiRHS(Node *rhs, size_t i, Node *parent) {
+        if (auto call = Is<Call>(rhs)) {
+            CheckReturnValues(call->sf->returntypes.size(), i, call->sf->parent->name, *parent);
+            return call->sf->returntypes[i];
+        } else if (auto nc = Is<NativeCall>(rhs)) {
+            // For the 0th value, we prefer the existing type, see NativeCall below.
+            if (i) {
+                CheckReturnValues(nc->nf->retvals.v.size(), i, nc->nf->name, *parent);
+                assert(nc->nf->retvals.v[i].flags == AF_NONE);  // See NativeCall below.
+                auto &arg = nc->nf->retvals.v[i];
+                return ToVStruct(arg.fixed_len, arg.type, nullptr, nc->nf, false, 0, *parent);
+            }
+        } else if (auto mr = Is<MultipleReturn>(rhs)) {
+            if (i >= mr->Arity())
+                parser.Error("right hand side does not return enough values", parent);
+            return mr->children[i]->exptype;
+        }
+        return rhs->exptype;
+    }
+
     void Stats() {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, multisf = 0, clonesf = 0;
@@ -1355,67 +1375,50 @@ Node *CoDot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *Define::TypeCheck(TypeChecker &tc, bool reqret) {
-    return AssignList::TypeCheck(tc, reqret);
-}
-
-Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    auto def = Is<Define>(this);
+Node *Define::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     for (auto &sid : sids) {
         tc.UpdateCurrentSid(sid);
-        if (def) {
-            // We have to use a variable here because the init exp may be a function
-            // call that causes this variable to be used/assigned.
-            sid->type = !def->giventype.Null() ? def->giventype : tc.NewTypeVar();
-        } else {
-            tc.TypeCheckId(sid);
-        }
+        // We have to use a variable here because the init exp may be a function
+        // call that causes this variable to be used/assigned.
+        sid->type = !giventype.Null() ? giventype : tc.NewTypeVar();
     }
     child = child->TypeCheck(tc, true);
     size_t i = 0;
     for (auto sid : sids) {
-        auto vartype = child->exptype;
-        if (auto call = Is<Call>(child)) {
-            tc.CheckReturnValues(call->sf->returntypes.size(), i, call->sf->parent->name, *this);
-            vartype = call->sf->returntypes[i];
-        } else if (auto nc = Is<NativeCall>(child)) {
-            // For the 0th value, we prefer the existing type, see NativeCall below.
-            if (i) {
-                tc.CheckReturnValues(nc->nf->retvals.v.size(), i, nc->nf->name, *this);
-                assert(nc->nf->retvals.v[i].flags == AF_NONE);  // See NativeCall below.
-                auto &arg = nc->nf->retvals.v[i];
-                vartype = tc.ToVStruct(arg.fixed_len, arg.type, nullptr, nc->nf, false, 0, *this);
-            }
-        } else if (auto mr = Is<MultipleReturn>(child)) {
-            if (i >= mr->Arity())
-                tc.parser.Error("right hand side does not return enough values", this);
-            vartype = mr->children[i]->exptype;
+        auto vartype = tc.TypeCheckMultiRHS(child, i, this);
+        if (!giventype.Null()) {
+            vartype = giventype;
+            // Have to subtype the initializer value, as that node may contain
+            // unbound vars (a:[int] = []) or values that that need to be coerced
+            // (a:float = 1)
+            tc.SubType(child, vartype, "initializer", "definition");
         }
-        if (def) {
-            if (!def->giventype.Null()) {
-                vartype = def->giventype;
-                // Have to subtype the initializer value, as that node may contain
-                // unbound vars (a:[int] = []) or values that that need to be coerced
-                // (a:float = 1)
-                tc.SubType(child, vartype, "initializer", "definition");
-            }
-            // Must SubType here rather than assignment, since sid->type is var
-            // that may have been bound by the initializer already.
-            tc.SubTypeT(vartype, sid->type, *def, "initializer");
-            sid->type = vartype;
-            Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(vartype));
-            if (sid->id->logvar) {
-                for (auto &sc : tc.scopes)
-                    if (sc.sf->iscoroutine)
-                        tc.TypeError("can\'t use log variable inside coroutine", *def);
-            }
-        } else {
-            FlowItem fi(sid);
-            assert(fi.IsValid());
-            tc.AssignFlowDemote(fi, vartype, false);
-            tc.SubTypeT(vartype, sid->type, *this, "right");
+        // Must SubType here rather than assignment, since sid->type is var
+        // that may have been bound by the initializer already.
+        tc.SubTypeT(vartype, sid->type, *this, "initializer");
+        sid->type = vartype;
+        Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(vartype));
+        if (sid->id->logvar) {
+            for (auto &sc : tc.scopes)
+                if (sc.sf->iscoroutine)
+                    tc.TypeError("can\'t use log variable inside coroutine", *this);
         }
         i++;
+    }
+    return this;
+}
+
+Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+    for (auto c : children) c->TypeCheck(tc, true);
+    for (size_t i = 0; i < children.size() - 1; i++) {
+        auto left = children[i];
+        tc.CheckReadOnly(*left);
+        auto vartype = tc.TypeCheckMultiRHS(children.back(), i, this);
+        FlowItem fi(*left, left->exptype);
+        assert(fi.IsValid());
+        tc.AssignFlowDemote(fi, vartype, false);
+        tc.SubTypeT(vartype, left->exptype, *this, "right");
+        // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
     }
     return this;
 }

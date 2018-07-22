@@ -334,21 +334,26 @@ struct MultipleReturn : List {
     SHARED_SIGNATURE(MultipleReturn, "multiple return", false)
 };
 
-struct AssignList : Unary {
-    vector<SpecIdent *> sids;
-    AssignList(const Line &ln, SpecIdent *sid, Node *_a)
-        : Unary(ln, _a) { if (sid) sids.push_back(sid); }
+struct AssignList : List {
+    AssignList(const Line &ln, Node *lhs, Node *rhs) : List(ln) {
+        children.push_back(lhs);
+        children.push_back(rhs);
+    }
     void Dump(ostringstream &ss) const {
-        for (auto sid : sids) ss << sid->id->name << " ";
-        ss << Name();
+        for (auto e : children) ss << e << " ";
     }
     SHARED_SIGNATURE(AssignList, "assign list", true)
 };
 
-struct Define : AssignList {
+struct Define : Unary {
+    vector<SpecIdent *> sids;
     TypeRef giventype;
     Define(const Line &ln, SpecIdent *sid, Node *_a, TypeRef gt)
-        : AssignList(ln, sid, _a), giventype(gt) {}
+        : Unary(ln, _a), giventype(gt) { if (sid) sids.push_back(sid); }
+    void Dump(ostringstream &ss) const {
+        for (auto sid : sids) ss << sid->id->name << " ";
+        ss << Name();
+    }
     SHARED_SIGNATURE(Define, TName(T_DEF), true)
 };
 
