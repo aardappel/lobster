@@ -109,8 +109,8 @@ struct Parser {
     void ParseIndentedorVector(const function<void()> &f, TType opening, TType closing) {
         bool isindent = IsNext(T_INDENT);
         if (!isindent) {
-            Expect(opening);
-            ParseVector(f, closing);
+            if (IsNext(opening)) ParseVector(f, closing);
+            else { /* likely a lf or dedent, meaning an empty indented section */ }
         } else {
             for (;;) {
                 f();
