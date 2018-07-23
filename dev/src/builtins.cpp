@@ -599,6 +599,12 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL2(pow, "a,b", "FF", "F",
         "a raised to the power of b");
 
+    STARTDECL(pow) (VM &, Value &a, Value &b) {
+        return b.ival() >= 0 ? ipow<intp>(a.ival(), b.ival()) : 0;
+    }
+    ENDDECL2(pow, "a,b", "II", "I",
+             "a raised to the power of b, for integers, using exponentiation by squaring");
+
     STARTDECL(log) (VM &, Value &a) { return Value(log(a.fval())); } ENDDECL1(log, "a", "F", "F",
         "natural logaritm of a");
 

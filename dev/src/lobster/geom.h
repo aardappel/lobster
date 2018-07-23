@@ -191,6 +191,18 @@ template<typename T> inline T mix(T a, T b, float f) { return (T)(a * (1 - f) + 
 //}
 inline float rpowf(float t, float e) { return expf(e * logf(t)); }
 
+// Exponentiation by squaring for integer types.
+template<typename T> T ipow(T base, T exp) {
+    assert(exp >= 0);
+    T result = 1;
+    for (;;) {
+        if (exp & 1) result *= base;
+        exp >>= 1;
+        if (!exp) return result;
+        base *= base;
+    }
+}
+
 template<typename T> int ffloor(T f) { int i = (int)f; return i - (f < i); }
 template<typename T> int fceil(T f) { int i = (int)f; return i + (f > i); }
 
