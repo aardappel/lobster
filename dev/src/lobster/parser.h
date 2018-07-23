@@ -217,8 +217,8 @@ struct Parser {
                 bool incremental = IsNext(T_PLUS) || !IsNext(T_MULT);
                 int64_t cur = incremental ? 0 : 1;
                 for (;;) {
-                    ExpectId();
-                    auto id = st.LookupDef(lastid, lex.errorline, lex, false, true, false);
+                    auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
+                    auto id = st.LookupDef(evname, lex.errorline, lex, false, true, false);
                     id->constant = true;
                     if (isprivate) id->isprivate = true;
                     if (IsNext(T_ASSIGN)) {
@@ -236,10 +236,9 @@ struct Parser {
             case T_CONST: {
                 auto isconst = lex.token == T_CONST;
                 lex.Next();
-                ExpectId();
+                lastid = st.MaybeNameSpace(ExpectId(), !isprivate);
                 Expect(T_ASSIGN);
                 list->Add(ParseSingleVarDecl(isprivate, isconst, false, false));
-                break;
                 break;
             }
             default: {

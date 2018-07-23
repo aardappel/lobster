@@ -353,7 +353,12 @@ struct SymbolTable {
 
     Ident *Lookup(string_view name) {
         auto it = idents.find(name);
-        return it == idents.end() ? nullptr : it->second;
+        if (it != idents.end()) return it->second;
+        if (!current_namespace.empty()) {
+            auto it = idents.find(NameSpaced(name));
+            if (it != idents.end()) return it->second;
+        }
+        return nullptr;
     }
 
     Ident *LookupAny(string_view name) {
