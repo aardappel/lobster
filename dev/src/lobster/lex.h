@@ -321,11 +321,16 @@ struct Lex : LoadedFile {
                         sattr = string_view(tokenstart, p - tokenstart);
                         return T_INT;
                     } else {
-                        for (;;) {
-                            auto isdot = *p == '.' && *(p + 1) != '.' && !isalpha(*(p + 1));
-                            if (isdot) isfloat = true;
-                            if (!isdigit(*p) && !isdot) break;
+                        while (isdigit(*p)) p++;
+                        if (!isfloat && *p == '.' && *(p + 1) != '.' && !isalpha(*(p + 1))) {
                             p++;
+                            isfloat = true;
+                            while (isdigit(*p)) p++;
+                        }
+                        if (isfloat && (*p == 'e' || *p == 'E')) {
+                            p++;
+                            if (*p == '+' || *p == '-') p++;
+                            while (isdigit(*p)) p++;
                         }
                         sattr = string_view(tokenstart, p - tokenstart);
                         return isfloat ? T_FLOAT : T_INT;
