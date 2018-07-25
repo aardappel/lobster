@@ -32,6 +32,7 @@ enum MathOp {
     F(PUSHINT, 1) \
     F(PUSHINT64, 1) \
     F(PUSHFLT, 1) \
+    F(PUSHFLT64, 1) \
     F(PUSHSTR, 1) \
     F(PUSHNIL, 0) \
     F(PUSHVAR, 1) F(PUSHVARREF, 1) F(LVALVAR, 2) \

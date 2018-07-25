@@ -378,7 +378,20 @@ struct CodeGen  {
 
     int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
 
-    void GenFloat(float f) { Emit(IL_PUSHFLT); int2float i2f; i2f.f = f; Emit(i2f.i); }
+    void GenFloat(double f) {
+        if ((float)f == f) {
+            Emit(IL_PUSHFLT);
+            int2float i2f;
+            i2f.f = (float)f;
+            Emit(i2f.i);
+        } else {
+            Emit(IL_PUSHFLT64);
+            int2float64 i2f;
+            i2f.f = f;
+            Emit((int)i2f.i);
+            Emit((int)(i2f.i >> 32));
+        }
+    }
 
     void GenPop(TypeRef type) {
         Emit(IsRefNil(type->t) ? IL_POPREF : IL_POP);
@@ -570,7 +583,7 @@ void IntConstant::Generate(CodeGen &cg, int retval) const {
 }
 
 void FloatConstant::Generate(CodeGen &cg, int retval) const {
-    if (retval) { cg.GenFloat((float)flt); };
+    if (retval) { cg.GenFloat(flt); };
 }
 
 void StringConstant::Generate(CodeGen &cg, int retval) const {

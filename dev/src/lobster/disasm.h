@@ -99,10 +99,15 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
             ss << *ip++;
             break;
 
-        case IL_PUSHINT64: {
-            int64_t v = (uint)*ip++;
-            v |= ((int64_t)*ip++) << 32;
-            ss << v;
+        case IL_PUSHINT64:
+        case IL_PUSHFLT64: {
+            auto v = Read64FromIp(ip);
+            if (opc == IL_PUSHINT64) ss << v;
+            else {
+                int2float64 i2f;
+                i2f.i = v;
+                ss << i2f.f;
+            }
             break;
         }
 

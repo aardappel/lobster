@@ -832,6 +832,12 @@ struct VM {
     int GC();
 };
 
+inline int64_t Read64FromIp(const int *&ip) {
+    int64_t v = (uint)*ip++;
+    v |= ((int64_t)*ip++) << 32;
+    return v;
+}
+
 inline const TypeInfo &DynAlloc::ti(VM &vm) const { return vm.GetTypeInfo(tti); }
 
 template<typename T> inline T *AllocSubBuf(VM &vm, size_t size, type_elem_t tti) {

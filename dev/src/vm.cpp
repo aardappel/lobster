@@ -796,12 +796,17 @@ VM_DEF_INS(PUSHINT64) {
     #if !VALUE_MODEL_64
         Error("Code containing 64-bit constants cannot run on a 32-bit build.");
     #endif
-    int64_t v = (uint)*ip++;
-    v |= ((int64_t)*ip++) << 32;
+    auto v = Read64FromIp(ip);
     PUSH(Value(v));
     VM_RET;
 }
 
+VM_DEF_INS(PUSHFLT64) {
+    int2float64 i2f;
+    i2f.i = Read64FromIp(ip);
+    PUSH(Value(i2f.f));
+    VM_RET;
+}
 
 VM_DEF_CAL(PUSHFUN) {
     #ifdef VM_COMPILED_CODE_MODE

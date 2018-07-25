@@ -31,6 +31,7 @@ namespace geom {
 #define DOVECB(I,F) { bool _ = I; DOVEC(_ = F); return _; }
 
 union int2float { int i; float f; };
+union int2float64 { int64_t i; double f; };
 inline void default_debug_value(float   &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
 inline void default_debug_value(double  &a) { int2float nan; nan.i = 0x7F800001; a = nan.f; }
 inline void default_debug_value(int     &a) { a = 0x1BADCAFE; }
