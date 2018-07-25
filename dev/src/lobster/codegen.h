@@ -830,7 +830,12 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
             // Generate version that never produces top of stack (but still may have
             // additional return values)
             vmop++;
-            if (!IsRefNil(exptype->t)) vmop++;
+            auto type = exptype;
+            if (nf->retvals.v.size() > 1) {  // FIXME: not the most elegant, could store all types.
+                assert(nf->retvals.v.back().flags == AF_NONE);  // Can't be generic types etc.
+                type = nf->retvals.v.back().type;
+            }
+            if (!IsRefNil(type->t)) vmop++;
         }
         cg.Emit(vmop, nf->idx);
     }
@@ -845,11 +850,11 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     if (!retval) {
         // Top of stack has already been removed by op, but still need to pop any
         // additional values.
-        while (cg.rettypes.size() > 1) {
+        if (cg.rettypes.size()) cg.rettypes.pop_back();
+        while (cg.rettypes.size()) {
             cg.GenPop(cg.rettypes.back());
             cg.rettypes.pop_back();
         }
-        cg.rettypes.clear();
     }
 }
 
