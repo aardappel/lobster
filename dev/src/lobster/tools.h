@@ -240,7 +240,7 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
         size_t max_significant = default_precision;
         max_significant += 2;  // "0."
         if (s[0] == '-') max_significant++;
-        if (s.length() > max_significant) s.erase(max_significant);
+        while (s.length() > max_significant && s.back() != '.') s.pop_back();
         // Now strip unnecessary trailing zeroes.
         while (s.back() == '0') s.pop_back();
         // If there were only zeroes, keep at least 1.
