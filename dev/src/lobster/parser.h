@@ -920,7 +920,7 @@ struct Parser {
         auto wse = st.GetWithStackBack();
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
-         if (f && (!id || id->scopelevel < f->scopelevel)) {
+        if (f && (!id || id->scopelevel < f->scopelevel)) {
             if (f->istype) Error("can\'t call function type: " + f->name);
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
@@ -1011,7 +1011,9 @@ struct Parser {
                     n = new CoDot(lex, n, new IdentRef(lex, id->cursid));
                 } else {
                     SharedField *fld = st.FieldUse(idname);
-                    if (fld)  {
+                    // FIXME: this is a terrible way to decide. What about fields that store
+                    // functions? what about names used both as field and function?
+                    if (fld && lex.token != T_LEFTPAREN)  {
                         n = new Dot(lex, n, fld, op == T_DOTMAYBE);
                     } else {
                         auto f = st.FindFunction(idname);
