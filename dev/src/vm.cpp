@@ -144,7 +144,7 @@ void VM::DumpLeaks() {
     if (!leaks.empty()) {
         Output(OUTPUT_ERROR, "LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster, details in leaks.txt)");
-        string s;
+        ostringstream ss;
         //qsort(&leaks[0], leaks.size(), sizeof(void *), &LeakSorter);
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
@@ -161,7 +161,6 @@ void VM::DumpLeaks() {
                 case V_BOXEDFLOAT:
                 case V_VECTOR:
                 case V_STRUCT: {
-                    ostringstream ss;
                     ro->CycleStr(ss);
                     ss << " = ";
                     RefToString(*this, ss, ro, leakpp);
@@ -171,7 +170,7 @@ void VM::DumpLeaks() {
                 default: assert(false);
             }
         }
-        WriteFile("leaks.txt", false, s);
+        WriteFile("leaks.txt", false, ss.str());
     }
     pool.printstats(false);
 }
