@@ -51,7 +51,8 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Dynamics/Contacts/*.cpp) \
     $(wildcard ../include/Box2D/Dynamics/Joints/*.cpp) \
     $(wildcard ../include/Box2D/Particle/*.cpp) \
-    $(wildcard ../include/Box2D/Rope/*.cpp)
+    $(wildcard ../include/Box2D/Rope/*.cpp) \
+    $(wildcard ../external/flatbuffers/src/*.cpp)
 CSRCS= \
     ../external/freetype/src/autofit/autofit.c \
 	../external/freetype/src/base/basepic.c \

@@ -10,6 +10,7 @@ SDL_PATH := $(LOBSTER_PATH)/external/SDL
 SDL_MIXER_PATH := $(LOBSTER_PATH)/external/SDLMixer
 FREETYPE_PATH := $(LOBSTER_PATH)/external/freetype
 BOX2D_PATH := $(LOBSTER_PATH)/include/Box2D
+FLATBUFFERS_PATH := $(LOBSTER_PATH)/external/flatbuffers/src
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/$(SDL_PATH)/include \
@@ -82,6 +83,7 @@ LOCAL_SRC_FILES := \
 	$(SDL_PATH)/src/atomic/SDL_atomic.c \
 	$(SDL_PATH)/src/atomic/SDL_spinlock.c.arm \
 	$(subst $(LOCAL_PATH)/,, \
+	$(wildcard $(LOCAL_PATH)/$(FLATBUFFERS_PATH)/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_MIXER_PATH)/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/*.c) \
 	$(wildcard $(LOCAL_PATH)/$(SDL_PATH)/src/audio/*.c) \
