@@ -18,6 +18,8 @@
 
 #include "stdint.h"
 
+#include "flatbuffers/idl.h"
+
 #ifdef _WIN32
     #define VC_EXTRALEAN
     #define WIN32_LEAN_AND_MEAN
@@ -94,6 +96,26 @@ LString *GetString(VM &vm, intp fi, LString *buf) {
     } else {
         return vm.NewString(0);
     }
+}
+
+Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
+                   const Value &includes) {
+    vector<string> dirs_storage;
+    for (intp i = 0; i < includes.vval()->len; i++) {
+        auto dir = flatbuffers::ConCatPathFileName(string(ProjectDir()),
+                                                   string(includes.vval()->At(i).sval()->strv()));
+        dirs_storage.push_back(dir);
+    }
+    vector<const char *> dirs;
+    for (auto &dir : dirs_storage) dirs.push_back(dir.c_str());
+    dirs.push_back(nullptr);
+    Value err;
+    if (!parser.Parse(schema.sval()->data(), dirs.data())) {
+        err = Value(vm.NewString(parser.error_));
+    }
+    schema.DECRT(vm);
+    includes.DECRT(vm);
+    return err;
 }
 
 void AddFile(NativeRegistry &natreg) {
@@ -309,6 +331,42 @@ void AddFile(NativeRegistry &natreg) {
     }
     ENDDECL2(flatbuffers_string, "string,index", "SI", "S",
              "returns a flatbuffer string whose offset is at given index");
+
+    STARTDECL(flatbuffers_binary_to_json) (VM &vm, Value &schema, Value &binary, Value &includes) {
+        flatbuffers::Parser parser;
+        auto err = ParseSchemas(vm, parser, schema, includes);
+        string json;
+        if (!err.True() && !GenerateText(parser, binary.sval()->data(), &json)) {
+            err = vm.NewString("unable to generate text for FlatBuffer binary");
+        }
+        binary.DECRT(vm);
+        vm.Push(vm.NewString(json));
+        return err;
+    }
+    ENDDECL3(flatbuffers_binary_to_json, "schemas,binary,includedirs", "SSS]", "SS?",
+             "returns a JSON string generated from the given binary and corresponding schema."
+             "if there was an error parsing the schema, the error will be in the second return"
+             "value, or nil for no error");
+    STARTDECL(flatbuffers_json_to_binary) (VM &vm, Value &schema, Value &json, Value &includes) {
+        flatbuffers::Parser parser;
+        auto err = ParseSchemas(vm, parser, schema, includes);
+        string binary;
+        if (!err.True()) {
+            if (!parser.Parse(json.sval()->data())) {
+                err = vm.NewString(parser.error_);
+            } else {
+                binary.assign((const char *)parser.builder_.GetBufferPointer(),
+                              parser.builder_.GetSize());
+            }
+        }
+        json.DECRT(vm);
+        vm.Push(vm.NewString(binary));
+        return err;
+    }
+    ENDDECL3(flatbuffers_json_to_binary, "schema,json,includedirs", "SSS]", "SS?",
+             "returns a binary flatbuffer generated from the given json and corresponding schema."
+             "if there was an error parsing the schema, the error will be in the second return"
+             "value, or nil for no error");
 }
 
 }

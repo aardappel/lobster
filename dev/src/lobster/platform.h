@@ -20,6 +20,7 @@ typedef int64_t (* FileLoader)(string_view absfilename, string *dest, int64_t st
 extern bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
                              FileLoader loader);
 extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
+extern string_view ProjectDir();
 
 extern string_view StripFilePart(string_view filepath);
 extern const char *StripDirPart(const char *filepath);

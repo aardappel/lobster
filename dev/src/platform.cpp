@@ -60,6 +60,7 @@ string write_dir;
 
 string exefile;
 string projectdir;
+string_view ProjectDir() { return projectdir; }
 
 FileLoader cur_loader = nullptr;
 
