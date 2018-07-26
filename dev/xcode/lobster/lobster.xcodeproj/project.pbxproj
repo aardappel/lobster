@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3307DA3E21098A8100B98515 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3B21098A8000B98515 /* util.cpp */; };
+		3307DA3F21098A8100B98515 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3B21098A8000B98515 /* util.cpp */; };
+		3307DA4021098A8100B98515 /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3B21098A8000B98515 /* util.cpp */; };
+		3307DA4121098A8100B98515 /* idl_gen_text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3C21098A8100B98515 /* idl_gen_text.cpp */; };
+		3307DA4221098A8100B98515 /* idl_gen_text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3C21098A8100B98515 /* idl_gen_text.cpp */; };
+		3307DA4321098A8100B98515 /* idl_gen_text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3C21098A8100B98515 /* idl_gen_text.cpp */; };
+		3307DA4421098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
+		3307DA4521098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
+		3307DA4621098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
 		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -829,6 +838,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3307DA3B21098A8000B98515 /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = util.cpp; path = ../../external/flatbuffers/src/util.cpp; sourceTree = "<group>"; };
+		3307DA3C21098A8100B98515 /* idl_gen_text.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = idl_gen_text.cpp; path = ../../external/flatbuffers/src/idl_gen_text.cpp; sourceTree = "<group>"; };
+		3307DA3D21098A8100B98515 /* idl_parser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = idl_parser.cpp; path = ../../external/flatbuffers/src/idl_parser.cpp; sourceTree = "<group>"; };
 		331D9B66148BFD0300F1069A /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../lib/libfreetype.a; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
@@ -1427,6 +1439,9 @@
 		3368FEB21488AA88008B38B6 = {
 			isa = PBXGroup;
 			children = (
+				3307DA3C21098A8100B98515 /* idl_gen_text.cpp */,
+				3307DA3D21098A8100B98515 /* idl_parser.cpp */,
+				3307DA3B21098A8000B98515 /* util.cpp */,
 				33878C881F7B1FC8007BB196 /* SDLMixer */,
 				33DAC5581E5CC7250003767C /* include */,
 				33D15CC81BAB99F700BAD84D /* SDL */,
@@ -2786,6 +2801,7 @@
 				33878CDD1F7B201D007BB196 /* effect_stereoreverse.c in Sources */,
 				8C760340195E457400EADF6F /* b2Distance.cpp in Sources */,
 				33D160421BAB9A2200BAD84D /* SDL_rwops.c in Sources */,
+				3307DA4621098A8100B98515 /* idl_parser.cpp in Sources */,
 				33D15F9F1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
 				33D15C8F1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
 				33D1602A1BAB9A2200BAD84D /* SDL_events.c in Sources */,
@@ -2874,6 +2890,7 @@
 				33D155961BAB797D00BAD84D /* fontrenderer.cpp in Sources */,
 				8C7603A9195E457400EADF6F /* b2MotorJoint.cpp in Sources */,
 				33D15CB31BAB7DBE00BAD84D /* pshinter.c in Sources */,
+				3307DA4021098A8100B98515 /* util.cpp in Sources */,
 				8C760397195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA71BAB7D3C00BAD84D /* ftsystem.c in Sources */,
 				33D161511BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
@@ -2920,6 +2937,7 @@
 				33D161631BAB9A2200BAD84D /* SDL_string.c in Sources */,
 				33D161B41BAB9A2200BAD84D /* SDL_syssem.c in Sources */,
 				33D161421BAB9A2200BAD84D /* SDL_blendline.c in Sources */,
+				3307DA4321098A8100B98515 /* idl_gen_text.cpp in Sources */,
 				33D1614B1BAB9A2200BAD84D /* SDL_drawpoint.c in Sources */,
 				33D1603F1BAB9A2200BAD84D /* SDL_rwopsbundlesupport.m in Sources */,
 				8C760394195E457400EADF6F /* b2EdgeAndPolygonContact.cpp in Sources */,
@@ -3035,6 +3053,7 @@
 				33878CDC1F7B201D007BB196 /* effect_stereoreverse.c in Sources */,
 				8C760381195E457400EADF6F /* b2ChainAndCircleContact.cpp in Sources */,
 				33D160411BAB9A2200BAD84D /* SDL_rwops.c in Sources */,
+				3307DA4521098A8100B98515 /* idl_parser.cpp in Sources */,
 				33D15F9E1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
 				33D15C8E1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
 				33D160291BAB9A2200BAD84D /* SDL_events.c in Sources */,
@@ -3123,6 +3142,7 @@
 				33D155951BAB797D00BAD84D /* fontrenderer.cpp in Sources */,
 				8C7603A8195E457400EADF6F /* b2MotorJoint.cpp in Sources */,
 				33D15CB21BAB7DBE00BAD84D /* pshinter.c in Sources */,
+				3307DA3F21098A8100B98515 /* util.cpp in Sources */,
 				8C760396195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA61BAB7D3C00BAD84D /* ftsystem.c in Sources */,
 				33D161501BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
@@ -3169,6 +3189,7 @@
 				33D161621BAB9A2200BAD84D /* SDL_string.c in Sources */,
 				33D161B31BAB9A2200BAD84D /* SDL_syssem.c in Sources */,
 				33D161411BAB9A2200BAD84D /* SDL_blendline.c in Sources */,
+				3307DA4221098A8100B98515 /* idl_gen_text.cpp in Sources */,
 				33D1614A1BAB9A2200BAD84D /* SDL_drawpoint.c in Sources */,
 				33D1603E1BAB9A2200BAD84D /* SDL_rwopsbundlesupport.m in Sources */,
 				8C760393195E457400EADF6F /* b2EdgeAndPolygonContact.cpp in Sources */,
@@ -3260,6 +3281,7 @@
 				8C76037A195E457400EADF6F /* b2World.cpp in Sources */,
 				33D15C841BAB7D3C00BAD84D /* ftapi.c in Sources */,
 				33D15CAD1BAB7DA800BAD84D /* cff.c in Sources */,
+				3307DA4121098A8100B98515 /* idl_gen_text.cpp in Sources */,
 				33D15C901BAB7D3C00BAD84D /* ftdbgmem.c in Sources */,
 				33D160341BAB9A2200BAD84D /* SDL_quit.c in Sources */,
 				33D163761BAB9A2200BAD84D /* SDL_x11messagebox.c in Sources */,
@@ -3267,6 +3289,7 @@
 				8C7603B3195E457400EADF6F /* b2RevoluteJoint.cpp in Sources */,
 				33D1601A1BAB9A2200BAD84D /* SDL_cpuinfo.c in Sources */,
 				33D162C01BAB9A2200BAD84D /* SDL_blit_copy.c in Sources */,
+				3307DA4421098A8100B98515 /* idl_parser.cpp in Sources */,
 				33D162D51BAB9A2200BAD84D /* SDL_pixels.c in Sources */,
 				33D162421BAB9A2200BAD84D /* SDL_nullframebuffer.c in Sources */,
 				8C76038F195E457400EADF6F /* b2EdgeAndCircleContact.cpp in Sources */,
@@ -3451,6 +3474,7 @@
 				33D161341BAB9A2200BAD84D /* SDL_render.c in Sources */,
 				8C760350195E457400EADF6F /* b2PolygonShape.cpp in Sources */,
 				33D15FD91BAB9A2200BAD84D /* SDL_audio.c in Sources */,
+				3307DA3E21098A8100B98515 /* util.cpp in Sources */,
 				3395A8C817615D380047BE1F /* LobsterCocoaSpecific.mm in Sources */,
 				8C76035F195E457400EADF6F /* b2Settings.cpp in Sources */,
 				8C7603BC195E457400EADF6F /* b2WheelJoint.cpp in Sources */,
