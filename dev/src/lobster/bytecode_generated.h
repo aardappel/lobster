@@ -26,15 +26,15 @@ enum Attr {
   Attr_ANY = 1
 };
 
-inline Attr (&EnumValuesAttr())[1] {
-  static Attr values[] = {
+inline const Attr (&EnumValuesAttr())[1] {
+  static const Attr values[] = {
     Attr_SPLIT
   };
   return values;
 }
 
-inline const char **EnumNamesAttr() {
-  static const char *names[] = {
+inline const char * const *EnumNamesAttr() {
+  static const char * const names[] = {
     "SPLIT",
     nullptr
   };
@@ -46,7 +46,7 @@ inline const char *EnumNameAttr(Attr e) {
   return EnumNamesAttr()[index];
 }
 
-MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t line_;
   int32_t fileidx_;
@@ -71,9 +71,9 @@ MANUALLY_ALIGNED_STRUCT(4) LineInfo FLATBUFFERS_FINAL_CLASS {
     return flatbuffers::EndianScalar(bytecodestart_);
   }
 };
-STRUCT_END(LineInfo, 12);
+FLATBUFFERS_STRUCT_END(LineInfo, 12);
 
-MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t ididx_;
   int32_t typeidx_;
@@ -93,7 +93,7 @@ MANUALLY_ALIGNED_STRUCT(4) SpecIdent FLATBUFFERS_FINAL_CLASS {
     return flatbuffers::EndianScalar(typeidx_);
   }
 };
-STRUCT_END(SpecIdent, 8);
+FLATBUFFERS_STRUCT_END(SpecIdent, 8);
 
 struct Function FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
@@ -109,7 +109,7 @@ struct Function FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
-           verifier.Verify(name()) &&
+           verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_BYTECODESTART) &&
            verifier.EndTable();
   }
@@ -174,7 +174,7 @@ struct Struct FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
-           verifier.Verify(name()) &&
+           verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_IDX) &&
            VerifyField<int32_t>(verifier, VT_NFIELDS) &&
            verifier.EndTable();
@@ -247,7 +247,7 @@ struct Ident FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
-           verifier.Verify(name()) &&
+           verifier.VerifyString(name()) &&
            VerifyField<uint8_t>(verifier, VT_READONLY) &&
            VerifyField<uint8_t>(verifier, VT_GLOBAL) &&
            verifier.EndTable();
@@ -365,36 +365,36 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_BYTECODE_VERSION) &&
            VerifyOffset(verifier, VT_BYTECODE) &&
-           verifier.Verify(bytecode()) &&
+           verifier.VerifyVector(bytecode()) &&
            VerifyOffset(verifier, VT_BYTECODE_ATTR) &&
-           verifier.Verify(bytecode_attr()) &&
+           verifier.VerifyVector(bytecode_attr()) &&
            VerifyOffset(verifier, VT_TYPETABLE) &&
-           verifier.Verify(typetable()) &&
+           verifier.VerifyVector(typetable()) &&
            VerifyOffset(verifier, VT_STRINGTABLE) &&
-           verifier.Verify(stringtable()) &&
+           verifier.VerifyVector(stringtable()) &&
            verifier.VerifyVectorOfStrings(stringtable()) &&
            VerifyOffset(verifier, VT_LINEINFO) &&
-           verifier.Verify(lineinfo()) &&
+           verifier.VerifyVector(lineinfo()) &&
            VerifyOffset(verifier, VT_FILENAMES) &&
-           verifier.Verify(filenames()) &&
+           verifier.VerifyVector(filenames()) &&
            verifier.VerifyVectorOfStrings(filenames()) &&
            VerifyOffset(verifier, VT_FUNCTIONS) &&
-           verifier.Verify(functions()) &&
+           verifier.VerifyVector(functions()) &&
            verifier.VerifyVectorOfTables(functions()) &&
            VerifyOffset(verifier, VT_STRUCTS) &&
-           verifier.Verify(structs()) &&
+           verifier.VerifyVector(structs()) &&
            verifier.VerifyVectorOfTables(structs()) &&
            VerifyOffset(verifier, VT_IDENTS) &&
-           verifier.Verify(idents()) &&
+           verifier.VerifyVector(idents()) &&
            verifier.VerifyVectorOfTables(idents()) &&
            VerifyOffset(verifier, VT_SPECIDENTS) &&
-           verifier.Verify(specidents()) &&
+           verifier.VerifyVector(specidents()) &&
            VerifyOffset(verifier, VT_DEFAULT_INT_VECTOR_TYPES) &&
-           verifier.Verify(default_int_vector_types()) &&
+           verifier.VerifyVector(default_int_vector_types()) &&
            VerifyOffset(verifier, VT_DEFAULT_FLOAT_VECTOR_TYPES) &&
-           verifier.Verify(default_float_vector_types()) &&
+           verifier.VerifyVector(default_float_vector_types()) &&
            VerifyOffset(verifier, VT_LOGVARS) &&
-           verifier.Verify(logvars()) &&
+           verifier.VerifyVector(logvars()) &&
            verifier.EndTable();
   }
 };
@@ -497,12 +497,12 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<uint8_t> *bytecode_attr = nullptr,
     const std::vector<int32_t> *typetable = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *stringtable = nullptr,
-    const std::vector<const LineInfo *> *lineinfo = nullptr,
+    const std::vector<LineInfo> *lineinfo = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *filenames = nullptr,
     const std::vector<flatbuffers::Offset<Function>> *functions = nullptr,
     const std::vector<flatbuffers::Offset<Struct>> *structs = nullptr,
     const std::vector<flatbuffers::Offset<Ident>> *idents = nullptr,
-    const std::vector<const SpecIdent *> *specidents = nullptr,
+    const std::vector<SpecIdent> *specidents = nullptr,
     const std::vector<int32_t> *default_int_vector_types = nullptr,
     const std::vector<int32_t> *default_float_vector_types = nullptr,
     const std::vector<int32_t> *logvars = nullptr) {
@@ -513,12 +513,12 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       bytecode_attr ? _fbb.CreateVector<uint8_t>(*bytecode_attr) : 0,
       typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0,
       stringtable ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*stringtable) : 0,
-      lineinfo ? _fbb.CreateVector<const LineInfo *>(*lineinfo) : 0,
+      lineinfo ? _fbb.CreateVectorOfStructs<LineInfo>(*lineinfo) : 0,
       filenames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*filenames) : 0,
       functions ? _fbb.CreateVector<flatbuffers::Offset<Function>>(*functions) : 0,
       structs ? _fbb.CreateVector<flatbuffers::Offset<Struct>>(*structs) : 0,
       idents ? _fbb.CreateVector<flatbuffers::Offset<Ident>>(*idents) : 0,
-      specidents ? _fbb.CreateVector<const SpecIdent *>(*specidents) : 0,
+      specidents ? _fbb.CreateVectorOfStructs<SpecIdent>(*specidents) : 0,
       default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0,
       default_float_vector_types ? _fbb.CreateVector<int32_t>(*default_float_vector_types) : 0,
       logvars ? _fbb.CreateVector<int32_t>(*logvars) : 0);
@@ -526,6 +526,10 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
 
 inline const bytecode::BytecodeFile *GetBytecodeFile(const void *buf) {
   return flatbuffers::GetRoot<bytecode::BytecodeFile>(buf);
+}
+
+inline const bytecode::BytecodeFile *GetSizePrefixedBytecodeFile(const void *buf) {
+  return flatbuffers::GetSizePrefixedRoot<bytecode::BytecodeFile>(buf);
 }
 
 inline const char *BytecodeFileIdentifier() {
@@ -542,6 +546,11 @@ inline bool VerifyBytecodeFileBuffer(
   return verifier.VerifyBuffer<bytecode::BytecodeFile>(BytecodeFileIdentifier());
 }
 
+inline bool VerifySizePrefixedBytecodeFileBuffer(
+    flatbuffers::Verifier &verifier) {
+  return verifier.VerifySizePrefixedBuffer<bytecode::BytecodeFile>(BytecodeFileIdentifier());
+}
+
 inline const char *BytecodeFileExtension() {
   return "lbc";
 }
@@ -550,6 +559,12 @@ inline void FinishBytecodeFileBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
     flatbuffers::Offset<bytecode::BytecodeFile> root) {
   fbb.Finish(root, BytecodeFileIdentifier());
+}
+
+inline void FinishSizePrefixedBytecodeFileBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    flatbuffers::Offset<bytecode::BytecodeFile> root) {
+  fbb.FinishSizePrefixed(root, BytecodeFileIdentifier());
 }
 
 }  // namespace bytecode

@@ -1,12 +1,17 @@
 #ifndef FLATBUFFERS_BASE_H_
 #define FLATBUFFERS_BASE_H_
 
+// clang-format off
 #if defined(FLATBUFFERS_MEMORY_LEAK_TRACKING) && \
     defined(_MSC_VER) && defined(_DEBUG)
   #define _CRTDBG_MAP_ALLOC
 #endif
 
 #include <assert.h>
+
+#if !defined(FLATBUFFERS_ASSERT)
+#define FLATBUFFERS_ASSERT assert
+#endif
 
 #ifndef ARDUINO
 #include <cstdint>
@@ -99,7 +104,7 @@
 #endif // !defined(FLATBUFFERS_LITTLEENDIAN)
 
 #define FLATBUFFERS_VERSION_MAJOR 1
-#define FLATBUFFERS_VERSION_MINOR 8
+#define FLATBUFFERS_VERSION_MINOR 9
 #define FLATBUFFERS_VERSION_REVISION 0
 #define FLATBUFFERS_STRING_EXPAND(X) #X
 #define FLATBUFFERS_STRING(X) FLATBUFFERS_STRING_EXPAND(X)
@@ -118,6 +123,13 @@
   #define FLATBUFFERS_CONSTEXPR constexpr
 #else
   #define FLATBUFFERS_CONSTEXPR
+#endif
+
+#if (defined(__cplusplus) && __cplusplus >= 201402L) || \
+    (defined(__cpp_constexpr) && __cpp_constexpr >= 201304)
+  #define FLATBUFFERS_CONSTEXPR_CPP14 FLATBUFFERS_CONSTEXPR
+#else
+  #define FLATBUFFERS_CONSTEXPR_CPP14
 #endif
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) && __GNUC__ * 10 + __GNUC_MINOR__ >= 46 || \
@@ -140,6 +152,28 @@
   #pragma warning(push)
   #pragma warning(disable: 4127) // C4127: conditional expression is constant
 #endif
+
+#ifndef FLATBUFFERS_HAS_STRING_VIEW
+  // Only provide flatbuffers::string_view if __has_include can be used
+  // to detect a header that provides an implementation
+  #if defined(__has_include)
+    // Check for std::string_view (in c++17)
+    #if __has_include(<string_view>) && (__cplusplus > 201402)
+      #include <string_view>
+      namespace flatbuffers {
+        typedef std::string_view string_view;
+      }
+      #define FLATBUFFERS_HAS_STRING_VIEW 1
+    // Check for std::experimental::string_view (in c++14, compiler-dependent)
+    #elif __has_include(<experimental/string_view>) && (__cplusplus > 201103)
+      #include <experimental/string_view>
+      namespace flatbuffers {
+        typedef std::experimental::string_view string_view;
+      }
+      #define FLATBUFFERS_HAS_STRING_VIEW 1
+    #endif
+  #endif // __has_include
+#endif // !FLATBUFFERS_HAS_STRING_VIEW
 
 /// @endcond
 
@@ -201,7 +235,7 @@ template<typename T> T EndianSwap(T t) {
     u.i = FLATBUFFERS_BYTESWAP64(u.i);
     return u.t;
   } else {
-    assert(0);
+    FLATBUFFERS_ASSERT(0);
   }
 }
 

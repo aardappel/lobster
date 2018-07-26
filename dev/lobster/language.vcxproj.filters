@@ -18,6 +18,9 @@
     <Filter Include="common">
       <UniqueIdentifier>{5b6e2421-9663-4999-a2ce-f1589fbbd7ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="compiler\builtins\flatbuffers">
+      <UniqueIdentifier>{28705062-822f-4b9e-a663-02b43d056eb2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -46,6 +49,15 @@
     </ClCompile>
     <ClCompile Include="..\src\vmlog.cpp">
       <Filter>dvm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\flatbuffers\src\idl_gen_text.cpp">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\flatbuffers\src\idl_parser.cpp">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\flatbuffers\src\util.cpp">
+      <Filter>compiler\builtins\flatbuffers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

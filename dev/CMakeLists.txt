@@ -17,6 +17,7 @@ file(GLOB_RECURSE EXTERNAL_SRCS
     "include/Box2D/*.cpp"
     "lib/stb_image.c"
     "external/SDLMixer/*.c"
+    "external/flatbuffers/*.cpp"
 	external/freetype/src/autofit/autofit.c
 	external/freetype/src/base/basepic.c
 	external/freetype/src/base/ftapi.c
