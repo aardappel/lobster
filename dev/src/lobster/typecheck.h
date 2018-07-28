@@ -1830,6 +1830,9 @@ Node *IsType::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
 }
 
 Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+    // We have to check this here, since the parser couldn't check this yet.
+    if (giventype->t == V_STRUCT && giventype->struc->fields.v.size() < children.size())
+        tc.TypeError("too many initializers for: " + giventype->struc->name, *this);
     tc.TypeCheckList(this, false);
     exptype = giventype;
     if (exptype->t == V_VECTOR && exptype->sub->t == V_ANY) {

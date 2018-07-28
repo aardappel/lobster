@@ -1222,7 +1222,9 @@ struct Parser {
                         return;
                     }
                 }
-                Error("too many initializers for: " + struc.name);
+                // Since this struct may be pre-declared, we allow to parse more initializers
+                // than there are fields. We will catch this in the type checker.
+                exps.push_back(ParseExp());
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
             auto constructor = new Constructor(lex, &struc.thistype);
