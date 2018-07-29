@@ -480,7 +480,7 @@ struct CodeGen  {
             Emit(IL_LVALVAR, lvalop, idr->sid->Idx());
             VarModified(idr->sid);
         } else if (auto dot = Is<Dot>(lval)) {
-            Gen(dot->child, 1);
+            Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1);
             GenFieldAccess(*dot, lvalop, false);
         } else if (auto cod = Is<CoDot>(lval)) {
@@ -513,7 +513,7 @@ struct CodeGen  {
     }
 
     void GenFieldAccess(const Dot &n, int lvalop, bool maybe) {
-        auto smtype = n.child->exptype;
+        auto smtype = n.children[0]->exptype;
         auto stype = n.maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
         auto f = n.fld;
         assert(stype->t == V_STRUCT);  // Ensured by typechecker.
@@ -609,7 +609,7 @@ void IdentRef::Generate(CodeGen &cg, int retval) const {
 }
 
 void Dot::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+    cg.Gen(children[0], retval, true);
     if (retval) cg.GenFieldAccess(*this, -1, maybe);
 }
 
@@ -647,6 +647,10 @@ void Indexing::Generate(CodeGen &cg, int retval) const {
                 assert(false);
         }
     }
+}
+
+void GenericCall::Generate(CodeGen &, int) const {
+    assert(false);
 }
 
 void CoDot::Generate(CodeGen &cg, int retval) const {

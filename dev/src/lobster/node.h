@@ -66,14 +66,16 @@ template<typename T> T *DoClone(T *dest, T *src) {
     return dest;
 }
 
-#define SHARED_SIGNATURE(NAME, STR, SE) \
+#define SHARED_SIGNATURE_NO_TT(NAME, STR, SE) \
     string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
-    Node *TypeCheck(TypeChecker &tc, bool reqret); \
     void Generate(CodeGen &cg, int retval) const; \
     Node *Clone() { return DoClone<NAME>(new NAME(), this); } \
   protected: \
     NAME() {};  // Only used by clone.
+#define SHARED_SIGNATURE(NAME, STR, SE) \
+    Node *TypeCheck(TypeChecker &tc, bool reqret); \
+    SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
 
 #define ZERO_NODE(NAME, STR, SE, METHODS) \
 struct NAME : Node { \
@@ -289,6 +291,16 @@ struct NativeRef : Node {
     SHARED_SIGNATURE(NativeRef, "native function", true)
 };
 
+// This is either a Dot, Call, or NativeCall, to be specialized by the typechecker
+struct GenericCall : List {
+    string_view name;
+    SubFunction *sf;  // Need to store this, since only parser tracks scopes.
+    bool maybe, dotnoparens;
+    GenericCall(const Line &ln, string_view name, SubFunction *sf, bool maybe, bool dotnoparens)
+        : List(ln), name(name), sf(sf), maybe(maybe), dotnoparens(dotnoparens) {};
+    SHARED_SIGNATURE(GenericCall, "generic call", true)
+};
+
 struct Constructor : List {
     TypeRef giventype;
     Constructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
@@ -301,26 +313,31 @@ struct Constructor : List {
     SHARED_SIGNATURE(Constructor, "constructor", false)
 };
 
-struct Call : List {
-    SubFunction *sf;
-    Call(const Line &ln, SubFunction *_sf) : List(ln), sf(_sf) {};
+struct Call : GenericCall {
+    explicit Call(GenericCall &gc)
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens) {};
+    Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, false) {};
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
-    SHARED_SIGNATURE(Call, "call", true)
+    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    SHARED_SIGNATURE_NO_TT(Call, "call", true)
 };
 
-struct DynCall : Call {
+struct DynCall : List {
+    SubFunction *sf;
     SpecIdent *sid;
     DynCall(const Line &ln, SubFunction *_sf, SpecIdent *_sid)
-        : Call(ln, _sf), sid(_sid) {};
+        : List(ln), sf(_sf), sid(_sid) {};
     void Dump(ostringstream &ss) const { ss << sid->id->name; }
     SHARED_SIGNATURE(DynCall, "dynamic call", true)
 };
 
-struct NativeCall : List {
+struct NativeCall : GenericCall {
     NativeFun *nf;
-    NativeCall(const Line &ln, NativeFun *_nf) : List(ln), nf(_nf) {};
+    NativeCall(NativeFun *_nf, GenericCall &gc)
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf) {};
     void Dump(ostringstream &ss) const { ss << nf->name; }
-    SHARED_SIGNATURE(NativeCall, "native call", true)
+    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
 };
 
 struct Return : Unary {
@@ -357,13 +374,13 @@ struct Define : Unary {
     SHARED_SIGNATURE(Define, TName(T_DEF), true)
 };
 
-struct Dot : Unary {
-    SharedField *fld;
-    bool maybe;
-    Dot(const Line &ln, Node *_a, SharedField *_fld, bool _maybe)
-        : Unary(ln, _a), fld(_fld), maybe(_maybe) {}
+struct Dot : GenericCall {
+    SharedField *fld;  // FIXME
+    Dot(SharedField *_fld, GenericCall &gc)
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), fld(_fld) {}
     void Dump(ostringstream &ss) const { ss << Name() << fld->name; }
-    SHARED_SIGNATURE(Dot, TName(maybe ? T_DOTMAYBE : T_DOT), false)
+    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    SHARED_SIGNATURE_NO_TT(Dot, TName(maybe ? T_DOTMAYBE : T_DOT), false)
 };
 
 struct IsType : Unary {

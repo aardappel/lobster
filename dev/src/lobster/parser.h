@@ -22,9 +22,8 @@ struct Parser {
     vector<Function *> functionstack;
     vector<string_view> trailingkeywordedfunctionvaluestack;
     struct ForwardFunctionCall {
-        string_view idname;
         size_t maxscopelevel;
-        Call *n;
+        GenericCall *n;
         bool has_firstarg;
         SymbolTable::WithStackElem wse;
     };
@@ -728,8 +727,10 @@ struct Parser {
             int nrv = 0;
             if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
                 rv = ParseMultiRet(ParseOpExp(), nrv);
-                if (auto call = Is<Call>(rv))
-                    nrv = max(nrv, call->sf->parent->nretvals);
+                if (auto call = Is<GenericCall>(rv))
+                    // FIXME: this may be incorrect if GenericCall becomes a non-Call.
+                    // Move all this return value checking to the TT?
+                    if (call->sf) nrv = max(nrv, call->sf->parent->nretvals);
             } else {
                 rv = new DefaultVal(lex);
             }
@@ -773,7 +774,7 @@ struct Parser {
     }
 
     void CheckOpEq(Node *e) {
-        if (!Is<IdentRef>(e) && !Is<Dot>(e) && !Is<CoDot>(e) && !Is<Indexing>(e))
+        if (!Is<IdentRef>(e) && !Is<CoDot>(e) && !Is<Indexing>(e) && !Is<GenericCall>(e))
             Error("illegal left hand side of assignment");
         Modify(e);
         lex.Next();
@@ -876,7 +877,7 @@ struct Parser {
     Node *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
                             bool coroutine, bool noparens) {
         if (nf) {
-            auto nc = new NativeCall(lex, nf);
+            auto nc = new GenericCall(lex, idname, nullptr, false, false);
             ParseFunArgs(nc, coroutine, firstarg, idname, &nf->args, noparens);
             size_t i = 0;
             for (auto &arg : nf->args.v) {
@@ -925,7 +926,7 @@ struct Parser {
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
-            auto call = new Call(lex, nullptr);
+            auto call = new GenericCall(lex, idname, nullptr, false, false);
             if (!firstarg) firstarg = SelfArg(f, wse);
             ParseFunArgs(call, coroutine, firstarg, idname, &bestf->subf->args, noparens);
             auto nargs = call->Arity();
@@ -938,9 +939,9 @@ struct Parser {
             ParseFunArgs(dc, coroutine, firstarg);
             return dc;
         } else {
-            auto call = new Call(lex, nullptr);
+            auto call = new GenericCall(lex, idname, nullptr, false, false);
             ParseFunArgs(call, coroutine, firstarg);
-            ForwardFunctionCall ffc = { idname, st.scopelevels.size(), call, !!firstarg, wse };
+            ForwardFunctionCall ffc = { st.scopelevels.size(), call, !!firstarg, wse };
             forwardfunctioncalls.push_back(ffc);
             return call;
         }
@@ -971,19 +972,19 @@ struct Parser {
     void ResolveForwardFunctionCalls() {
         for (auto ffc = forwardfunctioncalls.begin(); ffc != forwardfunctioncalls.end(); ) {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
-                auto f = st.FindFunction(ffc->idname);
+                auto f = st.FindFunction(ffc->n->name);
                 if (f) {
                     if (!ffc->has_firstarg) {
                         auto self = SelfArg(f, ffc->wse);
                         if (self) ffc->n->children.insert(ffc->n->children.begin(), self);
                     }
                     ffc->n->sf = FindFunctionWithNargs(f,
-                        ffc->n->Arity(), ffc->idname, ffc->n)->subf;
+                        ffc->n->Arity(), ffc->n->name, ffc->n)->subf;
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
                     if (st.scopelevels.size() == 1)
-                        Error("call to unknown function: " + ffc->idname, ffc->n);
+                        Error("call to unknown function: " + ffc->n->name, ffc->n);
                     // Prevent it being found in sibling scopes.
                     ffc->maxscopelevel = st.scopelevels.size() - 1;
                 }
@@ -1010,19 +1011,20 @@ struct Parser {
                         Error("coroutines have no variable named: " + idname);
                     n = new CoDot(lex, n, new IdentRef(lex, id->cursid));
                 } else {
-                    SharedField *fld = st.FieldUse(idname);
-                    // FIXME: this is a terrible way to decide. What about fields that store
-                    // functions? what about names used both as field and function?
-                    if (fld && lex.token != T_LEFTPAREN)  {
-                        n = new Dot(lex, n, fld, op == T_DOTMAYBE);
-                    } else {
-                        auto f = st.FindFunction(idname);
-                        auto nf = natreg.FindNative(idname);
-                        if ((f || nf) && op == T_DOT) {
-                            n = ParseFunctionCall(f, nf, idname, n, false, false);
+                    auto fld = st.FieldUse(idname);
+                    auto f = st.FindFunction(idname);
+                    auto nf = natreg.FindNative(idname);
+                    if (fld || f || nf) {
+                        if (fld && lex.token != T_LEFTPAREN) {
+                            auto dot = new GenericCall(lex, idname, f ? f->subf : nullptr,
+                                                       op == T_DOTMAYBE, true);
+                            dot->Add(n);
+                            n = dot;
                         } else {
-                            Error("not a type member or function: " + idname);
+                            n = ParseFunctionCall(f, nf, idname, n, false, false);
                         }
+                    } else {
+                        Error("unknown field/function: " + idname);
                     }
                 }
                 break;
@@ -1107,11 +1109,7 @@ struct Parser {
                 auto idname = ExpectId();
                 auto n = ParseFunctionCall(st.FindFunction(idname), nullptr, idname, nullptr, true,
                                            false);
-                if (auto call = Is<Call>(n)) {
-                    return new CoRoutine(lex, call);
-                } else {
-                    Error("coroutine constructor must be regular function call");
-                }
+                return new CoRoutine(lex, n);
             }
             case T_FLOATTYPE:
             case T_INTTYPE:
@@ -1270,7 +1268,9 @@ struct Parser {
         Ident *id = nullptr;
         auto fld = st.LookupWithStruct(idname, lex, id);
         if (fld) {
-            return new Dot(lex, new IdentRef(lex, id->cursid), fld, false);
+            auto dot = new GenericCall(lex, idname, nullptr, false, true);
+            dot->Add(new IdentRef(lex, id->cursid));
+            return dot;
         }
         // It's a regular variable.
         return new IdentRef(lex, st.LookupUse(idname, lex)->cursid);

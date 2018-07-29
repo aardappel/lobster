@@ -11,7 +11,7 @@ struct FlowItem {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
             derefs.insert(derefs.begin(), dot->fld);
-            t = dot->child;
+            t = dot->children[0];
         }
         auto idr = Is<IdentRef>(t);
         if (idr) {
@@ -459,7 +459,7 @@ struct TypeChecker {
     Node *TypeCheckMathOpEq(BinOp &n) {
         n.left = n.left->TypeCheck(*this, true);
         n.right = n.right->TypeCheck(*this, true);
-        CheckReadOnly(*n.left);
+        CheckLval(*n.left);
         n.exptype = n.left->exptype;
         if (!MathCheckVector(n.exptype, n.left, n.right)) {
             bool unionchecked = false;
@@ -509,7 +509,7 @@ struct TypeChecker {
 
     Node *TypeCheckPlusPlus(Unary &n) {
         n.child = n.child->TypeCheck(*this, true);
-        CheckReadOnly(*n.child);
+        CheckLval(*n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
             TypeError("numeric", n.exptype, n);
@@ -1034,11 +1034,16 @@ struct TypeChecker {
         }
     }
 
-    void CheckReadOnly(Node &n) {
+    void CheckLval(Node &n) {
         auto dot = Is<Dot>(&n);
-        if (dot && dot->child->exptype->t == V_STRUCT &&
-            dot->child->exptype->struc->readonly)
-            TypeError("cannot write to field of value: " + dot->child->exptype->struc->name, n);
+        if (dot) {
+            auto type = dot->children[0]->exptype;
+            if (type->t == V_STRUCT && type->struc->readonly)
+                TypeError("cannot write to field of value: " + type->struc->name, n);
+        }
+        // This can happen due to late specialization of GenericCall.
+        if (Is<Call>(&n) || Is<NativeCall>(&n))
+            TypeError("function-call cannot be an l-value", n);
     }
 
     void CheckFreeVariable(SpecIdent &sid) {
@@ -1314,15 +1319,15 @@ Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
 Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
-    value->TypeCheck(tc, true);
+    value = value->TypeCheck(tc, true);
     auto ptype = value->exptype;
     if (!ptype->Numeric() && ptype->t != V_STRING)
         tc.TypeError("switch value must be int / float / string", *this);
     exptype = nullptr;
     bool have_default = false;
-    for (auto n : cases->children) {
+    for (auto &n : cases->children) {
+        n = n->TypeCheck(tc, reqret);
         auto cas = AssertIs<Case>(n);
-        cas->TypeCheck(tc, reqret);
         if (cas->pattern->children.empty()) have_default = true;
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
@@ -1409,10 +1414,10 @@ Node *Define::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
 }
 
 Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    for (auto c : children) c->TypeCheck(tc, true);
+    for (auto &c : children) c = c->TypeCheck(tc, true);
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
-        tc.CheckReadOnly(*left);
+        tc.CheckLval(*left);
         auto vartype = tc.TypeCheckMultiRHS(children.back(), i, this);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
@@ -1577,7 +1582,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
 Node *Assign::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     left = left->TypeCheck(tc, true);
     right = right->TypeCheck(tc, true);
-    tc.CheckReadOnly(*left);
+    tc.CheckLval(*left);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
         left->exptype = tc.AssignFlowDemote(fi, right->exptype, true);
@@ -1596,9 +1601,50 @@ Node *DefaultVal::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     exptype = tc.NewTypeVar();
     return this;
 }
-    
-Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+
+Node *GenericCall::TypeCheck(TypeChecker &tc, bool reqret) {
+    // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, false);
+    auto nf = tc.parser.natreg.FindNative(name);
+    auto fld = tc.st.FieldUse(name);
+    TypeRef type;
+    Struct *struc = nullptr;
+    if (children.size()) {
+        type = children[0]->exptype;
+        if (maybe && type->t == V_NIL) type = type->Element();
+        if (type->t == V_STRUCT) struc = type->struc;
+    }
+    Node *r = nullptr;
+    if (fld && dotnoparens && struc && struc->Has(fld) >= 0) {
+        auto dot = new Dot(fld, *this);
+        dot->children = children;
+        dot->TypeCheckSpecialized(tc, reqret);
+        r = dot;
+    } else {
+        if (maybe) tc.TypeError("?. may only be used with fields: " + name, *this);
+        // TODO: if any of sf's specializations matches type exactly, can allow it to override nf.
+        if (nf) {
+            auto nc = new NativeCall(nf, *this);
+            nc->children = children;
+            nc->TypeCheckSpecialized(tc, reqret);
+            r = nc;
+        } else if (sf) {
+            auto fc = new Call(*this);
+            fc->children = children;
+            fc->TypeCheckSpecialized(tc, reqret);
+            r = fc;
+        } else {
+            if (fld && dotnoparens)
+                tc.TypeError("cannot dereference field on: " + TypeName(type), *this);
+            tc.TypeError("unknown field/function reference: " + name, *this);
+        }
+    }
+    children.clear();
+    delete this;
+    return r;
+}
+
+void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
     if (nf->first->overloads) {
         // Multiple overloads available, figure out which we want to call.
         auto cnf = nf->first;
@@ -1654,9 +1700,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         if (arg.flags & NF_CORESUME) {
             // Specialized typechecking for resume()
             assert(argtypes[0]->t == V_COROUTINE);
-            auto sf = argtypes[0]->sf;
-            if (sf) {
-                tc.SubType(c, sf->coresumetype, "resume value", *c);
+            auto csf = argtypes[0]->sf;
+            if (csf) {
+                tc.SubType(c, csf->coresumetype, "resume value", *c);
             } else {
                 if (!Is<DefaultVal>(c))
                     tc.TypeError("cannot resume a generic coroutine type with an argument",
@@ -1674,17 +1720,17 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         auto actualtype = c->exptype;
         if (actualtype->IsFunction()) {
             // We must assume this is going to get called and type-check it
-            auto sf = actualtype->sf;
-            if (sf->args.v.size()) {
+            auto fsf = actualtype->sf;
+            if (fsf->args.v.size()) {
                 // we have no idea what args.
                 assert(0);
                 tc.TypeError("function passed to " + nf->name +
                              " cannot take any arguments", *this);
             }
-            auto chosen = sf;
+            auto chosen = fsf;
             List args(tc.parser.lex);
-            tc.TypeCheckCall(sf, &args, chosen, c, false);
-            assert(sf == chosen);
+            tc.TypeCheckCall(fsf, &args, chosen, c, false);
+            assert(fsf == chosen);
         }
         argtypes[i] = actualtype;
         i++;
@@ -1716,10 +1762,10 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     exptype = exptype->sub;
                 } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
-                    auto sf = exptype->sf;
-                    assert(sf);
+                    auto csf = exptype->sf;
+                    assert(csf);
                     // In theory it is possible this hasn't been generated yet..
-                    exptype = sf->returntypes[0];
+                    exptype = csf->returntypes[0];
                 }
                 break;
             }
@@ -1742,15 +1788,11 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         // Also make result non-nil, if it was.
         if (exptype->t == V_NIL) exptype = exptype->Element();
     }
-
-    return this;
 }
 
-Node *Call::TypeCheck(TypeChecker &tc, bool reqret) {
+void Call::TypeCheckSpecialized(TypeChecker &tc, bool reqret) {
     sf = tc.PreSpecializeFunction(sf);
-    tc.TypeCheckList(this, false);
     exptype = tc.TypeCheckCall(sf, this, sf, this, reqret);
-    return this;
 }
 
 Node *FunRef::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
@@ -1862,9 +1904,8 @@ Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *Dot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
-    auto smtype = child->exptype;
+void Dot::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
+    auto smtype = children[0]->exptype;
     auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
     if (stype->t != V_STRUCT)
         tc.TypeError("struct/value", stype, *this, "object");
@@ -1880,7 +1921,6 @@ Node *Dot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             : uf.type;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
-    return this;
 }
 
 Node *Indexing::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
@@ -1930,11 +1970,15 @@ Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
 
 Node *CoRoutine::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     call = call->TypeCheck(tc, true);
-    auto sf = AssertIs<Call>(call)->sf;
-    assert(sf->iscoroutine);
-    auto ct = tc.st.NewType();
-    *ct = Type(V_COROUTINE, sf);
-    exptype = ct;
+    if (auto fc = Is<Call>(call)) {
+        auto sf = fc->sf;
+        assert(sf->iscoroutine);
+        auto ct = tc.st.NewType();
+        *ct = Type(V_COROUTINE, sf);
+        exptype = ct;
+    } else {
+        tc.TypeError("coroutine constructor must be regular function call", *call);
+    }
     return this;
 }
 
@@ -1957,7 +2001,7 @@ Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
     /*
     for (auto &f : st->fields.v) {
         if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_GENERIC) && f.defaultval->exptype.Null()) {
-            f.defaultval->TypeCheck(tc, true);
+            f.defaultval = f.defaultval->TypeCheck(tc, true);
             f.type = f.defaultval->exptype;
         }
     }
