@@ -29,7 +29,8 @@ extern const char *StripDirPart(const char *filepath);
 // To read the whole file, pass -1 for len.
 // To just obtain the file length but don't do any reading, pass 0 for len.
 // Returns file length or read length, or -1 if failed.
-extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0, int64_t len = -1);
+extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0, int64_t len = -1,
+                        bool binary = true);
 
 extern FILE *OpenForWriting(string_view relfilename, bool binary);
 extern bool WriteFile(string_view relfilename, bool binary, string_view contents);

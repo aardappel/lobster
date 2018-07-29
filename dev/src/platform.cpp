@@ -229,7 +229,16 @@ int64_t LoadFileFromAny(string_view srelfilename, string *dest, int64_t start, i
     return -1;
 }
 
-int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t len) {
+// We don't generally load in ways that allow stdio text mode conversions, so this function
+// emulates them at best effort.
+void TextModeConvert(string &s, bool binary) {
+    if (binary) return;
+    #ifdef _WIN32
+        s.erase(remove(s.begin(), s.end(), '\r'), s.end());
+    #endif
+}
+
+int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t len, bool binary) {
     assert(cur_loader);
     auto it = pakfile_registry.find(relfilename);
     if (it != pakfile_registry.end()) {
@@ -241,14 +250,18 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
                 WEntropyCoder<false>((const uchar *)dest->c_str(), dest->length(),
                                      (size_t)funcompressed, uncomp);
                 dest->swap(uncomp);
+                TextModeConvert(*dest, binary);
                 return funcompressed;
             } else {
+                TextModeConvert(*dest, binary);
                 return l;
             }
         }
     }
     if (len > 0) Output(OUTPUT_INFO, "load: ", relfilename);
-    return LoadFileFromAny(SanitizePath(relfilename), dest, start, len);
+    auto size = LoadFileFromAny(SanitizePath(relfilename), dest, start, len);
+    TextModeConvert(*dest, binary);
+    return size;
 }
 
 FILE *OpenForWriting(string_view relfilename, bool binary) {

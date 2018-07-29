@@ -147,25 +147,25 @@ void AddFile(NativeRegistry &natreg) {
         " Specify 1 as divisor to get sizes in bytes, 1024 for kb etc. Values > 0x7FFFFFFF will be"
         " clamped in 32-bit builds. Returns nil if folder couldn't be scanned.");
 
-    STARTDECL(read_file) (VM &vm, Value &file) {
+    STARTDECL(read_file) (VM &vm, Value &file, Value &textmode) {
         string buf;
-        auto l = LoadFile(file.sval()->strv(), &buf);
+        auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, !textmode.True());
         file.DECRT(vm);
         if (l < 0) return Value();
         auto s = vm.NewString(buf);
         return Value(s);
     }
-    ENDDECL1(read_file, "file", "S", "S?",
+    ENDDECL2(read_file, "file,textmode", "SI?", "S?",
         "returns the contents of a file as a string, or nil if the file can't be found."
         " you may use either \\ or / as path separators");
 
-    STARTDECL(write_file) (VM &vm, Value &file, Value &contents) {
-        auto ok = WriteFile(file.sval()->strv(), true, contents.sval()->strv());
+    STARTDECL(write_file) (VM &vm, Value &file, Value &contents, Value &textmode) {
+        auto ok = WriteFile(file.sval()->strv(), !textmode.True(), contents.sval()->strv());
         file.DECRT(vm);
         contents.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(write_file, "file,contents", "SS", "I",
+    ENDDECL3(write_file, "file,contents,textmode", "SSI?", "I",
         "creates a file with the contents of a string, returns false if writing wasn't possible");
 
     STARTDECL(ensure_size) (VM &vm, Value &str, Value &size, Value &c, Value &extra) {
