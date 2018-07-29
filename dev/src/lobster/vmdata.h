@@ -264,6 +264,10 @@ struct LResource : RefObj {
     LResource(void *v, const ResourceType *t);
 
     void DeleteSelf(VM &vm);
+
+    void ToString(ostringstream &ss) {
+        ss << "(resource:" << type->name << ")";
+    }
 };
 
 struct InsPtr {

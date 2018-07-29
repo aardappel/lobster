@@ -164,8 +164,9 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
         }
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
-        case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);        break;
+        case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
         case V_STRUCT:    ((LStruct *)ro)->ToString(vm, ss, pp);    break;
+        case V_RESOURCE:  ((LResource *)ro)->ToString(ss);          break;
         default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
     }
 }
