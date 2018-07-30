@@ -167,8 +167,12 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
                 // but for now this works for non-app store apps.
                 write_dir = resources_dir;
             #endif
+            return true;
         }
-    #elif defined(__ANDROID__)
+    #else
+        (void)from_bundle;
+    #endif
+    #if defined(__ANDROID__)
         // FIXME: removed SDL dependency for other platforms. So on Android, move calls to
         // SDL_AndroidGetInternalStoragePath into SDL and pass the results into here somehow.
         SDL_Init(0); // FIXME: Is this needed? bad dependency.
@@ -183,7 +187,7 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
         data_dirs.clear();  // FIXME.
         data_dirs.push_back("");
         data_dirs.push_back(write_dir);
-    #else  // Linux & Windows.
+    #else  // Linux, Windows, and OS X console mode.
         auto exepath = StripFilePart(exefile);
         if (auxfilepath) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
@@ -197,7 +201,6 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
             have_console = GetConsoleWindow() != nullptr;
         #endif
     #endif
-    (void)from_bundle;
     return true;
 }
 
