@@ -451,7 +451,7 @@ struct Parser {
             auto id = st.LookupDef("this", lex.errorline, lex, false, false, true);
             auto &arg = sf->args.v.back();
             arg.type = &self->thistype;
-            st.AddWithStruct(arg.type, id, lex);
+            st.AddWithStruct(arg.type, id, lex, sf);
             SetArgFlags(arg, true);
         }
         if (lex.token != T_RIGHTPAREN && parseargs) {
@@ -464,7 +464,7 @@ struct Parser {
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
                     ParseType(arg.type, withtype, nullptr, nullptr, &sf->args.v.back());
-                    if (withtype) st.AddWithStruct(arg.type, id, lex);
+                    if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
                 }
                 SetArgFlags(arg, withtype);
                 if (!IsNext(T_COMMA)) break;
@@ -952,10 +952,11 @@ struct Parser {
             // If we're in the context of a withtype, calling a function that starts with an
             // arg of the same type we pass it in automatically.
             // This is maybe a bit very liberal, should maybe restrict it?
-            if (wse.second &&
-                wse.first == f->subf->args.v[0].type &&
-                f->subf->args.v[0].flags & AF_WITHTYPE) {
-                return new IdentRef(lex, wse.second->cursid);
+            if (wse.id &&
+                wse.type == f->subf->args.v[0].type &&
+                f->subf->args.v[0].flags & AF_WITHTYPE &&
+                wse.sf->parent != f) {  // Not in recursive calls.
+                return new IdentRef(lex, wse.id->cursid);
             }
         }
         return nullptr;

@@ -1332,14 +1332,21 @@ Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
         }
-        exptype = exptype.Null() ? cas->body->exptype
-                                 : tc.Union(exptype, cas->body->exptype, true);
+        auto body = AssertIs<Call>(cas->body);
+        if (!Is<Return>(body->sf->body->children.back())) {
+            exptype = exptype.Null() ? body->exptype
+                                     : tc.Union(exptype, body->exptype, true);
+        }
     }
-    assert(!exptype.Null());
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
-        tc.SubType(cas->body, exptype, "", "case block");
+        auto body = AssertIs<Call>(cas->body);
+        if (!Is<Return>(body->sf->body->children.back())) {
+            assert(!exptype.Null());
+            tc.SubType(cas->body, exptype, "", "case block");
+        }
     }
+    if (exptype.Null()) exptype = type_any;  // Empty switch or all return statements.
     if (reqret && !have_default)
         tc.TypeError("switch that returns a value must have a default case", *this);
     return this;

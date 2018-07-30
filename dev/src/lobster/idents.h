@@ -301,7 +301,7 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
-    typedef pair<TypeRef, Ident *> WithStackElem;
+    struct WithStackElem { TypeRef type; Ident *id; SubFunction *sf; };
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 
@@ -404,25 +404,25 @@ struct SymbolTable {
         return id;
     }
 
-    void AddWithStruct(TypeRef t, Ident *id, Lex &lex) {
+    void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
         if (t->t != V_STRUCT) lex.Error(":: can only be used with struct/value types");
         for (auto &wp : withstack)
-            if (wp.first->struc == t->struc)
+            if (wp.type->struc == t->struc)
                 lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
         assert(t->struc);
-        withstack.push_back({ t, id });
+        withstack.push_back({ t, id, sf });
     }
 
     SharedField *LookupWithStruct(string_view name, Lex &lex, Ident *&id) {
         auto fld = FieldUse(name);
         if (!fld) return nullptr;
         assert(!id);
-        for (auto &[wtype, wid] : withstack) {
-            if (wtype->struc->Has(fld) >= 0) {
+        for (auto &wse : withstack) {
+            if (wse.type->struc->Has(fld) >= 0) {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
-                id = wid;
+                id = wse.id;
             }
         }
         return id ? fld : nullptr;
