@@ -1447,7 +1447,8 @@ void VM::PushDerefIdxStruct(intp i) {
 void VM::PushDerefIdxString(intp i) {
     Value r = POP();
     VMASSERT(r.ref());
-    RANGECHECK(i, r.sval()->len, r.sval());
+    // Allow access of the terminating 0-byte.
+    RANGECHECK(i, r.sval()->len + 1, r.sval());
     PUSH(Value((int)((uchar *)r.sval()->data())[i]));
     r.DECRT(*this);
 }
