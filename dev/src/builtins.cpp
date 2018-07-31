@@ -435,12 +435,16 @@ void AddBuiltins(NativeRegistry &natreg) {
         " size can be negative to indicate the rest of the string.");
 
     STARTDECL(string2int) (VM &vm, Value &s) {
-        auto i = parse_int<intp>(s.sval()->strv());
+        char *end;
+        auto sv = s.sval()->strv();
+        auto i = parse_int<intp>(sv, 10, &end);
         s.DECRT(vm);
-        return Value(i);
+        vm.Push(i);
+        return Value(end == &*sv.end());
     }
-    ENDDECL1(string2int, "s", "S", "I",
-        "converts a string to an int. returns 0 if no numeric data could be parsed");
+    ENDDECL1(string2int, "s", "S", "II",
+        "converts a string to an int. returns 0 if no numeric data could be parsed."
+        "second return value is true if all characters of the string were parsed");
 
     STARTDECL(string2float) (VM &vm, Value &s) {
         auto f = strtod(null_terminated(s.sval()->strv()), nullptr);

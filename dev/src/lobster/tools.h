@@ -747,10 +747,10 @@ template<int I = 0> const char *null_terminated(string_view sv) {
   return temp.data();
 }
 
-template<typename T> T parse_int(string_view sv, int base = 10) {
+template<typename T> T parse_int(string_view sv, int base = 10, char **end = nullptr) {
   // This should be using from_chars(), which apparently is not supported by
   // gcc/clang yet :(
-  return (T)strtoll(null_terminated(sv), nullptr, base);
+  return (T)strtoll(null_terminated(sv), end, base);
 }
 
 
