@@ -440,7 +440,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         auto i = parse_int<intp>(sv, 10, &end);
         s.DECRT(vm);
         vm.Push(i);
-        return Value(end == &*sv.end());
+        return Value(end == sv.data() + sv.size());
     }
     ENDDECL1(string2int, "s", "S", "II",
         "converts a string to an int. returns 0 if no numeric data could be parsed."
