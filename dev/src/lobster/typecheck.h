@@ -43,10 +43,14 @@ struct TypeChecker {
             TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
         for (auto &struc : st.structtable) {
             if (!struc->generic) ComputeStructSameType(struc);
-            if (struc->superclass) for (auto &field : struc->fields.v) {
-                // If this type refers to the super struct type, make it refer to this type instead.
-                // There may be corner cases where this is not what you want, but generally you do.
-                PromoteStructIdx(field.type, struc->superclass, struc);
+            if (struc->superclass) {
+                // If this type has fields inherited from the superclass that refer to the
+                // superclass, make it refer to this type instead. There may be corner cases where
+                // this is not what you want, but generally you do.
+                for (auto &field : make_span(struc->fields.v.data(), 
+                                             struc->superclass->fields.v.size())) {
+                    PromoteStructIdx(field.type, struc->superclass, struc);
+                }
             }
         }
         TypeCheckList(parser.root, true);
