@@ -715,6 +715,7 @@ struct TypeChecker {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
                 // Should attempt static picking as well, if static pick succeeds, specialize.
+                f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
                     TypeCheckFunctionDef(*sf, call_context);
