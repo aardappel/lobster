@@ -1,14 +1,36 @@
+// Example mini language implementation for a lisp-y language:
+//
+// Parse a string into tokens (lex) and then into nodes.
+// Then the nodes can be printed, directly evaluated, or compiled to Lobster.
+
 include "std.lobster"
 
-struct node:
+struct node {}
+
+struct integer : node
+    i:int
+
+    def pretty(): "" + i
+    def eval(): i
+    def compile(): "" + i
+
+struct inst : node
     atom:string
     args:[node]
 
     def pretty():
-        if args.length:
-            "(" + atom + (args.fold(""): _a + " " + pretty(_e)) + ")"
-        else:
-            atom
+        (args.fold("(" + atom): _a + " " + pretty(_e)) + ")"
+
+    def eval():
+        switch atom:
+            case "+": args.fold(0): _a + _e.eval()
+            case "*": args.fold(1): _a * _e.eval()
+            default: assert 0  // Verified by parser.
+
+    def compile():
+        switch atom:
+            case "+", "*": (args.map(): compile(_)).reduce(): "(" + _a + atom + _e + ")"
+            default: assert 0; ""  // Verified by parser.
 
 def parse(s:string):
     token := ""
@@ -16,7 +38,7 @@ def parse(s:string):
     i := 0
     line := 1
     def error(err):
-        return nil, "line " + line + ": " + err
+        return nil, "error: line " + line + ": " + err
     def lex_atom():
         i--
         start := i
@@ -24,7 +46,8 @@ def parse(s:string):
         if start == i:
             return error("unprintable character: " + s[i]) from parse
         atom = s.substring(start, i - start)
-        token = "atom"
+        ival, all := string2int(atom)
+        token = if all: "int" else: "atom"
     def lex_next():
         while true:
             switch s[i++]:
@@ -58,17 +81,20 @@ def parse(s:string):
         a := atom
         lex_next()
         a
-    def parse_exp():
+    def parse_exp() -> node:
         switch token:
             case "(":
                 lex_next()
-                n := node { expect("atom"), [] }
+                name := expect("atom")
+                if not (exists([ "+", "*" ]): name == _):
+                    return error("unknown op: " + name) from parse
+                n := inst { name, []::node }
                 while token != ")":
                     n.args.push(parse_exp())
                 lex_next()
                 n
-            case "atom":
-                n := node { atom, [] }
+            case "int":
+                n := integer { string2int(atom) }
                 lex_next()
                 n
             default:
@@ -79,9 +105,16 @@ def parse(s:string):
 
 test_code :== """
 (+
-  (* 123 456)  // Comment.
-  789)
+  (* 2 3 4)  // Comment.
+  10)
 """
 
 ast, err := parse(test_code)
-print if ast: ast.pretty() else: err
+if ast:
+    print "ast pretty: " + ast.pretty()
+    print "ast eval: " + (do(): "" + ast.eval())
+    code := compile(ast)
+    print "compiled to lobster: " + code
+    print "compiled result: " + compile_run_code(code, [])
+else:
+    print err

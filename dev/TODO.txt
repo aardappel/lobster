@@ -1,9 +1,19 @@
+- add bool as int alias, typechecking maybe later.
+
+- Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
+
 - rename builtin functions that still use snakecase instead of snake_case
 
 - Try out threads, should be easy now that we have vm as a parameter.
   - Would be good to reduce globals, and/or not make builtins that rely on globals available
     to worker threads.
   - a string is the natural thing to communicate right now, given the new binary writing functionality.
+
+- should really centrally organize the concept of const vs owner vs refc, since besides for
+  structs, will need these concepts for strings/vectors/coroutines as well (will especially be
+  nice to separate out the default const string from niche mutable use). We also have const/var
+  variables. We were also thinking about mut argument annotations which would still also be nice
+  being able to say an arg is mut without specifying the type.
 
 - reference counting is a good default, but it is a source of much more inefficiency than I had
   guessed. Should consider what it would take to add a friendly ownership model.
@@ -350,6 +360,8 @@
   somestruct { def ():
     multi-line-anonymous-function-body
   }
+
+- This parses the map without the lambda:     assert 1 == map(2) i: 3
 
 - This gives: all return statements of this function must return the same number of return values. previously: 1
     do():
