@@ -289,6 +289,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "value")     return T_VALUE;
                     else if (sattr == "include")   return T_INCLUDE;
                     else if (sattr == "int")       return T_INTTYPE;
+                    else if (sattr == "bool")      return T_INTTYPE;
                     else if (sattr == "float")     return T_FLOATTYPE;
                     else if (sattr == "string")    return T_STRTYPE;
                     else if (sattr == "any")       return T_ANYTYPE;

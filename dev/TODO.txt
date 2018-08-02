@@ -1,5 +1,3 @@
-- add bool as int alias, typechecking maybe later.
-
 - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
 
 - rename builtin functions that still use snakecase instead of snake_case
@@ -272,6 +270,8 @@
     values there. Have to use the switch mode instead.
   - More good tips in the comments here:
     https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
+
+- typechecking for bool, including output to true/false when printing etc.
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.
