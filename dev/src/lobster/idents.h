@@ -501,11 +501,12 @@ struct SymbolTable {
 
     Struct &StructUse(string_view name, Lex &lex) {
         auto stit = structs.find(name);
-        if (stit == structs.end()) {
+        if (stit != structs.end()) return *stit->second;
+        if (!current_namespace.empty()) {
             stit = structs.find(NameSpaced(name));
-            if (stit == structs.end()) lex.Error("unknown type: " + name);
+            if (stit != structs.end()) return *stit->second;
         }
-        return *stit->second;
+        lex.Error("unknown type: " + name);
     }
 
     bool IsSuperTypeOrSame(const Struct *sup, const Struct *sub) {
