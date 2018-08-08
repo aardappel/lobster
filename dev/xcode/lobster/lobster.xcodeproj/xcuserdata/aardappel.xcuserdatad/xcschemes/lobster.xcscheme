@@ -72,6 +72,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "../projects/scrollrpg/scrollrpgfow.lobster"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "../projects/stacklang/stacklang.lobster"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

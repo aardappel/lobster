@@ -168,6 +168,8 @@
   - ADT is similar to a base class with no members and a fixed set of sub-classes.
     - So make that use case into a simpler declaration syntax.
   - extend switch to do pattern matching.
+    - failing that, a switch that can use types as case labels would be a good start,
+      and simple to do given that we have type indices!
   - do we still want multi-methods? certainly allowing both ADT and inheritance
     styles is more flexible, but multimethods aren't particularly fast right
     now and probably don't support inheritance that well.
@@ -494,6 +496,8 @@
   entirely implemented in the type checker only, as an additional tag on type values.
 
 - would be nice to have on the fly pairs/tuples.
+
+- in def(x::type) if x is subtype: should children of the subtype be available inside the if?
 
 - doesn't type check if c: 0.0 else: 0 correctly, result is any?
 
