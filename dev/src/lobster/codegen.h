@@ -329,7 +329,8 @@ struct CodeGen  {
 
     void GenFixup(const SubFunction *sf) {
         assert(sf->body);
-        if (!sf->subbytecodestart) call_fixups.push_back({ Pos() - 1, sf });
+        auto pos = Pos() - 1;
+        if (!code[pos]) call_fixups.push_back({ pos, sf });
     }
 
     const Node *GenArgs(const List *list, size_t &nargs, const Node *parent = nullptr) {
