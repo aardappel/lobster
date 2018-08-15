@@ -507,6 +507,7 @@ struct SymbolTable {
             if (stit != structs.end()) return *stit->second;
         }
         lex.Error("unknown type: " + name);
+        return *stit->second;
     }
 
     bool IsSuperTypeOrSame(const Struct *sup, const Struct *sub) {

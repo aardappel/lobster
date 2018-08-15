@@ -1031,6 +1031,10 @@
   - might be fun to see how hard it is to write an integration for http://lighttable.com/
     which could be used as a debugger and maybe for live-coding.
   - Could integrate with VSCode instead.
+    - Sadly the Language Server system is overly complicated, requiring JSON RPC over HTTP to
+      communicate.
+    - Should maybe start with just the debugger, as it is simpler (can communicate over stdio)
+      https://microsoft.github.io/debug-adapter-protocol/
 
 - function f(): x := 1; x + x
   gives error on x... should disallow
