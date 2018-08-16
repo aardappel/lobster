@@ -119,6 +119,7 @@ struct Optimizer {
             // because the for body does not count towards its nodes. maybe inline all fors first?
             if (parent_type == typeid(For) ||  // Always inline for bodies.
                 (sf->parent->anonymous &&
+                 !sf->parent->multimethod &&  // unless multimethod_specialized?
                  !sf->iscoroutine &&
                  !sf->dynscoperedefs.size() &&
                  sf->returntypes.size() <= 1 &&

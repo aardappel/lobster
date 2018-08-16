@@ -53,6 +53,10 @@ def run_test_cases(is_speed_test):
     assert(tf(testb { 0, 0 }, 0) == 6)
     assert(tf("", "") == 7)
 
+    // force dynamic dispatch
+    def to_any(a:any): a
+    assert(tf(to_any(testb { 0, 0 }), to_any("")) == 9)
+
     assert(tf("") == 8)
 
     struct parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }

@@ -24,7 +24,7 @@ struct CodeGen  {
     vector<bytecode::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
-    vector<pair<int, const SubFunction *>> call_fixups;
+    vector<tuple<int, const SubFunction *, bool>> call_fixups;
     SymbolTable &st;
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
@@ -184,9 +184,11 @@ struct CodeGen  {
         Emit(IL_EXIT, GetTypeTableOffset(parser.root->children.back()->exptype));
         SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
-        for (auto &[loc, sf] : call_fixups) {
+        for (auto &[loc, sf, multimethod_specialized] : call_fixups) {
             auto f = sf->parent;
-            auto bytecodestart = f->multimethod ? f->bytecodestart : sf->subbytecodestart;
+            auto bytecodestart = f->multimethod && !multimethod_specialized
+                ? f->bytecodestart
+                : sf->subbytecodestart;
             if (!bytecodestart) bytecodestart = dummyfun;
             assert(!code[loc]);
             code[loc] = bytecodestart;
@@ -327,10 +329,10 @@ struct CodeGen  {
 
     void TakeTemp(size_t n) { temptypestack.erase(temptypestack.end() - n, temptypestack.end()); }
 
-    void GenFixup(const SubFunction *sf) {
+    void GenFixup(const SubFunction *sf, bool multimethod_specialized) {
         assert(sf->body);
         auto pos = Pos() - 1;
-        if (!code[pos]) call_fixups.push_back({ pos, sf });
+        if (!code[pos]) call_fixups.push_back({ pos, sf, multimethod_specialized });
     }
 
     const Node *GenArgs(const List *list, size_t &nargs, const Node *parent = nullptr) {
@@ -345,19 +347,20 @@ struct CodeGen  {
     };
 
     void GenCall(const SubFunction &sf, const List *args, const Node *errnode, size_t &nargs,
-                 int retval) {
+                 int retval, bool multimethod_specialized) {
         auto &f = *sf.parent;
+        auto multicall = f.multimethod && !multimethod_specialized;
         GenArgs(args, nargs);
         if (f.nargs() != nargs)
             parser.Error(cat("call to function ", f.name, " needs ", f.nargs(),
                              " arguments, ", nargs, " given"), errnode);
         TakeTemp(nargs);
-        Emit(f.multimethod ? IL_CALLMULTI : IL_CALL,
+        Emit(multicall ? IL_CALLMULTI : IL_CALL,
              f.idx,
-             f.multimethod ? f.bytecodestart : sf.subbytecodestart);
-        GenFixup(&sf);
+             multicall ? f.bytecodestart : sf.subbytecodestart);
+        GenFixup(&sf, multimethod_specialized);
         EmitTempInfo(args);
-        if (f.multimethod) {
+        if (multicall) {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
         SplitAttr(Pos());
@@ -793,7 +796,7 @@ void FunRef::Generate(CodeGen &cg, int retval) const {
         // FIXME: instead, ensure such values are removed by the optimizer.
         if (sf->parent->anonymous && sf->body) {
             cg.Emit(IL_PUSHFUN, sf->subbytecodestart);
-            cg.GenFixup(sf);
+            cg.GenFixup(sf, false);
         } else {
             cg.Dummy(retval);
         }
@@ -865,7 +868,7 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
 
 void Call::Generate(CodeGen &cg, int retval) const {
     size_t nargs = 0;
-    cg.GenCall(*sf, this, this, nargs, retval);
+    cg.GenCall(*sf, this, this, nargs, retval, multimethod_specialized);
 }
 
 void DynCall::Generate(CodeGen &cg, int retval) const {
@@ -891,7 +894,7 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
         if (!sf->parent->istype) {
             // We statically know which function this is calling.
             // We can now turn this into a normal call.
-            cg.GenCall(*sf, this, this, nargs, retval);
+            cg.GenCall(*sf, this, this, nargs, retval, false);
         } else {
             cg.GenArgs(this, nargs);
             assert(nargs == sf->args.size());

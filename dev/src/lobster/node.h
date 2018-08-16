@@ -314,8 +314,10 @@ struct Constructor : List {
 };
 
 struct Call : GenericCall {
+    bool multimethod_specialized;
     explicit Call(GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens),
+          multimethod_specialized(false) {};
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, false) {};
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, bool reqret);

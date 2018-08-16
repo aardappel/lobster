@@ -720,7 +720,6 @@ struct TypeChecker {
                     sf->numcallers++;
                     TypeCheckFunctionDef(*sf, call_context);
                 }
-                // FIXME: Don't need to do this on every call.
                 f.multimethodretval = f.subf->returntypes[0];
                 for (auto sf = f.subf->next; sf; sf = sf->next) {
                     // FIXME: Lift these limits?
@@ -732,6 +731,35 @@ struct TypeChecker {
                                   " has inconsistent return value types: " +
                                   TypeName(sf->returntypes[0]) + " and " +
                                   TypeName(f.multimethodretval), *call_args);
+                }
+            }
+            // See how many cases match, if only 1 (as subtype of declared) we can specialize,
+            // if 0 (as sub or supertype of declared) we can avoid a runtime error.
+            SubFunction *lastmatch = nullptr;
+            int numsubmatches = 0;
+            int numsupmatches = 0;
+            for (auto sf = f.subf; sf; sf = sf->next) {
+                bool subtypematch = true;
+                bool suptypematch = true;
+                for (int i = 0; i < f.nargs(); i++) {
+                    auto submatch = ConvertsTo(call_args->children[i]->exptype, sf->args.v[i].type,
+                                               false, false);
+                    auto supmatch = ConvertsTo(sf->args.v[i].type, call_args->children[i]->exptype,
+                                               false, false);
+                    subtypematch = subtypematch && submatch;
+                    suptypematch = suptypematch && (submatch || supmatch);
+                }
+                if (subtypematch) { numsubmatches++; lastmatch = sf; }
+                if (suptypematch) numsupmatches++;
+            }
+            if (!numsupmatches)
+                TypeError("multi-method call does not match any functions: " + f.name,
+                          *call_context);
+            if (numsubmatches == 1) {
+                auto call = Is<Call>(call_context);
+                if (call) {
+                    chosen = lastmatch;
+                    call->multimethod_specialized = true;
                 }
             }
             return f.multimethodretval;
