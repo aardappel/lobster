@@ -329,6 +329,7 @@ struct Parser {
             if (IsNext(T_COLON) && lex.token != T_INDENT) {
                 parse_sup();
                 parse_specializers();
+                if (IsNext(T_COLON) && lex.token != T_INDENT) lex.Undo(T_COLON);
             }
             if (sup) {
                 struc->superclass = sup;
@@ -1207,10 +1208,8 @@ struct Parser {
                         if (exps[field]) Error("field initialized twice: " + id);
                         exps[field] = ParseExp();
                         return;
-                    } else {  // Undo
-                        lex.PushCur();
-                        lex.Push(T_IDENT, id);
-                        lex.Next();
+                    } else {
+                        lex.Undo(T_IDENT, id);
                     }
                 }
                 // An initializer without a tag. Find first field without a default thats not

@@ -231,7 +231,9 @@ def run_test_cases(is_speed_test):
         ".......OOOOOOOO.................."
     ]
 
-    struct pathingcell : astar_node(pathingcell?, xy_i, xy_i?) { path:int, c:int }
+    struct pathingcell : astar_node(pathingcell?, xy_i, xy_i?):
+        path:int
+        c:int
 
     worldsize := xy { initworld[0].length, initworld.length }
 
