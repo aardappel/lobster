@@ -212,8 +212,7 @@ struct CodeGen  {
             for (size_t i = 0; i < nargs; i++) {
                 auto ta = a->args.v[i].type;
                 auto tb = b->args.v[i].type;
-
-                if (ta != tb) return !(ta < tb);  // V_ANY must be last.
+                if (ta != tb) return cg->st.IsLessGeneralThan(*ta, *tb);
             }
             cg->parser.Error("function signature overlap for " + f->name, nullptr);
             return false;
@@ -257,7 +256,7 @@ struct CodeGen  {
                 };
                 // Generate regular dispatch entry.
                 gendispatch(0xFFFFFFFF, nullptr);
-                // See if this entry contains super-types and generate additional entries.
+                // See if this entry contains sub-types and generate additional entries.
                 for (size_t j = 0; j < f.nargs(); j++) {
                     auto arg = sf->args.v[j];
                     if (arg.type->t == V_STRUCT) {

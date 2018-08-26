@@ -714,7 +714,6 @@ struct TypeChecker {
         if (f.multimethod) {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
-                // Should attempt static picking as well, if static pick succeeds, specialize.
                 f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
@@ -755,7 +754,7 @@ struct TypeChecker {
             if (!numsupmatches)
                 TypeError("multi-method call does not match any functions: " + f.name,
                           *call_context);
-            if (numsubmatches == 1) {
+            if (numsubmatches == 1 && numsupmatches <= 1) {
                 auto call = Is<Call>(call_context);
                 if (call) {
                     chosen = lastmatch;

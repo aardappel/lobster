@@ -37,7 +37,6 @@ struct Type {
 
     union {
         const Type *sub; // V_VECTOR | V_NIL | V_VAR
-        Named *named;    // V_FUNCTION | V_COROUTINE | V_STRUCT
         SubFunction *sf; // V_FUNCTION | V_COROUTINE
         Struct *struc;   // V_STRUCT
     };
@@ -65,21 +64,6 @@ struct Type {
         (ValueType &)t = o.t;
         sub = o.sub;
         return *this;
-    }
-
-    // This one is used to sort types for multi-dispatch.
-    bool operator<(const Type &o) const {
-        if (t != o.t) return t < o.t;
-        switch (t) {
-            case V_VECTOR:
-            case V_NIL:
-                return *sub < *o.sub;
-            case V_FUNCTION:
-            case V_STRUCT:
-                return named->idx < o.named->idx;
-            default:
-                return false;
-        }
     }
 
     const Type *Element() const {
@@ -131,7 +115,6 @@ class TypeRef {
     // Must compare Type instances by value.
     bool operator==(const TypeRef &o) const { return *type == *o.type; };
     bool operator!=(const TypeRef &o) const { return *type != *o.type; };
-    bool operator< (const TypeRef &o) const { return *type <  *o.type; };
 
     bool Null() const { return type == nullptr; }
 };

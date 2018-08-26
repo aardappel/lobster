@@ -152,6 +152,12 @@ struct Struct : Named {
         }
     }
 
+    int NumSuperTypes() {
+        int n = 0;
+        for (auto t = superclass; t; t = t->superclass) n++;
+        return n;
+    }
+
     void Resolve(Field &field) {
         if (field.fieldref >= 0) field.type = fields.v[field.fieldref].type;
     }
@@ -653,6 +659,28 @@ struct SymbolTable {
         if (type->t == V_ANY) return true;
         auto u = type->UnWrapped();
         return u->t == V_STRUCT && u->struc->generic;
+    }
+
+    // This one is used to sort types for multi-dispatch.
+    bool IsLessGeneralThan(const Type &a, const Type &b) const {
+        if (a.t != b.t) return a.t > b.t;
+        switch (a.t) {
+            case V_VECTOR:
+            case V_NIL:
+                return IsLessGeneralThan(*a.sub, *b.sub);
+            case V_FUNCTION:
+                return a.sf->idx < b.sf->idx;
+            case V_STRUCT: {
+                if (a.struc == b.struc) return false;
+                auto ans = a.struc->NumSuperTypes();
+                auto bns = b.struc->NumSuperTypes();
+                return ans != bns
+                    ? ans > bns
+                    : a.struc->idx < b.struc->idx;
+            }
+            default:
+                return false;
+        }
     }
 
     void Serialize(vector<int> &code,

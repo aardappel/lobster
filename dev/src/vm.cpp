@@ -327,17 +327,23 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
                    block_t comp_retip, int tempmask) {
     auto nsubf = *mip++;
     auto nargs = *mip++;
+    //Output(OUTPUT_ERROR, "EvalMulti: ", definedfunction);
     for (int i = 0; i < nsubf; i++) {
         // TODO: rather than going thru all args, only go thru those that have types
         for (int j = 0; j < nargs; j++) {
             auto desiredi = (type_elem_t)*mip++;
             auto &desired = GetTypeInfo(desiredi);
             if (desired.t != V_ANY) {
-                auto &given = GetTypeInfo((type_elem_t)call_arg_types[j]);
+                auto giveni = (type_elem_t)call_arg_types[j];
+                auto &given = GetTypeInfo(giveni);
+                //Output(OUTPUT_ERROR, j, " ", desired.Debug(*this, false), " ",
+                //                             given.Debug(*this, false));
                 // Have to check the actual value, since given may be a supertype.
                 // FIXME: this is slow.
-                if ((given.t != desired.t && given.t != V_ANY) ||
-                    (IsRef(given.t) && stack[sp - nargs + j + 1].ref()->tti != desiredi)) {
+                if (IsRef(given.t)) {
+                    giveni = stack[sp - nargs + j + 1].ref()->tti;
+                }
+                if (giveni != desiredi) {
                     mip += nargs - j;  // Includes the code starting point.
                     goto fail;
                 }
