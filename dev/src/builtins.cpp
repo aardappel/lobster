@@ -625,25 +625,27 @@ void AddBuiltins(NativeRegistry &natreg) {
         a.DECRT(vm); \
         return Value(v);
     #define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
+    #define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
+    #define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
 
     STARTDECL(ceiling) (VM &, Value &a) { return Value(fceil(a.fval())); }
     ENDDECL1(ceiling, "f", "F", "I",
         "the nearest int >= f");
-    STARTDECL(ceiling) (VM &vm, Value &a) { VECTOROPT(intp(fceil(f.fval())), vm.GetIntVectorType((int)len)); }
+    STARTDECL(ceiling) (VM &vm, Value &a) { VECTOROPI(intp(fceil(f.fval()))); }
     ENDDECL1(ceiling, "v", "F}", "I}",
         "the nearest ints >= each component of v");
 
     STARTDECL(floor) (VM &, Value &a) { return Value(ffloor(a.fval())); }
     ENDDECL1(floor, "f", "F", "I",
         "the nearest int <= f");
-    STARTDECL(floor) (VM &vm, Value &a) { VECTOROPT(ffloor(f.fval()), vm.GetIntVectorType((int)len)); }
+    STARTDECL(floor) (VM &vm, Value &a) { VECTOROPI(ffloor(f.fval())); }
     ENDDECL1(floor, "v", "F}", "I}",
         "the nearest ints <= each component of v");
 
     STARTDECL(int) (VM &, Value &a) { return Value(intp(a.fval())); }
     ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int) (VM &vm, Value &a) { VECTOROPT(intp(f.fval()), vm.GetIntVectorType((int)len)); }
+    STARTDECL(int) (VM &vm, Value &a) { VECTOROPF(intp(f.fval())); }
     ENDDECL1(int, "v", "F}", "I}",
         "converts a vector of floats to ints by dropping the fraction");
 
@@ -651,7 +653,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
         " negative numbers");
-    STARTDECL(round) (VM &vm, Value &a) { VECTOROPT(intp(f.fval() + 0.5f), vm.GetIntVectorType((int)len)); }
+    STARTDECL(round) (VM &vm, Value &a) { VECTOROPF(intp(f.fval() + 0.5f)); }
     ENDDECL1(round, "v", "F}", "I}",
         "converts a vector of floats to the closest ints");
 
@@ -665,7 +667,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(float) (VM &, Value &a) { return Value(floatp(a.ival())); }
     ENDDECL1(float, "i", "I", "F",
         "converts an int to float");
-    STARTDECL(float) (VM &vm, Value &a) { VECTOROPT(floatp(f.ival()), vm.GetFloatVectorType((int)len)); }
+    STARTDECL(float) (VM &vm, Value &a) { VECTOROPF(floatp(f.ival())); }
     ENDDECL1(float, "v", "I}", "F}",
         "converts a vector of ints to floats");
 
@@ -815,6 +817,15 @@ void AddBuiltins(NativeRegistry &natreg) {
         "absolute value of an int vector");
     STARTDECL(abs) (VM &vm, Value &a) { VECTOROP(fabs(f.fval())); } ENDDECL1(abs, "x", "F}", "F}",
         "absolute value of a float vector");
+
+    STARTDECL(sign) (VM &, Value &a) { return Value(signum(a.ival())); } ENDDECL1(sign, "x", "I", "I",
+        "sign (-1, 0, 1) of an integer");
+    STARTDECL(sign) (VM &, Value &a) { return Value(signum(a.fval())); } ENDDECL1(sign, "x", "F", "I",
+        "sign (-1, 0, 1) of a float");
+    STARTDECL(sign) (VM &vm, Value &a) { VECTOROP(signum(f.ival())); } ENDDECL1(sign, "x", "I}", "I}",
+        "signs of an int vector");
+    STARTDECL(sign) (VM &vm, Value &a) { VECTOROPI(signum(f.fval())); } ENDDECL1(sign, "x", "F}", "I}",
+        "signs of a float vector");
 
     // FIXME: need to guarantee this assert in typechecking
     #define VECBINOP(name,access) \

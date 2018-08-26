@@ -360,6 +360,7 @@ def run_test_cases(is_speed_test):
     aa := 5
     aa %= 2
     assert aa == 1
+    assert equal(sign(xyz_f { -6, 0, 6 }), xyz_i { -1, 0, 1 })
 
     // multiple return values
     bb, cc, dd, ee := 1     // all set to 1

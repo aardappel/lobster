@@ -207,6 +207,10 @@ template<typename T> T ipow(T base, T exp) {
 template<typename T> int ffloor(T f) { int i = (int)f; return i - (f < i); }
 template<typename T> int fceil(T f) { int i = (int)f; return i + (f > i); }
 
+template<typename T> int signum(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 template<typename T, int N> inline vec<T,N> operator+(T f, const vec<T,N> &v) { DOVECR(f + v[i]); }
 template<typename T, int N> inline vec<T,N> operator-(T f, const vec<T,N> &v) { DOVECR(f - v[i]); }
 template<typename T, int N> inline vec<T,N> operator*(T f, const vec<T,N> &v) { DOVECR(f * v[i]); }
@@ -221,6 +225,9 @@ template<typename T, int N> inline vec<T,N> normalize(const vec<T,N> &v) { retur
 template<typename T, int N> inline vec<T,N> abs(const vec<T,N> &v) { DOVECR(fabsf(v[i])); }
 template<typename T, int N> inline vec<T,N> sign(const vec<T,N> &v) {
     DOVECR((T)(v[i] >= 0 ? 1 : -1));
+}
+template<typename T, int N> inline vec<int,N> signum(const vec<T,N> &v) {
+    DOVECR(signum(v[i]));
 }
 template<typename T, int N> inline vec<T,N> min(const vec<T,N> &a, const vec<T,N> &b) {
     DOVECR(std::min(a[i], b[i]));
