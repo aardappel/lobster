@@ -307,7 +307,7 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
-    struct WithStackElem { TypeRef type; Ident *id; SubFunction *sf; };
+    struct WithStackElem { TypeRef type; Ident *id = nullptr; SubFunction *sf = nullptr; };
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 

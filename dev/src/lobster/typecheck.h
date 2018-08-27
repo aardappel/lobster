@@ -1661,8 +1661,17 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, bool reqret) {
         r = dot;
     } else {
         if (maybe) tc.TypeError("?. may only be used with fields: " + name, *this);
-        // TODO: if any of sf's specializations matches type exactly, can allow it to override nf.
-        if (nf) {
+        // See if any of sf's specializations matches type exactly, then it overrides nf.
+        bool prefer_sf = false;
+        if (sf && struc && sf->parent->nargs()) {
+            for (auto sfi = sf->parent->subf; sfi; sfi = sfi->next) {
+                if (sfi->args.v[0].type->struc == struc) {
+                    prefer_sf = true;
+                    break;
+                }
+            }
+        }
+        if (nf && !prefer_sf) {
             auto nc = new NativeCall(nf, *this);
             nc->children = children;
             nc->TypeCheckSpecialized(tc, reqret);

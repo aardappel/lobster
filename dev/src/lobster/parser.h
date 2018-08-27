@@ -877,7 +877,13 @@ struct Parser {
 
     Node *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
                             bool coroutine, bool noparens) {
-        if (nf) {
+        auto wse = st.GetWithStackBack();
+        // FIXME: move more of the code below into the type checker, and generalize the remaining
+        // code to be as little dependent as possible on wether nf or f are available.
+        // It should only parse args and construct a GenericCall.
+
+        // We give precedence to builtins, unless we're calling a known function in a :: context.
+        if (nf && (!f || !wse.id)) {
             auto nc = new GenericCall(lex, idname, nullptr, false, false);
             ParseFunArgs(nc, coroutine, firstarg, idname, &nf->args, noparens);
             size_t i = 0;
@@ -919,7 +925,6 @@ struct Parser {
             return nc;
         }
         auto id = st.Lookup(idname);
-        auto wse = st.GetWithStackBack();
         // If both a var and a function are in scope, the deepest scope wins.
         // Note: <, because functions are inside their own scope.
         if (f && (!id || id->scopelevel < f->scopelevel)) {
@@ -954,6 +959,9 @@ struct Parser {
             // arg of the same type we pass it in automatically.
             // This is maybe a bit very liberal, should maybe restrict it?
             if (wse.id &&
+                // FIXME: for a multimethod, this would need to check against ever subf.
+                // Though even then, the corresponding subf for this call may have not been
+                // declared, so better to do it all in type checking.
                 wse.type == f->subf->args.v[0].type &&
                 f->subf->args.v[0].flags & AF_WITHTYPE &&
                 wse.sf->parent != f) {  // Not in recursive calls.

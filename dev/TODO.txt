@@ -1,3 +1,6 @@
+- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
+  clash with typechecking.
+
 - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
 
 - rename builtin functions that still use snakecase instead of snake_case
