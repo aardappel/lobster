@@ -719,17 +719,38 @@ struct TypeChecker {
                     sf->numcallers++;
                     TypeCheckFunctionDef(*sf, call_context);
                 }
-                f.multimethodretval = f.subf->returntypes[0];
-                for (auto sf = f.subf->next; sf; sf = sf->next) {
+                bool is_bound = f.multimethodretval->IsBoundVar();
+                for (auto sf = f.subf; sf; sf = sf->next) {
                     // FIXME: Lift these limits?
                     if (sf->returntypes.size() != 1)
                         TypeError("multi-methods can currently return only 1 value.",
                                   *call_context);
-                    if (!ConvertsTo(sf->returntypes[0], f.multimethodretval, false))
-                        TypeError("multi-method " + f.name +
-                                  " has inconsistent return value types: " +
-                                  TypeName(sf->returntypes[0]) + " and " +
-                                  TypeName(f.multimethodretval), *call_args);
+                    auto u = f.subf->returntypes[0];
+                    if (is_bound) {
+                        if (!ConvertsTo(u, f.multimethodretval, false))
+                            // FIXME: not a great error, but should be rare.
+                            TypeError("multi-method " + f.name +
+                                      " return value type " +
+                                      TypeName(sf->returntypes[0]) +
+                                      " is bound by recursive call type " +
+                                      TypeName(f.multimethodretval), *sf->body);
+                    } else {
+                        if (sf != f.subf) {
+                            u = Union(u, f.multimethodretval, false);
+                            // FIXME: this is better than nothing, but still can trip up some
+                            // definitions.
+                            // To fix this, we would have to insert coercions after the fact, or
+                            // better yet, use reqret somehow (if they'd be the same across all
+                            // callers). Though, even reqret can sometime artificially be true.
+                            // Or, we could type-check them twice.
+                            if (!IsRef(f.multimethodretval->t) && IsRef(u->t))
+                                TypeError("multi-method " + f.name +
+                                          " return value type " +
+                                          TypeName(sf->returntypes[0]) + " cannot be unified with " +
+                                          TypeName(f.multimethodretval), *sf->body);
+                        }
+                        f.multimethodretval = u;
+                    }
                 }
             }
             // See how many cases match, if only 1 (as subtype of declared) we can specialize,

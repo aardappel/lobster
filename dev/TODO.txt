@@ -230,6 +230,9 @@
 
 - switch jump table based version.
 
+- multi-methods should have better return value type checking, probably by typechecking them
+  twice.
+
 - Ways to represent "value" structs as in-line values.
   Easiest may be to make a 3 field struct actually take up 3 fields in the parent, that way
   quite a bit of code can ignore the distinction.

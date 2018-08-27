@@ -84,6 +84,8 @@ struct Type {
 
     bool IsFunction() const { return t == V_FUNCTION && sf; }
 
+    bool IsBoundVar() const { return t == V_VAR && sub; }
+
     bool HasVariable() const {  // FIXME: does this cover all cases?
         return t == V_VAR ||
               (t == V_VECTOR && sub->t == V_VAR) ||
