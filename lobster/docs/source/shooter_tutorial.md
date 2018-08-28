@@ -53,8 +53,7 @@ fast (30-60 times per second), giving the impression of smooth animation.
 next frame, and checks for input etc. If the user clicks the close button or
 otherwise terminates the app, `gl_frame` will return `false`, which is our
 signal to quit the game. Additionally, we want the user to be able to quit if
-they press the escape key, so we check for that too (the `&` symbol means and
-*and* `!` is *not*).
+they press the escape key, so we check for that too.
 
 Then inside the frame loop, we clear the screen (remember that we draw
 repeatedly), and then we're ready to draw. `color_black` is a constant
@@ -106,7 +105,7 @@ Here we'll take a simple approach: make the middle of the screen our coordinate
 system origin, and rendering outward enough from there that we have all ratios
 covered.
 
-gl\_translate changes our coordinate system, and is used thruout graphics
+gl\_translate changes our coordinate system, and is used throughout graphics
 rendering in Lobster to render things at different portions of the screen. Here
 we move from upper-left to the middle of the screen by translating by half the
 `gl_windowsize`.
@@ -290,7 +289,7 @@ while gl_frame() and gl_button("escape") != 1:
 
 To be able to shoot, first we have to worry about giving our player an
 orientation. We compute that in the vector `tomouse` which we get by
-substracting the player position from the mouse position (what we want to shoot
+subtracting the player position from the mouse position (what we want to shoot
 towards). Something funny is going on here though, as the name
 `gl_localmousepos` may indicate: normally mouse positions are in pixels, but
 those we can't compare against the player position, which is in world
