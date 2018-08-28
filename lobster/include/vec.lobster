@@ -56,7 +56,7 @@ octant_directions :== [
     xyz { -1,  1,  1 },
     xyz { -1,  1, -1 },
     xyz { -1, -1,  1 },
-    xyz { -1, -1, -1 }
+    xyz { -1, -1, -1 },
 ]
 
 // shorten vectors, e.g. xyz -> xy

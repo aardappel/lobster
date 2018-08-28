@@ -92,15 +92,10 @@ struct Parser {
 
     void ParseVector(const function<void ()> &f, TType closing) {
         if (IsNext(closing)) return;
-        bool indented = IsNext(T_INDENT);
+        assert(lex.token != T_INDENT);  // Not generated inside brackets/braces.
         for (;;) {
             f();
-            if (!IsNext(T_COMMA)) break;
-        }
-        if (indented) {
-            IsNext(T_LINEFEED);
-            Expect(T_DEDENT);
-            Expect(T_LINEFEED);
+            if (!IsNext(T_COMMA) || lex.token == closing) break;
         }
         Expect(closing);
     }
