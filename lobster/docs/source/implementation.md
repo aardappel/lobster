@@ -10,11 +10,11 @@ Lobster has been released under the Apache 2 open source license.
 Building Lobster
 ----------------
 
-Lobster uses recent C++11 features (auto, lambda, range-for), so will need
-Visual Studio 2015 (the free community edition will do), Xcode 4.6, or a recent
-GCC (4.8.2 or newer) to be compiled.
+Lobster uses recent C++17 features, so will need
+Visual Studio 2017 (the free community edition will do), Xcode 9.x, or a recent
+GCC (7.0 preferably) to be compiled.
 
-Lobster uses OpenGL, SDL 2.0 and FreeType, these are included, so should compile
+Lobster uses OpenGL, SDL 2.x and FreeType, these are included, so should compile
 out of the box with no further external dependencies.
 
 All source code and other files related to building Lobster for all platforms
@@ -30,8 +30,8 @@ benefits a lot from extra registers).
 This platform is definitely best supported and easiest to use for now. Open up
 `dev\lobster\lobster.sln` with Visual Studio. The project is set up to build
 lobster.exe in the main lobster folder, and will be ready for use as described
-either from the [command line](command_line_usage.html) or
-[Notepad++](notepadpp_ide.html) / SublimeText.
+either from the [command line](command_line_usage.html) or [VS Code](vscode_ide.html) /
+[Notepad++](notepadpp_ide.html) / [SublimeText](sublime_ide.html).
 
 ### OS X & iOS
 
@@ -167,7 +167,7 @@ Things to change if you want to release your app in the Google Play store:
     `src/com/strlen/lobster/LobsterActivity.java` (both at the top of that file
     and the directory path itself!).
 
-### Emscripten / JavaScript
+### WebAssembly / Emscripten
 
 You need the [emscripten
 toolchain](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)
@@ -179,10 +179,10 @@ them in `dev/emscripten/assets`. They will be automatically picked up by the
 build process this way.
 
 To build, go to `dev/emscripten`, and type `make -j8`. This should produce a
-lobster.[js\|html\|data] in the same directory (the latter containing whatever
+lobster.[wasm\|js\|html\|data] in the same directory (the latter containing whatever
 you placed in `assets`).
 
-You can now run it with `emrun --browser firefox lobster.html --verbose` or
+You can now run it with `emrun --browser chrome lobster.html --verbose` or
 similar. Note that just loading up the html in your browser directly may not
 work because of security restrictions. Alternatively place all the generated
 files on a webserver, and load from there.
@@ -212,9 +212,9 @@ These must be (including correct paths):
 -   Any files your code references that are not in the pakfile (e.g.
     `gl_loadtexture(”mypath/myfile.png”)` ).
 
--   On Windows, you’ll need to include `openvr_api.dll` (and possibly
-    `steam_api.dll`) next to `lobster.exe` even if you don’t use any VR
-    functionality, this will hopefully be fixed in the future.
+-   On Windows, you’ll need to include `openvr_api.dll` and/or `steam_api.dll`
+    next to `lobster.exe` ONLY if you use functions starting with `vr_` or
+    `steam_` respectively.
 
 Where you place these files depends on the platform, on Windows / Linux it is
 next to the lobster executable, on OS X / iOS it is the application bundle under

@@ -38,7 +38,7 @@
 <p>Below, <code>...</code> indicates a loop with exit point at that scope level, and <code>||</code> is like <code>|</code> except indicates a precedence level difference.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
-<p>topexp = <code>include</code> string_constant | [ <code>private</code> ] ( <code>def</code> ident functiondef | struct | vardef | enumdef ) | expstat</p>
+<p>topexp = <code>include</code> [ <code>from</code> ] string_constant | [ <code>private</code> ] ( <code>def</code> ident functiondef | struct | vardef | enumdef ) | expstat</p>
 <p>struct = ( <code>struct</code> | <code>value</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
 <p>vardef = ( <code>var</code> | <code>let</code> ) ident <code>=</code> opexp | list( ident ) ( <code>:=</code> | <code>:==</code> | <code>&lt;-</code> ) list( opexp )</p>
 <p>enumdef = <code>enum</code> [ <code>+</code> | <code>*</code> ] list( ident [ <code>=</code> integer_constant ] )</p>
@@ -243,6 +243,7 @@ y = oldy</code></pre>
 <p>A lobster program is like the body of a function: a list of expressions on separate lines, defined by a single file, the main file of your program. At this top level of a file, you can additionally use the <code>include</code> keyword to bring additional code into your program:</p>
 <pre><code>include &quot;std.lobster&quot;</code></pre>
 <p>The contents of that file will be merged into your main file at the location of the <code>include</code> for the purpose of compilation. If you you include the same file twice, the second occurrence will be ignored.</p>
+<p>Include files will typically be loaded relative to 2 locations: the current main .lobster file being compiled, and whereever the lobster compiler is installed. In both those locations, files may be optionally be found under an <code>include</code> sub-directory. You can use <code>include from &quot;path/to/&quot;</code> to provide additional such starting directories (relative to the current main <code>.lobster</code> file being compiled) that any following include statements (recursively) can use.</p>
 <p>You may use the keyword <code>private</code> at the top level in a file to prefix structs, variables, and functions that you don’t want to be visible outside that file.</p>
 <h2 id="memory-management">Memory Management</h2>
 <p>Lobster uses reference counting as its basic form of management for many reasons. Besides simplicity and space efficiency, reference counting makes a language more predictable in how much time is spent for a given amount of code, since memory management cost is spread equally through all code, instead of causing possibly long pauses like with garbage collection. Lobster has a custom allocator for its vector object that is very fast.</p>
@@ -271,6 +272,15 @@ do:
 <p>but since people are so used to the way while loops work from other languages, the first argument has a special type that automatically converts an expression into a function value. When you think about it, even in languages like C the condition of a while is the only part of the language that can be executed more than once yet does not use / cannot use the block <code>{}</code> syntax. This exception is carried over in Lobster. This is not great for readability so isn’t generally used elsewhere.</p>
 <p><code>while</code> returns the last return value of the body, or nil if never executed. A similar function <code>collectwhile</code> returns a vector of all body return values.</p>
 <p>Many other functions that look like regular functions are actually also control structures, like many of the graphics function that change the current rendering state. An example is <code>gl_translate()</code>, that optionally takes a body, and will run the body and restore the previous transform afterwards.</p>
+<p><code>switch</code> has its own special syntax, since it does a lot of things different:</p>
+<pre><code>st := switch i:
+        case 1: &quot;no&quot;
+        case 2, 3:
+            x := i
+            &quot;yes&quot; + x
+        case 4..6, 8: &quot;maybe&quot;
+        default: &quot;what?&quot;</code></pre>
+<p>The value you switch on may be int, float or string. Cases may test for multiple values, even ranges (which are inclusive)</p>
 <h2 id="type-checking">Type Checking</h2>
 <p>This has its own document, <a href="type_checker.html">here</a>.</p>
 </body>

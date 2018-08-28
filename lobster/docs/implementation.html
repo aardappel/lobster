@@ -24,12 +24,12 @@
 <p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, reusing, and compiling Lobster code to C++.</p>
 <p>Lobster has been released under the Apache 2 open source license.</p>
 <h2 id="building-lobster">Building Lobster</h2>
-<p>Lobster uses recent C++11 features (auto, lambda, range-for), so will need Visual Studio 2015 (the free community edition will do), Xcode 4.6, or a recent GCC (4.8.2 or newer) to be compiled.</p>
-<p>Lobster uses OpenGL, SDL 2.0 and FreeType, these are included, so should compile out of the box with no further external dependencies.</p>
+<p>Lobster uses recent C++17 features, so will need Visual Studio 2017 (the free community edition will do), Xcode 9.x, or a recent GCC (7.0 preferably) to be compiled.</p>
+<p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included, so should compile out of the box with no further external dependencies.</p>
 <p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder, which is usually parallel to the main lobster folder.</p>
 <p>Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all Lobster values will take double the size (and precision), and thus use more memory. Despite that, for most programs, 64-bit is still a speed-up (the VM benefits a lot from extra registers).</p>
 <h3 id="windows">Windows</h3>
-<p>This platform is definitely best supported and easiest to use for now. Open up <code>dev\lobster\lobster.sln</code> with Visual Studio. The project is set up to build lobster.exe in the main lobster folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="notepadpp_ide.html">Notepad++</a> / SublimeText.</p>
+<p>This platform is definitely best supported and easiest to use for now. Open up <code>dev\lobster\lobster.sln</code> with Visual Studio. The project is set up to build lobster.exe in the main lobster folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="notepadpp_ide.html">Notepad++</a> / <a href="sublime_ide.html">SublimeText</a>.</p>
 <h3 id="os-x-ios">OS X &amp; iOS</h3>
 <p>Building for either one is easy using the single Xcode project (in <code>dev/xcode/lobster</code>) which produces a .app bundle for either platform (the <code>lobsterapp</code> and <code>lobster_ios</code> targets), or a command line version for OS X (the <code>lobster</code> target) placed in the main lobster folder much like Windows.</p>
 <p>To develop Lobster code on OS X, easiest probably is to use the command line version. Many OS X editors support running a command line compiler, e.g. SublimeText, or Komodo Edit with Tools -&gt; Run Command.</p>
@@ -77,11 +77,11 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <li><p>Change the .png files in <code>res/</code> with your own application icon.</p></li>
 <li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
 </ul>
-<h3 id="emscripten-javascript">Emscripten / JavaScript</h3>
+<h3 id="webassembly-emscripten">WebAssembly / Emscripten</h3>
 <p>You need the <a href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten toolchain</a> installed, as well as GNU make (on windows that means installing <a href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>
 <p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
-<p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code>. This should produce a lobster.[js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
-<p>You can now run it with <code>emrun --browser firefox lobster.html --verbose</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
+<p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code>. This should produce a lobster.[wasm|js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
+<p>You can now run it with <code>emrun --browser chrome lobster.html --verbose</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>
@@ -92,7 +92,7 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <li><p>Any other files/directories you have specified with <code>pakfile</code>, e.g: <code>gl_loadtexture(pakfile ”mypath/myfile.png”)</code>. <code>pakfile</code> can prefix filenames or directories (ending in <code>/</code>), in which case all files in the directory will (non-recursively) be added. When running with <code>--verbose</code> you can see what files are added/loaded from a pakfile, and which are loaded individually.</p></li>
 </ul></li>
 <li><p>Any files your code references that are not in the pakfile (e.g. <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
-<li><p>On Windows, you’ll need to include <code>openvr_api.dll</code> (and possibly <code>steam_api.dll</code>) next to <code>lobster.exe</code> even if you don’t use any VR functionality, this will hopefully be fixed in the future.</p></li>
+<li><p>On Windows, you’ll need to include <code>openvr_api.dll</code> and/or <code>steam_api.dll</code> next to <code>lobster.exe</code> ONLY if you use functions starting with <code>vr_</code> or <code>steam_</code> respectively.</p></li>
 </ul>
 <p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk, and with emscripten there’s an assets directory also.</p>
 <h2 id="compiling-lobster-code-to-c">Compiling Lobster code to C++</h2>
