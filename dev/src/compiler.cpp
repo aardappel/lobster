@@ -220,9 +220,14 @@ void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st)
         }
         s += cat("<tr class=\"a\" valign=top><td class=\"a\"><tt><b>", nf->name, "</b>(");
         int i = 0;
+        int last_non_nil = -1;
+        for (auto &a : nf->args.v) {
+            if (a.type->t != V_NIL) last_non_nil = i;
+            i++;
+        }
+        i = 0;
         for (auto &a : nf->args.v) {
             auto argname = nf->args.GetName(i);
-            if (a.type->t == V_NIL) s += " [";
             if (i) s +=  ", ";
             s += argname;
             s += "<font color=\"#666666\">";
@@ -231,7 +236,8 @@ void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st)
                 s += TypeName(a.type->t == V_NIL ? a.type->Element() : a.type, a.fixed_len, &st);
             }
             s += "</font>";
-            if (a.type->t == V_NIL) s += "]";
+            if (a.type->t == V_NIL && i > last_non_nil)
+                s += a.type->sub->Numeric() ? " = 0" : " = nil";
             i++;
         }
         s += ")";
