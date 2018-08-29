@@ -733,7 +733,7 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
     case V_VECTOR:
         return flen && type->Element()->Numeric()
             ? (flen < 0
-                ? (type->Element()->t == V_INT ? "xy_z_w_i" : "xy_z_w_f")  // FIXME: better names?
+                ? (type->Element()->t == V_INT ? "vec_i" : "vec_f")  // FIXME: better names?
                 : TypeName(st->VectorType(type, 0, flen)))
             : (type->Element()->t == V_VAR
                 ? "[]"
