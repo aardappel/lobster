@@ -151,7 +151,7 @@ print mat[pos]</code></pre>
     exp1
     exp2</code></pre>
 <p>The return value of a function is always that of the last expression evaluated, or given by <code>return</code> (see below).</p>
-<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types will be checked at run-time, and cause the incoming value to either be converted to that type, or rejected with a run-time error.</p>
+<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types are checked at compile time. If you don’t specify types, the function is generic, meaning it will receive types from the caller.</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
 <pre><code>def magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
 <p>You can also leave out the <code>v::xy</code> entirely if you define this function as part of a <code>struct</code> / <code>value</code> definition of type <code>xy</code> (see above). Both types of definition are equivalent.</p>
@@ -160,6 +160,9 @@ print mat[pos]</code></pre>
 def intersect(c:circle, p:xy): &quot;point in circle&quot;
 def intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
 <p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
+<p>You can specify an explicit return type, like so:</p>
+<pre><code>def f(a:int, b:int) -&gt; float: a + b</code></pre>
+<p>This is typically not necessary, but may be helpful when coercing to a more general type.</p>
 <h3 id="function-calls">Function calls</h3>
 <p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don’t modify the argument.</p>
 <p>Optionally, you may also call functions without any parentheses at all, e.g. <code>print &quot;hi!&quot;</code>. This is only allowed for known functions (that are not ambiguous with variables) that have 1 expression argument (followed by any number of function value arguments that don’t take arguments themselves, see below). It is up to the programmer to use good judgement on when to use this, the recommended use case is for calls used as statements (no nesting) that don’t cause additional parentheses to be needed elsewhere. In case of doubt, use the standard call syntax.</p>
@@ -192,7 +195,7 @@ else:
             return true
     false</code></pre>
 <p><code>find</code>’s return value appears to be <code>false</code>, but by using <code>return</code>, we can override it to be <code>true</code>. Importantly, <code>return true</code> is an expression that sits inside a function value being passed to <code>if</code> (which in turn sits in a function value passed to <code>for</code>), but bypasses all of this (unlike most programming languages with function values). This is essential for functions to be able to work as proper control structures.</p>
-<p>If this feels like it is similar to exception handling in other programming languages, that’s because it is. Lobster even allows you to specify the name of the function to return from (e.g. <code>return &quot;expression expected&quot; from parse</code>), which is extremely handy when you want to be able to return errors from a bunch of helper functions without having to pass it back through all intermediate functions, such as when writing a parser. It is also powerful enough to allow you to implement fully general exception handling in Lobster code, see <code>exception.lobster</code>.</p>
+<p>If this feels like it is similar to exception handling in other programming languages, that’s because it is. Lobster even allows you to specify the name of the function to return from (e.g. <code>return &quot;expression expected&quot; from parse</code>), which is extremely handy when you want to be able to return errors from a bunch of helper functions without having to pass it back through all intermediate functions, such as when writing a parser. This is a simple form of exception handling, that is also powerful enough to allow you to implement fully general exception handling in Lobster code, see <code>exception.lobster</code>.</p>
 <p>You can use the keyword <code>program</code> instead of a function name to force returning from the entire program.</p>
 <h3 id="multiple-return-values">Multiple Return Values</h3>
 <p>return can specify more than one value to be returned, which can then be received by the multiple assignment syntax introduced above:</p>
@@ -281,6 +284,12 @@ do:
         case 4..6, 8: &quot;maybe&quot;
         default: &quot;what?&quot;</code></pre>
 <p>The value you switch on may be int, float or string. Cases may test for multiple values, even ranges (which are inclusive)</p>
+<p>There is currently no <code>break</code> or <code>continue</code>. To add these would be a little more complicated than most languages, since they’d need to work with any custom control structure. For now, use <code>return</code> (or <code>return</code> <code>from</code>), e.g.:</p>
+<pre><code>do():
+    for(10):
+        if x: return false from do
+    true</code></pre>
+<p>Instead of using <code>do</code> (defined in <code>std.lobster</code>), you can also use a regular <code>return</code> from any named function definition (which can be nested in any code block).</p>
 <h2 id="type-checking">Type Checking</h2>
 <p>This has its own document, <a href="type_checker.html">here</a>.</p>
 </body>

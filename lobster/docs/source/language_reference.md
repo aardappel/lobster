@@ -390,9 +390,9 @@ The return value of a function is always that of the last expression evaluated,
 or given by `return` (see below).
 
 Arguments can be just an argument name (which will be available as a lexically
-scoped local variable inside body), or a typed name (e.g. `s:string`). Types
-will be checked at run-time, and cause the incoming value to either be converted
-to that type, or rejected with a run-time error.
+scoped local variable inside body), or a typed name (e.g. `s:string`). Types are
+checked at compile time. If you don't specify types, the function is generic,
+meaning it will receive types from the caller.
 
 You can use :: instead of : for typed vector arguments, which allows you to
 access all fields / functions of that vector directly, without having to prefix
@@ -422,6 +422,15 @@ specific one (the one where the exact types match) will be preferred, determined
 by the arguments from left to right. If no function satisfies the argument
 types, this is a run-time error (the above example will never have a runtime
 error, since at least one function always matches).
+
+You can specify an explicit return type, like so:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def f(a:int, b:int) -> float: a + b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is typically not necessary, but may be helpful when coercing to a more
+general type.
 
 ### Function calls
 
@@ -538,7 +547,8 @@ languages, that's because it is. Lobster even allows you to specify the name of
 the function to return from (e.g. `return "expression expected" from parse`),
 which is extremely handy when you want to be able to return errors from a bunch
 of helper functions without having to pass it back through all intermediate
-functions, such as when writing a parser. It is also powerful enough to allow
+functions, such as when writing a parser. This is a simple form of exception
+handling, that is also powerful enough to allow
 you to implement fully general exception handling in Lobster code, see
 `exception.lobster`.
 
@@ -839,6 +849,20 @@ st := switch i:
 
 The value you switch on may be int, float or string. Cases may test for multiple
 values, even ranges (which are inclusive)
+
+There is currently no `break` or `continue`. To add these would be a little more
+complicated than most languages, since they'd need to work with any custom
+control structure. For now, use `return` (or `return` `from`), e.g.:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+do():
+    for(10):
+        if x: return false from do
+    true
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of using `do` (defined in `std.lobster`), you can also use a regular
+`return` from any named function definition (which can be nested in any code block).
 
 
 Type Checking

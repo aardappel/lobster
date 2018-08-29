@@ -123,7 +123,7 @@ version</big></td>
 else:<br>
 &nbsp; &nbsp; d<br>
 &nbsp; &nbsp; e</td>
-<td>if (a) { b; c; } else { d; e; }</td>
+<td>if (a) {<br>&nbsp; &nbsp; b;<br>&nbsp; &nbsp; c;<br>} else {<br>&nbsp; &nbsp;&nbsp;d;<br>&nbsp; &nbsp;&nbsp;e;<br>}</td>
 <td></td>
 </tr>
 <tr>
@@ -139,8 +139,7 @@ else:<br>
 <tr>
 <td>for(m) i:<br>
 &nbsp; &nbsp; print i</td>
-<td>for (int i = 0; i &lt; m; i++)<br>
-{<br>
+<td>for (int i = 0; i &lt; m; i++) {<br>
 &nbsp; &nbsp; print(i);<br>
 }</td>
 <td></td>
@@ -209,19 +208,18 @@ version</big></td>
 version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
-<tr><td>def&nbsp;name(a:int, b:int): a + b</td><td>int name(int a, int b) { return a + b; }</td><td></td></tr><tr>
+<tr><td>def&nbsp;name(a:int, b:int) -&gt; int: a + b</td><td>int name(int a, int b) { return a + b; }</td><td>In Lobster it is unusual to specify types, especially the return type</td></tr><tr>
 <td>def&nbsp;name(a, b): a + b</td>
 <td>T&nbsp;name&lt;T&gt;(T a, T b) { return a + b; }</td>
-<td><br></td>
+<td>By default function are declared without types, and automatically inferred on use.<br></td>
 </tr>
 <tr>
 <td>def&nbsp;name(a, b):<br>
 &nbsp; &nbsp; a + b</td>
-<td>T&nbsp;name&lt;T&gt;(T a, T b)<br>
-{<br>
+<td>T&nbsp;name&lt;T&gt;(T a, T b) {<br>
 &nbsp; &nbsp; return a + b;<br>
 }</td>
-<td></td>
+<td>For multiple lines, use indentation.</td>
 </tr>
 <tr>
 <td style="white-space: nowrap;">def&nbsp;magnitude(v::xy): sqrt(x * x + y * y)</td>
@@ -275,7 +273,7 @@ so we can't use overloading.</td>
 </tr>
 <tr>
 <td>def&nbsp;fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; init</td>
-<td>T fold&lt;T&gt;(List&lt;T&gt; xs, T init, Func&lt;T, T, T&gt; fun)<br>{<br>&nbsp; &nbsp; foreach (var x in xs) init = fun(init, x);<br>&nbsp; &nbsp; return init;<br>}</td>
+<td>T fold&lt;T&gt;(List&lt;T&gt; xs, T init, Func&lt;T, T, T&gt; fun) {<br>&nbsp; &nbsp; foreach (var x in xs) init = fun(init, x);<br>&nbsp; &nbsp; return init;<br>}</td>
 <td>How to write a <span style="font-style: italic;">Higher Order Function</span>:
 a function that takes a function argument. In this case "fold": take a
 list, and apply the function to each element and the previous result,
@@ -293,7 +291,7 @@ effectively "folding" the list into a single value.</td>
 </tr>
 <tr>
 <td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
-<td>var r = fold(list, 0, (a, b) =&gt;<br>{<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
+<td>var r = fold(list, 0, (a, b) =&gt; {<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
 <td>note how in most languages lambda syntax becomes messy when you
 want to use them with a larger body, and looking very different from
 builtin control structures.</td>
@@ -309,7 +307,7 @@ default, return returns from the lexically enclosing named function.</td>
 </tr>
 <tr>
 <td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if something: return 1 from f<br>&nbsp; &nbsp; 0</td>
-<td>int f()<br>{<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g()<br>{<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
+<td>int f() {<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g() {<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
 <td>return even allows you to specify which function to return from,
 which in other languages you can do with exception handling. In fact,
 exception handling in Lobster is not a language feature, it is simply
@@ -329,8 +327,7 @@ return/from (implemented in exception.lobster).</td>
 <td>a := 0<br>def&nbsp;g(): print a&nbsp; // 1<br>def&nbsp;f():<br>
 &nbsp; &nbsp; a &lt;- 1<br>
 &nbsp; &nbsp; g()</td>
-<td>int a = 0;<br>void g() { print(a); } // 1<br>void f()<br>
-{<br>
+<td>int a = 0;<br>void g() { print(a); } // 1<br>void f() {<br>
 &nbsp; &nbsp;var olda = a;<br>
 &nbsp; &nbsp;a = 1;<br>
 &nbsp; &nbsp;g();<br>
@@ -419,7 +416,7 @@ version</big></td>
 </tr>
 <tr>
 <td style="white-space: nowrap;">def&nbsp;myiter(f):<br>&nbsp; &nbsp; for(10) i: f(i)</td>
-<td style="white-space: nowrap;">IEnumerable&lt;T&gt; myiter()<br>{<br>&nbsp; &nbsp; for (int i = 0; i &lt; 10; i++) yield return i;<br>}</td>
+<td style="white-space: nowrap;">IEnumerable&lt;T&gt; myiter() {<br>&nbsp; &nbsp; for (int i = 0; i &lt; 10; i++) yield return i;<br>}</td>
 <td>unlike most languages, you define coroutines just as you would any
 iteration function: by calling a function value. This allows you to
 define iteration functions without having to decide if you want to use
