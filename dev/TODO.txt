@@ -408,12 +408,6 @@
 
 - type errors should skip large amounts of globals for __top_level_expression()
 
-- can't analyze return value for:
-  def foo():
-      if ..:
-         return ""
-      nil
-
 - In this kind of code, without the type annotation, the list specializes it to subclass
   and fails the removeobj:
   def supermethod(.., list:[supertype])
@@ -577,15 +571,6 @@
   Would be able to show a nice nested view of the cost of all lobster functions and builtins.
 
 - use RangeCheck in more places.
-
-- Should allow widening of types where no conversions are necessary:
-  def f():
-     for(..):
-        return val
-     nil
-  Currently doesn't work, because we can't change how val is coerced.
-  But simple widenings should be possible.
-  Also currently no way to specify return types, so having to write val or nil is clumsy
 
 - this crashes on += in codegen:
   team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,

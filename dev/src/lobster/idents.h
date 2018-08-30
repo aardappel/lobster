@@ -203,6 +203,7 @@ struct SubFunction {
     ArgVector freevars;       // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
     bool reqret;  // Do the caller(s) want values to be returned?
+    bool isrecursivelycalled;
     bool iscoroutine;
     ArgVector coyieldsave;
     TypeRef coresumetype;
@@ -218,6 +219,7 @@ struct SubFunction {
     SubFunction(int _idx)
         : idx(_idx),
           args(0), locals(0), dynscoperedefs(0), freevars(0), reqret(true),
+          isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), mustspecialize(false),

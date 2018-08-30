@@ -534,11 +534,23 @@ struct TypeChecker {
             assert(i == sf->returntypes.size());
             sf->returntypes.push_back(!type.Null() ? type : n->exptype);
         } else if (sf->reqret) {
-            auto argname = "return value";
-            if (!type.Null()) SubTypeT(type, sf->returntypes[i], context, argname);
-            else if (n) SubType(n, sf->returntypes[i], argname, context);
-            // FIXME: this allows "return" followed by "return 1" ?
-            else SubTypeT(type_any, sf->returntypes[i], context, argname);
+            if (sf->isrecursivelycalled) {
+                // We must be conservative because there may already be callers dependent on
+                // the return type so far, so any others must be subtypes.
+                // FIXME: are there any other situations beyond recursive calls that can require
+                // subtyping?
+                auto argname = "return value";
+                if (!type.Null()) SubTypeT(type, sf->returntypes[i], context, argname);
+                else if (n) SubType(n, sf->returntypes[i], argname, context);
+                // FIXME: this allows "return" followed by "return 1" ?
+                else SubTypeT(type_any, sf->returntypes[i], context, argname);
+            } else {
+                // We can safely generalize the type if needed, though not with coercions.
+                // TODO: we could allow coercions for the node, but that would only work depending
+                // on the order of return statements, so maybe not desirable to have.
+                auto other = !type.Null()  ? type : (n ? n->exptype : type_any);
+                sf->returntypes[i] = Union(other, sf->returntypes[i], false);
+            }
         } else {
             // The caller doesn't want return values.
         }
@@ -705,6 +717,8 @@ struct TypeChecker {
             // we want to override them.
             freevar.type = freevar.sid->Current()->type;
         }
+        // See if this call is recursive:
+        for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
         return sf->returntypes[0];
     }
 

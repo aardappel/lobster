@@ -380,6 +380,13 @@ def run_test_cases(is_speed_test):
     jj, kk := multiretpassthru()
     assert jj == 6 and kk == 7
 
+    // Union return types (should infer string?):
+    def union_return(n):
+        for(10) a:
+            if a == n: return "foo"
+        nil
+    assert union_return(5)
+
     // non-local named returns: limited form of exception handling
     def nlr1():
         nlr2()
