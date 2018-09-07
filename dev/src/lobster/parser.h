@@ -615,9 +615,9 @@ struct Parser {
     }
 
     void ParseFunArgsRec(List *list, bool coroutine, bool needscomma, GenericArgs *args,
-                         size_t thisarg, string_view fname, bool noparens) {
+                         size_t thisarg, string_view fname, bool noparens /* this call */) {
         if (!noparens && IsNext(T_RIGHTPAREN)) {
-            if (call_noparens) {
+            if (call_noparens) {  // This call is an arg to a call that has no parens.
                 // Don't unnecessarily parse funvals. Means "if f(x):" parses as expected.
                 return;
             }
@@ -1158,7 +1158,7 @@ struct Parser {
             }
             case T_SWITCH: {
                 lex.Next();
-                auto value = ParseExp();
+                auto value = ParseExp(true);
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 bool have_default = false;

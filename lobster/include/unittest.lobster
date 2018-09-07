@@ -73,6 +73,8 @@ def run_test_cases(is_speed_test):
     parsed, err = parse_data(typeof direct, "parsetest { 1, 1.0, xyz_f {}, \"\", [] }")
     if err: print err
     assert equal(parsed, parsetest { 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 })
+    assert switch rnd(2):
+        default: true
 
 
 
