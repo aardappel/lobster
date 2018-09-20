@@ -1,5 +1,11 @@
+- change include syntax to allow just: include std
+  also support Python's . syntax: https://stanford.edu/~chrisyeh/2017/08/08/definitive-guide-python-imports.html
+
 - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
   clash with typechecking.
+  - after cleaning up parser, for every top level definition should mark from which file it comes,
+    and then each use should make sure that file has been included in the current file, to avoid
+    suprises when things are included independently.
 
 - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
 
@@ -117,6 +123,22 @@
   the reference count for all types, see that it works, and then only after introduce the other
   two.
 
+- Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
+  possible in even C++, where there is no need to update pointers to an object.
+  Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
+  padded to the same size, with a special overwrite operator. The type of the variable would need
+  to be of the superclass, and the superclass itself should maybe not be instantiable, or also be
+  the same size.
+  Basically you'd declare the superclass as everything below here is same size.
+  What are examples of algorithms that could be simpler this way?
+  - game objects changing state
+  - AST node being changed
+  - Type variables! This one is hard to do without.
+  - Values in an interpreter
+  Though most of these are easy to do with existing code.. it is more to avoid allocation and
+  allow these values to be inline? Without inline values, you first have to construct on the heap
+  before overwrite. Still useful to be possible for cases like type variables.
+
 - binary string ops:
   - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
     version of Lobster (which may be needed to be supported for a while, because wasm)
@@ -166,6 +188,13 @@
   wrong language.
   Might be worth doing at least the initial version of strong typedefs first since that will
   allow a runtime_error string type. Though that tag would have to survive into the vm data.
+  Though, there is really no reason for this error string to be forced to be the return type,
+  if instead you store it in the VM instance, then the function itself can be any nillable,
+  where nil now signals failure rather than success which is more natural.
+  Also, rather than a function annotation it can currently just be a builtin function
+  that marks the current function as error catching, since it can simply register the
+  current function stack frame function id as such, though that may make future optimisations
+  to omit it harder.
 
 - Features to make it easier to use structs ADT style as opposed to inheritance
   - ADT is similar to a base class with no members and a fixed set of sub-classes.
