@@ -775,7 +775,7 @@ struct TypeChecker {
             for (auto sf = f.subf; sf; sf = sf->next) {
                 bool subtypematch = true;
                 bool suptypematch = true;
-                for (int i = 0; i < f.nargs(); i++) {
+                for (size_t i = 0; i < f.nargs(); i++) {
                     auto submatch = ConvertsTo(call_args->children[i]->exptype, sf->args.v[i].type,
                                                false, false);
                     auto supmatch = ConvertsTo(sf->args.v[i].type, call_args->children[i]->exptype,

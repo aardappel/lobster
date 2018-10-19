@@ -89,7 +89,7 @@ Value ReadField(VM &vm, const Value &str, const Value &idx, const Value &vidx, c
 LString *GetString(VM &vm, intp fi, LString *buf) {
     if (fi) {
         auto len = Read<flatbuffers::uoffset_t, false>(vm, fi, buf);
-        auto fdata = fi + sizeof(flatbuffers::uoffset_t);
+        auto fdata = fi + (intp)sizeof(flatbuffers::uoffset_t);
         // Read zero terminator just to make sure all string data is in bounds.
         Read<char, false>(vm, fdata + len, buf);
         return vm.NewString(buf->strv().substr(fdata, len));
