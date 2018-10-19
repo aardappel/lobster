@@ -1362,14 +1362,18 @@ VM: inlined for   : secs  5:19, ins 532311325, fcall 10848019, bcall 3285282, to
 C++: inlined for  : secs  2.86, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342, 186.1m ins/sec.
 
 8700K
-VM: inlined for   : secs  2.92, 1.77x vs 2600K
-C++: inlined for  : secs  2.00, 1.43x vs 2600K
-VM64: inlined for : secs  2.38, 1.23x vs 32bit
-C++64: inlined for: secs  1.72, 1.16x vs 32bit
-VM: vec/struct    : secs  2.64
-VM64: vec/struct  : secs  2.11
-VM64: may 2018    : secs  2.15
-VM64: compr_ptr   : secs  2.02, 1.07x vs native pointers
+VM: inlined for     : secs  2.92, 1.77x vs 2600K
+C++: inlined for    : secs  2.00, 1.43x vs 2600K
+VM64: inlined for   : secs  2.38, 1.23x vs 32bit
+C++64: inlined for  : secs  1.72, 1.16x vs 32bit
+VM: vec/struct      : secs  2.64
+VM64: vec/struct    : secs  2.11
+VM64: may 2018      : secs  2.15
+VM64: compr_ptr     : secs  2.02, 1.07x vs native pointers
+VM64-MSVC: oct 2018 : secs  2.18
+VM64-LLVM: oct 2018 : secs  2.08, 1.05x MSVC (without -flto, which doesn't work)
+VM64-LLVM: compr_ptr: secs  2.11, 0.98x vs native pointers, unlike MSVC!
+
 
 
 DEPENDENCIES
