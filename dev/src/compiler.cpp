@@ -308,7 +308,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
 
 void AddCompiler(NativeRegistry &natreg) {  // it knows how to call itself!
     STARTDECL(compile_run_code) (VM &vm, Value &filename, Value &args) {
-        return CompileRun(vm, filename, true, VectorOfStrings(vm, args));
+        return CompileRun(vm, filename, true, ValueToVectorOfStrings(vm, args));
     }
     ENDDECL2(compile_run_code, "code,args", "SS]", "SS?",
         "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
@@ -318,7 +318,7 @@ void AddCompiler(NativeRegistry &natreg) {  // it knows how to call itself!
         " version of struct definitions.");
 
     STARTDECL(compile_run_file) (VM &vm, Value &filename, Value &args) {
-        return CompileRun(vm, filename, false, VectorOfStrings(vm, args));
+        return CompileRun(vm, filename, false, ValueToVectorOfStrings(vm, args));
     }
     ENDDECL2(compile_run_file, "filename,args", "SS]", "SS?",
         "same as compile_run_code(), only now you pass a filename.");

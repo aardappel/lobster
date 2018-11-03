@@ -962,11 +962,27 @@ template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceT
     return (T)x->val;
 }
 
-inline vector<string> VectorOfStrings(VM &vm, Value &v) {
+inline vector<string> ValueToVectorOfStrings(VM &vm, Value &v) {
     vector<string> r;
     for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->At(i).sval()->strv()));
     v.DECRT(vm);
     return r;
+}
+
+inline Value ToValueOfVectorOfStrings(VM &vm, const vector<string> &in) {
+    auto v = vm.NewVec(0, (intp)in.size(), TYPE_ELEM_VECTOR_OF_STRING);
+    for (auto &a : in) v->Push(vm, vm.NewString(a));
+    return Value(v);
+}
+
+inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) {
+    auto v = vm.NewVec(0, size.y, TYPE_ELEM_VECTOR_OF_STRING);
+    for (int i = 0; i < size.y; i++) {
+        auto s = vm.NewString(size.x);
+        memset((char *)s->data(), init, size.x);
+        v->Push(vm, s);
+    }
+    return Value(v);
 }
 
 void EscapeAndQuote(string_view s, ostringstream &ss);

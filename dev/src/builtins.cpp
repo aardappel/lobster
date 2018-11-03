@@ -1120,10 +1120,7 @@ void AddBuiltins(NativeRegistry &natreg) {
              "lets you turn on/off the console window (on Windows)");
 
     STARTDECL(command_line_arguments) (VM &vm) {
-        auto v = (LVector *)vm.NewVec(0, (int)vm.program_args.size(),
-                                         TYPE_ELEM_VECTOR_OF_STRING);
-        for (auto &a : vm.program_args) v->Push(vm, vm.NewString(a));
-        return Value(v);
+        return ToValueOfVectorOfStrings(vm, vm.program_args);
     }
     ENDDECL0(command_line_arguments, "", "", "S]",
              "");
