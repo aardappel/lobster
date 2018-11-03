@@ -17,6 +17,7 @@
 #include "lobster/natreg.h"
 
 #include "lobster/unicode.h"
+#include "lobster/wfc.h"
 
 namespace lobster {
 
@@ -1006,6 +1007,36 @@ void AddBuiltins(NativeRegistry &natreg) {
         "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
         " a vector of vectors of indices of the circles that are within dist of eachothers radius."
         " pre-filter indicates objects that should appear in the inner vectors.");
+
+    STARTDECL(wave_function_collapse) (VM &vm, Value &tilemap, Value &size) {
+        auto sz = ValueDecToINT<2>(vm, size);
+        auto rows = tilemap.vval()->len;
+        vector<const char *> inmap(rows);
+        intp cols = 0;
+        for (intp i = 0; i < rows; i++) {
+            auto sv = tilemap.vval()->At(i).sval()->strv();
+            if (i) { if ((intp)sv.size() != cols) vm.Error("all columns must be equal length"); }
+            else cols = sv.size();
+            inmap[i] = sv.data();
+        }
+        tilemap.DECRT(vm);
+        auto outstrings = ToValueOfVectorOfStringsEmpty(vm, sz, 0);
+        vector<char *> outmap(sz.y, nullptr);
+        for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->At(i).sval()->data();
+        int num_contradictions = 0;
+        auto ok = WaveFunctionCollapse(int2(cols, inmap.size()), inmap.data(), sz, outmap.data(),
+                                        rnd, num_contradictions);
+        if (!ok)
+            vm.Error("tilemap contained too many tile ids");
+        vm.Push(outstrings);
+        return num_contradictions;
+    }
+    ENDDECL2(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
+             "returns a tilemap of given size modelled after the possible shapes in the input"
+             " tilemap. Tilemap should consist of chars in the 0..127 range. Second return value"
+             " the number of failed neighbor matches, this should"
+             " ideally be 0, but can be non-0 for larger maps. Simply call this function"
+             " repeatedly until it is 0");
 
     STARTDECL(resume) (VM &vm, Value &co, Value &ret) {
         vm.CoResume(co.cval());

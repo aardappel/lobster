@@ -136,5 +136,8 @@
     <ClInclude Include="..\src\lobster\natreg.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\wfc.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

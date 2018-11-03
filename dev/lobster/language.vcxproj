@@ -341,6 +341,7 @@
     <ClInclude Include="..\src\lobster\unicode.h" />
     <ClInclude Include="..\src\lobster\vmdata.h" />
     <ClInclude Include="..\src\lobster\wentropy.h" />
+    <ClInclude Include="..\src\lobster\wfc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
