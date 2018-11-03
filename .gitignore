@@ -1,6 +1,5 @@
 *.o
 *~
-/dev/src/lobster
 
 *.suo
 *.vcxproj.user
