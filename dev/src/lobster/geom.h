@@ -111,6 +111,7 @@ template<typename T, int N> struct vec : basevec<T, N> {
     vec operator-(const vec &v) const { DOVECR(c[i] - v[i]); }
     vec operator*(const vec &v) const { DOVECR(c[i] * v[i]); }
     vec operator/(const vec &v) const { DOVECR(c[i] / v[i]); }
+    vec operator%(const vec &v) const { DOVECR(c[i] % v[i]); }
 
     vec operator+(T e) const { DOVECR(c[i] + e); }
     vec operator-(T e) const { DOVECR(c[i] - e); }
@@ -280,6 +281,10 @@ template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNu
 }
 template<typename T, int N, typename R> inline vec<float, N> rndsignedvec(RandomNumberGenerator<R> &r) {
     DOVECR(r.rndfloatsigned());
+}
+template<typename T, int N, typename R> inline vec<int, N> rndivec(RandomNumberGenerator<R> &r,
+                                                                   const vec<int, N> &max) {
+    DOVECR(r(max[i]));
 }
 
 #undef DOVEC
