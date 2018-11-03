@@ -56,6 +56,13 @@
   - Nim: seems to have a nice middle ground inspired by ParaSail.
     https://nim-lang.org/araq/destructors.html
     https://github.com/nim-lang/Nim/wiki/Destructors
+  - Gel: https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf
+    Very pragmatic and much simpler than Rust, but still needs too many ownership annotations
+    for things that should be obvious.
+    Interesting that it still does refc at runtime, presumably to make the type system more
+    lenient, but it doesn't explain how.
+    It has a nice way of reducing reference counts that could also be applied to a traditional
+    (non ownership) reference count language.
   We'd want to keep Lobsters light syntax, so any system that requires type annotations
   frequently can't be used. 99% of code should "just work", even if it occasionally makes
   copies you don't expect.
@@ -122,6 +129,11 @@
   The other cool thing in terms of seeing things this way is that you can first implement
   the reference count for all types, see that it works, and then only after introduce the other
   two.
+
+  Good to read the Gel paper again because it defines type checking rules in terms of expressions
+  having ownership types rather than in terms of transitions, which seems easier to deal with
+  in the type checker. Still, different transitions have different properties, so core
+  type checking functions will need a context parameter.
 
 - Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
   possible in even C++, where there is no need to update pointers to an object.
@@ -292,6 +304,12 @@
 - 32-bit pointers in 64-bit
   - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
   - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
+    - Not only that, this only has to store program objects (and maybe code), not things like
+      textures, geometry, etc which are stored in GPU memory. So for a graphically rich game
+      where typically 90% of memory usage is such assets, this 32-bit model can grow until
+      320 GB of memory usage for a game is not sufficient. It thus defers the need for 64-bit
+      so significantly that it becomes practical to target the language to be 32-bit only for
+      the foreseeable future, with all the efficiency and simplicity that brings.
   - if the base address is a multiple of 4GB, then compressing can be a simple truncate
     instead of add/substract, and no conditional to compress a nullptr.
   - needs a conditional to decompress nullptr, unless base address can be 0. That's a huge win,
@@ -303,12 +321,31 @@
       that should generally not fail?
       - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
         work without additional work.
+  - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
+    Using clang it was about the same speed.
+  - on platforms where we cannot interact with the system to constrain our address space, can
+    create a really dumb allocator that simply re-allocs a buffer containing all memory when
+    needed. This is bad because:
+    - Such big reallocs may cause a pause (speed of memmove is typically only a few GB/sec),
+      though typically only happen once or twice during a game run, hopefully during loading.
+      If using realloc(), you may get lucky and no memmove is needed :)
+    - You temporarily are using 3x as much memory as allocated (current mem + new 2x size block).
+      Should not be an issue on 64-bit.
+    - May cause issues with fragmentation causing such big allocs to fail, though since this
+      technique is only used on 64-bit systems that should be unlikely.
+    So in total this is acceptable, and then on a per platform basis it can be replaced by
+    a more efficient strategy.
   - will NOT work in the default trampoline compiled mode, since we store function pointers in
     values there. Have to use the switch mode instead.
   - More good tips in the comments here:
     https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
 
 - typechecking for bool, including output to true/false when printing etc.
+
+- should we remove the any type? it is convenient in the type system, but it causes all sorts
+  of things to go to any when not intended, and hides inefficiencies. I don't think there's
+  any data structures or functions where you actually want to accept any, especially since
+  specialization usually allows more specific types to be handled generically.
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.
