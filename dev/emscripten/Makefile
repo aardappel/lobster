@@ -12,7 +12,7 @@ override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++17 -Wal
 CFLAGS= $(OPTLEVEL)
 override CFLAGS+= -Wall
 
-INCLUDES= -I. -I../include -I../external/freetype/include -I../external/SDLMixer
+INCLUDES= -I. -I../include -I../src -I../external/freetype/include -I../external/SDLMixer
 LIBS=
 
 CPPSRCS= \
