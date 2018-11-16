@@ -7,7 +7,8 @@ CC= emcc
 OPTLEVEL= -g4 -O2
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
-override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -std=c++17 -Wall -pedantic -Wno-switch \
+# Note: exceptions disabled because of: https://github.com/kripken/emscripten/issues/7399
+override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=1 -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
 override CFLAGS+= -Wall
