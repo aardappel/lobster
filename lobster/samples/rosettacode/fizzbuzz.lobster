@@ -1,4 +1,4 @@
-include "std.lobster"
+include std
 
 forbias(100, 1) i:
     fb := (i % 3 == 0 and "fizz" or "") +

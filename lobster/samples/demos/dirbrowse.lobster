@@ -1,8 +1,8 @@
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
+include std
+include vec
+include color
 
-include "unittest.lobster"
+include unittest
 
 indentsize := 20
 fontsize := 20

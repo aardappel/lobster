@@ -1,9 +1,9 @@
 // graphics demo showing Lobster's built-in loading of (animated) .iqm models
 
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
-include "3dhelpers.lobster"
+include vec
+include color
+include texture
+include util3d
 
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 

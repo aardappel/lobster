@@ -13,9 +13,9 @@ I timed it to be 2.5 times faster than the Python version, though most of that w
 
 */
 
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
+include vec
+include color
+include texture
 
 value Ray { o:xyz_f, d:xyz_f }
 

@@ -1,9 +1,9 @@
 // a simple GUI system to auto layout text, images, borders and clickable buttons etc on top of a game
 // no documentation yet, check out the test case at the end
 
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
+include vec
+include color
+include texture
 
 /*
 TODO:

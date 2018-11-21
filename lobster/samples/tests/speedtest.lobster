@@ -1,4 +1,4 @@
-include "unittest.lobster"
+include unittest
 
 starttime := seconds_elapsed()
 for(10001):

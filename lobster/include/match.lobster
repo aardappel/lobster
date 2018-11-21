@@ -19,7 +19,7 @@ You could replace the string by coroutine for("AAAAAAABCDCDBCDBBBE") and it woul
 
 */
 
-include "std.lobster"
+include std
 
 private iterable := nil
 private iterv := nil

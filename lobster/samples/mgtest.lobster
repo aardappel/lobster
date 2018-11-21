@@ -1,9 +1,9 @@
 // graphics demo showing Lobster's builtin facilities of generating meshes procedurally from implicit functions
 // this functionality is under construction
 
-include "vec.lobster"
-include "color.lobster"
-include "3dhelpers.lobster"
+include vec
+include color
+include util3d
 
 print "generating models... this may take some time!"
 

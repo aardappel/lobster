@@ -1,4 +1,4 @@
-include "color.lobster"
+include color
 
 gl_window("graphical hello world", 800, 600)
 gl_setfontname("data/fonts/Droid_Sans/DroidSans.ttf")

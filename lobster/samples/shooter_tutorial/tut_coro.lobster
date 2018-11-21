@@ -1,6 +1,6 @@
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
+include std
+include vec
+include color
 
 mode:coroutine = coroutine menu(0, 0)
 

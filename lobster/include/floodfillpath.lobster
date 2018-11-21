@@ -1,4 +1,4 @@
-include "vec.lobster"
+include vec
 
 struct pathmap:
     steps:int

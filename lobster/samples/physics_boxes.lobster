@@ -1,8 +1,8 @@
 // Showing off physics features in Lobster
 
-include "vec.lobster"
-include "color.lobster"
-include "3dhelpers.lobster"
+include vec
+include color
+include util3d
 
 fatal(gl_window("Physics demo : boxes", 1024, 768))
 

@@ -1,5 +1,5 @@
-include "vec.lobster"
-include "color.lobster"
+include vec
+include color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 

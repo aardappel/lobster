@@ -191,8 +191,20 @@ struct Parser {
                     Expect(T_STR);
                     AddDataDir(move(fn));
                 } else {
-                    auto fn = lex.StringVal();
-                    Expect(T_STR);
+                    string fn;
+                    if (lex.token == T_STR) {
+                        fn = lex.StringVal();
+                        lex.Next();
+                    } else {
+                        fn = lex.sattr;
+                        Expect(T_IDENT);
+                        while (IsNext(T_DOT)) {
+                            fn += "/";
+                            fn += lex.sattr;
+                            Expect(T_IDENT);
+                        }
+                        fn += ".lobster";
+                    }
                     Expect(T_LINEFEED);
                     lex.Include(fn);
                     ParseTopExp(list);

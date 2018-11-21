@@ -57,8 +57,9 @@ program = stats end\_of\_file
 
 stats = topexp … linefeed
 
-topexp = `include` [ `from` ] string\_constant \| [ `private` ] ( `def` ident functiondef
-\| struct \| vardef \| enumdef ) \| expstat
+topexp = `include` [ `from` ] ( string\_constant \| ident ... `.` )
+      \| [ `private` ] ( `def` ident functiondef
+      \| struct \| vardef \| enumdef ) \| expstat
 
 struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
@@ -708,12 +709,15 @@ top level of a file, you can additionally use the `include` keyword to bring
 additional code into your program:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include "std.lobster"
+include std
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents of that file will be merged into your main file at the location of
 the `include` for the purpose of compilation. If you you include the same file
 twice, the second occurrence will be ignored.
+
+An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a.b`
+is short for `"a/b.lobster"`.
 
 Include files will typically be loaded relative to 2 locations: the current
 main .lobster file being compiled, and whereever the lobster compiler is installed.

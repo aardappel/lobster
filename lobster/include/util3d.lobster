@@ -3,9 +3,9 @@
 // implement a standard FPS view with xy as the ground plane, and Z up
 // first call update, then view
 
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
+include vec
+include color
+include texture
 
 camera_position := xyz_0
 camera_yaw := 0.0

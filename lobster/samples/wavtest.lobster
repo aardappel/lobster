@@ -1,8 +1,8 @@
 // example of how to play wav files
 
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
+include std
+include vec
+include color
 
 fatal(gl_window("wav sound test", 1024, 768))
 check(gl_setfontname("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") and

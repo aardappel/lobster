@@ -4,11 +4,11 @@
 // NOTE: this code is seriously inefficient, it was written for small size only.
 // Don't use this as a base to write a minecraft clone.
 
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
-include "3dhelpers.lobster"
+include std
+include vec
+include color
+include texture
+include util3d
 
 lssize := 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
 inventory := []::int // blocks we've mined

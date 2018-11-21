@@ -1,7 +1,7 @@
 // graphics demo showing an animated "tree of pythagoras"
 
-include "vec.lobster"
-include "color.lobster"
+include vec
+include color
 
 def branch(n, max, scale, len):
     poly := [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]

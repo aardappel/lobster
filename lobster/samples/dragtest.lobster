@@ -1,7 +1,7 @@
 // demonstrates how Lobster's event state can help program common operations without having to store state yourself
 
-include "vec.lobster"
-include "color.lobster"
+include vec
+include color
 
 fatal(gl_window("event animation and mouse drag test", 1024, 1024))
 

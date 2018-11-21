@@ -1,4 +1,4 @@
-include "std.lobster"
+include std
 
 def quicksort(xs, lt):
     if xs.length <= 1:

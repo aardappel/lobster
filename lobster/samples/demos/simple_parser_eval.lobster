@@ -3,7 +3,7 @@
 // Parse a string into tokens (lex) and then into nodes.
 // Then the nodes can be printed, directly evaluated, or compiled to Lobster.
 
-include "std.lobster"
+include std
 
 struct node {}
 

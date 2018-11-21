@@ -1,8 +1,8 @@
 // graphics demo showing very simple link based physics, based on a processing.js example
 
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
+include std
+include vec
+include color
 
 struct segment { pos:xy_f, dir:xy_f }
 segs := map 7: segment { xy { 0.5, 1 }, xy_0 }

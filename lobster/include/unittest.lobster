@@ -2,10 +2,10 @@
 // can be included in any lobster program to help verify there are no bugs in the compiler
 // will assert if anything is wrong - if this ever happens, contact Wouter
 
-include "std.lobster"
-include "exception.lobster"
-include "vec.lobster"
-include "astar.lobster"
+include std
+include exception
+include vec
+include astar
 
 namespace test_namespace
 

@@ -1,7 +1,3 @@
-- change include syntax to allow just: include std
-  also support Python's . syntax:
-  https://chrisyeh96.github.io/2017/08/08/definitive-guide-python-imports.html
-
 - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
   clash with typechecking.
   - after cleaning up parser, for every top level definition should mark from which file it comes,

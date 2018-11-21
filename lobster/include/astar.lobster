@@ -1,6 +1,6 @@
 // A* search functionality
 
-include "vec.lobster"
+include vec
 
 struct astar_node:
     G:float = 0.0

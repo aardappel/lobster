@@ -1,6 +1,6 @@
 // utility functions and constants for working with vectors
 
-include "std.lobster"
+include std
 
 // Convenient constants:
 

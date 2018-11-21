@@ -1,9 +1,9 @@
 // simple graphics demo showing euler spirals:
 // http://blog.matthen.com/post/67889183164/draw-a-straight-line-and-then-continue-it-for-the
 
-include "vec.lobster"
-include "color.lobster"
-include "uihelpers.lobster"
+include vec
+include color
+include utilui
 
 fatal(gl_window("euler spiral", 1024, 768))
 

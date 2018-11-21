@@ -1,6 +1,6 @@
 // useful functions to implement common UI interaction and rendering
 
-include "vec.lobster"
+include vec
 
 // This struct manages the scale & translation values for a zooming & scrolling view.
 // For zoom it supports mousewheel and touch screen pinching.

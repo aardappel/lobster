@@ -1,5 +1,5 @@
-include "vec.lobster"
-include "color.lobster"
+include vec
+include color
 
 dirs := [ xy_xi, xy_yi ]
 colorconstant := 1

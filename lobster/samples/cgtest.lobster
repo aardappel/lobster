@@ -1,8 +1,8 @@
 // graphics demo showing ability to create cube meshes.
 
-include "vec.lobster"
-include "color.lobster"
-include "3dhelpers.lobster"
+include vec
+include color
+include util3d
 
 fatal(gl_window("cubegen test", 1280, 800))
 

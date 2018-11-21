@@ -1,9 +1,9 @@
 // based on: http://www.physicsandbox.com/projects/double-pendulum.html
 
-include "std.lobster"
-include "vec.lobster"
-include "color.lobster"
-include "texture.lobster"
+include std
+include vec
+include color
+include texture
 
 g :== 9.8
 mass := 1

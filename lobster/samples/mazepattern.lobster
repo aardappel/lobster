@@ -7,8 +7,8 @@ http://10print.org/
 
 */
 
-include "vec.lobster"
-include "color.lobster"
+include vec
+include color
 
 fatal(gl_window("rndmaze", 1024, 768))
 
