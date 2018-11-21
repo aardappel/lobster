@@ -1,5 +1,6 @@
 - change include syntax to allow just: include std
-  also support Python's . syntax: https://stanford.edu/~chrisyeh/2017/08/08/definitive-guide-python-imports.html
+  also support Python's . syntax:
+  https://chrisyeh96.github.io/2017/08/08/definitive-guide-python-imports.html
 
 - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
   clash with typechecking.
@@ -7,14 +8,42 @@
     and then each use should make sure that file has been included in the current file, to avoid
     suprises when things are included independently.
 
-- Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
-
 - rename builtin functions that still use snakecase instead of snake_case
 
-- Try out threads, should be easy now that we have vm as a parameter.
-  - Would be good to reduce globals, and/or not make builtins that rely on globals available
-    to worker threads.
-  - a string is the natural thing to communicate right now, given the new binary writing functionality.
+- refactor function return-value tracking as it is highly confusing.
+  - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
+  - Function::nretvals shouldn't exists as it depends on the specialization.
+  - SubFunction::returntypes should be allowed to have length 0.
+  - Codegen shouldn't have weird exceptions for more than 1 return value.
+  - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.
+  - Functions that have no meaningful return value but happen to be called as last exp can have
+    the requirement of a return value perculate far thru, and occasionally cause 2 specializations
+    for no reason.
+    - But we also don't want to disallow simple function defs that just return an exp.
+    - Maybe if its multi-line it requires an explicit return?
+  - multi-methods should have better return value type checking, probably by typechecking them
+    twice.
+  - This gives: all return statements of this function must return the same number of return
+    values. previously: 1
+    do():
+        for 100:
+            if true:
+                return from do // fixme
+  - "assert false" should count as unreachable and not require a well-typed return value after it.
+  - should somehow avoid functions whose return types aren't used to have matching return types.
+    - FIXME: still can't give error when builtin with no retvals requires retval.
+    - FIXME: are dynamic function values type checked at all?
+    - remove return value checking from parser
+    - simplify or remove return value checking from codegen
+    - simplify e.g. occurrences of return - from etc that shouldn't need fake return values anymore.
+    - also apply this to builtin functions?
+    - reqret arg of TypeCheck: if we are sure codegen or optimizer optimizes op out, can
+      turn "true" in to passing "reqret" to child.
+  - Builtin calls that return no value are followed by IL_POPREF, would be better IL_POP or nothing
+    at all.
+  - second return value doesn't get proper vector type from e.g. gl_loadtexture:
+    mapxy(xy { dim[0], dim[1] })
+  - see "return" elsewhere, e.g. in typechecking notes below.
 
 - should really centrally organize the concept of const vs owner vs refc, since besides for
   structs, will need these concepts for strings/vectors/coroutines as well (will especially be
@@ -134,6 +163,11 @@
   having ownership types rather than in terms of transitions, which seems easier to deal with
   in the type checker. Still, different transitions have different properties, so core
   type checking functions will need a context parameter.
+
+- Try out threads, should be easy now that we have vm as a parameter.
+  - Would be good to reduce globals, and/or not make builtins that rely on globals available
+    to worker threads.
+  - a string is the natural thing to communicate right now, given the new binary writing functionality.
 
 - Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
   possible in even C++, where there is no need to update pointers to an object.
@@ -271,9 +305,6 @@
 
 - switch jump table based version.
 
-- multi-methods should have better return value type checking, probably by typechecking them
-  twice.
-
 - Ways to represent "value" structs as in-line values.
   Easiest may be to make a 3 field struct actually take up 3 fields in the parent, that way
   quite a bit of code can ignore the distinction.
@@ -321,6 +352,10 @@
       that should generally not fail?
       - On Windows, simply turning of ASLR (/HIGHENTROPYVA:NO) allows compressed pointers to
         work without additional work.
+  - can avoid a conditional to decompress nullptr if we manage to make all tests for null to
+    be (== baseaddr) instead.
+    That may be tricky since we use the fact that int/float/ptr all have 0 bits as false
+    representation to be able to check them without knowing the type with True()
   - A base of 0 with <<3 is very efficient, which on VS win64 was 7% faster than native 64-bit!
     Using clang it was about the same speed.
   - on platforms where we cannot interact with the system to constrain our address space, can
@@ -396,6 +431,8 @@
   - can even implement any part of the compiler in lobster itself, by just calling it from C++.
     For example, the parser. it would just need a built-in to construct nodes etc.
     Either interpreted or to-cpp would work.
+    Actually, don't even need to call it from C++, it can simply be an independent Lobster
+    program generating a pakfile.
   - Maybe more productively, as noted elsewhere, could write the graphical debugger UI in
     Lobster itself.
 
@@ -405,17 +442,6 @@
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.
-
-- refactor function return-value tracking as it is highly confusing.
-  - Function::nretvals shouldn't exists as it depends on the specialization.
-  - SubFunction::returntypes should be allowed to have length 0.
-  - Codegen shouldn't have weird exceptions for more than 1 return value.
-  - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.
-  - Functions that have no meaningful return value but happen to be called as last exp can have
-    the requirement of a return value perculate far thru, and occasionally cause 2 specializations
-    for no reason.
-    - But we also don't want to disallow simple function defs that just return an exp.
-    - Maybe if its multi-line it requires an explicit return?
 
 - Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
   of unfortunate casting going on that be nice to remove. Many (including the C++ standards
@@ -437,12 +463,6 @@
 
 - This parses the map without the lambda:     assert 1 == map(2) i: 3
 
-- This gives: all return statements of this function must return the same number of return values. previously: 1
-    do():
-        for 100:
-            if true:
-                return from do // fixme
-
 - a file with only an include statement in it gives: error: linefeed expected, found: end of file
 
 - font rendering:
@@ -451,8 +471,6 @@
   - outline rendering needs to do a better job that pixels stay in the bounding box.
 
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
-
-- "assign false" should count as unreachable and not require a well-typed return value after it.
 
 - also allow explicit a.x, a.y = f() multi assign, this should be easy now that AssignList
   takes lvalues because of with defs.
@@ -571,16 +589,6 @@
 
 - make resume into seperate op.
 
-- should somehow avoid functions whose return types aren't used to have matching return types.
-  - FIXME: still can't give error when builtin with no retvals requires retval.
-  - FIXME: are dynamic function values type checked at all?
-  - remove return value checking from parser
-  - simplify or remove return value checking from codegen
-  - simplify e.g. occurrences of return - from etc that shouldn't need fake return values anymore.
-  - also apply this to builtin functions?
-  - reqret arg of TypeCheck: if we are sure codegen or optimizer optimizes op out, can
-    turn "true" in to passing "reqret" to child.
-
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - break statement
@@ -622,9 +630,6 @@
   - save frame state?
   - DOCS!
 
-- Builtin calls that return no value are followed by IL_POPREF, would be better IL_POP or nothing
-  at all.
-
 - Make loadtexturecached into something using a generic map. But to declare it, need to be
   able to specify generic vectors in struct decls.
 
@@ -642,9 +647,6 @@
   team_colors := [ color_grey, color_red, color_blue, color_green, color_yellow, color_cyan, color_pink, color_light_red, color_light_green,
                    color_light_blue, color_light_yellow, color_light_cyan, color_light_pink, color_dark_red, color_dark_green, color_dark_blue, color_olive ]
   team_colors += map(48) i: team_colors[i % 16]
-
-- second return value doesn't get proper vector type from e.g. gl_loadtexture:
-  mapxy(xy { dim[0], dim[1] })
 
 - weird error:
   struct controller { startpos:xyz_i = xyz_0i, endpos:xyz_i = xyz_0i, startinpal:int = false, endinpal:int = false, valid = false }
