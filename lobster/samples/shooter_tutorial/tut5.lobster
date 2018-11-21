@@ -33,17 +33,17 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
-    tomouse := normalize(gl_localmousepos(0) - playerpos)
+    tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
     if lastenemy < gl_time():
         enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
@@ -56,7 +56,7 @@ while gl_frame() and gl_button("escape") != 1:
 
     for(enemies) e:
         playerdir := normalize(playerpos - e.pos)
-        e.pos += playerdir * gl_deltatime() * enemyspeed
+        e.pos += playerdir * gl_delta_time() * enemyspeed
         for(bullets) b:
             if magnitude(b.pos - e.pos) < 1:
                 e.hp = max(e.hp - 1, 0)
@@ -67,7 +67,7 @@ while gl_frame() and gl_button("escape") != 1:
     enemies = filter(enemies): _.hp
 
     for(bullets) b:
-        b.pos += b.dir * gl_deltatime() * bulletspeed
+        b.pos += b.dir * gl_delta_time() * bulletspeed
         gl_translate b.pos:
             gl_color color_yellow:
                 gl_circle(0.2, 20)
@@ -75,8 +75,8 @@ while gl_frame() and gl_button("escape") != 1:
     bullets = filter(bullets) b:
         magnitude(b.pos) < worldsize * 2
 
-    gl_translate gl_localmousepos(0):
-        gl_linemode 1:
+    gl_translate gl_local_mouse_pos(0):
+        gl_line_mode 1:
             gl_color color_grey:
                 gl_circle(0.5, 20)
 

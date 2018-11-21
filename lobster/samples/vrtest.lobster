@@ -53,19 +53,19 @@ def drawworld():
     gl_light(camera_position, xy { 64.0, 1.0 })
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
-    gl_setshader("flat")
+    gl_set_shader("flat")
     for(10) i:
         gl_translate sincos(i * 72) * 3:
             gl_scale(0.3):
-                gl_rendermesh(tree)
+                gl_render_mesh(tree)
 
     for(balls) b:
         gl_translate b[0]:
             gl_scale(0.1):
                 gl_rotate_z(sincos(gl_time() * 30)):
-                    gl_rendermesh(sphere)
+                    gl_render_mesh(sphere)
 
-    gl_setshader("color")
+    gl_set_shader("color")
     gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)
 
 while gl_frame():
@@ -76,36 +76,36 @@ while gl_frame():
     if vrmode:
         vr_start()
         for(2) e:
-            vr_starteye(e, znear, zfar)
+            vr_start_eye(e, znear, zfar)
             camera_set_z_up_worldspace():
                 drawworld()
-            for(vr_nummotioncontrollers()) mc:
+            for(vr_num_motion_controllers()) mc:
                 if vr_motioncontrollerstracking(mc):
                     mcmesh := controller_meshes[mc]
                     if !mcmesh:
                         // FIXME: sadly have to do this on the fly because at init controllers and
                         // meshes are not available for some reason.
-                        controller_meshes[mc] = mcmesh = vr_createmotioncontrollermesh(mc)
+                        controller_meshes[mc] = mcmesh = vr_create_motion_controller_mesh(mc)
                     if mcmesh:
                         gl_color(color_white)
-                        vr_motioncontroller(mc):
-                            gl_setshader("phong_textured")
-                            gl_rendermesh(mcmesh)
+                        vr_motion_controller(mc):
+                            gl_set_shader("phong_textured")
+                            gl_render_mesh(mcmesh)
         vr_finish()
         for(2) mc:
-            if vr_motioncontrollerbutton(mc, "trigger") == 1:
-                pos := to_z_up(vr_motioncontrollervec(mc, 3))
-                dir := to_z_up(vr_motioncontrollervec(mc, 2))
+            if vr_motion_controller_button(mc, "trigger") == 1:
+                pos := to_z_up(vr_motion_controller_vec(mc, 3))
+                dir := to_z_up(vr_motion_controller_vec(mc, 2))
                 balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
         gl_clear(color_black)
         gl_blend(blend_none)
-        gl_setshader("textured")
+        gl_set_shader("textured")
 
         for(2) e:
-            vr_seteyetex(0, e)
-            gl_translate(xy { gl_windowsize().x * e / 2.0, gl_windowsize().y }):
-                    gl_rect(xy { gl_windowsize().x / 2.0, -gl_windowsize().y })
+            vr_set_eye_texture(0, e)
+            gl_translate(xy { gl_window_size().x * e / 2.0, gl_window_size().y }):
+                    gl_rect(xy { gl_window_size().x / 2.0, -gl_window_size().y })
     else:
         // This is how we'd render normally, with no HMD connected:
         gl_cursor(0)
@@ -119,4 +119,4 @@ while gl_frame():
     if balls.length > 100:
         balls.remove(0, balls.length - 100)
     for(balls) b:
-        b[0] += b[1] * gl_deltatime() / 10
+        b[0] += b[1] * gl_delta_time() / 10

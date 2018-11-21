@@ -34,7 +34,7 @@ nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
 nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
-    gl_newpoly(map(s) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
+    gl_new_poly(map(s) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
 
 while gl_frame():
     if gl_button("escape") == 1: return
@@ -45,7 +45,7 @@ while gl_frame():
     camera_FPS_view()
     gl_light(camera_position, xy { 64.0, 0.25 })
     gl_blend(blend_none)
-    gl_setshader("phong")
+    gl_set_shader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
         if e:  // if this cell is solid
             v := xyz { x, y, z }
@@ -54,7 +54,7 @@ while gl_frame():
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
                     gl_color(colors[e - 1])
                     gl_translate float(v):
-                        gl_rendermesh(nbpolys[i])  // draw face
+                        gl_render_mesh(nbpolys[i])  // draw face
     first_solid := nil  // find the first solid and last empty block we're looking at
     last_empty := nil
     camvec := camera_forward_vector()
@@ -66,7 +66,7 @@ while gl_frame():
     // LMB places blocks and RMB removes blocks
     if gl_button("mouse1") == 1 and last_empty and inventory.length: cells[last_empty] = inventory.pop()
     if gl_button("mouse3") == 1 and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
-    gl_setshader("color")
+    gl_set_shader("color")
     gl_blend(blend_alpha)
     wh := 11.7  // let's add some water!
     gl_color(color { 0.5, 0.5, 1.0, 0.5 })
@@ -74,5 +74,5 @@ while gl_frame():
                  xyz { lssize - 1.0, lssize - 1.0, wh }, xyz {lssize - 1.0, 1.0, wh } ])
     gl_ortho()
     gl_color(color_white)
-    gl_translate float(gl_windowsize()) / 2:
+    gl_translate float(gl_window_size()) / 2:
         gl_circle(5, 20)    // simplified crosshairs

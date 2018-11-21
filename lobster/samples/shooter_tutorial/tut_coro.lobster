@@ -8,7 +8,7 @@ def menu(lastscore, highscore, frame):
     forever():
         frame()
         msg := "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
-        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
+        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
             mode = coroutine level(highscore)
@@ -34,7 +34,7 @@ def level(highscore, lframe):
         bulletspeed :== 15
         while magnitude(pos) < worldsize * 2:
             frame()
-            pos += dir * gl_deltatime() * bulletspeed
+            pos += dir * gl_delta_time() * bulletspeed
             gl_translate pos:
                 gl_color color_yellow:
                     gl_circle(0.2, 20)
@@ -61,7 +61,7 @@ def level(highscore, lframe):
             frame()
             playervec := playerpos - pos
             playerdir := normalize(playervec)
-            pos += playerdir * gl_deltatime() * speed
+            pos += playerdir * gl_delta_time() * speed
             for(bs->bullets) b:
                 if magnitude(b->pos - pos) < 1:
                     hp--
@@ -70,7 +70,7 @@ def level(highscore, lframe):
                         score++
                         return
             if magnitude(playervec) < 1:
-                playerhealth -= gl_deltatime() * 50
+                playerhealth -= gl_delta_time() * 50
             gl_color(lerp(color_red, color_blue, div(hp, maxhp))):
                 renderpointytriangle(pos, playerdir)
 
@@ -90,23 +90,23 @@ def level(highscore, lframe):
 
     while playerhealth > 0:
         lframe()
-        gl_translate float(gl_windowsize()) / 2.0:
-            scale := gl_windowsize().y / worldsize
+        gl_translate float(gl_window_size()) / 2.0:
+            scale := gl_window_size().y / worldsize
             gl_scale(scale)
 
             dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-            newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-            if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+            newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+            if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
                 playerpos = newpos
 
-            tomouse := normalize(gl_localmousepos(0) - playerpos)
+            tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
             es.resume()
             bs.resume(tomouse)
 
-            gl_translate gl_localmousepos(0):
-                gl_linemode 1:
+            gl_translate gl_local_mouse_pos(0):
+                gl_line_mode 1:
                     gl_color color_grey:
                         gl_circle(0.5, 20)
 
@@ -116,7 +116,7 @@ def level(highscore, lframe):
     mode = coroutine menu(score, max(highscore, score))
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
-check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
+check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
 
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)

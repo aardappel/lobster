@@ -125,7 +125,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "for printing / string conversion: number of decimals for any floating point output"
         " (default -1, meaning all)");
 
-    STARTDECL(getline) (VM &vm) {
+    STARTDECL(get_line) (VM &vm) {
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
@@ -133,7 +133,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n') { buf[i] = 0; break; }
         return Value(vm.NewString(buf));
     }
-    ENDDECL0(getline, "", "", "S",
+    ENDDECL0(get_line, "", "", "S",
         "reads a string from the console if possible (followed by enter)");
 
     STARTDECL(if) (VM &, Value &c, Value &t, Value &e) {
@@ -305,7 +305,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "remove element(s) at index i, following elements shift down. pass the number of elements"
         " to remove as an optional argument, default 1. returns the first element removed.");
 
-    STARTDECL(removeobj) (VM &vm, Value &l, Value &o) {
+    STARTDECL(remove_obj) (VM &vm, Value &l, Value &o) {
         intp removed = 0;
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (intp i = 0; i < l.vval()->len; i++) {
@@ -318,35 +318,35 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return o;
     }
-    ENDDECL2(removeobj, "xs,obj", "V*A1", "A2",
+    ENDDECL2(remove_obj, "xs,obj", "V*A1", "A2",
         "remove all elements equal to obj (==), returns obj.");
 
-    STARTDECL(binarysearch) (VM &vm, Value &l, Value &key) {
+    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, IntCompare);
         l.DECRT(vm);
         return r;
     }
-    ENDDECL2(binarysearch, "xs,key", "I]I", "II",
+    ENDDECL2(binary_search, "xs,key", "I]I", "II",
         "does a binary search for key in a sorted vector, returns as first return value how many"
         " matches were found, and as second the index in the array where the matches start (so you"
         " can read them, overwrite them, or remove them), or if none found, where the key could be"
         " inserted such that the vector stays sorted. This overload is for int vectors and keys.");
 
-    STARTDECL(binarysearch) (VM &vm, Value &l, Value &key) {
+    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, FloatCompare);
         l.DECRT(vm);
         return r;
     }
-    ENDDECL2(binarysearch, "xs,key", "F]F", "II",
+    ENDDECL2(binary_search, "xs,key", "F]F", "II",
         "float version.");
 
-    STARTDECL(binarysearch) (VM &vm, Value &l, Value &key) {
+    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, StringCompare);
         l.DECRT(vm);
         key.DECRT(vm);
         return r;
     }
-    ENDDECL2(binarysearch, "xs,key", "S]S", "II",
+    ENDDECL2(binary_search, "xs,key", "S]S", "II",
         "string version.");
 
     STARTDECL(copy) (VM &vm, Value &v) {
@@ -435,7 +435,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "returns a substring of size characters from index start."
         " size can be negative to indicate the rest of the string.");
 
-    STARTDECL(string2int) (VM &vm, Value &s) {
+    STARTDECL(string_to_int) (VM &vm, Value &s) {
         char *end;
         auto sv = s.sval()->strv();
         auto i = parse_int<intp>(sv, 10, &end);
@@ -443,16 +443,16 @@ void AddBuiltins(NativeRegistry &natreg) {
         vm.Push(i);
         return Value(end == sv.data() + sv.size());
     }
-    ENDDECL1(string2int, "s", "S", "II",
+    ENDDECL1(string_to_int, "s", "S", "II",
         "converts a string to an int. returns 0 if no numeric data could be parsed."
         "second return value is true if all characters of the string were parsed");
 
-    STARTDECL(string2float) (VM &vm, Value &s) {
+    STARTDECL(string_to_float) (VM &vm, Value &s) {
         auto f = strtod(null_terminated(s.sval()->strv()), nullptr);
         s.DECRT(vm);
         return Value(f);
     }
-    ENDDECL1(string2float, "s", "S", "F",
+    ENDDECL1(string_to_float, "s", "S", "F",
         "converts a string to a float. returns 0.0 if no numeric data could be parsed");
 
     STARTDECL(tokenize) (VM &vm, Value &s, Value &delims, Value &whitespace) {
@@ -480,7 +480,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and"
         " \" \" as whitespace.");
 
-    STARTDECL(unicode2string) (VM &vm, Value &v) {
+    STARTDECL(unicode_to_string) (VM &vm, Value &v) {
         char buf[7];
         string s;
         for (intp i = 0; i < v.vval()->len; i++) {
@@ -491,10 +491,10 @@ void AddBuiltins(NativeRegistry &natreg) {
         v.DECRT(vm);
         return Value(vm.NewString(s));
     }
-    ENDDECL1(unicode2string, "us", "I]", "S",
+    ENDDECL1(unicode_to_string, "us", "I]", "S",
         "converts a vector of ints representing unicode values to a UTF-8 string.");
 
-    STARTDECL(string2unicode) (VM &vm, Value &s) {
+    STARTDECL(string_to_unicode) (VM &vm, Value &s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         auto p = s.sval()->strv();
         while (!p.empty()) {
@@ -505,12 +505,12 @@ void AddBuiltins(NativeRegistry &natreg) {
         s.DECRT(vm);
         return Value(v);
     }
-    ENDDECL1(string2unicode, "s", "S", "I]?",
+    ENDDECL1(string_to_unicode, "s", "S", "I]?",
         "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error");
 
-    STARTDECL(number2string) (VM &vm, Value &n, Value &b, Value &mc) {
+    STARTDECL(number_to_string) (VM &vm, Value &n, Value &b, Value &mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
-            vm.BuiltinError("number2string: values out of range");
+            vm.BuiltinError("number_to_string: values out of range");
         auto i = (uintp)n.ival();
         string s;
         const char *from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -520,7 +520,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         }
         return Value(vm.NewString(s));
     }
-    ENDDECL3(number2string, "number,base,minchars", "III", "S",
+    ENDDECL3(number_to_string, "number,base,minchars", "III", "S",
         "converts the (unsigned version) of the input integer number to a string given the base"
         " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).");
 
@@ -548,7 +548,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(uppercase, "s", "S", "S",
              "converts a UTF-8 string from any case to upper case, affecting only a-z");
 
-    STARTDECL(escapestring) (VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
+    STARTDECL(escape_string) (VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
         string out;
         for (auto p = s.sval()->strv();;) {
             auto loc = p.find_first_of(set.sval()->strv());
@@ -571,10 +571,10 @@ void AddBuiltins(NativeRegistry &natreg) {
         postfix.DECRT(vm);
         return Value(vm.NewString(out));
     }
-    ENDDECL4(escapestring, "s,set,prefix,postfix", "SSSS", "S",
+    ENDDECL4(escape_string, "s,set,prefix,postfix", "SSSS", "S",
              "prefixes & postfixes any occurrences or characters in set in string s");
 
-    STARTDECL(concatstring) (VM &vm, Value &v, Value &sep) {
+    STARTDECL(concat_string) (VM &vm, Value &v, Value &sep) {
         string s;
         auto sepsv = sep.sval()->strv();
         for (intp i = 0; i < v.vval()->len; i++) {
@@ -586,7 +586,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         sep.DECRT(vm);
         return Value(vm.NewString(s));
     }
-    ENDDECL2(concatstring, "v,sep", "S]S", "S",
+    ENDDECL2(concat_string, "v,sep", "S]S", "S",
              "concatenates all elements of the string vector, separated with sep.");
 
     STARTDECL(repeat_string) (VM &vm, Value &s, Value &_n) {
@@ -746,14 +746,14 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(rnd) (VM &vm, Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); }
     ENDDECL1(rnd, "max", "I}", "I}",
         "a random vector within the range of an input vector.");
-    STARTDECL(rndfloat) (VM &) { return Value(rnd.rnddouble()); }
-    ENDDECL0(rndfloat, "", "", "F",
+    STARTDECL(rnd_float) (VM &) { return Value(rnd.rnddouble()); }
+    ENDDECL0(rnd_float, "", "", "F",
              "a random float [0..1)");
-    STARTDECL(rndgaussian) (VM &) { return Value(rnd.rndgaussian()); }
-    ENDDECL0(rndgaussian, "", "", "F",
+    STARTDECL(rnd_gaussian) (VM &) { return Value(rnd.rnd_gaussian()); }
+    ENDDECL0(rnd_gaussian, "", "", "F",
              "a random float in a gaussian distribution with mean 0 and stddev 1");
-    STARTDECL(rndseed) (VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
-    ENDDECL1(rndseed, "seed", "I", "",
+    STARTDECL(rnd_seed) (VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
+    ENDDECL1(rnd_seed, "seed", "I", "",
         "explicitly set a random seed for reproducable randomness");
 
     STARTDECL(div) (VM &, Value &a, Value &b) { return Value(floatp(a.ival()) / floatp(b.ival())); }
@@ -786,28 +786,28 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL3(clamp, "x,min,max", "F}F}F}", "F}",
              "forces a float vector to be in the range between min and max (inclusive)");
 
-    STARTDECL(inrange) (VM &, Value &x, Value &range, Value &bias) {
+    STARTDECL(in_range) (VM &, Value &x, Value &range, Value &bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     }
-    ENDDECL3(inrange, "x,range,bias", "III?", "I",
+    ENDDECL3(in_range, "x,range,bias", "III?", "I",
              "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
 
-    STARTDECL(inrange) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
+    STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueDecToI<3>(vm, xv);
         auto range = ValueDecToI<3>(vm, rangev, 1);
         auto bias  = biasv.True() ? ValueDecToI<3>(vm, biasv) : intp3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "I}I}I}?", "I",
+    ENDDECL3(in_range, "x,range,bias", "I}I}I}?", "I",
              "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.");
 
-    STARTDECL(inrange) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
+    STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueDecToF<3>(vm, xv);
         auto range = ValueDecToF<3>(vm, rangev, 1);
         auto bias  = biasv.True() ? ValueDecToF<3>(vm, biasv) : floatp3_0;
         return Value(x >= bias && x < bias + range);
     }
-    ENDDECL3(inrange, "x,range,bias", "F}F}F}?", "I",
+    ENDDECL3(in_range, "x,range,bias", "F}F}F}?", "I",
         "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(abs) (VM &, Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
@@ -914,13 +914,13 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL3(lerp, "a,b,f", "F}F}F", "F}",
         "linearly interpolates between a and b vectors with factor f [0..1]");
 
-    STARTDECL(cardinalspline) (VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
-        return ToValueF(vm, cardinalspline(ValueDecToF<3>(vm, z),
+    STARTDECL(cardinal_spline) (VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
+        return ToValueF(vm, cardinal_spline(ValueDecToF<3>(vm, z),
                                            ValueDecToF<3>(vm, a),
                                            ValueDecToF<3>(vm, b),
                                            ValueDecToF<3>(vm, c), f.fval(), t.fval()));
     }
-    ENDDECL6(cardinalspline, "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
+    ENDDECL6(cardinal_spline, "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c"
         " (after b) to form a cardinal spline (tension at 0.5 is a good default)");
 
@@ -1046,15 +1046,15 @@ void AddBuiltins(NativeRegistry &natreg) {
         // The actual return value from this call to resume will be the argument to the next call
         // to yield, or the coroutine return value.
     }
-    ENDDECL2(resume, "coroutine,returnvalue", "RA%?", "A",
+    ENDDECL2(resume, "coroutine,return_value", "RA%?", "A",
         "resumes execution of a coroutine, passing a value back or nil");
 
-    STARTDECL(returnvalue) (VM &vm, Value &co) {
+    STARTDECL(return_value) (VM &vm, Value &co) {
         Value &rv = co.cval()->Current(vm);
         co.DECRT(vm);
         return rv;
     }
-    ENDDECL1(returnvalue, "coroutine", "R", "A1",
+    ENDDECL1(return_value, "coroutine", "R", "A1",
         "gets the last return value of a coroutine");
 
     STARTDECL(active) (VM &vm, Value &co) {

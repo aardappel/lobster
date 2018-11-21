@@ -17,7 +17,7 @@ def floodfillpath(sz:xy_i, target:xy_i, traversablef):
     pathq := [ end ]
     def flood(dir, parent):
         pos := parent.pos + dir
-        if pos.inrange(sz):
+        if pos.in_range(sz):
             c := m[pos]
             if traversablef(pos) and c.steps < 0:
                 c.steps = parent.steps + 1

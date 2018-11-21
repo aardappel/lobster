@@ -24,7 +24,7 @@ Running Lobster programs from within the editor
     press `Ctrl+F6` to bypass the dialog.
 
 -   NOTE: running from within Notepad++ doesn't work for programs that do
-    console input thru e.g. `getline()`. Output (thru `print()`) does work, but
+    console input thru e.g. `get_line()`. Output (thru `print()`) does work, but
     is sometimes delayed. Graphical programs work well.
 
 Editing

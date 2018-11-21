@@ -78,9 +78,9 @@ def yx(v): xy { v.y, v.x }
 def zyx(v): xyz { v.z, v.y, v.x }
 def wzyx(v): xyzw { v.w, v.z, v.y, v.x }
 
-def xy_rnd():   xy  { rndfloat(), rndfloat() }
-def xyz_rnd():  xyz { rndfloat(), rndfloat(), rndfloat() }
-def xyzw_rnd(): xyzw { rndfloat(), rndfloat(), rndfloat(), rndfloat() }
+def xy_rnd():   xy  { rnd_float(), rnd_float() }
+def xyz_rnd():  xyz { rnd_float(), rnd_float(), rnd_float() }
+def xyzw_rnd(): xyzw { rnd_float(), rnd_float(), rnd_float(), rnd_float() }
 
 def xy_rnd_norm():  normalize(xy_rnd() - 0.5)
 def xyz_rnd_norm(): normalize(xyz_rnd() - 0.5)

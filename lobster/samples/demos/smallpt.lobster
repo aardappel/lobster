@@ -74,10 +74,10 @@ def radiance(r:Ray, depth):
     nl := if n.dot(r.d)<0: n else: n*-1
     f := obj.c
     p := if f.x>f.y and f.x>f.z: f.x else: if f.y>f.z: f.y else: f.z // max refl
-    if ++depth>5: if rndfloat()<p: f = f*(1/p) else: return obj.e  //R.R.
+    if ++depth>5: if rnd_float()<p: f = f*(1/p) else: return obj.e  //R.R.
     if obj.refl == DIFF:                  // Ideal DIFFUSE reflection
-        r1 := 360*rndfloat()
-        r2 := rndfloat()
+        r1 := 360*rnd_float()
+        r2 := rnd_float()
         r2s := sqrt(r2)
         w := nl
         u := normalize((if(abs(w.x)>.1): xyz_y else: xyz_x).cross(w))
@@ -107,7 +107,7 @@ def radiance(r:Ray, depth):
     TP := Tr/(1-P)
     temp :=
         if depth>2:
-            if rndfloat()<P:
+            if rnd_float()<P:
                 radiance(reflRay,depth)*RP  // Russian roulette
             else:
                 radiance(Ray { x, tdir },depth)*TP
@@ -132,9 +132,9 @@ def onesample():
     starttime := seconds_elapsed()
     for(h) y:                       // Loop over image rows
         for(w) x:                           // Loop cols
-            r1 := 2*rndfloat()                  // removed the 2x2 subpixel sampling, its slow enough as it is :)
+            r1 := 2*rnd_float()                  // removed the 2x2 subpixel sampling, its slow enough as it is :)
             dx := if r1<1: sqrt(r1)-1 else: 1-sqrt(2-r1)
-            r2 := 2*rndfloat()
+            r2 := 2*rnd_float()
             dy := if r2<1: sqrt(r2)-1 else: 1-sqrt(2-r2)
             d := cx*( ( (1 + dx)/2 + x)/w - .5) +
                  cy*( ( (1 + dy)/2 + y)/h - .5) + cam.d
@@ -145,8 +145,8 @@ def onesample():
     samples++
     c2 := map(c) row: map(row) col: xyzw(xyz_v(map(col): pow(clamp(_ / samples, 0, 1), 1 / 2.2)), 1)
     //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
-    gl_windowtitle("smallpt: " + samples + " samples computed")
-    gl_createtexture(c2)
+    gl_window_title("smallpt: " + samples + " samples computed")
+    gl_create_texture(c2)
 
 fatal(gl_window("smallpt in lobster!", w, h))
 
@@ -154,9 +154,9 @@ while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
     tex := onesample()
-    gl_setprimitivetexture(0, tex)
+    gl_set_primitive_texture(0, tex)
     gl_blend(blend_none)
-    gl_setshader("textured")
+    gl_set_shader("textured")
     gl_rect(xy_f { w, h })
 
 

@@ -21,7 +21,7 @@ def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, 
         c := pathq.pop()
         for(cardinal_directions) d:
             dpos := c.pos - d
-            if inrange(dpos, worlddim):
+            if in_range(dpos, worlddim):
                 cost := 1
                 if !is_blocked(dpos) or (cost = blocked_cost):
                     n := grid[dpos]

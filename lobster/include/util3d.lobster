@@ -13,18 +13,18 @@ camera_pitch := 0.0
 camera_velocity := xyz_0
 
 def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
-    camera_yaw -= gl_mousedelta(0).x / mousesens
+    camera_yaw -= gl_mouse_delta(0).x / mousesens
     if dopitch:
-        camera_pitch -= gl_mousedelta(0).y / mousesens
+        camera_pitch -= gl_mouse_delta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
     move   := (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
     strafe := (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
     friction :== 20
-    velspeed := min(1.0, friction * gl_deltatime())
+    velspeed := min(1.0, friction * gl_delta_time())
     dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
-    camera_position += camera_velocity * gl_deltatime() * movementspeed
+    camera_position += camera_velocity * gl_delta_time() * movementspeed
 
 def camera_set_z_up_worldspace(f):
     // Default OpenGL view looks along -Z (Y up). We want a worldspace where -Z is down:
@@ -53,31 +53,31 @@ def camera_direction(v):
     camera_pitch = arcsin(v.z)
 
 def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
-    ws := float(gl_windowsize())
+    ws := float(gl_window_size())
     gl_translate(ws * origin)
     sc := ws / size
     gl_scale(scale * min(sc))
 
 private delta_time_log :== map(60): 1 / 30.0
 def gl_deltatime_over_time():
-    delta_time_log.push(gl_deltatime())
+    delta_time_log.push(gl_delta_time())
     delta_time_log.remove(0)
     (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
 
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.
 // Depth texture automatically created if depth is true and depthtex is nil.
 def render_to_texture(tex, size, depth, depthtex, texture_format, f):
-    if !tex || !equal(gl_texturesize(tex), size):
-        tex = gl_createblanktexture(size, color_black, texture_format)
+    if !tex || !equal(gl_texture_size(tex), size):
+        tex = gl_create_blank_texture(size, color_black, texture_format)
     assert tex  // FIXME
-    assert gl_switchtoframebuffer(tex, depth, texture_format, nil, depthtex)
+    assert gl_switch_to_framebuffer(tex, depth, texture_format, nil, depthtex)
     f()
-    assert gl_switchtoframebuffer(nil)
+    assert gl_switch_to_framebuffer(nil)
     tex
 
 def create_depth_texture(tex, size):
-    if !tex || !equal(gl_texturesize(tex), size):
-        tex = gl_createblanktexture(size, color_black, texture_format_depth |
+    if !tex || !equal(gl_texture_size(tex), size):
+        tex = gl_create_blank_texture(size, color_black, texture_format_depth |
             texture_format_nomipmap | texture_format_clamp | texture_format_nearest_mag)
     assert tex  // FIXME
     tex
@@ -85,17 +85,17 @@ def create_depth_texture(tex, size):
 // Same, but processes a source texture. Takes size from that texture.
 def render_to_texture_from(tex, shader, srctex):
     texture_format :== texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
-    render_to_texture(tex, gl_texturesize(srctex), false, nil, texture_format):
-        gl_setprimitivetexture(0, srctex)
-        gl_setshader(shader)
-        gl_rect(float(gl_texturesize(srctex)))
+    render_to_texture(tex, gl_texture_size(srctex), false, nil, texture_format):
+        gl_set_primitive_texture(0, srctex)
+        gl_set_shader(shader)
+        gl_rect(float(gl_texture_size(srctex)))
 
 // Same but renders to the screen.
 def post_process(tex, size, shader, depth, f):
     texture_format :== texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
-    gl_setprimitivetexture(0, tex, texture_format)
-    gl_setshader(shader)
+    gl_set_primitive_texture(0, tex, texture_format)
+    gl_set_shader(shader)
     gl_translate(xy_f { 0, size.y }):
         gl_rect(xy_f { size.x, -size.y })
     tex

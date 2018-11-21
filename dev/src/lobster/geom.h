@@ -277,7 +277,7 @@ template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, T lo, T h
 }
 
 template<typename T, int N, typename R> inline vec<float, N> rndunitvec(RandomNumberGenerator<R> &r) {
-    DOVECR(r.rndfloat());
+    DOVECR(r.rnd_float());
 }
 template<typename T, int N, typename R> inline vec<float, N> rndsignedvec(RandomNumberGenerator<R> &r) {
     DOVECR(r.rndfloatsigned());
@@ -810,7 +810,7 @@ inline byte4 quantizec(const float4 &v) { return byte4(v            * 255); }
 inline float4 color2vec(byte4 &col) { return float4(col) / 255; }
 
 // Spline interpolation.
-template <typename T> inline vec<T, 3> cardinalspline(const vec<T, 3> &z, const vec<T, 3> &a,
+template <typename T> inline vec<T, 3> cardinal_spline(const vec<T, 3> &z, const vec<T, 3> &a,
                                                       const vec<T, 3> &b, const vec<T, 3> &c,
                                                       T s, T tension = 0.5) {
     T s2 = s*s;

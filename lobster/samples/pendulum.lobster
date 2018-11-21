@@ -21,7 +21,7 @@ fatal(gl_window("double pendulum", 800, 800))
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    time := gl_deltatime() * 4
+    time := gl_delta_time() * 4
 
     sc := sincos(links[0].theta - links[1].theta)
     for(links) l, i:
@@ -32,7 +32,7 @@ while gl_frame():
         l.dtheta += d2theta * time
         l.theta += degrees(l.dtheta * time)
 
-    gl_translate(float(gl_windowsize()) / 2)
+    gl_translate(float(gl_window_size()) / 2)
 
     gl_blend(blend_add):
         for(pts) pos, i:

@@ -33,19 +33,19 @@ private def start(ito, itv, f):
 
 private def grow(it): false
 private def grow(it:coroutine):
-    x := it.returnvalue
+    x := it.return_value
     it.active and it.resume and iterv.push(x)
 
 private def isend(it:coroutine): !it.active
 private def isend(it): i == iterv.length
 
-private def repr(it:string, v): unicode2string(v)
+private def repr(it:string, v): unicode_to_string(v)
 private def repr(it,        v): v
 
 // match with a particular iterable, all matching functions must be used inside of the function
 // you can use nested match_with calls
 def match_with(it:[any],     f): start(it, it, f)
-def match_with(it:string,    f): start(it, string2unicode(it), f)
+def match_with(it:string,    f): start(it, string_to_unicode(it), f)
 def match_with(it:coroutine, f): start(it, [], f)
 
 def match_elem(f):     // match single element
@@ -69,5 +69,5 @@ def match_not(x): match_elem(): x != _
 
 def match_any(f): while f(): nil
 
-def match_sequence(s:string): match_sequence(string2unicode(s))
+def match_sequence(s:string): match_sequence(string_to_unicode(s))
 def match_sequence(v:[any]):  guard(): !exists(v): !match(_)

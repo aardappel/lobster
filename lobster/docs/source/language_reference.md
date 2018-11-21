@@ -137,7 +137,7 @@ a value of one of the following types:
         UTF-8, though this is not enforced; indexing and size operations act on
         bytes. To properly manipulate unicode symbols, UTF-8 strings can be
         converted to vectors of uncompressed unicode values using the built-in
-        functions string2unicode and unicode2string. Immutable: can be indexed
+        functions string_to_unicode and unicode_to_string. Immutable: can be indexed
         into for reading but not writing.
 
     -   `vector` : a dynamically sized array of any Lobster values, constructed
@@ -669,7 +669,7 @@ function value to call for each value. When we prefix a call to for by
 `coroutine`, it transforms the call into an object that can have its iteration
 triggered manually. A coroutine *suspends* (yields) when it would normally call
 the function value (which here is supplied by `coroutine` automatically). We can
-check the last value the object produced using `co.returnvalue` (which after the
+check the last value the object produced using `co.return_value` (which after the
 above call should be `0`) and we can cause the next iteration step to happen
 with `co.resume` (or `co.resume(x)`, where `x` is the value to be returned from
 the function value call inside the coroutine). At some point, the coroutine may
@@ -680,7 +680,7 @@ together, a typical loop to exhaust a coroutine looks like:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 while co.active:
-    print co.returnvalue
+    print co.return_value
     co.resume
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -691,7 +691,7 @@ frame in a game loop (for programming animations or game objects that act over
 time), or once every time new data arrives from a file, a network, or another
 thread.
 
-Calling co.returnvalue when co.active has turned false will get you the return
+Calling co.return_value when co.active has turned false will get you the return
 value of the coroutine call as a whole.
 
 If you create a coroutine object based on a function that contains local

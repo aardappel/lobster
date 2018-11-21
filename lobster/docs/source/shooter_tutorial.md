@@ -80,8 +80,8 @@ worldsize := 20.0
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
-    gl_translate(float(gl_windowsize()) / 2.0)
-    gl_scale(gl_windowsize().y / worldsize)
+    gl_translate(float(gl_window_size()) / 2.0)
+    gl_scale(gl_window_size().y / worldsize)
     gl_circle(1, 6)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -89,7 +89,7 @@ Before we can actually draw, we have to talk about coordinate systems. By
 default, coordinates in Lobster correspond directly to pixels, with (0,0) in the
 upper left corner (a left-handed coordinate system), and the total number of
 pixels depending on the device (or the user), which during any frame is given by
-`gl_windowsize`. While working directly with pixel sizes may be useful for some
+`gl_window_size`. While working directly with pixel sizes may be useful for some
 applications, generally, we want games to be scalable, meaning they should
 roughly look the same irrespective of what device they run on.
 
@@ -108,7 +108,7 @@ covered.
 gl\_translate changes our coordinate system, and is used throughout graphics
 rendering in Lobster to render things at different portions of the screen. Here
 we move from upper-left to the middle of the screen by translating by half the
-`gl_windowsize`.
+`gl_window_size`.
 
 Then we have to determine how much of the game world we want to show. We don't
 want that related to pixels either, as we don't want people with smaller screens
@@ -150,14 +150,14 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     gl_translate(playerpos):
@@ -186,7 +186,7 @@ take into account:
     the device, we have no idea how many frames per second we're actually
     running at. If we simply move a fixed amount each frame, we'll end up moving
     faster on faster computers! Yet another common bug that we'll avoid by
-    multiplying our vector by `gl_deltatime`, which is the number of seconds
+    multiplying our vector by `gl_delta_time`, which is the number of seconds
     (usually a fraction of a second, e.g. 0.033 at 30 FPS) that has passed since
     the last frame we rendered. The result is that we'll now move 1 unit (the
     length of the vector) per second exactly, regardless of how fast or slow our
@@ -252,24 +252,24 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
-    tomouse := normalize(gl_localmousepos(0) - playerpos)
+    tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
     if lastbullet < gl_time():
         bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
 
     for(bullets) b:
-        b.pos += b.dir * gl_deltatime() * bulletspeed
+        b.pos += b.dir * gl_delta_time() * bulletspeed
         gl_translate b.pos:
             gl_color color_yellow:
                 gl_circle(0.2, 20)
@@ -277,8 +277,8 @@ while gl_frame() and gl_button("escape") != 1:
     bullets = filter(bullets) b:
         magnitude(b.pos) < worldsize * 2
 
-    gl_translate gl_localmousepos(0):
-        gl_linemode 1:
+    gl_translate gl_local_mouse_pos(0):
+        gl_line_mode 1:
             gl_color color_grey:
                 gl_circle(0.5, 20)
 
@@ -291,9 +291,9 @@ To be able to shoot, first we have to worry about giving our player an
 orientation. We compute that in the vector `tomouse` which we get by
 subtracting the player position from the mouse position (what we want to shoot
 towards). Something funny is going on here though, as the name
-`gl_localmousepos` may indicate: normally mouse positions are in pixels, but
+`gl_local_mouse_pos` may indicate: normally mouse positions are in pixels, but
 those we can't compare against the player position, which is in world
-coordinates! `gl_localmousepos` however gives us the mouse position relative to
+coordinates! `gl_local_mouse_pos` however gives us the mouse position relative to
 the current transform, which is world coordinates (as specified by the
 `gl_translate` and `gl_scale` above). We then normalize this vector to make it
 easier to use, as we don't care about the original length of this vector.
@@ -406,7 +406,7 @@ this to the declarations.
 
     for(enemies) e:
         playerdir := normalize(playerpos - e.pos)
-        e.pos += playerdir * gl_deltatime() * enemyspeed
+        e.pos += playerdir * gl_delta_time() * enemyspeed
         for(bullets) b:
             if magnitude(b.pos - e.pos) < 1:
                 e.hp = max(e.hp - 1, 0)
@@ -468,7 +468,7 @@ To do that, we will have to be able to render text. First step towards doing
 that is loading up a font, right after `gl_window`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
+check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `check` is another useful function much like fatal, that ensures the first
@@ -489,7 +489,7 @@ which simply says:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         msg := "press space to play!"
-        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
+        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
             score = 0
@@ -503,7 +503,7 @@ which simply says:
             playing = true
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `gl_translate` centers our text using the handy `gl_textsize` which tell us
+The `gl_translate` centers our text using the handy `gl_text_size` which tell us
 the size of a string in pixels before we've even rendered it. `gl_text` then
 draws it. We then reset the game state when the game starts, and next frame the
 game will be playing.
@@ -522,7 +522,7 @@ show `0` when the player is truely dead.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if magnitude(playervec) < 1:
-                    playerhealth -= gl_deltatime() * 50
+                    playerhealth -= gl_delta_time() * 50
                     if playerhealth <= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)

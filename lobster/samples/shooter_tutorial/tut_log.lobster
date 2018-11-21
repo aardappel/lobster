@@ -4,7 +4,7 @@ include color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
-check(gl_setfontname("data/fonts/US101/US101.TTF") and gl_setfontsize(32), "can\'t load font!")
+check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
 
 while gl_frame() and gl_button("escape") != 1:
 
@@ -27,17 +27,17 @@ while gl_frame() and gl_button("escape") != 1:
                     gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 
         gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
-        gl_translate(float(gl_windowsize()) / 2.0)
-        scale := gl_windowsize().y / worldsize
+        gl_translate(float(gl_window_size()) / 2.0)
+        scale := gl_window_size().y / worldsize
         gl_scale(scale)
 
         dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                       (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-        newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-        if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+        newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+        if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
             playerpos = newpos
 
-        tomouse := normalize(gl_localmousepos(0) - playerpos)
+        tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
         struct enemy { pos:xy_f, hp:int }
         struct bullet { pos:xy_f, dir:xy_f }
@@ -65,7 +65,7 @@ while gl_frame() and gl_button("escape") != 1:
         for(enemies) e:
             playervec := playerpos - e.pos
             playerdir := normalize(playervec)
-            e.pos += playerdir * gl_deltatime() * enemyspeed
+            e.pos += playerdir * gl_delta_time() * enemyspeed
             for(bullets) b:
                 if magnitude(b.pos - e.pos) < 1:
                     e.hp--
@@ -74,7 +74,7 @@ while gl_frame() and gl_button("escape") != 1:
                         score++
                     b.pos = xy_x * worldsize * 10
             if magnitude(playervec) < 1:
-                playerhealth -= gl_deltatime() * 50
+                playerhealth -= gl_delta_time() * 50
                 if(playerhealth <= 0):
                     playerhealth = 0
                     highscore = max(highscore, score)
@@ -86,7 +86,7 @@ while gl_frame() and gl_button("escape") != 1:
 
         bulletspeed :== 15
         for(bullets) b:
-            b.pos += b.dir * gl_deltatime() * bulletspeed
+            b.pos += b.dir * gl_delta_time() * bulletspeed
             gl_translate(b.pos):
                 gl_color(color_yellow):
                     gl_circle(0.2, 20)
@@ -94,15 +94,15 @@ while gl_frame() and gl_button("escape") != 1:
         bullets = filter(bullets) b:
             magnitude(b.pos) < worldsize * 2
 
-        gl_translate(gl_localmousepos(0)):
-            gl_linemode(1):
+        gl_translate(gl_local_mouse_pos(0)):
+            gl_line_mode(1):
                 gl_color(color_grey):
                     gl_circle(0.5, 20)
 
         renderpointytriangle(playerpos, tomouse)
     else:
         msg := "press space to play!"
-        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
+        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
             playing = true

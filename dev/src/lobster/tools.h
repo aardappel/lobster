@@ -195,14 +195,14 @@ template<typename T> struct RandomNumberGenerator {
     int operator()() { return rnd.Random(); }
 
     double rnddouble() { return rnd.Random() * (1.0 / 4294967296.0); }
-    float rndfloat() { return (float)rnddouble(); } // FIXME: performance?
+    float rnd_float() { return (float)rnddouble(); } // FIXME: performance?
     float rndfloatsigned() { return (float)(rnddouble() * 2 - 1); }
 
     double n2 = 0.0;
     bool n2_cached = false;
     // Returns gaussian with stddev of 1 and mean of 0.
     // Box Muller method.
-    double rndgaussian() {
+    double rnd_gaussian() {
         n2_cached = !n2_cached;
         if (n2_cached) {
             double x, y, r;

@@ -89,9 +89,9 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <ul>
 <li><p>The bytecode.</p></li>
 <li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything, and is implicitly loaded by <code>gl_window</code>).</p></li>
-<li><p>Any other files/directories you have specified with <code>pakfile</code>, e.g: <code>gl_loadtexture(pakfile ”mypath/myfile.png”)</code>. <code>pakfile</code> can prefix filenames or directories (ending in <code>/</code>), in which case all files in the directory will (non-recursively) be added. When running with <code>--verbose</code> you can see what files are added/loaded from a pakfile, and which are loaded individually.</p></li>
+<li><p>Any other files/directories you have specified with <code>pakfile</code>, e.g: <code>gl_load_texture(pakfile ”mypath/myfile.png”)</code>. <code>pakfile</code> can prefix filenames or directories (ending in <code>/</code>), in which case all files in the directory will (non-recursively) be added. When running with <code>--verbose</code> you can see what files are added/loaded from a pakfile, and which are loaded individually.</p></li>
 </ul></li>
-<li><p>Any files your code references that are not in the pakfile (e.g. <code>gl_loadtexture(”mypath/myfile.png”)</code> ).</p></li>
+<li><p>Any files your code references that are not in the pakfile (e.g. <code>gl_load_texture(”mypath/myfile.png”)</code> ).</p></li>
 <li><p>On Windows, you’ll need to include <code>openvr_api.dll</code> and/or <code>steam_api.dll</code> next to <code>lobster.exe</code> ONLY if you use functions starting with <code>vr_</code> or <code>steam_</code> respectively.</p></li>
 </ul>
 <p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk, and with emscripten there’s an assets directory also.</p>

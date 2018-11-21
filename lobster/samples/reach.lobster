@@ -17,7 +17,7 @@ while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
 
-    gl_scale(min(gl_windowsize().x, gl_windowsize().y))
+    gl_scale(min(gl_window_size().x, gl_window_size().y))
 
     gl_color(color_light_grey)
     gl_unit_square()

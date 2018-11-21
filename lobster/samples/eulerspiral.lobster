@@ -21,12 +21,12 @@ szv := scrollzoomview {
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    scale, panoffset := szv.update(xy_1 * -50, xy_1 * 50, gl_windowsize())
+    scale, panoffset := szv.update(xy_1 * -50, xy_1 * 50, gl_window_size())
     gl_scale(scale)
     gl_translate(panoffset)
     if pts.length < 10000:
-        angle += 2.0 + (rndfloat() - 0.5) / 20.0
+        angle += 2.0 + (rnd_float() - 0.5) / 20.0
         a := atan2(pts.top - pts[pts.length - 2])
         pts.push(pts.top + sincos(a + angle))
-    gl_linemode 1:
+    gl_line_mode 1:
         gl_polygon(pts)

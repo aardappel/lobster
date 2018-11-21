@@ -79,7 +79,7 @@ def run_test_cases(is_speed_test):
 
 
     unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
-    assert equal(string2unicode(unicode2string(unicodetests)), unicodetests)
+    assert equal(string_to_unicode(unicode_to_string(unicodetests)), unicodetests)
 
     if !is_speed_test and !vm_compiled_mode():
         compres1, comperr1 := compile_run_code("1 + 2", [])
@@ -144,11 +144,11 @@ def run_test_cases(is_speed_test):
     assert equal(sorted1, sorted2)
     assert equal(sorted1, sorted3)
 
-    found, findex := sorted1.binarysearch(1)
+    found, findex := sorted1.binary_search(1)
     assert found == 2 and findex == 0
-    found, findex = sorted1.binarysearch(9)
+    found, findex = sorted1.binary_search(9)
     assert found == 2 and findex == 8
-    found, findex = sorted1.binarysearch(3)
+    found, findex = sorted1.binary_search(3)
     assert found == 2 and findex == 2
 
     assert 44 == sum(testvector)
@@ -261,7 +261,7 @@ def run_test_cases(is_speed_test):
         accum + ((n.path   and "P") or
                  (n.closed and "X") or
                  (n.open   and "O") or
-                 unicode2string([ n.c ]))
+                 unicode_to_string([ n.c ]))
 
     assert equal(astar_result, expected_result)
 
@@ -316,10 +316,10 @@ def run_test_cases(is_speed_test):
         def interleave(a, b, f):   // test using 2 at once
             while a.active or b.active:
                 if a.active:
-                    f(a.returnvalue)
+                    f(a.return_value)
                     a.resume
                 if b.active:
-                    f(b.returnvalue)
+                    f(b.return_value)
                     b.resume
 
         //interleave(co1, co2): print(_)
@@ -327,7 +327,7 @@ def run_test_cases(is_speed_test):
         assert equal(collect() f: interleave(co1, co2, f), [ 3, 0, 4, 1, 5, 2, 3 ])
         assert !co1.active
         assert !co2.active
-        assert co1.returnvalue == 1337
+        assert co1.return_value == 1337
 
         def pass_thru(co, f):
             coroutine_for co: f(_)
@@ -335,7 +335,7 @@ def run_test_cases(is_speed_test):
         co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
         sum := 0
         while co3.active:       // we currently can't use coroutine_for here, will be a runtime error (nesting)
-            sum += co3.returnvalue
+            sum += co3.return_value
             co3.resume
         assert sum == 45
 
@@ -354,7 +354,7 @@ def run_test_cases(is_speed_test):
         def conoyield(f): 1
         co5 := coroutine conoyield()
         assert !co5.active
-        assert co5.returnvalue == 1
+        assert co5.return_value == 1
 
     // ////////////////////////////////////////////////////////////////////////
     // misc test
@@ -435,7 +435,7 @@ def run_test_cases(is_speed_test):
         assert !garbage_objects
 
     //"press enter to continue...".print
-    //getline()
+    //get_line()
 
 if program_name() == "unittest.lobster" or program_name() == "include/unittest.lobster":
     run_test_cases(false)

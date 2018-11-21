@@ -180,14 +180,14 @@ void AddGraphics(NativeRegistry &natreg) {
              "Call this before gl_window to request a certain version of OpenGL context."
              " Currently only works on win/nix, minimum is 3.2.");
 
-    STARTDECL(gl_loadmaterials) (VM &vm, Value &fn, Value &isinline) {
+    STARTDECL(gl_load_materials) (VM &vm, Value &fn, Value &isinline) {
         TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
         fn.DECRT(vm);
         return err[0] ? Value(vm.NewString(err)) : Value();
     }
-    ENDDECL2(gl_loadmaterials, "materialdefs,inline", "SI?", "S?",
+    ENDDECL2(gl_load_materials, "materialdefs,inline", "SI?", "S?",
         "loads an additional materials file (shader/default.materials is already loaded by default"
         " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
         " materials. returns error string if any problems, nil otherwise.");
@@ -203,15 +203,15 @@ void AddGraphics(NativeRegistry &natreg) {
         "advances rendering by one frame, swaps buffers, and collects new input events."
         " returns true if the closebutton on the window was pressed");
 
-    STARTDECL(gl_logframe) (VM &vm, Value &delta) {
+    STARTDECL(gl_log_frame) (VM &vm, Value &delta) {
         SDLFakeFrame(delta.fval());
         vm.vml.LogFrame();
         return Value();
     }
-    ENDDECL1(gl_logframe, "delta", "F", "",
+    ENDDECL1(gl_log_frame, "delta", "F", "",
         "call this function instead of gl_frame() to simulate a frame based program from"
         " non-graphical code. does not require gl_window(). manages frame log state much like"
-        " gl_frame(). allows gl_time and gl_deltatime to work. pass a desired delta time,"
+        " gl_frame(). allows gl_time and gl_delta_time to work. pass a desired delta time,"
         " e.g. 1.0/60.0");
 
     STARTDECL(gl_shutdown) (VM &) {
@@ -222,20 +222,20 @@ void AddGraphics(NativeRegistry &natreg) {
         "shuts down the OpenGL window. you only need to call this function if you wish to close it"
         " before the end of the program");
 
-    STARTDECL(gl_windowtitle) (VM &vm, Value &s) {
+    STARTDECL(gl_window_title) (VM &vm, Value &s) {
         TestGL(vm);
         SDLTitle(s.sval()->strv());
         return s;
     }
-    ENDDECL1(gl_windowtitle, "title", "S", "S",
+    ENDDECL1(gl_window_title, "title", "S", "S",
         "changes the window title.");
 
-    STARTDECL(gl_windowminmax) (VM &vm, Value &dir) {
+    STARTDECL(gl_window_min_max) (VM &vm, Value &dir) {
         TestGL(vm);
         SDLWindowMinMax(dir.intval());
         return Value();
     }
-    ENDDECL1(gl_windowminmax, "dir", "I", "",
+    ENDDECL1(gl_window_min_max, "dir", "I", "",
              ">0 to maximize, <0 to minimize or 0 to restore.");
 
     STARTDECL(gl_visible) (VM &) {
@@ -288,67 +288,67 @@ void AddGraphics(NativeRegistry &natreg) {
         "the DPI of the screen. always returns a value for screen 0, any other screens may return"
         " 0 to indicate the screen doesn\'t exist");
 
-    STARTDECL(gl_windowsize) (VM &vm) {
+    STARTDECL(gl_window_size) (VM &vm) {
         return ToValueINT(vm, GetScreenSize());
     }
-    ENDDECL0(gl_windowsize, "", "", "I}:2",
+    ENDDECL0(gl_window_size, "", "", "I}:2",
         "a vector representing the size (in pixels) of the window, changes when the user resizes");
 
-    STARTDECL(gl_mousepos) (VM &vm, Value &i) {
+    STARTDECL(gl_mouse_pos) (VM &vm, Value &i) {
         return ToValueINT(vm, GetFinger(i.intval(), false));
     }
-    ENDDECL1(gl_mousepos, "i", "I", "I}:2",
+    ENDDECL1(gl_mouse_pos, "i", "I", "I}:2",
         "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
         " fingers (for touch screens only if the corresponding gl_isdown is true)");
 
-    STARTDECL(gl_mousedelta) (VM &vm, Value &i) {
+    STARTDECL(gl_mouse_delta) (VM &vm, Value &i) {
         return ToValueINT(vm, GetFinger(i.intval(), true));
     }
-    ENDDECL1(gl_mousedelta, "i", "I", "I}:2",
+    ENDDECL1(gl_mouse_delta, "i", "I", "I}:2",
         "number of pixels the mouse/finger has moved since the last frame. use this instead of"
         " substracting positions to correctly deal with lifted fingers and FPS mode"
         " (gl_cursor(0))");
 
-    STARTDECL(gl_localmousepos) (VM &vm, Value &i) {
+    STARTDECL(gl_local_mouse_pos) (VM &vm, Value &i) {
         return ToValueFLT(vm, localfingerpos(i.intval()));
     }
-    ENDDECL1(gl_localmousepos, "i", "I", "F}:2",
+    ENDDECL1(gl_local_mouse_pos, "i", "I", "F}:2",
         "the current mouse/finger position local to the current transform (gl_translate etc)"
         " (for touch screens only if the corresponding gl_isdown is true)");
 
-    STARTDECL(gl_lastpos) (VM &vm, Value &name, Value &on) {
+    STARTDECL(gl_last_pos) (VM &vm, Value &name, Value &on) {
         auto p = GetKeyPos(name.sval()->strv(), on.intval());
         name.DECRT(vm);
         return ToValueINT(vm, p);
     }
-    ENDDECL2(gl_lastpos, "name,down", "SI", "I}:2",
+    ENDDECL2(gl_last_pos, "name,down", "SI", "I}:2",
         "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
 
-    STARTDECL(gl_locallastpos) (VM &vm, Value &name, Value &on) {
+    STARTDECL(gl_local_last_pos) (VM &vm, Value &name, Value &on) {
         auto p = localpos(GetKeyPos(name.sval()->strv(), on.intval()));
         name.DECRT(vm);
         return ToValueFLT(vm, p);
     }
-    ENDDECL2(gl_locallastpos, "name,down", "SI", "F}:2",
+    ENDDECL2(gl_local_last_pos, "name,down", "SI", "F}:2",
         "position (local to the current transform) key/mousebutton/finger last went down (true) or"
         " up (false)");
 
-    STARTDECL(gl_mousewheeldelta) (VM &) {
+    STARTDECL(gl_mousewheel_delta) (VM &) {
         return Value(SDLWheelDelta());
     }
-    ENDDECL0(gl_mousewheeldelta, "", "", "I",
+    ENDDECL0(gl_mousewheel_delta, "", "", "I",
         "amount the mousewheel scrolled this frame, in number of notches");
 
-    STARTDECL(gl_joyaxis) (VM &, Value &i) {
+    STARTDECL(gl_joy_axis) (VM &, Value &i) {
         return Value(GetJoyAxis(i.intval()));
     }
-    ENDDECL1(gl_joyaxis, "i", "I", "F",
+    ENDDECL1(gl_joy_axis, "i", "I", "F",
         "the current joystick orientation for axis i, as -1 to 1 value");
 
-    STARTDECL(gl_deltatime) (VM &) {
+    STARTDECL(gl_delta_time) (VM &) {
         return Value(SDLDeltaTime());
     }
-    ENDDECL0(gl_deltatime, "", "", "F",
+    ENDDECL0(gl_delta_time, "", "", "F",
         "seconds since the last frame, updated only once per frame");
 
     STARTDECL(gl_time) (VM &) {
@@ -358,12 +358,12 @@ void AddGraphics(NativeRegistry &natreg) {
         "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
         " seconds_elapsed() for continuous timing)");
 
-    STARTDECL(gl_lasttime) (VM &vm, Value &name, Value &on) {
+    STARTDECL(gl_last_time) (VM &vm, Value &name, Value &on) {
         auto t = GetKeyTime(name.sval()->strv(), on.intval());
         name.DECRT(vm);
         return Value(t);
     }
-    ENDDECL2(gl_lasttime, "name,down", "SI", "F",
+    ENDDECL2(gl_last_time, "name,down", "SI", "F",
         "time key/mousebutton/finger last went down (true) or up (false)");
 
     STARTDECL(gl_clear) (VM &vm, Value &col) {
@@ -394,7 +394,7 @@ void AddGraphics(NativeRegistry &natreg) {
     }
     ENDDECL1(gl_polygon, "vertlist", "F}]", "A1",
         "renders a polygon using the list of points given. returns the argument."
-        " warning: gl_polygon creates a new mesh every time, gl_newpoly/gl_rendermesh is faster.");
+        " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.");
 
     STARTDECL(gl_circle) (VM &vm, Value &radius, Value &segments) {
         TestGL(vm);
@@ -406,7 +406,7 @@ void AddGraphics(NativeRegistry &natreg) {
     ENDDECL2(gl_circle, "radius,segments", "FI", "",
         "renders a circle");
 
-    STARTDECL(gl_opencircle) (VM &vm, Value &radius, Value &segments, Value &thickness) {
+    STARTDECL(gl_open_circle) (VM &vm, Value &radius, Value &segments, Value &thickness) {
         TestGL(vm);
 
         geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
@@ -414,15 +414,15 @@ void AddGraphics(NativeRegistry &natreg) {
 
         return Value();
     }
-    ENDDECL3(gl_opencircle, "radius,segments,thickness", "FIF", "",
+    ENDDECL3(gl_open_circle, "radius,segments,thickness", "FIF", "",
         "renders a circle that is open on the inside. thickness is the fraction of the radius that"
         " is filled, try e.g. 0.2");
 
-    STARTDECL(gl_unitcube) (VM &, Value &inside) {
+    STARTDECL(gl_unit_cube) (VM &, Value &inside) {
         geomcache->RenderUnitCube(currentshader, inside.True());
         return Value();
     }
-    ENDDECL1(gl_unitcube, "insideout", "I?", "",
+    ENDDECL1(gl_unit_cube, "insideout", "I?", "",
         "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
         " out");
 
@@ -508,34 +508,34 @@ void AddGraphics(NativeRegistry &natreg) {
         "returns a vector representing the current transform scale in pixels."
         " only makes sense in 2D mode (no gl_perspective called).");
 
-    STARTDECL(gl_modelviewprojection) (VM &vm) {
+    STARTDECL(gl_model_view_projection) (VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto mvp = view2clip * otransforms.object2view;
         for (int i = 0; i < 16; i++) v->At(i) = mvp.data()[i];
         return Value(v);
     }
-    ENDDECL0(gl_modelviewprojection, "", "", "F]",
+    ENDDECL0(gl_model_view_projection, "", "", "F]",
              "returns a vector representing the current model view projection matrix"
              " (16 elements)");
 
-    STARTDECL(gl_pointscale) (VM &, Value &f) {
+    STARTDECL(gl_point_scale) (VM &, Value &f) {
         custompointscale = f.fltval();
         return Value();
     }
-    ENDDECL1(gl_pointscale, "factor", "F", "",
+    ENDDECL1(gl_point_scale, "factor", "F", "",
         "sets the current scaling factor for point sprites."
         " this can be what the current gl_scale is, or different, depending on the desired visuals."
         " the ideal size may also be FOV dependent.");
 
-    STARTDECL(gl_linemode) (VM &vm, Value &on, Value &body) {
+    STARTDECL(gl_line_mode) (VM &vm, Value &on, Value &body) {
         if (body.True()) vm.Push(Value(polymode));
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }
-    MIDDECL(gl_linemode) (VM &vm) {
+    MIDDECL(gl_line_mode) (VM &vm) {
         polymode = (Primitive)vm.Pop().ival();
     }
-    ENDDECL2CONTEXIT(gl_linemode, "on,body", "IC", "",
+    ENDDECL2CONTEXIT(gl_line_mode, "on,body", "IC", "",
         "set line mode (true == on). when a body is given,"
         " restores the previous mode afterwards");
 
@@ -577,7 +577,7 @@ void AddGraphics(NativeRegistry &natreg) {
         "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
         " size. returns the argument.");
 
-    STARTDECL(gl_recttccol) (VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
+    STARTDECL(gl_rect_tc_col) (VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
         TestGL(vm);
         auto sz = ValueDecToFLT<2>(vm, size);
         auto t = ValueDecToFLT<2>(vm, tc);
@@ -597,7 +597,7 @@ void AddGraphics(NativeRegistry &natreg) {
         cols.DECRT(vm);
         return Value();
     }
-    ENDDECL4(gl_recttccol, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
+    ENDDECL4(gl_rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
              "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
              " optionally colors (empty list for all white). Slow.");
 
@@ -647,7 +647,7 @@ void AddGraphics(NativeRegistry &natreg) {
     ENDDECL2(gl_ortho3d, "center,extends", "F}F}", "",
         "sets a custom ortho projection as 3D projection.");
 
-    STARTDECL(gl_newmesh) (VM &vm, Value &format, Value &positions, Value &colors,
+    STARTDECL(gl_new_mesh) (VM &vm, Value &format, Value &positions, Value &colors,
                            Value &normals, Value &texcoords1, Value &texcoords2, Value &indices) {
         TestGL(vm);
         auto nattr = format.sval()->len;
@@ -724,7 +724,7 @@ void AddGraphics(NativeRegistry &natreg) {
         texcoords2.DECRT(vm);
         return Value(vm.NewResource(m, &mesh_type));
     }
-    ENDDECL7(gl_newmesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
+    ENDDECL7(gl_new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
              "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "X",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
@@ -733,67 +733,67 @@ void AddGraphics(NativeRegistry &natreg) {
         " or to get defaults for colors (white) / texcoords (position x & y) /"
         " normals (generated from adjacent triangles).")
 
-    STARTDECL(gl_newpoly) (VM &vm, Value &positions) {
+    STARTDECL(gl_new_poly) (VM &vm, Value &positions) {
         auto m = CreatePolygon(vm, positions);
         positions.DECRT(vm);
         return Value(vm.NewResource(m, &mesh_type));
     }
-    ENDDECL1(gl_newpoly, "positions", "F}]", "X",
+    ENDDECL1(gl_new_poly, "positions", "F}]", "X",
         "creates a mesh out of a loop of points, much like gl_polygon."
-        " gl_linemode determines how this gets drawn (fan or loop)."
+        " gl_line_mode determines how this gets drawn (fan or loop)."
         " returns mesh id");
 
-    STARTDECL(gl_newmesh_iqm) (VM &vm, Value &fn) {
+    STARTDECL(gl_new_mesh_iqm) (VM &vm, Value &fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
         fn.DECRT(vm);
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
     }
-    ENDDECL1(gl_newmesh_iqm, "filename", "S", "X?",
+    ENDDECL1(gl_new_mesh_iqm, "filename", "S", "X?",
         "load a .iqm file into a mesh, returns mesh or nil on failure to load.");
 
-    STARTDECL(gl_meshparts) (VM &vm, Value &i) {
+    STARTDECL(gl_mesh_parts) (VM &vm, Value &i) {
         auto &m = GetMesh(vm, i);
         auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
         return Value(v);
     }
-    ENDDECL1(gl_meshparts, "m", "X", "S]",
+    ENDDECL1(gl_mesh_parts, "m", "X", "S]",
         "returns an array of names of all parts of mesh m (names may be empty)");
 
-    STARTDECL(gl_meshsize) (VM &vm, Value &i) {
+    STARTDECL(gl_mesh_size) (VM &vm, Value &i) {
         auto &m = GetMesh(vm, i);
         return Value((int)m.geom->nverts);
     }
-    ENDDECL1(gl_meshsize, "m", "X", "I",
+    ENDDECL1(gl_mesh_size, "m", "X", "I",
         "returns the number of verts in this mesh");
 
-    STARTDECL(gl_animatemesh) (VM &vm, Value &i, Value &f) {
+    STARTDECL(gl_animate_mesh) (VM &vm, Value &i, Value &f) {
         GetMesh(vm, i).curanim = f.fltval();
         return Value();
     }
-    ENDDECL2(gl_animatemesh, "m,frame", "XF", "",
+    ENDDECL2(gl_animate_mesh, "m,frame", "XF", "",
         "set the frame for animated mesh m");
 
-    STARTDECL(gl_rendermesh) (VM &vm, Value &i) {
+    STARTDECL(gl_render_mesh) (VM &vm, Value &i) {
         TestGL(vm);
         GetMesh(vm, i).Render(currentshader);
         return Value();
     }
-    ENDDECL1(gl_rendermesh, "m", "X", "",
+    ENDDECL1(gl_render_mesh, "m", "X", "",
         "renders the specified mesh");
 
-    STARTDECL(gl_savemesh) (VM &vm, Value &i, Value &name) {
+    STARTDECL(gl_save_mesh) (VM &vm, Value &i, Value &name) {
         TestGL(vm);
         bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
         name.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(gl_savemesh, "m,name", "XS", "I",
+    ENDDECL2(gl_save_mesh, "m,name", "XS", "I",
         "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
         " procedurally. returns false if the file could not be written");
 
-    STARTDECL(gl_setshader) (VM &vm, Value &shader) {
+    STARTDECL(gl_set_shader) (VM &vm, Value &shader) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
@@ -801,29 +801,29 @@ void AddGraphics(NativeRegistry &natreg) {
         currentshader = sh;
         return Value();
     }
-    ENDDECL1(gl_setshader, "shader", "S", "",
+    ENDDECL1(gl_set_shader, "shader", "S", "",
         "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
         " color / textured / phong");
 
-    STARTDECL(gl_setuniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
+    STARTDECL(gl_set_uniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto v = ValueToFLT<4>(vm, vec);
         auto r = SetUniform(vm, name, v.begin(), (int)vec.stval()->Len(vm), ignore_errors.True());
         vec.DECRT(vm);
         return r;
     }
-    ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SF}I?", "I",
+    ENDDECL3(gl_set_uniform, "name,value,ignore_errors", "SF}I?", "I",
         "set a uniform on the current shader. size of float vector must match size of uniform"
         " in the shader.");
 
-    STARTDECL(gl_setuniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
+    STARTDECL(gl_set_uniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto f = vec.fltval();
         return SetUniform(vm, name, &f, 1, ignore_errors.True());
     }
-    ENDDECL3(gl_setuniform, "name,value,ignore_errors", "SFI?", "I",
+    ENDDECL3(gl_set_uniform, "name,value,ignore_errors", "SFI?", "I",
         "set a uniform on the current shader. uniform"
         " in the shader must be a single float.");
 
-    STARTDECL(gl_setuniformarray) (VM &vm, Value &name, Value &vec) {
+    STARTDECL(gl_set_uniform_array) (VM &vm, Value &name, Value &vec) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
@@ -834,11 +834,11 @@ void AddGraphics(NativeRegistry &natreg) {
         name.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(gl_setuniformarray, "name,value", "SF}:4]", "I",
+    ENDDECL2(gl_set_uniform_array, "name,value", "SF}:4]", "I",
              "set a uniform on the current shader. uniform in the shader must be an array of vec4."
              " returns false on error.");
 
-    STARTDECL(gl_setuniformmatrix) (VM &vm, Value &name, Value &vec) {
+    STARTDECL(gl_set_uniform_matrix) (VM &vm, Value &name, Value &vec) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
@@ -849,11 +849,11 @@ void AddGraphics(NativeRegistry &natreg) {
         name.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(gl_setuniformmatrix, "name,value", "SF]", "I",
+    ENDDECL2(gl_set_uniform_matrix, "name,value", "SF]", "I",
              "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
              " mat2/mat3/mat3x4/mat4 respectively. returns false on error.");
 
-    STARTDECL(gl_uniformbufferobject) (VM &vm, Value &name, Value &vec, Value &ssbo) {
+    STARTDECL(gl_uniform_buffer_object) (VM &vm, Value &name, Value &vec, Value &ssbo) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
@@ -864,49 +864,49 @@ void AddGraphics(NativeRegistry &natreg) {
         name.DECRT(vm);
         return Value((int)id);
     }
-    ENDDECL3(gl_uniformbufferobject, "name,value,ssbo", "SF}:4]I?", "I",
+    ENDDECL3(gl_uniform_buffer_object, "name,value,ssbo", "SF}:4]I?", "I",
         "creates a uniform buffer object, and attaches it to the current shader at the given"
         " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
         " ssbo indicates if you want a shader storage block instead."
         " returns buffer id or 0 on error.");
 
-    STARTDECL(gl_deletebufferobject) (VM &vm, Value &id) {
+    STARTDECL(gl_delete_buffer_object) (VM &vm, Value &id) {
         TestGL(vm);
         // FIXME: should route this thru a IntResourceManagerCompact to be safe?
         // I guess GL doesn't care about illegal id's?
         DeleteBO(id.intval());
         return Value();
     }
-    ENDDECL1(gl_deletebufferobject, "id", "I", "",
-        "deletes a buffer objects, e.g. one allocated by gl_uniformbufferobject().");
+    ENDDECL1(gl_delete_buffer_object, "id", "I", "",
+        "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().");
 
-    STARTDECL(gl_bindmeshtocompute) (VM &vm, Value &mesh, Value &bpi) {
+    STARTDECL(gl_bind_mesh_to_compute) (VM &vm, Value &mesh, Value &bpi) {
         TestGL(vm);
         if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(bpi.intval());
         else BindVBOAsSSBO(bpi.intval(), 0);
         return Value();
     }
-    ENDDECL2(gl_bindmeshtocompute, "mesh,binding", "X?I", "",
+    ENDDECL2(gl_bind_mesh_to_compute, "mesh,binding", "X?I", "",
         "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
         " unbind.");
 
-    STARTDECL(gl_dispatchcompute) (VM &vm, Value &groups) {
+    STARTDECL(gl_dispatch_compute) (VM &vm, Value &groups) {
         TestGL(vm);
         DispatchCompute(ValueDecToINT<3>(vm, groups));
         return Value();
     }
-    ENDDECL1(gl_dispatchcompute, "groups", "I}:3", "",
+    ENDDECL1(gl_dispatch_compute, "groups", "I}:3", "",
         "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
         " values.");
 
-    STARTDECL(gl_dumpshader) (VM &vm, Value &filename, Value &stripnonascii) {
+    STARTDECL(gl_dump_shader) (VM &vm, Value &filename, Value &stripnonascii) {
         TestGL(vm);
         currentshader->Activate();
         auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
         filename.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(gl_dumpshader, "filename,stripnonascii", "SI", "I",
+    ENDDECL2(gl_dump_shader, "filename,stripnonascii", "SI", "I",
         "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
         " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
         " pass true for stripnonascii if you're only interested in that part.");
@@ -926,47 +926,47 @@ void AddGraphics(NativeRegistry &natreg) {
         "changes the blending mode (use blending constants from color.lobster). when a body is"
         " given, restores the previous mode afterwards");
 
-    STARTDECL(gl_loadtexture) (VM &vm, Value &name, Value &tf) {
+    STARTDECL(gl_load_texture) (VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         name.DECRT(vm);
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
     }
-    ENDDECL2(gl_loadtexture, "name,textureformat", "SI?", "X?",
+    ENDDECL2(gl_load_texture, "name,textureformat", "SI?", "X?",
         "returns texture if succesfully loaded from file name, otherwise nil."
         " see color.lobster for texture format. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
         " PIC.");
 
-    STARTDECL(gl_setprimitivetexture) (VM &vm, Value &i, Value &id, Value &tf) {
+    STARTDECL(gl_set_primitive_texture) (VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     }
-    ENDDECL3(gl_setprimitivetexture, "i,tex,textureformat", "IXI?", "",
+    ENDDECL3(gl_set_primitive_texture, "i,tex,textureformat", "IXI?", "",
         "sets texture unit i to texture (for use with rect/circle/polygon/line)");
 
-    STARTDECL(gl_setmeshtexture) (VM &vm, Value &mid, Value &part, Value &i, Value &id) {
+    STARTDECL(gl_set_mesh_texture) (VM &vm, Value &mid, Value &part, Value &i, Value &id) {
         auto &m = GetMesh(vm, mid);
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
         m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
         return Value();
     }
-    ENDDECL4(gl_setmeshtexture, "mesh,part,i,texture", "XIIX", "",
+    ENDDECL4(gl_set_mesh_texture, "mesh,part,i,texture", "XIIX", "",
         "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)");
 
-    STARTDECL(gl_setimagetexture) (VM &vm, Value &i, Value &id, Value &tf) {
+    STARTDECL(gl_set_image_texture) (VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     }
-    ENDDECL3(gl_setimagetexture, "i,tex,textureformat", "IXI", "",
+    ENDDECL3(gl_set_image_texture, "i,tex,textureformat", "IXI", "",
         "sets image unit i to texture (for use with compute). texture format must be the same"
-        " as what you specified in gl_loadtexture / gl_createtexture,"
+        " as what you specified in gl_load_texture / gl_create_texture,"
         " with optionally writeonly/readwrite flags.");
 
-    STARTDECL(gl_createtexture) (VM &vm, Value &matv, Value &tf) {
+    STARTDECL(gl_create_texture) (VM &vm, Value &matv, Value &tf) {
         TestGL(vm);
         auto mat = matv.vval();
         auto ys = mat->len;
@@ -988,27 +988,27 @@ void AddGraphics(NativeRegistry &natreg) {
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     }
-    ENDDECL2(gl_createtexture, "matrix,textureformat", "F}:4]]I?", "X",
+    ENDDECL2(gl_create_texture, "matrix,textureformat", "F}:4]]I?", "X",
         "creates a texture from a 2d array of color vectors."
         " see texture.lobster for texture format");
 
-    STARTDECL(gl_createblanktexture) (VM &vm, Value &size_, Value &col, Value &tf) {
+    STARTDECL(gl_create_blank_texture) (VM &vm, Value &size_, Value &col, Value &tf) {
         TestGL(vm);
         auto tex = CreateBlankTexture(ValueDecToINT<2>(vm, size_), ValueDecToFLT<4>(vm, col), tf.intval());
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     }
-    ENDDECL3(gl_createblanktexture, "size,color,textureformat", "I}:2F}:4I?", "X",
+    ENDDECL3(gl_create_blank_texture, "size,color,textureformat", "I}:2F}:4I?", "X",
         "creates a blank texture (for use as frame buffer or with compute shaders)."
         " see texture.lobster for texture format");
 
-    STARTDECL(gl_texturesize) (VM &vm, Value &tex) {
+    STARTDECL(gl_texture_size) (VM &vm, Value &tex) {
         TestGL(vm);
         return ToValueINT(vm, GetTexture(vm, tex).size.xy());
     }
-    ENDDECL1(gl_texturesize, "tex", "X", "I}:2",
+    ENDDECL1(gl_texture_size, "tex", "X", "I}:2",
         "returns the size of a texture");
 
-    STARTDECL(gl_readtexture) (VM &vm, Value &t) {
+    STARTDECL(gl_read_texture) (VM &vm, Value &t) {
         TestGL(vm);
         auto tex = GetTexture(vm, t);
         auto numpixels = tex.size.x * tex.size.y;
@@ -1019,10 +1019,10 @@ void AddGraphics(NativeRegistry &natreg) {
         delete[] buf;
         return Value(s);
     }
-    ENDDECL1(gl_readtexture, "tex", "X", "S?",
+    ENDDECL1(gl_read_texture, "tex", "X", "S?",
         "read back RGBA texture data into a string or nil on failure");
 
-    STARTDECL(gl_switchtoframebuffer) (VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
+    STARTDECL(gl_switch_to_framebuffer) (VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
                                        Value &depthtex) {
         TestGL(vm);
         auto tex = GetTexture(vm, t);
@@ -1030,7 +1030,7 @@ void AddGraphics(NativeRegistry &natreg) {
                                          depth.True(), tf.intval(), GetTexture(vm, retex),
                                          GetTexture(vm, depthtex)));
     }
-    ENDDECL5(gl_switchtoframebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "X?I?I?X?X?",
+    ENDDECL5(gl_switch_to_framebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "X?I?I?X?X?",
         "I",
         "switches to a new framebuffer, that renders into the given texture."
         " also allocates a depth buffer for it if depth is true."
@@ -1053,7 +1053,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " params contains specular exponent in x (try 32/64/128 for different material looks) and"
         " the specular scale in y (try 1 for full intensity)");
 
-    STARTDECL(gl_rendertiles) (VM &vm, Value &pos, Value &tile, Value &mapsize) {
+    STARTDECL(gl_render_tiles) (VM &vm, Value &pos, Value &tile, Value &mapsize) {
         TestGL(vm);
         auto msize = float2(ValueDecToI<2>(vm, mapsize));
         auto len = pos.vval()->len;
@@ -1082,7 +1082,7 @@ void AddGraphics(NativeRegistry &natreg) {
         RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
         return Value();
     }
-    ENDDECL3(gl_rendertiles, "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
+    ENDDECL3(gl_render_tiles, "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
         "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
         " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
         " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."

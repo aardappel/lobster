@@ -22,9 +22,9 @@ fatal(gl_window("Pythagoras tree in Lobster", 1024, 768))
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_grey)
-    rndseed(0)
-    gl_translate(float(gl_windowsize()) / xy { 2.0, 1.0 })
+    rnd_seed(0)
+    gl_translate(float(gl_window_size()) / xy { 2.0, 1.0 })
     gl_rotate_z(xy { -1.0, 0.0 })
-    gl_scale(gl_windowsize().y / 17.0)
+    gl_scale(gl_window_size().y / 17.0)
     branch(0, 11.0, 0.7, 4)
 

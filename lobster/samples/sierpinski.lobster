@@ -19,5 +19,5 @@ fatal(gl_window("sierpinski", 512, 512))
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    gl_scale(float(gl_windowsize()))
+    gl_scale(float(gl_window_size()))
     sierpinski(7)

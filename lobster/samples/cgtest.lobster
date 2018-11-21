@@ -26,7 +26,7 @@ random_cubes := cg_create_mesh(w)
 while gl_frame():
     if gl_button("escape") == 1: return
 
-    gl_windowtitle("cubegen test: " + gl_deltatime())
+    gl_window_title("cubegen test: " + gl_delta_time())
 
     gl_clear(color_dark_grey)
 
@@ -39,8 +39,8 @@ while gl_frame():
     gl_light(camera_position, xy { 128.0, 0.1 })
 
     gl_blend 0:
-        gl_setshader("flat")
-        gl_rendermesh(random_cubes)
+        gl_set_shader("flat")
+        gl_render_mesh(random_cubes)
 
     if gl_button("space") == 1:
         for 1000: modify()

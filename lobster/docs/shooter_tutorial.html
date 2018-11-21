@@ -28,8 +28,8 @@
 <p>Let’s start by creating a blank canvas for us to draw on. Something like this:</p>
 <p><img src="screenshots/shooter/tut1.jpg" /></p>
 <p>Impressively.. empty.</p>
-<pre><code>include &quot;vec.lobster&quot;
-include &quot;color.lobster&quot;
+<pre><code>include vec
+include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -43,9 +43,9 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <p>So now we can start drawing, right? Well, we also have to determine where and how we want to draw:</p>
 <p><img src="screenshots/shooter/tut2.jpg" /></p>
 <p>Look at that! This is starting to look impressive! Check out those polygons!</p>
-<pre><code>include &quot;std.lobster&quot;
-include &quot;vec.lobster&quot;
-include &quot;color.lobster&quot;
+<pre><code>include std
+include vec
+include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -54,22 +54,22 @@ worldsize := 20.0
 while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
-    gl_translate(float(gl_windowsize()) / 2.0)
-    gl_scale(gl_windowsize().y / worldsize)
+    gl_translate(float(gl_window_size()) / 2.0)
+    gl_scale(gl_window_size().y / worldsize)
     gl_circle(1, 6)</code></pre>
-<p>Before we can actually draw, we have to talk about coordinate systems. By default, coordinates in Lobster correspond directly to pixels, with (0,0) in the upper left corner (a left-handed coordinate system), and the total number of pixels depending on the device (or the user), which during any frame is given by <code>gl_windowsize</code>. While working directly with pixel sizes may be useful for some applications, generally, we want games to be scalable, meaning they should roughly look the same irrespective of what device they run on.</p>
+<p>Before we can actually draw, we have to talk about coordinate systems. By default, coordinates in Lobster correspond directly to pixels, with (0,0) in the upper left corner (a left-handed coordinate system), and the total number of pixels depending on the device (or the user), which during any frame is given by <code>gl_window_size</code>. While working directly with pixel sizes may be useful for some applications, generally, we want games to be scalable, meaning they should roughly look the same irrespective of what device they run on.</p>
 <p>There is no universal way to do this for games however, because besides different resolutions, you have the more problematic issue of different aspect ratios, varying from 4:3 on the iPad (relatively square) to 3:2, 16:10 and 16:9 (longitudinal) on most desktops and other mobile devices. Your game should ideally look good on that whole range. If you only aim for one ratio, you’ll get borders or things cut off on the other ratios. What works best depends on your game content.</p>
 <p>Here we’ll take a simple approach: make the middle of the screen our coordinate system origin, and rendering outward enough from there that we have all ratios covered.</p>
-<p>gl_translate changes our coordinate system, and is used throughout graphics rendering in Lobster to render things at different portions of the screen. Here we move from upper-left to the middle of the screen by translating by half the <code>gl_windowsize</code>.</p>
+<p>gl_translate changes our coordinate system, and is used throughout graphics rendering in Lobster to render things at different portions of the screen. Here we move from upper-left to the middle of the screen by translating by half the <code>gl_window_size</code>.</p>
 <p>Then we have to determine how much of the game world we want to show. We don’t want that related to pixels either, as we don’t want people with smaller screens see less of the game. The computer doesn’t care about real world sizes like feet or meters, so we can make up whatever number we want. It is useful however to pick a number, since that means if we later want to show more or less of the gameworld, we just have to change one number. Here we say we want the screen to be able to fit at least 20 units, and we make this relative to the y resolution of the screen (we’re assuming that’ll be the smaller one of the two).</p>
 <p>Now we can finally draw! Let’s put down a temporary graphic for the player. <code>gl_circle</code> draws circles around the current origin, with the first argument being the radius (see how we’re using the world scale for this?), and the second argument is the number of sides. Setting this to something low like 6 actually gets us a hexagon rather than a circle.</p>
 <p>Pfew, that’s a lot of talk just for a circle, but we’re getting somewhere. Next up, let’s move our player around. Because games are supposed to be… <em>interactive</em></p>
 <h3 id="input-movement-and-collision">3: Input, Movement, and Collision</h3>
 <p><img src="screenshots/shooter/tut3.jpg" /></p>
 <p>It moved! I swear!</p>
-<pre><code>include &quot;std.lobster&quot;
-include &quot;vec.lobster&quot;
-include &quot;color.lobster&quot;
+<pre><code>include std
+include vec
+include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -81,14 +81,14 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
                   (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) &gt; float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     gl_translate(playerpos):
@@ -98,7 +98,7 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <p>Now, we can’t just add this vector to the player and be done with it, we have to take into account:</p>
 <ul>
 <li><p>If the player tries to move in both x and y directions at once, the magnitude of the <code>dir</code> vector is sqrt(2) instead of 1, and thus the player would move faster! We want him to move in all directions at equal speed. <code>normalize</code> ensure we have a vector of length 1. You wouldn’t believe how many games have this bug in it!</p></li>
-<li><p>Remember how the code inside the while loop is our frame? Well, depending on the device, we have no idea how many frames per second we’re actually running at. If we simply move a fixed amount each frame, we’ll end up moving faster on faster computers! Yet another common bug that we’ll avoid by multiplying our vector by <code>gl_deltatime</code>, which is the number of seconds (usually a fraction of a second, e.g. 0.033 at 30 FPS) that has passed since the last frame we rendered. The result is that we’ll now move 1 unit (the length of the vector) per second exactly, regardless of how fast or slow our machine is rendering.</p></li>
+<li><p>Remember how the code inside the while loop is our frame? Well, depending on the device, we have no idea how many frames per second we’re actually running at. If we simply move a fixed amount each frame, we’ll end up moving faster on faster computers! Yet another common bug that we’ll avoid by multiplying our vector by <code>gl_delta_time</code>, which is the number of seconds (usually a fraction of a second, e.g. 0.033 at 30 FPS) that has passed since the last frame we rendered. The result is that we’ll now move 1 unit (the length of the vector) per second exactly, regardless of how fast or slow our machine is rendering.</p></li>
 <li><p>Of course, “1 unit per second” may well be too slow for our intended game, so we factor in our own player speed. We can tweak it later.</p></li>
 <li><p>Last, but not least, once the player can move, we have to worry about him staying within the game world. What we have to do, is a very simple form of <em>collision detection</em>. Collision detection can be very difficult to program, but here we start by just checking the boundaries of the screen. Note that I put our new position in a separate variable, this is such that we will only make it the new player position if we’re still inside the world. I also created a variable for the scale we set, so that we can use it to know where the screen boundaries are. We first take the absolute value of our new position (so we only have to check one quadrant of the world). Notice how pretty much everything in Lobster works on vectors? This makes it easy to write game code without repeating your code for x and y all over the place. We compute the size of a quadrant, and compare. <code>&lt;</code> here gives us a vector of booleans, to check if any coordinates (x or y) were out of bounds, we use <code>any</code>. If this succeeds, we only then actually move the player. pfew!</p></li>
 </ul>
@@ -106,9 +106,9 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <h3 id="orientation-and-shooting">4: Orientation and Shooting</h3>
 <p><img src="screenshots/shooter/tut4.jpg" /></p>
 <p>What happens as I move the mouse cursor in a clockwise arc around the player from 12 to 3.</p>
-<pre><code>include &quot;std.lobster&quot;
-include &quot;vec.lobster&quot;
-include &quot;color.lobster&quot;
+<pre><code>include std
+include vec
+include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -128,24 +128,24 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
                   (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) &gt; float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) &gt; float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
-    tomouse := normalize(gl_localmousepos(0) - playerpos)
+    tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
     if lastbullet &lt; gl_time():
         bullets.push(bullet { playerpos, tomouse })
         lastbullet += firerate
 
     for(bullets) b:
-        b.pos += b.dir * gl_deltatime() * bulletspeed
+        b.pos += b.dir * gl_delta_time() * bulletspeed
         gl_translate b.pos:
             gl_color color_yellow:
                 gl_circle(0.2, 20)
@@ -153,15 +153,15 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     bullets = filter(bullets) b:
         magnitude(b.pos) &lt; worldsize * 2
 
-    gl_translate gl_localmousepos(0):
-        gl_linemode 1:
+    gl_translate gl_local_mouse_pos(0):
+        gl_line_mode 1:
             gl_color color_grey:
                 gl_circle(0.5, 20)
 
     gl_translate playerpos:
         gl_rotate_z tomouse:
             gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])</code></pre>
-<p>To be able to shoot, first we have to worry about giving our player an orientation. We compute that in the vector <code>tomouse</code> which we get by subtracting the player position from the mouse position (what we want to shoot towards). Something funny is going on here though, as the name <code>gl_localmousepos</code> may indicate: normally mouse positions are in pixels, but those we can’t compare against the player position, which is in world coordinates! <code>gl_localmousepos</code> however gives us the mouse position relative to the current transform, which is world coordinates (as specified by the <code>gl_translate</code> and <code>gl_scale</code> above). We then normalize this vector to make it easier to use, as we don’t care about the original length of this vector.</p>
+<p>To be able to shoot, first we have to worry about giving our player an orientation. We compute that in the vector <code>tomouse</code> which we get by subtracting the player position from the mouse position (what we want to shoot towards). Something funny is going on here though, as the name <code>gl_local_mouse_pos</code> may indicate: normally mouse positions are in pixels, but those we can’t compare against the player position, which is in world coordinates! <code>gl_local_mouse_pos</code> however gives us the mouse position relative to the current transform, which is world coordinates (as specified by the <code>gl_translate</code> and <code>gl_scale</code> above). We then normalize this vector to make it easier to use, as we don’t care about the original length of this vector.</p>
 <p>To make the players orientation visual, we first render the player differently: rather than a simple circle, we render him as a pointy triangle, to make it clear what direction he’s looking at. That’s the <code>gl_polygon</code> at the end with 3 explicit coordinates (relative to the playerpos, which has now become our coordinate system origin thanks to <code>gl_translate</code>). Additionally, we insert a <code>gl_rotate_z</code> command to make the pointy part of the triangle always look towards the mouse cursor. The <code>z</code> is because if we rotate around the z axis, we end up rotating the xy plane, which is what we look at in 2D. The argument to <code>gl_rotate_z</code> can either be a vector (as used here) or an angle in degrees. Vectors are generally awesomer.</p>
 <p>Additionally, to cater for situations where the mouse cursor isn’t visible (which it typically isn’t in games) we draw a circle (for now) at the mouse location to give the player feedback where he’s aiming at. This starts at the <code>gl_translate</code> before where we draw the player (before, because if the two overlap, the last one will be drawn on top). We translate to the mouse location in world space, change the linemode to 1 (which draws just the outline instead of a filled circle) and change the color. As you can see, all these commands are ones that undo themselves automatically after the circle is drawn, which is very convenient.</p>
 <p>Now let’s start firing bullets. To keep things simple for now, we fire them automatically, but firing them using a button would be very easy to add (try it!). We add some constants up top, a firerate (second to fire the next bullet) and their speed of travel in the world. To keep track of what’s going on, we just need a list of bullets, and track when the last bullet was fired.</p>
@@ -196,7 +196,7 @@ lastenemy := gl_time()</code></pre>
 
     for(enemies) e:
         playerdir := normalize(playerpos - e.pos)
-        e.pos += playerdir * gl_deltatime() * enemyspeed
+        e.pos += playerdir * gl_delta_time() * enemyspeed
         for(bullets) b:
             if magnitude(b.pos - e.pos) &lt; 1:
                 e.hp = max(e.hp - 1, 0)
@@ -216,7 +216,7 @@ lastenemy := gl_time()</code></pre>
 <p><img src="screenshots/shooter/tut6.jpg" /></p>
 <p>Now we have some loose ends to wrap up to call this thing a “game”: we have to keep track of the player health and score (and highscore), and give him a start / game over screen in-between sessions.</p>
 <p>To do that, we will have to be able to render text. First step towards doing that is loading up a font, right after <code>gl_window</code>:</p>
-<pre><code>check(gl_setfontname(&quot;data/fonts/US101/US101.TTF&quot;) and gl_setfontsize(32), &quot;can\&#39;t load font!&quot;)</code></pre>
+<pre><code>check(gl_set_font_name(&quot;data/fonts/US101/US101.TTF&quot;) and gl_set_font_size(32), &quot;can\&#39;t load font!&quot;)</code></pre>
 <p><code>check</code> is another useful function much like fatal, that ensures the first argument is true, and if not, exits the program with the given message.</p>
 <p>To implement the functionality, we start with some new variables:</p>
 <pre><code>playerhealth := 0.0
@@ -225,7 +225,7 @@ highscore := 0
 playing := false</code></pre>
 <p>inside our frame, we then test our <code>playing</code> variable, and when true, run the game code we were running before, and if false, display the in-between screen, which simply says:</p>
 <pre><code>        msg := &quot;press space to play!&quot;
-        gl_translate float(gl_windowsize() - gl_textsize(msg)) / 2:
+        gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button(&quot;space&quot;) == 1:
             score = 0
@@ -237,12 +237,12 @@ playing := false</code></pre>
             enemies = []
             lastenemy = gl_time()
             playing = true</code></pre>
-<p>The <code>gl_translate</code> centers our text using the handy <code>gl_textsize</code> which tell us the size of a string in pixels before we’ve even rendered it. <code>gl_text</code> then draws it. We then reset the game state when the game starts, and next frame the game will be playing.</p>
+<p>The <code>gl_translate</code> centers our text using the handy <code>gl_text_size</code> which tell us the size of a string in pixels before we’ve even rendered it. <code>gl_text</code> then draws it. We then reset the game state when the game starts, and next frame the game will be playing.</p>
 <p>To show the current state to the player, we use the simple:</p>
 <pre><code>    gl_text(&quot;health: &quot; + ceiling(playerhealth) + &quot; - score: &quot; + score + &quot; - highscore: &quot; + highscore)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible regardless of wether the player is in-game or not, for simplicity. <code>ceiling</code> is useful since we’ll be calculating the player’s health in float, but want to show only the whole numbers. <code>ceiling</code> here is better than <code>truncate</code>, since we only want to show <code>0</code> when the player is truely dead.</p>
 <pre><code>                if magnitude(playervec) &lt; 1:
-                    playerhealth -= gl_deltatime() * 50
+                    playerhealth -= gl_delta_time() * 50
                     if playerhealth &lt;= 0:
                         playerhealth = 0
                         highscore = max(highscore, score)

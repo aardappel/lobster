@@ -722,43 +722,43 @@ void AddMeshGen(NativeRegistry &natreg) {
     } ENDDECL2(mg_landscape, "zscale,xyscale", "FF", "",
         "a simplex landscape of unit size");
 
-    STARTDECL(mg_set_polygonreduction) (VM &, Value &_polyreductionpasses, Value &_epsilon,
+    STARTDECL(mg_set_polygon_reduction) (VM &, Value &_polyreductionpasses, Value &_epsilon,
                                         Value &_maxtricornerdot) {
         polyreductionpasses = _polyreductionpasses.intval();
         epsilon = _epsilon.fltval();
         maxtricornerdot = _maxtricornerdot.fltval();
         return Value();
     }
-    ENDDECL3(mg_set_polygonreduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
+    ENDDECL3(mg_set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
         "controls the polygon reduction algorithm. set polyreductionpasses to 0 for off, 100 for"
         " max compression, or low values for generation speed or to keep the mesh uniform. epsilon"
         " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
         " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
         " 0.95 as a good tradeoff, up to 0.99 to get more compression");
 
-    STARTDECL(mg_set_colornoise) (VM &, Value &_noiseintensity, Value &_noisestretch) {
+    STARTDECL(mg_set_color_noise) (VM &, Value &_noiseintensity, Value &_noisestretch) {
         noisestretch = _noisestretch.fltval();
         noiseintensity = _noiseintensity.fltval();
         return Value();
     }
-    ENDDECL2(mg_set_colornoise, "noiseintensity,noisestretch", "FF", "",
+    ENDDECL2(mg_set_color_noise, "noiseintensity,noisestretch", "FF", "",
         "applies simplex noise to the colors of the model. try 0.3 for intensity."
         " stretch scales the pattern over the model");
 
-    STARTDECL(mg_set_vertrandomize) (VM &, Value &factor) {
+    STARTDECL(mg_set_vertex_randomize) (VM &, Value &factor) {
         randomizeverts = factor.fltval();
         return Value();
     }
-    ENDDECL1(mg_set_vertrandomize, "factor", "F", "",
+    ENDDECL1(mg_set_vertex_randomize, "factor", "F", "",
         "randomizes all verts produced to give a more organic look and to hide the inherent messy"
         " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
         " likely counteract the polygon reduction algorithm");
 
-    STARTDECL(mg_set_pointmode) (VM &, Value &aspoints) {
+    STARTDECL(mg_set_point_mode) (VM &, Value &aspoints) {
         pointmode = aspoints.True();
         return Value();
     }
-    ENDDECL1(mg_set_pointmode, "on", "I", "",
+    ENDDECL1(mg_set_point_mode, "on", "I", "",
              "generates a point mesh instead of polygons");
 
     STARTDECL(mg_polygonize) (VM &vm, Value &subdiv) {
@@ -799,16 +799,16 @@ void AddMeshGen(NativeRegistry &natreg) {
         "scales the current coordinate system by the given factor."
         " when a body is given, restores the previous transform afterwards");
 
-    STARTDECL(mg_scalevec) (VM &vm, Value &vec, Value &body) {
+    STARTDECL(mg_scale_vec) (VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, cursize));
         auto v = ValueDecToFLT<3>(vm, vec);
         cursize *= v;
         return body;
     }
-    MIDDECL(mg_scalevec) (VM &vm) {
+    MIDDECL(mg_scale_vec) (VM &vm) {
         cursize = ValueDecToFLT<3>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(mg_scalevec, "vec,body", "F}:3C?", "",
+    ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3C?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis."
         " when a body is given, restores the previous transform afterwards");
 

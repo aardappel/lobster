@@ -47,7 +47,7 @@ struct TypeChecker {
                 // If this type has fields inherited from the superclass that refer to the
                 // superclass, make it refer to this type instead. There may be corner cases where
                 // this is not what you want, but generally you do.
-                for (auto &field : make_span(struc->fields.v.data(), 
+                for (auto &field : make_span(struc->fields.v.data(),
                                              struc->superclass->fields.v.size())) {
                     PromoteStructIdx(field.type, struc->superclass, struc);
                 }
@@ -65,7 +65,7 @@ struct TypeChecker {
     void RevertCurrentSid(SpecIdent *&sid) { sid->Current() = sid; }
 
     void ComputeStructSameType(Struct *struc) {
-        // NOTE: all users of sametype will only act on it if it is numeric, since 
+        // NOTE: all users of sametype will only act on it if it is numeric, since
         // otherwise it would a scalar field to become any without boxing.
         // Much of the implementation relies on these being 2-4 component vectors, so
         // deny this functionality to any other structs.
@@ -902,7 +902,7 @@ struct TypeChecker {
             for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope) {
                 auto sf = scope->sf;
                 if (!sf->iscoroutine) continue;
-                // What yield returns to returnvalue()
+                // What yield returns to return_value()
                 auto type = args->Arity() ? args->children[0]->exptype : type_any;
                 RetVal(nullptr, type, sf, 0, *args);
                 // Now collect all ids between coroutine and yield, so that we can save these in the
@@ -1178,7 +1178,7 @@ struct TypeChecker {
                         flen = (int)e->struc->fields.size();
                     }
                     if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
-                        // Special case for "F}?" style types that can be matched against a 
+                        // Special case for "F}?" style types that can be matched against a
                         // DefaultArg, would be good to solve this more elegantly..
                         // FIXME: don't know arity, but it doesn't matter, so we pick 2..
                         return st.VectorType(vt, i, 2);
@@ -1359,7 +1359,7 @@ Node *For::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         itertype = itertype->Element();
     else if (itertype->t == V_STRUCT && itertype->struc->sametype->Numeric())
         itertype = itertype->struc->sametype;
-    else tc.TypeError("for can only iterate over int / string / vector / numeric struct, not: " + 
+    else tc.TypeError("for can only iterate over int / string / vector / numeric struct, not: " +
         TypeName(itertype), *this);
     auto bodyc = AssertIs<Call>(body);
     auto &args = bodyc->children;

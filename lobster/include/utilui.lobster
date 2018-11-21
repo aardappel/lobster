@@ -26,35 +26,35 @@ struct scrollzoomview:
     def update(mino:xy_f, maxo:xy_f, viewsize:xy_i):
         // Update zooming:
         if viewsteps == 0: viewsteps = defaults
-        oldscale := gl_windowsize().x / pow(rate, viewsteps) * pinchfactor
+        oldscale := gl_window_size().x / pow(rate, viewsteps) * pinchfactor
         oldpanoffset := panoffset
-        mousewheeldelta := gl_mousewheeldelta()
+        mousewheeldelta := gl_mousewheel_delta()
         viewsteps -= mousewheeldelta
         viewsteps = max(min(viewsteps, maxs), mins)
         viewscale := pow(rate, viewsteps)
-        center := float(gl_mousepos(0))
+        center := float(gl_mouse_pos(0))
         if gl_button("mouse1") >= 1 and gl_button("mouse11") >= 1:
-            dist := magnitude(float(gl_mousepos(0) - gl_mousepos(1)))
-            center = float(gl_mousepos(0) + gl_mousepos(1)) / 2.0
+            dist := magnitude(float(gl_mouse_pos(0) - gl_mouse_pos(1)))
+            center = float(gl_mouse_pos(0) + gl_mouse_pos(1)) / 2.0
             if(lastdistance):
                 pinchfactor *= dist / lastdistance
             lastdistance = dist
         else:
             lastdistance = 0
-        scale := gl_windowsize().x / viewscale * pinchfactor
+        scale := gl_window_size().x / viewscale * pinchfactor
         center /= oldscale
         panoffset -= center / (scale / oldscale) - center
         // Update panning:
         if gl_button(buttonname) >= 1:
-            delta := float(gl_mousedelta(0)) / scale
+            delta := float(gl_mouse_delta(0)) / scale
             panoffset -= delta
             // mild amount of dampening/smoothing from previous frames:
-            touchvelocity = (touchvelocity + delta / gl_deltatime()) / 2
+            touchvelocity = (touchvelocity + delta / gl_delta_time()) / 2
         else:
-            panoffset -= touchvelocity * gl_deltatime()
+            panoffset -= touchvelocity * gl_delta_time()
             speed := touchvelocity.magnitude()
             if speed > 0:
-                reduction := gl_deltatime() / scale * 1000
+                reduction := gl_delta_time() / scale * 1000
                 if reduction < speed:
                     speed -= reduction
                     touchvelocity = touchvelocity.normalize() * speed
@@ -89,13 +89,13 @@ struct scrollzoomview:
 // then execute any text rendering contained in f
 
 def ui_rendertextatlocalsize(localsize:float, f):
-    oldfontsize := gl_getfontsize()
+    oldfontsize := gl_get_font_size()
     oldoutlinesize := gl_getoutlinesize()
     sc := gl_scaling().x
     localfontsizef := sc * localsize
     localfontsize := round(localfontsizef)    // font size to nearest pixel
-    gl_setfontsize(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
+    gl_set_font_size(localfontsize, oldoutlinesize * (localfontsizef / oldfontsize))
     gl_scale xy_1 / gl_scaling():   // get back to pixel scale
         gl_translate(-fraction(gl_origin() + 0.5) + 0.5) // translate to nearest pixel
         f()
-    gl_setfontsize(oldfontsize, oldoutlinesize)
+    gl_set_font_size(oldfontsize, oldoutlinesize)

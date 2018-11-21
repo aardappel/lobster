@@ -4,8 +4,6 @@
     and then each use should make sure that file has been included in the current file, to avoid
     suprises when things are included independently.
 
-- rename builtin functions that still use snakecase instead of snake_case
-
 - refactor function return-value tracking as it is highly confusing.
   - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
   - Function::nretvals shouldn't exists as it depends on the specialization.
@@ -37,7 +35,7 @@
       turn "true" in to passing "reqret" to child.
   - Builtin calls that return no value are followed by IL_POPREF, would be better IL_POP or nothing
     at all.
-  - second return value doesn't get proper vector type from e.g. gl_loadtexture:
+  - second return value doesn't get proper vector type from e.g. gl_load_texture:
     mapxy(xy { dim[0], dim[1] })
   - see "return" elsewhere, e.g. in typechecking notes below.
 
@@ -489,9 +487,9 @@
 - type errors should skip large amounts of globals for __top_level_expression()
 
 - In this kind of code, without the type annotation, the list specializes it to subclass
-  and fails the removeobj:
+  and fails the remove_obj:
   def supermethod(.., list:[supertype])
-      list.removeobj(this)  // Type error without the annotation.
+      list.remove_obj(this)  // Type error without the annotation.
   Not sure how to solve that, as auto-specializing "this" based on other args may be weird.
 
 - in a struct foo { a:float = 1.0 } allow the :float to be left out
@@ -843,7 +841,7 @@
   - also should be possible without () (see capped_storage() in cityclicker.lobster)
   - also should be possible to leave out variable name before ::
 
-- There's a possibility gl_setmeshtexture will hold on to texture ids that get deleted.
+- There's a possibility gl_set_mesh_texture will hold on to texture ids that get deleted.
   Would be nice to avoid this, but don't want Mesh to have to hold on to an LResource, or
   have to implement a second level of refcounting.
 
@@ -1101,7 +1099,7 @@
   - trace output also to a file
 
 - BitmapFont::height is often 1 or 2 bigger than the original fontheight, which creates problems if code use the
-  fontheight for rendering instead of gl_textsize()
+  fontheight for rendering instead of gl_text_size()
   either improve the math such that they are guaranteed equal, or document that fontheight should never be used for
   rendering bounding boxes etc
 
@@ -1141,7 +1139,7 @@
   multi-line exps) to reformat correctly.
   Must also respect aligned spacing in places.
 
-- calling mg_scalevec(1, f) where f = nil doesn't work (see codegen NCM_CONT_EXIT).. probably doesn't happen a lot, but
+- calling mg_scale_vec(1, f) where f = nil doesn't work (see codegen NCM_CONT_EXIT).. probably doesn't happen a lot, but
   needs fixing
 
 - other IQM features

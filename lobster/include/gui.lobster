@@ -102,7 +102,7 @@ private def element(size:xy_i, f):
                 gl_translate(xy_x * (size.x + spacing))
 
 private def block(al, sp, vert, id, f):
-    spi := round(sp * gl_getfontsize())
+    spi := round(sp * gl_get_font_size())
     size := cursize_of(id):
         spacing <- spi
         vertical <- vert
@@ -115,16 +115,16 @@ private def block(al, sp, vert, id, f):
         f()
 
 def text(text:string):
-    element(cache_size(hash(text)): gl_textsize(text)):
+    element(cache_size(hash(text)): gl_text_size(text)):
         gl_text(text)
 
 def image(factors, tex):
-    size := round(factors * gl_getfontsize())
+    size := round(factors * gl_get_font_size())
     element(size):
-        gl_setshader("textured")
-        gl_setprimitivetexture(0, tex)
+        gl_set_shader("textured")
+        gl_set_primitive_texture(0, tex)
         gl_rect(float(size))
-        gl_setshader("color")
+        gl_set_shader("color")
 
 def divider(thickness:int):
     align <- 0
@@ -132,11 +132,11 @@ def divider(thickness:int):
         gl_rect(if vertical: xy_f { parent_size.x, thickness } else: xy_f { thickness, parent_size.y })
 
 def space(thickness:float):
-    element(xy_1i * round(thickness * gl_getfontsize())): nil
+    element(xy_1i * round(thickness * gl_get_font_size())): nil
 
 def start(size, alignh, alignv, interact, f:fun):   // top level only
     id := hash(f)
-    gl_setshader("color")
+    gl_set_shader("color")
     gl_blend(blend_alpha):
         parent_size <- size
         vertical <- false
@@ -165,11 +165,11 @@ def hblock(al, sp, f:fun): block(al, sp, false, hash(f), f)
 def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
 
 def fontscale(factor, f:fun):
-    os := gl_getfontsize()
+    os := gl_get_font_size()
     ool := gl_getoutlinesize()
-    gl_setfontsize(round(os * factor), ool * factor)
+    gl_set_font_size(round(os * factor), ool * factor)
     f()
-    gl_setfontsize(os, ool)
+    gl_set_font_size(os, ool)
 
 def color(col, f:fun): nest_if(render_pass, def(): gl_color(col, _), f)
 def blend(bli, f:fun): nest_if(render_pass, def(): gl_blend(bli, _), f)
@@ -280,10 +280,10 @@ def setactionwav(snd): actionwav = snd
 if program_name() == "gui.lobster" or program_name() == "include/gui.lobster": // run example
 
     fatal(gl_window("gui test", 960, 640))
-    check(gl_setfontname("data/fonts/US101/US101.ttf"), "can\'t load font!")
-    //check(gl_setfontname("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
+    check(gl_set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
+    //check(gl_set_font_name("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
 
-    ghosttex := gl_loadtexture("data/textures/lobster.jpg")
+    ghosttex := gl_load_texture("data/textures/lobster.jpg")
     assert ghosttex
 
     clicked := false
@@ -293,19 +293,19 @@ if program_name() == "gui.lobster" or program_name() == "include/gui.lobster": /
         if gl_button("escape") == 1:
             return
 
-        fontsize := gl_windowsize().y / 10
-        gl_setfontsize(fontsize, fontsize / 40.0)
-        //gl_setmaxfontsize(512)
+        fontsize := gl_window_size().y / 10
+        gl_set_font_size(fontsize, fontsize / 40.0)
+        //gl_set_max_font_size(512)
 
         gl_clear(color_grey)
         gl_color(color_white)
 
         gui_setclickcolors(color_dark_green, color_green)
 
-        gui_start(gl_windowsize(), 1, 1, true):
+        gui_start(gl_window_size(), 1, 1, true):
             gui_hblock(1, 0):
                 //gui_fontscale(0.3):
-                 //   gui_text(unicode2string(map(500): _))
+                 //   gui_text(unicode_to_string(map(500): _))
 
                 gui_text("A")
                 gui_fontscale(5):
@@ -333,7 +333,7 @@ if program_name() == "gui.lobster" or program_name() == "include/gui.lobster": /
                     focused = !focused
                 if clicked:
                     gui_color(color_red):
-                        //gui_text(unicode2string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
+                        //gui_text(unicode_to_string([0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]))
                         gui_text("ON")
                 gui_text(focused and "C" or "E")
                 gui_background(color_blue, false):

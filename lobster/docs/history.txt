@@ -8,8 +8,8 @@
   * can now declare types for struct/value fields that will be checked upon construction
   * can now use other types for vectors, for example, [ a, b, c ]:int guarantees all elements are ints upon construction
 - made adding builtin functions more modular.
-- added gl_windowtitle, gl_meshsize
-- fixed removeobj not comparing string contents
+- added gl_window_title, gl_mesh_size
+- fixed remove_obj not comparing string contents
 
 2013-05:
 - private beta, first release used by others

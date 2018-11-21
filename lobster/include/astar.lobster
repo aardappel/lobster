@@ -23,7 +23,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     openlist := [ startnode ]
     n := startnode or nil
     while n and !endcondition(n):
-        openlist.removeobj(n)
+        openlist.remove_obj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
             if !nn.closed:
@@ -70,7 +70,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
         astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
                 np := n.state + delta
-                if np.inrange(gridsize):
+                if np.in_range(gridsize):
                     f(getnode(np))
     if isocta:
         directions = append(directions, diagonal_directions)

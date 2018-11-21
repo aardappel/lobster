@@ -203,14 +203,14 @@ These must be (including correct paths):
         needed for to render anything, and is implicitly loaded by `gl_window`).
 
     -   Any other files/directories you have specified with `pakfile`, e.g:
-        `gl_loadtexture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
+        `gl_load_texture(pakfile ”mypath/myfile.png”)`. `pakfile` can prefix
         filenames or directories (ending in `/`), in which case all files in the
         directory will (non-recursively) be added. When running with `--verbose`
         you can see what files are added/loaded from a pakfile, and which are
         loaded individually.
 
 -   Any files your code references that are not in the pakfile (e.g.
-    `gl_loadtexture(”mypath/myfile.png”)` ).
+    `gl_load_texture(”mypath/myfile.png”)` ).
 
 -   On Windows, you’ll need to include `openvr_api.dll` and/or `steam_api.dll`
     next to `lobster.exe` ONLY if you use functions starting with `vr_` or

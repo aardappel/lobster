@@ -8,7 +8,7 @@
 def time_for(seconds:float, f):
     time ?= 0.0
     start := time
-    time += gl_deltatime()
+    time += gl_delta_time()
     if start < seconds:
         f(start)
         true

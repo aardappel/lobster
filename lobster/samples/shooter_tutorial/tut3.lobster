@@ -12,14 +12,14 @@ while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
-    gl_translate(float(gl_windowsize()) / 2.0)
-    scale := gl_windowsize().y / worldsize
+    gl_translate(float(gl_window_size()) / 2.0)
+    scale := gl_window_size().y / worldsize
     gl_scale(scale)
 
     dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                   (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-    newpos := playerpos + normalize(dir) * gl_deltatime() * playerspeed
-    if !any(abs(newpos) > float(gl_windowsize()) / scale / 2):
+    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     gl_translate playerpos:

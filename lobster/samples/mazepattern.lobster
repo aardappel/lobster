@@ -19,10 +19,10 @@ def endcap_line(pts, thickness):
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
-    rndseed(0)
-    scale := gl_windowsize().y / 25
+    rnd_seed(0)
+    scale := gl_window_size().y / 25
     gl_scale(scale)
-    forxy(gl_windowsize() / scale + 1) v:
+    forxy(gl_window_size() / scale + 1) v:
         gl_translate float(v):
             if rnd(3):   // this is not in the original, and adds some blank spaces.. comment this line out if needed
                 endcap_line(if rnd(2): [ xy_0, xy_1 ]

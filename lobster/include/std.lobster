@@ -74,7 +74,7 @@ def weightedpick(list, zero, wf):
     // arg would be better here.
     weights := fold(list, zero): _a + wf(_x)
     assert(weights)
-    pick := if zero is float: rndfloat() * weights else: rnd(weights)  // compile-time if!
+    pick := if zero is float: rnd_float() * weights else: rnd(weights)  // compile-time if!
     acc := zero
     for(list) x:
         acc += wf(x)
@@ -175,9 +175,9 @@ def collect(hof):
 // generally don't want to use this function, since you'd be better off directly using the HOF the coroutine is based on
 def coroutine_for(co, f):
     while co.active:
-        f(co.returnvalue)
+        f(co.return_value)
         co.resume
-    co.returnvalue
+    co.return_value
 
 // builtin for() made useful as a coroutine.
 def cofor(n, f):

@@ -24,9 +24,9 @@ def square(pos, size, depth):
         gl_translate float(pos):
             gl_color(color_black)
             gl_rect(float(size))
-            col := color { rndfloat(), rndfloat(), rndfloat(), 1 } * 0.15 + 0.75
+            col := color { rnd_float(), rnd_float(), rnd_float(), 1 } * 0.15 + 0.75
             range := max(0.1, min(0.7, 1 - sqrt(size.x * size.y) / 250))
-            col[colorconstant] = rndfloat() * range + (1 - range)
+            col[colorconstant] = rnd_float() * range + (1 - range)
             gl_color(col)
             gl_rect(float(size - xy_1i * 2))
 
@@ -39,5 +39,5 @@ while gl_frame():
     if gl_button("space") == 1: seed += 675656
     if gl_button("c") == 1: colorconstant = (colorconstant + 1) % 3
     gl_clear(color_black)
-    rndseed(seed)
-    square(xy_0i, gl_windowsize(), 0)
+    rnd_seed(seed)
+    square(xy_0i, gl_window_size(), 0)

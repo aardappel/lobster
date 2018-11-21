@@ -201,7 +201,7 @@ void AddCubeGen(NativeRegistry &natreg) {
         unordered_map<VKey, int, decltype(hasher)> vertlookup(optimize_verts ? 100000 : 10, hasher);
         RandomNumberGenerator<PCG32> rnd;
         vector<float> rnd_offset(1024);
-        for (auto &f : rnd_offset) { f = (rnd.rndfloat() - 0.5f) * 0.15f; }
+        for (auto &f : rnd_offset) { f = (rnd.rnd_float() - 0.5f) * 0.15f; }
         // Woah nested loops!
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {

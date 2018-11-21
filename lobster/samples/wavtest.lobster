@@ -5,8 +5,8 @@ include vec
 include color
 
 fatal(gl_window("wav sound test", 1024, 768))
-check(gl_setfontname("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") and
-      gl_setfontsize(30),
+check(gl_set_font_name("data/fonts/Carrois_Gothic_SC/CarroisGothicSC-Regular.ttf") and
+      gl_set_font_size(30),
       "can\'t load font!")
 
 while gl_frame():

@@ -7,12 +7,12 @@ include util3d
 
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 
-iqmtest := check(gl_newmesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
+iqmtest := check(gl_new_mesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
 
-textures := map(gl_meshparts(iqmtest)) name, i:
-    check(gl_loadtexture("models/" + name + ".png"), "problem loading " + name)
+textures := map(gl_mesh_parts(iqmtest)) name, i:
+    check(gl_load_texture("models/" + name + ".png"), "problem loading " + name)
 
-for(textures) tex, i: gl_setmeshtexture(iqmtest, i, 0, tex)
+for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
 
 camera_position = xyz { 0.0, 0.0, 8.0 }
 camera_yaw = -45
@@ -35,11 +35,11 @@ while gl_frame():
     //gl_light(xyz(sincos(gl_time() * 20), 0) * 100 + xyz_z * 100)
 
     gl_blend(blend_none)
-    gl_setshader("phong_anim")
-    gl_animatemesh(iqmtest, gl_time() * 60)
+    gl_set_shader("phong_anim")
+    gl_animate_mesh(iqmtest, gl_time() * 60)
     for(10) i:
         gl_translate xy_1 * 10 + i * 5:
-            gl_rendermesh(iqmtest)
+            gl_render_mesh(iqmtest)
 
-    gl_setshader("color")
+    gl_set_shader("color")
     gl_debug_grid(xyz { 20, 20, 0 }, xyz_1, 0.005)

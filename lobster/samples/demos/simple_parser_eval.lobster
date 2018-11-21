@@ -46,7 +46,7 @@ def parse(s:string):
         if start == i:
             return error("unprintable character: " + s[i]) from parse
         atom = s.substring(start, i - start)
-        ival, all := string2int(atom)
+        ival, all := string_to_int(atom)
         token = if all: "int" else: "atom"
     def lex_next():
         while true:
@@ -94,7 +94,7 @@ def parse(s:string):
                 lex_next()
                 n
             case "int":
-                n := integer { string2int(atom) }
+                n := integer { string_to_int(atom) }
                 lex_next()
                 n
             default:

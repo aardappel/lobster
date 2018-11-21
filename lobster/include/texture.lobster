@@ -29,11 +29,11 @@ private texture_names:[string] = []
 private textures:[resource] = []
 
 def loadtexturecached(name, tf):
-    n, i := binarysearch(texture_names, name)
+    n, i := binary_search(texture_names, name)
     if n:
         textures[i]
     else:
-        tex := gl_loadtexture(name, tf)
+        tex := gl_load_texture(name, tf)
         if tex:
             texture_names.insert(i, name)
             textures.insert(i, tex)

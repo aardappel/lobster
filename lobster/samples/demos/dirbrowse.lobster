@@ -40,7 +40,7 @@ def render_tree(n:node):
         text := n.name
         if text == "": text = "(root)"
         // if(n.size >= 0) text += ": " + n.size
-        size := float(gl_textsize(text))
+        size := float(gl_text_size(text))
         if gl_hit(size, 0):
             if gl_button("mouse1") == 1:
                 select(n)
@@ -60,7 +60,7 @@ def render_entries():
     for(entries) e:
         gl_color(if e.size < 0: color_blue else: color_black):
             text := e.name
-            size := float(gl_textsize(text))
+            size := float(gl_text_size(text))
             if gl_hit(size, 0):
                 if gl_button("mouse1") == 1:
                     dups := filter selected.children: _.name == e.name
@@ -79,19 +79,19 @@ def render_sizes():
     for(entries) e:
         gl_color color_dark_green:
             text := if e.size < 0: "---" else: e.size + 1 + "K"
-            size := gl_textsize(text)
+            size := gl_text_size(text)
             gl_translate xy { 90.0 - size.x, 0.0 }:
                 gl_text(text)
             gl_translate xy { 0.0, fontsize }
 
 fatal(gl_window("dirbrowsing", 1024, 768))
-check(gl_setfontname("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_setfontsize(fontsize), "can\'t load font!")
+check(gl_set_font_name("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_set_font_size(fontsize), "can\'t load font!")
 
 while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:
-        gl_rect(xy { 400.0, gl_windowsize().y })
+        gl_rect(xy { 400.0, gl_window_size().y })
     gl_translate xy_0:
         render_tree(root)
     gl_translate xy { 400.0, 0.0 }:
