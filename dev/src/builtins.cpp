@@ -1024,7 +1024,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         vector<char *> outmap(sz.y, nullptr);
         for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->At(i).sval()->data();
         int num_contradictions = 0;
-        auto ok = WaveFunctionCollapse(int2(cols, inmap.size()), inmap.data(), sz, outmap.data(),
+        auto ok = WaveFunctionCollapse(int2(intp2(cols, (intp)inmap.size())), inmap.data(), sz, outmap.data(),
                                         rnd, num_contradictions);
         if (!ok)
             vm.Error("tilemap contained too many tile ids");

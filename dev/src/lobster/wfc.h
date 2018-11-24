@@ -42,7 +42,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
     const auto nbits = sizeof(bitmask_t) * 8;
     array<int, 256> tile_lookup;
     tile_lookup.fill(-1);
-    struct Tile { bitmask_t sides[4] = {}; size_t freq = 0; char tidx = 0; };
+    struct Tile { bitmask_t sides[4] = {}; int freq = 0; char tidx = 0; };
     vector<Tile> tiles;
     int2 neighbors[] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
     // Collect unique tiles and their frequency of occurrence.
@@ -61,6 +61,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
         }
     }
     // Construct valid neighbor bitmasks.
+    auto to_bitmask = [](size_t idx) { return (bitmask_t)1 << idx; };
     for (int iny = 0; iny < insize.y; iny++) {
         for (int inx = 0; inx < insize.x; inx++) {
             auto t = inmap[iny][inx];
@@ -70,13 +71,13 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
                 auto p = (n + int2(inx, iny) + insize) % insize;
                 auto tn = inmap[p.y][p.x];
                 assert(tile_lookup[tn] >= 0);
-                tile.sides[ni] |= 1 << tile_lookup[tn];
+                tile.sides[ni] |= to_bitmask(tile_lookup[tn]);
                 ni++;
             }
         }
     }
     size_t most_common_tile_id = 0;
-    size_t most_common_tile_freq = 0;
+    int most_common_tile_freq = 0;
     for (auto &tile : tiles) if (tile.freq > most_common_tile_freq) {
         most_common_tile_freq = tile.freq;
         most_common_tile_id = &tile - &tiles[0];
@@ -85,15 +86,16 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
     list<pair<int2, int>> open, temp;
     // Store a bitmask per output cell of remaining possible choices.
     auto max_bitmask = (1 << tiles.size()) - 1;
-    enum class State : uchar { NEW, OPEN, CLOSED };
+    enum class State : int { NEW, OPEN, CLOSED };
     struct Cell {
         bitmask_t wf;
-        uchar popcnt = 0;
+        int popcnt = 0;
         State state = State::NEW;
-        decltype(open)::iterator it;
-        Cell(bitmask_t wf, uchar popcnt) : wf(wf), popcnt(popcnt) {}
+        list<pair<int2, int>>::iterator it;
+        Cell(bitmask_t wf, int popcnt) : wf(wf), popcnt(popcnt) {}
     };
-    vector<vector<Cell>> cells(outsize.y, vector<Cell>(outsize.x, Cell(max_bitmask, tiles.size())));
+    vector<vector<Cell>> cells(outsize.y, vector<Cell>(outsize.x, Cell(max_bitmask,
+                                                                       (int)tiles.size())));
     auto start = rndivec<int, 2>(rnd, outsize);
     open.push_back({ start, 0 });  // Start.
     auto &scell = cells[start.y][start.x];
@@ -104,7 +106,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
         // Simply picking the first list item results in the same chance of conflicts as
         // random picks over equal options, but it is assumed the latter could generate more
         // interesting maps.
-        size_t num_candidates = 1;
+        int num_candidates = 1;
         auto numopts_0 = cells[open.back().first.y][open.back().first.x].popcnt;
         for (auto it = ++open.rbegin(); it != open.rend(); ++it)
             if (numopts_0 == cells[it->first.y][it->first.x].popcnt &&
@@ -127,17 +129,19 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
             // case a map with bad tile neighbors is still useful to the caller.
             // As a heuristic lets just use the most common tile, as that will likely have the
             // most neighbor options.
-            cell.wf = 1 << most_common_tile_id;
+            cell.wf = to_bitmask(most_common_tile_id);
             cell.popcnt = 1;
         }
         // From our options, pick one randomly, weighted by frequency of tile occurrence.
         // First find total frequency.
-        size_t total_freq = 0;
-        for (size_t i = 0; i < tiles.size(); i++) if (cell.wf & (1 << i)) total_freq += tiles[i].freq;
+        int total_freq = 0;
+        for (size_t i = 0; i < tiles.size(); i++)
+            if (cell.wf & to_bitmask(i))
+                total_freq += tiles[i].freq;
         auto freqpick = rnd(total_freq);
         // Now pick.
         size_t picked = 0;
-        for (size_t i = 0; i < tiles.size(); i++) if (cell.wf & (1 << i)) {
+        for (size_t i = 0; i < tiles.size(); i++) if (cell.wf & to_bitmask(i)) {
             picked = i;
             if ((freqpick -= tiles[i].freq) <= 0) break;
         }
@@ -145,7 +149,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
         // Modify the picked tile.
         auto &tile = tiles[picked];
         outmap[cur.y][cur.x] = tile.tidx;
-        cell.wf = 1 << picked;  // Exactly one option remains.
+        cell.wf = to_bitmask(picked);  // Exactly one option remains.
         cell.popcnt = 1;
         // Now lets cycle thru neighbors, reduce their options (and maybe their neighbors options),
         // and add them to the open list for next pick.
@@ -172,7 +176,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
                             //pick.
                             bitmask_t superopts = 0;
                             for (size_t i = 0; i < tiles.size(); i++)
-                                if (ncell.wf & (1 << i))
+                                if (ncell.wf & to_bitmask(i))
                                     superopts |= tiles[i].sides[nni];
                             nncell.wf &= superopts;
                             nncell.popcnt = PopCount(nncell.wf);
@@ -190,7 +194,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
                 // Insert this neighbor, sorted by lowest possibilities.
                 // Use total possibilities of neighbors as a tie-breaker to avoid causing
                 // contradictions by needless surrounding of tiles.
-                decltype(open)::iterator dit = open.begin();
+                list<pair<int2, int>>::iterator dit = open.begin();
                 for (auto it = open.rbegin(); it != open.rend(); ++it) {
                     auto onumopts = cells[it->first.y][it->first.x].popcnt;
                     if (onumopts > ncell.popcnt ||
