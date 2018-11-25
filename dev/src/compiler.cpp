@@ -39,7 +39,8 @@ const Type g_type_function_cocl(V_YIELD);
 const Type g_type_coroutine(V_COROUTINE);
 const Type g_type_resource(V_RESOURCE);
 const Type g_type_typeid(V_TYPEID);
-const Type g_type_function_nil(V_NIL, &g_type_function_null);
+const Type g_type_void(V_VOID);
+const Type g_type_function_void(V_VOID, &g_type_function_null);
 
 TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
@@ -53,7 +54,8 @@ TypeRef type_function_cocl = &g_type_function_cocl;
 TypeRef type_coroutine = &g_type_coroutine;
 TypeRef type_resource = &g_type_resource;
 TypeRef type_typeid = &g_type_typeid;
-TypeRef type_function_nil = &g_type_function_nil;
+TypeRef type_void = &g_type_void;
+TypeRef type_function_void = &g_type_function_void;
 
 bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');
@@ -258,17 +260,16 @@ void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st)
 }
 
 void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource, string &bytecode,
-    string *parsedump = nullptr, string *pakfile = nullptr,
-    bool dump_builtins = false, bool dump_names = false) {
+    string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value) {
     SymbolTable st;
     Parser parser(natreg, fn, st, stringsource);
     parser.Parse();
-    TypeChecker tc(parser, st);
+    TypeChecker tc(parser, st, return_value);
     // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc, 100);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st);
+    CodeGen cg(parser, st, return_value);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
         cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
@@ -284,7 +285,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     {
         string bytecode;
         Compile(parent_vm.natreg, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode);
+                bytecode, nullptr, nullptr, false, false, true);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.

@@ -54,7 +54,7 @@ struct Optimizer {
                 auto other  = cval.True() ? ifn->falsepart : ifn->truepart;
                 r = Optimize(branch, typeid(*n));
                 branch = nullptr;
-                if (auto tonil = Is<ToNil>(other)) {
+                if (auto tonil = Is<ToVoid>(other)) {
                     other = tonil->child;
                 }
                 if (auto call = Is<Call>(other)) {

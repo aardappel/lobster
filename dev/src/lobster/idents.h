@@ -202,6 +202,7 @@ struct SubFunction {
     ArgVector dynscoperedefs; // any lhs of <-
     ArgVector freevars;       // any used from outside this scope, could overlap with dynscoperedefs
     vector<TypeRef> returntypes;
+    bool returns_value;       // FIXME: remove.
     bool reqret;  // Do the caller(s) want values to be returned?
     bool isrecursivelycalled;
     bool iscoroutine;
@@ -218,7 +219,7 @@ struct SubFunction {
 
     SubFunction(int _idx)
         : idx(_idx),
-          args(0), locals(0), dynscoperedefs(0), freevars(0), reqret(true),
+          args(0), locals(0), dynscoperedefs(0), freevars(0), returns_value(false), reqret(true),
           isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
@@ -257,12 +258,12 @@ struct Function : Named {
     size_t scopelevel;
     // 0 for anonymous functions, and for named functions to indicate no return has happened yet.
     // 0 implies 1, all function return at least 1 value.
-    int nretvals;
+    int nretvals_;
 
     Function(string_view _name, int _idx, size_t _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0),
-       scopelevel(_sl), nretvals(0) {
+       scopelevel(_sl), nretvals_(0) {
     }
     ~Function() {}
 
@@ -629,7 +630,7 @@ struct SymbolTable {
             for (auto struc : structtable) if (struc->name == *name) {
                 for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
                     auto vt = &struc->thistype;
-                    for (size_t j = 0; j < i; j++) vt = vt->Wrap(NewType());
+                    for (size_t j = 0; j < i; j++) vt = vt->Wrap(NewType(), V_VECTOR);
                     sv[i].push_back(vt);
                 }
                 goto found;

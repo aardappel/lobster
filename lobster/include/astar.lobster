@@ -43,7 +43,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
     while n:
         path.push(n)
         n = n.previous
-    path
+    return path
 
 // specialized to a graph in 2D or 3D space (assumes pre existing nodes), usage:
 // - create a graph out of nodes inherited from astar_node above
@@ -72,7 +72,7 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
                 np := n.state + delta
                 if np.in_range(gridsize):
                     f(getnode(np))
-    if isocta:
+    return if isocta:
         directions = append(directions, diagonal_directions)
         astar_distance() v:
             x := abs(v.x)
@@ -98,7 +98,7 @@ struct goap_node = astar_node(goap_node?, [int], goapaction?)
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     H := heuristic(initstate)
     existingnodes := [ goap_node { H: H, F: H, state: initstate } ]
-    astar_generic(existingnodes[0]):
+    return astar_generic(existingnodes[0]):
         endcondition(_.state)
     generatenewstates n, f:
         for(goapactions) act:

@@ -298,10 +298,6 @@ class SlabAlloc {
         return (T *)alloc_small(sizeof(T));
     }
 
-    template<typename T> T *create_obj_small() {
-        return new (alloc_obj_small<T>()) T();
-    }
-
     template<typename T> T *clone_obj_small(const T *from) {
         assert(from);
         auto to = (T *)alloc_small(sizeof(T));

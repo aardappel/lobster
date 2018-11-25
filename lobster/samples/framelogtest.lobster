@@ -4,7 +4,7 @@ for 60:
 
     def a():
         v ?= 0
-        v++
+        return v++
 
     def b():
         i := a()

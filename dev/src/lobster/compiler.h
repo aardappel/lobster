@@ -20,8 +20,8 @@
 namespace lobster {
 
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
-                    string &bytecode, string *parsedump = nullptr, string *pakfile = nullptr,
-                    bool dump_builtins = false, bool dump_names = false);
+                    string &bytecode, string *parsedump, string *pakfile,
+                    bool dump_builtins, bool dump_names, bool return_value);
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,

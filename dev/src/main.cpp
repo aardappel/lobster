@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
         bool to_cpp = false;
         bool dump_builtins = false;
         bool dump_names = false;
+        bool compile_only = false;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
@@ -94,6 +95,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
+                else if (a == "--compile-only") { compile_only = true; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
@@ -129,7 +131,7 @@ int main(int argc, char* argv[]) {
             string dump;
             string pakfile;
             Compile(natreg, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
-                lpak ? &pakfile : nullptr, dump_builtins, dump_names);
+                lpak ? &pakfile : nullptr, dump_builtins, dump_names, false);
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);
             }
@@ -153,7 +155,7 @@ int main(int argc, char* argv[]) {
                 fputs(ss.str().c_str(), f);
                 fclose(f);
             }
-        } else {
+        } else if (!compile_only) {
             EngineRunByteCode(natreg, fn, bytecode, nullptr, nullptr, program_args);
         }
     }

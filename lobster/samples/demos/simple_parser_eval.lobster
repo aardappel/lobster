@@ -80,7 +80,7 @@ def parse(s:string):
             return error("expected: " + tok + ", found: " + token) from parse
         a := atom
         lex_next()
-        a
+        return a
     def parse_exp() -> node:
         switch token:
             case "(":

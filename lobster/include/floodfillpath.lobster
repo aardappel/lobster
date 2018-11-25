@@ -29,5 +29,5 @@ def floodfillpath(sz:xy_i, target:xy_i, traversablef):
         c := pathq.pop
         for(2) x: for(2) y:
             flood(xy { 1 - y - x, y - x }, c)
-    m
+    return m
 

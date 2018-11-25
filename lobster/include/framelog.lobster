@@ -9,7 +9,7 @@ def time_for(seconds:float, f):
     time ?= 0.0
     start := time
     time += gl_delta_time()
-    if start < seconds:
+    return if start < seconds:
         f(start)
         true
     else:
@@ -21,7 +21,7 @@ def time_if(cond, f):
     on ?= false
     if cond: on = true
     if on and !f(): on = false
-    on
+    return on
 
 // If cond is true, start running f until it is done (signalled by its return value).
 // If cond fires again while running f, f is stopped and restarted the next frame.
@@ -34,7 +34,7 @@ def time_fire(cond, f):
         // else: already on, don't run f() this frame to reset it.
     else:
         if on and !f(): on = false
-    on
+    return on
 
 // Runs the first, followed by the second.
 // (More syntactically convenient than using "or" directly).

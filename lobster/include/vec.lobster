@@ -102,6 +102,6 @@ def vecfromyawpitch(yaw, pitch, move, strafe):
 def rotate2D(v, angle):
     s := sin(-angle)
     c := cos(-angle)
-    xy { v.x * c + v.y * s,
-         v.y * c - v.x * s }
+    return xy { v.x * c + v.y * s,
+                v.y * c - v.x * s }
 

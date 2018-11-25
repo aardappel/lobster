@@ -4,7 +4,7 @@ def map(xs, fun):
     r := vector_reserve(typeof return, xs.length)
     for(xs) x, i:
         r.push(fun(x, i))
-    r
+    return r
 
 def map2(xs, ys, fun): map xs.length: fun(xs[_], ys[_])
 
@@ -13,26 +13,26 @@ def filter(xs, fun):
     for(xs) x, i:
         if fun(x, i):
             r.push(x)
-    r
+    return r
 
 def filterindices(l, f):
     r := []
     for(l) x, i:
         if f(x, i):
             r.push(i)
-    r
+    return r
 
 def exists(xs, fun):
     for(xs) x, i:
         if fun(x, i):
             return true
-    false
+    return false
 
 def forever(fun): while true: fun()
 
 def fold(xs, acc, fun):
     for xs: acc = fun(acc, _)
-    acc
+    return acc
 
 def fold2(xs, acc1, acc2, fun):
     for xs:
@@ -43,7 +43,7 @@ def reduce(xs, fun):
     assert xs.length
     acc := xs[0]
     for(xs.length - 1) i: acc = fun(acc, xs[i + 1])
-    acc
+    return acc
 
 def connect(xs, fun):
     map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
@@ -52,11 +52,11 @@ def reducerev(xs, fun):
     assert xs.length
     acc := xs[xs.length - 1]
     for(xs.length - 1) i: acc = fun(xs[xs.length - i - 2], acc)
-    acc
+    return acc
 
 def find(xs, fun):
     for(xs) x, i: if fun(x): return i
-    -1
+    return -1
 
 // return element for which fun returns biggest float value.
 def find_best(xs, fun):
@@ -67,7 +67,7 @@ def find_best(xs, fun):
         if i < 0 or v > best:
             i = j
             best = v
-    i
+    return i
 
 def weightedpick(list, zero, wf):
     // FIXME: "zero" is an easy way to select float vs int implementation, explicit template
@@ -79,7 +79,7 @@ def weightedpick(list, zero, wf):
     for(list) x:
         acc += wf(x)
         if pick < acc: return x
-    list.top()  // just in case float precision causes pick == weights.
+    return list.top()  // just in case float precision causes pick == weights.
 
 def sum(xs):     fold(xs, 0): _x + _y
 def product(xs): fold(xs, 1): _x * _y
@@ -94,7 +94,7 @@ def flatten(xs): fold(xs, []): append(_a, _b)
 def split(l, f):
     r := [ [], [] ]
     for(l) e: r[f(e)].push(e)
-    r
+    return r
 
 def qsort(xs, lt):
     if xs.length <= 1:
@@ -145,7 +145,7 @@ def insert_ordered(xs, x, lt):
 def randomize(xs):
     // Simple and effective, but remove makes it expensive.
     for(xs.length) i: xs.push(xs.remove(rnd(xs.length - i)))
-    xs
+    return xs
 
 def nest_if(c, nest, with):
     if c: nest(with)
@@ -153,7 +153,7 @@ def nest_if(c, nest, with):
 
 def return_after(v, f):
     f()
-    v
+    return v
 
 def do(f): f()  // Useful to create a scope where there is none.
 
@@ -168,7 +168,7 @@ def forrangeincl(a, b, fun): forbias(b - a + 1, a, fun)
 def collect(hof):
     list := []
     hof(): list.push(_)
-    list
+    return list
 
 // coroutine utility functions:
 
@@ -177,12 +177,12 @@ def coroutine_for(co, f):
     while co.active:
         f(co.return_value)
         co.resume
-    co.return_value
+    return co.return_value
 
 // builtin for() made useful as a coroutine.
 def cofor(n, f):
     for n: f(_)
-    n
+    return n
 
 // error checking
 
@@ -193,4 +193,4 @@ def fatal(msg):
 
 def check(val, msg):
     if !val: fatal(msg)
-    assert val  // FIXME: needed to make return type not-nil.
+    return assert val  // FIXME: needed to make return type not-nil.

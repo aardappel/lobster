@@ -71,7 +71,7 @@ struct Type {
         return sub;
     }
 
-    Type *Wrap(Type *dest, ValueType with = V_VECTOR) const {
+    Type *Wrap(Type *dest, ValueType with) const {
         *dest = Type(with, this);
         return dest;
     }
@@ -86,10 +86,8 @@ struct Type {
 
     bool IsBoundVar() const { return t == V_VAR && sub; }
 
-    bool HasVariable() const {  // FIXME: does this cover all cases?
-        return t == V_VAR ||
-              (t == V_VECTOR && sub->t == V_VAR) ||
-              (t == V_NIL    && sub->t == V_VAR);
+    bool HasValueType(ValueType vt) const {
+        return t == vt || (Wrapped() && Element()->HasValueType(vt));
     }
 };
 
@@ -130,10 +128,11 @@ extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
-extern TypeRef type_function_nil;
+extern TypeRef type_function_void;
 extern TypeRef type_coroutine;
 extern TypeRef type_resource;
 extern TypeRef type_typeid;
+extern TypeRef type_void;
 
 enum ArgFlags {
     AF_NONE = 0,
@@ -193,7 +192,7 @@ struct Narg : Typed {
                 case ']':
                 case '}':
                     typestorage.push_back(Type());
-                    type = type->Wrap(&typestorage.back());
+                    type = type->Wrap(&typestorage.back(), V_VECTOR);
                     if (c == '}') fixed_len = -1;
                     break;
                 case '?':

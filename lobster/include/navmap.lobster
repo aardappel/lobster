@@ -40,5 +40,5 @@ def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, 
                         i := pathq.length
                         while i > 0 and pathq[i - 1].psteps < n.psteps: i--
                         pathq.insert(i, n)
-    nav_map { mapxy(worlddim) v: grid[v].pdir, start }
+    return nav_map { mapxy(worlddim) v: grid[v].pdir, start }
 

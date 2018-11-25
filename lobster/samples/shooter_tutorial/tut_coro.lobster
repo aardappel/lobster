@@ -12,6 +12,7 @@ def menu(lastscore, highscore, frame):
             gl_text(msg)
         if gl_button("space") == 1:
             mode = coroutine level(highscore)
+    return nil
 
 def level(highscore, lframe):
     score := 0
@@ -38,6 +39,7 @@ def level(highscore, lframe):
             gl_translate pos:
                 gl_color color_yellow:
                     gl_circle(0.2, 20)
+        return nil
 
     def bulletset(frame):
         firerate :== 0.1
@@ -52,6 +54,7 @@ def level(highscore, lframe):
             bullets = filter(bullets) b:
                 b.resume()
                 b.active
+        return nil
 
     def enemy(pos, frame):
         speed :== 3
@@ -73,6 +76,7 @@ def level(highscore, lframe):
                 playerhealth -= gl_delta_time() * 50
             gl_color(lerp(color_red, color_blue, div(hp, maxhp))):
                 renderpointytriangle(pos, playerdir)
+        return nil
 
     def enemyset(frame):
         enemies := []
@@ -87,6 +91,7 @@ def level(highscore, lframe):
             enemies = filter(enemies) e:
                 e.resume()
                 e.active
+        return nil
 
     while playerhealth > 0:
         lframe()
@@ -114,6 +119,7 @@ def level(highscore, lframe):
         gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
 
     mode = coroutine menu(score, max(highscore, score))
+    return nil
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")

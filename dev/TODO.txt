@@ -1,3 +1,5 @@
+- apply this pattern: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
+
 - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
   clash with typechecking.
   - after cleaning up parser, for every top level definition should mark from which file it comes,
@@ -5,9 +7,20 @@
     suprises when things are included independently.
 
 - refactor function return-value tracking as it is highly confusing.
+  - uses of any -> void
+  - make multiple return values into a tuple type.
+  - allow multi-methods to be specialized at least on reqret.
+    - reenable assert in ToVoid::Generate
+  - void is still a dummy value like any.. need to guarantee in codegen it always means no value.
+  - key or simplifying is that specialization should take into account amount of values caller
+    wants to use.
+    - though should maybe first change language to require a return statement if multiline?
+  - type checker should maybe have a vector or return types for every expression to be more precise.
   - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
   - Function::nretvals shouldn't exists as it depends on the specialization.
   - SubFunction::returntypes should be allowed to have length 0.
+  - Revisit multimethod call return value checking.
+  - remove SubFunction::returns_value.
   - Codegen shouldn't have weird exceptions for more than 1 return value.
   - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.
   - Functions that have no meaningful return value but happen to be called as last exp can have
@@ -37,7 +50,15 @@
     at all.
   - second return value doesn't get proper vector type from e.g. gl_load_texture:
     mapxy(xy { dim[0], dim[1] })
+  - When a HOF is used as a coroutine, a yielding function is essentially a return statement
+    (calls RetVal in TT), which makes it require an explicit return statement, which is NOT
+    required if the function is only used a HOF, which is slightly inconsistent?
   - see "return" elsewhere, e.g. in typechecking notes below.
+
+- should we remove the any type? it is convenient in the type system, but it causes all sorts
+  of things to go to any when not intended, and hides inefficiencies. I don't think there's
+  any data structures or functions where you actually want to accept any, especially since
+  specialization usually allows more specific types to be handled generically.
 
 - should really centrally organize the concept of const vs owner vs refc, since besides for
   structs, will need these concepts for strings/vectors/coroutines as well (will especially be
@@ -86,6 +107,14 @@
     lenient, but it doesn't explain how.
     It has a nice way of reducing reference counts that could also be applied to a traditional
     (non ownership) reference count language.
+  - Swift 5 is going to get on this bandwagon:
+    https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md
+    While it already has COW for some types which in theory should make ownership easier, it
+    is apparently a complex enough language that it would require runtime read/write status
+    tracking for every var that could give dynamic errors to guarantee integrity, which seems
+    terrible.
+    Luckily Lobster doesn't have most issues in this doc, thanks to its callgraph based type
+    checking and specialization, and lack of runtime generics, escaping closures etc.
   We'd want to keep Lobsters light syntax, so any system that requires type annotations
   frequently can't be used. 99% of code should "just work", even if it occasionally makes
   copies you don't expect.
@@ -370,11 +399,6 @@
     https://stackoverflow.com/questions/50429365/what-is-the-most-reliable-portable-way-to-allocate-memory-at-low-addresses-on
 
 - typechecking for bool, including output to true/false when printing etc.
-
-- should we remove the any type? it is convenient in the type system, but it causes all sorts
-  of things to go to any when not intended, and hides inefficiencies. I don't think there's
-  any data structures or functions where you actually want to accept any, especially since
-  specialization usually allows more specific types to be handled generically.
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.

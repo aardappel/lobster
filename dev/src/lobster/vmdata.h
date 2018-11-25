@@ -95,6 +95,7 @@ enum ValueType : int {
     V_YIELD,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
+    V_VOID,             // [typechecker/codegen only] this exp does not produce a value. 
     V_MAXVMTYPES
 };
 
@@ -108,7 +109,7 @@ inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<value_buffer>", "<stackframe_buffer>",
         "boxed_float", "boxed_int", "resource", "coroutine", "string", "struct", "vector",
-        "nil", "int", "float", "function", "yield_function", "variable", "typeid",
+        "nil", "int", "float", "function", "yield_function", "variable", "typeid", "void",
         "<logstart>", "<logend>", "<logmarker>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {

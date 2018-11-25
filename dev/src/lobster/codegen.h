@@ -123,7 +123,7 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st) : parser(_p), st(_st), nested_fors(0) {
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value) : parser(_p), st(_st), nested_fors(0) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -180,8 +180,13 @@ struct CodeGen  {
         // Emit the root function.
         SetLabel(fundefjump);
         SplitAttr(Pos());
-        BodyGen(parser.root, true);
-        Emit(IL_EXIT, GetTypeTableOffset(parser.root->children.back()->exptype));
+        BodyGen(parser.root, return_value);
+        auto type = parser.root->children.back()->exptype;
+        if (!return_value) {
+            Dummy(1);  // FIXME: remove alltogether.
+            type = type_any;
+        }
+        Emit(IL_EXIT, GetTypeTableOffset(type));
         SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
         for (auto &[loc, sf, multimethod_specialized] : call_fixups) {
@@ -363,7 +368,7 @@ struct CodeGen  {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
         SplitAttr(Pos());
-        auto nretvals = max(f.nretvals, 1);
+        auto nretvals = max(f.nretvals_, 1);
         assert(nretvals == (int)sf.returntypes.size());
         if (sf.reqret) {
             if (retval) {
@@ -597,11 +602,15 @@ void StringConstant::Generate(CodeGen &cg, int retval) const {
 }
 
 void DefaultVal::Generate(CodeGen &cg, int retval) const {
-    assert(exptype->t == V_NIL);  // Optional args are indicated by being nillable.
-    if (retval) switch (exptype->sub->t) {
-        case V_INT:   cg.Emit(IL_PUSHINT, 0); break;
-        case V_FLOAT: cg.GenFloat(0); break;
-        default:      cg.Emit(IL_PUSHNIL); break;
+    if (retval) {
+        assert(exptype->t == V_NIL);  // Optional args are indicated by being nillable.
+        switch (exptype->sub->t) {
+            case V_INT:   cg.Emit(IL_PUSHINT, 0); break;
+            case V_FLOAT: cg.GenFloat(0); break;
+            default:      cg.Emit(IL_PUSHNIL); break;
+        }
+    } else {
+        assert(exptype->t == V_VOID);  
     }
 }
 
@@ -773,8 +782,9 @@ void ToAny::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void ToNil::Generate(CodeGen &cg, int retval) const {
+void ToVoid::Generate(CodeGen &cg, int retval) const {
     cg.Gen(child, 0);
+    //assert(!retval);  // FIXME: reenable when multimethods specialize on reqret.
     cg.Dummy(retval);
 }
 
@@ -1138,7 +1148,7 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
     }
     auto sf = subfunction_idx >= 0 ? cg.st.subfunctiontable[subfunction_idx] : nullptr;
     int fid = subfunction_idx >= 0 ? sf->parent->idx : subfunction_idx;
-    int nretvals = sf ? sf->parent->nretvals : 1;
+    int nretvals = sf ? sf->parent->nretvals_ : 1;
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (!sf || sf->reqret) {
         if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);
@@ -1148,7 +1158,11 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
         nretvals = 0;
     }
     // FIXME: we could change the VM to instead work with SubFunction ids.
-    cg.Emit(IL_RETURN, fid, nretvals, cg.GetTypeTableOffset(exptype));
+    // Note: this can only work as long as the type checker forces specialization
+    // of the functions in between here and the function returned to.
+    // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
+    cg.Emit(IL_RETURN, fid, nretvals,
+            cg.GetTypeTableOffset(child->exptype->t == V_VOID ? type_any : child->exptype));
     // retval==true is nonsensical here, but can't enforce
 }
 

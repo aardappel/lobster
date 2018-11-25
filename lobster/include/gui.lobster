@@ -48,8 +48,8 @@ private focus_id := -1
 
 private button_key := "<none>"
 
-def fun() :== ()
-def funs(v:xy_i) :== ()
+def fun() :== void
+def funs(v:xy_i) :== void
 
 private def cache_size(id, f):
     if !render_pass:
@@ -268,7 +268,7 @@ def multiselect(labels, selected, mspacing):
             color(if selected == i: color_white else: color_grey):
                 button_text(name):
                     selected = i
-    selected
+    return selected
 
 def setclickcolors(hover, sel):
     hover_color = hover

@@ -62,7 +62,7 @@ private delta_time_log :== map(60): 1 / 30.0
 def gl_deltatime_over_time():
     delta_time_log.push(gl_delta_time())
     delta_time_log.remove(0)
-    (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
+    return (delta_time_log.fold(0.0): _a + _e) / delta_time_log.length
 
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.
 // Depth texture automatically created if depth is true and depthtex is nil.
@@ -73,14 +73,14 @@ def render_to_texture(tex, size, depth, depthtex, texture_format, f):
     assert gl_switch_to_framebuffer(tex, depth, texture_format, nil, depthtex)
     f()
     assert gl_switch_to_framebuffer(nil)
-    tex
+    return tex
 
 def create_depth_texture(tex, size):
     if !tex || !equal(gl_texture_size(tex), size):
         tex = gl_create_blank_texture(size, color_black, texture_format_depth |
             texture_format_nomipmap | texture_format_clamp | texture_format_nearest_mag)
     assert tex  // FIXME
-    tex
+    return tex
 
 // Same, but processes a source texture. Takes size from that texture.
 def render_to_texture_from(tex, shader, srctex):
@@ -98,5 +98,5 @@ def post_process(tex, size, shader, depth, f):
     gl_set_shader(shader)
     gl_translate(xy_f { 0, size.y }):
         gl_rect(xy_f { size.x, -size.y })
-    tex
+    return tex
 

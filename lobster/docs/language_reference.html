@@ -150,7 +150,7 @@ print mat[pos]</code></pre>
 <pre><code>def name(arg1, arg2):
     exp1
     exp2</code></pre>
-<p>The return value of a function is always that of the last expression evaluated, or given by <code>return</code> (see below).</p>
+<p>The return value of a function is determined by its <code>return</code> statements (see below) or <code>void</code> (no return value) otherwise, except for single expression functions and anonymous functions, which don’t need an explicit <code>return</code> (it is automatically the last expression evaluated).</p>
 <p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types are checked at compile time. If you don’t specify types, the function is generic, meaning it will receive types from the caller.</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
 <pre><code>def magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
@@ -188,13 +188,13 @@ else:
     print &quot;a = &quot; + a</code></pre>
 <p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
 <h3 id="explicit-returns">Explicit Returns</h3>
-<p>Using return, we can bypass the default return value, and return from the closest lexically enclosing named function, e.g.:</p>
+<p>Using <code>return</code> you return from the closest lexically enclosing named function, e.g.:</p>
 <pre><code>def find(list, x):
     for list:
         if x == _:
             return true
-    false</code></pre>
-<p><code>find</code>’s return value appears to be <code>false</code>, but by using <code>return</code>, we can override it to be <code>true</code>. Importantly, <code>return true</code> is an expression that sits inside a function value being passed to <code>if</code> (which in turn sits in a function value passed to <code>for</code>), but bypasses all of this (unlike most programming languages with function values). This is essential for functions to be able to work as proper control structures.</p>
+    return false</code></pre>
+<p><code>find</code>’s return value is <code>false</code> unless the nested <code>return</code> gets evaluated, and then it becomes <code>true</code>. Importantly, <code>return true</code> is an expression that sits inside a function value being passed to <code>if</code> (which in turn sits in a function value passed to <code>for</code>), but bypasses all of this (unlike most programming languages with function values). This is essential for functions to be able to work as proper control structures.</p>
 <p>If this feels like it is similar to exception handling in other programming languages, that’s because it is. Lobster even allows you to specify the name of the function to return from (e.g. <code>return &quot;expression expected&quot; from parse</code>), which is extremely handy when you want to be able to return errors from a bunch of helper functions without having to pass it back through all intermediate functions, such as when writing a parser. This is a simple form of exception handling, that is also powerful enough to allow you to implement fully general exception handling in Lobster code, see <code>exception.lobster</code>.</p>
 <p>You can use the keyword <code>program</code> instead of a function name to force returning from the entire program.</p>
 <h3 id="multiple-return-values">Multiple Return Values</h3>

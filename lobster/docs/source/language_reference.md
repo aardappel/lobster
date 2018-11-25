@@ -387,8 +387,10 @@ def name(arg1, arg2):
     exp2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The return value of a function is always that of the last expression evaluated,
-or given by `return` (see below).
+The return value of a function is determined by its `return` statements (see
+below) or `void` (no return value) otherwise, except for single expression
+functions and anonymous functions, which don't need an explicit `return` (it
+is automatically the last expression evaluated).
 
 Arguments can be just an argument name (which will be available as a lexically
 scoped local variable inside body), or a typed name (e.g. `s:string`). Types are
@@ -525,19 +527,19 @@ something that has no redundancy yet is easy to create, use and modify.
 
 ### Explicit Returns
 
-Using return, we can bypass the default return value, and return from the
-closest lexically enclosing named function, e.g.:
+Using `return` you return from the closest lexically enclosing named function,
+e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def find(list, x):
     for list:
         if x == _:
             return true
-    false
+    return false
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`find`'s return value appears to be `false`, but by using `return`, we can
-override it to be `true`. Importantly, `return true` is an expression that sits
+`find`'s return value is `false` unless the nested `return` gets evaluated, and
+then it becomes `true`. Importantly, `return true` is an expression that sits
 inside a function value being passed to `if` (which in turn sits in a function
 value passed to `for`), but bypasses all of this (unlike most programming
 languages with function values). This is essential for functions to be able to

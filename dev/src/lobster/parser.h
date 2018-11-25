@@ -540,7 +540,7 @@ struct Parser {
                 if (!ret ||
                     ret->subfunction_idx != sf->idx /* return from */)
                     ReturnValues(f, 1);
-                assert(f.nretvals);
+                assert(f.nretvals_);
             }
         }
         // Keep copy or arg types from before specialization.
@@ -589,14 +589,13 @@ struct Parser {
                 TypeRef elem;
                 ParseType(elem, false);
                 Expect(T_RIGHTBRACKET);
-                dest = elem->Wrap(st.NewType());
+                dest = elem->Wrap(st.NewType(), V_VECTOR);
                 break;
             }
-            case T_LEFTPAREN:
-                if (sfreturntype)  {
+            case T_VOIDTYPE:
+                if (sfreturntype) {
                     lex.Next();
-                    Expect(T_RIGHTPAREN);
-                    dest = type_any;
+                    dest = type_void;
                     sfreturntype->reqret = false;
                     break;
                 }
@@ -723,10 +722,10 @@ struct Parser {
     }
 
     void ReturnValues(Function &f, int nrv) {
-        if (f.nretvals && f.nretvals != nrv)
+        if (f.nretvals_ && f.nretvals_ != nrv)
             Error(cat("all return statements of this function must return the same number of"
-                      " return values. previously: ", f.nretvals));
-        f.nretvals = nrv;
+                      " return values. previously: ", f.nretvals_));
+        f.nretvals_ = nrv;
     }
 
     Node *ParseExpStat() {
@@ -738,7 +737,7 @@ struct Parser {
                 if (auto call = Is<GenericCall>(rv))
                     // FIXME: this may be incorrect if GenericCall becomes a non-Call.
                     // Move all this return value checking to the TT?
-                    if (call->sf) nrv = max(nrv, call->sf->parent->nretvals);
+                    if (call->sf) nrv = max(nrv, call->sf->parent->nretvals_);
             } else {
                 rv = new DefaultVal(lex);
             }
@@ -1113,7 +1112,7 @@ struct Parser {
                 }, T_RIGHTBRACKET);
                 if (IsNext(T_TYPEIN)) {
                     ParseType(constructor->giventype, false);
-                    constructor->giventype = constructor->giventype->Wrap(st.NewType());
+                    constructor->giventype = constructor->giventype->Wrap(st.NewType(), V_VECTOR);
                 }
                 return constructor;
             }

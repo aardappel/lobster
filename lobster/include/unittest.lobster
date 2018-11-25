@@ -200,6 +200,14 @@ def run_test_cases(is_speed_test):
 
     assert typeof int == 0  // Always the first one added to the typetable.
 
+    // return from should generalize both specializations
+    def return_from(a):
+        return_from2()
+        return testb { 0, 0 }
+    def return_from2(): return testa { 0 } from return_from
+    assert return_from(1) is testa
+    assert return_from("") is testa
+
     // ////////////////////////////////////////////////////////////////////////
     // A* 2D test
 
@@ -304,11 +312,11 @@ def run_test_cases(is_speed_test):
     do():
         def mycoro(f):
             forrange(3, 6): f(_)
-            1337
+            return 1337
 
         def myfor(n, f):
             for n: f(_)
-            0
+            return 0
 
         co1 := coroutine mycoro()   // out of nested HOFs
         co2 := coroutine myfor(4)   // out of a simple function
@@ -345,6 +353,7 @@ def run_test_cases(is_speed_test):
             for(10) i:
                 b := 2
                 f()
+            return nil  // FIXME: this is because f() "returns" nil. Could special case this.
 
         co4 := coroutine loctest()
         assert co4.active
@@ -386,13 +395,13 @@ def run_test_cases(is_speed_test):
     def union_return(n):
         for(10) a:
             if a == n: return "foo"
-        nil
+        return nil
     assert union_return(5)
 
     // non-local named returns: limited form of exception handling
     def nlr1():
         nlr2()
-        2
+        return 2
     def nlr2():
         return 1 from nlr1
     assert nlr1() == 1

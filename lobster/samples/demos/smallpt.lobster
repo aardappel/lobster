@@ -36,7 +36,7 @@ def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
     if det<0: return 0.0
     det = sqrt(det)
     t := b-det
-    if t>eps:
+    return if t>eps:
         t
     else:
         t=b+det
@@ -113,7 +113,7 @@ def radiance(r:Ray, depth):
                 radiance(Ray { x, tdir },depth)*TP
         else:
             radiance(reflRay,depth)*Re+radiance(Ray { x, tdir },depth)*Tr
-    obj.e + f*temp
+    return obj.e + f*temp
 
 w := 64
 h := 48
@@ -146,7 +146,7 @@ def onesample():
     c2 := map(c) row: map(row) col: xyzw(xyz_v(map(col): pow(clamp(_ / samples, 0, 1), 1 / 2.2)), 1)
     //print("sample " + samples + " took " + (seconds_elapsed() - starttime) + " seconds")
     gl_window_title("smallpt: " + samples + " samples computed")
-    gl_create_texture(c2)
+    return gl_create_texture(c2)
 
 fatal(gl_window("smallpt in lobster!", w, h))
 

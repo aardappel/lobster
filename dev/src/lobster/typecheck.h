@@ -37,7 +37,7 @@ struct TypeChecker {
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
 
-    TypeChecker(Parser &_p, SymbolTable &_st) : parser(_p), st(_st) {
+    TypeChecker(Parser &_p, SymbolTable &_st, bool return_value) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultVectorTypes())
             TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
@@ -53,7 +53,7 @@ struct TypeChecker {
                 }
             }
         }
-        TypeCheckList(parser.root, true);
+        TypeCheckList(parser.root, true, return_value);
         CleanUpFlow(0);
         assert(!scopes.size());
         assert(!named_scopes.size());
@@ -155,6 +155,7 @@ struct TypeChecker {
 
     void TypeError(string err, const Node &n) {
         set<Ident *> already_seen;
+        if (!scopes.empty())
         for (auto it = scopes.rbegin(); it != scopes.rend() - 1 /* -1 == __top_level_expression */;
              ++it) {
             auto &scope = *it;
@@ -224,7 +225,9 @@ struct TypeChecker {
             return true;
         }
         switch (sub->t) {
-            case V_ANY:       return genericany || coercions || !IsUnBoxed(type->t);
+            case V_VOID:      return coercions;
+            case V_ANY:       return (genericany || coercions || !IsUnBoxed(type->t)) &&
+                                     type->t != V_VOID;
             case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_INT:       return type->t == V_TYPEID && coercions;
@@ -258,7 +261,7 @@ struct TypeChecker {
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
             auto et = Union(at->Element(), bt->Element(), false);
-            return et->Wrap(st.NewType());
+            return et->Wrap(st.NewType(), V_VECTOR);
         }
         if (at->t == V_STRUCT && bt->t == V_STRUCT) {
             auto sstruc = st.CommonSuperType(at->struc, bt->struc);
@@ -285,9 +288,10 @@ struct TypeChecker {
         a->exptype = type_any;
     }
 
-    void MakeNil(Node *&a) {
-        a = new ToNil(a->line, a);
-        a->exptype = type_any;
+    void MakeVoid(Node *&a) {
+        if (a->exptype->t == V_VOID) return;
+        a = new ToVoid(a->line, a);
+        a->exptype = type_void;
     }
 
     void MakeBool(Node *&a) {
@@ -303,6 +307,10 @@ struct TypeChecker {
     void MakeFloat(Node *&a) {
         a = new ToFloat(a->line, a);
         a->exptype = type_float;
+    }
+
+    void StorageType(TypeRef type, const Node &context) {
+        if (type->HasValueType(V_VOID)) TypeError("cannot store value of type void", context);
     }
 
     void SubTypeLR(TypeRef sub, BinOp &n) {
@@ -324,6 +332,9 @@ struct TypeChecker {
                 break;
             case V_ANY:
                 MakeAny(a);
+                return;
+            case V_VOID:
+                MakeVoid(a);
                 return;
             case V_INT:
                 if (a->exptype->t == V_TYPEID) {
@@ -526,7 +537,8 @@ struct TypeChecker {
 
     // Only one of n or type is specified. Returns new n if specified.
     Node *RetVal(Node *n, TypeRef type, SubFunction *sf, size_t i, Node &context) {
-        if (!sf) return n;
+        if (!sf) return n;  // FIXME: doesn't happen anymore now that we have top level exp fun?
+        sf->returns_value = true;  // FIXME.
         if (i >= sf->returntypes.size()) {
             if (sf->fixedreturntype)
                 TypeError("number of returned value(s) must correspond to declared return type",
@@ -553,6 +565,7 @@ struct TypeChecker {
             }
         } else {
             // The caller doesn't want return values.
+            sf->returntypes[i] = type_void;
         }
         return n;
     }
@@ -566,6 +579,7 @@ struct TypeChecker {
         scopes.push_back(scope);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         sf.typechecked = true;
+        for (auto &arg : sf.args.v) StorageType(arg.type, *call_context);
         for (auto &fv : sf.freevars.v) UpdateCurrentSid(fv.sid);
         for (auto &dyn : sf.dynscoperedefs.v) UpdateCurrentSid(dyn.sid);
         auto backup_vars = [&](ArgVector &in, ArgVector &backup) {
@@ -587,12 +601,18 @@ struct TypeChecker {
         TypeCheckList(sf.body, true, sf.reqret);
         CleanUpFlow(start_promoted_vars);
         auto &last = sf.body->children.back();
-        auto ret = Is<Return>(last);
-        if (!ret || ret->subfunction_idx != sf.idx)
-            last = RetVal(last, nullptr, &sf, 0, *last);
+        if (!Is<Return>(last)) {
+            if (sf.body->children.size() == 1 || sf.parent->anonymous)
+                last = RetVal(last, nullptr, &sf, 0, *last);
+            else if (sf.returns_value && sf.returntypes[0]->t != V_VOID)
+                TypeError("explicit return statement required at the end of: " + sf.parent->name,
+                          *last);
+        }
+        if (!sf.returns_value)
+            sf.returntypes[0] = type_void;
         for (auto &back : backup_args.v)   RevertCurrentSid(back.sid);
         for (auto &back : backup_locals.v) RevertCurrentSid(back.sid);
-        for (auto type : sf.returntypes) if (sf.reqret && type->HasVariable()) {
+        for (auto type : sf.returntypes) if (sf.reqret && type->HasValueType(V_VAR)) {
             // If this function return something with a variable in it, then it likely will get
             // bound by the caller. If the function then gets reused without specialization, it will
             // get the wrong return type, so we force specialization for subsequent calls of this
@@ -728,7 +748,8 @@ struct TypeChecker {
         if (f.multimethod) {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
-                // reqret is always true for multimethods, so never return void.
+                // FIXME: reqret is always true for multimethods, because we don't want to
+                // specialize the whole set, but this is problematic.
                 f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
@@ -907,7 +928,7 @@ struct TypeChecker {
             for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope) {
                 auto sf = scope->sf;
                 if (!sf->iscoroutine) continue;
-                // What yield returns to return_value()
+                // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->Arity() ? args->children[0]->exptype : type_any;
                 RetVal(nullptr, type, sf, 0, *args);
                 // Now collect all ids between coroutine and yield, so that we can save these in the
@@ -928,7 +949,7 @@ struct TypeChecker {
                 return sf->coresumetype;
             }
             TypeError("yield function called outside scope of coroutine", *args);
-            return type_any;
+            return type_void;
         } else {
             // We have to do this call entirely at runtime. We take any args, and return any.
             // FIXME: the body T_FUN that created this function value hasn't been typechecked
@@ -937,7 +958,7 @@ struct TypeChecker {
             // will end up this way.
             // For now, just error.
             TypeError("function call value has type: " + TypeName(ftype), *args);
-            return type_any;
+            return type_void;
         }
     }
 
@@ -1152,11 +1173,11 @@ struct TypeChecker {
         return type;
     }
 
-    Node *TypeCheckCoercion(Unary &n) {
+    Node *TypeCheckCoercion(Unary &n, bool reqret) {
         // These have been added by another specialization.
         // We could check if they still apply, but even more robust is just to remove them,
         // and let them be regenerated if need be.
-        auto c = n.child->TypeCheck(*this, true);
+        auto c = n.child->TypeCheck(*this, reqret);
         n.child = nullptr;
         delete &n;
         return c;
@@ -1170,7 +1191,7 @@ struct TypeChecker {
         if (flen) {
             if (type->t == V_NIL) {
                 return ToVStruct(flen, type->sub, exp, nf, test_overloads, argn, errorn)->
-                    Wrap(st.NewType(), V_NIL);
+                    Wrap  (st.NewType(), V_NIL);
             }
             auto etype = exp ? exp->exptype : nullptr;
             auto e = etype;
@@ -1332,16 +1353,16 @@ Node *If::TypeCheck(TypeChecker &tc, bool reqret) {
             exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret);
         }
     } else {
-        // No else: this always returns nil.
+        // No else: this always returns void.
         if (!isconst || cval.True()) {
             tc.TypeCheckBranch(true, condition, truepart, false);
-            tc.MakeNil(truepart);
+            tc.MakeVoid(truepart);
         }
         // Else constant == false: this if-then will get optimized out entirely, ignore
         // it. Bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
         falsepart = falsepart->TypeCheck(tc, reqret);
-        tc.SubType(falsepart, type_function_nil, "else", *this);
-        exptype = type_any;
+        tc.SubType(falsepart, type_function_void, "else", *this);
+        exptype = type_void;
     }
     return this;
 }
@@ -1351,7 +1372,7 @@ Node *While::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     auto condc = AssertIs<Call>(condition);
     tc.TypeCheckBranch(true, condc->sf->body->children[0], body, false);
     // Currently always return V_NIL
-    exptype = type_any;
+    exptype = type_void;
     return this;
 }
 
@@ -1374,7 +1395,7 @@ Node *For::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     }
     body = body->TypeCheck(tc, false);
     // Currently always return V_NIL
-    exptype = type_any;
+    exptype = type_void;
     return this;
 }
 
@@ -1418,7 +1439,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
             tc.SubType(cas->body, exptype, "", "case block");
         }
     }
-    if (exptype.Null()) exptype = type_any;  // Empty switch or all return statements.
+    if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
     if (reqret && !have_default)
         tc.TypeError("switch that returns a value must have a default case", *this);
     return this;
@@ -1480,6 +1501,7 @@ Node *Define::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         // Must SubType here rather than assignment, since sid->type is var
         // that may have been bound by the initializer already.
         tc.SubTypeT(vartype, sid->type, *this, "initializer");
+        tc.StorageType(vartype, *this);
         sid->type = vartype;
         Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(vartype));
         if (sid->id->logvar) {
@@ -1497,11 +1519,12 @@ Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
         tc.CheckLval(*left);
-        auto vartype = tc.TypeCheckMultiRHS(children.back(), i, this);
+        auto righttype = tc.TypeCheckMultiRHS(children.back(), i, this);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
-        tc.AssignFlowDemote(fi, vartype, false);
-        tc.SubTypeT(vartype, left->exptype, *this, "right");
+        tc.AssignFlowDemote(fi, righttype, false);
+        tc.SubTypeT(righttype, left->exptype, *this, "right");
+        tc.StorageType(left->exptype, *left);
         // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
     }
     return this;
@@ -1781,7 +1804,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
             flag *= 2;
         }
         if (arg.flags & NF_ANYVAR) {
-            if (argtype->t == V_VECTOR) argtype = tc.NewTypeVar()->Wrap(tc.st.NewType());
+            if (argtype->t == V_VECTOR)
+                argtype = tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR);
             else if (argtype->t == V_ANY) argtype = tc.NewTypeVar();
             else assert(0);
         }
@@ -1821,10 +1845,11 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
             assert(fsf == chosen);
         }
         argtypes[i] = actualtype;
+        tc.StorageType(actualtype, *this);
         i++;
     }
 
-    exptype = type_any;  // no retvals
+    exptype = type_void;  // no retvals
     if (nf->retvals.v.size()) {
         // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
         auto &ret = nf->retvals.v[0];
@@ -1858,7 +1883,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
                 break;
             }
             case NF_ANYVAR:
-                exptype = ret.type->t == V_VECTOR ? tc.NewTypeVar()->Wrap(tc.st.NewType())
+                exptype = ret.type->t == V_VECTOR ? tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR)
                                                   : tc.NewTypeVar();
                 break;
             default:
@@ -1906,10 +1931,28 @@ Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     child = child->TypeCheck(tc, true);
     auto sf = subfunction_idx < 0 ? nullptr : tc.st.subfunctiontable[subfunction_idx];
     for (int i = (int)tc.scopes.size() - 1; i >= 0; i--) {
-        if (sf && tc.scopes[i].sf->parent == sf->parent) {
-            sf = tc.scopes[i].sf;  // Take specialized version.
-            subfunction_idx = sf->idx;
-            break;
+        if (sf) {
+            auto isf = tc.scopes[i].sf;
+            if (isf->parent == sf->parent) {
+                sf = isf;  // Take specialized version.
+                subfunction_idx = sf->idx;
+                break;
+            }
+            // isf is a function in the call chain between the return statement and the function
+            // it is returning from. Since we're affecting the return type of the function we're
+            // returning from, if it gets specialized but a function along the call chain (isf)
+            // does not, the return type wouldn't affect the second specialization.
+            // The way we fix that the lazy way is by forcing these in between functions to
+            // always specialize.
+            // FIXME: This is probably ok in the case of a regular return statement
+            // (where any in between functions are likely HOFs that are already specialized),
+            // but it could get expensive for "return from" statements over longer distance.
+            // Fixing it another way, by annotating functions with the return types they generated
+            // for what functions, then perculating that information down to affected functions,
+            // is much more complicated.
+            // A simple test case is in return_from unit test, and recursive_exception is also
+            // affected.
+            isf->mustspecialize = true;
         }
         if (tc.scopes[i].sf->iscoroutine) tc.TypeError("cannot return out of coroutine", *this);
     }
@@ -1921,13 +1964,15 @@ Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             tc.parser.Error("return from " + sf->parent->name +
                             " called out of context", this);
     }
+    exptype = type_void;
+    // FIXME: for a return-from, if the function this return sits in only gets typechecked
+    // once, and if that function gets called from multiple specializations of a caller, only
+    // the first such caller gets its return type affected by RetVal from here.
     if (!Is<DefaultVal>(child)) {
-        exptype = child->exptype;
         if (auto mrs = Is<MultipleReturn>(child)) {
             int i = 0;
             for (auto mr : mrs->children) {
                 mr = tc.RetVal(mr, nullptr, sf, i, *mr);
-                if (!i) exptype = mr->exptype;
                 i++;
             }
         } else {
@@ -1942,7 +1987,6 @@ Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             }
         }
     } else {
-        exptype = type_any;
         tc.RetVal(nullptr, exptype, sf, 0, *this);
     }
     return this;
@@ -1972,10 +2016,11 @@ Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             for (auto c : children) {
                 u = u.Null() ? c->exptype : tc.Union(u, c->exptype, true);
             }
-            exptype = u->Wrap(tc.st.NewType());
+            tc.StorageType(exptype, *this);
+            exptype = u->Wrap(tc.st.NewType(), V_VECTOR);
         } else {
             // special case for empty vectors
-            exptype = tc.NewTypeVar()->Wrap(tc.st.NewType());
+            exptype = tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR);
         }
     }
     if (exptype->t == V_STRUCT) {
@@ -2097,28 +2142,28 @@ Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
     return this;
 }
 
-Node *ToFloat::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToFloat::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToString::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToString::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToAny::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToAny::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToNil::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToVoid::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToBool::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToBool::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToInt::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    return tc.TypeCheckCoercion(*this);
+Node *ToInt::TypeCheck(TypeChecker &tc, bool reqret) {
+    return tc.TypeCheckCoercion(*this, reqret);
 }
 
 bool And::ConstVal(TypeChecker &tc, Value &val) const {
