@@ -728,6 +728,7 @@ struct TypeChecker {
         if (f.multimethod) {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
+                // reqret is always true for multimethods, so never return void.
                 f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
@@ -739,7 +740,7 @@ struct TypeChecker {
                     if (sf->returntypes.size() != 1)
                         TypeError("multi-methods can currently return only 1 value.",
                                   *call_context);
-                    auto u = f.subf->returntypes[0];
+                    auto u = sf->returntypes[0];
                     if (is_bound) {
                         if (!ConvertsTo(u, f.multimethodretval, false))
                             // FIXME: not a great error, but should be rare.
@@ -765,6 +766,10 @@ struct TypeChecker {
                         }
                         f.multimethodretval = u;
                     }
+                }
+                for (auto sf = f.subf; sf; sf = sf->next) {
+                    // Overwrite any recursive cases that might return a type var.
+                    sf->returntypes[0] = f.multimethodretval;
                 }
             }
             // See how many cases match, if only 1 (as subtype of declared) we can specialize,
