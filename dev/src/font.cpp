@@ -112,7 +112,7 @@ void AddFont(NativeRegistry &natreg) {
 
     STARTDECL(gl_set_max_font_size) (VM &, Value &fontsize) {
         maxfontsize = fontsize.intval();
-        return Value(0);
+        return Value();
     }
     ENDDECL1(gl_set_max_font_size, "size", "I", "",
         "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"

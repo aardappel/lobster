@@ -2,6 +2,8 @@
 // can be included in any lobster program to help verify there are no bugs in the compiler
 // will assert if anything is wrong - if this ever happens, contact Wouter
 
+//trace_bytecode(true, false)
+
 include std
 include exception
 include vec
@@ -15,8 +17,6 @@ struct g { x:int = 1 }
 namespace test
 
 def run_test_cases(is_speed_test):
-    trace_bytecode(false, true)
-
     assert 1 & 3 == 1
     assert 1 | 3 == 3
     assert 1 ^ 2 == 3
@@ -374,7 +374,7 @@ def run_test_cases(is_speed_test):
     assert equal(sign(xyz_f { -6, 0, 6 }), xyz_i { -1, 0, 1 })
 
     // multiple return values
-    bb, cc, dd, ee := 1     // all set to 1
+    bb, cc, dd, ee := 1, 1, 1, 1
     assert bb == 1 and bb == cc and dd == ee
     ff, gg := 2, 3
     assert ff == 2 and gg == 3
@@ -405,6 +405,7 @@ def run_test_cases(is_speed_test):
     def nlr2():
         return 1 from nlr1
     assert nlr1() == 1
+    nlr1()
 
     def recursive_exceptions(n):
         try():

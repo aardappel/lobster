@@ -36,9 +36,10 @@ struct Optimizer {
 
     void Changed() { changes_this_pass = true; total_changes++; }
 
-    Node *Typed(TypeRef type, Node *n) {
+    Node *Typed(TypeRef etype, TypeRef ntype, Node *n) {
         Changed();
-        n->exptype = type;
+        n->exptype = etype;
+        n->nattype = ntype;
         return n;
     }
 
@@ -54,8 +55,8 @@ struct Optimizer {
                 auto other  = cval.True() ? ifn->falsepart : ifn->truepart;
                 r = Optimize(branch, typeid(*n));
                 branch = nullptr;
-                if (auto tonil = Is<ToVoid>(other)) {
-                    other = tonil->child;
+                if (auto tovoid = Is<ToVoid>(other)) {
+                    other = tovoid->child;
                 }
                 if (auto call = Is<Call>(other)) {
                     if (!call->sf->typechecked) {
@@ -80,9 +81,9 @@ struct Optimizer {
         if (auto is = Is<IsType>(n)) {
             Value cval;
             if (is->ConstVal(tc, cval)) {
-                r = Typed(type_int, new IntConstant(is->line, cval.ival()));
+                r = Typed(is->exptype, type_int, new IntConstant(is->line, cval.ival()));
                 if (is->child->HasSideEffects()) {
-                    r = Typed(type_int, new Seq(is->line, is->child, r));
+                    r = Typed(is->exptype, type_int, new Seq(is->line, is->child, r));
                     is->child = nullptr;
                 }
                 delete is;
@@ -108,7 +109,7 @@ struct Optimizer {
                     c->children.insert(c->children.end(), dcall->children.begin(),
                         dcall->children.end());
                     dcall->children.clear();
-                    r = Typed(dcall->exptype, c);
+                    r = Typed(dcall->exptype, dcall->nattype, c);
                     delete dcall;
                 }
             }
@@ -122,7 +123,7 @@ struct Optimizer {
                  !sf->parent->multimethod &&  // unless multimethod_specialized?
                  !sf->iscoroutine &&
                  !sf->dynscoperedefs.size() &&
-                 sf->returntypes.size() <= 1 &&
+                 sf->returntype->NumValues() <= 1 &&
                  (sf->numcallers <= 1 || sf->body->Count() < 8)))  // FIXME: configurable.
             {
                 r = Inline(*call, *sf);
@@ -141,11 +142,9 @@ struct Optimizer {
         auto list = new Inlined(call.line);
         for (auto c : call.children) {
             auto &arg = sf.args.v[ai];
-            list->Add(Typed(type_any, new Define(call.line, arg.sid, c, nullptr)));
+            list->Add(Typed(type_void, type_void, new Define(call.line, arg.sid, c, nullptr)));
             ai++;
         }
-        call.children.clear();
-        delete &call;
         // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
         // typechecker.
         if (sf.numcallers <= 1) {
@@ -165,7 +164,21 @@ struct Optimizer {
             }
             sf.numcallers--;
         }
-        return Typed(sf.returntypes[0], list);
+        // Remove single return statement pointing to function that is now gone.
+        if (!list->children.empty()) {
+            auto ret = Is<Return>(list->children.back());
+            assert(ret);
+            if (ret->subfunction_idx == sf.idx) {
+                assert(ret->child->exptype->NumValues() <= 1);
+                list->children.back() = ret->child;
+                ret->child = nullptr;
+                delete ret;
+            }
+        }
+        auto r = Typed(call.exptype, call.nattype, list);
+        call.children.clear();
+        delete &call;
+        return r;
     }
 };
 

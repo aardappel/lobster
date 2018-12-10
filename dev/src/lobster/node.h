@@ -24,7 +24,8 @@ struct CodeGen;
 
 struct Node {
     Line line;
-    TypeRef exptype;
+    TypeRef exptype;  // The type required by the context.
+    TypeRef nattype;  // The type that this node produces naturally.
     virtual ~Node() {};
     virtual size_t Arity() const { return 0; }
     virtual Node **Children() { return nullptr; }
@@ -53,8 +54,12 @@ struct Node {
     // If it returns true, sets val to a value that gives the correct True().
     // Also sets correct scalar values.
     virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
-    virtual Node *TypeCheck(TypeChecker &tc, bool reqret) = 0;
+    virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
     virtual void Generate(CodeGen &cg, int retval) const = 0;
+    void SetTypes(TypeRef type) {
+        exptype = type;
+        nattype = type;
+    }
   protected:
     Node(const Line &ln) : line(ln) {}
     Node() : line(0, 0) {}
@@ -74,7 +79,7 @@ template<typename T> T *DoClone(T *dest, T *src) {
   protected: \
     NAME() {};  // Only used by clone.
 #define SHARED_SIGNATURE(NAME, STR, SE) \
-    Node *TypeCheck(TypeChecker &tc, bool reqret); \
+    Node *TypeCheck(TypeChecker &tc, size_t reqret); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
 
 #define ZERO_NODE(NAME, STR, SE, METHODS) \
@@ -279,7 +284,7 @@ struct FunRef : Node {
     FunRef(const Line &ln, SubFunction *_sf) : Node(ln), sf(_sf) {}
     bool IsConstInit() const { return true; }
     void Dump(ostringstream &ss) const {
-        if (sf) ss << "(def " << sf->parent->name << ")"; else ss << "<>";
+        ss << "(def " << sf->parent->name << ")";
     }
     SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
 };
@@ -320,7 +325,7 @@ struct Call : GenericCall {
           multimethod_specialized(false) {};
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, false) {};
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
-    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
 };
 
@@ -338,7 +343,7 @@ struct NativeCall : GenericCall {
     NativeCall(NativeFun *_nf, GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf) {};
     void Dump(ostringstream &ss) const { ss << nf->name; }
-    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
 };
 
@@ -381,7 +386,7 @@ struct Dot : GenericCall {
     Dot(SharedField *_fld, GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), fld(_fld) {}
     void Dump(ostringstream &ss) const { ss << Name() << fld->name; }
-    void TypeCheckSpecialized(TypeChecker &tc, bool reqret);
+    void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Dot, TName(maybe ? T_DOTMAYBE : T_DOT), false)
 };
 

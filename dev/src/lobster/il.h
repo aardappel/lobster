@@ -52,6 +52,7 @@ enum MathOp {
     F(BCALLRET7, 1) F(BCALLREF7, 1) F(BCALLUNB7, 1) \
     F(CONT1, 1) \
     F(FUNSTART, -1) F(FUNEND, 1) F(FUNMULTI, -1) \
+    F(ENDSTATEMENT, 0) \
     F(NEWVEC, 2) F(NEWSTRUCT, 1) \
     F(POP, 0) F(POPREF, 0) \
     F(DUP, 0) F(DUPREF, 0) \

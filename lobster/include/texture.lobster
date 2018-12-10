@@ -30,14 +30,14 @@ private textures:[resource] = []
 
 def loadtexturecached(name, tf):
     n, i := binary_search(texture_names, name)
-    return if n:
-        textures[i]
+    if n:
+        return textures[i]
     else:
         tex := gl_load_texture(name, tf)
         if tex:
             texture_names.insert(i, name)
             textures.insert(i, tex)
-            tex
+            return tex
         else:
             print "unable to load texture: " + name
             return from program

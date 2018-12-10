@@ -646,7 +646,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(int) (VM &, Value &a) { return Value(intp(a.fval())); }
     ENDDECL1(int, "f", "F", "I",
         "converts a float to an int by dropping the fraction");
-    STARTDECL(int) (VM &vm, Value &a) { VECTOROPF(intp(f.fval())); }
+    STARTDECL(int) (VM &vm, Value &a) { VECTOROPI(intp(f.fval())); }
     ENDDECL1(int, "v", "F}", "I}",
         "converts a vector of floats to ints by dropping the fraction");
 
@@ -654,7 +654,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(round, "f", "F", "I",
         "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
         " negative numbers");
-    STARTDECL(round) (VM &vm, Value &a) { VECTOROPF(intp(f.fval() + 0.5f)); }
+    STARTDECL(round) (VM &vm, Value &a) { VECTOROPI(intp(f.fval() + 0.5f)); }
     ENDDECL1(round, "v", "F}", "I}",
         "converts a vector of floats to the closest ints");
 

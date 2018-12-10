@@ -36,9 +36,10 @@ struct Type {
     const ValueType t;
 
     union {
-        const Type *sub; // V_VECTOR | V_NIL | V_VAR
-        SubFunction *sf; // V_FUNCTION | V_COROUTINE
-        Struct *struc;   // V_STRUCT
+        const Type *sub;      // V_VECTOR | V_NIL | V_VAR
+        SubFunction *sf;      // V_FUNCTION | V_COROUTINE
+        Struct *struc;        // V_STRUCT
+        vector<const Type *> *tup; // V_TUPLE
     };
 
     Type()                               : t(V_ANY), sub(nullptr) {}
@@ -89,19 +90,34 @@ struct Type {
     bool HasValueType(ValueType vt) const {
         return t == vt || (Wrapped() && Element()->HasValueType(vt));
     }
+
+    size_t NumValues() const {
+        if (t == V_VOID) return 0;
+        if (t == V_TUPLE) return tup->size();
+        return 1;
+    }
+
+    const Type *Get(size_t i) const {
+        return t == V_TUPLE ? (*tup)[i] : this;
+    }
+
+    void Set(size_t i, const Type *type) const {
+        assert(t == V_TUPLE);
+        (*tup)[i] = type;
+    }
 };
 
-extern const Type g_type_any;
+extern const Type g_type_undefined;
 
 // This is essentially a smart-pointer, but behaves a little bit differently:
-// - initialized to type_any instead of nullptr
+// - initialized to type_undefined instead of nullptr
 // - pointer is const
 // - comparisons are by value.
 class TypeRef {
     const Type *type;
 
     public:
-    TypeRef() : type(&g_type_any) {}
+    TypeRef() : type(&g_type_undefined) {}
     TypeRef(const Type *_type) : type(_type) {}
 
     TypeRef &operator=(const TypeRef &o) {
@@ -111,6 +127,8 @@ class TypeRef {
 
     const Type &operator*()  const { return *type; }
     const Type *operator->() const { return type; }
+
+    const Type *get() const { return type; }
 
     // Must compare Type instances by value.
     bool operator==(const TypeRef &o) const { return *type == *o.type; };
@@ -133,6 +151,7 @@ extern TypeRef type_coroutine;
 extern TypeRef type_resource;
 extern TypeRef type_typeid;
 extern TypeRef type_void;
+extern TypeRef type_undefined;
 
 enum ArgFlags {
     AF_NONE = 0,
@@ -154,7 +173,7 @@ struct Typed {
     TypeRef type;
     ArgFlags flags;
 
-    Typed() : flags(AF_NONE) {}
+    Typed() : type(type_any), flags(AF_NONE) {}
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
     Typed(TypeRef _type, ArgFlags _flags) : type(_type), flags(_flags) {}
 };

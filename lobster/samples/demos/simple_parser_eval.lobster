@@ -10,16 +10,16 @@ struct node {}
 struct integer : node
     i:int
 
-    def pretty(): "" + i
+    def pretty(): string(i)
     def eval(): i
-    def compile(): "" + i
+    def compile(): string(i)
 
 struct inst : node
     atom:string
     args:[node]
 
     def pretty():
-        (args.fold("(" + atom): _a + " " + pretty(_e)) + ")"
+        "(" + (args.fold(atom): _a + " " + pretty(_e)) + ")"
 
     def eval():
         switch atom:
@@ -38,13 +38,15 @@ def parse(s:string):
     i := 0
     line := 1
     def error(err):
-        return nil, "error: line " + line + ": " + err
+        // Note: return from recursive calls of parse_exp in one step!
+        // "Look ma, no exception handling"
+        return nil, "error: line " + line + ": " + err from parse
     def lex_atom():
         i--
         start := i
         while s[i] > ' ' and not (exists("()\x7F"): _ == s[i]): i++
         if start == i:
-            return error("unprintable character: " + s[i]) from parse
+            error("unprintable character: " + s[i])
         atom = s.substring(start, i - start)
         ival, all := string_to_int(atom)
         token = if all: "int" else: "atom"
@@ -77,7 +79,7 @@ def parse(s:string):
     lex_next()
     def expect(tok):
         if tok != token:
-            return error("expected: " + tok + ", found: " + token) from parse
+            error("expected: " + tok + ", found: " + token)
         a := atom
         lex_next()
         return a
@@ -87,7 +89,7 @@ def parse(s:string):
                 lex_next()
                 name := expect("atom")
                 if not (exists([ "+", "*" ]): name == _):
-                    return error("unknown op: " + name) from parse
+                    error("unknown op: " + name)
                 n := inst { name, []::node }
                 while token != ")":
                     n.args.push(parse_exp())
@@ -98,7 +100,7 @@ def parse(s:string):
                 lex_next()
                 n
             default:
-                return error("cannot parse expression starting with: " + token) from parse
+                error("cannot parse expression starting with: " + token)
     root := parse_exp()
     expect("eof")
     return root, ""

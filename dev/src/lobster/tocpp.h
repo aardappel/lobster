@@ -32,27 +32,28 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             break;
         }
         case IL_CALLMULTI: {
-            ip++;
             auto nargs = code[*ip++ + 2];
             ip++;
             ip += nargs;
-            arity = nargs + 4;
+            arity = nargs + 3;
             break;
         }
         case IL_FUNSTART: {
+            ip++;  // function idx.
             int n = *ip++;
             ip += n;
             int m = *ip++;
             ip += m;
-            arity = n + m + 3;
+            arity = n + m + 4;
             break;
         }
         case IL_FUNMULTI: {
+            ip++;  // function idx.
             auto n = *ip++;
             auto nargs = *ip++;
             auto tablesize = (nargs + 1) * n;
             ip += tablesize;
-            arity = tablesize + 2;
+            arity = tablesize + 3;
             break;
         }
     }
@@ -174,9 +175,9 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             }
             if (opc == IL_FUNMULTI) {
                 ss << "static lobster::block_t mmtable[] = {";
-                auto nargs = args[1];
-                for (int i = 0; i < args[0]; i++) {
-                    BlockRef(args[2 + (nargs + 1) * i + nargs]);
+                auto nargs = args[2];
+                for (int i = 0; i < args[1]; i++) {
+                    BlockRef(args[3 + (nargs + 1) * i + nargs]);
                     ss << ", ";
                 }
                 ss << "}; vm.next_mm_table = mmtable; ";
@@ -208,11 +209,14 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
                 EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(args[0])), ss);
                 ss << " */";
             } else if (opc == IL_CALL || opc == IL_CALLMULTI) {
-                ss << " /* " << flat_string_view(bcf->functions()->Get(args[0])->name()) << " */";
+                auto fs = code + args[0];
+                assert(*fs == IL_FUNSTART || *fs == IL_FUNMULTI);
+                fs++;
+                ss << " /* " << flat_string_view(bcf->functions()->Get(*fs)->name()) << " */";
             }
             if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 ss << " ";
-                JumpIns(args[1]);
+                JumpIns(args[0]);
                 already_returned = true;
             } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
                        opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||

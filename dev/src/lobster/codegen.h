@@ -83,7 +83,7 @@ struct CodeGen  {
                     // Reserve space, so other types can be added afterwards safely.
                     type_table.insert(type_table.end(), 3, (type_elem_t)0);
                     tt.push_back((type_elem_t)type->sf->idx);
-                    tt.push_back(GetTypeTableOffset(type->sf->returntypes[0]));
+                    tt.push_back(GetTypeTableOffset(type->sf->returntype));
                     std::copy(tt.begin(), tt.end(), type_table.begin() + type->sf->cotypeinfo);
                     return type->sf->cotypeinfo;
                 } else {
@@ -123,7 +123,8 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value) : parser(_p), st(_st), nested_fors(0) {
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value)
+        : parser(_p), st(_st), nested_fors(0) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -174,19 +175,16 @@ struct CodeGen  {
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
         auto dummyfun = Pos();
-        Emit(IL_FUNSTART, 0, 0);
+        Emit(IL_FUNSTART, -1, 0, 0);
         Emit(IL_ABORT);
         Emit(IL_FUNEND, 0);
         // Emit the root function.
         SetLabel(fundefjump);
         SplitAttr(Pos());
-        BodyGen(parser.root, return_value);
-        auto type = parser.root->children.back()->exptype;
-        if (!return_value) {
-            Dummy(1);  // FIXME: remove alltogether.
-            type = type_any;
-        }
-        Emit(IL_EXIT, GetTypeTableOffset(type));
+        Gen(parser.root, return_value);
+        auto type = parser.root->exptype;
+        assert(type->NumValues() == (size_t)return_value);
+        Emit(IL_EXIT, return_value ? GetTypeTableOffset(type): -1);
         SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
         for (auto &[loc, sf, multimethod_specialized] : call_fixups) {
@@ -204,10 +202,6 @@ struct CodeGen  {
     }
 
     void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
-
-    void BodyGen(const List *list, bool reqret) {
-        for (auto c : list->children) Gen(c, reqret && c == list->children.back());
-    }
 
     struct sfcompare {
         size_t nargs;
@@ -246,7 +240,7 @@ struct CodeGen  {
             int numentries = 0;
             auto multistart = Pos();
             SplitAttr(Pos());
-            Emit(IL_FUNMULTI, 0, (int)f.nargs());
+            Emit(IL_FUNMULTI, f.idx, 0, (int)f.nargs());
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs) {
                 auto gendispatch = [&] (size_t override_j, TypeRef override_type) {
@@ -279,7 +273,7 @@ struct CodeGen  {
                     }
                 }
             }
-            code[multistart + 1] = numentries;
+            code[multistart + 2] = numentries;
         }
         return true;
     }
@@ -301,17 +295,23 @@ struct CodeGen  {
         linenumbernodes.push_back(sf.body);
         SplitAttr(Pos());
         Emit(IL_FUNSTART);
+        Emit(sf.parent->idx);
         Emit((int)sf.args.v.size());
         for (auto &arg : sf.args.v) Emit(arg.sid->Idx());
         // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus
         // optimize function calls
         Emit((int)defs.size());
         for (auto id : defs) Emit(id->Idx());
-        if (sf.body) BodyGen(sf.body, sf.reqret);
-        else Dummy(sf.reqret);
-        if (sf.reqret) TakeTemp(1);
+        if (sf.body) for (auto c : sf.body->children) {
+            Gen(c, 0);
+            #ifdef _DEBUG
+            Emit(IL_ENDSTATEMENT);
+            #endif
+        }
+        else Dummy((int)sf.reqret);
+        //if (sf.reqret) TakeTemp(1);
         assert(temptypestack.empty());
-        Emit(IL_FUNEND, sf.reqret);
+        Emit(IL_FUNEND, (int)sf.reqret);
         linenumbernodes.pop_back();
     }
 
@@ -360,7 +360,6 @@ struct CodeGen  {
                              " arguments, ", nargs, " given"), errnode);
         TakeTemp(nargs);
         Emit(multicall ? IL_CALLMULTI : IL_CALL,
-             f.idx,
              multicall ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf, multimethod_specialized);
         EmitTempInfo(args);
@@ -368,15 +367,14 @@ struct CodeGen  {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
         SplitAttr(Pos());
-        auto nretvals = max(f.nretvals_, 1);
-        assert(nretvals == (int)sf.returntypes.size());
+        auto nretvals = max((int)sf.returntype->NumValues(), 1);
         if (sf.reqret) {
             if (retval) {
-                for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntypes[i]);
+                for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntype->Get(i));
             } else {
                 // FIXME: better if this is impossible by making sure typechecker makes it !reqret.
                 //assert(f.multimethod);
-                for (int i = 0; i < nretvals; i++) GenPop(sf.returntypes[i]);
+                for (int i = 0; i < nretvals; i++) GenPop(sf.returntype->Get(i));
             }
         } else {
             assert(!retval);
@@ -419,22 +417,19 @@ struct CodeGen  {
         temp_parent = parent; // FIXME
         n->Generate(*this, retval);
 
+        assert(n->nattype->t != V_UNDEFINED);
+
         assert(tempstartsize == temptypestack.size());
         (void)tempstartsize;
         // If 0, the above code already made sure to not generate value(s).
         if (retval) {
-            // default case, 1 value
+            // default case, no rettypes specified.
             if (rettypes.empty()) {
-                rettypes.push_back(n->exptype);
+                for (size_t i = 0; i < n->exptype->NumValues(); i++)
+                    rettypes.push_back(n->exptype->Get(i));
             }
-            // if we generate just 1 value, it can be copied into multiple vars if needed
-            if (rettypes.size() == 1) {
-                for (; retval > 1; retval--) {
-                    rettypes.push_back(rettypes.back());
-                    GenDup(rettypes.back());
-                }
             // if the caller doesn't want all return values, just pop em
-            } else if((int)rettypes.size() > retval) {
+            if((int)rettypes.size() > retval) {
                 while ((int)rettypes.size() > retval) {
                     GenPop(rettypes.back());
                     rettypes.pop_back();
@@ -458,7 +453,8 @@ struct CodeGen  {
     }
 
     void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
-                   const Node *rhs, int take_temp) {
+                   const Node *rhs, int take_temp, const Node *parent_op) {
+        assert(parent_op->exptype->NumValues() == retval);
         if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
             if (type->t == V_INT) {
             } else if (type->t == V_FLOAT)  {
@@ -483,6 +479,7 @@ struct CodeGen  {
         }
         if (retval) lvalop++;
         if (rhs) Gen(rhs, 1);
+        assert(lval->exptype == lval->nattype);
         if (auto idr = Is<IdentRef>(lval)) {
             TakeTemp(take_temp);
             Emit(IL_LVALVAR, lvalop, idr->sid->Idx());
@@ -603,14 +600,12 @@ void StringConstant::Generate(CodeGen &cg, int retval) const {
 
 void DefaultVal::Generate(CodeGen &cg, int retval) const {
     if (retval) {
-        assert(exptype->t == V_NIL);  // Optional args are indicated by being nillable.
-        switch (exptype->sub->t) {
+        assert(nattype->t == V_NIL);  // Optional args are indicated by being nillable.
+        switch (nattype->sub->t) {
             case V_INT:   cg.Emit(IL_PUSHINT, 0); break;
             case V_FLOAT: cg.GenFloat(0); break;
             default:      cg.Emit(IL_PUSHNIL); break;
         }
-    } else {
-        assert(exptype->t == V_VOID);  
     }
 }
 
@@ -675,7 +670,7 @@ void AssignList::Generate(CodeGen &cg, int retval) const {
     for (int i = (int)children.size() - 2; i >= 0; i--) {
         auto left = children[i];
         cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, 0, nullptr,
-                     nullptr, 1);
+                     nullptr, 1, this);
     }
     // currently can only happen with assign on last line of body, which is nonsensical
     cg.Dummy(retval);
@@ -696,29 +691,29 @@ void Define::Generate(CodeGen &cg, int retval) const {
 
 void Assign::Generate(CodeGen &cg, int retval) const {
     cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, retval, nullptr,
-                 right, 1);
+                 right, 1, this);
 }
 
 void PlusEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IADD, retval, exptype, right, 1);
+    cg.GenAssign(left, LVO_IADD, retval, left->exptype, right, 1, this);
 }
 void MinusEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_ISUB, retval, exptype, right, 1);
+    cg.GenAssign(left, LVO_ISUB, retval, left->exptype, right, 1, this);
 }
 void MultiplyEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IMUL, retval, exptype, right, 1);
+    cg.GenAssign(left, LVO_IMUL, retval, left->exptype, right, 1, this);
 }
 void DivideEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IDIV, retval, exptype, right, 1);
+    cg.GenAssign(left, LVO_IDIV, retval, left->exptype, right, 1, this);
 }
 void ModEq::Generate(CodeGen &cg, int retval) const {
-    cg.GenAssign(left, LVO_IMOD, retval, exptype, right, 1);
+    cg.GenAssign(left, LVO_IMOD, retval, left->exptype, right, 1, this);
 }
 
-void PostDecr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMMP, retval, exptype, nullptr, 0); }
-void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPPP, retval, exptype, nullptr, 0); }
-void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, exptype, nullptr, 0); }
-void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, exptype, nullptr, 0); }
+void PostDecr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMMP, retval, child->exptype, nullptr, 0, this); }
+void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPPP, retval, child->exptype, nullptr, 0, this); }
+void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, child->exptype, nullptr, 0, this); }
+void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, child->exptype, nullptr, 0, this); }
 
 void NotEqual     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
 void Equal        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
@@ -841,17 +836,13 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     } else if (nf->name == "resume") {  // FIXME: make a vm op.
         cg.Emit(vmop, nf->idx);
         cg.SplitAttr(cg.Pos());
-        if (!retval) cg.GenPop(exptype);
+        if (!retval) cg.GenPop(nattype);
     } else {
         if (!retval) {
             // Generate version that never produces top of stack (but still may have
             // additional return values)
             vmop++;
-            auto type = exptype;
-            if (nf->retvals.v.size() > 1) {  // FIXME: not the most elegant, could store all types.
-                assert(nf->retvals.v.back().flags == AF_NONE);  // Can't be generic types etc.
-                type = nf->retvals.v.back().type;
-            }
+            auto type = nattype->Get(nattype->NumValues() - 1);
             if (!IsRefNil(type->t)) vmop++;
         }
         cg.Emit(vmop, nf->idx);
@@ -896,7 +887,7 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
         assert(cg.temptypestack.size() == cg.nested_fors * 2);
         cg.EmitTempInfo(this);
         cg.SplitAttr(cg.Pos());
-        if (!retval) cg.GenPop(exptype);
+        if (!retval) cg.GenPop(nattype);
     } else {
         assert(sf && sf == sid->type->sf);
         // FIXME: in the future, we can make a special case for istype calls.
@@ -913,7 +904,7 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
             cg.EmitTempInfo(this);
             cg.SplitAttr(cg.Pos());
             if (sf->reqret) {
-                if (!retval) cg.GenPop(exptype);
+                if (!retval) cg.GenPop(nattype);
             } else {
                 cg.Dummy(retval);
             }
@@ -949,12 +940,9 @@ void Seq::Generate(CodeGen &cg, int retval) const {
 }
 
 void MultipleReturn::Generate(CodeGen &cg, int retval) const {
-    for (auto c : children) cg.Gen(c, retval != 0);
-    if (retval) {
-        assert((int)Arity() == retval);
-        cg.TakeTemp(Arity());
-        for (auto c : children) cg.rettypes.push_back(c->exptype);
-    }
+    for (auto [i, c] : enumerate(children)) cg.Gen(c, i < retval);
+    cg.TakeTemp(retval);
+    for (auto [i, c] : enumerate(children)) if (i < retval) cg.rettypes.push_back(c->exptype);
 }
 
 void NativeRef::Generate(CodeGen & /*cg*/, int /*retval*/) const {
@@ -1111,7 +1099,7 @@ void Constructor::Generate(CodeGen &cg, int retval) const {
     // FIXME: a malicious script can exploit this for a stack overflow.
     for (auto c : children) cg.Gen(c, 1);
     cg.TakeTemp(Arity());
-    auto vtype = exptype;
+    auto vtype = nattype;
     auto offset = cg.GetTypeTableOffset(vtype);
     if (vtype->t == V_STRUCT) {
         assert(vtype->struc->fields.size() == Arity());
@@ -1134,7 +1122,8 @@ void IsType::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void Return::Generate(CodeGen &cg, int /*retval*/) const {
+void Return::Generate(CodeGen &cg, int retval) const {
+    assert(!retval);
     assert(!cg.rettypes.size());
     if (cg.temptypestack.size()) {
         // We have temps on the stack from an enclosing for.
@@ -1148,7 +1137,7 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
     }
     auto sf = subfunction_idx >= 0 ? cg.st.subfunctiontable[subfunction_idx] : nullptr;
     int fid = subfunction_idx >= 0 ? sf->parent->idx : subfunction_idx;
-    int nretvals = sf ? sf->parent->nretvals_ : 1;
+    int nretvals = sf ? (int)sf->returntype->NumValues() : 1;
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (!sf || sf->reqret) {
         if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);
@@ -1162,8 +1151,8 @@ void Return::Generate(CodeGen &cg, int /*retval*/) const {
     // of the functions in between here and the function returned to.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     cg.Emit(IL_RETURN, fid, nretvals,
-            cg.GetTypeTableOffset(child->exptype->t == V_VOID ? type_any : child->exptype));
-    // retval==true is nonsensical here, but can't enforce
+            // Only used for EndEval:
+            cg.GetTypeTableOffset(child->exptype->t == V_VOID ? type_any : child->exptype->Get(0)));
 }
 
 void CoClosure::Generate(CodeGen &cg, int retval) const {
@@ -1173,9 +1162,9 @@ void CoClosure::Generate(CodeGen &cg, int retval) const {
 void CoRoutine::Generate(CodeGen &cg, int retval) const {
     cg.Emit(IL_CORO, 0);
     auto loc = cg.Pos();
-    auto sf = exptype->sf;
-    assert(exptype->t == V_COROUTINE && sf);
-    cg.Emit(cg.GetTypeTableOffset(exptype));
+    auto sf = nattype->sf;
+    assert(nattype->t == V_COROUTINE && sf);
+    cg.Emit(cg.GetTypeTableOffset(nattype));
     // TODO: We shouldn't need to store this table for each call, instead do it once for
     // each function.
     cg.Emit((int)sf->coyieldsave.v.size());
@@ -1191,7 +1180,7 @@ void TypeOf::Generate(CodeGen &cg, int /*retval*/) const {
         // FIXME
         if (!cg.temp_parent || !Is<NativeCall>(cg.temp_parent))
             cg.parser.Error("typeof return out of call context", dv);
-        cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(cg.temp_parent->exptype));
+        cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(cg.temp_parent->nattype));
     } else  if (auto idr = Is<IdentRef>(child)) {
         cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(idr->exptype));
     } else {

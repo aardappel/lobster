@@ -37,7 +37,7 @@ struct TypeChecker {
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
 
-    TypeChecker(Parser &_p, SymbolTable &_st, bool return_value) : parser(_p), st(_st) {
+    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultVectorTypes())
             TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
@@ -53,7 +53,11 @@ struct TypeChecker {
                 }
             }
         }
-        TypeCheckList(parser.root, true, return_value);
+        parser.root->sf->reqret = retreq;
+        TT((Node *&)parser.root, retreq);
+        auto call = Is<Call>(parser.root);
+        assert(call);
+        parser.root = call;
         CleanUpFlow(0);
         assert(!scopes.size());
         assert(!named_scopes.size());
@@ -199,6 +203,14 @@ struct TypeChecker {
         return nil;
     }
 
+    TypeRef NewTuple(size_t sz) {
+        auto type = st.NewType();
+        *type = Type(V_TUPLE);
+        type->tup = new vector<const Type *>(sz);
+        st.tuplelist.push_back(type->tup);
+        return type;
+    }
+
     void UnifyVar(TypeRef type, TypeRef hasvar) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
@@ -249,8 +261,17 @@ struct TypeChecker {
                                      (sub->sf == type->sf ||
                                       (!sub->sf && ConvertsTo(type->sf->coresumetype,
                                                               NewNilTypeVar(), false)));
+            case V_TUPLE:     return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *sub->tup);
             default:          return false;
         }
+    }
+
+    bool ConvertsToTuple(const vector<const Type *> &ttup, const vector<const Type *> &stup) {
+        if (ttup.size() != stup.size()) return false;
+        for (auto [i, type] : enumerate(ttup))
+            if (!ConvertsTo(type, stup[i], false))
+                return false;
+        return true;
     }
 
     TypeRef Union(const Node *a, const Node *b, bool coercions) {
@@ -278,35 +299,35 @@ struct TypeChecker {
         assert(a->exptype->t != V_STRING);
         MakeAny(a);  // Could instead make a T_I2S etc, but string() goes thru any also.
         a = new ToString(a->line, a);
-        a->exptype = type_string;
+        a->SetTypes(type_string);
     }
 
     void MakeAny(Node *&a) {
         if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
         if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
         a = new ToAny(a->line, a);
-        a->exptype = type_any;
+        a->SetTypes(type_any);
     }
 
     void MakeVoid(Node *&a) {
         if (a->exptype->t == V_VOID) return;
         a = new ToVoid(a->line, a);
-        a->exptype = type_void;
+        a->SetTypes(type_void);
     }
 
     void MakeBool(Node *&a) {
         if (a->exptype->t != V_INT) a = new ToBool(a->line, a);
-        a->exptype = type_int;
+        a->SetTypes(type_int);
     }
 
     void MakeInt(Node *&a) {
         a = new ToInt(a->line, a);
-        a->exptype = type_int;
+        a->SetTypes(type_int);
     }
 
     void MakeFloat(Node *&a) {
         a = new ToFloat(a->line, a);
-        a->exptype = type_float;
+        a->SetTypes(type_float);
     }
 
     void StorageType(TypeRef type, const Node &context) {
@@ -367,11 +388,11 @@ struct TypeChecker {
                     }
                     TypeCheckFunctionDef(*sf, sf->body);
                     // Covariant again.
-                    if (sf->returntypes.size() != ss->returntypes.size() ||
-                        !ConvertsTo(sf->returntypes[0], ss->returntypes[0], false))
+                    if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
+                        !ConvertsTo(sf->returntype, ss->returntype, false))
                             break;
                     // Parser only parses one ret type for function types.
-                    assert(ss->returntypes.size() == 1);
+                    assert(ss->returntype->NumValues() <= 1);
                     return;
                 }
                 break;
@@ -462,8 +483,8 @@ struct TypeChecker {
     }
 
     Node *TypeCheckMathOp(BinOp &n) {
-        n.left = n.left->TypeCheck(*this, true);
-        n.right = n.right->TypeCheck(*this, true);
+        TT(n.left, 1);
+        TT(n.right, 1);
         n.exptype = Union(n.left, n.right, true);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
@@ -472,8 +493,8 @@ struct TypeChecker {
     }
 
     Node *TypeCheckMathOpEq(BinOp &n) {
-        n.left = n.left->TypeCheck(*this, true);
-        n.right = n.right->TypeCheck(*this, true);
+        TT(n.left, 1);
+        TT(n.right, 1);
         CheckLval(*n.left);
         n.exptype = n.left->exptype;
         if (!MathCheckVector(n.exptype, n.left, n.right)) {
@@ -485,8 +506,8 @@ struct TypeChecker {
     }
 
     Node *TypeCheckComp(BinOp &n) {
-        n.left = n.left->TypeCheck(*this, true);
-        n.right = n.right->TypeCheck(*this, true);
+        TT(n.left, 1);
+        TT(n.right, 1);
         n.exptype = type_int;
         auto u = Union(n.left, n.right, true);
         if (!u->Numeric() && u->t != V_STRING) {
@@ -515,15 +536,15 @@ struct TypeChecker {
     }
 
     Node *TypeCheckBitOp(BinOp &n) {
-        n.left = n.left->TypeCheck(*this, true);
-        n.right = n.right->TypeCheck(*this, true);
+        TT(n.left, 1);
+        TT(n.right, 1);
         SubTypeLR(type_int, n);
         n.exptype = type_int;
         return &n;
     }
 
     Node *TypeCheckPlusPlus(Unary &n) {
-        n.child = n.child->TypeCheck(*this, true);
+        TT(n.child, 1);
         CheckLval(*n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
@@ -535,39 +556,35 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    // Only one of n or type is specified. Returns new n if specified.
-    Node *RetVal(Node *n, TypeRef type, SubFunction *sf, size_t i, Node &context) {
-        if (!sf) return n;  // FIXME: doesn't happen anymore now that we have top level exp fun?
+    void RetVal(TypeRef type, SubFunction *sf) {
         sf->returns_value = true;  // FIXME.
-        if (i >= sf->returntypes.size()) {
-            if (sf->fixedreturntype)
-                TypeError("number of returned value(s) must correspond to declared return type",
-                          context);
-            assert(i == sf->returntypes.size());
-            sf->returntypes.push_back(!type.Null() ? type : n->exptype);
-        } else if (sf->reqret) {
-            if (sf->isrecursivelycalled) {
-                // We must be conservative because there may already be callers dependent on
-                // the return type so far, so any others must be subtypes.
-                // FIXME: are there any other situations beyond recursive calls that can require
-                // subtyping?
-                auto argname = "return value";
-                if (!type.Null()) SubTypeT(type, sf->returntypes[i], context, argname);
-                else if (n) SubType(n, sf->returntypes[i], argname, context);
-                // FIXME: this allows "return" followed by "return 1" ?
-                else SubTypeT(type_any, sf->returntypes[i], context, argname);
+        if (!sf->fixedreturntype) {
+            if (sf->reqret) {
+                // If this is a recursive call we must be conservative because there may already
+                // be callers dependent on the return type so far, so any others must be subtypes.
+                if (!sf->isrecursivelycalled) {
+                    // We can safely generalize the type if needed, though not with coercions.
+                    sf->returntype = Union(type, sf->returntype, false);
+                }
             } else {
-                // We can safely generalize the type if needed, though not with coercions.
-                // TODO: we could allow coercions for the node, but that would only work depending
-                // on the order of return statements, so maybe not desirable to have.
-                auto other = !type.Null()  ? type : (n ? n->exptype : type_any);
-                sf->returntypes[i] = Union(other, sf->returntypes[i], false);
+                // The caller doesn't want return values.
+                sf->returntype = type_void;
             }
-        } else {
-            // The caller doesn't want return values.
-            sf->returntypes[i] = type_void;
         }
-        return n;
+    }
+
+    bool EndsInReturn(const List *list) {
+        if (list->children.empty()) return false;
+        auto &last = list->children.back();
+        if (Is<Return>(last)) return true;
+        if (auto ifthen = Is<If>(last)) {
+            auto tp = Is<Call>(ifthen->truepart);
+            auto fp = Is<Call>(ifthen->falsepart);
+            if (tp && fp && EndsInReturn(tp->sf->body) && EndsInReturn(fp->sf->body))
+                return true;
+        }
+        // TODO: add more? switch?
+        return false;
     }
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context) {
@@ -594,25 +611,23 @@ struct TypeChecker {
         };
         auto backup_args = sf.args; backup_vars(sf.args, backup_args);
         auto backup_locals = sf.locals; backup_vars(sf.locals, backup_locals);
-        // FIXME: this would not be able to typecheck recursive functions with multiret.
-        if (!sf.fixedreturntype) sf.returntypes[0] = NewTypeVar();
-        sf.coresumetype = sf.iscoroutine ? NewTypeVar() : type_any;
-        auto start_promoted_vars = flowstack.size();
-        TypeCheckList(sf.body, true, sf.reqret);
-        CleanUpFlow(start_promoted_vars);
-        auto &last = sf.body->children.back();
-        if (!Is<Return>(last)) {
-            if (sf.body->children.size() == 1 || sf.parent->anonymous)
-                last = RetVal(last, nullptr, &sf, 0, *last);
-            else if (sf.returns_value && sf.returntypes[0]->t != V_VOID)
+        sf.coresumetype = sf.iscoroutine ? NewNilTypeVar() : type_undefined;
+        if (sf.body->children.size()) {
+            if (!sf.fixedreturntype) sf.returntype = NewTypeVar();
+            auto start_promoted_vars = flowstack.size();
+            TypeCheckList(sf.body, true, 0);
+            CleanUpFlow(start_promoted_vars);
+            if (!EndsInReturn(sf.body) && sf.returns_value && sf.returntype->t != V_VOID) {
                 TypeError("explicit return statement required at the end of: " + sf.parent->name,
-                          *last);
+                          *sf.body);
+            }
+            if (!sf.returns_value) sf.returntype = type_void;
+        } else {
+            sf.returntype = type_void;
         }
-        if (!sf.returns_value)
-            sf.returntypes[0] = type_void;
         for (auto &back : backup_args.v)   RevertCurrentSid(back.sid);
         for (auto &back : backup_locals.v) RevertCurrentSid(back.sid);
-        for (auto type : sf.returntypes) if (sf.reqret && type->HasValueType(V_VAR)) {
+        if (sf.reqret && sf.returntype->HasValueType(V_VAR)) {
             // If this function return something with a variable in it, then it likely will get
             // bound by the caller. If the function then gets reused without specialization, it will
             // get the wrong return type, so we force specialization for subsequent calls of this
@@ -623,7 +638,7 @@ struct TypeChecker {
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
         Output(OUTPUT_DEBUG, "function end ", Signature(sf), " returns ",
-                             TypeName(sf.returntypes[0]));
+                             TypeName(sf.returntype));
     }
 
     Struct *FindStructSpecialization(Struct *given, const Constructor *cons) {
@@ -739,35 +754,36 @@ struct TypeChecker {
         }
         // See if this call is recursive:
         for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
-        return sf->returntypes[0];
+        return sf->returntype;
     }
 
     TypeRef TypeCheckCall(SubFunction *csf, List *call_args, SubFunction *&chosen,
-                          Node *call_context, bool reqret) {
+                          Node *call_context, size_t reqret) {
         Function &f = *csf->parent;
         if (f.multimethod) {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
-                // FIXME: reqret is always true for multimethods, because we don't want to
+                // FIXME: reqret is always that of the first caller for multimethods, because we don't want to
                 // specialize the whole set, but this is problematic.
                 f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
+                    sf->reqret = reqret;
                     TypeCheckFunctionDef(*sf, call_context);
                 }
                 bool is_bound = f.multimethodretval->IsBoundVar();
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     // FIXME: Lift these limits?
-                    if (sf->returntypes.size() != 1)
+                    if (sf->returntype->NumValues() > 1)
                         TypeError("multi-methods can currently return only 1 value.",
                                   *call_context);
-                    auto u = sf->returntypes[0];
+                    auto u = sf->returntype;
                     if (is_bound) {
                         if (!ConvertsTo(u, f.multimethodretval, false))
                             // FIXME: not a great error, but should be rare.
                             TypeError("multi-method " + f.name +
                                       " return value type " +
-                                      TypeName(sf->returntypes[0]) +
+                                      TypeName(sf->returntype) +
                                       " is bound by recursive call type " +
                                       TypeName(f.multimethodretval), *sf->body);
                     } else {
@@ -782,7 +798,7 @@ struct TypeChecker {
                             if (!IsRef(f.multimethodretval->t) && IsRef(u->t))
                                 TypeError("multi-method " + f.name +
                                           " return value type " +
-                                          TypeName(sf->returntypes[0]) + " cannot be unified with " +
+                                          TypeName(sf->returntype) + " cannot be unified with " +
                                           TypeName(f.multimethodretval), *sf->body);
                         }
                         f.multimethodretval = u;
@@ -790,9 +806,12 @@ struct TypeChecker {
                 }
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     // Overwrite any recursive cases that might return a type var.
-                    sf->returntypes[0] = f.multimethodretval;
+                    sf->returntype = f.multimethodretval;
                 }
             }
+            if (reqret != f.subf->reqret)
+                TypeError(cat("multimethod ", f.name, " previously specialized for ",
+                              f.subf->reqret, " return values"), *call_context);
             // See how many cases match, if only 1 (as subtype of declared) we can specialize,
             // if 0 (as sub or supertype of declared) we can avoid a runtime error.
             SubFunction *lastmatch = nullptr;
@@ -907,7 +926,7 @@ struct TypeChecker {
         return sf;
     }
 
-    TypeRef TypeCheckDynCall(SpecIdent *fval, List *args, SubFunction *&fspec, bool reqret) {
+    TypeRef TypeCheckDynCall(SpecIdent *fval, List *args, SubFunction *&fspec, size_t reqret) {
         auto &ftype = fval->type;
         auto nargs = args->Arity();
         if (ftype->IsFunction()) {
@@ -930,7 +949,8 @@ struct TypeChecker {
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->Arity() ? args->children[0]->exptype : type_any;
-                RetVal(nullptr, type, sf, 0, *args);
+                RetVal(type, sf);
+                SubTypeT(type, sf->returntype, *args, "", "yield value");
                 // Now collect all ids between coroutine and yield, so that we can save these in the
                 // VM.
                 bool foundstart = false;
@@ -965,7 +985,7 @@ struct TypeChecker {
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Node *&bodycall,
                             bool reqret) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        bodycall = bodycall->TypeCheck(*this, reqret);
+        TT(bodycall, reqret);
         CleanUpFlow(flowstart);
         return bodycall->exptype;
     }
@@ -991,7 +1011,7 @@ struct TypeChecker {
     void CheckFlowTypeChangesAndOr(bool iftrue, const BinOp *condition) {
         // AND only works for then, and OR only for else.
         if (iftrue == (Is<And>(condition) != nullptr)) {
-            // This is a bit clumsy, but allows for a chain of &'s without allowing mixed
+            // This is a bit clumsy, but allows for a chain of and's without allowing mixed
             // operators.
             auto tobool = Is<ToBool>(condition->left);
             if (typeid(*condition->left) == typeid(*condition) ||
@@ -1086,7 +1106,7 @@ struct TypeChecker {
         // and the overal type should be the union of b and c.
         // Or a? | b, which should also be the union of a and b.
         if (!Is<And>(n) && !Is<Or>(n)) {
-            n = n->TypeCheck(*this, reqret);
+            TT(n, reqret);
         }
         // We check again, since TypeCheck may have removed a coercion op.
         if (!Is<And>(n) && !Is<Or>(n)) {
@@ -1103,9 +1123,9 @@ struct TypeChecker {
         ao->right = TypeCheckAndOr(ao->right, only_true_type, reqret, tright);
         CleanUpFlow(flowstart);
         if (only_true_type && Is<And>(ao)) {
-            ao->exptype = tright;
+            ao->SetTypes(tright);
         } else {
-            ao->exptype = Union(tleft, tright, false);
+            ao->SetTypes(Union(tleft, tright, false));
             if (ao->exptype->t == V_ANY) {
                 // Special case: we may have just merged scalar and reference types, and unlike
                 // elsewhere, we don't want to box the scalars to make everything references, since
@@ -1113,18 +1133,11 @@ struct TypeChecker {
                 // bools.
                 MakeBool(ao->left);
                 MakeBool(ao->right);
-                ao->exptype = type_int;
+                ao->SetTypes(type_int);
             }
         }
         promoted_type = ao->exptype;
         return n;
-    }
-
-    void CheckReturnValues(size_t nretvals, size_t i, string_view name, const Node &n) {
-        if (nretvals <= i) {
-            parser.Error(cat("function ", name, " returns ", nretvals, " values, ",
-                             i + 1, " requested"), &n);
-        }
     }
 
     void CheckLval(Node &n) {
@@ -1162,9 +1175,15 @@ struct TypeChecker {
         }
     }
 
-    void TypeCheckList(List *n, bool onlylast, bool reqret = true) {
+    bool NeverReturns(const Call *call) {
+        if (call->sf->body->children.empty()) return false;
+        auto ret = Is<Return>(call->sf->body->children.back());
+        return ret && ret->subfunction_idx != call->sf->idx;
+    }
+
+    void TypeCheckList(List *n, bool onlylast, size_t reqret = 1) {
         for (auto &c : n->children)
-            c = c->TypeCheck(*this, onlylast && c != n->children.back() ? false : reqret);
+            TT(c, onlylast && c != n->children.back() ? 0 : reqret);
     }
 
     TypeRef TypeCheckId(SpecIdent *sid) {
@@ -1173,14 +1192,35 @@ struct TypeChecker {
         return type;
     }
 
-    Node *TypeCheckCoercion(Unary &n, bool reqret) {
+    Node *TypeCheckCoercion(Unary &n, size_t reqret) {
         // These have been added by another specialization.
         // We could check if they still apply, but even more robust is just to remove them,
         // and let them be regenerated if need be.
-        auto c = n.child->TypeCheck(*this, reqret);
+        TT(n.child, reqret);
+        auto c = n.child;
         n.child = nullptr;
         delete &n;
         return c;
+    }
+
+    void TT(Node *&n, size_t reqret) {
+        n = n->TypeCheck(*this, reqret);
+        auto &rt = n->exptype;
+        n->nattype = rt;
+        auto nret = rt->NumValues();
+        if (nret < reqret) {
+            TypeError(cat(n->Name(), " returns ", nret, " values, ", reqret, " needed"), *n);
+        } else if (nret > reqret) {
+            switch (reqret) {
+                case 0: rt = type_void; break;
+                case 1: rt = rt->Get(0); break;
+                default: {
+                    auto nt = NewTuple(reqret);
+                    nt->tup->assign(rt->tup->begin(), rt->tup->begin() + reqret);
+                    rt = nt;
+                }
+            }
+        }
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -1237,26 +1277,6 @@ struct TypeChecker {
         return type;
     };
 
-    TypeRef TypeCheckMultiRHS(Node *rhs, size_t i, Node *parent) {
-        if (auto call = Is<Call>(rhs)) {
-            CheckReturnValues(call->sf->returntypes.size(), i, call->sf->parent->name, *parent);
-            return call->sf->returntypes[i];
-        } else if (auto nc = Is<NativeCall>(rhs)) {
-            // For the 0th value, we prefer the existing type, see NativeCall below.
-            if (i) {
-                CheckReturnValues(nc->nf->retvals.v.size(), i, nc->nf->name, *parent);
-                assert(nc->nf->retvals.v[i].flags == AF_NONE);  // See NativeCall below.
-                auto &arg = nc->nf->retvals.v[i];
-                return ToVStruct(arg.fixed_len, arg.type, nullptr, nc->nf, false, 0, *parent);
-            }
-        } else if (auto mr = Is<MultipleReturn>(rhs)) {
-            if (i >= mr->Arity())
-                parser.Error("right hand side does not return enough values", parent);
-            return mr->children[i]->exptype;
-        }
-        return rhs->exptype;
-    }
-
     void Stats() {
         if (min_output_level > OUTPUT_INFO) return;
         int origsf = 0, multisf = 0, clonesf = 0;
@@ -1292,38 +1312,38 @@ struct TypeChecker {
     }
 };
 
-Node *List::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *List::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     assert(false);  // Parent calls TypeCheckList.
     return this;
 }
 
-Node *Unary::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *Unary::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     assert(false);
     return this;
 }
 
-Node *BinOp::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *BinOp::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     assert(false);
     return this;
 }
 
-Node *Inlined::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *Inlined::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     assert(false);  // Generated after type-checker in optimizer.
     return this;
 }
 
-Node *Or::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *Or::TypeCheck(TypeChecker &tc, size_t reqret) {
     TypeRef dummy;
     return tc.TypeCheckAndOr(this, false, reqret, dummy);
 }
 
-Node *And::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *And::TypeCheck(TypeChecker &tc, size_t reqret) {
     TypeRef dummy;
     return tc.TypeCheckAndOr(this, false, reqret, dummy);
 }
 
-Node *If::TypeCheck(TypeChecker &tc, bool reqret) {
-    condition = condition->TypeCheck(tc, true);
+Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
+    tc.TT(condition, 1);
     Value cval;
     bool isconst = condition->ConstVal(tc, cval);
     if (!Is<DefaultVal>(falsepart)) {
@@ -1334,9 +1354,9 @@ Node *If::TypeCheck(TypeChecker &tc, bool reqret) {
             // to signify NORETURN, to be taken into account in more places.
             auto truec = AssertIs<Call>(truepart);
             auto falsec = AssertIs<Call>(falsepart);
-            if (Is<Return>(truec->sf->body->children.back())) {
+            if (tc.NeverReturns(truec)) {
                 exptype = tright;
-            } else if (Is<Return>(falsec->sf->body->children.back())) {
+            } else if (tc.NeverReturns(falsec)) {
                 exptype = tleft;
             } else {
                 exptype = tc.Union(tleft, tright, true);
@@ -1357,27 +1377,26 @@ Node *If::TypeCheck(TypeChecker &tc, bool reqret) {
         if (!isconst || cval.True()) {
             tc.TypeCheckBranch(true, condition, truepart, false);
             tc.MakeVoid(truepart);
+        } else {
+            // constant == false: this if-then will get optimized out entirely, ignore it.
         }
-        // Else constant == false: this if-then will get optimized out entirely, ignore
-        // it. Bind the var in T_DEFAULTVAL regardless, since it will stay in the AST.
-        falsepart = falsepart->TypeCheck(tc, reqret);
-        tc.SubType(falsepart, type_function_void, "else", *this);
+        falsepart->SetTypes(type_void);
         exptype = type_void;
     }
     return this;
 }
 
-Node *While::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    condition = condition->TypeCheck(tc, true);
+Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(condition, true);
     auto condc = AssertIs<Call>(condition);
-    tc.TypeCheckBranch(true, condc->sf->body->children[0], body, false);
-    // Currently always return V_NIL
+    auto condexp = AssertIs<Return>(condc->sf->body->children.back());
+    tc.TypeCheckBranch(true, condexp->child, body, false);
     exptype = type_void;
     return this;
 }
 
-Node *For::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    iter = iter->TypeCheck(tc, true);
+Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(iter, 1);
     auto itertype = iter->exptype;
     if (itertype->t == V_INT || itertype->t == V_STRING)
         itertype = type_int;
@@ -1390,43 +1409,43 @@ Node *For::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     auto bodyc = AssertIs<Call>(body);
     auto &args = bodyc->children;
     if (args.size()) {
-        args[0]->exptype = itertype;  // ForLoopElem
-        if (args.size() > 1) args[1]->exptype = type_int;  // ForLoopCounter
+        args[0]->SetTypes(itertype);  // ForLoopElem
+        if (args.size() > 1) args[1]->SetTypes(type_int);  // ForLoopCounter
     }
-    body = body->TypeCheck(tc, false);
+    tc.TT(body, 0);
     // Currently always return V_NIL
     exptype = type_void;
     return this;
 }
 
-Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     // Ignore, already been assigned a type in For.
     return this;
 }
 
-Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     // Ignore, already been assigned a type in For.
     return this;
 }
 
-Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
-    value = value->TypeCheck(tc, true);
+    tc.TT(value, 1);
     auto ptype = value->exptype;
     if (!ptype->Numeric() && ptype->t != V_STRING)
         tc.TypeError("switch value must be int / float / string", *this);
     exptype = nullptr;
     bool have_default = false;
     for (auto &n : cases->children) {
-        n = n->TypeCheck(tc, reqret);
+        tc.TT(n, reqret);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
         }
         auto body = AssertIs<Call>(cas->body);
-        if (!Is<Return>(body->sf->body->children.back())) {
+        if (!tc.NeverReturns(body)) {
             exptype = exptype.Null() ? body->exptype
                                      : tc.Union(exptype, body->exptype, true);
         }
@@ -1434,7 +1453,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
         auto body = AssertIs<Call>(cas->body);
-        if (!Is<Return>(body->sf->body->children.back())) {
+        if (!tc.NeverReturns(body)) {
             assert(!exptype.Null());
             tc.SubType(cas->body, exptype, "", "case block");
         }
@@ -1445,24 +1464,24 @@ Node *Switch::TypeCheck(TypeChecker &tc, bool reqret) {
     return this;
 }
 
-Node *Case::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.TypeCheckList(pattern, false);
-    body = body->TypeCheck(tc, reqret);
+    tc.TT(body, reqret);
     exptype = body->exptype;
     return this;
 }
 
-Node *Range::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    start = start->TypeCheck(tc, true);
-    end = end->TypeCheck(tc, true);
+Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(start, 1);
+    tc.TT(end, 1);
     exptype = start->exptype;
     if (exptype->t != end->exptype->t || !exptype->Numeric())
         tc.TypeError("range can only be two equal numeric types", *this);
     return this;
 }
 
-Node *CoDot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    coroutine = coroutine->TypeCheck(tc, true);
+Node *CoDot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(coroutine, 1);
     // Leave right ident untypechecked.
     tc.SubType(coroutine, type_coroutine, "coroutine", *this);
     auto sf = coroutine->exptype->sf;
@@ -1476,21 +1495,20 @@ Node *CoDot::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     }
     if (!uarg) tc.TypeError("no coroutine variables named: " + name, *this);
     var->sid = uarg->sid;
-    var->exptype = exptype = uarg->type;
+    var->SetTypes(exptype = uarg->type);
     return this;
 }
 
-Node *Define::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &sid : sids) {
         tc.UpdateCurrentSid(sid);
         // We have to use a variable here because the init exp may be a function
         // call that causes this variable to be used/assigned.
         sid->type = !giventype.Null() ? giventype : tc.NewTypeVar();
     }
-    child = child->TypeCheck(tc, true);
-    size_t i = 0;
-    for (auto sid : sids) {
-        auto vartype = tc.TypeCheckMultiRHS(child, i, this);
+    tc.TT(child, sids.size());
+    for (auto [i, sid] : enumerate(sids)) {
+        TypeRef vartype = child->exptype->Get(i);
         if (!giventype.Null()) {
             vartype = giventype;
             // Have to subtype the initializer value, as that node may contain
@@ -1509,17 +1527,17 @@ Node *Define::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
                 if (sc.sf->iscoroutine)
                     tc.TypeError("can\'t use log variable inside coroutine", *this);
         }
-        i++;
     }
+    exptype = type_void;
     return this;
 }
 
-Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    for (auto &c : children) c = c->TypeCheck(tc, true);
+Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    for (auto &c : children) tc.TT(c, c == children.back() ? children.size() - 1 : 1);
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
         tc.CheckLval(*left);
-        auto righttype = tc.TypeCheckMultiRHS(children.back(), i, this);
+        TypeRef righttype = children.back()->exptype->Get(i);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
         tc.AssignFlowDemote(fi, righttype, false);
@@ -1527,144 +1545,145 @@ Node *AssignList::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         tc.StorageType(left->exptype, *left);
         // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
     }
+    exptype = type_void;
     return this;
 }
 
-Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_int;
     return this;
 }
 
-Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_float;
     return this;
 }
 
-Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_string;
     return this;
 }
 
-Node *Nil::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = !giventype.Null() ? giventype : tc.NewTypeVar()->Wrap(tc.st.NewType(), V_NIL);
     return this;
 }
 
-Node *Plus::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Plus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Minus::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Minus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Multiply::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Multiply::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Divide::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Divide::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *Mod::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Mod::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOp(*this);
 }
 
-Node *PlusEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *PlusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *MultiplyEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *MultiplyEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *MinusEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *MinusEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *DivideEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *DivideEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *ModEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *ModEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckMathOpEq(*this);
 }
 
-Node *NotEqual::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *NotEqual::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *Equal::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Equal::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *GreaterThanEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *GreaterThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *LessThanEq::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *LessThanEq::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *GreaterThan::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *GreaterThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *LessThan::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckComp(*this);
 }
 
-Node *Not::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1);
     exptype = type_int;
     return this;
 }
 
-Node *BitAnd::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *BitAnd::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *BitOr::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *BitOr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *Xor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Xor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *ShiftLeft::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *ShiftLeft::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *ShiftRight::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *ShiftRight::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckBitOp(*this);
 }
 
-Node *Negate::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1);
     tc.SubType(child, type_int, "negated value", *this);
     exptype = type_int;
     return this;
 }
 
-Node *PostDecr::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *PostDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PostIncr::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *PostIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PreDecr::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *PreDecr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *PreIncr::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return tc.TypeCheckPlusPlus(*this);
 }
 
-Node *UnaryMinus::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1);
     exptype = child->exptype;
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT || !exptype->struc->sametype->Numeric()))
@@ -1672,7 +1691,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *IdentRef::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.UpdateCurrentSid(sid);
     exptype = tc.TypeCheckId(sid);
     FlowItem fi(*this, exptype);
@@ -1681,13 +1700,13 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *Assign::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    left = left->TypeCheck(tc, true);
-    right = right->TypeCheck(tc, true);
+Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(left, 1);
+    tc.TT(right, 1);
     tc.CheckLval(*left);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
-        left->exptype = tc.AssignFlowDemote(fi, right->exptype, true);
+        left->SetTypes(tc.AssignFlowDemote(fi, right->exptype, true));
     }
     tc.SubType(right, left->exptype, "right", *this);
     if (fi.IsValid()) tc.AssignFlowPromote(*left, right->exptype);
@@ -1696,15 +1715,16 @@ Node *Assign::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *DefaultVal::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    // This is used only as a default value for native call arguments. The variable
+Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t reqret) {
+    // This is used as a default value for native call arguments. The variable
     // makes it equal to whatever the function expects, then codegen can use that type
     // to generate a correct value.
-    exptype = tc.NewTypeVar();
+    // Also used as an empty else branch.
+    exptype = reqret ? tc.NewTypeVar() : type_void;
     return this;
 }
 
-Node *GenericCall::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, false);
     auto nf = tc.parser.natreg.FindNative(name);
@@ -1755,7 +1775,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, bool reqret) {
     return r;
 }
 
-void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
+void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     if (nf->first->overloads) {
         // Multiple overloads available, figure out which we want to call.
         auto cnf = nf->first;
@@ -1850,49 +1870,53 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
     }
 
     exptype = type_void;  // no retvals
-    if (nf->retvals.v.size()) {
-        // multiple retvals taken care of by T_DEF / T_ASSIGNLIST
-        auto &ret = nf->retvals.v[0];
+    if (nf->retvals.v.size() > 1) exptype = tc.NewTuple(nf->retvals.v.size());
+    for (auto [i, ret] : enumerate(nf->retvals.v)) {
         int sa = 0;
+        auto type = ret.type;
         switch (ret.flags) {
             case NF_SUBARG3: sa++;
             case NF_SUBARG2: sa++;
             case NF_SUBARG1: {
-                exptype = argtypes[sa];
+                type = argtypes[sa];
                 auto nftype = nf->args.v[sa].type;
 
                 if (nftype->t == V_TYPEID) {
                     assert(!sa);  // assumes always first.
                     auto tin = AssertIs<TypeOf>(children[0]);
-                    if (!Is<DefaultVal>(tin->child)) exptype = tin->child->exptype;
+                    if (!Is<DefaultVal>(tin->child)) type = tin->child->exptype;
                 }
 
                 if (ret.type->t == V_NIL) {
-                    if (!IsRef(exptype->t))
+                    if (!IsRef(type->t))
                         tc.TypeError(cat("argument ", sa + 1, " to ", nf->name,
                                     " can't be scalar"), *this);
-                    exptype = exptype->Wrap(tc.st.NewType(), V_NIL);
+                    type = type->Wrap(tc.st.NewType(), V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
-                    exptype = exptype->sub;
+                    type = type->sub;
                 } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
-                    auto csf = exptype->sf;
+                    auto csf = type->sf;
                     assert(csf);
                     // In theory it is possible this hasn't been generated yet..
-                    exptype = csf->returntypes[0];
+                    type = csf->returntype;
                 }
                 break;
             }
             case NF_ANYVAR:
-                exptype = ret.type->t == V_VECTOR ? tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR)
+                type = ret.type->t == V_VECTOR ? tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR)
                                                   : tc.NewTypeVar();
                 break;
             default:
                 assert(ret.flags == AF_NONE);
-                exptype = ret.type;
                 break;
         }
-        exptype = tc.ToVStruct(ret.fixed_len, exptype, Arity() ? children[0] : nullptr, nf, false,
+        type = tc.ToVStruct(ret.fixed_len, type, !i && Arity() ? children[0] : nullptr, nf, false,
                                0, *this);
+        if (nf->retvals.v.size() > 1) {
+            exptype->Set(i, type.get());
+        } else {
+            exptype = type;
+        }
     }
 
     if (nf->name == "assert") {
@@ -1903,22 +1927,18 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
     }
 }
 
-void Call::TypeCheckSpecialized(TypeChecker &tc, bool reqret) {
+void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, this, sf, this, reqret);
 }
 
-Node *FunRef::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    if (sf) {
-        sf = tc.PreSpecializeFunction(sf);
-        exptype = &sf->thistype;
-    } else {
-        exptype = type_any;
-    }
+Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    sf = tc.PreSpecializeFunction(sf);
+    exptype = &sf->thistype;
     return this;
 }
 
-Node *DynCall::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.UpdateCurrentSid(sid);
     tc.TypeCheckId(sid);
     //if (sid->type->IsFunction()) sid->type = &tc.PreSpecializeFunction(sid->type->sf)->thistype;
@@ -1927,8 +1947,8 @@ Node *DynCall::TypeCheck(TypeChecker &tc, bool reqret) {
     return this;
 }
 
-Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    exptype = type_void;
     auto sf = subfunction_idx < 0 ? nullptr : tc.st.subfunctiontable[subfunction_idx];
     for (int i = (int)tc.scopes.size() - 1; i >= 0; i--) {
         if (sf) {
@@ -1956,7 +1976,13 @@ Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
         }
         if (tc.scopes[i].sf->iscoroutine) tc.TypeError("cannot return out of coroutine", *this);
     }
-    if (subfunction_idx < 0) return this;  // return from program
+    tc.TT(child, sf ? sf->reqret : 1);
+    if (subfunction_idx < 0) {
+        // return from program
+        if (child->exptype->NumValues() > 1)
+            tc.TypeError("cannot return multiple values from top level", *this);
+        return this;
+    }
     auto nsf = tc.TopScope(tc.named_scopes);
     if (nsf != sf) {
         // This is a non-local "return from".
@@ -1964,46 +1990,36 @@ Node *Return::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
             tc.parser.Error("return from " + sf->parent->name +
                             " called out of context", this);
     }
-    exptype = type_void;
-    // FIXME: for a return-from, if the function this return sits in only gets typechecked
-    // once, and if that function gets called from multiple specializations of a caller, only
-    // the first such caller gets its return type affected by RetVal from here.
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {
-            int i = 0;
-            for (auto mr : mrs->children) {
-                mr = tc.RetVal(mr, nullptr, sf, i, *mr);
-                i++;
+            tc.RetVal(mrs->exptype, sf);
+            for (auto [i, mr] : enumerate(mrs->children)) {
+                if (i < sf->reqret)
+                    tc.SubType(mr, sf->returntype->Get(i), tc.ArgName(i), *this);
             }
         } else {
-            auto call = Is<Call>(child);
-            if (call && call->sf->returntypes.size() > 1) {
-                // Multi-ret pass-thru:
-                size_t i = 0;
-                for (auto &rettype : call->sf->returntypes)
-                    tc.RetVal(nullptr, rettype, sf, i++, *child);
-            } else {
-                child = tc.RetVal(child, nullptr, sf, 0, *child);
-            }
+            tc.RetVal(child->exptype, sf);
+            tc.SubType(child, sf->returntype, "", *this);
         }
     } else {
-        tc.RetVal(nullptr, exptype, sf, 0, *this);
+        tc.RetVal(type_void, sf);
+        tc.SubType(child, sf->returntype, "", *this);
     }
     return this;
 }
 
-Node *TypeAnnotation::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *TypeAnnotation::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = giventype;
     return this;
 }
 
-Node *IsType::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1);
     exptype = type_int;
     return this;
 }
 
-Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     // We have to check this here, since the parser couldn't check this yet.
     if (giventype->t == V_STRUCT && giventype->struc->fields.v.size() < children.size())
         tc.TypeError("too many initializers for: " + giventype->struc->name, *this);
@@ -2037,7 +2053,7 @@ Node *Constructor::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-void Dot::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
+void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     auto smtype = children[0]->exptype;
     auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
     if (stype->t != V_STRUCT)
@@ -2056,9 +2072,9 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, bool /*reqret*/) {
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
 }
 
-Node *Indexing::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    object = object->TypeCheck(tc, true);
-    index = index->TypeCheck(tc, true);
+Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(object, 1);
+    tc.TT(index, 1);
     auto vtype = object->exptype;
     if (vtype->t == V_STRUCT && vtype->struc->sametype->t != V_ANY) {}
     else if (vtype->t != V_VECTOR && vtype->t != V_STRING)
@@ -2089,20 +2105,20 @@ Node *Indexing::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *Seq::TypeCheck(TypeChecker &tc, bool reqret) {
-    head = head->TypeCheck(tc, false);
-    tail = tail->TypeCheck(tc, reqret);
+Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret) {
+    tc.TT(head, 0);
+    tc.TT(tail, reqret);
     exptype = tail->exptype;
     return this;
 }
 
-Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_function_cocl;
     return this;
 }
 
-Node *CoRoutine::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    call = call->TypeCheck(tc, true);
+Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(call, 1);
     if (auto fc = Is<Call>(call)) {
         auto sf = fc->sf;
         assert(sf->iscoroutine);
@@ -2115,26 +2131,28 @@ Node *CoRoutine::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
     return this;
 }
 
-Node *TypeOf::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
-    child = child->TypeCheck(tc, true);
+Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1);
     exptype = type_typeid;
     return this;
 }
 
-Node *MultipleReturn::TypeCheck(TypeChecker &tc, bool /*reqret*/) {
+Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckList(this, false);
+    exptype = tc.NewTuple(children.size());
+    for (auto [i, mrc] : enumerate(children)) exptype->Set(i, children[i]->exptype.get());
     return this;
 }
 
-Node *NativeRef::TypeCheck(TypeChecker & /*tc*/, bool /*reqret*/) {
+Node *NativeRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     return this;
 }
 
-Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
+Node *StructRef::TypeCheck(TypeChecker &/*tc*/, size_t /*reqret*/) {
     /*
     for (auto &f : st->fields.v) {
         if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_GENERIC) && f.defaultval->exptype.Null()) {
-            f.defaultval = f.defaultval->TypeCheck(tc, true);
+            f.defaultval = tc.TT(f.defaultval, 1);
             f.type = f.defaultval->exptype;
         }
     }
@@ -2142,27 +2160,27 @@ Node *StructRef::TypeCheck(TypeChecker &/*tc*/, bool /*reqret*/) {
     return this;
 }
 
-Node *ToFloat::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToFloat::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToString::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToString::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToAny::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToAny::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToVoid::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToVoid::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToBool::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToBool::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 
-Node *ToInt::TypeCheck(TypeChecker &tc, bool reqret) {
+Node *ToInt::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 

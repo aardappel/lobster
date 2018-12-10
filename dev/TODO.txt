@@ -1,12 +1,18 @@
-- apply this pattern: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
-
-- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
-  clash with typechecking.
-  - after cleaning up parser, for every top level definition should mark from which file it comes,
-    and then each use should make sure that file has been included in the current file, to avoid
-    suprises when things are included independently.
+- apply this pattern in more places: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
 
 - refactor function return-value tracking as it is highly confusing.
+  - remove FUNEND since it should now be unused. maybe first with assert in VM.
+  - remove ToVoid?
+  - remove mustspecialize and other vars in SubFunction?
+  - TT passes reqret but doesn't enforce that returned type is indeed that many.
+    - if we check we can also auto drop in type checker such that codegen doesn't need to.
+    - the current dropping special purpose can then be moved.
+      - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
+    - Remove StructRef alltogether in parser?
+    - since we have 2 types in nodes, can now also remove special purpose nodes for coercions?
+      - better yet, there's a lot of code in the type checker that avoids coercions because it
+        modifies code, we can generalize that now!
+      - we can maybe make the whole typechecker not modify nodes?
   - uses of any -> void
   - make multiple return values into a tuple type.
   - allow multi-methods to be specialized at least on reqret.
@@ -55,10 +61,25 @@
     required if the function is only used a HOF, which is slightly inconsistent?
   - see "return" elsewhere, e.g. in typechecking notes below.
 
+- rename characters in type string
+
+- could we remove the support for dynamic scoping alltogether?
+  - DS thru -> would be more accurate if it was followed by a block itself
+  - DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than
+    doing gl_color <-
+
 - should we remove the any type? it is convenient in the type system, but it causes all sorts
   of things to go to any when not intended, and hides inefficiencies. I don't think there's
   any data structures or functions where you actually want to accept any, especially since
   specialization usually allows more specific types to be handled generically.
+  - as first step, check if boxed int/float are used anywhere, and rip them out if not
+    then can make any into root of reference types instead?
+
+- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
+  clash with typechecking.
+  - after cleaning up parser, for every top level definition should mark from which file it comes,
+    and then each use should make sure that file has been included in the current file, to avoid
+    suprises when things are included independently.
 
 - should really centrally organize the concept of const vs owner vs refc, since besides for
   structs, will need these concepts for strings/vectors/coroutines as well (will especially be
@@ -187,6 +208,9 @@
   in the type checker. Still, different transitions have different properties, so core
   type checking functions will need a context parameter.
 
+- tagged arguments in Lobster for function calls.
+  maybe also add default args while we're at it.
+
 - Try out threads, should be easy now that we have vm as a parameter.
   - Would be good to reduce globals, and/or not make builtins that rely on globals available
     to worker threads.
@@ -286,6 +310,10 @@
   and optional things etc.
   Maybe if both are available, we could simply require that the user function corresponds to
   the builtin one in terms of these features, and otherwise error?
+
+- should the VM type table contain only unique types?
+  - much smaller that way.
+  - there may be places where we can then compare by index?
 
 - namespaces improvements:
   - also implement them for global variables.
@@ -1211,11 +1239,6 @@
     - or clone em (still a lot better than parsing), though to clone, need to access other VMs allocator?
     hmm it be really nice to keep slaballoc thread-unsafe, so maybe it has to go thru an intermediary copy
   what about SDL being optional, and we'd like to use its threading functionality? (see elsewhere)
-
-- could we remove the support for dynamic scoping alltogether?
-  - DS thru -> would be more accurate if it was followed by a block itself
-  - DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than
-    doing gl_color <-
 
 - didn't solve no mouse up msg when leaving window
 

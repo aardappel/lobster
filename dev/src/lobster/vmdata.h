@@ -96,6 +96,8 @@ enum ValueType : int {
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value. 
+    V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
+    V_UNDEFINED,        // [typechecker only] this type should never be accessed.
     V_MAXVMTYPES
 };
 
@@ -110,6 +112,7 @@ inline string_view BaseTypeName(ValueType t) {
         "any", "<value_buffer>", "<stackframe_buffer>",
         "boxed_float", "boxed_int", "resource", "coroutine", "string", "struct", "vector",
         "nil", "int", "float", "function", "yield_function", "variable", "typeid", "void",
+        "tuple", "undefined",
         "<logstart>", "<logend>", "<logmarker>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {
@@ -625,7 +628,6 @@ struct VMLog {
 struct StackFrame {
     InsPtr retip;
     const int *funstart;
-    int definedfunction;
     int spstart;
     int tempmask;
 };
@@ -761,8 +763,7 @@ struct VM {
 
     void DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
 
-    void EvalMulti(const int *mip, int definedfunction, const int *call_arg_types,
-                   block_t comp_retip, int tempmask);
+    void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip, int tempmask);
 
     void FinalStackVarsCleanup();
 
@@ -779,7 +780,7 @@ struct VM {
     void JumpTo(InsPtr j);
     InsPtr GetIP();
     template<int is_error> int VarCleanup(ostringstream *error, int towhere);
-    void StartStackFrame(int definedfunction, InsPtr retip, int tempmask);
+    void StartStackFrame(InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
     bool FunOut(int towhere, int nrv);
@@ -792,7 +793,7 @@ struct VM {
     void CoYield(VM_OP_ARGS_CALL);
     void CoResume(LCoRoutine *co);
 
-    void EndEval(Value &ret, ValueType vt);
+    void EndEval(const Value &ret, ValueType vt);
 
     #ifndef VM_INS_SWITCH
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);

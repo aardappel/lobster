@@ -132,10 +132,11 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
 
         case IL_CALL:
         case IL_CALLMULTI: {
-            auto id = *ip++;
             auto bc = *ip++;
+            assert(code[bc] == IL_FUNSTART || code[bc] == IL_FUNMULTI);
+            auto id = code[bc + 1];
             auto tm = *ip++;
-            auto nargs = code[bc + (opc == IL_CALLMULTI ? 2 : 1)];
+            auto nargs = code[bc + (opc == IL_CALLMULTI ? 1 : 0)];
             if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
             ss << nargs << ' ' << flat_string_view(bcf->functions()->Get(id)->name());
             ss << ' ' << bc << " m:" << tm;
@@ -213,11 +214,13 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
             break;
 
         case IL_FUNSTART: {
+            ss << flat_string_view(bcf->functions()->Get(*ip++)->name()) << "(";
             int n = *ip++;
             while (n--) ss << IdName(bcf, *ip++) << ' ';
             n = *ip++;
             ss << "=> ";
             while (n--) ss << IdName(bcf, *ip++) << ' ';
+            ss << ")";
             break;
         }
 
@@ -230,6 +233,7 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         }
 
         case IL_FUNMULTI: {
+            ss << flat_string_view(bcf->functions()->Get(*ip++)->name()) << " (multi_start) ";
             auto n = *ip++;
             auto nargs = *ip++;
             ss << n << ' ' << nargs;

@@ -33,7 +33,6 @@ struct SubFunction;
 struct SpecIdent;
 
 struct Ident : Named {
-    int line;
     size_t scopelevel;
 
     // TODO: remove this from Ident, only makes sense during parsing really.
@@ -47,9 +46,8 @@ struct Ident : Named {
 
     SpecIdent *cursid;
 
-    Ident(string_view _name, int _l, int _idx, size_t _sl)
-        : Named(_name, _idx), line(_l),
-          scopelevel(_sl), sf_def(nullptr),
+    Ident(string_view _name, int _idx, size_t _sl)
+        : Named(_name, _idx), scopelevel(_sl), sf_def(nullptr),
           single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
           logvar(false), cursid(nullptr) {}
 
@@ -201,9 +199,9 @@ struct SubFunction {
     ArgVector locals;
     ArgVector dynscoperedefs; // any lhs of <-
     ArgVector freevars;       // any used from outside this scope, could overlap with dynscoperedefs
-    vector<TypeRef> returntypes;
+    TypeRef returntype;
     bool returns_value;       // FIXME: remove.
-    bool reqret;  // Do the caller(s) want values to be returned?
+    size_t reqret;  // Do the caller(s) want values to be returned?
     bool isrecursivelycalled;
     bool iscoroutine;
     ArgVector coyieldsave;
@@ -219,15 +217,14 @@ struct SubFunction {
 
     SubFunction(int _idx)
         : idx(_idx),
-          args(0), locals(0), dynscoperedefs(0), freevars(0), returns_value(false), reqret(true),
+          args(0), locals(0), dynscoperedefs(0), freevars(0), returntype(type_undefined),
+          returns_value(false), reqret(0),
           isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), mustspecialize(false),
           fixedreturntype(false), logvarcallgraph(false), numcallers(0),
-          thistype(V_FUNCTION, this) {
-        returntypes.push_back(type_any);  // functions always have at least 1 return value.
-    }
+          thistype(V_FUNCTION, this) {}
 
     void SetParent(Function &f, SubFunction *&link) {
         parent = &f;
@@ -256,14 +253,11 @@ struct Function : Named {
     // Store the original types the function was declared with, before specialization.
     ArgVector orig_args;
     size_t scopelevel;
-    // 0 for anonymous functions, and for named functions to indicate no return has happened yet.
-    // 0 implies 1, all function return at least 1 value.
-    int nretvals_;
 
     Function(string_view _name, int _idx, size_t _sl)
      : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
        multimethod(false), anonymous(false), istype(false), orig_args(0),
-       scopelevel(_sl), nretvals_(0) {
+       scopelevel(_sl) {
     }
     ~Function() {}
 
@@ -321,7 +315,8 @@ struct SymbolTable {
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
 
-    vector<Type *> typelist;
+    vector<Type *> typelist;  // Used for constructing new vector types, variables, etc.
+    vector<vector<const Type *> *> tuplelist;
 
     string current_namespace;
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
@@ -339,6 +334,7 @@ struct SymbolTable {
         for (auto sf : subfunctiontable) delete sf;
         for (auto f  : fieldtable)       delete f;
         for (auto t  : typelist)         delete t;
+        for (auto t  : tuplelist)        delete t;
         for (auto n  : stored_names)     delete[] n;
     }
 
@@ -375,7 +371,7 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *LookupDef(string_view name, int line, Lex &lex, bool anonymous_arg, bool islocal,
+    Ident *LookupDef(string_view name, Lex &lex, bool anonymous_arg, bool islocal,
                      bool withtype) {
         auto sf = defsubfunctionstack.back();
         auto existing_ident = Lookup(name);
@@ -383,7 +379,7 @@ struct SymbolTable {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = new Ident(name, line, (int)identtable.size(), scopelevels.size());
+        ident = new Ident(name, (int)identtable.size(), scopelevels.size());
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
         ident->cursid = NewSid(ident);
@@ -753,6 +749,15 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
         return type->sf
             ? "coroutine(" + type->sf->parent->name + ")"
             : "coroutine";
+    case V_TUPLE: {
+        string s = "(";
+        for (auto [i, t] : enumerate(*type->tup)) {
+            if (i) s += ", ";
+            s += TypeName(t);
+        }
+        s += ")";
+        return s;
+    }
     default:
         return string(BaseTypeName(type->t));
     }

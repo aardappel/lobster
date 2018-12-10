@@ -41,6 +41,7 @@ const Type g_type_resource(V_RESOURCE);
 const Type g_type_typeid(V_TYPEID);
 const Type g_type_void(V_VOID);
 const Type g_type_function_void(V_VOID, &g_type_function_null);
+const Type g_type_undefined(V_UNDEFINED);
 
 TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
@@ -56,6 +57,7 @@ TypeRef type_resource = &g_type_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_void = &g_type_void;
 TypeRef type_function_void = &g_type_function_void;
+TypeRef type_undefined = &g_type_undefined;
 
 bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');

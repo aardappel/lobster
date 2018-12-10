@@ -32,7 +32,7 @@ struct LoadedFile : Line {
     const char *p, *linestart, *tokenstart;
     shared_ptr<string> source;
     TType token;
-    int errorline;  // line before, if current token crossed a line
+    int tokline;  // line before, if current token crossed a line
     bool islf;
     bool cont;
     string_view sattr;
@@ -49,7 +49,7 @@ struct LoadedFile : Line {
     LoadedFile(string_view fn, vector<string> &fns, string_view stringsource)
         : Line(1, (int)fns.size()), tokenstart(nullptr),
           source(new string()), token(T_NONE),
-          errorline(1), islf(false), cont(false), whitespacebefore(0),
+          tokline(1), islf(false), cont(false), whitespacebefore(0),
           prevline(nullptr), prevlinetok(nullptr) {
         if (!stringsource.empty()) {
             *source.get() = stringsource;
@@ -184,7 +184,7 @@ struct Lex : LoadedFile {
     }
 
     TType NextToken() {
-        errorline = line;
+        line = tokline;
         islf = false;
         whitespacebefore = 0;
         char c;
@@ -204,7 +204,7 @@ struct Lex : LoadedFile {
                     return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
 
-            case '\n': line++; islf = bracketstack.empty(); linestart = p; break;
+            case '\n': tokline++; islf = bracketstack.empty(); linestart = p; break;
             case ' ': case '\t': case '\r': case '\f': whitespacebefore++; break;
 
             case '(': bracketstack.push_back({ c, ')' }); return T_LEFTPAREN;
@@ -263,7 +263,7 @@ struct Lex : LoadedFile {
                     for (;;) {
                         p++;
                         if (*p == '\0') Error("end of file in multi-line comment");
-                        if (*p == '\n') line++;
+                        if (*p == '\n') tokline++;
                         if (*p == '*' && *(p + 1) == '/') { p += 2; break; }
                     }
                     linestart = p;  // not entirely correct, but best we can do
@@ -367,7 +367,7 @@ struct Lex : LoadedFile {
                         Error("end of file found in multi-line string constant");
                         break;
                     case '\n':
-                        line++;
+                        tokline++;
                         break;
                     case '\"':
                         if (p[0] == '\"' && p[1] == '\"') {
@@ -478,7 +478,7 @@ struct Lex : LoadedFile {
     }
 
     void Error(string_view msg, const Line *ln = nullptr) {
-        auto err = Location(ln ? *ln : Line(errorline, fileidx)) + ": error: " + msg;
+        auto err = Location(ln ? *ln : *this) + ": error: " + msg;
         //Output(OUTPUT_DEBUG, err);
         THROW_OR_ABORT(err);
     }

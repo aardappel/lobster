@@ -270,7 +270,7 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     }
     for (;;) {
         if (!stackframes.size()) break;
-        int deffun = stackframes.back().definedfunction;
+        int deffun = *(stackframes.back().funstart);
         if (deffun >= 0) {
             ss << "\nin function: " << flat_string_view(bcf->functions()->Get(deffun)->name());
         } else {
@@ -323,11 +323,11 @@ void VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals
     x.ToString(*this, ss, static_type, debugpp);
 }
 
-void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_types,
+void VM::EvalMulti(const int *mip, const int *call_arg_types,
                    block_t comp_retip, int tempmask) {
+    auto definedfunction = *mip++;
     auto nsubf = *mip++;
     auto nargs = *mip++;
-    //Output(OUTPUT_ERROR, "EvalMulti: ", definedfunction);
     for (int i = 0; i < nsubf; i++) {
         // TODO: rather than going thru all args, only go thru those that have types
         for (int j = 0; j < nargs; j++) {
@@ -359,7 +359,7 @@ void VM::EvalMulti(const int *mip, int definedfunction, const int *call_arg_type
                 InsPtr fun(*mip);
                 (void)comp_retip;
             #endif
-            StartStackFrame(definedfunction, retip, tempmask);
+            StartStackFrame(retip, tempmask);
             return FunIntroPre(fun);
         }
         fail:;
@@ -405,9 +405,11 @@ InsPtr VM::GetIP() {
 }
 
 template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
+    (void)error;
     auto &stf = stackframes.back();
     VMASSERT(sp == stf.spstart);
     auto fip = stf.funstart;
+    fip++;  // function id.
     auto nargs = *fip++;
     auto freevars = fip + nargs;
     fip += nargs;
@@ -426,7 +428,7 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
         vars[i] = POP();
     }
     JumpTo(stf.retip);
-    bool lastunwind = towhere == -1 || towhere == stf.definedfunction;
+    bool lastunwind = towhere == -1 || towhere == *stf.funstart;
     auto tempmask = stf.tempmask;
     stackframes.pop_back();
     if (!lastunwind) {
@@ -442,11 +444,10 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
 }
 
 // Initializes only 3 fields of the stack frame, FunIntro must be called right after.
-void VM::StartStackFrame(int definedfunction, InsPtr retip, int tempmask) {
+void VM::StartStackFrame(InsPtr retip, int tempmask) {
     stackframes.push_back(StackFrame());
     auto &stf = stackframes.back();
     stf.retip = retip;
-    stf.definedfunction = definedfunction;
     stf.tempmask = tempmask;
 }
 
@@ -468,6 +469,7 @@ void VM::FunIntro(VM_OP_ARGS) {
         vm_count_fcalls++;
     #endif
     auto funstart = ip;
+    ip++;  // definedfunction
     if (sp > stacksize - STACKMARGIN) {
         // per function call increment should be small
         // FIXME: not safe for untrusted scripts, could simply add lots of locals
@@ -541,7 +543,7 @@ void VM::CoVarCleanup(LCoRoutine *co) {
         }
         // Save the ip, because VarCleanup will jump to it.
         auto bip = GetIP();
-        VarCleanup<0>(nullptr, !i ? stf.definedfunction : -2);
+        VarCleanup<0>(nullptr, !i ? *stf.funstart : -2);
         JumpTo(bip);
     }
     assert(sp == startsp);
@@ -643,7 +645,7 @@ void VM::CoResume(LCoRoutine *co) {
     // the builtin call takes care of the return value
 }
 
-void VM::EndEval(Value &ret, ValueType vt) {
+void VM::EndEval(const Value &ret, ValueType vt) {
     ostringstream ss;
     ret.ToString(*this, ss, vt, programprintprefs);
     evalret = ss.str();
@@ -835,7 +837,6 @@ VM_DEF_INS(PUSHSTR) {
 }
 
 VM_DEF_CAL(CALL) {
-    auto fvar = *ip++;
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
         auto tm = *ip++;
@@ -845,7 +846,7 @@ VM_DEF_CAL(CALL) {
         auto tm = *ip++;
         auto fcont = ip - codestart;
     #endif
-    StartStackFrame(fvar, InsPtr(fcont), tm);
+    StartStackFrame(InsPtr(fcont), tm);
     FunIntroPre(InsPtr(fun));
     VM_RET;
 }
@@ -855,13 +856,12 @@ VM_DEF_CAL(CALLMULTI) {
         next_mm_call = ip;
         next_call_target = fcont;  // Used just to transfer value here.
     #else
-        auto fvar = *ip++;
         auto fun = *ip++;
         auto tm = *ip++;
         auto mip = codestart + fun;
         VMASSERT(*mip == IL_FUNMULTI);
         mip++;
-        EvalMulti(mip, fvar, ip, 0, tm);
+        EvalMulti(mip, ip, 0, tm);
     #endif
     VM_RET;
 }
@@ -907,7 +907,7 @@ VM_DEF_CAL(CALLV) {
         #ifndef VM_COMPILED_CODE_MODE
             auto fcont = ip - codestart;
         #endif
-        StartStackFrame(-1, InsPtr(fcont), tm);
+        StartStackFrame(InsPtr(fcont), tm);
         FunIntroPre(fun.ip());
         VM_RET;
     }
@@ -940,9 +940,15 @@ VM_DEF_INS(RETURN) {
     VM_RET;
 }
 
+VM_DEF_INS(ENDSTATEMENT) {
+    assert(sp == stackframes.back().spstart);
+    VM_RET;
+}
+
 VM_DEF_INS(EXIT) {
     int tidx = *ip++;
-    EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
+    if (tidx >= 0) EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
+    else EndEval(Value(), V_NIL);
     VM_TERMINATE;
 }
 

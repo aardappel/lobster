@@ -17,7 +17,7 @@ namespace lobster {
 struct Parser {
     NativeRegistry &natreg;
     Lex lex;
-    List *root;
+    Call *root;
     SymbolTable &st;
     vector<Function *> functionstack;
     vector<string_view> trailingkeywordedfunctionvaluestack;
@@ -49,14 +49,11 @@ struct Parser {
         auto &f = st.CreateFunction("__top_level_expression", "");
         sf->SetParent(f, f.subf);
         f.anonymous = true;
-
         lex.Include("stdtype.lobster");
-
         sf->body = ParseStatements(T_ENDOFFILE);
+        ImplicitReturn(sf);
         st.ScopeCleanup();
-        root = (new List(lex))
-            ->Add(new FunRef(lex, sf))
-            ->Add(new Call(lex, sf));
+        root = new Call(lex, sf);
         assert(forwardfunctioncalls.empty());
     }
 
@@ -73,21 +70,31 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         Expect(terminator);
+        CleanupStatements(list);
+        return list;
+    }
+
+    void CleanupStatements(List *list) {
         ResolveForwardFunctionCalls();
-        for (auto def : list->children) {
+        list->children.erase(remove_if(list->children.begin(), list->children.end(),
+                                       [&](auto def) {
             if (auto sr = Is<StructRef>(def)) {
                 st.UnregisterStruct(sr->st, lex);
+                delete sr;
+                return true;
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.UnregisterFun(f);
+                delete fr;
+                return true;
             } else if (auto d = Is<Define>(def)) {
                 for (auto sid : d->sids) {
                     sid->id->static_constant =
                         sid->id->single_assignment && d->child->IsConstInit();
                 }
             }
-        }
-        return list;
+            return false;
+        }), list->children.end());
     }
 
     void ParseVector(const function<void ()> &f, TType closing) {
@@ -118,7 +125,7 @@ struct Parser {
     Node *DefineWith(string_view idname, bool isprivate, bool isdef, bool islogvar,
                      Node *parent, Node *initial) {
         if (isdef) {
-            auto id = st.LookupDef(idname, lex.errorline, lex, false, true, false);
+            auto id = st.LookupDef(idname, lex, false, true, false);
             if (islogvar) st.MakeLogVar(id);
             if (isprivate) id->isprivate = true;
             if (parent) {
@@ -147,11 +154,8 @@ struct Parser {
                 isdef = lex.token != T_ASSIGN;
                 islogvar = lex.token == T_LOGASSIGN;
                 lex.Next();
-                int nrv;
-                auto initial = ParseMultiRet(ParseOpExp(), nrv);
+                auto initial = ParseMultiRet(ParseOpExp());
                 al = DefineWith(id2, isprivate, isdef, islogvar, nullptr, initial);
-                if (nrv > 1 && nrv != nids)
-                    Error("number of values doesn't match number of variables");
             } else if (IsNext(T_COMMA)) {
                 al = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
             } else {
@@ -211,8 +215,12 @@ struct Parser {
                 }
                 break;
             }
-            case T_VALUE:  ParseTypeDecl(true,  isprivate, list); break;
-            case T_STRUCT: ParseTypeDecl(false, isprivate, list); break;
+            case T_VALUE:
+                ParseTypeDecl(true,  isprivate, list);
+                break;
+            case T_STRUCT:
+                ParseTypeDecl(false, isprivate, list);
+                break;
             case T_FUN: {
                 lex.Next();
                 list->Add(ParseNamedFunctionDefinition(isprivate, nullptr));
@@ -224,7 +232,7 @@ struct Parser {
                 int64_t cur = incremental ? 0 : 1;
                 for (;;) {
                     auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
-                    auto id = st.LookupDef(evname, lex.errorline, lex, false, true, false);
+                    auto id = st.LookupDef(evname, lex, false, true, false);
                     id->constant = true;
                     if (isprivate) id->isprivate = true;
                     if (IsNext(T_ASSIGN)) {
@@ -368,7 +376,7 @@ struct Parser {
                     ExpectId();
                     if (fieldsdone) Error("fields must be declared before methods");
                     auto &sfield = st.FieldDecl(lastid);
-                    TypeRef type;
+                    TypeRef type = type_any;
                     int fieldref = -1;
                     if (IsNext(T_COLON)) {
                         fieldref = ParseType(type, false, struc);
@@ -394,7 +402,7 @@ struct Parser {
         auto e = ParseExp();
         auto id = dynscope
             ? st.LookupDynScopeRedef(idname, lex)
-            : st.LookupDef(idname, lex.errorline, lex, false, true, false);
+            : st.LookupDef(idname, lex, false, true, false);
         if (dynscope)  id->Assign(lex);
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
@@ -419,7 +427,7 @@ struct Parser {
             ParseType(type, withtype);
             Expect(T_ASSIGN);
             auto e = ParseExp();
-            auto id = st.LookupDef(idname, lex.errorline, lex, false, true, withtype);
+            auto id = st.LookupDef(idname, lex, false, true, withtype);
             if (isprivate) id->isprivate = true;
             return new Define(lex, id->cursid, e, type);
         }
@@ -443,6 +451,16 @@ struct Parser {
         return ParseFunction(&idname, isprivate, true, true, "", false, false, self);
     }
 
+    void ImplicitReturn(SubFunction *sf) {
+        // Anonymous functions and one-liners have an implicit return.
+        auto &stats = sf->body->children;
+        if ((stats.size() == 1 ||
+            (sf->parent->anonymous && !stats.empty())) &&
+            !Is<Return>(stats.back())) {
+            stats.back() = new Return(stats.back()->line, stats.back(), sf->idx);
+        }
+    }
+
     Node *ParseFunction(string_view *name,
                         bool isprivate, bool parens, bool parseargs,
                         string_view context,
@@ -456,7 +474,7 @@ struct Parser {
         };
         if (self) {
             nargs++;
-            auto id = st.LookupDef("this", lex.errorline, lex, false, false, true);
+            auto id = st.LookupDef("this", lex, false, false, true);
             auto &arg = sf->args.v.back();
             arg.type = &self->thistype;
             st.AddWithStruct(arg.type, id, lex, sf);
@@ -466,7 +484,7 @@ struct Parser {
             for (;;) {
                 ExpectId();
                 nargs++;
-                auto id = st.LookupDef(lastid, lex.errorline, lex, false, false, false);
+                auto id = st.LookupDef(lastid, lex, false, false, false);
                 auto &arg = sf->args.v.back();
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype)) {
@@ -491,11 +509,12 @@ struct Parser {
             for (auto &arg : f.subf->args.v) {
                 if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
             }
-            ParseType(sf->returntypes[0], false, nullptr, sf);
+            ParseType(sf->returntype, false, nullptr, sf);
+            sf->reqret = sf->returntype->NumValues();
         } else {
             if (IsNext(T_CODOT)) {  // Return type decl.
                 sf->fixedreturntype = true;
-                ParseType(sf->returntypes[0], false, nullptr, sf);
+                ParseType(sf->returntype, false, nullptr, sf);
             }
             if (!expfunval) Expect(T_COLON);
         }
@@ -520,7 +539,9 @@ struct Parser {
             } else {
                 sf->body = new List(lex);
                 ParseTopExp(sf->body);
+                CleanupStatements(sf->body);
             }
+            ImplicitReturn(sf);
         }
         for (auto &arg : sf->args.v) {
             if (arg.sid->id->anonymous_arg) {
@@ -531,18 +552,7 @@ struct Parser {
             }
         }
         st.ScopeCleanup();
-        if (name) {
-            functionstack.pop_back();
-
-            if (!f.istype) {
-                auto last = sf->body->children.back();
-                auto ret = Is<Return>(last);
-                if (!ret ||
-                    ret->subfunction_idx != sf->idx /* return from */)
-                    ReturnValues(f, 1);
-                assert(f.nretvals_);
-            }
-        }
+        if (name) functionstack.pop_back();
         // Keep copy or arg types from before specialization.
         f.orig_args = sf->args;  // not used for multimethods
         return new FunRef(lex, sf);
@@ -596,7 +606,7 @@ struct Parser {
                 if (sfreturntype) {
                     lex.Next();
                     dest = type_void;
-                    sfreturntype->reqret = false;
+                    sfreturntype->reqret = 0;
                     break;
                 }
                 // FALL-THRU:
@@ -709,35 +719,21 @@ struct Parser {
         }
     }
 
-    Node *ParseMultiRet(Node *first, int &nrv) {
-        nrv = 1;
+    Node *ParseMultiRet(Node *first) {
         if (lex.token != T_COMMA) return first;
         auto list = new MultipleReturn(lex);
         list->Add(first);
         while (IsNext(T_COMMA)) {
             list->Add(ParseOpExp());
-            nrv++;
         }
         return list;
-    }
-
-    void ReturnValues(Function &f, int nrv) {
-        if (f.nretvals_ && f.nretvals_ != nrv)
-            Error(cat("all return statements of this function must return the same number of"
-                      " return values. previously: ", f.nretvals_));
-        f.nretvals_ = nrv;
     }
 
     Node *ParseExpStat() {
         if (IsNext(T_RETURN)) {
             Node *rv = nullptr;
-            int nrv = 0;
             if (!Either(T_LINEFEED, T_DEDENT, T_FROM)) {
-                rv = ParseMultiRet(ParseOpExp(), nrv);
-                if (auto call = Is<GenericCall>(rv))
-                    // FIXME: this may be incorrect if GenericCall becomes a non-Call.
-                    // Move all this return value checking to the TT?
-                    if (call->sf) nrv = max(nrv, call->sf->parent->nretvals_);
+                rv = ParseMultiRet(ParseOpExp());
             } else {
                 rv = new DefaultVal(lex);
             }
@@ -758,10 +754,6 @@ struct Parser {
                 if (functionstack.size())
                     sfid = functionstack.back()->subf->idx;
             }
-            if (sfid >= 0)
-                ReturnValues(*st.subfunctiontable[sfid]->parent, nrv);
-            else if (nrv > 1)
-                Error("cannot return multiple values from top level");
             return new Return(lex, rv, sfid);
         }
         auto e = ParseExp();
@@ -1257,7 +1249,7 @@ struct Parser {
             // interpreted as "f(1 + 2) * 3" (not part of the arg).
             // This is benign, since single arg calls with "()" work regardless of whitespace,
             // and multi-arg calls with whitespace will now error on the first "," (since we
-            // don't have C's ","-operator.
+            // don't have C's ","-operator).
             auto nf = natreg.FindNative(idname);
             auto f = st.FindFunction(idname);
             if (lex.token == T_LEFTPAREN && lex.whitespacebefore == 0) {
@@ -1265,8 +1257,7 @@ struct Parser {
             }
             // Check for implicit variable.
             if (idname[0] == '_') {
-                return new IdentRef(lex, st.LookupDef(idname, lex.errorline, lex, true, false,
-                                                      false)->cursid);
+                return new IdentRef(lex, st.LookupDef(idname, lex, true, false, false)->cursid);
             }
             auto id = st.Lookup(idname);
             // Check for function call without ().
@@ -1332,15 +1323,15 @@ struct Parser {
                     for (auto &arg : sf->args.v) {
                         s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
                     }
-                    s += ") ->";
-                    for (auto &ret : sf->returntypes) s += " " + TypeName(ret);
+                    s += ") -> ";
+                    s += TypeName(sf->returntype);
                     s += "\n";
                     if (sf->body) s += Dump(*sf->body, 4);
                     s += "\n\n";
                 }
             }
         }
-        return s + "TOPLEVEL:\n" + Dump(*root, 0);
+        return s;
     }
 };
 
