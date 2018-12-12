@@ -119,9 +119,7 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_RETURN: {
             auto id = *ip++;
             ip++;  // retvals
-            ip++;  // rettype
-            if (id >= 0) ss << flat_string_view(bcf->functions()->Get(id)->name());
-            else ss << id;
+            ss << flat_string_view(bcf->functions()->Get(id)->name());
             break;
         }
 

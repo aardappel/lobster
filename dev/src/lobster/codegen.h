@@ -1137,11 +1137,9 @@ void Return::Generate(CodeGen &cg, int retval) const {
             cg.GenPop(cg.temptypestack[i]);
         }
     }
-    auto sf = subfunction_idx >= 0 ? cg.st.subfunctiontable[subfunction_idx] : nullptr;
-    int fid = subfunction_idx >= 0 ? sf->parent->idx : subfunction_idx;
-    int nretvals = make_void ? 0 : (sf ? (int)sf->returntype->NumValues() : 1);
+    int nretvals = make_void ? 0 : (int)sf->returntype->NumValues();
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
-    if (!sf || sf->reqret) {
+    if (sf->reqret) {
         if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);
         else { cg.Emit(IL_PUSHNIL); assert(nretvals == 1); }
     } else {
@@ -1152,9 +1150,7 @@ void Return::Generate(CodeGen &cg, int retval) const {
     // Note: this can only work as long as the type checker forces specialization
     // of the functions in between here and the function returned to.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
-    cg.Emit(IL_RETURN, fid, nretvals,
-            // Only used for EndEval:
-            cg.GetTypeTableOffset(child->exptype->t == V_VOID ? type_any : child->exptype->Get(0)));
+    cg.Emit(IL_RETURN, sf->parent->idx, nretvals);
 }
 
 void CoClosure::Generate(CodeGen &cg, int retval) const {

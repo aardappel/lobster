@@ -783,7 +783,7 @@ struct VM {
     void StartStackFrame(InsPtr retip, int tempmask);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
-    bool FunOut(int towhere, int nrv);
+    void FunOut(int towhere, int nrv);
 
     void CoVarCleanup(LCoRoutine *co);
     void CoNonRec(const int *varip);

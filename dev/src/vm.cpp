@@ -428,7 +428,7 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
         vars[i] = POP();
     }
     JumpTo(stf.retip);
-    bool lastunwind = towhere == -1 || towhere == *stf.funstart;
+    bool lastunwind = towhere == *stf.funstart;
     auto tempmask = stf.tempmask;
     stackframes.pop_back();
     if (!lastunwind) {
@@ -504,25 +504,20 @@ void VM::FunIntro(VM_OP_ARGS) {
     #endif
 }
 
-bool VM::FunOut(int towhere, int nrv) {
-    bool bottom = false;
+void VM::FunOut(int towhere, int nrv) {
     sp -= nrv;
     // Have to store these off the stack, since VarCleanup() may cause stack activity if coroutines
     // are destructed.
     memcpy(retvalstemp, TOPPTR(), nrv * sizeof(Value));
     for(;;) {
         if (!stackframes.size()) {
-            if (towhere >= 0)
-                Error("\"return from " + flat_string_view(bcf->functions()->Get(towhere)->name()) +
-                      "\" outside of function");
-            bottom = true;
-            break;
+            Error("\"return from " + flat_string_view(bcf->functions()->Get(towhere)->name()) +
+                    "\" outside of function");
         }
         if (VarCleanup<0>(nullptr, towhere)) break;
     }
     memcpy(TOPPTR(), retvalstemp, nrv * sizeof(Value));
     sp += nrv;
-    return bottom;
 }
 
 void VM::CoVarCleanup(LCoRoutine *co) {
@@ -931,12 +926,7 @@ VM_DEF_INS(FUNEND) {
 VM_DEF_INS(RETURN) {
     int df = *ip++;
     int nrv = *ip++;
-    int tidx = *ip++;
-    if(FunOut(df, nrv)) {
-        assert(nrv == 1);
-        EndEval(POP(), GetTypeInfo((type_elem_t)tidx).t);
-        VM_TERMINATE;
-    }
+    FunOut(df, nrv);
     VM_RET;
 }
 

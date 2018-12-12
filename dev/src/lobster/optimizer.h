@@ -168,7 +168,7 @@ struct Optimizer {
         // Remove single return statement pointing to function that is now gone.
         auto ret = Is<Return>(list->children.back());
         assert(ret);
-        if (ret->subfunction_idx == sf.idx) {
+        if (ret->sf == &sf) {
             assert(ret->child->exptype->NumValues() <= 1);
             assert(sf.num_returns <= 1);
             list->children.back() = ret->child;

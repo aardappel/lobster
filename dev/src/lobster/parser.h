@@ -465,7 +465,7 @@ struct Parser {
             // value.
             auto make_void = !sf->parent->anonymous;
             // All function bodies end in return, simplifying code downstream.
-            stats.back() = new Return(stats.back()->line, stats.back(), sf->idx, make_void);
+            stats.back() = new Return(stats.back()->line, stats.back(), sf, make_void);
         }
     }
 
@@ -745,7 +745,7 @@ struct Parser {
             } else {
                 rv = new DefaultVal(lex);
             }
-            int sfid = -2;
+            auto sf = st.toplevel;
             if (IsNext(T_FROM)) {
                 if(!IsNext(T_PROGRAM)) {
                     if (!IsNextId())
@@ -756,13 +756,13 @@ struct Parser {
                         Error("return from: not a known function");
                     if (f->sibf || f->multimethod)
                         Error("return from: function must have single implementation");
-                    sfid = f->subf->idx;
+                    sf = f->subf;
                 }
             } else {
                 if (functionstack.size())
-                    sfid = functionstack.back()->subf->idx;
+                    sf = functionstack.back()->subf;
             }
-            return new Return(lex, rv, sfid, false);
+            return new Return(lex, rv, sf, false);
         }
         auto e = ParseExp();
         while (IsNext(T_SEMICOLON)) {

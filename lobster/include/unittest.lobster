@@ -82,18 +82,15 @@ def run_test_cases(is_speed_test):
     assert equal(string_to_unicode(unicode_to_string(unicodetests)), unicodetests)
 
     if !is_speed_test and !vm_compiled_mode():
-        compres1, comperr1 := compile_run_code("1 + 2", [])
+        compres1, comperr1 := compile_run_code("return 1 + 2", [])
         if comperr1:
             print comperr1
         assert compres1 == "3"
 
-        /*
-        // this test makes it dependent on this file even in shipping builds, so off by default
-        compres2, comperr2 := compile_run_file("plugintest.lobster", [])
+        compres2, comperr2 := compile_run_file(pakfile "plugintest.lobster", [])
         if(comperr2):
             print(comperr2)
         assert(compres2 == "plugintest return value")
-        */
 
     def scopetest():
         x := 1

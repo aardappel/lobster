@@ -1236,7 +1236,7 @@ struct TypeChecker {
             if (!call->sf->num_returns) return true;
             if (call->sf->num_returns == 1) {
                 auto ret = AssertIs<Return>(call->sf->body->children.back());
-                assert(ret->subfunction_idx == call->sf->idx);
+                assert(ret->sf == call->sf);
                 return NeverReturns(ret->child);
             }
             // TODO: could also check num_returns > 1, but then have to scan all children.
@@ -2052,11 +2052,9 @@ Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
 
 Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = type_void;
-    auto sf = subfunction_idx < 0 ? nullptr : tc.st.subfunctiontable[subfunction_idx];
     for (auto isc : reverse(tc.scopes)) {
-        if (sf && isc.sf->parent == sf->parent) {
+        if (isc.sf->parent == sf->parent) {
             sf = isc.sf;  // Take specialized version.
-            subfunction_idx = sf->idx;
             break;
         }
         if (isc.sf->iscoroutine)
@@ -2064,12 +2062,11 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (isc.sf->isdynamicfunctionvalue)
             tc.TypeError("cannot return out of dynamic function value", *this);
     }
-    tc.TT(child, make_void ? 0 : (sf ? sf->reqret : 1));
-    if (subfunction_idx < 0) {
+    tc.TT(child, make_void ? 0 : sf->reqret);
+    if (sf == tc.st.toplevel) {
         // return from program
         if (child->exptype->NumValues() > 1)
             tc.TypeError("cannot return multiple values from top level", *this);
-        return this;
     }
     auto nsf = tc.TopScope(tc.named_scopes);
     if (nsf != sf) {
@@ -2085,7 +2082,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         assert(child->exptype->t == V_VOID || child->exptype->t == V_VAR);
         return this;
     }
-    if (never_returns && sf->reqret && subfunction_idx == sf->idx && sf->parent->anonymous) {
+    if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
         assert(child->exptype->t == V_VOID);
