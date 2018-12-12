@@ -1,6 +1,4 @@
 - refactor function return-value tracking as it is highly confusing.
-  - make return from program return from __top_level_exp to reduce special cases
-  - remove FUNEND since it should now be unused. maybe first with assert in VM.
   - remove ToVoid?
   - remove mustspecialize and other vars in SubFunction?
   - TT passes reqret but doesn't enforce that returned type is indeed that many.

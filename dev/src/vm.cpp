@@ -918,8 +918,7 @@ VM_DEF_INS(FUNSTART) {
 }
 
 VM_DEF_INS(FUNEND) {
-    int nrv = *ip++;
-    FunOut(-1, nrv);
+    assert(false);
     VM_RET;
 }
 

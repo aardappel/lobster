@@ -177,7 +177,6 @@ struct CodeGen  {
         auto dummyfun = Pos();
         Emit(IL_FUNSTART, -1, 0, 0);
         Emit(IL_ABORT);
-        Emit(IL_FUNEND, 0);
         // Emit the root function.
         SetLabel(fundefjump);
         SplitAttr(Pos());
@@ -311,7 +310,9 @@ struct CodeGen  {
         else Dummy((int)sf.reqret);
         //if (sf.reqret) TakeTemp(1);
         assert(temptypestack.empty());
-        Emit(IL_FUNEND, (int)sf.reqret);
+        #ifdef _DEBUG
+        Emit(IL_FUNEND);  // FIXME: remove entirely.
+        #endif
         linenumbernodes.pop_back();
     }
 

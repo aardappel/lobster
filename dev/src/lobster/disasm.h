@@ -95,7 +95,6 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_SFOR:
         case IL_NFOR:
         case IL_YIELD:
-        case IL_FUNEND:
             ss << *ip++;
             break;
 
