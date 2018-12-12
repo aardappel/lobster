@@ -61,42 +61,42 @@ octant_directions :== [
 
 // shorten vectors, e.g. xyz -> xy
 // FIXME: subtyping should take care of this
-def xy(v):  xy  { v.x, v.y }
-def xyz(v): xyz { v.x, v.y, v.z }
+def xy(v):  return xy  { v.x, v.y }
+def xyz(v): return xyz { v.x, v.y, v.z }
 
 // lengthen vectors
-def xyz(v, z):  xyz  { v.x, v.y, z }
-def xyzw(v, w): xyzw { v.x, v.y, v.z, w }
+def xyz(v, z):  return xyz  { v.x, v.y, z }
+def xyzw(v, w): return xyzw { v.x, v.y, v.z, w }
 
 // create from vector types
-def xy_v(v): xy { v[0], v[1] }
-def xyz_v(v): xyz { v[0], v[1], v[2] }
-def xyzw_v(v): xyzw { v[0], v[1], v[2], v[3] }
+def xy_v(v):   return xy { v[0], v[1] }
+def xyz_v(v):  return xyz { v[0], v[1], v[2] }
+def xyzw_v(v): return xyzw { v[0], v[1], v[2], v[3] }
 
 // flip vectors
-def yx(v): xy { v.y, v.x }
-def zyx(v): xyz { v.z, v.y, v.x }
-def wzyx(v): xyzw { v.w, v.z, v.y, v.x }
+def yx(v):   return xy { v.y, v.x }
+def zyx(v):  return xyz { v.z, v.y, v.x }
+def wzyx(v): return xyzw { v.w, v.z, v.y, v.x }
 
-def xy_rnd():   xy  { rnd_float(), rnd_float() }
-def xyz_rnd():  xyz { rnd_float(), rnd_float(), rnd_float() }
-def xyzw_rnd(): xyzw { rnd_float(), rnd_float(), rnd_float(), rnd_float() }
+def xy_rnd():   return xy  { rnd_float(), rnd_float() }
+def xyz_rnd():  return xyz { rnd_float(), rnd_float(), rnd_float() }
+def xyzw_rnd(): return xyzw { rnd_float(), rnd_float(), rnd_float(), rnd_float() }
 
-def xy_rnd_norm():  normalize(xy_rnd() - 0.5)
-def xyz_rnd_norm(): normalize(xyz_rnd() - 0.5)
+def xy_rnd_norm():  return normalize(xy_rnd() - 0.5)
+def xyz_rnd_norm(): return normalize(xyz_rnd() - 0.5)
 
-def xy_rndi(n):  xy  { rnd(n.x), rnd(n.y) }
-def xyz_rndi(n): xyz { rnd(n.x), rnd(n.y), rnd(n.x) }
+def xy_rndi(n):  return xy  { rnd(n.x), rnd(n.y) }
+def xyz_rndi(n): return xyz { rnd(n.x), rnd(n.y), rnd(n.x) }
 
 def forxy(v, fun): for(v.y) y: for(v.x) x: fun(xy { x, y })
 def foryx(v, fun): for(v.x) x: for(v.y) y: fun(xy { x, y })
-def mapxy(v, fun): map(v.y) y: map(v.x) x: fun(xy { x, y })
+def mapxy(v, fun): return map(v.y) y: map(v.x) x: fun(xy { x, y })
 
 def forxyz(v, fun): for(v.z) z: for(v.y) y: for(v.x) x: fun(xyz { x, y, z })
-def mapxyz(v, fun): map(v.z) z: map(v.y) y: map(v.x) x: fun(xyz { x, y, z })
+def mapxyz(v, fun): return map(v.z) z: map(v.y) y: map(v.x) x: fun(xyz { x, y, z })
 
 def vecfromyawpitch(yaw, pitch, move, strafe):
-    (xyz(sincos(yaw + 90/* start from Y rather than X axis */), 0) *
+    return (xyz(sincos(yaw + 90/* start from Y rather than X axis */), 0) *
         cos(pitch) + xyz_z * sin(pitch)) * move + xyz(sincos(yaw), 0) * strafe
 
 def rotate2D(v, angle):

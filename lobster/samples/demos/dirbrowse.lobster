@@ -4,7 +4,8 @@ include color
 
 include unittest
 
-indentsize := 20
+indentsize := 20.0
+column_margin := 10.0
 fontsize := 20
 
 struct node { name:string, size:int, parent:node?, children:[node] }
@@ -14,7 +15,7 @@ selected := root
 entries := []
 
 def fullpath(n::node):
-    if parent: parent.fullpath() + "/" + name else: name
+    return if parent: parent.fullpath() + "/" + name else: name
 
 def scan(n:node):
     entries = []
@@ -36,11 +37,11 @@ def unparent(n::node):
 select(root)
 
 def render_tree(n:node):
+    text := n.name
+    if text == "": text = "(root)"
+    size := float(gl_text_size(text))
+    width := size.x
     gl_color(if n.size < 0: color_blue else: color_black):
-        text := n.name
-        if text == "": text = "(root)"
-        // if(n.size >= 0) text += ": " + n.size
-        size := float(gl_text_size(text))
         if gl_hit(size, 0):
             if gl_button("mouse1") == 1:
                 select(n)
@@ -53,8 +54,9 @@ def render_tree(n:node):
         gl_translate(xy { 0.0, fontsize })
         if n.size < 0:
             gl_translate xy_f { indentsize, 0.0 }
-            for(n.children): render_tree(_)
+            for(n.children): width = max(width, indentsize + render_tree(_))
             gl_translate xy_f { -indentsize, 0.0 }
+    return width
 
 def render_entries():
     for(entries) e:
@@ -75,30 +77,36 @@ def render_entries():
             gl_text(e.name)
             gl_translate xy { 0.0, fontsize }
 
-def render_sizes():
+def render_sizes(old_width):
+    width := 0.0
     for(entries) e:
         gl_color color_dark_green:
             text := if e.size < 0: "---" else: e.size + 1 + "K"
             size := gl_text_size(text)
-            gl_translate xy { 90.0 - size.x, 0.0 }:
+            width = max(width, size.x)
+            gl_translate xy { old_width - size.x - column_margin, 0.0 }:
                 gl_text(text)
             gl_translate xy { 0.0, fontsize }
+    return width + column_margin
 
 fatal(gl_window("dirbrowsing", 1024, 768))
-check(gl_set_font_name("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and gl_set_font_size(fontsize), "can\'t load font!")
+check(gl_set_font_name("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and
+      gl_set_font_size(fontsize), "can\'t load font!")
 
+treesize := 400.0
+sizesize := 100.0
 while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)
     gl_color color_lightest_grey:
-        gl_rect(xy { 400.0, gl_window_size().y })
-    gl_translate xy_0:
-        render_tree(root)
-    gl_translate xy { 400.0, 0.0 }:
-        render_sizes()
-    gl_translate xy { 500.0, 0.0 }:
+        gl_rect(xy { treesize, gl_window_size().y })
+    gl_translate xy { column_margin, 0.0 }:
+        treesize = render_tree(root) + column_margin * 2
+    gl_translate xy { treesize, 0.0 }:
+        sizesize = render_sizes(sizesize) + column_margin
+    gl_translate xy { treesize + sizesize, 0.0 }:
         render_entries()
 
-// the parent links cause cycles that our refcount VM can't handle. could GC it instead, but that could mask bugs:
+// the parent links cause cycles that our refcount VM can't handle. could GC it instead,
+// but that could mask bugs:
 unparent(root)
-

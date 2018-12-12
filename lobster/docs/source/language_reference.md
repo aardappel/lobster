@@ -388,9 +388,9 @@ def name(arg1, arg2):
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The return value of a function is determined by its `return` statements (see
-below) or `void` (no return value) otherwise, except for single expression
-functions and anonymous functions, which don't need an explicit `return` (it
-is automatically the last expression evaluated).
+below) or `void` (no return value) otherwise, except for anonymous functions,
+which don't need an explicit `return` (it is automatically the last expression
+evaluated).
 
 Arguments can be just an argument name (which will be available as a lexically
 scoped local variable inside body), or a typed name (e.g. `s:string`). Types are
@@ -402,7 +402,7 @@ access all fields / functions of that vector directly, without having to prefix
 them with the argument name, e.g.:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def magnitude(v::xy): sqrt(x * x + y * y)
+def magnitude(v::xy): return sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can also leave out the `v::xy` entirely if you define this function as part
@@ -414,9 +414,9 @@ of the same name and number of arguments inside the program (not necessarily
 adjacent in code, in any order) act as a single function:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def intersect(a, b): "no idea how to intersect these two!"
-def intersect(c:circle, p:xy): "point in circle"
-def intersect(c:circle, r:ray): "ray vs circle"
+def intersect(a, b): return "no idea how to intersect these two!"
+def intersect(c:circle, p:xy): return "point in circle"
+def intersect(c:circle, r:ray): return "ray vs circle"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Calling intersect with any 2 arguments will automatically call the most
@@ -429,7 +429,7 @@ error, since at least one function always matches).
 You can specify an explicit return type, like so:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def f(a:int, b:int) -> float: a + b
+def f(a:int, b:int) -> float: return a + b
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is typically not necessary, but may be helpful when coercing to a more
@@ -571,9 +571,8 @@ a, b := m()
 All return statements for any function must all return the same number of return
 values.
 
-When `m` returns multiple values, they get assigned to each variable in turn (if
-there was only 1 return value in this example, they would all receive the same
-value). If there are more return values than there are variables, additionally
+When `m` returns multiple values, they get assigned to each variable in turn.
+If there are more return values than there are variables, additionally
 values are thrown away, and if there are more variables than there are return
 values, this is an error.
 

@@ -10,25 +10,25 @@ struct node {}
 struct integer : node
     i:int
 
-    def pretty(): string(i)
-    def eval(): i
-    def compile(): string(i)
+    def pretty(): return string(i)
+    def eval(): return i
+    def compile(): return string(i)
 
 struct inst : node
     atom:string
     args:[node]
 
     def pretty():
-        "(" + (args.fold(atom): _a + " " + pretty(_e)) + ")"
+        return "(" + (args.fold(atom): _a + " " + pretty(_e)) + ")"
 
     def eval():
-        switch atom:
+        return switch atom:
             case "+": args.fold(0): _a + _e.eval()
             case "*": args.fold(1): _a * _e.eval()
             default: assert 0  // Verified by parser.
 
     def compile():
-        switch atom:
+        return switch atom:
             case "+", "*": (args.map(): compile(_)).reduce(): "(" + _a + atom + _e + ")"
             default: assert 0; ""  // Verified by parser.
 
@@ -94,11 +94,11 @@ def parse(s:string):
                 while token != ")":
                     n.args.push(parse_exp())
                 lex_next()
-                n
+                return n
             case "int":
                 n := integer { string_to_int(atom) }
                 lex_next()
-                n
+                return n
             default:
                 error("cannot parse expression starting with: " + token)
     root := parse_exp()
@@ -114,7 +114,7 @@ test_code :== """
 ast, err := parse(test_code)
 if ast:
     print "ast pretty: " + ast.pretty()
-    print "ast eval: " + (do(): "" + ast.eval())
+    print "ast eval: " + string(ast.eval())
     code := compile(ast)
     print "compiled to lobster: " + code
     print "compiled result: " + compile_run_code(code, [])

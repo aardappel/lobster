@@ -15,7 +15,7 @@ inventory := []::int // blocks we've mined
 camera_position = xyz_1 * lssize / 2
 camera_yaw = 45
 
-def inside(v): all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
+def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
 cells := map(lssize) z:
             map(lssize) y:

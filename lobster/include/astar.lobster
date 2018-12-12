@@ -52,7 +52,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
 // - returns a list of nodes from end to start inclusive, or empty list if no path
 
 def astar_graph(startnode, endnode, costf, distancef, neighbors):
-    astar_generic(startnode) n:
+    return astar_generic(startnode) n:
         n == endnode
     generatenewstates n, f:
         neighbors(n) nn:
@@ -67,7 +67,7 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
 def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
     directions := cardinal_directions
     def astar_distance(distancef):
-        astar_graph(startnode, endnode, costf, distancef) n, f:
+        return astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
                 np := n.state + delta
                 if np.in_range(gridsize):

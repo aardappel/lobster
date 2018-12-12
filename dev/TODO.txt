@@ -68,6 +68,8 @@
 
 - rename characters in type string
 
+- remove GC?
+
 - make more args const
 
 - could we remove the support for dynamic scoping alltogether?

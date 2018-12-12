@@ -460,10 +460,10 @@ struct Parser {
         // Anonymous functions and one-liners have an implicit return value.
         auto &stats = sf->body->children;
         if (!Is<Return>(stats.back())) {
-            // Conversely, if named multi-line functions have no return at the end, we should
+            // Conversely, if named functions have no return at the end, we should
             // ensure any value accidentally available gets ignored and does not become a return
             // value.
-            auto make_void = stats.size() > 1 && !sf->parent->anonymous;
+            auto make_void = !sf->parent->anonymous;
             // All function bodies end in return, simplifying code downstream.
             stats.back() = new Return(stats.back()->line, stats.back(), sf->idx, make_void);
         }

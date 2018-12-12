@@ -705,6 +705,14 @@ template<typename T, typename U> const T *Is(const U *o) {
     return typeid(T) == typeid(*o) ? static_cast<const T *>(o) : nullptr;
 }
 
+template<typename T, typename U> T *Is(U &o) {
+    return typeid(T) == typeid(o) ? static_cast<T *>(&o) : nullptr;
+}
+
+template<typename T, typename U> const T *Is(const U &o) {
+    return typeid(T) == typeid(o) ? static_cast<const T *>(&o) : nullptr;
+}
+
 template<typename T, typename U> T *AssertIs(U *o) {
     assert(typeid(T) == typeid(*o));
     return static_cast<T *>(o);

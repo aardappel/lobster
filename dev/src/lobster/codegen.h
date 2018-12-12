@@ -455,6 +455,7 @@ struct CodeGen  {
     void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
                    const Node *rhs, int take_temp, const Node *parent_op) {
         assert(parent_op->exptype->NumValues() == retval);
+        (void)parent_op;
         if (lvalop >= LVO_IADD && lvalop <= LVO_IMOD) {
             if (type->t == V_INT) {
             } else if (type->t == V_FLOAT)  {
@@ -673,6 +674,7 @@ void AssignList::Generate(CodeGen &cg, int retval) const {
                      nullptr, 1, this);
     }
     assert(!retval);  // Type checker guarantees this.
+    (void)retval;
 }
 
 void Define::Generate(CodeGen &cg, int retval) const {
@@ -685,6 +687,7 @@ void Define::Generate(CodeGen &cg, int retval) const {
         cg.VarModified(sids[i]);
     }
     assert(!retval);  // Parser guarantees this.
+    (void)retval;
 }
 
 void Assign::Generate(CodeGen &cg, int retval) const {
@@ -938,9 +941,9 @@ void Seq::Generate(CodeGen &cg, int retval) const {
 }
 
 void MultipleReturn::Generate(CodeGen &cg, int retval) const {
-    for (auto [i, c] : enumerate(children)) cg.Gen(c, i < retval);
+    for (auto [i, c] : enumerate(children)) cg.Gen(c, (int)i < retval);
     cg.TakeTemp(retval);
-    for (auto [i, c] : enumerate(children)) if (i < retval) cg.rettypes.push_back(c->exptype);
+    for (auto [i, c] : enumerate(children)) if ((int)i < retval) cg.rettypes.push_back(c->exptype);
 }
 
 void NativeRef::Generate(CodeGen & /*cg*/, int /*retval*/) const {
@@ -1122,6 +1125,7 @@ void IsType::Generate(CodeGen &cg, int retval) const {
 
 void Return::Generate(CodeGen &cg, int retval) const {
     assert(!retval);
+    (void)retval;
     assert(!cg.rettypes.size());
     if (cg.temptypestack.size()) {
         // We have temps on the stack from an enclosing for.

@@ -42,4 +42,4 @@ def loadtexturecached(name, tf):
             print "unable to load texture: " + name
             return from program
 
-def loadtexturecached(name): loadtexturecached(name, 0)  // FIXME: default args.
+def loadtexturecached(name): return loadtexturecached(name, 0)  // FIXME: default args.

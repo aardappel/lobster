@@ -11,7 +11,7 @@ max_steps := 2000
 
 struct link { len:float = 180, dtheta:float = 0, theta:float = 181 }
 
-def ddl(l::link): dtheta * dtheta * len
+def ddl(l::link): return dtheta * dtheta * len
 
 links := map(2): link {}
 

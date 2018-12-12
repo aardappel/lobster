@@ -11,7 +11,7 @@ include astar
 
 namespace test_namespace
 
-def f(): 1
+def f(): return 1
 struct g { x:int = 1 }
 
 namespace test
@@ -33,16 +33,16 @@ def run_test_cases(is_speed_test):
     value testa { a:int }
     value testb : testa { b:int }
 
-    def tf(x:int, y:int): 1
-    def tf(x:string, y:float): 2
-    def tf(x:string, y:int): 3
-    def tf(x:testa, y:int): 4
-    def tf(x:testb, y:string): 9
-    def tf(x:testb, y:float): 5
-    def tf(x:testb, y:int): 6
-    def tf(x, y): 7
+    def tf(x:int, y:int): return 1
+    def tf(x:string, y:float): return 2
+    def tf(x:string, y:int): return 3
+    def tf(x:testa, y:int): return 4
+    def tf(x:testb, y:string): return 9
+    def tf(x:testb, y:float): return 5
+    def tf(x:testb, y:int): return 6
+    def tf(x, y): return 7
 
-    def tf(x): 8
+    def tf(x): return 8
 
     assert(tf(testa { 0 }, 0) == 4)
     assert(tf(1, 0) == 1)
@@ -54,7 +54,7 @@ def run_test_cases(is_speed_test):
     assert(tf("", "") == 7)
 
     // force dynamic dispatch
-    def to_any(a:any): a
+    def to_any(a:any): return a
     assert(tf(to_any(testb { 0, 0 }), to_any("")) == 9)
 
     assert(tf("") == 8)
@@ -155,7 +155,7 @@ def run_test_cases(is_speed_test):
     assert 264 == sum(testvector.map(): _ * _)
 
 
-    def factorial(n): 1 > n or factorial(n - 1) * n
+    def factorial(n): return 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
     applyto4 := def(f): f(4)
@@ -175,16 +175,15 @@ def run_test_cases(is_speed_test):
     // typechecking
 
     do():
-        def h(i): i()
+        def h(i): return i()
         def g(f):
             // Here, the def passed to h appears the same each time, but it has a freevar f that is different.
-            h():
-                f()
+            return h(): f()
         assert 1 == (g(): 1)
         assert "a" == (g(): "a")
 
     def compile_time_if(x):
-        if x is int or x is float:
+        return if x is int or x is float:
             // The division is a type error if x is a string.
             // But it compiles anyway since this if is compile-time constant,
             // and the type checker ignores this branch.
@@ -338,7 +337,7 @@ def run_test_cases(is_speed_test):
         assert co1.return_value == 1337
 
         def pass_thru(co, f):
-            coroutine_for co: f(_)
+            return coroutine_for co: f(_)
 
         co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
         sum := 0
@@ -360,7 +359,7 @@ def run_test_cases(is_speed_test):
         assert co4->a + co4->i + co4->b == 3
 
         // Even functions that don't yield are cool:
-        def conoyield(f): 1
+        def conoyield(f): return 1
         co5 := coroutine conoyield()
         assert !co5.active
         assert co5.return_value == 1

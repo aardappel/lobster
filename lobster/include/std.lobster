@@ -6,7 +6,7 @@ def map(xs, fun):
         r.push(fun(x, i))
     return r
 
-def map2(xs, ys, fun): map xs.length: fun(xs[_], ys[_])
+def map2(xs, ys, fun): return map xs.length: fun(xs[_], ys[_])
 
 def filter(xs, fun):
     r := []
@@ -46,7 +46,7 @@ def reduce(xs, fun):
     return acc
 
 def connect(xs, fun):
-    map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
+    return map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
 
 def reducerev(xs, fun):
     assert xs.length
@@ -81,15 +81,15 @@ def weightedpick(list, zero, wf):
         if pick < acc: return x
     return list.top()  // just in case float precision causes pick == weights.
 
-def sum(xs):     fold(xs, 0): _x + _y
-def product(xs): fold(xs, 1): _x * _y
+def sum(xs):     return fold(xs, 0): _x + _y
+def product(xs): return fold(xs, 1): _x * _y
 
-def zip(xs, ys): map xs.length: [ xs[_], ys[_] ]
+def zip(xs, ys): return map xs.length: [ xs[_], ys[_] ]
 
 def reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
-def reverselist(xs): map(xs.length) i: xs[xs.length - i - 1]
+def reverselist(xs): return map(xs.length) i: xs[xs.length - i - 1]
 
-def flatten(xs): fold(xs, []): append(_a, _b)
+def flatten(xs): return fold(xs, []): append(_a, _b)
 
 def split(l, f):
     r := [ [], [] ]
@@ -98,14 +98,14 @@ def split(l, f):
 
 def qsort(xs, lt):
     if xs.length <= 1:
-        xs
+        return xs
     else:
         pivot := xs[0]
         tail := xs.slice(1, -1)
         f1 := tail.filter():  lt(_, pivot)
         f2 := tail.filter(): !lt(_, pivot)
-        append(append(qsort(f1, lt), [ pivot ]),
-                      qsort(f2, lt))
+        return append(append(qsort(f1, lt), [ pivot ]),
+                             qsort(f2, lt))
 
 def qsort_in_place(xs, lt):
     def rec(s, e):

@@ -150,18 +150,18 @@ print mat[pos]</code></pre>
 <pre><code>def name(arg1, arg2):
     exp1
     exp2</code></pre>
-<p>The return value of a function is determined by its <code>return</code> statements (see below) or <code>void</code> (no return value) otherwise, except for single expression functions and anonymous functions, which don’t need an explicit <code>return</code> (it is automatically the last expression evaluated).</p>
+<p>The return value of a function is determined by its <code>return</code> statements (see below) or <code>void</code> (no return value) otherwise, except for anonymous functions, which don’t need an explicit <code>return</code> (it is automatically the last expression evaluated).</p>
 <p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). Types are checked at compile time. If you don’t specify types, the function is generic, meaning it will receive types from the caller.</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
-<pre><code>def magnitude(v::xy): sqrt(x * x + y * y)</code></pre>
+<pre><code>def magnitude(v::xy): return sqrt(x * x + y * y)</code></pre>
 <p>You can also leave out the <code>v::xy</code> entirely if you define this function as part of a <code>struct</code> / <code>value</code> definition of type <code>xy</code> (see above). Both types of definition are equivalent.</p>
 <p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
-<pre><code>def intersect(a, b): &quot;no idea how to intersect these two!&quot;
-def intersect(c:circle, p:xy): &quot;point in circle&quot;
-def intersect(c:circle, r:ray): &quot;ray vs circle&quot;</code></pre>
+<pre><code>def intersect(a, b): return &quot;no idea how to intersect these two!&quot;
+def intersect(c:circle, p:xy): return &quot;point in circle&quot;
+def intersect(c:circle, r:ray): return &quot;ray vs circle&quot;</code></pre>
 <p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
 <p>You can specify an explicit return type, like so:</p>
-<pre><code>def f(a:int, b:int) -&gt; float: a + b</code></pre>
+<pre><code>def f(a:int, b:int) -&gt; float: return a + b</code></pre>
 <p>This is typically not necessary, but may be helpful when coercing to a more general type.</p>
 <h3 id="function-calls">Function calls</h3>
 <p>Functions can be called as part of an expression with a similar syntax to its definition, e.g. <code>name(1, 2)</code>. Alternatively, you may use the <code>.</code> notation to place the first argument ahead of the call, for example <code>1.name(2)</code>. If you are using the <code>.</code> notation with a function that has just one argument, the <code>()</code> may be omitted, <code>v.length</code> being a common example. You are encouraged to only do this for simple functions that return a property of the argument, and don’t modify the argument.</p>
@@ -202,7 +202,7 @@ else:
 <pre><code>def m(): return 1, 2
 a, b := m()</code></pre>
 <p>All return statements for any function must all return the same number of return values.</p>
-<p>When <code>m</code> returns multiple values, they get assigned to each variable in turn (if there was only 1 return value in this example, they would all receive the same value). If there are more return values than there are variables, additionally values are thrown away, and if there are more variables than there are return values, this is an error.</p>
+<p>When <code>m</code> returns multiple values, they get assigned to each variable in turn. If there are more return values than there are variables, additionally values are thrown away, and if there are more variables than there are return values, this is an error.</p>
 <h3 id="scope">Scope</h3>
 <p>Functions and variables declared there-in always obey lexical scope: any use of a variable always refers to the closest enclosing definition of it.</p>
 <p>Since functions and function values can be defined at any scope level, this means they can access variables from enclosing scopes, called <em>free variables</em>. Free variables are essential to make Lobster’s higher order functions convenient. References to free variables are only valid within the scope they are defined, which luckily is almost always the case, but can be broken by storing a function value and then calling it at a later time outside of the context where its free variables were valid, which will result in a runtime error. Other languages use <em>closures</em> to ensure availability in all cases, which are very costly (parent stackframe(s) may have to be dynamically allocated) as opposed to Lobster’s approach which makes function values and free variables have no overhead compared to regular functions and variables.</p>

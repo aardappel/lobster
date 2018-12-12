@@ -52,7 +52,7 @@ def fun() :== void
 def funs(v:xy_i) :== void
 
 private def cache_size(id, f):
-    if !render_pass:
+    return if !render_pass:
         e := elem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
@@ -80,14 +80,14 @@ private def advance(v:xy_i, f):
         update_size(v)
 
 private def max_space(v:xy_i):
-    if vertical: xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
+    return if vertical: xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
 
 private def position(v:xy_i, f):
     r := max_space(v) - v
     gl_translate(float(if(align == 1): r / 2 else: r * (align / 2)), f)
 
 private def cursize_of(id, f):
-    cache_size(id):
+    return cache_size(id):
         cursize <- xy_0i
         f()
         cursize
