@@ -200,8 +200,9 @@ struct SubFunction {
     ArgVector dynscoperedefs; // any lhs of <-
     ArgVector freevars;       // any used from outside this scope, could overlap with dynscoperedefs
     TypeRef returntype;
-    bool returns_value;       // FIXME: remove.
+    size_t num_returns;
     size_t reqret;  // Do the caller(s) want values to be returned?
+    vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     bool isrecursivelycalled;
     bool iscoroutine;
     ArgVector coyieldsave;
@@ -211,20 +212,21 @@ struct SubFunction {
     SubFunction *next;
     Function *parent;
     int subbytecodestart;
-    bool typechecked, freevarchecked, mustspecialize, fixedreturntype, logvarcallgraph;
+    bool typechecked, freevarchecked, mustspecialize, fixedreturntype, logvarcallgraph,
+        isdynamicfunctionvalue;
     int numcallers;
     Type thistype;       // convenient place to store the type corresponding to this
 
     SubFunction(int _idx)
         : idx(_idx),
           args(0), locals(0), dynscoperedefs(0), freevars(0), returntype(type_undefined),
-          returns_value(false), reqret(0),
+          num_returns(0), reqret(0),
           isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
           typechecked(false), freevarchecked(false), mustspecialize(false),
-          fixedreturntype(false), logvarcallgraph(false), numcallers(0),
-          thistype(V_FUNCTION, this) {}
+          fixedreturntype(false), logvarcallgraph(false), isdynamicfunctionvalue(false),
+          numcallers(0), thistype(V_FUNCTION, this) {}
 
     void SetParent(Function &f, SubFunction *&link) {
         parent = &f;

@@ -69,6 +69,11 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
+        auto b = list->children.back();
+        if (Is<StructRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
+            if (terminator == T_ENDOFFILE) list->Add(new IntConstant(lex, 0));
+            else Error("last expression in list can\'t be a definition");
+        }
         Expect(terminator);
         CleanupStatements(list);
         return list;
@@ -452,12 +457,15 @@ struct Parser {
     }
 
     void ImplicitReturn(SubFunction *sf) {
-        // Anonymous functions and one-liners have an implicit return.
+        // Anonymous functions and one-liners have an implicit return value.
         auto &stats = sf->body->children;
-        if ((stats.size() == 1 ||
-            (sf->parent->anonymous && !stats.empty())) &&
-            !Is<Return>(stats.back())) {
-            stats.back() = new Return(stats.back()->line, stats.back(), sf->idx);
+        if (!Is<Return>(stats.back())) {
+            // Conversely, if named multi-line functions have no return at the end, we should
+            // ensure any value accidentally available gets ignored and does not become a return
+            // value.
+            auto make_void = stats.size() > 1 && !sf->parent->anonymous;
+            // All function bodies end in return, simplifying code downstream.
+            stats.back() = new Return(stats.back()->line, stats.back(), sf->idx, make_void);
         }
     }
 
@@ -754,7 +762,7 @@ struct Parser {
                 if (functionstack.size())
                     sfid = functionstack.back()->subf->idx;
             }
-            return new Return(lex, rv, sfid);
+            return new Return(lex, rv, sfid, false);
         }
         auto e = ParseExp();
         while (IsNext(T_SEMICOLON)) {

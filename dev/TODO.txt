@@ -1,6 +1,5 @@
-- apply this pattern in more places: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
-
 - refactor function return-value tracking as it is highly confusing.
+  - make return from program return from __top_level_exp to reduce special cases
   - remove FUNEND since it should now be unused. maybe first with assert in VM.
   - remove ToVoid?
   - remove mustspecialize and other vars in SubFunction?
@@ -26,7 +25,6 @@
   - Function::nretvals shouldn't exists as it depends on the specialization.
   - SubFunction::returntypes should be allowed to have length 0.
   - Revisit multimethod call return value checking.
-  - remove SubFunction::returns_value.
   - Codegen shouldn't have weird exceptions for more than 1 return value.
   - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.
   - Functions that have no meaningful return value but happen to be called as last exp can have
@@ -59,9 +57,18 @@
   - When a HOF is used as a coroutine, a yielding function is essentially a return statement
     (calls RetVal in TT), which makes it require an explicit return statement, which is NOT
     required if the function is only used a HOF, which is slightly inconsistent?
+  - unittest // doesn't work without the return! can this be fixed?
+  - double return in exception_handler
+    - if we fix this, forbid return that is not last in statement list
   - see "return" elsewhere, e.g. in typechecking notes below.
+  - scan thru code to spot any other unwieldy patterns related to return
+
+- apply this pattern in more places: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
+  - and reverse()
 
 - rename characters in type string
+
+- make more args const
 
 - could we remove the support for dynamic scoping alltogether?
   - DS thru -> would be more accurate if it was followed by a block itself

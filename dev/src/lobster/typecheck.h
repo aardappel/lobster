@@ -386,6 +386,7 @@ struct TypeChecker {
                     } else {
                         sf->reqret = ss->reqret;
                     }
+                    sf->isdynamicfunctionvalue = true;
                     TypeCheckFunctionDef(*sf, sf->body);
                     // Covariant again.
                     if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
@@ -556,8 +557,23 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    void RetVal(TypeRef type, SubFunction *sf) {
-        sf->returns_value = true;  // FIXME.
+    void RetVal(TypeRef type, SubFunction *sf, bool register_return = true) {
+        if (register_return) {
+            for (auto isc : reverse(scopes)) {
+                if (isc.sf->parent == sf->parent) break;
+                // isc.sf is a function in the call chain between the return statement and the
+                // function it is returning from. Since we're affecting the return type of the
+                // function we're returning from, if it gets specialized but a function along the
+                // call chain (isc.sf) does not, we must ensure that return type affects the second
+                // specialization.
+                // We do this by tracking return types, and replaying them when a function gets
+                // reused.
+                // A simple test case is in return_from unit test, and recursive_exception is also
+                // affected.
+                isc.sf->reuse_return_events.push_back({ sf, type });
+            }
+        }
+        sf->num_returns++;
         if (!sf->fixedreturntype) {
             if (sf->reqret) {
                 // If this is a recursive call we must be conservative because there may already
@@ -571,20 +587,6 @@ struct TypeChecker {
                 sf->returntype = type_void;
             }
         }
-    }
-
-    bool EndsInReturn(const List *list) {
-        if (list->children.empty()) return false;
-        auto &last = list->children.back();
-        if (Is<Return>(last)) return true;
-        if (auto ifthen = Is<If>(last)) {
-            auto tp = Is<Call>(ifthen->truepart);
-            auto fp = Is<Call>(ifthen->falsepart);
-            if (tp && fp && EndsInReturn(tp->sf->body) && EndsInReturn(fp->sf->body))
-                return true;
-        }
-        // TODO: add more? switch?
-        return false;
     }
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context) {
@@ -612,19 +614,11 @@ struct TypeChecker {
         auto backup_args = sf.args; backup_vars(sf.args, backup_args);
         auto backup_locals = sf.locals; backup_vars(sf.locals, backup_locals);
         sf.coresumetype = sf.iscoroutine ? NewNilTypeVar() : type_undefined;
-        if (sf.body->children.size()) {
-            if (!sf.fixedreturntype) sf.returntype = NewTypeVar();
-            auto start_promoted_vars = flowstack.size();
-            TypeCheckList(sf.body, true, 0);
-            CleanUpFlow(start_promoted_vars);
-            if (!EndsInReturn(sf.body) && sf.returns_value && sf.returntype->t != V_VOID) {
-                TypeError("explicit return statement required at the end of: " + sf.parent->name,
-                          *sf.body);
-            }
-            if (!sf.returns_value) sf.returntype = type_void;
-        } else {
-            sf.returntype = type_void;
-        }
+        if (!sf.fixedreturntype) sf.returntype = NewTypeVar();
+        auto start_promoted_vars = flowstack.size();
+        TypeCheckList(sf.body, true, 0);
+        CleanUpFlow(start_promoted_vars);
+        if (!sf.num_returns) sf.returntype = type_void;
         for (auto &back : backup_args.v)   RevertCurrentSid(back.sid);
         for (auto &back : backup_locals.v) RevertCurrentSid(back.sid);
         if (sf.reqret && sf.returntype->HasValueType(V_VAR)) {
@@ -694,8 +688,8 @@ struct TypeChecker {
         }
     }
 
-    bool FreeVarsSameAsCurrent(SubFunction *sf, bool prespecialize) {
-        for (auto &freevar : sf->freevars.v) {
+    bool FreeVarsSameAsCurrent(const SubFunction &sf, bool prespecialize) {
+        for (auto &freevar : sf.freevars.v) {
             //auto atype = Promote(freevar.id->type);
             if (freevar.sid != freevar.sid->Current() ||
                 !ExactType(freevar.type, freevar.sid->Current()->type)) {
@@ -757,14 +751,53 @@ struct TypeChecker {
         return sf->returntype;
     }
 
+    // See if returns produced by an existing specialization are compatible with our current
+    // context of functions.
+    bool CompatibleReturns(const SubFunction &ssf) {
+        for (auto [sf, type] : ssf.reuse_return_events) {
+            for (auto isc : reverse(scopes)) {
+                if (isc.sf->parent == sf->parent) {
+                    if (isc.sf->reqret != sf->reqret) return false;
+                    goto found;
+                }
+            }
+            return false;  // Function not in context.
+            found:;
+        }
+        return true;
+    }
+
+    // Apply effects of return statements for functions being reused, see RetVal above.
+    void ReplayReturns(const SubFunction &ssf, const Node &error_context) {
+        for (auto [sf, type] : ssf.reuse_return_events) {
+            for (auto isc : reverse(scopes)) {
+                if (isc.sf->parent == sf->parent) {
+                    RetVal(type, isc.sf, false);
+                    // This should in theory not cause an error, since the previous specialization
+                    // was also ok with this set of return types. It could happen though if
+                    // this specialization has an additional return statement that was optimized
+                    // out in the previous one.
+                    SubTypeT(type, isc.sf->returntype, error_context, "", "reused return value");
+                    break;
+                }
+            }
+        }
+    }
+
+    bool SpecializationIsCompatible(const SubFunction &sf, size_t reqret) {
+        return reqret == sf.reqret &&
+               FreeVarsSameAsCurrent(sf, false) &&
+               CompatibleReturns(sf);
+    }
+
     TypeRef TypeCheckCall(SubFunction *csf, List *call_args, SubFunction *&chosen,
                           Node *call_context, size_t reqret) {
         Function &f = *csf->parent;
         if (f.multimethod) {
             if (!f.subf->numcallers) {
                 // Simplistic: typechecked with actual argument types.
-                // FIXME: reqret is always that of the first caller for multimethods, because we don't want to
-                // specialize the whole set, but this is problematic.
+                // FIXME: reqret is always that of the first caller for multimethods, because we
+                // don't want to specialize the whole set, but this is problematic.
                 f.multimethodretval = NewTypeVar();  // Just in case it is recursive.
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
@@ -808,10 +841,16 @@ struct TypeChecker {
                     // Overwrite any recursive cases that might return a type var.
                     sf->returntype = f.multimethodretval;
                 }
+            } else {
+                // We're calling an existing multimethod as-is.
+                for (auto sf = f.subf; sf; sf = sf->next) {
+                    if (!SpecializationIsCompatible(*sf, reqret))
+                        TypeError(cat("multimethod ", f.name,
+                           " previously specialized for different return values or free variable"),
+                           *call_context);
+                    ReplayReturns(*sf, *call_context);
+                }
             }
-            if (reqret != f.subf->reqret)
-                TypeError(cat("multimethod ", f.name, " previously specialized for ",
-                              f.subf->reqret, " return values"), *call_context);
             // See how many cases match, if only 1 (as subtype of declared) we can specialize,
             // if 0 (as sub or supertype of declared) we can avoid a runtime error.
             SubFunction *lastmatch = nullptr;
@@ -869,12 +908,13 @@ struct TypeChecker {
                             if (arg.flags & AF_GENERIC &&
                                 !ExactType(c->exptype, arg.type)) goto fail;
                         }
-                        if (FreeVarsSameAsCurrent(sf, false) && reqret == sf->reqret) {
+                        if (SpecializationIsCompatible(*sf, reqret)) {
                             // This function can be reused.
                             // But first make sure to add any freevars this call caused to be
                             // added to its parents also to the current parents, just in case
                             // they're different.
                             for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
+                            ReplayReturns(*sf, *call_context);
                             return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
                         }
                         fail:;
@@ -912,7 +952,7 @@ struct TypeChecker {
         if (sf->freevarchecked) {
             // See if there's an existing match.
             for (; sf; sf = sf->next) if (sf->freevarchecked) {
-                if (FreeVarsSameAsCurrent(sf, true)) return sf;
+                if (FreeVarsSameAsCurrent(*sf, true)) return sf;
             }
             sf = CloneFunction(hsf);
         } else {
@@ -1175,10 +1215,24 @@ struct TypeChecker {
         }
     }
 
-    bool NeverReturns(const Call *call) {
-        if (call->sf->body->children.empty()) return false;
-        auto ret = Is<Return>(call->sf->body->children.back());
-        return ret && ret->subfunction_idx != call->sf->idx;
+    bool NeverReturns(const Node *n) {
+        if (auto call = Is<Call>(n)) {
+            // Have to be conservative for recursive calls since we're not done typechecking it.
+            if (call->sf->isrecursivelycalled) return false;
+            if (!call->sf->num_returns) return true;
+            if (call->sf->num_returns == 1) {
+                auto ret = AssertIs<Return>(call->sf->body->children.back());
+                assert(ret->subfunction_idx == call->sf->idx);
+                return NeverReturns(ret->child);
+            }
+            // TODO: could also check num_returns > 1, but then have to scan all children.
+        } else if (auto ifthen = Is<If>(n)) {
+            auto tp = Is<Call>(ifthen->truepart);
+            auto fp = Is<Call>(ifthen->falsepart);
+            return tp && fp && NeverReturns(tp) && NeverReturns(fp);
+        }
+        // TODO: Other situations? switch?
+        return false;
     }
 
     void TypeCheckList(List *n, bool onlylast, size_t reqret = 1) {
@@ -1950,33 +2004,18 @@ Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
 Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = type_void;
     auto sf = subfunction_idx < 0 ? nullptr : tc.st.subfunctiontable[subfunction_idx];
-    for (int i = (int)tc.scopes.size() - 1; i >= 0; i--) {
-        if (sf) {
-            auto isf = tc.scopes[i].sf;
-            if (isf->parent == sf->parent) {
-                sf = isf;  // Take specialized version.
-                subfunction_idx = sf->idx;
-                break;
-            }
-            // isf is a function in the call chain between the return statement and the function
-            // it is returning from. Since we're affecting the return type of the function we're
-            // returning from, if it gets specialized but a function along the call chain (isf)
-            // does not, the return type wouldn't affect the second specialization.
-            // The way we fix that the lazy way is by forcing these in between functions to
-            // always specialize.
-            // FIXME: This is probably ok in the case of a regular return statement
-            // (where any in between functions are likely HOFs that are already specialized),
-            // but it could get expensive for "return from" statements over longer distance.
-            // Fixing it another way, by annotating functions with the return types they generated
-            // for what functions, then perculating that information down to affected functions,
-            // is much more complicated.
-            // A simple test case is in return_from unit test, and recursive_exception is also
-            // affected.
-            isf->mustspecialize = true;
+    for (auto isc : reverse(tc.scopes)) {
+        if (sf && isc.sf->parent == sf->parent) {
+            sf = isc.sf;  // Take specialized version.
+            subfunction_idx = sf->idx;
+            break;
         }
-        if (tc.scopes[i].sf->iscoroutine) tc.TypeError("cannot return out of coroutine", *this);
+        if (isc.sf->iscoroutine)
+            tc.TypeError("cannot return out of coroutine", *this);
+        if (isc.sf->isdynamicfunctionvalue)
+            tc.TypeError("cannot return out of dynamic function value", *this);
     }
-    tc.TT(child, sf ? sf->reqret : 1);
+    tc.TT(child, make_void ? 0 : (sf ? sf->reqret : 1));
     if (subfunction_idx < 0) {
         // return from program
         if (child->exptype->NumValues() > 1)
@@ -1989,6 +2028,11 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (!sf->typechecked)
             tc.parser.Error("return from " + sf->parent->name +
                             " called out of context", this);
+    }
+    if (make_void && sf->num_returns && tc.NeverReturns(child)) {
+        // A return with other returns inside of it, so should not contribute to return types.
+        assert(child->exptype->t == V_VOID || child->exptype->t == V_VAR);
+        return this;
     }
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {

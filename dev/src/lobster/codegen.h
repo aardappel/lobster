@@ -408,7 +408,7 @@ struct CodeGen  {
     }
 
     void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr) {
-        // The cases below generate no retvals if retval==0, otherwise they generate however many
+        // Generate() below generate no retvals if retval==0, otherwise they generate however many
         // they can irrespective of retval, optionally record that in rettypes for the more complex
         // cases. Then at the end of this function the two get matched up.
         auto tempstartsize = temptypestack.size();
@@ -672,8 +672,7 @@ void AssignList::Generate(CodeGen &cg, int retval) const {
         cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, 0, nullptr,
                      nullptr, 1, this);
     }
-    // currently can only happen with assign on last line of body, which is nonsensical
-    cg.Dummy(retval);
+    assert(!retval);  // Type checker guarantees this.
 }
 
 void Define::Generate(CodeGen &cg, int retval) const {
@@ -685,8 +684,7 @@ void Define::Generate(CodeGen &cg, int retval) const {
         cg.Emit(IL_LVALVAR, IsRefNil(sids[i]->type->t) ? LVO_WRITEREF : LVO_WRITE, sids[i]->Idx());
         cg.VarModified(sids[i]);
     }
-    // currently can only happen with def on last line of body, which is nonsensical
-    cg.Dummy(retval);
+    assert(!retval);  // Parser guarantees this.
 }
 
 void Assign::Generate(CodeGen &cg, int retval) const {
@@ -1137,7 +1135,7 @@ void Return::Generate(CodeGen &cg, int retval) const {
     }
     auto sf = subfunction_idx >= 0 ? cg.st.subfunctiontable[subfunction_idx] : nullptr;
     int fid = subfunction_idx >= 0 ? sf->parent->idx : subfunction_idx;
-    int nretvals = sf ? (int)sf->returntype->NumValues() : 1;
+    int nretvals = make_void ? 0 : (sf ? (int)sf->returntype->NumValues() : 1);
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (!sf || sf->reqret) {
         if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);

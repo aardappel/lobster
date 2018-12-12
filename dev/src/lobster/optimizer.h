@@ -120,7 +120,8 @@ struct Optimizer {
             // because the for body does not count towards its nodes. maybe inline all fors first?
             if (parent_type == typeid(For) ||  // Always inline for bodies.
                 (sf->parent->anonymous &&
-                 !sf->parent->multimethod &&  // unless multimethod_specialized?
+                 sf->num_returns <= 1 &&       // Implied by anonymous, but here for clarity.
+                 !sf->parent->multimethod &&   // unless multimethod_specialized?
                  !sf->iscoroutine &&
                  !sf->dynscoperedefs.size() &&
                  sf->returntype->NumValues() <= 1 &&
@@ -165,15 +166,14 @@ struct Optimizer {
             sf.numcallers--;
         }
         // Remove single return statement pointing to function that is now gone.
-        if (!list->children.empty()) {
-            auto ret = Is<Return>(list->children.back());
-            assert(ret);
-            if (ret->subfunction_idx == sf.idx) {
-                assert(ret->child->exptype->NumValues() <= 1);
-                list->children.back() = ret->child;
-                ret->child = nullptr;
-                delete ret;
-            }
+        auto ret = Is<Return>(list->children.back());
+        assert(ret);
+        if (ret->subfunction_idx == sf.idx) {
+            assert(ret->child->exptype->NumValues() <= 1);
+            assert(sf.num_returns <= 1);
+            list->children.back() = ret->child;
+            ret->child = nullptr;
+            delete ret;
         }
         auto r = Typed(call.exptype, call.nattype, list);
         call.children.clear();

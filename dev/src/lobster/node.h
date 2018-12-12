@@ -349,7 +349,9 @@ struct NativeCall : GenericCall {
 
 struct Return : Unary {
     int subfunction_idx;
-    Return(const Line &ln, Node *_a, int sfi) : Unary(ln, _a), subfunction_idx(sfi) {}
+    bool make_void;
+    Return(const Line &ln, Node *_a, int sfi, bool make_void)
+        : Unary(ln, _a), subfunction_idx(sfi), make_void(make_void) {}
     SHARED_SIGNATURE(Return, TName(T_RETURN), true)
 };
 
