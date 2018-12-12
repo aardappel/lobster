@@ -779,12 +779,6 @@ void ToAny::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void ToVoid::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, 0);
-    //assert(!retval);  // FIXME: reenable when multimethods specialize on reqret.
-    cg.Dummy(retval);
-}
-
 void ToBool::Generate(CodeGen &cg, int retval) const {
     cg.Gen(child, retval, true);
     if (retval) cg.Emit(IsRefNil(child->exptype->t) ? IL_E2BREF : IL_E2B);

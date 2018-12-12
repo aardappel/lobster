@@ -55,9 +55,6 @@ struct Optimizer {
                 auto other  = cval.True() ? ifn->falsepart : ifn->truepart;
                 r = Optimize(branch, typeid(*n));
                 branch = nullptr;
-                if (auto tovoid = Is<ToVoid>(other)) {
-                    other = tovoid->child;
-                }
                 if (auto call = Is<Call>(other)) {
                     if (!call->sf->typechecked) {
                         // Typechecker did not typecheck this function for use in this if-then,

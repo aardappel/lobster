@@ -316,12 +316,6 @@ struct TypeChecker {
         a->SetTypes(type_any);
     }
 
-    void MakeVoid(Node *&a) {
-        if (a->exptype->t == V_VOID) return;
-        a = new ToVoid(a->line, a);
-        a->SetTypes(type_void);
-    }
-
     void MakeBool(Node *&a) {
         if (a->exptype->t != V_INT) a = new ToBool(a->line, a);
         a->SetTypes(type_int);
@@ -360,9 +354,6 @@ struct TypeChecker {
                 break;
             case V_ANY:
                 MakeAny(a);
-                return;
-            case V_VOID:
-                MakeVoid(a);
                 return;
             case V_INT:
                 if (a->exptype->t == V_TYPEID) {
@@ -1454,7 +1445,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
         // No else: this always returns void.
         if (!isconst || cval.True()) {
             tc.TypeCheckBranch(true, condition, truepart, false);
-            tc.MakeVoid(truepart);
+            truepart->exptype = type_void;
         } else {
             // constant == false: this if-then will get optimized out entirely, ignore it.
         }
@@ -2268,10 +2259,6 @@ Node *ToString::TypeCheck(TypeChecker &tc, size_t reqret) {
 }
 
 Node *ToAny::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
-}
-
-Node *ToVoid::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 

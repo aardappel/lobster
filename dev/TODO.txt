@@ -1,5 +1,4 @@
 - refactor function return-value tracking as it is highly confusing.
-  - remove ToVoid?
   - remove mustspecialize and other vars in SubFunction?
   - TT passes reqret but doesn't enforce that returned type is indeed that many.
     - if we check we can also auto drop in type checker such that codegen doesn't need to.
