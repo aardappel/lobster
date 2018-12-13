@@ -1,26 +1,12 @@
 - refactor function return-value tracking as it is highly confusing.
-  - remove mustspecialize and other vars in SubFunction?
-  - TT passes reqret but doesn't enforce that returned type is indeed that many.
-    - if we check we can also auto drop in type checker such that codegen doesn't need to.
-    - the current dropping special purpose can then be moved.
-      - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
-    - Remove StructRef alltogether in parser?
-    - since we have 2 types in nodes, can now also remove special purpose nodes for coercions?
-      - better yet, there's a lot of code in the type checker that avoids coercions because it
-        modifies code, we can generalize that now!
-      - we can maybe make the whole typechecker not modify nodes?
-  - uses of any -> void
-  - make multiple return values into a tuple type.
-  - allow multi-methods to be specialized at least on reqret.
-    - reenable assert in ToVoid::Generate
-  - void is still a dummy value like any.. need to guarantee in codegen it always means no value.
-  - key or simplifying is that specialization should take into account amount of values caller
-    wants to use.
-    - though should maybe first change language to require a return statement if multiline?
-  - type checker should maybe have a vector or return types for every expression to be more precise.
-  - Should store all NativeCall return types in TT, see codegen and TypeCheckMultiRHS
-  - Function::nretvals shouldn't exists as it depends on the specialization.
-  - SubFunction::returntypes should be allowed to have length 0.
+  - allow multi-methods to be specialized on reqret etc.
+  - codegen: remove special purpose use of rettypes by regular types.
+  - codegen: remove dropping in codegen to just follow typechecker?
+    - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
+  - since we have 2 types in nodes, can now also remove special purpose nodes for coercions?
+    - better yet, there's a lot of code in the type checker that avoids coercions because it
+      modifies code, we can generalize that now!
+    - we can maybe make the whole typechecker not modify nodes?
   - Revisit multimethod call return value checking.
   - Codegen shouldn't have weird exceptions for more than 1 return value.
   - Generally needs to be more exact so Typecheck/Codegen/VM can't get out of sync.

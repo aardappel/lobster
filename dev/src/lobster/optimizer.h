@@ -80,6 +80,7 @@ struct Optimizer {
             if (is->ConstVal(tc, cval)) {
                 r = Typed(is->exptype, type_int, new IntConstant(is->line, cval.ival()));
                 if (is->child->HasSideEffects()) {
+                    is->child->exptype = type_void;
                     r = Typed(is->exptype, type_int, new Seq(is->line, is->child, r));
                     is->child = nullptr;
                 }

@@ -200,7 +200,11 @@ struct CodeGen  {
     ~CodeGen() {
     }
 
-    void Dummy(int retval) { while (retval--) Emit(IL_PUSHNIL); }
+    // FIXME: remove.
+    void Dummy(size_t retval) {
+        assert(!retval);
+        while (retval--) Emit(IL_PUSHNIL);
+    }
 
     struct sfcompare {
         size_t nargs;
@@ -307,7 +311,7 @@ struct CodeGen  {
             Emit(IL_ENDSTATEMENT);
             #endif
         }
-        else Dummy((int)sf.reqret);
+        else Dummy(sf.reqret);
         //if (sf.reqret) TakeTemp(1);
         assert(temptypestack.empty());
         #ifdef _DEBUG
@@ -344,17 +348,18 @@ struct CodeGen  {
         // Skip unused args, this may happen for dynamic calls.
         const Node *lastarg = nullptr;
         for (auto c : list->children) {
-            Gen(c, 1, false, parent);
+            Gen(c, 1, 0, parent);
             lastarg = c;
             nargs++;
         }
         return lastarg;
     };
 
-    void GenCall(const SubFunction &sf, const List *args, const Node *errnode, size_t &nargs,
-                 int retval, bool multimethod_specialized) {
+    void GenCall(const SubFunction &sf, const List *args, const Node *errnode,
+                 size_t retval, bool multimethod_specialized) {
         auto &f = *sf.parent;
         auto multicall = f.multimethod && !multimethod_specialized;
+        size_t nargs = 0;
         GenArgs(args, nargs);
         if (f.nargs() != nargs)
             parser.Error(cat("call to function ", f.name, " needs ", f.nargs(),
@@ -368,18 +373,12 @@ struct CodeGen  {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
         SplitAttr(Pos());
-        auto nretvals = max((int)sf.returntype->NumValues(), 1);
-        if (sf.reqret) {
-            if (retval) {
-                for (int i = 0; i < nretvals; i++) rettypes.push_back(sf.returntype->Get(i));
-            } else {
-                // FIXME: better if this is impossible by making sure typechecker makes it !reqret.
-                //assert(f.multimethod);
-                for (int i = 0; i < nretvals; i++) GenPop(sf.returntype->Get(i));
-            }
+        auto nretvals = sf.returntype->NumValues();
+        if (retval) {
+            for (size_t i = 0; i < nretvals; i++) rettypes.push_back(sf.returntype->Get(i));
         } else {
-            assert(!retval);
-            Dummy(retval);
+            // FIXME: better if this is impossible by making sure typechecker makes it !reqret.
+            for (size_t i = 0; i < nretvals; i++) GenPop(sf.returntype->Get(i));
         }
     };
 
@@ -408,10 +407,12 @@ struct CodeGen  {
         Emit(IsRefNil(type->t) ? IL_DUPREF : IL_DUP);
     }
 
-    void Gen(const Node *n, int retval, bool taketemp = false, const Node *parent = nullptr) {
+    void Gen(const Node *n, size_t retval, size_t auto_pop_temps = 0, const Node *parent = nullptr) {
         // Generate() below generate no retvals if retval==0, otherwise they generate however many
         // they can irrespective of retval, optionally record that in rettypes for the more complex
         // cases. Then at the end of this function the two get matched up.
+        // Caller must either specify auto_pop_temps or call TakeTemp manually to consume what
+        // this exp produces.
         auto tempstartsize = temptypestack.size();
         linenumbernodes.push_back(n);
 
@@ -428,22 +429,29 @@ struct CodeGen  {
             if (rettypes.empty()) {
                 for (size_t i = 0; i < n->exptype->NumValues(); i++)
                     rettypes.push_back(n->exptype->Get(i));
+            } else {
+                // FIXME: some cull ahead of time, others don't.
+                assert(rettypes.size() == n->nattype->NumValues() || 
+                       rettypes.size() == n->exptype->NumValues());
             }
             // if the caller doesn't want all return values, just pop em
-            if((int)rettypes.size() > retval) {
-                while ((int)rettypes.size() > retval) {
+            if (rettypes.size() > retval) {
+                while (rettypes.size() > retval) {
                     GenPop(rettypes.back());
                     rettypes.pop_back();
                 }
-            // only happens if both are > 1
-            } else if ((int)rettypes.size() < retval) {
-                parser.Error("expression does not supply that many return values", n);
             }
-            // Copy return types on temp stack, unless caller doesn't want them (taketemp = true).
+            assert(rettypes.size() == retval);
+            // Copy return types on temp stack, unless caller doesn't want them.
             while (rettypes.size()) {
-                if (!taketemp) temptypestack.push_back(rettypes.back());
+                if (!auto_pop_temps) temptypestack.push_back(rettypes.back());
+                else auto_pop_temps--;
                 rettypes.pop_back();
             }
+        } else {
+            // FIXME: can't do this yet because codegen is more aggressive in culling values
+            // than TT.
+            //assert(n->exptype->t == V_VOID);
         }
         assert(rettypes.empty());
         linenumbernodes.pop_back();
@@ -453,7 +461,7 @@ struct CodeGen  {
         if (sid->id->logvar) Emit(IL_LOGWRITE, sid->Idx(), sid->logvaridx);
     }
 
-    void GenAssign(const Node *lval, int lvalop, int retval, TypeRef type,
+    void GenAssign(const Node *lval, int lvalop, size_t retval, TypeRef type,
                    const Node *rhs, int take_temp, const Node *parent_op) {
         assert(parent_op->exptype->NumValues() == retval);
         (void)parent_op;
@@ -532,7 +540,7 @@ struct CodeGen  {
         Emit(idx);
     }
 
-    void GenMathOp(const BinOp *n, int retval, MathOp opc) {
+    void GenMathOp(const BinOp *n, size_t retval, MathOp opc) {
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, opc);
@@ -568,7 +576,7 @@ struct CodeGen  {
         }
     }
 
-    void GenBitOp(const BinOp *n, int retval, ILOP opc) {
+    void GenBitOp(const BinOp *n, size_t retval, ILOP opc) {
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval) {
@@ -578,29 +586,29 @@ struct CodeGen  {
     }
 };
 
-void Nil::Generate(CodeGen &cg, int retval) const {
+void Nil::Generate(CodeGen &cg, size_t retval) const {
     if (retval) { cg.Emit(IL_PUSHNIL); }
 }
 
-void IntConstant::Generate(CodeGen &cg, int retval) const {
+void IntConstant::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         if (integer == (int)integer) cg.Emit(IL_PUSHINT, (int)integer); 
         else cg.Emit(IL_PUSHINT64, (int)integer, (int)(integer >> 32));
     };
 }
 
-void FloatConstant::Generate(CodeGen &cg, int retval) const {
+void FloatConstant::Generate(CodeGen &cg, size_t retval) const {
     if (retval) { cg.GenFloat(flt); };
 }
 
-void StringConstant::Generate(CodeGen &cg, int retval) const {
+void StringConstant::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         cg.Emit(IL_PUSHSTR, (int)cg.stringtable.size());
         cg.stringtable.push_back(str);
     };
 }
 
-void DefaultVal::Generate(CodeGen &cg, int retval) const {
+void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         assert(nattype->t == V_NIL);  // Optional args are indicated by being nillable.
         switch (nattype->sub->t) {
@@ -611,18 +619,18 @@ void DefaultVal::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void IdentRef::Generate(CodeGen &cg, int retval) const {
+void IdentRef::Generate(CodeGen &cg, size_t retval) const {
     if (retval) {
         cg.Emit(IsRefNil(sid->type->t) ? IL_PUSHVARREF : IL_PUSHVAR, sid->Idx());
     };
 }
 
-void Dot::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(children[0], retval, true);
+void Dot::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(children[0], retval, 1);
     if (retval) cg.GenFieldAccess(*this, -1, maybe);
 }
 
-void Indexing::Generate(CodeGen &cg, int retval) const {
+void Indexing::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(object, retval);
     cg.Gen(index, retval);
     if (retval) {
@@ -658,17 +666,17 @@ void Indexing::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void GenericCall::Generate(CodeGen &, int) const {
+void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {
     assert(false);
 }
 
-void CoDot::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(coroutine, retval, true);
+void CoDot::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(coroutine, retval, 1);
     if (retval) cg.Emit(IL_PUSHLOC, AssertIs<IdentRef>(variable)->sid->Idx());
 }
 
-void AssignList::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(children.back(), (int)children.size() - 1);
+void AssignList::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(children.back(), children.size() - 1);
     for (int i = (int)children.size() - 2; i >= 0; i--) {
         auto left = children[i];
         cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, 0, nullptr,
@@ -678,8 +686,8 @@ void AssignList::Generate(CodeGen &cg, int retval) const {
     (void)retval;
 }
 
-void Define::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, (int)sids.size());
+void Define::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, sids.size());
     for (int i = (int)sids.size() - 1; i >= 0; i--) {
         if (sids[i]->id->logvar)
             cg.Emit(IL_LOGREAD, sids[i]->logvaridx);
@@ -691,46 +699,46 @@ void Define::Generate(CodeGen &cg, int retval) const {
     (void)retval;
 }
 
-void Assign::Generate(CodeGen &cg, int retval) const {
+void Assign::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, IsRefNil(left->exptype->t) ? LVO_WRITEREF : LVO_WRITE, retval, nullptr,
                  right, 1, this);
 }
 
-void PlusEq::Generate(CodeGen &cg, int retval) const {
+void PlusEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_IADD, retval, left->exptype, right, 1, this);
 }
-void MinusEq::Generate(CodeGen &cg, int retval) const {
+void MinusEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_ISUB, retval, left->exptype, right, 1, this);
 }
-void MultiplyEq::Generate(CodeGen &cg, int retval) const {
+void MultiplyEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_IMUL, retval, left->exptype, right, 1, this);
 }
-void DivideEq::Generate(CodeGen &cg, int retval) const {
+void DivideEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_IDIV, retval, left->exptype, right, 1, this);
 }
-void ModEq::Generate(CodeGen &cg, int retval) const {
+void ModEq::Generate(CodeGen &cg, size_t retval) const {
     cg.GenAssign(left, LVO_IMOD, retval, left->exptype, right, 1, this);
 }
 
-void PostDecr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMMP, retval, child->exptype, nullptr, 0, this); }
-void PostIncr::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPPP, retval, child->exptype, nullptr, 0, this); }
-void PreDecr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IMM,  retval, child->exptype, nullptr, 0, this); }
-void PreIncr ::Generate(CodeGen &cg, int retval) const { cg.GenAssign(child, LVO_IPP,  retval, child->exptype, nullptr, 0, this); }
+void PostDecr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IMMP, retval, child->exptype, nullptr, 0, this); }
+void PostIncr::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IPPP, retval, child->exptype, nullptr, 0, this); }
+void PreDecr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IMM,  retval, child->exptype, nullptr, 0, this); }
+void PreIncr ::Generate(CodeGen &cg, size_t retval) const { cg.GenAssign(child, LVO_IPP,  retval, child->exptype, nullptr, 0, this); }
 
-void NotEqual     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
-void Equal        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
-void GreaterThanEq::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_GE);  }
-void LessThanEq   ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_LE);  }
-void GreaterThan  ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_GT);  }
-void LessThan     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_LT);  }
-void Mod          ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_MOD); }
-void Divide       ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
-void Multiply     ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
-void Minus        ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
-void Plus         ::Generate(CodeGen &cg, int retval) const { cg.GenMathOp(this, retval, MOP_ADD); }
+void NotEqual     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_NE);  }
+void Equal        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_EQ);  }
+void GreaterThanEq::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_GE);  }
+void LessThanEq   ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LE);  }
+void GreaterThan  ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_GT);  }
+void LessThan     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LT);  }
+void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MOD); }
+void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
+void Multiply     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
+void Minus        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
+void Plus         ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_ADD); }
 
-void UnaryMinus::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) {
         auto ctype = child->exptype;
         switch (ctype->t) {
@@ -747,29 +755,29 @@ void UnaryMinus::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void BitAnd    ::Generate(CodeGen &cg, int retval) const { cg.GenBitOp(this, retval, IL_BINAND); }
-void BitOr     ::Generate(CodeGen &cg, int retval) const { cg.GenBitOp(this, retval, IL_BINOR); }
-void Xor       ::Generate(CodeGen &cg, int retval) const { cg.GenBitOp(this, retval, IL_XOR); }
-void ShiftLeft ::Generate(CodeGen &cg, int retval) const { cg.GenBitOp(this, retval, IL_ASL); }
-void ShiftRight::Generate(CodeGen &cg, int retval) const { cg.GenBitOp(this, retval, IL_ASR); }
+void BitAnd    ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, IL_BINAND); }
+void BitOr     ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, IL_BINOR); }
+void Xor       ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, IL_XOR); }
+void ShiftLeft ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, IL_ASL); }
+void ShiftRight::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, IL_ASR); }
 
-void Negate::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void Negate::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) cg.Emit(IL_NEG);
 }
 
-void ToFloat::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void ToFloat::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) cg.Emit(IL_I2F);
 }
 
-void ToString::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void ToString::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) cg.Emit(IL_A2S);
 }
 
-void ToAny::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void ToAny::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) {
         switch (child->exptype->t) {
             case V_INT:   cg.Emit(IL_I2A); break;
@@ -779,17 +787,17 @@ void ToAny::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void ToBool::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void ToBool::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     if (retval) cg.Emit(IsRefNil(child->exptype->t) ? IL_E2BREF : IL_E2B);
 }
 
-void ToInt::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void ToInt::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     // No actual opcode needed, this node is purely to store correct types.
 }
 
-void FunRef::Generate(CodeGen &cg, int retval) const {
+void FunRef::Generate(CodeGen &cg, size_t retval) const {
     if (retval)  {
         // If no body, then the function has been optimized away, meaning this
         // function value will never be used.
@@ -803,11 +811,11 @@ void FunRef::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void StructRef::Generate(CodeGen &cg, int retval) const {
+void StructRef::Generate(CodeGen &cg, size_t retval) const {
     cg.Dummy(retval);
 }
 
-void NativeCall::Generate(CodeGen &cg, int retval) const {
+void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     size_t nargs = 0;
@@ -845,11 +853,8 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     }
     if (nf->retvals.v.size() > 1) {
         for (auto &rv : nf->retvals.v) cg.rettypes.push_back(rv.type);
-    } else if (!nf->retvals.v.size() && retval) {
-        // FIXME: can't make this an error since these functions are often called as
-        // the last thing in a function, sometimes still requiring a return value.
-        // Check what still causes this to happen.
-        // parser.Error(nf->name + " returns no value", n);
+    } else {
+        assert(nf->retvals.v.size() >= retval);
     }
     if (!retval) {
         // Top of stack has already been removed by op, but still need to pop any
@@ -862,15 +867,14 @@ void NativeCall::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void Call::Generate(CodeGen &cg, int retval) const {
-    size_t nargs = 0;
-    cg.GenCall(*sf, this, this, nargs, retval, multimethod_specialized);
+void Call::Generate(CodeGen &cg, size_t retval) const {
+    cg.GenCall(*sf, this, this, retval, multimethod_specialized);
 }
 
-void DynCall::Generate(CodeGen &cg, int retval) const {
-    size_t nargs = 0;
+void DynCall::Generate(CodeGen &cg, size_t retval) const {
     if (sid->type->t == V_YIELD) {
         if (Arity()) {
+            size_t nargs = 0;
             cg.GenArgs(this, nargs);
             cg.TakeTemp(nargs);
             assert(nargs == 1);
@@ -890,8 +894,9 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
         if (!sf->parent->istype) {
             // We statically know which function this is calling.
             // We can now turn this into a normal call.
-            cg.GenCall(*sf, this, this, nargs, retval, false);
+            cg.GenCall(*sf, this, this, retval, false);
         } else {
+            size_t nargs = 0;
             cg.GenArgs(this, nargs);
             assert(nargs == sf->args.size());
             cg.Emit(IL_PUSHVAR, sid->Idx());
@@ -908,87 +913,87 @@ void DynCall::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void List::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+void List::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
 }
 
-void TypeAnnotation::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+void TypeAnnotation::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
 }
 
-void Unary::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+void Unary::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
 }
 
-void BinOp::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+void BinOp::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);  // Handled by individual parents.
 }
 
-void Inlined::Generate(CodeGen &cg, int retval) const {
+void Inlined::Generate(CodeGen &cg, size_t retval) const {
     for (auto c : children) {
         cg.Gen(c, c != children.back() ? 0 : retval, retval != 0);
     }
 }
 
-void Seq::Generate(CodeGen &cg, int retval) const {
+void Seq::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(head, 0);
-    cg.Gen(tail, retval, true);
+    cg.Gen(tail, retval, 1);
 }
 
-void MultipleReturn::Generate(CodeGen &cg, int retval) const {
-    for (auto [i, c] : enumerate(children)) cg.Gen(c, (int)i < retval);
+void MultipleReturn::Generate(CodeGen &cg, size_t retval) const {
+    for (auto [i, c] : enumerate(children)) cg.Gen(c, i < retval);
     cg.TakeTemp(retval);
-    for (auto [i, c] : enumerate(children)) if ((int)i < retval) cg.rettypes.push_back(c->exptype);
+    for (auto [i, c] : enumerate(children)) if (i < retval) cg.rettypes.push_back(c->exptype);
 }
 
-void NativeRef::Generate(CodeGen & /*cg*/, int /*retval*/) const {
+void NativeRef::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
     assert(false);
 }
 
-void And::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(left, 1, true);
+void And::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(left, 1, 1);
     cg.Emit(cg.JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, left->exptype), 0);
     auto loc = cg.Pos();
-    cg.Gen(right, retval, true);
+    cg.Gen(right, retval, 1);
     cg.SetLabel(loc);
 }
 
-void Or::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(left, 1, true);
+void Or::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(left, 1, 1);
     cg.Emit(cg.JumpRef(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, left->exptype), 0);
     auto loc = cg.Pos();
-    cg.Gen(right, retval, true);
+    cg.Gen(right, retval, 1);
     cg.SetLabel(loc);
 }
 
-void Not::Generate(CodeGen &cg, int retval) const {
+void Not::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval, true);
     if (retval) cg.Emit(IsRefNil(child->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
 }
 
-void If::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(condition, 1, true);
+void If::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(condition, 1, 1);
     bool has_else = !Is<DefaultVal>(falsepart);
     cg.Emit(cg.JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, condition->exptype), 0);
     auto loc = cg.Pos();
     if (has_else) {
-        cg.Gen(truepart, retval, true);
+        cg.Gen(truepart, retval, 1);
         cg.Emit(IL_JUMP, 0);
         auto loc2 = cg.Pos();
         cg.SetLabel(loc);
-        cg.Gen(falsepart, retval, true);
+        cg.Gen(falsepart, retval, 1);
         cg.SetLabel(loc2);
     } else {
         // If retval, then this will generate nil thru T_E2N
-        cg.Gen(truepart, retval, true);
+        cg.Gen(truepart, retval, 1);
         cg.SetLabel(loc);
     }
 }
 
-void While::Generate(CodeGen &cg, int retval) const {
+void While::Generate(CodeGen &cg, size_t retval) const {
     cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
-    cg.Gen(condition, 1, true);
+    cg.Gen(condition, 1, 1);
     cg.Emit(cg.JumpRef(IL_JUMPFAIL, condition->exptype), 0);
     auto jumpout = cg.Pos();
     cg.Gen(body, 0);
@@ -997,7 +1002,7 @@ void While::Generate(CodeGen &cg, int retval) const {
     cg.Dummy(retval);
 }
 
-void For::Generate(CodeGen &cg, int retval) const {
+void For::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(IL_PUSHINT, -1);   // i
     cg.temptypestack.push_back(type_int);
     cg.Gen(iter, 1);
@@ -1020,7 +1025,7 @@ void For::Generate(CodeGen &cg, int retval) const {
     cg.Dummy(retval);
 }
 
-void ForLoopElem::Generate(CodeGen &cg, int /*retval*/) const {
+void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
     auto type = cg.temptypestack.back();
     switch (type->t) {
         case V_INT:    cg.Emit(IL_IFORELEM); break;
@@ -1031,13 +1036,13 @@ void ForLoopElem::Generate(CodeGen &cg, int /*retval*/) const {
     }
 }
 
-void ForLoopCounter::Generate(CodeGen &cg, int /*retval*/) const {
+void ForLoopCounter::Generate(CodeGen &cg, size_t /*retval*/) const {
     cg.Emit(IL_FORLOOPI);
 }
 
-void Switch::Generate(CodeGen &cg, int retval) const {
+void Switch::Generate(CodeGen &cg, size_t retval) const {
     // TODO: create specialized version for dense range of ints with jump table.
-    cg.Gen(value, 1, true);
+    cg.Gen(value, 1, 1);
     vector<int> nextcase, thiscase, exitswitch;
     for (auto n : cases->children) {
         for (auto loc : nextcase) cg.SetLabel(loc);
@@ -1074,7 +1079,7 @@ void Switch::Generate(CodeGen &cg, int retval) const {
         for (auto loc : thiscase) cg.SetLabel(loc);
         thiscase.clear();
         cg.GenPop(value->exptype);
-        cg.Gen(cas->body, retval, true);
+        cg.Gen(cas->body, retval, 1);
         if (n != cases->children.back()) {
             cg.Emit(IL_JUMP, 0);
             exitswitch.push_back(cg.Pos());
@@ -1083,15 +1088,15 @@ void Switch::Generate(CodeGen &cg, int retval) const {
     for (auto loc : exitswitch) cg.SetLabel(loc);
 }
 
-void Case::Generate(CodeGen &/*cg*/, int /*retval*/) const {
+void Case::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
     assert(false);
 }
 
-void Range::Generate(CodeGen &/*cg*/, int /*retval*/) const {
+void Range::Generate(CodeGen &/*cg*/, size_t /*retval*/) const {
     assert(false);
 }
 
-void Constructor::Generate(CodeGen &cg, int retval) const {
+void Constructor::Generate(CodeGen &cg, size_t retval) const {
     // FIXME: a malicious script can exploit this for a stack overflow.
     for (auto c : children) cg.Gen(c, 1);
     cg.TakeTemp(Arity());
@@ -1107,8 +1112,8 @@ void Constructor::Generate(CodeGen &cg, int retval) const {
     if (!retval) cg.Emit(IL_POPREF);
 }
 
-void IsType::Generate(CodeGen &cg, int retval) const {
-    cg.Gen(child, retval, true);
+void IsType::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval, 1);
     // If the value was a scalar, then it always results in a compile time type check,
     // which means this T_IS would have been optimized out. Which means from here on we
     // can assume its a ref.
@@ -1118,7 +1123,7 @@ void IsType::Generate(CodeGen &cg, int retval) const {
     }
 }
 
-void Return::Generate(CodeGen &cg, int retval) const {
+void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!retval);
     (void)retval;
     assert(!cg.rettypes.size());
@@ -1132,27 +1137,27 @@ void Return::Generate(CodeGen &cg, int retval) const {
             cg.GenPop(cg.temptypestack[i]);
         }
     }
-    int nretvals = make_void ? 0 : (int)sf->returntype->NumValues();
+    auto nretvals = make_void ? 0 : sf->returntype->NumValues();
     if (nretvals > MAX_RETURN_VALUES) cg.parser.Error("too many return values");
     if (sf->reqret) {
-        if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, true);
+        if (!Is<DefaultVal>(child)) cg.Gen(child, nretvals, nretvals);
         else { cg.Emit(IL_PUSHNIL); assert(nretvals == 1); }
     } else {
-        if (!Is<DefaultVal>(child)) cg.Gen(child, 0, true);
+        if (!Is<DefaultVal>(child)) cg.Gen(child, 0);
         nretvals = 0;
     }
     // FIXME: we could change the VM to instead work with SubFunction ids.
     // Note: this can only work as long as the type checker forces specialization
     // of the functions in between here and the function returned to.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
-    cg.Emit(IL_RETURN, sf->parent->idx, nretvals);
+    cg.Emit(IL_RETURN, sf->parent->idx, (int)nretvals);
 }
 
-void CoClosure::Generate(CodeGen &cg, int retval) const {
+void CoClosure::Generate(CodeGen &cg, size_t retval) const {
     if (retval) cg.Emit(IL_COCL);
 }
 
-void CoRoutine::Generate(CodeGen &cg, int retval) const {
+void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(IL_CORO, 0);
     auto loc = cg.Pos();
     auto sf = nattype->sf;
@@ -1162,13 +1167,13 @@ void CoRoutine::Generate(CodeGen &cg, int retval) const {
     // each function.
     cg.Emit((int)sf->coyieldsave.v.size());
     for (auto &arg : sf->coyieldsave.v) cg.Emit(arg.sid->Idx());
-    cg.Gen(call, 1, true);
+    cg.Gen(call, 1, 1);
     cg.Emit(IL_COEND);
     cg.SetLabel(loc);
     if (!retval) cg.Emit(IL_POPREF);
 }
 
-void TypeOf::Generate(CodeGen &cg, int /*retval*/) const {
+void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
     if (auto dv = Is<DefaultVal>(child)) {
         // FIXME
         if (!cg.temp_parent || !Is<NativeCall>(cg.temp_parent))

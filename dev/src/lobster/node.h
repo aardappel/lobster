@@ -55,7 +55,7 @@ struct Node {
     // Also sets correct scalar values.
     virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
-    virtual void Generate(CodeGen &cg, int retval) const = 0;
+    virtual void Generate(CodeGen &cg, size_t retval) const = 0;
     void SetTypes(TypeRef type) {
         exptype = type;
         nattype = type;
@@ -74,7 +74,7 @@ template<typename T> T *DoClone(T *dest, T *src) {
 #define SHARED_SIGNATURE_NO_TT(NAME, STR, SE) \
     string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
-    void Generate(CodeGen &cg, int retval) const; \
+    void Generate(CodeGen &cg, size_t retval) const; \
     Node *Clone() { return DoClone<NAME>(new NAME(), this); } \
   protected: \
     NAME() {};  // Only used by clone.
