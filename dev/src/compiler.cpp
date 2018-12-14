@@ -59,6 +59,44 @@ TypeRef type_void = &g_type_void;
 TypeRef type_function_void = &g_type_function_void;
 TypeRef type_undefined = &g_type_undefined;
 
+const Type g_type_vector_string(V_VECTOR, &g_type_string);
+const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
+const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float);
+const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_float);
+
+TypeRef WrapKnown(TypeRef elem, ValueType with) {
+    if (with == V_VECTOR) {
+        switch (elem->t) {
+            case V_ANY:    return type_vector_any;
+            case V_INT:    return type_vector_int;
+            case V_FLOAT:  return type_vector_float;
+            case V_STRING: return &g_type_vector_string;
+            case V_VECTOR: switch (elem->sub->t) {
+                case V_INT:   return &g_type_vector_vector_int;
+                case V_FLOAT: return &g_type_vector_vector_float;
+                case V_VECTOR: switch (elem->sub->sub->t) {
+                    case V_FLOAT: return &g_type_vector_vector_vector_float;
+                }
+            }
+        }
+    } else if (with == V_NIL) {
+        switch (elem->t) {
+            case V_ANY:      { static const Type t(V_NIL, &g_type_any); return &t; }
+            case V_INT:      { static const Type t(V_NIL, &g_type_int); return &t; }
+            case V_FLOAT:    { static const Type t(V_NIL, &g_type_float); return &t; }
+            case V_STRING:   { static const Type t(V_NIL, &g_type_string); return &t; }
+            case V_FUNCTION: { static const Type t(V_NIL, &g_type_function_null); return &t; }
+            case V_RESOURCE: { static const Type t(V_NIL, &g_type_resource); return &t; }
+            case V_VECTOR: switch (elem->sub->t) {
+                case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return &t; }
+                case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }
+                case V_STRING: { static const Type t(V_NIL, &g_type_vector_string); return &t; }
+            }
+        }
+    }
+    return nullptr;
+}
+
 bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');
     if (dot == string_view::npos) return false;

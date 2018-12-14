@@ -153,6 +153,8 @@ extern TypeRef type_typeid;
 extern TypeRef type_void;
 extern TypeRef type_undefined;
 
+TypeRef WrapKnown(TypeRef elem, ValueType with);
+
 enum ArgFlags {
     AF_NONE = 0,
     AF_EXPFUNVAL = 1,
@@ -184,7 +186,7 @@ struct Narg : Typed {
     Narg() : Typed(), fixed_len(0) {}
     Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len) {}
 
-    void Set(const char *&tid, list<Type> &typestorage) {
+    void Set(const char *&tid) {
         char t = *tid++;
         flags = AF_NONE;
         switch (t) {
@@ -210,16 +212,16 @@ struct Narg : Typed {
                 case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
                 case ']':
                 case '}':
-                    typestorage.push_back(Type());
-                    type = type->Wrap(&typestorage.back(), V_VECTOR);
+                    type = WrapKnown(type, V_VECTOR);
+                    assert(!type.Null());
                     if (c == '}') fixed_len = -1;
                     break;
                 case '?':
-                    typestorage.push_back(Type());
-                    type = type->Wrap(&typestorage.back(), V_NIL);
+                    type = WrapKnown(type, V_NIL);
+                    assert(!type.Null());
                     break;
                 case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
-                default: assert(0);
+                default: assert(false);
             }
         }
     }
@@ -285,8 +287,7 @@ struct NativeFun : Named {
     NativeFun *overloads, *first;
 
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
-              const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(VM &),
-              list<Type> &typestorage)
+              const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(VM &))
         : Named(_name, 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
           has_body(_has_body), cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr),
           first(this) {
@@ -295,11 +296,11 @@ struct NativeFun : Named {
         assert(TypeLen(typeids) == nargs);
         for (int i = 0; i < nargs; i++) {
             args.GetName(i);  // Call this just to trigger the assert.
-            args.v[i].Set(typeids, typestorage);
+            args.v[i].Set(typeids);
         }
         for (int i = 0; i < nretvalues; i++) {
             retvals.v.push_back(Narg());
-            retvals.v[i].Set(rets, typestorage);
+            retvals.v[i].Set(rets);
         }
     }
 };
@@ -308,7 +309,6 @@ struct NativeRegistry {
     vector<NativeFun *> nfuns;
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
-    list<Type> typestorage;  // For any native functions with types that rely on Wrap().
 
     ~NativeRegistry() {
         for (auto f : nfuns) delete f;
@@ -350,8 +350,7 @@ struct NativeRegistry {
 
 #define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
     BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
-    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1, \
-                                  natreg.typestorage)); } }
+    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); } }
 
 #define ENDDECL0(name, ids, types, rets, help) \
     ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)

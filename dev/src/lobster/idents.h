@@ -608,13 +608,16 @@ struct SymbolTable {
     }
 
     Type *NewType() {
-        // FIXME: this potentially generates quite a bit of "garbage".
-        // Instead, we could hash these, or store common type variants inside Struct etc.
-        // A quick test revealed that 10% of nodes cause one of these to be allocated, so probably
-        // not worth optimizing.
+        // These get allocated for very few nodes, given that most types are shared or stored in
+        // their own struct.
         auto t = new Type();
         typelist.push_back(t);
         return t;
+    }
+
+    TypeRef Wrap(TypeRef elem, ValueType with) {
+        auto wt = WrapKnown(elem, with);
+        return !wt.Null() ? wt : elem->Wrap(NewType(), with);
     }
 
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
@@ -627,8 +630,8 @@ struct SymbolTable {
             // Can't use stucts.find, since all are out of scope.
             for (auto struc : structtable) if (struc->name == *name) {
                 for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
-                    auto vt = &struc->thistype;
-                    for (size_t j = 0; j < i; j++) vt = vt->Wrap(NewType(), V_VECTOR);
+                    auto vt = TypeRef(&struc->thistype);
+                    for (size_t j = 0; j < i; j++) vt = Wrap(vt, V_VECTOR);
                     sv[i].push_back(vt);
                 }
                 goto found;

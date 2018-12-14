@@ -610,7 +610,7 @@ struct Parser {
                 TypeRef elem;
                 ParseType(elem, false);
                 Expect(T_RIGHTBRACKET);
-                dest = elem->Wrap(st.NewType(), V_VECTOR);
+                dest = st.Wrap(elem, V_VECTOR);
                 break;
             }
             case T_VOIDTYPE:
@@ -626,7 +626,7 @@ struct Parser {
         }
         if (IsNext(T_QUESTIONMARK)) {
             if (dest->Numeric()) Error("numeric types can\'t be made nilable");
-            dest = dest->Wrap(st.NewType(), V_NIL);
+            dest = st.Wrap(dest, V_NIL);
         }
         if (withtype && dest->t != V_STRUCT) Error(":: must be used with a struct type");
         return -1;
@@ -1095,7 +1095,7 @@ struct Parser {
                 auto n = new Nil(lex, nullptr);
                 if (IsNext(T_COLON)) {
                     ParseType(n->giventype, false);
-                    n->giventype = n->giventype->Wrap(st.NewType(), V_NIL);
+                    n->giventype = st.Wrap(n->giventype, V_NIL);
                 }
                 return n;
             }
@@ -1113,7 +1113,7 @@ struct Parser {
                 }, T_RIGHTBRACKET);
                 if (IsNext(T_TYPEIN)) {
                     ParseType(constructor->giventype, false);
-                    constructor->giventype = constructor->giventype->Wrap(st.NewType(), V_VECTOR);
+                    constructor->giventype = st.Wrap(constructor->giventype, V_VECTOR);
                 }
                 return constructor;
             }

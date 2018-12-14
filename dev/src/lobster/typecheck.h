@@ -93,7 +93,7 @@ struct TypeChecker {
 
     TypeRef PromoteStructIdxRec(TypeRef type, const Struct *news) {
         return type->Wrapped()
-            ? PromoteStructIdxRec(type->sub, news)->Wrap(st.NewType(), type->t)
+            ? st.Wrap(PromoteStructIdxRec(type->sub, news), type->t)
             : &news->thistype;
     }
 
@@ -286,7 +286,7 @@ struct TypeChecker {
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
             auto et = Union(at->Element(), bt->Element(), false);
-            return et->Wrap(st.NewType(), V_VECTOR);
+            return st.Wrap(et, V_VECTOR);
         }
         if (at->t == V_STRUCT && bt->t == V_STRUCT) {
             auto sstruc = st.CommonSuperType(at->struc, bt->struc);
@@ -1281,8 +1281,8 @@ struct TypeChecker {
         // (xy/xyz/xyzw).
         if (flen) {
             if (type->t == V_NIL) {
-                return ToVStruct(flen, type->sub, exp, nf, test_overloads, argn, errorn)->
-                    Wrap  (st.NewType(), V_NIL);
+                return st.Wrap(ToVStruct(flen, type->sub, exp, nf, test_overloads, argn, errorn),
+                               V_NIL);
             }
             auto etype = exp ? exp->exptype : nullptr;
             auto e = etype;
@@ -1618,7 +1618,7 @@ Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 }
 
 Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    exptype = !giventype.Null() ? giventype : tc.NewTypeVar()->Wrap(tc.st.NewType(), V_NIL);
+    exptype = !giventype.Null() ? giventype : tc.st.Wrap(tc.NewTypeVar(), V_NIL);
     return this;
 }
 
@@ -1900,7 +1900,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         }
         if (arg.flags & NF_ANYVAR) {
             if (argtype->t == V_VECTOR)
-                argtype = tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR);
+                argtype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
             else if (argtype->t == V_ANY) argtype = tc.NewTypeVar();
             else assert(0);
         }
@@ -1965,7 +1965,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                     if (!IsRef(type->t))
                         tc.TypeError(cat("argument ", sa + 1, " to ", nf->name,
                                     " can't be scalar"), *this);
-                    type = type->Wrap(tc.st.NewType(), V_NIL);
+                    type = tc.st.Wrap(type, V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
                     type = type->sub;
                 } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
@@ -1977,7 +1977,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                 break;
             }
             case NF_ANYVAR:
-                type = ret.type->t == V_VECTOR ? tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR)
+                type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.NewTypeVar(), V_VECTOR)
                                                   : tc.NewTypeVar();
                 break;
             default:
@@ -2102,10 +2102,10 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                 u = u.Null() ? c->exptype : tc.Union(u, c->exptype, true);
             }
             tc.StorageType(exptype, *this);
-            exptype = u->Wrap(tc.st.NewType(), V_VECTOR);
+            exptype = tc.st.Wrap(u, V_VECTOR);
         } else {
             // special case for empty vectors
-            exptype = tc.NewTypeVar()->Wrap(tc.st.NewType(), V_VECTOR);
+            exptype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
         }
     }
     if (exptype->t == V_STRUCT) {
@@ -2133,7 +2133,7 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     if (maybe && !IsRefNil(uf.type->t))
         tc.TypeError(cat("cannot dereference scalar field ", fld->name, " with ?."), *this);
     exptype = maybe && smtype->t == V_NIL && uf.type->t != V_NIL
-            ? uf.type->Wrap(tc.st.NewType(), V_NIL)
+            ? tc.st.Wrap(uf.type, V_NIL)
             : uf.type;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
