@@ -182,10 +182,8 @@ def coroutine_for(co, f):
 // builtin for() made useful as a coroutine.
 def cofor(n, f):
     for n: f(_)
-    return n
 
 // error checking
-
 
 def fatal_exit(msg):
     print "fatal error: " + msg

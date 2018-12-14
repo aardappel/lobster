@@ -349,7 +349,6 @@ def run_test_cases(is_speed_test):
             for(10) i:
                 b := 2
                 f()
-            return
 
         co4 := coroutine loctest()
         assert co4.active

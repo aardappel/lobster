@@ -97,6 +97,9 @@ struct Parser {
                     sid->id->static_constant =
                         sid->id->single_assignment && d->child->IsConstInit();
                 }
+            } else if (auto r = Is<Return>(def)) {
+                if (r != list->children.back())
+                    Error("return must be last in block");
             }
             return false;
         }), list->children.end());
