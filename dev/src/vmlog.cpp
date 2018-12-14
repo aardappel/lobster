@@ -79,10 +79,4 @@ void VMLog::LogCleanup() {
     LogPurge();
 }
 
-void VMLog::LogMark() {
-    for (auto &l : logvars) {
-        if (IsRefNil(l.type->t)) for (auto v : l.values) v.MarkRef(vm);
-    }
-}
-
 }  // namespace lobster

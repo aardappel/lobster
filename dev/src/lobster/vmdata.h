@@ -215,7 +215,6 @@ struct RefObj : DynAlloc {
     void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
 
     void DECDELETE(VM &vm, bool deref);
-    void Mark(VM &vm);
     intp Hash(VM &vm);
 };
 
@@ -438,8 +437,6 @@ struct Value {
 
     void ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const;
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
-    void Mark(VM &vm, ValueType vtype);
-    void MarkRef(VM &vm);
     intp Hash(VM &vm, ValueType vtype);
     Value Copy(VM &vm);  // Shallow.
 };
@@ -494,11 +491,6 @@ struct LStruct : RefObj {
         assert(len && len == Len(vm));
         memcpy(Elems(), from, len * sizeof(Value));
         if (inc) for (intp i = 0; i < len; i++) AtS(i).INCTYPE(ElemTypeS(vm, i));
-    }
-
-    void Mark(VM &vm) {
-        for (intp i = 0; i < Len(vm); i++)
-            AtS(i).Mark(vm, ElemTypeS(vm, i));
     }
 };
 
@@ -596,13 +588,6 @@ struct LVector : RefObj {
             for (intp i = 0; i < len; i++)
                 At(i).INCRTNIL();
     }
-
-    void Mark(VM &vm) {
-        auto et = ElemType(vm);
-        if (IsRefNil(et))
-            for (intp i = 0; i < len; i++)
-                At(i).Mark(vm, et);
-    }
 };
 
 struct VMLog {
@@ -622,7 +607,6 @@ struct VMLog {
     Value LogGet(Value def, int idx);
     void LogWrite(Value newval, int idx);
     void LogCleanup();
-    void LogMark();
 };
 
 struct StackFrame {
@@ -834,8 +818,6 @@ struct VM {
     string_view ReverseLookupType(uint v);
     void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
     double Time() { return SecondsSinceStart(); }
-
-    int GC();
 };
 
 inline int64_t Read64FromIp(const int *&ip) {
@@ -1150,17 +1132,6 @@ struct LCoRoutine : RefObj {
         }
         #endif
         return vt;
-    }
-
-    void Mark(VM &vm) {
-        // FIXME!
-        // ElemType(i) refers to the ith variable, not the ith stackcopy element.
-        /*
-        if (stackstart < 0)
-            for (int i = 0; i < stackcopylen; i++)
-                stackcopy[i].Mark(?);
-        */
-        vm.BuiltinError("internal: can\'t GC coroutines");
     }
 };
 

@@ -139,13 +139,11 @@ static bool _LeakSorter(void *va, void *vb) {
 }
 
 void VM::DumpLeaks() {
-    vector<void *> leaks;
-    pool.findleaks([&](void *p) { leaks.push_back(p); });
+    vector<void *> leaks = pool.findleaks();
     if (!leaks.empty()) {
         Output(OUTPUT_ERROR, "LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster, details in leaks.txt)");
         ostringstream ss;
-        //qsort(&leaks[0], leaks.size(), sizeof(void *), &LeakSorter);
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
         leakpp.cycles = 0;
@@ -1632,34 +1630,6 @@ string_view VM::StructName(const TypeInfo &ti) {
 string_view VM::ReverseLookupType(uint v) {
     auto s = bcf->structs()->Get(v)->name();
     return flat_string_view(s);
-}
-
-int VM::GC() {  // shouldn't really be used, but just in case
-    for (int i = 0; i <= sp; i++) {
-        //stack[i].Mark(?);
-        // TODO: we could actually walk the stack here and recover correct types, but it is so easy
-        // to avoid this error that that may not be worth it.
-        if (stack[i].True())  // Typically all nil
-            Error("collect_garbage() must be called from a top level function");
-    }
-    for (uint i = 0; i < bcf->specidents()->size(); i++) vars[i].Mark(*this, GetVarTypeInfo(i).t);
-    vml.LogMark();
-    vector<RefObj *> leaks;
-    int total = 0;
-    pool.findleaks([&](void *p) {
-        total++;
-        auto r = (RefObj *)p;
-        if (r->tti == TYPE_ELEM_VALUEBUF ||
-            r->tti == TYPE_ELEM_STACKFRAMEBUF) return;
-        if (r->refc > 0) leaks.push_back(r);
-        r->refc = -r->refc;
-    });
-    for (auto p : leaks) {
-        auto ro = (RefObj *)p;
-        ro->refc = 0;
-        ro->DECDELETE(*this, false);
-    }
-    return (int)leaks.size();
 }
 
 }  // namespace lobster

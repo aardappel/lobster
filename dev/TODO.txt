@@ -10,8 +10,6 @@
       modifies code, we can generalize that now!
     - we can maybe make the whole typechecker not modify nodes?
 
-- remove GC?
-
 - make more args const
 
 - could we remove the support for dynamic scoping alltogether?

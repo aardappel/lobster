@@ -351,7 +351,8 @@ class SlabAlloc {
         return false;
     }
 
-    template<typename T> void findleaks(T leakcallback) {
+    vector<void *> findleaks() {
+        vector<void *> leaks;
         loopdllist(usedpages, h) {
             h->isfree = (char *)calloc(numobjs(h->size), 1);
         }
@@ -364,13 +365,14 @@ class SlabAlloc {
         loopdllist(usedpages, h) {
             for (int i = 0; i < numobjs(h->size); i++) {
                 if (!h->isfree[i]) {
-                    leakcallback(((char *)(h + 1)) + i * h->size);
+                    leaks.push_back(((char *)(h + 1)) + i * h->size);
                 }
             }
             free(h->isfree);
             h->isfree = nullptr;
         }
-        loopdllist(largeallocs, n) leakcallback(n + 1);
+        loopdllist(largeallocs, n) leaks.push_back(n + 1);
+        return leaks;
     }
 
     void printstats(bool full = false) {

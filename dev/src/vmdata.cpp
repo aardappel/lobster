@@ -183,19 +183,6 @@ void Value::ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp)
     }
 }
 
-
-void RefObj::Mark(VM &vm) {
-    if (refc < 0) return;
-    assert(refc);
-    refc = -refc;
-    switch (ti(vm).t) {
-        case V_STRUCT:     ((LStruct    *)this)->Mark(vm); break;
-        case V_VECTOR:     ((LVector    *)this)->Mark(vm); break;
-        case V_COROUTINE:  ((LCoRoutine *)this)->Mark(vm); break;
-        default:                                         break;
-    }
-}
-
 intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
         case V_BOXEDINT:    return ((BoxedInt *)this)->val;
@@ -218,14 +205,6 @@ intp Value::Hash(VM &vm, ValueType vtype) {
         case V_FUNCTION: return (intp)(size_t)ip_.f;
         default: return refnil() ? ref()->Hash(vm) : 0;
     }
-}
-
-void Value::Mark(VM &vm, ValueType vtype) {
-    if (IsRefNil(vtype) && ref_) ref_->Mark(vm);
-}
-
-void Value::MarkRef(VM &vm) {
-    if (ref_) ref_->Mark(vm);
 }
 
 Value Value::Copy(VM &vm) {

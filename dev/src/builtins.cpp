@@ -1119,15 +1119,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         "tracing shows each bytecode instruction as it is being executed, not very useful unless"
         " you are trying to isolate a compiler bug");
 
-    STARTDECL(collect_garbage) (VM &vm) {
-        return Value(vm.GC());
-    }
-    ENDDECL0(collect_garbage, "", "", "I",
-        "forces a garbage collection to re-claim cycles. slow and not recommended to be used."
-        " instead, write code to clear any back pointers before abandoning data structures. Watch"
-        " for a \"LEAKS FOUND\" message in the console upon program exit to know when you've"
-        " created a cycle. returns number of objects collected.");
-
     STARTDECL(set_max_stack_size) (VM &vm, Value &max) {
         vm.SetMaxStack((int)max.ival() * 1024 * 1024 / sizeof(Value));
         return Value();

@@ -431,22 +431,6 @@ def run_test_cases(is_speed_test):
 
     assert(seconds_elapsed() - starttime > 0)
 
-    if !is_speed_test:
-        def cycletest():
-            struct cyclist { name:string, loop:cyclist?, next:cyclist? }
-            cycle := cyclist { "cycleouter", nil, cyclist { "cycleinner", nil, nil } }
-            cycle.loop = cycle
-            assert cycle.next
-            cycle.next.loop = cycle.next
-        cycletest()
-        garbage_objects := collect_garbage()
-        assert garbage_objects == 4 // 2 vectors, 2 strings
-        garbage_objects = collect_garbage()
-        assert !garbage_objects
-
-    //"press enter to continue...".print
-    //get_line()
-
 if program_name() == "unittest.lobster" or program_name() == "include/unittest.lobster":
     run_test_cases(false)
 
