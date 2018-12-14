@@ -383,7 +383,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_color) (VM &vm) {
         curcolor = ValueDecToFLT<4>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4C?", "",
+    ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4B?", "",
         "sets the current color. when a body is given, restores the previous color afterwards");
 
     STARTDECL(gl_polygon) (VM &vm, Value &vl) {
@@ -433,7 +433,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_rotate_x) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F}:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F}:2B?", "",
         "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -444,7 +444,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_rotate_y) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F}:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F}:2B?", "",
         "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
         " when a body is given, restores the previous transform afterwards");
 
@@ -455,7 +455,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_rotate_z) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F}:2C?", "",
+    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F}:2B?", "",
         "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
         " as angle. when a body is given, restores the previous transform afterwards");
 
@@ -466,7 +466,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_translate) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F}C?", "",
+    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F}B?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -477,7 +477,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_scale) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FC?", "",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FB?", "",
         "scales the current coordinate system using a numerical factor."
         " when a body is given, restores the previous transform afterwards");
 
@@ -488,7 +488,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_scale) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F}C?", "",
+    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F}B?", "",
         "scales the current coordinate system using a vector."
         " when a body is given, restores the previous transform afterwards");
 
@@ -535,7 +535,7 @@ void AddGraphics(NativeRegistry &natreg) {
     MIDDECL(gl_line_mode) (VM &vm) {
         polymode = (Primitive)vm.Pop().ival();
     }
-    ENDDECL2CONTEXIT(gl_line_mode, "on,body", "IC", "",
+    ENDDECL2CONTEXIT(gl_line_mode, "on,body", "IB", "",
         "set line mode (true == on). when a body is given,"
         " restores the previous mode afterwards");
 
@@ -725,7 +725,7 @@ void AddGraphics(NativeRegistry &natreg) {
         return Value(vm.NewResource(m, &mesh_type));
     }
     ENDDECL7(gl_new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
-             "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "X",
+             "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R",
         "creates a new vertex buffer and returns an integer id (1..) for it."
         " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
         " indices may be []. positions is obligatory."
@@ -738,7 +738,7 @@ void AddGraphics(NativeRegistry &natreg) {
         positions.DECRT(vm);
         return Value(vm.NewResource(m, &mesh_type));
     }
-    ENDDECL1(gl_new_poly, "positions", "F}]", "X",
+    ENDDECL1(gl_new_poly, "positions", "F}]", "R",
         "creates a mesh out of a loop of points, much like gl_polygon."
         " gl_line_mode determines how this gets drawn (fan or loop)."
         " returns mesh id");
@@ -749,7 +749,7 @@ void AddGraphics(NativeRegistry &natreg) {
         fn.DECRT(vm);
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
     }
-    ENDDECL1(gl_new_mesh_iqm, "filename", "S", "X?",
+    ENDDECL1(gl_new_mesh_iqm, "filename", "S", "R?",
         "load a .iqm file into a mesh, returns mesh or nil on failure to load.");
 
     STARTDECL(gl_mesh_parts) (VM &vm, Value &i) {
@@ -758,21 +758,21 @@ void AddGraphics(NativeRegistry &natreg) {
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
         return Value(v);
     }
-    ENDDECL1(gl_mesh_parts, "m", "X", "S]",
+    ENDDECL1(gl_mesh_parts, "m", "R", "S]",
         "returns an array of names of all parts of mesh m (names may be empty)");
 
     STARTDECL(gl_mesh_size) (VM &vm, Value &i) {
         auto &m = GetMesh(vm, i);
         return Value((int)m.geom->nverts);
     }
-    ENDDECL1(gl_mesh_size, "m", "X", "I",
+    ENDDECL1(gl_mesh_size, "m", "R", "I",
         "returns the number of verts in this mesh");
 
     STARTDECL(gl_animate_mesh) (VM &vm, Value &i, Value &f) {
         GetMesh(vm, i).curanim = f.fltval();
         return Value();
     }
-    ENDDECL2(gl_animate_mesh, "m,frame", "XF", "",
+    ENDDECL2(gl_animate_mesh, "m,frame", "RF", "",
         "set the frame for animated mesh m");
 
     STARTDECL(gl_render_mesh) (VM &vm, Value &i) {
@@ -780,7 +780,7 @@ void AddGraphics(NativeRegistry &natreg) {
         GetMesh(vm, i).Render(currentshader);
         return Value();
     }
-    ENDDECL1(gl_render_mesh, "m", "X", "",
+    ENDDECL1(gl_render_mesh, "m", "R", "",
         "renders the specified mesh");
 
     STARTDECL(gl_save_mesh) (VM &vm, Value &i, Value &name) {
@@ -789,7 +789,7 @@ void AddGraphics(NativeRegistry &natreg) {
         name.DECRT(vm);
         return Value(ok);
     }
-    ENDDECL2(gl_save_mesh, "m,name", "XS", "I",
+    ENDDECL2(gl_save_mesh, "m,name", "RS", "I",
         "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
         " procedurally. returns false if the file could not be written");
 
@@ -886,7 +886,7 @@ void AddGraphics(NativeRegistry &natreg) {
         else BindVBOAsSSBO(bpi.intval(), 0);
         return Value();
     }
-    ENDDECL2(gl_bind_mesh_to_compute, "mesh,binding", "X?I", "",
+    ENDDECL2(gl_bind_mesh_to_compute, "mesh,binding", "R?I", "",
         "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
         " unbind.");
 
@@ -922,7 +922,7 @@ void AddGraphics(NativeRegistry &natreg) {
         assert(m.type == V_INT);
         SetBlendMode((BlendMode)m.ival());
     }
-    ENDDECL2CONTEXIT(gl_blend, "on,body", "IC?", "",
+    ENDDECL2CONTEXIT(gl_blend, "on,body", "IB?", "",
         "changes the blending mode (use blending constants from color.lobster). when a body is"
         " given, restores the previous mode afterwards");
 
@@ -932,7 +932,7 @@ void AddGraphics(NativeRegistry &natreg) {
         name.DECRT(vm);
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
     }
-    ENDDECL2(gl_load_texture, "name,textureformat", "SI?", "X?",
+    ENDDECL2(gl_load_texture, "name,textureformat", "SI?", "R?",
         "returns texture if succesfully loaded from file name, otherwise nil."
         " see color.lobster for texture format. Uses stb_image internally"
         " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
@@ -943,7 +943,7 @@ void AddGraphics(NativeRegistry &natreg) {
         SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     }
-    ENDDECL3(gl_set_primitive_texture, "i,tex,textureformat", "IXI?", "",
+    ENDDECL3(gl_set_primitive_texture, "i,tex,textureformat", "IRI?", "",
         "sets texture unit i to texture (for use with rect/circle/polygon/line)");
 
     STARTDECL(gl_set_mesh_texture) (VM &vm, Value &mid, Value &part, Value &i, Value &id) {
@@ -953,7 +953,7 @@ void AddGraphics(NativeRegistry &natreg) {
         m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
         return Value();
     }
-    ENDDECL4(gl_set_mesh_texture, "mesh,part,i,texture", "XIIX", "",
+    ENDDECL4(gl_set_mesh_texture, "mesh,part,i,texture", "RIIR", "",
         "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)");
 
     STARTDECL(gl_set_image_texture) (VM &vm, Value &i, Value &id, Value &tf) {
@@ -961,7 +961,7 @@ void AddGraphics(NativeRegistry &natreg) {
         SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
     }
-    ENDDECL3(gl_set_image_texture, "i,tex,textureformat", "IXI", "",
+    ENDDECL3(gl_set_image_texture, "i,tex,textureformat", "IRI", "",
         "sets image unit i to texture (for use with compute). texture format must be the same"
         " as what you specified in gl_load_texture / gl_create_texture,"
         " with optionally writeonly/readwrite flags.");
@@ -988,7 +988,7 @@ void AddGraphics(NativeRegistry &natreg) {
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     }
-    ENDDECL2(gl_create_texture, "matrix,textureformat", "F}:4]]I?", "X",
+    ENDDECL2(gl_create_texture, "matrix,textureformat", "F}:4]]I?", "R",
         "creates a texture from a 2d array of color vectors."
         " see texture.lobster for texture format");
 
@@ -997,7 +997,7 @@ void AddGraphics(NativeRegistry &natreg) {
         auto tex = CreateBlankTexture(ValueDecToINT<2>(vm, size_), ValueDecToFLT<4>(vm, col), tf.intval());
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     }
-    ENDDECL3(gl_create_blank_texture, "size,color,textureformat", "I}:2F}:4I?", "X",
+    ENDDECL3(gl_create_blank_texture, "size,color,textureformat", "I}:2F}:4I?", "R",
         "creates a blank texture (for use as frame buffer or with compute shaders)."
         " see texture.lobster for texture format");
 
@@ -1005,7 +1005,7 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         return ToValueINT(vm, GetTexture(vm, tex).size.xy());
     }
-    ENDDECL1(gl_texture_size, "tex", "X", "I}:2",
+    ENDDECL1(gl_texture_size, "tex", "R", "I}:2",
         "returns the size of a texture");
 
     STARTDECL(gl_read_texture) (VM &vm, Value &t) {
@@ -1019,7 +1019,7 @@ void AddGraphics(NativeRegistry &natreg) {
         delete[] buf;
         return Value(s);
     }
-    ENDDECL1(gl_read_texture, "tex", "X", "S?",
+    ENDDECL1(gl_read_texture, "tex", "R", "S?",
         "read back RGBA texture data into a string or nil on failure");
 
     STARTDECL(gl_switch_to_framebuffer) (VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
@@ -1030,7 +1030,7 @@ void AddGraphics(NativeRegistry &natreg) {
                                          depth.True(), tf.intval(), GetTexture(vm, retex),
                                          GetTexture(vm, depthtex)));
     }
-    ENDDECL5(gl_switch_to_framebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "X?I?I?X?X?",
+    ENDDECL5(gl_switch_to_framebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "R?I?I?R?R?",
         "I",
         "switches to a new framebuffer, that renders into the given texture."
         " also allocates a depth buffer for it if depth is true."

@@ -340,7 +340,7 @@ void AddVR(NativeRegistry &natreg) {
     MIDDECL(vr_motion_controller) (VM &vm) {
         PopTransform(vm);
     }
-    ENDDECL2CONTEXIT(vr_motion_controller, "n,body", "IC?", "",
+    ENDDECL2CONTEXIT(vr_motion_controller, "n,body", "IB?", "",
         "sets up the transform ready to render controller n."
         " when a body is given, restores the previous transform afterwards."
         " if there is no controller n (or it is currently not"
@@ -351,7 +351,7 @@ void AddVR(NativeRegistry &natreg) {
         extern ResourceType mesh_type;
         return mcd ? Value(vm.NewResource(VRCreateMesh(mcd->device), &mesh_type)) : Value();
     }
-    ENDDECL1(vr_create_motion_controller_mesh, "n", "I", "X?",
+    ENDDECL1(vr_create_motion_controller_mesh, "n", "I", "R?",
         "returns the mesh for motion controller n, or nil if not available");
 
     STARTDECL(vr_motion_controller_button) (VM &vm, Value &mc, Value &button) {

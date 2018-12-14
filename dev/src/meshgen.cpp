@@ -767,7 +767,7 @@ void AddMeshGen(NativeRegistry &natreg) {
         extern ResourceType mesh_type;
         return Value(vm.NewResource(mesh, &mesh_type));
     }
-    ENDDECL1(mg_polygonize, "subdiv", "I", "X",
+    ENDDECL1(mg_polygonize, "subdiv", "I", "R",
         "returns a generated mesh from past mg_ commands."
         " subdiv determines detail and number of polygons (relative to the largest dimension of the"
         " model), try 30.. 300 depending on the subject."
@@ -783,7 +783,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     MIDDECL(mg_translate) (VM &vm) {
         curorig = ValueDecToFLT<3>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3C?", "",
+    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3B?", "",
         "translates the current coordinate system along a vector. when a body is given,"
         " restores the previous transform afterwards");
 
@@ -795,7 +795,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     MIDDECL(mg_scale) (VM &vm) {
         cursize = ValueDecToFLT<3>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(mg_scale, "f,body", "FC?", "",
+    ENDDECL2CONTEXIT(mg_scale, "f,body", "FB?", "",
         "scales the current coordinate system by the given factor."
         " when a body is given, restores the previous transform afterwards");
 
@@ -808,7 +808,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     MIDDECL(mg_scale_vec) (VM &vm) {
         cursize = ValueDecToFLT<3>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3C?", "",
+    ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3B?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis."
         " when a body is given, restores the previous transform afterwards");
 
@@ -826,7 +826,7 @@ void AddMeshGen(NativeRegistry &natreg) {
         currot = *(float3x3 *)s.sval()->data();
         s.DECRT(vm);
     }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FC?", "",
+    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FB?", "",
         "rotates using axis/angle. when a body is given, restores the previous transform"
         " afterwards");
 
@@ -838,7 +838,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     MIDDECL(mg_color) (VM &vm) {
         curcol = ValueDecToFLT<4>(vm, vm.Pop());
     }
-    ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4C?", "",
+    ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4B?", "",
         "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
         " substracts them (carves). when a body is given, restores the previous color afterwards.");
 
@@ -852,7 +852,7 @@ void AddMeshGen(NativeRegistry &natreg) {
         assert(smooth.type == V_FLOAT);
         cursmoothmink = smooth.fltval();
     }
-    ENDDECL2CONTEXIT(mg_smooth, "smooth,body", "FC?", "",
+    ENDDECL2CONTEXIT(mg_smooth, "smooth,body", "FB?", "",
         "sets the smoothness in terms of the range of distance from the shape smoothing happens."
         " when a body is given, restores the previous value afterwards.");
 }

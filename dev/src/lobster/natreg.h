@@ -190,14 +190,13 @@ struct Narg : Typed {
         char t = *tid++;
         flags = AF_NONE;
         switch (t) {
+            case 'A': type = type_any; break;
             case 'I': type = type_int; break;
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
-            case 'V': type = type_vector_any; break;  // Deprecated, use ']'
-            case 'C': type = type_function_null; break;
-            case 'R': type = type_coroutine; break;
-            case 'X': type = type_resource; break;
-            case 'A': type = type_any; break;
+            case 'B': type = type_function_null; break;
+            case 'C': type = type_coroutine; break;
+            case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
             default:  assert(0);
         }

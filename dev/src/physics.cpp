@@ -145,7 +145,7 @@ void AddPhysics(NativeRegistry &natreg) {
         return CreateFixture(vm, body, shape);
     }
     ENDDECL5(
-        ph_create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?X?", "X",
+        ph_create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R?", "R",
         "creates a physical box shape in the world at position, with size the half-extends around"
         " the center, offset from the center if needed, at a particular rotation (in degrees)."
         " attachto is a previous physical object to attach this one to, to become a combined"
@@ -161,7 +161,7 @@ void AddPhysics(NativeRegistry &natreg) {
         return CreateFixture(vm, body, shape);
     }
     ENDDECL4(
-        ph_create_circle, "position,radius,offset,attachto", "F}:2FF}:2?X?", "X",
+        ph_create_circle, "position,radius,offset,attachto", "F}:2FF}:2?R?", "R",
         "creates a physical circle shape in the world at position, with the given radius, offset"
         " from the center if needed. attachto is a previous physical object to attach this one to,"
         " to become a combined physical body.");
@@ -180,7 +180,7 @@ void AddPhysics(NativeRegistry &natreg) {
         return CreateFixture(vm, body, shape);
     }
     ENDDECL3(
-        ph_create_polygon, "position,vertices,attachto", "F}:2F}:2]X?", "X",
+        ph_create_polygon, "position,vertices,attachto", "F}:2F}:2]R?", "R",
         "creates a polygon circle shape in the world at position, with the given list of vertices."
         " attachto is a previous physical object to attach this one to, to become a combined"
         " physical body.");
@@ -192,7 +192,7 @@ void AddPhysics(NativeRegistry &natreg) {
             ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
         return Value();
     }
-    ENDDECL2(ph_dynamic, "shape,on", "XI", "", "makes a shape dynamic (on = true) or not.");
+    ENDDECL2(ph_dynamic, "shape,on", "RI", "", "makes a shape dynamic (on = true) or not.");
 
     STARTDECL(ph_set_color)(VM & vm, Value & fixture_id, Value & color) {
         auto &r = GetRenderable(vm, fixture_id);
@@ -200,7 +200,7 @@ void AddPhysics(NativeRegistry &natreg) {
         r.color = c;
         return Value();
     }
-    ENDDECL2(ph_set_color, "id,color", "X?F}:4", "",
+    ENDDECL2(ph_set_color, "id,color", "R?F}:4", "",
              "sets a shape (or nil for particles) to be rendered with a particular color.");
 
     STARTDECL(ph_set_shader)(VM & vm, Value & fixture_id, Value & shader) {
@@ -210,7 +210,7 @@ void AddPhysics(NativeRegistry &natreg) {
         if (sh) r.sh = sh;
         return Value();
     }
-    ENDDECL2(ph_set_shader, "id,shadername", "X?S", "",
+    ENDDECL2(ph_set_shader, "id,shadername", "R?S", "",
              "sets a shape (or nil for particles) to be rendered with a particular shader.");
 
     STARTDECL(ph_set_texture)(VM & vm, Value & fixture_id, Value & tex, Value & tex_unit) {
@@ -219,14 +219,14 @@ void AddPhysics(NativeRegistry &natreg) {
         r.Get(GetSampler(vm, tex_unit)) = GetTexture(vm, tex);
         return Value();
     }
-    ENDDECL3(ph_set_texture, "id,tex,texunit", "X?XI?", "",
+    ENDDECL3(ph_set_texture, "id,tex,texunit", "R?RI?", "",
              "sets a shape (or nil for particles) to be rendered with a particular texture"
              " (assigned to a texture unit, default 0).");
 
     STARTDECL(ph_get_position)(VM & vm, Value & fixture_id) {
         return Value(ToValueFLT(vm, GetObject(vm, fixture_id).Pos()));
     }
-    ENDDECL1(ph_get_position, "id", "X", "F}:2", "gets a shape's position.");
+    ENDDECL1(ph_get_position, "id", "R", "F}:2", "gets a shape's position.");
 
     STARTDECL(ph_create_particle)
     (VM & vm, Value & position, Value & velocity, Value & color, Value & type) {
@@ -301,7 +301,7 @@ void AddPhysics(NativeRegistry &natreg) {
         for (int i = 0; i < numelems; i++) v->At(i) = Value((*po.particle_contacts)[i]);
         return Value(v);
     }
-    ENDDECL1(ph_particle_contacts, "id", "X", "I]",
+    ENDDECL1(ph_particle_contacts, "id", "R", "I]",
              "gets the particle indices that are currently contacting a giving physics object."
              " Call after step(). Indices may be invalid after next step().");
 

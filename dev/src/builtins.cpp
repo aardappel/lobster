@@ -143,7 +143,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         (void)e;
         return Value();
     }
-    ENDDECL3(if, "cond,then,else", "ACC?", "A",
+    ENDDECL3(if, "cond,then,else", "ABB?", "A",
         "evaluates then or else depending on cond, else is optional");
 
     STARTDECL(while) (VM &, Value &c, Value &b) {
@@ -152,7 +152,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         (void)b;
         return Value();
     }
-    ENDDECL2(while, "cond,do", "C@C", "A",
+    ENDDECL2(while, "cond,do", "B@B", "A",
         "evaluates body while cond (converted to a function) holds true, returns last body value");
 
     STARTDECL(for) (VM &, Value &iter, Value &body) {
@@ -161,7 +161,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         (void)body;
         return Value();
     }
-    ENDDECL2(for, "iter,do", "AC", "",
+    ENDDECL2(for, "iter,do", "AB", "",
         "iterates over int/vector/string, body may take [ element [ , index ] ] arguments");
 
     STARTDECL(append) (VM &vm, Value &v1, Value &v2) {
@@ -171,13 +171,13 @@ void AddBuiltins(NativeRegistry &natreg) {
         nv->Append(vm, v2.vval(), 0, v2.vval()->len); v2.DECRT(vm);
         return Value(nv);
     }
-    ENDDECL2(append, "xs,ys", "V*V*1", "V1",
+    ENDDECL2(append, "xs,ys", "A]*A]*1", "A]1",
         "creates a new vector by appending all elements of 2 input vectors");
 
     STARTDECL(vector_reserve) (VM &vm, Value &type, Value &len) {
         return Value(vm.NewVec(0, len.ival(), (type_elem_t)type.ival()));
     }
-    ENDDECL2(vector_reserve, "typeid,len", "TI", "V*",
+    ENDDECL2(vector_reserve, "typeid,len", "TI", "A]*",
         "creates a new empty vector much like [] would, except now ensures"
         " it will have space for len push() operations without having to reallocate."
         " pass \"typeof return\" as typeid.");
@@ -217,7 +217,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         a.DECRT(vm);
         return Value(len);
     }
-    ENDDECL1(length, "xs", "V*", "I",
+    ENDDECL1(length, "xs", "A]*", "I",
         "length of vector");
 
     STARTDECL(equal) (VM &vm, Value &a, Value &b) {
@@ -234,7 +234,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.vval()->Push(vm, x);
         return l;
     }
-    ENDDECL2(push, "xs,x", "V*A1", "V1",
+    ENDDECL2(push, "xs,x", "A]*A1", "A]1",
         "appends one element to a vector, returns existing vector");
 
     STARTDECL(pop) (VM &vm, Value &l) {
@@ -243,7 +243,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return v;
     }
-    ENDDECL1(pop, "xs", "V*", "A1",
+    ENDDECL1(pop, "xs", "A]*", "A1",
         "removes last element from vector and returns it");
 
     STARTDECL(top) (VM &vm, Value &l) {
@@ -252,7 +252,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return v;
     }
-    ENDDECL1(top, "xs", "V*", "A1",
+    ENDDECL1(top, "xs", "A]*", "A1",
         "returns last element from vector");
 
     STARTDECL(replace) (VM &vm, Value &l, Value &i, Value &a) {
@@ -278,7 +278,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         nv->At(i.ival()) = a;
         return Value(nv);
     }
-    ENDDECL3(replace, "xs,i,x", "V*IA1", "V1",
+    ENDDECL3(replace, "xs,i,x", "A]*IA1", "A]1",
         "returns a copy of a vector with the element at i replaced by x");
 
     STARTDECL(insert) (VM &vm, Value &l, Value &i, Value &a) {
@@ -287,7 +287,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.vval()->Insert(vm, a, i.ival());
         return l;
     }
-    ENDDECL3(insert, "xs,i,x", "V*IA1", "V1",
+    ENDDECL3(insert, "xs,i,x", "A]*IA1", "A]1",
         "inserts a value into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
@@ -301,7 +301,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return v;
     }
-    ENDDECL3(remove, "xs,i,n", "V*II?", "A1",
+    ENDDECL3(remove, "xs,i,n", "A]*II?", "A1",
         "remove element(s) at index i, following elements shift down. pass the number of elements"
         " to remove as an optional argument, default 1. returns the first element removed.");
 
@@ -318,7 +318,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return o;
     }
-    ENDDECL2(remove_obj, "xs,obj", "V*A1", "A2",
+    ENDDECL2(remove_obj, "xs,obj", "A]*A1", "A2",
         "remove all elements equal to obj (==), returns obj.");
 
     STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
@@ -367,7 +367,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         return Value(nv);
     }
     ENDDECL3(slice,
-        "xs,start,size", "V*II", "V1", "returns a sub-vector of size elements from index start."
+        "xs,start,size", "A]*II", "A]1", "returns a sub-vector of size elements from index start."
         " size can be negative to indicate the rest of the vector.");
 
     #define ANY_F(acc, at, len) \
@@ -388,7 +388,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(any) (VM &vm, Value &v) {
         ANY_F(vval, At(i), len)
     }
-    ENDDECL1(any, "xs", "V*", "I",
+    ENDDECL1(any, "xs", "A]*", "I",
         "returns wether any elements of the vector are true values");
 
     STARTDECL(all) (VM &vm, Value &v) {
@@ -417,7 +417,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         v.DECRT(vm);
         return r;
     }
-    ENDDECL1(all, "xs", "V*", "I",
+    ENDDECL1(all, "xs", "A]*", "I",
         "returns wether all elements of the vector are true values");
 
     STARTDECL(substring) (VM &vm, Value &l, Value &s, Value &e) {
@@ -1046,7 +1046,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         // The actual return value from this call to resume will be the argument to the next call
         // to yield, or the coroutine return value.
     }
-    ENDDECL2(resume, "coroutine,return_value", "RA%?", "A",
+    ENDDECL2(resume, "coroutine,return_value", "CA%?", "A",
         "resumes execution of a coroutine, passing a value back or nil");
 
     STARTDECL(return_value) (VM &vm, Value &co) {
@@ -1054,7 +1054,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         co.DECRT(vm);
         return rv;
     }
-    ENDDECL1(return_value, "coroutine", "R", "A1",
+    ENDDECL1(return_value, "coroutine", "C", "A1",
         "gets the last return value of a coroutine");
 
     STARTDECL(active) (VM &vm, Value &co) {
@@ -1062,14 +1062,14 @@ void AddBuiltins(NativeRegistry &natreg) {
         co.DECRT(vm);
         return Value(active);
     }
-    ENDDECL1(active, "coroutine", "R", "I",
+    ENDDECL1(active, "coroutine", "C", "I",
         "wether the given coroutine is still active");
 
     STARTDECL(hash) (VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FUNCTION);
         return Value(h);
     }
-    ENDDECL1(hash, "x", "C", "I",
+    ENDDECL1(hash, "x", "B", "I",
         "hashes a function value into an int");
     STARTDECL(hash) (VM &vm, Value &a) {
         auto h = a.ref()->Hash(vm);
