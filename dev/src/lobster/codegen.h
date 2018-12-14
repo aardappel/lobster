@@ -321,9 +321,8 @@ struct CodeGen  {
     }
 
     void EmitTempInfo(const Node *callnode) {
-        int i = 0;
         uint mask = 0;
-        for (auto type : temptypestack) {
+        for (auto [i, type] : enumerate(temptypestack)) {
             if (IsRefNil(type->t)) {
                 // FIXME: this is pretty lame, but hopefully rare. stopgap measure.
                 if (i >= 32)
@@ -331,7 +330,6 @@ struct CodeGen  {
                                  callnode);
                 mask |= 1 << i;
             }
-            i++;
         }
         Emit((int)mask);
     }

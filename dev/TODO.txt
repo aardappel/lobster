@@ -10,9 +10,6 @@
       modifies code, we can generalize that now!
     - we can maybe make the whole typechecker not modify nodes?
 
-- apply this pattern in more places: http://reedbeta.com/blog/python-like-enumerate-in-cpp17/
-  - and reverse()
-
 - rename characters in type string
 
 - remove GC?

@@ -895,8 +895,7 @@ struct Parser {
         if (nf && (!f || !wse.id)) {
             auto nc = new GenericCall(lex, idname, nullptr, false, false);
             ParseFunArgs(nc, coroutine, firstarg, idname, &nf->args, noparens);
-            size_t i = 0;
-            for (auto &arg : nf->args.v) {
+            for (auto [i, arg] : enumerate(nf->args.v)) {
                 if (i >= nc->Arity()) {
                     auto &type = arg.type;
                     if (type->t == V_NIL) {
@@ -910,7 +909,6 @@ struct Parser {
                         Error("missing arg to builtin function: " + idname);
                     }
                 }
-                i++;
             }
             argsok:
             // Special formats for these functions, for better type checking and performance

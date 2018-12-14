@@ -91,9 +91,8 @@ struct Optimizer {
             if (auto sf = dcall->sf) {
                 // Note that this is not necessarily the same as dcall->sid->type->sf, since a
                 // single function variable may have 1 specialization per call
-                size_t i = 0;
-                for (auto c : dcall->children) {
-                    if (i++ >= sf->parent->nargs()) {
+                for (auto [i, c] : enumerate(dcall->children)) {
+                    if (i >= sf->parent->nargs()) {
                         delete c;
                     }
                 }

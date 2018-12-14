@@ -127,15 +127,13 @@ struct TypeChecker {
     string SignatureWithFreeVars(const SubFunction &sf, set<Ident *> *already_seen,
                                  bool withtype = true) {
         string s = Signature(sf, withtype) + " { ";
-        size_t i = 0;
-        for (auto &freevar : sf.freevars.v) {
+        for (auto [i, freevar] : enumerate(sf.freevars.v)) {
             if (freevar.type->t != V_FUNCTION &&
                 !freevar.sid->id->static_constant &&
                 (!already_seen || already_seen->find(freevar.sid->id) == already_seen->end())) {
                 s += TypedArg(sf.freevars, i) + " ";
                 if (already_seen) already_seen->insert(freevar.sid->id);
             }
-            i++;
         }
         s += "}";
         return s;
@@ -167,9 +165,8 @@ struct TypeChecker {
     void TypeError(string err, const Node &n) {
         set<Ident *> already_seen;
         if (!scopes.empty())
-        for (auto it = scopes.rbegin(); it != scopes.rend() - 1 /* -1 == __top_level_expression */;
-             ++it) {
-            auto &scope = *it;
+        for (auto scope : reverse(scopes)) {
+            if (scope.sf == st.toplevel) continue;
             err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
             err += SignatureWithFreeVars(*scope.sf, &already_seen);
             for (auto dl : scope.sf->body->children) {
@@ -368,8 +365,7 @@ struct TypeChecker {
                     auto sf = a->exptype->sf;
                     auto ss = sub->sf;
                     if (sf->args.v.size() != ss->args.v.size()) break;
-                    int i = 0;
-                    for (auto &arg : sf->args.v) {
+                    for (auto [i, arg] : enumerate(sf->args.v)) {
                         // Specialize to the function type, if requested.
                         if (!sf->typechecked && arg.flags & AF_GENERIC) {
                             arg.type = ss->args.v[i].type;
@@ -377,7 +373,6 @@ struct TypeChecker {
                         // Note this has the args in reverse: function args are contravariant.
                         if (!ConvertsTo(ss->args.v[i].type, arg.type, false))
                             goto error;
-                        i++;
                     }
                     if (sf->typechecked) {
                         if (sf->reqret != ss->reqret) goto error;
@@ -595,13 +590,11 @@ struct TypeChecker {
         for (auto &fv : sf.freevars.v) UpdateCurrentSid(fv.sid);
         for (auto &dyn : sf.dynscoperedefs.v) UpdateCurrentSid(dyn.sid);
         auto backup_vars = [&](ArgVector &in, ArgVector &backup) {
-            int i = 0;
-            for (auto &arg : in.v) {
+            for (auto [i, arg] : enumerate(in.v)) {
                 // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
                 backup.v[i].sid = arg.sid->Current();
                 arg.sid->type = arg.type;
                 RevertCurrentSid(arg.sid);
-                i++;
             }
         };
         auto backup_args = sf.args; backup_vars(sf.args, backup_args);
@@ -637,9 +630,8 @@ struct TypeChecker {
         // Now find a match:
         auto struc = head->next;
         for (; struc; struc = struc->next) {
-            int i = 0;
-            for (auto &arg : cons->children) {
-                auto &field = struc->fields.v[i++];
+            for (auto [i, arg] : enumerate(cons->children)) {
+                auto &field = struc->fields.v[i];
                 if (field.flags & AF_GENERIC && !ExactType(arg->exptype, field.type)) goto fail;
             }
             return struc;  // Found a match.
@@ -714,23 +706,19 @@ struct TypeChecker {
         // Here we have a SubFunction witch matching specialized types.
         sf->numcallers++;
         Function &f = *sf->parent;
-        size_t i = 0;
         // See if this is going to be a coroutine.
-        for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
+        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see below */ {
             if (Is<CoClosure>(c))
                 sf->iscoroutine = true;
-            i++;
         }
         if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
         // Finally check all the manually typed args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
-        i = 0;
-        for (auto &c : call_args->children) if (i < f.nargs()) /* see below */ {
+        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see below */ {
             auto &arg = sf->args.v[i];
             if (!(arg.flags & AF_GENERIC))
                 SubType(c, arg.type, ArgName(i), f.name);
-            i++;
         }
         chosen = sf;
         for (auto &freevar : sf->freevars.v) {
@@ -878,9 +866,9 @@ struct TypeChecker {
         } else {
             if (csf->logvarcallgraph) {
                 // Mark call-graph up to here as using logvars, if it hasn't been already.
-                for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
-                    if (it->sf->logvarcallgraph) break;
-                    it->sf->logvarcallgraph = true;
+                for (auto sc : reverse(scopes)) {
+                    if (sc.sf->logvarcallgraph) break;
+                    sc.sf->logvarcallgraph = true;
                 }
             }
             // Check if we need to specialize: generic args, free vars and need of retval
@@ -890,12 +878,11 @@ struct TypeChecker {
                 // Check if any existing specializations match.
                 for (sf = f.subf; sf; sf = sf->next) {
                     if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
-                        size_t i = 0;
                         // We check against f.nargs because HOFs are allowed to call a function
                         // value with more arguments than it needs (if we're called from
                         // TypeCheckDynCall). Optimizer always removes these.
-                        for (auto c : call_args->children) if (i < f.nargs()) {
-                            auto &arg = sf->args.v[i++];
+                        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                            auto &arg = sf->args.v[i];
                             if (arg.flags & AF_GENERIC &&
                                 !ExactType(c->exptype, arg.type)) goto fail;
                         }
@@ -916,8 +903,7 @@ struct TypeChecker {
             }
             // Now specialize.
             sf->reqret = reqret;
-            size_t i = 0;
-            for (auto c : call_args->children) if (i < f.nargs()) /* see above */ {
+            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
                 auto &arg = sf->args.v[i];
                 if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
@@ -925,7 +911,6 @@ struct TypeChecker {
                                     *c, f.name);
                     Output(OUTPUT_DEBUG, "arg: ", arg.sid->id->name, ":", TypeName(arg.type));
                 }
-                i++;
             }
             // This must be the correct freevar specialization.
             assert(!f.anonymous || sf->freevarchecked);
@@ -975,8 +960,8 @@ struct TypeChecker {
             // V_YIELD must have perculated up from a coroutine call.
             if (nargs > 1)
                 TypeError("coroutine yield call must at most one argument", *args);
-            for (auto scope = named_scopes.rbegin(); scope != named_scopes.rend(); ++scope) {
-                auto sf = scope->sf;
+            for (auto scope : reverse(named_scopes)) {
+                auto sf = scope.sf;
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->Arity() ? args->children[0]->exptype : type_any;
@@ -1083,8 +1068,7 @@ struct TypeChecker {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         auto &type = left.now;
         if (type->Numeric()) return type;
-        for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it) {
-            auto &flow = *it;
+        for (auto flow : reverse(flowstack)) {
             if (flow.sid == left.sid) {
                 if (left.derefs.empty()) {
                     if (flow.derefs.empty()) {
@@ -1119,8 +1103,7 @@ struct TypeChecker {
 
     TypeRef UseFlow(const FlowItem &left) {
         if (left.now->Numeric()) return left.now;  // Early out, same as above.
-        for (auto it = flowstack.rbegin(); it != flowstack.rend(); ++it) {
-            auto &flow = *it;
+        for (auto flow : reverse(flowstack)) {
             if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
                 return flow.now;
             }
@@ -1877,13 +1860,11 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         auto nargs = Arity();
         for (; cnf; cnf = cnf->overloads) {
             if (cnf->args.v.size() != nargs) continue;
-            size_t i = 0;
-            for (auto &arg : cnf->args.v) {
+            for (auto [i, arg] : enumerate(cnf->args.v)) {
                 if (!tc.ConvertsTo(children[i]->exptype,
                                    tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, true,
                                                 i + 1, *this),
                                    arg.type->t != V_STRING, false, true)) goto nomatch;
-                i++;
             }
             nf = cnf;
             break;
@@ -1893,8 +1874,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             tc.NatCallError("arguments match no overloads of ", nf, *this);
     }
     vector<TypeRef> argtypes(children.size());
-    size_t i = 0;
-    for (auto &c : children) {
+    for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args.v[i];
         auto argtype = tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, false, i + 1, *this);
         bool typed = false;
@@ -1961,7 +1941,6 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         }
         argtypes[i] = actualtype;
         tc.StorageType(actualtype, *this);
-        i++;
     }
 
     exptype = type_void;  // no retvals
@@ -2133,12 +2112,10 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         auto struc = tc.FindStructSpecialization(exptype->struc, this);
         exptype = &struc->thistype;
     }
-    size_t i = 0;
-    for (auto &c : children) {
+    for (auto [i, c] : enumerate(children)) {
         TypeRef elemtype = exptype->t == V_STRUCT ? exptype->struc->fields.v[i].type
                                                   : exptype->Element();
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
-        i++;
     }
     return this;
 }
