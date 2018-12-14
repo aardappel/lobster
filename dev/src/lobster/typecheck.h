@@ -808,6 +808,7 @@ struct TypeChecker {
                                   *call_context);
                     auto u = sf->returntype;
                     if (is_bound) {
+                        // Typically in recursive calls, but can happen otherwise also?
                         if (!ConvertsTo(u, f.multimethodretval, false))
                             // FIXME: not a great error, but should be rare.
                             TypeError("multi-method " + f.name +
@@ -817,18 +818,12 @@ struct TypeChecker {
                                       TypeName(f.multimethodretval), *sf->body);
                     } else {
                         if (sf != f.subf) {
+                            // We have to be able to take the union of all retvals without
+                            // coercion, since we're not fixing up any previously typechecked
+                            // functions.
                             u = Union(u, f.multimethodretval, false);
-                            // FIXME: this is better than nothing, but still can trip up some
-                            // definitions.
-                            // To fix this, we would have to insert coercions after the fact, or
-                            // better yet, use reqret somehow (if they'd be the same across all
-                            // callers). Though, even reqret can sometime artificially be true.
-                            // Or, we could type-check them twice.
-                            if (!IsRef(f.multimethodretval->t) && IsRef(u->t))
-                                TypeError("multi-method " + f.name +
-                                          " return value type " +
-                                          TypeName(sf->returntype) + " cannot be unified with " +
-                                          TypeName(f.multimethodretval), *sf->body);
+                            // Ensure we didn't accidentally widen the type from a scalar.
+                            assert(IsRef(f.multimethodretval->t) || !IsRef(u->t));
                         }
                         f.multimethodretval = u;
                     }
@@ -1243,6 +1238,12 @@ struct TypeChecker {
                 if (!NeverReturns(cas->body)) return false;
             }
             return have_default;
+        } else if (auto nc = Is<NativeCall>(n)) {
+            // A function may end in "assert false" and have only its previous return statements
+            // taken into account.
+            Value cval;
+            if (nc->name == "assert" && nc->children[0]->ConstVal(*this, cval) && !cval.True())
+                return true;
         }
         // TODO: Other situations?
         return false;
@@ -2076,8 +2077,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
-        assert(child->exptype->t == V_VOID);
-        tc.RetVal(type_undefined, sf);  // If it's a variable.. to ensure this doesn't go anywhere.
+        tc.RetVal(child->exptype, sf);  // If it's a variable, bind it.
         return this;
     }
     if (!Is<DefaultVal>(child)) {

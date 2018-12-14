@@ -349,7 +349,7 @@ def run_test_cases(is_speed_test):
             for(10) i:
                 b := 2
                 f()
-            return nil  // FIXME: this is because f() "returns" nil. Could special case this.
+            return
 
         co4 := coroutine loctest()
         assert co4.active
@@ -402,6 +402,11 @@ def run_test_cases(is_speed_test):
         return 1 from nlr1
     assert nlr1() == 1
     nlr1()
+
+    do():
+        for(2) i:
+            if i:
+                return from do
 
     def recursive_exceptions(n):
         try():

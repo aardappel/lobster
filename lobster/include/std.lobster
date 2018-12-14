@@ -186,11 +186,14 @@ def cofor(n, f):
 
 // error checking
 
+
+def fatal_exit(msg):
+    print "fatal error: " + msg
+    return from program
+
 def fatal(msg):
-    if msg:
-        print "fatal error: " + msg
-        return from program
+    if msg: fatal_exit(msg)
 
 def check(val, msg):
-    if !val: fatal(msg)
-    return assert val  // FIXME: needed to make return type not-nil.
+    if !val: fatal_exit(msg)
+    else: return val
