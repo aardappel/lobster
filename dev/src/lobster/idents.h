@@ -121,7 +121,7 @@ struct Struct : Named {
           firstsubclass(nullptr), nextsubclass(nullptr),
           readonly(false), generic(false), predeclaration(false),
           thistype(V_STRUCT, this),
-          sametype(type_any),
+          sametype(type_undefined),
           typeinfo((type_elem_t)-1) {}
     Struct() : Struct("", 0) {}
 

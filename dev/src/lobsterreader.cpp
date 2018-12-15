@@ -33,7 +33,8 @@ struct ValueParser {
     }
 
     Value Parse(type_elem_t typeoff) {
-        Value v = ParseFactor(typeoff);
+        bool isref;
+        Value v = ParseFactor(typeoff, isref);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
         return v;
@@ -46,11 +47,13 @@ struct ValueParser {
         if (lex.token == end) lex.Next();
         else {
             for (;;) {
+                bool isref;
                 if ((int)elems.size() == numelems) {
-                    ParseFactor(TYPE_ELEM_ANY).DECRT(vm);  // Ignore the value.
+                    auto val = ParseFactor(TYPE_ELEM_ANY, isref);
+                    if (isref) val.DECRT(vm);  // Ignore the value.
                 } else {
                     elems.push_back(
-                        ParseFactor(ti.t == V_VECTOR ? ti.subt : ti.elems[elems.size()]));
+                        ParseFactor(ti.t == V_VECTOR ? ti.subt : ti.elems[elems.size()], isref));
                 }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
@@ -86,7 +89,7 @@ struct ValueParser {
     }
 
     void ExpectType(ValueType given, ValueType needed) {
-        if (given != needed) {
+        if (given != needed && needed != V_ANY) {
             lex.Error("type " +
                       BaseTypeName(needed) +
                       " required, " +
@@ -95,23 +98,23 @@ struct ValueParser {
         }
     }
 
-    Value ParseFactor(type_elem_t typeoff) {
+    Value ParseFactor(type_elem_t typeoff, bool &isref) {
         auto &ti = vm.GetTypeInfo(typeoff);
         auto vt = ti.t;
-        // TODO: also support boxed parsing as V_ANY.
-        // means boxing int/float, deducing runtime type for V_VECTOR, and finding the existing
-        // struct.
+        isref = true;
         switch (lex.token) {
             case T_INT: {
                 ExpectType(V_INT, vt);
                 auto i = lex.IntVal();
                 lex.Next();
+                isref = false;
                 return Value(i);
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
                 auto f = strtod(lex.sattr.data(), nullptr);
                 lex.Next();
+                isref = false;
                 return Value((float)f);
             }
             case T_STR: {
@@ -130,7 +133,7 @@ struct ValueParser {
             }
             case T_MINUS: {
                 lex.Next();
-                Value v = ParseFactor(typeoff);
+                Value v = ParseFactor(typeoff, isref);
                 switch (typeoff) {
                     case TYPE_ELEM_INT:   v.setival(v.ival() * -1); break;
                     case TYPE_ELEM_FLOAT: v.setfval(v.fval() * -1); break;

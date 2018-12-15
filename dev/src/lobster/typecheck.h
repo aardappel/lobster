@@ -74,14 +74,14 @@ struct TypeChecker {
         // Much of the implementation relies on these being 2-4 component vectors, so
         // deny this functionality to any other structs.
         if (struc->fields.size() >= 2 && struc->fields.size() <= 4) {
-            TypeRef sametype = struc->fields.v[0].type;
+            struc->sametype = struc->fields.v[0].type;
             for (size_t i = 1; i < struc->fields.size(); i++) {
-                // FIXME: Can't use Union here since it will bind variables
-                //sametype = Union(sametype, struc->fields[i].type, false);
-                // use simplified alternative:
-                if (!ExactType(struc->fields.v[i].type, sametype)) sametype = type_any;
+                // Can't use Union here since it will bind variables, use simplified alternative:
+                if (!ExactType(struc->fields.v[i].type, struc->sametype)) {
+                    struc->sametype = type_undefined;
+                    break;
+                }
             }
-            struc->sametype = sametype;
         }
     }
 
@@ -233,8 +233,7 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true,
-                    bool genericany = false) {
+    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true) {
         if (sub == type) return true;
         if (type->t == V_VAR) {
             if (unifications) UnifyVar(sub, type);
@@ -242,23 +241,20 @@ struct TypeChecker {
         }
         switch (sub->t) {
             case V_VOID:      return coercions;
-            case V_ANY:       return (genericany || coercions || !IsUnBoxed(type->t)) &&
-                                     type->t != V_VOID;
             case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
             case V_INT:       return type->t == V_TYPEID && coercions;
-            case V_STRING:    return false; //coercions;
+            case V_STRING:    return coercions && IsRuntimePrintable(type->t);
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NIL:       return (type->t == V_NIL &&
                                       ConvertsTo(type->Element(), sub->Element(), false,
-                                                 unifications, genericany)) ||
-                                     (!type->Numeric() &&
-                                      ConvertsTo(type, sub->Element(), false,
-                                                 unifications, genericany)) ||
+                                                 unifications)) ||
+                                     (!type->Numeric() && type->t != V_VOID &&
+                                      ConvertsTo(type, sub->Element(), false, unifications)) ||
                                      (type->Numeric() && type == sub->Element());  // For builtins.
             case V_VECTOR:    return (type->t == V_VECTOR &&
                                       ConvertsTo(type->Element(), sub->Element(), false,
-                                                 unifications, genericany));
+                                                 unifications));
             case V_STRUCT:    return type->t == V_STRUCT &&
                                      st.IsSuperTypeOrSame(sub->struc, type->struc);
             case V_COROUTINE: return type->t == V_COROUTINE &&
@@ -278,21 +274,20 @@ struct TypeChecker {
         return true;
     }
 
-    TypeRef Union(const Node *a, const Node *b, bool coercions) {
-         return Union(a->exptype, b->exptype, coercions);
-    }
-    TypeRef Union(TypeRef at, TypeRef bt, bool coercions) {
+    TypeRef Union(TypeRef at, TypeRef bt, bool coercions, const Node *err) {
         if (ConvertsTo(at, bt, coercions)) return bt;
         if (ConvertsTo(bt, at, coercions)) return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
-            auto et = Union(at->Element(), bt->Element(), false);
+            auto et = Union(at->Element(), bt->Element(), false, err);
             return st.Wrap(et, V_VECTOR);
         }
         if (at->t == V_STRUCT && bt->t == V_STRUCT) {
             auto sstruc = st.CommonSuperType(at->struc, bt->struc);
             if (sstruc) return &sstruc->thistype;
         }
-        return type_any;
+        if (err)
+            TypeError(cat(TypeName(at), " and ", TypeName(bt), " have no common supertype"), *err);
+        return type_undefined;
     }
 
     bool ExactType(TypeRef a, TypeRef b) {
@@ -301,16 +296,8 @@ struct TypeChecker {
 
     void MakeString(Node *&a) {
         assert(a->exptype->t != V_STRING);
-        MakeAny(a);  // Could instead make a T_I2S etc, but string() goes thru any also.
         a = new ToString(a->line, a);
         a->SetTypes(type_string);
-    }
-
-    void MakeAny(Node *&a) {
-        if (a->exptype->t == V_FUNCTION) TypeError("cannot convert a function value to any", *a);
-        if (a->exptype->t == V_TYPEID) TypeError("cannot convert a typeid to any", *a);
-        a = new ToAny(a->line, a);
-        a->SetTypes(type_any);
     }
 
     void MakeBool(Node *&a) {
@@ -349,15 +336,15 @@ struct TypeChecker {
                     return;
                 }
                 break;
-            case V_ANY:
-                MakeAny(a);
-                return;
             case V_INT:
                 if (a->exptype->t == V_TYPEID) {
                     MakeInt(a);
                     return;
                 }
                 break;
+            case V_STRING:
+                MakeString(a);
+                return;
             case V_FUNCTION:
                 if (a->exptype->IsFunction() && sub->sf) {
                     // See if these functions can be made compatible. Specialize and typecheck if
@@ -479,7 +466,7 @@ struct TypeChecker {
     void TypeCheckMathOp(BinOp &n) {
         TT(n.left, 1);
         TT(n.right, 1);
-        n.exptype = Union(n.left, n.right, true);
+        n.exptype = Union(n.left->exptype, n.right->exptype, true, nullptr);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
         if (!unionchecked) SubTypeLR(n.exptype, n);
@@ -501,7 +488,7 @@ struct TypeChecker {
         TT(n.left, 1);
         TT(n.right, 1);
         n.exptype = type_int;
-        auto u = Union(n.left, n.right, true);
+        auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
             // FIXME: rather than nullptr, these TypeError need to figure out which side
             // caused the error much like MathError
@@ -545,7 +532,7 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    void RetVal(TypeRef type, SubFunction *sf, bool register_return = true) {
+    void RetVal(TypeRef type, SubFunction *sf, const Node *err, bool register_return = true) {
         if (register_return) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) break;
@@ -568,7 +555,7 @@ struct TypeChecker {
                 // be callers dependent on the return type so far, so any others must be subtypes.
                 if (!sf->isrecursivelycalled) {
                     // We can safely generalize the type if needed, though not with coercions.
-                    sf->returntype = Union(type, sf->returntype, false);
+                    sf->returntype = Union(type, sf->returntype, false, err);
                 }
             } else {
                 // The caller doesn't want return values.
@@ -752,7 +739,7 @@ struct TypeChecker {
         for (auto [sf, type] : ssf.reuse_return_events) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) {
-                    RetVal(type, isc.sf, false);
+                    RetVal(type, isc.sf, &error_context, false);
                     // This should in theory not cause an error, since the previous specialization
                     // was also ok with this set of return types. It could happen though if
                     // this specialization has an additional return statement that was optimized
@@ -808,7 +795,7 @@ struct TypeChecker {
                             // We have to be able to take the union of all retvals without
                             // coercion, since we're not fixing up any previously typechecked
                             // functions.
-                            u = Union(u, f.multimethodretval, false);
+                            u = Union(u, f.multimethodretval, false, call_context);
                             // Ensure we didn't accidentally widen the type from a scalar.
                             assert(IsRef(f.multimethodretval->t) || !IsRef(u->t));
                         }
@@ -957,14 +944,14 @@ struct TypeChecker {
             return type;
         } else if (ftype->t == V_YIELD) {
             // V_YIELD must have perculated up from a coroutine call.
-            if (nargs > 1)
-                TypeError("coroutine yield call must at most one argument", *args);
+            if (nargs != 1)
+                TypeError("coroutine yield call must have exactly one argument", *args);
             for (auto scope : reverse(named_scopes)) {
                 auto sf = scope.sf;
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
-                auto type = args->Arity() ? args->children[0]->exptype : type_any;
-                RetVal(type, sf);
+                auto type = args->children[0]->exptype;
+                RetVal(type, sf, args);
                 SubTypeT(type, sf->returntype, *args, "", "yield value");
                 // Now collect all ids between coroutine and yield, so that we can save these in the
                 // VM.
@@ -984,13 +971,8 @@ struct TypeChecker {
             TypeError("yield function called outside scope of coroutine", *args);
             return type_void;
         } else {
-            // We have to do this call entirely at runtime. We take any args, and return any.
-            // FIXME: the body T_FUN that created this function value hasn't been typechecked
-            // at all, meaning its contents is all T_ANY. This is not necessary esp if the function
-            // had no args, or all typed args, but we have no way of telling which T_FUN's
-            // will end up this way.
-            // For now, just error.
-            TypeError("function call value has type: " + TypeName(ftype), *args);
+            TypeError("dynamic function call value doesn\'t have a function type: " +
+                      TypeName(ftype), *args);
             return type_void;
         }
     }
@@ -1124,12 +1106,11 @@ struct TypeChecker {
         if (only_true_type && Is<And>(ao)) {
             ao.SetTypes(tright);
         } else {
-            ao.SetTypes(Union(tleft, tright, false));
-            if (ao.exptype->t == V_ANY) {
-                // Special case: we may have just merged scalar and reference types, and unlike
-                // elsewhere, we don't want to box the scalars to make everything references, since
-                // typically they are just tested and thrown away. Instead, we force all values to
-                // bools.
+            ao.SetTypes(Union(tleft, tright, false, nullptr));
+            if (ao.exptype->t == V_UNDEFINED) {
+                // Special case: unlike elsewhere, we allow merging scalar and reference types,
+                // since they are just tested and thrown away. To make this work, we force all
+                // values to bools.
                 MakeBool(ao.left);
                 MakeBool(ao.right);
                 ao.SetTypes(type_int);
@@ -1409,7 +1390,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
             } else if (tc.NeverReturns(falsec)) {
                 exptype = tleft;
             } else {
-                exptype = tc.Union(tleft, tright, true);
+                exptype = tc.Union(tleft, tright, true, this);
                 // These will potentially make either body from T_CALL into some
                 // coercion.
 				tc.SubType(truepart, exptype, "then branch", *this);
@@ -1497,7 +1478,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         auto body = AssertIs<Call>(cas->body);
         if (!tc.NeverReturns(body)) {
             exptype = exptype.Null() ? body->exptype
-                                     : tc.Union(exptype, body->exptype, true);
+                                     : tc.Union(exptype, body->exptype, true, cas);
         }
     }
     for (auto n : cases->children) {
@@ -1858,10 +1839,16 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         for (; cnf; cnf = cnf->overloads) {
             if (cnf->args.v.size() != nargs) continue;
             for (auto [i, arg] : enumerate(cnf->args.v)) {
-                if (!tc.ConvertsTo(children[i]->exptype,
+                // Special purpose treatment of V_ANY to allow generic vectors in overloaded
+                // length() etc.
+                if (arg.type->t != V_ANY &&
+                    (arg.type->t != V_VECTOR ||
+                     children[i]->exptype->t != V_VECTOR ||
+                     arg.type->sub->t != V_ANY) &&
+                    !tc.ConvertsTo(children[i]->exptype,
                                    tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, true,
                                                 i + 1, *this),
-                                   arg.type->t != V_STRING, false, true)) goto nomatch;
+                                   arg.type->t != V_STRING, false)) goto nomatch;
             }
             nf = cnf;
             break;
@@ -1917,6 +1904,14 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                 // nil will be supplied, so make type reflect that.
                 tc.UnifyVar(tc.NewNilTypeVar(), c->exptype);
             }
+            typed = true;
+        }
+        if (argtype->t == V_ANY && !arg.flags) {
+            // Special purpose type checking to allow any reference type for functions like
+            // copy/equal/hash etc. Note that this is the only place in the language where
+            // we allow this!
+            if (!IsRefNil(c->exptype->t))
+                tc.TypeError("reference type", c->exptype, *c, nf->args.GetName(i), nf->name);
             typed = true;
         }
         if (!typed)
@@ -2058,22 +2053,22 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
-        tc.RetVal(child->exptype, sf);  // If it's a variable, bind it.
+        tc.RetVal(child->exptype, sf, this);  // If it's a variable, bind it.
         return this;
     }
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {
-            tc.RetVal(mrs->exptype, sf);
+            tc.RetVal(mrs->exptype, sf, this);
             for (auto [i, mr] : enumerate(mrs->children)) {
                 if (i < sf->reqret)
                     tc.SubType(mr, sf->returntype->Get(i), tc.ArgName(i), *this);
             }
         } else {
-            tc.RetVal(child->exptype, sf);
+            tc.RetVal(child->exptype, sf, this);
             tc.SubType(child, sf->returntype, "", *this);
         }
     } else {
-        tc.RetVal(type_void, sf);
+        tc.RetVal(type_void, sf, this);
         tc.SubType(child, sf->returntype, "", *this);
     }
     return this;
@@ -2091,26 +2086,26 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    // We have to check this here, since the parser couldn't check this yet.
-    if (giventype->t == V_STRUCT && giventype->struc->fields.v.size() < children.size())
-        tc.TypeError("too many initializers for: " + giventype->struc->name, *this);
     tc.TypeCheckList(this, false);
     exptype = giventype;
-    if (exptype->t == V_VECTOR && exptype->sub->t == V_ANY) {
+    if (exptype.Null()) {
         if (Arity()) {
             // No type was specified.. first find union of all elements.
             TypeRef u(nullptr);
             for (auto c : children) {
-                u = u.Null() ? c->exptype : tc.Union(u, c->exptype, true);
+                u = u.Null() ? c->exptype : tc.Union(u, c->exptype, true, c);
             }
-            tc.StorageType(exptype, *this);
             exptype = tc.st.Wrap(u, V_VECTOR);
+            tc.StorageType(exptype, *this);
         } else {
             // special case for empty vectors
             exptype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
         }
     }
     if (exptype->t == V_STRUCT) {
+        // We have to check this here, since the parser couldn't check this yet.
+        if (exptype->struc->fields.v.size() < children.size())
+            tc.TypeError("too many initializers for: " + exptype->struc->name, *this);
         auto struc = tc.FindStructSpecialization(exptype->struc, this);
         exptype = &struc->thistype;
     }
@@ -2145,7 +2140,7 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(object, 1);
     tc.TT(index, 1);
     auto vtype = object->exptype;
-    if (vtype->t == V_STRUCT && vtype->struc->sametype->t != V_ANY) {}
+    if (vtype->t == V_STRUCT && vtype->struc->sametype->t != V_UNDEFINED) {}
     else if (vtype->t != V_VECTOR && vtype->t != V_STRING)
         tc.TypeError("vector/string/struct", vtype, *this, "container");
     auto itype = index->exptype;
@@ -2234,10 +2229,6 @@ Node *ToFloat::TypeCheck(TypeChecker &tc, size_t reqret) {
 }
 
 Node *ToString::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
-}
-
-Node *ToAny::TypeCheck(TypeChecker &tc, size_t reqret) {
     return tc.TypeCheckCoercion(*this, reqret);
 }
 

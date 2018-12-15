@@ -31,7 +31,6 @@ const Type g_type_int(V_INT);
 const Type g_type_float(V_FLOAT);
 const Type g_type_string(V_STRING);
 const Type g_type_any(V_ANY);
-const Type g_type_vector_any(V_VECTOR, &g_type_any);
 const Type g_type_vector_int(V_VECTOR, &g_type_int);
 const Type g_type_vector_float(V_VECTOR, &g_type_float);
 const Type g_type_function_null(V_FUNCTION);
@@ -47,7 +46,6 @@ TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
 TypeRef type_string = &g_type_string;
 TypeRef type_any = &g_type_any;
-TypeRef type_vector_any = &g_type_vector_any;
 TypeRef type_vector_int = &g_type_vector_int;
 TypeRef type_vector_float = &g_type_vector_float;
 TypeRef type_function_null = &g_type_function_null;
@@ -59,6 +57,7 @@ TypeRef type_void = &g_type_void;
 TypeRef type_function_void = &g_type_function_void;
 TypeRef type_undefined = &g_type_undefined;
 
+const Type g_type_vector_any(V_VECTOR, &g_type_any);
 const Type g_type_vector_string(V_VECTOR, &g_type_string);
 const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
 const Type g_type_vector_vector_float(V_VECTOR, &g_type_vector_float);
@@ -67,7 +66,7 @@ const Type g_type_vector_vector_vector_float(V_VECTOR, &g_type_vector_vector_flo
 TypeRef WrapKnown(TypeRef elem, ValueType with) {
     if (with == V_VECTOR) {
         switch (elem->t) {
-            case V_ANY:    return type_vector_any;
+            case V_ANY:    return &g_type_vector_any;
             case V_INT:    return type_vector_int;
             case V_FLOAT:  return type_vector_float;
             case V_STRING: return &g_type_vector_string;

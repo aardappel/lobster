@@ -77,12 +77,10 @@ const intp3 intp3_0 = intp3((intp)0);
 
 enum ValueType : int {
     // refc types are negative
-    V_MINVMTYPES = -11,
-    V_ANY = -10,         // any other reference type.
-    V_STACKFRAMEBUF = -9,
-    V_VALUEBUF = -8,    // only used as memory type for vector/coro buffers, not used by Value.
-    V_BOXEDFLOAT = -7,
-    V_BOXEDINT = -6,
+    V_MINVMTYPES = -9,
+    V_ANY = -8,         // any other reference type.
+    V_STACKFRAMEBUF = -7,
+    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
     V_RESOURCE = -5,
     V_COROUTINE = -4,
     V_STRING = -3,
@@ -101,16 +99,17 @@ enum ValueType : int {
     V_MAXVMTYPES
 };
 
-inline bool IsScalar (ValueType t) { return t == V_INT || t == V_FLOAT; }
+inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
 inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V_FUNCTION; }
-inline bool IsRef    (ValueType t) { return t <  V_NIL; }
-inline bool IsRefNil (ValueType t) { return t <= V_NIL; }
+inline bool IsRef(ValueType t) { return t <  V_NIL; }
+inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
 inline bool IsRuntime(ValueType t) { return t < V_VAR; }
+inline bool IsRuntimePrintable(ValueType t) { return t <= V_FLOAT; }
 
 inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<value_buffer>", "<stackframe_buffer>",
-        "boxed_float", "boxed_int", "resource", "coroutine", "string", "struct", "vector",
+        "resource", "coroutine", "string", "struct", "vector",
         "nil", "int", "float", "function", "yield_function", "variable", "typeid", "void",
         "tuple", "undefined",
         "<logstart>", "<logend>", "<logmarker>"
@@ -126,20 +125,18 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     // These must correspond to typetable init in Codegen constructor.
     TYPE_ELEM_INT,
     TYPE_ELEM_FLOAT,
-    TYPE_ELEM_BOXEDINT,
-    TYPE_ELEM_BOXEDFLOAT,
     TYPE_ELEM_STRING,
     TYPE_ELEM_RESOURCE,
     TYPE_ELEM_ANY,
     TYPE_ELEM_VALUEBUF,
     TYPE_ELEM_STACKFRAMEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 9,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 11,
-    TYPE_ELEM_VECTOR_OF_STRING = 13,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 15,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 17,
+    TYPE_ELEM_VECTOR_OF_INT = 7,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 9,
+    TYPE_ELEM_VECTOR_OF_STRING = 11,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 13,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 15,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 19
+    TYPE_ELEM_FIXED_OFFSET_END = 17
 };
 
 struct VM;
@@ -172,11 +169,9 @@ struct PrintPrefs {
     bool quoted;
     intp decimals;
     int cycles;
-    bool anymark;
 
-    PrintPrefs(intp _depth, intp _budget, bool _quoted, intp _decimals, bool _anymark)
-        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1),
-          anymark(_anymark) {}
+    PrintPrefs(intp _depth, intp _budget, bool _quoted, intp _decimals)
+        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1) {}
 };
 
 typedef void *(*block_base_t)(VM &);
@@ -220,18 +215,6 @@ struct RefObj : DynAlloc {
 
 extern bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural);
 extern void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp);
-
-struct BoxedInt : RefObj {
-    intp val;
-
-    BoxedInt(intp _v);
-};
-
-struct BoxedFloat : RefObj {
-    floatp val;
-
-    BoxedFloat(floatp _v);
-};
 
 struct LString : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
@@ -304,8 +287,6 @@ struct InsPtr {
     typedef LStruct *LStructPtr;
     typedef LCoRoutine *LCoRoutinePtr;
     typedef LResource *LResourcePtr;
-    typedef BoxedInt *BoxedIntPtr;
-    typedef BoxedFloat *BoxedFloatPtr;
     typedef RefObj *RefObjPtr;
 #else
     // We use a compressed pointer to fit in 32-bit on a 64-bit build.
@@ -362,10 +343,6 @@ struct Value {
         LCoRoutinePtr cval_;
         LResourcePtr xval_;
 
-        // Boxed scalars (never NULL)
-        BoxedIntPtr bival_;
-        BoxedFloatPtr bfval_;
-
         // Generic reference access.
         RefObjPtr ref_;
     };
@@ -377,8 +354,6 @@ struct Value {
     int         intval() const { assert(type == V_INT);        return (int)ival_;   }
     float       fltval() const { assert(type == V_FLOAT);      return (float)fval_; }
     LString    *sval  () const { assert(type == V_STRING);     return sval_;        }
-    BoxedInt   *bival () const { assert(type == V_BOXEDINT);   return bival_;       }
-    BoxedFloat *bfval () const { assert(type == V_BOXEDFLOAT); return bfval_;       }
     LVector    *vval  () const { assert(type == V_VECTOR);     return vval_;        }
     LStruct    *stval () const { assert(type == V_STRUCT);     return stval_;       }
     LCoRoutine *cval  () const { assert(type == V_COROUTINE);  return cval_;        }
@@ -412,8 +387,6 @@ struct Value {
     inline Value(LStruct *s)         : TYPE_INIT(V_STRUCT)     stval_(s)        {}
     inline Value(LCoRoutine *c)      : TYPE_INIT(V_COROUTINE)  cval_(c)         {}
     inline Value(LResource *r)       : TYPE_INIT(V_RESOURCE)   xval_(r)         {}
-    inline Value(BoxedInt *i)        : TYPE_INIT(V_BOXEDINT)   bival_(i)        {}
-    inline Value(BoxedFloat *f)      : TYPE_INIT(V_BOXEDFLOAT) bfval_(f)        {}
     inline Value(RefObj *r)          : TYPE_INIT(V_NIL)        ref_(r)          { assert(false); }
 
     inline bool True() const { return ival_ != 0; }
@@ -732,8 +705,6 @@ struct VM {
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
     LStruct *NewStruct(intp max, type_elem_t tti);
     LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
-    BoxedInt *NewInt(intp i);
-    BoxedFloat *NewFloat(floatp f);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
     LString *NewString(string_view s);
@@ -818,6 +789,13 @@ struct VM {
     string_view ReverseLookupType(uint v);
     void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
     double Time() { return SecondsSinceStart(); }
+
+    Value ToString(const Value &a, ValueType vt) {
+        ss_reuse.str(string());
+        ss_reuse.clear();
+        a.ToString(*this, ss_reuse, vt, programprintprefs);
+        return NewString(ss_reuse.str());
+    }
 };
 
 inline int64_t Read64FromIp(const int *&ip) {

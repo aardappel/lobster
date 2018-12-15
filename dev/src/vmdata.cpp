@@ -18,9 +18,6 @@
 
 namespace lobster {
 
-BoxedInt::BoxedInt(intp _v) : RefObj(TYPE_ELEM_BOXEDINT), val(_v) {}
-BoxedFloat::BoxedFloat(floatp _v) : RefObj(TYPE_ELEM_BOXEDFLOAT), val(_v) {}
-
 LString::LString(intp _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
 
 LResource::LResource(void *v, const ResourceType *t)
@@ -112,8 +109,6 @@ void LResource::DeleteSelf(VM &vm) {
 void RefObj::DECDELETE(VM &vm, bool deref) {
     assert(refc == 0);
     switch (ti(vm).t) {
-        case V_BOXEDINT:   vm.pool.dealloc(this, sizeof(BoxedInt)); break;
-        case V_BOXEDFLOAT: vm.pool.dealloc(this, sizeof(BoxedFloat)); break;
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm, deref); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm, deref); break;
@@ -128,8 +123,6 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (!a || !b) return false;
     if (a->tti != b->tti) return false;
     switch (a->ti(vm).t) {
-        case V_BOXEDINT:    return ((BoxedInt *)a)->val == ((BoxedInt *)b)->val;
-        case V_BOXEDFLOAT:  return ((BoxedFloat *)a)->val == ((BoxedFloat *)b)->val;
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_COROUTINE:   return false;
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
@@ -152,16 +145,6 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
     if (!ro) { ss << "nil"; return; }
     auto &roti = ro->ti(vm);
     switch (roti.t) {
-        case V_BOXEDINT: {
-            if (pp.anymark) ss << '#';
-            ss << ((BoxedInt *)ro)->val;
-            break;
-        }
-        case V_BOXEDFLOAT: {
-            if (pp.anymark) ss << '#';
-            ss << to_string_float(((BoxedFloat *)ro)->val, (int)pp.decimals);
-            break;
-        }
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
         case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
@@ -185,8 +168,6 @@ void Value::ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp)
 
 intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
-        case V_BOXEDINT:    return ((BoxedInt *)this)->val;
-        case V_BOXEDFLOAT:  return ReadMem<intp>(&((BoxedFloat *)this)->val);
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
         case V_STRUCT:      return ((LStruct *)this)->Hash(vm);
@@ -229,16 +210,6 @@ Value Value::Copy(VM &vm) {
         auto s = vm.NewString(sval()->strv());
         DECRT(vm);
         return Value(s);
-    }
-    case V_BOXEDINT: {
-        auto bi = vm.NewInt(bival()->val);
-        DECRT(vm);
-        return Value(bi);
-    }
-    case V_BOXEDFLOAT: {
-        auto bf = vm.NewFloat(bfval()->val);
-        DECRT(vm);
-        return Value(bf);
     }
     case V_COROUTINE:
         vm.Error("cannot copy coroutine");
@@ -306,7 +277,7 @@ template<typename T, bool is_vect> void VectorOrStructToString(
             break;
         }
         PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
-                         pp.decimals, pp.anymark);
+                         pp.decimals);
         ValueType elemtype;
         if constexpr(is_vect) elemtype = o.ElemType(vm); else elemtype = o.ElemTypeS(vm, i);
         if (pp.depth || !IsRef(elemtype)) {

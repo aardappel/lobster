@@ -9,18 +9,10 @@
     - better yet, there's a lot of code in the type checker that avoids coercions because it
       modifies code, we can generalize that now!
     - we can maybe make the whole typechecker not modify nodes?
-
-- could we remove the support for dynamic scoping alltogether?
-  - DS thru -> would be more accurate if it was followed by a block itself
-  - DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than
-    doing gl_color <-
-
-- should we remove the any type? it is convenient in the type system, but it causes all sorts
-  of things to go to any when not intended, and hides inefficiencies. I don't think there's
-  any data structures or functions where you actually want to accept any, especially since
-  specialization usually allows more specific types to be handled generically.
-  - as first step, check if boxed int/float are used anywhere, and rip them out if not
-    then can make any into root of reference types instead?
+  - would be nice to remove the "return nil" at the end of coroutines.
+    - this is because yield implicitly returns it.
+    - allowing it to return 0 or N values requires quite a bit of weaving thru the VM, so may
+      not be worth it for now?
 
 - should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
   clash with typechecking.
@@ -177,22 +169,6 @@
     to worker threads.
   - a string is the natural thing to communicate right now, given the new binary writing functionality.
 
-- Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
-  possible in even C++, where there is no need to update pointers to an object.
-  Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
-  padded to the same size, with a special overwrite operator. The type of the variable would need
-  to be of the superclass, and the superclass itself should maybe not be instantiable, or also be
-  the same size.
-  Basically you'd declare the superclass as everything below here is same size.
-  What are examples of algorithms that could be simpler this way?
-  - game objects changing state
-  - AST node being changed
-  - Type variables! This one is hard to do without.
-  - Values in an interpreter
-  Though most of these are easy to do with existing code.. it is more to avoid allocation and
-  allow these values to be inline? Without inline values, you first have to construct on the heap
-  before overwrite. Still useful to be possible for cases like type variables.
-
 - binary string ops:
   - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
     version of Lobster (which may be needed to be supported for a while, because wasm)
@@ -250,6 +226,21 @@
   current function stack frame function id as such, though that may make future optimisations
   to omit it harder.
 
+- Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
+  possible in even C++, where there is no need to update pointers to an object.
+  Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
+  padded to the same size, with a special overwrite operator. The type of the variable would need
+  to be of the superclass, and the superclass itself should maybe not be instantiable, or also be
+  the same size.
+  Basically you'd declare the superclass as everything below here is same size.
+  What are examples of algorithms that could be simpler this way?
+  - game objects changing state
+  - AST node being changed
+  - Type variables! This one is hard to do without.
+  - Values in an interpreter
+  Though most of these are easy to do with existing code.. it is more to avoid allocation and
+  allow these values to be inline? Without inline values, you first have to construct on the heap
+  before overwrite. Still useful to be possible for cases like type variables.
 - Features to make it easier to use structs ADT style as opposed to inheritance
   - ADT is similar to a base class with no members and a fixed set of sub-classes.
     - So make that use case into a simpler declaration syntax.
@@ -271,10 +262,6 @@
   and optional things etc.
   Maybe if both are available, we could simply require that the user function corresponds to
   the builtin one in terms of these features, and otherwise error?
-
-- should the VM type table contain only unique types?
-  - much smaller that way.
-  - there may be places where we can then compare by index?
 
 - namespaces improvements:
   - also implement them for global variables.
@@ -514,6 +501,9 @@
 - compile-time lobster execution would be super simple: simply allow a string that contains
   lobster code, spin up a VM to eval it, and insert its result back in the code.
   print eval "1 + 2" would actuall compile: print 3
+  But not quite as nice as a real macro facility, since now you have a large block of string
+  in your code, for more complex cases. And no easy way to do instances/parameter.
+  And errors that refer to code you can't see.
 
 - if your forget ":" after "else", it is going to try and declare a following identifier as a
   function parameter, see FIXME in ParseTrailingFunctionValues
@@ -590,8 +580,6 @@
 
 - in def(x::type) if x is subtype: should children of the subtype be available inside the if?
 
-- doesn't type check if c: 0.0 else: 0 correctly, result is any?
-
 - replace typeof return with something better directly part of the syntax.
 
 - make resume into seperate op.
@@ -599,8 +587,6 @@
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - break statement
-
-- support default args?
 
 - inlining has kind of broken the variable stack trace. not only are certain functions gone,
   it can now show multiple variables of the same name and variables that are not really in scope
@@ -614,7 +600,6 @@
       (and in variables of function types), and as arguments to builtins like hash/gl_translate.
   - remove static function arguments
     - or maybe better to generically remove vars that aren't used.
-  - remove dynscope
   - C++ backend: detect when not needing to return to trampoline?
     - need to know when "broken" by a function call.
     - though given that the switch/jump method is slower, maybe not a priority.
@@ -658,10 +643,6 @@
   struct controller { startpos:xyz_i = xyz_0i, endpos:xyz_i = xyz_0i, startinpal:int = false, endinpal:int = false, valid = false }
   controllers := map(2): controller {}
   error: no specialization of controller matches these types: xyz_i xyz_i int int int
-
-- weird type error:
-  if not (size == 0): // size is xyz_i
-  error: "==" requires type: numeric/string/vector/struct, got: any
 
 - also, == should not do pointer equality on value types! have to use equal for now
 

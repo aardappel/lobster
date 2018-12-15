@@ -114,7 +114,7 @@ struct CodeGen  {
                 assert(IsRuntime(type->t));
                 break;
         }
-        // For everything that's not a struct / know coroutine:
+        // For everything that's not a struct / known coroutine:
         auto it = type_lookup.find(tt);
         if (it != type_lookup.end()) return it->second;
         auto offset = (type_elem_t)type_table.size();
@@ -128,8 +128,6 @@ struct CodeGen  {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
-        Type type_boxedint(V_BOXEDINT);                     GetTypeTableOffset(&type_boxedint);
-        Type type_boxedfloat(V_BOXEDFLOAT);                 GetTypeTableOffset(&type_boxedfloat);
                                                             GetTypeTableOffset(type_string);
                                                             GetTypeTableOffset(type_resource);
                                                             GetTypeTableOffset(type_any);
@@ -770,16 +768,11 @@ void ToFloat::Generate(CodeGen &cg, size_t retval) const {
 
 void ToString::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval, 1);
-    if (retval) cg.Emit(IL_A2S);
-}
-
-void ToAny::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(child, retval, 1);
     if (retval) {
         switch (child->exptype->t) {
-            case V_INT:   cg.Emit(IL_I2A); break;
-            case V_FLOAT: cg.Emit(IL_F2A); break;
-            default: break;  // Everything else is already compatible.
+            case V_INT:      cg.Emit(IL_I2S); break;
+            case V_FLOAT:    cg.Emit(IL_F2S); break;
+            default:         cg.Emit(IL_A2S); break;
         }
     }
 }

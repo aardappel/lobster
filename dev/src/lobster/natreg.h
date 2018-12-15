@@ -42,7 +42,7 @@ struct Type {
         vector<const Type *> *tup; // V_TUPLE
     };
 
-    Type()                               : t(V_ANY), sub(nullptr) {}
+    Type()                               : t(V_UNDEFINED), sub(nullptr) {}
     explicit Type(ValueType _t)          : t(_t),    sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),    sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
@@ -141,7 +141,6 @@ extern TypeRef type_int;
 extern TypeRef type_float;
 extern TypeRef type_string;
 extern TypeRef type_any;
-extern TypeRef type_vector_any;
 extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
@@ -175,7 +174,7 @@ struct Typed {
     TypeRef type;
     ArgFlags flags;
 
-    Typed() : type(type_any), flags(AF_NONE) {}
+    Typed() : type(type_undefined), flags(AF_NONE) {}
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
     Typed(TypeRef _type, ArgFlags _flags) : type(_type), flags(_flags) {}
 };

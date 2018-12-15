@@ -40,7 +40,6 @@ def run_test_cases(is_speed_test):
     def tf(x:testb, y:string): return 9
     def tf(x:testb, y:float): return 5
     def tf(x:testb, y:int): return 6
-    def tf(x, y): return 7
 
     def tf(x): return 8
 
@@ -51,11 +50,10 @@ def run_test_cases(is_speed_test):
     assert(tf(testb { 0, 0 }, "") == 9)
     assert(tf(testb { 0, 0 }, 0.0) == 5)
     assert(tf(testb { 0, 0 }, 0) == 6)
-    assert(tf("", "") == 7)
 
     // force dynamic dispatch
-    def to_any(a:any): return a
-    assert(tf(to_any(testb { 0, 0 }), to_any("")) == 9)
+    def to_a(a:testa): return a
+    assert(tf(to_a(testb { 0, 0 }), 1) == 6)
 
     assert(tf("") == 8)
 
@@ -334,7 +332,8 @@ def run_test_cases(is_speed_test):
             a := 1
             for(10) i:
                 b := 2
-                f()
+                f(nil)
+            return nil
 
         co4 := coroutine loctest()
         assert co4.active

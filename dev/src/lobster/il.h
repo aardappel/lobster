@@ -75,7 +75,7 @@ enum MathOp {
     F(IUMINUS, 0) F(FUMINUS, 0) F(IVUMINUS, 0) F(FVUMINUS, 0) \
     F(LOGNOT, 0) F(LOGNOTREF, 0) \
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \
-    F(I2F, 0) F(A2S, 0) F(I2A, 0) F(F2A, 0) F(E2B, 0) F(E2BREF, 0) \
+    F(I2F, 0) F(A2S, 0) F(I2S, 0) F(F2S, 0) F(E2B, 0) F(E2BREF, 0) \
     F(RETURN, 2) \
     F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
     F(LOGREAD, 1) F(LOGWRITE, 2) \

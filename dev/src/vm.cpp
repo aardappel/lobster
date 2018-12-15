@@ -57,9 +57,9 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr),
         byteprofilecounts(nullptr), bytecode_buffer(std::move(_bytecode_buffer)),
         bcf(nullptr),
-        programprintprefs(10, 10000, false, -1, false), typetable(nullptr),
+        programprintprefs(10, 10000, false, -1), typetable(nullptr),
         currentline(-1), maxsp(-1),
-        debugpp(2, 50, true, -1, true), programname(_pn), vml(*this),
+        debugpp(2, 50, true, -1), programname(_pn), vml(*this),
         trace(false), trace_tail(false), trace_ring_idx(0),
         vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
         compiled_code_ip(entry_point), program_args(args) {
@@ -155,8 +155,6 @@ void VM::DumpLeaks() {
                     break;
                 case V_STRING:
                 case V_COROUTINE:
-                case V_BOXEDINT:
-                case V_BOXEDFLOAT:
                 case V_VECTOR:
                 case V_STRUCT: {
                     ro->CycleStr(ss);
@@ -190,12 +188,6 @@ LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_ele
     return new (pool.alloc(sizeof(LCoRoutine)))
                LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
                          cti);
-}
-BoxedInt *VM::NewInt(intp i) {
-    return new (pool.alloc(sizeof(BoxedInt))) BoxedInt(i);
-}
-BoxedFloat *VM::NewFloat(floatp f) {
-    return new (pool.alloc(sizeof(BoxedFloat))) BoxedFloat(f);
 }
 LResource *VM::NewResource(void *v, const ResourceType *t) {
     return new (pool.alloc(sizeof(LResource))) LResource(v, t);
@@ -1232,25 +1224,22 @@ VM_DEF_INS(I2F) {
 VM_DEF_INS(A2S) {
     Value a = POP();
     assert(IsRefNil(a.type));
-    ss_reuse.str(string());
-    ss_reuse.clear();
-    a.ToString(*this, ss_reuse, a.ref() ? a.ref()->ti(*this).t : V_NIL, programprintprefs);
-    PUSH(NewString(ss_reuse.str()));
+    PUSH(ToString(a, a.ref() ? a.ref()->ti(*this).t : V_NIL));
     a.DECRTNIL(*this);
     VM_RET;
 }
 
-VM_DEF_INS(I2A) {
+VM_DEF_INS(I2S) {
     Value i = POP();
     VMTYPEEQ(i, V_INT);
-    PUSH(NewInt(i.ival()));
+    PUSH(ToString(i, V_INT));
     VM_RET;
 }
 
-VM_DEF_INS(F2A) {
+VM_DEF_INS(F2S) {
     Value f = POP();
     VMTYPEEQ(f, V_FLOAT);
-    PUSH(NewFloat(f.fval()));
+    PUSH(ToString(f, V_FLOAT));
     VM_RET;
 }
 

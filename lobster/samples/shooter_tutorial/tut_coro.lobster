@@ -6,12 +6,13 @@ mode:coroutine = coroutine menu(0, 0)
 
 def menu(lastscore, highscore, frame):
     forever():
-        frame()
+        frame(nil)
         msg := "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
             mode = coroutine level(highscore)
+    return nil
 
 def level(highscore, lframe):
     score := 0
@@ -33,18 +34,19 @@ def level(highscore, lframe):
     def bullet(pos, dir, frame):
         bulletspeed :== 15
         while magnitude(pos) < worldsize * 2:
-            frame()
+            frame(nil)
             pos += dir * gl_delta_time() * bulletspeed
             gl_translate pos:
                 gl_color color_yellow:
                     gl_circle(0.2, 20)
+        return nil
 
     def bulletset(frame):
         firerate :== 0.1
         lastbullet := gl_time()
         bullets := []
         forever():
-            dir := frame() or xy_0
+            dir := frame(nil) or xy_0
             if lastbullet < gl_time():
                 bullets.push(coroutine bullet(playerpos, dir))
                 lastbullet += firerate
@@ -52,13 +54,14 @@ def level(highscore, lframe):
             bullets = filter(bullets) b:
                 b.resume()
                 b.active
+        return nil
 
     def enemy(pos, frame):
         speed :== 3
         maxhp :== 5
         hp := maxhp
         forever():
-            frame()
+            frame(nil)
             playervec := playerpos - pos
             playerdir := normalize(playervec)
             pos += playerdir * gl_delta_time() * speed
@@ -68,18 +71,19 @@ def level(highscore, lframe):
                     b->pos = xy_x * worldsize * 10
                     if hp <= 0:
                         score++
-                        return
+                        return nil
             if magnitude(playervec) < 1:
                 playerhealth -= gl_delta_time() * 50
             gl_color(lerp(color_red, color_blue, div(hp, maxhp))):
                 renderpointytriangle(pos, playerdir)
+        return nil
 
     def enemyset(frame):
         enemies := []
         enemyrate := 1.0
         lastenemy := gl_time()
         forever():
-            frame()
+            frame(nil)
             if lastenemy < gl_time():
                 enemies.push(coroutine enemy(sincos(rnd(360)) * worldsize * 2))
                 lastenemy += enemyrate
@@ -87,9 +91,10 @@ def level(highscore, lframe):
             enemies = filter(enemies) e:
                 e.resume()
                 e.active
+        return nil
 
     while playerhealth > 0:
-        lframe()
+        lframe(nil)
         gl_translate float(gl_window_size()) / 2.0:
             scale := gl_window_size().y / worldsize
             gl_scale(scale)
@@ -114,6 +119,7 @@ def level(highscore, lframe):
         gl_text("health: " + ceiling(playerhealth) + " - score: " + score + " - highscore: " + highscore)
 
     mode = coroutine menu(score, max(highscore, score))
+    return nil
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")

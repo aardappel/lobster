@@ -78,21 +78,17 @@ void AddBuiltins(NativeRegistry &natreg) {
         vm.ss_reuse.clear();
         RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
         Output(OUTPUT_PROGRAM, vm.ss_reuse.str());
+        a.DECRT(vm);
+        return Value();
+    }
+    ENDDECL1(print, "x", "S", "",
+        "output any value to the console (with linefeed).");
+
+    // This is now the identity function, but still useful to force a coercion.
+    STARTDECL(string) (VM &, Value &a) {
         return a;
     }
-    ENDDECL1(print, "x", "A", "A1",
-        "output any value to the console (with linefeed). returns its argument.");
-
-    STARTDECL(string) (VM &vm, Value &a) {
-        if (a.ref() && a.ref()->tti == TYPE_ELEM_STRING) return a;
-        vm.ss_reuse.str(string());
-        vm.ss_reuse.clear();
-        RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
-        auto str = vm.NewString(vm.ss_reuse.str());
-        a.DECRT(vm);
-        return str;
-    }
-    ENDDECL1(string, "x", "A", "S",
+    ENDDECL1(string, "x", "S", "S",
         "convert any value to string");
 
     STARTDECL(set_print_depth) (VM &vm, Value &a) {
