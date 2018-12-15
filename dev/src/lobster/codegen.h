@@ -290,19 +290,13 @@ struct CodeGen  {
             assert(0);
         }
         vector<SpecIdent *> defs;
-        auto collect = [&](Arg &arg) {
-            defs.push_back(arg.sid);
-        };
-        for (auto &arg : sf.locals.v) collect(arg);
-        for (auto &arg : sf.dynscoperedefs.v) collect(arg);
+        for (auto &arg : sf.locals.v) defs.push_back(arg.sid);
         linenumbernodes.push_back(sf.body);
         SplitAttr(Pos());
         Emit(IL_FUNSTART);
         Emit(sf.parent->idx);
         Emit((int)sf.args.v.size());
         for (auto &arg : sf.args.v) Emit(arg.sid->Idx());
-        // FIXME: we now have sf.dynscoperedefs, so we could emit them seperately, and thus
-        // optimize function calls
         Emit((int)defs.size());
         for (auto id : defs) Emit(id->Idx());
         if (sf.body) for (auto c : sf.body->children) {
@@ -690,6 +684,11 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         if (sids[i]->id->logvar)
             cg.Emit(IL_LOGREAD, sids[i]->logvaridx);
         cg.TakeTemp(1);
+        // FIXME: Sadly, even though FunIntro now guarantees that variables start as V_NIL,
+        // we still can't replace this with a WRITEDEF that doesn't have to decrement, since
+        // for loops with inlined bodies cause this def to be execute multiple times.
+        // We could emit code to clear vars at the end of an inlined block, but that doesn't
+        // change the amount of decrements in for loops, so probably not that helpful.
         cg.Emit(IL_LVALVAR, IsRefNil(sids[i]->type->t) ? LVO_WRITEREF : LVO_WRITE, sids[i]->Idx());
         cg.VarModified(sids[i]);
     }

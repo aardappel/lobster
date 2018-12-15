@@ -227,8 +227,7 @@ struct Lex : LoadedFile {
             case '*':                      cont = true; second('=', T_MULTEQ); return T_MULT;
             case '%':                      cont = true; second('=', T_MODEQ); return T_MOD;
 
-            case '<': cont = true; second('=', T_LTEQ); second('<', T_ASL);
-                                                        second('-', T_DYNASSIGN); return T_LT;
+            case '<': cont = true; second('=', T_LTEQ); second('<', T_ASL); return T_LT;
             case '=': cont = true; second('=', T_EQ);   return T_ASSIGN;
             case '!': cont = true; second('=', T_NEQ);  cont = false; return T_NOT;
             case '>': cont = true; second('=', T_GTEQ); second('>', T_ASR); return T_GT;

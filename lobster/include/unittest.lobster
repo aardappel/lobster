@@ -92,20 +92,6 @@ def run_test_cases(is_speed_test):
             print(comperr2)
         assert(compres2 == "plugintest return value")
 
-    def scopetest():
-        x := 1
-        y := 1
-        def f():
-            assert x == 1
-            assert y == 2
-        def g():
-            // This used to be legal, but now shadowing is disabled.
-            // x := 2
-            y <- 2
-            f()
-        g()
-    scopetest()
-
     st := map(10) i: switch i:
             case 1: "no"
             case 2, 3:

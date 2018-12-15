@@ -263,7 +263,7 @@ struct TypeChecker {
                                      st.IsSuperTypeOrSame(sub->struc, type->struc);
             case V_COROUTINE: return type->t == V_COROUTINE &&
                                      (sub->sf == type->sf ||
-                                      (!sub->sf && ConvertsTo(type->sf->coresumetype,
+                                      (!sub->sf && type->sf && ConvertsTo(type->sf->coresumetype,
                                                               NewNilTypeVar(), false)));
             case V_TUPLE:     return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *sub->tup);
             default:          return false;
@@ -588,7 +588,6 @@ struct TypeChecker {
         sf.typechecked = true;
         for (auto &arg : sf.args.v) StorageType(arg.type, *call_context);
         for (auto &fv : sf.freevars.v) UpdateCurrentSid(fv.sid);
-        for (auto &dyn : sf.dynscoperedefs.v) UpdateCurrentSid(dyn.sid);
         auto backup_vars = [&](ArgVector &in, ArgVector &backup) {
             for (auto [i, arg] : enumerate(in.v)) {
                 // Need to not overwrite nested/recursive calls. e.g. map(): map(): ..
@@ -978,8 +977,6 @@ struct TypeChecker {
                         sf->coyieldsave.Add(arg);
                     for (auto &loc : ssf->locals.v)
                         sf->coyieldsave.Add(Arg(loc.sid, loc.sid->type, loc.flags & AF_WITHTYPE));
-                    for (auto &dyn : ssf->dynscoperedefs.v)
-                        sf->coyieldsave.Add(dyn);
                 }
                 for (auto &cys : sf->coyieldsave.v) UpdateCurrentSid(cys.sid);
                 return sf->coresumetype;
@@ -1970,9 +1967,14 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                     type = type->sub;
                 } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
                     auto csf = type->sf;
-                    assert(csf);
-                    // In theory it is possible this hasn't been generated yet..
-                    type = csf->returntype;
+                    if (csf) {
+                        // In theory it is possible this hasn't been generated yet..
+                        type = csf->returntype;
+                    } else {
+                        // This can happen when typechecking a multimethod with a coroutine arg.
+                        tc.TypeError(cat("cannot call ", nf->name, " on generic coroutine type"),
+                                         *this);
+                    }
                 }
                 break;
             }

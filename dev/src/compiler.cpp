@@ -76,8 +76,11 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
                 case V_FLOAT: return &g_type_vector_vector_float;
                 case V_VECTOR: switch (elem->sub->sub->t) {
                     case V_FLOAT: return &g_type_vector_vector_vector_float;
+                    default: return nullptr;
                 }
+                default: return nullptr;
             }
+            default: return nullptr;
         }
     } else if (with == V_NIL) {
         switch (elem->t) {
@@ -91,10 +94,13 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
                 case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return &t; }
                 case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }
                 case V_STRING: { static const Type t(V_NIL, &g_type_vector_string); return &t; }
+                default: return nullptr;
             }
+            default: return nullptr;
         }
+    } else {
+        return nullptr;
     }
-    return nullptr;
 }
 
 bool IsCompressed(string_view filename) {
@@ -275,7 +281,7 @@ void DumpBuiltins(NativeRegistry &natreg, bool justnames, const SymbolTable &st)
                 s += TypeName(a.type->t == V_NIL ? a.type->Element() : a.type, a.fixed_len, &st);
             }
             s += "</font>";
-            if (a.type->t == V_NIL && i > last_non_nil)
+            if (a.type->t == V_NIL && (int)i > last_non_nil)
                 s += a.type->sub->Numeric() ? " = 0" : " = nil";
         }
         s += ")";

@@ -260,7 +260,7 @@ struct Parser {
                 lex.Next();
                 lastid = st.MaybeNameSpace(ExpectId(), !isprivate);
                 Expect(T_ASSIGN);
-                list->Add(ParseSingleVarDecl(isprivate, isconst, false, false));
+                list->Add(ParseSingleVarDecl(isprivate, isconst, false));
                 break;
             }
             default: {
@@ -405,13 +405,10 @@ struct Parser {
         parent_list->Add(new StructRef(lex, struc));
     }
 
-    Node *ParseSingleVarDecl(bool isprivate, bool constant, bool dynscope, bool logvar) {
+    Node *ParseSingleVarDecl(bool isprivate, bool constant, bool logvar) {
         auto idname = lastid;
         auto e = ParseExp();
-        auto id = dynscope
-            ? st.LookupDynScopeRedef(idname, lex)
-            : st.LookupDef(idname, lex, false, true, false);
-        if (dynscope)  id->Assign(lex);
+        auto id = st.LookupDef(idname, lex, false, true, false);
         if (constant)  id->constant = true;
         if (isprivate) id->isprivate = true;
         if (logvar)    st.MakeLogVar(id);
@@ -419,13 +416,12 @@ struct Parser {
     }
 
     Node *ParseVarDecl(bool isprivate) {
-        bool dynscope = lex.token == T_DYNASSIGN;
         bool constant = lex.token == T_DEFCONST;
         bool logvar = lex.token == T_LOGASSIGN;
         // codegen assumes these defs can only happen at toplevel
-        if (lex.token == T_DEF || dynscope || constant || logvar) {
+        if (lex.token == T_DEF || constant || logvar) {
             lex.Next();
-            return ParseSingleVarDecl(isprivate, constant, dynscope, logvar);
+            return ParseSingleVarDecl(isprivate, constant, logvar);
         }
         auto idname = lastid;
         bool withtype = lex.token == T_TYPEIN;

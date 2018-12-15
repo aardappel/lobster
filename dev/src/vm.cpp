@@ -486,13 +486,9 @@ void VM::FunIntro(VM_OP_ARGS) {
     auto ndef = *ip++;
     for (int i = 0; i < ndef; i++) {
         // for most locals, this just saves an nil, only in recursive cases it has an actual value.
-        // The reason we don't clear the var after backing it up is that in the DS case,
-        // you want to be able to use the old value until a new one gets defined, as in a <- a + 1.
-        // clearing it would save the INC and a DEC when it eventually gets overwritten,
-        // so maybe we can at some point distinguish between vars that are used with DS and those
-        // that are not.
         auto varidx = *ip++;
-        PUSH(vars[varidx].INCTYPE(GetVarTypeInfo(varidx).t));
+        PUSH(vars[varidx]);
+        vars[varidx] = Value();
     }
     auto &stf = stackframes.back();
     stf.funstart = funstart;
@@ -550,8 +546,7 @@ void VM::CoNonRec(const int *varip) {
         // of scope of parent
         Error("cannot create coroutine recursively");
     }
-    // TODO: this check guarantees all saved stack vars are undef, except for DS vars,
-    // which could still cause problems
+    // this check guarantees all saved stack vars are undef.
 }
 
 void VM::CoNew(VM_OP_ARGS_CALL) {
@@ -1538,10 +1533,10 @@ void VM::LvalueOp(int op, Value &a) {
         LVALCASE(LVO_SADD   , _SCAT();                   a = res;                  )
         LVALCASE(LVO_SADDR  , _SCAT();                   a = res; PUSH(res.INCRT()))
 
-        case LVO_WRITE:     { Value  b = POP();                          a = b; break; }
-        case LVO_WRITER:    { Value &b = TOP();                          a = b; break; }
-        case LVO_WRITEREF:  { Value  b = POP();            a.DECRTNIL(*this); a = b; break; }
-        case LVO_WRITERREF: { Value &b = TOP().INCRTNIL(); a.DECRTNIL(*this); a = b; break; }
+        case LVO_WRITE:     { auto  b = POP();                               a = b; break; }
+        case LVO_WRITER:    { auto &b = TOP();                               a = b; break; }
+        case LVO_WRITEREF:  { auto  b = POP();            a.DECRTNIL(*this); a = b; break; }
+        case LVO_WRITERREF: { auto &b = TOP().INCRTNIL(); a.DECRTNIL(*this); a = b; break; }
 
         #define PPOP(ret, op, pre, accessor) { \
             if (ret && !pre) PUSH(a); \

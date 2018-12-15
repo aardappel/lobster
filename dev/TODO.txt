@@ -10,8 +10,6 @@
       modifies code, we can generalize that now!
     - we can maybe make the whole typechecker not modify nodes?
 
-- make more args const
-
 - could we remove the support for dynamic scoping alltogether?
   - DS thru -> would be more accurate if it was followed by a block itself
   - DS in general is almost superseded by lobsters HOFs because they do take a block. i.e. gl_color() is nicer than
@@ -29,6 +27,20 @@
   - after cleaning up parser, for every top level definition should mark from which file it comes,
     and then each use should make sure that file has been included in the current file, to avoid
     suprises when things are included independently.
+  - if we can delay looking up the function to the type checker, then we can allow
+    "functions as environments", e.g.
+    def env(f):
+        v := 1
+        def m(): return v++
+        f()
+    env():
+        for 10: print m()
+        env():
+            m()  // increments different variable!
+    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
+    The type checker already supports this, its just the parser lookup!
+    Using this recursively will make it harder to optimize stack frame usage in the future,
+    though neither match nor gui is properly recursive, it is all instantiated.
 
 - should really centrally organize the concept of const vs owner vs refc, since besides for
   structs, will need these concepts for strings/vectors/coroutines as well (will especially be
@@ -660,6 +672,8 @@
 - syntax: "if c: a, b = exp" doesn't compile if the multi-assign is on the same line.
 
 - typechecker
+  - would be nice to have a way to indicate a generic argument that must be a vector, possibly
+    as just []. See for example match.lobster that works on generic vectors.
   - x[i] does not do flow analysis.. not as trivial to add if i is an exp or could change.
   - if !a: a = ..
     // here a is still nillable.
@@ -972,6 +986,8 @@
      The problem with this approach is that there is no way to do operate on 64bit datatypes in any way this way.
      Another problem: the ip's stored in Value are native function pointers in C++ mode and would need to
      be indirected.
+
+- make more args const
 
 - add support for http://vallentinsource.com/opengl/debug-output
 
@@ -1374,7 +1390,7 @@ VM64: compr_ptr     : secs  2.02, 1.07x vs native pointers
 VM64-MSVC: oct 2018 : secs  2.18
 VM64-LLVM: oct 2018 : secs  2.08, 1.05x MSVC (without -flto, which doesn't work)
 VM64-LLVM: compr_ptr: secs  2.11, 0.98x vs native pointers, unlike MSVC!
-VM64-MSVC: dec 2018 : secs  2.07, 0.95x vs oct, return value related refactorings.
+VM64-LLVM: dec 2018 : secs  2.05, return value related refactorings.
 
 
 DEPENDENCIES

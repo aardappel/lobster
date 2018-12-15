@@ -197,8 +197,7 @@ struct SubFunction {
     int idx;
     ArgVector args;
     ArgVector locals;
-    ArgVector dynscoperedefs; // any lhs of <-
-    ArgVector freevars;       // any used from outside this scope, could overlap with dynscoperedefs
+    ArgVector freevars;       // any used from outside this scope
     TypeRef returntype;
     size_t num_returns;
     size_t reqret;  // Do the caller(s) want values to be returned?
@@ -219,7 +218,7 @@ struct SubFunction {
 
     SubFunction(int _idx)
         : idx(_idx),
-          args(0), locals(0), dynscoperedefs(0), freevars(0), returntype(type_undefined),
+          args(0), locals(0), freevars(0), returntype(type_undefined),
           num_returns(0), reqret(0),
           isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
@@ -393,14 +392,6 @@ struct SymbolTable {
         idents[ident->name /* must be in value */] = ident;
         identstack.push_back(ident);
         identtable.push_back(ident);
-        return ident;
-    }
-
-    Ident *LookupDynScopeRedef(string_view name, Lex &lex) {
-        auto ident = Lookup(name);
-        if (!ident)
-            lex.Error("lhs of <- must refer to existing variable: " + name);
-        defsubfunctionstack.back()->dynscoperedefs.Add(Arg(ident->cursid, type_any, AF_GENERIC));
         return ident;
     }
 
@@ -603,7 +594,6 @@ struct SymbolTable {
     void CloneIds(SubFunction &sf, const SubFunction &o) {
         sf.args = o.args;                     CloneSids(sf.args);
         sf.locals = o.locals;                 CloneSids(sf.locals);
-        sf.dynscoperedefs = o.dynscoperedefs; // Set to correct one in TypeCheckFunctionDef.
         // Don't clone freevars, these will be accumulated in the new copy anew.
     }
 

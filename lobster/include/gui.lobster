@@ -20,25 +20,25 @@ namespace gui
 
 private struct elem { id:int, size:xy_i }
 
-private cursize := xy_0i
+private cursize := [ xy_0i ]
 
-private parent_size := xy_0i
+private parent_size := [ xy_0i ]
 
-private vertical := true
+private vertical := [ true ]
 
 private render_pass := false
 private size_list := []
 private size_index := 0
 
-private align := 0
-private spacing := 0
+private align := [ 0 ]
+private spacing := [ 0 ]
 
 private hover_color := color_dark_grey
 private select_color := color_grey
 
 private overalsize := xy_0i
 
-private interactive := true
+private interactive := [ true ]
 
 private actionsfxr := nil
 private actionwav := nil
@@ -46,7 +46,7 @@ private actionwav := nil
 private num_interactive_elements_hit := 0
 private focus_id := -1
 
-private button_key := "<none>"
+private button_key := [ "<none>" ]
 
 def fun() :== void
 def funs(v:xy_i) :== void
@@ -59,8 +59,8 @@ private def cache_size(id, f):
         e.size = f()
     else:
         i := size_index
-        // usually this lookup will hit the if on the first iteration, but if not, any skipped elements are old
-        // elements just removed by an event handler
+        // usually this lookup will hit the if on the first iteration, but if not,
+        // any skipped elements are old elements just removed by an event handler
         while i < size_list.length:
             e := size_list[i++]
             if e.id == id:
@@ -69,9 +69,10 @@ private def cache_size(id, f):
         xy_0i   // new element inserted by event handler, do not render yet
 
 private def update_size(v:xy_i):
-    cursize =
-        if(vertical): xy { max(cursize.x, v.x), cursize.y + v.y + (cursize.y and spacing) }
-        else:         xy { cursize.x + v.x + (cursize.x and spacing), max(cursize.y, v.y) }
+    cs := cursize.pop()
+    cursize.push(
+        if vertical.top: xy { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
+        else:            xy { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
 
 private def advance(v:xy_i, f):
     if render_pass:
@@ -80,39 +81,50 @@ private def advance(v:xy_i, f):
         update_size(v)
 
 private def max_space(v:xy_i):
-    return if vertical: xy { parent_size.x, v.y } else: xy { v.x, parent_size.y }
+    return if vertical.top:
+        xy { parent_size.top.x, v.y }
+    else:
+        xy { v.x, parent_size.top.y }
 
 private def position(v:xy_i, f):
     r := max_space(v) - v
-    gl_translate(float(if(align == 1): r / 2 else: r * (align / 2)), f)
+    gl_translate(float(if(align.top == 1): r / 2 else: r * (align.top / 2)), f)
 
 private def cursize_of(id, f):
     return cache_size(id):
-        cursize <- xy_0i
+        cursize.push(xy_0i)
         f()
-        cursize
+        cursize.pop()
 
 private def element(size:xy_i, f):
-    if size != xy_0i:   // (note: object identity compare!) will be xy_0i if we're in the render pass and element was just deleted
+    // (note: object identity compare!) will be xy_0i if we're in the render pass and
+    // element was just deleted
+    if size != xy_0i:
         advance(size):
             position(size, f)
-            if vertical:
-                gl_translate(xy_y * (size.y + spacing))
+            if vertical.top:
+                gl_translate(xy_y * (size.y + spacing.top))
             else:
-                gl_translate(xy_x * (size.x + spacing))
+                gl_translate(xy_x * (size.x + spacing.top))
 
 private def block(al, sp, vert, id, f):
     spi := round(sp * gl_get_font_size())
     size := cursize_of(id):
-        spacing <- spi
-        vertical <- vert
+        spacing.push(spi)
+        vertical.push(vert)
         f()
+        vertical.pop()
+        spacing.pop()
     element(size):
-        vertical <- vert
-        align <- al
-        spacing <- spi
-        parent_size <- size
+        spacing.push(spi)
+        vertical.push(vert)
+        align.push(al)
+        parent_size.push(size)
         f()
+        parent_size.pop()
+        align.pop()
+        vertical.pop()
+        spacing.pop()
 
 def text(text:string):
     element(cache_size(hash(text)): gl_text_size(text)):
@@ -127,9 +139,11 @@ def image(factors, tex):
         gl_set_shader("color")
 
 def divider(thickness:int):
-    align <- 0
+    align.push(0)
     element(xy_1i * thickness):
-        gl_rect(if vertical: xy_f { parent_size.x, thickness } else: xy_f { thickness, parent_size.y })
+        gl_rect(if vertical.top: xy_f { parent_size.top.x, thickness }
+                else:            xy_f { thickness, parent_size.top.y })
+    align.pop()
 
 def space(thickness:float):
     element(xy_1i * round(thickness * gl_get_font_size())): nil
@@ -138,9 +152,9 @@ def start(size, alignh, alignv, interact, f:fun):   // top level only
     id := hash(f)
     gl_set_shader("color")
     gl_blend(blend_alpha):
-        parent_size <- size
-        vertical <- false
-        interactive <- interact
+        parent_size.push(size)
+        vertical.push(false)
+        interactive.push(interact)
         num_interactive_elements_hit = 0
 
         render_pass = false
@@ -152,14 +166,21 @@ def start(size, alignh, alignv, interact, f:fun):   // top level only
         render_pass = true
         size_index = 1
 
-        align <- alignv
+        align.push(alignv)
         position(overalsize):
-            align <- alignh
-            vertical <- true
+            align.push(alignh)
+            vertical.push(true)
             f()
+            vertical.pop()
+            align.pop()
 
         if !num_interactive_elements_hit and !gl_touchscreen():
             focus_id = -1
+
+        align.pop()
+        interactive.pop()
+        vertical.pop()
+        parent_size.pop()
 
 def hblock(al, sp, f:fun): block(al, sp, false, hash(f), f)
 def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
@@ -188,7 +209,7 @@ private def around(m, draw, id, f):
                     gl_translate xy_f { 0.0, size.y - m.y }:
                         gl_rect(xy_f { size.x, m.y })
             def forward():
-                gl_translate([ xy_x, xy_y ][vertical] * m[vertical])
+                gl_translate([ xy_x, xy_y ][vertical.top] * m[vertical.top])
             forward()
             f()
             forward()
@@ -218,14 +239,15 @@ def background(col, stretch, f:fun):
             gl_rect(float(size))
 
 def key(key_name, f):  // Surround a button with this to also allow keyboard activation.
-    button_key <- key_name
+    button_key.push(key_name)
     f()
+    button_key.pop()
 
 private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
-        if interactive:
+        if interactive.top:
             hit := gl_hit(float(size), 0)
-            key := gl_button(button_key)
+            key := gl_button(button_key.top)
             active := hit or key >= 0
             if active or (focus_id == id and gl_touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.

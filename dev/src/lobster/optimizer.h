@@ -120,7 +120,6 @@ struct Optimizer {
                  sf->num_returns <= 1 &&       // Implied by anonymous, but here for clarity.
                  !sf->parent->multimethod &&   // unless multimethod_specialized?
                  !sf->iscoroutine &&
-                 !sf->dynscoperedefs.size() &&
                  sf->returntype->NumValues() <= 1 &&
                  (sf->numcallers <= 1 || sf->body->Count() < 8)))  // FIXME: configurable.
             {
