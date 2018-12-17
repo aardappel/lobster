@@ -2,8 +2,6 @@ include std
 include vec
 include color
 
-include unittest
-
 indentsize := 20.0
 column_margin := 10.0
 fontsize := 20

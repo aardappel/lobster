@@ -61,7 +61,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         currentline(-1), maxsp(-1),
         debugpp(2, 50, true, -1), programname(_pn), vml(*this),
         trace(false), trace_tail(false), trace_ring_idx(0),
-        vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0),
+        vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0), vm_count_decref(0),
         compiled_code_ip(entry_point), program_args(args) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     bcf = bytecode::GetBytecodeFile(bcfb);
@@ -138,11 +138,25 @@ static bool _LeakSorter(void *va, void *vb) {
         : false);
 }
 
+void VM::DumpVal(RefObj *ro, const char *prefix) {
+    ostringstream ss;
+    ss << prefix << ": ";
+    RefToString(*this, ss, ro, debugpp);
+    ss << " (" << ro->refc << "): " << (size_t)ro;
+    Output(OUTPUT_DEBUG, ss.str());
+}
+
+void VM::DumpFileLine(const int *fip, ostringstream &ss) {
+    // error is usually in the byte before the current ip.
+    auto li = LookupLine(fip - 1, codestart, bcf);
+    ss << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '(' << li->line() << ')';
+}
+
 void VM::DumpLeaks() {
     vector<void *> leaks = pool.findleaks();
     if (!leaks.empty()) {
         Output(OUTPUT_ERROR, "LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
-                             " Lobster, details in leaks.txt)");
+                             " Lobster)");
         ostringstream ss;
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
@@ -155,42 +169,75 @@ void VM::DumpLeaks() {
                     break;
                 case V_STRING:
                 case V_COROUTINE:
+                case V_RESOURCE:
                 case V_VECTOR:
                 case V_STRUCT: {
                     ro->CycleStr(ss);
                     ss << " = ";
                     RefToString(*this, ss, ro, leakpp);
+                    #if DELETE_DELAY
+                    ss << " ";
+                    DumpFileLine(ro->alloc_ip, ss);
+                    ss << " " << (size_t)ro;
+                    #endif
                     ss << "\n";
                     break;
                 }
                 default: assert(false);
             }
         }
-        WriteFile("leaks.txt", false, ss.str());
+        #ifdef _DEBUG
+            Output(OUTPUT_ERROR, ss.str());
+        #else
+            if (leaks.size() < 50) {
+                Output(OUTPUT_ERROR, ss.str());
+            } else {
+                Output(OUTPUT_ERROR, leaks.size(), " leaks, details in leaks.txt");
+                WriteFile("leaks.txt", false, ss.str());
+            }
+        #endif
     }
     pool.printstats(false);
+}
+
+void VM::OnAlloc(RefObj *ro) {
+    #if DELETE_DELAY
+        Output(OUTPUT_DEBUG, "alloc: ", (size_t)ro);
+        ro->alloc_ip = ip;
+    #else
+        (void)ro;
+    #endif
 }
 
 #undef new
 LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
     assert(GetTypeInfo(tti).t == V_VECTOR);
-    return new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
+    auto v = new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
+    OnAlloc(v);
+    return v;
 }
 LStruct *VM::NewStruct(intp max, type_elem_t tti) {
     assert(GetTypeInfo(tti).t == V_STRUCT);
-    return new (pool.alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
+    auto s = new (pool.alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
+    OnAlloc(s);
+    return s;
 }
 LString *VM::NewString(size_t l) {
-    return new (pool.alloc(sizeof(LString) + l + 1)) LString((int)l);
+    auto s = new (pool.alloc(sizeof(LString) + l + 1)) LString((int)l);
+    OnAlloc(s);
+    return s;
 }
 LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
     assert(GetTypeInfo(cti).t == V_COROUTINE);
-    return new (pool.alloc(sizeof(LCoRoutine)))
-               LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p,
-                         cti);
+    auto c = new (pool.alloc(sizeof(LCoRoutine)))
+       LCoRoutine(sp + 2 /* top of sp + pushed coro */, (int)stackframes.size(), rip, vip, p, cti);
+    OnAlloc(c);
+    return c;
 }
 LResource *VM::NewResource(void *v, const ResourceType *t) {
-    return new (pool.alloc(sizeof(LResource))) LResource(v, t);
+    auto r = new (pool.alloc(sizeof(LResource))) LResource(v, t);
+    OnAlloc(r);
+    return r;
 }
 #ifdef _WIN32
 #ifndef NDEBUG
@@ -203,6 +250,9 @@ LString *VM::NewString(string_view s) {
     auto dest = (char *)r->data();
     memcpy(dest, s.data(), s.size());
     dest[s.size()] = 0;
+    #if DELETE_DELAY
+        Output(OUTPUT_DEBUG, "string: \"", s, "\" - ", (size_t)r);
+    #endif
     return r;
 }
 
@@ -224,7 +274,8 @@ LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
     else cdest += s->len;
     memcpy(sdest, s->data(), s->len);
     memset(cdest, c, remain);
-    s->Dec(*this);
+    s->Dec<false>(*this);
+    s->Dec<true>(*this);
     return ns;
 }
 
@@ -240,9 +291,8 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     }
     ostringstream ss;
     #ifndef VM_COMPILED_CODE_MODE
-        // error is usually in the byte before the current ip.
-        auto li = LookupLine(ip - 1, codestart, bcf);
-        ss << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '(' << li->line() << "): ";
+        DumpFileLine(ip, ss);
+        ss << ": ";
     #endif
     ss << "VM error: " << err;
     if (a) { ss << "\n   arg: "; RefToString(*this, ss, a, debugpp); }
@@ -267,9 +317,8 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
             ss << "\nin block";
         }
         #ifndef VM_COMPILED_CODE_MODE
-        auto li = LookupLine(ip - 1, codestart, bcf);
-        ss << " -> " << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '('
-           << li->line() << ')';
+        ss << " -> ";
+        DumpFileLine(ip, ss);
         #endif
         VarCleanup<1>(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
     }
@@ -404,7 +453,12 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     auto freevars = fip + nargs;
     fip += nargs;
     auto ndef = *fip++;
-    auto defvars = fip + ndef;
+    fip += ndef;
+    auto defvars = fip;
+    auto nkeepvars = *fip++;
+    for (int i = 0; i < nkeepvars; i++) POP().LTDECRTNIL(*this);
+    auto ownedvars = *fip++;
+    for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
     while (ndef--) {
         auto i = *--defvars;
         if constexpr (is_error) DumpVar(*error, vars[i], i, false);
@@ -482,6 +536,10 @@ void VM::FunIntro(VM_OP_ARGS) {
         PUSH(vars[varidx]);
         vars[varidx] = Value();
     }
+    auto nkeepvars = *ip++;
+    for (int i = 0; i < nkeepvars; i++) PUSH(Value());
+    auto nownedvars = *ip++;
+    ip += nownedvars;
     auto &stf = stackframes.back();
     stf.funstart = funstart;
     stf.spstart = sp;
@@ -595,8 +653,9 @@ void VM::CoYield(VM_OP_ARGS_CALL) {
         //var.type = V_NIL;
         var = curcoroutine->stackcopy[i - 1];
     }
-    PUSH(ret);  // current value always top of the stack
+    PUSH(ret);  // current value always top of the stack, saved as part of suspended coroutine.
     CoSuspend(retip);
+    // Actual top of stack here is coroutine itself, that we placed here with CoResume.
 }
 
 void VM::CoResume(LCoRoutine *co) {
@@ -630,9 +689,15 @@ void VM::EndEval(const Value &ret, ValueType vt) {
     ret.ToString(*this, ss, vt, programprintprefs);
     evalret = ss.str();
     ret.DECTYPE(*this, vt);
+    ret.LTDECTYPE(*this, vt);
     assert(sp == -1);
     FinalStackVarsCleanup();
     vml.LogCleanup();
+    while (!delete_delay.empty()) {
+        auto ro = delete_delay.back();
+        delete_delay.pop_back();
+        ro->DECDELETENOW(*this, true);
+    }
     DumpLeaks();
     VMASSERT(!curcoroutine);
     #ifdef VM_PROFILER
@@ -678,7 +743,7 @@ void VM::EndEval(const Value &ret, ValueType vt) {
         }
         if (vm_count_fcalls)  // remove trivial VM executions from output
             Output(OUTPUT_INFO, "ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
-                                vm_count_bcalls);
+                                vm_count_bcalls, ", decref ", vm_count_decref);
     #endif
     #ifndef VM_ERROR_RET_EXPERIMENT
     THROW_OR_ABORT(string("end-eval"));
@@ -719,14 +784,13 @@ void VM::EvalProgramInner() {
                     auto &ss = trace_output[trace_ring_idx++];
                     ss.str(string());
                     DisAsmIns(natreg, ss, ip, codestart, typetable, bcf);
-                    ss << " [" << (sp + 1) << "] - ";
+                    ss << " [" << (sp + 1) << "] -";
                     #if RTT_ENABLED
-                    if (sp >= 0) {
-                        auto x = TOP();
-                        x.ToString(*this, ss, x.type, debugpp);
-                    }
-                    if (sp >= 1) {
-                        auto x = TOPM(1);
+                    #if DELETE_DELAY
+                        ss << ' ' << (size_t)TOP().any();
+                    #endif
+                    for (int i = 0; i < 3 && sp - i >= 0; i++) {
+                        auto x = TOPM(i);
                         ss << ' ';
                         x.ToString(*this, ss, x.type, debugpp);
                     }
@@ -734,7 +798,7 @@ void VM::EvalProgramInner() {
                     if (trace_tail) {
                         ss << '\n';
                     } else {
-                        Output(OUTPUT_INFO, ss.str());
+                        Output(OUTPUT_DEBUG, ss.str());
                     }
                 }
                 //currentline = LookupLine(ip).line;
@@ -813,6 +877,25 @@ VM_DEF_INS(PUSHSTR) {
     auto fb_s = bcf->stringtable()->Get(*ip++);
     auto s = NewString(flat_string_view(fb_s));
     PUSH(Value(s));
+    VM_RET;
+}
+
+VM_DEF_INS(INCREF) {
+    auto off = *ip++;
+    TOPM(off).LTINCRTNIL();
+    VM_RET;
+}
+
+VM_DEF_INS(KEEPREF) {
+    auto off = *ip++;
+    auto ki = *ip++;
+    #if LIFETIMES_REFC
+    TOPM(ki).LTDECRTNIL(*this);  // FIXME: this is only here for inlined for bodies!
+    TOPM(ki) = TOPM(off);
+    #else
+    (void)off;
+    (void)ki;
+    #endif
     VM_RET;
 }
 
@@ -973,7 +1056,7 @@ VM_DEF_JMP(SFOR) { FORLOOP(iter.sval()->len, true); }
 
 VM_DEF_INS(IFORELEM)    { FORELEM(iter.ival(), PUSH(i)); }
 VM_DEF_INS(VFORELEM)    { FORELEM(iter.vval()->len, PUSH(iter.vval()->At(i.ival()))); }
-VM_DEF_INS(VFORELEMREF) { FORELEM(iter.vval()->len, auto el = iter.vval()->At(i.ival()); el.INCRTNIL(); PUSH(el)); }
+VM_DEF_INS(VFORELEMREF) { FORELEM(iter.vval()->len, auto el = iter.vval()->At(i.ival()); el.INCRTNIL(); el.LTINCRTNIL(); PUSH(el)); }
 VM_DEF_INS(NFORELEM)    { FORELEM(iter.stval()->Len(*this), PUSH(iter.stval()->AtS(i.ival()))); }
 VM_DEF_INS(SFORELEM)    { FORELEM(iter.sval()->len, PUSH(Value((int)((uchar *)iter.sval()->data())[i.ival()]))); }
 
@@ -984,18 +1067,34 @@ VM_DEF_INS(FORLOOPI) {
     VM_RET;
 }
 
+// FIXME: remove this crap once builtins have been debugged.
+void check_lifetime(NativeFun *, VM &, Value &) {}
+void check_lifetime(NativeFun *nf, Value &x, Value &v) {
+    assert(!IsRef(x.type) || x.any() != v.any() || nf->retvals.v.empty() ||
+           nf->retvals.v[0].lt == LT_BORROW || nf->args.v.empty() ||
+           nf->args.v[0].lt == LT_KEEP);
+    (void)x;
+    (void)v;
+}
+#define CHECK_LIFETIMES(N, VALS) \
+    if constexpr (DELETE_DELAY && N > 0) { \
+        auto vals = tie VALS; \
+        std::apply([&](auto &&...x){ (void)(check_lifetime(nf, x, v), ...); }, vals); \
+    }
+
 #define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_DEF_INS(BCALL##PRE##N) { \
     BCallProf(); \
     auto nf = natreg.nfuns[*ip++]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
+    CHECK_LIFETIMES(N, ARGS); \
     RETOP; \
     VM_RET; \
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
     BCALLOPH(RET,N,DECLS,ARGS,PUSH(v);BCallRetCheck(nf)) \
-    BCALLOPH(REF,N,DECLS,ARGS,v.DECRTNIL(*this)) \
+    BCALLOPH(REF,N,DECLS,ARGS,v.DECRTNIL(*this);v.LTDECRTNIL(*this)) \
     BCALLOPH(UNB,N,DECLS,ARGS,(void)v)
 
 BCALLOP(0, {}, (*this));
@@ -1028,7 +1127,7 @@ VM_DEF_INS(NEWSTRUCT) {
 }
 
 VM_DEF_INS(POP)    { POP(); VM_RET; }
-VM_DEF_INS(POPREF) { POP().DECRTNIL(*this); VM_RET; }
+VM_DEF_INS(POPREF) { auto x = POP(); x.DECRTNIL(*this); x.LTDECRTNIL(*this); VM_RET; }
 
 VM_DEF_INS(DUP)    { auto x = TOP();            PUSH(x); VM_RET; }
 VM_DEF_INS(DUPREF) { auto x = TOP().INCRTNIL(); PUSH(x); VM_RET; }
@@ -1462,70 +1561,71 @@ void VM::LvalueField(int lvalop, intp i) {
 
 void VM::LvalueOp(int op, Value &a) {
     switch(op) {
-        #define LVALCASE(N, B) case N: { Value b = POP(); B;  break; }
-        LVALCASE(LVO_IVVADD , _IVOP(+, 0, false, false); a = res;                  )
-        LVALCASE(LVO_IVVADDR, _IVOP(+, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVVSUB , _IVOP(-, 0, false, false); a = res;                  )
-        LVALCASE(LVO_IVVSUBR, _IVOP(-, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVVMUL , _IVOP(*, 0, false, false); a = res;                  )
-        LVALCASE(LVO_IVVMULR, _IVOP(*, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVVDIV , _IVOP(/, 1, false, false); a = res;                  )
-        LVALCASE(LVO_IVVDIVR, _IVOP(/, 1, false, false); a = res; PUSH(res.INCRT()))
+        #define LVALCASES(N, B)     case N: { Value b = POP(); B;                          break; }
+        #define LVALCASER(N, B, B2) case N: { Value b = POP(); B; a.LTDECRTNIL(*this); B2; break; }
+        LVALCASER(LVO_IVVADD , _IVOP(+, 0, false, false), a = res;                  )
+        LVALCASER(LVO_IVVADDR, _IVOP(+, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVVSUB , _IVOP(-, 0, false, false), a = res;                  )
+        LVALCASER(LVO_IVVSUBR, _IVOP(-, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVVMUL , _IVOP(*, 0, false, false), a = res;                  )
+        LVALCASER(LVO_IVVMULR, _IVOP(*, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVVDIV , _IVOP(/, 1, false, false), a = res;                  )
+        LVALCASER(LVO_IVVDIVR, _IVOP(/, 1, false, false), a = res; PUSH(res.INCRT()))
 
-        LVALCASE(LVO_FVVADD , _FVOP(+, 0, false, false); a = res;                  )
-        LVALCASE(LVO_FVVADDR, _FVOP(+, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVVSUB , _FVOP(-, 0, false, false); a = res;                  )
-        LVALCASE(LVO_FVVSUBR, _FVOP(-, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVVMUL , _FVOP(*, 0, false, false); a = res;                  )
-        LVALCASE(LVO_FVVMULR, _FVOP(*, 0, false, false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVVDIV , _FVOP(/, 1, false, false); a = res;                  )
-        LVALCASE(LVO_FVVDIVR, _FVOP(/, 1, false, false); a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVVADD , _FVOP(+, 0, false, false), a = res;                  )
+        LVALCASER(LVO_FVVADDR, _FVOP(+, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVVSUB , _FVOP(-, 0, false, false), a = res;                  )
+        LVALCASER(LVO_FVVSUBR, _FVOP(-, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVVMUL , _FVOP(*, 0, false, false), a = res;                  )
+        LVALCASER(LVO_FVVMULR, _FVOP(*, 0, false, false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVVDIV , _FVOP(/, 1, false, false), a = res;                  )
+        LVALCASER(LVO_FVVDIVR, _FVOP(/, 1, false, false), a = res; PUSH(res.INCRT()))
 
-        LVALCASE(LVO_IVSADD , _IVOP(+, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_IVSADDR, _IVOP(+, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVSSUB , _IVOP(-, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_IVSSUBR, _IVOP(-, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVSMUL , _IVOP(*, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_IVSMULR, _IVOP(*, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_IVSDIV , _IVOP(/, 1, true,  false); a = res;                  )
-        LVALCASE(LVO_IVSDIVR, _IVOP(/, 1, true,  false); a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVSADD , _IVOP(+, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_IVSADDR, _IVOP(+, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVSSUB , _IVOP(-, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_IVSSUBR, _IVOP(-, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVSMUL , _IVOP(*, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_IVSMULR, _IVOP(*, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_IVSDIV , _IVOP(/, 1, true,  false), a = res;                  )
+        LVALCASER(LVO_IVSDIVR, _IVOP(/, 1, true,  false), a = res; PUSH(res.INCRT()))
 
-        LVALCASE(LVO_FVSADD , _FVOP(+, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_FVSADDR, _FVOP(+, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVSSUB , _FVOP(-, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_FVSSUBR, _FVOP(-, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVSMUL , _FVOP(*, 0, true,  false); a = res;                  )
-        LVALCASE(LVO_FVSMULR, _FVOP(*, 0, true,  false); a = res; PUSH(res.INCRT()))
-        LVALCASE(LVO_FVSDIV , _FVOP(/, 1, true,  false); a = res;                  )
-        LVALCASE(LVO_FVSDIVR, _FVOP(/, 1, true,  false); a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVSADD , _FVOP(+, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_FVSADDR, _FVOP(+, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVSSUB , _FVOP(-, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_FVSSUBR, _FVOP(-, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVSMUL , _FVOP(*, 0, true,  false), a = res;                  )
+        LVALCASER(LVO_FVSMULR, _FVOP(*, 0, true,  false), a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_FVSDIV , _FVOP(/, 1, true,  false), a = res;                  )
+        LVALCASER(LVO_FVSDIVR, _FVOP(/, 1, true,  false), a = res; PUSH(res.INCRT()))
 
-        LVALCASE(LVO_IADD   , _IOP(+, 0);                a = res;                  )
-        LVALCASE(LVO_IADDR  , _IOP(+, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_ISUB   , _IOP(-, 0);                a = res;                  )
-        LVALCASE(LVO_ISUBR  , _IOP(-, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_IMUL   , _IOP(*, 0);                a = res;                  )
-        LVALCASE(LVO_IMULR  , _IOP(*, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_IDIV   , _IOP(/, 1);                a = res;                  )
-        LVALCASE(LVO_IDIVR  , _IOP(/, 1);                a = res; PUSH(res)        )
-        LVALCASE(LVO_IMOD   , _IOP(%, 1);                a = res;                  )
-        LVALCASE(LVO_IMODR  , _IOP(%, 1);                a = res; PUSH(res)        )
+        LVALCASES(LVO_IADD   , _IOP(+, 0);                a = res;                  )
+        LVALCASES(LVO_IADDR  , _IOP(+, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_ISUB   , _IOP(-, 0);                a = res;                  )
+        LVALCASES(LVO_ISUBR  , _IOP(-, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_IMUL   , _IOP(*, 0);                a = res;                  )
+        LVALCASES(LVO_IMULR  , _IOP(*, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_IDIV   , _IOP(/, 1);                a = res;                  )
+        LVALCASES(LVO_IDIVR  , _IOP(/, 1);                a = res; PUSH(res)        )
+        LVALCASES(LVO_IMOD   , _IOP(%, 1);                a = res;                  )
+        LVALCASES(LVO_IMODR  , _IOP(%, 1);                a = res; PUSH(res)        )
 
-        LVALCASE(LVO_FADD   , _FOP(+, 0);                a = res;                  )
-        LVALCASE(LVO_FADDR  , _FOP(+, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_FSUB   , _FOP(-, 0);                a = res;                  )
-        LVALCASE(LVO_FSUBR  , _FOP(-, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_FMUL   , _FOP(*, 0);                a = res;                  )
-        LVALCASE(LVO_FMULR  , _FOP(*, 0);                a = res; PUSH(res)        )
-        LVALCASE(LVO_FDIV   , _FOP(/, 1);                a = res;                  )
-        LVALCASE(LVO_FDIVR  , _FOP(/, 1);                a = res; PUSH(res)        )
+        LVALCASES(LVO_FADD   , _FOP(+, 0);                a = res;                  )
+        LVALCASES(LVO_FADDR  , _FOP(+, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_FSUB   , _FOP(-, 0);                a = res;                  )
+        LVALCASES(LVO_FSUBR  , _FOP(-, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_FMUL   , _FOP(*, 0);                a = res;                  )
+        LVALCASES(LVO_FMULR  , _FOP(*, 0);                a = res; PUSH(res)        )
+        LVALCASES(LVO_FDIV   , _FOP(/, 1);                a = res;                  )
+        LVALCASES(LVO_FDIVR  , _FOP(/, 1);                a = res; PUSH(res)        )
 
-        LVALCASE(LVO_SADD   , _SCAT();                   a = res;                  )
-        LVALCASE(LVO_SADDR  , _SCAT();                   a = res; PUSH(res.INCRT()))
+        LVALCASER(LVO_SADD   , _SCAT(),                   a = res;                  )
+        LVALCASER(LVO_SADDR  , _SCAT(),                   a = res; PUSH(res.INCRT()))
 
         case LVO_WRITE:     { auto  b = POP();                               a = b; break; }
         case LVO_WRITER:    { auto &b = TOP();                               a = b; break; }
-        case LVO_WRITEREF:  { auto  b = POP();            a.DECRTNIL(*this); a = b; break; }
-        case LVO_WRITERREF: { auto &b = TOP().INCRTNIL(); a.DECRTNIL(*this); a = b; break; }
+        case LVO_WRITEREF:  { auto  b = POP();            a.DECRTNIL(*this); a.LTDECRTNIL(*this); a = b; break; }
+        case LVO_WRITERREF: { auto &b = TOP().INCRTNIL(); a.DECRTNIL(*this); a.LTDECRTNIL(*this); a = b; break; }
 
         #define PPOP(ret, op, pre, accessor) { \
             if (ret && !pre) PUSH(a); \

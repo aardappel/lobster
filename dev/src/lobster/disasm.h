@@ -95,6 +95,7 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_SFOR:
         case IL_NFOR:
         case IL_YIELD:
+        case IL_INCREF:
             ss << *ip++;
             break;
 
@@ -111,6 +112,7 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         }
 
         case IL_LOGWRITE:
+        case IL_KEEPREF:
             ss << *ip++ << ' ';
             ss << *ip++;
             break;
@@ -216,6 +218,9 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
             while (n--) ss << IdName(bcf, *ip++) << ' ';
             n = *ip++;
             ss << "=> ";
+            while (n--) ss << IdName(bcf, *ip++) << ' ';
+            ss << '[' << *ip++ << ']';  // keep
+            n = *ip++;  // owned
             while (n--) ss << IdName(bcf, *ip++) << ' ';
             ss << ")";
             break;

@@ -1,33 +1,48 @@
 
 namespace lobster {
 
-struct FlowItem {
+struct LValContext {
     // For now, only: ident ( . field )*.
     const SpecIdent *sid;
     vector<SharedField *> derefs;
-    TypeRef old, now;
-    //FlowItem(SpecIdent *_sid) : sid(_sid), old(sid->type), now(sid->type) {}
-    FlowItem(const Node &n, TypeRef type) {
+    LValContext(const Node &n) {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
             derefs.insert(derefs.begin(), dot->fld);
             t = dot->children[0];
         }
         auto idr = Is<IdentRef>(t);
-        if (idr) {
-            sid = idr->sid;
-            old = n.exptype; //idr->sid->type;
-            now = type;
-        } else {
-            sid = nullptr;
-        }
+        sid = idr ? idr->sid : nullptr;
     }
     bool IsValid() { return sid; }
-	bool DerefsEqual(const FlowItem &o) {
+	bool DerefsEqual(const LValContext &o) {
 		if (derefs.size() != o.derefs.size()) return false;
 		for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
 		return true;
 	}
+    bool IsPrefix(const LValContext &o) {
+        if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
+        for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
+        return true;
+    }
+    string Name() {
+        auto s = sid ? sid->id->name : "<invalid>";
+        for (auto &shf : derefs) {
+            s += ".";
+            s += shf->name;
+        }
+        return s;
+    }
+};
+
+struct FlowItem : LValContext {
+    TypeRef old, now;
+    FlowItem(const Node &n, TypeRef type) : LValContext(n), old(n.exptype), now(type) {}
+};
+
+struct Borrow : LValContext {
+    int refc;  // Number of outstanding borrowed values. While >0 can't assign.
+    Borrow(const Node &n) : LValContext(n), refc(1) {}
 };
 
 struct TypeChecker {
@@ -36,6 +51,7 @@ struct TypeChecker {
     struct Scope { SubFunction *sf; const Node *call_context; };
     vector<Scope> scopes, named_scopes;
     vector<FlowItem> flowstack;
+    vector<Borrow> borrowstack;
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
@@ -54,13 +70,14 @@ struct TypeChecker {
             }
         }
         parser.root->sf->reqret = retreq;
-        TT((Node *&)parser.root, retreq);
+        TT((Node *&)parser.root, retreq, LT_KEEP);
         auto call = Is<Call>(parser.root);
         assert(call);
         parser.root = call;
         CleanUpFlow(0);
-        assert(!scopes.size());
-        assert(!named_scopes.size());
+        assert(borrowstack.empty());
+        assert(scopes.empty());
+        assert(named_scopes.empty());
         Stats();
     }
 
@@ -152,6 +169,8 @@ struct TypeChecker {
         if (auto call = Is<Call>(n))
             if (!call->sf->parent->anonymous)
                 return call->sf->parent->name;
+        if (auto idr = Is<IdentRef>(n))
+            return idr->sid->id->name;
         return n.Name();
     }
 
@@ -210,7 +229,7 @@ struct TypeChecker {
     TypeRef NewTuple(size_t sz) {
         auto type = st.NewType();
         *type = Type(V_TUPLE);
-        type->tup = new vector<const Type *>(sz);
+        type->tup = new vector<Type::TupleElem>(sz);
         st.tuplelist.push_back(type->tup);
         return type;
     }
@@ -266,10 +285,10 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsToTuple(const vector<const Type *> &ttup, const vector<const Type *> &stup) {
+    bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {
         if (ttup.size() != stup.size()) return false;
-        for (auto [i, type] : enumerate(ttup))
-            if (!ConvertsTo(type, stup[i], false))
+        for (auto [i, te] : enumerate(ttup))
+            if (!ConvertsTo(te.type, stup[i].type, false))
                 return false;
         return true;
     }
@@ -294,25 +313,43 @@ struct TypeChecker {
         return a == b;  // Not inlined for documentation purposes.
     }
 
-    void MakeString(Node *&a) {
+    void MakeString(Node *&a, Lifetime orig_recip) {
         assert(a->exptype->t != V_STRING);
+        DecBorrowers(a->lt, *a);
         a = new ToString(a->line, a);
-        a->SetTypes(type_string);
+        a->exptype = type_string;
+        a->lt = LT_KEEP;
+        // Make sure whatever lifetime a was typechecked at is preserved.
+        AdjustLifetime(a, orig_recip);
     }
 
     void MakeBool(Node *&a) {
-        if (a->exptype->t != V_INT) a = new ToBool(a->line, a);
-        a->SetTypes(type_int);
+        DecBorrowers(a->lt, *a);
+        if (a->exptype->t == V_INT) return;
+        a = new ToBool(a->line, a);
+        a->exptype = type_int;
+        a->lt = LT_ANY;
     }
 
     void MakeInt(Node *&a) {
-        a = new ToInt(a->line, a);
-        a->SetTypes(type_int);
+        auto ti = new ToInt(a->line, a);
+        ti->exptype = type_int;
+        ti->lt = a->lt;
+        a = ti;
     }
 
     void MakeFloat(Node *&a) {
-        a = new ToFloat(a->line, a);
-        a->SetTypes(type_float);
+        auto tf = new ToFloat(a->line, a);
+        tf->exptype = type_float;
+        tf->lt = a->lt;
+        a = tf;
+    }
+
+    void MakeLifetime(Node *&n, Lifetime lt, uint64_t incref, uint64_t decref) {
+        auto tlt = new ToLifetime(n->line, n, incref, decref);
+        tlt->exptype = n->exptype;
+        tlt->lt = lt;
+        n = tlt;
     }
 
     void StorageType(TypeRef type, const Node &context) {
@@ -342,15 +379,13 @@ struct TypeChecker {
                     return;
                 }
                 break;
-            case V_STRING:
-                MakeString(a);
-                return;
             case V_FUNCTION:
                 if (a->exptype->IsFunction() && sub->sf) {
                     // See if these functions can be made compatible. Specialize and typecheck if
                     // needed.
                     auto sf = a->exptype->sf;
                     auto ss = sub->sf;
+                    assert(ss->parent->istype);
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     for (auto [i, arg] : enumerate(sf->args.v)) {
                         // Specialize to the function type, if requested.
@@ -360,6 +395,10 @@ struct TypeChecker {
                         // Note this has the args in reverse: function args are contravariant.
                         if (!ConvertsTo(ss->args.v[i].type, arg.type, false))
                             goto error;
+                        // This function must be compatible with all other function values that
+                        // match this type, so we fix lifetimes to LT_BORROW.
+                        // See typechecking of istype calls.
+                        arg.sid->lt = LT_BORROW;
                     }
                     if (sf->typechecked) {
                         if (sf->reqret != ss->reqret) goto error;
@@ -426,14 +465,14 @@ struct TypeChecker {
                     if (ltype->t == V_STRING) {
                         if (rtype->t != V_STRING) {
                             // Anything can be added to a string on the right (because of +=).
-                            MakeString(n.right);
+                            MakeString(n.right, LT_BORROW);
                             // Make sure the overal type is string.
                             type = type_string;
                             unionchecked = true;
                         }
                     } else if (rtype->t == V_STRING && ltype->t != V_STRING && typechangeallowed) {
                         // Only if not in a +=
-                        MakeString(n.left);
+                        MakeString(n.left, LT_BORROW);
                         type = type_string;
                         unionchecked = true;
                     } else {
@@ -464,29 +503,39 @@ struct TypeChecker {
     }
 
     void TypeCheckMathOp(BinOp &n) {
-        TT(n.left, 1);
-        TT(n.right, 1);
+        TT(n.left, 1, LT_BORROW);
+        TT(n.right, 1, LT_BORROW);
         n.exptype = Union(n.left->exptype, n.right->exptype, true, nullptr);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
         if (!unionchecked) SubTypeLR(n.exptype, n);
+        DecBorrowers(n.left->lt, n);
+        DecBorrowers(n.right->lt, n);
+        n.lt = LT_KEEP;
     }
 
     void TypeCheckMathOpEq(BinOp &n) {
-        TT(n.left, 1);
-        TT(n.right, 1);
-        CheckLval(*n.left);
+        TT(n.left, 1, LT_BORROW);
+        DecBorrowers(n.left->lt, n);
+        TT(n.right, 1, LT_BORROW);
+        CheckLval(n.left);
         n.exptype = n.left->exptype;
         if (!MathCheckVector(n.exptype, n.left, n.right)) {
             bool unionchecked = false;
             MathError(n.exptype, n, unionchecked, false);
             if (!unionchecked) SubType(n.right, n.exptype, "right", n);
         }
+        // This really does: "left = left op right" the result of op is LT_KEEP, which is
+        // implicit, so the left var must be LT_KEEP as well. This is ensured elsewhere because
+        // all !single_assignment vars are LT_KEEP.
+        assert(!Is<IdentRef>(n.left) || Is<IdentRef>(n.left)->sid->lt == LT_KEEP);
+        DecBorrowers(n.right->lt, n);
+        n.lt = PushBorrow(n.left);
     }
 
     void TypeCheckComp(BinOp &n) {
-        TT(n.left, 1);
-        TT(n.right, 1);
+        TT(n.left, 1, LT_BORROW);
+        TT(n.right, 1, LT_BORROW);
         n.exptype = type_int;
         auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
@@ -504,35 +553,54 @@ struct TypeChecker {
                     n.exptype = st.default_int_vector_types[0][n.exptype->struc->fields.size()];
                     // Don't do SubTypeLR since type already verified and `u` not
                     // appropriate anyway.
-                    return;
+                    goto out;
                 } else {
                     TypeError("numeric / string / numeric struct", u, n);
                 }
             }
         }
         SubTypeLR(u, n);
+        out:
+        DecBorrowers(n.left->lt, n);
+        DecBorrowers(n.right->lt, n);
+        n.lt = LT_KEEP;
     }
 
     void TypeCheckBitOp(BinOp &n) {
-        TT(n.left, 1);
-        TT(n.right, 1);
+        TT(n.left, 1, LT_BORROW);
+        TT(n.right, 1, LT_BORROW);
         SubTypeLR(type_int, n);
         n.exptype = type_int;
+        DecBorrowers(n.left->lt, n);
+        DecBorrowers(n.right->lt, n);
+        n.lt = LT_ANY;
     }
 
     void TypeCheckPlusPlus(Unary &n) {
-        TT(n.child, 1);
-        CheckLval(*n.child);
+        TT(n.child, 1, LT_BORROW);
+        CheckLval(n.child);
         n.exptype = n.child->exptype;
         if (!n.exptype->Numeric())
             TypeError("numeric", n.exptype, n);
+        n.lt = n.child->lt;
     }
 
     SubFunction *TopScope(vector<Scope> &_scopes) {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    void RetVal(TypeRef type, SubFunction *sf, const Node *err, bool register_return = true) {
+    Lifetime FunctionLifetime(SubFunction &sf) {
+        if (sf.ltret == LT_UNDEF) {
+            // Likely a recursive call wants the lifetime, but it is not set yet. Unlike
+            // types we don't use unbound variables, so the best we can do is just fix
+            // the lifetime right here.
+            sf.ltret = LT_KEEP;  // Most common.
+        }
+        return sf.ltret;
+    }
+
+    void RetVal(TypeRef type, Lifetime lt, SubFunction *sf, const Node *err,
+                bool register_return = true) {
         if (register_return) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) break;
@@ -549,6 +617,9 @@ struct TypeChecker {
             }
         }
         sf->num_returns++;
+        // FIXME: this is all a bit ad-hoc.
+        assert(sf->ltret == lt || sf->ltret == LT_UNDEF || lt == LT_ANY || lt == LT_KEEP);
+        sf->ltret = lt;
         if (!sf->fixedreturntype) {
             if (sf->reqret) {
                 // If this is a recursive call we must be conservative because there may already
@@ -585,12 +656,37 @@ struct TypeChecker {
         };
         auto backup_args = sf.args; backup_vars(sf.args, backup_args);
         auto backup_locals = sf.locals; backup_vars(sf.locals, backup_locals);
+        auto enter_scope = [&](const Arg &var) {
+            IncBorrowers(var.sid->lt, *call_context);
+        };
+        for (auto &arg : sf.args.v) enter_scope(arg);
+        for (auto &local : sf.locals.v) enter_scope(local);
         sf.coresumetype = sf.iscoroutine ? NewNilTypeVar() : type_undefined;
         if (!sf.fixedreturntype) sf.returntype = sf.reqret ? NewTypeVar() : type_void;
+        auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
-        TypeCheckList(sf.body, true, 0);
+        TypeCheckList(sf.body, true, 0, LT_ANY);
         CleanUpFlow(start_promoted_vars);
-        if (!sf.num_returns) sf.returntype = type_void;
+        if (!sf.num_returns) {
+            sf.returntype = type_void;
+            sf.ltret = LT_ANY;
+        }
+        // Let variables go out of scope in reverse order of declaration.
+        auto exit_scope = [&](const Arg &var) {
+            DecBorrowers(var.sid->lt, *call_context);
+        };
+        for (auto &local : reverse(sf.locals.v)) exit_scope(local);
+        for (auto &arg : sf.args.v) exit_scope(arg);  // No order.
+        while (borrowstack.size() > start_borrowed_vars) {
+            auto &b = borrowstack.back();
+            if (b.refc) {
+                #if LIFETIMES_ENABLED
+                TypeError(cat("variable ", b.Name(), " still has ", b.refc,
+                              " borrowers"), *sf.body->children.back());
+                #endif
+            }
+            borrowstack.pop_back();
+        }
         for (auto &back : backup_args.v)   RevertCurrentSid(back.sid);
         for (auto &back : backup_locals.v) RevertCurrentSid(back.sid);
         if (sf.returntype->HasValueType(V_VAR)) {
@@ -701,10 +797,15 @@ struct TypeChecker {
         // Finally check all the manually typed args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
-        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see below */ {
-            auto &arg = sf->args.v[i];
-            if (!(arg.flags & AF_GENERIC))
-                SubType(c, arg.type, ArgName(i), f.name);
+        for (auto [i, c] : enumerate(call_args->children)) {
+            if (i < f.nargs()) /* see below */ {
+                auto &arg = sf->args.v[i];
+                if (!(arg.flags & AF_GENERIC))
+                    SubType(c, arg.type, ArgName(i), f.name);
+                AdjustLifetime(c, arg.sid->lt);
+            }
+            // This has to happen even to dead args:
+            DecBorrowers(c->lt, *call_context);
         }
         chosen = sf;
         for (auto &freevar : sf->freevars.v) {
@@ -739,7 +840,9 @@ struct TypeChecker {
         for (auto [sf, type] : ssf.reuse_return_events) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) {
-                    RetVal(type, isc.sf, &error_context, false);
+                    // FIXME: will have to re-apply lifetimes as well if we change from default
+                    // of LT_KEEP.
+                    RetVal(type, LT_KEEP, isc.sf, &error_context, false);
                     // This should in theory not cause an error, since the previous specialization
                     // was also ok with this set of return types. It could happen though if
                     // this specialization has an additional return statement that was optimized
@@ -770,6 +873,9 @@ struct TypeChecker {
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     sf->numcallers++;
                     sf->reqret = reqret;
+                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                        sf->args.v[i].sid->lt = c->lt;
+                    }
                 }
                 for (auto sf = f.subf; sf; sf = sf->next) {
                     TypeCheckFunctionDef(*sf, call_context);
@@ -814,6 +920,19 @@ struct TypeChecker {
                            " previously specialized for different return values or free variable"),
                            *call_context);
                     ReplayReturns(*sf, *call_context);
+                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                        // This is a bit odd, we bias towards the desired lifetimes of the first
+                        // caller. Though since most calls will be similar, this should actually
+                        // be decently efficient.
+                        // Alternatively we could just make multimethods always LT_BORROW, which
+                        // would be a reasonable default.
+                        // Of course, if we end up specializing multimethods and we also specialize
+                        // on lifetimes like regular functions that is even more flexible,
+                        // but potentially also wasteful in code size.
+                        auto &lt = sf->args.v[i].sid->lt;
+                        if (lt == LT_ANY) lt = c->lt;
+                        else AdjustLifetime(c, lt);
+                    }
                 }
             }
             // See how many cases match, if only 1 (as subtype of declared) we can specialize,
@@ -845,9 +964,13 @@ struct TypeChecker {
                     call->multimethod_specialized = true;
                 }
             }
+            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                DecBorrowers(c->lt, *call_context);
+            }
             return f.multimethodretval;
         } else if (f.istype) {
             // Function types are always fully typed.
+            // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
             return TypeCheckMatchingCall(csf, call_args, chosen, call_context);
         } else {
             if (csf->logvarcallgraph) {
@@ -867,10 +990,13 @@ struct TypeChecker {
                         // We check against f.nargs because HOFs are allowed to call a function
                         // value with more arguments than it needs (if we're called from
                         // TypeCheckDynCall). Optimizer always removes these.
+                        // Note: we compare only lt, since calling with other borrowed sid
+                        // should be ok to reuse.
                         for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
                             auto &arg = sf->args.v[i];
-                            if (arg.flags & AF_GENERIC &&
-                                !ExactType(c->exptype, arg.type)) goto fail;
+                            if ((arg.flags & AF_GENERIC && !ExactType(c->exptype, arg.type)) ||
+                                (LifetimeType(c->lt) != LifetimeType(arg.sid->lt) &&
+                                 arg.sid->id->single_assignment)) goto fail;
                         }
                         if (SpecializationIsCompatible(*sf, reqret)) {
                             // This function can be reused.
@@ -891,6 +1017,7 @@ struct TypeChecker {
             sf->reqret = reqret;
             for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
                 auto &arg = sf->args.v[i];
+                arg.sid->lt = arg.sid->id->single_assignment ? c->lt : LT_KEEP;
                 if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,
@@ -928,12 +1055,16 @@ struct TypeChecker {
         return sf;
     }
 
-    TypeRef TypeCheckDynCall(SpecIdent *fval, List *args, SubFunction *&fspec, size_t reqret) {
+    pair<TypeRef, Lifetime> TypeCheckDynCall(SpecIdent *fval, List *args, SubFunction *&fspec,
+                                             size_t reqret) {
         auto &ftype = fval->type;
         auto nargs = args->Arity();
+        // FIXME: split this up in a Call, a Yield and a DynCall(istype = true) node, just like
+        // GenericCall does.
         if (ftype->IsFunction()) {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping
             // closures.
+            // FIXME: just transform into a Call node much like GenericCall does.
             auto sf = ftype->sf;
             if (nargs < sf->parent->nargs())
                 TypeError("function value called with too few arguments", *args);
@@ -941,17 +1072,18 @@ struct TypeChecker {
             // remove them).
             auto type = TypeCheckCall(sf, args, fspec, args, reqret);
             ftype = &fspec->thistype;
-            return type;
+            return { type, FunctionLifetime(*fspec) };
         } else if (ftype->t == V_YIELD) {
             // V_YIELD must have perculated up from a coroutine call.
             if (nargs != 1)
                 TypeError("coroutine yield call must have exactly one argument", *args);
+            AdjustLifetime(args->children[0], LT_KEEP);
             for (auto scope : reverse(named_scopes)) {
                 auto sf = scope.sf;
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->children[0]->exptype;
-                RetVal(type, sf, args);
+                RetVal(type, LT_KEEP, sf, args);
                 SubTypeT(type, sf->returntype, *args, "", "yield value");
                 // Now collect all ids between coroutine and yield, so that we can save these in the
                 // VM.
@@ -966,21 +1098,21 @@ struct TypeChecker {
                         sf->coyieldsave.Add(Arg(loc.sid, loc.sid->type, loc.flags & AF_WITHTYPE));
                 }
                 for (auto &cys : sf->coyieldsave.v) UpdateCurrentSid(cys.sid);
-                return sf->coresumetype;
+                return { sf->coresumetype, LT_KEEP };
             }
             TypeError("yield function called outside scope of coroutine", *args);
-            return type_void;
+            return { type_void, LT_ANY };
         } else {
             TypeError("dynamic function call value doesn\'t have a function type: " +
                       TypeName(ftype), *args);
-            return type_void;
+            return { type_void, LT_ANY };
         }
     }
 
     TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Node *&bodycall,
-                            bool reqret) {
+                            bool reqret, Lifetime recip) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
-        TT(bodycall, reqret);
+        TT(bodycall, reqret, recip);
         CleanUpFlow(flowstart);
         return bodycall->exptype;
     }
@@ -991,13 +1123,12 @@ struct TypeChecker {
     }
 
     void CheckFlowTypeChangesSub(bool iftrue, const Node *condition) {
+        condition = SkipCoercions(condition);
         auto type = condition->exptype;
         if (auto c = Is<IsType>(condition)) {
             if (iftrue) CheckFlowTypeIdOrDot(*c->child, c->giventype);
         } else if (auto c = Is<Not>(condition)) {
             CheckFlowTypeChangesSub(!iftrue, c->child);
-        } else if (auto c = Is<ToBool>(condition)) {
-            CheckFlowTypeChangesSub(iftrue, c->child);
         } else {
             if (iftrue && type->t == V_NIL) CheckFlowTypeIdOrDot(*condition, type->Element());
         }
@@ -1006,11 +1137,9 @@ struct TypeChecker {
     void CheckFlowTypeChangesAndOr(bool iftrue, const BinOp *condition) {
         // AND only works for then, and OR only for else.
         if (iftrue == (Is<And>(condition) != nullptr)) {
-            // This is a bit clumsy, but allows for a chain of and's without allowing mixed
-            // operators.
-            auto tobool = Is<ToBool>(condition->left);
-            if (typeid(*condition->left) == typeid(*condition) ||
-                (tobool && typeid(*tobool->child) == typeid(*condition))) {
+            // This allows for a chain of and's without allowing mixed operators.
+            auto cleft = SkipCoercions(condition->left);
+            if (typeid(*cleft) == typeid(*condition)) {
                 CheckFlowTypeChanges(iftrue, condition->left);
             } else {
                 CheckFlowTypeChangesSub(iftrue, condition->left);
@@ -1021,12 +1150,11 @@ struct TypeChecker {
 
     size_t CheckFlowTypeChanges(bool iftrue, const Node *condition) {
         auto start = flowstack.size();
+        condition = SkipCoercions(condition);
         if (auto c = Is<Or>(condition)) {
             CheckFlowTypeChangesAndOr(iftrue, c);
         } else if (auto c = Is<And>(condition)) {
             CheckFlowTypeChangesAndOr(iftrue, c);
-        } else if (auto c = Is<ToBool>(condition)) {
-            CheckFlowTypeChanges(iftrue, c->child);
         } else {
             CheckFlowTypeChangesSub(iftrue, condition);
         }
@@ -1104,16 +1232,21 @@ struct TypeChecker {
         TypeCheckAndOrSub(ao.right, only_true_type, reqret, tright);
         CleanUpFlow(flowstart);
         if (only_true_type && Is<And>(ao)) {
-            ao.SetTypes(tright);
+            ao.exptype = tright;
+            ao.lt = ao.right->lt;
+            DecBorrowers(ao.left->lt, ao);
         } else {
-            ao.SetTypes(Union(tleft, tright, false, nullptr));
+            ao.exptype = Union(tleft, tright, false, nullptr);
             if (ao.exptype->t == V_UNDEFINED) {
                 // Special case: unlike elsewhere, we allow merging scalar and reference types,
                 // since they are just tested and thrown away. To make this work, we force all
                 // values to bools.
                 MakeBool(ao.left);
                 MakeBool(ao.right);
-                ao.SetTypes(type_int);
+                ao.exptype = type_int;
+                ao.lt = LT_ANY;
+            } else {
+                ao.lt = LifetimeUnion(ao.left, ao.right);
             }
         }
         promoted_type = ao.exptype;
@@ -1123,31 +1256,64 @@ struct TypeChecker {
         // only_true_type supports patterns like ((a & b) | c) where the type of a doesn't matter,
         // and the overal type should be the union of b and c.
         // Or a? | b, which should also be the union of a and b.
+        n = RemoveCoercions(n);
         if (!Is<And>(n) && !Is<Or>(n)) {
-            TT(n, reqret);
-        }
-        // We check again, since TypeCheck may have removed a coercion op.
-        if (!Is<And>(n) && !Is<Or>(n)) {
+            TT(n, reqret, LT_ANY);
             promoted_type = n->exptype;
             if (promoted_type->t == V_NIL && only_true_type)
                 promoted_type = promoted_type->Element();
-            return;
+        } else {
+            auto ao = dynamic_cast<BinOp *>(n);
+            assert(ao);
+            TypeCheckAndOr(*ao, only_true_type, reqret, promoted_type);
         }
-        auto ao = dynamic_cast<BinOp *>(n);
-        assert(ao);
-        TypeCheckAndOr(*ao, only_true_type, reqret, promoted_type);
     }
 
-    void CheckLval(Node &n) {
-        auto dot = Is<Dot>(&n);
-        if (dot) {
+    void CheckLval(Node *n) {
+        if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
             if (type->t == V_STRUCT && type->struc->readonly)
-                TypeError("cannot write to field of value: " + type->struc->name, n);
+                TypeError("cannot write to field of value: " + type->struc->name, *n);
         }
         // This can happen due to late specialization of GenericCall.
-        if (Is<Call>(&n) || Is<NativeCall>(&n))
-            TypeError("function-call cannot be an l-value", n);
+        if (Is<Call>(n) || Is<NativeCall>(n))
+            TypeError("function-call cannot be an l-value", *n);
+        Borrow lv(*n);
+        if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
+        if (lv.derefs.empty() && LifetimeType(lv.sid->lt) == LT_BORROW) {
+            // This should only happen for multimethods and anonymous functions used with istype
+            // where we can't avoid arguments being LT_BORROW.
+            // All others should have been specialized to LT_KEEP when a var is not
+            // single_assignment.
+            // This is not particularly elegant but should be rare.
+            TypeError(cat("cannot assign to borrowed argument: ", lv.sid->id->name), *n);
+        }
+        // FIXME: make this faster.
+        for (auto &b : reverse(borrowstack)) {
+            if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
+            if (!b.refc) continue;          // Lval is not borowed, writing is ok.
+            #if LIFETIMES_ENABLED
+            TypeError(cat("cannot assign to ", lv.Name(), " while borrowed"), *n);
+            #endif
+        }
+    }
+
+    Lifetime PushBorrow(Node *n) {
+        if (!IsRefNilVar(n->exptype->t)) return LT_ANY;
+        Borrow lv(*n);
+        // FIXME: if this is an exp we don't know how to borrow from (like a[i].b) we
+        // return a generic borrow, but this disables lock checks so is unsafe.
+        if (!lv.IsValid()) return LT_BORROW;
+        for (auto &b : reverse(borrowstack)) {
+            if (b.sid == lv.sid && b.DerefsEqual(lv)) {
+                b.refc++;
+                return (Lifetime)(&b - &borrowstack[0]);
+            }
+        }
+        // FIXME: this path is slow, should not have to scan all of borrowstack.
+        auto lt = (Lifetime)borrowstack.size();
+        borrowstack.push_back(lv);
+        return lt;
     }
 
     void CheckFreeVariable(SpecIdent &sid) {
@@ -1210,9 +1376,12 @@ struct TypeChecker {
         return false;
     }
 
-    void TypeCheckList(List *n, bool onlylast, size_t reqret = 1) {
-        for (auto &c : n->children)
-            TT(c, onlylast && c != n->children.back() ? 0 : reqret);
+    void TypeCheckList(List *n, bool onlylast, size_t reqret, Lifetime lt) {
+        for (auto &c : n->children) {
+            auto tovoid = onlylast && c != n->children.back();
+            TT(c, tovoid ? 0 : reqret,
+                  tovoid ? LT_ANY : lt);
+        }
     }
 
     TypeRef TypeCheckId(SpecIdent *sid) {
@@ -1221,28 +1390,158 @@ struct TypeChecker {
         return type;
     }
 
-    Node *TypeCheckCoercion(Unary &n, size_t reqret) {
-        // These have been added by another specialization.
-        // We could check if they still apply, but even more robust is just to remove them,
-        // and let them be regenerated if need be.
-        TT(n.child, reqret);
-        auto c = n.child;
-        n.child = nullptr;
-        delete &n;
-        return c;
+    const Coercion *IsCoercion(const Node *n) {
+        return dynamic_cast<const Coercion *>(n);
     }
 
-    void TT(Node *&n, size_t reqret) {
+    const Node *SkipCoercions(const Node *n) {
+        auto c = IsCoercion(n);
+        return c ? SkipCoercions(c->child) : n;
+    }
+
+    Node *RemoveCoercions(Node *n) {
+        auto c = IsCoercion(n);
+        return c ? RemoveCoercions(DeleteCoercion((Coercion *)c)) : n;
+    }
+
+    Node *DeleteCoercion(Coercion *c) {
+        auto ch = c->child;
+        c->child = nullptr;
+        delete c;
+        return ch;
+    }
+
+    Lifetime LvalueLifetime(const Node &lval) {
+        if (auto idr = Is<IdentRef>(lval)) return idr->sid->lt;
+        //if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->children[0]);
+        //if (auto idx = Is<Indexing>(lval)) return LvalueLifetime(*idx->object);
+        if (auto cod = Is<CoDot>(lval)) return AssertIs<IdentRef>(cod->variable)->sid->lt;
+        return LT_KEEP;
+    }
+
+    Lifetime LifetimeUnion(Node *&a, Node *&b) {
+        // FIXME: for LT_BORROW, this only works if it is the exact same variable, which is
+        // kinda useless. Instead, we'd like to create a set of sids.
+        // The cases with LT_ANY may happen e.g. an if between a var and nil, or an and/or between
+        // a var and a scalar.
+        if (a->lt == b->lt) {
+            DecBorrowers(b->lt, *b);
+            return a->lt;
+        } else if (a->lt == LT_ANY && b->lt >= LT_BORROW) {
+            return b->lt;
+        } else if (b->lt == LT_ANY && a->lt >= LT_BORROW) {
+            return a->lt;
+        } else {
+            AdjustLifetime(a, LT_KEEP);
+            AdjustLifetime(b, LT_KEEP);
+            return LT_KEEP;
+        }
+    }
+
+    void Borrowers(Lifetime lt, int change, const Node &context) {
+        if (lt < 0) return;
+        auto &b = borrowstack[lt];
+        assert(IsRefNilVar(b.sid->type->t));
+        b.refc += change;
+        #if LIFETIMES_ENABLED
+        Output(OUTPUT_DEBUG, "borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
+               ", ", b.refc, " remain");
+        // FIXME: this should really just not be possible, but hard to guarantee.
+        if (b.refc < 0)
+            TypeError(cat(b.sid->id->name, " used in ", NiceName(context),
+                          " without being borrowed"), context);
+        assert(b.refc >= 0);
+        #endif
+        (void)context;
+    }
+
+    void IncBorrowers(Lifetime lt, const Node &context) { Borrowers(lt, 1, context); }
+    void DecBorrowers(Lifetime lt, const Node &context) { Borrowers(lt, -1, context); }
+
+    void ModifyLifetime(Node *n, size_t i, Lifetime lt) {
+        if (n->lt == LT_MULTIPLE) {
+            n->exptype->Set(i, n->exptype->Get(i), lt);
+        } else {
+            n->lt = lt;
+        }
+    }
+
+    void AdjustLifetime(Node *&n, Lifetime recip, const vector<Node *> *idents = nullptr) {
+        assert(n->lt != LT_UNDEF && recip != LT_UNDEF);
+        if (recip == LT_ANY) return;
+        uint64_t incref = 0, decref = 0;
+        auto rt = n->exptype;
+        for (size_t i = 0; i < rt->NumValues(); i++) {
+            assert (n->lt != LT_MULTIPLE || rt->t == V_TUPLE);
+            auto givenlt = rt->GetLifetime(i, n->lt);
+            auto given = LifetimeType(givenlt);
+            if (idents) recip = AssertIs<IdentRef>((*idents)[i])->sid->lt;  // FIXME: overwrite var?
+            recip = LifetimeType(recip);
+            if (given != recip) {
+                auto rtt = rt->Get(i)->t;
+                // Sadly, if it a V_VAR we have to be conservate and assume it may become a ref.
+                if (IsRefNilVar(rtt)) {
+                    // Special action required.
+                    if (i >= sizeof(incref) * 8) TypeError("too many return values", *n);
+                    if (given == LT_BORROW && recip == LT_KEEP) {
+                        incref |= 1LL << i;
+                        DecBorrowers(givenlt, *n);
+                    } else if (given == LT_KEEP && recip == LT_BORROW) {
+                        decref |= 1LL << i;
+                    } else if (given == LT_ANY) {
+                        // These are compatible with whatever recip wants.
+                    } else {
+                        assert(false);
+                    }
+                } else {
+                    if (given == LT_BORROW) {
+                        // This is a scalar that depends on a borrowed value, but the recipient
+                        // doesn't care.
+                        ModifyLifetime(n, i, LT_ANY);  // Avoid it travelling any further.
+                        DecBorrowers(givenlt, *n);
+                    }
+                }
+                if (given == LT_ANY) {
+                    // Fill in desired lifetime, for consistency.
+                    ModifyLifetime(n, i, recip);
+                }
+            }
+        }
+        if (incref || decref) {
+            Output(OUTPUT_DEBUG, "lifetime adjust for ", NiceName(*n), " to ", incref, "/",
+                                 decref);
+            MakeLifetime(n, idents ? LT_MULTIPLE: recip, incref, decref);
+        }
+    }
+
+    // This is the central function thru which all typechecking flows, so we can conveniently
+    // match up what the node produces and what the recipient expects.
+    void TT(Node *&n, size_t reqret, Lifetime recip, const vector<Node *> *idents = nullptr) {
+        // Central point from which each node is typechecked.
         n = n->TypeCheck(*this, reqret);
+        // Check if we need to do any type adjustmenst.
         auto &rt = n->exptype;
-        n->nattype = rt;
+        n->exptype = rt;
         auto nret = rt->NumValues();
         if (nret < reqret) {
             TypeError(cat(NiceName(*n), " returns ", nret, " values, ", reqret, " needed"), *n);
         } else if (nret > reqret) {
+            for (size_t i = reqret; i < nret; i++) {
+                // This value will be dropped.
+                DecBorrowers(rt->GetLifetime(i, n->lt), *n);
+                // If this is a LT_KEEP value, codegen will make sure to throw it away.
+            }
             switch (reqret) {
-                case 0: rt = type_void; break;
-                case 1: rt = rt->Get(0); break;
+                case 0:
+                    n->lt = LT_ANY;
+                    rt = type_void;
+                    break;
+                case 1: {
+                    auto typelt = TypeLT { *n, 0 };  // Get from tuple.
+                    n->lt = typelt.lt;
+                    rt = typelt.type;
+                    break;
+                }
                 default: {
                     auto nt = NewTuple(reqret);
                     nt->tup->assign(rt->tup->begin(), rt->tup->begin() + reqret);
@@ -1250,6 +1549,8 @@ struct TypeChecker {
                 }
             }
         }
+        // Check if we need to do any lifetime adjustments.
+        AdjustLifetime(n, recip, idents);
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
@@ -1374,60 +1675,72 @@ Node *And::TypeCheck(TypeChecker &tc, size_t reqret) {
 }
 
 Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
-    tc.TT(condition, 1);
+    tc.TT(condition, 1, LT_BORROW);
+    tc.DecBorrowers(condition->lt, *this);
     Value cval;
     bool isconst = condition->ConstVal(tc, cval);
     if (!Is<DefaultVal>(falsepart)) {
         if (!isconst) {
-            auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret);
-            auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret);
+            auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret, LT_ANY);
+            auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret, LT_ANY);
             // FIXME: this is a bit of a hack. Much better if we had an actual type
             // to signify NORETURN, to be taken into account in more places.
             auto truec = AssertIs<Call>(truepart);
             auto falsec = AssertIs<Call>(falsepart);
             if (tc.NeverReturns(truec)) {
                 exptype = tright;
+                lt = falsepart->lt;
             } else if (tc.NeverReturns(falsec)) {
                 exptype = tleft;
+                lt = truepart->lt;
             } else {
                 exptype = tc.Union(tleft, tright, true, this);
                 // These will potentially make either body from T_CALL into some
                 // coercion.
 				tc.SubType(truepart, exptype, "then branch", *this);
                 tc.SubType(falsepart, exptype, "else branch", *this);
+                lt = tc.LifetimeUnion(truepart, falsepart);
             }
         } else if (cval.True()) {
             // Ignore the else part, optimizer guaranteed to cull it.
-            exptype = tc.TypeCheckBranch(true, condition, truepart, reqret);
+            exptype = tc.TypeCheckBranch(true, condition, truepart, reqret, LT_ANY);
+            lt = truepart->lt;
         } else {
             // Ignore the then part, optimizer guaranteed to cull it.
-            exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret);
+            exptype = tc.TypeCheckBranch(false, condition, falsepart, reqret, LT_ANY);
+            lt = falsepart->lt;
         }
     } else {
         // No else: this always returns void.
         if (!isconst || cval.True()) {
-            tc.TypeCheckBranch(true, condition, truepart, false);
+            tc.TypeCheckBranch(true, condition, truepart, 0, LT_ANY);
             truepart->exptype = type_void;
         } else {
             // constant == false: this if-then will get optimized out entirely, ignore it.
         }
-        falsepart->SetTypes(type_void);
+        falsepart->exptype = type_void;
         exptype = type_void;
+        lt = LT_ANY;
     }
     return this;
 }
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(condition, true);
-    auto condc = AssertIs<Call>(condition);
+    tc.TT(condition, 1, LT_BORROW);
+    tc.DecBorrowers(condition->lt, *this);
+    // FIXME: this is caused by call forced to LT_KEEP.
+    auto condc = AssertIs<Call>(Forward<ToLifetime>(condition));
     auto condexp = AssertIs<Return>(condc->sf->body->children.back());
-    tc.TypeCheckBranch(true, condexp->child, body, false);
+    tc.TypeCheckBranch(true, condexp->child, body, 0, LT_ANY);
     exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(iter, 1);
+    // FIXME: would be good to detect when iter is not written to, so ForLoopElem can be LT_BORROW.
+    // Alternatively we could IncBorrowers on iter, but that would be very restrictive.
+    tc.TT(iter, 1, LT_BORROW);
     auto itertype = iter->exptype;
     if (itertype->t == V_INT || itertype->t == V_STRING)
         itertype = type_int;
@@ -1440,40 +1753,44 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     auto bodyc = AssertIs<Call>(body);
     auto &args = bodyc->children;
     if (args.size()) {
-        args[0]->SetTypes(itertype);  // ForLoopElem
-        if (args.size() > 1) args[1]->SetTypes(type_int);  // ForLoopCounter
+        args[0]->exptype = itertype;  // ForLoopElem
     }
-    tc.TT(body, 0);
+    tc.TT(body, 0, LT_ANY);
+    tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
     exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    // Ignore, already been assigned a type in For.
+    // Already been assigned a type in For.
+    lt = LT_KEEP;
     return this;
 }
 
 Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    // Ignore, already been assigned a type in For.
+    exptype = type_int;
+    lt = LT_ANY;
     return this;
 }
 
 Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     // TODO: much like If, should only typecheck one case if the value is constant, and do
     // the corresponding work in the optimizer.
-    tc.TT(value, 1);
+    tc.TT(value, 1, LT_BORROW);
     auto ptype = value->exptype;
     if (!ptype->Numeric() && ptype->t != V_STRING)
         tc.TypeError("switch value must be int / float / string", *this);
     exptype = nullptr;
     bool have_default = false;
     for (auto &n : cases->children) {
-        tc.TT(n, reqret);
+        tc.TT(n, reqret, LT_KEEP);
         auto cas = AssertIs<Case>(n);
         if (cas->pattern->children.empty()) have_default = true;
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
+            tc.DecBorrowers(c->lt, *cas);
         }
         auto body = AssertIs<Call>(cas->body);
         if (!tc.NeverReturns(body)) {
@@ -1492,27 +1809,34 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
     if (reqret && !have_default)
         tc.TypeError("switch that returns a value must have a default case", *this);
+    tc.DecBorrowers(value->lt, *this);
+    lt = LT_KEEP;
     return this;
 }
 
 Node *Case::TypeCheck(TypeChecker &tc, size_t reqret) {
-    tc.TypeCheckList(pattern, false);
-    tc.TT(body, reqret);
+    // FIXME: Since string constants are the real use case, LT_KEEP would be more
+    // natural here, as this will introduce a lot of keeprefs. Alternatively make sure
+    // string consts don't introduce keeprefs.
+    tc.TypeCheckList(pattern, false, 1, LT_BORROW);
+    tc.TT(body, reqret, LT_KEEP);
     exptype = body->exptype;
+    lt = LT_KEEP;
     return this;
 }
 
 Node *Range::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(start, 1);
-    tc.TT(end, 1);
+    tc.TT(start, 1, LT_KEEP);
+    tc.TT(end, 1, LT_KEEP);
     exptype = start->exptype;
     if (exptype->t != end->exptype->t || !exptype->Numeric())
         tc.TypeError("range can only be two equal numeric types", *this);
+    lt = LT_ANY;
     return this;
 }
 
 Node *CoDot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(coroutine, 1);
+    tc.TT(coroutine, 1, LT_BORROW);
     // Leave right ident untypechecked.
     tc.SubType(coroutine, type_coroutine, "coroutine", *this);
     auto sf = coroutine->exptype->sf;
@@ -1526,33 +1850,43 @@ Node *CoDot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     }
     if (!uarg) tc.TypeError("no coroutine variables named: " + name, *this);
     var->sid = uarg->sid;
-    var->SetTypes(exptype = uarg->type);
+    var->exptype = exptype = uarg->type;
+    // FIXME: this really also borrows from the actual variable, in case the coroutine is run
+    // again?
+    lt = coroutine->lt;
     return this;
 }
 
 Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &sid : sids) {
         tc.UpdateCurrentSid(sid);
-        // We have to use a variable here because the init exp may be a function
-        // call that causes this variable to be used/assigned.
-        sid->type = !giventype.Null() ? giventype : tc.NewTypeVar();
+        // We have to set these here just in case the init exp is a function/coroutine call that
+        // tries use/assign this variable, type_undefined will force that to be an error.
+        // TODO: could make this a specialized error, but probably not worth it because it is rare.
+        sid->type = type_undefined;
+        sid->lt = LT_UNDEF;
     }
-    tc.TT(child, sids.size());
+    // We default to LT_KEEP here.
+    // There are case where we could allow borrow, but in practise this runs into trouble easily:
+    // - Variables that later get assigned (!sid->id->single_assignment) where taking ownership
+    //   was really what was intended (since the lval being assigned from may go away).
+    // - old := cur cases, where old is meant to hang on to the previous value as cur gets updated,
+    //   which then runs into borrowing errors.
+    tc.TT(child, sids.size(), LT_KEEP);
     for (auto [i, sid] : enumerate(sids)) {
-        TypeRef vartype = child->exptype->Get(i);
+        auto var = TypeLT(*child, i);
         if (!giventype.Null()) {
-            vartype = giventype;
+            var.type = giventype;
             // Have to subtype the initializer value, as that node may contain
             // unbound vars (a:[int] = []) or values that that need to be coerced
             // (a:float = 1)
-            tc.SubType(child, vartype, "initializer", "definition");
+            tc.SubType(child, var.type, "initializer", "definition");
         }
-        // Must SubType here rather than assignment, since sid->type is var
-        // that may have been bound by the initializer already.
-        tc.SubTypeT(vartype, sid->type, *this, "initializer");
-        tc.StorageType(vartype, *this);
-        sid->type = vartype;
-        Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(vartype));
+        sid->type = var.type;
+        tc.StorageType(var.type, *this);
+        sid->type = var.type;
+        sid->lt = var.lt;
+        Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(var.type));
         if (sid->id->logvar) {
             for (auto &sc : tc.scopes)
                 if (sc.sf->iscoroutine)
@@ -1560,14 +1894,22 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
     }
     exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    for (auto &c : children) tc.TT(c, c == children.back() ? children.size() - 1 : 1);
+    for (auto &c : children) {
+        if (c != children.back()) {
+            tc.TT(c, 1, LT_BORROW);
+            tc.DecBorrowers(c->lt, *this);
+        } else {
+            tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, &children);
+        }
+    }
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
-        tc.CheckLval(*left);
+        tc.CheckLval(left);
         TypeRef righttype = children.back()->exptype->Get(i);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
@@ -1577,26 +1919,31 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
     }
     exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_int;
+    lt = LT_ANY;
     return this;
 }
 
 Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_float;
+    lt = LT_ANY;
     return this;
 }
 
 Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_string;
+    lt = LT_KEEP;
     return this;
 }
 
 Node *Nil::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = !giventype.Null() ? giventype : tc.st.Wrap(tc.NewTypeVar(), V_NIL);
+    lt = LT_ANY;
     return this;
 }
 
@@ -1681,8 +2028,10 @@ Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1);
+    tc.TT(child, 1, LT_BORROW);
+    tc.DecBorrowers(child->lt, *this);
     exptype = type_int;
+    lt = LT_ANY;
     return this;
 }
 
@@ -1712,9 +2061,11 @@ Node *ShiftRight::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1);
+    tc.TT(child, 1, LT_BORROW);
     tc.SubType(child, type_int, "negated value", *this);
+    tc.DecBorrowers(child->lt, *this);
     exptype = type_int;
+    lt = LT_ANY;
     return this;
 }
 
@@ -1739,11 +2090,13 @@ Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1);
+    tc.TT(child, 1, LT_BORROW);
     exptype = child->exptype;
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT || !exptype->struc->sametype->Numeric()))
         tc.TypeError("numeric / numeric struct", exptype, *this);
+    tc.DecBorrowers(child->lt, *this);
+    lt = LT_KEEP;
     return this;
 }
 
@@ -1753,21 +2106,24 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
     exptype = tc.UseFlow(fi);
+    lt = tc.PushBorrow(this);
     return this;
 }
 
 Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(left, 1);
-    tc.TT(right, 1);
-    tc.CheckLval(*left);
+    tc.TT(left, 1, LT_BORROW);
+    tc.DecBorrowers(left->lt, *this);
+    tc.TT(right, 1, tc.LvalueLifetime(*left));
+    tc.CheckLval(left);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
-        left->SetTypes(tc.AssignFlowDemote(fi, right->exptype, true));
+        left->exptype = tc.AssignFlowDemote(fi, right->exptype, true);
     }
     tc.SubType(right, left->exptype, "right", *this);
     if (fi.IsValid()) tc.AssignFlowPromote(*left, right->exptype);
     exptype = left->exptype;
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
+    lt = tc.PushBorrow(left);
     return this;
 }
 
@@ -1777,12 +2133,13 @@ Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t reqret) {
     // to generate a correct value.
     // Also used as an empty else branch.
     exptype = reqret ? tc.NewTypeVar() : type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
-    tc.TypeCheckList(this, false);
+    tc.TypeCheckList(this, false, 1, LT_ANY);
     auto nf = tc.parser.natreg.FindNative(name);
     auto fld = tc.st.FieldUse(name);
     TypeRef type;
@@ -1868,6 +2225,12 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             // Codegen has a special case for T_DEFAULTVAL however.
             argtype = argtype->sub;
         }
+        if (arg.flags & NF_CONVERTANYTOSTRING && c->exptype->t != V_STRING) {
+            tc.AdjustLifetime(c, LT_BORROW);  // MakeString wants to borrow.
+            tc.MakeString(c, arg.lt);
+            argtype = type_string;
+            typed = true;
+        }
         int flag = NF_SUBARG1;
         for (int sa = 0; sa < 3; sa++) {
             if (arg.flags & flag) {
@@ -1922,7 +2285,6 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             auto fsf = actualtype->sf;
             if (fsf->args.v.size()) {
                 // we have no idea what args.
-                assert(0);
                 tc.TypeError("function passed to " + nf->name +
                              " cannot take any arguments", *this);
             }
@@ -1933,13 +2295,17 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         }
         argtypes[i] = actualtype;
         tc.StorageType(actualtype, *this);
+        tc.AdjustLifetime(c, arg.lt);
+        tc.DecBorrowers(c->lt, *this);
     }
 
     exptype = type_void;  // no retvals
+    lt = LT_ANY;
     if (nf->retvals.v.size() > 1) exptype = tc.NewTuple(nf->retvals.v.size());
     for (auto [i, ret] : enumerate(nf->retvals.v)) {
         int sa = 0;
         auto type = ret.type;
+        auto rlt = ret.lt;
         switch (ret.flags) {
             case NF_SUBARG3: sa++;
             case NF_SUBARG2: sa++;
@@ -1971,11 +2337,17 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                                          *this);
                     }
                 }
+                if (rlt == LT_BORROW) {
+                    auto alt = nf->args.v[sa].lt;
+                    assert(alt >= LT_BORROW);
+                    rlt = alt;
+                }
                 break;
             }
             case NF_ANYVAR:
                 type = ret.type->t == V_VECTOR ? tc.st.Wrap(tc.NewTypeVar(), V_VECTOR)
                                                   : tc.NewTypeVar();
+                assert(rlt == LT_KEEP);
                 break;
             default:
                 assert(ret.flags == AF_NONE);
@@ -1983,10 +2355,13 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         }
         type = tc.ToVStruct(ret.fixed_len, type, !i && Arity() ? children[0] : nullptr, nf, false,
                                0, *this);
+        if (!IsRefNilVar(type->t)) rlt = LT_ANY;
         if (nf->retvals.v.size() > 1) {
-            exptype->Set(i, type.get());
+            exptype->Set(i, type.get(), rlt);
+            lt = LT_MULTIPLE;
         } else {
             exptype = type;
+            lt = rlt;
         }
     }
 
@@ -1996,16 +2371,21 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         // Also make result non-nil, if it was.
         if (exptype->t == V_NIL) exptype = exptype->Element();
     }
+
+    nattype = exptype;
+    natlt = lt;
 }
 
 void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, this, sf, this, reqret);
+    lt = tc.FunctionLifetime(*sf);
 }
 
 Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     sf = tc.PreSpecializeFunction(sf);
     exptype = &sf->thistype;
+    lt = LT_ANY;
     return this;
 }
 
@@ -2013,13 +2393,14 @@ Node *DynCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.UpdateCurrentSid(sid);
     tc.TypeCheckId(sid);
     //if (sid->type->IsFunction()) sid->type = &tc.PreSpecializeFunction(sid->type->sf)->thistype;
-    tc.TypeCheckList(this, false);
-    exptype = tc.TypeCheckDynCall(sid, this, sf, reqret);
+    tc.TypeCheckList(this, false, 1, LT_ANY);
+    tie(exptype, lt) = tc.TypeCheckDynCall(sid, this, sf, reqret);
     return this;
 }
 
 Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     exptype = type_void;
+    lt = LT_ANY;
     for (auto isc : reverse(tc.scopes)) {
         if (isc.sf->parent == sf->parent) {
             sf = isc.sf;  // Take specialized version.
@@ -2030,7 +2411,10 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         if (isc.sf->isdynamicfunctionvalue)
             tc.TypeError("cannot return out of dynamic function value", *this);
     }
-    tc.TT(child, make_void ? 0 : sf->reqret);
+    // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
+    // LT_BORROW, but then we have to prove that we don't outlive the owner.
+    // Additionally, we have to do this for reused specializations on new SpecIdents.
+    tc.TT(child, make_void ? 0 : sf->reqret, LT_KEEP);
     if (sf == tc.st.toplevel) {
         // return from program
         if (child->exptype->NumValues() > 1)
@@ -2053,22 +2437,22 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
-        tc.RetVal(child->exptype, sf, this);  // If it's a variable, bind it.
+        tc.RetVal(child->exptype, child->lt, sf, this);  // If it's a variable, bind it.
         return this;
     }
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {
-            tc.RetVal(mrs->exptype, sf, this);
+            tc.RetVal(mrs->exptype, LT_KEEP /* FIXME what if multiple? */, sf, this);
             for (auto [i, mr] : enumerate(mrs->children)) {
                 if (i < sf->reqret)
                     tc.SubType(mr, sf->returntype->Get(i), tc.ArgName(i), *this);
             }
         } else {
-            tc.RetVal(child->exptype, sf, this);
+            tc.RetVal(child->exptype, child->lt, sf, this);
             tc.SubType(child, sf->returntype, "", *this);
         }
     } else {
-        tc.RetVal(type_void, sf, this);
+        tc.RetVal(type_void, LT_ANY, sf, this);
         tc.SubType(child, sf->returntype, "", *this);
     }
     return this;
@@ -2076,17 +2460,20 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 
 Node *TypeAnnotation::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = giventype;
+    lt = LT_ANY;
     return this;
 }
 
 Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1);
+    tc.TT(child, 1, LT_BORROW);
+    tc.DecBorrowers(child->lt, *this);
     exptype = type_int;
+    lt = LT_ANY;
     return this;
 }
 
 Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckList(this, false);
+    tc.TypeCheckList(this, false, 1, LT_KEEP);
     exptype = giventype;
     if (exptype.Null()) {
         if (Arity()) {
@@ -2114,10 +2501,13 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
                                                   : exptype->Element();
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
     }
+    lt = LT_KEEP;
     return this;
 }
 
 void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
+    tc.AdjustLifetime(children[0], LT_BORROW);
+    tc.DecBorrowers(children[0]->lt, *this);  // New borrow created below.
     auto smtype = children[0]->exptype;
     auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
     if (stype->t != V_STRUCT)
@@ -2128,17 +2518,20 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         tc.TypeError("type " + struc->name + " has no field named " + fld->name, *this);
     auto &uf = struc->fields.v[fieldidx];
     if (maybe && !IsRefNil(uf.type->t))
-        tc.TypeError(cat("cannot dereference scalar field ", fld->name, " with ?."), *this);
+        tc.TypeError(cat("cannot dereference non-reference field ", fld->name, " with ?."), *this);
     exptype = maybe && smtype->t == V_NIL && uf.type->t != V_NIL
             ? tc.st.Wrap(uf.type, V_NIL)
             : uf.type;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
+    lt = tc.PushBorrow(this);
+    //lt = children[0]->lt;  // Also LT_BORROW, also depending on the same variable.
 }
 
 Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(object, 1);
-    tc.TT(index, 1);
+    tc.TT(object, 1, LT_BORROW);
+    tc.TT(index, 1, LT_BORROW);
+    tc.DecBorrowers(index->lt, *this);
     auto vtype = object->exptype;
     if (vtype->t == V_STRUCT && vtype->struc->sametype->t != V_UNDEFINED) {}
     else if (vtype->t != V_VECTOR && vtype->t != V_STRING)
@@ -2166,23 +2559,26 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         }
         default: tc.TypeError("int/struct of int", itype, *this, "index");
     }
+    lt = object->lt;  // Also LT_BORROW, also depending on the same variable.
     return this;
 }
 
 Node *Seq::TypeCheck(TypeChecker &tc, size_t reqret) {
-    tc.TT(head, 0);
-    tc.TT(tail, reqret);
+    tc.TT(head, 0, LT_ANY);
+    tc.TT(tail, reqret, LT_ANY);
     exptype = tail->exptype;
+    lt = tail->lt;
     return this;
 }
 
 Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     exptype = type_function_cocl;
+    lt = LT_ANY;
     return this;
 }
 
 Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(call, 1);
+    tc.TT(call, 1, LT_KEEP);
     if (auto fc = Is<Call>(call)) {
         auto sf = fc->sf;
         assert(sf->iscoroutine);
@@ -2192,19 +2588,24 @@ Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     } else {
         tc.TypeError("coroutine constructor must be regular function call", *call);
     }
+    lt = LT_KEEP;
     return this;
 }
 
 Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TT(child, 1);
+    tc.TT(child, 1, LT_BORROW);
+    tc.DecBorrowers(child->lt, *this);
     exptype = type_typeid;
+    lt = LT_ANY;
     return this;
 }
 
 Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    tc.TypeCheckList(this, false);
+    tc.TypeCheckList(this, false, 1, LT_ANY);
     exptype = tc.NewTuple(children.size());
-    for (auto [i, mrc] : enumerate(children)) exptype->Set(i, children[i]->exptype.get());
+    for (auto [i, mrc] : enumerate(children))
+        exptype->Set(i, children[i]->exptype.get(), children[i]->lt);
+    lt = LT_MULTIPLE;
     return this;
 }
 
@@ -2224,20 +2625,11 @@ Node *StructRef::TypeCheck(TypeChecker &/*tc*/, size_t /*reqret*/) {
     return this;
 }
 
-Node *ToFloat::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
-}
-
-Node *ToString::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
-}
-
-Node *ToBool::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
-}
-
-Node *ToInt::TypeCheck(TypeChecker &tc, size_t reqret) {
-    return tc.TypeCheckCoercion(*this, reqret);
+Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret) {
+    // These have been added by another specialization. We could check if they still apply, but
+    // even more robust is just to remove them, and let them be regenerated if need be.
+    tc.TT(child, reqret, LT_ANY);
+    return tc.DeleteCoercion(this);
 }
 
 bool And::ConstVal(TypeChecker &tc, Value &val) const {

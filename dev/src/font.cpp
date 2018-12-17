@@ -141,7 +141,7 @@ void AddFont(NativeRegistry &natreg) {
         if (curfontsize > maxfontsize) otransforms.object2view = oldobject2view;
         return s;
     }
-    ENDDECL1(gl_text, "text", "S", "S",
+    ENDDECL1(gl_text, "text", "S", "Sb",
         "renders a text with the current font (at the current coordinate origin)");
 
     STARTDECL(gl_text_size) (VM &vm, Value &s) {

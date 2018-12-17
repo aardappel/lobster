@@ -38,9 +38,9 @@ struct Ident : Named {
     // TODO: remove this from Ident, only makes sense during parsing really.
     SubFunction *sf_def;    // Where it is defined, including anonymous functions.
 
-    bool single_assignment;
-    bool constant;
-    bool static_constant;
+    bool single_assignment;  // not declared const but def only, exp may or may not be const
+    bool constant;           // declared const
+    bool static_constant;    // not declared const but def only, exp is const.
     bool anonymous_arg;
     bool logvar;
 
@@ -66,11 +66,12 @@ struct Ident : Named {
 struct SpecIdent {
     Ident *id;
     TypeRef type;
+    Lifetime lt;
     int logvaridx;
-    int sidx;
+    int idx, sidx;     // Into specidents, and into vm ordering.
 
-    SpecIdent(Ident *_id, TypeRef _type)
-        : id(_id), type(_type), logvaridx(-1), sidx(-1) {}
+    SpecIdent(Ident *_id, TypeRef _type, int idx)
+        : id(_id), type(_type), lt(LT_UNDEF), logvaridx(-1), idx(idx), sidx(-1) {}
     int Idx() { assert(sidx >= 0); return sidx; }
     SpecIdent *&Current() { return id->cursid; }
 };
@@ -201,6 +202,7 @@ struct SubFunction {
     TypeRef returntype;
     size_t num_returns;
     size_t reqret;  // Do the caller(s) want values to be returned?
+    Lifetime ltret;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     bool isrecursivelycalled;
     bool iscoroutine;
@@ -219,7 +221,7 @@ struct SubFunction {
     SubFunction(int _idx)
         : idx(_idx),
           args(0), locals(0), freevars(0), returntype(type_undefined),
-          num_returns(0), reqret(0),
+          num_returns(0), reqret(0), ltret(LT_UNDEF),
           isrecursivelycalled(false),
           iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
           body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
@@ -317,7 +319,7 @@ struct SymbolTable {
     vector<SubFunction *> defsubfunctionstack;
 
     vector<Type *> typelist;  // Used for constructing new vector types, variables, etc.
-    vector<vector<const Type *> *> tuplelist;
+    vector<vector<Type::TupleElem> *> tuplelist;
 
     string current_namespace;
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
@@ -372,6 +374,13 @@ struct SymbolTable {
         return nullptr;
     }
 
+    Ident *NewId(string_view name) {
+        auto ident = new Ident(name, (int)identtable.size(), scopelevels.size());
+        ident->cursid = NewSid(ident);
+        identtable.push_back(ident);
+        return ident;
+    }
+
     Ident *LookupDef(string_view name, Lex &lex, bool anonymous_arg, bool islocal,
                      bool withtype) {
         auto sf = defsubfunctionstack.back();
@@ -380,10 +389,9 @@ struct SymbolTable {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = new Ident(name, (int)identtable.size(), scopelevels.size());
+        ident = NewId(name);
         ident->anonymous_arg = anonymous_arg;
         ident->sf_def = sf;
-        ident->cursid = NewSid(ident);
         (islocal ? sf->locals : sf->args).v.push_back(
             Arg(ident->cursid, type_any, AF_GENERIC | (withtype ? AF_WITHTYPE : AF_NONE)));
         if (existing_ident) {
@@ -391,7 +399,6 @@ struct SymbolTable {
         }
         idents[ident->name /* must be in value */] = ident;
         identstack.push_back(ident);
-        identtable.push_back(ident);
         return ident;
     }
 
@@ -582,7 +589,7 @@ struct SymbolTable {
     }
 
     SpecIdent *NewSid(Ident *id, TypeRef type = nullptr) {
-        auto sid = new SpecIdent(id, type);
+        auto sid = new SpecIdent(id, type, (int)specidents.size());
         specidents.push_back(sid);
         return sid;
     }
@@ -746,9 +753,9 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             : "coroutine";
     case V_TUPLE: {
         string s = "(";
-        for (auto [i, t] : enumerate(*type->tup)) {
+        for (auto [i, te] : enumerate(*type->tup)) {
             if (i) s += ", ";
-            s += TypeName(t);
+            s += TypeName(te.type);
         }
         s += ")";
         return s;

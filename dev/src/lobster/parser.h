@@ -515,6 +515,8 @@ struct Parser {
             // which specialization that refers to).
             for (auto &arg : f.subf->args.v) {
                 if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
+                // No idea what the function is going to be, so have to default to borrow.
+                arg.sid->lt = LT_BORROW;
             }
             ParseType(sf->returntype, false, nullptr, sf);
             sf->reqret = sf->returntype->NumValues();

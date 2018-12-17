@@ -24,8 +24,8 @@ struct CodeGen;
 
 struct Node {
     Line line;
-    TypeRef exptype;  // The type required by the context.
-    TypeRef nattype;  // The type that this node produces naturally.
+    TypeRef exptype;
+    Lifetime lt;
     virtual ~Node() {};
     virtual size_t Arity() const { return 0; }
     virtual Node **Children() { return nullptr; }
@@ -56,14 +56,28 @@ struct Node {
     virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
-    void SetTypes(TypeRef type) {
-        exptype = type;
-        nattype = type;
-    }
   protected:
-    Node(const Line &ln) : line(ln) {}
-    Node() : line(0, 0) {}
+    Node(const Line &ln) : line(ln), lt(LT_UNDEF) {}
+    Node() : line(0, 0), lt(LT_UNDEF) {}
 };
+
+struct TypeLT {
+    TypeRef type;
+    Lifetime lt;
+
+    TypeLT(TypeRef type, Lifetime lt)
+        : type(type), lt(lt) {}
+
+    TypeLT(const SpecIdent &sid)
+        : type(sid.type), lt(sid.lt) {}
+
+    TypeLT(const Node &n, size_t i)
+        : type(n.exptype->Get(i)), lt(n.exptype->GetLifetime(i, n.lt)) {}
+
+    TypeLT(const SubFunction &sf, size_t i)
+        : type(sf.returntype->Get(i)), lt(sf.returntype->GetLifetime(i, sf.ltret)) {}
+};
+
 
 template<typename T> T *DoClone(T *dest, T *src) {
     *dest = *src;  // Copy contructor copies all values & non-owned.
@@ -105,6 +119,11 @@ struct NAME : Unary { \
     NAME(const Line &ln, Node *_a) : Unary(ln, _a) {} \
     SHARED_SIGNATURE(NAME, STR, SE) \
     METHODS \
+};
+#define COER_NODE(NAME, STR) \
+struct NAME : Coercion { \
+    NAME(const Line &ln, Node *_a) : Coercion(ln, _a) {} \
+    SHARED_SIGNATURE_NO_TT(NAME, STR, false) \
 };
 
 #define BINARY_NODE_T(NAME, STR, SE, AT, A, BT, B, METHODS) \
@@ -163,6 +182,7 @@ struct TypeAnnotation : Node {
 NARY_NODE(List, "list", false, )
 UNARY_NODE(Unary, "unary", false, child, )
 BINARY_NODE(BinOp, "binop", false, left, right, )
+UNOP_NODE(Coercion, "coercion", false, )
 
 BINOP_NODE(Plus, TName(T_PLUS), false, )
 BINOP_NODE(Minus, TName(T_MINUS), false, )
@@ -204,10 +224,10 @@ BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNOP_NODE(PostIncr, TName(T_INCR), true, )
 UNOP_NODE(PostDecr, TName(T_DECR), true, )
 UNARY_NODE(UnaryMinus, TName(T_MINUS), false, child, )
-UNOP_NODE(ToFloat, "tofloat", false, )
-UNOP_NODE(ToString, "tostring", false, )
-UNOP_NODE(ToBool, "tobool", false, )
-UNOP_NODE(ToInt, "toint", false, )
+COER_NODE(ToFloat, "tofloat")
+COER_NODE(ToString, "tostring")
+COER_NODE(ToBool, "tobool")
+COER_NODE(ToInt, "toint")
 TERNARY_NODE(If, "if", false, condition, truepart, falsepart, )
 BINARY_NODE(While, "while", false, condition, body, )
 BINARY_NODE(For, "for", false, iter, body, )
@@ -337,8 +357,11 @@ struct DynCall : List {
 
 struct NativeCall : GenericCall {
     NativeFun *nf;
+    TypeRef nattype;
+    Lifetime natlt;
     NativeCall(NativeFun *_nf, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf),
+          nattype(nullptr), natlt(LT_UNDEF) {};
     void Dump(ostringstream &ss) const { ss << nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
@@ -396,6 +419,19 @@ struct IsType : Unary {
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
 };
+
+struct ToLifetime : Coercion {
+    uint64_t incref, decref;
+    ToLifetime(const Line &ln, Node *_a, uint64_t incref, uint64_t decref)
+        : Coercion(ln, _a), incref(incref), decref(decref) {}
+    void Dump(ostringstream &ss) const { ss << Name() << "<" << incref << "|" << decref << ">"; }
+    SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", true)
+};
+
+template<typename T> Node *Forward(Node *n) {
+    if (auto t = Is<T>(n)) return t->child;
+    return n;
+}
 
 inline string Dump(Node &n, int indent) {
     ostringstream ss;

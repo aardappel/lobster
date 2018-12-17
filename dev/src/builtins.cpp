@@ -81,14 +81,14 @@ void AddBuiltins(NativeRegistry &natreg) {
         a.DECRT(vm);
         return Value();
     }
-    ENDDECL1(print, "x", "S", "",
+    ENDDECL1(print, "x", "Ss", "",
         "output any value to the console (with linefeed).");
 
     // This is now the identity function, but still useful to force a coercion.
     STARTDECL(string) (VM &, Value &a) {
         return a;
     }
-    ENDDECL1(string, "x", "S", "S",
+    ENDDECL1(string, "x", "Ssk", "S",
         "convert any value to string");
 
     STARTDECL(set_print_depth) (VM &vm, Value &a) {
@@ -230,7 +230,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.vval()->Push(vm, x);
         return l;
     }
-    ENDDECL2(push, "xs,x", "A]*A1", "A]1",
+    ENDDECL2(push, "xs,x", "A]*Ak1", "Ab]1",
         "appends one element to a vector, returns existing vector");
 
     STARTDECL(pop) (VM &vm, Value &l) {
@@ -248,7 +248,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return v;
     }
-    ENDDECL1(top, "xs", "A]*", "A1",
+    ENDDECL1(top, "xs", "A]*", "Ab1",
         "returns last element from vector");
 
     STARTDECL(replace) (VM &vm, Value &l, Value &i, Value &a) {
@@ -274,7 +274,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         nv->At(i.ival()) = a;
         return Value(nv);
     }
-    ENDDECL3(replace, "xs,i,x", "A]*IA1", "A]1",
+    ENDDECL3(replace, "xs,i,x", "A]*IAk1", "Ab]1",
         "returns a copy of a vector with the element at i replaced by x");
 
     STARTDECL(insert) (VM &vm, Value &l, Value &i, Value &a) {
@@ -283,7 +283,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.vval()->Insert(vm, a, i.ival());
         return l;
     }
-    ENDDECL3(insert, "xs,i,x", "A]*IA1", "A]1",
+    ENDDECL3(insert, "xs,i,x", "A]*IAk1", "Ab]1",
         "inserts a value into a vector at index i, existing elements shift upward,"
         " returns original vector");
 
@@ -314,7 +314,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         l.DECRT(vm);
         return o;
     }
-    ENDDECL2(remove_obj, "xs,obj", "A]*A1", "A2",
+    ENDDECL2(remove_obj, "xs,obj", "A]*A1", "Ab2",
         "remove all elements equal to obj (==), returns obj.");
 
     STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
@@ -1037,12 +1037,14 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(resume) (VM &vm, Value &co, Value &ret) {
         vm.CoResume(co.cval());
         // By the time CoResume returns, we're now back in the context of co, meaning that the
-        // return value below is what is returned from yield.
+        // return value below is what is returned from yield inside co.
         return ret;
-        // The actual return value from this call to resume will be the argument to the next call
-        // to yield, or the coroutine return value.
+        // The actual return value from this call to resume (in the caller) will be the coroutine
+        // itself (which is holding the refcount while active, hence the "k").
+        // The argument to the next call to yield (or the coroutine return value) will instead
+        // be captured in the dormant coroutine stack and available over return_value() below.
     }
-    ENDDECL2(resume, "coroutine,return_value", "CA%?", "A",
+    ENDDECL2(resume, "coroutine,return_value", "CkA%?", "C?",
         "resumes execution of a coroutine, passing a value back or nil");
 
     STARTDECL(return_value) (VM &vm, Value &co) {
@@ -1050,7 +1052,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         co.DECRT(vm);
         return rv;
     }
-    ENDDECL1(return_value, "coroutine", "C", "A1",
+    ENDDECL1(return_value, "coroutine", "C", "Ab1",
         "gets the last return value of a coroutine");
 
     STARTDECL(active) (VM &vm, Value &co) {
@@ -1104,7 +1106,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         if (!c.True()) vm.BuiltinError("assertion failed");
         return c;
     }
-    ENDDECL1(assert, "condition", "A*", "A1",
+    ENDDECL1(assert, "condition", "A*", "Ab1",
         "halts the program with an assertion failure if passed false. returns its input");
 
     STARTDECL(trace_bytecode) (VM &vm, Value &i, Value &tail) {

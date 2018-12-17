@@ -36,10 +36,10 @@ struct Optimizer {
 
     void Changed() { changes_this_pass = true; total_changes++; }
 
-    Node *Typed(TypeRef etype, TypeRef ntype, Node *n) {
+    Node *Typed(TypeRef type, Lifetime lt, Node *n) {
         Changed();
-        n->exptype = etype;
-        n->nattype = ntype;
+        n->exptype = type;
+        n->lt = lt;
         return n;
     }
 
@@ -65,6 +65,9 @@ struct Optimizer {
                         call->sf->parent->RemoveSubFunction(call->sf);
                         call->sf = nullptr;
                     }
+                } else if (Is<DefaultVal>(other)) {
+                } else {
+                    assert(false);  // deal with coercions.
                 }
                 delete ifn;
             } else {
@@ -78,10 +81,10 @@ struct Optimizer {
         if (auto is = Is<IsType>(n)) {
             Value cval;
             if (is->ConstVal(tc, cval)) {
-                r = Typed(is->exptype, type_int, new IntConstant(is->line, cval.ival()));
+                r = Typed(is->exptype, LT_ANY, new IntConstant(is->line, cval.ival()));
                 if (is->child->HasSideEffects()) {
                     is->child->exptype = type_void;
-                    r = Typed(is->exptype, type_int, new Seq(is->line, is->child, r));
+                    r = Typed(is->exptype, LT_ANY, new Seq(is->line, is->child, r));
                     is->child = nullptr;
                 }
                 delete is;
@@ -106,7 +109,7 @@ struct Optimizer {
                     c->children.insert(c->children.end(), dcall->children.begin(),
                         dcall->children.end());
                     dcall->children.clear();
-                    r = Typed(dcall->exptype, dcall->nattype, c);
+                    r = Typed(dcall->exptype, dcall->lt, c);
                     delete dcall;
                 }
             }
@@ -133,13 +136,23 @@ struct Optimizer {
         // Note that sf_def in these Ident's being moved is now not correct anymore, but the
         // only use for that field is to determine if the variable is "global" after the optimizer,
         // so we let that slip.
-        cursf->locals.v.insert(cursf->locals.v.end(), sf.args.v.begin(), sf.args.v.end());
-        cursf->locals.v.insert(cursf->locals.v.end(), sf.locals.v.begin(), sf.locals.v.end());
+        auto AddToLocals = [&](const ArgVector &av) {
+            for (auto &arg : av.v) {
+                // We have to check if the sid already exists, since inlining the same function
+                // multiple times in the same parent can cause this. This variable is shared
+                // between the copies in the parent, second use overwrites the first etc.
+                for (auto &loc : cursf->locals.v) if (loc.sid == arg.sid) goto already;
+                cursf->locals.v.push_back(arg);
+                already:;
+            }
+        };
+        AddToLocals(sf.args);
+        AddToLocals(sf.locals);
         int ai = 0;
         auto list = new Inlined(call.line);
         for (auto c : call.children) {
             auto &arg = sf.args.v[ai];
-            list->Add(Typed(type_void, type_void, new Define(call.line, arg.sid, c, nullptr)));
+            list->Add(Typed(type_void, LT_ANY, new Define(call.line, arg.sid, c, nullptr)));
             ai++;
         }
         // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the
@@ -171,7 +184,7 @@ struct Optimizer {
             ret->child = nullptr;
             delete ret;
         }
-        auto r = Typed(call.exptype, call.nattype, list);
+        auto r = Typed(call.exptype, call.sf->ltret, list);
         call.children.clear();
         delete &call;
         return r;

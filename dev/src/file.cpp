@@ -54,7 +54,7 @@ template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, LStr
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
     vm.Push(WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
-    s->Dec(vm);
+    s->Dec<false>(vm);
     return Value(i + s->len + extra);
 }
 
@@ -174,7 +174,7 @@ void AddFile(NativeRegistry &natreg) {
             ? str
             : Value(vm.ResizeString(str.sval(), asize + extra.ival(), c.intval(), size.ival() < 0));
     }
-    ENDDECL4(ensure_size, "string,size,char,extra", "SIII?", "S",
+    ENDDECL4(ensure_size, "string,size,char,extra", "SkIII?", "S",
              "ensures a string is at least size characters. if it is, just returns the existing"
              " string, otherwise returns a new string of that size (with optionally extra bytes"
              " added), with any new characters set to"
@@ -192,7 +192,7 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(N) (VM &vm, Value &str, Value &idx, Value &val) { \
         return WriteVal<T, B, S[0] == 'F'>(vm, str, idx, val); \
     } \
-    ENDDECL3(N, "string,i,val", "SI" S, "SI", D);
+    ENDDECL3(N, "string,i,val", "SkI" S, "SI", D);
     WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
     WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I")
     WRITEOP(write_int16_le, int16_t, false, write_val_desc2, "I")
@@ -209,12 +209,12 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(write_substring) (VM &vm, Value &str, Value &idx, Value &val, Value &term) {
         return WriteStr<false>(vm, str, idx, val.sval(), term.True());
     }
-    ENDDECL4(write_substring, "string,i,substr,nullterm", "SISI", "SI",
+    ENDDECL4(write_substring, "string,i,substr,nullterm", "SkISI", "SI",
              "writes a substring into another string at i (see also write_int64_le)");
     STARTDECL(write_substring_back) (VM &vm, Value &str, Value &idx, Value &val, Value &term) {
         return WriteStr<true>(vm, str, idx, val.sval(), term.True());
     }
-    ENDDECL4(write_substring_back, "string,i,substr,nullterm", "SISI", "SI", "");
+    ENDDECL4(write_substring_back, "string,i,substr,nullterm", "SkISI", "SI", "");
 
     STARTDECL(compare_substring) (VM &vm, Value &str1, Value &idx1, Value &str2, Value &idx2,
                                   Value &len) {
@@ -226,8 +226,8 @@ void AddFile(NativeRegistry &natreg) {
         if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
             vm.Error("compare_substring: index out of bounds");
         auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
-        s1->Dec(vm);
-        s2->Dec(vm);
+        s1->Dec<false>(vm);
+        s2->Dec<false>(vm);
         return eq;
     }
     ENDDECL5(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",

@@ -2,7 +2,7 @@ include std
 include vec
 include color
 
-mode:coroutine = coroutine menu(0, 0)
+mode:coroutine? = nil
 
 def menu(lastscore, highscore, frame):
     forever():
@@ -123,6 +123,8 @@ def level(highscore, lframe):
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
+
+mode = coroutine menu(0, 0)
 
 while gl_frame() and gl_button("escape") != 1:
     gl_clear(color_black)

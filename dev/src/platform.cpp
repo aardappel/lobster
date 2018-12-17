@@ -348,7 +348,6 @@ void Output(OutputType ot, const char *buf) {
             case OUTPUT_ERROR:   __android_log_print(ANDROID_LOG_ERROR, tag, "%s", buf); break;
         }
     #elif defined(_WIN32)
-        OutputDebugStringA("LOG: ");
         OutputDebugStringA(buf);
         OutputDebugStringA("\n");
         if (ot >= OUTPUT_INFO) {
@@ -379,6 +378,13 @@ void ConditionalBreakpoint(bool shouldbreak) {
             __builtin_trap();
         #endif
     }
+}
+
+// Insert without args to find out which iteration it gets to, then insert that iteration number.
+void CountingBreakpoint(int i) {
+    static int j = 0;
+    if (i < 0) Output(OUTPUT_DEBUG, "counting breakpoint: ", j);
+    ConditionalBreakpoint(j++ == i);
 }
 
 void MakeDPIAware() {

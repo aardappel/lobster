@@ -75,6 +75,7 @@ extern uint NumHWCores();
 
 // Misc:
 extern void ConditionalBreakpoint(bool shouldbreak);
+extern void CountingBreakpoint(int i = -1);
 extern void MakeDPIAware();
 
 extern string GetDateTime();

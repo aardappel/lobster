@@ -781,7 +781,9 @@ void AddMeshGen(NativeRegistry &natreg) {
         return body;
     }
     MIDDECL(mg_translate) (VM &vm) {
-        curorig = ValueDecToFLT<3>(vm, vm.Pop());
+        auto tmptrans = vm.Pop();
+        curorig = ValueDecToFLT<3>(vm, tmptrans);
+        tmptrans.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3B?", "",
         "translates the current coordinate system along a vector. when a body is given,"
@@ -793,7 +795,9 @@ void AddMeshGen(NativeRegistry &natreg) {
         return body;
     }
     MIDDECL(mg_scale) (VM &vm) {
-        cursize = ValueDecToFLT<3>(vm, vm.Pop());
+        auto tmpscale = vm.Pop();
+        cursize = ValueDecToFLT<3>(vm, tmpscale);
+        tmpscale.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_scale, "f,body", "FB?", "",
         "scales the current coordinate system by the given factor."
@@ -806,7 +810,9 @@ void AddMeshGen(NativeRegistry &natreg) {
         return body;
     }
     MIDDECL(mg_scale_vec) (VM &vm) {
-        cursize = ValueDecToFLT<3>(vm, vm.Pop());
+        auto tmpscale = vm.Pop();
+        cursize = ValueDecToFLT<3>(vm, tmpscale);
+        tmpscale.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3B?", "",
         "non-unimformly scales the current coordinate system using individual factors per axis."
@@ -824,6 +830,7 @@ void AddMeshGen(NativeRegistry &natreg) {
         assert(s.type == V_STRING);
         assert(s.sval()->len == sizeof(float3x3));
         currot = *(float3x3 *)s.sval()->data();
+        s.LTDECRT(vm);
         s.DECRT(vm);
     }
     ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FB?", "",
@@ -836,7 +843,9 @@ void AddMeshGen(NativeRegistry &natreg) {
         return body;
     }
     MIDDECL(mg_color) (VM &vm) {
-        curcol = ValueDecToFLT<4>(vm, vm.Pop());
+        auto tmpcol = vm.Pop();
+        curcol = ValueDecToFLT<4>(vm, tmpcol);
+        tmpcol.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4B?", "",
         "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"

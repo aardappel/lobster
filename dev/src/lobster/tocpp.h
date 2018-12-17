@@ -44,7 +44,10 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             ip += n;
             int m = *ip++;
             ip += m;
-            arity = n + m + 4;
+            ip++;  // keepvar
+            int o = *ip++;  // ownedvar
+            ip += o;
+            arity = n + m + o + 6;
             break;
         }
         case IL_FUNMULTI: {

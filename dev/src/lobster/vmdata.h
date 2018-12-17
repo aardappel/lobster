@@ -34,6 +34,10 @@ namespace lobster {
 #define VM_DISPATCH_SWITCH_GOTO 2
 #define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
 
+#define LIFETIMES_ENABLED 0
+#define LIFETIMES_REFC 0
+#define DELETE_DELAY 0
+
 // Typedefs to make pointers and scalars the same size.
 #if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
     #if !defined(VM_COMPILED_CODE_MODE) || VM_DISPATCH_METHOD != VM_DISPATCH_TRAMPOLINE
@@ -103,6 +107,7 @@ inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
 inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V_FUNCTION; }
 inline bool IsRef(ValueType t) { return t <  V_NIL; }
 inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
+inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
 inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 inline bool IsRuntimePrintable(ValueType t) { return t <= V_FLOAT; }
 
@@ -192,15 +197,45 @@ struct DynAlloc {
 struct RefObj : DynAlloc {
     int refc;
 
-    RefObj(type_elem_t _tti) : DynAlloc(_tti), refc(1) {}
+    #if DELETE_DELAY
+    const int *alloc_ip;
+    #endif
 
-    void Inc() {
-        refc++;
+    RefObj(type_elem_t _tti) : DynAlloc(_tti), refc(1)
+        #if DELETE_DELAY
+            , alloc_ip(nullptr)
+        #endif
+    {}
+
+    template<bool LT> void Inc() {
+        #ifdef _DEBUG
+            if (refc <= 0) {  // Should never be "re-vived".
+                #if DELETE_DELAY
+                    Output(OUTPUT_DEBUG, "revive: ", (size_t)this);
+                #endif
+                assert(false);
+            }
+        #endif
+        if constexpr (LIFETIMES_REFC == (int)LT) {
+            #if DELETE_DELAY
+                Output(OUTPUT_DEBUG, "inc: ", (size_t)this);
+            #endif
+            refc++;
+        }
     }
 
-    void Dec(VM &vm) {
+    template<bool LT> void Dec(VM &vm) {
+        if constexpr (LIFETIMES_REFC != (int)LT) return;
         refc--;
-        if (refc <= 0) DECDELETE(vm, true);
+        #ifdef _DEBUG
+            DECSTAT(vm);
+        #endif
+        #if DELETE_DELAY
+            Output(OUTPUT_DEBUG, "dec: ", (size_t)this);
+        #endif
+        if (refc <= 0) {
+            DECDELETE(vm, true);
+        }
     }
 
     void CycleDone(int &cycles) {
@@ -210,6 +245,9 @@ struct RefObj : DynAlloc {
     void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
 
     void DECDELETE(VM &vm, bool deref);
+    void DECDELETENOW(VM &vm, bool deref);
+    void DECSTAT(VM &vm);
+
     intp Hash(VM &vm);
 };
 
@@ -393,7 +431,7 @@ struct Value {
 
     inline Value &INCRT() {
         assert(IsRef(type) && ref_);
-        ref_->Inc();
+        ref_->Inc<false>();
         return *this;
     }
 
@@ -402,11 +440,27 @@ struct Value {
 
     inline void DECRT(VM &vm) const {  // we already know its a ref type
         assert(IsRef(type) && ref_);
-        ref_->Dec(vm);
+        ref_->Dec<false>(vm);
     }
 
     inline void DECRTNIL(VM &vm) const { if (ref_) DECRT(vm); }
     inline void DECTYPE(VM &vm, ValueType t) const { if (IsRefNil(t)) DECRTNIL(vm); }
+
+    inline Value &LTINCRT() {
+        assert(IsRef(type) && ref_);
+        ref_->Inc<true>();
+        return *this;
+    }
+    inline Value &LTINCRTNIL() { if (ref_) LTINCRT(); return *this; }
+    inline Value &LTINCTYPE(ValueType t) { return IsRefNil(t) ? LTINCRTNIL() : *this; }
+
+    inline void LTDECRT(VM &vm) const {  // we already know its a ref type
+        assert(IsRef(type) && ref_);
+        ref_->Dec<true>(vm);
+    }
+    inline void LTDECRTNIL(VM &vm) const { if (ref_) LTDECRT(vm); }
+    inline void LTDECTYPE(VM &vm, ValueType t) const { if (IsRefNil(t)) LTDECRTNIL(vm); }
+
 
     void ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const;
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
@@ -433,6 +487,7 @@ struct LStruct : RefObj {
     // This may only be called from a context where i < len has already been ensured/asserted.
     void DecS(VM &vm, intp i) const {
         AtS(i).DECTYPE(vm, ElemTypeS(vm, i));
+        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i));
     }
 
     void DeleteSelf(VM &vm, bool deref);
@@ -463,7 +518,10 @@ struct LStruct : RefObj {
     void Init(VM &vm, Value *from, intp len, bool inc) {
         assert(len && len == Len(vm));
         memcpy(Elems(), from, len * sizeof(Value));
-        if (inc) for (intp i = 0; i < len; i++) AtS(i).INCTYPE(ElemTypeS(vm, i));
+        if (inc) for (intp i = 0; i < len; i++) {
+            AtS(i).INCTYPE(ElemTypeS(vm, i));
+            AtS(i).LTINCTYPE(ElemTypeS(vm, i));
+        }
     }
 };
 
@@ -485,6 +543,7 @@ struct LVector : RefObj {
 
     void Dec(VM &vm, intp i, ValueType et) const {
         At(i).DECTYPE(vm, et);
+        At(i).LTDECTYPE(vm, et);
     }
 
     void DeleteSelf(VM &vm, bool deref);
@@ -558,8 +617,10 @@ struct LVector : RefObj {
         memcpy(&At(0), from, len * sizeof(Value));
         auto et = ElemType(vm);
         if (inc && IsRefNil(et))
-            for (intp i = 0; i < len; i++)
+            for (intp i = 0; i < len; i++) {
                 At(i).INCRTNIL();
+                At(i).LTINCRTNIL();
+            }
     }
 };
 
@@ -647,9 +708,12 @@ struct VM {
     vector<ostringstream> trace_output;
     size_t trace_ring_idx;
 
+    vector<RefObj *> delete_delay;
+
     int64_t vm_count_ins;
     int64_t vm_count_fcalls;
     int64_t vm_count_bcalls;
+    int64_t vm_count_decref;
 
     #ifndef VM_COMPILED_CODE_MODE
         //#define VM_INS_SWITCH
@@ -700,8 +764,11 @@ struct VM {
     type_elem_t GetIntVectorType(int which);
     type_elem_t GetFloatVectorType(int which);
 
+    void DumpVal(RefObj *ro, const char *prefix);
+    void DumpFileLine(const int *fip, ostringstream &ss);
     void DumpLeaks();
-
+    
+    void OnAlloc(RefObj *ro);
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
     LStruct *NewStruct(intp max, type_elem_t tti);
     LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
@@ -914,10 +981,15 @@ template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceT
     if (!val.True())
         return nullptr;
     auto x = val.xval();
-    if (x->refc < 2)
-        // This typically does not happen unless resource is not stored in a variable.
-        vm.BuiltinError("cannot use temporary resource (store it first)");
-    val.DECRT(vm);
+    #if LIFETIMES_REFC
+        // Cannot detect this problem, since refc will be 1 regardless of wether it is stored
+        // in a variable or a keepvar.
+    #else
+        if (x->refc < 2)
+            // This typically does not happen unless resource is not stored in a variable.
+            vm.BuiltinError("cannot use temporary resource (store it first)");
+        val.DECRT(vm);
+    #endif
     if (x->type != type)
         vm.BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
             x->type->name);
@@ -1075,7 +1147,9 @@ struct LCoRoutine : RefObj {
         assert(stackstart < 0);
         if (stackcopy) {
             auto curvaltype = vm.GetTypeInfo(ti(vm).yieldtype).t;
-            stackcopy[--stackcopylen].DECTYPE(vm, curvaltype);
+            auto &ts = stackcopy[--stackcopylen];
+            ts.DECTYPE(vm, curvaltype);
+            ts.LTDECTYPE(vm, curvaltype);
             if (active) {
                 if (deref) {
                     for (int i = *varip; i > 0; i--) {

@@ -81,7 +81,10 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
     memcpy(v + len, from->v + start, sizeof(Value) * amount);
     if (IsRefNil(from->ElemType(vm))) {
-        for (int i = 0; i < amount; i++) v[len + i].INCRTNIL();
+        for (int i = 0; i < amount; i++) {
+            v[len + i].INCRTNIL();
+            v[len + i].LTINCRTNIL();
+        }
     }
     len += amount;
 }
@@ -106,8 +109,7 @@ void LResource::DeleteSelf(VM &vm) {
     vm.pool.dealloc(this, sizeof(LResource));
 }
 
-void RefObj::DECDELETE(VM &vm, bool deref) {
-    assert(refc == 0);
+void RefObj::DECDELETENOW(VM &vm, bool deref) {
     switch (ti(vm).t) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm, deref); break;
@@ -117,6 +119,22 @@ void RefObj::DECDELETE(VM &vm, bool deref) {
         default:           assert(false);
     }
 }
+
+void RefObj::DECDELETE(VM &vm, bool deref) {
+    if (refc) {
+        vm.DumpVal(this, "double delete");
+        assert(false);
+    }
+    #if DELETE_DELAY
+        vm.DumpVal(this, "delay delete");
+        vm.delete_delay.push_back(this);
+        (void)deref;
+    #else
+        DECDELETENOW(vm, deref);
+    #endif
+}
+
+void RefObj::DECSTAT(VM &vm) { vm.vm_count_decref++; }
 
 bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (a == b) return true;

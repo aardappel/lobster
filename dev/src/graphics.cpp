@@ -110,6 +110,7 @@ void PopTransform(VM &vm) {
     assert(s.sval()->len == sizeof(objecttransforms));
     otransforms = *(objecttransforms *)s.sval()->strv().data();
     s.DECRT(vm);
+    s.LTDECRT(vm);
 }
 
 int GetSampler(VM &vm, Value &i) {
@@ -227,7 +228,7 @@ void AddGraphics(NativeRegistry &natreg) {
         SDLTitle(s.sval()->strv());
         return s;
     }
-    ENDDECL1(gl_window_title, "title", "S", "S",
+    ENDDECL1(gl_window_title, "title", "S", "Sb",
         "changes the window title.");
 
     STARTDECL(gl_window_min_max) (VM &vm, Value &dir) {
@@ -381,7 +382,9 @@ void AddGraphics(NativeRegistry &natreg) {
         return body;
     }
     MIDDECL(gl_color) (VM &vm) {
-        curcolor = ValueDecToFLT<4>(vm, vm.Pop());
+        auto tmpcol = vm.Pop();
+        curcolor = ValueDecToFLT<4>(vm, tmpcol);
+        tmpcol.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4B?", "",
         "sets the current color. when a body is given, restores the previous color afterwards");
@@ -392,7 +395,7 @@ void AddGraphics(NativeRegistry &natreg) {
         delete m;
         return vl;
     }
-    ENDDECL1(gl_polygon, "vertlist", "F}]", "A1",
+    ENDDECL1(gl_polygon, "vertlist", "F}]", "Ab1",
         "renders a polygon using the list of points given. returns the argument."
         " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.");
 
@@ -573,7 +576,7 @@ void AddGraphics(NativeRegistry &natreg) {
                               float4x4(float4(ValueToFLT<2>(vm, vec), 1)));
         return vec;
     }
-    ENDDECL2(gl_rect, "size,centered", "F}I?", "F}",
+    ENDDECL2(gl_rect, "size,centered", "F}I?", "F}b",
         "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
         " size. returns the argument.");
 

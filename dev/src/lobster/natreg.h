@@ -19,6 +19,30 @@
 
 namespace lobster {
 
+// Compile time lifetime tracking between values and their recipients.
+// If lifetimes correspond, no action is required.
+// If recipient wants to keep, but value is borrowed, inc ref or copy or error.
+// If recipient wants to borrow, but value is keep, dec ref or delete after recipient is done.
+// NOTE: all positive values are an index of the SpecIdent being borrowed.
+// If you're borrowing, you are "locking" the modification of the variable you borrow from.
+enum Lifetime {
+    // Value: you are receiving a value stored elsewhere, do not hold on.
+    // Recipient: I do not want to be responsible for managing this value.
+    LT_BORROW = -1,
+    // Value: you are responsible for this value, you must delete or store.
+    // Recipient: I want to hold on to this value (inc ref, or be sole owner).
+    LT_KEEP = -2,
+    // Value: lifetime shouldn't matter, because type is non-reference.
+    // Recipient: I'm cool with any lifetime.
+    LT_ANY = -3,
+    // Value: there are multiple lifetimes, stored elsewhere.
+    LT_MULTIPLE = -4,
+    // Lifetime is not valid.
+    LT_UNDEF = -5,
+};
+
+inline Lifetime LifetimeType(Lifetime lt) { return lt >= 0 ? LT_BORROW : lt; }
+
 struct Named {
     string name;
     int idx;
@@ -35,11 +59,13 @@ struct Struct;
 struct Type {
     const ValueType t;
 
+    struct TupleElem { const Type *type; Lifetime lt; };
+
     union {
-        const Type *sub;      // V_VECTOR | V_NIL | V_VAR
-        SubFunction *sf;      // V_FUNCTION | V_COROUTINE
-        Struct *struc;        // V_STRUCT
-        vector<const Type *> *tup; // V_TUPLE
+        const Type *sub;         // V_VECTOR | V_NIL | V_VAR
+        SubFunction *sf;         // V_FUNCTION | V_COROUTINE
+        Struct *struc;           // V_STRUCT
+        vector<TupleElem> *tup;  // V_TUPLE
     };
 
     Type()                               : t(V_UNDEFINED), sub(nullptr) {}
@@ -98,12 +124,16 @@ struct Type {
     }
 
     const Type *Get(size_t i) const {
-        return t == V_TUPLE ? (*tup)[i] : this;
+        return t == V_TUPLE ? (*tup)[i].type : this;
     }
 
-    void Set(size_t i, const Type *type) const {
+    void Set(size_t i, const Type *type, Lifetime lt) const {
         assert(t == V_TUPLE);
-        (*tup)[i] = type;
+        (*tup)[i] = { type, lt };
+    }
+
+    Lifetime GetLifetime(size_t i, Lifetime lt) const {
+        return lt == LT_MULTIPLE && t == V_TUPLE ? (*tup)[i].lt : lt;
     }
 };
 
@@ -163,7 +193,8 @@ enum ArgFlags {
     NF_SUBARG3 = 16,
     NF_ANYVAR = 32,
     NF_CORESUME = 64,
-    AF_WITHTYPE = 128
+    AF_WITHTYPE = 128,
+    NF_CONVERTANYTOSTRING = 256,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 
@@ -181,13 +212,15 @@ struct Typed {
 
 struct Narg : Typed {
     char fixed_len;
+    Lifetime lt;
 
-    Narg() : Typed(), fixed_len(0) {}
-    Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len) {}
+    Narg() : Typed(), fixed_len(0), lt(LT_UNDEF) {}
+    Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len), lt(o.lt) {}
 
-    void Set(const char *&tid) {
+    void Set(const char *&tid, Lifetime def) {
         char t = *tid++;
         flags = AF_NONE;
+        lt = def;
         switch (t) {
             case 'A': type = type_any; break;
             case 'I': type = type_int; break;
@@ -199,7 +232,7 @@ struct Narg : Typed {
             case 'T': type = type_typeid; break;
             default:  assert(0);
         }
-        while (*tid && !isalpha(*tid)) {
+        while (*tid && !isupper(*tid)) {
             switch (auto c = *tid++) {
                 case 0: break;
                 case '1': flags = flags | NF_SUBARG1; break;
@@ -208,6 +241,9 @@ struct Narg : Typed {
                 case '*': flags = flags | NF_ANYVAR; break;
                 case '@': flags = flags | AF_EXPFUNVAL; break;
                 case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
+                case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
+                case 'k': lt = LT_KEEP; break;
+                case 'b': lt = LT_BORROW; break;
                 case ']':
                 case '}':
                     type = WrapKnown(type, V_VECTOR);
@@ -289,16 +325,16 @@ struct NativeFun : Named {
         : Named(_name, 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
           has_body(_has_body), cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr),
           first(this) {
-        auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isalpha(*s++)) i++; return i; };
+        auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isupper(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
         assert(TypeLen(typeids) == nargs);
         for (int i = 0; i < nargs; i++) {
             args.GetName(i);  // Call this just to trigger the assert.
-            args.v[i].Set(typeids);
+            args.v[i].Set(typeids, LT_BORROW);
         }
         for (int i = 0; i < nretvalues; i++) {
             retvals.v.push_back(Narg());
-            retvals.v[i].Set(rets);
+            retvals.v[i].Set(rets, LT_KEEP);
         }
     }
 };

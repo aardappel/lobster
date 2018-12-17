@@ -31,7 +31,7 @@ namespace lobster {
     TOK(T_MODEQ, "%=") \
     TOK(T_AND, "and") \
     TOK(T_OR, "or") \
-    TOK(T_NOT, "~") \
+    TOK(T_NOT, "not") \
     TOK(T_INCR, "++") \
     TOK(T_DECR, "--") \
     TOK(T_EQ, "==") \
