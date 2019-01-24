@@ -54,7 +54,6 @@ template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, LStr
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
     vm.Push(WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
-    s->Dec<false>(vm);
     return Value(i + s->len + extra);
 }
 
@@ -226,8 +225,6 @@ void AddFile(NativeRegistry &natreg) {
         if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
             vm.Error("compare_substring: index out of bounds");
         auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
-        s1->Dec<false>(vm);
-        s2->Dec<false>(vm);
         return eq;
     }
     ENDDECL5(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",

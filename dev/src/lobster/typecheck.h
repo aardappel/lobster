@@ -680,10 +680,8 @@ struct TypeChecker {
         while (borrowstack.size() > start_borrowed_vars) {
             auto &b = borrowstack.back();
             if (b.refc) {
-                #if LIFETIMES_ENABLED
                 TypeError(cat("variable ", b.Name(), " still has ", b.refc,
                               " borrowers"), *sf.body->children.back());
-                #endif
             }
             borrowstack.pop_back();
         }
@@ -1292,9 +1290,7 @@ struct TypeChecker {
         for (auto &b : reverse(borrowstack)) {
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            #if LIFETIMES_ENABLED
             TypeError(cat("cannot assign to ", lv.Name(), " while borrowed"), *n);
-            #endif
         }
     }
 
@@ -1443,7 +1439,6 @@ struct TypeChecker {
         auto &b = borrowstack[lt];
         assert(IsRefNilVar(b.sid->type->t));
         b.refc += change;
-        #if LIFETIMES_ENABLED
         Output(OUTPUT_DEBUG, "borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
                ", ", b.refc, " remain");
         // FIXME: this should really just not be possible, but hard to guarantee.
@@ -1451,7 +1446,6 @@ struct TypeChecker {
             TypeError(cat(b.sid->id->name, " used in ", NiceName(context),
                           " without being borrowed"), context);
         assert(b.refc >= 0);
-        #endif
         (void)context;
     }
 

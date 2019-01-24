@@ -274,8 +274,7 @@ LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
     else cdest += s->len;
     memcpy(sdest, s->data(), s->len);
     memset(cdest, c, remain);
-    s->Dec<false>(*this);
-    s->Dec<true>(*this);
+    s->Dec(*this);
     return ns;
 }
 
@@ -889,13 +888,8 @@ VM_DEF_INS(INCREF) {
 VM_DEF_INS(KEEPREF) {
     auto off = *ip++;
     auto ki = *ip++;
-    #if LIFETIMES_REFC
     TOPM(ki).LTDECRTNIL(*this);  // FIXME: this is only here for inlined for bodies!
     TOPM(ki) = TOPM(off);
-    #else
-    (void)off;
-    (void)ki;
-    #endif
     VM_RET;
 }
 

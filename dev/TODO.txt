@@ -89,6 +89,9 @@
 - leakcheck: if there's no leaks but there is a leaks file, delete it.
 - do a speedtest of compilation.
 
+- Should refactor for size of files.. typechech.h is getting unwieldy.
+  Can maybe pull out some lifetime stuff?
+
 - should add a debug feature like https://blog.rust-lang.org/2019/01/17/Rust-1.32.0.html
   - and make it so it only gets compiled in when you run it in a "debug" mode so the
     code can be let in, with optional tags etc.

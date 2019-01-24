@@ -408,11 +408,7 @@ struct CodeGen  {
     }
 
     bool ShouldDec(TypeLT typelt) {
-        return IsRefNil(typelt.type->t)
-            #if LIFETIMES_REFC
-            && typelt.lt == LT_KEEP
-            #endif
-            ;
+        return IsRefNil(typelt.type->t) && typelt.lt == LT_KEEP;
     }
 
     void GenPop(TypeLT typelt) {
@@ -814,7 +810,6 @@ void ToInt::Generate(CodeGen &cg, size_t retval) const {
 
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
-    #if LIFETIMES_REFC
     for (size_t i = 0; i < retval; i++) {
         // We have to check for reftype again, since typechecker allowed V_VAR values that may
         // have become scalars by now.
@@ -831,7 +826,6 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             }
         }
     }
-    #endif
     // We did not consume these, so we have to pass them on.
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back(cg.temptypestack.back());

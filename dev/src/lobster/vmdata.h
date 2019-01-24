@@ -34,8 +34,6 @@ namespace lobster {
 #define VM_DISPATCH_SWITCH_GOTO 2
 #define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
 
-#define LIFETIMES_ENABLED 0
-#define LIFETIMES_REFC 0
 #define DELETE_DELAY 0
 
 // Typedefs to make pointers and scalars the same size.
@@ -207,7 +205,7 @@ struct RefObj : DynAlloc {
         #endif
     {}
 
-    template<bool LT> void Inc() {
+    void Inc() {
         #ifdef _DEBUG
             if (refc <= 0) {  // Should never be "re-vived".
                 #if DELETE_DELAY
@@ -216,16 +214,13 @@ struct RefObj : DynAlloc {
                 assert(false);
             }
         #endif
-        if constexpr (LIFETIMES_REFC == (int)LT) {
-            #if DELETE_DELAY
-                Output(OUTPUT_DEBUG, "inc: ", (size_t)this);
-            #endif
-            refc++;
-        }
+        #if DELETE_DELAY
+            Output(OUTPUT_DEBUG, "inc: ", (size_t)this);
+        #endif
+        refc++;
     }
 
-    template<bool LT> void Dec(VM &vm) {
-        if constexpr (LIFETIMES_REFC != (int)LT) return;
+    void Dec(VM &vm) {
         refc--;
         #ifdef _DEBUG
             DECSTAT(vm);
@@ -429,26 +424,17 @@ struct Value {
 
     inline bool True() const { return ival_ != 0; }
 
-    inline Value &INCRT() {
-        assert(IsRef(type) && ref_);
-        ref_->Inc<false>();
-        return *this;
-    }
-
-    inline Value &INCRTNIL() { if (ref_) INCRT(); return *this; }
-    inline Value &INCTYPE(ValueType t) { return IsRefNil(t) ? INCRTNIL() : *this; }
-
-    inline void DECRT(VM &vm) const {  // we already know its a ref type
-        assert(IsRef(type) && ref_);
-        ref_->Dec<false>(vm);
-    }
-
-    inline void DECRTNIL(VM &vm) const { if (ref_) DECRT(vm); }
-    inline void DECTYPE(VM &vm, ValueType t) const { if (IsRefNil(t)) DECRTNIL(vm); }
+    // FIXME: remove.
+    inline Value &INCRT() { return *this; }
+    inline Value &INCRTNIL() { return *this; }
+    inline Value &INCTYPE(ValueType) { return *this; }
+    inline void DECRT(VM &) const {}
+    inline void DECRTNIL(VM &) const {}
+    inline void DECTYPE(VM &, ValueType) const {}
 
     inline Value &LTINCRT() {
         assert(IsRef(type) && ref_);
-        ref_->Inc<true>();
+        ref_->Inc();
         return *this;
     }
     inline Value &LTINCRTNIL() { if (ref_) LTINCRT(); return *this; }
@@ -456,7 +442,7 @@ struct Value {
 
     inline void LTDECRT(VM &vm) const {  // we already know its a ref type
         assert(IsRef(type) && ref_);
-        ref_->Dec<true>(vm);
+        ref_->Dec(vm);
     }
     inline void LTDECRTNIL(VM &vm) const { if (ref_) LTDECRT(vm); }
     inline void LTDECTYPE(VM &vm, ValueType t) const { if (IsRefNil(t)) LTDECRTNIL(vm); }
@@ -981,15 +967,6 @@ template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceT
     if (!val.True())
         return nullptr;
     auto x = val.xval();
-    #if LIFETIMES_REFC
-        // Cannot detect this problem, since refc will be 1 regardless of wether it is stored
-        // in a variable or a keepvar.
-    #else
-        if (x->refc < 2)
-            // This typically does not happen unless resource is not stored in a variable.
-            vm.BuiltinError("cannot use temporary resource (store it first)");
-        val.DECRT(vm);
-    #endif
     if (x->type != type)
         vm.BuiltinError(string_view("needed resource type: ") + type->name + ", got: " +
             x->type->name);

@@ -122,7 +122,7 @@ struct ValueParser {
                 string s = lex.StringVal();
                 lex.Next();
                 auto str = vm.NewString(s);
-                str->Inc<false>();
+                //str->Inc();
                 allocated.push_back(str);
                 return Value(str);
             }
