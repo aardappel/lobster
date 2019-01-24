@@ -1067,6 +1067,7 @@ VM_DEF_INS(FORLOOPI) {
     VM_RET;
 }
 
+/*
 // FIXME: remove this crap once builtins have been debugged.
 void check_lifetime(NativeFun *, VM &, Value &) {}
 void check_lifetime(NativeFun *nf, Value &x, Value &v) {
@@ -1081,13 +1082,13 @@ void check_lifetime(NativeFun *nf, Value &x, Value &v) {
         auto vals = tie VALS; \
         std::apply([&](auto &&...x){ (void)(check_lifetime(nf, x, v), ...); }, vals); \
     }
+*/
 
 #define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_DEF_INS(BCALL##PRE##N) { \
     BCallProf(); \
     auto nf = natreg.nfuns[*ip++]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
-    CHECK_LIFETIMES(N, ARGS); \
     RETOP; \
     VM_RET; \
 }
