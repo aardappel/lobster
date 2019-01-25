@@ -1,9 +1,4 @@
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
-  - remove old reference counts! this should result in a LOT of code simplification.
-    - now the same:
-      DUP[REF] PUSHVAR[REF] PUSHFLD[REF] PushDerefIdxVector[Ref/Sc] LVO_WRITE[R]REF
-      JUMPFAIL[???]
-    - test speed again.
   - VM improvements:
     - reference counting that needs more testings:
       - in vmlog.cpp
@@ -1530,6 +1525,7 @@ VM64-LLVM: compr_ptr: secs  2.11, 0.98x vs native pointers, unlike MSVC!
 VM64-LLVM: dec 2018 : secs  2.05, return value related refactorings.
 VM64-LLVM: lifetime1: secs  2.08, lifetime off (4649 alloc, 105402 decr)
 VM64-LLVM: lifetime1: secs  1.86, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
+VM64-LLVM: lifetime2: secs  1.90, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
 
 DEPENDENCIES
 ============

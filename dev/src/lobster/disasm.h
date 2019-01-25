@@ -82,11 +82,6 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_JUMPFAILN:
         case IL_JUMPNOFAIL:
         case IL_JUMPNOFAILR:
-        case IL_JUMPFAILREF:
-        case IL_JUMPFAILRREF:
-        case IL_JUMPFAILNREF:
-        case IL_JUMPNOFAILREF:
-        case IL_JUMPNOFAILRREF:
         case IL_LOGREAD:
         case IL_ISTYPE:
         case IL_EXIT:
@@ -176,7 +171,6 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_LVALVAR:
             LvalDisAsm(ss, ip);
         case IL_PUSHVAR:
-        case IL_PUSHVARREF:
             ss << IdName(bcf, *ip++);
             break;
 
@@ -184,7 +178,6 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_LVALLOC:
            LvalDisAsm(ss, ip);
         case IL_PUSHFLD:
-        case IL_PUSHFLDREF:
         case IL_PUSHFLDMREF:
         case IL_PUSHLOC:
             ss << *ip++;

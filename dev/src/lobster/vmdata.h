@@ -805,8 +805,7 @@ struct VM {
     void EvalProgram();
     void EvalProgramInner();
 
-    void PushDerefIdxVectorSc(intp i);
-    void PushDerefIdxVectorRef(intp i);
+    void PushDerefIdxVector(intp i);
     void PushDerefIdxStruct(intp i);
     void PushDerefIdxString(intp i);
     void LvalueIdxVector(int lvalop, intp i);

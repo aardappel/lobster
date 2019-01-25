@@ -1077,7 +1077,6 @@ VM_DEF_INS(POP)    { POP(); VM_RET; }
 VM_DEF_INS(POPREF) { auto x = POP(); x.LTDECRTNIL(*this); VM_RET; }
 
 VM_DEF_INS(DUP)    { auto x = TOP(); PUSH(x); VM_RET; }
-VM_DEF_INS(DUPREF) { auto x = TOP(); PUSH(x); VM_RET; }
 
 #define GETARGS() Value b = POP(); Value a = POP()
 #define TYPEOP(op, extras, field, errstat) Value res; errstat; \
@@ -1295,17 +1294,8 @@ VM_DEF_INS(E2BREF) {
 }
 
 VM_DEF_INS(PUSHVAR)    { PUSH(vars[*ip++]); VM_RET; }
-VM_DEF_INS(PUSHVARREF) { PUSH(vars[*ip++]); VM_RET; }
 
 VM_DEF_INS(PUSHFLD) {
-    auto i = *ip++;
-    Value r = POP();
-    VMASSERT(r.ref());
-    assert(i < r.stval()->Len(*this));
-    PUSH(r.stval()->AtS(i));
-    VM_RET;
-}
-VM_DEF_INS(PUSHFLDREF) {
     auto i = *ip++;
     Value r = POP();
     VMASSERT(r.ref());
@@ -1325,10 +1315,8 @@ VM_DEF_INS(PUSHFLDMREF) {
     VM_RET;
 }
 
-VM_DEF_INS(VPUSHIDXI)    { PushDerefIdxVectorSc(POP().ival()); VM_RET; }
-VM_DEF_INS(VPUSHIDXV)    { PushDerefIdxVectorSc(GrabIndex(POP())); VM_RET; }
-VM_DEF_INS(VPUSHIDXIREF) { PushDerefIdxVectorRef(POP().ival()); VM_RET; }
-VM_DEF_INS(VPUSHIDXVREF) { PushDerefIdxVectorRef(GrabIndex(POP())); VM_RET; }
+VM_DEF_INS(VPUSHIDXI)    { PushDerefIdxVector(POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXV)    { PushDerefIdxVector(GrabIndex(POP())); VM_RET; }
 VM_DEF_INS(NPUSHIDXI)    { PushDerefIdxStruct(POP().ival()); VM_RET; }
 VM_DEF_INS(SPUSHIDXI)    { PushDerefIdxString(POP().ival()); VM_RET; }
 
@@ -1378,11 +1366,6 @@ GJUMP(JUMPFAILR     , auto x = POP(), !x.True(), PUSH(x)      )
 GJUMP(JUMPFAILN     , auto x = POP(), !x.True(), PUSH(Value()))
 GJUMP(JUMPNOFAIL    , auto x = POP(),  x.True(),              )
 GJUMP(JUMPNOFAILR   , auto x = POP(),  x.True(), PUSH(x)      )
-GJUMP(JUMPFAILREF   , auto x = POP(), !x.True(),              )
-GJUMP(JUMPFAILRREF  , auto x = POP(), !x.True(), PUSH(x)      )
-GJUMP(JUMPFAILNREF  , auto x = POP(), !x.True(), PUSH(Value()))
-GJUMP(JUMPNOFAILREF , auto x = POP(),  x.True(),              )
-GJUMP(JUMPNOFAILRREF, auto x = POP(),  x.True(), PUSH(x)      )
 
 VM_DEF_INS(ISTYPE) {
     auto to = (type_elem_t)*ip++;
@@ -1431,14 +1414,7 @@ void VM::IDXErr(intp i, intp n, const RefObj *v) {
 }
 #define RANGECHECK(I, BOUND, VEC) if ((uintp)I >= (uintp)BOUND) IDXErr(I, BOUND, VEC);
 
-void VM::PushDerefIdxVectorSc(intp i) {
-    Value r = POP();
-    VMASSERT(r.ref());
-    RANGECHECK(i, r.vval()->len, r.vval());
-    PUSH(r.vval()->At(i));
-}
-
-void VM::PushDerefIdxVectorRef(intp i) {
+void VM::PushDerefIdxVector(intp i) {
     Value r = POP();
     VMASSERT(r.ref());
     RANGECHECK(i, r.vval()->len, r.vval());

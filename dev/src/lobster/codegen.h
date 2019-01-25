@@ -375,8 +375,6 @@ struct CodeGen  {
         }
     };
 
-    int JumpRef(int jumpop, TypeRef type) { return IsRefNil(type->t) ? jumpop + 1 : jumpop; }
-
     void GenFloat(double f) {
         if ((float)f == f) {
             Emit(IL_PUSHFLT);
@@ -401,7 +399,7 @@ struct CodeGen  {
     }
 
     void GenDup(TypeLT tlt) {
-        Emit(IsRefNil(tlt.type->t) ? IL_DUPREF : IL_DUP);
+        Emit(IL_DUP);
         temptypestack.push_back(tlt);
     }
 
@@ -528,8 +526,7 @@ struct CodeGen  {
         auto idx = stype->struc->Has(f);
         assert(idx >= 0);
         if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
-        else Emit(IsRefNil(stype->struc->fields.v[idx].type->t) ? IL_PUSHFLDREF + (int)maybe
-                                                                : IL_PUSHFLD);
+        else Emit(IL_PUSHFLD + (int)maybe);
         Emit(idx);
     }
 
@@ -613,9 +610,7 @@ void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
-    if (retval) {
-        cg.Emit(IsRefNil(sid->type->t) ? IL_PUSHVARREF : IL_PUSHVAR, sid->Idx());
-    };
+    if (retval) cg.Emit(IL_PUSHVAR, sid->Idx());
 }
 
 void Dot::Generate(CodeGen &cg, size_t retval) const {
@@ -640,9 +635,7 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
                         etype = etype->Element();
                     }
                 }
-                cg.Emit(IsRefNil(etype->t)
-                        ? (index->exptype->t == V_INT ? IL_VPUSHIDXIREF : IL_VPUSHIDXVREF)
-                        : (index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV));
+                cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
                 break;
             }
             case V_STRUCT:
@@ -978,7 +971,7 @@ void NativeRef::Generate(CodeGen & /*cg*/, size_t /*retval*/) const {
 
 void And::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1, 1);
-    cg.Emit(cg.JumpRef(retval ? IL_JUMPFAILR : IL_JUMPFAIL, left->exptype), 0);
+    cg.Emit(retval ? IL_JUMPFAILR : IL_JUMPFAIL, 0);
     auto loc = cg.Pos();
     cg.Gen(right, retval, 1);
     cg.SetLabel(loc);
@@ -986,7 +979,7 @@ void And::Generate(CodeGen &cg, size_t retval) const {
 
 void Or::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1, 1);
-    cg.Emit(cg.JumpRef(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, left->exptype), 0);
+    cg.Emit(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, 0);
     auto loc = cg.Pos();
     cg.Gen(right, retval, 1);
     cg.SetLabel(loc);
@@ -1000,7 +993,7 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
 void If::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(condition, 1, 1);
     bool has_else = !Is<DefaultVal>(falsepart);
-    cg.Emit(cg.JumpRef(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, condition->exptype), 0);
+    cg.Emit(!has_else && retval ? IL_JUMPFAILN : IL_JUMPFAIL, 0);
     auto loc = cg.Pos();
     if (has_else) {
         cg.Gen(truepart, retval, 1);
@@ -1020,7 +1013,7 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
     cg.Gen(condition, 1, 1);
-    cg.Emit(cg.JumpRef(IL_JUMPFAIL, condition->exptype), 0);
+    cg.Emit(IL_JUMPFAIL, 0);
     auto jumpout = cg.Pos();
     cg.Gen(body, 0);
     cg.Emit(IL_JUMP, loopback);

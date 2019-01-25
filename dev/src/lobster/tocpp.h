@@ -161,7 +161,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             already_returned = true;
             JumpIns(args[0]);
             ss << "\n";
-        } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILRREF) ||
+        } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_NFOR)) {
             ss << "if (vm.F_" << ilname << "()) ";
             JumpIns(args[0]);
@@ -203,7 +203,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             ss << ");";
             if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
                 ss << " /* " << natreg.nfuns[args[0]]->name << " */";
-            } else if (opc == IL_PUSHVAR || opc == IL_PUSHVARREF) {
+            } else if (opc == IL_PUSHVAR) {
                 ss << " /* " << IdName(bcf, args[0])<< " */";
             } else if (opc == IL_LVALVAR) {
                 ss << " /* " << LvalOpNames()[args[0]] << " " << IdName(bcf, args[1]) << " */";
