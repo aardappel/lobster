@@ -164,9 +164,8 @@ void AddSteam(NativeRegistry &natreg) {
     ENDDECL0(steam_username, "", "", "S",
         "returns the name of the steam user, or empty string if not available.");
 
-    STARTDECL(steam_unlock_achievement) (VM &vm, Value &name) {
+    STARTDECL(steam_unlock_achievement) (VM &, Value &name) {
         auto ok = UnlockAchievement(name.sval()->strv());
-        name.DECRT(vm);
         return Value(ok);
     }
     ENDDECL1(steam_unlock_achievement, "achievementname", "S", "I",
@@ -174,15 +173,13 @@ void AddSteam(NativeRegistry &natreg) {
         " Will also Q-up saving achievement to Steam."
         " Returns true if succesful.");
 
-    STARTDECL(steam_write_file) (VM &vm, Value &file, Value &contents) {
+    STARTDECL(steam_write_file) (VM &, Value &file, Value &contents) {
         auto fn = file.sval()->strv();
         auto s = contents.sval();
         auto ok = SteamWriteFile(fn, s->strv());
         if (!ok) {
             ok = WriteFile(fn, true, s->strv());
         }
-        file.DECRT(vm);
-        contents.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(steam_write_file, "file,contents", "SS", "I",
@@ -194,7 +191,6 @@ void AddSteam(NativeRegistry &natreg) {
         string buf;
         auto len = SteamReadFile(fn, buf);
         if (!len) len = (int)LoadFile(fn, &buf);
-        file.DECRT(vm);
         if (len < 0) return Value();
         auto s = vm.NewString(buf);
         return Value(s);

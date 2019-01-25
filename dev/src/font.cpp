@@ -60,7 +60,6 @@ void AddFont(NativeRegistry &natreg) {
     STARTDECL(gl_set_font_name) (VM &vm, Value &fname) {
         extern void TestGL(VM &vm); TestGL(vm);
         auto piname = string(fname.sval()->strv());
-        fname.DECRT(vm);
         auto faceit = loadedfaces.find(piname);
         if (faceit != loadedfaces.end()) {
             curface = faceit->second;
@@ -128,7 +127,7 @@ void AddFont(NativeRegistry &natreg) {
 
     STARTDECL(gl_text) (VM &vm, Value &s) {
         auto f = curfont;
-        if (!f) { s.DECRT(vm); return vm.BuiltinError("gl_text: no font size set"); }
+        if (!f) return vm.BuiltinError("gl_text: no font size set");
         if (!s.sval()->len) return s;
         float4x4 oldobject2view;
         if (curfontsize > maxfontsize) {
@@ -146,9 +145,8 @@ void AddFont(NativeRegistry &natreg) {
 
     STARTDECL(gl_text_size) (VM &vm, Value &s) {
         auto f = curfont;
-        if (!f) { s.DECRT(vm); return vm.BuiltinError("gl_text_size: no font size set"); }
+        if (!f) return vm.BuiltinError("gl_text_size: no font size set");
         auto size = f->TextSize(s.sval()->strv());
-        s.DECRT(vm);
         if (curfontsize > maxfontsize) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));
         }

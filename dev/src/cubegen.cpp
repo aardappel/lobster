@@ -315,7 +315,6 @@ void AddCubeGen(NativeRegistry &natreg) {
         auto namep = name.sval()->strv();
         string buf;
         auto l = LoadFile(namep, &buf);
-        name.DECRT(vm);
         if (l < 0) return Value(0);
         if (strncmp(buf.c_str(), "VOX ", 4)) return Value();
         int3 size = int3_0;
@@ -359,7 +358,6 @@ void AddCubeGen(NativeRegistry &natreg) {
     STARTDECL(cg_save_vox) (VM &vm, Value &wid, Value &name) {
         auto &v = GetVoxels(vm, wid);
         if (!(v.grid.dim < 256)) {
-            name.DECRT(vm);
             return Value(false);
         }
         vector<byte4> voxels;
@@ -373,7 +371,6 @@ void AddCubeGen(NativeRegistry &natreg) {
             }
         }
         FILE *f = OpenForWriting(name.sval()->strv(), true);
-        name.DECRT(vm);
         if (!f) return Value(false);
         auto wint = [&](int i) { fwrite(&i, 4, 1, f); };
         auto wstr = [&](const char *s) { fwrite(s, 4, 1, f); };

@@ -424,14 +424,6 @@ struct Value {
 
     inline bool True() const { return ival_ != 0; }
 
-    // FIXME: remove.
-    inline Value &INCRT() { return *this; }
-    inline Value &INCRTNIL() { return *this; }
-    inline Value &INCTYPE(ValueType) { return *this; }
-    inline void DECRT(VM &) const {}
-    inline void DECRTNIL(VM &) const {}
-    inline void DECTYPE(VM &, ValueType) const {}
-
     inline Value &LTINCRT() {
         assert(IsRef(type) && ref_);
         ref_->Inc();
@@ -472,7 +464,6 @@ struct LStruct : RefObj {
 
     // This may only be called from a context where i < len has already been ensured/asserted.
     void DecS(VM &vm, intp i) const {
-        AtS(i).DECTYPE(vm, ElemTypeS(vm, i));
         AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i));
     }
 
@@ -505,7 +496,6 @@ struct LStruct : RefObj {
         assert(len && len == Len(vm));
         memcpy(Elems(), from, len * sizeof(Value));
         if (inc) for (intp i = 0; i < len; i++) {
-            AtS(i).INCTYPE(ElemTypeS(vm, i));
             AtS(i).LTINCTYPE(ElemTypeS(vm, i));
         }
     }
@@ -528,7 +518,6 @@ struct LVector : RefObj {
     }
 
     void Dec(VM &vm, intp i, ValueType et) const {
-        At(i).DECTYPE(vm, et);
         At(i).LTDECTYPE(vm, et);
     }
 
@@ -547,8 +536,8 @@ struct LVector : RefObj {
         return v[--len];
     }
 
-    Value &Top(VM &vm) const {
-        return v[len - 1].INCTYPE(ElemType(vm));
+    Value &Top() const {
+        return v[len - 1];
     }
 
     void Insert(VM &vm, Value &val, intp i) {
@@ -604,7 +593,6 @@ struct LVector : RefObj {
         auto et = ElemType(vm);
         if (inc && IsRefNil(et))
             for (intp i = 0; i < len; i++) {
-                At(i).INCRTNIL();
                 At(i).LTINCRTNIL();
             }
     }
@@ -906,13 +894,11 @@ template<int N> inline vec<intp, N> ValueToI(VM &vm, const Value &v, intp def = 
 
 template<int N> inline vec<floatp, N> ValueDecToF(VM &vm, const Value &v, floatp def = 0) {
     auto r = ValueToF<N>(vm, v, def);
-    v.DECRT(vm);
     return r;
 }
 
 template<int N> inline vec<intp, N> ValueDecToI(VM &vm, const Value &v, intp def = 0) {
     auto r = ValueToI<N>(vm, v, def);
-    v.DECRT(vm);
     return r;
 }
 
@@ -973,10 +959,9 @@ template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceT
     return (T)x->val;
 }
 
-inline vector<string> ValueToVectorOfStrings(VM &vm, Value &v) {
+inline vector<string> ValueToVectorOfStrings(Value &v) {
     vector<string> r;
     for (int i = 0; i < v.vval()->len; i++) r.push_back(string(v.vval()->At(i).sval()->strv()));
-    v.DECRT(vm);
     return r;
 }
 
@@ -1025,7 +1010,8 @@ struct LCoRoutine : RefObj {
 
     Value &Current(VM &vm) {
         if (stackstart >= 0) vm.BuiltinError("cannot get value of active coroutine");
-        return stackcopy[stackcopylen - 1].INCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
+        return stackcopy[stackcopylen - 1];
+        //.INCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
     }
 
     void Resize(VM &vm, int newlen) {
@@ -1125,13 +1111,13 @@ struct LCoRoutine : RefObj {
         if (stackcopy) {
             auto curvaltype = vm.GetTypeInfo(ti(vm).yieldtype).t;
             auto &ts = stackcopy[--stackcopylen];
-            ts.DECTYPE(vm, curvaltype);
             ts.LTDECTYPE(vm, curvaltype);
             if (active) {
                 if (deref) {
                     for (int i = *varip; i > 0; i--) {
-                        auto &vti = vm.GetVarTypeInfo(varip[i]);
-                        stackcopy[--stackcopylen].DECTYPE(vm, vti.t);
+                        //auto &vti = vm.GetVarTypeInfo(varip[i]);
+                        --stackcopylen;
+                        //stackcopy[stackcopylen].DECTYPE(vm, vti.t);
                     }
                     top_at_suspend -= *varip + 1;
                     // This calls Resume() to get the rest back onto the stack, then unwinds it.

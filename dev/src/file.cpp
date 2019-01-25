@@ -60,7 +60,6 @@ template<bool B> Value WriteStr(VM &vm, const Value &str, const Value &idx, LStr
 template<typename T, bool B> Value ReadVal(VM &vm, const Value &str, const Value &idx) {
     auto i = idx.ival();
     auto val = Read<T, B>(vm, i, str.sval());
-    str.DECRT(vm);
     vm.Push(val);
     return Value(i + (intp)sizeof(T));
 }
@@ -112,8 +111,6 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, const Value &schema,
     if (!parser.Parse(schema.sval()->data(), dirs.data())) {
         err = Value(vm.NewString(parser.error_));
     }
-    schema.DECRT(vm);
-    includes.DECRT(vm);
     return err;
 }
 
@@ -121,7 +118,6 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(scan_folder) (VM &vm, Value &fld, Value &divisor) {
         vector<pair<string, int64_t>> dir;
         auto ok = ScanDirAbs(fld.sval()->strv(), dir);
-        fld.DECRT(vm);
         if (!ok) {
             vm.Push(Value());
             return Value();
@@ -149,7 +145,6 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(read_file) (VM &vm, Value &file, Value &textmode) {
         string buf;
         auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, !textmode.True());
-        file.DECRT(vm);
         if (l < 0) return Value();
         auto s = vm.NewString(buf);
         return Value(s);
@@ -158,10 +153,8 @@ void AddFile(NativeRegistry &natreg) {
         "returns the contents of a file as a string, or nil if the file can't be found."
         " you may use either \\ or / as path separators");
 
-    STARTDECL(write_file) (VM &vm, Value &file, Value &contents, Value &textmode) {
+    STARTDECL(write_file) (VM &, Value &file, Value &contents, Value &textmode) {
         auto ok = WriteFile(file.sval()->strv(), !textmode.True(), contents.sval()->strv());
-        file.DECRT(vm);
-        contents.DECRT(vm);
         return Value(ok);
     }
     ENDDECL3(write_file, "file,contents,textmode", "SSI?", "I",
@@ -260,7 +253,6 @@ void AddFile(NativeRegistry &natreg) {
     #define READFOP(N, T, D, S) \
     STARTDECL(N) (VM &vm, Value &str, Value &idx, Value &vidx, Value &def) { \
         auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
-        str.DECRT(vm); \
         return Value(val); \
     } \
     ENDDECL4(N, "string,tablei,vo,def", "SII" S, S, D);
@@ -274,7 +266,6 @@ void AddFile(NativeRegistry &natreg) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         auto ret = Value(GetString(vm, fi, str.sval()));
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL3(flatbuffers_field_string, "string,tablei,vo", "SII", "S",
@@ -283,7 +274,6 @@ void AddFile(NativeRegistry &natreg) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL3(flatbuffers_field_vector_len, "string,tablei,vo", "SII", "I",
@@ -292,7 +282,6 @@ void AddFile(NativeRegistry &natreg) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
         Value ret(fi ? fi + sizeof(flatbuffers::uoffset_t) : 0);
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL3(flatbuffers_field_vector, "string,tablei,vo", "SII", "I",
@@ -300,7 +289,6 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(flatbuffers_field_table) (VM &vm, Value &str, Value &idx, Value &vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                          Value(0));
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL3(flatbuffers_field_table, "string,tablei,vo", "SII", "I",
@@ -308,14 +296,12 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(flatbuffers_field_struct) (VM &vm, Value &str, Value &idx, Value &vidx) {
         auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
                                                                          Value(0));
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL3(flatbuffers_field_struct, "string,tablei,vo", "SII", "I",
              "returns a flatbuffer struct field start, or 0 if not present");
     STARTDECL(flatbuffers_indirect) (VM &vm, Value &str, Value &idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-        str.DECRT(vm);
         return off + idx.ival();
     }
     ENDDECL2(flatbuffers_indirect, "string,index", "SI", "I",
@@ -323,7 +309,6 @@ void AddFile(NativeRegistry &natreg) {
     STARTDECL(flatbuffers_string) (VM &vm, Value &str, Value &idx) {
         auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
         auto ret = GetString(vm, off + idx.ival(), str.sval());
-        str.DECRT(vm);
         return ret;
     }
     ENDDECL2(flatbuffers_string, "string,index", "SI", "S",
@@ -336,7 +321,6 @@ void AddFile(NativeRegistry &natreg) {
         if (!err.True() && !GenerateText(parser, binary.sval()->data(), &json)) {
             err = vm.NewString("unable to generate text for FlatBuffer binary");
         }
-        binary.DECRT(vm);
         vm.Push(vm.NewString(json));
         return err;
     }
@@ -356,7 +340,6 @@ void AddFile(NativeRegistry &natreg) {
                               parser.builder_.GetSize());
             }
         }
-        json.DECRT(vm);
         vm.Push(vm.NewString(binary));
         return err;
     }

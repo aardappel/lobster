@@ -271,7 +271,6 @@ vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
     auto it = button_ids.find(button.sval()->strv());
     if (it == button_ids.end())
         vm.BuiltinError("unknown button name: " + button.sval()->strv());
-    button.DECRT(vm);
     return it->second;
 }
 

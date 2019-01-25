@@ -82,7 +82,6 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     memcpy(v + len, from->v + start, sizeof(Value) * amount);
     if (IsRefNil(from->ElemType(vm))) {
         for (int i = 0; i < amount; i++) {
-            v[len + i].INCRTNIL();
             v[len + i].LTINCRTNIL();
         }
     }
@@ -214,19 +213,16 @@ Value Value::Copy(VM &vm) {
         auto len = vval()->len;
         auto nv = vm.NewVec(len, len, vval()->tti);
         if (len) nv->Init(vm, vval()->Elems(), true);
-        DECRT(vm);
         return Value(nv);
     }
     case V_STRUCT: {
         auto len = stval()->Len(vm);
         auto nv = vm.NewStruct(len, stval()->tti);
         if (len) nv->Init(vm, stval()->Elems(), len, true);
-        DECRT(vm);
         return Value(nv);
     }
     case V_STRING: {
         auto s = vm.NewString(sval()->strv());
-        DECRT(vm);
         return Value(s);
     }
     case V_COROUTINE:

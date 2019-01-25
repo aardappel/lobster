@@ -28,10 +28,6 @@ struct ValueParser {
 
     ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {}
 
-    ~ValueParser() {
-        for (auto v : allocated) v.DECRT(vm);
-    }
-
     Value Parse(type_elem_t typeoff) {
         bool isref;
         Value v = ParseFactor(typeoff, isref);
@@ -50,7 +46,7 @@ struct ValueParser {
                 bool isref;
                 if ((int)elems.size() == numelems) {
                     auto val = ParseFactor(TYPE_ELEM_ANY, isref);
-                    if (isref) val.DECRT(vm);  // Ignore the value.
+                    if (isref) { /*val.DECRT(vm);*/ }  // Ignore the value.
                 } else {
                     elems.push_back(
                         ParseFactor(ti.t == V_VECTOR ? ti.subt : ti.elems[elems.size()], isref));
@@ -82,7 +78,6 @@ struct ValueParser {
             if (elems.size()) vec->Init(vm, elems.data(), false);
             v = Value(vec);
         }
-        v.INCRT();
         allocated.push_back(v);
         return v;
 
@@ -193,7 +188,6 @@ static Value ParseData(VM &vm, type_elem_t typeoff, string_view inp) {
 void AddReader(NativeRegistry &natreg) {
     STARTDECL(parse_data) (VM &vm, Value &type, Value &ins) {
         Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->strv());
-        ins.DECRT(vm);
         return v;
     }
     ENDDECL2(parse_data, "typeid,stringdata", "TS", "A1?S?",

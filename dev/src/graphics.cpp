@@ -109,7 +109,6 @@ void PopTransform(VM &vm) {
     assert(s.type == V_STRING);
     assert(s.sval()->len == sizeof(objecttransforms));
     otransforms = *(objecttransforms *)s.sval()->strv().data();
-    s.DECRT(vm);
     s.LTDECRT(vm);
 }
 
@@ -143,7 +142,6 @@ Value SetUniform(VM &vm, Value &name, const float *data, int len, bool ignore_er
     auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
     if (!ok && !ignore_errors)
         vm.Error("failed to set uniform: " + name.sval()->strv());
-    name.DECRT(vm);
     return Value(ok);
 }
 
@@ -155,7 +153,6 @@ void AddGraphics(NativeRegistry &natreg) {
         string err = SDLInit(title.sval()->strv(), int2(intp2(xs.ival(), ys.ival())),
                              fullscreen.ival() != 0, novsync.ival() == 0,
                              max(1, samples.intval()));
-        title.DECRT(vm);
         if (err.empty()) {
             err = LoadMaterialFile("shaders/default.materials");
         }
@@ -185,7 +182,6 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
-        fn.DECRT(vm);
         return err[0] ? Value(vm.NewString(err)) : Value();
     }
     ENDDECL2(gl_load_materials, "materialdefs,inline", "SI?", "S?",
@@ -261,9 +257,8 @@ void AddGraphics(NativeRegistry &natreg) {
     ENDDECL1(gl_grab, "on", "I", "I",
         "grabs the mouse when the window is active. return wether it's on.");
 
-    STARTDECL(gl_button) (VM &vm, Value &name) {
+    STARTDECL(gl_button) (VM &, Value &name) {
         auto ks = GetKS(name.sval()->strv());
-        name.DECRT(vm);
         return Value(ks.Step());
     }
     ENDDECL1(gl_button, "name", "S", "I",
@@ -319,7 +314,6 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_last_pos) (VM &vm, Value &name, Value &on) {
         auto p = GetKeyPos(name.sval()->strv(), on.intval());
-        name.DECRT(vm);
         return ToValueINT(vm, p);
     }
     ENDDECL2(gl_last_pos, "name,down", "SI", "I}:2",
@@ -327,7 +321,6 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_local_last_pos) (VM &vm, Value &name, Value &on) {
         auto p = localpos(GetKeyPos(name.sval()->strv(), on.intval()));
-        name.DECRT(vm);
         return ToValueFLT(vm, p);
     }
     ENDDECL2(gl_local_last_pos, "name,down", "SI", "F}:2",
@@ -359,9 +352,8 @@ void AddGraphics(NativeRegistry &natreg) {
         "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
         " seconds_elapsed() for continuous timing)");
 
-    STARTDECL(gl_last_time) (VM &vm, Value &name, Value &on) {
+    STARTDECL(gl_last_time) (VM &, Value &name, Value &on) {
         auto t = GetKeyTime(name.sval()->strv(), on.intval());
-        name.DECRT(vm);
         return Value(t);
     }
     ENDDECL2(gl_last_time, "name,down", "SI", "F",
@@ -597,7 +589,6 @@ void AddGraphics(NativeRegistry &natreg) {
         };
         currentshader->Set();
         RenderArraySlow(PRIM_FAN, make_span(vb_square, 4), "PTC");
-        cols.DECRT(vm);
         return Value();
     }
     ENDDECL4(gl_rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
@@ -669,7 +660,6 @@ void AddGraphics(NativeRegistry &natreg) {
                     vm.BuiltinError("newmesh: index out of range of vertex list");
                 idxs.push_back(e.intval());
             }
-            indices.DECRTNIL(vm);
         }
         size_t vsize = AttribsSize(fmt);
         size_t normal_offset = 0;
@@ -719,12 +709,6 @@ void AddGraphics(NativeRegistry &natreg) {
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
         delete[] verts;
-        format.DECRT(vm);
-        positions.DECRT(vm);
-        colors.DECRT(vm);
-        normals.DECRT(vm);
-        texcoords1.DECRT(vm);
-        texcoords2.DECRT(vm);
         return Value(vm.NewResource(m, &mesh_type));
     }
     ENDDECL7(gl_new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
@@ -738,7 +722,6 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_new_poly) (VM &vm, Value &positions) {
         auto m = CreatePolygon(vm, positions);
-        positions.DECRT(vm);
         return Value(vm.NewResource(m, &mesh_type));
     }
     ENDDECL1(gl_new_poly, "positions", "F}]", "R",
@@ -749,7 +732,6 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_new_mesh_iqm) (VM &vm, Value &fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
-        fn.DECRT(vm);
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
     }
     ENDDECL1(gl_new_mesh_iqm, "filename", "S", "R?",
@@ -789,7 +771,6 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_save_mesh) (VM &vm, Value &i, Value &name) {
         TestGL(vm);
         bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
-        name.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(gl_save_mesh, "m,name", "RS", "I",
@@ -800,7 +781,6 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
-        shader.DECRT(vm);
         currentshader = sh;
         return Value();
     }
@@ -811,7 +791,6 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_set_uniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto v = ValueToFLT<4>(vm, vec);
         auto r = SetUniform(vm, name, v.begin(), (int)vec.stval()->Len(vm), ignore_errors.True());
-        vec.DECRT(vm);
         return r;
     }
     ENDDECL3(gl_set_uniform, "name,value,ignore_errors", "SF}I?", "I",
@@ -830,11 +809,9 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
-        vec.DECRT(vm);
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->strv(), vals.data()->data(), 4,
                                             (int)vals.size());
-        name.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(gl_set_uniform_array, "name,value", "SF}:4]", "I",
@@ -845,11 +822,9 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
-        vec.DECRT(vm);
         currentshader->Activate();
         auto ok = currentshader->SetUniformMatrix(name.sval()->strv(), vals.data(),
                                                   (int)vals.size(), 1);
-        name.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(gl_set_uniform_matrix, "name,value", "SF]", "I",
@@ -860,11 +835,9 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
-        vec.DECRT(vm);
         auto id = UniformBufferObject(currentshader, vals.data()->data(),
                                       4 * sizeof(float) * vals.size(),
                                       name.sval()->strv(), ssbo.True());
-        name.DECRT(vm);
         return Value((int)id);
     }
     ENDDECL3(gl_uniform_buffer_object, "name,value,ssbo", "SF}:4]I?", "I",
@@ -906,7 +879,6 @@ void AddGraphics(NativeRegistry &natreg) {
         TestGL(vm);
         currentshader->Activate();
         auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
-        filename.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(gl_dump_shader, "filename,stripnonascii", "SI", "I",
@@ -932,7 +904,6 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_load_texture) (VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
-        name.DECRT(vm);
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
     }
     ENDDECL2(gl_load_texture, "name,textureformat", "SI?", "R?",
@@ -986,7 +957,6 @@ void AddGraphics(NativeRegistry &natreg) {
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
             }
         }
-        matv.DECRT(vm);
         auto tex = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
@@ -1079,8 +1049,6 @@ void AddGraphics(NativeRegistry &natreg) {
             vbuf[i * 6 + 4].tc = t + float2_1 / msize;
             vbuf[i * 6 + 5].tc = t + float2_x / msize;
         }
-        pos.DECRT(vm);
-        tile.DECRT(vm);
         currentshader->Set();
         RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
         return Value();
@@ -1125,9 +1093,8 @@ void AddGraphics(NativeRegistry &natreg) {
         "renders a grid in space for debugging purposes. num is the number of lines in all 3"
         " directions, and dist their spacing. thickness of the lines in the same units");
 
-    STARTDECL(gl_screenshot) (VM &vm, Value &fn) {
+    STARTDECL(gl_screenshot) (VM &, Value &fn) {
         bool ok = ScreenShot(fn.sval()->strv());
-        fn.DECRT(vm);
         return Value(ok);
     }
     ENDDECL1(gl_screenshot, "filename", "S", "I",

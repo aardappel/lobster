@@ -21,9 +21,8 @@
 using namespace lobster;
 
 void AddSound(NativeRegistry &natreg) {
-    STARTDECL(play_wav) (VM &vm, Value &ins, Value &vol) {
+    STARTDECL(play_wav) (VM &, Value &ins, Value &vol) {
         bool ok = SDLPlaySound(ins.sval()->strv(), false, vol.True() ? vol.intval() : 128);
-        ins.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(play_wav, "filename,volume", "SI?", "I",
@@ -31,9 +30,8 @@ void AddSound(NativeRegistry &natreg) {
         " will automatically be converted on first load). volume in range 1..128, or omit for max."
         " returns false on error");
 
-    STARTDECL(play_sfxr) (VM &vm, Value &ins, Value &vol) {
+    STARTDECL(play_sfxr) (VM &, Value &ins, Value &vol) {
         bool ok = SDLPlaySound(ins.sval()->strv(), true, vol.True() ? vol.intval() : 128);
-        ins.DECRT(vm);
         return Value(ok);
     }
     ENDDECL2(play_sfxr, "filename,volume", "SI?", "I",

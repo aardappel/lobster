@@ -1,4 +1,17 @@
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
+  - remove old reference counts! this should result in a LOT of code simplification.
+    - tempmask in vm.cpp, also in CoVarCleanup
+    - now the same:
+      DUP[REF] PUSHVAR[REF] PUSHFLD[REF] PushDerefIdxVector[Ref/Sc] LVO_WRITE[R]REF
+      JUMPFAIL[???]
+    - GetVarTypeInfo
+    - test speed again.
+  - VM improvements:
+    - reference counting that needs more testings:
+      - in vmlog.cpp
+      - PUSHLOC/LVALLOC
+      - LCoroutine::Current and DeleteSelf
+  - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
     - make indexing and for do LT_KEEP and all-element borrow respectively.
       (see notes on sound lifetimes)
@@ -40,11 +53,6 @@
         xy { x, y }
         currently that is fixed by making all assigned to vars own, but that is not ideal.
         see check for single_assignment in typechecker (currently only for defs, not args!)
-  - VM improvements:
-    - remove kludgy nativecall lifetime check.
-    - split up incref/decref in VM for needing nil check and not, since we have this information
-  - remove old reference counts! this should result in a LOT of code simplification.
-    - test speed again.
   - add language features that make use of this new system:
   - make "value" structs not have a refcount at all, and be copied instead of incref,
     deleted instead of decref. put behind #ifdef.
@@ -88,6 +96,7 @@
   - unique_ptr
 - leakcheck: if there's no leaks but there is a leaks file, delete it.
 - do a speedtest of compilation.
+- move A* example off homepage.
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?

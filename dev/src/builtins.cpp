@@ -66,7 +66,6 @@ Value ReplaceStruct(VM &vm, Value &l, Value &i, Value &a) {
     if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
     auto nv = vm.NewStruct(len, l.stval()->tti);
     if (len) nv->Init(vm, &l.stval()->AtS(0), len, true);
-    l.DECRT(vm);
     nv->DecS(vm, i.ival());
     nv->AtS(i.ival()) = a;
     return Value(nv);
@@ -78,7 +77,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         vm.ss_reuse.clear();
         RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
         Output(OUTPUT_PROGRAM, vm.ss_reuse.str());
-        a.DECRT(vm);
         return Value();
     }
     ENDDECL1(print, "x", "Ss", "",
@@ -163,8 +161,8 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(append) (VM &vm, Value &v1, Value &v2) {
         auto type = v1.vval()->tti;
         auto nv = (LVector *)vm.NewVec(0, v1.vval()->len + v2.vval()->len, type);
-        nv->Append(vm, v1.vval(), 0, v1.vval()->len); v1.DECRT(vm);
-        nv->Append(vm, v2.vval(), 0, v2.vval()->len); v2.DECRT(vm);
+        nv->Append(vm, v1.vval(), 0, v1.vval()->len);
+        nv->Append(vm, v2.vval(), 0, v2.vval()->len);
         return Value(nv);
     }
     ENDDECL2(append, "xs,ys", "A]*A]*1", "A]1",
@@ -184,9 +182,8 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(length, "x", "I", "I",
         "length of int (identity function, useful in combination with string/vector version)");
 
-    STARTDECL(length) (VM &vm, Value &a) {
+    STARTDECL(length) (VM &, Value &a) {
         auto len = a.sval()->len;
-        a.DECRT(vm);
         return Value(len);
     }
     ENDDECL1(length, "s", "S", "I",
@@ -194,7 +191,6 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(length) (VM &vm, Value &a) {
         auto len = a.stval()->Len(vm);
-        a.DECRT(vm);
         return Value(len);
     }
     ENDDECL1(length, "s", "F}", "I",
@@ -202,15 +198,13 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(length) (VM &vm, Value &a) {
         auto len = a.stval()->Len(vm);
-        a.DECRT(vm);
         return Value(len);
     }
     ENDDECL1(length, "s", "I}", "I",
         "number of fields in a numerical struct");
 
-    STARTDECL(length) (VM &vm, Value &a) {
+    STARTDECL(length) (VM &, Value &a) {
         auto len = a.vval()->len;
-        a.DECRT(vm);
         return Value(len);
     }
     ENDDECL1(length, "xs", "A]*", "I",
@@ -218,8 +212,6 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(equal) (VM &vm, Value &a, Value &b) {
         bool eq = RefEqual(vm, a.refnil(), b.refnil(), true);
-        a.DECRTNIL(vm);
-        b.DECRTNIL(vm);
         return Value(eq);
     }
     ENDDECL2(equal, "a,b", "AA", "I",
@@ -234,18 +226,16 @@ void AddBuiltins(NativeRegistry &natreg) {
         "appends one element to a vector, returns existing vector");
 
     STARTDECL(pop) (VM &vm, Value &l) {
-        if (!l.vval()->len) { l.DECRT(vm); vm.BuiltinError("pop: empty vector"); }
+        if (!l.vval()->len) vm.BuiltinError("pop: empty vector");
         auto v = l.vval()->Pop();
-        l.DECRT(vm);
         return v;
     }
     ENDDECL1(pop, "xs", "A]*", "A1",
         "removes last element from vector and returns it");
 
     STARTDECL(top) (VM &vm, Value &l) {
-        if (!l.vval()->len) { l.DECRT(vm); vm.BuiltinError("top: empty vector"); }
-        auto v = l.vval()->Top(vm);
-        l.DECRT(vm);
+        if (!l.vval()->len) vm.BuiltinError("top: empty vector");
+        auto v = l.vval()->Top();
         return v;
     }
     ENDDECL1(top, "xs", "A]*", "Ab1",
@@ -269,7 +259,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
         auto nv = vm.NewVec(len, len, l.vval()->tti);
         if (len) nv->Init(vm, &l.vval()->At(0), true);
-        l.DECRT(vm);
         nv->Dec(vm, i.ival(), nv->ElemType(vm));
         nv->At(i.ival()) = a;
         return Value(nv);
@@ -294,7 +283,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             vm.BuiltinError(cat("remove: index (", i.ival(), ") or n (", amount,
                                    ") out of range (", l.vval()->len, ")"));
         auto v = l.vval()->Remove(vm, i.ival(), amount, 1);
-        l.DECRT(vm);
         return v;
     }
     ENDDECL3(remove, "xs,i,n", "A]*II?", "A1",
@@ -311,7 +299,6 @@ void AddBuiltins(NativeRegistry &natreg) {
                 removed++;
             }
         }
-        l.DECRT(vm);
         return o;
     }
     ENDDECL2(remove_obj, "xs,obj", "A]*A1", "Ab2",
@@ -319,7 +306,6 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, IntCompare);
-        l.DECRT(vm);
         return r;
     }
     ENDDECL2(binary_search, "xs,key", "I]I", "II",
@@ -330,7 +316,6 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, FloatCompare);
-        l.DECRT(vm);
         return r;
     }
     ENDDECL2(binary_search, "xs,key", "F]F", "II",
@@ -338,8 +323,6 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, StringCompare);
-        l.DECRT(vm);
-        key.DECRT(vm);
         return r;
     }
     ENDDECL2(binary_search, "xs,key", "S]S", "II",
@@ -359,7 +342,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             vm.BuiltinError("slice: values out of range");
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
         nv->Append(vm, l.vval(), start, size);
-        l.DECRT(vm);
         return Value(nv);
     }
     ENDDECL3(slice,
@@ -372,7 +354,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         for (auto i = 0; i < l; i++) { \
             if (v.acc()->at.True()) { r = Value(true); break; } \
         } \
-        v.DECRT(vm); \
         return r; \
 
     STARTDECL(any) (VM &vm, Value &v) {
@@ -381,7 +362,7 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(any, "xs", "I}", "I",
         "returns wether any elements of the numeric struct are true values");
 
-    STARTDECL(any) (VM &vm, Value &v) {
+    STARTDECL(any) (VM &, Value &v) {
         ANY_F(vval, At(i), len)
     }
     ENDDECL1(any, "xs", "A]*", "I",
@@ -396,13 +377,12 @@ void AddBuiltins(NativeRegistry &natreg) {
                 break;
             }
         }
-        v.DECRT(vm);
         return r;
     }
     ENDDECL1(all, "xs", "I}", "I",
         "returns wether all elements of the numeric struct are true values");
 
-    STARTDECL(all) (VM &vm, Value &v) {
+    STARTDECL(all) (VM &, Value &v) {
         Value r(true);
         for (intp i = 0; i < v.vval()->len; i++) {
             if (!v.vval()->At(i).True()) {
@@ -410,7 +390,6 @@ void AddBuiltins(NativeRegistry &natreg) {
                 break;
             }
         }
-        v.DECRT(vm);
         return r;
     }
     ENDDECL1(all, "xs", "A]*", "I",
@@ -424,7 +403,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             vm.BuiltinError("substring: values out of range");
 
         auto ns = vm.NewString(string_view(l.sval()->data() + start, size));
-        l.DECRT(vm);
         return Value(ns);
     }
     ENDDECL3(substring, "s,start,size", "SII", "S",
@@ -435,7 +413,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         char *end;
         auto sv = s.sval()->strv();
         auto i = parse_int<intp>(sv, 10, &end);
-        s.DECRT(vm);
         vm.Push(i);
         return Value(end == sv.data() + sv.size());
     }
@@ -443,9 +420,8 @@ void AddBuiltins(NativeRegistry &natreg) {
         "converts a string to an int. returns 0 if no numeric data could be parsed."
         "second return value is true if all characters of the string were parsed");
 
-    STARTDECL(string_to_float) (VM &vm, Value &s) {
+    STARTDECL(string_to_float) (VM &, Value &s) {
         auto f = strtod(null_terminated(s.sval()->strv()), nullptr);
-        s.DECRT(vm);
         return Value(f);
     }
     ENDDECL1(string_to_float, "s", "S", "F",
@@ -465,9 +441,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             p.remove_prefix(min(p.find_first_not_of(dl), p.size()));
             p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
         }
-        s.DECRT(vm);
-        delims.DECRT(vm);
-        whitespace.DECRT(vm);
         return Value(v);
     }
     ENDDECL3(tokenize, "s,delimiters,whitespace", "SSS", "S]",
@@ -484,7 +457,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             ToUTF8((int)c.ival(), buf);
             s += buf;
         }
-        v.DECRT(vm);
         return Value(vm.NewString(s));
     }
     ENDDECL1(unicode_to_string, "us", "I]", "S",
@@ -495,10 +467,9 @@ void AddBuiltins(NativeRegistry &natreg) {
         auto p = s.sval()->strv();
         while (!p.empty()) {
             int u = FromUTF8(p);
-            if (u < 0) { s.DECRT(vm); Value(v).DECRT(vm); return Value(); }
+            if (u < 0) return Value();
             v->Push(vm, u);
         }
-        s.DECRT(vm);
         return Value(v);
     }
     ENDDECL1(string_to_unicode, "s", "S", "I]?",
@@ -526,7 +497,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (c >= 'A' && c <= 'Z') (char &)c += 'a' - 'A';
         }
-        s.DECRT(vm);
         return Value(ns);
     }
     ENDDECL1(lowercase, "s", "S", "S",
@@ -538,7 +508,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (c >= 'a' && c <= 'z') (char &)c -= 'a' - 'A';
         }
-        s.DECRT(vm);
         return Value(ns);
     }
     ENDDECL1(uppercase, "s", "S", "S",
@@ -561,10 +530,6 @@ void AddBuiltins(NativeRegistry &natreg) {
                 break;
             }
         }
-        s.DECRT(vm);
-        set.DECRT(vm);
-        prefix.DECRT(vm);
-        postfix.DECRT(vm);
         return Value(vm.NewString(out));
     }
     ENDDECL4(escape_string, "s,set,prefix,postfix", "SSSS", "S",
@@ -578,8 +543,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             auto esv = v.vval()->At(i).sval()->strv();
             s.append(esv);
         }
-        v.DECRT(vm);
-        sep.DECRT(vm);
         return Value(vm.NewString(s));
     }
     ENDDECL2(concat_string, "v,sep", "S]S", "S",
@@ -590,7 +553,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         auto len = s.sval()->len;
         auto ns = vm.NewString(len * n);
         for (intp i = 0; i < n; i++) memcpy((char *)ns->data() + i * len, s.sval()->data(), len);
-        s.DECRT(vm);
         return ns;
     }
     ENDDECL2(repeat_string, "s,n", "SI", "S",
@@ -619,7 +581,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             auto f = a.stval()->AtS(i); \
             v->AtS(i) = Value(op); \
         } \
-        a.DECRT(vm); \
         return Value(v);
     #define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
     #define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
@@ -834,7 +795,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         for (intp i = 0; i < len; i++) { \
             v->AtS(i) = Value(name(x.stval()->AtS(i).access(), y.stval()->AtS(i).access())); \
         } \
-        x.DECRT(vm); y.DECRT(vm); \
         return Value(v);
 
     #define VECSCALAROP(type, init, fun, acc, len, at) \
@@ -844,7 +804,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             auto f = x.acc()->at; \
             fun; \
         } \
-        x.DECRT(vm); \
         return Value(v);
 
     STARTDECL(min) (VM &, Value &x, Value &y) { return Value(min(x.ival(), y.ival())); }
@@ -865,10 +824,10 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(min) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), stval, Len(vm), AtS(i)) }
     ENDDECL1(min, "v", "F}", "F",
         "smallest component of a float vector.");
-    STARTDECL(min) (VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) }
+    STARTDECL(min) (VM &, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) }
     ENDDECL1(min, "v", "I]", "I",
         "smallest component of a int vector, or INT_MAX if length 0.");
-    STARTDECL(min) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i)) }
+    STARTDECL(min) (VM &, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i)) }
     ENDDECL1(min, "v", "F]", "F",
         "smallest component of a float vector, or FLT_MAX if length 0.");
 
@@ -890,10 +849,10 @@ void AddBuiltins(NativeRegistry &natreg) {
     STARTDECL(max) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), stval, Len(vm), AtS(i)) }
     ENDDECL1(max, "v", "F}", "F",
         "largest component of a float vector.");
-    STARTDECL(max) (VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) }
+    STARTDECL(max) (VM &, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) }
     ENDDECL1(max, "v", "I]", "I",
         "largest component of a int vector, or INT_MIN if length 0.");
-    STARTDECL(max) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i)) }
+    STARTDECL(max) (VM &, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i)) }
     ENDDECL1(max, "v", "F]", "F",
         "largest component of a float vector, or FLT_MIN if length 0.");
 
@@ -952,9 +911,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             n.idx = i;
             n.next = nullptr;
         }
-        positions.DECRT(vm);
-        radiuses.DECRT(vm);
-        prefilter.DECRT(vm);
         auto ncelld = (intp)sqrtf(float(len + 1) * 4);
         vector<Node *> cells(ncelld * ncelld, nullptr);
         auto wsize = maxpos - minpos;
@@ -1015,7 +971,6 @@ void AddBuiltins(NativeRegistry &natreg) {
             else cols = sv.size();
             inmap[i] = sv.data();
         }
-        tilemap.DECRT(vm);
         auto outstrings = ToValueOfVectorOfStringsEmpty(vm, sz, 0);
         vector<char *> outmap(sz.y, nullptr);
         for (int i = 0; i < sz.y; i++) outmap[i] = (char *)outstrings.vval()->At(i).sval()->data();
@@ -1049,15 +1004,13 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(return_value) (VM &vm, Value &co) {
         Value &rv = co.cval()->Current(vm);
-        co.DECRT(vm);
         return rv;
     }
     ENDDECL1(return_value, "coroutine", "C", "Ab1",
         "gets the last return value of a coroutine");
 
-    STARTDECL(active) (VM &vm, Value &co) {
+    STARTDECL(active) (VM &, Value &co) {
         bool active = co.cval()->active;
-        co.DECRT(vm);
         return Value(active);
     }
     ENDDECL1(active, "coroutine", "C", "I",
@@ -1071,7 +1024,6 @@ void AddBuiltins(NativeRegistry &natreg) {
         "hashes a function value into an int");
     STARTDECL(hash) (VM &vm, Value &a) {
         auto h = a.ref()->Hash(vm);
-        a.DECRTNIL(vm);
         return Value(h);
     }
     ENDDECL1(hash, "x", "A", "I",
@@ -1124,9 +1076,8 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(set_max_stack_size, "max",  "I", "",
         "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
 
-    STARTDECL(reference_count) (VM &vm, Value &x) {
+    STARTDECL(reference_count) (VM &, Value &x) {
         auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
-        x.DECRTNIL(vm);
         return Value(refc);
     }
     ENDDECL1(reference_count, "val", "A", "I",

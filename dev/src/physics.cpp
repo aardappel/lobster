@@ -176,7 +176,6 @@ void AddPhysics(NativeRegistry &natreg) {
         }
         shape.Set(verts, (int)vertices.vval()->len);
         delete[] verts;
-        vertices.DECRT(vm);
         return CreateFixture(vm, body, shape);
     }
     ENDDECL3(
@@ -206,7 +205,6 @@ void AddPhysics(NativeRegistry &natreg) {
     STARTDECL(ph_set_shader)(VM & vm, Value & fixture_id, Value & shader) {
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
-        shader.DECRT(vm);
         if (sh) r.sh = sh;
         return Value();
     }

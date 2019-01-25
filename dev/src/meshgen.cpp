@@ -831,7 +831,6 @@ void AddMeshGen(NativeRegistry &natreg) {
         assert(s.sval()->len == sizeof(float3x3));
         currot = *(float3x3 *)s.sval()->data();
         s.LTDECRT(vm);
-        s.DECRT(vm);
     }
     ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FB?", "",
         "rotates using axis/angle. when a body is given, restores the previous transform"
