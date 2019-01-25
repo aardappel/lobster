@@ -94,7 +94,6 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
         case IL_VFOR:
         case IL_SFOR:
         case IL_NFOR:
-        case IL_YIELD:
         case IL_INCREF:
             ss << *ip++;
             break;
@@ -124,21 +123,15 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
             break;
         }
 
-        case IL_CALLV:
-        case IL_CALLVCOND:
-            ss << "m:" << *ip++;
-            break;
-
         case IL_CALL:
         case IL_CALLMULTI: {
             auto bc = *ip++;
             assert(code[bc] == IL_FUNSTART || code[bc] == IL_FUNMULTI);
             auto id = code[bc + 1];
-            auto tm = *ip++;
             auto nargs = code[bc + (opc == IL_CALLMULTI ? 1 : 0)];
             if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
             ss << nargs << ' ' << flat_string_view(bcf->functions()->Get(id)->name());
-            ss << ' ' << bc << " m:" << tm;
+            ss << ' ' << bc;
             break;
         }
 

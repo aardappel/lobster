@@ -361,8 +361,7 @@ void VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals
     x.ToString(*this, ss, static_type, debugpp);
 }
 
-void VM::EvalMulti(const int *mip, const int *call_arg_types,
-                   block_t comp_retip, int tempmask) {
+void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip) {
     auto definedfunction = *mip++;
     auto nsubf = *mip++;
     auto nargs = *mip++;
@@ -397,7 +396,7 @@ void VM::EvalMulti(const int *mip, const int *call_arg_types,
                 InsPtr fun(*mip);
                 (void)comp_retip;
             #endif
-            StartStackFrame(retip, tempmask);
+            StartStackFrame(retip);
             return FunIntroPre(fun);
         }
         fail:;
@@ -464,28 +463,20 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     }
     JumpTo(stf.retip);
     bool lastunwind = towhere == *stf.funstart;
-    auto tempmask = stf.tempmask;
     stackframes.pop_back();
     if (!lastunwind) {
-        auto untilsp = stackframes.size() ? stackframes.back().spstart : -1;
-        if (tempmask && !is_error) {
-            for (uint i = 0; i < (uint)min(32, sp - untilsp); i++)
-                if (((uint)tempmask) & (1u << i)) {
-                    // FIXME: can tempmask be removed entirely?
-                    //stack[untilsp + 1 + i].DECRTNIL(*this);
-                }
-        }
-        sp = untilsp;
+        // This kills any temps on the stack. If these are refs these should not be
+        // owners, since a var or keepvar owns them instead.
+        sp = stackframes.size() ? stackframes.back().spstart : -1;
     }
     return lastunwind;
 }
 
 // Initializes only 3 fields of the stack frame, FunIntro must be called right after.
-void VM::StartStackFrame(InsPtr retip, int tempmask) {
+void VM::StartStackFrame(InsPtr retip) {
     stackframes.push_back(StackFrame());
     auto &stf = stackframes.back();
     stf.retip = retip;
-    stf.tempmask = tempmask;
 }
 
 void VM::FunIntroPre(InsPtr fun) {
@@ -565,15 +556,7 @@ void VM::CoVarCleanup(LCoRoutine *co) {
     sp += copylen;
     for (int i = co->stackframecopylen - 1; i >= 0 ; i--) {
         auto &stf = stackframes.back();
-        // FIXME: guarantee this statically.
-        if (stf.spstart != sp) {
-            // There are temps from an enclosing for loop on the stack.
-            for (int i = 0; i < sp - stf.spstart; i++)
-                if (co->tm & (1 << i)) {
-                    //stack[stf.spstart + 1 + i].DECRTNIL(*this);
-                }
-            sp = stf.spstart;
-        }
+        sp = stf.spstart;  // Kill any temps on top of the stack.
         // Save the ip, because VarCleanup will jump to it.
         auto bip = GetIP();
         VarCleanup<0>(nullptr, !i ? *stf.funstart : -2);
@@ -633,7 +616,6 @@ void VM::CoClean() {
 
 void VM::CoYield(VM_OP_ARGS_CALL) {
     assert(curcoroutine);  // Should not be possible since yield calls are statically checked.
-    curcoroutine->tm = *ip++;
     #ifdef VM_COMPILED_CODE_MODE
         (void)ip;
         InsPtr retip(fcont);
@@ -890,14 +872,12 @@ VM_DEF_INS(KEEPREF) {
 VM_DEF_CAL(CALL) {
     #ifdef VM_COMPILED_CODE_MODE
         ip++;
-        auto tm = *ip++;
         block_t fun = 0;  // Dynamic calls need this set, but for CALL it is ignored.
     #else
         auto fun = *ip++;
-        auto tm = *ip++;
         auto fcont = ip - codestart;
     #endif
-    StartStackFrame(InsPtr(fcont), tm);
+    StartStackFrame(InsPtr(fcont));
     FunIntroPre(InsPtr(fun));
     VM_RET;
 }
@@ -908,11 +888,10 @@ VM_DEF_CAL(CALLMULTI) {
         next_call_target = fcont;  // Used just to transfer value here.
     #else
         auto fun = *ip++;
-        auto tm = *ip++;
         auto mip = codestart + fun;
         VMASSERT(*mip == IL_FUNMULTI);
         mip++;
-        EvalMulti(mip, ip, 0, tm);
+        EvalMulti(mip, ip, 0);
     #endif
     VM_RET;
 }
@@ -922,8 +901,7 @@ VM_DEF_INS(FUNMULTI) {
         auto cip = next_mm_call;
         auto fvar = *cip++;
         cip++;
-        auto tm = *cip++;
-        EvalMulti(ip, fvar, cip, next_call_target, tm);
+        EvalMulti(ip, fvar, cip, next_call_target);
     #else
         VMASSERT(false);
     #endif
@@ -933,7 +911,6 @@ VM_DEF_INS(FUNMULTI) {
 VM_DEF_CAL(CALLVCOND) {
     // FIXME: don't need to check for function value again below if false
     if (!TOP().True()) {
-        ip++;
         #ifdef VM_COMPILED_CODE_MODE
             next_call_target = 0;
         #endif
@@ -954,11 +931,10 @@ VM_DEF_CAL(CALLV) {
     {
         Value fun = POP();
         VMTYPEEQ(fun, V_FUNCTION);
-        auto tm = *ip++;
         #ifndef VM_COMPILED_CODE_MODE
             auto fcont = ip - codestart;
         #endif
-        StartStackFrame(InsPtr(fcont), tm);
+        StartStackFrame(InsPtr(fcont));
         FunIntroPre(fun.ip());
         VM_RET;
     }

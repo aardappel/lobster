@@ -1,10 +1,8 @@
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - remove old reference counts! this should result in a LOT of code simplification.
-    - tempmask in vm.cpp, also in CoVarCleanup
     - now the same:
       DUP[REF] PUSHVAR[REF] PUSHFLD[REF] PushDerefIdxVector[Ref/Sc] LVO_WRITE[R]REF
       JUMPFAIL[???]
-    - GetVarTypeInfo
     - test speed again.
   - VM improvements:
     - reference counting that needs more testings:

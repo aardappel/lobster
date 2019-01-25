@@ -621,7 +621,6 @@ struct StackFrame {
     InsPtr retip;
     const int *funstart;
     int spstart;
-    int tempmask;
 };
 
 struct NativeFun;
@@ -759,7 +758,7 @@ struct VM {
 
     void DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
 
-    void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip, int tempmask);
+    void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip);
 
     void FinalStackVarsCleanup();
 
@@ -776,7 +775,7 @@ struct VM {
     void JumpTo(InsPtr j);
     InsPtr GetIP();
     template<int is_error> int VarCleanup(ostringstream *error, int towhere);
-    void StartStackFrame(InsPtr retip, int tempmask);
+    void StartStackFrame(InsPtr retip);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
     void FunOut(int towhere, int nrv);
@@ -999,13 +998,11 @@ struct LCoRoutine : RefObj {
     const int *varip;
     LCoRoutine *parent;
 
-    int tm;  // When yielding from within a for, there will be temps on top of the stack.
-
     LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, type_elem_t cti)
         : RefObj(cti), active(true),
           stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
           stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0),
-          stackframecopymax(0), top_at_suspend(-1), returnip(_rip), varip(_vip), parent(_p), tm(0)
+          stackframecopymax(0), top_at_suspend(-1), returnip(_rip), varip(_vip), parent(_p)
           {}
 
     Value &Current(VM &vm) {

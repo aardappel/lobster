@@ -328,20 +328,6 @@ struct CodeGen  {
         linenumbernodes.pop_back();
     }
 
-    void EmitTempInfo(const Node *callnode) {
-        uint mask = 0;
-        for (auto [i, typelt] : enumerate(temptypestack)) {
-            if (ShouldDec(typelt)) {
-                // FIXME: this is pretty lame, but hopefully rare. stopgap measure.
-                if (i >= 32)
-                    parser.Error("internal error: too many temporaries at function call site",
-                                 callnode);
-                mask |= 1 << i;
-            }
-        }
-        Emit((int)mask);
-    }
-
     void TakeTemp(size_t n) { temptypestack.erase(temptypestack.end() - n, temptypestack.end()); }
 
     void GenFixup(const SubFunction *sf, bool multimethod_specialized) {
@@ -374,7 +360,6 @@ struct CodeGen  {
         Emit(multicall ? IL_CALLMULTI : IL_CALL,
              multicall ? f.bytecodestart : sf.subbytecodestart);
         GenFixup(&sf, multimethod_specialized);
-        EmitTempInfo(args);
         if (multicall) {
             for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
         }
@@ -863,7 +848,6 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         if (!Is<DefaultVal>(lastarg)) {
             cg.Emit(vmop, nf->idx);
             cg.Emit(IL_CALLVCOND);  // FIXME: doesn't need to be COND anymore?
-            cg.EmitTempInfo(this);
             cg.SplitAttr(cg.Pos());
             assert(lastarg->exptype->t == V_FUNCTION);
             assert(!lastarg->exptype->sf->reqret);  // We never use the retval.
@@ -922,7 +906,6 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
         // We may have temps on the stack from an enclosing for.
         // Check that these temps are actually from for loops, to not mask bugs.
         assert(cg.temptypestack.size() == cg.nested_fors * 2);
-        cg.EmitTempInfo(this);
         cg.SplitAttr(cg.Pos());
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
@@ -939,7 +922,6 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
             cg.Emit(IL_PUSHVAR, sid->Idx());
             cg.TakeTemp(nargs);
             cg.Emit(IL_CALLV);
-            cg.EmitTempInfo(this);
             cg.SplitAttr(cg.Pos());
             if (sf->reqret) {
                 if (!retval) cg.GenPop({ exptype, lt });

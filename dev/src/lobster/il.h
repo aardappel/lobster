@@ -83,8 +83,8 @@ enum MathOp {
     F(INCREF, 1) F(KEEPREF, 1)
 
 #define ILCALLNAMES \
-    F(CALL, 3) F(CALLMULTI, -1) F(CALLV, 1) F(CALLVCOND, 1) \
-    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 1)
+    F(CALL, 2) F(CALLMULTI, -1) F(CALLV, 0) F(CALLVCOND, 0) \
+    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 0)
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
