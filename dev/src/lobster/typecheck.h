@@ -2603,10 +2603,6 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *NativeRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    return this;
-}
-
 Node *StructRef::TypeCheck(TypeChecker &/*tc*/, size_t /*reqret*/) {
     /*
     for (auto &f : st->fields.v) {

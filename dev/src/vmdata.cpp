@@ -88,18 +88,16 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     len += amount;
 }
 
-void LVector::DeleteSelf(VM &vm, bool deref) {
-    if (deref) {
-        auto et = ElemType(vm);
-        for (intp i = 0; i < len; i++) Dec(vm, i, et);
-    };
+void LVector::DeleteSelf(VM &vm) {
+    auto et = ElemType(vm);
+    for (intp i = 0; i < len; i++) Dec(vm, i, et);
     DeallocBuf(vm);
     vm.pool.dealloc_small(this);
 }
 
-void LStruct::DeleteSelf(VM &vm, bool deref) {
+void LStruct::DeleteSelf(VM &vm) {
     auto len = Len(vm);
-    if (deref) { for (intp i = 0; i < len; i++) DecS(vm, i); };
+    for (intp i = 0; i < len; i++) DecS(vm, i);
     vm.pool.dealloc(this, sizeof(LStruct) + sizeof(Value) * len);
 }
 
@@ -108,18 +106,18 @@ void LResource::DeleteSelf(VM &vm) {
     vm.pool.dealloc(this, sizeof(LResource));
 }
 
-void RefObj::DECDELETENOW(VM &vm, bool deref) {
+void RefObj::DECDELETENOW(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
-        case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm, deref); break;
-        case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm, deref); break;
-        case V_STRUCT:     ((LStruct *)this)->DeleteSelf(vm, deref); break;
+        case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm); break;
+        case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
+        case V_STRUCT:     ((LStruct *)this)->DeleteSelf(vm); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
         default:           assert(false);
     }
 }
 
-void RefObj::DECDELETE(VM &vm, bool deref) {
+void RefObj::DECDELETE(VM &vm) {
     if (refc) {
         vm.DumpVal(this, "double delete");
         assert(false);
@@ -129,7 +127,7 @@ void RefObj::DECDELETE(VM &vm, bool deref) {
         vm.delete_delay.push_back(this);
         (void)deref;
     #else
-        DECDELETENOW(vm, deref);
+        DECDELETENOW(vm);
     #endif
 }
 

@@ -78,11 +78,7 @@
     being able to say an arg is mut without specifying the type.
 
 - refactor unit/speed tests?
-- make args implicitly const? no reason for them to be mutable
-- remove promoted_type
-- remove NativeRef
 - make Output lazy to not generate args.
-- delete DECDELETE deref param.
 - new C++ upgrades:
   - inline member init.
   - unique_ptr

@@ -229,7 +229,7 @@ struct RefObj : DynAlloc {
             Output(OUTPUT_DEBUG, "dec: ", (size_t)this);
         #endif
         if (refc <= 0) {
-            DECDELETE(vm, true);
+            DECDELETE(vm);
         }
     }
 
@@ -239,8 +239,8 @@ struct RefObj : DynAlloc {
 
     void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
 
-    void DECDELETE(VM &vm, bool deref);
-    void DECDELETENOW(VM &vm, bool deref);
+    void DECDELETE(VM &vm);
+    void DECDELETENOW(VM &vm);
     void DECSTAT(VM &vm);
 
     intp Hash(VM &vm);
@@ -467,7 +467,7 @@ struct LStruct : RefObj {
         AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i));
     }
 
-    void DeleteSelf(VM &vm, bool deref);
+    void DeleteSelf(VM &vm);
 
     // This may only be called from a context where i < len has already been ensured/asserted.
     ValueType ElemTypeS(VM &vm, intp i) const;
@@ -521,7 +521,7 @@ struct LVector : RefObj {
         At(i).LTDECTYPE(vm, et);
     }
 
-    void DeleteSelf(VM &vm, bool deref);
+    void DeleteSelf(VM &vm);
 
     ValueType ElemType(VM &vm) const;
 
@@ -1102,23 +1102,21 @@ struct LCoRoutine : RefObj {
         return *stackcopy;
     }
 
-    void DeleteSelf(VM &vm, bool deref) {
+    void DeleteSelf(VM &vm) {
         assert(stackstart < 0);
         if (stackcopy) {
             auto curvaltype = vm.GetTypeInfo(ti(vm).yieldtype).t;
             auto &ts = stackcopy[--stackcopylen];
             ts.LTDECTYPE(vm, curvaltype);
             if (active) {
-                if (deref) {
-                    for (int i = *varip; i > 0; i--) {
-                        //auto &vti = vm.GetVarTypeInfo(varip[i]);
-                        --stackcopylen;
-                        //stackcopy[stackcopylen].DECTYPE(vm, vti.t);
-                    }
-                    top_at_suspend -= *varip + 1;
-                    // This calls Resume() to get the rest back onto the stack, then unwinds it.
-                    vm.CoVarCleanup(this);
+                for (int i = *varip; i > 0; i--) {
+                    //auto &vti = vm.GetVarTypeInfo(varip[i]);
+                    --stackcopylen;
+                    //stackcopy[stackcopylen].DECTYPE(vm, vti.t);
                 }
+                top_at_suspend -= *varip + 1;
+                // This calls Resume() to get the rest back onto the stack, then unwinds it.
+                vm.CoVarCleanup(this);
             } else {
                assert(!stackcopylen);
             }

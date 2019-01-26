@@ -671,7 +671,7 @@ void VM::EndEval(const Value &ret, ValueType vt) {
     while (!delete_delay.empty()) {
         auto ro = delete_delay.back();
         delete_delay.pop_back();
-        ro->DECDELETENOW(*this, true);
+        ro->DECDELETENOW(*this);
     }
     DumpLeaks();
     VMASSERT(!curcoroutine);

@@ -306,13 +306,6 @@ struct FunRef : Node {
     SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
 };
 
-struct NativeRef : Node {
-    NativeFun *nf;
-    NativeRef(const Line &ln, NativeFun *_nf) : Node(ln), nf(_nf) {}
-    void Dump(ostringstream &ss) const { ss << nf->name; }
-    SHARED_SIGNATURE(NativeRef, "native function", true)
-};
-
 // This is either a Dot, Call, or NativeCall, to be specialized by the typechecker
 struct GenericCall : List {
     string_view name;
