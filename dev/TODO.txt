@@ -1531,9 +1531,9 @@ compiletime speed:
 totslike.lobster + dependencies: 2500 loc / 100KB compiles in 0.0106 seconds (averaged from
 1000 runs), which is about 9MB/sec, or 222 kloc/sec.
 
-Parse: 22%
-Typecheck: 48%
-Optimizer: 23%
+Parse: 30%
+Typecheck: 41%
+Optimizer: 10%
 Codegen: 2%
 
 uses about 6MB of process memory to run.

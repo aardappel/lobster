@@ -5,38 +5,28 @@ struct Optimizer {
     Parser &parser;
     SymbolTable &st;
     TypeChecker &tc;
-    bool changes_this_pass;
     size_t total_changes;
-    Node *dummy_node;
     SubFunction *cursf;
 
-    Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc, int maxpasses)
-        : parser(_p), st(_st), tc(_tc), changes_this_pass(true), total_changes(0),
-          dummy_node(nullptr), cursf(nullptr) {
-        int i = 0;
-        // MUST run at least 1 pass, to guarantee certain unwanted code is gone.
-        maxpasses = max(1, maxpasses);
-        for (; changes_this_pass && i < maxpasses; i++) {
-            changes_this_pass = false;
-            // We don't optimize parser.root, it only contains a single call.
-            for (auto f : parser.st.functiontable) {
-                if (f->subf && f->subf->typechecked) {
-                    for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) {
-                        cursf = sf;
-                        auto nb = sf->body->Optimize(*this, nullptr);
-                        assert(nb == sf->body);
-                        (void)nb;
-                    }
+    Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc)
+        : parser(_p), st(_st), tc(_tc), total_changes(0), cursf(nullptr) {
+        // We don't optimize parser.root, it only contains a single call.
+        for (auto f : parser.st.functiontable) {
+            if (f->subf && f->subf->typechecked) {
+                for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) {
+                    cursf = sf;
+                    auto nb = sf->body->Optimize(*this, nullptr);
+                    assert(nb == sf->body);
+                    (void)nb;
                 }
             }
         }
-        LOG_INFO("optimizer: ", i, " passes, ", total_changes, " optimizations");
+        LOG_INFO("optimizer: ", total_changes, " optimizations");
     }
 
-    void Changed() { changes_this_pass = true; total_changes++; }
+    void Changed() { total_changes++; }
 
     Node *Typed(TypeRef type, Lifetime lt, Node *n) {
-        Changed();
         n->exptype = type;
         n->lt = lt;
         return n;
@@ -54,7 +44,6 @@ Node *If::Optimize(Optimizer &opt, Node * /*parent_maybe*/) {
     condition = condition->Optimize(opt, this);
     Value cval;
     if (condition->ConstVal(opt.tc, cval)) {
-        opt.Changed();
         auto &branch = cval.True() ? truepart : falsepart;
         auto other  = cval.True() ? falsepart : truepart;
         auto r = branch->Optimize(opt, this);
@@ -74,6 +63,7 @@ Node *If::Optimize(Optimizer &opt, Node * /*parent_maybe*/) {
             assert(false);  // deal with coercions.
         }
         delete this;
+        opt.Changed();
         return r;
     } else {
         truepart = truepart->Optimize(opt, this);
@@ -82,7 +72,7 @@ Node *If::Optimize(Optimizer &opt, Node * /*parent_maybe*/) {
     }
 }
 
-Node *IsType::Optimize(Optimizer &opt, Node * /*parent_maybe*/) {
+Node *IsType::Optimize(Optimizer &opt, Node *parent_maybe) {
     Value cval;
     child = child->Optimize(opt, this);
     if (ConstVal(opt.tc, cval)) {
@@ -93,7 +83,8 @@ Node *IsType::Optimize(Optimizer &opt, Node * /*parent_maybe*/) {
             child = nullptr;
         }
         delete this;
-        return r;
+        opt.Changed();
+        return r->Optimize(opt, parent_maybe);
     }
     return this;
 }
@@ -106,6 +97,7 @@ Node *DynCall::Optimize(Optimizer &opt, Node *parent_maybe) {
     // single function variable may have 1 specialization per call.
     for (auto[i, c] : enumerate(children)) {
         if (i >= sf->parent->nargs()) {
+            opt.Changed();
             delete c;
         }
     }
@@ -120,7 +112,8 @@ Node *DynCall::Optimize(Optimizer &opt, Node *parent_maybe) {
     children.clear();
     auto r = opt.Typed(exptype, lt, c);
     delete this;
-    return r;
+    opt.Changed();
+    return r->Optimize(opt, parent_maybe);
 }
 
 Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
@@ -193,7 +186,8 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     auto r = opt.Typed(exptype, sf->ltret, list);
     children.clear();
     delete this;
-    return r;
+    opt.Changed();
+    return r->Optimize(opt, parent_maybe);
 }
 
 }  // namespace lobster

@@ -308,7 +308,7 @@ void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource, s
     TypeChecker tc(parser, st, return_value);
     // Optimizer is not optional, must always run at least one pass, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
-    Optimizer opt(parser, st, tc, 100);
+    Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
