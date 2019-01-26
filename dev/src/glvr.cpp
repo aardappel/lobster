@@ -96,7 +96,7 @@ bool VRInit() {
     vrsys = vr::VR_Init(&err, vr::VRApplication_Scene);
     if (err != vr::VRInitError_None) {
         vrsys = nullptr;
-        Output(OUTPUT_ERROR, "VR system init failed: ",
+        LOG_ERROR("VR system init failed: ",
                              vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
@@ -105,18 +105,18 @@ bool VRInit() {
                                              vr::Prop_TrackingSystemName_String);
     auto displayname = GetTrackedDeviceString(vr::k_unTrackedDeviceIndex_Hmd,
                                               vr::Prop_SerialNumber_String);
-    Output(OUTPUT_INFO, "VR running on device: \"", devicename, "\", display: \"", displayname,
+    LOG_INFO("VR running on device: \"", devicename, "\", display: \"", displayname,
                         "\", rt size: (", rtsize.x, ", ", rtsize.y, ")");
     vrmodels = (vr::IVRRenderModels *)vr::VR_GetGenericInterface(vr::IVRRenderModels_Version, &err);
     if(!vrmodels) {
         VRShutDown();
-        Output(OUTPUT_ERROR, "VR get render models failed: ",
+        LOG_ERROR("VR get render models failed: ",
                              vr::VR_GetVRInitErrorAsEnglishDescription(err));
         return false;
     }
     if (!vr::VRCompositor()) {
         VRShutDown();
-        Output(OUTPUT_ERROR, "VR compositor failed to initialize");
+        LOG_ERROR("VR compositor failed to initialize");
         return false;
     }
     // Get focus?

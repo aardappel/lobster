@@ -60,11 +60,22 @@ enum OutputType {
 
 extern OutputType min_output_level;  // Defaults to showing OUTPUT_WARN and up.
 
-extern void Output(OutputType ot, const char *buf);
-inline void Output(OutputType ot, const string &buf) { Output(ot, buf.c_str()); };
-template<typename ...Ts> void Output(OutputType ot, const Ts&... args) {
-    if (ot >= min_output_level) Output(ot, cat(args...).c_str());
+extern void LogOutput(OutputType ot, const char *buf);
+inline void LogOutput(OutputType ot, const string &buf) { LogOutput(ot, buf.c_str()); };
+template<typename ...Ts> void LogOutput(OutputType ot, const Ts&... args) {
+    if (ot >= min_output_level) LogOutput(ot, cat(args...).c_str());
 }
+// This is to make it lazy: arguments are not constructed at all if level is too low.
+#define LOG_DEBUG(...)   { if (min_output_level <= OUTPUT_DEBUG) \
+                               LogOutput(OUTPUT_DEBUG, __VA_ARGS__); }
+#define LOG_INFO(...)    { if (min_output_level <= OUTPUT_INFO) \
+                               LogOutput(OUTPUT_INFO, __VA_ARGS__); }
+#define LOG_WARN(...)    { if (min_output_level <= OUTPUT_WARN) \
+                               LogOutput(OUTPUT_WARN, __VA_ARGS__); }
+#define LOG_PROGRAM(...) { if (min_output_level <= OUTPUT_PROGRAM) \
+                               LogOutput(OUTPUT_PROGRAM, __VA_ARGS__); }
+#define LOG_ERROR(...)   { if (min_output_level <= OUTPUT_ERROR) \
+                               LogOutput(OUTPUT_ERROR, __VA_ARGS__); }
 
 // Time:
 extern double SecondsSinceStart();

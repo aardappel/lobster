@@ -178,8 +178,8 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
         SDL_Init(0); // FIXME: Is this needed? bad dependency.
         auto internalstoragepath = SDL_AndroidGetInternalStoragePath();
         auto externalstoragepath = SDL_AndroidGetExternalStoragePath();
-        Output(OUTPUT_INFO, internalstoragepath);
-        Output(OUTPUT_INFO, externalstoragepath);
+        LOG_INFO(internalstoragepath);
+        LOG_INFO(externalstoragepath);
         if (internalstoragepath) data_dirs.push_back(internalstoragepath + string_view("/"));
         if (externalstoragepath) write_dir = externalstoragepath + string_view("/");
         // For some reason, the above SDL functionality doesn't actually work,
@@ -261,7 +261,7 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
             }
         }
     }
-    if (len > 0) Output(OUTPUT_INFO, "load: ", relfilename);
+    if (len > 0) LOG_INFO("load: ", relfilename);
     auto size = LoadFileFromAny(SanitizePath(relfilename), dest, start, len);
     TextModeConvert(*dest, binary);
     return size;
@@ -336,7 +336,7 @@ bool ScanDir(string_view reldir, vector<pair<string, int64_t>> &dest) {
 
 OutputType min_output_level = OUTPUT_WARN;
 
-void Output(OutputType ot, const char *buf) {
+void LogOutput(OutputType ot, const char *buf) {
     if (ot < min_output_level) return;
     #ifdef __ANDROID__
         auto tag = "lobster";
@@ -383,7 +383,7 @@ void ConditionalBreakpoint(bool shouldbreak) {
 // Insert without args to find out which iteration it gets to, then insert that iteration number.
 void CountingBreakpoint(int i) {
     static int j = 0;
-    if (i < 0) Output(OUTPUT_DEBUG, "counting breakpoint: ", j);
+    if (i < 0) LOG_DEBUG("counting breakpoint: ", j);
     ConditionalBreakpoint(j++ == i);
 }
 

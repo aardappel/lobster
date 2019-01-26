@@ -209,13 +209,13 @@ struct RefObj : DynAlloc {
         #ifdef _DEBUG
             if (refc <= 0) {  // Should never be "re-vived".
                 #if DELETE_DELAY
-                    Output(OUTPUT_DEBUG, "revive: ", (size_t)this);
+                    LOG_DEBUG("revive: ", (size_t)this);
                 #endif
                 assert(false);
             }
         #endif
         #if DELETE_DELAY
-            Output(OUTPUT_DEBUG, "inc: ", (size_t)this);
+            LOG_DEBUG("inc: ", (size_t)this);
         #endif
         refc++;
     }
@@ -226,7 +226,7 @@ struct RefObj : DynAlloc {
             DECSTAT(vm);
         #endif
         #if DELETE_DELAY
-            Output(OUTPUT_DEBUG, "dec: ", (size_t)this);
+            LOG_DEBUG("dec: ", (size_t)this);
         #endif
         if (refc <= 0) {
             DECDELETE(vm);
@@ -1136,7 +1136,7 @@ struct LCoRoutine : RefObj {
         auto &var = AccessVar(i);
         // FIXME: For testing.
         if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_STRUCT)) {
-            Output(OUTPUT_INFO, "coro elem ", vti.Debug(vm), " != ", BaseTypeName(var.type));
+            LOG_INFO("coro elem ", vti.Debug(vm), " != ", BaseTypeName(var.type));
             assert(false);
         }
         #endif

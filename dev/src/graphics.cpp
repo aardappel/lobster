@@ -157,12 +157,12 @@ void AddGraphics(NativeRegistry &natreg) {
             err = LoadMaterialFile("shaders/default.materials");
         }
         if (!err.empty()) {
-            Output(OUTPUT_INFO, err);
+            LOG_INFO(err);
             return Value(vm.NewString(err));
         }
         colorshader = LookupShader("color");
         assert(colorshader);
-        Output(OUTPUT_INFO, "graphics fully initialized...");
+        LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         return Value();
     }

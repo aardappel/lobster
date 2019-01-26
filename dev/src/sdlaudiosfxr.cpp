@@ -378,7 +378,7 @@ bool SDLSoundInit() {
     if (sound_init) return true;
 
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
-        Output(OUTPUT_INFO, "Audio driver available ", SDL_GetAudioDriver(i));
+        LOG_INFO("Audio driver available ", SDL_GetAudioDriver(i));
     }
 
     if (SDL_InitSubSystem(SDL_INIT_AUDIO))
@@ -387,19 +387,19 @@ bool SDLSoundInit() {
     #ifdef _WIN32
         // It defaults to wasapi which doesn't output any sound?
         auto err = SDL_AudioInit("directsound");
-        if (err) Output(OUTPUT_INFO, "Forcing driver failed", err);
+        if (err) LOG_INFO("Forcing driver failed", err);
     #endif
 
     int count = SDL_GetNumAudioDevices(0);
     for (int i = 0; i < count; ++i) {
-        Output(OUTPUT_INFO, "Audio device ", i, ":", SDL_GetAudioDeviceName(i, 0));
+        LOG_INFO("Audio device ", i, ":", SDL_GetAudioDeviceName(i, 0));
     }
 
     Mix_Init(0);
     // For some reason this distorts when set to 44100 and samples at 22050 are played.
     // Also SFXR seems hard-coded to 22050, so that's what we'll use for now.
     if (Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024) == -1) {
-        Output(OUTPUT_ERROR, "Mix_OpenAudio: ", Mix_GetError());
+        LOG_ERROR("Mix_OpenAudio: ", Mix_GetError());
         return false;
     }
     // This seems to be needed to not distort when multiple sounds are played.

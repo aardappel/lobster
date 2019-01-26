@@ -78,7 +78,6 @@
     being able to say an arg is mut without specifying the type.
 
 - refactor unit/speed tests?
-- make Output lazy to not generate args.
 - new C++ upgrades:
   - inline member init.
   - unique_ptr
@@ -1525,6 +1524,17 @@ VM64-LLVM: lifetime1: secs 18.6, first ever lifetime, few optimisations (4649 al
 VM64-LLVM: lifetime2: secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
 VM64-LLVM: lifetime2: secs 18.8 (2)
 
+
+
+compiletime speed:
+
+totslike.lobster + dependencies: 2500 loc / 100KB compiles in 0.0106 seconds (averaged from
+1000 runs), which is about 9MB/sec, or 222 kloc/sec.
+
+Parse: 22%
+Typecheck: 48%
+Optimizer: 23%
+Codegen: 2%
 
 DEPENDENCIES
 ============

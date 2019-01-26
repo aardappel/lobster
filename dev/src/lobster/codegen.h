@@ -247,10 +247,10 @@ struct CodeGen  {
             // FIXME: invent a much faster, more robust multi-dispatch mechanic.
             for (auto sf : sfs) {
                 auto gendispatch = [&] (size_t override_j, TypeRef override_type) {
-                    Output(OUTPUT_DEBUG, "dispatch ", f.name);
+                    LOG_DEBUG("dispatch ", f.name);
                     for (size_t j = 0; j < f.nargs(); j++) {
                         auto type = j == override_j ? override_type : sf->args.v[j].type;
-                        Output(OUTPUT_DEBUG, "arg ", j, ": ", TypeName(type));
+                        LOG_DEBUG("arg ", j, ": ", TypeName(type));
                         Emit(GetTypeTableOffset(type));
                     }
                     Emit(sf->subbytecodestart);
@@ -287,7 +287,7 @@ struct CodeGen  {
         sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
             auto s = Dump(*sf.body, 0);
-            Output(OUTPUT_DEBUG, "untypechecked: ", sf.parent->name, " : ", s);
+            LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
         vector<SpecIdent *> ownedvars;

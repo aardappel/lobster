@@ -478,7 +478,7 @@ struct Lex : LoadedFile {
 
     void Error(string_view msg, const Line *ln = nullptr) {
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
-        //Output(OUTPUT_DEBUG, err);
+        //LOG_DEBUG(err);
         THROW_OR_ABORT(err);
     }
 };

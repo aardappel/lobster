@@ -74,7 +74,7 @@ void one_frame_callback(void *arg) {
     catch (string &s) {
         if (s != "SUSPEND-VM-MAINLOOP") {
             // An actual error.
-            Output(OUTPUT_ERROR, s);
+            LOG_ERROR(s);
             EngineExit(1);
         }
     }
@@ -141,7 +141,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Output(OUTPUT_ERROR, s);
+        LOG_ERROR(s);
         EngineExit(1);
     }
     #endif

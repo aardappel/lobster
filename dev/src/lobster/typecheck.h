@@ -637,7 +637,7 @@ struct TypeChecker {
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context) {
         if (sf.typechecked) return;
-        Output(OUTPUT_DEBUG, "function start: ", SignatureWithFreeVars(sf, nullptr));
+        LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
         scope.sf = &sf;
         scope.call_context = call_context;
@@ -697,7 +697,7 @@ struct TypeChecker {
         }
         if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
-        Output(OUTPUT_DEBUG, "function end ", Signature(sf), " returns ",
+        LOG_DEBUG("function end ", Signature(sf), " returns ",
                              TypeName(sf.returntype));
     }
 
@@ -770,7 +770,7 @@ struct TypeChecker {
     }
 
     SubFunction *CloneFunction(SubFunction *csf) {
-        Output(OUTPUT_DEBUG, "cloning: ", csf->parent->name);
+        LOG_DEBUG("cloning: ", csf->parent->name);
         auto sf = st.CreateSubFunction();
         sf->SetParent(*csf->parent, csf->parent->subf);
         // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
@@ -1020,13 +1020,13 @@ struct TypeChecker {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,
                                     *c, f.name);
-                    Output(OUTPUT_DEBUG, "arg: ", arg.sid->id->name, ":", TypeName(arg.type));
+                    LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
                 }
             }
             // This must be the correct freevar specialization.
             assert(!f.anonymous || sf->freevarchecked);
             assert(!sf->freevars.v.size());
-            Output(OUTPUT_DEBUG, "specialization: ", Signature(*sf));
+            LOG_DEBUG("specialization: ", Signature(*sf));
             return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
         }
     }
@@ -1048,7 +1048,7 @@ struct TypeChecker {
         }
         assert(!sf->freevars.v.size());
         // Output without arg types, since those are yet to be overwritten.
-        Output(OUTPUT_DEBUG, "pre-specialization: ",
+        LOG_DEBUG("pre-specialization: ",
                SignatureWithFreeVars(*sf, nullptr, false));
         return sf;
     }
@@ -1329,7 +1329,7 @@ struct TypeChecker {
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
             if (sf->freevars.Add(Arg(&sid, sid.type, AF_GENERIC))) {
-                //Output(OUTPUT_DEBUG, "freevar added: ", id.name, " (", TypeName(id.type),
+                //LOG_DEBUG("freevar added: ", id.name, " (", TypeName(id.type),
                 //                     ") in ", sf->parent->name);
             }
         }
@@ -1439,7 +1439,7 @@ struct TypeChecker {
         auto &b = borrowstack[lt];
         assert(IsRefNilVar(b.sid->type->t));
         b.refc += change;
-        Output(OUTPUT_DEBUG, "borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
+        LOG_DEBUG("borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
                ", ", b.refc, " remain");
         // FIXME: this should really just not be possible, but hard to guarantee.
         if (b.refc < 0)
@@ -1502,7 +1502,7 @@ struct TypeChecker {
             }
         }
         if (incref || decref) {
-            Output(OUTPUT_DEBUG, "lifetime adjust for ", NiceName(*n), " to ", incref, "/",
+            LOG_DEBUG("lifetime adjust for ", NiceName(*n), " to ", incref, "/",
                                  decref);
             MakeLifetime(n, idents ? LT_MULTIPLE: recip, incref, decref);
         }
@@ -1622,14 +1622,14 @@ struct TypeChecker {
                 funstats[sf->parent->idx].first += count;
             }
         }
-        Output(OUTPUT_INFO, "SF count: multi: ", multisf, ", orig: ", origsf, ", cloned: ",
+        LOG_INFO("SF count: multi: ", multisf, ", orig: ", origsf, ", cloned: ",
                             clonesf);
-        Output(OUTPUT_INFO, "Node count: orig: ", orignodes, ", cloned: ", clonenodes);
+        LOG_INFO("Node count: orig: ", orignodes, ", cloned: ", clonenodes);
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
             auto &pos = f->subf->body->line;
-            Output(OUTPUT_INFO, "Most clones: ", f->name, " (", st.filenames[pos.fileidx],
+            LOG_INFO("Most clones: ", f->name, " (", st.filenames[pos.fileidx],
                                 ":", pos.line, ") -> ", fsize, " nodes accross ",
                                 f->NumSubf() - 1, " clones (+1 orig)");
         }
@@ -1880,7 +1880,7 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         tc.StorageType(var.type, *this);
         sid->type = var.type;
         sid->lt = var.lt;
-        Output(OUTPUT_DEBUG, "var: ", sid->id->name, ":", TypeName(var.type));
+        LOG_DEBUG("var: ", sid->id->name, ":", TypeName(var.type));
         if (sid->id->logvar) {
             for (auto &sc : tc.scopes)
                 if (sc.sf->iscoroutine)

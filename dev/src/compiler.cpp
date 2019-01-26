@@ -127,7 +127,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     auto add_file = [&](string_view buf, string_view filename) {
         filestarts.push_back(LE(pakfile.size()));
         filenames.push_back(string(filename));
-        Output(OUTPUT_INFO, "adding to pakfile: ", filename);
+        LOG_INFO("adding to pakfile: ", filename);
         if (IsCompressed(filename)) {
             string out;
             WEntropyCoder<true>((uchar *)buf.data(), buf.length(), buf.length(), out);
@@ -216,7 +216,7 @@ bool LoadPakDir(const char *lpak) {
         auto off = read_unaligned64(filestarts + i);
         auto end = i < num + 1 ? read_unaligned64(filestarts + i + 1) : dirstart;
         auto len = end - off;
-        Output(OUTPUT_INFO, "pakfile dir: ", name, " : ", len);
+        LOG_INFO("pakfile dir: ", name, " : ", len);
         AddPakFileEntry(lpak, name, off, len, read_unaligned64(uncompressed + i));
     }
     return true;
@@ -232,7 +232,7 @@ bool LoadByteCode(string &bytecode) {
 
 void RegisterBuiltin(NativeRegistry &natreg, const char *name,
                      void (* regfun)(NativeRegistry &)) {
-    Output(OUTPUT_DEBUG, "subsystem: ", name);
+    LOG_DEBUG("subsystem: ", name);
     natreg.NativeSubSystemStart(name);
     regfun(natreg);
 }

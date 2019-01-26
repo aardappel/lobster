@@ -76,7 +76,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         vm.ss_reuse.str(string());
         vm.ss_reuse.clear();
         RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
-        Output(OUTPUT_PROGRAM, vm.ss_reuse.str());
+        LOG_PROGRAM(vm.ss_reuse.str());
         return Value();
     }
     ENDDECL1(print, "x", "Ss", "",

@@ -387,7 +387,7 @@ class SlabAlloc {
                     totalwaste += waste;
                     totalallocs += stats[i];
                     if (full || num) {
-                        Output(OUTPUT_INFO, "bucket ", i * ALIGN, " -> freelist ", num, " (",
+                        LOG_INFO("bucket ", i * ALIGN, " -> freelist ", num, " (",
                                             waste, " k), ", stats[i], " total allocs");
                     }
                 }
@@ -398,7 +398,7 @@ class SlabAlloc {
         loopdllist(usedpages, h) numused++;
         loopdllist(largeallocs, n) numlarge++;
         if (full || numused || numlarge || totalallocs) {
-            Output(OUTPUT_INFO, "totalwaste ", totalwaste, " k, pages ", numfree, " empty / ",
+            LOG_INFO("totalwaste ", totalwaste, " k, pages ", numfree, " empty / ",
                                 numused, " used, ", numlarge, " big alloc live, ", totalallocs,
                                 " total allocs made, ", statbig, " big allocs made");
         }

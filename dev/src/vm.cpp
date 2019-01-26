@@ -143,7 +143,7 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
     ss << prefix << ": ";
     RefToString(*this, ss, ro, debugpp);
     ss << " (" << ro->refc << "): " << (size_t)ro;
-    Output(OUTPUT_DEBUG, ss.str());
+    LOG_DEBUG(ss.str());
 }
 
 void VM::DumpFileLine(const int *fip, ostringstream &ss) {
@@ -155,7 +155,7 @@ void VM::DumpFileLine(const int *fip, ostringstream &ss) {
 void VM::DumpLeaks() {
     vector<void *> leaks = pool.findleaks();
     if (!leaks.empty()) {
-        Output(OUTPUT_ERROR, "LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
+        LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");
         ostringstream ss;
         sort(leaks.begin(), leaks.end(), _LeakSorter);
@@ -187,12 +187,12 @@ void VM::DumpLeaks() {
             }
         }
         #ifdef _DEBUG
-            Output(OUTPUT_ERROR, ss.str());
+            LOG_ERROR(ss.str());
         #else
             if (leaks.size() < 50) {
-                Output(OUTPUT_ERROR, ss.str());
+                LOG_ERROR(ss.str());
             } else {
-                Output(OUTPUT_ERROR, leaks.size(), " leaks, details in leaks.txt");
+                LOG_ERROR(leaks.size(), " leaks, details in leaks.txt");
                 WriteFile("leaks.txt", false, ss.str());
             }
         #endif
@@ -202,7 +202,7 @@ void VM::DumpLeaks() {
 
 void VM::OnAlloc(RefObj *ro) {
     #if DELETE_DELAY
-        Output(OUTPUT_DEBUG, "alloc: ", (size_t)ro);
+        LOG_DEBUG("alloc: ", (size_t)ro);
         ro->alloc_ip = ip;
     #else
         (void)ro;
@@ -251,7 +251,7 @@ LString *VM::NewString(string_view s) {
     memcpy(dest, s.data(), s.size());
     dest[s.size()] = 0;
     #if DELETE_DELAY
-        Output(OUTPUT_DEBUG, "string: \"", s, "\" - ", (size_t)r);
+        LOG_DEBUG("string: \"", s, "\" - ", (size_t)r);
     #endif
     return r;
 }
@@ -373,7 +373,7 @@ void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip
             if (desired.t != V_ANY) {
                 auto giveni = (type_elem_t)call_arg_types[j];
                 auto &given = GetTypeInfo(giveni);
-                //Output(OUTPUT_ERROR, j, " ", desired.Debug(*this, false), " ",
+                //LOG_ERROR(j, " ", desired.Debug(*this, false), " ",
                 //                             given.Debug(*this, false));
                 // Have to check the actual value, since given may be a supertype.
                 // FIXME: this is slow.
@@ -415,7 +415,7 @@ void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip
 void VM::FinalStackVarsCleanup() {
     VMASSERT(sp < 0 && !stackframes.size());
     #ifndef NDEBUG
-        Output(OUTPUT_INFO, "stack at its highest was: ", maxsp);
+        LOG_INFO("stack at its highest was: ", maxsp);
     #endif
 }
 
@@ -508,7 +508,7 @@ void VM::FunIntro(VM_OP_ARGS) {
         delete[] stack;
         stack = nstack;
 
-        Output(OUTPUT_DEBUG, "stack grew to: ", stacksize);
+        LOG_DEBUG("stack grew to: ", stacksize);
     }
     auto nargs_fun = *ip++;
     for (int i = 0; i < nargs_fun; i++) swap(vars[ip[i]], stack[sp - nargs_fun + i + 1]);
@@ -676,7 +676,7 @@ void VM::EndEval(const Value &ret, ValueType vt) {
     DumpLeaks();
     VMASSERT(!curcoroutine);
     #ifdef VM_PROFILER
-        Output(OUTPUT_INFO, "Profiler statistics:");
+        LOG_INFO("Profiler statistics:");
         uint64_t total = 0;
         auto fraction = 200;  // Line needs at least 0.5% to be counted.
         vector<uint64_t> lineprofilecounts(bcf->lineinfo()->size());
@@ -712,12 +712,12 @@ void VM::EndEval(const Value &ret, ValueType vt) {
             ++it;
         }
         for (auto &u : uniques) {
-            Output(OUTPUT_INFO, flat_string_view(bcf->filenames()->Get(u.fileidx)), "(", u.line,
+            LOG_INFO(flat_string_view(bcf->filenames()->Get(u.fileidx)), "(", u.line,
                    u.lastline != u.line ? "-" + to_string(u.lastline) : "",
                    "): ", u.count * 100.0f / total, " %");
         }
         if (vm_count_fcalls)  // remove trivial VM executions from output
-            Output(OUTPUT_INFO, "ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
+            LOG_INFO("ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
                                 vm_count_bcalls, ", decref ", vm_count_decref);
     #endif
     #ifndef VM_ERROR_RET_EXPERIMENT
@@ -773,7 +773,7 @@ void VM::EvalProgramInner() {
                     if (trace_tail) {
                         ss << '\n';
                     } else {
-                        Output(OUTPUT_DEBUG, ss.str());
+                        LOG_DEBUG(ss.str());
                     }
                 }
                 //currentline = LookupLine(ip).line;

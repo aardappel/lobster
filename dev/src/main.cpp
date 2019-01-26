@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         InitUnhandledExceptionFilter(argc, argv);
     #endif
     unit_test_all();
-    Output(OUTPUT_INFO, "Lobster running...");
+    LOG_INFO("Lobster running...");
     bool wait = false;
     bool from_bundle =
     #ifdef __IOS__
@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
+        bool compile_bench = false;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
@@ -96,6 +97,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
+                else if (a == "--compile-bench") { compile_bench = true; } 
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
@@ -127,11 +129,23 @@ int main(int argc, char* argv[]) {
             if (!LoadByteCode(bytecode))
                 THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
         } else {
-            Output(OUTPUT_INFO, "compiling...");
+            LOG_INFO("compiling...");
             string dump;
             string pakfile;
-            Compile(natreg, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
-                lpak ? &pakfile : nullptr, dump_builtins, dump_names, false);
+            auto start_time = SecondsSinceStart();
+            auto bench_iters = 1000;
+            for (size_t i = 0; i < (compile_bench ? bench_iters : 1); i++) {
+                dump.clear();
+                pakfile.clear();
+                bytecode.clear();
+                Compile(natreg, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
+                        lpak ? &pakfile : nullptr, dump_builtins, dump_names, false);
+            }
+            if (compile_bench) {
+                auto compile_time = (SecondsSinceStart() - start_time);
+                LOG_PROGRAM("time to compile ", bench_iters, "x (seconds): ",
+                       compile_time);
+            }
             if (parsedump) {
                 WriteFile("parsedump.txt", false, dump);
             }
@@ -161,10 +175,10 @@ int main(int argc, char* argv[]) {
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Output(OUTPUT_ERROR, s);
+        LOG_ERROR(s);
         if (from_bundle) SDLMessageBox("Lobster", s.c_str());
         if (wait) {
-            Output(OUTPUT_PROGRAM, "press <ENTER> to continue:\n");
+            LOG_PROGRAM("press <ENTER> to continue:\n");
             getchar();
         }
         #ifdef _WIN32

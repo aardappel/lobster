@@ -172,7 +172,7 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
 
 string SDLError(const char *msg) {
     string s = string_view(msg) + ": " + SDL_GetError();
-    Output(OUTPUT_WARN, s);
+    LOG_WARN(s);
     SDLShutdown();
     return s;
 }
@@ -253,7 +253,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
 
     SDL_SetEventFilter(SDLHandleAppEvents, nullptr);
 
-    Output(OUTPUT_INFO, "SDL initialized...");
+    LOG_INFO("SDL initialized...");
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
@@ -276,7 +276,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    Output(OUTPUT_INFO, "SDL about to figure out display mode...");
+    LOG_INFO("SDL about to figure out display mode...");
 
     #ifdef PLATFORM_ES3
         landscape = desired_screensize.x >= desired_screensize.y;
@@ -285,21 +285,21 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
         for (int i = 0; i < modes; i++) {
             SDL_DisplayMode mode;
             SDL_GetDisplayMode(0, i, &mode);
-            Output(OUTPUT_INFO, "mode: ", mode.w, " ", mode.h);
+            LOG_INFO("mode: ", mode.w, " ", mode.h);
             if (landscape ? mode.w > screensize.x : mode.h > screensize.y) {
                 screensize = int2(mode.w, mode.h);
             }
         }
 
-        Output(OUTPUT_INFO, "chosen resolution: ", screensize.x, " ", screensize.y);
-        Output(OUTPUT_INFO, "SDL about to create window...");
+        LOG_INFO("chosen resolution: ", screensize.x, " ", screensize.y);
+        LOG_INFO("SDL about to create window...");
 
         _sdl_window = SDL_CreateWindow(null_terminated(title),
                                         0, 0,
                                         screensize.x, screensize.y,
                                         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS);
 
-        Output(OUTPUT_INFO, _sdl_window ? "SDL window passed..." : "SDL window FAILED...");
+        LOG_INFO(_sdl_window ? "SDL window passed..." : "SDL window FAILED...");
 
         if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
     #else
@@ -312,7 +312,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
                 96.0f;
             #endif
         if (SDL_GetDisplayDPI(display, NULL, &dpi, NULL)) dpi = default_dpi;
-        Output(OUTPUT_INFO, cat("dpi: ", dpi));
+        LOG_INFO(cat("dpi: ", dpi));
         screensize = desired_screensize * int(dpi) / int(default_dpi);
         _sdl_window = SDL_CreateWindow(null_terminated(title),
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -322,19 +322,19 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
                                             (isfullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
     #endif
     ScreenSizeChanged();
-    Output(OUTPUT_INFO, "obtained resolution: ", screensize.x, " ", screensize.y);
+    LOG_INFO("obtained resolution: ", screensize.x, " ", screensize.y);
 
     if (!_sdl_window)
         return SDLError("Unable to create window");
 
-    Output(OUTPUT_INFO, "SDL window opened...");
+    LOG_INFO("SDL window opened...");
 
 
     _sdl_context = SDL_GL_CreateContext(_sdl_window);
-    Output(OUTPUT_INFO, _sdl_context ? "SDL context passed..." : "SDL context FAILED...");
+    LOG_INFO(_sdl_context ? "SDL context passed..." : "SDL context FAILED...");
     if (!_sdl_context) return SDLError("Unable to create OpenGL context");
 
-    Output(OUTPUT_INFO, "SDL OpenGL context created...");
+    LOG_INFO("SDL OpenGL context created...");
 
     #ifndef __IOS__
         SDL_GL_SetSwapInterval(vsync);
@@ -345,7 +345,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
     for(int i = 0; i < SDL_NumJoysticks(); i++) {
         SDL_Joystick *joy = SDL_JoystickOpen(i);
         if (joy) {
-            Output(OUTPUT_INFO, "Detected joystick: ", SDL_JoystickName(joy), " (",
+            LOG_INFO("Detected joystick: ", SDL_JoystickName(joy), " (",
                                 SDL_JoystickNumAxes(joy), " axes, ",
                                 SDL_JoystickNumButtons(joy), " buttons, ",
                                 SDL_JoystickNumBalls(joy), " balls, ",
@@ -628,7 +628,7 @@ void SDLMessageBox(string_view title, string_view msg) {
 }
 
 int64_t SDLLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
-    Output(OUTPUT_INFO, "SDLLoadFile: ", absfilename);
+    LOG_INFO("SDLLoadFile: ", absfilename);
     auto f = SDL_RWFromFile(null_terminated(absfilename), "rb");
     if (!f) return -1;
     auto filelen = SDL_RWseek(f, 0, RW_SEEK_END);

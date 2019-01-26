@@ -89,7 +89,7 @@ void Geometry::Init(const void *verts1, const void *verts2) {
             case 'W': SETATTRIB(4, 4, GL_UNSIGNED_BYTE, true,   4)
             case 'I': SETATTRIB(5, 4, GL_UNSIGNED_BYTE, false,  4)
             default:
-                Output(OUTPUT_ERROR, "unknown attribute type: ", string() + attr);
+                LOG_ERROR("unknown attribute type: ", string() + attr);
                 assert(false);
         }
         if (vbo2) {

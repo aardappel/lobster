@@ -31,11 +31,11 @@ struct SteamState {
 
 void SteamState::OnGameOverlayActivated(GameOverlayActivated_t *callback) {
     steamoverlayactive = callback->m_bActive;
-    Output(OUTPUT_INFO, "steam overlay toggle: ", steamoverlayactive);
+    LOG_INFO("steam overlay toggle: ", steamoverlayactive);
 }
 
 void SteamState::OnScreenshotRequested(ScreenshotRequested_t *) {
-    Output(OUTPUT_INFO, "steam screenshot requested");
+    LOG_INFO("steam screenshot requested");
     auto size = GetScreenSize();
     auto pixels = ReadPixels(int2(0), size);
     SteamScreenshots()->WriteScreenshot(pixels, size.x * size.y * 3, size.x, size.y);
@@ -43,7 +43,7 @@ void SteamState::OnScreenshotRequested(ScreenshotRequested_t *) {
 }
 
 extern "C" void __cdecl SteamAPIDebugTextHook(int severity, const char *debugtext) {
-    Output(severity ? OUTPUT_WARN : OUTPUT_INFO, debugtext);
+    if (severity) LOG_WARN(debugtext) else LOG_INFO(debugtext);
 }
 
 SteamState *steam = nullptr;
@@ -67,12 +67,12 @@ int SteamInit(uint appid, bool screenshots) {
             (void)appid;
         #else
             if (appid && SteamAPI_RestartAppIfNecessary(appid)) {
-                Output(OUTPUT_INFO, "Not started from Steam");
+                LOG_INFO("Not started from Steam");
                 return -1;
             }
         #endif
         bool steaminit = SteamAPI_Init();
-        Output(OUTPUT_INFO, "Steam init: ", steaminit);
+        LOG_INFO("Steam init: ", steaminit);
         if (!steaminit) return 0;
         SteamUtils()->SetWarningMessageHook(&SteamAPIDebugTextHook);
         steam = new SteamState();
