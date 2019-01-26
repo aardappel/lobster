@@ -81,9 +81,6 @@
 - new C++ upgrades:
   - inline member init.
   - unique_ptr
-- leakcheck: if there's no leaks but there is a leaks file, delete it.
-- do a speedtest of compilation.
-- move A* example off homepage.
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?

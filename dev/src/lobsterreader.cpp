@@ -46,7 +46,7 @@ struct ValueParser {
                 bool isref;
                 if ((int)elems.size() == numelems) {
                     auto val = ParseFactor(TYPE_ELEM_ANY, isref);
-                    if (isref) { /*val.DECRT(vm);*/ }  // Ignore the value.
+                    if (isref) { /*val.DECRT(vm);*/ (void)val; }  // Ignore the value.
                 } else {
                     elems.push_back(
                         ParseFactor(ti.t == V_VECTOR ? ti.subt : ti.elems[elems.size()], isref));

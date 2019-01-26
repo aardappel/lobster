@@ -154,7 +154,10 @@ void VM::DumpFileLine(const int *fip, ostringstream &ss) {
 
 void VM::DumpLeaks() {
     vector<void *> leaks = pool.findleaks();
-    if (!leaks.empty()) {
+    auto filename = "leaks.txt";
+    if (leaks.empty()) {
+        if (FileExists(filename)) FileDelete(filename);
+    } else {
         LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");
         ostringstream ss;
@@ -192,8 +195,8 @@ void VM::DumpLeaks() {
             if (leaks.size() < 50) {
                 LOG_ERROR(ss.str());
             } else {
-                LOG_ERROR(leaks.size(), " leaks, details in leaks.txt");
-                WriteFile("leaks.txt", false, ss.str());
+                LOG_ERROR(leaks.size(), " leaks, details in ", filename);
+                WriteFile(filename, false, ss.str());
             }
         #endif
     }

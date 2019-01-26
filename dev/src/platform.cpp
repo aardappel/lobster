@@ -267,8 +267,12 @@ int64_t LoadFile(string_view relfilename, string *dest, int64_t start, int64_t l
     return size;
 }
 
+string WriteFileName(string_view relfilename) {
+    return write_dir + SanitizePath(relfilename);
+}
+
 FILE *OpenForWriting(string_view relfilename, bool binary) {
-    return fopen((write_dir + SanitizePath(relfilename)).c_str(), binary ? "wb" : "w");
+    return fopen(WriteFileName(relfilename).c_str(), binary ? "wb" : "w");
 }
 
 bool WriteFile(string_view relfilename, bool binary, string_view contents) {
@@ -279,6 +283,16 @@ bool WriteFile(string_view relfilename, bool binary, string_view contents) {
         fclose(f);
     }
     return written == 1;
+}
+
+bool FileExists(string_view relfilename) {
+    auto f = fopen(WriteFileName(relfilename).c_str(), "rb");
+    if (f) fclose(f);
+    return f;
+}
+
+bool FileDelete(string_view relfilename) {
+    return remove(WriteFileName(relfilename).c_str()) == 0;
 }
 
 // TODO: can now replace all this platform specific stuff with std::filesystem code.

@@ -34,6 +34,8 @@ extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0
 
 extern FILE *OpenForWriting(string_view relfilename, bool binary);
 extern bool WriteFile(string_view relfilename, bool binary, string_view contents);
+extern bool FileExists(string_view relfilename);
+extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
 
 extern void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t off,
