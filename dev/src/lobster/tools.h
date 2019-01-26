@@ -113,10 +113,9 @@ class MersenneTwister          {
 
     uint state[N + 1];
     uint *next;
-    int left;
+    int left = -1;
 
     public:
-    MersenneTwister() : left(-1) {}
 
     void Seed(uint seed) {
         uint x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
@@ -164,11 +163,10 @@ class PCG32 {
     // This is apparently better than the Mersenne Twister, and its also smaller/faster!
     // Adapted from *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
     // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website).
-    uint64_t state;
-    uint64_t inc;
+    uint64_t state = 0xABADCAFEDEADBEEF;
+    uint64_t inc = 0xDEADBABEABADD00D;
 
     public:
-    PCG32() : state(0xABADCAFEDEADBEEF), inc(0xDEADBABEABADD00D) {}
 
     uint32_t Random() {
         uint64_t oldstate = state;
@@ -269,9 +267,9 @@ template <typename T> class Accumulator {
         T *Elems() { return this + 1; }
     };
 
-    Buf *first, *last, *iterator;
+    Buf *first = nullptr, *last = nullptr, *iterator = nullptr;
     size_t mingrowth;
-    size_t totalsize;
+    size_t totalsize = 0;
 
     Buf *NewBuf(size_t _size, size_t numelems, T *elems, Buf *_next) {
         Buf *buf = (Buf *)malloc(sizeof(Buf) + sizeof(T) * _size);
@@ -287,9 +285,7 @@ template <typename T> class Accumulator {
     Accumulator &operator=(const Accumulator &);
 
     public:
-    Accumulator(size_t _mingrowth = 1024)
-        : first(nullptr), last(nullptr), iterator(nullptr),
-          mingrowth(_mingrowth), totalsize(0) {}
+    Accumulator(size_t _mingrowth = 1024) : mingrowth(_mingrowth) {}
 
     ~Accumulator() {
         while (first) {
@@ -392,11 +388,11 @@ template <typename T> class IntResourceManager {
     };
 
     vector<Elem> elems;
-    size_t firstfree;
+    size_t firstfree = size_t(-1);
 
     public:
 
-    IntResourceManager() : firstfree(size_t(-1)) {
+    IntResourceManager() {
         // A nullptr item at index 0 that can never be allocated/deleted.
         elems.push_back(Elem());
     }
@@ -445,7 +441,7 @@ template <typename T> class IntResourceManager {
 // pointing inside of another allocation, will assert on Add).
 template <typename T> class IntResourceManagerCompact {
     vector<T *> elems;
-    size_t firstfree;
+    size_t firstfree = SIZE_MAX;
     const function<void(T *e)> deletefun;
 
     // Free slots have their lowest bit set, and represent an index (shifted by 1).
@@ -457,7 +453,7 @@ template <typename T> class IntResourceManagerCompact {
     public:
 
     IntResourceManagerCompact(const function<void(T *e)> &_df)
-        : firstfree(SIZE_MAX), deletefun(_df) {
+        : deletefun(_df) {
         // Slot 0 is permanently blocked, so can be used to denote illegal index.
         elems.push_back(nullptr);
     }

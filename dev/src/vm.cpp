@@ -48,20 +48,8 @@ enum {
 
 VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
-      : natreg(natreg), stack(nullptr), stacksize(0), maxstacksize(DEFMAXSTACKSIZE), sp(-1),
-        #ifdef VM_COMPILED_CODE_MODE
-            next_call_target(0), next_mm_table(nullptr), next_mm_call(nullptr),
-        #else
-            ip(nullptr),
-        #endif
-        curcoroutine(nullptr), vars(nullptr), codelen(0), codestart(nullptr),
-        byteprofilecounts(nullptr), bytecode_buffer(std::move(_bytecode_buffer)),
-        bcf(nullptr),
-        programprintprefs(10, 10000, false, -1), typetable(nullptr),
-        currentline(-1), maxsp(-1),
-        debugpp(2, 50, true, -1), programname(_pn), vml(*this),
-        trace(false), trace_tail(false), trace_ring_idx(0),
-        vm_count_ins(0), vm_count_fcalls(0), vm_count_bcalls(0), vm_count_decref(0),
+      : natreg(natreg), maxstacksize(DEFMAXSTACKSIZE),
+        bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
         compiled_code_ip(entry_point), program_args(args) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     bcf = bytecode::GetBytecodeFile(bcfb);

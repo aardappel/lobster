@@ -78,9 +78,6 @@
     being able to say an arg is mut without specifying the type.
 
 - refactor unit/speed tests?
-- new C++ upgrades:
-  - inline member init.
-  - unique_ptr
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?

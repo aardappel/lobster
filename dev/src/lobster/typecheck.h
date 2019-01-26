@@ -41,8 +41,8 @@ struct FlowItem : LValContext {
 };
 
 struct Borrow : LValContext {
-    int refc;  // Number of outstanding borrowed values. While >0 can't assign.
-    Borrow(const Node &n) : LValContext(n), refc(1) {}
+    int refc = 1;  // Number of outstanding borrowed values. While >0 can't assign.
+    Borrow(const Node &n) : LValContext(n) {}
 };
 
 struct TypeChecker {

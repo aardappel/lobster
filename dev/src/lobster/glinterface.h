@@ -27,23 +27,22 @@ enum Primitive { PRIM_TRIS, PRIM_FAN, PRIM_LOOP, PRIM_POINT };
 
 // Meant to be passed by value.
 struct Texture {
-    uint id;
-    int3 size;
+    uint id = 0;
+    int3 size { 0 };
 
-    Texture() : id(0), size(0) {}
+    Texture() = default;
     Texture(int _id, const int2 &_size) : id(_id), size(int3(_size, 0)) {}
     Texture(int _id, const int3 &_size) : id(_id), size(_size) {}
 };
 
 struct Shader {
-    uint vs, ps, cs, program;
+    uint vs = 0, ps = 0, cs = 0, program = 0;
     int mvp_i, col_i, camera_i, light1_i, lightparams1_i, texturesize_i,
         bones_i, pointscale_i;
-    int max_tex_defined;
+    int max_tex_defined = 0;
 
     enum { MAX_SAMPLERS = 32 };
 
-    Shader() : vs(0), ps(0), cs(0), program(0), max_tex_defined(0) {}
     ~Shader();
 
     string Compile(const char *name, const char *vscode, const char *pscode);
@@ -102,7 +101,7 @@ struct SpriteVert {   // "pT"
 class Geometry  {
     const size_t vertsize1, vertsize2;
     string fmt;
-    uint vbo1, vbo2, vao;
+    uint vbo1 = 0, vbo2 = 0, vao = 0;
 
     public:
     const size_t nverts;
@@ -111,7 +110,7 @@ class Geometry  {
     Geometry(span<T> verts1, string_view _fmt, span<U> verts2 = span<float>(),
              size_t elem_multiple = 1)
         : vertsize1(sizeof(T) * elem_multiple), vertsize2(sizeof(U) * elem_multiple), fmt(_fmt),
-          vbo1(0), vbo2(0), vao(0), nverts(verts1.size() / elem_multiple) {
+          nverts(verts1.size() / elem_multiple) {
         assert(verts2.empty() || verts2.size() == verts1.size());
         Init(verts1.data(), verts2.data());
     }
@@ -129,14 +128,13 @@ struct Mesh {
     Geometry *geom;
     vector<Surface *> surfs;
     Primitive prim;  // If surfs is empty, this determines how to draw the verts.
-    float pointsize;  // if prim == PRIM_POINT
-    int numframes, numbones;
-    float3x4 *mats;
-    float curanim;
+    float pointsize = 1;  // if prim == PRIM_POINT
+    int numframes = 0, numbones = 0;
+    float3x4 *mats = nullptr;
+    float curanim = 0;
 
     Mesh(Geometry *_g, Primitive _prim = PRIM_FAN)
-        : geom(_g), prim(_prim), pointsize(1.0f), numframes(0), numbones(0), mats(nullptr),
-          curanim(0) {}
+        : geom(_g), prim(_prim) {}
     ~Mesh();
 
     void Render(Shader *sh);

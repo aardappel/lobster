@@ -31,8 +31,8 @@ struct OutlineFont {
 struct BitmapFont {
     Texture tex;
     vector<int3> positions;
-    int height;
-    int usedcount;
+    int height = 0;
+    int usedcount = 1;
     int size;
     float outlinesize;
     OutlineFont *font;

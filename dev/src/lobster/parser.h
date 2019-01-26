@@ -17,7 +17,7 @@ namespace lobster {
 struct Parser {
     NativeRegistry &natreg;
     Lex lex;
-    Call *root;
+    Call *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
     vector<string_view> trailingkeywordedfunctionvaluestack;
@@ -28,12 +28,11 @@ struct Parser {
         SymbolTable::WithStackElem wse;
     };
     vector<ForwardFunctionCall> forwardfunctioncalls;
-    bool call_noparens;
+    bool call_noparens = false;
     set<string> pakfiles;
 
     Parser(NativeRegistry &natreg, string_view _src, SymbolTable &_st, string_view _stringsource)
-        : natreg(natreg), lex(_src, _st.filenames, _stringsource), root(nullptr), st(_st),
-          call_noparens(false) {}
+        : natreg(natreg), lex(_src, _st.filenames, _stringsource), st(_st) {}
 
     ~Parser() {
         delete root;

@@ -29,11 +29,11 @@ struct CodeGen  {
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
     vector<TypeLT> rettypes, temptypestack;
-    size_t nested_fors;
+    size_t nested_fors = 0;
     vector<string_view> stringtable;  // sized strings.
     const Node *temp_parent = nullptr; // FIXME
     vector<int> speclogvars;  // Index into specidents.
-    int keepvars;
+    int keepvars = 0;
 
     int Pos() { return (int)code.size(); }
 
@@ -125,7 +125,7 @@ struct CodeGen  {
     }
 
     CodeGen(Parser &_p, SymbolTable &_st, bool return_value)
-        : parser(_p), st(_st), nested_fors(0), keepvars(0) {
+        : parser(_p), st(_st) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);

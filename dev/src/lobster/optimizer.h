@@ -5,11 +5,11 @@ struct Optimizer {
     Parser &parser;
     SymbolTable &st;
     TypeChecker &tc;
-    size_t total_changes;
-    SubFunction *cursf;
+    size_t total_changes = 0;
+    SubFunction *cursf = nullptr;
 
     Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc)
-        : parser(_p), st(_st), tc(_tc), total_changes(0), cursf(nullptr) {
+        : parser(_p), st(_st), tc(_tc) {
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : parser.st.functiontable) {
             if (f->subf && f->subf->typechecked) {

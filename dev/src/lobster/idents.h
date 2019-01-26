@@ -36,20 +36,18 @@ struct Ident : Named {
     size_t scopelevel;
 
     // TODO: remove this from Ident, only makes sense during parsing really.
-    SubFunction *sf_def;    // Where it is defined, including anonymous functions.
+    SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
 
-    bool single_assignment;  // not declared const but def only, exp may or may not be const
-    bool constant;           // declared const
-    bool static_constant;    // not declared const but def only, exp is const.
-    bool anonymous_arg;
-    bool logvar;
+    bool single_assignment = true;  // not declared const but def only, exp may or may not be const
+    bool constant = false;          // declared const
+    bool static_constant = false;   // not declared const but def only, exp is const.
+    bool anonymous_arg = false;
+    bool logvar = false;
 
-    SpecIdent *cursid;
+    SpecIdent *cursid = nullptr;
 
     Ident(string_view _name, int _idx, size_t _sl)
-        : Named(_name, _idx), scopelevel(_sl), sf_def(nullptr),
-          single_assignment(true), constant(false), static_constant(false), anonymous_arg(false),
-          logvar(false), cursid(nullptr) {}
+        : Named(_name, _idx), scopelevel(_sl) {}
 
     void Assign(Lex &lex) {
         single_assignment = false;
@@ -66,12 +64,12 @@ struct Ident : Named {
 struct SpecIdent {
     Ident *id;
     TypeRef type;
-    Lifetime lt;
-    int logvaridx;
-    int idx, sidx;     // Into specidents, and into vm ordering.
+    Lifetime lt = LT_UNDEF;
+    int logvaridx = -1;
+    int idx, sidx = -1;     // Into specidents, and into vm ordering.
 
     SpecIdent(Ident *_id, TypeRef _type, int idx)
-        : id(_id), type(_type), lt(LT_UNDEF), logvaridx(-1), idx(idx), sidx(-1) {}
+        : id(_id), type(_type), idx(idx){}
     int Idx() { assert(sidx >= 0); return sidx; }
     SpecIdent *&Current() { return id->cursid; }
 };
@@ -83,11 +81,11 @@ struct SharedField : Named {
 };
 
 struct Field : Typed {
-    SharedField *id;
-    int fieldref;
-    Node *defaultval;
+    SharedField *id = nullptr;
+    int fieldref = -1;
+    Node *defaultval = nullptr;
 
-    Field() : Typed(), id(nullptr), fieldref(-1), defaultval(nullptr) {}
+    Field() = default;
     Field(SharedField *_id, TypeRef _type, ArgFlags _flags, int _fieldref, Node *_defaultval)
         : Typed(_type, _flags), id(_id),
           fieldref(_fieldref), defaultval(_defaultval) {}
@@ -106,25 +104,19 @@ struct FieldVector : GenericArgs {
 };
 
 struct Struct : Named {
-    FieldVector fields;
-    Struct *next, *first;
-    Struct *superclass;
-    Struct *firstsubclass, *nextsubclass;  // Used in codegen.
-    bool readonly;
-    bool generic;
-    bool predeclaration;
-    Type thistype;         // convenient place to store the type corresponding to this.
-    TypeRef sametype;      // If all fields are int/float, this allows vector ops.
-    type_elem_t typeinfo;  // Runtime type.
+    FieldVector fields { 0 };
+    Struct *next = nullptr, *first = this;
+    Struct *superclass = nullptr;
+    Struct *firstsubclass = nullptr, *nextsubclass = nullptr;  // Used in codegen.
+    bool readonly = false;
+    bool generic = false;
+    bool predeclaration = false;
+    Type thistype { V_STRUCT, this };  // convenient place to store the type corresponding to this.
+    TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
+    type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
 
-    Struct(string_view _name, int _idx)
-        : Named(_name, _idx), fields(0), next(nullptr), first(this), superclass(nullptr),
-          firstsubclass(nullptr), nextsubclass(nullptr),
-          readonly(false), generic(false), predeclaration(false),
-          thistype(V_STRUCT, this),
-          sametype(type_undefined),
-          typeinfo((type_elem_t)-1) {}
-    Struct() : Struct("", 0) {}
+    Struct(string_view _name, int _idx) : Named(_name, _idx) {}
+    Struct()                            : Named("", 0) {}
 
     int Has(SharedField *fld) {
         for (auto &uf : fields.v) if (uf.id == fld) return int(&uf - &fields.v[0]);
@@ -167,9 +159,9 @@ struct Struct : Named {
 };
 
 struct Arg : Typed {
-    SpecIdent *sid;
+    SpecIdent *sid = nullptr;
 
-    Arg() : Typed(), sid(nullptr) {}
+    Arg() = default;
     Arg(const Arg &o) : Typed(o), sid(o.sid) {}
     Arg(SpecIdent *_sid, TypeRef _type, ArgFlags _flags) : Typed(_type, _flags), sid(_sid) {}
 };
@@ -196,38 +188,33 @@ struct Function;
 
 struct SubFunction {
     int idx;
-    ArgVector args;
-    ArgVector locals;
-    ArgVector freevars;       // any used from outside this scope
-    TypeRef returntype;
-    size_t num_returns;
-    size_t reqret;  // Do the caller(s) want values to be returned?
-    Lifetime ltret;
+    ArgVector args { 0 };
+    ArgVector locals { 0 };
+    ArgVector freevars { 0 };       // any used from outside this scope
+    TypeRef returntype = type_undefined;
+    size_t num_returns = 0;
+    size_t reqret = 0;  // Do the caller(s) want values to be returned?
+    Lifetime ltret = LT_UNDEF;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
-    bool isrecursivelycalled;
-    bool iscoroutine;
-    ArgVector coyieldsave;
+    bool isrecursivelycalled = false;
+    bool iscoroutine = false;
+    ArgVector coyieldsave { 0 };
     TypeRef coresumetype;
-    type_elem_t cotypeinfo;
-    List *body;
-    SubFunction *next;
-    Function *parent;
-    int subbytecodestart;
-    bool typechecked, freevarchecked, mustspecialize, fixedreturntype, logvarcallgraph,
-        isdynamicfunctionvalue;
-    int numcallers;
-    Type thistype;       // convenient place to store the type corresponding to this
+    type_elem_t cotypeinfo = (type_elem_t)-1;
+    List *body = nullptr;
+    SubFunction *next = nullptr;
+    Function *parent = nullptr;
+    int subbytecodestart = 0;
+    bool typechecked = false;
+    bool freevarchecked = false;
+    bool mustspecialize = false;
+    bool fixedreturntype = false;
+    bool logvarcallgraph = false;
+    bool isdynamicfunctionvalue = false;
+    int numcallers = 0;
+    Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this
 
-    SubFunction(int _idx)
-        : idx(_idx),
-          args(0), locals(0), freevars(0), returntype(type_undefined),
-          num_returns(0), reqret(0), ltret(LT_UNDEF),
-          isrecursivelycalled(false),
-          iscoroutine(false), coyieldsave(0), cotypeinfo((type_elem_t)-1),
-          body(nullptr), next(nullptr), parent(nullptr), subbytecodestart(0),
-          typechecked(false), freevarchecked(false), mustspecialize(false),
-          fixedreturntype(false), logvarcallgraph(false), isdynamicfunctionvalue(false),
-          numcallers(0), thistype(V_FUNCTION, this) {}
+    SubFunction(int _idx) : idx(_idx) {}
 
     void SetParent(Function &f, SubFunction *&link) {
         parent = &f;
@@ -239,29 +226,26 @@ struct SubFunction {
 };
 
 struct Function : Named {
-    int bytecodestart;
+    int bytecodestart = 0;
     // functions with the same name and args, but different types (dynamic dispatch |
     // specialization)
-    SubFunction *subf;
+    SubFunction *subf = nullptr;
     // functions with the same name but different number of args (overloaded)
-    Function *sibf;
+    Function *sibf = nullptr;
     // if false, subfunctions can be generated by type specialization as opposed to programmer
     // implemented dynamic dispatch
-    bool multimethod;
+    bool multimethod = false;
     TypeRef multimethodretval;
     // does not have a programmer specified name
-    bool anonymous;
+    bool anonymous = false;
     // its merely a function type, has no body, but does have a set return type.
-    bool istype;
+    bool istype = false;
     // Store the original types the function was declared with, before specialization.
-    ArgVector orig_args;
+    ArgVector orig_args { 0 };
     size_t scopelevel;
 
     Function(string_view _name, int _idx, size_t _sl)
-     : Named(_name, _idx), bytecodestart(0),  subf(nullptr), sibf(nullptr),
-       multimethod(false), anonymous(false), istype(false), orig_args(0),
-       scopelevel(_sl) {
-    }
+        : Named(_name, _idx), scopelevel(_sl) {}
     ~Function() {}
 
     size_t nargs() const { return subf->args.v.size(); }
@@ -301,7 +285,7 @@ struct SymbolTable {
     unordered_map<string_view, Function *> functions;  // Key points to value!
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
-    SubFunction *toplevel;
+    SubFunction *toplevel = nullptr;
 
     vector<string> filenames;
 
@@ -326,8 +310,6 @@ struct SymbolTable {
     // no way to refer to constructed strings, and need to store them seperately :(
     // TODO: instead use larger buffers and constuct directly into those, so no temp string?
     vector<const char *> stored_names;
-
-    SymbolTable() : toplevel(nullptr) {}
 
     ~SymbolTable() {
         for (auto id : identtable)       delete id;

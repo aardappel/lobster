@@ -193,13 +193,13 @@ struct DynAlloc {
 };
 
 struct RefObj : DynAlloc {
-    int refc;
+    int refc = 1;
 
     #if DELETE_DELAY
     const int *alloc_ip;
     #endif
 
-    RefObj(type_elem_t _tti) : DynAlloc(_tti), refc(1)
+    RefObj(type_elem_t _tti) : DynAlloc(_tti)
         #if DELETE_DELAY
             , alloc_ip(nullptr)
         #endif
@@ -631,62 +631,62 @@ struct VM {
 
     NativeRegistry &natreg;
 
-    Value *stack;
-    int stacksize;
+    Value *stack = nullptr;
+    int stacksize = 0;
     int maxstacksize;
-    int sp;
+    int sp = -1;
 
     Value retvalstemp[MAX_RETURN_VALUES];
 
     #ifdef VM_COMPILED_CODE_MODE
-        block_t next_call_target;
-        block_t *next_mm_table;
-        const int *next_mm_call;
+        block_t next_call_target = 0;
+        block_t *next_mm_table = nullptr;
+        const int *next_mm_call = nullptr;
     #else
-        const int *ip;
+        const int *ip = nullptr;
     #endif
 
     vector<StackFrame> stackframes;
 
-    LCoRoutine *curcoroutine;
+    LCoRoutine *curcoroutine = nullptr;
 
-    Value *vars;
+    Value *vars = nullptr;
 
-    size_t codelen;
-    const int *codestart;
+    size_t codelen = 0;
+    const int *codestart = nullptr;
     vector<int> codebigendian;
     vector<type_elem_t> typetablebigendian;
-    uint64_t *byteprofilecounts;
+    uint64_t *byteprofilecounts = nullptr;
 
     string bytecode_buffer;
-    const bytecode::BytecodeFile *bcf;
+    const bytecode::BytecodeFile *bcf = nullptr;
 
-    PrintPrefs programprintprefs;
-    const type_elem_t *typetable;
+    PrintPrefs programprintprefs { 10, 10000, false, -1 };
+    const type_elem_t *typetable = nullptr;
     string evalret;
 
-    int currentline;
-    int maxsp;
+    int currentline = -1;
+    int maxsp = -1;
 
-    PrintPrefs debugpp;
+    PrintPrefs debugpp { 2, 50, true, -1 };
 
     string programname;
 
-    VMLog vml;
+    VMLog vml { *this };
 
     ostringstream ss_reuse;
 
-    bool trace;
-    bool trace_tail;
+    bool trace = false;
+    bool trace_tail = false;
     vector<ostringstream> trace_output;
-    size_t trace_ring_idx;
+    size_t trace_ring_idx = 0;
 
     vector<RefObj *> delete_delay;
 
-    int64_t vm_count_ins;
-    int64_t vm_count_fcalls;
-    int64_t vm_count_bcalls;
-    int64_t vm_count_decref;
+    int64_t vm_count_ins = 0;
+    int64_t vm_count_fcalls = 0;
+    int64_t vm_count_bcalls = 0;
+    int64_t vm_count_decref = 0;
 
     #ifndef VM_COMPILED_CODE_MODE
         //#define VM_INS_SWITCH
@@ -982,27 +982,26 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
 void EscapeAndQuote(string_view s, ostringstream &ss);
 
 struct LCoRoutine : RefObj {
-    bool active;       // Goes to false when it has hit the end of the coroutine instead of a yield.
+    bool active = true;  // Goes to false when it has hit the end of the coroutine instead of a yield.
 
     int stackstart;    // When currently running, otherwise -1
-    Value *stackcopy;
-    int stackcopylen, stackcopymax;
+    Value *stackcopy = nullptr;
+    int stackcopylen = 0;
+    int stackcopymax = 0;
 
     int stackframestart;  // When currently running, otherwise -1
-    StackFrame *stackframescopy;
-    int stackframecopylen, stackframecopymax;
-    int top_at_suspend;
+    StackFrame *stackframescopy = nullptr;
+    int stackframecopylen = 0;
+    int stackframecopymax = 0;
+    int top_at_suspend = -1;
 
     InsPtr returnip;
     const int *varip;
     LCoRoutine *parent;
 
     LCoRoutine(int _ss, int _sfs, InsPtr _rip, const int *_vip, LCoRoutine *_p, type_elem_t cti)
-        : RefObj(cti), active(true),
-          stackstart(_ss), stackcopy(nullptr), stackcopylen(0), stackcopymax(0),
-          stackframestart(_sfs), stackframescopy(nullptr), stackframecopylen(0),
-          stackframecopymax(0), top_at_suspend(-1), returnip(_rip), varip(_vip), parent(_p)
-          {}
+        : RefObj(cti), stackstart(_ss), stackframestart(_sfs), returnip(_rip), varip(_vip),
+          parent(_p) {}
 
     Value &Current(VM &vm) {
         if (stackstart >= 0) vm.BuiltinError("cannot get value of active coroutine");

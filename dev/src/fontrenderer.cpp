@@ -37,7 +37,7 @@ BitmapFont::~BitmapFont() {
 }
 
 BitmapFont::BitmapFont(OutlineFont *_font, int _size, float _osize)
-    : height(0), usedcount(1), size(_size), outlinesize(_osize), font(_font) {}
+    : size(_size), outlinesize(_osize), font(_font) {}
 
 bool BitmapFont::CacheChars(string_view text) {
     usedcount++;

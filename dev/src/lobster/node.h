@@ -24,9 +24,9 @@ struct Optimizer;
 struct CodeGen;
 
 struct Node {
-    Line line;
+    Line line { 0, 0 };
     TypeRef exptype;
-    Lifetime lt;
+    Lifetime lt = LT_UNDEF;
     virtual ~Node() {};
     virtual size_t Arity() const { return 0; }
     virtual Node **Children() { return nullptr; }
@@ -59,8 +59,8 @@ struct Node {
     virtual Node *Optimize(Optimizer &opt, Node *parent_maybe);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
   protected:
-    Node(const Line &ln) : line(ln), lt(LT_UNDEF) {}
-    Node() : line(0, 0), lt(LT_UNDEF) {}
+    Node(const Line &ln) : line(ln) {}
+    Node() = default;
 };
 
 struct TypeLT {
@@ -332,10 +332,9 @@ struct Constructor : List {
 };
 
 struct Call : GenericCall {
-    bool multimethod_specialized;
+    bool multimethod_specialized = false;
     explicit Call(GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens),
-          multimethod_specialized(false) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens) {};
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, false) {};
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
@@ -355,11 +354,10 @@ struct DynCall : List {
 
 struct NativeCall : GenericCall {
     NativeFun *nf;
-    TypeRef nattype;
-    Lifetime natlt;
+    TypeRef nattype = nullptr;
+    Lifetime natlt = LT_UNDEF;
     NativeCall(NativeFun *_nf, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf),
-          nattype(nullptr), natlt(LT_UNDEF) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf) {};
     void Dump(ostringstream &ss) const { ss << nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)

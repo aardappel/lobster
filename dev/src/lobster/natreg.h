@@ -45,11 +45,11 @@ inline Lifetime LifetimeType(Lifetime lt) { return lt >= 0 ? LT_BORROW : lt; }
 
 struct Named {
     string name;
-    int idx;
-    bool isprivate;
+    int idx = -1;
+    bool isprivate = false;
 
-    Named() : idx(-1), isprivate(false) {}
-    Named(string_view _name, int _idx = 0) : name(_name), idx(_idx), isprivate(false) {}
+    Named() = default;
+    Named(string_view _name, int _idx = 0) : name(_name), idx(_idx) {}
 };
 
 struct SubFunction;
@@ -57,7 +57,7 @@ struct SubFunction;
 struct Struct;
 
 struct Type {
-    const ValueType t;
+    const ValueType t = V_UNDEFINED;
 
     struct TupleElem { const Type *type; Lifetime lt; };
 
@@ -68,7 +68,7 @@ struct Type {
         vector<TupleElem> *tup;  // V_TUPLE
     };
 
-    Type()                               : t(V_UNDEFINED), sub(nullptr) {}
+    Type()                               :           sub(nullptr) {}
     explicit Type(ValueType _t)          : t(_t),    sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),    sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
@@ -147,7 +147,7 @@ class TypeRef {
     const Type *type;
 
     public:
-    TypeRef() : type(&g_type_undefined) {}
+    TypeRef()                  : type(&g_type_undefined) {}
     TypeRef(const Type *_type) : type(_type) {}
 
     TypeRef &operator=(const TypeRef &o) {
@@ -202,19 +202,19 @@ struct Ident;
 struct SpecIdent;
 
 struct Typed {
-    TypeRef type;
-    ArgFlags flags;
+    TypeRef type = type_undefined;
+    ArgFlags flags = AF_NONE;
 
-    Typed() : type(type_undefined), flags(AF_NONE) {}
+    Typed() = default;
     Typed(const Typed &o) : type(o.type), flags(o.flags) {}
     Typed(TypeRef _type, ArgFlags _flags) : type(_type), flags(_flags) {}
 };
 
 struct Narg : Typed {
-    char fixed_len;
-    Lifetime lt;
+    char fixed_len = 0;
+    Lifetime lt = LT_UNDEF;
 
-    Narg() : Typed(), fixed_len(0), lt(LT_UNDEF) {}
+    Narg() = default;
     Narg(const Narg &o) : Typed(o), fixed_len(o.fixed_len), lt(o.lt) {}
 
     void Set(const char *&tid, Lifetime def) {
@@ -316,15 +316,14 @@ struct NativeFun : Named {
     const char *idlist;
     const char *help;
 
-    int subsystemid;
+    int subsystemid = -1;
 
-    NativeFun *overloads, *first;
+    NativeFun *overloads = nullptr, *first = this;
 
     NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
               const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(VM &))
         : Named(_name, 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
-          has_body(_has_body), cont1(_cont1), help(_help), subsystemid(-1), overloads(nullptr),
-          first(this) {
+          has_body(_has_body), cont1(_cont1), help(_help) {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isupper(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
         assert(TypeLen(typeids) == nargs);

@@ -49,9 +49,9 @@ struct Voxels {
     vector<byte4> palette;
     bool is_default_palette;
     Chunk3DGrid<uchar> grid;
-    int idx;
+    int idx = 0;
 
-    Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant), idx(0) {}
+    Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant) {}
 
     void Set(const int3 &p, const int3 &sz, uchar pi) {
         for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {

@@ -23,10 +23,10 @@
 using namespace lobster;
 
 struct Renderable : Textured {
-    float4 color;
+    float4 color = float4_1;
     Shader *sh;
 
-    Renderable(const char *shname) : color(float4_1), sh(LookupShader(shname)) { assert(sh); }
+    Renderable(const char *shname) : sh(LookupShader(shname)) { assert(sh); }
 
     void Set() {
         sh->Set();

@@ -29,28 +29,25 @@ struct Line {
 };
 
 struct LoadedFile : Line {
-    const char *p, *linestart, *tokenstart;
-    shared_ptr<string> source;
-    TType token;
-    int tokline;  // line before, if current token crossed a line
-    bool islf;
-    bool cont;
+    const char *p, *linestart, *tokenstart = nullptr;
+    shared_ptr<string> source { new string() };
+    TType token = T_NONE;
+    int tokline = 1;  // line before, if current token crossed a line
+    bool islf = false;
+    bool cont = false;
     string_view sattr;
-    size_t whitespacebefore;
+    size_t whitespacebefore = 0;
 
     vector<pair<char, char>> bracketstack;
     vector<pair<int, bool>> indentstack;
-    const char *prevline, *prevlinetok;
+    const char *prevline = nullptr, *prevlinetok = nullptr;
 
     struct Tok { TType t; string_view a; };
 
     vector<Tok> gentokens;
 
     LoadedFile(string_view fn, vector<string> &fns, string_view stringsource)
-        : Line(1, (int)fns.size()), tokenstart(nullptr),
-          source(new string()), token(T_NONE),
-          tokline(1), islf(false), cont(false), whitespacebefore(0),
-          prevline(nullptr), prevlinetok(nullptr) {
+        : Line(1, (int)fns.size()) {
         if (!stringsource.empty()) {
             *source.get() = stringsource;
         } else {
