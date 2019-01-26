@@ -1,7 +1,7 @@
 include unittest
 
 starttime := seconds_elapsed()
-for(10001):
+for(12001):
     test_run_test_cases(true)
 time_taken := seconds_elapsed() - starttime
 if time_taken:

@@ -108,6 +108,8 @@ def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endconditio
                 eff := act.effect
                 eff(nstate)
                 i := existingnodes.find(): equal(_.state, nstate)
-                nn := i >= 0 and existingnodes[i] or goap_node { nstate }
-                f(act, 1, nn)
+                if i < 0:
+                    i = existingnodes.length
+                    existingnodes.push(goap_node { nstate })
+                f(act, 1, existingnodes[i])
     heuristic: heuristic(_)
