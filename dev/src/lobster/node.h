@@ -20,6 +20,7 @@ namespace lobster {
 typedef const function<void (Node *)> &IterateFun;
 
 struct TypeChecker;
+struct Optimizer;
 struct CodeGen;
 
 struct Node {
@@ -55,6 +56,7 @@ struct Node {
     // Also sets correct scalar values.
     virtual bool ConstVal(TypeChecker &, Value &) const { return false; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret) = 0;
+    virtual Node *Optimize(Optimizer &opt, Node *parent_maybe);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
   protected:
     Node(const Line &ln) : line(ln), lt(LT_UNDEF) {}
@@ -177,6 +179,7 @@ struct TypeAnnotation : Node {
 };
 
 #define CONSTVALMETHOD bool ConstVal(TypeChecker &tc, Value &val) const;
+#define OPTMETHOD Node *Optimize(Optimizer &opt, Node *parent_maybe);
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -228,7 +231,7 @@ COER_NODE(ToFloat, "tofloat")
 COER_NODE(ToString, "tostring")
 COER_NODE(ToBool, "tobool")
 COER_NODE(ToInt, "toint")
-TERNARY_NODE(If, "if", false, condition, truepart, falsepart, )
+TERNARY_NODE(If, "if", false, condition, truepart, falsepart, OPTMETHOD)
 BINARY_NODE(While, "while", false, condition, body, )
 BINARY_NODE(For, "for", false, iter, body, )
 ZERO_NODE(ForLoopElem, "for loop element", false, )
@@ -337,6 +340,7 @@ struct Call : GenericCall {
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
+    OPTMETHOD
 };
 
 struct DynCall : List {
@@ -346,6 +350,7 @@ struct DynCall : List {
         : List(ln), sf(_sf), sid(_sid) {};
     void Dump(ostringstream &ss) const { ss << sid->id->name; }
     SHARED_SIGNATURE(DynCall, "dynamic call", true)
+    OPTMETHOD
 };
 
 struct NativeCall : GenericCall {
@@ -411,6 +416,7 @@ struct IsType : Unary {
     void Dump(ostringstream &ss) const { ss << Name() << ":" << TypeName(giventype); }
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
+    OPTMETHOD
 };
 
 struct ToLifetime : Coercion {

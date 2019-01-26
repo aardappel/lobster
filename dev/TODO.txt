@@ -1536,6 +1536,8 @@ Typecheck: 48%
 Optimizer: 23%
 Codegen: 2%
 
+uses about 6MB of process memory to run.
+
 DEPENDENCIES
 ============
 
