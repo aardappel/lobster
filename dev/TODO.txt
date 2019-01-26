@@ -2,8 +2,6 @@
   - VM improvements:
     - reference counting that needs more testings:
       - in vmlog.cpp
-      - PUSHLOC/LVALLOC
-      - LCoroutine::Current and DeleteSelf
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
     - make indexing and for do LT_KEEP and all-element borrow respectively.

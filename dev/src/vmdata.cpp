@@ -125,7 +125,6 @@ void RefObj::DECDELETE(VM &vm) {
     #if DELETE_DELAY
         vm.DumpVal(this, "delay delete");
         vm.delete_delay.push_back(this);
-        (void)deref;
     #else
         DECDELETENOW(vm);
     #endif

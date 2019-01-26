@@ -641,7 +641,7 @@ void VM::CoResume(LCoRoutine *co) {
     VMASSERT(curcoroutine->stackcopymax >=  *curcoroutine->varip);
     curcoroutine->stackcopylen = *curcoroutine->varip;
     //curcoroutine->BackupParentVars(vars);
-    POP();//.DECTYPE(*this, GetTypeInfo(curcoroutine->ti(*this).yieldtype).t);    // previous current value
+    POP().LTDECTYPE(*this, GetTypeInfo(curcoroutine->ti(*this).yieldtype).t);    // previous current value
     for (int i = *curcoroutine->varip; i > 0; i--) {
         auto &var = vars[curcoroutine->varip[i]];
         // No INC, since parent is still on the stack and hold ref for us.

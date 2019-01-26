@@ -786,11 +786,6 @@ struct TypeChecker {
         // Here we have a SubFunction witch matching specialized types.
         sf->numcallers++;
         Function &f = *sf->parent;
-        // See if this is going to be a coroutine.
-        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see below */ {
-            if (Is<CoClosure>(c))
-                sf->iscoroutine = true;
-        }
         if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
         // Finally check all the manually typed args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
@@ -1013,9 +1008,14 @@ struct TypeChecker {
             }
             // Now specialize.
             sf->reqret = reqret;
+            // See if this is going to be a coroutine.
+            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
+                if (Is<CoClosure>(c))
+                    sf->iscoroutine = true;
+            }
             for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
                 auto &arg = sf->args.v[i];
-                arg.sid->lt = arg.sid->id->single_assignment ? c->lt : LT_KEEP;
+                arg.sid->lt = arg.sid->id->single_assignment && !sf->iscoroutine ? c->lt : LT_KEEP;
                 if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,

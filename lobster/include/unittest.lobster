@@ -345,6 +345,18 @@ def run_test_cases(is_speed_test):
         assert !co5.active
         assert co5.return_value == 1
 
+        def refcoro(borrow, f):
+            ss := [ "A", "B", "C" ]
+            for(ss): f(_)
+            return "D"
+        borrow := "E"
+        assert (coroutine_for(coroutine refcoro(borrow)): assert(_ + "_" is string)) == "D"
+        rc := coroutine refcoro(borrow)
+        assert rc->ss[1] == "B"
+        rc->ss[1] = "F"
+        rc.resume()
+        assert rc->ss[1] == "F"
+
     // ////////////////////////////////////////////////////////////////////////
     // misc test
 

@@ -1005,8 +1005,7 @@ struct LCoRoutine : RefObj {
 
     Value &Current(VM &vm) {
         if (stackstart >= 0) vm.BuiltinError("cannot get value of active coroutine");
-        return stackcopy[stackcopylen - 1];
-        //.INCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
+        return stackcopy[stackcopylen - 1].LTINCTYPE(vm.GetTypeInfo(ti(vm).yieldtype).t);
     }
 
     void Resize(VM &vm, int newlen) {
@@ -1109,9 +1108,8 @@ struct LCoRoutine : RefObj {
             ts.LTDECTYPE(vm, curvaltype);
             if (active) {
                 for (int i = *varip; i > 0; i--) {
-                    //auto &vti = vm.GetVarTypeInfo(varip[i]);
-                    --stackcopylen;
-                    //stackcopy[stackcopylen].DECTYPE(vm, vti.t);
+                    auto &vti = vm.GetVarTypeInfo(varip[i]);
+                    stackcopy[--stackcopylen].LTDECTYPE(vm, vti.t);
                 }
                 top_at_suspend -= *varip + 1;
                 // This calls Resume() to get the rest back onto the stack, then unwinds it.

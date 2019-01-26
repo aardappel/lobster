@@ -1006,7 +1006,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         Value &rv = co.cval()->Current(vm);
         return rv;
     }
-    ENDDECL1(return_value, "coroutine", "C", "Ab1",
+    ENDDECL1(return_value, "coroutine", "C", "A1",
         "gets the last return value of a coroutine");
 
     STARTDECL(active) (VM &, Value &co) {
