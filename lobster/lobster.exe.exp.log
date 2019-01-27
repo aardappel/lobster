@@ -1,0 +1,30 @@
+===== Crash Log =====
+Date: 2019-01-27, Time: 16:49:58
+CMD: lobster\lobster.exe c:\w\lobster\lobster\tests\speedtest.lobster 
+ExpCode: 0xC0000005, ExpFlags: 0, ExpAddress: 0xBD7469A3
+SymInit: Symbol-SearchPath: '.;C:\w\lobster;C:\w\lobster\lobster;C:\WINDOWS;C:\WINDOWS\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'woute'
+OS-Version: 6.2.9200 () 0x100-0x1
+c:\w\lobster\dev\src\vmdata.cpp (161): lobster::RefToString
+c:\w\lobster\dev\src\vmdata.cpp (173): lobster::Value::ToString
+c:\w\lobster\dev\src\vm.cpp (354): lobster::VM::DumpVar
+c:\w\lobster\dev\src\vm.cpp (449): lobster::VM::VarCleanup<1>
+c:\w\lobster\dev\src\vm.cpp (315): lobster::VM::Error
+c:\w\lobster\dev\src\lobster\vmdata.h (759): lobster::VM::BuiltinError
+c:\w\lobster\dev\src\builtins.cpp (1059): `lobster::AddBuiltins'::`261'::___assert::s_assert
+c:\w\lobster\dev\src\vm.cpp (1050): lobster::VM::F_BCALLUNB1
+c:\w\lobster\dev\src\vm.cpp (800): lobster::VM::EvalProgramInner
+c:\w\lobster\dev\src\vm.cpp (730): lobster::VM::EvalProgram
+c:\w\lobster\dev\src\engine.cpp (92): EngineRunByteCode
+c:\w\lobster\dev\src\main.cpp (173): SDL_main
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (127): main_utf8
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (159): main_getcmdline
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (172): main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (79): invoke_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (288): __scrt_common_main_seh
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (331): __scrt_common_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp (17): mainCRTStartup
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FF9767381F4)
+00007FF9767381F4 (KERNEL32): (filename not available): BaseThreadInitThunk
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FF97911A251)
+00007FF97911A251 (ntdll): (filename not available): RtlUserThreadStart
+

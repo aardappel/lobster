@@ -1474,6 +1474,8 @@ The first 9 numbers were run on a 2600K, but have numbers by 1.77x/1.43x adjuste
 being slower than the 8700K being used now, such that all numbers are comparable.
 From (1) on they are on an actual 8700K, and also bumped iterations 10x.
 At (2) bumped iterations 20% because a bug in GOAP was fixed that made it faster.
+At (3) completely reworked benchmarks to add a lot more variety, but balanced to
+still take the same total time for comparison.
 
 VM: last_dyn_typed  : secs 57.1, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531
 VM: last_switch     : secs 43.2, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
@@ -1500,7 +1502,7 @@ VM64-LLVM: lifetime1: secs 18.6, first ever lifetime, few optimisations (4649 al
 VM64-LLVM: lifetime2: secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
 VM64-LLVM: lifetime2: secs 18.8 (2)
 VM64-LLVM: lifetime2: secs 18.9, strings pooled (3945 alloc, 13126 decr)
-
+VM64-LLVM: lifetime2: secs 18.9 (3)
 
 compiletime speed:
 
