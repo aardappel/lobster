@@ -52,20 +52,6 @@
   - optimize other remaining/related features.
   - profit: Rust efficiency without all the annotations and overly strict "borrow checker".
   - write all this up in an article.. should interest others how it works :)
-  - should allocate all constant strings in one block, together with headers. maybe even as part
-    of flatbuffer file
-    - they start at refc=1, then every time they are "created", they incref
-    - if they drop to 0, dealloc checks if string is in const range, and runtime error if so
-    - at program exit they are all checked to be 1.
-    - if there's an incref bug, then the refc could overflow. but since all negative refc is error,
-      this should always be caught.
-    - this changes all string constants from LT_KEEP to LT_BORROW, but without locking a
-      variable. This will reduce on keepvars a lot (most uses of strings are not kept),
-      in exchange for a mild increase in incvar (where stored in a data structure), so
-      generally great for ownership efficiency.. though since it changes the dynamic
-      of owned vs borrowed in programs, should only be changed once ownership system is rock
-      solid, since it will reduce test cases for LT_KEEP values becoming leaks.
-    - now can also have a generic bit_equal() that compares strings by pointer.
   - should really centrally organize the concept of const vs owner vs refc, since besides for
     structs, will need these concepts for strings/vectors/coroutines as well (will especially be
     nice to separate out the default const string from niche mutable use). We also have const/var
@@ -1513,7 +1499,7 @@ VM64-LLVM: lifetime1: secs 20.8, lifetime off (4649 alloc, 105402 decr)
 VM64-LLVM: lifetime1: secs 18.6, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
 VM64-LLVM: lifetime2: secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
 VM64-LLVM: lifetime2: secs 18.8 (2)
-
+VM64-LLVM: lifetime2: secs 18.9, strings pooled (3945 alloc, 13126 decr)
 
 
 compiletime speed:

@@ -421,12 +421,13 @@ def run_test_cases(is_speed_test):
     whilenot wnt == 10: wnt++
     assert wnt == 10
 
-    // Minimal log test with ref types:
-    for(3) i:
-        gl_log_frame(0.01)
-        v ?= []
-        assert v.length == i
-        v.push(string(i))
+    if !is_speed_test:
+        // Minimal log test with ref types:
+        for(3) i:
+            gl_log_frame(0.01)
+            v ?= []
+            assert v.length == i
+            v.push(string(i))
 
     starttime := seconds_elapsed()
     for 1000:

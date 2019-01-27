@@ -34,7 +34,9 @@ namespace lobster {
 #define VM_DISPATCH_SWITCH_GOTO 2
 #define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
 
-#define DELETE_DELAY 1
+#define STRING_CONSTANTS_KEEP 0
+
+#define DELETE_DELAY 0
 
 // Typedefs to make pointers and scalars the same size.
 #if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__
@@ -682,6 +684,8 @@ struct VM {
     size_t trace_ring_idx = 0;
 
     vector<RefObj *> delete_delay;
+
+    vector<LString *> constant_strings;
 
     int64_t vm_count_ins = 0;
     int64_t vm_count_fcalls = 0;

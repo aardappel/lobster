@@ -88,6 +88,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         ILNAMES
         #undef F
     #endif
+    constant_strings.resize(bcf->stringtable()->size());
 }
 
 VM::~VM() {
@@ -659,6 +660,9 @@ void VM::EndEval(const Value &ret, ValueType vt) {
     assert(sp == -1);
     FinalStackVarsCleanup();
     vml.LogCleanup();
+    for (auto s : constant_strings) {
+        if (s) s->Dec(*this);
+    }
     while (!delete_delay.empty()) {
         auto ro = delete_delay.back();
         delete_delay.pop_back();
@@ -840,8 +844,15 @@ VM_DEF_CAL(PUSHFUN) {
 VM_DEF_INS(PUSHSTR) {
     // FIXME: have a way that constant strings can stay in the bytecode,
     // or at least preallocate them all
-    auto fb_s = bcf->stringtable()->Get(*ip++);
-    auto s = NewString(flat_string_view(fb_s));
+    int i = *ip++;
+    auto &s = constant_strings[i];
+    if (!s) {
+        auto fb_s = bcf->stringtable()->Get(i);
+        s = NewString(flat_string_view(fb_s));
+    }
+    #if STRING_CONSTANTS_KEEP
+        s->Inc();
+    #endif
     PUSH(Value(s));
     VM_RET;
 }
