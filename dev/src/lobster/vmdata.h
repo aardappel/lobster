@@ -34,7 +34,7 @@ namespace lobster {
 #define VM_DISPATCH_SWITCH_GOTO 2
 #define VM_DISPATCH_METHOD VM_DISPATCH_TRAMPOLINE
 
-#define DELETE_DELAY 0
+#define DELETE_DELAY 1
 
 // Typedefs to make pointers and scalars the same size.
 #if _WIN64 || __amd64__ || __x86_64__ || __ppc64__ || __LP64__

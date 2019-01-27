@@ -1,7 +1,4 @@
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
-  - VM improvements:
-    - reference counting that needs more testings:
-      - in vmlog.cpp
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
     - make indexing and for do LT_KEEP and all-element borrow respectively.
@@ -361,9 +358,10 @@
   of unfortunate casting going on that be nice to remove. Many (including the C++ standards
   committee) seem to agree unsigned size_t was a mistake, so would be nice to move the whole
   codebase towards default-signed for everything, with less casts, and less possible gotchas.
-  Could do this by having a global size() for STL containers that returns signed.
+  Could do this by having a global ssize() for STL containers that returns signed.
   Could repurpose the already existing "intp" type, but that might not always be pointer sized,
   so maybe better a new type (like gsl::index).
+  Proposed for C++20: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1227r1.html
 
 - This doesn't typecheck correctly:
   if !lhs:

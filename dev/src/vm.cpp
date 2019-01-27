@@ -1316,8 +1316,6 @@ VM_DEF_INS(PUSHLOC) {
     Value coro = POP();
     VMTYPEEQ(coro, V_COROUTINE);
     PUSH(coro.cval()->GetVar(*this, i));
-    //TOP().INCTYPE(GetVarTypeInfo(i).t);
-    //coro.DECRT(*this);
     VM_RET;
 }
 
@@ -1328,7 +1326,6 @@ VM_DEF_INS(LVALLOC) {
     VMTYPEEQ(coro, V_COROUTINE);
     Value &a = coro.cval()->GetVar(*this, i);
     LvalueOp(lvalop, a);
-    //coro.DECRT(*this);
     VM_RET;
 }
 
