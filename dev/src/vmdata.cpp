@@ -170,7 +170,7 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
 
 void Value::ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const {
     if (IsRefNil(vtype)) {
-        if (ref_) RefToString(vm, ss, ref_, pp); else ss << "nil";
+        RefToString(vm, ss, ref_, pp);
     }
     else switch (vtype) {
         case V_INT:      ss << ival();                                    break;

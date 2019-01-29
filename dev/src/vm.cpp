@@ -440,17 +440,26 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     fip += ndef;
     auto defvars = fip;
     auto nkeepvars = *fip++;
+    if constexpr (is_error) {
+        // Do this first, since values may get deleted below.
+        for (int j = 0; j < ndef; j++) {
+            auto i = *(defvars - j - 1);
+            DumpVar(*error, vars[i], i, false);
+        }
+        for (int j = 0; j < nargs; j++) {
+            auto i = *(freevars - j - 1);
+            DumpVar(*error, vars[i], i, false);
+        }
+    }
     for (int i = 0; i < nkeepvars; i++) POP().LTDECRTNIL(*this);
     auto ownedvars = *fip++;
     for (int i = 0; i < ownedvars; i++) vars[*fip++].LTDECRTNIL(*this);
     while (ndef--) {
         auto i = *--defvars;
-        if constexpr (is_error) DumpVar(*error, vars[i], i, false);
         vars[i] = POP();
     }
     while (nargs--) {
         auto i = *--freevars;
-        if constexpr (is_error) DumpVar(*error, vars[i], i, false);
         vars[i] = POP();
     }
     JumpTo(stf.retip);
