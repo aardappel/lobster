@@ -777,6 +777,8 @@ struct TypeChecker {
         st.CloneIds(*sf, *csf);
         sf->body = (List *)csf->body->Clone();
         sf->freevarchecked = true;
+        sf->fixedreturntype = csf->fixedreturntype;
+        sf->returntype = csf->returntype;
         sf->logvarcallgraph = csf->logvarcallgraph;
         return sf;
     }
