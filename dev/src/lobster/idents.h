@@ -195,7 +195,7 @@ struct SubFunction {
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
-    Lifetime ltret = LT_UNDEF;
+    const Lifetime ltret = LT_KEEP;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     bool isrecursivelycalled = false;
     bool iscoroutine = false;

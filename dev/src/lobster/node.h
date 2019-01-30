@@ -77,7 +77,7 @@ struct TypeLT {
         : type(n.exptype->Get(i)), lt(n.exptype->GetLifetime(i, n.lt)) {}
 
     TypeLT(const SubFunction &sf, size_t i)
-        : type(sf.returntype->Get(i)), lt(sf.returntype->GetLifetime(i, sf.ltret)) {}
+        : type(sf.returntype->Get(i)), lt(sf.ltret) {}
 };
 
 

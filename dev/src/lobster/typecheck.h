@@ -589,18 +589,7 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    Lifetime FunctionLifetime(SubFunction &sf) {
-        if (sf.ltret == LT_UNDEF) {
-            // Likely a recursive call wants the lifetime, but it is not set yet. Unlike
-            // types we don't use unbound variables, so the best we can do is just fix
-            // the lifetime right here.
-            sf.ltret = LT_KEEP;  // Most common.
-        }
-        return sf.ltret;
-    }
-
-    void RetVal(TypeRef type, Lifetime lt, SubFunction *sf, const Node *err,
-                bool register_return = true) {
+    void RetVal(TypeRef type, SubFunction *sf, const Node *err, bool register_return = true) {
         if (register_return) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) break;
@@ -617,9 +606,6 @@ struct TypeChecker {
             }
         }
         sf->num_returns++;
-        // FIXME: this is all a bit ad-hoc.
-        assert(sf->ltret == lt || sf->ltret == LT_UNDEF || lt == LT_ANY || lt == LT_KEEP);
-        sf->ltret = lt;
         if (sf->fixedreturntype.Null()) {
             if (sf->reqret) {
                 // If this is a recursive call we must be conservative because there may already
@@ -673,7 +659,6 @@ struct TypeChecker {
             if (!sf.fixedreturntype.Null() && sf.fixedreturntype->t != V_VOID)
                 TypeError("missing return statement", *sf.body->children.back());
             sf.returntype = type_void;
-            sf.ltret = LT_ANY;
         }
         // Let variables go out of scope in reverse order of declaration.
         auto exit_scope = [&](const Arg &var) {
@@ -841,7 +826,7 @@ struct TypeChecker {
                 if (isc.sf->parent == sf->parent) {
                     // FIXME: will have to re-apply lifetimes as well if we change from default
                     // of LT_KEEP.
-                    RetVal(type, LT_KEEP, isc.sf, &error_context, false);
+                    RetVal(type, isc.sf, &error_context, false);
                     // This should in theory not cause an error, since the previous specialization
                     // was also ok with this set of return types. It could happen though if
                     // this specialization has an additional return statement that was optimized
@@ -1076,7 +1061,7 @@ struct TypeChecker {
             // remove them).
             auto type = TypeCheckCall(sf, args, fspec, args, reqret);
             ftype = &fspec->thistype;
-            return { type, FunctionLifetime(*fspec) };
+            return { type, fspec->ltret };
         } else if (ftype->t == V_YIELD) {
             // V_YIELD must have perculated up from a coroutine call.
             if (nargs != 1)
@@ -1087,7 +1072,7 @@ struct TypeChecker {
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->children[0]->exptype;
-                RetVal(type, LT_KEEP, sf, args);
+                RetVal(type, sf, args);
                 SubTypeT(type, sf->returntype, *args, "", "yield value");
                 // Now collect all ids between coroutine and yield, so that we can save these in the
                 // VM.
@@ -2383,7 +2368,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, this, sf, this, reqret);
-    lt = tc.FunctionLifetime(*sf);
+    lt = sf->ltret;
 }
 
 Node *FunRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
@@ -2441,22 +2426,22 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
-        tc.RetVal(child->exptype, child->lt, sf, this);  // If it's a variable, bind it.
+        tc.RetVal(child->exptype, sf, this);  // If it's a variable, bind it.
         return this;
     }
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {
-            tc.RetVal(mrs->exptype, LT_KEEP /* FIXME what if multiple? */, sf, this);
+            tc.RetVal(mrs->exptype, sf, this);
             for (auto [i, mr] : enumerate(mrs->children)) {
                 if (i < sf->reqret)
                     tc.SubType(mr, sf->returntype->Get(i), tc.ArgName(i), *this);
             }
         } else {
-            tc.RetVal(child->exptype, child->lt, sf, this);
+            tc.RetVal(child->exptype, sf, this);
             tc.SubType(child, sf->returntype, "", *this);
         }
     } else {
-        tc.RetVal(type_void, LT_ANY, sf, this);
+        tc.RetVal(type_void, sf, this);
         tc.SubType(child, sf->returntype, "", *this);
     }
     return this;
