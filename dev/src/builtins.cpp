@@ -1096,6 +1096,55 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL0(command_line_arguments, "", "", "S]",
              "");
 
+    STARTDECL(thread_information) (VM &vm) {
+        vm.Push(NumHWThreads());
+        return NumHWCores();
+    }
+    ENDDECL0(thread_information, "", "", "II",
+             "returns the number of hardware threads, and the number of cores");
+
+    STARTDECL(is_worker_thread) (VM &vm) {
+        return vm.is_worker;
+    }
+    ENDDECL0(is_worker_thread, "", "", "I",
+             "wether the current thread is a worker thread");
+
+    STARTDECL(start_worker_threads) (VM &vm, Value &n) {
+        vm.StartWorkers(n.ival());
+        return Value();
+    }
+    ENDDECL1(start_worker_threads, "numthreads", "I", "",
+             "launch worker threads");
+
+    STARTDECL(stop_worker_threads) (VM &vm) {
+        vm.TerminateWorkers();
+        return Value();
+    }
+    ENDDECL0(stop_worker_threads, "", "", "",
+             "only needs to be called if you want to stop the worker threads before the end of"
+             " the program, or if you want to call start_worker_threads again. workers_alive"
+             " will become false inside the workers, which should then exit.");
+
+    STARTDECL(workers_alive) (VM &vm) {
+        return vm.tuple_space && vm.tuple_space->alive;
+    }
+    ENDDECL0(workers_alive, "", "", "I",
+             "wether workers should continue doing work. returns false after"
+             " stop_worker_threads() has been called.");
+
+    STARTDECL(thread_write) (VM &vm, Value &s) {
+        vm.WorkerWrite(s.refnil());
+        return Value();
+    }
+    ENDDECL1(thread_write, "struct", "A", "",
+             "put this struct in the thread queue");
+
+    STARTDECL(thread_read) (VM &vm, Value &t) {
+        return vm.WorkerRead((type_elem_t)t.ival());
+    }
+    ENDDECL1(thread_read, "type", "T", "A1?",
+             "get a struct from the thread queue. pass the typeof struct. blocks if no such"
+             "structs available. returns struct, or nil if stop_worker_threads() was called");
 }
 
 }

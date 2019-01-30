@@ -50,7 +50,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
        const void *static_bytecode, const vector<string> &args)
       : natreg(natreg), maxstacksize(DEFMAXSTACKSIZE),
         bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
-        compiled_code_ip(entry_point), program_args(args) {
+        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode), program_args(args) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     bcf = bytecode::GetBytecodeFile(bcfb);
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
@@ -92,6 +92,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
 }
 
 VM::~VM() {
+    TerminateWorkers();
     if (stack) delete[] stack;
     if (vars)  delete[] vars;
     if (byteprofilecounts) delete[] byteprofilecounts;
@@ -662,6 +663,7 @@ void VM::CoResume(LCoRoutine *co) {
 }
 
 void VM::EndEval(const Value &ret, ValueType vt) {
+    TerminateWorkers();
     ostringstream ss;
     ret.ToString(*this, ss, vt, programprintprefs);
     evalret = ss.str();
@@ -1618,6 +1620,93 @@ string_view VM::StructName(const TypeInfo &ti) {
 string_view VM::ReverseLookupType(uint v) {
     auto s = bcf->structs()->Get(v)->name();
     return flat_string_view(s);
+}
+
+void VM::StartWorkers(size_t numthreads) {
+    if (is_worker) Error("workers can\'t start more worker threads");
+    if (tuple_space) Error("workers already running");
+    // Stop bad values from locking up the machine :)
+    numthreads = min(numthreads, (size_t)256);
+    tuple_space = new TupleSpace(bcf->structs()->size());
+    for (size_t i = 0; i < numthreads; i++) {
+        // Create a new VM that should own all its own memory and be completely independent
+        // from this one.
+        // We share natreg and programname for now since they're fully read-only.
+        // FIXME: have to copy this even though it is read-only.
+        auto bc = bytecode_buffer;
+        auto wvm = new VM(natreg, programname, bc, compiled_code_ip, compiled_code_bc,
+                          vector<string>());
+        wvm->is_worker = true;
+        wvm->tuple_space = tuple_space;
+        workers.emplace_back([wvm] {
+            string err;
+            #ifdef USE_EXCEPTION_HANDLING
+            try
+            #endif
+            {
+                wvm->EvalProgram();
+            }
+            #ifdef USE_EXCEPTION_HANDLING
+            catch (string &s) {
+                if (s != "end-eval") err = s;
+            }
+            #endif
+            delete wvm;
+            // FIXME: instead return err to main thread?
+            if (!err.empty()) LOG_ERROR("worker error: ", err);
+        });
+    }
+}
+
+void VM::TerminateWorkers() {
+    if (is_worker || !tuple_space) return;
+    tuple_space->alive = false;
+    for (auto &tt : tuple_space->tupletypes) tt.condition.notify_all();
+    for (auto &worker : workers) worker.join();
+    workers.clear();
+    delete tuple_space;
+    tuple_space = nullptr;
+}
+
+void VM::WorkerWrite(RefObj *ref) {
+    if (!tuple_space) return;
+    if (!ref) Error("thread write: nil reference");
+    auto &ti = ref->ti(*this);
+    if (ti.t != V_STRUCT) Error("thread write: must be a struct");
+    auto st = (LStruct *)ref;
+    auto buf = new Value[ti.len];
+    for (int i = 0; i < ti.len; i++) {
+        // FIXME: lift this restriction.
+        if (IsRefNil(GetTypeInfo(ti.elems[i]).t))
+            Error("thread write: only scalar struct members supported for now");
+        buf[i] = st->AtS(i);
+    }
+    auto &tt = tuple_space->tupletypes[ti.structidx];
+    {
+        unique_lock<mutex> lock(tt.mtx);
+        tt.tuples.push_back(buf);
+    }
+    tt.condition.notify_one();
+}
+
+LStruct *VM::WorkerRead(type_elem_t tti) {
+    auto &ti = GetTypeInfo(tti);
+    if (ti.t != V_STRUCT) Error("thread read: must be a struct type");
+    Value *buf = nullptr;
+    auto &tt = tuple_space->tupletypes[ti.structidx];
+    {
+        unique_lock<mutex> lock(tt.mtx);
+        tt.condition.wait(lock, [&] { return !tuple_space->alive || !tt.tuples.empty(); });
+        if (!tt.tuples.empty()) {
+            buf = tt.tuples.front();
+            tt.tuples.pop_front();
+        }
+    }
+    if (!buf) return nullptr;
+    auto ns = NewStruct(ti.len, tti);
+    ns->Init(*this, buf, ti.len, false);
+    delete[] buf;
+    return ns;
 }
 
 }  // namespace lobster

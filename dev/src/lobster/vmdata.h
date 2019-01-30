@@ -628,6 +628,26 @@ struct StackFrame {
 struct NativeFun;
 struct NativeRegistry;
 
+// This contains all data shared between threads.
+struct TupleSpace {
+    struct TupleType {
+        // We have an independent list of tuples and synchronization per type, for minimum
+        // contention.
+        list<Value *> tuples;
+        mutex mtx;
+        condition_variable condition;
+    };
+    vector<TupleType> tupletypes;
+
+    atomic<bool> alive = true;
+
+    TupleSpace(size_t numstructs) : tupletypes(numstructs) {}
+
+    ~TupleSpace() {
+        for (auto &tt : tupletypes) for (auto p : tt.tuples) delete[] p;
+    }
+};
+
 struct VM {
     SlabAlloc pool;
 
@@ -723,8 +743,13 @@ struct VM {
     #endif
 
     const void *compiled_code_ip;
+    const void *compiled_code_bc;
 
     const vector<string> &program_args;
+
+    bool is_worker = false;
+    vector<thread> workers;
+    TupleSpace *tuple_space = nullptr;
 
     VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args);
@@ -765,6 +790,11 @@ struct VM {
     void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip);
 
     void FinalStackVarsCleanup();
+
+    void StartWorkers(size_t numthreads);
+    void TerminateWorkers();
+    void WorkerWrite(RefObj *ref);
+    LStruct *WorkerRead(type_elem_t tti);
 
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_OP_ARGS const int *ip
