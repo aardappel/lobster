@@ -191,6 +191,7 @@ struct SubFunction {
     ArgVector args { 0 };
     ArgVector locals { 0 };
     ArgVector freevars { 0 };       // any used from outside this scope
+    TypeRef fixedreturntype = nullptr;
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
@@ -208,7 +209,6 @@ struct SubFunction {
     bool typechecked = false;
     bool freevarchecked = false;
     bool mustspecialize = false;
-    bool fixedreturntype = false;
     bool logvarcallgraph = false;
     bool isdynamicfunctionvalue = false;
     int numcallers = 0;

@@ -620,7 +620,7 @@ struct TypeChecker {
         // FIXME: this is all a bit ad-hoc.
         assert(sf->ltret == lt || sf->ltret == LT_UNDEF || lt == LT_ANY || lt == LT_KEEP);
         sf->ltret = lt;
-        if (!sf->fixedreturntype) {
+        if (sf->fixedreturntype.Null()) {
             if (sf->reqret) {
                 // If this is a recursive call we must be conservative because there may already
                 // be callers dependent on the return type so far, so any others must be subtypes.
@@ -662,12 +662,16 @@ struct TypeChecker {
         for (auto &arg : sf.args.v) enter_scope(arg);
         for (auto &local : sf.locals.v) enter_scope(local);
         sf.coresumetype = sf.iscoroutine ? NewNilTypeVar() : type_undefined;
-        if (!sf.fixedreturntype) sf.returntype = sf.reqret ? NewTypeVar() : type_void;
+        sf.returntype = sf.reqret
+            ? (!sf.fixedreturntype.Null() ? sf.fixedreturntype : NewTypeVar())
+            : type_void;
         auto start_borrowed_vars = borrowstack.size();
         auto start_promoted_vars = flowstack.size();
         TypeCheckList(sf.body, true, 0, LT_ANY);
         CleanUpFlow(start_promoted_vars);
         if (!sf.num_returns) {
+            if (!sf.fixedreturntype.Null() && sf.fixedreturntype->t != V_VOID)
+                TypeError("missing return statement", *sf.body->children.back());
             sf.returntype = type_void;
             sf.ltret = LT_ANY;
         }

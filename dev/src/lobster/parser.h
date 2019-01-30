@@ -521,8 +521,7 @@ struct Parser {
             sf->reqret = sf->returntype->NumValues();
         } else {
             if (IsNext(T_CODOT)) {  // Return type decl.
-                sf->fixedreturntype = true;
-                ParseType(sf->returntype, false, nullptr, sf);
+                ParseType(sf->fixedreturntype, false, nullptr, sf);
             }
             if (!expfunval) Expect(T_COLON);
         }
