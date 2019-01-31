@@ -117,4 +117,5 @@ run_test("parsereval"):
     assert ast.eval() == 34
     code := compile(ast)
     assert code == "(((2*3)*4)+10)"
-    assert compile_run_code(code, []) == "34"
+    if not vm_compiled_mode():
+        assert compile_run_code(code, []) == "34"

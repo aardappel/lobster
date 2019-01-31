@@ -912,9 +912,8 @@ VM_DEF_CAL(CALLMULTI) {
 VM_DEF_INS(FUNMULTI) {
     #ifdef VM_COMPILED_CODE_MODE
         auto cip = next_mm_call;
-        auto fvar = *cip++;
-        cip++;
-        EvalMulti(ip, fvar, cip, next_call_target);
+        cip++;  // bytecode start of FUNMULTI.
+        EvalMulti(ip, cip, next_call_target);
     #else
         VMASSERT(false);
     #endif

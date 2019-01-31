@@ -199,7 +199,9 @@ inline const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int
             break;
 
         case IL_FUNSTART: {
-            ss << flat_string_view(bcf->functions()->Get(*ip++)->name()) << "(";
+            auto fidx = *ip++;
+            ss << (fidx >= 0 ? flat_string_view(bcf->functions()->Get(fidx)->name()) : "__dummy");
+            ss << "(";
             int n = *ip++;
             while (n--) ss << IdName(bcf, *ip++) << ' ';
             n = *ip++;

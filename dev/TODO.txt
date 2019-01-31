@@ -29,7 +29,6 @@
         transfer, but mark variable as dead so any further uses can be errors.
     - go thru an AST dump and check that where lifetime changes happen makes sense.
     - somehow get rid of ownedvars in FUNSTART. generally clean up function calling.
-  - test in tocpp mode.
   - add language features that make use of this new system:
   - make "value" structs not have a refcount at all, and be copied instead of incref,
     deleted instead of decref. put behind #ifdef.
@@ -1460,32 +1459,34 @@ At (2) bumped iterations 20% because a bug in GOAP was fixed that made it faster
 At (3) completely reworked benchmarks to add a lot more variety, but balanced to
 still take the same total time for comparison.
 
-VM: last_dyn_typed  : secs 57.1, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531
-VM: last_switch     : secs 43.2, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: over fun ptr    : secs 39.5, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-C++: first comp     : secs 33.9, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
-VM: first inline    : secs 37.0, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-C++: first inline   : secs 30.1, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
-VM: inlined for     : secs 29.3, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-C++: inlined for    : secs 20.0, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
-VM: inlined for     : secs 29.2, 1.77x vs 2600K (1)
-C++: inlined for    : secs 20.0, 1.43x vs 2600K
-VM64: inlined for   : secs 23.8, 1.23x vs 32bit
-C++64: inlined for  : secs 17.2, 1.16x vs 32bit
-VM: vec/struct      : secs 26.4
-VM64: vec/struct    : secs 21.1
-VM64: may 2018      : secs 21.5
-VM64: compr_ptr     : secs 20.2, 1.07x vs native pointers
-VM64-MSVC: oct 2018 : secs 21.8
-VM64-LLVM: oct 2018 : secs 20.8, 1.05x MSVC (without -flto, which doesn't work)
-VM64-LLVM: compr_ptr: secs 21.1, 0.98x vs native pointers, unlike MSVC!
-VM64-LLVM: dec 2018 : secs 20.5, return value related refactorings.
-VM64-LLVM: lifetime1: secs 20.8, lifetime off (4649 alloc, 105402 decr)
-VM64-LLVM: lifetime1: secs 18.6, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
-VM64-LLVM: lifetime2: secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
-VM64-LLVM: lifetime2: secs 18.8 (2)
-VM64-LLVM: lifetime2: secs 18.9, strings pooled (3945 alloc, 13126 decr)
-VM64-LLVM: lifetime2: secs 18.9 (3) (332258 alloc, 636280 decr)
+VM: last_dyn_typed    : secs 57.1, ins 599572240, fcall 57534476, bcall 2534535, totalalloc 4501531
+VM: last_switch       : secs 43.2, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
+VM: over fun ptr      : secs 39.5, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
+C++: first comp       : secs 33.9, ins 528287030, fcall 53352301, bcall 3283290, totalalloc 4528586
+VM: first inline      : secs 37.0, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
+C++: first inline     : secs 30.1, ins 511702691, fcall 34036002, bcall 3289786, totalalloc 4559054
+VM: inlined for       : secs 29.3, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
+C++: inlined for      : secs 20.0, ins 532311325, fcall 10848019, bcall 3285282, totalalloc 4528342
+VM: inlined for       : secs 29.2, 1.77x vs 2600K (1)
+C++: inlined for      : secs 20.0, 1.43x vs 2600K
+VM64: inlined for     : secs 23.8, 1.23x vs 32bit
+C++64: inlined for    : secs 17.2, 1.16x vs 32bit
+VM: vec/struct        : secs 26.4
+VM64: vec/struct      : secs 21.1
+VM64: may 2018        : secs 21.5
+VM64: compr_ptr       : secs 20.2, 1.07x vs native pointers
+VM64-MSVC: oct 2018   : secs 21.8
+VM64-LLVM: oct 2018   : secs 20.8, 1.05x MSVC (without -flto, which doesn't work)
+VM64-LLVM: compr_ptr  : secs 21.1, 0.98x vs native pointers, unlike MSVC!
+VM64-LLVM: dec 2018   : secs 20.5, return value related refactorings.
+VM64-LLVM: lifetime1  : secs 20.8, lifetime off (4649 alloc, 105402 decr)
+VM64-LLVM: lifetime1  : secs 18.6, first ever lifetime, few optimisations (4649 alloc, 7175 decr)
+VM64-LLVM: lifetime2  : secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
+VM64-LLVM: lifetime2  : secs 18.8 (2)
+VM64-LLVM: lifetime2  : secs 18.9, strings pooled (3945 alloc, 13126 decr)
+VM64-LLVM: lifetime2  : secs 18.9 (3) (332258 alloc, 636280 decr)
+C++64-LLVM: lifetime3 : secs 15.7 (with LLVM, LTCG doesn't appear to work under VS)
+C++64-MSVC: lifetime3 : secs 13.8 (LTCG on)
 
 compiletime speed:
 

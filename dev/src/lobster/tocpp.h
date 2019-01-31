@@ -18,6 +18,7 @@ namespace lobster {
 
 int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     auto arity = ILArity()[opc];
+    auto ips = ip;
     switch(opc) {
         default: {
             assert(arity >= 0);
@@ -28,14 +29,13 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             ip += 2;
             int n = *ip++;
             ip += n;
-            arity = n + 3;
+            arity = int(ip - ips);
             break;
         }
         case IL_CALLMULTI: {
-            auto nargs = code[*ip++ + 2];
-            ip++;
+            auto nargs = code[*ip++ + 3];
             ip += nargs;
-            arity = nargs + 3;
+            arity = int(ip - ips);
             break;
         }
         case IL_FUNSTART: {
@@ -47,7 +47,7 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             ip++;  // keepvar
             int o = *ip++;  // ownedvar
             ip += o;
-            arity = n + m + o + 6;
+            arity = int(ip - ips);
             break;
         }
         case IL_FUNMULTI: {
@@ -56,7 +56,7 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             auto nargs = *ip++;
             auto tablesize = (nargs + 1) * n;
             ip += tablesize;
-            arity = tablesize + 3;
+            arity = int(ip - ips);
             break;
         }
     }
@@ -117,6 +117,11 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
                 block_ids[ip - code] = block_id++;
             }
+        }
+        if (false) {  // Debug corrupt bytecode.
+            ostringstream dss;
+            DisAsmIns(natreg, dss, ip, code, (const type_elem_t *)bcf->typetable()->Data(), bcf);
+            LOG_DEBUG(dss.str());
         }
         int opc = *ip++;
         if (opc < 0 || opc >= IL_MAX_OPS) {
