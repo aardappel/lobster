@@ -132,9 +132,6 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
             (sf->numcallers > 1 && sf->body->Count() >= 8))  // FIXME: configurable.
             return this;
     }
-    // Note that sf_def in these Ident's being moved is now not correct anymore, but the
-    // only use for that field is to determine if the variable is "global" after the optimizer,
-    // so we let that slip.
     auto AddToLocals = [&](const ArgVector &av) {
         for (auto &arg : av.v) {
             // We have to check if the sid already exists, since inlining the same function
@@ -142,6 +139,7 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
             // between the copies in the parent, second use overwrites the first etc.
             for (auto &loc : opt.cursf->locals.v) if (loc.sid == arg.sid) goto already;
             opt.cursf->locals.v.push_back(arg);
+            arg.sid->sf_def = opt.cursf;
             already:;
         }
     };

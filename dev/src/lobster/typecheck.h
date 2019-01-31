@@ -1313,9 +1313,7 @@ struct TypeChecker {
         for (int i = (int)scopes.size() - 1; i >= 0; i--) {
             auto sf = scopes[i].sf;
             // Check if we arrived at the definition point.
-            // Since this function may have been cloned since, we also accept any specialization.
-            if (sid.id->sf_def == sf ||
-                (sid.id->sf_def->parent == sf->parent && !sf->parent->multimethod))
+            if (sid.sf_def == sf)
                 break;
             // We use the id's type, not the flow sensitive type, just in case there's multiple uses
             // of the var. This will get corrected after the call this is part of.
@@ -2403,7 +2401,25 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
     // Additionally, we have to do this for reused specializations on new SpecIdents.
-    tc.TT(child, make_void ? 0 : sf->reqret, LT_KEEP);
+    auto reqlt = LT_KEEP;
+    auto reqret = make_void ? 0 : sf->reqret;
+    // Special (but very common) case: optimize lifetime for "return var" case, where var owns
+    // and this is the only return statement. Without this we'd get an inc on the var that's
+    // immediately undone as the scope ends.
+    auto ir = Is<IdentRef>(child);
+    if (ir) {
+        tc.UpdateCurrentSid(ir->sid);  // Ahead of time, because ir not typechecked yet.
+        if (ir->sid->lt == LT_KEEP &&
+            ir->sid->sf_def == sf &&
+            sf->num_returns == 0 &&
+            reqret &&
+            sf->body->children.back() == this) {
+            reqlt = LT_BORROW;  // Fake that we're cool borrowing this.
+            ir->sid->consume_on_last_use = true;  // Don't decref this one when going out of scope.
+        }
+    }
+    tc.TT(child, reqret, reqlt);
+    tc.DecBorrowers(child->lt, *this);
     if (sf == tc.st.toplevel) {
         // return from program
         if (child->exptype->NumValues() > 1)

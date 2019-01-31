@@ -299,7 +299,7 @@ struct CodeGen  {
             Emit((int)v.size());
             for (auto &arg : v) {
                 Emit(arg.sid->Idx());
-                if (ShouldDec({ *arg.sid })) {
+                if (ShouldDec({ *arg.sid }) && !arg.sid->consume_on_last_use) {
                     ownedvars.push_back(arg.sid);
                 }
             }

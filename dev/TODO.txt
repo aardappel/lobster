@@ -1,19 +1,22 @@
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
+    - things like "while n: ..." (see astar) are a source of unnecessary inc/dec
+      see While::TypeCheck
     - make indexing and for do LT_KEEP and all-element borrow respectively.
       (see notes on sound lifetimes)
     - need to track last use of variable, so that the variable can turn from own->borrow there
       and potentially pass on the value for free.
-      - especially usefull in "return var" cases.
+      - we already do this as a special case for "return var".
+      - another special case we should do: last lexical use of a var that has never been used
+        as a free variable, thus deals with the exceptions below.
+      - would at some point be great to do this more general:
       - ensure that this deals with last use in both if branches, or in a for loop (no last use).
       - needs to happen during TT because free vars in calls can be in non-source code order.
         - this makes it hard to detect the last use when it happens.
           - can lift ownership checking into seperate pass, possibly with duplication.
           - or can do an approximation, track last lexical use in parser, and only allow it
             to straddle known anonymous functions, such as if/while/for?
-          - or only recognize limited cases, such as "return var",
-            which is always the last use.
           - or, count the number of uses in parser, so TC can recognize last use even if out of
             order.
             - though this still doesn't take care of freevar in function called twice
@@ -24,23 +27,9 @@
         - but it can be borrowed in all sorts of ways so this is also not an exact science.
       - or, for owned variables (with no refcount) where recip wants to own, allow ownership to
         transfer, but mark variable as dead so any further uses can be errors.
-      - search for "FIXME: lifetime" for some cases in the code where this would help.
-      - this doesn't work because of borrow lock, but could be helped by last use of var:
-        nn := n.previous
-        n.previous = nil
-        n = nn
     - go thru an AST dump and check that where lifetime changes happen makes sense.
-    - consider allowing borrow for return values.
-      - in particular things like "while n: ..." (see astar) are a source of unnecessary inc/dec
-        see While::TypeCheck
     - somehow get rid of ownedvars in FUNSTART. generally clean up function calling.
-    - more advanced analysis around assignment and builtins that manipulate vectors
-      - e.g. n in astar_generic needs to keep rather than borrow, since it can drop to
-        0 refc when remove_obj otherwise
-        another example is startpos in unittest, where the var outlives the keepref on
-        xy { x, y }
-        currently that is fixed by making all assigned to vars own, but that is not ideal.
-        see check for single_assignment in typechecker (currently only for defs, not args!)
+  - test in tocpp mode.
   - add language features that make use of this new system:
   - make "value" structs not have a refcount at all, and be copied instead of incref,
     deleted instead of decref. put behind #ifdef.
@@ -72,6 +61,9 @@
 
 - should have slaballoc use indices so allocation granularity can always be smaller?
   especially when using 32-bit emulation.
+
+- should make if/while conditions detect non-nil variables as always true conditions and
+  optimize accordingly.
 
 - remaining improvements we can do related to return values.
   - allow multi-methods to be specialized on reqret etc.
@@ -110,10 +102,11 @@
 - tagged arguments in Lobster for function calls.
   maybe also add default args while we're at it.
 
-- Try out threads, should be easy now that we have vm as a parameter.
+- Improve threads.
   - Would be good to reduce globals, and/or not make builtins that rely on globals available
     to worker threads.
-  - a string is the natural thing to communicate right now, given the new binary writing functionality.
+  - Allow any data to be passed between threads.
+  - Use it in some compute heavy samples like smallpt.
 
 - binary string ops:
   - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
@@ -987,7 +980,6 @@
     software-based audio mixing, some way to loop sounds.
   - sphere-to-frustum intersection for easy culling
   - TCP-IP? enet?
-  - threading
   - JSON
   - launching processes and other shell stuff
 
@@ -1111,21 +1103,12 @@
 
 - compressed loading/saving using my entropy encoder
 
-- threading might be fun to try out for something like smallpt
-  - can then either launch threads using the same mechanism as compile_run (pass strings between threads)
-    or maybe better just instantiate more VMs based on the same bytecode, that way we can
-    - pass data structures with refc==1 (if we share an alloc, though then all allocs must be threadsafe)
-    - or clone em (still a lot better than parsing), though to clone, need to access other VMs allocator?
-    hmm it be really nice to keep slaballoc thread-unsafe, so maybe it has to go thru an intermediary copy
-  what about SDL being optional, and we'd like to use its threading functionality? (see elsewhere)
-
 - didn't solve no mouse up msg when leaving window
 
 - see if we can get page aligned memory with VirtualAlloc / mmap for slaballoc
 
 - making SDL manditory:
   + it's already mandatory on Android/iOS
-  + can use SDL log/file/thread abstractions.. threading in particular!
   + error handling
   + can make features that rely on graphics, like a graphical console/print, graphical debugging, could kill the DOS
     console
@@ -1502,7 +1485,7 @@ VM64-LLVM: lifetime1: secs 18.6, first ever lifetime, few optimisations (4649 al
 VM64-LLVM: lifetime2: secs 19.0, first lifetime commit, slightly conservative (4649 alloc, 18858 decr)
 VM64-LLVM: lifetime2: secs 18.8 (2)
 VM64-LLVM: lifetime2: secs 18.9, strings pooled (3945 alloc, 13126 decr)
-VM64-LLVM: lifetime2: secs 18.9 (3)
+VM64-LLVM: lifetime2: secs 18.9 (3) (332258 alloc, 636280 decr)
 
 compiletime speed:
 

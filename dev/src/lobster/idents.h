@@ -35,9 +35,6 @@ struct SpecIdent;
 struct Ident : Named {
     size_t scopelevel;
 
-    // TODO: remove this from Ident, only makes sense during parsing really.
-    SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
-
     bool single_assignment = true;  // not declared const but def only, exp may or may not be const
     bool constant = false;          // declared const
     bool static_constant = false;   // not declared const but def only, exp is const.
@@ -56,8 +53,8 @@ struct Ident : Named {
     }
 
     flatbuffers::Offset<bytecode::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
-                                                   SubFunction *toplevel) {
-        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, sf_def == toplevel);
+                                                   bool is_top_level) {
+        return bytecode::CreateIdent(fbb, fbb.CreateString(name), constant, is_top_level);
     }
 };
 
@@ -65,8 +62,10 @@ struct SpecIdent {
     Ident *id;
     TypeRef type;
     Lifetime lt = LT_UNDEF;
+    bool consume_on_last_use = false;
     int logvaridx = -1;
     int idx, sidx = -1;     // Into specidents, and into vm ordering.
+    SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
 
     SpecIdent(Ident *_id, TypeRef _type, int idx)
         : id(_id), type(_type), idx(idx){}
@@ -356,9 +355,9 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *NewId(string_view name) {
+    Ident *NewId(string_view name, SubFunction *sf) {
         auto ident = new Ident(name, (int)identtable.size(), scopelevels.size());
-        ident->cursid = NewSid(ident);
+        ident->cursid = NewSid(ident, sf);
         identtable.push_back(ident);
         return ident;
     }
@@ -367,13 +366,13 @@ struct SymbolTable {
                      bool withtype) {
         auto sf = defsubfunctionstack.back();
         auto existing_ident = Lookup(name);
-        if (anonymous_arg && existing_ident && existing_ident->sf_def == sf) return existing_ident;
+        if (anonymous_arg && existing_ident && existing_ident->cursid->sf_def == sf)
+            return existing_ident;
         Ident *ident = nullptr;
         if (LookupWithStruct(name, lex, ident))
             lex.Error("cannot define variable with same name as field in this scope: " + name);
-        ident = NewId(name);
+        ident = NewId(name, sf);
         ident->anonymous_arg = anonymous_arg;
-        ident->sf_def = sf;
         (islocal ? sf->locals : sf->args).v.push_back(
             Arg(ident->cursid, type_any, AF_GENERIC | (withtype ? AF_WITHTYPE : AF_NONE)));
         if (existing_ident) {
@@ -570,19 +569,22 @@ struct SymbolTable {
         return nullptr;
     }
 
-    SpecIdent *NewSid(Ident *id, TypeRef type = nullptr) {
+    SpecIdent *NewSid(Ident *id, SubFunction *sf, TypeRef type = nullptr) {
         auto sid = new SpecIdent(id, type, (int)specidents.size());
+        sid->sf_def = sf;
         specidents.push_back(sid);
         return sid;
     }
 
-    void CloneSids(ArgVector &av) {
-        for (auto &a : av.v) a.sid = NewSid(a.sid->id);
+    void CloneSids(ArgVector &av, SubFunction *sf) {
+        for (auto &a : av.v) {
+            a.sid = NewSid(a.sid->id, sf);
+        }
     }
 
     void CloneIds(SubFunction &sf, const SubFunction &o) {
-        sf.args = o.args;                     CloneSids(sf.args);
-        sf.locals = o.locals;                 CloneSids(sf.locals);
+        sf.args = o.args;     CloneSids(sf.args, &sf);
+        sf.locals = o.locals; CloneSids(sf.locals, &sf);
         // Don't clone freevars, these will be accumulated in the new copy anew.
     }
 
@@ -684,7 +686,7 @@ struct SymbolTable {
         vector<flatbuffers::Offset<bytecode::Struct>> structoffsets;
         for (auto s : structtable) structoffsets.push_back(s->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
-        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, toplevel));
+        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->cursid->sf_def == toplevel));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
             LOBSTER_BYTECODE_FORMAT_VERSION,
             fbb.CreateVector(code),
