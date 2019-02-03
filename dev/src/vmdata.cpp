@@ -18,7 +18,7 @@
 
 namespace lobster {
 
-LString::LString(intp _l) : RefObj(TYPE_ELEM_STRING), len(_l) {}
+LString::LString(intp _l) : RefObj(TYPE_ELEM_STRING), len(_l) { ((char *)data())[_l] = 0; }
 
 LResource::LResource(void *v, const ResourceType *t)
     : RefObj(TYPE_ELEM_RESOURCE), val(v), type(t) {}

@@ -240,7 +240,6 @@ LString *VM::NewString(string_view s) {
     auto r = NewString(s.size());
     auto dest = (char *)r->data();
     memcpy(dest, s.data(), s.size());
-    dest[s.size()] = 0;
     #if DELETE_DELAY
         LOG_DEBUG("string: \"", s, "\" - ", (size_t)r);
     #endif
@@ -252,7 +251,6 @@ LString *VM::NewString(string_view s1, string_view s2) {
     auto dest = (char *)s->data();
     memcpy(dest, s1.data(), s1.size());
     memcpy(dest + s1.size(), s2.data(), s2.size());
-    dest[s1.size() + s2.size()] = 0;
     return s;
 }
 

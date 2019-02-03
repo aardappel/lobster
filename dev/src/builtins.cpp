@@ -421,7 +421,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "second return value is true if all characters of the string were parsed");
 
     STARTDECL(string_to_float) (VM &, Value &s) {
-        auto f = strtod(null_terminated(s.sval()->strv()), nullptr);
+        auto f = strtod(s.sval()->data(), nullptr);
         return Value(f);
     }
     ENDDECL1(string_to_float, "s", "S", "F",
