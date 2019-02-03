@@ -256,6 +256,10 @@
     - A simple jit would not be hard since most are calls, but would miss inlining. Now
       we'll have extra work to do to special purpose compile things to the JIT that so far
       have been simple instructions.
+      - certainly a super simple JIT is pointless since there is currently a small gap between
+        VM and C++ mode (which does inlining), so a simple JIT would probably gets on the order
+        of 10-15% speedup. We'd first need to get the rest of the code more efficient before this
+        becomes a bigger speedup.
       - Maybe LLVM as jit can do inlining assuming I have the rest of the code also available
         as .ll, but that becomes almost as unwieldy as going thru C++.
     - Always invoking C++ means easy inlining and easy instruction definition, but complicates
@@ -274,6 +278,23 @@
     - PUSHVAR
       - worth some special purpose ops to combine with PUSHFLD etc?
       - measure most frequent combinations of 2 ops.
+        instruction PUSHVAR -> PUSHVAR (27133922x)
+        instruction VAR_WRITE -> PUSHVAR (20270162x)
+        instruction PUSHVAR -> PUSHFLD (9933712x)
+        instruction PUSHVAR -> VPUSHIDXI (6405620x)
+        instruction PUSHVAR -> PUSHINT (5314620x)
+        instruction JUMPFAIL -> VFOR (4916250x)
+        instruction PUSHFLD -> PUSHVAR (4525932x)
+        instruction PUSHVAR -> VAR_WRITE (4029370x)
+        instruction JUMPFAIL -> PUSHVAR (4011310x)
+        instruction IFOR -> IFORELEM (3636490x)
+        instruction IFORELEM -> VAR_WRITE (3636490x)
+        instruction VFOR -> VFORELEMREF (3593734x)
+        instruction VFORELEMREF -> VAR_WRITEREF (3593734x)
+        instruction PUSHINT -> I2F (3538175x)
+        instruction VFORELEM -> VAR_WRITE (3433180x)
+        instruction VFOR -> VFORELEM (3433180x)
+        instruction FORLOOPI -> VAR_WRITE (3067440x)
     - function calling.
 
 - Make includes explicitly depend on eachother.

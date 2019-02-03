@@ -46,6 +46,12 @@ enum {
 #define POPN(n) (sp -= (n))
 #define TOPPTR() (stack + sp + 1)
 
+#define MEASURE_INSTRUCTION_COMBINATIONS 0
+#if MEASURE_INSTRUCTION_COMBINATIONS
+map<pair<int, int>, size_t> instruction_combinations;
+int last_instruction_opc = -1;
+#endif
+
 VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
       : natreg(natreg), maxstacksize(DEFMAXSTACKSIZE),
@@ -718,6 +724,21 @@ void VM::EndEval(const Value &ret, ValueType vt) {
             LOG_INFO("ins ", vm_count_ins, ", fcall ", vm_count_fcalls, ", bcall ",
                                 vm_count_bcalls, ", decref ", vm_count_decref);
     #endif
+    #if MEASURE_INSTRUCTION_COMBINATIONS
+        struct trip { size_t freq; int opc1, opc2; };
+        vector<trip> combinations;
+        for (auto &p : instruction_combinations)
+            combinations.push_back({ p.second, p.first.first, p.first.second });
+        sort(combinations.begin(), combinations.end(), [](const trip &a, const trip &b) {
+            return a.freq > b.freq;
+        });
+        combinations.resize(50);
+        for (auto &c : combinations) {
+            LOG_PROGRAM("instruction ", ILNames()[c.opc1], " -> ", ILNames()[c.opc2], " (",
+                        c.freq, "x)");
+        }
+        instruction_combinations.clear();
+    #endif
     #ifndef VM_ERROR_RET_EXPERIMENT
     THROW_OR_ABORT(string("end-eval"));
     #endif
@@ -783,6 +804,10 @@ void VM::EvalProgramInner() {
                 vm_count_ins++;
             #endif
             auto op = *ip++;
+            #if MEASURE_INSTRUCTION_COMBINATIONS
+                instruction_combinations[{ last_instruction_opc, op }]++;
+                last_instruction_opc = op;
+            #endif
             #ifndef NDEBUG
                 if (op < 0 || op >= IL_MAX_OPS)
                     Error(cat("bytecode format problem: ", op));
