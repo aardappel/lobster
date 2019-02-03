@@ -940,6 +940,7 @@ VM_DEF_INS(FUNMULTI) {
 VM_DEF_CAL(CALLVCOND) {
     // FIXME: don't need to check for function value again below if false
     if (!TOP().True()) {
+        POP();
         #ifdef VM_COMPILED_CODE_MODE
             next_call_target = 0;
         #endif
