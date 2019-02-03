@@ -35,6 +35,31 @@
     - test speed, as these extra allocs may temporarily make things slower than faster.
     - always store these structs inline in the parent. this should be an awesome further
       speedup as theres a lot of allocations happening for 2d/3d vectors.
+    - multiple ways to do this:
+      1) store inline, but still represent value as pointer to inline value.
+      - means most existing code will "just work", so simplest.
+      - on the stack, we'd have a region of temp inline values, much like keepvars.
+      - means pointers shouldn't move, so:
+        - stack needs to be made non-resizable, which is probably ok.
+        - objects need to use borrowing to lock parent.
+        - vectors need to use borrowing and also lock against resizing with push()
+      - potentially faster than fully inline, since borrowed vars only put one value on the stack,
+        rather than N
+      - complication: all ops and builtins that result in a temporary need to take the destination
+        as argument now.
+      2) fully inline by making them behave like multiple value on the stack, in fields and in
+      vectors.
+      - not fully general, as there are spots where we can only really deal with 1 value in the
+        VM, so would need to error out if one of these types is passed there.
+      - it may be easiest to keep the typechecker regarding these as a single value, but enhance
+        the codegen with keeping track of value-width, or even push multiple values on the temp
+        stack, and thus also error out if passed somewhere that can't deal with it.
+      - simpler than 1) in terms of borrowing, since whole copies are always passed, and thus
+        less likely to generate borrow errors.
+      - simpler than 1) in terms of returning values, since these will just be on the stack.
+    - for either approach would be nice as a next step to not store the tti anymore, and generate
+      that on the fly when needed. same for the length field, though that will require we
+      generate that value for builtins, or split up all builtins that can currently do 2/3/4 lens.
   - allow variables/fields/types? to be annotated as single owner, such that these can also
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
@@ -46,7 +71,17 @@
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
 
-- refactor unit/speed tests?
+- typechecking for bool, including output to true/false when printing etc.
+- how about slightly stronger typed enums, while we're at it?
+  - enums as types, and require explicit conversion int -> enum.
+  - or make bool an enum declared in stdtype.lobster? :)
+    - have to then make comparison ops return this type.
+
+- make a debugging / ui feature where any data structure can be displayed with e.g.
+  https://github.com/ocornut/imgui or alternatively html (by running a mini web server)
+  - could allow attributes to be added to struct decls to increase control over gui generated.
+  - can then also allow explicit gui features.. but starting with making any data structure
+    editable / displayable means you need less of them.
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?
@@ -209,10 +244,12 @@
     - what if they participate in a multimethod?
 
 - things that would help making --to-cpp faster:
-  - a central problem is that improving a lot of these means duplicating large segments of
-    the instruction space for refc and not, or the 5 instructions that use an lvalop.
-    The reason we have to keep doing this is factoring it into lots of smaller instructions
-    is too slow for an interpreter.
+  - current lowest hanging fruit:
+    - function calling (by far)
+    - small struct (xy(z)) alloc/dealloc
+  - a central problem is that things could be improved by splitting e.g. function calling up
+    in many small instructions, so not all calls have to pay the price for super generic
+    function call mechanism, but many instructions makes the VM slower.
     So we could probably make a lot more progress if we could first default to an execution
     method that does not have as much instruction overhead.
     Options:
@@ -226,17 +263,18 @@
       - Also easy to profile and debug compared to JIT.
     - Just keep moving forward with an unwieldy instruction set, since it is the simplest.
   - fmul/fadd are expensive??
-  - inline LvalueOp.
-  - specialized indexing op that gets vector variable instead of vector on stack, this way
-    you can avoid an inc and a dec.
-    - find other opportunities to reduce inc and dec.
-    - or, generically, make specialized pushvar that does not inc, and ops that consume it
-      that do not dec, and analyze when such pairs can be used.
   - find places where the trampoline can be avoided, especially for for() and its body.
     - should be easy when return X is followed by X:
     - with the switch based version could do direct jumps, but switch trashes the branch cache?
     - experiment with real gotos?
   - reduce use of ElemType.
+- things that would make VM faster:
+  - biggest cost, in this order:
+    - interpreter dispatch.
+    - PUSHVAR
+      - worth some special purpose ops to combine with PUSHFLD etc?
+      - measure most frequent combinations of 2 ops.
+    - function calling.
 
 - Make includes explicitly depend on eachother.
 
@@ -268,8 +306,6 @@
     - Probably better to first transition to unwinding being done by code, which would simplify
       this.
   - Must of course have new assignment ops for these structs since it needs to overwrite.
-
-- typechecking for bool, including output to true/false when printing etc.
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.
@@ -1487,6 +1523,8 @@ VM64-LLVM: lifetime2  : secs 18.9, strings pooled (3945 alloc, 13126 decr)
 VM64-LLVM: lifetime2  : secs 18.9 (3) (332258 alloc, 636280 decr)
 C++64-LLVM: lifetime3 : secs 15.7 (with LLVM, LTCG doesn't appear to work under VS)
 C++64-MSVC: lifetime3 : secs 13.8 (LTCG on)
+VM64-MSVC: lvalinl    : secs 18.4 Inlined the LvalOp function, one less switch()
+C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
 
 compiletime speed:
 

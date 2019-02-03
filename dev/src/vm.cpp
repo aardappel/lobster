@@ -79,15 +79,7 @@ VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const 
         memset(byteprofilecounts, 0, sizeof(uint64_t) * codelen);
     #endif
     vml.LogInit(bcfb);
-    #ifndef VM_INS_SWITCH
-        #ifdef VM_COMPILED_CODE_MODE
-            #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
-        #else
-            #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
-        #endif
-        ILNAMES
-        #undef F
-    #endif
+    InstructionPointerInit();
     constant_strings.resize(bcf->stringtable()->size());
 }
 
@@ -1340,27 +1332,6 @@ VM_DEF_INS(PUSHLOC) {
     VM_RET;
 }
 
-VM_DEF_INS(LVALLOC) {
-    int lvalop = *ip++;
-    int i = *ip++;
-    Value coro = POP();
-    VMTYPEEQ(coro, V_COROUTINE);
-    Value &a = coro.cval()->GetVar(*this, i);
-    LvalueOp(lvalop, a);
-    VM_RET;
-}
-
-VM_DEF_INS(LVALVAR)    {
-    int lvalop = *ip++;
-    LvalueOp(lvalop, vars[*ip++]);
-    VM_RET;
-}
-
-VM_DEF_INS(VLVALIDXI) { int lvalop = *ip++; LvalueIdxVector(lvalop, POP().ival()); VM_RET; }
-VM_DEF_INS(NLVALIDXI) { int lvalop = *ip++; LvalueIdxStruct(lvalop, POP().ival()); VM_RET; }
-VM_DEF_INS(LVALIDXV)  { int lvalop = *ip++; LvalueIdxVector(lvalop, GrabIndex(POP())); VM_RET; }
-VM_DEF_INS(LVALFLD)   { int lvalop = *ip++; LvalueField(lvalop, *ip++); VM_RET; }
-
 #ifdef VM_COMPILED_CODE_MODE
     #define GJUMP(N, V, C, P) VM_JMP_RET VM::F_##N() \
         { V; if (C) { P; return true; } else { return false; } }
@@ -1445,121 +1416,151 @@ void VM::PushDerefIdxString(intp i) {
     PUSH(Value((int)((uchar *)r.sval()->data())[i]));
 }
 
-void VM::LvalueIdxVector(int lvalop, intp i) {
+Value &VM::GetFieldLVal(intp i) {
+    Value vec = POP();
+    #ifdef _DEBUG
+        RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
+    #endif
+    return vec.stval()->AtS(i);
+}
+
+Value &VM::GetFieldILVal(intp i) {
+    Value vec = POP();
+    RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
+    return vec.stval()->AtS(i);
+}
+
+Value &VM::GetVecLVal(intp i) {
     Value vec = POP();
     RANGECHECK(i, vec.vval()->len, vec.vval());
-    Value &a = vec.vval()->At(i);
-    LvalueOp(lvalop, a);
+    return vec.vval()->At(i);
 }
 
-void VM::LvalueIdxStruct(int lvalop, intp i) {
-    Value vec = POP();
-    RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
-    Value &a = vec.stval()->AtS(i);
-    LvalueOp(lvalop, a);
+Value &VM::GetLocLVal(int i) {
+    Value coro = POP();
+    VMTYPEEQ(coro, V_COROUTINE);
+    return coro.cval()->GetVar(*this, i);
 }
 
-void VM::LvalueField(int lvalop, intp i) {
-    Value vec = POP();
-    RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
-    Value &a = vec.stval()->AtS(i);
-    LvalueOp(lvalop, a);
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(VAR_##N) { LV_##N(vars[*ip++]); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(FLD_##N) { LV_##N(GetFieldLVal(*ip++)); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(LOC_##N) { LV_##N(GetLocLVal(*ip++)); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(IDXVI_##N) { LV_##N(GetVecLVal(POP().ival())); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(IDXVV_##N) { LV_##N(GetVecLVal(GrabIndex(POP()))); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVAL(N) VM_DEF_INS(IDXNI_##N) { LV_##N(GetFieldILVal(POP().ival())); VM_RET; }
+    LVALOPNAMES
+#undef LVAL
+
+#define LVALCASES(N, B)     void VM::LV_##N(Value &a) { Value b = POP(); B;                          }
+#define LVALCASER(N, B, B2) void VM::LV_##N(Value &a) { Value b = POP(); B; a.LTDECRTNIL(*this); B2; }
+
+LVALCASER(IVVADD , _IVOP(+, 0, false, false), a = res;          )
+LVALCASER(IVVADDR, _IVOP(+, 0, false, false), a = res; PUSH(res))
+LVALCASER(IVVSUB , _IVOP(-, 0, false, false), a = res;          )
+LVALCASER(IVVSUBR, _IVOP(-, 0, false, false), a = res; PUSH(res))
+LVALCASER(IVVMUL , _IVOP(*, 0, false, false), a = res;          )
+LVALCASER(IVVMULR, _IVOP(*, 0, false, false), a = res; PUSH(res))
+LVALCASER(IVVDIV , _IVOP(/, 1, false, false), a = res;          )
+LVALCASER(IVVDIVR, _IVOP(/, 1, false, false), a = res; PUSH(res))
+LVALCASER(IVVMOD , VMASSERT(0),               a = b;            )
+LVALCASER(IVVMODR, VMASSERT(0),               a = b;   PUSH(b)  )
+
+LVALCASER(FVVADD , _FVOP(+, 0, false, false), a = res;          )
+LVALCASER(FVVADDR, _FVOP(+, 0, false, false), a = res; PUSH(res))
+LVALCASER(FVVSUB , _FVOP(-, 0, false, false), a = res;          )
+LVALCASER(FVVSUBR, _FVOP(-, 0, false, false), a = res; PUSH(res))
+LVALCASER(FVVMUL , _FVOP(*, 0, false, false), a = res;          )
+LVALCASER(FVVMULR, _FVOP(*, 0, false, false), a = res; PUSH(res))
+LVALCASER(FVVDIV , _FVOP(/, 1, false, false), a = res;          )
+LVALCASER(FVVDIVR, _FVOP(/, 1, false, false), a = res; PUSH(res))
+
+LVALCASER(IVSADD , _IVOP(+, 0, true,  false), a = res;          )
+LVALCASER(IVSADDR, _IVOP(+, 0, true,  false), a = res; PUSH(res))
+LVALCASER(IVSSUB , _IVOP(-, 0, true,  false), a = res;          )
+LVALCASER(IVSSUBR, _IVOP(-, 0, true,  false), a = res; PUSH(res))
+LVALCASER(IVSMUL , _IVOP(*, 0, true,  false), a = res;          )
+LVALCASER(IVSMULR, _IVOP(*, 0, true,  false), a = res; PUSH(res))
+LVALCASER(IVSDIV , _IVOP(/, 1, true,  false), a = res;          )
+LVALCASER(IVSDIVR, _IVOP(/, 1, true,  false), a = res; PUSH(res))
+LVALCASER(IVSMOD , VMASSERT(0),               a = b;            )
+LVALCASER(IVSMODR, VMASSERT(0),               a = b;   PUSH(b)  )
+
+LVALCASER(FVSADD , _FVOP(+, 0, true,  false), a = res;          )
+LVALCASER(FVSADDR, _FVOP(+, 0, true,  false), a = res; PUSH(res))
+LVALCASER(FVSSUB , _FVOP(-, 0, true,  false), a = res;          )
+LVALCASER(FVSSUBR, _FVOP(-, 0, true,  false), a = res; PUSH(res))
+LVALCASER(FVSMUL , _FVOP(*, 0, true,  false), a = res;          )
+LVALCASER(FVSMULR, _FVOP(*, 0, true,  false), a = res; PUSH(res))
+LVALCASER(FVSDIV , _FVOP(/, 1, true,  false), a = res;          )
+LVALCASER(FVSDIVR, _FVOP(/, 1, true,  false), a = res; PUSH(res))
+
+LVALCASES(IADD   , _IOP(+, 0);                a = res;          )
+LVALCASES(IADDR  , _IOP(+, 0);                a = res; PUSH(res))
+LVALCASES(ISUB   , _IOP(-, 0);                a = res;          )
+LVALCASES(ISUBR  , _IOP(-, 0);                a = res; PUSH(res))
+LVALCASES(IMUL   , _IOP(*, 0);                a = res;          )
+LVALCASES(IMULR  , _IOP(*, 0);                a = res; PUSH(res))
+LVALCASES(IDIV   , _IOP(/, 1);                a = res;          )
+LVALCASES(IDIVR  , _IOP(/, 1);                a = res; PUSH(res))
+LVALCASES(IMOD   , _IOP(%, 1);                a = res;          )
+LVALCASES(IMODR  , _IOP(%, 1);                a = res; PUSH(res))
+
+LVALCASES(FADD   , _FOP(+, 0);                a = res;          )
+LVALCASES(FADDR  , _FOP(+, 0);                a = res; PUSH(res))
+LVALCASES(FSUB   , _FOP(-, 0);                a = res;          )
+LVALCASES(FSUBR  , _FOP(-, 0);                a = res; PUSH(res))
+LVALCASES(FMUL   , _FOP(*, 0);                a = res;          )
+LVALCASES(FMULR  , _FOP(*, 0);                a = res; PUSH(res))
+LVALCASES(FDIV   , _FOP(/, 1);                a = res;          )
+LVALCASES(FDIVR  , _FOP(/, 1);                a = res; PUSH(res))
+
+LVALCASER(SADD   , _SCAT(),                   a = res;          )
+LVALCASER(SADDR  , _SCAT(),                   a = res; PUSH(res))
+
+void VM::LV_WRITE    (Value &a) { auto  b = POP();                      a = b; }
+void VM::LV_WRITER   (Value &a) { auto &b = TOP();                      a = b; }
+void VM::LV_WRITEREF (Value &a) { auto  b = POP(); a.LTDECRTNIL(*this); a = b; }
+void VM::LV_WRITERREF(Value &a) { auto &b = TOP(); a.LTDECRTNIL(*this); a = b; }
+
+#define PPOP(name, ret, op, pre, accessor) void VM::LV_##name(Value &a) { \
+    if (ret && !pre) PUSH(a); \
+    a.set##accessor(a.accessor() op 1); \
+    if (ret && pre) PUSH(a); \
 }
 
-void VM::LvalueOp(int op, Value &a) {
-    switch(op) {
-        #define LVALCASES(N, B)     case N: { Value b = POP(); B;                          break; }
-        #define LVALCASER(N, B, B2) case N: { Value b = POP(); B; a.LTDECRTNIL(*this); B2; break; }
-        LVALCASER(LVO_IVVADD , _IVOP(+, 0, false, false), a = res;          )
-        LVALCASER(LVO_IVVADDR, _IVOP(+, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_IVVSUB , _IVOP(-, 0, false, false), a = res;          )
-        LVALCASER(LVO_IVVSUBR, _IVOP(-, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_IVVMUL , _IVOP(*, 0, false, false), a = res;          )
-        LVALCASER(LVO_IVVMULR, _IVOP(*, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_IVVDIV , _IVOP(/, 1, false, false), a = res;          )
-        LVALCASER(LVO_IVVDIVR, _IVOP(/, 1, false, false), a = res; PUSH(res))
-
-        LVALCASER(LVO_FVVADD , _FVOP(+, 0, false, false), a = res;          )
-        LVALCASER(LVO_FVVADDR, _FVOP(+, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_FVVSUB , _FVOP(-, 0, false, false), a = res;          )
-        LVALCASER(LVO_FVVSUBR, _FVOP(-, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_FVVMUL , _FVOP(*, 0, false, false), a = res;          )
-        LVALCASER(LVO_FVVMULR, _FVOP(*, 0, false, false), a = res; PUSH(res))
-        LVALCASER(LVO_FVVDIV , _FVOP(/, 1, false, false), a = res;          )
-        LVALCASER(LVO_FVVDIVR, _FVOP(/, 1, false, false), a = res; PUSH(res))
-
-        LVALCASER(LVO_IVSADD , _IVOP(+, 0, true,  false), a = res;          )
-        LVALCASER(LVO_IVSADDR, _IVOP(+, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_IVSSUB , _IVOP(-, 0, true,  false), a = res;          )
-        LVALCASER(LVO_IVSSUBR, _IVOP(-, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_IVSMUL , _IVOP(*, 0, true,  false), a = res;          )
-        LVALCASER(LVO_IVSMULR, _IVOP(*, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_IVSDIV , _IVOP(/, 1, true,  false), a = res;          )
-        LVALCASER(LVO_IVSDIVR, _IVOP(/, 1, true,  false), a = res; PUSH(res))
-
-        LVALCASER(LVO_FVSADD , _FVOP(+, 0, true,  false), a = res;          )
-        LVALCASER(LVO_FVSADDR, _FVOP(+, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_FVSSUB , _FVOP(-, 0, true,  false), a = res;          )
-        LVALCASER(LVO_FVSSUBR, _FVOP(-, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_FVSMUL , _FVOP(*, 0, true,  false), a = res;          )
-        LVALCASER(LVO_FVSMULR, _FVOP(*, 0, true,  false), a = res; PUSH(res))
-        LVALCASER(LVO_FVSDIV , _FVOP(/, 1, true,  false), a = res;          )
-        LVALCASER(LVO_FVSDIVR, _FVOP(/, 1, true,  false), a = res; PUSH(res))
-
-        LVALCASES(LVO_IADD   , _IOP(+, 0);                a = res;          )
-        LVALCASES(LVO_IADDR  , _IOP(+, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_ISUB   , _IOP(-, 0);                a = res;          )
-        LVALCASES(LVO_ISUBR  , _IOP(-, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_IMUL   , _IOP(*, 0);                a = res;          )
-        LVALCASES(LVO_IMULR  , _IOP(*, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_IDIV   , _IOP(/, 1);                a = res;          )
-        LVALCASES(LVO_IDIVR  , _IOP(/, 1);                a = res; PUSH(res))
-        LVALCASES(LVO_IMOD   , _IOP(%, 1);                a = res;          )
-        LVALCASES(LVO_IMODR  , _IOP(%, 1);                a = res; PUSH(res))
-
-        LVALCASES(LVO_FADD   , _FOP(+, 0);                a = res;          )
-        LVALCASES(LVO_FADDR  , _FOP(+, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_FSUB   , _FOP(-, 0);                a = res;          )
-        LVALCASES(LVO_FSUBR  , _FOP(-, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_FMUL   , _FOP(*, 0);                a = res;          )
-        LVALCASES(LVO_FMULR  , _FOP(*, 0);                a = res; PUSH(res))
-        LVALCASES(LVO_FDIV   , _FOP(/, 1);                a = res;          )
-        LVALCASES(LVO_FDIVR  , _FOP(/, 1);                a = res; PUSH(res))
-
-        LVALCASER(LVO_SADD   , _SCAT(),                   a = res;          )
-        LVALCASER(LVO_SADDR  , _SCAT(),                   a = res; PUSH(res))
-
-        case LVO_WRITE:     { auto  b = POP();                      a = b; break; }
-        case LVO_WRITER:    { auto &b = TOP();                      a = b; break; }
-        case LVO_WRITEREF:  { auto  b = POP(); a.LTDECRTNIL(*this); a = b; break; }
-        case LVO_WRITERREF: { auto &b = TOP(); a.LTDECRTNIL(*this); a = b; break; }
-
-        #define PPOP(ret, op, pre, accessor) { \
-            if (ret && !pre) PUSH(a); \
-            a.set##accessor(a.accessor() op 1); \
-            if (ret && pre) PUSH(a); \
-        }
-        case LVO_IPP:
-        case LVO_IPPR:  { PPOP(op == LVO_IPPR,  +, true,  ival);  break; }
-        case LVO_IMM:
-        case LVO_IMMR:  { PPOP(op == LVO_IMMR,  -, true,  ival);  break; }
-        case LVO_IPPP:
-        case LVO_IPPPR: { PPOP(op == LVO_IPPPR, +, false, ival); break; }
-        case LVO_IMMP:
-        case LVO_IMMPR: { PPOP(op == LVO_IMMPR, -, false, ival); break; }
-        case LVO_FPP:
-        case LVO_FPPR:  { PPOP(op == LVO_FPPR,  +, true,  fval);  break; }
-        case LVO_FMM:
-        case LVO_FMMR:  { PPOP(op == LVO_FMMR,  -, true,  fval);  break; }
-        case LVO_FPPP:
-        case LVO_FPPPR: { PPOP(op == LVO_FPPPR, +, false, fval); break; }
-        case LVO_FMMP:
-        case LVO_FMMPR: { PPOP(op == LVO_FMMPR, -, false, fval); break; }
-
-        default:
-            Error(cat("bytecode format problem (lvalue): ", op));
-    }
-}
+PPOP(IPP  , false, +, true , ival)
+PPOP(IPPR , true , +, true , ival)
+PPOP(IMM  , false, -, true , ival)
+PPOP(IMMR , true , -, true , ival)
+PPOP(IPPP , false, +, false, ival)
+PPOP(IPPPR, true , +, false, ival)
+PPOP(IMMP , false, -, false, ival)
+PPOP(IMMPR, true , -, false, ival)
+PPOP(FPP  , false, +, true , fval)
+PPOP(FPPR , true , +, true , fval)
+PPOP(FMM  , false, -, true , fval)
+PPOP(FMMR , true , -, true , fval)
+PPOP(FPPP , false, +, false, fval)
+PPOP(FPPPR, true , +, false, fval)
+PPOP(FMMP , false, -, false, fval)
+PPOP(FMMPR, true , -, false, fval)
 
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {

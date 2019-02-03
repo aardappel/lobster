@@ -483,7 +483,7 @@ struct CodeGen  {
         if (rhs) Gen(rhs, 1);
         if (auto idr = Is<IdentRef>(lval)) {
             TakeTemp(take_temp);
-            Emit(IL_LVALVAR, lvalop, idr->sid->Idx());
+            Emit(GENLVALOP(VAR, lvalop), idr->sid->Idx());
             VarModified(idr->sid);
         } else if (auto dot = Is<Dot>(lval)) {
             Gen(dot->children[0], 1);
@@ -492,19 +492,21 @@ struct CodeGen  {
         } else if (auto cod = Is<CoDot>(lval)) {
             Gen(cod->coroutine, 1);
             TakeTemp(take_temp + 1);
-            Emit(IL_LVALLOC, lvalop, AssertIs<IdentRef>(cod->variable)->sid->Idx());
+            Emit(GENLVALOP(LOC, lvalop), AssertIs<IdentRef>(cod->variable)->sid->Idx());
         } else if (auto indexing = Is<Indexing>(lval)) {
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
             TakeTemp(take_temp + 2);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
-                    Emit(indexing->index->exptype->t == V_INT ? IL_VLVALIDXI : IL_LVALIDXV, lvalop);
+                    Emit(indexing->index->exptype->t == V_INT
+                         ? GENLVALOP(IDXVI, lvalop)
+                         : GENLVALOP(IDXVV, lvalop));
                     break;
                 case V_STRUCT:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->struc->sametype->Numeric());
-                    Emit(IL_NLVALIDXI, lvalop);
+                    Emit(GENLVALOP(IDXNI, lvalop));
                     break;
                 case V_STRING:
                     // FIXME: Would be better to catch this in typechecking, but typechecker does
@@ -525,7 +527,7 @@ struct CodeGen  {
         assert(stype->t == V_STRUCT);  // Ensured by typechecker.
         auto idx = stype->struc->Has(f);
         assert(idx >= 0);
-        if (lvalop >= 0) Emit(IL_LVALFLD, lvalop);
+        if (lvalop >= 0) Emit(GENLVALOP(FLD, lvalop));
         else Emit(IL_PUSHFLD + (int)maybe);
         Emit(idx);
     }
@@ -685,7 +687,7 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         // (also: multiple copies of the same inlined function in one parent).
         // We could emit code to clear vars at the end of an inlined block, but that doesn't
         // change the amount of decrements in for loops, so probably not that helpful.
-        cg.Emit(IL_LVALVAR, cg.ShouldDec({ *sids[i] }) ? LVO_WRITEREF : LVO_WRITE,
+        cg.Emit(GENLVALOP(VAR, cg.ShouldDec({ *sids[i] }) ? LVO_WRITEREF : LVO_WRITE),
                 sids[i]->Idx());
         cg.VarModified(sids[i]);
     }

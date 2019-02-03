@@ -210,8 +210,8 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
                 ss << " /* " << natreg.nfuns[args[0]]->name << " */";
             } else if (opc == IL_PUSHVAR) {
                 ss << " /* " << IdName(bcf, args[0])<< " */";
-            } else if (opc == IL_LVALVAR) {
-                ss << " /* " << LvalOpNames()[args[0]] << " " << IdName(bcf, args[1]) << " */";
+            } else if (ISLVALVARINS(opc)) {
+                ss << " /* " << IdName(bcf, args[1]) << " */";
             } else if (opc == IL_PUSHSTR) {
                 ss << " /* ";
                 EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(args[0])), ss);

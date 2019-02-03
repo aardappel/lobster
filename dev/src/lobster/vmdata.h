@@ -824,9 +824,24 @@ struct VM {
 
     void EndEval(const Value &ret, ValueType vt);
 
+    void InstructionPointerInit() {
+        #ifndef VM_INS_SWITCH
+            #ifdef VM_COMPILED_CODE_MODE
+                #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
+            #else
+                #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
+            #endif
+            ILNAMES
+            #undef F
+        #endif
+    }
+
     #ifndef VM_INS_SWITCH
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
             ILBASENAMES
+        #undef F
+        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
+            LVALOPNAMES
         #undef F
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
             ILCALLNAMES
@@ -836,8 +851,18 @@ struct VM {
         #undef F
     #endif
 
+    #undef LVAL
+    #define LVAL(N) void LV_##N(Value &a);
+        LVALOPNAMES
+    #undef LVAL
+
     void EvalProgram();
     void EvalProgramInner();
+
+    Value &GetFieldLVal(intp i);
+    Value &GetFieldILVal(intp i);
+    Value &GetLocLVal(int i);
+    Value &GetVecLVal(intp i);
 
     void PushDerefIdxVector(intp i);
     void PushDerefIdxStruct(intp i);

@@ -59,6 +59,9 @@
     <ClCompile Include="..\external\flatbuffers\src\util.cpp">
       <Filter>compiler\builtins\flatbuffers</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\disasm.cpp">
+      <Filter>dvm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
