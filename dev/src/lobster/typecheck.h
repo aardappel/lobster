@@ -2312,7 +2312,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                                     " can't be scalar"), *this);
                     type = tc.st.Wrap(type, V_NIL);
                 } else if (nftype->t == V_VECTOR && ret.type->t != V_VECTOR) {
-                    type = type->sub;
+                    if (type->t == V_VECTOR) type = type->sub;
                 } else if (nftype->t == V_COROUTINE || nftype->t == V_FUNCTION) {
                     auto csf = type->sf;
                     if (csf) {
