@@ -50,6 +50,12 @@
     <Filter Include="engine\sdl\mixer">
       <UniqueIdentifier>{ecbf119d-9004-40cf-9417-af0a5d7f3346}</UniqueIdentifier>
     </Filter>
+    <Filter Include="engine\imgui">
+      <UniqueIdentifier>{46a354f7-04dd-4ce1-baa5-5f1327401ba7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine\imgui\lib">
+      <UniqueIdentifier>{84e80957-0fc1-4af5-9e8d-c01f02de8783}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\external\SDL\include\begin_code.h">
@@ -330,6 +336,30 @@
     </ClInclude>
     <ClInclude Include="..\src\lobster\engine.h">
       <Filter>engine\lobster_bindings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imconfig.h">
+      <Filter>engine\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imstb_truetype.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui_impl_opengl3.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui_impl_sdl.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imgui_internal.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imstb_rectpack.h">
+      <Filter>engine\imgui\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\imgui\imstb_textedit.h">
+      <Filter>engine\imgui\lib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1091,6 +1121,27 @@
     </ClCompile>
     <ClCompile Include="..\src\engine.cpp">
       <Filter>engine\lobster_bindings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_draw.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_impl_opengl3.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_impl_sdl.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_widgets.cpp">
+      <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\imbind.cpp">
+      <Filter>engine\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\imgui\imgui_demo.cpp">
+      <Filter>engine\imgui\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

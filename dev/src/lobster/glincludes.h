@@ -77,6 +77,7 @@
         GLEXT(PFNGLGETPROGRAMINFOLOGPROC             , glGetProgramInfoLog             , 1) \
         GLEXT(PFNGLGETSHADERINFOLOGPROC              , glGetShaderInfoLog              , 1) \
         GLEXT(PFNGLATTACHSHADERPROC                  , glAttachShader                  , 1) \
+        GLEXT(PFNGLDETACHSHADERPROC                  , glDetachShader                  , 1) \
         GLEXT(PFNGLLINKPROGRAMARBPROC                , glLinkProgram                   , 1) \
         GLEXT(PFNGLGETUNIFORMLOCATIONARBPROC         , glGetUniformLocation            , 1) \
         GLEXT(PFNGLUNIFORM1FARBPROC                  , glUniform1f                     , 1) \
@@ -93,7 +94,12 @@
         GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC           , glUniformMatrix4fv              , 1) \
         GLEXT(PFNGLUNIFORMMATRIX4FVARBPROC/*type*/   , glUniformMatrix3x4fv            , 1) \
         GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \
+        GLEXT(PFNGLGETATTRIBLOCATIONARBPROC          , glGetAttribLocation             , 1) \
         GLEXT(PFNGLGETACTIVEUNIFORMARBPROC           , glGetActiveUniform              , 1) \
+        GLEXT(PFNGLBLENDEQUATIONPROC                 , glBlendEquation                 , 1) \
+        GLEXT(PFNGLBLENDEQUATIONSEPARATEPROC         , glBlendEquationSeparate         , 1) \
+        GLEXT(PFNGLBLENDFUNCSEPARATEPROC             , glBlendFuncSeparate             , 1) \
+        GLEXT(PFNGLBINDSAMPLERPROC                   , glBindSampler                   , 1) \
         GLEXT(PFNGLBINDRENDERBUFFERPROC              , glBindRenderbuffer              , 0) \
         GLEXT(PFNGLDELETERENDERBUFFERSPROC           , glDeleteRenderbuffers           , 0) \
         GLEXT(PFNGLBINDFRAMEBUFFERPROC               , glBindFramebuffer               , 0) \
