@@ -57,6 +57,7 @@ void GraphicsShutDown() {
     extern void MeshGenClear(); MeshGenClear();
     extern void CubeGenClear(); CubeGenClear();
     extern void FontCleanup(); FontCleanup();
+    extern void IMGUICleanup(); IMGUICleanup();
     ShaderShutDown();
     currentshader = NULL;
     colorshader = NULL;

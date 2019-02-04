@@ -37,6 +37,7 @@ void RegisterCoreEngineBuiltins(NativeRegistry &natreg) {
     extern void AddCubeGen(NativeRegistry &natreg);  lobster::RegisterBuiltin(natreg, "cubegen",   AddCubeGen);
     extern void AddVR(NativeRegistry &natreg);       lobster::RegisterBuiltin(natreg, "vr",        AddVR);
     extern void AddSteam(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "steam",     AddSteam);
+    extern void AddIMGUI(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "imgui",     AddIMGUI);
 }
 
 void EngineSuspendIfNeeded() {

@@ -401,6 +401,8 @@ struct NativeRegistry {
     ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
 #define ENDDECL7(name, ids, types, rets, help) \
     ENDDECL_(name, ids, types, rets, help, 7, NCM_NONE, nullptr)
+#define ENDDECL1CONTEXIT(name, ids, types, rets, help) \
+    ENDDECL_(name, ids, types, rets, help, 1, NCM_CONT_EXIT, &___##name::mid_##name)
 #define ENDDECL2CONTEXIT(name, ids, types, rets, help) \
     ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, &___##name::mid_##name)
 #define ENDDECL3CONTEXIT(name, ids, types, rets, help) \
