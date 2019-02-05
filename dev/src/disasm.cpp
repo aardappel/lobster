@@ -94,7 +94,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
         case IL_RETURN: {
             auto id = *ip++;
             ip++;  // retvals
-            ss << flat_string_view(bcf->functions()->Get(id)->name());
+            ss << bcf->functions()->Get(id)->name()->string_view();
             break;
         }
 
@@ -105,7 +105,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
             auto id = code[bc + 1];
             auto nargs = code[bc + (opc == IL_CALLMULTI ? 1 : 0)];
             if (opc == IL_CALLMULTI) ip += nargs;  // arg types.
-            ss << nargs << ' ' << flat_string_view(bcf->functions()->Get(id)->name());
+            ss << nargs << ' ' << bcf->functions()->Get(id)->name()->string_view();
             ss << ' ' << bc;
             break;
         }
@@ -118,7 +118,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
         }
         case IL_NEWSTRUCT: {
             auto ti = (TypeInfo *)(typetable + *ip++);
-            ss << flat_string_view(bcf->structs()->Get(ti->structidx)->name());
+            ss << bcf->structs()->Get(ti->structidx)->name()->string_view();
             break;
         }
 
@@ -171,12 +171,12 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
             break;
 
         case IL_PUSHSTR:
-            EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(*ip++)), ss);
+            EscapeAndQuote(bcf->stringtable()->Get(*ip++)->string_view(), ss);
             break;
 
         case IL_FUNSTART: {
             auto fidx = *ip++;
-            ss << (fidx >= 0 ? flat_string_view(bcf->functions()->Get(fidx)->name()) : "__dummy");
+            ss << (fidx >= 0 ? bcf->functions()->Get(fidx)->name()->string_view() : "__dummy");
             ss << "(";
             int n = *ip++;
             while (n--) ss << IdName(bcf, *ip++) << ' ';
@@ -199,7 +199,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
         }
 
         case IL_FUNMULTI: {
-            ss << flat_string_view(bcf->functions()->Get(*ip++)->name()) << " (multi_start) ";
+            ss << bcf->functions()->Get(*ip++)->name()->string_view() << " (multi_start) ";
             auto n = *ip++;
             auto nargs = *ip++;
             ss << n << ' ' << nargs;

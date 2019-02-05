@@ -137,7 +137,7 @@ void VM::DumpVal(RefObj *ro, const char *prefix) {
 void VM::DumpFileLine(const int *fip, ostringstream &ss) {
     // error is usually in the byte before the current ip.
     auto li = LookupLine(fip - 1, codestart, bcf);
-    ss << flat_string_view(bcf->filenames()->Get(li->fileidx())) << '(' << li->line() << ')';
+    ss << bcf->filenames()->Get(li->fileidx())->string_view() << '(' << li->line() << ')';
 }
 
 void VM::DumpLeaks() {
@@ -300,7 +300,7 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         if (!stackframes.size()) break;
         int deffun = *(stackframes.back().funstart);
         if (deffun >= 0) {
-            ss << "\nin function: " << flat_string_view(bcf->functions()->Get(deffun)->name());
+            ss << "\nin function: " << bcf->functions()->Get(deffun)->name()->string_view();
         } else {
             ss << "\nin block";
         }
@@ -341,7 +341,7 @@ void VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
     if (id->readonly() || id->global() != dumpglobals) return;
-    auto name = flat_string_view(id->name());
+    auto name = id->name()->string_view();
     auto static_type = GetVarTypeInfo((int)idx).t;
     #if RTT_ENABLED
         if (static_type != x.type) return;  // Likely uninitialized.
@@ -397,7 +397,7 @@ void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip
         argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti(*this) : ti);
         if (j < nargs - 1) argtypes += ", ";
     }
-    Error("the call " + flat_string_view(bcf->functions()->Get(definedfunction)->name()) + "(" +
+    Error("the call " + bcf->functions()->Get(definedfunction)->name()->string_view() + "(" +
           argtypes + ") did not match any function variants");
 }
 
@@ -537,7 +537,7 @@ void VM::FunOut(int towhere, int nrv) {
     memcpy(retvalstemp, TOPPTR(), nrv * sizeof(Value));
     for(;;) {
         if (!stackframes.size()) {
-            Error("\"return from " + flat_string_view(bcf->functions()->Get(towhere)->name()) +
+            Error("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
                     "\" outside of function");
         }
         if (VarCleanup<0>(nullptr, towhere)) break;
@@ -714,7 +714,7 @@ void VM::EndEval(const Value &ret, ValueType vt) {
             ++it;
         }
         for (auto &u : uniques) {
-            LOG_INFO(flat_string_view(bcf->filenames()->Get(u.fileidx)), "(", u.line,
+            LOG_INFO(bcf->filenames()->Get(u.fileidx)->string_view(), "(", u.line,
                    u.lastline != u.line ? "-" + to_string(u.lastline) : "",
                    "): ", u.count * 100.0f / total, " %");
         }
@@ -874,7 +874,7 @@ VM_DEF_INS(PUSHSTR) {
     auto &s = constant_strings[i];
     if (!s) {
         auto fb_s = bcf->stringtable()->Get(i);
-        s = NewString(flat_string_view(fb_s));
+        s = NewString(fb_s->string_view());
     }
     #if STRING_CONSTANTS_KEEP
         s->Inc();
@@ -1638,12 +1638,11 @@ void VM::Push(const Value &v) { PUSH(v); }
 Value VM::Pop() { return POP(); }
 
 string_view VM::StructName(const TypeInfo &ti) {
-    return flat_string_view(bcf->structs()->Get(ti.structidx)->name());
+    return bcf->structs()->Get(ti.structidx)->name()->string_view();
 }
 
 string_view VM::ReverseLookupType(uint v) {
-    auto s = bcf->structs()->Get(v)->name();
-    return flat_string_view(s);
+    return bcf->structs()->Get(v)->name()->string_view();
 }
 
 void VM::StartWorkers(size_t numthreads) {

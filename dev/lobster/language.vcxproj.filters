@@ -142,5 +142,47 @@
     <ClInclude Include="..\src\lobster\wfc.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\base.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\code_generators.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\flatbuffers.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\flatc.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\flexbuffers.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\grpc.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\hash.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\idl.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\minireflect.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\reflection.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\reflection_generated.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\registry.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\stl_emulation.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\flatbuffers\util.h">
+      <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -144,7 +144,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             ss << "\n";
             auto it = function_lookup.find((int)(ip - 1 - code));
             if (it != function_lookup.end())
-                ss << "// " << flat_string_view(it->second->name()) << "\n";
+                ss << "// " << it->second->name()->string_view() << "\n";
         }
         auto ilname = ilnames[opc];
         auto args = ip;
@@ -214,13 +214,13 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
                 ss << " /* " << IdName(bcf, args[1]) << " */";
             } else if (opc == IL_PUSHSTR) {
                 ss << " /* ";
-                EscapeAndQuote(flat_string_view(bcf->stringtable()->Get(args[0])), ss);
+                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), ss);
                 ss << " */";
             } else if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 auto fs = code + args[0];
                 assert(*fs == IL_FUNSTART || *fs == IL_FUNMULTI);
                 fs++;
-                ss << " /* " << flat_string_view(bcf->functions()->Get(*fs)->name()) << " */";
+                ss << " /* " << bcf->functions()->Get(*fs)->name()->string_view() << " */";
             }
             if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 ss << " ";

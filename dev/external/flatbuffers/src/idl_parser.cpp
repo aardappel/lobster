@@ -30,7 +30,7 @@ const double kPi = 3.14159265358979323846;
 const char *const kTypeNames[] = {
 // clang-format off
   #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-    CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+    CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
     IDLTYPE,
     FLATBUFFERS_GEN_TYPES(FLATBUFFERS_TD)
   #undef FLATBUFFERS_TD
@@ -41,7 +41,7 @@ const char *const kTypeNames[] = {
 const char kTypeSizes[] = {
 // clang-format off
   #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-      CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+      CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
       sizeof(CTYPE),
     FLATBUFFERS_GEN_TYPES(FLATBUFFERS_TD)
   #undef FLATBUFFERS_TD
@@ -94,11 +94,12 @@ std::string MakeCamel(const std::string &in, bool first) {
 void Parser::Message(const std::string &msg) {
   error_ = file_being_parsed_.length() ? AbsolutePath(file_being_parsed_) : "";
   // clang-format off
-  #ifdef _WIN32
-    error_ += "(" + NumToString(line_) + ")";  // MSVC alike
-  #else
+  #ifdef _WIN32  // MSVC alike
+    error_ +=
+        "(" + NumToString(line_) + ", " + NumToString(CursorPosition()) + ")";
+  #else  // gcc alike
     if (file_being_parsed_.length()) error_ += ":";
-    error_ += NumToString(line_) + ":0";  // gcc alike
+    error_ += NumToString(line_) + ": " + NumToString(CursorPosition());
   #endif
   // clang-format on
   error_ += ": " + msg;
@@ -217,7 +218,7 @@ static std::string TokenToString(int t) {
       FLATBUFFERS_GEN_TOKENS(FLATBUFFERS_TOKEN)
     #undef FLATBUFFERS_TOKEN
     #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-      CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+      CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
       IDLTYPE,
       FLATBUFFERS_GEN_TYPES(FLATBUFFERS_TD)
     #undef FLATBUFFERS_TD
@@ -280,7 +281,7 @@ CheckedError Parser::Next() {
       case '\r':
       case '\t': break;
       case '\n':
-        line_++;
+        MarkNewLine();
         seen_newline = true;
         break;
       case '{':
@@ -420,7 +421,7 @@ CheckedError Parser::Next() {
           cursor_++;
           // TODO: make nested.
           while (*cursor_ != '*' || cursor_[1] != '/') {
-            if (*cursor_ == '\n') line_++;
+            if (*cursor_ == '\n') MarkNewLine();
             if (!*cursor_) return Error("end of file in comment");
             cursor_++;
           }
@@ -1077,7 +1078,7 @@ CheckedError Parser::ParseTable(const StructDef &struct_def, std::string *value,
         switch (field_value.type.base_type) {
           // clang-format off
           #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-            CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+            CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
             case BASE_TYPE_ ## ENUM: \
               builder_.Pad(field->padding); \
               if (struct_def.fixed) { \
@@ -1094,7 +1095,7 @@ CheckedError Parser::ParseTable(const StructDef &struct_def, std::string *value,
             FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD);
           #undef FLATBUFFERS_TD
           #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-            CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+            CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
             case BASE_TYPE_ ## ENUM: \
               builder_.Pad(field->padding); \
               if (IsStruct(field->value.type)) { \
@@ -1176,7 +1177,7 @@ CheckedError Parser::ParseVector(const Type &type, uoffset_t *ovalue) {
     switch (val.type.base_type) {
       // clang-format off
       #define FLATBUFFERS_TD(ENUM, IDLTYPE, \
-        CTYPE, JTYPE, GTYPE, NTYPE, PTYPE) \
+        CTYPE, JTYPE, GTYPE, NTYPE, PTYPE, RTYPE) \
         case BASE_TYPE_ ## ENUM: \
           if (IsStruct(val.type)) SerializeStruct(*val.type.struct_def, val); \
           else { \
@@ -2259,8 +2260,8 @@ bool Parser::Parse(const char *source, const char **include_paths,
 CheckedError Parser::StartParseFile(const char *source,
                                     const char *source_filename) {
   file_being_parsed_ = source_filename ? source_filename : "";
-  source_ = cursor_ = source;
-  line_ = 1;
+  source_ = source;
+  ResetState(source_);
   error_.clear();
   ECHECK(SkipByteOrderMark());
   NEXT();

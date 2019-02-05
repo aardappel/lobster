@@ -283,23 +283,54 @@ inline void IterateFlatBuffer(const uint8_t *buffer,
 
 struct ToStringVisitor : public IterationVisitor {
   std::string s;
-  void StartSequence() { s += "{ "; }
-  void EndSequence() { s += " }"; }
+  std::string d;
+  bool q;
+  std::string in;
+  size_t indent_level;
+  ToStringVisitor(std::string delimiter, bool quotes, std::string indent)
+      : d(delimiter), q(quotes), in(indent), indent_level(0) {}
+  ToStringVisitor(std::string delimiter)
+      : d(delimiter), q(false), in(""), indent_level(0) {}
+
+  void append_indent() {
+    for (size_t i = 0; i < indent_level; i++) { s += in; }
+  }
+
+  void StartSequence() {
+    s += "{";
+    s += d;
+    indent_level++;
+  }
+  void EndSequence() {
+    s += d;
+    indent_level--;
+    append_indent();
+    s += "}";
+  }
   void Field(size_t /*field_idx*/, size_t set_idx, ElementaryType /*type*/,
              bool /*is_vector*/, const TypeTable * /*type_table*/,
              const char *name, const uint8_t *val) {
     if (!val) return;
-    if (set_idx) s += ", ";
+    if (set_idx) {
+      s += ",";
+      s += d;
+    }
+    append_indent();
     if (name) {
+      if (q) s += "\"";
       s += name;
+      if (q) s += "\"";
       s += ": ";
     }
   }
   template<typename T> void Named(T x, const char *name) {
-    if (name)
+    if (name) {
+      if (q) s += "\"";
       s += name;
-    else
+      if (q) s += "\"";
+    } else {
       s += NumToString(x);
+    }
   }
   void UType(uint8_t x, const char *name) { Named(x, name); }
   void Bool(bool x) { s += x ? "true" : "false"; }
@@ -317,17 +348,32 @@ struct ToStringVisitor : public IterationVisitor {
     EscapeString(str->c_str(), str->size(), &s, true, false);
   }
   void Unknown(const uint8_t *) { s += "(?)"; }
-  void StartVector() { s += "[ "; }
-  void EndVector() { s += " ]"; }
+  void StartVector() {
+    s += "[";
+    s += d;
+    indent_level++;
+    append_indent();
+  }
+  void EndVector() {
+    s += d;
+    indent_level--;
+    append_indent();
+    s += "]";
+  }
   void Element(size_t i, ElementaryType /*type*/,
                const TypeTable * /*type_table*/, const uint8_t * /*val*/) {
-    if (i) s += ", ";
+    if (i) {
+      s += ",";
+      s += d;
+      append_indent();
+    }
   }
 };
 
 inline std::string FlatBufferToString(const uint8_t *buffer,
-                                      const TypeTable *type_table) {
-  ToStringVisitor tostring_visitor;
+                                      const TypeTable *type_table,
+                                      bool multi_line = false) {
+  ToStringVisitor tostring_visitor(multi_line ? "\n" : " ");
   IterateFlatBuffer(buffer, type_table, &tostring_visitor);
   return tostring_visitor.s;
 }

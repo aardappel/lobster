@@ -321,6 +321,20 @@
     </Natvis>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\flatbuffers\base.h" />
+    <ClInclude Include="..\include\flatbuffers\code_generators.h" />
+    <ClInclude Include="..\include\flatbuffers\flatbuffers.h" />
+    <ClInclude Include="..\include\flatbuffers\flatc.h" />
+    <ClInclude Include="..\include\flatbuffers\flexbuffers.h" />
+    <ClInclude Include="..\include\flatbuffers\grpc.h" />
+    <ClInclude Include="..\include\flatbuffers\hash.h" />
+    <ClInclude Include="..\include\flatbuffers\idl.h" />
+    <ClInclude Include="..\include\flatbuffers\minireflect.h" />
+    <ClInclude Include="..\include\flatbuffers\reflection.h" />
+    <ClInclude Include="..\include\flatbuffers\reflection_generated.h" />
+    <ClInclude Include="..\include\flatbuffers\registry.h" />
+    <ClInclude Include="..\include\flatbuffers\stl_emulation.h" />
+    <ClInclude Include="..\include\flatbuffers\util.h" />
     <ClInclude Include="..\src\lobster\bytecode_generated.h" />
     <ClInclude Include="..\src\lobster\codegen.h" />
     <ClInclude Include="..\src\lobster\compiler.h" />

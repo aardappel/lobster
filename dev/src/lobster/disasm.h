@@ -15,19 +15,15 @@
 #ifndef LOBSTER_DISASM
 #define LOBSTER_DISASM
 
-#include "natreg.h"
+#include "lobster/natreg.h"
+
 #define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
 namespace lobster {
 
-inline string_view flat_string_view(const flatbuffers::String *s) {
-    return string_view(s->c_str(), s->size());
-}
-
 inline string_view IdName(const bytecode::BytecodeFile *bcf, int i) {
-    auto s = bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name();
-    return flat_string_view(s);
+    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->string_view();
 }
 
 const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
