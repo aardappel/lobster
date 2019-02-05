@@ -73,6 +73,7 @@ int skipmousemotion = 3;
 double frametime = 1.0f / 60.0f, lasttime = 0;
 uint64_t timefreq = 0, timestart = 0;
 int frames = 0;
+vector<float> frametimelog;
 
 int2 screensize = int2_0;
 int2 inputscale = int2_1;
@@ -374,17 +375,19 @@ void SDLShutdown() {
 }
 
 // Used to update the time when SDL isn't running.
-void SDLFakeFrame(double delta) {
+void SDLUpdateTime(double delta) {
     frametime = delta;
     lasttime += delta;
     frames++;
+    frametimelog.push_back((float)delta);
+    if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
 }
+
+vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 bool SDLFrame() {
     auto millis = GetSeconds();
-    frametime = millis - lasttime;
-    lasttime = millis;
-    frames++;
+    SDLUpdateTime(millis - lasttime);
 
     for (auto &it : keymap) it.second.FrameReset();
 

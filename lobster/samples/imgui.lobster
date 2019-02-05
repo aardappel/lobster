@@ -8,34 +8,52 @@ fatal(gl_window("imgui demo", 1280, 1024))
 im_init(false)
 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
+// The data we're editing:
+struct Thingy:
+    on:int = true
+    i:int = 1
+    ratio:float = 0.5
+    name:string = "Fred"
+    col:color = color_red
+    pos:xy_f = xy_1
+    fruits:[string] = ["apple", "banana", "pear"]
+    others:[Thingy]
+
+d := Thingy { map(3): Thingy { [] } }
+demo := false
+foo := "bar"  // Will show up in debug view.
+
 while gl_frame():
-    if gl_button("escape") == 1: return
     gl_clear(color_grey)
 
-    im_frame():
-        // Show the built-in demo window, for testing.
-        demo ?= false
-        if demo: demo = im_window_demo()
+    // <- Render game here.
 
-        // A window with some widgets.
-        im_window("Created by lobster code"):
+    im_frame():
+        // Maximum convenience: turn any data structure into editable UI!
+        im_window("Created from a struct"):
+            d = im_edit_anything(d)
+
+        // Manually created widgets, so you can choose how to represent and layout data:
+        im_window("Created by code"):
             im_text("A text!")
-            check ?= true
-            check = im_checkbox("Check it out!", check)
+            d.on = im_checkbox("Check it out!", d.on)
             im_tooltip("This is worth checking out, really!")
-            f ?= 0.5
-            f = im_sliderfloat("Float", f, 0.0, 1.0)
-            i ?= 3
-            i = im_sliderint("Int", i, 0, 10)
-            s ?= "edit me"
-            s = im_input_text("Edit", s)
-            r ?= 1
-            items ?= ["apple", "banana", "pear"]
-            r = im_radio(items, r, true)
-            r = im_combo("Combo", items, r)
-            r = im_listbox("ListBox", items, r)
-            col ?= color_red
-            col = im_coloredit("Color", col)
+            d.ratio = im_sliderfloat("Float", d.ratio, 0.0, 1.0)
+            d.i = im_sliderint("Int", d.i, 0, 10)
+            d.name = im_input_text("Name", d.name)
+            d.i = im_radio(d.fruits, d.i, true)
+            d.i = im_combo("Combo", d.fruits, d.i)
+            d.i = im_listbox("ListBox", d.fruits, d.i)
+            d.col = im_coloredit("Color", d.col)
             im_separator()
             if !demo:
                 im_button("show demo window"): demo = true
+
+        // Show the built-in imgui demo window, for testing.
+        if demo: demo = im_window_demo()
+
+        // Realtime debugging! Show all lobster variables as editable UI.
+        // Also show some engine stats, like e.g. a framerate graph.
+        im_window("Realtime Debugger"):
+            im_show_engine_stats()
+            im_show_vars()

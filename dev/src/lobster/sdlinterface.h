@@ -18,7 +18,6 @@ extern string SDLInit(string_view title, const int2 &screensize, bool fullscreen
                       int samples);
 extern void SDLRequireGLVersion(int major, int minor);
 extern bool SDLFrame();
-extern void SDLFakeFrame(double delta);
 extern void SDLShutdown();
 extern void SDLTitle(string_view title);
 extern bool SDLIsMinimized();
@@ -34,6 +33,8 @@ extern float GetJoyAxis(int i);
 
 extern double SDLTime();
 extern double SDLDeltaTime();
+extern void SDLUpdateTime(double delta);
+extern vector<float> &SDLGetFrameTimeLog();
 
 extern int SDLWheelDelta();
 

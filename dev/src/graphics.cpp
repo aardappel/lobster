@@ -202,7 +202,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " returns true if the closebutton on the window was pressed");
 
     STARTDECL(gl_log_frame) (VM &vm, Value &delta) {
-        SDLFakeFrame(delta.fval());
+        SDLUpdateTime(delta.fval());
         vm.vml.LogFrame();
         return Value();
     }
