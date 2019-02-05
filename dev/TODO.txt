@@ -99,6 +99,9 @@
 - should make if/while conditions detect non-nil variables as always true conditions and
   optimize accordingly.
 
+- contribute Lobster syntax highlighting to:
+  https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
+
 - remaining improvements we can do related to return values.
   - allow multi-methods to be specialized on reqret etc.
     - multi-methods should have better return value type checking, probably by coercing them at

@@ -11,10 +11,14 @@ table Function {
     bytecodestart:int;
 }
 
+table Field {
+    name:string;
+}
+
 table Struct {
     name:string;
     idx:int;
-    nfields:int;
+    fields:[Field];
 }
 
 table Ident {

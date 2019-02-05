@@ -153,7 +153,11 @@ struct Struct : Named {
     }
 
     flatbuffers::Offset<bytecode::Struct> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
-        return bytecode::CreateStruct(fbb, fbb.CreateString(name), idx, (int)fields.size());
+        vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
+        for (auto f : fields.v)
+            fieldoffsets.push_back(bytecode::CreateField(fbb, fbb.CreateString(f.id->name)));
+        return bytecode::CreateStruct(fbb, fbb.CreateString(name), idx,
+                                      fbb.CreateVector(fieldoffsets));
     }
 };
 
