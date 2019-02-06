@@ -266,13 +266,13 @@ void AddIMGUI(NativeRegistry &natreg) {
     ENDDECL0(im_separator, "", "", "", "");
 
     STARTDECL(im_text) (VM &, Value &text) {
-        ImGui::Text(text.sval()->data());
+        ImGui::Text("%s", text.sval()->data());
         return Value();
     }
     ENDDECL1(im_text, "label", "S", "", "");
 
     STARTDECL(im_tooltip) (VM &, Value &text) {
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip(text.sval()->data());
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
         return Value();
     }
     ENDDECL1(im_tooltip, "label", "S", "", "");

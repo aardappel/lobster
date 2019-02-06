@@ -658,6 +658,32 @@
 		33F9FE9B148DE2DE0029564B /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE9A148DE2DE0029564B /* GLKit.framework */; };
 		33F9FE9D148DE2DE0029564B /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33F9FE9C148DE2DE0029564B /* OpenGLES.framework */; };
 		33F9FEA3148DE2DE0029564B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 33F9FEA1148DE2DE0029564B /* InfoPlist.strings */; };
+		33FDF14B220A599400D7B010 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF13F220A599400D7B010 /* imgui_widgets.cpp */; };
+		33FDF14C220A599400D7B010 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF13F220A599400D7B010 /* imgui_widgets.cpp */; };
+		33FDF14D220A599400D7B010 /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF13F220A599400D7B010 /* imgui_widgets.cpp */; };
+		33FDF14E220A599400D7B010 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF143220A599400D7B010 /* imgui.cpp */; };
+		33FDF14F220A599400D7B010 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF143220A599400D7B010 /* imgui.cpp */; };
+		33FDF150220A599400D7B010 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF143220A599400D7B010 /* imgui.cpp */; };
+		33FDF151220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF145220A599400D7B010 /* imgui_impl_opengl3.cpp */; };
+		33FDF152220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF145220A599400D7B010 /* imgui_impl_opengl3.cpp */; };
+		33FDF153220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF145220A599400D7B010 /* imgui_impl_opengl3.cpp */; };
+		33FDF154220A599400D7B010 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 33FDF147220A599400D7B010 /* LICENSE.txt */; };
+		33FDF155220A599400D7B010 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 33FDF147220A599400D7B010 /* LICENSE.txt */; };
+		33FDF156220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
+		33FDF157220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
+		33FDF158220A599400D7B010 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF148220A599400D7B010 /* imgui_demo.cpp */; };
+		33FDF159220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
+		33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
+		33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */; };
+		33FDF15C220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
+		33FDF15D220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
+		33FDF15E220A599400D7B010 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF14A220A599400D7B010 /* imgui_draw.cpp */; };
+		33FDF161220A59C400D7B010 /* imbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF15F220A59C400D7B010 /* imbind.cpp */; };
+		33FDF162220A59C400D7B010 /* imbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF15F220A59C400D7B010 /* imbind.cpp */; };
+		33FDF163220A59C400D7B010 /* imbind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF15F220A59C400D7B010 /* imbind.cpp */; };
+		33FDF164220A59C400D7B010 /* disasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF160220A59C400D7B010 /* disasm.cpp */; };
+		33FDF165220A59C400D7B010 /* disasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF160220A59C400D7B010 /* disasm.cpp */; };
+		33FDF166220A59C400D7B010 /* disasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33FDF160220A59C400D7B010 /* disasm.cpp */; };
 		8C76032F195E457400EADF6F /* b2BroadPhase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C7602BA195E457400EADF6F /* b2BroadPhase.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		8C760330195E457400EADF6F /* b2BroadPhase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C7602BA195E457400EADF6F /* b2BroadPhase.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		8C760331195E457400EADF6F /* b2BroadPhase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C7602BA195E457400EADF6F /* b2BroadPhase.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -828,7 +854,7 @@
 		3331455517596B6100D488CC /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 12;
-			dstPath = "~/lobster/lobster";
+			dstPath = $PROJECT_DIR/../../../lobster;
 			dstSubfolderSpec = 0;
 			files = (
 				3331456017596D7300D488CC /* lobster in CopyFiles */,
@@ -1260,6 +1286,23 @@
 		33F9FE9C148DE2DE0029564B /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = Library/Frameworks/OpenGLES.framework; sourceTree = DEVELOPER_DIR; };
 		33F9FEA0148DE2DE0029564B /* lobster_ios-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "lobster_ios-Info.plist"; sourceTree = "<group>"; };
 		33F9FEA2148DE2DE0029564B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		33FDF13C220A599400D7B010 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		33FDF13D220A599400D7B010 /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
+		33FDF13E220A599400D7B010 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		33FDF13F220A599400D7B010 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
+		33FDF140220A599400D7B010 /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
+		33FDF141220A599400D7B010 /* imgui_impl_sdl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_sdl.h; sourceTree = "<group>"; };
+		33FDF142220A599400D7B010 /* imgui_impl_opengl3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_opengl3.h; sourceTree = "<group>"; };
+		33FDF143220A599400D7B010 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
+		33FDF144220A599400D7B010 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		33FDF145220A599400D7B010 /* imgui_impl_opengl3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_impl_opengl3.cpp; sourceTree = "<group>"; };
+		33FDF146220A599400D7B010 /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
+		33FDF147220A599400D7B010 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		33FDF148220A599400D7B010 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
+		33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_impl_sdl.cpp; sourceTree = "<group>"; };
+		33FDF14A220A599400D7B010 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		33FDF15F220A59C400D7B010 /* imbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imbind.cpp; sourceTree = "<group>"; };
+		33FDF160220A59C400D7B010 /* disasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = disasm.cpp; sourceTree = "<group>"; };
 		8C7602B8195E457400EADF6F /* Box2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Box2D.h; sourceTree = "<group>"; };
 		8C7602BA195E457400EADF6F /* b2BroadPhase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = b2BroadPhase.cpp; sourceTree = "<group>"; };
 		8C7602BB195E457400EADF6F /* b2BroadPhase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = b2BroadPhase.h; sourceTree = "<group>"; };
@@ -1486,6 +1529,7 @@
 		3381CAB5162340540069B2E8 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				33FDF15F220A59C400D7B010 /* imbind.cpp */,
 				3375EB0C20DDBD5F00EBAB26 /* engine.cpp */,
 				3375EB0D20DDBD6000EBAB26 /* lobster */,
 				3395A8C11761409D0047BE1F /* base */,
@@ -1626,6 +1670,7 @@
 		3395A8BD176140380047BE1F /* engine */ = {
 			isa = PBXGroup;
 			children = (
+				33FDF13B220A599400D7B010 /* imgui */,
 				33878D131F7B2084007BB196 /* Steam */,
 				3381CAD1162340540069B2E8 /* simplex.cpp */,
 				8C7602B6195E453200EADF6F /* physics */,
@@ -1641,6 +1686,7 @@
 		3395A8BE176140570047BE1F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
+				33FDF160220A59C400D7B010 /* disasm.cpp */,
 				33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */,
 				3342B79E1B2B4CE500FA2F0B /* main.cpp */,
 				3342B79B1B2B4CE500FA2F0B /* compiler.cpp */,
@@ -2406,6 +2452,29 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		33FDF13B220A599400D7B010 /* imgui */ = {
+			isa = PBXGroup;
+			children = (
+				33FDF13C220A599400D7B010 /* imgui.h */,
+				33FDF13D220A599400D7B010 /* imstb_textedit.h */,
+				33FDF13E220A599400D7B010 /* imconfig.h */,
+				33FDF13F220A599400D7B010 /* imgui_widgets.cpp */,
+				33FDF140220A599400D7B010 /* imstb_truetype.h */,
+				33FDF141220A599400D7B010 /* imgui_impl_sdl.h */,
+				33FDF142220A599400D7B010 /* imgui_impl_opengl3.h */,
+				33FDF143220A599400D7B010 /* imgui.cpp */,
+				33FDF144220A599400D7B010 /* imgui_internal.h */,
+				33FDF145220A599400D7B010 /* imgui_impl_opengl3.cpp */,
+				33FDF146220A599400D7B010 /* imstb_rectpack.h */,
+				33FDF147220A599400D7B010 /* LICENSE.txt */,
+				33FDF148220A599400D7B010 /* imgui_demo.cpp */,
+				33FDF149220A599400D7B010 /* imgui_impl_sdl.cpp */,
+				33FDF14A220A599400D7B010 /* imgui_draw.cpp */,
+			);
+			name = imgui;
+			path = ../external/imgui;
+			sourceTree = "<group>";
+		};
 		8C7602B6195E453200EADF6F /* physics */ = {
 			isa = PBXGroup;
 			children = (
@@ -2657,7 +2726,7 @@
 		3368FEB41488AA88008B38B6 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0920;
+				LastUpgradeCheck = 1010;
 			};
 			buildConfigurationList = 3368FEB71488AA88008B38B6 /* Build configuration list for PBXProject "lobster" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -2687,6 +2756,7 @@
 				33EABE5115DAE20D00C1590D /* lobster.gif in Resources */,
 				33EABE5815DAECA100C1590D /* icon.iconset in Resources */,
 				33DAC55A1E5CC7250003767C /* include in Resources */,
+				33FDF155220A599400D7B010 /* LICENSE.txt in Resources */,
 				33F7F3ED1723738E005B7988 /* shaders in Resources */,
 				8C7603CC195E457400EADF6F /* README.txt in Resources */,
 				3375EB1220DDBD6000EBAB26 /* lobster in Resources */,
@@ -2701,6 +2771,7 @@
 				33F9FEA3148DE2DE0029564B /* InfoPlist.strings in Resources */,
 				33EABE5715DAECA100C1590D /* icon.iconset in Resources */,
 				33F7F3EC1723738E005B7988 /* shaders in Resources */,
+				33FDF154220A599400D7B010 /* LICENSE.txt in Resources */,
 				3395E3FE1766886400E06FCE /* icon57.png in Resources */,
 				33632F5F1B5DD16B00550981 /* bytecode.fbs in Resources */,
 				3395E4001766886B00E06FCE /* icon114.png in Resources */,
@@ -2803,6 +2874,7 @@
 				33D160421BAB9A2200BAD84D /* SDL_rwops.c in Sources */,
 				3307DA4621098A8100B98515 /* idl_parser.cpp in Sources */,
 				33D15F9F1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
+				33FDF163220A59C400D7B010 /* imbind.cpp in Sources */,
 				33D15C8F1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
 				33D1602A1BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD71F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
@@ -2816,6 +2888,7 @@
 				8C76039D195E457400EADF6F /* b2DistanceJoint.cpp in Sources */,
 				33D160211BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760358195E457400EADF6F /* b2Draw.cpp in Sources */,
+				33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160931BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D160301BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
 				33878CF51F7B201D007BB196 /* load_mp3.c in Sources */,
@@ -2828,6 +2901,7 @@
 				33D1614E1BAB9A2200BAD84D /* SDL_render_sw.c in Sources */,
 				33D162CE1BAB9A2200BAD84D /* SDL_clipboard.c in Sources */,
 				33D1613F1BAB9A2200BAD84D /* SDL_blendfillrect.c in Sources */,
+				33FDF14D220A599400D7B010 /* imgui_widgets.cpp in Sources */,
 				33D161B11BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
 				33D161061BAB9A2200BAD84D /* SDL_syspower.c in Sources */,
 				8C760361195E457400EADF6F /* b2Settings.cpp in Sources */,
@@ -2846,12 +2920,14 @@
 				33D162411BAB9A2200BAD84D /* SDL_nullevents.c in Sources */,
 				8C7603BB195E457400EADF6F /* b2WeldJoint.cpp in Sources */,
 				8C76035B195E457400EADF6F /* b2FreeList.cpp in Sources */,
+				33FDF158220A599400D7B010 /* imgui_demo.cpp in Sources */,
 				33D162CB1BAB9A2200BAD84D /* SDL_bmp.c in Sources */,
 				33D162E91BAB9A2200BAD84D /* SDL_video.c in Sources */,
 				33D1603C1BAB9A2200BAD84D /* SDL_windowevents.c in Sources */,
 				33D163751BAB9A2200BAD84D /* SDL_x11keyboard.c in Sources */,
 				33D15FE41BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
 				33D15C861BAB7D3C00BAD84D /* ftapi.c in Sources */,
+				33FDF15E220A599400D7B010 /* imgui_draw.cpp in Sources */,
 				33D163841BAB9A2200BAD84D /* SDL_x11opengles.c in Sources */,
 				33D161E11BAB9A2200BAD84D /* SDL_systimer.c in Sources */,
 				8C760331195E457400EADF6F /* b2BroadPhase.cpp in Sources */,
@@ -2894,6 +2970,7 @@
 				8C760397195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA71BAB7D3C00BAD84D /* ftsystem.c in Sources */,
 				33D161511BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
+				33FDF153220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */,
 				33D162D71BAB9A2200BAD84D /* SDL_pixels.c in Sources */,
 				33D163631BAB9A2200BAD84D /* edid-parse.c in Sources */,
 				33878CC51F7B201D007BB196 /* mixer.c in Sources */,
@@ -2946,8 +3023,10 @@
 				3331457417596E1100D488CC /* stdafx.cpp in Sources */,
 				33D15C891BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C81BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
+				33FDF150220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC81F7B201D007BB196 /* dynamic_mod.c in Sources */,
 				3375EB1020DDBD6000EBAB26 /* engine.cpp in Sources */,
+				33FDF166220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */,
 				33878CFE1F7B201D007BB196 /* music_cmd.c in Sources */,
 				33D162BF1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
@@ -3055,6 +3134,7 @@
 				33D160411BAB9A2200BAD84D /* SDL_rwops.c in Sources */,
 				3307DA4521098A8100B98515 /* idl_parser.cpp in Sources */,
 				33D15F9E1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
+				33FDF162220A59C400D7B010 /* imbind.cpp in Sources */,
 				33D15C8E1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
 				33D160291BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD61F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
@@ -3068,6 +3148,7 @@
 				8C760357195E457400EADF6F /* b2Draw.cpp in Sources */,
 				33D160201BAB9A2200BAD84D /* SDL_dynapi.c in Sources */,
 				8C760399195E457400EADF6F /* b2PolygonContact.cpp in Sources */,
+				33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160921BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D1602F1BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
 				33878CF41F7B201D007BB196 /* load_mp3.c in Sources */,
@@ -3080,6 +3161,7 @@
 				33D1614D1BAB9A2200BAD84D /* SDL_render_sw.c in Sources */,
 				33D162CD1BAB9A2200BAD84D /* SDL_clipboard.c in Sources */,
 				33D1613E1BAB9A2200BAD84D /* SDL_blendfillrect.c in Sources */,
+				33FDF14C220A599400D7B010 /* imgui_widgets.cpp in Sources */,
 				33D161B01BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
 				33D161051BAB9A2200BAD84D /* SDL_syspower.c in Sources */,
 				8C760354195E457400EADF6F /* b2BlockAllocator.cpp in Sources */,
@@ -3098,12 +3180,14 @@
 				33D162401BAB9A2200BAD84D /* SDL_nullevents.c in Sources */,
 				8C76035A195E457400EADF6F /* b2FreeList.cpp in Sources */,
 				8C760330195E457400EADF6F /* b2BroadPhase.cpp in Sources */,
+				33FDF157220A599400D7B010 /* imgui_demo.cpp in Sources */,
 				33D162CA1BAB9A2200BAD84D /* SDL_bmp.c in Sources */,
 				33D162E81BAB9A2200BAD84D /* SDL_video.c in Sources */,
 				33D1603B1BAB9A2200BAD84D /* SDL_windowevents.c in Sources */,
 				33D163741BAB9A2200BAD84D /* SDL_x11keyboard.c in Sources */,
 				33D15FE31BAB9A2200BAD84D /* SDL_audiotypecvt.c in Sources */,
 				33D15C851BAB7D3C00BAD84D /* ftapi.c in Sources */,
+				33FDF15D220A599400D7B010 /* imgui_draw.cpp in Sources */,
 				33D163831BAB9A2200BAD84D /* SDL_x11opengles.c in Sources */,
 				33D161E01BAB9A2200BAD84D /* SDL_systimer.c in Sources */,
 				8C760384195E457400EADF6F /* b2ChainAndPolygonContact.cpp in Sources */,
@@ -3146,6 +3230,7 @@
 				8C760396195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA61BAB7D3C00BAD84D /* ftsystem.c in Sources */,
 				33D161501BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
+				33FDF152220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */,
 				33D162D61BAB9A2200BAD84D /* SDL_pixels.c in Sources */,
 				33D163621BAB9A2200BAD84D /* edid-parse.c in Sources */,
 				33878CC41F7B201D007BB196 /* mixer.c in Sources */,
@@ -3198,8 +3283,10 @@
 				33F7F3E817236720005B7988 /* platform.cpp in Sources */,
 				33D15C881BAB7D3C00BAD84D /* ftbase.c in Sources */,
 				33D162C71BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
+				33FDF14F220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC71F7B201D007BB196 /* dynamic_mod.c in Sources */,
 				3375EB0F20DDBD6000EBAB26 /* engine.cpp in Sources */,
+				33FDF165220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */,
 				33878CFD1F7B201D007BB196 /* music_cmd.c in Sources */,
 				33D162BE1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
@@ -3234,6 +3321,7 @@
 				33D162451BAB9A2200BAD84D /* SDL_nullvideo.c in Sources */,
 				33878CC31F7B201D007BB196 /* mixer.c in Sources */,
 				33D162061BAB9A2200BAD84D /* SDL_cocoakeyboard.m in Sources */,
+				33FDF14E220A599400D7B010 /* imgui.cpp in Sources */,
 				33DAC55C1E5CC7BE0003767C /* SDL_coreaudio.m in Sources */,
 				33AE2428164ABCE2007F578F /* builtins.cpp in Sources */,
 				33D163971BAB9A2200BAD84D /* SDL_error.c in Sources */,
@@ -3259,6 +3347,7 @@
 				33D163DF1BABA50800BAD84D /* SDL_uikitevents.m in Sources */,
 				3342B7A41B2B4CE500FA2F0B /* main.cpp in Sources */,
 				3342B7A11B2B4CE500FA2F0B /* compiler.cpp in Sources */,
+				33FDF15C220A599400D7B010 /* imgui_draw.cpp in Sources */,
 				33D163E31BABA50800BAD84D /* SDL_uikitopenglview.m in Sources */,
 				33D15FB21BAB9A2200BAD84D /* SDL_diskaudio.c in Sources */,
 				8C76036B195E457400EADF6F /* b2TrackedBlock.cpp in Sources */,
@@ -3338,6 +3427,7 @@
 				33D1638E1BAB9A2200BAD84D /* SDL_x11window.c in Sources */,
 				33D1639A1BAB9A2200BAD84D /* SDL_hints.c in Sources */,
 				33D1613D1BAB9A2200BAD84D /* SDL_blendfillrect.c in Sources */,
+				33FDF161220A59C400D7B010 /* imbind.cpp in Sources */,
 				33878CD81F7B201D007BB196 /* load_voc.c in Sources */,
 				33D1636D1BAB9A2200BAD84D /* SDL_x11events.c in Sources */,
 				8C7603CD195E457400EADF6F /* b2Rope.cpp in Sources */,
@@ -3358,6 +3448,7 @@
 				8C760335195E457400EADF6F /* b2CollideEdge.cpp in Sources */,
 				33D160311BAB9A2200BAD84D /* SDL_mouse.c in Sources */,
 				8C760368195E457400EADF6F /* b2Timer.cpp in Sources */,
+				33FDF164220A59C400D7B010 /* disasm.cpp in Sources */,
 				33878CCF1F7B201D007BB196 /* wavestream.c in Sources */,
 				33D163881BAB9A2200BAD84D /* SDL_x11touch.c in Sources */,
 				8C760389195E457400EADF6F /* b2Contact.cpp in Sources */,
@@ -3365,6 +3456,8 @@
 				33D1620C1BAB9A2200BAD84D /* SDL_cocoamodes.m in Sources */,
 				33D163851BAB9A2200BAD84D /* SDL_x11shape.c in Sources */,
 				33F7F3D517236720005B7988 /* glgeom.cpp in Sources */,
+				33FDF14B220A599400D7B010 /* imgui_widgets.cpp in Sources */,
+				33FDF156220A599400D7B010 /* imgui_demo.cpp in Sources */,
 				33D161DF1BAB9A2200BAD84D /* SDL_systimer.c in Sources */,
 				33D160401BAB9A2200BAD84D /* SDL_rwops.c in Sources */,
 				8C760392195E457400EADF6F /* b2EdgeAndPolygonContact.cpp in Sources */,
@@ -3441,9 +3534,11 @@
 				8C76034A195E457400EADF6F /* b2CircleShape.cpp in Sources */,
 				33878CC91F7B201D007BB196 /* dynamic_ogg.c in Sources */,
 				33878CF01F7B201D007BB196 /* music_modplug.c in Sources */,
+				33FDF159220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D162B11BAB9A2200BAD84D /* SDL_blit.c in Sources */,
 				33D162031BAB9A2200BAD84D /* SDL_cocoaevents.m in Sources */,
 				33D161611BAB9A2200BAD84D /* SDL_string.c in Sources */,
+				33FDF151220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */,
 				33D1614F1BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
 				8C76033B195E457400EADF6F /* b2Collision.cpp in Sources */,
 				33F7F3E317236720005B7988 /* sdlaudiosfxr.cpp in Sources */,
@@ -3521,6 +3616,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -3540,6 +3636,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -3560,11 +3657,13 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
@@ -3598,6 +3697,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../src/,
 					../../include,
+					../../external/imgui,
 					../../external/SDL/include,
 					../../external/freetype/include,
 					../../external/SDLMixer,
@@ -3625,11 +3725,13 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
@@ -3658,6 +3760,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../src/,
 					../../include,
+					../../external/imgui,
 					../../external/SDL/include,
 					../../external/freetype/include,
 					../../external/SDLMixer,
@@ -3677,6 +3780,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3702,6 +3806,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
