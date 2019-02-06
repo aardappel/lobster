@@ -90,7 +90,7 @@ struct scrollzoomview:
 
 def ui_rendertextatlocalsize(localsize:float, f):
     oldfontsize := gl_get_font_size()
-    oldoutlinesize := gl_getoutlinesize()
+    oldoutlinesize := gl_get_outline_size()
     sc := gl_scaling().x
     localfontsizef := sc * localsize
     localfontsize := round(localfontsizef)    // font size to nearest pixel

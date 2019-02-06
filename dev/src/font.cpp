@@ -121,8 +121,8 @@ void AddFont(NativeRegistry &natreg) {
     ENDDECL0(gl_get_font_size, "", "", "I",
         "the current font size");
 
-    STARTDECL(gl_getoutlinesize) (VM &) { return Value(curoutlinesize); }
-    ENDDECL0(gl_getoutlinesize, "", "", "F",
+    STARTDECL(gl_get_outline_size) (VM &) { return Value(curoutlinesize); }
+    ENDDECL0(gl_get_outline_size, "", "", "F",
              "the current font size");
 
     STARTDECL(gl_text) (VM &vm, Value &s) {
@@ -154,4 +154,17 @@ void AddFont(NativeRegistry &natreg) {
     }
     ENDDECL1(gl_text_size, "text", "S", "I}:2",
         "the x/y size in pixels the given text would need");
+
+    STARTDECL(gl_get_glyph_name) (VM &vm, Value &i) {
+        return vm.NewString(curface ? curface->GetName((uint)i.ival()) : ""); 
+    }
+    ENDDECL1(gl_get_glyph_name, "i", "I", "S",
+             "the name of a glyph index, or empty string if the font doesn\'t have names");
+
+    STARTDECL(gl_get_char_code) (VM &, Value &n) {
+        return curface ? curface->GetCharCode(n.sval()->strv()) : 0; 
+    }
+    ENDDECL1(gl_get_char_code, "name", "S", "I",
+             "the char code of a glyph by specifying its name, or 0 if it can not be found"
+             " (or if the font doesn\'t have names)");
 }

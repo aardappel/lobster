@@ -187,7 +187,7 @@ def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
 
 def fontscale(factor, f:fun):
     os := gl_get_font_size()
-    ool := gl_getoutlinesize()
+    ool := gl_get_outline_size()
     gl_set_font_size(round(os * factor), ool * factor)
     f()
     gl_set_font_size(os, ool)

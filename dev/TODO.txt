@@ -73,17 +73,22 @@
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
 
+- add to imgui functionality:
+  - logging
+    - everything that currently goes to LOG
+    - specific logging for variables not in global scope: show a list of key/value.
+    - or simpler: can show all log variables!
+  - docking branch: can allow e.g. debug window to be external.
+  - more engine stats!
+    - some basic profiling segments of code?
+    - drawcalls? triangles?
+  - add screenshot & link to imgui page?
+
 - typechecking for bool, including output to true/false when printing etc.
 - how about slightly stronger typed enums, while we're at it?
   - enums as types, and require explicit conversion int -> enum.
   - or make bool an enum declared in stdtype.lobster? :)
     - have to then make comparison ops return this type.
-
-- make a debugging / ui feature where any data structure can be displayed with e.g.
-  https://github.com/ocornut/imgui or alternatively html (by running a mini web server)
-  - could allow attributes to be added to struct decls to increase control over gui generated.
-  - can then also allow explicit gui features.. but starting with making any data structure
-    editable / displayable means you need less of them.
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?

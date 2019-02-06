@@ -21,11 +21,14 @@ struct OutlineFont {
     string fbuf;
     unordered_map<int, int> unicodemap;
     vector<int> unicodetable;
+    map<uint, uint> glyph_to_char;
 
     OutlineFont(void *fth, string &fb) : fthandle(fth) { fbuf.swap(fb); }
     ~OutlineFont();
 
     bool EnsureCharsPresent(string_view utf8str);
+    string GetName(uint i);
+    uint GetCharCode(string_view name);
 };
 
 struct BitmapFont {
