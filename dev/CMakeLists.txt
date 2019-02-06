@@ -18,27 +18,28 @@ file(GLOB_RECURSE EXTERNAL_SRCS
     "lib/stb_image.c"
     "external/SDLMixer/*.c"
     "external/flatbuffers/*.cpp"
-	external/freetype/src/autofit/autofit.c
-	external/freetype/src/base/basepic.c
-	external/freetype/src/base/ftapi.c
-	external/freetype/src/base/ftbase.c
-	external/freetype/src/base/ftbbox.c
-	external/freetype/src/base/ftbitmap.c
-	external/freetype/src/base/ftdbgmem.c
-	external/freetype/src/base/ftdebug.c
-	external/freetype/src/base/ftglyph.c
-	external/freetype/src/base/ftinit.c
-	external/freetype/src/base/ftpic.c
-	external/freetype/src/base/ftstroke.c
-	external/freetype/src/base/ftsynth.c
-	external/freetype/src/base/ftsystem.c
-	external/freetype/src/cff/cff.c
-	external/freetype/src/pshinter/pshinter.c
-	external/freetype/src/psnames/psnames.c
-	external/freetype/src/raster/raster.c
-	external/freetype/src/sfnt/sfnt.c
-	external/freetype/src/smooth/smooth.c
-	external/freetype/src/truetype/truetype.c
+    "external/imgui/*.cpp"
+    external/freetype/src/autofit/autofit.c
+    external/freetype/src/base/basepic.c
+    external/freetype/src/base/ftapi.c
+    external/freetype/src/base/ftbase.c
+    external/freetype/src/base/ftbbox.c
+    external/freetype/src/base/ftbitmap.c
+    external/freetype/src/base/ftdbgmem.c
+    external/freetype/src/base/ftdebug.c
+    external/freetype/src/base/ftglyph.c
+    external/freetype/src/base/ftinit.c
+    external/freetype/src/base/ftpic.c
+    external/freetype/src/base/ftstroke.c
+    external/freetype/src/base/ftsynth.c
+    external/freetype/src/base/ftsystem.c
+    external/freetype/src/cff/cff.c
+    external/freetype/src/pshinter/pshinter.c
+    external/freetype/src/psnames/psnames.c
+    external/freetype/src/raster/raster.c
+    external/freetype/src/sfnt/sfnt.c
+    external/freetype/src/smooth/smooth.c
+    external/freetype/src/truetype/truetype.c
 )
 
 # source_group(Lobster FILES ${LOBSTER_SRCS})
@@ -69,7 +70,8 @@ include_directories(include
                     src
                     external/SDL/include
                     external/SDLMixer
-                    external/freetype/include)
+                    external/freetype/include
+                    external/imgui)
 
 find_package(OpenGL REQUIRED)
 set(SDL_LIBRARIES SDL2-static)

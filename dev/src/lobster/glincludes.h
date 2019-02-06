@@ -46,7 +46,8 @@
     #ifdef _WIN32
         #define GLBASEEXTS \
             GLEXT(PFNGLACTIVETEXTUREARBPROC       , glActiveTexture            , 1) \
-            GLEXT(PFNGLTEXIMAGE3DPROC             , glTexImage3D               , 1)
+            GLEXT(PFNGLTEXIMAGE3DPROC             , glTexImage3D               , 1) \
+            GLEXT(PFNGLBLENDEQUATIONPROC          , glBlendEquation            , 1)
     #else
         #define GLBASEEXTS
     #endif
@@ -96,7 +97,6 @@
         GLEXT(PFNGLBINDATTRIBLOCATIONARBPROC         , glBindAttribLocation            , 1) \
         GLEXT(PFNGLGETATTRIBLOCATIONARBPROC          , glGetAttribLocation             , 1) \
         GLEXT(PFNGLGETACTIVEUNIFORMARBPROC           , glGetActiveUniform              , 1) \
-        GLEXT(PFNGLBLENDEQUATIONPROC                 , glBlendEquation                 , 1) \
         GLEXT(PFNGLBLENDEQUATIONSEPARATEPROC         , glBlendEquationSeparate         , 1) \
         GLEXT(PFNGLBLENDFUNCSEPARATEPROC             , glBlendFuncSeparate             , 1) \
         GLEXT(PFNGLBINDSAMPLERPROC                   , glBindSampler                   , 1) \
