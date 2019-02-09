@@ -1,5 +1,7 @@
 - remove the Dec versions of ValueTo.
 
+- methods in unrelated types still form a multimethod
+
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.

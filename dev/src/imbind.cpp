@@ -153,6 +153,9 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
             v = LStringInputText(vm, l, v.sval());
             return;
         }
+        case V_NIL:
+            ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded);
+            return;
     }
     ostringstream ss;
     v.ToString(vm, ss, ti.t, vm.debugpp);
@@ -171,7 +174,7 @@ void VarsToGUI(VM &vm) {
             #if RTT_ENABLED
             if (ti.t != val.type) continue;  // Likely uninitialized.
             #endif
-            ValToGUI(vm, val, ti, name, true);
+            ValToGUI(vm, val, ti, name, false);
         }
     };
     DumpVars(false);
@@ -236,18 +239,19 @@ void AddIMGUI(NativeRegistry &natreg) {
     }
     ENDDECL0(im_window_demo, "", "", "I", "");
 
-    STARTDECL(im_window) (VM &vm, Value &title, Value &body) {
+    STARTDECL(im_window) (VM &vm, Value &title, Value &flags, Value &body) {
         IsInit(vm);
-        ImGui::Begin(title.sval()->data());
+        ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
         return body;
     }
     MIDDECL(im_window) (VM &) {
         ImGui::End();
     }
-    ENDDECL2CONTEXIT(im_window, "title,body", "SB", "", "");
+    ENDDECL3CONTEXIT(im_window, "title,flags,body", "SIB", "", "");
 
     STARTDECL(im_button) (VM &, Value &title, Value &body) {
-        return ImGui::Button(title.sval()->data()) ? body : Value();
+        auto press = ImGui::Button(title.sval()->data());
+        return press ? body : Value();
     }
     MIDDECL(im_button) (VM &) {
     }
@@ -342,18 +346,58 @@ void AddIMGUI(NativeRegistry &natreg) {
     }
     ENDDECL2(im_coloredit, "label,color", "SF}", "A2", "");
 
+    STARTDECL(im_treenode) (VM &vm, Value &title, Value &body) {
+        auto open = ImGui::TreeNode(title.sval()->data());
+        vm.Push(open);
+        return open ? body : Value();
+    }
+    MIDDECL(im_treenode) (VM &vm) {
+        if (vm.Pop().True()) ImGui::TreePop();
+    }
+    ENDDECL2CONTEXIT(im_treenode, "label,body", "SB", "", "");
+
+    STARTDECL(im_group) (VM &, Value &title, Value &body) {
+        ImGui::PushID(title.sval()->data());
+        return body;
+    }
+    MIDDECL(im_group) (VM &) {
+        ImGui::PopID();
+    }
+    ENDDECL2CONTEXIT(im_group, "label,body", "SB", "",
+        "an invisble group around some widgets, useful to ensure these widgets are unique"
+        " (if they have the same label as widgets in another group that has a different group"
+        " label)");
+
     STARTDECL(im_edit_anything) (VM &vm, Value &v, Value &label) {
         ValToGUI(vm, v, vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY),
                  label.True() ? label.sval()->strv() : "", true);
         return v;
     }
-    ENDDECL2(im_edit_anything, "value,label", "AkS?", "A1", "");
+    ENDDECL2(im_edit_anything, "value,label", "AkS?", "A1",
+        "creates a UI for any lobster reference value, and returns the edited version");
+
+    STARTDECL(im_graph) (VM &, Value &label, Value &vals, Value &histogram) {
+        auto getter = [](void *data, int i) -> float {
+            return ((Value *)data)[i].fltval();
+        };
+        if (histogram.True()) {
+            ImGui::PlotHistogram(label.sval()->data(), getter, vals.vval()->Elems(),
+                (int)vals.vval()->len);
+        } else {
+            ImGui::PlotLines(label.sval()->data(), getter, vals.vval()->Elems(),
+                (int)vals.vval()->len);
+        }
+        return Value();
+    }
+    ENDDECL3(im_graph, "label,values,ishistogram", "SF]I", "",
+             "")
 
     STARTDECL(im_show_vars) (VM &vm) {
         VarsToGUI(vm);
         return Value();
     }
-    ENDDECL0(im_show_vars, "", "", "", "");
+    ENDDECL0(im_show_vars, "", "", "",
+        "shows an automatic editing UI for each global variable in your program");
 
     STARTDECL(im_show_engine_stats) (VM &) {
         EngineStatsGUI();

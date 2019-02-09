@@ -2,6 +2,7 @@
 
 include vec
 include color
+include imgui
 
 fatal(gl_window("imgui demo", 1280, 1024))
 
@@ -30,11 +31,11 @@ while gl_frame():
 
     im_frame():
         // Maximum convenience: turn any data structure into editable UI!
-        im_window("Created from a struct"):
+        im_window("Created from a struct", im_window_always_autoresize):
             d = im_edit_anything(d)
 
         // Manually created widgets, so you can choose how to represent and layout data:
-        im_window("Created by code"):
+        im_window("Created by code", im_window_no_collapse | im_window_always_autoresize):
             im_text("A text!")
             d.on = im_checkbox("Check it out!", d.on)
             im_tooltip("This is worth checking out, really!")
@@ -45,6 +46,7 @@ while gl_frame():
             d.i = im_combo("Combo", d.fruits, d.i)
             d.i = im_listbox("ListBox", d.fruits, d.i)
             d.col = im_coloredit("Color", d.col)
+            for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1, g)
             im_separator()
             if !demo:
                 im_button("show demo window"): demo = true
@@ -54,6 +56,6 @@ while gl_frame():
 
         // Realtime debugging! Show all lobster variables as editable UI.
         // Also show some engine stats, like e.g. a framerate graph.
-        im_window("Realtime Debugger"):
+        im_window("Realtime Debugger", im_window_always_autoresize):
             im_show_engine_stats()
             im_show_vars()
