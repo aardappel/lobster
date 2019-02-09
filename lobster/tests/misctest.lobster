@@ -8,7 +8,7 @@ include vec
 namespace test_namespace
 
 def f(): return 1
-struct g { x:int = 1 }
+struct g { x = 1 }
 
 namespace whatever
 

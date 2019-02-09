@@ -58,7 +58,7 @@ struct TypeChecker {
         if (!st.RegisterDefaultVectorTypes())
             TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
         for (auto &struc : st.structtable) {
-            if (!struc->generic) ComputeStructSameType(struc);
+            if (struc->generics.empty()) ComputeStructSameType(struc);
             if (struc->superclass) {
                 // If this type has fields inherited from the superclass that refer to the
                 // superclass, make it refer to this type instead. There may be corner cases where
@@ -117,8 +117,8 @@ struct TypeChecker {
     string TypedArg(const GenericArgs &args, size_t i, bool withtype = true) {
         string s;
         s += args.GetName(i);
-        if (args.GetType(i)->type->t != V_ANY && withtype)
-            s += ":" + TypeName(args.GetType(i)->type);
+        if (args.GetType(i)->t != V_ANY && withtype)
+            s += ":" + TypeName(args.GetType(i));
         return s;
     }
 
@@ -693,19 +693,27 @@ struct TypeChecker {
     Struct *FindStructSpecialization(Struct *given, const Constructor *cons) {
         // This code is somewhat similar to function specialization, but not similar enough to
         // share. If they're all typed, we bail out early:
-        if (!given->generic) return given;
+        if (given->generics.empty()) return given;
         auto head = given->first;
         assert(cons->Arity() == head->fields.size());
         // Now find a match:
-        auto struc = head->next;
-        for (; struc; struc = struc->next) {
+        Struct *best = nullptr;
+        int bestmatch = 0;
+        for (auto struc = head->next; struc; struc = struc->next) {
+            int nmatches = 0;
             for (auto [i, arg] : enumerate(cons->children)) {
                 auto &field = struc->fields.v[i];
-                if (field.flags & AF_GENERIC && !ExactType(arg->exptype, field.type)) goto fail;
+                if (field.genericref >= 0) {
+                    if (ExactType(arg->exptype, field.type)) nmatches++;
+                    else break;
+                }
             }
-            return struc;  // Found a match.
-            fail:;
+            if (nmatches > bestmatch) {
+                bestmatch = nmatches;
+                best = struc;
+            }
         }
+        if (best) return best;
         string s;
         for (auto &arg : cons->children) s += " " + TypeName(arg->exptype);
         TypeError("no specialization of " + given->first->name + " matches these types:" + s,
@@ -2166,7 +2174,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
             r = fc;
         } else {
             if (fld && dotnoparens)
-                tc.TypeError("cannot dereference field on: " + TypeName(type), *this);
+                tc.TypeError("type " + TypeName(type) + " does not have field: " + fld->name, *this);
             tc.TypeError("unknown field/function reference: " + name, *this);
         }
     }
@@ -2614,15 +2622,19 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *StructRef::TypeCheck(TypeChecker &/*tc*/, size_t /*reqret*/) {
-    /*
+Node *StructRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto &f : st->fields.v) {
-        if (f.defaultval && f.type->t == V_ANY && !(f.flags & AF_GENERIC) && f.defaultval->exptype.Null()) {
-            f.defaultval = tc.TT(f.defaultval, 1);
+        if (f.defaultval && f.type->t == V_ANY) {
+            // FIXME: would be good to not call TT here generically but instead have some
+            // specialized checking, just in case TT has a side effect.
+            tc.TT(f.defaultval, 1, LT_ANY);
+            tc.DecBorrowers(f.defaultval->lt, *this);
+            f.defaultval->lt = LT_UNDEF;
             f.type = f.defaultval->exptype;
         }
     }
-    */
+    exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 

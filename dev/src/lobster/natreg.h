@@ -263,7 +263,8 @@ struct Narg : Typed {
 
 struct GenericArgs {
     virtual string_view GetName(size_t i) const = 0;
-    virtual const Typed *GetType(size_t i) const = 0;
+    virtual TypeRef GetType(size_t i) const = 0;
+    virtual ArgFlags GetFlags(size_t i) const = 0;
     virtual size_t size() const = 0;
 };
 
@@ -274,7 +275,8 @@ struct NargVector : GenericArgs {
     NargVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
 
     size_t size() const { return v.size(); }
-    const Typed *GetType(size_t i) const { return &v[i]; }
+    TypeRef GetType(size_t i) const { return v[i].type; }
+    ArgFlags GetFlags(size_t i) const { return v[i].flags; }
     string_view GetName(size_t i) const {
         auto ids = idlist;
         for (;;) {

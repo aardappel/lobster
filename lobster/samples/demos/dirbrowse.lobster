@@ -6,9 +6,13 @@ indentsize := 20.0
 column_margin := 10.0
 fontsize := 20
 
-struct node { name:string, size:int, parent:node?, children:[node] }
+struct node:
+    name:string
+    size:int
+    parent:node?
+    children:[node] = []
 
-root := node { "", -1, nil, [] }
+root := node { "", -1, nil }
 selected := root
 entries := []
 
@@ -20,7 +24,7 @@ def scan(n:node):
     names, sizes := scan_folder(n.fullpath, 1024)
     if names and sizes:
         for(names) name, i:
-            entries.push(node { name, sizes[i], nil, [] })
+            entries.push(node { name, sizes[i], nil })
     insertion_sort(entries) a, b:
         if ((a.size < 0) == (b.size < 0)): a.name < b.name else: a.size < b.size
 
@@ -67,7 +71,7 @@ def render_entries():
                     if dups.length:
                         select(dups[0])
                     else:
-                        n := node { e.name, e.size, selected, [] }
+                        n := node { e.name, e.size, selected }
                         selected.children.push(n)
                         select(n)
                 gl_color color_light_grey:

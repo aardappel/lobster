@@ -376,7 +376,7 @@ SubFunction::~SubFunction() { delete body; }
 Field::~Field() { delete defaultval; }
 
 Field::Field(const Field &o)
-    : Typed(o), id(o.id), fieldref(o.fieldref),
+    : type(o.type), id(o.id), genericref(o.genericref),
       defaultval(o.defaultval ? o.defaultval->Clone() : nullptr) {}
 
 }

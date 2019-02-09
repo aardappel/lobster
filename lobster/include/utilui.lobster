@@ -15,11 +15,11 @@ struct scrollzoomview:
     // Scroll related:
     buttonname:string  // The button to do dragging with (e.g. "mouse1")
     // Internal state:
-    panoffset:xy_f = xy_0
-    touchvelocity:xy_f = xy_0
-    viewsteps:int = 0
-    pinchfactor:float = 1.0
-    lastdistance:float = 0.0
+    panoffset = xy_0
+    touchvelocity = xy_0
+    viewsteps = 0
+    pinchfactor = 1.0
+    lastdistance = 0.0
 
     // mino/maxo: Bounding box of the scrollable area (in its own units)
     // viewsize: In pixels.

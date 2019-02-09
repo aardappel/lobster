@@ -171,6 +171,8 @@ struct Lex : LoadedFile {
         }
     }
 
+    void OverrideCont(bool c) { cont = c; }
+
     void PopBracket(char c) {
         if (bracketstack.empty())
             Error(string("unmatched \'") + c + "\'");

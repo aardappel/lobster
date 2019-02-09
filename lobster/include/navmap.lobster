@@ -9,7 +9,7 @@ struct nav_map { grid:[[xy_i]], start:xy_i }
 // allow_diag says if you want to automatically create diagonal steps where possible.
 // TODO: more efficient to make a seperate blocked Q for efficiency
 def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, is_blocked):
-    struct nav_cell { pdir:xy_i, pos:xy_i, psteps:int = -1, cost:int = 0 }
+    struct nav_cell { pdir:xy_i, pos:xy_i, psteps = -1, cost = 0 }
     assert blocked_cost or !is_blocked(start)
     pathq := []::nav_cell
     grid := mapxy(worlddim) v: nav_cell { xy_0i, v }

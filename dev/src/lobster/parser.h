@@ -84,8 +84,6 @@ struct Parser {
                                        [&](auto def) {
             if (auto sr = Is<StructRef>(def)) {
                 st.UnregisterStruct(sr->st, lex);
-                delete sr;
-                return true;
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.UnregisterFun(f);
@@ -282,54 +280,53 @@ struct Parser {
         lex.Next();
         auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
         Struct *struc = &st.StructDecl(sname, lex);
-        Struct *sup = nullptr;
         auto parse_sup = [&] () {
             ExpectId();
-            sup = &st.StructUse(lastid, lex);
+            return &st.StructUse(lastid, lex);
         };
-        vector<pair<TypeRef, Node *>> spectypes;
         auto parse_specializers = [&] () {
-            if (IsNext(T_LEFTPAREN)) {
+            int i = 0;
+            if (IsNext(T_LT)) {
                 for (;;) {
-                    spectypes.push_back({ nullptr, nullptr });
-                    ParseType(spectypes.back().first, false);
-                    spectypes.back().second = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                    if (IsNext(T_RIGHTPAREN)) break;
+                    if (struc->generics.empty()) Error("too many type specializers");
+                    struc->generics.erase(struc->generics.begin());
+                    TypeRef type;
+                    ParseType(type, false);
+                    auto def = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                    for (auto &field : struc->fields.v) {
+                        if (field.genericref == i) {
+                            field.type = type;
+                            // We don't reset genericref here, because its used to know which
+                            // fields to select a specialization on.
+                            if (def) {
+                                if (field.defaultval) Error("field already has a default value");
+                                field.defaultval = def;
+                            }
+                        }
+                    }
+                    i++;
+                    if (lex.token == T_GT) {
+                        lex.OverrideCont(false);  // T_GT here should not continue the line.
+                        lex.Next();
+                        break;
+                    }
                     Expect(T_COMMA);
                 }
             }
-        };
-        size_t specializer_i = 0;
-        auto specialize_field = [&] (Field &field) {
-            if (field.flags & AF_GENERIC) {
-                if (specializer_i >= spectypes.size()) Error("too few type specializers");
-                auto &[stype, snode] = spectypes[specializer_i++];
-                field.type = stype;
-                if (snode) { assert(!field.defaultval); field.defaultval = snode; }
-            }
+            return i;
         };
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
-            parse_sup();
+            auto sup = parse_sup();
             struc = sup->CloneInto(struc);
             struc->idx = (int)st.structtable.size() - 1;
             struc->name = sname;
-            struc->generic = false;
-            parse_specializers();
-            if (!spectypes.size())
+            if (!parse_specializers())
                 Error("no specialization types specified");
-            if (!sup->generic)
-                Error("you can only specialize a generic struct/value");
             if (isvalue != sup->readonly)
                 Error("specialization must use same struct/value keyword");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
-            for (auto &field : struc->fields.v) {
-                // We don't reset AF_GENERIC here, because its used to know which fields to select
-                // a specialization on.
-                specialize_field(field);
-                struc->Resolve(field);
-            }
             if (struc->superclass) {
                 // This points to a generic version of the superclass of this class.
                 // See if we can find a matching specialization instead.
@@ -344,63 +341,55 @@ struct Parser {
                 done:
                 struc->superclass = sti;  // Either a match or nullptr.
             }
-        } else if (Either(T_COLON, T_LEFTCURLY)) {
+        } else if (Either(T_COLON, T_LEFTCURLY, T_LT)) {
             // A regular struct declaration
             struc->readonly = isvalue;
             struc->isprivate = isprivate;
+            if (IsNext(T_LT)) {
+                for (;;) {
+                    auto id = ExpectId();
+                    for (auto &g : struc->generics)
+                        if (g.name == id)
+                            Error("re-declaration of generic type");
+                    struc->generics.push_back({ id });
+                    if (IsNext(T_GT)) break;
+                    Expect(T_COMMA);
+                }
+            }
             if (IsNext(T_COLON) && lex.token != T_INDENT) {
-                parse_sup();
+                auto sup = parse_sup();
+                if (sup) {
+                    struc->superclass = sup;
+                    struc->generics = sup->generics;
+                    for (auto &fld : sup->fields.v) {
+                        struc->fields.v.push_back(fld);
+                    }
+                }
                 parse_specializers();
                 if (IsNext(T_COLON) && lex.token != T_INDENT) lex.Undo(T_COLON);
             }
-            if (sup) {
-                struc->superclass = sup;
-                for (auto &fld : sup->fields.v) {
-                    struc->fields.v.push_back(fld);
-                    auto &field = struc->fields.v.back();
-                    // FIXME: must check if this type is a subtype if old type isn't V_ANY
-                    if (spectypes.size()) specialize_field(field);
-                    if (st.IsGeneric(field.type)) struc->generic = true;
-                }
-            }
             bool fieldsdone = false;
-            auto finishfields = [&]() {
-                if (!fieldsdone) {
-                    // Loop thru fields again, because this type may have become generic just now,
-                    // and may refer to itself.
-                    for (auto &field : struc->fields.v) {
-                        if (st.IsGeneric(field.type) && field.fieldref < 0)
-                            field.flags = AF_GENERIC;
-                    }
-                    fieldsdone = true;
-                }
-            };
             ParseIndentedorVector([&] () {
                 if (IsNext(T_FUN)) {
-                    finishfields();
+                    fieldsdone = true;
                     parent_list->Add(ParseNamedFunctionDefinition(false, struc));
                 } else {
                     ExpectId();
                     if (fieldsdone) Error("fields must be declared before methods");
                     auto &sfield = st.FieldDecl(lastid);
                     TypeRef type = type_any;
-                    int fieldref = -1;
+                    int genericref = -1;
                     if (IsNext(T_COLON)) {
-                        fieldref = ParseType(type, false, struc);
+                        genericref = ParseType(type, false, struc);
                     }
                     Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                    bool generic = st.IsGeneric(type) && fieldref < 0; // && !defaultval;
-                    struc->fields.v.push_back(Field(&sfield, type,
-                        (generic ? AF_GENERIC : AF_NONE), fieldref, defaultval));
-                    if (generic) struc->generic = true;
+                    struc->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
                 }
             }, T_LEFTCURLY, T_RIGHTCURLY);
-            finishfields();
         } else {
             // A pre-declaration.
             struc->predeclaration = true;
         }
-        if (specializer_i < spectypes.size()) Error("too many type specializers");
         parent_list->Add(new StructRef(lex, struc));
     }
 
@@ -575,13 +564,11 @@ struct Parser {
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
             case T_IDENT: {
                 if (fieldrefstruct) {
-                    for (auto &field : fieldrefstruct->fields.v) {
-                        if (field.id->name == lex.sattr) {
-                            if (!(field.flags & AF_GENERIC))
-                                Error("field reference must be to generic field: " + lex.sattr);
+                    for (auto [i, gen] : enumerate(fieldrefstruct->generics)) {
+                        if (gen.name == lex.sattr) {
                             lex.Next();
-                            dest = field.type;
-                            return int(&field - &fieldrefstruct->fields.v[0]);
+                            dest = type_undefined;
+                            return (int)i;
                         }
                     }
                 }
@@ -653,7 +640,7 @@ struct Parser {
         }
         if (needscomma) Expect(T_COMMA);
         CheckArg(args, thisarg, fname);
-        if (args && (args->GetType(thisarg)->flags & AF_EXPFUNVAL)) {
+        if (args && (args->GetFlags(thisarg) & AF_EXPFUNVAL)) {
             list->Add(ParseFunction(nullptr, false, false, false, args->GetName(thisarg), true,
                                     noparens));
         } else {

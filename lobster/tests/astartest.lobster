@@ -33,7 +33,7 @@ run_test("astar"):
         ".......OOOOOOOO.................."
     ]
 
-    struct pathingcell : astar_node(pathingcell?, xy_i, xy_i?):
+    struct pathingcell : astar_node<pathingcell?, xy_i, xy_i?>:
         path:int
         c:int
 

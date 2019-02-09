@@ -79,15 +79,16 @@ struct SharedField : Named {
     SharedField() : SharedField("", 0) {}
 };
 
-struct Field : Typed {
+struct Field {
+    TypeRef type;
     SharedField *id = nullptr;
-    int fieldref = -1;
+    int genericref = -1;
     Node *defaultval = nullptr;
 
     Field() = default;
-    Field(SharedField *_id, TypeRef _type, ArgFlags _flags, int _fieldref, Node *_defaultval)
-        : Typed(_type, _flags), id(_id),
-          fieldref(_fieldref), defaultval(_defaultval) {}
+    Field(SharedField *_id, TypeRef _type, int _genericref, Node *_defaultval)
+        : type(_type), id(_id),
+        genericref(_genericref), defaultval(_defaultval) {}
     Field(const Field &o);
     ~Field();
 };
@@ -98,17 +99,22 @@ struct FieldVector : GenericArgs {
     FieldVector(int nargs) : v(nargs) {}
 
     size_t size() const { return v.size(); }
-    const Typed *GetType(size_t i) const { return &v[i]; }
+    TypeRef GetType(size_t i) const { return v[i].type; }
+    ArgFlags GetFlags(size_t) const { return AF_NONE; }
     string_view GetName(size_t i) const { return v[i].id->name; }
+};
+
+struct GenericParameter {
+    string_view name;
 };
 
 struct Struct : Named {
     FieldVector fields { 0 };
+    vector<GenericParameter> generics;
     Struct *next = nullptr, *first = this;
     Struct *superclass = nullptr;
     Struct *firstsubclass = nullptr, *nextsubclass = nullptr;  // Used in codegen.
     bool readonly = false;
-    bool generic = false;
     bool predeclaration = false;
     Type thistype { V_STRUCT, this };  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
@@ -132,7 +138,7 @@ struct Struct : Named {
     }
 
     bool IsSpecialization(Struct *other) {
-        if (generic) {
+        if (!generics.empty()) {
             for (auto struc = first->next; struc; struc = struc->next)
                 if (struc == other)
                     return true;
@@ -146,10 +152,6 @@ struct Struct : Named {
         int n = 0;
         for (auto t = superclass; t; t = t->superclass) n++;
         return n;
-    }
-
-    void Resolve(Field &field) {
-        if (field.fieldref >= 0) field.type = fields.v[field.fieldref].type;
     }
 
     flatbuffers::Offset<bytecode::Struct> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
@@ -175,7 +177,8 @@ struct ArgVector : GenericArgs {
     ArgVector(int nargs) : v(nargs) {}
 
     size_t size() const { return v.size(); }
-    const Typed *GetType(size_t i) const { return &v[i]; }
+    TypeRef GetType(size_t i) const { return v[i].type; }
+    ArgFlags GetFlags(size_t i) const { return v[i].flags; }
     string_view GetName(size_t i) const { return v[i].sid->id->name; }
 
     bool Add(const Arg &in) {
@@ -647,7 +650,7 @@ struct SymbolTable {
     bool IsGeneric(TypeRef type) {
         if (type->t == V_ANY) return true;
         auto u = type->UnWrapped();
-        return u->t == V_STRUCT && u->struc->generic;
+        return u->t == V_STRUCT && !u->struc->generics.empty();
     }
 
     // This one is used to sort types for multi-dispatch.

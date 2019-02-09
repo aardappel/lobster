@@ -10,13 +10,13 @@ assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
 // The data we're editing:
 struct Thingy:
-    on:int = true
-    i:int = 1
-    ratio:float = 0.5
-    name:string = "Fred"
-    col:color = color_red
-    pos:xy_f = xy_1
-    fruits:[string] = ["apple", "banana", "pear"]
+    on = true
+    i = 1
+    ratio = 0.5
+    name = "Fred"
+    col = color_red
+    pos = xy_1
+    fruits = ["apple", "banana", "pear"]
     others:[Thingy]
 
 d := Thingy { map(3): Thingy { [] } }

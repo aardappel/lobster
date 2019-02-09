@@ -3,19 +3,19 @@
 
 // This file is automatically included in each Lobster program (!)
 
-// vector types: generally for float elements, but useful for other types as well.
+// vector types: generally for float or int elements, but useful for other types as well.
 
-value xy { x, y:x }
-value xyz : xy { z:x }
-value xyzw : xyz { w:x }
+value xy<T> { x:T, y:T }
+value xyz : xy { z:T }
+value xyzw : xyz { w:T }
 
 // Specialized type names:
 
-value xy_f = xy(float)
-value xy_i = xy(int)
+value xy_f = xy<float>
+value xy_i = xy<int>
 
-value xyz_f = xyz(float)
-value xyz_i = xyz(int)
+value xyz_f = xyz<float>
+value xyz_i = xyz<int>
 
-value xyzw_f = xyzw(float)
-value xyzw_i = xyzw(int)
+value xyzw_f = xyzw<float>
+value xyzw_i = xyzw<int>

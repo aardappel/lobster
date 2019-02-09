@@ -132,5 +132,5 @@ run_test("smallpt"):
             // Camera rays are pushed ^^^^^ forward to start in interior
             c[h-y-1][x] += r
     samples++
-    r := map(c) row: map(row) col: xyzw(xyz_v(map(col): pow(clamp(_ / samples, 0, 1), 1 / 2.2)), 1)
+    r := map(c) row: map(row) col: xyzw(xyz_v(map(col): pow(clamp(_ / samples, 0, 1), 1 / 2.2)), 1.0)
     assert r

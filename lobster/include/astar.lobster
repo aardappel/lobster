@@ -2,15 +2,15 @@
 
 include vec
 
-struct astar_node:
-    G:float = 0.0
-    H:float = 0.0
-    F:float = 0.0
-    previous = nil
-    state
-    delta = nil
-    open:int = false
-    closed:int = false
+struct astar_node<N,S,D>:
+    G = 0.0
+    H = 0.0
+    F = 0.0
+    previous:N = nil
+    state:S
+    delta:D = nil
+    open = false
+    closed = false
 
 def astar_clear(n::astar_node):
     open = closed = false
@@ -93,7 +93,7 @@ value goapaction {
     effect:goapf
 }
 
-struct goap_node = astar_node(goap_node?, [int], goapaction?)
+struct goap_node = astar_node<goap_node?, [int], goapaction?>
 
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     H := heuristic(initstate)
