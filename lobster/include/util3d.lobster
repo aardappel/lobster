@@ -85,7 +85,7 @@ def create_depth_texture(tex, size):
 // Same, but processes a source texture. Takes size from that texture.
 def render_to_texture_from(tex, shader, srctex):
     texture_format :== texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
-    render_to_texture(tex, gl_texture_size(srctex), false, nil, texture_format):
+    return render_to_texture(tex, gl_texture_size(srctex), false, nil, texture_format):
         gl_set_primitive_texture(0, srctex)
         gl_set_shader(shader)
         gl_rect(float(gl_texture_size(srctex)))
