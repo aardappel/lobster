@@ -1184,7 +1184,9 @@ void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
     // each function.
     cg.Emit((int)sf->coyieldsave.v.size());
     for (auto &arg : sf->coyieldsave.v) cg.Emit(arg.sid->Idx());
+    cg.temptypestack.push_back(TypeLT { *this, 0 });
     cg.Gen(call, 1, 1);
+    cg.TakeTemp(1);
     cg.Emit(IL_COEND);
     cg.SetLabel(loc);
     if (!retval) cg.Emit(IL_POPREF);
