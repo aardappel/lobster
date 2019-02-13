@@ -999,7 +999,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         // The argument to the next call to yield (or the coroutine return value) will instead
         // be captured in the dormant coroutine stack and available over return_value() below.
     }
-    ENDDECL2(resume, "coroutine,return_value", "CkA%?", "C?",
+    ENDDECL2(resume, "coroutine,return_value", "CkAk%?", "C?",
         "resumes execution of a coroutine, passing a value back or nil");
 
     STARTDECL(return_value) (VM &vm, Value &co) {
