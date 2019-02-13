@@ -628,6 +628,7 @@ struct TypeChecker {
         scope.sf = &sf;
         scope.call_context = call_context;
         scopes.push_back(scope);
+        //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         sf.typechecked = true;
         for (auto &arg : sf.args.v) StorageType(arg.type, *call_context);
@@ -975,6 +976,9 @@ struct TypeChecker {
             // Check if we need to specialize: generic args, free vars and need of retval
             // must match previous calls.
             SubFunction *sf = csf;
+            auto AllowAnyLifetime = [&](const Arg &arg) {
+                return arg.sid->id->single_assignment && !sf->iscoroutine;
+            };
             if (sf->typechecked) {
                 // Check if any existing specializations match.
                 for (sf = f.subf; sf; sf = sf->next) {
@@ -987,8 +991,8 @@ struct TypeChecker {
                         for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
                             auto &arg = sf->args.v[i];
                             if ((arg.flags & AF_GENERIC && !ExactType(c->exptype, arg.type)) ||
-                                (LifetimeType(c->lt) != LifetimeType(arg.sid->lt) &&
-                                 arg.sid->id->single_assignment)) goto fail;
+                                (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
+                                 AllowAnyLifetime(arg))) goto fail;
                         }
                         if (SpecializationIsCompatible(*sf, reqret)) {
                             // This function can be reused.
@@ -1014,7 +1018,7 @@ struct TypeChecker {
             }
             for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
                 auto &arg = sf->args.v[i];
-                arg.sid->lt = arg.sid->id->single_assignment && !sf->iscoroutine ? c->lt : LT_KEEP;
+                arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
                 if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,

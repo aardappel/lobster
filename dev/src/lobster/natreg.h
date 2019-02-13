@@ -41,7 +41,8 @@ enum Lifetime {
     LT_UNDEF = -5,
 };
 
-inline Lifetime LifetimeType(Lifetime lt) { return lt >= 0 ? LT_BORROW : lt; }
+inline bool IsBorrow(Lifetime lt) { return lt >= LT_BORROW; }
+inline Lifetime LifetimeType(Lifetime lt) { return IsBorrow(lt) ? LT_BORROW : lt; }
 
 struct Named {
     string name;
