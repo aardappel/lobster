@@ -654,7 +654,7 @@ void AddMeshGen(NativeRegistry &natreg) {
 
     STARTDECL(mg_cube) (VM &vm, Value &ext) {
         auto c = new IFCube();
-        c->extents = ValueDecToFLT<3>(vm, ext);
+        c->extents = ValueToFLT<3>(vm, ext);
         return AddShape(c);
     }
     ENDDECL1(mg_cube,  "extents", "F}:3", "",
@@ -681,8 +681,8 @@ void AddMeshGen(NativeRegistry &natreg) {
 
     STARTDECL(mg_superquadric) (VM &vm, Value &exps, Value &scale) {
         auto sq = new IFSuperQuadric();
-        sq->exp = ValueDecToFLT<3>(vm, exps);
-        sq->scale = ValueDecToFLT<3>(vm, scale);
+        sq->exp = ValueToFLT<3>(vm, exps);
+        sq->scale = ValueToFLT<3>(vm, scale);
         return AddShape(sq);
     }
     ENDDECL2(mg_superquadric, "exponents,scale", "F}:3F}:3", "",
@@ -692,10 +692,10 @@ void AddMeshGen(NativeRegistry &natreg) {
     STARTDECL(mg_superquadric_non_uniform) (VM &vm, Value &posexps, Value &negexps, Value &posscale,
         Value &negscale) {
         auto sq = new IFSuperQuadricNonUniform();
-        sq->exppos   = ValueDecToFLT<3>(vm, posexps);
-        sq->expneg   = ValueDecToFLT<3>(vm, negexps);
-        sq->scalepos = max(float3(0.01f), ValueDecToFLT<3>(vm, posscale));
-        sq->scaleneg = max(float3(0.01f), ValueDecToFLT<3>(vm, negscale));
+        sq->exppos   = ValueToFLT<3>(vm, posexps);
+        sq->expneg   = ValueToFLT<3>(vm, negexps);
+        sq->scalepos = max(float3(0.01f), ValueToFLT<3>(vm, posscale));
+        sq->scaleneg = max(float3(0.01f), ValueToFLT<3>(vm, negscale));
 
         return AddShape(sq);
     }
@@ -708,7 +708,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     STARTDECL(mg_supertoroid) (VM &vm, Value &r, Value &exps) {
         auto t = new IFSuperToroid();
         t->r = r.fltval();
-        t->exp = ValueDecToFLT<3>(vm, exps);
+        t->exp = ValueToFLT<3>(vm, exps);
         return AddShape(t);
     }
     ENDDECL2(mg_supertoroid, "R,exponents", "FF}:3", "",
@@ -775,14 +775,14 @@ void AddMeshGen(NativeRegistry &natreg) {
 
     STARTDECL(mg_translate) (VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, curorig));
-        auto v = ValueDecToFLT<3>(vm, vec);
+        auto v = ValueToFLT<3>(vm, vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
         return body;
     }
     MIDDECL(mg_translate) (VM &vm) {
         auto tmptrans = vm.Pop();
-        curorig = ValueDecToFLT<3>(vm, tmptrans);
+        curorig = ValueToFLT<3>(vm, tmptrans);
         tmptrans.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3B?", "",
@@ -796,7 +796,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     }
     MIDDECL(mg_scale) (VM &vm) {
         auto tmpscale = vm.Pop();
-        cursize = ValueDecToFLT<3>(vm, tmpscale);
+        cursize = ValueToFLT<3>(vm, tmpscale);
         tmpscale.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_scale, "f,body", "FB?", "",
@@ -805,13 +805,13 @@ void AddMeshGen(NativeRegistry &natreg) {
 
     STARTDECL(mg_scale_vec) (VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, cursize));
-        auto v = ValueDecToFLT<3>(vm, vec);
+        auto v = ValueToFLT<3>(vm, vec);
         cursize *= v;
         return body;
     }
     MIDDECL(mg_scale_vec) (VM &vm) {
         auto tmpscale = vm.Pop();
-        cursize = ValueDecToFLT<3>(vm, tmpscale);
+        cursize = ValueToFLT<3>(vm, tmpscale);
         tmpscale.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3B?", "",
@@ -821,7 +821,7 @@ void AddMeshGen(NativeRegistry &natreg) {
     STARTDECL(mg_rotate) (VM &vm, Value &axis, Value &angle, Value &body) {
         if (body.True()) vm.Push(Value(vm.NewString(string_view((char *)&currot,
                                                                       sizeof(float3x3)))));
-        auto v = ValueDecToFLT<3>(vm, axis);
+        auto v = ValueToFLT<3>(vm, axis);
         currot *= float3x3(angle.fltval() * RAD, v);
         return body;
     }
@@ -838,12 +838,12 @@ void AddMeshGen(NativeRegistry &natreg) {
 
     STARTDECL(mg_color) (VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, curcol));
-        curcol = ValueDecToFLT<4>(vm, vec);
+        curcol = ValueToFLT<4>(vm, vec);
         return body;
     }
     MIDDECL(mg_color) (VM &vm) {
         auto tmpcol = vm.Pop();
-        curcol = ValueDecToFLT<4>(vm, tmpcol);
+        curcol = ValueToFLT<4>(vm, tmpcol);
         tmpcol.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4B?", "",

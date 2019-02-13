@@ -949,16 +949,6 @@ template<int N> inline vec<intp, N> ValueToI(VM &vm, const Value &v, intp def = 
     return t;
 }
 
-template<int N> inline vec<floatp, N> ValueDecToF(VM &vm, const Value &v, floatp def = 0) {
-    auto r = ValueToF<N>(vm, v, def);
-    return r;
-}
-
-template<int N> inline vec<intp, N> ValueDecToI(VM &vm, const Value &v, intp def = 0) {
-    auto r = ValueToI<N>(vm, v, def);
-    return r;
-}
-
 // Versions that cast to int/float regardless of the size of intp/floatp.
 template<int N> inline vec<float, N> ValueToFLT(VM &vm, const Value &v, floatp def = 0) {
     return vec<float, N>(ValueToF<N>(vm, v, def));
@@ -966,13 +956,6 @@ template<int N> inline vec<float, N> ValueToFLT(VM &vm, const Value &v, floatp d
 template<int N> inline vec<int, N> ValueToINT(VM &vm, const Value &v, intp def = 0) {
     return vec<int, N>(ValueToI<N>(vm, v, def));
 }
-template<int N> inline vec<float, N> ValueDecToFLT(VM &vm, const Value &v, floatp def = 0) {
-    return vec<float, N>(ValueDecToF<N>(vm, v, def));
-}
-template<int N> inline vec<int, N> ValueDecToINT(VM &vm, const Value &v, intp def = 0) {
-    return vec<int, N>(ValueDecToI<N>(vm, v, def));
-}
-
 
 template <int N> inline Value ToValueI(VM &vm, const vec<intp, N> &v, intp maxelems = 4) {
     auto numelems = min(maxelems, (intp)N);

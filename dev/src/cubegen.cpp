@@ -113,7 +113,7 @@ Voxels *NewWorld(const int3 &size) {
 
 void AddCubeGen(NativeRegistry &natreg) {
     STARTDECL(cg_init) (VM &vm, Value &size) {
-        auto v = NewWorld(ValueDecToINT<3>(vm, size));
+        auto v = NewWorld(ValueToINT<3>(vm, size));
         return Value(vm.NewResource(v, &voxel_type));
     }
     ENDDECL1(cg_init, "size", "I]:3", "R",
@@ -127,8 +127,8 @@ void AddCubeGen(NativeRegistry &natreg) {
         "returns the current block size");
 
     STARTDECL(cg_set) (VM &vm, Value &wid, Value &pos, Value &size, Value &color) {
-        auto p = ValueDecToINT<3>(vm, pos);
-        auto sz = ValueDecToINT<3>(vm, size);
+        auto p = ValueToINT<3>(vm, pos);
+        auto sz = ValueToINT<3>(vm, size);
         GetVoxels(vm, wid).Set(p, sz, (uchar)color.ival());
         return Value();
     }
@@ -137,10 +137,10 @@ void AddCubeGen(NativeRegistry &natreg) {
         "Coordinates automatically clipped to the size of the grid");
 
     STARTDECL(cg_copy) (VM &vm, Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
-        auto p = ValueDecToINT<3>(vm, pos);
-        auto sz = ValueDecToINT<3>(vm, size);
-        auto d = ValueDecToINT<3>(vm, dest);
-        auto fl = ValueDecToINT<3>(vm, flip);
+        auto p = ValueToINT<3>(vm, pos);
+        auto sz = ValueToINT<3>(vm, size);
+        auto d = ValueToINT<3>(vm, dest);
+        auto fl = ValueToINT<3>(vm, flip);
         GetVoxels(vm, wid).Copy(p, sz, d, fl);
         return Value();
     }
@@ -150,7 +150,7 @@ void AddCubeGen(NativeRegistry &natreg) {
         " Coordinates automatically clipped to the size of the grid");
 
     STARTDECL(cg_color_to_palette) (VM &vm, Value &wid, Value &color) {
-        return Value(GetVoxels(vm, wid).Color2Palette(float4(ValueDecToF<4>(vm, color))));
+        return Value(GetVoxels(vm, wid).Color2Palette(float4(ValueToF<4>(vm, color))));
     }
     ENDDECL2(cg_color_to_palette, "block,color", "RF]:4", "I",
         "converts a color to a palette index. alpha < 0.5 is considered empty space."

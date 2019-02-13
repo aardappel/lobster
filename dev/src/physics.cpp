@@ -42,7 +42,7 @@ b2Vec2 Float2ToB2(const float2 &v) { return b2Vec2(v.x, v.y); }
 float2 B2ToFloat2(const b2Vec2 &v) { return float2(v.x, v.y); }
 
 b2Vec2 ValueDecToB2(VM &vm, Value &vec) {
-    auto v = ValueDecToFLT<2>(vm, vec);
+    auto v = ValueToFLT<2>(vm, vec);
     return Float2ToB2(v);
 }
 
@@ -99,7 +99,7 @@ void CheckParticles(float size = 0.1f) {
 b2Body &GetBody(VM &vm, Value &id, Value &position) {
     CheckPhysics();
     b2Body *body = id.True() ? GetObject(vm, id).fixture->GetBody() : nullptr;
-    auto wpos = ValueDecToFLT<2>(vm, position);
+    auto wpos = ValueToFLT<2>(vm, position);
     if (!body) {
         b2BodyDef bd;
         bd.type = b2_staticBody;
@@ -129,7 +129,7 @@ extern int GetSampler(VM &vm, Value &i);  // from graphics
 
 void AddPhysics(NativeRegistry &natreg) {
     STARTDECL(ph_initialize)(VM & vm, Value & gravity) {
-        InitPhysics(ValueDecToFLT<2>(vm, gravity));
+        InitPhysics(ValueToFLT<2>(vm, gravity));
         return Value();
     }
     ENDDECL1(ph_initialize, "gravityvector", "F}:2", "",
@@ -138,7 +138,7 @@ void AddPhysics(NativeRegistry &natreg) {
     STARTDECL(ph_create_box)
     (VM & vm, Value & position, Value & size, Value & offset, Value & rot, Value & other_id) {
         auto &body = GetBody(vm, other_id, position);
-        auto sz = ValueDecToFLT<2>(vm, size);
+        auto sz = ValueToFLT<2>(vm, size);
         auto r = rot.fltval();
         b2PolygonShape shape;
         shape.SetAsBox(sz.x, sz.y, OptionalOffset(vm, offset), r * RAD);
@@ -195,7 +195,7 @@ void AddPhysics(NativeRegistry &natreg) {
 
     STARTDECL(ph_set_color)(VM & vm, Value & fixture_id, Value & color) {
         auto &r = GetRenderable(vm, fixture_id);
-        auto c = ValueDecToFLT<4>(vm, color);
+        auto c = ValueToFLT<4>(vm, color);
         r.color = c;
         return Value();
     }
@@ -231,7 +231,7 @@ void AddPhysics(NativeRegistry &natreg) {
         CheckParticles();
         b2ParticleDef pd;
         pd.flags = type.intval();
-        auto c = ValueDecToFLT<3>(vm, color);
+        auto c = ValueToFLT<3>(vm, color);
         pd.color.Set(b2Color(c.x, c.y, c.z));
         pd.position = ValueDecToB2(vm, position);
         pd.velocity = ValueDecToB2(vm, velocity);
@@ -249,7 +249,7 @@ void AddPhysics(NativeRegistry &natreg) {
         pgd.shape = &shape;
         pgd.flags = type.intval();
         pgd.position = ValueDecToB2(vm, position);
-        auto c = ValueDecToFLT<3>(vm, color);
+        auto c = ValueToFLT<3>(vm, color);
         pgd.color.Set(b2Color(c.x, c.y, c.z));
         particlesystem->CreateParticleGroup(pgd);
         return Value();

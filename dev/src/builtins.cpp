@@ -653,7 +653,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
 
     STARTDECL(atan2) (VM &vm, Value &vec) {
-        auto v = ValueDecToF<3>(vm, vec); return Value(atan2(v.y, v.x) / RAD);
+        auto v = ValueToF<3>(vm, vec); return Value(atan2(v.y, v.x) / RAD);
     }
     ENDDECL1(atan2, "vec", "F}" , "F",
         "the angle (in degrees) corresponding to a normalized 2D vector");
@@ -667,11 +667,11 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(normalize) (VM &vm, Value &vec) {
         switch (vec.stval()->Len(vm)) {
-            case 2: { auto v = ValueDecToF<2>(vm, vec);
+            case 2: { auto v = ValueToF<2>(vm, vec);
                       return ToValueF(vm, v == floatp2_0 ? v : normalize(v)); }
-            case 3: { auto v = ValueDecToF<3>(vm, vec);
+            case 3: { auto v = ValueToF<3>(vm, vec);
                       return ToValueF(vm, v == floatp3_0 ? v : normalize(v)); }
-            case 4: { auto v = ValueDecToF<4>(vm, vec);
+            case 4: { auto v = ValueToF<4>(vm, vec);
                       return ToValueF(vm, v == floatp4_0 ? v : normalize(v)); }
             default: return vm.BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
@@ -679,20 +679,20 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(normalize, "vec",  "F}" , "F}",
         "returns a vector of unit length");
 
-    STARTDECL(dot) (VM &vm, Value &a, Value &b) { return Value(dot(ValueDecToF<4>(vm, a), ValueDecToF<4>(vm, b))); }
+    STARTDECL(dot) (VM &vm, Value &a, Value &b) { return Value(dot(ValueToF<4>(vm, a), ValueToF<4>(vm, b))); }
     ENDDECL2(dot,   "a,b", "F}F}", "F",
         "the length of vector a when projected onto b (or vice versa)");
 
-    STARTDECL(magnitude) (VM &vm, Value &a)  { return Value(length(ValueDecToF<4>(vm, a))); }
+    STARTDECL(magnitude) (VM &vm, Value &a)  { return Value(length(ValueToF<4>(vm, a))); }
     ENDDECL1(magnitude, "v", "F}", "F",
         "the geometric length of a vector");
 
-    STARTDECL(manhattan) (VM &vm, Value &a) { return Value(manhattan(ValueDecToI<4>(vm, a))); }
+    STARTDECL(manhattan) (VM &vm, Value &a) { return Value(manhattan(ValueToI<4>(vm, a))); }
     ENDDECL1(manhattan, "v", "I}", "I",
         "the manhattan distance of a vector");
 
     STARTDECL(cross) (VM &vm, Value &a, Value &b) {
-        return ToValueF(vm, cross(ValueDecToF<3>(vm, a), ValueDecToF<3>(vm, b)));
+        return ToValueF(vm, cross(ValueToF<3>(vm, a), ValueToF<3>(vm, b)));
     }
     ENDDECL2(cross, "a,b", "F}:3F}:3", "F}:3",
         "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
@@ -730,14 +730,14 @@ void AddBuiltins(NativeRegistry &natreg) {
              "forces a float to be in the range between min and max (inclusive)");
 
     STARTDECL(clamp) (VM &vm, Value &a, Value &b, Value &c) {
-        return ToValueI(vm, geom::clamp(ValueDecToI<4>(vm, a), ValueDecToI<4>(vm, b), ValueDecToI<4>(vm, c)),
+        return ToValueI(vm, geom::clamp(ValueToI<4>(vm, a), ValueToI<4>(vm, b), ValueToI<4>(vm, c)),
                         a.stval()->Len(vm));
     }
     ENDDECL3(clamp, "x,min,max", "I}I}I}", "I}",
              "forces an integer vector to be in the range between min and max (inclusive)");
 
     STARTDECL(clamp) (VM &vm, Value &a, Value &b, Value &c) {
-        return ToValueF(vm, geom::clamp(ValueDecToF<4>(vm, a), ValueDecToF<4>(vm, b), ValueDecToF<4>(vm, c)),
+        return ToValueF(vm, geom::clamp(ValueToF<4>(vm, a), ValueToF<4>(vm, b), ValueToF<4>(vm, c)),
                         a.stval()->Len(vm));
     }
     ENDDECL3(clamp, "x,min,max", "F}F}F}", "F}",
@@ -750,18 +750,18 @@ void AddBuiltins(NativeRegistry &natreg) {
              "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueDecToI<3>(vm, xv);
-        auto range = ValueDecToI<3>(vm, rangev, 1);
-        auto bias  = biasv.True() ? ValueDecToI<3>(vm, biasv) : intp3_0;
+        auto x     = ValueToI<3>(vm, xv);
+        auto range = ValueToI<3>(vm, rangev, 1);
+        auto bias  = biasv.True() ? ValueToI<3>(vm, biasv) : intp3_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(in_range, "x,range,bias", "I}I}I}?", "I",
              "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.");
 
     STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueDecToF<3>(vm, xv);
-        auto range = ValueDecToF<3>(vm, rangev, 1);
-        auto bias  = biasv.True() ? ValueDecToF<3>(vm, biasv) : floatp3_0;
+        auto x     = ValueToF<3>(vm, xv);
+        auto range = ValueToF<3>(vm, rangev, 1);
+        auto bias  = biasv.True() ? ValueToF<3>(vm, biasv) : floatp3_0;
         return Value(x >= bias && x < bias + range);
     }
     ENDDECL3(in_range, "x,range,bias", "F}F}F}?", "I",
@@ -864,16 +864,16 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(lerp) (VM &vm, Value &x, Value &y, Value &f) {
         auto numelems = x.stval()->Len(vm);
-        return ToValueF(vm, mix(ValueDecToF<4>(vm, x), ValueDecToF<4>(vm, y), (float)f.fval()), numelems);
+        return ToValueF(vm, mix(ValueToF<4>(vm, x), ValueToF<4>(vm, y), (float)f.fval()), numelems);
     }
     ENDDECL3(lerp, "a,b,f", "F}F}F", "F}",
         "linearly interpolates between a and b vectors with factor f [0..1]");
 
     STARTDECL(cardinal_spline) (VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
-        return ToValueF(vm, cardinal_spline(ValueDecToF<3>(vm, z),
-                                           ValueDecToF<3>(vm, a),
-                                           ValueDecToF<3>(vm, b),
-                                           ValueDecToF<3>(vm, c), f.fval(), t.fval()));
+        return ToValueF(vm, cardinal_spline(ValueToF<3>(vm, z),
+                                           ValueToF<3>(vm, a),
+                                           ValueToF<3>(vm, b),
+                                           ValueToF<3>(vm, c), f.fval(), t.fval()));
     }
     ENDDECL6(cardinal_spline, "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
         "computes the position between a and b with factor f [0..1], using z (before a) and c"
@@ -881,8 +881,8 @@ void AddBuiltins(NativeRegistry &natreg) {
 
     STARTDECL(line_intersect) (VM &vm, Value &l1a, Value &l1b, Value &l2a, Value &l2b) {
         floatp2 ipoint;
-        auto r = line_intersect(ValueDecToF<2>(vm, l1a), ValueDecToF<2>(vm, l1b),
-                                ValueDecToF<2>(vm, l2a), ValueDecToF<2>(vm, l2b), &ipoint);
+        auto r = line_intersect(ValueToF<2>(vm, l1a), ValueToF<2>(vm, l1b),
+                                ValueToF<2>(vm, l2a), ValueToF<2>(vm, l2b), &ipoint);
         return r ? ToValueF(vm, ipoint) : Value();
     }
     ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "F}:2?",
@@ -961,7 +961,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         " pre-filter indicates objects that should appear in the inner vectors.");
 
     STARTDECL(wave_function_collapse) (VM &vm, Value &tilemap, Value &size) {
-        auto sz = ValueDecToINT<2>(vm, size);
+        auto sz = ValueToINT<2>(vm, size);
         auto rows = tilemap.vval()->len;
         vector<const char *> inmap(rows);
         intp cols = 0;

@@ -362,7 +362,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_clear) (VM &vm, Value &col) {
         TestGL(vm);
-        ClearFrameBuffer(ValueDecToFLT<3>(vm, col));
+        ClearFrameBuffer(ValueToFLT<3>(vm, col));
         return Value();
     }
     ENDDECL1(gl_clear, "col", "F}:4", "",
@@ -371,12 +371,12 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_color) (VM &vm, Value &col, Value &body) {
         // FIXME: maybe more efficient as an int
         if (body.True()) vm.Push(ToValueFLT(vm, curcolor));
-        curcolor = ValueDecToFLT<4>(vm, col);
+        curcolor = ValueToFLT<4>(vm, col);
         return body;
     }
     MIDDECL(gl_color) (VM &vm) {
         auto tmpcol = vm.Pop();
-        curcolor = ValueDecToFLT<4>(vm, tmpcol);
+        curcolor = ValueToFLT<4>(vm, tmpcol);
         tmpcol.LTDECRT(vm);
     }
     ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4B?", "",
@@ -423,7 +423,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " out");
 
     STARTDECL(gl_rotate_x) (VM &vm, Value &angle, Value &body) {
-        auto a = ValueDecToFLT<2>(vm, angle);
+        auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationX(a), rotationX(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_x) (VM &vm) {
@@ -434,7 +434,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_y) (VM &vm, Value &angle, Value &body) {
-        auto a = ValueDecToFLT<2>(vm, angle);
+        auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationY(a), rotationY(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_y) (VM &vm) {
@@ -445,7 +445,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_rotate_z) (VM &vm, Value &angle, Value &body) {
-        auto a = ValueDecToFLT<2>(vm, angle);
+        auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationZ(a), rotationZ(a * float2(1, -1)), body);
     }
     MIDDECL(gl_rotate_z) (VM &vm) {
@@ -456,7 +456,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " as angle. when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_translate) (VM &vm, Value &vec, Value &body) {
-        auto v = ValueDecToFLT<3>(vm, vec);
+        auto v = ValueToFLT<3>(vm, vec);
         return PushTransform(vm, translation(v), translation(-v), body);
     }
     MIDDECL(gl_translate) (VM &vm) {
@@ -478,7 +478,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " when a body is given, restores the previous transform afterwards");
 
     STARTDECL(gl_scale) (VM &vm, Value &vec, Value &body) {
-        auto v = ValueDecToFLT<3>(vm, vec, 1);
+        auto v = ValueToFLT<3>(vm, vec, 1);
         return PushTransform(vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
     }
     MIDDECL(gl_scale) (VM &vm) {
@@ -536,7 +536,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " restores the previous mode afterwards");
 
     STARTDECL(gl_hit) (VM &vm, Value &vec, Value &i) {
-        auto size = ValueDecToFLT<3>(vm, vec);
+        auto size = ValueToFLT<3>(vm, vec);
         auto localmousepos = localfingerpos(i.intval());
         auto hit = localmousepos.x >= 0 &&
                    localmousepos.y >= 0 &&
@@ -575,9 +575,9 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_rect_tc_col) (VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
         TestGL(vm);
-        auto sz = ValueDecToFLT<2>(vm, size);
-        auto t = ValueDecToFLT<2>(vm, tc);
-        auto td = ValueDecToFLT<2>(vm, tcdim);
+        auto sz = ValueToFLT<2>(vm, size);
+        auto t = ValueToFLT<2>(vm, tc);
+        auto td = ValueToFLT<2>(vm, tcdim);
         auto te = t + td;
         struct Vert { float x, y, z, u, v; byte4 c; };
         Vert vb_square[4] = {
@@ -606,8 +606,8 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_line) (VM &vm, Value &start, Value &end, Value &thickness) {
         TestGL(vm);
-        auto v1 = ValueDecToFLT<3>(vm, start);
-        auto v2 = ValueDecToFLT<3>(vm, end);
+        auto v1 = ValueToFLT<3>(vm, start);
+        auto v2 = ValueToFLT<3>(vm, end);
         if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fltval());
         else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fltval());
         return Value();
@@ -636,7 +636,7 @@ void AddGraphics(NativeRegistry &natreg) {
         " Pass true to have (0,0) bottom-left instead");
 
     STARTDECL(gl_ortho3d) (VM &vm, Value &center, Value &extends) {
-        Set3DOrtho(ValueDecToFLT<3>(vm, center), ValueDecToFLT<3>(vm, extends));
+        Set3DOrtho(ValueToFLT<3>(vm, center), ValueToFLT<3>(vm, extends));
         return Value();
     }
     ENDDECL2(gl_ortho3d, "center,extends", "F}F}", "",
@@ -869,7 +869,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_dispatch_compute) (VM &vm, Value &groups) {
         TestGL(vm);
-        DispatchCompute(ValueDecToINT<3>(vm, groups));
+        DispatchCompute(ValueToINT<3>(vm, groups));
         return Value();
     }
     ENDDECL1(gl_dispatch_compute, "groups", "I}:3", "",
@@ -968,7 +968,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_create_blank_texture) (VM &vm, Value &size_, Value &col, Value &tf) {
         TestGL(vm);
-        auto tex = CreateBlankTexture(ValueDecToINT<2>(vm, size_), ValueDecToFLT<4>(vm, col), tf.intval());
+        auto tex = CreateBlankTexture(ValueToINT<2>(vm, size_), ValueToFLT<4>(vm, col), tf.intval());
         return Value(vm.NewResource(new Texture(tex), &texture_type));
     }
     ENDDECL3(gl_create_blank_texture, "size,color,textureformat", "I}:2F}:4I?", "R",
@@ -1016,8 +1016,8 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_light) (VM &vm, Value &pos, Value &params) {
         Light l;
-        l.pos = otransforms.object2view * float4(ValueDecToFLT<3>(vm, pos), 1);
-        l.params = ValueDecToFLT<2>(vm, params);
+        l.pos = otransforms.object2view * float4(ValueToFLT<3>(vm, pos), 1);
+        l.params = ValueToFLT<2>(vm, params);
         lights.push_back(l);
         return Value();
     }
@@ -1029,7 +1029,7 @@ void AddGraphics(NativeRegistry &natreg) {
 
     STARTDECL(gl_render_tiles) (VM &vm, Value &pos, Value &tile, Value &mapsize) {
         TestGL(vm);
-        auto msize = float2(ValueDecToI<2>(vm, mapsize));
+        auto msize = float2(ValueToI<2>(vm, mapsize));
         auto len = pos.vval()->len;
         if (len != tile.vval()->len)
             vm.BuiltinError("rendertiles: vectors of different size");
@@ -1063,8 +1063,8 @@ void AddGraphics(NativeRegistry &natreg) {
     STARTDECL(gl_debug_grid) (VM &vm, Value &num, Value &dist, Value &thickness) {
         TestGL(vm);
         float3 cp = otransforms.view2object[3].xyz();
-        auto m = float3(ValueDecToI<3>(vm, num));
-        auto step = ValueDecToFLT<3>(vm, dist);
+        auto m = float3(ValueToI<3>(vm, num));
+        auto step = ValueToFLT<3>(vm, dist);
         auto oldcolor = curcolor;
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z; z += step.x) {
