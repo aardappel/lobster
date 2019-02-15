@@ -101,7 +101,7 @@ void AddBuiltins(NativeRegistry &natreg) {
         return Value();
     }
     ENDDECL1(set_print_length, "len", "I", "",
-        "for printing / string conversion: sets max string length (default 10000)");
+        "for printing / string conversion: sets max string length (default 100000)");
 
     STARTDECL(set_print_quoted) (VM &vm, Value &a) {
         vm.programprintprefs.quoted = a.ival() != 0;
@@ -118,6 +118,14 @@ void AddBuiltins(NativeRegistry &natreg) {
     ENDDECL1(set_print_decimals, "decimals", "I", "",
         "for printing / string conversion: number of decimals for any floating point output"
         " (default -1, meaning all)");
+
+    STARTDECL(set_print_indent) (VM &vm, Value &a) {
+        vm.programprintprefs.indent = a.ival();
+        return Value();
+    }
+    ENDDECL1(set_print_indent, "spaces", "I", "",
+             "for printing / string conversion: number of spaces to indent with. default is 0:"
+             " no indent / no multi-line");
 
     STARTDECL(get_line) (VM &vm) {
         const int MAXSIZE = 1000;

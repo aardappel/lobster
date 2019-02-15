@@ -276,30 +276,46 @@ template<typename T, bool is_vect> void VectorOrStructToString(
     }
     auto &_ti = o.ti(vm);
     (void)_ti;
-    if constexpr(!is_vect) ss << vm.ReverseLookupType(_ti.structidx);
+    if constexpr (!is_vect) {
+        ss << vm.ReverseLookupType(_ti.structidx);
+        if (pp.indent) ss << ' ';
+    }
     ss << openb;
+    if (pp.indent) ss << '\n';
     auto start_size = ss.tellp();
     intp len;
     if constexpr(is_vect) len = o.len; else len = o.Len(vm);
+    pp.cur_indent += pp.indent;
+    auto Indent = [&]() {
+        for (int i = 0; i < pp.cur_indent; i++) ss << ' ';
+    };
     for (intp i = 0; i < len; i++) {
-        if (i) ss << ", ";
+        if (i) {
+            ss << ',';
+            ss << (pp.indent ? '\n' : ' ');
+        }
+        if (pp.indent) Indent();
         if ((int)ss.tellp() - start_size > pp.budget) {
             ss << "....";
             break;
         }
-        PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
-                         pp.decimals);
         ValueType elemtype;
         if constexpr(is_vect) elemtype = o.ElemType(vm); else elemtype = o.ElemTypeS(vm, i);
         if (pp.depth || !IsRef(elemtype)) {
             Value v;
             if constexpr(is_vect) v = o.At(i);
             else v = o.AtS(i);
+            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
+                             pp.decimals);
+            subpp.indent = pp.indent;
+            subpp.cur_indent = pp.cur_indent;
             v.ToString(vm, ss, elemtype, subpp);
         } else {
             ss << "..";
         }
     }
+    pp.cur_indent -= pp.indent;
+    if (pp.indent) { ss << '\n'; Indent(); }
     ss << closeb;
 }
 

@@ -173,10 +173,12 @@ struct PrintPrefs {
     intp budget;
     bool quoted;
     intp decimals;
-    int cycles;
+    int cycles = -1;
+    int indent = 0;
+    int cur_indent = 0;
 
     PrintPrefs(intp _depth, intp _budget, bool _quoted, intp _decimals)
-        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals), cycles(-1) {}
+        : depth(_depth), budget(_budget), quoted(_quoted), decimals(_decimals) {}
 };
 
 typedef void *(*block_base_t)(VM &);
@@ -683,7 +685,7 @@ struct VM {
     string bytecode_buffer;
     const bytecode::BytecodeFile *bcf = nullptr;
 
-    PrintPrefs programprintprefs { 10, 10000, false, -1 };
+    PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
     string evalret;
 
