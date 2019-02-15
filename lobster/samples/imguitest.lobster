@@ -44,7 +44,7 @@ while gl_frame():
             d.name = im_input_text("Name", d.name)
             d.i = im_radio(d.fruits, d.i, true)
             d.i = im_combo("Combo", d.fruits, d.i)
-            d.i = im_listbox("ListBox", d.fruits, d.i)
+            d.i = im_listbox("ListBox", d.fruits, d.i, d.fruits.length)
             d.col = im_coloredit("Color", d.col)
             for(2) g: im_graph("Sin", map(20): sin(_ * 20.0) + 1, g)
             im_separator()

@@ -314,16 +314,16 @@ void AddIMGUI(NativeRegistry &natreg) {
     }
     ENDDECL3(im_combo, "label,labels,active", "SS]I", "I", "");
 
-    STARTDECL(im_listbox) (VM &, Value &text, Value &strs, Value &active) {
+    STARTDECL(im_listbox) (VM &, Value &text, Value &strs, Value &active, Value &height) {
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (intp i = 0; i < strs.vval()->len; i++) {
             items[i] = strs.vval()->At(i).sval()->data();
         }
-        ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size());
+        ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
     }
-    ENDDECL3(im_listbox, "label,labels,active", "SS]I", "I", "");
+    ENDDECL4(im_listbox, "label,labels,active,height", "SS]II", "I", "");
 
     STARTDECL(im_sliderint) (VM &, Value &text, Value &integer, Value &min, Value &max) {
         int i = integer.intval();
@@ -363,7 +363,7 @@ void AddIMGUI(NativeRegistry &natreg) {
     MIDDECL(im_group) (VM &) {
         ImGui::PopID();
     }
-    ENDDECL2CONTEXIT(im_group, "label,body", "SB", "",
+    ENDDECL2CONTEXIT(im_group, "label,body", "SsB", "",
         "an invisble group around some widgets, useful to ensure these widgets are unique"
         " (if they have the same label as widgets in another group that has a different group"
         " label)");

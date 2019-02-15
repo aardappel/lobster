@@ -1,3 +1,5 @@
+- docs for recent changes.
+
 - methods in unrelated types still form a multimethod
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
