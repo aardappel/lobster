@@ -36,7 +36,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
     }
 }
 
-const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, const int *code,
+const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, const int *code,
                             const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
     auto li = LookupLine(ip, code, bcf);
@@ -144,7 +144,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
         case IL_BCALLUNB5:
         case IL_BCALLUNB6: {
             int a = *ip++;
-            ss << natreg.nfuns[a]->name;
+            ss << nfr.nfuns[a]->name;
             break;
         }
 
@@ -210,7 +210,7 @@ const int *DisAsmIns(NativeRegistry &natreg, ostringstream &ss, const int *ip, c
     return ip;
 }
 
-void DisAsm(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer) {
+void DisAsm(NativeRegistry &nfr, ostringstream &ss, string_view bytecode_buffer) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
@@ -218,7 +218,7 @@ void DisAsm(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buff
     auto len = bcf->bytecode()->Length();
     const int *ip = code;
     while (ip < code + len) {
-        ip = DisAsmIns(natreg, ss, ip, code, typetable, bcf);
+        ip = DisAsmIns(nfr, ss, ip, code, typetable, bcf);
         ss << "\n";
         if (!ip) break;
     }

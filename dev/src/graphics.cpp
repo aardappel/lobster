@@ -146,8 +146,12 @@ Value SetUniform(VM &vm, Value &name, const float *data, int len, bool ignore_er
     return Value(ok);
 }
 
-void AddGraphics(NativeRegistry &natreg) {
-    STARTDECL(gl_window) (VM &vm, Value &title, Value &xs, Value &ys, Value &fullscreen, Value &novsync,
+void AddGraphics(NativeRegistry &nfr) {
+
+nfr("gl_window", "title,xs,ys,fullscreen,novsync,samples", "SIII?I?I?", "S?",
+    "opens a window for OpenGL rendering. returns error string if any problems, nil"
+    " otherwise.",
+    [](VM &vm, Value &title, Value &xs, Value &ys, Value &fullscreen, Value &novsync,
                           Value &samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl_window() twice");
@@ -166,376 +170,370 @@ void AddGraphics(NativeRegistry &natreg) {
         LOG_INFO("graphics fully initialized...");
         graphics_initialized = true;
         return Value();
-    }
-    ENDDECL6(gl_window, "title,xs,ys,fullscreen,novsync,samples", "SIII?I?I?", "S?",
-        "opens a window for OpenGL rendering. returns error string if any problems, nil"
-        " otherwise.");
+    });
 
-    STARTDECL(gl_require_version) (VM &, Value &major, Value &minor) {
+nfr("gl_require_version", "major,minor", "II", "",
+    "Call this before gl_window to request a certain version of OpenGL context."
+            " Currently only works on win/nix, minimum is 3.2.",
+    [](VM &, Value &major, Value &minor) {
         SDLRequireGLVersion(major.intval(), minor.intval());
         return Value();
-    }
-    ENDDECL2(gl_require_version, "major,minor", "II", "",
-             "Call this before gl_window to request a certain version of OpenGL context."
-             " Currently only works on win/nix, minimum is 3.2.");
+    });
 
-    STARTDECL(gl_load_materials) (VM &vm, Value &fn, Value &isinline) {
+nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
+    "loads an additional materials file (shader/default.materials is already loaded by default"
+    " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
+    " materials. returns error string if any problems, nil otherwise.",
+    [](VM &vm, Value &fn, Value &isinline) {
         TestGL(vm);
         auto err = isinline.True() ? ParseMaterialFile(fn.sval()->strv())
                                    : LoadMaterialFile(fn.sval()->strv());
         return err[0] ? Value(vm.NewString(err)) : Value();
-    }
-    ENDDECL2(gl_load_materials, "materialdefs,inline", "SI?", "S?",
-        "loads an additional materials file (shader/default.materials is already loaded by default"
-        " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
-        " materials. returns error string if any problems, nil otherwise.");
+    });
 
-    STARTDECL(gl_frame) (VM &vm) {
+nfr("gl_frame", "", "", "I",
+    "advances rendering by one frame, swaps buffers, and collects new input events."
+    " returns true if the closebutton on the window was pressed",
+    [](VM &vm) {
         TestGL(vm);
         EngineSuspendIfNeeded();
         auto cb = GraphicsFrameStart();
         vm.vml.LogFrame();
         return Value(!cb);
-    }
-    ENDDECL0(gl_frame, "", "", "I",
-        "advances rendering by one frame, swaps buffers, and collects new input events."
-        " returns true if the closebutton on the window was pressed");
+    });
 
-    STARTDECL(gl_log_frame) (VM &vm, Value &delta) {
+nfr("gl_log_frame", "delta", "F", "",
+    "call this function instead of gl_frame() to simulate a frame based program from"
+    " non-graphical code. does not require gl_window(). manages frame log state much like"
+    " gl_frame(). allows gl_time and gl_delta_time to work. pass a desired delta time,"
+    " e.g. 1.0/60.0",
+    [](VM &vm, Value &delta) {
         SDLUpdateTime(delta.fval());
         vm.vml.LogFrame();
         return Value();
-    }
-    ENDDECL1(gl_log_frame, "delta", "F", "",
-        "call this function instead of gl_frame() to simulate a frame based program from"
-        " non-graphical code. does not require gl_window(). manages frame log state much like"
-        " gl_frame(). allows gl_time and gl_delta_time to work. pass a desired delta time,"
-        " e.g. 1.0/60.0");
+    });
 
-    STARTDECL(gl_shutdown) (VM &) {
+nfr("gl_shutdown", "", "", "",
+    "shuts down the OpenGL window. you only need to call this function if you wish to close it"
+    " before the end of the program",
+    [](VM &) {
         GraphicsShutDown();
         return Value();
-    }
-    ENDDECL0(gl_shutdown, "", "", "",
-        "shuts down the OpenGL window. you only need to call this function if you wish to close it"
-        " before the end of the program");
+    });
 
-    STARTDECL(gl_window_title) (VM &vm, Value &s) {
+nfr("gl_window_title", "title", "S", "Sb",
+    "changes the window title.",
+    [](VM &vm, Value &s) {
         TestGL(vm);
         SDLTitle(s.sval()->strv());
         return s;
-    }
-    ENDDECL1(gl_window_title, "title", "S", "Sb",
-        "changes the window title.");
+    });
 
-    STARTDECL(gl_window_min_max) (VM &vm, Value &dir) {
+nfr("gl_window_min_max", "dir", "I", "",
+    ">0 to maximize, <0 to minimize or 0 to restore.",
+    [](VM &vm, Value &dir) {
         TestGL(vm);
         SDLWindowMinMax(dir.intval());
         return Value();
-    }
-    ENDDECL1(gl_window_min_max, "dir", "I", "",
-             ">0 to maximize, <0 to minimize or 0 to restore.");
+    });
 
-    STARTDECL(gl_visible) (VM &) {
+nfr("gl_visible", "", "", "I",
+    "checks if the window is currently visible (not minimized, or on mobile devices, in the"
+    " foreground). If false, you should not render anything, nor run the frame's code.",
+    [](VM &) {
         return Value(!SDLIsMinimized());
-    }
-    ENDDECL0(gl_visible, "", "", "I",
-        "checks if the window is currently visible (not minimized, or on mobile devices, in the"
-        " foreground). If false, you should not render anything, nor run the frame's code.");
+    });
 
-    STARTDECL(gl_cursor) (VM &vm, Value &on) {
+nfr("gl_cursor", "on", "I", "I",
+    "default the cursor is visible, turn off for implementing FPS like control schemes. return"
+    " wether it's on.",
+    [](VM &vm, Value &on) {
         TestGL(vm);
         return Value(SDLCursor(on.ival() != 0));
-    }
-    ENDDECL1(gl_cursor, "on", "I", "I",
-        "default the cursor is visible, turn off for implementing FPS like control schemes. return"
-        " wether it's on.");
+    });
 
-    STARTDECL(gl_grab) (VM &vm, Value &on) {
+nfr("gl_grab", "on", "I", "I",
+    "grabs the mouse when the window is active. return wether it's on.",
+    [](VM &vm, Value &on) {
         TestGL(vm);
         return Value(SDLGrab(on.ival() != 0));
-    }
-    ENDDECL1(gl_grab, "on", "I", "I",
-        "grabs the mouse when the window is active. return wether it's on.");
+    });
 
-    STARTDECL(gl_button) (VM &, Value &name) {
+nfr("gl_button", "name", "S", "I",
+    "returns the state of a key/mousebutton/finger."
+    " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
+    " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc."
+    " mouse11 and on are additional fingers)",
+    [](VM &, Value &name) {
         auto ks = GetKS(name.sval()->strv());
         return Value(ks.Step());
-    }
-    ENDDECL1(gl_button, "name", "S", "I",
-        "returns the state of a key/mousebutton/finger."
-        " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
-        " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc."
-        " mouse11 and on are additional fingers)");
+    });
 
-    STARTDECL(gl_touchscreen) (VM &) {
+nfr("gl_touchscreen", "", "", "I",
+    "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
+    [](VM &) {
         #ifdef PLATFORM_TOUCH
             return Value(true);
         #else
             return Value(false);
         #endif
-    }
-    ENDDECL0(gl_touchscreen, "", "", "I",
-        "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)");
+    });
 
-    STARTDECL(gl_dpi) (VM &, Value &screen) {
+nfr("gl_dpi", "screen", "I", "I",
+    "the DPI of the screen. always returns a value for screen 0, any other screens may return"
+    " 0 to indicate the screen doesn\'t exist",
+    [](VM &, Value &screen) {
         return Value(SDLScreenDPI(screen.intval()));
-    }
-    ENDDECL1(gl_dpi, "screen", "I", "I",
-        "the DPI of the screen. always returns a value for screen 0, any other screens may return"
-        " 0 to indicate the screen doesn\'t exist");
+    });
 
-    STARTDECL(gl_window_size) (VM &vm) {
+nfr("gl_window_size", "", "", "I}:2",
+    "a vector representing the size (in pixels) of the window, changes when the user resizes",
+    [](VM &vm) {
         return ToValueINT(vm, GetScreenSize());
-    }
-    ENDDECL0(gl_window_size, "", "", "I}:2",
-        "a vector representing the size (in pixels) of the window, changes when the user resizes");
+    });
 
-    STARTDECL(gl_mouse_pos) (VM &vm, Value &i) {
+nfr("gl_mouse_pos", "i", "I", "I}:2",
+    "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
+    " fingers (for touch screens only if the corresponding gl_isdown is true)",
+    [](VM &vm, Value &i) {
         return ToValueINT(vm, GetFinger(i.intval(), false));
-    }
-    ENDDECL1(gl_mouse_pos, "i", "I", "I}:2",
-        "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
-        " fingers (for touch screens only if the corresponding gl_isdown is true)");
+    });
 
-    STARTDECL(gl_mouse_delta) (VM &vm, Value &i) {
+nfr("gl_mouse_delta", "i", "I", "I}:2",
+    "number of pixels the mouse/finger has moved since the last frame. use this instead of"
+    " substracting positions to correctly deal with lifted fingers and FPS mode"
+    " (gl_cursor(0))",
+    [](VM &vm, Value &i) {
         return ToValueINT(vm, GetFinger(i.intval(), true));
-    }
-    ENDDECL1(gl_mouse_delta, "i", "I", "I}:2",
-        "number of pixels the mouse/finger has moved since the last frame. use this instead of"
-        " substracting positions to correctly deal with lifted fingers and FPS mode"
-        " (gl_cursor(0))");
+    });
 
-    STARTDECL(gl_local_mouse_pos) (VM &vm, Value &i) {
+nfr("gl_local_mouse_pos", "i", "I", "F}:2",
+    "the current mouse/finger position local to the current transform (gl_translate etc)"
+    " (for touch screens only if the corresponding gl_isdown is true)",
+    [](VM &vm, Value &i) {
         return ToValueFLT(vm, localfingerpos(i.intval()));
-    }
-    ENDDECL1(gl_local_mouse_pos, "i", "I", "F}:2",
-        "the current mouse/finger position local to the current transform (gl_translate etc)"
-        " (for touch screens only if the corresponding gl_isdown is true)");
+    });
 
-    STARTDECL(gl_last_pos) (VM &vm, Value &name, Value &on) {
+nfr("gl_last_pos", "name,down", "SI", "I}:2",
+    "position (in pixels) key/mousebutton/finger last went down (true) or up (false)",
+    [](VM &vm, Value &name, Value &on) {
         auto p = GetKeyPos(name.sval()->strv(), on.intval());
         return ToValueINT(vm, p);
-    }
-    ENDDECL2(gl_last_pos, "name,down", "SI", "I}:2",
-        "position (in pixels) key/mousebutton/finger last went down (true) or up (false)");
+    });
 
-    STARTDECL(gl_local_last_pos) (VM &vm, Value &name, Value &on) {
+nfr("gl_local_last_pos", "name,down", "SI", "F}:2",
+    "position (local to the current transform) key/mousebutton/finger last went down (true) or"
+    " up (false)",
+    [](VM &vm, Value &name, Value &on) {
         auto p = localpos(GetKeyPos(name.sval()->strv(), on.intval()));
         return ToValueFLT(vm, p);
-    }
-    ENDDECL2(gl_local_last_pos, "name,down", "SI", "F}:2",
-        "position (local to the current transform) key/mousebutton/finger last went down (true) or"
-        " up (false)");
+    });
 
-    STARTDECL(gl_mousewheel_delta) (VM &) {
+nfr("gl_mousewheel_delta", "", "", "I",
+    "amount the mousewheel scrolled this frame, in number of notches",
+    [](VM &) {
         return Value(SDLWheelDelta());
-    }
-    ENDDECL0(gl_mousewheel_delta, "", "", "I",
-        "amount the mousewheel scrolled this frame, in number of notches");
+    });
 
-    STARTDECL(gl_joy_axis) (VM &, Value &i) {
+nfr("gl_joy_axis", "i", "I", "F",
+    "the current joystick orientation for axis i, as -1 to 1 value",
+    [](VM &, Value &i) {
         return Value(GetJoyAxis(i.intval()));
-    }
-    ENDDECL1(gl_joy_axis, "i", "I", "F",
-        "the current joystick orientation for axis i, as -1 to 1 value");
+    });
 
-    STARTDECL(gl_delta_time) (VM &) {
+nfr("gl_delta_time", "", "", "F",
+    "seconds since the last frame, updated only once per frame",
+    [](VM &) {
         return Value(SDLDeltaTime());
-    }
-    ENDDECL0(gl_delta_time, "", "", "F",
-        "seconds since the last frame, updated only once per frame");
+    });
 
-    STARTDECL(gl_time) (VM &) {
+nfr("gl_time", "", "", "F",
+    "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
+    " seconds_elapsed() for continuous timing)",
+    [](VM &) {
         return Value(SDLTime());
-    }
-    ENDDECL0(gl_time, "", "", "F",
-        "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
-        " seconds_elapsed() for continuous timing)");
+    });
 
-    STARTDECL(gl_last_time) (VM &, Value &name, Value &on) {
+nfr("gl_last_time", "name,down", "SI", "F",
+    "time key/mousebutton/finger last went down (true) or up (false)",
+    [](VM &, Value &name, Value &on) {
         auto t = GetKeyTime(name.sval()->strv(), on.intval());
         return Value(t);
-    }
-    ENDDECL2(gl_last_time, "name,down", "SI", "F",
-        "time key/mousebutton/finger last went down (true) or up (false)");
+    });
 
-    STARTDECL(gl_clear) (VM &vm, Value &col) {
+nfr("gl_clear", "col", "F}:4", "",
+    "clears the framebuffer (and depth buffer) to the given color",
+    [](VM &vm, Value &col) {
         TestGL(vm);
         ClearFrameBuffer(ValueToFLT<3>(vm, col));
         return Value();
-    }
-    ENDDECL1(gl_clear, "col", "F}:4", "",
-        "clears the framebuffer (and depth buffer) to the given color");
+    });
 
-    STARTDECL(gl_color) (VM &vm, Value &col, Value &body) {
+nfr("gl_color", "col,body", "F}:4B?", "",
+    "sets the current color. when a body is given, restores the previous color afterwards",
+    [](VM &vm, Value &col, Value &body) {
         // FIXME: maybe more efficient as an int
         if (body.True()) vm.Push(ToValueFLT(vm, curcolor));
         curcolor = ValueToFLT<4>(vm, col);
         return body;
-    }
-    MIDDECL(gl_color) (VM &vm) {
+    }, [](VM &vm) {
         auto tmpcol = vm.Pop();
         curcolor = ValueToFLT<4>(vm, tmpcol);
         tmpcol.LTDECRT(vm);
-    }
-    ENDDECL2CONTEXIT(gl_color, "col,body", "F}:4B?", "",
-        "sets the current color. when a body is given, restores the previous color afterwards");
+    });
 
-    STARTDECL(gl_polygon) (VM &vm, Value &vl) {
+nfr("gl_polygon", "vertlist", "F}]", "Ab1",
+    "renders a polygon using the list of points given. returns the argument."
+    " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.",
+    [](VM &vm, Value &vl) {
         auto m = CreatePolygon(vm, vl);
         m->Render(currentshader);
         delete m;
         return vl;
-    }
-    ENDDECL1(gl_polygon, "vertlist", "F}]", "Ab1",
-        "renders a polygon using the list of points given. returns the argument."
-        " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.");
+    });
 
-    STARTDECL(gl_circle) (VM &vm, Value &radius, Value &segments) {
+nfr("gl_circle", "radius,segments", "FI", "",
+    "renders a circle",
+    [](VM &vm, Value &radius, Value &segments) {
         TestGL(vm);
 
         geomcache->RenderCircle(currentshader, polymode, max(segments.intval(), 3), radius.fltval());
 
         return Value();
-    }
-    ENDDECL2(gl_circle, "radius,segments", "FI", "",
-        "renders a circle");
+    });
 
-    STARTDECL(gl_open_circle) (VM &vm, Value &radius, Value &segments, Value &thickness) {
+nfr("gl_open_circle", "radius,segments,thickness", "FIF", "",
+    "renders a circle that is open on the inside. thickness is the fraction of the radius that"
+    " is filled, try e.g. 0.2",
+    [](VM &vm, Value &radius, Value &segments, Value &thickness) {
         TestGL(vm);
 
         geomcache->RenderOpenCircle(currentshader, max(segments.intval(), 3), radius.fltval(),
                                     thickness.fltval());
 
         return Value();
-    }
-    ENDDECL3(gl_open_circle, "radius,segments,thickness", "FIF", "",
-        "renders a circle that is open on the inside. thickness is the fraction of the radius that"
-        " is filled, try e.g. 0.2");
+    });
 
-    STARTDECL(gl_unit_cube) (VM &, Value &inside) {
+nfr("gl_unit_cube", "insideout", "I?", "",
+    "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
+    " out",
+    [](VM &, Value &inside) {
         geomcache->RenderUnitCube(currentshader, inside.True());
         return Value();
-    }
-    ENDDECL1(gl_unit_cube, "insideout", "I?", "",
-        "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
-        " out");
+    });
 
-    STARTDECL(gl_rotate_x) (VM &vm, Value &angle, Value &body) {
+nfr("gl_rotate_x", "vector,body", "F}:2B?", "",
+    "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &angle, Value &body) {
         auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationX(a), rotationX(a * float2(1, -1)), body);
-    }
-    MIDDECL(gl_rotate_x) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_rotate_x, "vector,body", "F}:2B?", "",
-        "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_rotate_y) (VM &vm, Value &angle, Value &body) {
+nfr("gl_rotate_y", "angle,body", "F}:2B?", "",
+    "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &angle, Value &body) {
         auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationY(a), rotationY(a * float2(1, -1)), body);
-    }
-    MIDDECL(gl_rotate_y) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_rotate_y, "angle,body", "F}:2B?", "",
-        "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_rotate_z) (VM &vm, Value &angle, Value &body) {
+nfr("gl_rotate_z", "angle,body", "F}:2B?", "",
+    "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
+    " as angle. when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &angle, Value &body) {
         auto a = ValueToFLT<2>(vm, angle);
         return PushTransform(vm, rotationZ(a), rotationZ(a * float2(1, -1)), body);
-    }
-    MIDDECL(gl_rotate_z) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_rotate_z, "angle,body", "F}:2B?", "",
-        "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
-        " as angle. when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_translate) (VM &vm, Value &vec, Value &body) {
+nfr("gl_translate", "vec,body", "F}B?", "",
+    "translates the current coordinate system along a vector. when a body is given,"
+    " restores the previous transform afterwards",
+    [](VM &vm, Value &vec, Value &body) {
         auto v = ValueToFLT<3>(vm, vec);
         return PushTransform(vm, translation(v), translation(-v), body);
-    }
-    MIDDECL(gl_translate) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_translate, "vec,body", "F}B?", "",
-        "translates the current coordinate system along a vector. when a body is given,"
-        " restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_scale) (VM &vm, Value &f, Value &body) {
+nfr("gl_scale", "factor,body", "FB?", "",
+    "scales the current coordinate system using a numerical factor."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &f, Value &body) {
         auto v = f.fltval() * float3_1;
         return PushTransform(vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
-    }
-    MIDDECL(gl_scale) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "FB?", "",
-        "scales the current coordinate system using a numerical factor."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_scale) (VM &vm, Value &vec, Value &body) {
+nfr("gl_scale", "factor,body", "F}B?", "",
+    "scales the current coordinate system using a vector."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &vec, Value &body) {
         auto v = ValueToFLT<3>(vm, vec, 1);
         return PushTransform(vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
-    }
-    MIDDECL(gl_scale) (VM &vm) {
+    }, [](VM &vm) {
         PopTransform(vm);
-    }
-    ENDDECL2CONTEXIT(gl_scale, "factor,body", "F}B?", "",
-        "scales the current coordinate system using a vector."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(gl_origin) (VM &vm) {
+nfr("gl_origin", "", "", "F}:2",
+    "returns a vector representing the current transform origin in pixels."
+    " only makes sense in 2D mode (no gl_perspective called).",
+    [](VM &vm) {
         auto pos = floatp2(otransforms.object2view[3].x, otransforms.object2view[3].y);
         return ToValueF(vm, pos);
-    }
-    ENDDECL0(gl_origin, "", "", "F}:2",
-        "returns a vector representing the current transform origin in pixels."
-        " only makes sense in 2D mode (no gl_perspective called).");
+    });
 
-    STARTDECL(gl_scaling) (VM &vm) {
+nfr("gl_scaling", "", "", "F}:2",
+    "returns a vector representing the current transform scale in pixels."
+    " only makes sense in 2D mode (no gl_perspective called).",
+    [](VM &vm) {
         auto sc = floatp2(otransforms.object2view[0].x, otransforms.object2view[1].y);
         return ToValueF(vm, sc);
-    }
-    ENDDECL0(gl_scaling, "", "", "F}:2",
-        "returns a vector representing the current transform scale in pixels."
-        " only makes sense in 2D mode (no gl_perspective called).");
+    });
 
-    STARTDECL(gl_model_view_projection) (VM &vm) {
+nfr("gl_model_view_projection", "", "", "F]",
+    "returns a vector representing the current model view projection matrix"
+    " (16 elements)",
+    [](VM &vm) {
         auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
         auto mvp = view2clip * otransforms.object2view;
         for (int i = 0; i < 16; i++) v->At(i) = mvp.data()[i];
         return Value(v);
-    }
-    ENDDECL0(gl_model_view_projection, "", "", "F]",
-             "returns a vector representing the current model view projection matrix"
-             " (16 elements)");
+    });
 
-    STARTDECL(gl_point_scale) (VM &, Value &f) {
+nfr("gl_point_scale", "factor", "F", "",
+    "sets the current scaling factor for point sprites."
+    " this can be what the current gl_scale is, or different, depending on the desired visuals."
+    " the ideal size may also be FOV dependent.",
+    [](VM &, Value &f) {
         custompointscale = f.fltval();
         return Value();
-    }
-    ENDDECL1(gl_point_scale, "factor", "F", "",
-        "sets the current scaling factor for point sprites."
-        " this can be what the current gl_scale is, or different, depending on the desired visuals."
-        " the ideal size may also be FOV dependent.");
+    });
 
-    STARTDECL(gl_line_mode) (VM &vm, Value &on, Value &body) {
+nfr("gl_line_mode", "on,body", "IB", "",
+    "set line mode (true == on). when a body is given,"
+    " restores the previous mode afterwards",
+    [](VM &vm, Value &on, Value &body) {
         if (body.True()) vm.Push(Value(polymode));
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
-    }
-    MIDDECL(gl_line_mode) (VM &vm) {
+    }, [](VM &vm) {
         polymode = (Primitive)vm.Pop().ival();
-    }
-    ENDDECL2CONTEXIT(gl_line_mode, "on,body", "IB", "",
-        "set line mode (true == on). when a body is given,"
-        " restores the previous mode afterwards");
+    });
 
-    STARTDECL(gl_hit) (VM &vm, Value &vec, Value &i) {
+nfr("gl_hit", "vec,i", "F}I", "I",
+    "wether the mouse/finger is inside of the rectangle specified in terms of the current"
+    " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
+    " the last rectangle for which gl_hit was true last frame is of the same size as this one"
+    " (allows you to safely test in most cases of overlapping rendering)",
+    [](VM &vm, Value &vec, Value &i) {
         auto size = ValueToFLT<3>(vm, vec);
         auto localmousepos = localfingerpos(i.intval());
         auto hit = localmousepos.x >= 0 &&
@@ -556,24 +554,22 @@ void AddGraphics(NativeRegistry &natreg) {
         #endif
         */
         return Value(size == lastframehitsize && hit);
-    }
-    ENDDECL2(gl_hit, "vec,i", "F}I", "I",
-        "wether the mouse/finger is inside of the rectangle specified in terms of the current"
-        " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
-        " the last rectangle for which gl_hit was true last frame is of the same size as this one"
-        " (allows you to safely test in most cases of overlapping rendering)");
+    });
 
-    STARTDECL(gl_rect) (VM &vm, Value &vec, Value &centered) {
+nfr("gl_rect", "size,centered", "F}I?", "F}b",
+    "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
+    " size. returns the argument.",
+    [](VM &vm, Value &vec, Value &centered) {
         TestGL(vm);
         geomcache->RenderQuad(currentshader, polymode, centered.True(),
                               float4x4(float4(ValueToFLT<2>(vm, vec), 1)));
         return vec;
-    }
-    ENDDECL2(gl_rect, "size,centered", "F}I?", "F}b",
-        "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
-        " size. returns the argument.");
+    });
 
-    STARTDECL(gl_rect_tc_col) (VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
+nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
+    "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
+    " optionally colors (empty list for all white). Slow.",
+    [](VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
         TestGL(vm);
         auto sz = ValueToFLT<2>(vm, size);
         auto t = ValueToFLT<2>(vm, tc);
@@ -591,58 +587,71 @@ void AddGraphics(NativeRegistry &natreg) {
         currentshader->Set();
         RenderArraySlow(PRIM_FAN, make_span(vb_square, 4), "PTC");
         return Value();
-    }
-    ENDDECL4(gl_rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
-             "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
-             " optionally colors (empty list for all white). Slow.");
+    });
 
-    STARTDECL(gl_unit_square) (VM &vm, Value &centered) {
+nfr("gl_unit_square", "centered", "I?", "",
+    "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)",
+    [](VM &vm, Value &centered) {
         TestGL(vm);
         geomcache->RenderUnitSquare(currentshader, polymode, centered.True());
         return Value();
-    }
-    ENDDECL1(gl_unit_square, "centered", "I?", "",
-        "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)");
+    });
 
-    STARTDECL(gl_line) (VM &vm, Value &start, Value &end, Value &thickness) {
+nfr("gl_line", "start,end,thickness", "F}F}F", "",
+    "renders a line with the given thickness",
+    [](VM &vm, Value &start, Value &end, Value &thickness) {
         TestGL(vm);
         auto v1 = ValueToFLT<3>(vm, start);
         auto v2 = ValueToFLT<3>(vm, end);
         if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fltval());
         else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fltval());
         return Value();
-    }
-    ENDDECL3(gl_line, "start,end,thickness", "F}F}F", "",
-        "renders a line with the given thickness");
+    });
 
-    STARTDECL(gl_perspective) (VM &, Value &fovy, Value &znear, Value &zfar) {
+nfr("gl_perspective", "fovy,znear,zfar", "FFF", "",
+    "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
+    " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
+    " 1)",
+    [](VM &, Value &fovy, Value &znear, Value &zfar) {
         Set3DMode(fovy.fltval() * RAD, GetScreenSize().x / (float)GetScreenSize().y, znear.fltval(),
                   zfar.fltval());
         return Value();
-    }
-    ENDDECL3(gl_perspective, "fovy,znear,zfar", "FFF", "",
-        "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
-        " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
-        " 1)");
+    });
 
-    STARTDECL(gl_ortho) (VM &, Value &rh) {
+nfr("gl_ortho", "rh", "I?", "",
+    "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the"
+    " screen size in pixels bottom right. this is the default at the start of a frame, use this"
+    " call to get back to that after gl_perspective."
+    " Pass true to have (0,0) bottom-left instead",
+    [](VM &, Value &rh) {
         Set2DMode(GetScreenSize(), !rh.True());
         return Value();
-    }
-    ENDDECL1(gl_ortho, "rh", "I?", "",
-        "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the"
-        " screen size in pixels bottom right. this is the default at the start of a frame, use this"
-        " call to get back to that after gl_perspective."
-        " Pass true to have (0,0) bottom-left instead");
+    });
 
-    STARTDECL(gl_ortho3d) (VM &vm, Value &center, Value &extends) {
+nfr("gl_ortho3d", "center,extends", "F}F}", "",
+    "sets a custom ortho projection as 3D projection.",
+    [](VM &vm, Value &center, Value &extends) {
         Set3DOrtho(ValueToFLT<3>(vm, center), ValueToFLT<3>(vm, extends));
         return Value();
-    }
-    ENDDECL2(gl_ortho3d, "center,extends", "F}F}", "",
-        "sets a custom ortho projection as 3D projection.");
+    });
 
-    STARTDECL(gl_new_mesh) (VM &vm, Value &format, Value &positions, Value &colors,
+nfr("gl_new_poly", "positions", "F}]", "R",
+    "creates a mesh out of a loop of points, much like gl_polygon."
+    " gl_line_mode determines how this gets drawn (fan or loop)."
+    " returns mesh id",
+    [](VM &vm, Value &positions) {
+        auto m = CreatePolygon(vm, positions);
+        return Value(vm.NewResource(m, &mesh_type));
+    });
+
+nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices", "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R",
+    "creates a new vertex buffer and returns an integer id (1..) for it."
+    " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
+    " indices may be []. positions is obligatory."
+    " you may specify [] for any of the other attributes if not required by format,"
+    " or to get defaults for colors (white) / texcoords (position x & y) /"
+    " normals (generated from adjacent triangles).",
+    [](VM &vm, Value &format, Value &positions, Value &colors,
                            Value &normals, Value &texcoords1, Value &texcoords2, Value &indices) {
         TestGL(vm);
         auto nattr = format.sval()->len;
@@ -711,102 +720,88 @@ void AddGraphics(NativeRegistry &natreg) {
         if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
         delete[] verts;
         return Value(vm.NewResource(m, &mesh_type));
-    }
-    ENDDECL7(gl_new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
-             "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R",
-        "creates a new vertex buffer and returns an integer id (1..) for it."
-        " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
-        " indices may be []. positions is obligatory."
-        " you may specify [] for any of the other attributes if not required by format,"
-        " or to get defaults for colors (white) / texcoords (position x & y) /"
-        " normals (generated from adjacent triangles).")
+    });
 
-    STARTDECL(gl_new_poly) (VM &vm, Value &positions) {
-        auto m = CreatePolygon(vm, positions);
-        return Value(vm.NewResource(m, &mesh_type));
-    }
-    ENDDECL1(gl_new_poly, "positions", "F}]", "R",
-        "creates a mesh out of a loop of points, much like gl_polygon."
-        " gl_line_mode determines how this gets drawn (fan or loop)."
-        " returns mesh id");
-
-    STARTDECL(gl_new_mesh_iqm) (VM &vm, Value &fn) {
+nfr("gl_new_mesh_iqm", "filename", "S", "R?",
+    "load a .iqm file into a mesh, returns mesh or nil on failure to load.",
+    [](VM &vm, Value &fn) {
         TestGL(vm);
         auto m = LoadIQM(fn.sval()->strv());
         return m ? Value(vm.NewResource(m, &mesh_type)) : Value();
-    }
-    ENDDECL1(gl_new_mesh_iqm, "filename", "S", "R?",
-        "load a .iqm file into a mesh, returns mesh or nil on failure to load.");
+    });
 
-    STARTDECL(gl_mesh_parts) (VM &vm, Value &i) {
+nfr("gl_mesh_parts", "m", "R", "S]",
+    "returns an array of names of all parts of mesh m (names may be empty)",
+    [](VM &vm, Value &i) {
         auto &m = GetMesh(vm, i);
         auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
         for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
         return Value(v);
-    }
-    ENDDECL1(gl_mesh_parts, "m", "R", "S]",
-        "returns an array of names of all parts of mesh m (names may be empty)");
+    });
 
-    STARTDECL(gl_mesh_size) (VM &vm, Value &i) {
+nfr("gl_mesh_size", "m", "R", "I",
+    "returns the number of verts in this mesh",
+    [](VM &vm, Value &i) {
         auto &m = GetMesh(vm, i);
         return Value((int)m.geom->nverts);
-    }
-    ENDDECL1(gl_mesh_size, "m", "R", "I",
-        "returns the number of verts in this mesh");
+    });
 
-    STARTDECL(gl_animate_mesh) (VM &vm, Value &i, Value &f) {
+nfr("gl_animate_mesh", "m,frame", "RF", "",
+    "set the frame for animated mesh m",
+    [](VM &vm, Value &i, Value &f) {
         GetMesh(vm, i).curanim = f.fltval();
         return Value();
-    }
-    ENDDECL2(gl_animate_mesh, "m,frame", "RF", "",
-        "set the frame for animated mesh m");
+    });
 
-    STARTDECL(gl_render_mesh) (VM &vm, Value &i) {
+nfr("gl_render_mesh", "m", "R", "",
+    "renders the specified mesh",
+    [](VM &vm, Value &i) {
         TestGL(vm);
         GetMesh(vm, i).Render(currentshader);
         return Value();
-    }
-    ENDDECL1(gl_render_mesh, "m", "R", "",
-        "renders the specified mesh");
+    });
 
-    STARTDECL(gl_save_mesh) (VM &vm, Value &i, Value &name) {
+nfr("gl_save_mesh", "m,name", "RS", "I",
+    "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
+    " procedurally. returns false if the file could not be written",
+    [](VM &vm, Value &i, Value &name) {
         TestGL(vm);
         bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
         return Value(ok);
-    }
-    ENDDECL2(gl_save_mesh, "m,name", "RS", "I",
-        "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
-        " procedurally. returns false if the file could not be written");
+    });
 
-    STARTDECL(gl_set_shader) (VM &vm, Value &shader) {
+nfr("gl_set_shader", "shader", "S", "",
+    "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
+    " color / textured / phong",
+    [](VM &vm, Value &shader) {
         TestGL(vm);
         auto sh = LookupShader(shader.sval()->strv());
         if (!sh) vm.BuiltinError("no such shader: " + shader.sval()->strv());
         currentshader = sh;
         return Value();
-    }
-    ENDDECL1(gl_set_shader, "shader", "S", "",
-        "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
-        " color / textured / phong");
+    });
 
-    STARTDECL(gl_set_uniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
+nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "I",
+    "set a uniform on the current shader. size of float vector must match size of uniform"
+    " in the shader.",
+    [](VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto v = ValueToFLT<4>(vm, vec);
         auto r = SetUniform(vm, name, v.begin(), (int)vec.stval()->Len(vm), ignore_errors.True());
         return r;
-    }
-    ENDDECL3(gl_set_uniform, "name,value,ignore_errors", "SF}I?", "I",
-        "set a uniform on the current shader. size of float vector must match size of uniform"
-        " in the shader.");
+    });
 
-    STARTDECL(gl_set_uniform) (VM &vm, Value &name, Value &vec, Value &ignore_errors) {
+nfr("gl_set_uniform", "name,value,ignore_errors", "SFI?", "I",
+    "set a uniform on the current shader. uniform"
+    " in the shader must be a single float.",
+    [](VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto f = vec.fltval();
         return SetUniform(vm, name, &f, 1, ignore_errors.True());
-    }
-    ENDDECL3(gl_set_uniform, "name,value,ignore_errors", "SFI?", "I",
-        "set a uniform on the current shader. uniform"
-        " in the shader must be a single float.");
+    });
 
-    STARTDECL(gl_set_uniform_array) (VM &vm, Value &name, Value &vec) {
+nfr("gl_set_uniform_array", "name,value", "SF}:4]", "I",
+    "set a uniform on the current shader. uniform in the shader must be an array of vec4."
+    " returns false on error.",
+    [](VM &vm, Value &name, Value &vec) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
@@ -814,12 +809,12 @@ void AddGraphics(NativeRegistry &natreg) {
         auto ok = currentshader->SetUniform(name.sval()->strv(), vals.data()->data(), 4,
                                             (int)vals.size());
         return Value(ok);
-    }
-    ENDDECL2(gl_set_uniform_array, "name,value", "SF}:4]", "I",
-             "set a uniform on the current shader. uniform in the shader must be an array of vec4."
-             " returns false on error.");
+    });
 
-    STARTDECL(gl_set_uniform_matrix) (VM &vm, Value &name, Value &vec) {
+nfr("gl_set_uniform_matrix", "name,value", "SF]", "I",
+    "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
+    " mat2/mat3/mat3x4/mat4 respectively. returns false on error.",
+    [](VM &vm, Value &name, Value &vec) {
         TestGL(vm);
         vector<float> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = vec.vval()->At(i).fltval();
@@ -827,12 +822,14 @@ void AddGraphics(NativeRegistry &natreg) {
         auto ok = currentshader->SetUniformMatrix(name.sval()->strv(), vals.data(),
                                                   (int)vals.size(), 1);
         return Value(ok);
-    }
-    ENDDECL2(gl_set_uniform_matrix, "name,value", "SF]", "I",
-             "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
-             " mat2/mat3/mat3x4/mat4 respectively. returns false on error.");
+    });
 
-    STARTDECL(gl_uniform_buffer_object) (VM &vm, Value &name, Value &vec, Value &ssbo) {
+nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I?", "I",
+    "creates a uniform buffer object, and attaches it to the current shader at the given"
+    " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
+    " ssbo indicates if you want a shader storage block instead."
+    " returns buffer id or 0 on error.",
+    [](VM &vm, Value &name, Value &vec, Value &ssbo) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
         for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
@@ -840,108 +837,105 @@ void AddGraphics(NativeRegistry &natreg) {
                                       4 * sizeof(float) * vals.size(),
                                       name.sval()->strv(), ssbo.True());
         return Value((int)id);
-    }
-    ENDDECL3(gl_uniform_buffer_object, "name,value,ssbo", "SF}:4]I?", "I",
-        "creates a uniform buffer object, and attaches it to the current shader at the given"
-        " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
-        " ssbo indicates if you want a shader storage block instead."
-        " returns buffer id or 0 on error.");
+    });
 
-    STARTDECL(gl_delete_buffer_object) (VM &vm, Value &id) {
+nfr("gl_delete_buffer_object", "id", "I", "",
+    "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().",
+    [](VM &vm, Value &id) {
         TestGL(vm);
         // FIXME: should route this thru a IntResourceManagerCompact to be safe?
         // I guess GL doesn't care about illegal id's?
         DeleteBO(id.intval());
         return Value();
-    }
-    ENDDECL1(gl_delete_buffer_object, "id", "I", "",
-        "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().");
+    });
 
-    STARTDECL(gl_bind_mesh_to_compute) (VM &vm, Value &mesh, Value &bpi) {
+nfr("gl_bind_mesh_to_compute", "mesh,binding", "R?I", "",
+    "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
+    " unbind.",
+    [](VM &vm, Value &mesh, Value &bpi) {
         TestGL(vm);
         if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(bpi.intval());
         else BindVBOAsSSBO(bpi.intval(), 0);
         return Value();
-    }
-    ENDDECL2(gl_bind_mesh_to_compute, "mesh,binding", "R?I", "",
-        "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
-        " unbind.");
+    });
 
-    STARTDECL(gl_dispatch_compute) (VM &vm, Value &groups) {
+nfr("gl_dispatch_compute", "groups", "I}:3", "",
+    "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
+    " values.",
+    [](VM &vm, Value &groups) {
         TestGL(vm);
         DispatchCompute(ValueToINT<3>(vm, groups));
         return Value();
-    }
-    ENDDECL1(gl_dispatch_compute, "groups", "I}:3", "",
-        "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
-        " values.");
+    });
 
-    STARTDECL(gl_dump_shader) (VM &vm, Value &filename, Value &stripnonascii) {
+nfr("gl_dump_shader", "filename,stripnonascii", "SI", "I",
+    "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
+    " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
+    " pass true for stripnonascii if you're only interested in that part.",
+    [](VM &vm, Value &filename, Value &stripnonascii) {
         TestGL(vm);
         currentshader->Activate();
         auto ok = currentshader->Dump(filename.sval()->strv(), stripnonascii.True());
         return Value(ok);
-    }
-    ENDDECL2(gl_dump_shader, "filename,stripnonascii", "SI", "I",
-        "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
-        " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
-        " pass true for stripnonascii if you're only interested in that part.");
+    });
 
-    STARTDECL(gl_blend) (VM &vm, Value &mode, Value &body) {
+nfr("gl_blend", "on,body", "IB?", "",
+    "changes the blending mode (use blending constants from color.lobster). when a body is"
+    " given, restores the previous mode afterwards",
+    [](VM &vm, Value &mode, Value &body) {
         TestGL(vm);
         int old = SetBlendMode((BlendMode)mode.ival());
         if (body.True()) vm.Push(Value(old));
         return body;
-    }
-    MIDDECL(gl_blend) (VM &vm) {
+    }, [](VM &vm) {
         auto m = vm.Pop();
         assert(m.type == V_INT);
         SetBlendMode((BlendMode)m.ival());
-    }
-    ENDDECL2CONTEXIT(gl_blend, "on,body", "IB?", "",
-        "changes the blending mode (use blending constants from color.lobster). when a body is"
-        " given, restores the previous mode afterwards");
+    });
 
-    STARTDECL(gl_load_texture) (VM &vm, Value &name, Value &tf) {
+nfr("gl_load_texture", "name,textureformat", "SI?", "R?",
+    "returns texture if succesfully loaded from file name, otherwise nil."
+    " see color.lobster for texture format. Uses stb_image internally"
+    " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
+    " PIC.",
+    [](VM &vm, Value &name, Value &tf) {
         TestGL(vm);
         auto tex = CreateTextureFromFile(name.sval()->strv(), tf.intval());
         return tex.id ? vm.NewResource(new Texture(tex), &texture_type) : Value();
-    }
-    ENDDECL2(gl_load_texture, "name,textureformat", "SI?", "R?",
-        "returns texture if succesfully loaded from file name, otherwise nil."
-        " see color.lobster for texture format. Uses stb_image internally"
-        " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
-        " PIC.");
+    });
 
-    STARTDECL(gl_set_primitive_texture) (VM &vm, Value &i, Value &id, Value &tf) {
+nfr("gl_set_primitive_texture", "i,tex,textureformat", "IRI?", "",
+    "sets texture unit i to texture (for use with rect/circle/polygon/line)",
+    [](VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
-    }
-    ENDDECL3(gl_set_primitive_texture, "i,tex,textureformat", "IRI?", "",
-        "sets texture unit i to texture (for use with rect/circle/polygon/line)");
+    });
 
-    STARTDECL(gl_set_mesh_texture) (VM &vm, Value &mid, Value &part, Value &i, Value &id) {
+nfr("gl_set_mesh_texture", "mesh,part,i,texture", "RIIR", "",
+    "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)",
+    [](VM &vm, Value &mid, Value &part, Value &i, Value &id) {
         auto &m = GetMesh(vm, mid);
         if (part.ival() < 0 || part.ival() >= (int)m.surfs.size())
             vm.BuiltinError("setmeshtexture: illegal part index");
         m.surfs[part.ival()]->Get(GetSampler(vm, i)) = GetTexture(vm, id);
         return Value();
-    }
-    ENDDECL4(gl_set_mesh_texture, "mesh,part,i,texture", "RIIR", "",
-        "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)");
+    });
 
-    STARTDECL(gl_set_image_texture) (VM &vm, Value &i, Value &id, Value &tf) {
+nfr("gl_set_image_texture", "i,tex,textureformat", "IRI", "",
+    "sets image unit i to texture (for use with compute). texture format must be the same"
+    " as what you specified in gl_load_texture / gl_create_texture,"
+    " with optionally writeonly/readwrite flags.",
+    [](VM &vm, Value &i, Value &id, Value &tf) {
         TestGL(vm);
         SetImageTexture(GetSampler(vm, i), GetTexture(vm, id), tf.intval());
         return Value();
-    }
-    ENDDECL3(gl_set_image_texture, "i,tex,textureformat", "IRI", "",
-        "sets image unit i to texture (for use with compute). texture format must be the same"
-        " as what you specified in gl_load_texture / gl_create_texture,"
-        " with optionally writeonly/readwrite flags.");
+    });
 
-    STARTDECL(gl_create_texture) (VM &vm, Value &matv, Value &tf) {
+nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
+    "creates a texture from a 2d array of color vectors."
+    " see texture.lobster for texture format",
+    [](VM &vm, Value &matv, Value &tf) {
         TestGL(vm);
         auto mat = matv.vval();
         auto ys = mat->len;
@@ -961,28 +955,27 @@ void AddGraphics(NativeRegistry &natreg) {
         auto tex = CreateTexture(buf, int2(intp2(xs, ys)).data(), tf.intval());
         delete[] buf;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
-    }
-    ENDDECL2(gl_create_texture, "matrix,textureformat", "F}:4]]I?", "R",
-        "creates a texture from a 2d array of color vectors."
-        " see texture.lobster for texture format");
+    });
 
-    STARTDECL(gl_create_blank_texture) (VM &vm, Value &size_, Value &col, Value &tf) {
+nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R",
+    "creates a blank texture (for use as frame buffer or with compute shaders)."
+    " see texture.lobster for texture format",
+    [](VM &vm, Value &size_, Value &col, Value &tf) {
         TestGL(vm);
         auto tex = CreateBlankTexture(ValueToINT<2>(vm, size_), ValueToFLT<4>(vm, col), tf.intval());
         return Value(vm.NewResource(new Texture(tex), &texture_type));
-    }
-    ENDDECL3(gl_create_blank_texture, "size,color,textureformat", "I}:2F}:4I?", "R",
-        "creates a blank texture (for use as frame buffer or with compute shaders)."
-        " see texture.lobster for texture format");
+    });
 
-    STARTDECL(gl_texture_size) (VM &vm, Value &tex) {
+nfr("gl_texture_size", "tex", "R", "I}:2",
+    "returns the size of a texture",
+    [](VM &vm, Value &tex) {
         TestGL(vm);
         return ToValueINT(vm, GetTexture(vm, tex).size.xy());
-    }
-    ENDDECL1(gl_texture_size, "tex", "R", "I}:2",
-        "returns the size of a texture");
+    });
 
-    STARTDECL(gl_read_texture) (VM &vm, Value &t) {
+nfr("gl_read_texture", "tex", "R", "S?",
+    "read back RGBA texture data into a string or nil on failure",
+    [](VM &vm, Value &t) {
         TestGL(vm);
         auto tex = GetTexture(vm, t);
         auto numpixels = tex.size.x * tex.size.y;
@@ -992,42 +985,44 @@ void AddGraphics(NativeRegistry &natreg) {
         auto s = vm.NewString(string_view((char *)buf, numpixels * 4));
         delete[] buf;
         return Value(s);
-    }
-    ENDDECL1(gl_read_texture, "tex", "R", "S?",
-        "read back RGBA texture data into a string or nil on failure");
+    });
 
-    STARTDECL(gl_switch_to_framebuffer) (VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
+nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex", "R?I?I?R?R?", "I",
+    "switches to a new framebuffer, that renders into the given texture."
+    " also allocates a depth buffer for it if depth is true."
+    " pass the textureformat that was used for this texture."
+    " pass a resolve texture if the base texture is multisample."
+    " pass your own depth texture if desired."
+    " pass a nil texture to switch back to the original framebuffer."
+    " performance note: do not recreate texture passed in unless necessary.",
+    [](VM &vm, Value &t, Value &depth, Value &tf, Value &retex,
                                        Value &depthtex) {
         TestGL(vm);
         auto tex = GetTexture(vm, t);
         return Value(SwitchToFrameBuffer(tex.id ? tex : Texture(0, GetScreenSize()),
                                          depth.True(), tf.intval(), GetTexture(vm, retex),
                                          GetTexture(vm, depthtex)));
-    }
-    ENDDECL5(gl_switch_to_framebuffer, "tex,hasdepth,textureformat,resolvetex,depthtex", "R?I?I?R?R?",
-        "I",
-        "switches to a new framebuffer, that renders into the given texture."
-        " also allocates a depth buffer for it if depth is true."
-        " pass the textureformat that was used for this texture."
-        " pass a resolve texture if the base texture is multisample."
-        " pass your own depth texture if desired."
-        " pass a nil texture to switch back to the original framebuffer."
-        " performance note: do not recreate texture passed in unless necessary.");
+    });
 
-    STARTDECL(gl_light) (VM &vm, Value &pos, Value &params) {
+nfr("gl_light", "pos,params", "F}:3F}:2", "",
+    "sets up a light at the given position for this frame. make sure to call this after your"
+    " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
+    " params contains specular exponent in x (try 32/64/128 for different material looks) and"
+    " the specular scale in y (try 1 for full intensity)",
+    [](VM &vm, Value &pos, Value &params) {
         Light l;
         l.pos = otransforms.object2view * float4(ValueToFLT<3>(vm, pos), 1);
         l.params = ValueToFLT<2>(vm, params);
         lights.push_back(l);
         return Value();
-    }
-    ENDDECL2(gl_light, "pos,params", "F}:3F}:2", "",
-        "sets up a light at the given position for this frame. make sure to call this after your"
-        " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
-        " params contains specular exponent in x (try 32/64/128 for different material looks) and"
-        " the specular scale in y (try 1 for full intensity)");
+    });
 
-    STARTDECL(gl_render_tiles) (VM &vm, Value &pos, Value &tile, Value &mapsize) {
+nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
+    "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
+    " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
+    " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
+    " Before calling this, make sure to have the texture set and a textured shader",
+    [](VM &vm, Value &pos, Value &tile, Value &mapsize) {
         TestGL(vm);
         auto msize = float2(ValueToI<2>(vm, mapsize));
         auto len = pos.vval()->len;
@@ -1053,14 +1048,12 @@ void AddGraphics(NativeRegistry &natreg) {
         currentshader->Set();
         RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
         return Value();
-    }
-    ENDDECL3(gl_render_tiles, "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
-        "Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size."
-        " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
-        " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
-        " Before calling this, make sure to have the texture set and a textured shader");
+    });
 
-    STARTDECL(gl_debug_grid) (VM &vm, Value &num, Value &dist, Value &thickness) {
+nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
+    "renders a grid in space for debugging purposes. num is the number of lines in all 3"
+    " directions, and dist their spacing. thickness of the lines in the same units",
+    [](VM &vm, Value &num, Value &dist, Value &thickness) {
         TestGL(vm);
         float3 cp = otransforms.view2object[3].xyz();
         auto m = float3(ValueToI<3>(vm, num));
@@ -1089,16 +1082,14 @@ void AddGraphics(NativeRegistry &natreg) {
         }
         curcolor = oldcolor;
         return Value();
-    }
-    ENDDECL3(gl_debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
-        "renders a grid in space for debugging purposes. num is the number of lines in all 3"
-        " directions, and dist their spacing. thickness of the lines in the same units");
+    });
 
-    STARTDECL(gl_screenshot) (VM &, Value &fn) {
+nfr("gl_screenshot", "filename", "S", "I",
+    "saves a screenshot in .png format, returns true if succesful",
+    [](VM &, Value &fn) {
         bool ok = ScreenShot(fn.sval()->strv());
         return Value(ok);
-    }
-    ENDDECL1(gl_screenshot, "filename", "S", "I",
-             "saves a screenshot in .png format, returns true if succesful");
+    });
 
-}
+}  // AddFont
+

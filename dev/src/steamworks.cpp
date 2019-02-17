@@ -140,40 +140,44 @@ bool OverlayActive() {
 
 using namespace lobster;
 
-void AddSteam(NativeRegistry &natreg) {
-    STARTDECL(steam_init) (VM &, Value &appid, Value &ss) {
+void AddSteam(NativeRegistry &nfr) {
+
+nfr("steam_init", "appid,allowscreenshots", "II", "I",
+    "initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you"
+    " want to restart from steam if this wasn't started from steam (the return value in this"
+    " case will be -1 to indicate you should terminate this instance). If you don't specify an"
+    " appid here or in steam_appid.txt, init will likely fail. The other functions can still be"
+    " called even if steam isn't active."
+    " allowscreenshots automatically uploads screenshots to steam (triggered by steam).",
+    [](VM &, Value &appid, Value &ss) {
         return Value(SteamInit((uint)appid.ival(), ss.True()));
-    }
-    ENDDECL2(steam_init, "appid,allowscreenshots", "II", "I",
-        "initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you"
-        " want to restart from steam if this wasn't started from steam (the return value in this"
-        " case will be -1 to indicate you should terminate this instance). If you don't specify an"
-        " appid here or in steam_appid.txt, init will likely fail. The other functions can still be"
-        " called even if steam isn't active."
-        " allowscreenshots automatically uploads screenshots to steam (triggered by steam).");
+    });
 
-    STARTDECL(steam_overlay) (VM &) {
+nfr("steam_overlay", "", "", "I",
+    "returns true if the steam overlay is currently on (you may want to auto-pause if so)",
+    [](VM &) {
         return Value(OverlayActive());
-    }
-    ENDDECL0(steam_overlay, "", "", "I",
-        "returns true if the steam overlay is currently on (you may want to auto-pause if so)");
+    });
 
-    STARTDECL(steam_username) (VM &vm) {
+nfr("steam_username", "", "", "S",
+    "returns the name of the steam user, or empty string if not available.",
+    [](VM &vm) {
         return Value(vm.NewString(UserName()));
-    }
-    ENDDECL0(steam_username, "", "", "S",
-        "returns the name of the steam user, or empty string if not available.");
+    });
 
-    STARTDECL(steam_unlock_achievement) (VM &, Value &name) {
+nfr("steam_unlock_achievement", "achievementname", "S", "I",
+    "Unlocks an achievement and shows the achievement overlay if not already achieved before."
+    " Will also Q-up saving achievement to Steam."
+    " Returns true if succesful.",
+    [](VM &, Value &name) {
         auto ok = UnlockAchievement(name.sval()->strv());
         return Value(ok);
-    }
-    ENDDECL1(steam_unlock_achievement, "achievementname", "S", "I",
-        "Unlocks an achievement and shows the achievement overlay if not already achieved before."
-        " Will also Q-up saving achievement to Steam."
-        " Returns true if succesful.");
+    });
 
-    STARTDECL(steam_write_file) (VM &, Value &file, Value &contents) {
+nfr("steam_write_file", "file,contents", "SS", "I",
+    "writes a file with the contents of a string to the steam cloud, or local storage if that"
+    " fails, returns false if writing wasn't possible at all",
+    [](VM &, Value &file, Value &contents) {
         auto fn = file.sval()->strv();
         auto s = contents.sval();
         auto ok = SteamWriteFile(fn, s->strv());
@@ -181,12 +185,12 @@ void AddSteam(NativeRegistry &natreg) {
             ok = WriteFile(fn, true, s->strv());
         }
         return Value(ok);
-    }
-    ENDDECL2(steam_write_file, "file,contents", "SS", "I",
-        "writes a file with the contents of a string to the steam cloud, or local storage if that"
-        " fails, returns false if writing wasn't possible at all");
+    });
 
-    STARTDECL(steam_read_file) (VM &vm, Value &file) {
+nfr("steam_read_file", "file", "S", "S?",
+    "returns the contents of a file as a string from the steam cloud if available, or otherwise"
+    " from local storage, or nil if the file can't be found at all.",
+    [](VM &vm, Value &file) {
         auto fn = file.sval()->strv();
         string buf;
         auto len = SteamReadFile(fn, buf);
@@ -194,9 +198,7 @@ void AddSteam(NativeRegistry &natreg) {
         if (len < 0) return Value();
         auto s = vm.NewString(buf);
         return Value(s);
-    }
-    ENDDECL1(steam_read_file, "file", "S", "S?",
-        "returns the contents of a file as a string from the steam cloud if available, or otherwise"
-        " from local storage, or nil if the file can't be found at all.");
-}
+    });
+
+}  // AddSteam
 

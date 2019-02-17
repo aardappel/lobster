@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
-                else if (a == "--compile-bench") { compile_bench = true; } 
+                else if (a == "--compile-bench") { compile_bench = true; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
@@ -117,8 +117,8 @@ int main(int argc, char* argv[]) {
         if (!InitPlatform(argv[0], fn ? fn : default_lpak, from_bundle, SDLLoadFile))
             THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
 
-        NativeRegistry natreg;
-        RegisterCoreEngineBuiltins(natreg);
+        NativeRegistry nfr;
+        RegisterCoreEngineBuiltins(nfr);
 
         string bytecode;
         if (!fn) {
@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
                 dump.clear();
                 pakfile.clear();
                 bytecode.clear();
-                Compile(natreg, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
+                Compile(nfr, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, dump_builtins, dump_names, false);
             }
             if (compile_bench) {
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
         }
         if (disasm) {
             ostringstream ss;
-            DisAsm(natreg, ss, bytecode);
+            DisAsm(nfr, ss, bytecode);
             WriteFile("disasm.txt", false, ss.str());
         }
         if (to_cpp) {
@@ -165,12 +165,12 @@ int main(int argc, char* argv[]) {
                             "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(), "w");
             if (f) {
                 ostringstream ss;
-                ToCPP(natreg, ss, bytecode);
+                ToCPP(nfr, ss, bytecode);
                 fputs(ss.str().c_str(), f);
                 fclose(f);
             }
         } else if (!compile_only) {
-            EngineRunByteCode(natreg, fn, bytecode, nullptr, nullptr, program_args);
+            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, program_args);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING

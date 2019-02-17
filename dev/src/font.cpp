@@ -56,8 +56,12 @@ void FontCleanup() {
     FTClosedown();
 }
 
-void AddFont(NativeRegistry &natreg) {
-    STARTDECL(gl_set_font_name) (VM &vm, Value &fname) {
+void AddFont(NativeRegistry &nfr) {
+
+nfr("gl_set_font_name", "filename", "S", "I",
+    "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
+    " true if success.",
+    [](VM &vm, Value &fname) {
         extern void TestGL(VM &vm); TestGL(vm);
         auto piname = string(fname.sval()->strv());
         auto faceit = loadedfaces.find(piname);
@@ -76,12 +80,15 @@ void AddFont(NativeRegistry &natreg) {
         } else {
             return Value(false);
         }
-    }
-    ENDDECL1(gl_set_font_name, "filename", "S", "I",
-        "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
-        " true if success.");
+    });
 
-    STARTDECL(gl_set_font_size) (VM &vm, Value &fontsize, Value &outlinesize) {
+nfr("gl_set_font_size", "size,outlinesize", "IF?", "I",
+    "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
+    " time this size is used, flushes from cache if this size is not used an entire frame. font"
+    " rendering will look best if using 1:1 pixels (careful with gl_scale/gl_translate)."
+    " an optional outlinesize will give the font a black outline."
+    " returns true if success",
+    [](VM &vm, Value &fontsize, Value &outlinesize) {
         if (!curface) vm.BuiltinError("gl_set_font_size: no current font set with gl_set_font_name");
         float osize = min(16.0f, max(0.0f, outlinesize.fltval()));
         int size = max(1, fontsize.intval());
@@ -101,31 +108,27 @@ void AddFont(NativeRegistry &natreg) {
         curfont = new BitmapFont(curface, csize, osize);
         fontcache.insert({ fontname, curfont });
         return Value(true);
-    }
-    ENDDECL2(gl_set_font_size, "size,outlinesize", "IF?", "I",
-        "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
-        " time this size is used, flushes from cache if this size is not used an entire frame. font"
-        " rendering will look best if using 1:1 pixels (careful with gl_scale/gl_translate)."
-        " an optional outlinesize will give the font a black outline."
-        " returns true if success");
+    });
 
-    STARTDECL(gl_set_max_font_size) (VM &, Value &fontsize) {
+nfr("gl_set_max_font_size", "size", "I", "",
+    "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
+    " will still work but cause scaled rendering. default 128",
+    [](VM &, Value &fontsize) {
         maxfontsize = fontsize.intval();
         return Value();
-    }
-    ENDDECL1(gl_set_max_font_size, "size", "I", "",
-        "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
-        " will still work but cause scaled rendering. default 128");
+    });
 
-    STARTDECL(gl_get_font_size) (VM &) { return Value(curfontsize); }
-    ENDDECL0(gl_get_font_size, "", "", "I",
-        "the current font size");
+nfr("gl_get_font_size", "", "", "I",
+    "the current font size",
+    [](VM &) { return Value(curfontsize); });
 
-    STARTDECL(gl_get_outline_size) (VM &) { return Value(curoutlinesize); }
-    ENDDECL0(gl_get_outline_size, "", "", "F",
-             "the current font size");
+nfr("gl_get_outline_size", "", "", "F",
+    "the current font size",
+    [](VM &) { return Value(curoutlinesize); });
 
-    STARTDECL(gl_text) (VM &vm, Value &s) {
+nfr("gl_text", "text", "S", "Sb",
+    "renders a text with the current font (at the current coordinate origin)",
+    [](VM &vm, Value &s) {
         auto f = curfont;
         if (!f) return vm.BuiltinError("gl_text: no font size set");
         if (!s.sval()->len) return s;
@@ -139,11 +142,11 @@ void AddFont(NativeRegistry &natreg) {
         f->RenderText(s.sval()->strv());
         if (curfontsize > maxfontsize) otransforms.object2view = oldobject2view;
         return s;
-    }
-    ENDDECL1(gl_text, "text", "S", "Sb",
-        "renders a text with the current font (at the current coordinate origin)");
+    });
 
-    STARTDECL(gl_text_size) (VM &vm, Value &s) {
+nfr("gl_text_size", "text", "S", "I}:2",
+    "the x/y size in pixels the given text would need",
+    [](VM &vm, Value &s) {
         auto f = curfont;
         if (!f) return vm.BuiltinError("gl_text_size: no font size set");
         auto size = f->TextSize(s.sval()->strv());
@@ -151,20 +154,19 @@ void AddFont(NativeRegistry &natreg) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));
         }
         return ToValueINT(vm, size);
-    }
-    ENDDECL1(gl_text_size, "text", "S", "I}:2",
-        "the x/y size in pixels the given text would need");
+    });
 
-    STARTDECL(gl_get_glyph_name) (VM &vm, Value &i) {
-        return vm.NewString(curface ? curface->GetName((uint)i.ival()) : ""); 
-    }
-    ENDDECL1(gl_get_glyph_name, "i", "I", "S",
-             "the name of a glyph index, or empty string if the font doesn\'t have names");
+nfr("gl_get_glyph_name", "i", "I", "S",
+    "the name of a glyph index, or empty string if the font doesn\'t have names",
+    [](VM &vm, Value &i) {
+        return Value(vm.NewString(curface ? curface->GetName((uint)i.ival()) : ""));
+    });
 
-    STARTDECL(gl_get_char_code) (VM &, Value &n) {
-        return curface ? curface->GetCharCode(n.sval()->strv()) : 0; 
-    }
-    ENDDECL1(gl_get_char_code, "name", "S", "I",
-             "the char code of a glyph by specifying its name, or 0 if it can not be found"
-             " (or if the font doesn\'t have names)");
-}
+nfr("gl_get_char_code", "name", "S", "I",
+    "the char code of a glyph by specifying its name, or 0 if it can not be found"
+    " (or if the font doesn\'t have names)",
+    [](VM &, Value &n) {
+        return Value(curface ? curface->GetCharCode(n.sval()->strv()) : 0);
+    });
+
+}  // AddFont

@@ -189,8 +189,10 @@ void EngineStatsGUI() {
     ImGui::PlotLines("gl_deltatime", ft.data(), (int)ft.size());
 }
 
-void AddIMGUI(NativeRegistry &natreg) {
-    STARTDECL(im_init) (VM &, Value &darkstyle) {
+void AddIMGUI(NativeRegistry &nfr) {
+
+nfr("im_init", "dark_style", "I", "", "",
+    [](VM &, Value &darkstyle) {
         if (imgui_init) return Value();
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -200,10 +202,10 @@ void AddIMGUI(NativeRegistry &natreg) {
         ImGui_ImplOpenGL3_Init("#version 150");
         imgui_init = true;
         return Value();
-    }
-    ENDDECL1(im_init, "dark_style", "I", "", "");
+    });
 
-    STARTDECL(im_add_font) (VM &vm, Value &fontname, Value &size) {
+nfr("im_add_font", "font_path,size", "SF", "I", "",
+    [](VM &vm, Value &fontname, Value &size) {
         IsInit(vm);
         string buf;
         auto l = LoadFile(fontname.sval()->strv(), &buf);
@@ -214,96 +216,93 @@ void AddIMGUI(NativeRegistry &natreg) {
         imfc.FontDataOwnedByAtlas = true;
         auto font = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(mb, (int)buf.size(),
                                                                size.fltval(), &imfc);
-        return font != nullptr;
-    }
-    ENDDECL2(im_add_font, "font_path,size", "SF", "I", "");
+        return Value(font != nullptr);
+    });
 
-    STARTDECL(im_frame) (VM &vm, Value &body) {
+nfr("im_frame", "body", "B", "", "",
+    [](VM &vm, Value &body) {
         IsInit(vm);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
         return body;
-    }
-    MIDDECL(im_frame) (VM &) {
+    }, [](VM &) {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-    ENDDECL1CONTEXIT(im_frame, "body", "B", "", "");
+    });
 
-    STARTDECL(im_window_demo) (VM &vm) {
+nfr("im_window_demo", "", "", "I", "",
+    [](VM &vm) {
         IsInit(vm);
         bool show = true;
         ImGui::ShowDemoWindow(&show);
-        return show;
-    }
-    ENDDECL0(im_window_demo, "", "", "I", "");
+        return Value(show);
+    });
 
-    STARTDECL(im_window) (VM &vm, Value &title, Value &flags, Value &body) {
+nfr("im_window", "title,flags,body", "SIB", "", "",
+    [](VM &vm, Value &title, Value &flags, Value &body) {
         IsInit(vm);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
         return body;
-    }
-    MIDDECL(im_window) (VM &) {
+    }, [](VM &) {
         ImGui::End();
-    }
-    ENDDECL3CONTEXIT(im_window, "title,flags,body", "SIB", "", "");
+    });
 
-    STARTDECL(im_button) (VM &, Value &title, Value &body) {
+nfr("im_button", "label,body", "SB", "", "",
+    [](VM &, Value &title, Value &body) {
         auto press = ImGui::Button(title.sval()->data());
         return press ? body : Value();
-    }
-    MIDDECL(im_button) (VM &) {
-    }
-    ENDDECL2CONTEXIT(im_button, "label,body", "SB", "", "");
+    }, [](VM &) {
+    });
 
-    STARTDECL(im_same_line) (VM &) {
+nfr("im_same_line", "", "", "", "",
+    [](VM &) {
         ImGui::SameLine();
         return Value();
-    }
-    ENDDECL0(im_same_line, "", "", "", "");
+    });
 
-    STARTDECL(im_separator) (VM &) {
+nfr("im_separator", "", "", "", "",
+    [](VM &) {
         ImGui::Separator();
         return Value();
-    }
-    ENDDECL0(im_separator, "", "", "", "");
+    });
 
-    STARTDECL(im_text) (VM &, Value &text) {
+nfr("im_text", "label", "S", "", "",
+    [](VM &, Value &text) {
         ImGui::Text("%s", text.sval()->data());
         return Value();
-    }
-    ENDDECL1(im_text, "label", "S", "", "");
+    });
 
-    STARTDECL(im_tooltip) (VM &, Value &text) {
+nfr("im_tooltip", "label", "S", "", "",
+    [](VM &, Value &text) {
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
         return Value();
-    }
-    ENDDECL1(im_tooltip, "label", "S", "", "");
+    });
 
-    STARTDECL(im_checkbox) (VM &, Value &text, Value &boolean) {
+nfr("im_checkbox", "label,bool", "SI", "I", "",
+    [](VM &, Value &text, Value &boolean) {
         bool b = boolean.True();
         ImGui::Checkbox(text.sval()->data(), &b);
         return Value(b);
-    }
-    ENDDECL2(im_checkbox, "label,bool", "SI", "I", "");
+    });
 
-    STARTDECL(im_input_text) (VM &vm, Value &text, Value &str) {
-        return LStringInputText(vm, text.sval()->data(), str.sval());
-    }
-    ENDDECL2(im_input_text, "label,str", "SSk", "S", "");
+nfr("im_input_text", "label,str", "SSk", "S", "",
+    [](VM &vm, Value &text, Value &str) {
+        return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
+    });
 
-    STARTDECL(im_radio) (VM &, Value &strs, Value &active, Value &horiz) {
+nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
+    [](VM &, Value &strs, Value &active, Value &horiz) {
         int sel = active.intval();
         for (intp i = 0; i < strs.vval()->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
             ImGui::RadioButton(strs.vval()->At(i).sval()->data(), &sel, (int)i);
         }
         return Value(sel);
-    }
-    ENDDECL3(im_radio, "labels,active,horiz", "S]II", "I", "");
+    });
 
-    STARTDECL(im_combo) (VM &, Value &text, Value &strs, Value &active) {
+nfr("im_combo", "label,labels,active", "SS]I", "I", "",
+    [](VM &, Value &text, Value &strs, Value &active) {
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (intp i = 0; i < strs.vval()->len; i++) {
@@ -311,10 +310,10 @@ void AddIMGUI(NativeRegistry &natreg) {
         }
         ImGui::Combo(text.sval()->data(), &sel, items.data(), (int)items.size());
         return Value(sel);
-    }
-    ENDDECL3(im_combo, "label,labels,active", "SS]I", "I", "");
+    });
 
-    STARTDECL(im_listbox) (VM &, Value &text, Value &strs, Value &active, Value &height) {
+nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
+    [](VM &, Value &text, Value &strs, Value &active, Value &height) {
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (intp i = 0; i < strs.vval()->len; i++) {
@@ -322,61 +321,59 @@ void AddIMGUI(NativeRegistry &natreg) {
         }
         ImGui::ListBox(text.sval()->data(), &sel, items.data(), (int)items.size(), height.intval());
         return Value(sel);
-    }
-    ENDDECL4(im_listbox, "label,labels,active,height", "SS]II", "I", "");
+    });
 
-    STARTDECL(im_sliderint) (VM &, Value &text, Value &integer, Value &min, Value &max) {
+nfr("im_sliderint", "label,i,min,max", "SIII", "I", "",
+    [](VM &, Value &text, Value &integer, Value &min, Value &max) {
         int i = integer.intval();
         ImGui::SliderInt(text.sval()->data(), &i, min.intval(), max.intval());
         return Value(i);
-    }
-    ENDDECL4(im_sliderint, "label,i,min,max", "SIII", "I", "");
+    });
 
-    STARTDECL(im_sliderfloat) (VM &, Value &text, Value &flt, Value &min, Value &max) {
+nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
+    [](VM &, Value &text, Value &flt, Value &min, Value &max) {
         float f = flt.fltval();
         ImGui::SliderFloat(text.sval()->data(), &f, min.fltval(), max.fltval());
         return Value(f);
-    }
-    ENDDECL4(im_sliderfloat, "label,f,min,max", "SFFF", "F", "");
+    });
 
-    STARTDECL(im_coloredit) (VM &vm, Value &text, Value &col) {
+nfr("im_coloredit", "label,color", "SF}", "A2", "",
+    [](VM &vm, Value &text, Value &col) {
         auto c = ValueToFLT<4>(vm, col);
         ImGui::ColorEdit4(text.sval()->data(), (float *)c.data());
         return Value(ToValueFLT(vm, c));
-    }
-    ENDDECL2(im_coloredit, "label,color", "SF}", "A2", "");
+    });
 
-    STARTDECL(im_treenode) (VM &vm, Value &title, Value &body) {
+nfr("im_treenode", "label,body", "SB", "", "",
+    [](VM &vm, Value &title, Value &body) {
         auto open = ImGui::TreeNode(title.sval()->data());
         vm.Push(open);
         return open ? body : Value();
-    }
-    MIDDECL(im_treenode) (VM &vm) {
+    }, [](VM &vm) {
         if (vm.Pop().True()) ImGui::TreePop();
-    }
-    ENDDECL2CONTEXIT(im_treenode, "label,body", "SB", "", "");
+    });
 
-    STARTDECL(im_group) (VM &, Value &title, Value &body) {
+nfr("im_group", "label,body", "SsB", "",
+    "an invisble group around some widgets, useful to ensure these widgets are unique"
+    " (if they have the same label as widgets in another group that has a different group"
+    " label)",
+    [](VM &, Value &title, Value &body) {
         ImGui::PushID(title.sval()->data());
         return body;
-    }
-    MIDDECL(im_group) (VM &) {
+    }, [](VM &) {
         ImGui::PopID();
-    }
-    ENDDECL2CONTEXIT(im_group, "label,body", "SsB", "",
-        "an invisble group around some widgets, useful to ensure these widgets are unique"
-        " (if they have the same label as widgets in another group that has a different group"
-        " label)");
+    });
 
-    STARTDECL(im_edit_anything) (VM &vm, Value &v, Value &label) {
+nfr("im_edit_anything", "value,label", "AkS?", "A1",
+    "creates a UI for any lobster reference value, and returns the edited version",
+    [](VM &vm, Value &v, Value &label) {
         ValToGUI(vm, v, vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY),
                  label.True() ? label.sval()->strv() : "", true);
         return v;
-    }
-    ENDDECL2(im_edit_anything, "value,label", "AkS?", "A1",
-        "creates a UI for any lobster reference value, and returns the edited version");
+    });
 
-    STARTDECL(im_graph) (VM &, Value &label, Value &vals, Value &histogram) {
+nfr("im_graph", "label,values,ishistogram", "SF]I", "", "",
+    [](VM &, Value &label, Value &vals, Value &histogram) {
         auto getter = [](void *data, int i) -> float {
             return ((Value *)data)[i].fltval();
         };
@@ -388,20 +385,19 @@ void AddIMGUI(NativeRegistry &natreg) {
                 (int)vals.vval()->len);
         }
         return Value();
-    }
-    ENDDECL3(im_graph, "label,values,ishistogram", "SF]I", "",
-             "")
+    });
 
-    STARTDECL(im_show_vars) (VM &vm) {
+nfr("im_show_vars", "", "", "",
+    "shows an automatic editing UI for each global variable in your program",
+    [](VM &vm) {
         VarsToGUI(vm);
         return Value();
-    }
-    ENDDECL0(im_show_vars, "", "", "",
-        "shows an automatic editing UI for each global variable in your program");
+    });
 
-    STARTDECL(im_show_engine_stats) (VM &) {
+nfr("im_show_engine_stats", "", "", "", "",
+    [](VM &) {
         EngineStatsGUI();
         return Value();
-    }
-    ENDDECL0(im_show_engine_stats, "", "", "", "");
-}
+    });
+
+}  // AddIMGUI

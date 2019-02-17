@@ -71,198 +71,201 @@ Value ReplaceStruct(VM &vm, Value &l, Value &i, Value &a) {
     return Value(nv);
 }
 
-void AddBuiltins(NativeRegistry &natreg) {
-    STARTDECL(print) (VM &vm, Value &a) {
+void AddBuiltins(NativeRegistry &nfr) {
+
+nfr("print", "x", "Ss", "",
+    "output any value to the console (with linefeed).",
+    [](VM &vm, Value &a) {
         vm.ss_reuse.str(string());
         vm.ss_reuse.clear();
         RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
         LOG_PROGRAM(vm.ss_reuse.str());
         return Value();
-    }
-    ENDDECL1(print, "x", "Ss", "",
-        "output any value to the console (with linefeed).");
+    });
 
-    // This is now the identity function, but still useful to force a coercion.
-    STARTDECL(string) (VM &, Value &a) {
+// This is now the identity function, but still useful to force a coercion.
+nfr("string", "x", "Ssk", "S",
+    "convert any value to string",
+    [](VM &, Value &a) {
         return a;
-    }
-    ENDDECL1(string, "x", "Ssk", "S",
-        "convert any value to string");
+    });
 
-    STARTDECL(set_print_depth) (VM &vm, Value &a) {
+nfr("set_print_depth", "depth", "I", "",
+    "for printing / string conversion: sets max vectors/objects recursion depth (default 10)",
+    [](VM &vm, Value &a) {
         vm.programprintprefs.depth = a.ival();
         return Value();
-    }
-    ENDDECL1(set_print_depth, "depth", "I", "",
-        "for printing / string conversion: sets max vectors/objects recursion depth (default 10)");
+    });
 
-    STARTDECL(set_print_length) (VM &vm, Value &a) {
+nfr("set_print_length", "len", "I", "",
+    "for printing / string conversion: sets max string length (default 100000)",
+    [](VM &vm, Value &a) {
         vm.programprintprefs.budget = a.ival();
         return Value();
-    }
-    ENDDECL1(set_print_length, "len", "I", "",
-        "for printing / string conversion: sets max string length (default 100000)");
+    });
 
-    STARTDECL(set_print_quoted) (VM &vm, Value &a) {
+nfr("set_print_quoted", "quoted", "I", "",
+    "for printing / string conversion: if the top level value is a string, whether to convert"
+    " it with escape codes and quotes (default false)",
+    [](VM &vm, Value &a) {
         vm.programprintprefs.quoted = a.ival() != 0;
         return Value();
-    }
-    ENDDECL1(set_print_quoted, "quoted", "I", "",
-        "for printing / string conversion: if the top level value is a string, whether to convert"
-        " it with escape codes and quotes (default false)");
+    });
 
-    STARTDECL(set_print_decimals) (VM &vm, Value &a) {
+nfr("set_print_decimals", "decimals", "I", "",
+    "for printing / string conversion: number of decimals for any floating point output"
+    " (default -1, meaning all)",
+    [](VM &vm, Value &a) {
         vm.programprintprefs.decimals = a.ival();
         return Value();
-    }
-    ENDDECL1(set_print_decimals, "decimals", "I", "",
-        "for printing / string conversion: number of decimals for any floating point output"
-        " (default -1, meaning all)");
+    });
 
-    STARTDECL(set_print_indent) (VM &vm, Value &a) {
-        vm.programprintprefs.indent = a.ival();
+nfr("set_print_indent", "spaces", "I", "",
+    "for printing / string conversion: number of spaces to indent with. default is 0:"
+    " no indent / no multi-line",
+    [](VM &vm, Value &a) {
+        vm.programprintprefs.indent = a.intval();
         return Value();
-    }
-    ENDDECL1(set_print_indent, "spaces", "I", "",
-             "for printing / string conversion: number of spaces to indent with. default is 0:"
-             " no indent / no multi-line");
+    });
 
-    STARTDECL(get_line) (VM &vm) {
+nfr("get_line", "", "", "S",
+    "reads a string from the console if possible (followed by enter)",
+    [](VM &vm) {
         const int MAXSIZE = 1000;
         char buf[MAXSIZE];
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
         buf[MAXSIZE - 1] = 0;
         for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n') { buf[i] = 0; break; }
         return Value(vm.NewString(buf));
-    }
-    ENDDECL0(get_line, "", "", "S",
-        "reads a string from the console if possible (followed by enter)");
+    });
 
-    STARTDECL(if) (VM &, Value &c, Value &t, Value &e) {
+nfr("if", "cond,then,else", "ABB?", "A",
+    "evaluates then or else depending on cond, else is optional",
+    [](VM &, Value &c, Value &t, Value &e) {
         assert(0);  // Special case implementation in the VM
         (void)c;
         (void)t;
         (void)e;
         return Value();
-    }
-    ENDDECL3(if, "cond,then,else", "ABB?", "A",
-        "evaluates then or else depending on cond, else is optional");
+    });
 
-    STARTDECL(while) (VM &, Value &c, Value &b) {
+nfr("while", "cond,do", "B@B", "A",
+    "evaluates body while cond (converted to a function) holds true, returns last body value",
+    [](VM &, Value &c, Value &b) {
         assert(0);  // Special case implementation in the VM
         (void)c;
         (void)b;
         return Value();
-    }
-    ENDDECL2(while, "cond,do", "B@B", "A",
-        "evaluates body while cond (converted to a function) holds true, returns last body value");
+    });
 
-    STARTDECL(for) (VM &, Value &iter, Value &body) {
+nfr("for", "iter,do", "AB", "",
+    "iterates over int/vector/string, body may take [ element [ , index ] ] arguments",
+    [](VM &, Value &iter, Value &body) {
         assert(0);  // Special case implementation in the VM
         (void)iter;
         (void)body;
         return Value();
-    }
-    ENDDECL2(for, "iter,do", "AB", "",
-        "iterates over int/vector/string, body may take [ element [ , index ] ] arguments");
+    });
 
-    STARTDECL(append) (VM &vm, Value &v1, Value &v2) {
+nfr("append", "xs,ys", "A]*A]*1", "A]1",
+    "creates a new vector by appending all elements of 2 input vectors",
+    [](VM &vm, Value &v1, Value &v2) {
         auto type = v1.vval()->tti;
         auto nv = (LVector *)vm.NewVec(0, v1.vval()->len + v2.vval()->len, type);
         nv->Append(vm, v1.vval(), 0, v1.vval()->len);
         nv->Append(vm, v2.vval(), 0, v2.vval()->len);
         return Value(nv);
-    }
-    ENDDECL2(append, "xs,ys", "A]*A]*1", "A]1",
-        "creates a new vector by appending all elements of 2 input vectors");
+    });
 
-    STARTDECL(vector_reserve) (VM &vm, Value &type, Value &len) {
+nfr("vector_reserve", "typeid,len", "TI", "A]*",
+    "creates a new empty vector much like [] would, except now ensures"
+    " it will have space for len push() operations without having to reallocate."
+    " pass \"typeof return\" as typeid.",
+    [](VM &vm, Value &type, Value &len) {
         return Value(vm.NewVec(0, len.ival(), (type_elem_t)type.ival()));
-    }
-    ENDDECL2(vector_reserve, "typeid,len", "TI", "A]*",
-        "creates a new empty vector much like [] would, except now ensures"
-        " it will have space for len push() operations without having to reallocate."
-        " pass \"typeof return\" as typeid.");
+    });
 
-    STARTDECL(length) (VM &, Value &a) {
+nfr("length", "x", "I", "I",
+    "length of int (identity function, useful in combination with string/vector version)",
+    [](VM &, Value &a) {
         return a;
-    }
-    ENDDECL1(length, "x", "I", "I",
-        "length of int (identity function, useful in combination with string/vector version)");
+    });
 
-    STARTDECL(length) (VM &, Value &a) {
+nfr("length", "s", "S", "I",
+    "length of string",
+    [](VM &, Value &a) {
         auto len = a.sval()->len;
         return Value(len);
-    }
-    ENDDECL1(length, "s", "S", "I",
-        "length of string");
+    });
 
-    STARTDECL(length) (VM &vm, Value &a) {
+nfr("length", "s", "F}", "I",
+    "number of fields in a numerical struct",
+    [](VM &vm, Value &a) {
         auto len = a.stval()->Len(vm);
         return Value(len);
-    }
-    ENDDECL1(length, "s", "F}", "I",
-        "number of fields in a numerical struct");
+    });
 
-    STARTDECL(length) (VM &vm, Value &a) {
+nfr("length", "s", "I}", "I",
+    "number of fields in a numerical struct",
+    [](VM &vm, Value &a) {
         auto len = a.stval()->Len(vm);
         return Value(len);
-    }
-    ENDDECL1(length, "s", "I}", "I",
-        "number of fields in a numerical struct");
+    });
 
-    STARTDECL(length) (VM &, Value &a) {
+nfr("length", "xs", "A]*", "I",
+    "length of vector",
+    [](VM &, Value &a) {
         auto len = a.vval()->len;
         return Value(len);
-    }
-    ENDDECL1(length, "xs", "A]*", "I",
-        "length of vector");
+    });
 
-    STARTDECL(equal) (VM &vm, Value &a, Value &b) {
+nfr("equal", "a,b", "AA", "I",
+    "structural equality between any two values (recurses into vectors/objects,"
+    " unlike == which is only true for vectors/objects if they are the same object)",
+    [](VM &vm, Value &a, Value &b) {
         bool eq = RefEqual(vm, a.refnil(), b.refnil(), true);
         return Value(eq);
-    }
-    ENDDECL2(equal, "a,b", "AA", "I",
-        "structural equality between any two values (recurses into vectors/objects,"
-        " unlike == which is only true for vectors/objects if they are the same object)");
+    });
 
-    STARTDECL(push) (VM &vm, Value &l, Value &x) {
+nfr("push", "xs,x", "A]*Ak1", "Ab]1",
+    "appends one element to a vector, returns existing vector",
+    [](VM &vm, Value &l, Value &x) {
         l.vval()->Push(vm, x);
         return l;
-    }
-    ENDDECL2(push, "xs,x", "A]*Ak1", "Ab]1",
-        "appends one element to a vector, returns existing vector");
+    });
 
-    STARTDECL(pop) (VM &vm, Value &l) {
+nfr("pop", "xs", "A]*", "A1",
+    "removes last element from vector and returns it",
+    [](VM &vm, Value &l) {
         if (!l.vval()->len) vm.BuiltinError("pop: empty vector");
         auto v = l.vval()->Pop();
         return v;
-    }
-    ENDDECL1(pop, "xs", "A]*", "A1",
-        "removes last element from vector and returns it");
+    });
 
-    STARTDECL(top) (VM &vm, Value &l) {
+nfr("top", "xs", "A]*", "Ab1",
+    "returns last element from vector",
+    [](VM &vm, Value &l) {
         if (!l.vval()->len) vm.BuiltinError("top: empty vector");
         auto v = l.vval()->Top();
         return v;
-    }
-    ENDDECL1(top, "xs", "A]*", "Ab1",
-        "returns last element from vector");
+    });
 
-    STARTDECL(replace) (VM &vm, Value &l, Value &i, Value &a) {
+nfr("replace", "xs,i,x", "F}IF", "F}",
+    "returns a copy of a numeric struct with the element at i replaced by x",
+    [](VM &vm, Value &l, Value &i, Value &a) {
         return ReplaceStruct(vm, l, i, a);
-    }
-    ENDDECL3(replace, "xs,i,x", "F}IF", "F}",
-        "returns a copy of a numeric struct with the element at i replaced by x");
+    });
 
-    STARTDECL(replace) (VM &vm, Value &l, Value &i, Value &a) {
+nfr("replace", "xs,i,x", "I}II", "I}",
+    "returns a copy of a numeric struct with the element at i replaced by x",
+    [](VM &vm, Value &l, Value &i, Value &a) {
         return ReplaceStruct(vm, l, i, a);
-    }
-    ENDDECL3(replace, "xs,i,x", "I}II", "I}",
-        "returns a copy of a numeric struct with the element at i replaced by x");
+    });
 
-    // FIXME: duplication with ReplaceStruct.
-    STARTDECL(replace) (VM &vm, Value &l, Value &i, Value &a) {
+// FIXME: duplication with ReplaceStruct.
+nfr("replace", "xs,i,x", "A]*IAk1", "Ab]1",
+    "returns a copy of a vector with the element at i replaced by x",
+    [](VM &vm, Value &l, Value &i, Value &a) {
         auto len = l.vval()->len;
         if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
         auto nv = vm.NewVec(len, len, l.vval()->tti);
@@ -270,34 +273,34 @@ void AddBuiltins(NativeRegistry &natreg) {
         nv->Dec(vm, i.ival(), nv->ElemType(vm));
         nv->At(i.ival()) = a;
         return Value(nv);
-    }
-    ENDDECL3(replace, "xs,i,x", "A]*IAk1", "Ab]1",
-        "returns a copy of a vector with the element at i replaced by x");
+    });
 
-    STARTDECL(insert) (VM &vm, Value &l, Value &i, Value &a) {
+nfr("insert", "xs,i,x", "A]*IAk1", "Ab]1",
+    "inserts a value into a vector at index i, existing elements shift upward,"
+    " returns original vector",
+    [](VM &vm, Value &l, Value &i, Value &a) {
         if (i.ival() < 0 || i.ival() > l.vval()->len)
             vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
         l.vval()->Insert(vm, a, i.ival());
         return l;
-    }
-    ENDDECL3(insert, "xs,i,x", "A]*IAk1", "Ab]1",
-        "inserts a value into a vector at index i, existing elements shift upward,"
-        " returns original vector");
+    });
 
-    STARTDECL(remove) (VM &vm, Value &l, Value &i, Value &n) {
+nfr("remove", "xs,i,n", "A]*II?", "A1",
+    "remove element(s) at index i, following elements shift down. pass the number of elements"
+    " to remove as an optional argument, default 1. returns the first element removed.",
+    [](VM &vm, Value &l, Value &i, Value &n) {
         auto amount = max(n.ival(), (intp)1);
         if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 ||
             i.ival() > l.vval()->len - amount)
             vm.BuiltinError(cat("remove: index (", i.ival(), ") or n (", amount,
-                                   ") out of range (", l.vval()->len, ")"));
+                                    ") out of range (", l.vval()->len, ")"));
         auto v = l.vval()->Remove(vm, i.ival(), amount, 1);
         return v;
-    }
-    ENDDECL3(remove, "xs,i,n", "A]*II?", "A1",
-        "remove element(s) at index i, following elements shift down. pass the number of elements"
-        " to remove as an optional argument, default 1. returns the first element removed.");
+    });
 
-    STARTDECL(remove_obj) (VM &vm, Value &l, Value &o) {
+nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
+    "remove all elements equal to obj (==), returns obj.",
+    [](VM &vm, Value &l, Value &o) {
         intp removed = 0;
         auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
         for (intp i = 0; i < l.vval()->len; i++) {
@@ -308,41 +311,42 @@ void AddBuiltins(NativeRegistry &natreg) {
             }
         }
         return o;
-    }
-    ENDDECL2(remove_obj, "xs,obj", "A]*A1", "Ab2",
-        "remove all elements equal to obj (==), returns obj.");
+    });
 
-    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
+nfr("binary_search", "xs,key", "I]I", "II",
+    "does a binary search for key in a sorted vector, returns as first return value how many"
+    " matches were found, and as second the index in the array where the matches start (so you"
+    " can read them, overwrite them, or remove them), or if none found, where the key could be"
+    " inserted such that the vector stays sorted. This overload is for int vectors and keys.",
+    [](VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, IntCompare);
         return r;
-    }
-    ENDDECL2(binary_search, "xs,key", "I]I", "II",
-        "does a binary search for key in a sorted vector, returns as first return value how many"
-        " matches were found, and as second the index in the array where the matches start (so you"
-        " can read them, overwrite them, or remove them), or if none found, where the key could be"
-        " inserted such that the vector stays sorted. This overload is for int vectors and keys.");
+    });
 
-    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
+nfr("binary_search", "xs,key", "F]F", "II",
+    "float version.",
+    [](VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, FloatCompare);
         return r;
-    }
-    ENDDECL2(binary_search, "xs,key", "F]F", "II",
-        "float version.");
+    });
 
-    STARTDECL(binary_search) (VM &vm, Value &l, Value &key) {
+nfr("binary_search", "xs,key", "S]S", "II",
+    "string version.",
+    [](VM &vm, Value &l, Value &key) {
         auto r = BinarySearch(vm, l, key, StringCompare);
         return r;
-    }
-    ENDDECL2(binary_search, "xs,key", "S]S", "II",
-        "string version.");
+    });
 
-    STARTDECL(copy) (VM &vm, Value &v) {
+nfr("copy", "xs", "A", "A1",
+    "makes a shallow copy of any object.",
+    [](VM &vm, Value &v) {
         return v.Copy(vm);
-    }
-    ENDDECL1(copy, "xs", "A", "A1",
-        "makes a shallow copy of any object.");
+    });
 
-    STARTDECL(slice) (VM &vm, Value &l, Value &s, Value &e) {
+nfr("slice", "xs,start,size", "A]*II", "A]1",
+    "returns a sub-vector of size elements from index start."
+    " size can be negative to indicate the rest of the vector.",
+    [](VM &vm, Value &l, Value &s, Value &e) {
         auto size = e.ival();
         auto start = s.ival();
         if (size < 0) size = l.vval()->len - start;
@@ -351,32 +355,31 @@ void AddBuiltins(NativeRegistry &natreg) {
         auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
         nv->Append(vm, l.vval(), start, size);
         return Value(nv);
-    }
-    ENDDECL3(slice,
-        "xs,start,size", "A]*II", "A]1", "returns a sub-vector of size elements from index start."
-        " size can be negative to indicate the rest of the vector.");
+    });
 
-    #define ANY_F(acc, at, len) \
-        Value r(false); \
-        auto l = v.acc()->len; \
-        for (auto i = 0; i < l; i++) { \
-            if (v.acc()->at.True()) { r = Value(true); break; } \
-        } \
-        return r; \
+#define ANY_F(acc, at, len) \
+    Value r(false); \
+    auto l = v.acc()->len; \
+    for (auto i = 0; i < l; i++) { \
+        if (v.acc()->at.True()) { r = Value(true); break; } \
+    } \
+    return r; \
 
-    STARTDECL(any) (VM &vm, Value &v) {
+nfr("any", "xs", "I}", "I",
+    "returns wether any elements of the numeric struct are true values",
+    [](VM &vm, Value &v) {
         ANY_F(stval, AtS(i), Len(vm))
-    }
-    ENDDECL1(any, "xs", "I}", "I",
-        "returns wether any elements of the numeric struct are true values");
+    });
 
-    STARTDECL(any) (VM &, Value &v) {
+nfr("any", "xs", "A]*", "I",
+    "returns wether any elements of the vector are true values",
+    [](VM &, Value &v) {
         ANY_F(vval, At(i), len)
-    }
-    ENDDECL1(any, "xs", "A]*", "I",
-        "returns wether any elements of the vector are true values");
+    });
 
-    STARTDECL(all) (VM &vm, Value &v) {
+nfr("all", "xs", "I}", "I",
+    "returns wether all elements of the numeric struct are true values",
+    [](VM &vm, Value &v) {
         Value r(true);
         auto l = v.stval()->Len(vm);
         for (intp i = 0; i < l; i++) {
@@ -386,11 +389,11 @@ void AddBuiltins(NativeRegistry &natreg) {
             }
         }
         return r;
-    }
-    ENDDECL1(all, "xs", "I}", "I",
-        "returns wether all elements of the numeric struct are true values");
+    });
 
-    STARTDECL(all) (VM &, Value &v) {
+nfr("all", "xs", "A]*", "I",
+    "returns wether all elements of the vector are true values",
+    [](VM &, Value &v) {
         Value r(true);
         for (intp i = 0; i < v.vval()->len; i++) {
             if (!v.vval()->At(i).True()) {
@@ -399,11 +402,12 @@ void AddBuiltins(NativeRegistry &natreg) {
             }
         }
         return r;
-    }
-    ENDDECL1(all, "xs", "A]*", "I",
-        "returns wether all elements of the vector are true values");
+    });
 
-    STARTDECL(substring) (VM &vm, Value &l, Value &s, Value &e) {
+nfr("substring", "s,start,size", "SII", "S",
+    "returns a substring of size characters from index start."
+    " size can be negative to indicate the rest of the string.",
+    [](VM &vm, Value &l, Value &s, Value &e) {
         intp size = e.ival();
         intp start = s.ival();
         if (size < 0) size = l.sval()->len - start;
@@ -412,30 +416,32 @@ void AddBuiltins(NativeRegistry &natreg) {
 
         auto ns = vm.NewString(string_view(l.sval()->data() + start, size));
         return Value(ns);
-    }
-    ENDDECL3(substring, "s,start,size", "SII", "S",
-        "returns a substring of size characters from index start."
-        " size can be negative to indicate the rest of the string.");
+    });
 
-    STARTDECL(string_to_int) (VM &vm, Value &s) {
+nfr("string_to_int", "s", "S", "II",
+    "converts a string to an int. returns 0 if no numeric data could be parsed."
+    "second return value is true if all characters of the string were parsed",
+    [](VM &vm, Value &s) {
         char *end;
         auto sv = s.sval()->strv();
         auto i = parse_int<intp>(sv, 10, &end);
         vm.Push(i);
         return Value(end == sv.data() + sv.size());
-    }
-    ENDDECL1(string_to_int, "s", "S", "II",
-        "converts a string to an int. returns 0 if no numeric data could be parsed."
-        "second return value is true if all characters of the string were parsed");
+    });
 
-    STARTDECL(string_to_float) (VM &, Value &s) {
+nfr("string_to_float", "s", "S", "F",
+    "converts a string to a float. returns 0.0 if no numeric data could be parsed",
+    [](VM &, Value &s) {
         auto f = strtod(s.sval()->data(), nullptr);
         return Value(f);
-    }
-    ENDDECL1(string_to_float, "s", "S", "F",
-        "converts a string to a float. returns 0.0 if no numeric data could be parsed");
+    });
 
-    STARTDECL(tokenize) (VM &vm, Value &s, Value &delims, Value &whitespace) {
+nfr("tokenize", "s,delimiters,whitespace", "SSS", "S]",
+    "splits a string into a vector of strings, by splitting into segments upon each dividing or"
+    " terminating delimiter. Segments are stripped of leading and trailing whitespace."
+    " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and"
+    " \" \" as whitespace.",
+    [](VM &vm, Value &s, Value &delims, Value &whitespace) {
         auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
         auto ws = whitespace.sval()->strv();
         auto dl = delims.sval()->strv();
@@ -450,14 +456,11 @@ void AddBuiltins(NativeRegistry &natreg) {
             p.remove_prefix(min(p.find_first_not_of(ws), p.size()));
         }
         return Value(v);
-    }
-    ENDDECL3(tokenize, "s,delimiters,whitespace", "SSS", "S]",
-        "splits a string into a vector of strings, by splitting into segments upon each dividing or"
-        " terminating delimiter. Segments are stripped of leading and trailing whitespace."
-        " Example: \"; A ; B C; \" becomes [ \"\", \"A\", \"B C\" ] with \";\" as delimiter and"
-        " \" \" as whitespace.");
+    });
 
-    STARTDECL(unicode_to_string) (VM &vm, Value &v) {
+nfr("unicode_to_string", "us", "I]", "S",
+    "converts a vector of ints representing unicode values to a UTF-8 string.",
+    [](VM &vm, Value &v) {
         char buf[7];
         string s;
         for (intp i = 0; i < v.vval()->len; i++) {
@@ -466,11 +469,11 @@ void AddBuiltins(NativeRegistry &natreg) {
             s += buf;
         }
         return Value(vm.NewString(s));
-    }
-    ENDDECL1(unicode_to_string, "us", "I]", "S",
-        "converts a vector of ints representing unicode values to a UTF-8 string.");
+    });
 
-    STARTDECL(string_to_unicode) (VM &vm, Value &s) {
+nfr("string_to_unicode", "s", "S", "I]?",
+    "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error",
+    [](VM &vm, Value &s) {
         auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
         auto p = s.sval()->strv();
         while (!p.empty()) {
@@ -479,11 +482,12 @@ void AddBuiltins(NativeRegistry &natreg) {
             v->Push(vm, u);
         }
         return Value(v);
-    }
-    ENDDECL1(string_to_unicode, "s", "S", "I]?",
-        "converts a UTF-8 string into a vector of unicode values, or nil upon a decoding error");
+    });
 
-    STARTDECL(number_to_string) (VM &vm, Value &n, Value &b, Value &mc) {
+nfr("number_to_string", "number,base,minchars", "III", "S",
+    "converts the (unsigned version) of the input integer number to a string given the base"
+    " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).",
+    [](VM &vm, Value &n, Value &b, Value &mc) {
         if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
             vm.BuiltinError("number_to_string: values out of range");
         auto i = (uintp)n.ival();
@@ -494,34 +498,33 @@ void AddBuiltins(NativeRegistry &natreg) {
             i /= b.ival();
         }
         return Value(vm.NewString(s));
-    }
-    ENDDECL3(number_to_string, "number,base,minchars", "III", "S",
-        "converts the (unsigned version) of the input integer number to a string given the base"
-        " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).");
+    });
 
-    STARTDECL(lowercase) (VM &vm, Value &s) {
+nfr("lowercase", "s", "S", "S",
+    "converts a UTF-8 string from any case to lower case, affecting only A-Z",
+    [](VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (c >= 'A' && c <= 'Z') (char &)c += 'a' - 'A';
         }
         return Value(ns);
-    }
-    ENDDECL1(lowercase, "s", "S", "S",
-             "converts a UTF-8 string from any case to lower case, affecting only A-Z");
+    });
 
-    STARTDECL(uppercase) (VM &vm, Value &s) {
+nfr("uppercase", "s", "S", "S",
+    "converts a UTF-8 string from any case to upper case, affecting only a-z",
+    [](VM &vm, Value &s) {
         auto ns = vm.NewString(s.sval()->strv());
         for (auto &c : ns->strv()) {
             // This is unicode-safe, since all unicode chars are in bytes >= 128
             if (c >= 'a' && c <= 'z') (char &)c -= 'a' - 'A';
         }
         return Value(ns);
-    }
-    ENDDECL1(uppercase, "s", "S", "S",
-             "converts a UTF-8 string from any case to upper case, affecting only a-z");
+    });
 
-    STARTDECL(escape_string) (VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
+nfr("escape_string", "s,set,prefix,postfix", "SSSS", "S",
+    "prefixes & postfixes any occurrences or characters in set in string s",
+    [](VM &vm, Value &s, Value &set, Value &prefix, Value &postfix) {
         string out;
         for (auto p = s.sval()->strv();;) {
             auto loc = p.find_first_of(set.sval()->strv());
@@ -539,11 +542,11 @@ void AddBuiltins(NativeRegistry &natreg) {
             }
         }
         return Value(vm.NewString(out));
-    }
-    ENDDECL4(escape_string, "s,set,prefix,postfix", "SSSS", "S",
-             "prefixes & postfixes any occurrences or characters in set in string s");
+    });
 
-    STARTDECL(concat_string) (VM &vm, Value &v, Value &sep) {
+nfr("concat_string", "v,sep", "S]S", "S",
+    "concatenates all elements of the string vector, separated with sep.",
+    [](VM &vm, Value &v, Value &sep) {
         string s;
         auto sepsv = sep.sval()->strv();
         for (intp i = 0; i < v.vval()->len; i++) {
@@ -552,352 +555,371 @@ void AddBuiltins(NativeRegistry &natreg) {
             s.append(esv);
         }
         return Value(vm.NewString(s));
-    }
-    ENDDECL2(concat_string, "v,sep", "S]S", "S",
-             "concatenates all elements of the string vector, separated with sep.");
+    });
 
-    STARTDECL(repeat_string) (VM &vm, Value &s, Value &_n) {
+nfr("repeat_string", "s,n", "SI", "S",
+    "returns a string consisting of n copies of the input string.",
+    [](VM &vm, Value &s, Value &_n) {
         auto n = max(intp(0), _n.ival());
         auto len = s.sval()->len;
         auto ns = vm.NewString(len * n);
         for (intp i = 0; i < n; i++) memcpy((char *)ns->data() + i * len, s.sval()->data(), len);
-        return ns;
-    }
-    ENDDECL2(repeat_string, "s,n", "SI", "S",
-             "returns a string consisting of n copies of the input string.");
+        return Value(ns);
+    });
 
-    STARTDECL(pow) (VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); }
-    ENDDECL2(pow, "a,b", "FF", "F",
-        "a raised to the power of b");
+nfr("pow", "a,b", "FF", "F",
+    "a raised to the power of b",
+    [](VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
 
-    STARTDECL(pow) (VM &, Value &a, Value &b) {
-        return b.ival() >= 0 ? ipow<intp>(a.ival(), b.ival()) : 0;
-    }
-    ENDDECL2(pow, "a,b", "II", "I",
-             "a raised to the power of b, for integers, using exponentiation by squaring");
+nfr("pow", "a,b", "II", "I",
+    "a raised to the power of b, for integers, using exponentiation by squaring",
+    [](VM &, Value &a, Value &b) {
+        return Value(b.ival() >= 0 ? ipow<intp>(a.ival(), b.ival()) : 0);
+    });
 
-    STARTDECL(log) (VM &, Value &a) { return Value(log(a.fval())); } ENDDECL1(log, "a", "F", "F",
-        "natural logaritm of a");
+nfr("log", "a", "F", "F",
+    "natural logaritm of a",
+    [](VM &, Value &a) { return Value(log(a.fval())); });
 
-    STARTDECL(sqrt) (VM &, Value &a) { return Value(sqrt(a.fval())); } ENDDECL1(sqrt, "f", "F", "F",
-        "square root");
+nfr("sqrt", "f", "F", "F",
+    "square root",
+    [](VM &, Value &a) { return Value(sqrt(a.fval())); });
 
-    #define VECTOROPT(op, typeinfo) \
-        auto len = a.stval()->Len(vm); \
-        auto v = vm.NewStruct(len, typeinfo); \
-        for (intp i = 0; i < len; i++) { \
-            auto f = a.stval()->AtS(i); \
-            v->AtS(i) = Value(op); \
-        } \
-        return Value(v);
-    #define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
-    #define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
-    #define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
+#define VECTOROPT(op, typeinfo) \
+    auto len = a.stval()->Len(vm); \
+    auto v = vm.NewStruct(len, typeinfo); \
+    for (intp i = 0; i < len; i++) { \
+        auto f = a.stval()->AtS(i); \
+        v->AtS(i) = Value(op); \
+    } \
+    return Value(v);
+#define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
+#define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
+#define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
 
-    STARTDECL(ceiling) (VM &, Value &a) { return Value(fceil(a.fval())); }
-    ENDDECL1(ceiling, "f", "F", "I",
-        "the nearest int >= f");
-    STARTDECL(ceiling) (VM &vm, Value &a) { VECTOROPI(intp(fceil(f.fval()))); }
-    ENDDECL1(ceiling, "v", "F}", "I}",
-        "the nearest ints >= each component of v");
+nfr("ceiling", "f", "F", "I",
+    "the nearest int >= f",
+    [](VM &, Value &a) { return Value(fceil(a.fval())); });
+nfr("ceiling", "v", "F}", "I}",
+    "the nearest ints >= each component of v",
+    [](VM &vm, Value &a) { VECTOROPI(intp(fceil(f.fval()))); });
 
-    STARTDECL(floor) (VM &, Value &a) { return Value(ffloor(a.fval())); }
-    ENDDECL1(floor, "f", "F", "I",
-        "the nearest int <= f");
-    STARTDECL(floor) (VM &vm, Value &a) { VECTOROPI(ffloor(f.fval())); }
-    ENDDECL1(floor, "v", "F}", "I}",
-        "the nearest ints <= each component of v");
+nfr("floor", "f", "F", "I",
+    "the nearest int <= f",
+    [](VM &, Value &a) { return Value(ffloor(a.fval())); });
+nfr("floor", "v", "F}", "I}",
+    "the nearest ints <= each component of v",
+    [](VM &vm, Value &a) { VECTOROPI(ffloor(f.fval())); });
 
-    STARTDECL(int) (VM &, Value &a) { return Value(intp(a.fval())); }
-    ENDDECL1(int, "f", "F", "I",
-        "converts a float to an int by dropping the fraction");
-    STARTDECL(int) (VM &vm, Value &a) { VECTOROPI(intp(f.fval())); }
-    ENDDECL1(int, "v", "F}", "I}",
-        "converts a vector of floats to ints by dropping the fraction");
+nfr("int", "f", "F", "I",
+    "converts a float to an int by dropping the fraction",
+    [](VM &, Value &a) { return Value(intp(a.fval())); });
+nfr("int", "v", "F}", "I}",
+    "converts a vector of floats to ints by dropping the fraction",
+    [](VM &vm, Value &a) { VECTOROPI(intp(f.fval())); });
 
-    STARTDECL(round) (VM &, Value &a) { return Value(intp(a.fval() + 0.5f)); }
-    ENDDECL1(round, "f", "F", "I",
-        "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
-        " negative numbers");
-    STARTDECL(round) (VM &vm, Value &a) { VECTOROPI(intp(f.fval() + 0.5f)); }
-    ENDDECL1(round, "v", "F}", "I}",
-        "converts a vector of floats to the closest ints");
+nfr("round", "f", "F", "I",
+    "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
+    " negative numbers",
+    [](VM &, Value &a) { return Value(intp(a.fval() + 0.5f)); });
+nfr("round", "v", "F}", "I}",
+    "converts a vector of floats to the closest ints",
+    [](VM &vm, Value &a) { VECTOROPI(intp(f.fval() + 0.5f)); });
 
-    STARTDECL(fraction) (VM &, Value &a) { return Value(a.fval() - int(a.fval())); }
-    ENDDECL1(fraction, "f", "F", "F",
-        "returns the fractional part of a float: short for f - int(f)");
-    STARTDECL(fraction) (VM &vm, Value &a) { VECTOROP(f.fval() - int(f.fval())); }
-    ENDDECL1(fraction, "v", "F}", "F}",
-        "returns the fractional part of a vector of floats");
+nfr("fraction", "f", "F", "F",
+    "returns the fractional part of a float: short for f - int(f)",
+    [](VM &, Value &a) { return Value(a.fval() - int(a.fval())); });
+nfr("fraction", "v", "F}", "F}",
+    "returns the fractional part of a vector of floats",
+    [](VM &vm, Value &a) { VECTOROP(f.fval() - int(f.fval())); });
 
-    STARTDECL(float) (VM &, Value &a) { return Value(floatp(a.ival())); }
-    ENDDECL1(float, "i", "I", "F",
-        "converts an int to float");
-    STARTDECL(float) (VM &vm, Value &a) { VECTOROPF(floatp(f.ival())); }
-    ENDDECL1(float, "v", "I}", "F}",
-        "converts a vector of ints to floats");
+nfr("float", "i", "I", "F",
+    "converts an int to float",
+    [](VM &, Value &a) { return Value(floatp(a.ival())); });
+nfr("float", "v", "I}", "F}",
+    "converts a vector of ints to floats",
+    [](VM &vm, Value &a) { VECTOROPF(floatp(f.ival())); });
 
-    STARTDECL(sin) (VM &, Value &a) { return Value(sin(a.fval() * RAD)); }
-    ENDDECL1(sin, "angle", "F", "F",
-        "the y coordinate of the normalized vector indicated by angle (in degrees)");
-    STARTDECL(cos) (VM &, Value &a) { return Value(cos(a.fval() * RAD)); }
-    ENDDECL1(cos, "angle", "F", "F",
-        "the x coordinate of the normalized vector indicated by angle (in degrees)");
-    STARTDECL(tan) (VM &, Value &a) { return Value(tan(a.fval() * RAD)); }
-    ENDDECL1(tan, "angle", "F", "F",
-        "the tangent of an angle (in degrees)");
+nfr("sin", "angle", "F", "F",
+    "the y coordinate of the normalized vector indicated by angle (in degrees)",
+    [](VM &, Value &a) { return Value(sin(a.fval() * RAD)); });
+nfr("cos", "angle", "F", "F",
+    "the x coordinate of the normalized vector indicated by angle (in degrees)",
+    [](VM &, Value &a) { return Value(cos(a.fval() * RAD)); });
+nfr("tan", "angle", "F", "F",
+    "the tangent of an angle (in degrees)",
+    [](VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
 
-    STARTDECL(sincos) (VM &vm, Value &a) {
+nfr("sincos", "angle", "F", "F}:2",
+    "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]",
+    [](VM &vm, Value &a) {
         return ToValueF(vm, floatp2(cos(a.fval() * RAD), sin(a.fval() * RAD)));
-    }
-    ENDDECL1(sincos, "angle", "F", "F}:2",
-        "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]");
+    });
 
-    STARTDECL(arcsin) (VM &, Value &y) { return Value(asin(y.fval()) / RAD); }
-    ENDDECL1(arcsin, "y", "F", "F",
-        "the angle (in degrees) indicated by the y coordinate projected to the unit circle");
-    STARTDECL(arccos) (VM &, Value &x) { return Value(acos(x.fval()) / RAD); }
-    ENDDECL1(arccos, "x", "F", "F",
-        "the angle (in degrees) indicated by the x coordinate projected to the unit circle");
+nfr("arcsin", "y", "F", "F",
+    "the angle (in degrees) indicated by the y coordinate projected to the unit circle",
+    [](VM &, Value &y) { return Value(asin(y.fval()) / RAD); });
+nfr("arccos", "x", "F", "F",
+    "the angle (in degrees) indicated by the x coordinate projected to the unit circle",
+    [](VM &, Value &x) { return Value(acos(x.fval()) / RAD); });
 
-    STARTDECL(atan2) (VM &vm, Value &vec) {
+nfr("radians", "angle", "F", "F",
+    "converts an angle in degrees to radians",
+    [](VM &, Value &a) { return Value(a.fval() * RAD); });
+nfr("degrees", "angle", "F", "F",
+    "converts an angle in radians to degrees",
+    [](VM &, Value &a) { return Value(a.fval() / RAD); });
+
+nfr("atan2", "vec", "F}" , "F",
+    "the angle (in degrees) corresponding to a normalized 2D vector",
+    [](VM &vm, Value &vec) {
         auto v = ValueToF<3>(vm, vec); return Value(atan2(v.y, v.x) / RAD);
-    }
-    ENDDECL1(atan2, "vec", "F}" , "F",
-        "the angle (in degrees) corresponding to a normalized 2D vector");
+    });
 
-    STARTDECL(radians) (VM &, Value &a) { return Value(a.fval() * RAD); }
-    ENDDECL1(radians, "angle", "F", "F",
-        "converts an angle in degrees to radians");
-    STARTDECL(degrees) (VM &, Value &a) { return Value(a.fval() / RAD); }
-    ENDDECL1(degrees, "angle", "F", "F",
-        "converts an angle in radians to degrees");
+nfr("radians", "angle", "F", "F",
+    "converts an angle in degrees to radians",
+    [](VM &, Value &a) { return Value(a.fval() * RAD); });
+nfr("degrees", "angle", "F", "F",
+    "converts an angle in radians to degrees",
+    [](VM &, Value &a) { return Value(a.fval() / RAD); });
 
-    STARTDECL(normalize) (VM &vm, Value &vec) {
+nfr("normalize", "vec",  "F}" , "F}",
+    "returns a vector of unit length",
+    [](VM &vm, Value &vec) {
         switch (vec.stval()->Len(vm)) {
             case 2: { auto v = ValueToF<2>(vm, vec);
-                      return ToValueF(vm, v == floatp2_0 ? v : normalize(v)); }
+                return ToValueF(vm, v == floatp2_0 ? v : normalize(v)); }
             case 3: { auto v = ValueToF<3>(vm, vec);
-                      return ToValueF(vm, v == floatp3_0 ? v : normalize(v)); }
+                return ToValueF(vm, v == floatp3_0 ? v : normalize(v)); }
             case 4: { auto v = ValueToF<4>(vm, vec);
-                      return ToValueF(vm, v == floatp4_0 ? v : normalize(v)); }
+                return ToValueF(vm, v == floatp4_0 ? v : normalize(v)); }
             default: return vm.BuiltinError("normalize() only works on vectors of length 2 to 4");
         }
-    }
-    ENDDECL1(normalize, "vec",  "F}" , "F}",
-        "returns a vector of unit length");
+    });
 
-    STARTDECL(dot) (VM &vm, Value &a, Value &b) { return Value(dot(ValueToF<4>(vm, a), ValueToF<4>(vm, b))); }
-    ENDDECL2(dot,   "a,b", "F}F}", "F",
-        "the length of vector a when projected onto b (or vice versa)");
+nfr("dot", "a,b", "F}F}", "F",
+    "the length of vector a when projected onto b (or vice versa)",
+    [](VM &vm, Value &a, Value &b) { return Value(dot(ValueToF<4>(vm, a), ValueToF<4>(vm, b))); });
 
-    STARTDECL(magnitude) (VM &vm, Value &a)  { return Value(length(ValueToF<4>(vm, a))); }
-    ENDDECL1(magnitude, "v", "F}", "F",
-        "the geometric length of a vector");
+nfr("magnitude", "v", "F}", "F",
+    "the geometric length of a vector",
+    [](VM &vm, Value &a)  { return Value(length(ValueToF<4>(vm, a))); });
 
-    STARTDECL(manhattan) (VM &vm, Value &a) { return Value(manhattan(ValueToI<4>(vm, a))); }
-    ENDDECL1(manhattan, "v", "I}", "I",
-        "the manhattan distance of a vector");
+nfr("manhattan", "v", "I}", "I",
+    "the manhattan distance of a vector",
+    [](VM &vm, Value &a) { return Value(manhattan(ValueToI<4>(vm, a))); });
 
-    STARTDECL(cross) (VM &vm, Value &a, Value &b) {
+nfr("cross", "a,b", "F}:3F}:3", "F}:3",
+    "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)",
+    [](VM &vm, Value &a, Value &b) {
         return ToValueF(vm, cross(ValueToF<3>(vm, a), ValueToF<3>(vm, b)));
-    }
-    ENDDECL2(cross, "a,b", "F}:3F}:3", "F}:3",
-        "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
+    });
 
-    STARTDECL(rnd) (VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); }
-    ENDDECL1(rnd, "max", "I", "I",
-        "a random value [0..max).");
-    STARTDECL(rnd) (VM &vm, Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); }
-    ENDDECL1(rnd, "max", "I}", "I}",
-        "a random vector within the range of an input vector.");
-    STARTDECL(rnd_float) (VM &) { return Value(rnd.rnddouble()); }
-    ENDDECL0(rnd_float, "", "", "F",
-             "a random float [0..1)");
-    STARTDECL(rnd_gaussian) (VM &) { return Value(rnd.rnd_gaussian()); }
-    ENDDECL0(rnd_gaussian, "", "", "F",
-             "a random float in a gaussian distribution with mean 0 and stddev 1");
-    STARTDECL(rnd_seed) (VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); }
-    ENDDECL1(rnd_seed, "seed", "I", "",
-        "explicitly set a random seed for reproducable randomness");
+nfr("rnd", "max", "I", "I",
+    "a random value [0..max).",
+    [](VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); });
+nfr("rnd", "max", "I}", "I}",
+    "a random vector within the range of an input vector.",
+    [](VM &vm, Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); });
+nfr("rnd_float", "", "", "F",
+    "a random float [0..1)",
+    [](VM &) { return Value(rnd.rnddouble()); });
+nfr("rnd_gaussian", "", "", "F",
+    "a random float in a gaussian distribution with mean 0 and stddev 1",
+    [](VM &) { return Value(rnd.rnd_gaussian()); });
+nfr("rnd_seed", "seed", "I", "",
+    "explicitly set a random seed for reproducable randomness",
+    [](VM &, Value &seed) { rnd.seed((int)seed.ival()); return Value(); });
 
-    STARTDECL(div) (VM &, Value &a, Value &b) { return Value(floatp(a.ival()) / floatp(b.ival())); }
-    ENDDECL2(div, "a,b", "II", "F",
-        "forces two ints to be divided as floats");
+nfr("div", "a,b", "II", "F",
+    "forces two ints to be divided as floats",
+    [](VM &, Value &a, Value &b) { return Value(floatp(a.ival()) / floatp(b.ival())); });
 
-    STARTDECL(clamp) (VM &, Value &a, Value &b, Value &c) {
+nfr("clamp", "x,min,max", "III", "I",
+    "forces an integer to be in the range between min and max (inclusive)",
+    [](VM &, Value &a, Value &b, Value &c) {
         return Value(geom::clamp(a.ival(), b.ival(), c.ival()));
-    }
-    ENDDECL3(clamp, "x,min,max", "III", "I",
-        "forces an integer to be in the range between min and max (inclusive)");
+    });
 
-    STARTDECL(clamp) (VM &, Value &a, Value &b, Value &c) {
+nfr("clamp", "x,min,max", "FFF", "F",
+    "forces a float to be in the range between min and max (inclusive)",
+    [](VM &, Value &a, Value &b, Value &c) {
         return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
-    }
-    ENDDECL3(clamp, "x,min,max", "FFF", "F",
-             "forces a float to be in the range between min and max (inclusive)");
+    });
 
-    STARTDECL(clamp) (VM &vm, Value &a, Value &b, Value &c) {
+nfr("clamp", "x,min,max", "I}I}I}", "I}",
+    "forces an integer vector to be in the range between min and max (inclusive)",
+    [](VM &vm, Value &a, Value &b, Value &c) {
         return ToValueI(vm, geom::clamp(ValueToI<4>(vm, a), ValueToI<4>(vm, b), ValueToI<4>(vm, c)),
                         a.stval()->Len(vm));
-    }
-    ENDDECL3(clamp, "x,min,max", "I}I}I}", "I}",
-             "forces an integer vector to be in the range between min and max (inclusive)");
+    });
 
-    STARTDECL(clamp) (VM &vm, Value &a, Value &b, Value &c) {
+nfr("clamp", "x,min,max", "F}F}F}", "F}",
+    "forces a float vector to be in the range between min and max (inclusive)",
+    [](VM &vm, Value &a, Value &b, Value &c) {
         return ToValueF(vm, geom::clamp(ValueToF<4>(vm, a), ValueToF<4>(vm, b), ValueToF<4>(vm, c)),
                         a.stval()->Len(vm));
-    }
-    ENDDECL3(clamp, "x,min,max", "F}F}F}", "F}",
-             "forces a float vector to be in the range between min and max (inclusive)");
+    });
 
-    STARTDECL(in_range) (VM &, Value &x, Value &range, Value &bias) {
+nfr("in_range", "x,range,bias", "III?", "I",
+    "checks if an integer is >= bias and < bias + range. Bias defaults to 0.",
+    [](VM &, Value &x, Value &range, Value &bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
-    }
-    ENDDECL3(in_range, "x,range,bias", "III?", "I",
-             "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
+    });
 
-    STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
+nfr("in_range", "x,range,bias", "I}I}I}?", "I",
+    "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
+    [](VM &vm, Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueToI<3>(vm, xv);
         auto range = ValueToI<3>(vm, rangev, 1);
         auto bias  = biasv.True() ? ValueToI<3>(vm, biasv) : intp3_0;
         return Value(x >= bias && x < bias + range);
-    }
-    ENDDECL3(in_range, "x,range,bias", "I}I}I}?", "I",
-             "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.");
+    });
 
-    STARTDECL(in_range) (VM &vm, Value &xv, Value &rangev, Value &biasv) {
+nfr("in_range", "x,range,bias", "F}F}F}?", "I",
+    "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
+    [](VM &vm, Value &xv, Value &rangev, Value &biasv) {
         auto x     = ValueToF<3>(vm, xv);
         auto range = ValueToF<3>(vm, rangev, 1);
         auto bias  = biasv.True() ? ValueToF<3>(vm, biasv) : floatp3_0;
         return Value(x >= bias && x < bias + range);
-    }
-    ENDDECL3(in_range, "x,range,bias", "F}F}F}?", "I",
-        "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.");
+    });
 
-    STARTDECL(abs) (VM &, Value &a) { return Value(abs(a.ival())); } ENDDECL1(abs, "x", "I", "I",
-        "absolute value of an integer");
-    STARTDECL(abs) (VM &, Value &a) { return Value(fabs(a.fval())); } ENDDECL1(abs, "x", "F", "F",
-        "absolute value of a float");
-    STARTDECL(abs) (VM &vm, Value &a) { VECTOROP(abs(f.ival())); } ENDDECL1(abs, "x", "I}", "I}",
-        "absolute value of an int vector");
-    STARTDECL(abs) (VM &vm, Value &a) { VECTOROP(fabs(f.fval())); } ENDDECL1(abs, "x", "F}", "F}",
-        "absolute value of a float vector");
+nfr("abs", "x", "I", "I",
+    "absolute value of an integer",
+    [](VM &, Value &a) { return Value(abs(a.ival())); });
+nfr("abs", "x", "F", "F",
+    "absolute value of a float",
+    [](VM &, Value &a) { return Value(fabs(a.fval())); });
+nfr("abs", "x", "I}", "I}",
+    "absolute value of an int vector",
+    [](VM &vm, Value &a) { VECTOROP(abs(f.ival())); });
+nfr("abs", "x", "F}", "F}",
+    "absolute value of a float vector",
+    [](VM &vm, Value &a) { VECTOROP(fabs(f.fval())); });
 
-    STARTDECL(sign) (VM &, Value &a) { return Value(signum(a.ival())); } ENDDECL1(sign, "x", "I", "I",
-        "sign (-1, 0, 1) of an integer");
-    STARTDECL(sign) (VM &, Value &a) { return Value(signum(a.fval())); } ENDDECL1(sign, "x", "F", "I",
-        "sign (-1, 0, 1) of a float");
-    STARTDECL(sign) (VM &vm, Value &a) { VECTOROP(signum(f.ival())); } ENDDECL1(sign, "x", "I}", "I}",
-        "signs of an int vector");
-    STARTDECL(sign) (VM &vm, Value &a) { VECTOROPI(signum(f.fval())); } ENDDECL1(sign, "x", "F}", "I}",
-        "signs of a float vector");
+nfr("sign", "x", "I", "I",
+    "sign (-1, 0, 1) of an integer",
+    [](VM &, Value &a) { return Value(signum(a.ival())); });
+nfr("sign", "x", "F", "I",
+    "sign (-1, 0, 1) of a float",
+    [](VM &, Value &a) { return Value(signum(a.fval())); });
+nfr("sign", "x", "I}", "I}",
+    "signs of an int vector",
+    [](VM &vm, Value &a) { VECTOROP(signum(f.ival())); });
+nfr("sign", "x", "F}", "I}",
+    "signs of a float vector",
+    [](VM &vm, Value &a) { VECTOROPI(signum(f.fval())); });
 
-    // FIXME: need to guarantee this assert in typechecking
-    #define VECBINOP(name,access) \
-        auto len = x.stval()->Len(vm); \
-        if (len != y.stval()->Len(vm)) vm.BuiltinError(#name "() arguments must be equal length"); \
-        auto type = x.stval()->tti; \
-        assert(type == y.stval()->tti); \
-        auto v = vm.NewStruct(len, type); \
-        for (intp i = 0; i < len; i++) { \
-            v->AtS(i) = Value(name(x.stval()->AtS(i).access(), y.stval()->AtS(i).access())); \
-        } \
-        return Value(v);
+// FIXME: need to guarantee this assert in typechecking
+#define VECBINOP(name,access) \
+    auto len = x.stval()->Len(vm); \
+    if (len != y.stval()->Len(vm)) vm.BuiltinError(#name "() arguments must be equal length"); \
+    auto type = x.stval()->tti; \
+    assert(type == y.stval()->tti); \
+    auto v = vm.NewStruct(len, type); \
+    for (intp i = 0; i < len; i++) { \
+        v->AtS(i) = Value(name(x.stval()->AtS(i).access(), y.stval()->AtS(i).access())); \
+    } \
+    return Value(v);
 
-    #define VECSCALAROP(type, init, fun, acc, len, at) \
-        type v = init; \
-        auto l = x.acc()->len; \
-        for (intp i = 0; i < l; i++) { \
-            auto f = x.acc()->at; \
-            fun; \
-        } \
-        return Value(v);
+#define VECSCALAROP(type, init, fun, acc, len, at) \
+    type v = init; \
+    auto l = x.acc()->len; \
+    for (intp i = 0; i < l; i++) { \
+        auto f = x.acc()->at; \
+        fun; \
+    } \
+    return Value(v);
 
-    STARTDECL(min) (VM &, Value &x, Value &y) { return Value(min(x.ival(), y.ival())); }
-    ENDDECL2(min, "x,y", "II", "I",
-        "smallest of 2 integers.");
-    STARTDECL(min) (VM &, Value &x, Value &y) { return Value(min(x.fval(), y.fval())); }
-    ENDDECL2(min, "x,y", "FF", "F",
-        "smallest of 2 floats.");
-    STARTDECL(min) (VM &vm, Value &x, Value &y) { VECBINOP(min,ival) }
-    ENDDECL2(min, "x,y", "I}I}", "I}",
-        "smallest components of 2 int vectors");
-    STARTDECL(min) (VM &vm, Value &x, Value &y) { VECBINOP(min,fval) }
-    ENDDECL2(min, "x,y", "F}F}", "F}",
-        "smallest components of 2 float vectors");
-    STARTDECL(min) (VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), stval, Len(vm), AtS(i)) }
-    ENDDECL1(min, "v", "I}", "I",
-        "smallest component of a int vector.");
-    STARTDECL(min) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), stval, Len(vm), AtS(i)) }
-    ENDDECL1(min, "v", "F}", "F",
-        "smallest component of a float vector.");
-    STARTDECL(min) (VM &, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) }
-    ENDDECL1(min, "v", "I]", "I",
-        "smallest component of a int vector, or INT_MAX if length 0.");
-    STARTDECL(min) (VM &, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i)) }
-    ENDDECL1(min, "v", "F]", "F",
-        "smallest component of a float vector, or FLT_MAX if length 0.");
+nfr("min", "x,y", "II", "I",
+    "smallest of 2 integers.",
+    [](VM &, Value &x, Value &y) { return Value(min(x.ival(), y.ival())); });
+nfr("min", "x,y", "FF", "F",
+    "smallest of 2 floats.",
+    [](VM &, Value &x, Value &y) { return Value(min(x.fval(), y.fval())); });
+nfr("min", "x,y", "I}I}", "I}",
+    "smallest components of 2 int vectors",
+    [](VM &vm, Value &x, Value &y) { VECBINOP(min,ival) });
+nfr("min", "x,y", "F}F}", "F}",
+    "smallest components of 2 float vectors",
+    [](VM &vm, Value &x, Value &y) { VECBINOP(min,fval) });
+nfr("min", "v", "I}", "I",
+    "smallest component of a int vector.",
+    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), stval, Len(vm), AtS(i)) });
+nfr("min", "v", "F}", "F",
+    "smallest component of a float vector.",
+    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), stval, Len(vm), AtS(i)) });
+nfr("min", "v", "I]", "I",
+    "smallest component of a int vector, or INT_MAX if length 0.",
+    [](VM &, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) });
+nfr("min", "v", "F]", "F",
+    "smallest component of a float vector, or FLT_MAX if length 0.",
+    [](VM &, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i)) });
 
-    STARTDECL(max) (VM &, Value &x, Value &y) { return Value(max(x.ival(), y.ival())); }
-    ENDDECL2(max, "x,y", "II", "I",
-        "largest of 2 integers.");
-    STARTDECL(max) (VM &, Value &x, Value &y) { return Value(max(x.fval(), y.fval())); }
-    ENDDECL2(max, "x,y", "FF", "F",
-        "largest of 2 floats.");
-    STARTDECL(max) (VM &vm, Value &x, Value &y) { VECBINOP(max,ival) }
-    ENDDECL2(max, "x,y", "I}I}", "I}",
-        "largest components of 2 int vectors");
-    STARTDECL(max) (VM &vm, Value &x, Value &y) { VECBINOP(max,fval) }
-    ENDDECL2(max, "x,y", "F}F}", "F}",
-        "largest components of 2 float vectors");
-    STARTDECL(max) (VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), stval, Len(vm), AtS(i)) }
-    ENDDECL1(max, "v", "I}", "I",
-        "largest component of a int vector.");
-    STARTDECL(max) (VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), stval, Len(vm), AtS(i)) }
-    ENDDECL1(max, "v", "F}", "F",
-        "largest component of a float vector.");
-    STARTDECL(max) (VM &, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) }
-    ENDDECL1(max, "v", "I]", "I",
-        "largest component of a int vector, or INT_MIN if length 0.");
-    STARTDECL(max) (VM &, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i)) }
-    ENDDECL1(max, "v", "F]", "F",
-        "largest component of a float vector, or FLT_MIN if length 0.");
+nfr("max", "x,y", "II", "I",
+    "largest of 2 integers.",
+    [](VM &, Value &x, Value &y) { return Value(max(x.ival(), y.ival())); });
+nfr("max", "x,y", "FF", "F",
+    "largest of 2 floats.",
+    [](VM &, Value &x, Value &y) { return Value(max(x.fval(), y.fval())); });
+nfr("max", "x,y", "I}I}", "I}",
+    "largest components of 2 int vectors",
+    [](VM &vm, Value &x, Value &y) { VECBINOP(max,ival) });
+nfr("max", "x,y", "F}F}", "F}",
+    "largest components of 2 float vectors",
+    [](VM &vm, Value &x, Value &y) { VECBINOP(max,fval) });
+nfr("max", "v", "I}", "I",
+    "largest component of a int vector.",
+    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), stval, Len(vm), AtS(i)) });
+nfr("max", "v", "F}", "F",
+    "largest component of a float vector.",
+    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), stval, Len(vm), AtS(i)) });
+nfr("max", "v", "I]", "I",
+    "largest component of a int vector, or INT_MIN if length 0.",
+    [](VM &, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) });
+nfr("max", "v", "F]", "F",
+    "largest component of a float vector, or FLT_MIN if length 0.",
+    [](VM &, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i)) });
 
-    STARTDECL(lerp) (VM &, Value &x, Value &y, Value &f) {
+nfr("lerp", "x,y,f", "FFF", "F",
+    "linearly interpolates between x and y with factor f [0..1]",
+    [](VM &, Value &x, Value &y, Value &f) {
         return Value(mix(x.fval(), y.fval(), (float)f.fval()));
-    }
-    ENDDECL3(lerp, "x,y,f", "FFF", "F",
-        "linearly interpolates between x and y with factor f [0..1]");
+    });
 
-    STARTDECL(lerp) (VM &vm, Value &x, Value &y, Value &f) {
+nfr("lerp", "a,b,f", "F}F}F", "F}",
+    "linearly interpolates between a and b vectors with factor f [0..1]",
+    [](VM &vm, Value &x, Value &y, Value &f) {
         auto numelems = x.stval()->Len(vm);
         return ToValueF(vm, mix(ValueToF<4>(vm, x), ValueToF<4>(vm, y), (float)f.fval()), numelems);
-    }
-    ENDDECL3(lerp, "a,b,f", "F}F}F", "F}",
-        "linearly interpolates between a and b vectors with factor f [0..1]");
+    });
 
-    STARTDECL(cardinal_spline) (VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
+nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
+    "computes the position between a and b with factor f [0..1], using z (before a) and c"
+    " (after b) to form a cardinal spline (tension at 0.5 is a good default)",
+    [](VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
         return ToValueF(vm, cardinal_spline(ValueToF<3>(vm, z),
-                                           ValueToF<3>(vm, a),
-                                           ValueToF<3>(vm, b),
-                                           ValueToF<3>(vm, c), f.fval(), t.fval()));
-    }
-    ENDDECL6(cardinal_spline, "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
-        "computes the position between a and b with factor f [0..1], using z (before a) and c"
-        " (after b) to form a cardinal spline (tension at 0.5 is a good default)");
+                                            ValueToF<3>(vm, a),
+                                            ValueToF<3>(vm, b),
+                                            ValueToF<3>(vm, c), f.fval(), t.fval()));
+    });
 
-    STARTDECL(line_intersect) (VM &vm, Value &l1a, Value &l1b, Value &l2a, Value &l2b) {
+nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "F}:2?",
+    "computes the intersection point between 2 line segments, or nil if no intersection",
+    [](VM &vm, Value &l1a, Value &l1b, Value &l2a, Value &l2b) {
         floatp2 ipoint;
         auto r = line_intersect(ValueToF<2>(vm, l1a), ValueToF<2>(vm, l1b),
                                 ValueToF<2>(vm, l2a), ValueToF<2>(vm, l2b), &ipoint);
         return r ? ToValueF(vm, ipoint) : Value();
-    }
-    ENDDECL4(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "F}:2?",
-        "computes the intersection point between 2 line segments, or nil if no intersection");
+    });
 
-    STARTDECL(circles_within_range) (VM &vm, Value &dist, Value &positions, Value &radiuses,
-                                     Value &prefilter) {
+nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "I]]",
+    "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
+    " a vector of vectors of indices of the circles that are within dist of eachothers radius."
+    " pre-filter indicates objects that should appear in the inner vectors.",
+    [](VM &vm, Value &dist, Value &positions, Value &radiuses,
+                                        Value &prefilter) {
         auto len = positions.vval()->len;
         if (radiuses.vval()->len != len || prefilter.vval()->len != len)
             return vm.BuiltinError(
@@ -954,7 +976,7 @@ void AddBuiltins(NativeRegistry &natreg) {
                 }
             }
             auto vec = (LVector *)vm.NewVec(0, (int)within_range.size(),
-                                                  TYPE_ELEM_VECTOR_OF_INT);
+                                                    TYPE_ELEM_VECTOR_OF_INT);
             for (auto i : within_range) vec->Push(vm, Value(i));
             within_range.clear();
             results[i] = vec;
@@ -962,13 +984,15 @@ void AddBuiltins(NativeRegistry &natreg) {
         auto rvec = (LVector *)vm.NewVec(0, len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
         for (auto vec : results) rvec->Push(vm, Value(vec));
         return Value(rvec);
-    }
-    ENDDECL4(circles_within_range, "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "I]]",
-        "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
-        " a vector of vectors of indices of the circles that are within dist of eachothers radius."
-        " pre-filter indicates objects that should appear in the inner vectors.");
+    });
 
-    STARTDECL(wave_function_collapse) (VM &vm, Value &tilemap, Value &size) {
+nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
+    "returns a tilemap of given size modelled after the possible shapes in the input"
+    " tilemap. Tilemap should consist of chars in the 0..127 range. Second return value"
+    " the number of failed neighbor matches, this should"
+    " ideally be 0, but can be non-0 for larger maps. Simply call this function"
+    " repeatedly until it is 0",
+    [](VM &vm, Value &tilemap, Value &size) {
         auto sz = ValueToINT<2>(vm, size);
         auto rows = tilemap.vval()->len;
         vector<const char *> inmap(rows);
@@ -988,16 +1012,12 @@ void AddBuiltins(NativeRegistry &natreg) {
         if (!ok)
             vm.Error("tilemap contained too many tile ids");
         vm.Push(outstrings);
-        return num_contradictions;
-    }
-    ENDDECL2(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
-             "returns a tilemap of given size modelled after the possible shapes in the input"
-             " tilemap. Tilemap should consist of chars in the 0..127 range. Second return value"
-             " the number of failed neighbor matches, this should"
-             " ideally be 0, but can be non-0 for larger maps. Simply call this function"
-             " repeatedly until it is 0");
+        return Value(num_contradictions);
+    });
 
-    STARTDECL(resume) (VM &vm, Value &co, Value &ret) {
+nfr("resume", "coroutine,return_value", "CkAk%?", "C?",
+    "resumes execution of a coroutine, passing a value back or nil",
+    [](VM &vm, Value &co, Value &ret) {
         vm.CoResume(co.cval());
         // By the time CoResume returns, we're now back in the context of co, meaning that the
         // return value below is what is returned from yield inside co.
@@ -1006,44 +1026,44 @@ void AddBuiltins(NativeRegistry &natreg) {
         // itself (which is holding the refcount while active, hence the "k").
         // The argument to the next call to yield (or the coroutine return value) will instead
         // be captured in the dormant coroutine stack and available over return_value() below.
-    }
-    ENDDECL2(resume, "coroutine,return_value", "CkAk%?", "C?",
-        "resumes execution of a coroutine, passing a value back or nil");
+    });
 
-    STARTDECL(return_value) (VM &vm, Value &co) {
+nfr("return_value", "coroutine", "C", "A1",
+    "gets the last return value of a coroutine",
+    [](VM &vm, Value &co) {
         Value &rv = co.cval()->Current(vm);
         return rv;
-    }
-    ENDDECL1(return_value, "coroutine", "C", "A1",
-        "gets the last return value of a coroutine");
+    });
 
-    STARTDECL(active) (VM &, Value &co) {
+nfr("active", "coroutine", "C", "I",
+    "wether the given coroutine is still active",
+    [](VM &, Value &co) {
         bool active = co.cval()->active;
         return Value(active);
-    }
-    ENDDECL1(active, "coroutine", "C", "I",
-        "wether the given coroutine is still active");
+    });
 
-    STARTDECL(hash) (VM &vm, Value &a) {
+nfr("hash", "x", "B", "I",
+    "hashes a function value into an int",
+    [](VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FUNCTION);
         return Value(h);
-    }
-    ENDDECL1(hash, "x", "B", "I",
-        "hashes a function value into an int");
-    STARTDECL(hash) (VM &vm, Value &a) {
+    });
+nfr("hash", "x", "A", "I",
+    "hashes any value into an int",
+    [](VM &vm, Value &a) {
         auto h = a.ref()->Hash(vm);
         return Value(h);
-    }
-    ENDDECL1(hash, "x", "A", "I",
-        "hashes any value into an int");
+    });
 
-    STARTDECL(program_name) (VM &vm) {
+nfr("program_name", "", "", "S",
+    "returns the name of the main program (e.g. \"foo.lobster\".",
+    [](VM &vm) {
         return Value(vm.NewString(vm.GetProgramName()));
-    }
-    ENDDECL0(program_name, "", "", "S",
-        "returns the name of the main program (e.g. \"foo.lobster\".");
+    });
 
-    STARTDECL(vm_compiled_mode) (VM &) {
+nfr("vm_compiled_mode", "", "", "I",
+    "returns if the VM is running in compiled mode (Lobster -> C++).",
+    [](VM &) {
         return Value(
             #ifdef VM_COMPILED_CODE_MODE
                 true
@@ -1051,108 +1071,108 @@ void AddBuiltins(NativeRegistry &natreg) {
                 false
             #endif
         );
-    }
-    ENDDECL0(vm_compiled_mode, "", "", "I",
-        "returns if the VM is running in compiled mode (Lobster -> C++).");
+    });
 
-    STARTDECL(seconds_elapsed) (VM &vm) {
+nfr("seconds_elapsed", "", "", "F",
+    "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
+    " called",
+    [](VM &vm) {
         return Value(vm.Time());
-    }
-    ENDDECL0(seconds_elapsed, "", "", "F",
-        "seconds since program start as a float, unlike gl_time() it is calculated every time it is"
-        " called");
+    });
 
-    STARTDECL(assert) (VM &vm, Value &c) {
+nfr("assert", "condition", "A*", "Ab1",
+    "halts the program with an assertion failure if passed false. returns its input",
+    [](VM &vm, Value &c) {
         if (!c.True()) vm.BuiltinError("assertion failed");
         return c;
-    }
-    ENDDECL1(assert, "condition", "A*", "Ab1",
-        "halts the program with an assertion failure if passed false. returns its input");
+    });
 
-    STARTDECL(trace_bytecode) (VM &vm, Value &i, Value &tail) {
+nfr("trace_bytecode", "on,tail", "II", "",
+    "tracing shows each bytecode instruction as it is being executed, not very useful unless"
+    " you are trying to isolate a compiler bug",
+    [](VM &vm, Value &i, Value &tail) {
         vm.Trace(i.ival() != 0, tail.ival() != 0);
         return Value();
-    }
-    ENDDECL2(trace_bytecode, "on,tail", "II", "",
-        "tracing shows each bytecode instruction as it is being executed, not very useful unless"
-        " you are trying to isolate a compiler bug");
+    });
 
-    STARTDECL(set_max_stack_size) (VM &vm, Value &max) {
+nfr("set_max_stack_size", "max", "I", "",
+    "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1",
+    [](VM &vm, Value &max) {
         vm.SetMaxStack((int)max.ival() * 1024 * 1024 / sizeof(Value));
         return Value();
-    }
-    ENDDECL1(set_max_stack_size, "max",  "I", "",
-        "size in megabytes the stack can grow to before an overflow error occurs. defaults to 1");
+    });
 
-    STARTDECL(reference_count) (VM &, Value &x) {
+nfr("reference_count", "val", "A", "I",
+    "get the reference count of any value. for compiler debugging, mostly",
+    [](VM &, Value &x) {
         auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
         return Value(refc);
-    }
-    ENDDECL1(reference_count, "val", "A", "I",
-        "get the reference count of any value. for compiler debugging, mostly");
+    });
 
-    STARTDECL(set_console) (VM &, Value &x) {
+nfr("set_console", "on", "I", "",
+    "lets you turn on/off the console window (on Windows)",
+    [](VM &, Value &x) {
         SetConsole(x.True());
         return Value();
-    }
-    ENDDECL1(set_console, "on", "I", "",
-             "lets you turn on/off the console window (on Windows)");
+    });
 
-    STARTDECL(command_line_arguments) (VM &vm) {
+nfr("command_line_arguments", "", "", "S]",
+    "",
+    [](VM &vm) {
         return ToValueOfVectorOfStrings(vm, vm.program_args);
-    }
-    ENDDECL0(command_line_arguments, "", "", "S]",
-             "");
+    });
 
-    STARTDECL(thread_information) (VM &vm) {
+nfr("thread_information", "", "", "II",
+    "returns the number of hardware threads, and the number of cores",
+    [](VM &vm) {
         vm.Push(NumHWThreads());
-        return NumHWCores();
-    }
-    ENDDECL0(thread_information, "", "", "II",
-             "returns the number of hardware threads, and the number of cores");
+        return Value(NumHWCores());
+    });
 
-    STARTDECL(is_worker_thread) (VM &vm) {
-        return vm.is_worker;
-    }
-    ENDDECL0(is_worker_thread, "", "", "I",
-             "wether the current thread is a worker thread");
+nfr("is_worker_thread", "", "", "I",
+    "wether the current thread is a worker thread",
+    [](VM &vm) {
+        return Value(vm.is_worker);
+    });
 
-    STARTDECL(start_worker_threads) (VM &vm, Value &n) {
+nfr("start_worker_threads", "numthreads", "I", "",
+    "launch worker threads",
+    [](VM &vm, Value &n) {
         vm.StartWorkers(n.ival());
         return Value();
-    }
-    ENDDECL1(start_worker_threads, "numthreads", "I", "",
-             "launch worker threads");
+    });
 
-    STARTDECL(stop_worker_threads) (VM &vm) {
+nfr("stop_worker_threads", "", "", "",
+    "only needs to be called if you want to stop the worker threads before the end of"
+            " the program, or if you want to call start_worker_threads again. workers_alive"
+            " will become false inside the workers, which should then exit.",
+    [](VM &vm) {
         vm.TerminateWorkers();
         return Value();
-    }
-    ENDDECL0(stop_worker_threads, "", "", "",
-             "only needs to be called if you want to stop the worker threads before the end of"
-             " the program, or if you want to call start_worker_threads again. workers_alive"
-             " will become false inside the workers, which should then exit.");
+    });
 
-    STARTDECL(workers_alive) (VM &vm) {
-        return vm.tuple_space && vm.tuple_space->alive;
-    }
-    ENDDECL0(workers_alive, "", "", "I",
-             "wether workers should continue doing work. returns false after"
-             " stop_worker_threads() has been called.");
+nfr("workers_alive", "", "", "I",
+    "wether workers should continue doing work. returns false after"
+            " stop_worker_threads() has been called.",
+    [](VM &vm) {
+        return Value(vm.tuple_space && vm.tuple_space->alive);
+    });
 
-    STARTDECL(thread_write) (VM &vm, Value &s) {
+nfr("thread_write", "struct", "A", "",
+    "put this struct in the thread queue",
+    [](VM &vm, Value &s) {
         vm.WorkerWrite(s.refnil());
         return Value();
-    }
-    ENDDECL1(thread_write, "struct", "A", "",
-             "put this struct in the thread queue");
+    });
 
-    STARTDECL(thread_read) (VM &vm, Value &t) {
-        return vm.WorkerRead((type_elem_t)t.ival());
-    }
-    ENDDECL1(thread_read, "type", "T", "A1?",
-             "get a struct from the thread queue. pass the typeof struct. blocks if no such"
-             "structs available. returns struct, or nil if stop_worker_threads() was called");
-}
+nfr("thread_read", "type", "T", "A1?",
+    "get a struct from the thread queue. pass the typeof struct. blocks if no such"
+            "structs available. returns struct, or nil if stop_worker_threads() was called",
+    [](VM &vm, Value &t) {
+        return Value(vm.WorkerRead((type_elem_t)t.ival()));
+    });
+
+
+}  // AddBuiltins
 
 }

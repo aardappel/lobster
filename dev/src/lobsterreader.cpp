@@ -185,18 +185,20 @@ static Value ParseData(VM &vm, type_elem_t typeoff, string_view inp) {
     #endif
 }
 
-void AddReader(NativeRegistry &natreg) {
-    STARTDECL(parse_data) (VM &vm, Value &type, Value &ins) {
+void AddReader(NativeRegistry &nfr) {
+
+nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
+    "parses a string containing a data structure in lobster syntax (what you get if you convert"
+    " an arbitrary data structure to a string) back into a data structure. supports"
+    " int/float/string/vector and structs. structs will be forced to be compatible with their "
+    " current definitions, i.e. too many elements will be truncated, missing elements will be"
+    " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
+    " string as second return value (or nil if no error)",
+    [](VM &vm, Value &type, Value &ins) {
         Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->strv());
         return v;
-    }
-    ENDDECL2(parse_data, "typeid,stringdata", "TS", "A1?S?",
-        "parses a string containing a data structure in lobster syntax (what you get if you convert"
-        " an arbitrary data structure to a string) back into a data structure. supports"
-        " int/float/string/vector and structs. structs will be forced to be compatible with their "
-        " current definitions, i.e. too many elements will be truncated, missing elements will be"
-        " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
-        " string as second return value (or nil if no error)");
+    });
+
 }
 
 }

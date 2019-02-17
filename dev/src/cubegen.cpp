@@ -111,69 +111,71 @@ Voxels *NewWorld(const int3 &size) {
     return v;
 }
 
-void AddCubeGen(NativeRegistry &natreg) {
-    STARTDECL(cg_init) (VM &vm, Value &size) {
+void AddCubeGen(NativeRegistry &nfr) {
+
+nfr("cg_init", "size", "I]:3", "R",
+    "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
+    " returns the block",
+    [](VM &vm, Value &size) {
         auto v = NewWorld(ValueToINT<3>(vm, size));
         return Value(vm.NewResource(v, &voxel_type));
-    }
-    ENDDECL1(cg_init, "size", "I]:3", "R",
-        "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
-        " returns the block");
+    });
 
-    STARTDECL(cg_size) (VM &vm, Value &wid) {
+nfr("cg_size", "block", "R", "I]:3",
+    "returns the current block size",
+    [](VM &vm, Value &wid) {
         return Value(ToValueINT(vm, GetVoxels(vm, wid).grid.dim));
-    }
-    ENDDECL1(cg_size, "block", "R", "I]:3",
-        "returns the current block size");
+    });
 
-    STARTDECL(cg_set) (VM &vm, Value &wid, Value &pos, Value &size, Value &color) {
+nfr("cg_set", "block,pos,size,paletteindex", "RI]:3I]:3I", "",
+    "sets a range of cubes to palette index. index 0 is considered empty space."
+    "Coordinates automatically clipped to the size of the grid",
+    [](VM &vm, Value &wid, Value &pos, Value &size, Value &color) {
         auto p = ValueToINT<3>(vm, pos);
         auto sz = ValueToINT<3>(vm, size);
         GetVoxels(vm, wid).Set(p, sz, (uchar)color.ival());
         return Value();
-    }
-    ENDDECL4(cg_set, "block,pos,size,paletteindex", "RI]:3I]:3I", "",
-        "sets a range of cubes to palette index. index 0 is considered empty space."
-        "Coordinates automatically clipped to the size of the grid");
+    });
 
-    STARTDECL(cg_copy) (VM &vm, Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
+nfr("cg_copy", "block,pos,size,dest,flip", "RI]:3I]:3I]:3I]:3", "",
+    "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
+    " each component, indicating the step from dest."
+    " Coordinates automatically clipped to the size of the grid",
+    [](VM &vm, Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
         auto p = ValueToINT<3>(vm, pos);
         auto sz = ValueToINT<3>(vm, size);
         auto d = ValueToINT<3>(vm, dest);
         auto fl = ValueToINT<3>(vm, flip);
         GetVoxels(vm, wid).Copy(p, sz, d, fl);
         return Value();
-    }
-    ENDDECL5(cg_copy, "block,pos,size,dest,flip", "RI]:3I]:3I]:3I]:3", "",
-        "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
-        " each component, indicating the step from dest."
-        " Coordinates automatically clipped to the size of the grid");
+    });
 
-    STARTDECL(cg_color_to_palette) (VM &vm, Value &wid, Value &color) {
+nfr("cg_color_to_palette", "block,color", "RF]:4", "I",
+    "converts a color to a palette index. alpha < 0.5 is considered empty space."
+    " note: this is fast for the default palette, slow otherwise.",
+    [](VM &vm, Value &wid, Value &color) {
         return Value(GetVoxels(vm, wid).Color2Palette(float4(ValueToF<4>(vm, color))));
-    }
-    ENDDECL2(cg_color_to_palette, "block,color", "RF]:4", "I",
-        "converts a color to a palette index. alpha < 0.5 is considered empty space."
-        " note: this is fast for the default palette, slow otherwise.");
+    });
 
-    STARTDECL(cg_palette_to_color) (VM &vm, Value &wid, Value &pal) {
+nfr("cg_palette_to_color", "block,paletteindex", "RI", "F]:4",
+    "converts a palette index to a color. empty space (index 0) will have 0 alpha",
+    [](VM &vm, Value &wid, Value &pal) {
         auto p = uchar(pal.ival());
         return Value(ToValueFLT(vm, color2vec(GetVoxels(vm, wid).palette[p])));
-    }
-    ENDDECL2(cg_palette_to_color, "block,paletteindex", "RI", "F]:4",
-        "converts a palette index to a color. empty space (index 0) will have 0 alpha");
+    });
 
-    STARTDECL(cg_copy_palette) (VM &vm, Value &fromworld, Value &toworld) {
+nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
+    [](VM &vm, Value &fromworld, Value &toworld) {
         auto &w1 = GetVoxels(vm, fromworld);
         auto &w2 = GetVoxels(vm, toworld);
         w2.palette.clear();
         w2.palette.insert(w2.palette.end(), w1.palette.begin(), w1.palette.end());
         return Value();
-    }
-    ENDDECL2(cg_copy_palette, "fromworld,toworld", "RR", "",
-        "");
+    });
 
-    STARTDECL(cg_create_mesh) (VM &vm, Value &wid) {
+nfr("cg_create_mesh", "block", "R", "R",
+    "converts block to a mesh",
+    [](VM &vm, Value &wid) {
         auto &v = GetVoxels(vm, wid);
         static int3 neighbors[] = {
             int3(1, 0, 0), int3(-1,  0,  0),
@@ -258,11 +260,12 @@ void AddCubeGen(NativeRegistry &natreg) {
         m->surfs.push_back(new Surface(make_span(triangles), PRIM_TRIS));
         extern ResourceType mesh_type;
         return Value(vm.NewResource(m, &mesh_type));
-    }
-    ENDDECL1(cg_create_mesh, "block", "R", "R",
-        "converts block to a mesh");
+    });
 
-    STARTDECL(cg_create_3d_texture) (VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
+nfr("cg_create_3d_texture", "block,textureformat,monochrome", "RII?", "R",
+    "returns the new texture, for format, pass flags you want in addition to"
+    " 3d|single_channel|has_mips",
+    [](VM &vm, Value &wid, Value &textureflags, Value &monochrome) {
         auto &v = GetVoxels(vm, wid);
         auto mipsizes = 0;
         for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
@@ -306,12 +309,12 @@ void AddCubeGen(NativeRegistry &natreg) {
         delete[] buf;
         extern ResourceType texture_type;
         return Value(vm.NewResource(new Texture(tex), &texture_type));
-    }
-    ENDDECL3(cg_create_3d_texture, "block,textureformat,monochrome", "RII?", "R",
-        "returns the new texture, for format, pass flags you want in addition to"
-        " 3d|single_channel|has_mips");
+    });
 
-    STARTDECL(cg_load_vox) (VM &vm, Value &name) {
+nfr("cg_load_vox", "name", "S", "R?",
+    "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
+    " load",
+    [](VM &vm, Value &name) {
         auto namep = name.sval()->strv();
         string buf;
         auto l = LoadFile(namep, &buf);
@@ -350,12 +353,12 @@ void AddCubeGen(NativeRegistry &natreg) {
             p += contentlen;
         }
         return Value(vm.NewResource(voxels, &voxel_type));
-    }
-    ENDDECL1(cg_load_vox, "name", "S", "R?",
-        "loads a file in the .vox format (MagicaVoxel). returns block or nil if file failed to"
-        " load");
+    });
 
-    STARTDECL(cg_save_vox) (VM &vm, Value &wid, Value &name) {
+nfr("cg_save_vox", "block,name", "RS", "I",
+    "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
+    " this format can only save blocks < 256^3, will fail if bigger",
+    [](VM &vm, Value &wid, Value &name) {
         auto &v = GetVoxels(vm, wid);
         if (!(v.grid.dim < 256)) {
             return Value(false);
@@ -397,9 +400,6 @@ void AddCubeGen(NativeRegistry &natreg) {
         fwrite(voxels.data(), 4, voxels.size(), f);
         fclose(f);
         return Value(true);
-    }
-    ENDDECL2(cg_save_vox, "block,name", "RS", "I",
-        "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
-        " this format can only save blocks < 256^3, will fail if bigger");
+    });
 
-}
+}  // AddCubeGen

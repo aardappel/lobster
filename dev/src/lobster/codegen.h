@@ -839,7 +839,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(nargs);
     assert(nargs == nf->args.size() && nargs <= 7);
     int vmop = IL_BCALLRET0 + (int)(nargs * 3);
-    if (nf->has_body) { // graphics.h
+    if (nf->cont1) { // graphics.h
         if (!Is<DefaultVal>(lastarg)) {
             cg.Emit(vmop, nf->idx);
             cg.Emit(IL_CALLVCOND);  // FIXME: doesn't need to be COND anymore?

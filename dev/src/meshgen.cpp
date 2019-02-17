@@ -643,53 +643,57 @@ Value AddShape(ImplicitFunction *f) {
     return Value();
 }
 
-void AddMeshGen(NativeRegistry &natreg) {
-    STARTDECL(mg_sphere) (VM &, Value &rad) {
+void AddMeshGen(NativeRegistry &nfr) {
+
+nfr("mg_sphere", "radius", "F", "",
+    "a sphere",
+    [](VM &, Value &rad) {
         auto s = new IFSphere();
         s->rad = rad.fltval();
         return AddShape(s);
-    }
-    ENDDECL1(mg_sphere, "radius", "F", "",
-        "a sphere");
+    });
 
-    STARTDECL(mg_cube) (VM &vm, Value &ext) {
+nfr("mg_cube", "extents", "F}:3", "",
+    "a cube (extents are size from center)",
+    [](VM &vm, Value &ext) {
         auto c = new IFCube();
         c->extents = ValueToFLT<3>(vm, ext);
         return AddShape(c);
-    }
-    ENDDECL1(mg_cube,  "extents", "F}:3", "",
-        "a cube (extents are size from center)");
+    });
 
-    STARTDECL(mg_cylinder) (VM &, Value &radius, Value &height) {
+nfr("mg_cylinder", "radius,height", "FF", "",
+    "a unit cylinder (height is from center)",
+    [](VM &, Value &radius, Value &height) {
         auto c = new IFCylinder();
         c->radius = radius.fltval();
         c->height = height.fltval();
         return AddShape(c);
-    }
-    ENDDECL2(mg_cylinder, "radius,height", "FF", "",
-        "a unit cylinder (height is from center)");
+    });
 
-    STARTDECL(mg_tapered_cylinder) (VM &, Value &bot, Value &top, Value &height) {
+nfr("mg_tapered_cylinder", "bot,top,height", "FFF", "",
+    "a cyclinder where you specify the top and bottom radius (height is from center)",
+    [](VM &, Value &bot, Value &top, Value &height) {
         auto tc = new IFTaperedCylinder();
         tc->bot = bot.fltval();
         tc->top = top.fltval();
         tc->height = height.fltval();
         return AddShape(tc);
-    }
-    ENDDECL3(mg_tapered_cylinder, "bot,top,height", "FFF", "",
-        "a cyclinder where you specify the top and bottom radius (height is from center)");
+    });
 
-    STARTDECL(mg_superquadric) (VM &vm, Value &exps, Value &scale) {
+nfr("mg_superquadric", "exponents,scale", "F}:3F}:3", "",
+    "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
+    " squares",
+    [](VM &vm, Value &exps, Value &scale) {
         auto sq = new IFSuperQuadric();
         sq->exp = ValueToFLT<3>(vm, exps);
         sq->scale = ValueToFLT<3>(vm, scale);
         return AddShape(sq);
-    }
-    ENDDECL2(mg_superquadric, "exponents,scale", "F}:3F}:3", "",
-        "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
-        " squares");
+    });
 
-    STARTDECL(mg_superquadric_non_uniform) (VM &vm, Value &posexps, Value &negexps, Value &posscale,
+nfr("mg_superquadric_non_uniform", "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
+    "a superquadric that allows you to specify exponents and sizes in all 6 directions"
+    " independently for maximum modelling possibilities",
+    [](VM &vm, Value &posexps, Value &negexps, Value &posscale,
         Value &negscale) {
         auto sq = new IFSuperQuadricNonUniform();
         sq->exppos   = ValueToFLT<3>(vm, posexps);
@@ -698,169 +702,160 @@ void AddMeshGen(NativeRegistry &natreg) {
         sq->scaleneg = max(float3(0.01f), ValueToFLT<3>(vm, negscale));
 
         return AddShape(sq);
-    }
-    ENDDECL4(mg_superquadric_non_uniform, "posexponents,negexponents,posscale,negscale",
-        "F}:3F}:3F}:3F}:3",
-        "",
-        "a superquadric that allows you to specify exponents and sizes in all 6 directions"
-        " independently for maximum modelling possibilities");
+    });
 
-    STARTDECL(mg_supertoroid) (VM &vm, Value &r, Value &exps) {
+nfr("mg_supertoroid", "R,exponents", "FF}:3", "",
+    "a super toroid. R is the distance from the origin to the center of the ring.",
+    [](VM &vm, Value &r, Value &exps) {
         auto t = new IFSuperToroid();
         t->r = r.fltval();
         t->exp = ValueToFLT<3>(vm, exps);
         return AddShape(t);
-    }
-    ENDDECL2(mg_supertoroid, "R,exponents", "FF}:3", "",
-        "a super toroid. R is the distance from the origin to the center of the ring.");
+    });
 
-    STARTDECL(mg_landscape) (VM &, Value &zscale, Value &xyscale) {
+nfr("mg_landscape", "zscale,xyscale", "FF", "",
+    "a simplex landscape of unit size",
+    [](VM &, Value &zscale, Value &xyscale) {
         auto ls = new IFLandscape();
         ls->zscale = zscale.fltval();
         ls->xyscale = xyscale.fltval();
         return AddShape(ls);
-    } ENDDECL2(mg_landscape, "zscale,xyscale", "FF", "",
-        "a simplex landscape of unit size");
+    });
 
-    STARTDECL(mg_set_polygon_reduction) (VM &, Value &_polyreductionpasses, Value &_epsilon,
+nfr("mg_set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
+    "controls the polygon reduction algorithm. set polyreductionpasses to 0 for off, 100 for"
+    " max compression, or low values for generation speed or to keep the mesh uniform. epsilon"
+    " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
+    " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
+    " 0.95 as a good tradeoff, up to 0.99 to get more compression",
+    [](VM &, Value &_polyreductionpasses, Value &_epsilon,
                                         Value &_maxtricornerdot) {
         polyreductionpasses = _polyreductionpasses.intval();
         epsilon = _epsilon.fltval();
         maxtricornerdot = _maxtricornerdot.fltval();
         return Value();
-    }
-    ENDDECL3(mg_set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
-        "controls the polygon reduction algorithm. set polyreductionpasses to 0 for off, 100 for"
-        " max compression, or low values for generation speed or to keep the mesh uniform. epsilon"
-        " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
-        " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
-        " 0.95 as a good tradeoff, up to 0.99 to get more compression");
+    });
 
-    STARTDECL(mg_set_color_noise) (VM &, Value &_noiseintensity, Value &_noisestretch) {
+nfr("mg_set_color_noise", "noiseintensity,noisestretch", "FF", "",
+    "applies simplex noise to the colors of the model. try 0.3 for intensity."
+    " stretch scales the pattern over the model",
+    [](VM &, Value &_noiseintensity, Value &_noisestretch) {
         noisestretch = _noisestretch.fltval();
         noiseintensity = _noiseintensity.fltval();
         return Value();
-    }
-    ENDDECL2(mg_set_color_noise, "noiseintensity,noisestretch", "FF", "",
-        "applies simplex noise to the colors of the model. try 0.3 for intensity."
-        " stretch scales the pattern over the model");
+    });
 
-    STARTDECL(mg_set_vertex_randomize) (VM &, Value &factor) {
+nfr("mg_set_vertex_randomize", "factor", "F", "",
+    "randomizes all verts produced to give a more organic look and to hide the inherent messy"
+    " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
+    " likely counteract the polygon reduction algorithm",
+    [](VM &, Value &factor) {
         randomizeverts = factor.fltval();
         return Value();
-    }
-    ENDDECL1(mg_set_vertex_randomize, "factor", "F", "",
-        "randomizes all verts produced to give a more organic look and to hide the inherent messy"
-        " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
-        " likely counteract the polygon reduction algorithm");
+    });
 
-    STARTDECL(mg_set_point_mode) (VM &, Value &aspoints) {
+nfr("mg_set_point_mode", "on", "I", "",
+    "generates a point mesh instead of polygons",
+    [](VM &, Value &aspoints) {
         pointmode = aspoints.True();
         return Value();
-    }
-    ENDDECL1(mg_set_point_mode, "on", "I", "",
-             "generates a point mesh instead of polygons");
+    });
 
-    STARTDECL(mg_polygonize) (VM &vm, Value &subdiv) {
+nfr("mg_polygonize", "subdiv", "I", "R",
+    "returns a generated mesh from past mg_ commands."
+    " subdiv determines detail and number of polygons (relative to the largest dimension of the"
+    " model), try 30.. 300 depending on the subject."
+    " values much higher than that will likely make you run out of memory (or take very long).",
+    [](VM &vm, Value &subdiv) {
         auto mesh = eval_and_polygonize(root, subdiv.intval());
         MeshGenClear();
         extern ResourceType mesh_type;
         return Value(vm.NewResource(mesh, &mesh_type));
-    }
-    ENDDECL1(mg_polygonize, "subdiv", "I", "R",
-        "returns a generated mesh from past mg_ commands."
-        " subdiv determines detail and number of polygons (relative to the largest dimension of the"
-        " model), try 30.. 300 depending on the subject."
-        " values much higher than that will likely make you run out of memory (or take very long).");
+    });
 
-    STARTDECL(mg_translate) (VM &vm, Value &vec, Value &body) {
+nfr("mg_translate", "vec,body", "F}:3B?", "",
+    "translates the current coordinate system along a vector. when a body is given,"
+    " restores the previous transform afterwards",
+    [](VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, curorig));
         auto v = ValueToFLT<3>(vm, vec);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
         return body;
-    }
-    MIDDECL(mg_translate) (VM &vm) {
+    }, [](VM &vm) {
         auto tmptrans = vm.Pop();
         curorig = ValueToFLT<3>(vm, tmptrans);
         tmptrans.LTDECRT(vm);
-    }
-    ENDDECL2CONTEXIT(mg_translate, "vec,body", "F}:3B?", "",
-        "translates the current coordinate system along a vector. when a body is given,"
-        " restores the previous transform afterwards");
+    });
 
-    STARTDECL(mg_scale) (VM &vm, Value &f, Value &body) {
+nfr("mg_scale", "f,body", "FB?", "",
+    "scales the current coordinate system by the given factor."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &f, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, cursize));
         cursize *= f.fltval();
         return body;
-    }
-    MIDDECL(mg_scale) (VM &vm) {
+    }, [](VM &vm) {
         auto tmpscale = vm.Pop();
         cursize = ValueToFLT<3>(vm, tmpscale);
         tmpscale.LTDECRT(vm);
-    }
-    ENDDECL2CONTEXIT(mg_scale, "f,body", "FB?", "",
-        "scales the current coordinate system by the given factor."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(mg_scale_vec) (VM &vm, Value &vec, Value &body) {
+nfr("mg_scale_vec", "vec,body", "F}:3B?", "",
+    "non-unimformly scales the current coordinate system using individual factors per axis."
+    " when a body is given, restores the previous transform afterwards",
+    [](VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, cursize));
         auto v = ValueToFLT<3>(vm, vec);
         cursize *= v;
         return body;
-    }
-    MIDDECL(mg_scale_vec) (VM &vm) {
+    }, [](VM &vm) {
         auto tmpscale = vm.Pop();
         cursize = ValueToFLT<3>(vm, tmpscale);
         tmpscale.LTDECRT(vm);
-    }
-    ENDDECL2CONTEXIT(mg_scale_vec, "vec,body", "F}:3B?", "",
-        "non-unimformly scales the current coordinate system using individual factors per axis."
-        " when a body is given, restores the previous transform afterwards");
+    });
 
-    STARTDECL(mg_rotate) (VM &vm, Value &axis, Value &angle, Value &body) {
+nfr("mg_rotate", "axis,angle,body", "F}:3FB?", "",
+    "rotates using axis/angle. when a body is given, restores the previous transform"
+    " afterwards",
+    [](VM &vm, Value &axis, Value &angle, Value &body) {
         if (body.True()) vm.Push(Value(vm.NewString(string_view((char *)&currot,
                                                                       sizeof(float3x3)))));
         auto v = ValueToFLT<3>(vm, axis);
         currot *= float3x3(angle.fltval() * RAD, v);
         return body;
-    }
-    MIDDECL(mg_rotate) (VM &vm) {
+    }, [](VM &vm) {
         auto s = vm.Pop();
         assert(s.type == V_STRING);
         assert(s.sval()->len == sizeof(float3x3));
         currot = *(float3x3 *)s.sval()->data();
         s.LTDECRT(vm);
-    }
-    ENDDECL3CONTEXIT(mg_rotate, "axis,angle,body", "F}:3FB?", "",
-        "rotates using axis/angle. when a body is given, restores the previous transform"
-        " afterwards");
+    });
 
-    STARTDECL(mg_color) (VM &vm, Value &vec, Value &body) {
+nfr("mg_color", "color,body", "F}:4B?", "",
+    "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
+    " substracts them (carves). when a body is given, restores the previous color afterwards.",
+    [](VM &vm, Value &vec, Value &body) {
         if (body.True()) vm.Push(ToValueFLT(vm, curcol));
         curcol = ValueToFLT<4>(vm, vec);
         return body;
-    }
-    MIDDECL(mg_color) (VM &vm) {
+    }, [](VM &vm) {
         auto tmpcol = vm.Pop();
         curcol = ValueToFLT<4>(vm, tmpcol);
         tmpcol.LTDECRT(vm);
-    }
-    ENDDECL2CONTEXIT(mg_color, "color,body", "F}:4B?", "",
-        "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
-        " substracts them (carves). when a body is given, restores the previous color afterwards.");
+    });
 
-    STARTDECL(mg_smooth) (VM &vm, Value &smooth, Value &body) {
+nfr("mg_smooth", "smooth,body", "FB?", "",
+    "sets the smoothness in terms of the range of distance from the shape smoothing happens."
+    " when a body is given, restores the previous value afterwards.",
+    [](VM &vm, Value &smooth, Value &body) {
         if (body.True()) vm.Push(Value(cursmoothmink));
         cursmoothmink = smooth.fltval();
         return body;
-    }
-    MIDDECL(mg_smooth) (VM &vm) {
+    }, [](VM &vm) {
         auto smooth = vm.Pop();
         assert(smooth.type == V_FLOAT);
         cursmoothmink = smooth.fltval();
-    }
-    ENDDECL2CONTEXIT(mg_smooth, "smooth,body", "FB?", "",
-        "sets the smoothness in terms of the range of distance from the shape smoothing happens."
-        " when a body is given, restores the previous value afterwards.");
-}
+    });
+
+}  // AddMeshGen

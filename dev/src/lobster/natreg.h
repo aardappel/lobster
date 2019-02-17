@@ -273,7 +273,7 @@ struct NargVector : GenericArgs {
     vector<Narg> v;
     const char *idlist;
 
-    NargVector(int nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
+    NargVector(size_t nargs, const char *_idlist) : v(nargs), idlist(_idlist) {}
 
     size_t size() const { return v.size(); }
     TypeRef GetType(size_t i) const { return v[i].type; }
@@ -293,28 +293,45 @@ struct NargVector : GenericArgs {
     }
 };
 
+typedef Value (*builtinf0)(VM &vm);
+typedef Value (*builtinf1)(VM &vm, Value &);
+typedef Value (*builtinf2)(VM &vm, Value &, Value &);
+typedef Value (*builtinf3)(VM &vm, Value &, Value &, Value &);
+typedef Value (*builtinf4)(VM &vm, Value &, Value &, Value &, Value &);
+typedef Value (*builtinf5)(VM &vm, Value &, Value &, Value &, Value &, Value &);
+typedef Value (*builtinf6)(VM &vm, Value &, Value &, Value &, Value &, Value &, Value &);
+typedef Value (*builtinf7)(VM &vm, Value &, Value &, Value &, Value &, Value &, Value &, Value &);
+
 struct BuiltinPtr {
     union  {
-        Value (*f0)(VM &vm);
-        Value (*f1)(VM &vm, Value &);
-        Value (*f2)(VM &vm, Value &, Value &);
-        Value (*f3)(VM &vm, Value &, Value &, Value &);
-        Value (*f4)(VM &vm, Value &, Value &, Value &, Value &);
-        Value (*f5)(VM &vm, Value &, Value &, Value &, Value &, Value &);
-        Value (*f6)(VM &vm, Value &, Value &, Value &, Value &, Value &, Value &);
-        Value (*f7)(VM &vm, Value &, Value &, Value &, Value &, Value &, Value &, Value &);
+        builtinf0 f0;
+        builtinf1 f1;
+        builtinf2 f2;
+        builtinf3 f3;
+        builtinf4 f4;
+        builtinf5 f5;
+        builtinf6 f6;
+        builtinf7 f7;
     };
-};
+    size_t nargs;
 
-enum NativeCallMode { NCM_NONE, NCM_CONT_EXIT };
+    BuiltinPtr()      : f0(nullptr), nargs(0) {}
+    BuiltinPtr(builtinf0 f) : f0(f), nargs(0) {}
+    BuiltinPtr(builtinf1 f) : f1(f), nargs(1) {}
+    BuiltinPtr(builtinf2 f) : f2(f), nargs(2) {}
+    BuiltinPtr(builtinf3 f) : f3(f), nargs(3) {}
+    BuiltinPtr(builtinf4 f) : f4(f), nargs(4) {}
+    BuiltinPtr(builtinf5 f) : f5(f), nargs(5) {}
+    BuiltinPtr(builtinf6 f) : f6(f), nargs(6) {}
+    BuiltinPtr(builtinf7 f) : f7(f), nargs(7) {}
+};
 
 struct NativeFun : Named {
     BuiltinPtr fun;
 
     NargVector args, retvals;
 
-    bool has_body;
-    void (*cont1)(VM &);
+    void (*cont1)(VM &vm);
 
     const char *idlist;
     const char *help;
@@ -323,14 +340,14 @@ struct NativeFun : Named {
 
     NativeFun *overloads = nullptr, *first = this;
 
-    NativeFun(const char *_name, BuiltinPtr f, const char *_ids, const char *typeids,
-              const char *rets, int nargs, const char *_help, bool _has_body, void (*_cont1)(VM &))
-        : Named(_name, 0), fun(f), args(nargs, _ids), retvals(0, nullptr),
-          has_body(_has_body), cont1(_cont1), help(_help) {
+    NativeFun(const char *name, BuiltinPtr f, const char *ids, const char *typeids,
+              const char *rets, const char *help, void (*cont1)(VM &vm))
+        : Named(name, 0), fun(f), args(f.nargs, ids), retvals(0, nullptr),
+          cont1(cont1), help(help) {
         auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isupper(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
-        assert(TypeLen(typeids) == nargs);
-        for (int i = 0; i < nargs; i++) {
+        assert(TypeLen(typeids) == f.nargs);
+        for (int i = 0; i < f.nargs; i++) {
             args.GetName(i);  // Call this just to trigger the assert.
             args.v[i].Set(typeids, LT_BORROW);
         }
@@ -352,15 +369,30 @@ struct NativeRegistry {
 
     void NativeSubSystemStart(const char *name) { subsystems.push_back(name); }
 
-    void Register(NativeFun *nf) {
+    #define REGISTER(N) \
+    void operator()(const char *name, const char *ids, const char *typeids, \
+                  const char *rets, const char *help, builtinf##N f, \
+                  void (*cont1)(VM &vm) = nullptr) { \
+        Reg(new NativeFun(name, BuiltinPtr(f), ids, typeids, rets, help, cont1)); \
+    }
+    REGISTER(0)
+    REGISTER(1)
+    REGISTER(2)
+    REGISTER(3)
+    REGISTER(4)
+    REGISTER(5)
+    REGISTER(6)
+    REGISTER(7)
+    #undef REGISTER
+
+    void Reg(NativeFun *nf) {
         nf->idx = (int)nfuns.size();
         nf->subsystemid = (int)subsystems.size() - 1;
         auto existing = FindNative(nf->name);
         if (existing) {
             if (/*nf->args.v.size() != existing->args.v.size() ||
                 nf->retvals.v.size() != existing->retvals.v.size() || */
-                nf->subsystemid != existing->subsystemid ||
-                nf->has_body != existing->has_body) {
+                nf->subsystemid != existing->subsystemid ) {
                 // Must have similar signatures.
                 assert(0);
                 THROW_OR_ABORT("native library name clash: " + nf->name);
@@ -379,37 +411,6 @@ struct NativeRegistry {
         return it != nfunlookup.end() ? it->second : nullptr;
     }
 };
-
-#define STARTDECL(name) { struct ___##name { static Value s_##name
-
-#define MIDDECL(name) static void mid_##name
-
-#define ENDDECL_(name, ids, types, rets, help, field, ncm, cont1) }; { \
-    BuiltinPtr bp; bp.f##field = &___##name::s_##name; \
-    natreg.Register(new NativeFun(#name, bp, ids, types, rets, field, help, ncm, cont1)); } }
-
-#define ENDDECL0(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 0, NCM_NONE, nullptr)
-#define ENDDECL1(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 1, NCM_NONE, nullptr)
-#define ENDDECL2(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 2, NCM_NONE, nullptr)
-#define ENDDECL3(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 3, NCM_NONE, nullptr)
-#define ENDDECL4(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 4, NCM_NONE, nullptr)
-#define ENDDECL5(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 5, NCM_NONE, nullptr)
-#define ENDDECL6(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 6, NCM_NONE, nullptr)
-#define ENDDECL7(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 7, NCM_NONE, nullptr)
-#define ENDDECL1CONTEXIT(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 1, NCM_CONT_EXIT, &___##name::mid_##name)
-#define ENDDECL2CONTEXIT(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 2, NCM_CONT_EXIT, &___##name::mid_##name)
-#define ENDDECL3CONTEXIT(name, ids, types, rets, help) \
-    ENDDECL_(name, ids, types, rets, help, 3, NCM_CONT_EXIT, &___##name::mid_##name)
 
 }  // namespace lobster
 

@@ -25,19 +25,19 @@
 
 using namespace lobster;
 
-void RegisterCoreEngineBuiltins(NativeRegistry &natreg) {
-    lobster::RegisterCoreLanguageBuiltins(natreg);
+void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
+    lobster::RegisterCoreLanguageBuiltins(nfr);
 
-    extern void AddGraphics(NativeRegistry &natreg); lobster::RegisterBuiltin(natreg, "graphics",  AddGraphics);
-    extern void AddFont(NativeRegistry &natreg);     lobster::RegisterBuiltin(natreg, "font",      AddFont);
-    extern void AddSound(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "sound",     AddSound);
-    extern void AddPhysics(NativeRegistry &natreg);  lobster::RegisterBuiltin(natreg, "physics",   AddPhysics);
-    extern void AddNoise(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "noise",     AddNoise);
-    extern void AddMeshGen(NativeRegistry &natreg);  lobster::RegisterBuiltin(natreg, "meshgen",   AddMeshGen);
-    extern void AddCubeGen(NativeRegistry &natreg);  lobster::RegisterBuiltin(natreg, "cubegen",   AddCubeGen);
-    extern void AddVR(NativeRegistry &natreg);       lobster::RegisterBuiltin(natreg, "vr",        AddVR);
-    extern void AddSteam(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "steam",     AddSteam);
-    extern void AddIMGUI(NativeRegistry &natreg);    lobster::RegisterBuiltin(natreg, "imgui",     AddIMGUI);
+    extern void AddGraphics(NativeRegistry &nfr); lobster::RegisterBuiltin(nfr, "graphics",  AddGraphics);
+    extern void AddFont(NativeRegistry &nfr);     lobster::RegisterBuiltin(nfr, "font",      AddFont);
+    extern void AddSound(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "sound",     AddSound);
+    extern void AddPhysics(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "physics",   AddPhysics);
+    extern void AddNoise(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "noise",     AddNoise);
+    extern void AddMeshGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
+    extern void AddCubeGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
+    extern void AddVR(NativeRegistry &nfr);       lobster::RegisterBuiltin(nfr, "vr",        AddVR);
+    extern void AddSteam(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "steam",     AddSteam);
+    extern void AddIMGUI(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "imgui",     AddIMGUI);
 }
 
 void EngineSuspendIfNeeded() {
@@ -82,9 +82,9 @@ void one_frame_callback(void *arg) {
     #endif
 }
 
-void EngineRunByteCode(NativeRegistry &natreg, const char *fn, string &bytecode, const void *entry_point,
+void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, const void *entry_point,
                        const void *static_bytecode, const vector<string> &program_args) {
-    lobster::VM vm(natreg, fn ? StripDirPart(fn) : "", bytecode, entry_point,
+    lobster::VM vm(nfr, fn ? StripDirPart(fn) : "", bytecode, entry_point,
                    static_bytecode, program_args);
     #ifdef USE_EXCEPTION_HANDLING
     try
@@ -132,13 +132,13 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         #endif
     {
         InitPlatform ("../../lobster/", "", false, SDLLoadFile);  // FIXME
-        NativeRegistry natreg;
-        RegisterCoreEngineBuiltins(natreg);
+        NativeRegistry nfr;
+        RegisterCoreEngineBuiltins(nfr);
 
         string empty;
         vector<string> args;
         for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        EngineRunByteCode(natreg, argv[0], empty, entry_point, bytecodefb, args);
+        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, args);
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

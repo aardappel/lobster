@@ -52,9 +52,9 @@ map<pair<int, int>, size_t> instruction_combinations;
 int last_instruction_opc = -1;
 #endif
 
-VM::VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
+VM::VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args)
-      : natreg(natreg), maxstacksize(DEFMAXSTACKSIZE),
+      : nfr(nfr), maxstacksize(DEFMAXSTACKSIZE),
         bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
         compiled_code_ip(entry_point), compiled_code_bc(static_bytecode), program_args(args) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
@@ -775,7 +775,7 @@ void VM::EvalProgramInner() {
                     if (trace_ring_idx == trace_size) trace_ring_idx = 0;
                     auto &ss = trace_output[trace_ring_idx++];
                     ss.str(string());
-                    DisAsmIns(natreg, ss, ip, codestart, typetable, bcf);
+                    DisAsmIns(nfr, ss, ip, codestart, typetable, bcf);
                     ss << " [" << (sp + 1) << "] -";
                     #if RTT_ENABLED
                     #if DELETE_DELAY
@@ -823,7 +823,7 @@ void VM::EvalProgramInner() {
 
 #ifndef VM_INS_SWITCH
     // For loop and function end here.
-    } 
+    }
 }
     #define VM_DEF_INS(N) VM_INS_RET VM::F_##N(VM_OP_ARGS)
     #define VM_DEF_CAL(N) VM_INS_RET VM::F_##N(VM_OP_ARGS_CALL)
@@ -1002,7 +1002,7 @@ VM_DEF_INS(EXIT) {
 }
 
 VM_DEF_INS(CONT1) {
-    auto nf = natreg.nfuns[*ip++];
+    auto nf = nfr.nfuns[*ip++];
     nf->cont1(*this);
     VM_RET;
 }
@@ -1060,7 +1060,7 @@ VM_DEF_INS(FORLOOPI) {
 
 #define BCALLOPH(PRE,N,DECLS,ARGS,RETOP) VM_DEF_INS(BCALL##PRE##N) { \
     BCallProf(); \
-    auto nf = natreg.nfuns[*ip++]; \
+    auto nf = nfr.nfuns[*ip++]; \
     DECLS; \
     Value v = nf->fun.f##N ARGS; \
     RETOP; \
@@ -1270,7 +1270,7 @@ VM_DEF_INS(LOGNOTREF) {
     Value a = POP();
     bool b = a.True();
     PUSH(!b);
-    VM_RET; 
+    VM_RET;
 }
 
 #define BITOP(op) { GETARGS(); PUSH(a.ival() op b.ival()); VM_RET; }
@@ -1606,7 +1606,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
         // values.
-        if (!nf->has_body) {
+        if (!nf->cont1) {
             for (size_t i = 0; i < nf->retvals.v.size(); i++) {
                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                 auto u = nf->retvals.v[i].type->t;
@@ -1654,10 +1654,10 @@ void VM::StartWorkers(size_t numthreads) {
     for (size_t i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
-        // We share natreg and programname for now since they're fully read-only.
+        // We share nfr and programname for now since they're fully read-only.
         // FIXME: have to copy this even though it is read-only.
         auto bc = bytecode_buffer;
-        auto wvm = new VM(natreg, programname, bc, compiled_code_ip, compiled_code_bc,
+        auto wvm = new VM(nfr, programname, bc, compiled_code_ip, compiled_code_bc,
                           vector<string>());
         wvm->is_worker = true;
         wvm->tuple_space = tuple_space;

@@ -653,7 +653,7 @@ struct TupleSpace {
 struct VM {
     SlabAlloc pool;
 
-    NativeRegistry &natreg;
+    NativeRegistry &nfr;
 
     Value *stack = nullptr;
     int stacksize = 0;
@@ -753,7 +753,7 @@ struct VM {
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
-    VM(NativeRegistry &natreg, string_view _pn, string &_bytecode_buffer, const void *entry_point,
+    VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
        const void *static_bytecode, const vector<string> &args);
     ~VM();
 

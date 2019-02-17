@@ -127,46 +127,47 @@ Renderable &GetRenderable(VM &vm, Value &id) {
 
 extern int GetSampler(VM &vm, Value &i);  // from graphics
 
-void AddPhysics(NativeRegistry &natreg) {
-    STARTDECL(ph_initialize)(VM & vm, Value & gravity) {
+void AddPhysics(NativeRegistry &nfr) {
+
+nfr("ph_initialize", "gravityvector", "F}:2", "",
+    "initializes or resets the physical world, gravity typically [0, -10].",
+    [](VM &vm, Value &gravity) {
         InitPhysics(ValueToFLT<2>(vm, gravity));
         return Value();
-    }
-    ENDDECL1(ph_initialize, "gravityvector", "F}:2", "",
-             "initializes or resets the physical world, gravity typically [0, -10].");
+    });
 
-    STARTDECL(ph_create_box)
-    (VM & vm, Value & position, Value & size, Value & offset, Value & rot, Value & other_id) {
+nfr("ph_create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R?", "R",
+    "creates a physical box shape in the world at position, with size the half-extends around"
+    " the center, offset from the center if needed, at a particular rotation (in degrees)."
+    " attachto is a previous physical object to attach this one to, to become a combined"
+    " physical body.",
+    [](VM &vm, Value &position, Value &size, Value &offset, Value &rot, Value &other_id) {
         auto &body = GetBody(vm, other_id, position);
         auto sz = ValueToFLT<2>(vm, size);
         auto r = rot.fltval();
         b2PolygonShape shape;
         shape.SetAsBox(sz.x, sz.y, OptionalOffset(vm, offset), r * RAD);
         return CreateFixture(vm, body, shape);
-    }
-    ENDDECL5(
-        ph_create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R?", "R",
-        "creates a physical box shape in the world at position, with size the half-extends around"
-        " the center, offset from the center if needed, at a particular rotation (in degrees)."
-        " attachto is a previous physical object to attach this one to, to become a combined"
-        " physical body.");
+    });
 
-    STARTDECL(ph_create_circle)
-    (VM & vm, Value & position, Value & radius, Value & offset, Value & other_id) {
+nfr("ph_create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R?", "R",
+    "creates a physical circle shape in the world at position, with the given radius, offset"
+    " from the center if needed. attachto is a previous physical object to attach this one to,"
+    " to become a combined physical body.",
+    [](VM &vm, Value &position, Value &radius, Value &offset, Value &other_id) {
         auto &body = GetBody(vm, other_id, position);
         b2CircleShape shape;
         auto off = OptionalOffset(vm, offset);
         shape.m_p.Set(off.x, off.y);
         shape.m_radius = radius.fltval();
         return CreateFixture(vm, body, shape);
-    }
-    ENDDECL4(
-        ph_create_circle, "position,radius,offset,attachto", "F}:2FF}:2?R?", "R",
-        "creates a physical circle shape in the world at position, with the given radius, offset"
-        " from the center if needed. attachto is a previous physical object to attach this one to,"
-        " to become a combined physical body.");
+    });
 
-    STARTDECL(ph_create_polygon)(VM & vm, Value & position, Value & vertices, Value & other_id) {
+nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R?", "R",
+    "creates a polygon circle shape in the world at position, with the given list of vertices."
+    " attachto is a previous physical object to attach this one to, to become a combined"
+    " physical body.",
+    [](VM &vm, Value &position, Value &vertices, Value &other_id) {
         auto &body = GetBody(vm, other_id, position);
         b2PolygonShape shape;
         auto verts = new b2Vec2[vertices.vval()->len];
@@ -177,57 +178,55 @@ void AddPhysics(NativeRegistry &natreg) {
         shape.Set(verts, (int)vertices.vval()->len);
         delete[] verts;
         return CreateFixture(vm, body, shape);
-    }
-    ENDDECL3(
-        ph_create_polygon, "position,vertices,attachto", "F}:2F}:2]R?", "R",
-        "creates a polygon circle shape in the world at position, with the given list of vertices."
-        " attachto is a previous physical object to attach this one to, to become a combined"
-        " physical body.");
+    });
 
-    STARTDECL(ph_dynamic)(VM & vm, Value & fixture_id, Value & on) {
+nfr("ph_dynamic", "shape,on", "RI", "",
+    "makes a shape dynamic (on = true) or not.",
+    [](VM &vm, Value &fixture_id, Value &on) {
         CheckPhysics();
         GetObject(vm, fixture_id)
             .fixture->GetBody()
             ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
         return Value();
-    }
-    ENDDECL2(ph_dynamic, "shape,on", "RI", "", "makes a shape dynamic (on = true) or not.");
+    });
 
-    STARTDECL(ph_set_color)(VM & vm, Value & fixture_id, Value & color) {
+nfr("ph_set_color", "id,color", "R?F}:4", "",
+    "sets a shape (or nil for particles) to be rendered with a particular color.",
+    [](VM &vm, Value &fixture_id, Value &color) {
         auto &r = GetRenderable(vm, fixture_id);
         auto c = ValueToFLT<4>(vm, color);
         r.color = c;
         return Value();
-    }
-    ENDDECL2(ph_set_color, "id,color", "R?F}:4", "",
-             "sets a shape (or nil for particles) to be rendered with a particular color.");
+    });
 
-    STARTDECL(ph_set_shader)(VM & vm, Value & fixture_id, Value & shader) {
+nfr("ph_set_shader", "id,shadername", "R?S", "",
+    "sets a shape (or nil for particles) to be rendered with a particular shader.",
+    [](VM &vm, Value &fixture_id, Value &shader) {
         auto &r = GetRenderable(vm, fixture_id);
         auto sh = LookupShader(shader.sval()->strv());
         if (sh) r.sh = sh;
         return Value();
-    }
-    ENDDECL2(ph_set_shader, "id,shadername", "R?S", "",
-             "sets a shape (or nil for particles) to be rendered with a particular shader.");
+    });
 
-    STARTDECL(ph_set_texture)(VM & vm, Value & fixture_id, Value & tex, Value & tex_unit) {
+nfr("ph_set_texture", "id,tex,texunit", "R?RI?", "",
+    "sets a shape (or nil for particles) to be rendered with a particular texture"
+    " (assigned to a texture unit, default 0).",
+    [](VM &vm, Value &fixture_id, Value &tex, Value &tex_unit) {
         auto &r = GetRenderable(vm, fixture_id);
         extern Texture GetTexture(VM & vm, Value & res);
         r.Get(GetSampler(vm, tex_unit)) = GetTexture(vm, tex);
         return Value();
-    }
-    ENDDECL3(ph_set_texture, "id,tex,texunit", "R?RI?", "",
-             "sets a shape (or nil for particles) to be rendered with a particular texture"
-             " (assigned to a texture unit, default 0).");
+    });
 
-    STARTDECL(ph_get_position)(VM & vm, Value & fixture_id) {
+nfr("ph_get_position", "id", "R", "F}:2",
+    "gets a shape's position.",
+    [](VM & vm, Value & fixture_id) {
         return Value(ToValueFLT(vm, GetObject(vm, fixture_id).Pos()));
-    }
-    ENDDECL1(ph_get_position, "id", "R", "F}:2", "gets a shape's position.");
+    });
 
-    STARTDECL(ph_create_particle)
-    (VM & vm, Value & position, Value & velocity, Value & color, Value & type) {
+nfr("ph_create_particle", "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
+    "creates an individual particle. For flags, see include/physics.lobster",
+    [](VM &vm, Value &position, Value &velocity, Value &color, Value &type) {
         CheckParticles();
         b2ParticleDef pd;
         pd.flags = type.intval();
@@ -236,12 +235,11 @@ void AddPhysics(NativeRegistry &natreg) {
         pd.position = ValueDecToB2(vm, position);
         pd.velocity = ValueDecToB2(vm, velocity);
         return Value(particlesystem->CreateParticle(pd));
-    }
-    ENDDECL4(ph_create_particle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
-             "creates an individual particle. For flags, see include/physics.lobster");
+    });
 
-    STARTDECL(ph_create_particle_circle)
-    (VM & vm, Value & position, Value & radius, Value & color, Value & type) {
+nfr("ph_create_particle_circle", "position,radius,color,flags", "F}:2FF}:4I?", "",
+    "creates a circle filled with particles. For flags, see include/physics.lobster",
+    [](VM &vm, Value &position, Value &radius, Value &color, Value &type) {
         CheckParticles();
         b2ParticleGroupDef pgd;
         b2CircleShape shape;
@@ -253,18 +251,20 @@ void AddPhysics(NativeRegistry &natreg) {
         pgd.color.Set(b2Color(c.x, c.y, c.z));
         particlesystem->CreateParticleGroup(pgd);
         return Value();
-    }
-    ENDDECL4(ph_create_particle_circle, "position,radius,color,flags", "F}:2FF}:4I?", "",
-             "creates a circle filled with particles. For flags, see include/physics.lobster");
+    });
 
-    STARTDECL(ph_initialize_particles)(VM &, Value & size) {
+nfr("ph_initialize_particles", "radius", "F", "",
+    "initializes the particle system with a given particle radius.",
+    [](VM &, Value &size) {
         CheckParticles(size.fltval());
         return Value();
-    }
-    ENDDECL1(ph_initialize_particles, "radius", "F", "",
-             "initializes the particle system with a given particle radius.");
+    });
 
-    STARTDECL(ph_step)(VM &, Value & delta, Value & viter, Value & piter) {
+nfr("ph_step", "seconds,viter,piter", "FII", "",
+    "simulates the physical world for the given period (try: gl_delta_time()). You can specify"
+    " the amount of velocity/position iterations per step, more means more accurate but also"
+    " more expensive computationally (try 8 and 3).",
+    [](VM &, Value &delta, Value &viter, Value &piter) {
         CheckPhysics();
         world->Step(min(delta.fltval(), 0.1f), viter.intval(), piter.intval());
         if (particlesystem) {
@@ -283,14 +283,12 @@ void AddPhysics(NativeRegistry &natreg) {
             }
         }
         return Value();
-    }
-    ENDDECL3(
-        ph_step, "seconds,viter,piter", "FII", "",
-        "simulates the physical world for the given period (try: gl_delta_time()). You can specify"
-        " the amount of velocity/position iterations per step, more means more accurate but also"
-        " more expensive computationally (try 8 and 3).");
+    });
 
-    STARTDECL(ph_particle_contacts)(VM & vm, Value & id) {
+nfr("ph_particle_contacts", "id", "R", "I]",
+    "gets the particle indices that are currently contacting a giving physics object."
+    " Call after step(). Indices may be invalid after next step().",
+    [](VM &vm, Value &id) {
         CheckPhysics();
         auto &po = GetObject(vm, id);
         if (!po.particle_contacts) po.particle_contacts = new vector<int>();
@@ -298,12 +296,12 @@ void AddPhysics(NativeRegistry &natreg) {
         auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
         for (int i = 0; i < numelems; i++) v->At(i) = Value((*po.particle_contacts)[i]);
         return Value(v);
-    }
-    ENDDECL1(ph_particle_contacts, "id", "R", "I]",
-             "gets the particle indices that are currently contacting a giving physics object."
-             " Call after step(). Indices may be invalid after next step().");
+    });
 
-    STARTDECL(ph_raycast)(VM & vm, Value & p1, Value & p2, Value & n) {
+nfr("ph_raycast", "p1,p2,n", "F}:2F}:2I", "I]",
+    "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
+    " not including particles that overlap p1.",
+    [](VM &vm, Value &p1, Value &p2, Value &n) {
         CheckPhysics();
         auto p1v = ValueDecToB2(vm, p1);
         auto p2v = ValueDecToB2(vm, p2);
@@ -324,28 +322,28 @@ void AddPhysics(NativeRegistry &natreg) {
         } cb(v, vm);
         particlesystem->RayCast(&cb, p1v, p2v);
         return Value(v);
-    }
-    ENDDECL3(ph_raycast, "p1,p2,n", "F}:2F}:2I", "I]",
-             "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
-             " not including particles that overlap p1.");
+    });
 
-    STARTDECL(ph_delete_particle)(VM &, Value & i) {
+nfr("ph_delete_particle", "i", "I", "",
+    "deletes given particle. Deleting particles causes indices to be invalidated at next"
+    " step().",
+    [](VM &, Value &i) {
         CheckPhysics();
         particlesystem->DestroyParticle(i.intval());
         return Value();
-    }
-    ENDDECL1(ph_delete_particle, "i", "I", "",
-             "deletes given particle. Deleting particles causes indices to be invalidated at next"
-             " step().");
+    });
 
-    STARTDECL(ph_getparticle_position)(VM & vm, Value & i) {
+nfr("ph_getparticle_position", "i", "I", "F}:2",
+    "gets a particle's position.",
+    [](VM &vm, Value &i) {
         CheckPhysics();
         auto pos = B2ToFloat2(particlesystem->GetPositionBuffer()[i.ival()]);
         return Value(ToValueFLT(vm, pos));
-    }
-    ENDDECL1(ph_getparticle_position, "i", "I", "F}:2", "gets a particle's position.");
+    });
 
-    STARTDECL(ph_render)(VM &) {
+nfr("ph_render", "", "", "",
+    "renders all rigid body objects.",
+    [](VM &) {
         CheckPhysics();
         auto oldobject2view = otransforms.object2view;
         auto oldcolor = curcolor;
@@ -384,10 +382,11 @@ void AddPhysics(NativeRegistry &natreg) {
         otransforms.object2view = oldobject2view;
         curcolor = oldcolor;
         return Value();
-    }
-    ENDDECL0(ph_render, "", "", "", "renders all rigid body objects.");
+    });
 
-    STARTDECL(ph_render_particles)(VM &, Value & particlescale) {
+nfr("ph_render_particles", "scale", "F", "",
+    "render all particles, with the given scale.",
+    [](VM &, Value &particlescale) {
         CheckPhysics();
         if (!particlesystem) return Value();
         // LOG_DEBUG("rendering particles: ", particlesystem->GetParticleCount());
@@ -399,6 +398,6 @@ void AddPhysics(NativeRegistry &natreg) {
         RenderArraySlow(PRIM_POINT, make_span(verts, particlesystem->GetParticleCount()), "pC",
                         span<int>(), make_span(colors, particlesystem->GetParticleCount()));
         return Value();
-    }
-    ENDDECL1(ph_render_particles, "scale", "F", "", "render all particles, with the given scale.");
-}
+    });
+
+}  // AddPhysics

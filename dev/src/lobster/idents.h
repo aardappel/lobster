@@ -96,7 +96,7 @@ struct Field {
 struct FieldVector : GenericArgs {
     vector<Field> v;
 
-    FieldVector(int nargs) : v(nargs) {}
+    FieldVector(size_t nargs) : v(nargs) {}
 
     size_t size() const { return v.size(); }
     TypeRef GetType(size_t i) const { return v[i].type; }
@@ -174,7 +174,7 @@ struct Arg : Typed {
 struct ArgVector : GenericArgs {
     vector<Arg> v;
 
-    ArgVector(int nargs) : v(nargs) {}
+    ArgVector(size_t nargs) : v(nargs) {}
 
     size_t size() const { return v.size(); }
     TypeRef GetType(size_t i) const { return v[i].type; }
