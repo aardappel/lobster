@@ -39,8 +39,8 @@ while gl_frame() and gl_button("escape") != 1:
 
         tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
 
-        struct enemy { pos:xy_f, hp:int }
-        struct bullet { pos:xy_f, dir:xy_f }
+        class enemy { pos:xy_f, hp:int }
+        class bullet { pos:xy_f, dir:xy_f }
 
         enemies ?= []
         bullets ?= []

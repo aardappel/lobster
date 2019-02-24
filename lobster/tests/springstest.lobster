@@ -7,8 +7,8 @@ run_test("springs"):
 
     rnd_seed(0)
 
-    value triangle { verts:[xy_f], neighbors:[int], used:int }
-    struct node { t1:triangle, t2:triangle }
+    struct triangle { verts:[xy_f], neighbors:[int], used:int }
+    class node { t1:triangle, t2:triangle }
 
     verts := []::xy_f
     edges := []::[int]
@@ -34,7 +34,7 @@ run_test("springs"):
     forxy(wsize) p:
         verts.push(float(p) + xy_rnd() - float(wsize) / 2.0)
     while(wiggleverts() > 1): nil
-    value pedge { i1:int, i2:int, dist:float }
+    struct pedge { i1:int, i2:int, dist:float }
     pedges := []
     for(verts) (v, i):
         for(verts) (w, j):

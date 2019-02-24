@@ -5,17 +5,17 @@
 
 // vector types: generally for float or int elements, but useful for other types as well.
 
-value xy<T> { x:T, y:T }
-value xyz : xy { z:T }
-value xyzw : xyz { w:T }
+struct xy<T> { x:T, y:T }
+struct xyz : xy { z:T }
+struct xyzw : xyz { w:T }
 
 // Specialized type names:
 
-value xy_f = xy<float>
-value xy_i = xy<int>
+struct xy_f = xy<float>
+struct xy_i = xy<int>
 
-value xyz_f = xyz<float>
-value xyz_i = xyz<int>
+struct xyz_f = xyz<float>
+struct xyz_i = xyz<int>
 
-value xyzw_f = xyzw<float>
-value xyzw_i = xyzw<int>
+struct xyzw_f = xyzw<float>
+struct xyzw_i = xyzw<int>

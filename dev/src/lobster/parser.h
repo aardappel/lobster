@@ -69,7 +69,7 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         auto b = list->children.back();
-        if (Is<StructRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
+        if (Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) list->Add(new IntConstant(lex, 0));
             else Error("last expression in list can\'t be a definition");
         }
@@ -82,8 +82,8 @@ struct Parser {
         ResolveForwardFunctionCalls();
         list->children.erase(remove_if(list->children.begin(), list->children.end(),
                                        [&](auto def) {
-            if (auto sr = Is<StructRef>(def)) {
-                st.UnregisterStruct(sr->st, lex);
+            if (auto sr = Is<UDTRef>(def)) {
+                st.UnregisterStruct(sr->udt, lex);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.UnregisterFun(f);
@@ -220,10 +220,10 @@ struct Parser {
                 }
                 break;
             }
-            case T_VALUE:
+            case T_STRUCT:
                 ParseTypeDecl(true,  isprivate, list);
                 break;
-            case T_STRUCT:
+            case T_CLASS:
                 ParseTypeDecl(false, isprivate, list);
                 break;
             case T_FUN: {
@@ -279,7 +279,7 @@ struct Parser {
     void ParseTypeDecl(bool isvalue, bool isprivate, List *parent_list) {
         lex.Next();
         auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
-        Struct *struc = &st.StructDecl(sname, lex);
+        UDT *udt = &st.StructDecl(sname, lex);
         auto parse_sup = [&] () {
             ExpectId();
             return &st.StructUse(lastid, lex);
@@ -288,12 +288,12 @@ struct Parser {
             int i = 0;
             if (IsNext(T_LT)) {
                 for (;;) {
-                    if (struc->generics.empty()) Error("too many type specializers");
-                    struc->generics.erase(struc->generics.begin());
+                    if (udt->generics.empty()) Error("too many type specializers");
+                    udt->generics.erase(udt->generics.begin());
                     TypeRef type;
                     ParseType(type, false);
                     auto def = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                    for (auto &field : struc->fields.v) {
+                    for (auto &field : udt->fields.v) {
                         if (field.genericref == i) {
                             field.type = type;
                             // We don't reset genericref here, because its used to know which
@@ -318,40 +318,40 @@ struct Parser {
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
             auto sup = parse_sup();
-            struc = sup->CloneInto(struc);
-            struc->idx = (int)st.structtable.size() - 1;
-            struc->name = sname;
+            udt = sup->CloneInto(udt);
+            udt->idx = (int)st.udttable.size() - 1;
+            udt->name = sname;
             if (!parse_specializers())
                 Error("no specialization types specified");
             if (isvalue != sup->readonly)
                 Error("specialization must use same struct/value keyword");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
-            if (struc->superclass) {
+            if (udt->superclass) {
                 // This points to a generic version of the superclass of this class.
                 // See if we can find a matching specialization instead.
-                auto sti = struc->superclass->next;
+                auto sti = udt->superclass->next;
                 for (; sti; sti = sti->next) {
                     for (size_t i = 0; i < sti->fields.size(); i++)
-                        if (sti->fields.v[i].type != struc->fields.v[i].type)
+                        if (sti->fields.v[i].type != udt->fields.v[i].type)
                             goto fail;
                     goto done;
                     fail:;
                 }
                 done:
-                struc->superclass = sti;  // Either a match or nullptr.
+                udt->superclass = sti;  // Either a match or nullptr.
             }
         } else if (Either(T_COLON, T_LEFTCURLY, T_LT)) {
             // A regular struct declaration
-            struc->readonly = isvalue;
-            struc->isprivate = isprivate;
+            udt->readonly = isvalue;
+            udt->isprivate = isprivate;
             if (IsNext(T_LT)) {
                 for (;;) {
                     auto id = ExpectId();
-                    for (auto &g : struc->generics)
+                    for (auto &g : udt->generics)
                         if (g.name == id)
                             Error("re-declaration of generic type");
-                    struc->generics.push_back({ id });
+                    udt->generics.push_back({ id });
                     if (IsNext(T_GT)) break;
                     Expect(T_COMMA);
                 }
@@ -359,10 +359,10 @@ struct Parser {
             if (IsNext(T_COLON) && lex.token != T_INDENT) {
                 auto sup = parse_sup();
                 if (sup) {
-                    struc->superclass = sup;
-                    struc->generics = sup->generics;
+                    udt->superclass = sup;
+                    udt->generics = sup->generics;
                     for (auto &fld : sup->fields.v) {
-                        struc->fields.v.push_back(fld);
+                        udt->fields.v.push_back(fld);
                     }
                 }
                 parse_specializers();
@@ -372,7 +372,7 @@ struct Parser {
             ParseIndentedorVector([&] () {
                 if (IsNext(T_FUN)) {
                     fieldsdone = true;
-                    parent_list->Add(ParseNamedFunctionDefinition(false, struc));
+                    parent_list->Add(ParseNamedFunctionDefinition(false, udt));
                 } else {
                     ExpectId();
                     if (fieldsdone) Error("fields must be declared before methods");
@@ -380,17 +380,17 @@ struct Parser {
                     TypeRef type = type_any;
                     int genericref = -1;
                     if (IsNext(T_COLON)) {
-                        genericref = ParseType(type, false, struc);
+                        genericref = ParseType(type, false, udt);
                     }
                     Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                    struc->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
+                    udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
                 }
             }, T_LEFTCURLY, T_RIGHTCURLY);
         } else {
             // A pre-declaration.
-            struc->predeclaration = true;
+            udt->predeclaration = true;
         }
-        parent_list->Add(new StructRef(lex, struc));
+        parent_list->Add(new UDTRef(lex, udt));
     }
 
     Node *ParseSingleVarDecl(bool isprivate, bool constant, bool logvar) {
@@ -434,7 +434,7 @@ struct Parser {
         return nullptr;
     }
 
-    Node *ParseNamedFunctionDefinition(bool isprivate, Struct *self) {
+    Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
         // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
         // current namespace (which is same as !self).
         auto idname = st.MaybeNameSpace(ExpectId(), !isprivate && !self);
@@ -459,7 +459,7 @@ struct Parser {
     Node *ParseFunction(string_view *name,
                         bool isprivate, bool parens, bool parseargs,
                         string_view context,
-                        bool expfunval = false, bool parent_noparens = false, Struct *self = nullptr) {
+                        bool expfunval = false, bool parent_noparens = false, UDT *self = nullptr) {
         auto sf = st.ScopeStart();
         if (parens) Expect(T_LEFTPAREN);
         size_t nargs = 0;
@@ -554,7 +554,7 @@ struct Parser {
         return new FunRef(lex, sf);
     }
 
-    int ParseType(TypeRef &dest, bool withtype, Struct *fieldrefstruct = nullptr,
+    int ParseType(TypeRef &dest, bool withtype, UDT *fieldrefstruct = nullptr,
                   SubFunction *sfreturntype = nullptr, Arg *funarg = nullptr) {
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
@@ -581,8 +581,8 @@ struct Parser {
                 if (f && f->istype) {
                     dest = &f->subf->thistype;
                 } else {
-                    auto &struc = st.StructUse(lex.sattr, lex);
-                    dest = &struc.thistype;
+                    auto &udt = st.StructUse(lex.sattr, lex);
+                    dest = &udt.thistype;
                 }
                 lex.Next();
                 break;
@@ -610,7 +610,7 @@ struct Parser {
             if (dest->Numeric()) Error("numeric types can\'t be made nilable");
             dest = st.Wrap(dest, V_NIL);
         }
-        if (withtype && dest->t != V_STRUCT) Error(":: must be used with a struct type");
+        if (withtype && dest->t != V_UDT) Error(":: must be used with a struct type");
         return -1;
     }
 
@@ -1193,14 +1193,14 @@ struct Parser {
 
     Node *IdentFactor(string_view idname) {
         if (IsNext(T_LEFTCURLY)) {
-            auto &struc = st.StructUse(idname, lex);
-            vector<Node *> exps(struc.fields.size(), nullptr);
+            auto &udt = st.StructUse(idname, lex);
+            vector<Node *> exps(udt.fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;
                 if (IsNext(T_IDENT)) {
                     if (IsNext(T_COLON)) {
                         auto fld = st.FieldUse(id);
-                        auto field = struc.Has(fld);
+                        auto field = udt.Has(fld);
                         if (field < 0) Error("unknown field: " + id);
                         if (exps[field]) Error("field initialized twice: " + id);
                         exps[field] = ParseExp();
@@ -1212,7 +1212,7 @@ struct Parser {
                 // An initializer without a tag. Find first field without a default thats not
                 // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i] && !struc.fields.v[i].defaultval) {
+                    if (!exps[i] && !udt.fields.v[i].defaultval) {
                         exps[i] = ParseExp();
                         return;
                     }
@@ -1222,13 +1222,13 @@ struct Parser {
                 exps.push_back(ParseExp());
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
-            auto constructor = new Constructor(lex, &struc.thistype);
+            auto constructor = new Constructor(lex, &udt.thistype);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
-                    if (struc.fields.v[i].defaultval)
-                        exps[i] = struc.fields.v[i].defaultval->Clone();
+                    if (udt.fields.v[i].defaultval)
+                        exps[i] = udt.fields.v[i].defaultval->Clone();
                     else
-                        Error("field not initialized: " + struc.fields.v[i].id->name);
+                        Error("field not initialized: " + udt.fields.v[i].id->name);
                 }
                 constructor->Add(exps[i]);
             }

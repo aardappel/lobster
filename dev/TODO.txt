@@ -58,12 +58,25 @@
       - it may be easiest to keep the typechecker regarding these as a single value, but enhance
         the codegen with keeping track of value-width, or even push multiple values on the temp
         stack, and thus also error out if passed somewhere that can't deal with it.
+        - this would be an incremental process, whereby the VM is enhanced to deal with these
+          in more places.
       - simpler than 1) in terms of borrowing, since whole copies are always passed, and thus
         less likely to generate borrow errors.
+        - in fact, for the type checker these are now not even reference types anymore!
+          - though if fields are allowed to be reference types, this will now complicate matters.
+            essentially if any fields are ref types, then the type as a whole is ref as well,
+            and any inc/dec ops apply to all fields equally. can have mixed with scalar fields,
+            as these are simply ignored when doing inc/dec.
+        - probably easiest to split this type up from the current V_STRUCT, into V_VALS and V_VALR
+          where only the latter is a reftype.
       - simpler than 1) in terms of returning values, since these will just be on the stack.
+      - nice for "zero cost abstraction", as now a struct with a single field has exactly the
+        same cost as a single value!
     - for either approach would be nice as a next step to not store the tti anymore, and generate
       that on the fly when needed. same for the length field, though that will require we
       generate that value for builtins, or split up all builtins that can currently do 2/3/4 lens.
+    - approach 2 is more exciting, with potentially bigger gains, I think that should be the
+      way forward.
   - allow variables/fields/types? to be annotated as single owner, such that these can also
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
@@ -400,6 +413,9 @@
 - 64bit mode improvements:
   - pushflt64?
   - Optimizer can't use 32bit values.
+
+- Can turn exceptions back on in emscripten once this fix lands:
+  https://github.com/emscripten-core/emscripten/issues/7399
 
 - Since in Lobster values only signed ints get used, and STL uses size_t, there's a fair bit
   of unfortunate casting going on that be nice to remove. Many (including the C++ standards
@@ -797,9 +813,6 @@
            ...
        else:
            ...
-
-- should add readint/readfloat builtins, from any location in a string, with a given byte width, as little endian..
-  allows things reading binary file formats, FlatBuffers, or custom memory efficient arrays etc.
 
 - allow random number generator to be selected
 

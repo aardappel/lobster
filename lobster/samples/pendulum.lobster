@@ -9,7 +9,7 @@ g :== 9.8
 mass := 1
 max_steps := 2000
 
-struct link { len = 180.0, dtheta = 0.0, theta = 181.0 }
+class link { len = 180.0, dtheta = 0.0, theta = 181.0 }
 
 def ddl(l::link): return dtheta * dtheta * len
 

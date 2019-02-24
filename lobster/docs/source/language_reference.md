@@ -35,7 +35,7 @@ Lexical definition
 -   Identifiers made from alpha-numeric characters and the `_` (except no digits
     for the first character).
 
--   Keywords: `nil true false return from struct value include int float string
+-   Keywords: `nil true false return from class value include int float string
     vector def super is program private coroutine enum`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
@@ -59,9 +59,9 @@ stats = topexp … linefeed
 
 topexp = `include` [ `from` ] ( string\_constant \| ident ... `.` )
       \| [ `private` ] ( `def` ident functiondef
-      \| struct \| vardef \| enumdef ) \| expstat
+      \| class \| vardef \| enumdef ) \| expstat
 
-struct = ( `struct` \| `value` ) ident `:` [ ident ] `[` indlist( ident ) `]`
+class = ( `class` \| `struct` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
 vardef = ( `var` \| `let` ) ident `=` opexp \| list( ident ) ( `:=` \| `:==`
 \| `<-` ) list( opexp )
@@ -146,7 +146,7 @@ a value of one of the following types:
         (e.g. `a[0]`). Vectors may be typed by being suffixed by `: type`, which
         will require all elements to be of that type
 
-    -   `struct` / `value` : a user defined data structure similar to a
+    -   `class` / `struct` : a user defined data structure similar to a
         `vector`, see below.
 
     -   `coroutine` : a special object that contains a suspended computation,
@@ -162,22 +162,22 @@ as the `! & |` operators (see below) or the builtin function `if`, the values `0
 0.0 nil` (which includes the keyword `false`) are all considered to be false,
 and all other values are true.
 
-The `vector` / `struct` and `coroutine` types are the only mutable objects (can
+The `vector` / `class` and `coroutine` types are the only mutable objects (can
 change after creation), and have reference semantics (multiple values can refer
 to the same object in memory, and thus changes can be observed from each).
 
 User Defined Types
 ------------------
 
-The `struct` and `value` keywords allow you to define a user defined type. For
+The `class` and `struct` keywords allow you to define a user defined type. For
 example, from `vec.lobster`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy { x, y }
-value xyz : xy { z }
+struct xy { x, y }
+struct xyz : xy { z }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use either `struct` or `value` to define these, both giving the same
+You can use either `class` or `struct` to define these, both giving the same
 result except for the latter being more restrictive: it does not allow fields to
 be modified (assigned to) after it has been constructed. This makes sense for
 small objects such as the one in this example, and can be used to enforce a more
@@ -204,16 +204,16 @@ Optionally, you may declare types of elements, which will cause these types to
 be checked upon construction.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy { x:float = 0.0, y:float = 0.0 }
+struct xy { x:float = 0.0, y:float = 0.0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, you may specify default values, if these are given, then these
 values are not arguments to the constructor, e.g. `xy {}`.
 
-For larger struct definitions, you can use the indentation based syntax instead:
+For larger class definitions, you can use the indentation based syntax instead:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-value xy:
+struct xy:
     x:float = 0.0
     y:float = 0.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -406,7 +406,7 @@ def magnitude(v::xy): return sqrt(x * x + y * y)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can also leave out the `v::xy` entirely if you define this function as part
-of a `struct` / `value` definition of type `xy` (see above). Both types of
+of a `class` / `struct` definition of type `xy` (see above). Both types of
 definition are equivalent.
 
 Additionally, types allow the definition of multimethods, whereby all functions

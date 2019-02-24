@@ -2,7 +2,7 @@
 
 include vec
 
-struct astar_node<N,S,D>:
+class astar_node<N,S,D>:
     G = 0.0
     H = 0.0
     F = 0.0
@@ -87,13 +87,13 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 def goapf(state:[int]) :== int
 
-value goapaction {
+struct goapaction {
     name:string,
     precondition:goapf,
     effect:goapf
 }
 
-struct goap_node = astar_node<goap_node?, [int], goapaction?>
+class goap_node = astar_node<goap_node?, [int], goapaction?>
 
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     H := heuristic(initstate)

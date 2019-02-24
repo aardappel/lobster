@@ -1,6 +1,6 @@
 include vec
 
-struct pathmap:
+class pathmap:
     steps:int
     dir:xy_i
     pos:xy_i

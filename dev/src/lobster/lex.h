@@ -283,8 +283,8 @@ struct Lex : LoadedFile {
                     else if (sattr == "true")      { sattr = "1"; return T_INT; }
                     else if (sattr == "false")     { sattr = "0"; return T_INT; }
                     else if (sattr == "return")    return T_RETURN;
+                    else if (sattr == "class")     return T_CLASS;
                     else if (sattr == "struct")    return T_STRUCT;
-                    else if (sattr == "value")     return T_VALUE;
                     else if (sattr == "include")   return T_INCLUDE;
                     else if (sattr == "int")       return T_INTTYPE;
                     else if (sattr == "bool")      return T_INTTYPE;

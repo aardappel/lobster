@@ -292,11 +292,11 @@ struct StringConstant : Node {
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
 };
 
-struct StructRef : Node {
-    Struct *st;
-    StructRef(const Line &ln, Struct *_st) : Node(ln), st(_st) {}
-    void Dump(ostringstream &ss) const { ss << "struct " << st->name; }
-    SHARED_SIGNATURE(StructRef, TName(T_STRUCT), false)
+struct UDTRef : Node {
+    UDT *udt;
+    UDTRef(const Line &ln, UDT *_udt) : Node(ln), udt(_udt) {}
+    void Dump(ostringstream &ss) const { ss << (udt->readonly ? "struct " : "class ") << udt->name; }
+    SHARED_SIGNATURE(UDTRef, TName(T_CLASS), false)
 };
 
 struct FunRef : Node {

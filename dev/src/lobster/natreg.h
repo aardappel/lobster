@@ -55,7 +55,7 @@ struct Named {
 
 struct SubFunction;
 
-struct Struct;
+struct UDT;
 
 struct Type {
     const ValueType t = V_UNDEFINED;
@@ -65,7 +65,7 @@ struct Type {
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
-        Struct *struc;           // V_STRUCT
+        UDT *udt;           // V_UDT
         vector<TupleElem> *tup;  // V_TUPLE
     };
 
@@ -73,11 +73,11 @@ struct Type {
     explicit Type(ValueType _t)          : t(_t),    sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),    sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
-    Type(ValueType _t, Struct *_st)      : t(_t),    struc(_st)   {}
+    Type(ValueType _t, UDT *_udt)        : t(_t),    udt(_udt)    {}
 
     bool operator==(const Type &o) const {
         return t == o.t &&
-               (sub == o.sub ||  // Also compares sf/struc
+               (sub == o.sub ||  // Also compares sf/udt
                 (Wrapped() && *sub == *o.sub));
     }
 

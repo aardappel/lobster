@@ -8,7 +8,7 @@ include vec
 namespace test_namespace
 
 def f(): return 1
-struct g { x = 1 }
+class g { x = 1 }
 
 namespace whatever
 
@@ -26,8 +26,8 @@ run_test("misc"):
     assert test_namespace_f() == 1
     assert (test_namespace_g {}).x == 1
 
-    value testa { a:int }
-    value testb : testa { b:int }
+    struct testa { a:int }
+    struct testb : testa { b:int }
 
     def tf(x:int, y:int): return 1
     def tf(x:string, y:float): return 2
@@ -53,7 +53,7 @@ run_test("misc"):
 
     assert(tf("") == 8)
 
-    struct parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
+    class parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
     direct := parsetest {
         1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true

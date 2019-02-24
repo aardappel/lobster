@@ -10,7 +10,7 @@ im_init(false)
 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
 // The data we're editing:
-struct Thingy:
+class Thingy:
     on = true
     i = 1
     ratio = 0.5
@@ -31,7 +31,7 @@ while gl_frame():
 
     im_frame():
         // Maximum convenience: turn any data structure into editable UI!
-        im_window("Created from a struct", im_window_always_autoresize):
+        im_window("Created from a class", im_window_always_autoresize):
             d = im_edit_anything(d)
 
         // Manually created widgets, so you can choose how to represent and layout data:

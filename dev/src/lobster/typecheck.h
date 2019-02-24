@@ -57,15 +57,15 @@ struct TypeChecker {
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultVectorTypes())
             TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
-        for (auto &struc : st.structtable) {
-            if (struc->generics.empty()) ComputeStructSameType(struc);
-            if (struc->superclass) {
+        for (auto &udt : st.udttable) {
+            if (udt->generics.empty()) ComputeStructSameType(udt);
+            if (udt->superclass) {
                 // If this type has fields inherited from the superclass that refer to the
                 // superclass, make it refer to this type instead. There may be corner cases where
                 // this is not what you want, but generally you do.
-                for (auto &field : make_span(struc->fields.v.data(),
-                                             struc->superclass->fields.v.size())) {
-                    PromoteStructIdx(field.type, struc->superclass, struc);
+                for (auto &field : make_span(udt->fields.v.data(),
+                                             udt->superclass->fields.v.size())) {
+                    PromoteStructIdx(field.type, udt->superclass, udt);
                 }
             }
         }
@@ -85,30 +85,30 @@ struct TypeChecker {
     void UpdateCurrentSid(SpecIdent *&sid) { sid = sid->Current(); }
     void RevertCurrentSid(SpecIdent *&sid) { sid->Current() = sid; }
 
-    void ComputeStructSameType(Struct *struc) {
+    void ComputeStructSameType(UDT *udt) {
         // NOTE: all users of sametype will only act on it if it is numeric, since
         // otherwise it would a scalar field to become any without boxing.
         // Much of the implementation relies on these being 2-4 component vectors, so
         // deny this functionality to any other structs.
-        if (struc->fields.size() >= 2 && struc->fields.size() <= 4) {
-            struc->sametype = struc->fields.v[0].type;
-            for (size_t i = 1; i < struc->fields.size(); i++) {
+        if (udt->fields.size() >= 2 && udt->fields.size() <= 4) {
+            udt->sametype = udt->fields.v[0].type;
+            for (size_t i = 1; i < udt->fields.size(); i++) {
                 // Can't use Union here since it will bind variables, use simplified alternative:
-                if (!ExactType(struc->fields.v[i].type, struc->sametype)) {
-                    struc->sametype = type_undefined;
+                if (!ExactType(udt->fields.v[i].type, udt->sametype)) {
+                    udt->sametype = type_undefined;
                     break;
                 }
             }
         }
     }
 
-    void PromoteStructIdx(TypeRef &type, const Struct *olds, const Struct *news) {
+    void PromoteStructIdx(TypeRef &type, const UDT *olds, const UDT *news) {
         auto u = type;
         while (u->Wrapped()) u = u->Element();
-        if (u->t == V_STRUCT && u->struc == olds) type = PromoteStructIdxRec(type, news);
+        if (u->t == V_UDT && u->udt == olds) type = PromoteStructIdxRec(type, news);
     }
 
-    TypeRef PromoteStructIdxRec(TypeRef type, const Struct *news) {
+    TypeRef PromoteStructIdxRec(TypeRef type, const UDT *news) {
         return type->Wrapped()
             ? st.Wrap(PromoteStructIdxRec(type->sub, news), type->t)
             : &news->thistype;
@@ -131,8 +131,8 @@ struct TypeChecker {
         return s + ")";
     }
 
-    string Signature(const Struct &struc) {
-        return struc.name + Signature(struc.fields);
+    string Signature(const UDT &udt) {
+        return udt.name + Signature(udt.fields);
     }
     string Signature(const SubFunction &sf, bool withtype = true) {
         return sf.parent->name + Signature(sf.args, withtype);
@@ -274,8 +274,8 @@ struct TypeChecker {
             case V_VECTOR:    return (type->t == V_VECTOR &&
                                       ConvertsTo(type->Element(), sub->Element(), false,
                                                  unifications));
-            case V_STRUCT:    return type->t == V_STRUCT &&
-                                     st.IsSuperTypeOrSame(sub->struc, type->struc);
+            case V_UDT:    return type->t == V_UDT &&
+                                     st.IsSuperTypeOrSame(sub->udt, type->udt);
             case V_COROUTINE: return type->t == V_COROUTINE &&
                                      (sub->sf == type->sf ||
                                       (!sub->sf && type->sf && ConvertsTo(type->sf->coresumetype,
@@ -300,8 +300,8 @@ struct TypeChecker {
             auto et = Union(at->Element(), bt->Element(), false, err);
             return st.Wrap(et, V_VECTOR);
         }
-        if (at->t == V_STRUCT && bt->t == V_STRUCT) {
-            auto sstruc = st.CommonSuperType(at->struc, bt->struc);
+        if (at->t == V_UDT && bt->t == V_UDT) {
+            auto sstruc = st.CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
         }
         if (err)
@@ -433,8 +433,8 @@ struct TypeChecker {
         TypeRef ltype = left->exptype;
         TypeRef rtype = right->exptype;
         // Special purpose check for vector * scalar etc.
-        if (ltype->t == V_STRUCT && rtype->Numeric()) {
-            auto etype = ltype->struc->sametype;
+        if (ltype->t == V_UDT && rtype->Numeric()) {
+            auto etype = ltype->udt->sametype;
             if (etype->Numeric()) {
                 if (etype->t == V_INT) {
                     // Don't implicitly convert int vectors to float.
@@ -442,7 +442,7 @@ struct TypeChecker {
                 } else {
                     if (rtype->t == V_INT) SubType(right, type_float, "right", *right);
                 }
-                type = &ltype->struc->thistype;
+                type = &ltype->udt->thistype;
                 return true;
             }
         }
@@ -454,7 +454,7 @@ struct TypeChecker {
         if (Is<Mod>(&n) || Is<ModEq>(&n)) {
             if (type->t != V_INT) return "int";
         } else {
-            if (!type->Numeric() && type->t != V_VECTOR && type->t != V_STRUCT) {
+            if (!type->Numeric() && type->t != V_VECTOR && type->t != V_UDT) {
                 if (MathCheckVector(type, n.left, n.right)) {
                     unionchecked = true;
                     return nullptr;
@@ -543,14 +543,14 @@ struct TypeChecker {
             // caused the error much like MathError
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // pointer comparison
-                if (u->t != V_VECTOR && u->t != V_STRUCT && u->t != V_NIL)
+                if (u->t != V_VECTOR && u->t != V_UDT && u->t != V_NIL)
                     TypeError("numeric / string / vector / struct", u, n);
             } else {
                 // comparison vector op
-                if (u->t == V_STRUCT && u->struc->sametype->Numeric()) {
-                    n.exptype = st.default_int_vector_types[0][u->struc->fields.size()];
+                if (u->t == V_UDT && u->udt->sametype->Numeric()) {
+                    n.exptype = st.default_int_vector_types[0][u->udt->fields.size()];
                 } else if (MathCheckVector(n.exptype, n.left, n.right)) {
-                    n.exptype = st.default_int_vector_types[0][n.exptype->struc->fields.size()];
+                    n.exptype = st.default_int_vector_types[0][n.exptype->udt->fields.size()];
                     // Don't do SubTypeLR since type already verified and `u` not
                     // appropriate anyway.
                     goto out;
@@ -691,19 +691,19 @@ struct TypeChecker {
                              TypeName(sf.returntype));
     }
 
-    Struct *FindStructSpecialization(Struct *given, const Constructor *cons) {
+    UDT *FindStructSpecialization(UDT *given, const Constructor *cons) {
         // This code is somewhat similar to function specialization, but not similar enough to
         // share. If they're all typed, we bail out early:
         if (given->generics.empty()) return given;
         auto head = given->first;
         assert(cons->Arity() == head->fields.size());
         // Now find a match:
-        Struct *best = nullptr;
+        UDT *best = nullptr;
         int bestmatch = 0;
-        for (auto struc = head->next; struc; struc = struc->next) {
+        for (auto udt = head->next; udt; udt = udt->next) {
             int nmatches = 0;
             for (auto [i, arg] : enumerate(cons->children)) {
-                auto &field = struc->fields.v[i];
+                auto &field = udt->fields.v[i];
                 if (field.genericref >= 0) {
                     if (ExactType(arg->exptype, field.type)) nmatches++;
                     else break;
@@ -711,7 +711,7 @@ struct TypeChecker {
             }
             if (nmatches > bestmatch) {
                 bestmatch = nmatches;
-                best = struc;
+                best = udt;
             }
         }
         if (best) return best;
@@ -722,13 +722,13 @@ struct TypeChecker {
         return nullptr;
     }
 
-    void CheckIfSpecialization(Struct *spec_struc, TypeRef given, const Node &n,
+    void CheckIfSpecialization(UDT *spec_struc, TypeRef given, const Node &n,
                                string_view argname, string_view req = {},
                                bool subtypeok = false, string_view context = {}) {
         auto givenu = given->UnWrapped();
-        if (given->t != V_STRUCT ||
-            (!spec_struc->IsSpecialization(givenu->struc) &&
-             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->struc)))) {
+        if (given->t != V_UDT ||
+            (!spec_struc->IsSpecialization(givenu->udt) &&
+             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->udt)))) {
             TypeError(req.data() ? req : spec_struc->name, given, n, argname, context);
         }
     }
@@ -738,9 +738,9 @@ struct TypeChecker {
         // Check if argument is a generic struct type, or wrapped in vector/nilable.
         if (otype->t != V_ANY) {
             auto u = otype->UnWrapped();
-            assert(u->t == V_STRUCT);
+            assert(u->t == V_UDT);
             if (otype->EqNoIndex(*argtype)) {
-                CheckIfSpecialization(u->struc, argtype, n, argname, TypeName(otype), true,
+                CheckIfSpecialization(u->udt, argtype, n, argname, TypeName(otype), true,
                                       context);
             } else {
                 // This likely generates either an error, or contains an unbound var that will get
@@ -1273,8 +1273,8 @@ struct TypeChecker {
     void CheckLval(Node *n) {
         if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
-            if (type->t == V_STRUCT && type->struc->readonly)
-                TypeError("cannot write to field of value: " + type->struc->name, *n);
+            if (type->t == V_UDT && type->udt->readonly)
+                TypeError("cannot write to field of value: " + type->udt->name, *n);
         }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
@@ -1565,8 +1565,8 @@ struct TypeChecker {
                 vt = vt->sub) {
                 if (vt->sub->Numeric()) {
                     // Check if we allow any vector length.
-                    if (!e.Null() && flen == -1 && e->t == V_STRUCT) {
-                        flen = (int)e->struc->fields.size();
+                    if (!e.Null() && flen == -1 && e->t == V_UDT) {
+                        flen = (int)e->udt->fields.size();
                     }
                     if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
                         // Special case for "F}?" style types that can be matched against a
@@ -1575,8 +1575,8 @@ struct TypeChecker {
                         return st.VectorType(vt, i, 2);
                     }
                     if (flen >= 2 && flen <= 4) {
-                        if (!e.Null() && e->t == V_STRUCT && (int)e->struc->fields.size() == flen &&
-                            e->struc->sametype == vt->sub) {
+                        if (!e.Null() && e->t == V_UDT && (int)e->udt->fields.size() == flen &&
+                            e->udt->sametype == vt->sub) {
                             // Allow any similar vector type, like "color".
                             return etype;
                         }
@@ -1741,8 +1741,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = type_int;
     else if (itertype->t == V_VECTOR)
         itertype = itertype->Element();
-    else if (itertype->t == V_STRUCT && itertype->struc->sametype->Numeric())
-        itertype = itertype->struc->sametype;
+    else if (itertype->t == V_UDT && itertype->udt->sametype->Numeric())
+        itertype = itertype->udt->sametype;
     else tc.TypeError("for can only iterate over int / string / vector / numeric struct, not: " +
         TypeName(itertype), *this);
     auto bodyc = AssertIs<Call>(body);
@@ -2092,7 +2092,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     exptype = child->exptype;
     if (!exptype->Numeric() &&
-        (exptype->t != V_STRUCT || !exptype->struc->sametype->Numeric()))
+        (exptype->t != V_UDT || !exptype->udt->sametype->Numeric()))
         tc.TypeError("numeric / numeric struct", exptype, *this);
     tc.DecBorrowers(child->lt, *this);
     lt = LT_KEEP;
@@ -2142,14 +2142,14 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     auto nf = tc.parser.natreg.FindNative(name);
     auto fld = tc.st.FieldUse(name);
     TypeRef type;
-    Struct *struc = nullptr;
+    UDT *udt = nullptr;
     if (children.size()) {
         type = children[0]->exptype;
         if (maybe && type->t == V_NIL) type = type->Element();
-        if (type->t == V_STRUCT) struc = type->struc;
+        if (type->t == V_UDT) udt = type->udt;
     }
     Node *r = nullptr;
-    if (fld && dotnoparens && struc && struc->Has(fld) >= 0) {
+    if (fld && dotnoparens && udt && udt->Has(fld) >= 0) {
         auto dot = new Dot(fld, *this);
         dot->children = children;
         dot->TypeCheckSpecialized(tc, reqret);
@@ -2158,9 +2158,9 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         if (maybe) tc.TypeError("?. may only be used with fields: " + name, *this);
         // See if any of sf's specializations matches type exactly, then it overrides nf.
         bool prefer_sf = false;
-        if (sf && struc && sf->parent->nargs()) {
+        if (sf && udt && sf->parent->nargs()) {
             for (auto sfi = sf->parent->subf; sfi; sfi = sfi->next) {
-                if (sfi->args.v[0].type->struc == struc) {
+                if (sfi->args.v[0].type->udt == udt) {
                     prefer_sf = true;
                     break;
                 }
@@ -2506,15 +2506,15 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             exptype = tc.st.Wrap(tc.NewTypeVar(), V_VECTOR);
         }
     }
-    if (exptype->t == V_STRUCT) {
+    if (exptype->t == V_UDT) {
         // We have to check this here, since the parser couldn't check this yet.
-        if (exptype->struc->fields.v.size() < children.size())
-            tc.TypeError("too many initializers for: " + exptype->struc->name, *this);
-        auto struc = tc.FindStructSpecialization(exptype->struc, this);
-        exptype = &struc->thistype;
+        if (exptype->udt->fields.v.size() < children.size())
+            tc.TypeError("too many initializers for: " + exptype->udt->name, *this);
+        auto udt = tc.FindStructSpecialization(exptype->udt, this);
+        exptype = &udt->thistype;
     }
     for (auto [i, c] : enumerate(children)) {
-        TypeRef elemtype = exptype->t == V_STRUCT ? exptype->struc->fields.v[i].type
+        TypeRef elemtype = exptype->t == V_UDT ? exptype->udt->fields.v[i].type
                                                   : exptype->Element();
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
     }
@@ -2527,13 +2527,13 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     tc.DecBorrowers(children[0]->lt, *this);  // New borrow created below.
     auto smtype = children[0]->exptype;
     auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
-    if (stype->t != V_STRUCT)
+    if (stype->t != V_UDT)
         tc.TypeError("struct/value", stype, *this, "object");
-    auto struc = stype->struc;
-    auto fieldidx = struc->Has(fld);
+    auto udt = stype->udt;
+    auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
-        tc.TypeError("type " + struc->name + " has no field named " + fld->name, *this);
-    auto &uf = struc->fields.v[fieldidx];
+        tc.TypeError("type " + udt->name + " has no field named " + fld->name, *this);
+    auto &uf = udt->fields.v[fieldidx];
     if (maybe && !IsRefNil(uf.type->t))
         tc.TypeError(cat("cannot dereference non-reference field ", fld->name, " with ?."), *this);
     exptype = maybe && smtype->t == V_NIL && uf.type->t != V_NIL
@@ -2550,7 +2550,7 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(index, 1, LT_BORROW);
     tc.DecBorrowers(index->lt, *this);
     auto vtype = object->exptype;
-    if (vtype->t == V_STRUCT && vtype->struc->sametype->t != V_UNDEFINED) {}
+    if (vtype->t == V_UDT && vtype->udt->sametype->t != V_UNDEFINED) {}
     else if (vtype->t != V_VECTOR && vtype->t != V_STRING)
         tc.TypeError("vector/string/struct", vtype, *this, "container");
     auto itype = index->exptype;
@@ -2558,14 +2558,14 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         case V_INT:
             exptype = vtype->t == V_VECTOR
                 ? vtype->Element()
-                : (vtype->t == V_STRUCT ? vtype->struc->sametype : type_int);
+                : (vtype->t == V_UDT ? vtype->udt->sametype : type_int);
             break;
-        case V_STRUCT: {
+        case V_UDT: {
             if (vtype->t != V_VECTOR)
                 tc.TypeError("multi-dimensional indexing on non-vector", *this);
-            auto &struc = *itype->struc;
+            auto &udt = *itype->udt;
             exptype = vtype;
-            for (auto &field : struc.fields.v) {
+            for (auto &field : udt.fields.v) {
                 if (field.type->t != V_INT)
                     tc.TypeError("int field", field.type, *this, "index");
                 if (exptype->t != V_VECTOR)
@@ -2626,8 +2626,8 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
-Node *StructRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    for (auto &f : st->fields.v) {
+Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    for (auto &f : udt->fields.v) {
         if (f.defaultval && f.type->t == V_ANY) {
             // FIXME: would be good to not call TT here generically but instead have some
             // specialized checking, just in case TT has a side effect.

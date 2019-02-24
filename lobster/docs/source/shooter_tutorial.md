@@ -241,7 +241,7 @@ worldsize :== 20.0
 playerpos := xy_0
 playerspeed :== 10
 
-struct bullet { pos:xy_f, dir:xy_f }
+class bullet { pos:xy_f, dir:xy_f }
 
 firerate :== 0.1
 bulletspeed :== 15
@@ -325,7 +325,7 @@ it!). We add some constants up top, a firerate (second to fire the next bullet)
 and their speed of travel in the world. To keep track of what's going on, we
 just need a list of bullets, and track when the last bullet was fired.
 
-We define what a bullet is by defining a new struct type, saying that it just
+We define what a bullet is by defining a new class type, saying that it just
 has a current position and direction.
 
 Now look at the `if` inside the code: we check if time has progressed beyond the
@@ -385,7 +385,7 @@ function, since we'll be needing it for enemies too. Call instead of the
 original code with `renderpointytriangle(playerpos, tomouse)`
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct enemy { pos:xy_f, hp:int }
+class enemy { pos:xy_f, hp:int }
 
 enemyrate := 1.0
 enemyspeed :== 3

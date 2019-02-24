@@ -129,7 +129,7 @@ and can be avoided:
 
 -   If the variable cannot be initialized where it must be defined, see if
     there's a "empty" version of the reference type that the variable can be
-    initialized with, such as an empty vector or string, or a struct filled with
+    initialized with, such as an empty vector or string, or a class filled with
     zeroes, that has a benign effect when used.
 
 -   If you must start with `nil`, try to have the if-check for it as early on as
@@ -241,7 +241,7 @@ Besides functions, objects can also be generic. If you define any field without
 types:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct foo { a:string, b }
+class foo { a:string, b }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You create a generic type.
@@ -253,7 +253,7 @@ you to explicitly define a specialization before you can use it[^1]:
 fly, but this could cause very hard to track down type errors.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct foo_f: foo(float)
+class foo_f: foo(float)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can now construct a foo with floats, either explicitly with `foo_f { "hi",
@@ -266,8 +266,8 @@ specializations.
 You can even specialize and subclass at the same time:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct bar : foo { c }
-struct bar : foo(float) { c:int }
+class bar : foo { c }
+class bar : foo(float) { c:int }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The first version subclasses `foo` into another generic type, and the second

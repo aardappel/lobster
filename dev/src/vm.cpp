@@ -162,7 +162,7 @@ void VM::DumpLeaks() {
                 case V_COROUTINE:
                 case V_RESOURCE:
                 case V_VECTOR:
-                case V_STRUCT: {
+                case V_UDT: {
                     ro->CycleStr(ss);
                     ss << " = ";
                     RefToString(*this, ss, ro, leakpp);
@@ -208,7 +208,7 @@ LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
     return v;
 }
 LStruct *VM::NewStruct(intp max, type_elem_t tti) {
-    assert(GetTypeInfo(tti).t == V_STRUCT);
+    assert(GetTypeInfo(tti).t == V_UDT);
     auto s = new (pool.alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
     OnAlloc(s);
     return s;
@@ -1588,7 +1588,7 @@ PPOP(FMMPR, true , -, false, fval)
 
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
-        case V_STRUCT: return string(ReverseLookupType(ti.structidx));
+        case V_UDT: return string(ReverseLookupType(ti.structidx));
         case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
         case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
         default: return string(BaseTypeName(ti.t));
@@ -1610,7 +1610,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
             for (size_t i = 0; i < nf->retvals.v.size(); i++) {
                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                 auto u = nf->retvals.v[i].type->t;
-                assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_STRUCT));
+                assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_UDT));
             }
             assert(nf->retvals.v.size() || TOP().type == V_NIL);
         }
@@ -1638,11 +1638,11 @@ void VM::Push(const Value &v) { PUSH(v); }
 Value VM::Pop() { return POP(); }
 
 string_view VM::StructName(const TypeInfo &ti) {
-    return bcf->structs()->Get(ti.structidx)->name()->string_view();
+    return bcf->udts()->Get(ti.structidx)->name()->string_view();
 }
 
 string_view VM::ReverseLookupType(uint v) {
-    return bcf->structs()->Get(v)->name()->string_view();
+    return bcf->udts()->Get(v)->name()->string_view();
 }
 
 void VM::StartWorkers(size_t numthreads) {
@@ -1650,7 +1650,7 @@ void VM::StartWorkers(size_t numthreads) {
     if (tuple_space) Error("workers already running");
     // Stop bad values from locking up the machine :)
     numthreads = min(numthreads, (size_t)256);
-    tuple_space = new TupleSpace(bcf->structs()->size());
+    tuple_space = new TupleSpace(bcf->udts()->size());
     for (size_t i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
@@ -1695,7 +1695,7 @@ void VM::WorkerWrite(RefObj *ref) {
     if (!tuple_space) return;
     if (!ref) Error("thread write: nil reference");
     auto &ti = ref->ti(*this);
-    if (ti.t != V_STRUCT) Error("thread write: must be a struct");
+    if (ti.t != V_UDT) Error("thread write: must be a struct");
     auto st = (LStruct *)ref;
     auto buf = new Value[ti.len];
     for (int i = 0; i < ti.len; i++) {
@@ -1714,7 +1714,7 @@ void VM::WorkerWrite(RefObj *ref) {
 
 LStruct *VM::WorkerRead(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_STRUCT) Error("thread read: must be a struct type");
+    if (ti.t != V_UDT) Error("thread read: must be a struct type");
     Value *buf = nullptr;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {

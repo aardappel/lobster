@@ -30,8 +30,8 @@ run_test("types"):
 
     assert typeof int == 0  // Always the first one added to the typetable.
 
-    value testa { a:int }
-    value testb : testa { b:int }
+    struct testa { a:int }
+    struct testb : testa { b:int }
 
     // return from should generalize both specializations
     def return_from(a):

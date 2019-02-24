@@ -229,8 +229,8 @@ float&nbsp;magnitude() { return x * x + y * y; }</td>
 object elements directly rather than having to write v.x etc. This is
 similar to writing a&nbsp;method, though Lobster makes no such distinction.</td>
 </tr>
-<tr><td>// inside struct/value xy<br>def&nbsp;magnitude(): sqrt(x * x + y * y)</td><td>// inside class xy<br>
-float&nbsp;magnitude() { return x * x + y * y; }</td><td>this is an equivalent way of writing the above when inside the scope of a struct/value (see below).</td></tr><tr>
+<tr><td>// inside class/struct xy<br>def&nbsp;magnitude(): sqrt(x * x + y * y)</td><td>// inside class xy<br>
+float&nbsp;magnitude() { return x * x + y * y; }</td><td>this is an equivalent way of writing the above when inside the scope of a class/struct (see below).</td></tr><tr>
 <td>v.magnitude()</td>
 <td>v.magnitude()</td>
 <td>on a function call, you can move the first argument to
@@ -371,18 +371,18 @@ version</big></td>
 </tr>
 <tr>
 <td>struct xy { x:float, y:float }</td>
-<td>public class xy { float x; float y; }</td>
+<td>public struct xy { float x; float y; }</td>
 <td><br></td>
 </tr>
 <tr>
 <td>struct xy { x, y }</td>
-<td>public class xy&lt;T&gt; { T x; T y; }</td>
+<td>public struct xy&lt;T&gt; { T x; T y; }</td>
 <td>or generics</td>
 </tr>
 
 <tr>
 <td>struct xyz : xy { z:float }</td>
-<td>public class xyz : xy { float z; }</td>
+<td>public struct xyz : xy { float z; }</td>
 <td></td>
 </tr>
 <tr>

@@ -14,7 +14,7 @@ struct Function;
 
 struct Field;
 
-struct Struct;
+struct UDT;
 
 struct Ident;
 
@@ -207,7 +207,7 @@ inline flatbuffers::Offset<Field> CreateFieldDirect(
       name ? _fbb.CreateString(name) : 0);
 }
 
-struct Struct FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct UDT FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_NAME = 4,
     VT_IDX = 6,
@@ -234,48 +234,48 @@ struct Struct FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
 };
 
-struct StructBuilder {
+struct UDTBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Struct::VT_NAME, name);
+    fbb_.AddOffset(UDT::VT_NAME, name);
   }
   void add_idx(int32_t idx) {
-    fbb_.AddElement<int32_t>(Struct::VT_IDX, idx, 0);
+    fbb_.AddElement<int32_t>(UDT::VT_IDX, idx, 0);
   }
   void add_fields(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Field>>> fields) {
-    fbb_.AddOffset(Struct::VT_FIELDS, fields);
+    fbb_.AddOffset(UDT::VT_FIELDS, fields);
   }
-  explicit StructBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit UDTBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  StructBuilder &operator=(const StructBuilder &);
-  flatbuffers::Offset<Struct> Finish() {
+  UDTBuilder &operator=(const UDTBuilder &);
+  flatbuffers::Offset<UDT> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Struct>(end);
+    auto o = flatbuffers::Offset<UDT>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<Struct> CreateStruct(
+inline flatbuffers::Offset<UDT> CreateUDT(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     int32_t idx = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Field>>> fields = 0) {
-  StructBuilder builder_(_fbb);
+  UDTBuilder builder_(_fbb);
   builder_.add_fields(fields);
   builder_.add_idx(idx);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<Struct> CreateStructDirect(
+inline flatbuffers::Offset<UDT> CreateUDTDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     int32_t idx = 0,
     const std::vector<flatbuffers::Offset<Field>> *fields = nullptr) {
-  return bytecode::CreateStruct(
+  return bytecode::CreateUDT(
       _fbb,
       name ? _fbb.CreateString(name) : 0,
       idx,
@@ -365,7 +365,7 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LINEINFO = 14,
     VT_FILENAMES = 16,
     VT_FUNCTIONS = 18,
-    VT_STRUCTS = 20,
+    VT_UDTS = 20,
     VT_IDENTS = 22,
     VT_SPECIDENTS = 24,
     VT_DEFAULT_INT_VECTOR_TYPES = 26,
@@ -396,8 +396,8 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<Function>> *functions() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Function>> *>(VT_FUNCTIONS);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<Struct>> *structs() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Struct>> *>(VT_STRUCTS);
+  const flatbuffers::Vector<flatbuffers::Offset<UDT>> *udts() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<UDT>> *>(VT_UDTS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<Ident>> *idents() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Ident>> *>(VT_IDENTS);
@@ -434,9 +434,9 @@ struct BytecodeFile FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_FUNCTIONS) &&
            verifier.VerifyVector(functions()) &&
            verifier.VerifyVectorOfTables(functions()) &&
-           VerifyOffset(verifier, VT_STRUCTS) &&
-           verifier.VerifyVector(structs()) &&
-           verifier.VerifyVectorOfTables(structs()) &&
+           VerifyOffset(verifier, VT_UDTS) &&
+           verifier.VerifyVector(udts()) &&
+           verifier.VerifyVectorOfTables(udts()) &&
            VerifyOffset(verifier, VT_IDENTS) &&
            verifier.VerifyVector(idents()) &&
            verifier.VerifyVectorOfTables(idents()) &&
@@ -479,8 +479,8 @@ struct BytecodeFileBuilder {
   void add_functions(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Function>>> functions) {
     fbb_.AddOffset(BytecodeFile::VT_FUNCTIONS, functions);
   }
-  void add_structs(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Struct>>> structs) {
-    fbb_.AddOffset(BytecodeFile::VT_STRUCTS, structs);
+  void add_udts(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<UDT>>> udts) {
+    fbb_.AddOffset(BytecodeFile::VT_UDTS, udts);
   }
   void add_idents(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Ident>>> idents) {
     fbb_.AddOffset(BytecodeFile::VT_IDENTS, idents);
@@ -519,7 +519,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
     flatbuffers::Offset<flatbuffers::Vector<const LineInfo *>> lineinfo = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> filenames = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Function>>> functions = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Struct>>> structs = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<UDT>>> udts = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Ident>>> idents = 0,
     flatbuffers::Offset<flatbuffers::Vector<const SpecIdent *>> specidents = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> default_int_vector_types = 0,
@@ -531,7 +531,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFile(
   builder_.add_default_int_vector_types(default_int_vector_types);
   builder_.add_specidents(specidents);
   builder_.add_idents(idents);
-  builder_.add_structs(structs);
+  builder_.add_udts(udts);
   builder_.add_functions(functions);
   builder_.add_filenames(filenames);
   builder_.add_lineinfo(lineinfo);
@@ -553,7 +553,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
     const std::vector<LineInfo> *lineinfo = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *filenames = nullptr,
     const std::vector<flatbuffers::Offset<Function>> *functions = nullptr,
-    const std::vector<flatbuffers::Offset<Struct>> *structs = nullptr,
+    const std::vector<flatbuffers::Offset<UDT>> *udts = nullptr,
     const std::vector<flatbuffers::Offset<Ident>> *idents = nullptr,
     const std::vector<SpecIdent> *specidents = nullptr,
     const std::vector<int32_t> *default_int_vector_types = nullptr,
@@ -569,7 +569,7 @@ inline flatbuffers::Offset<BytecodeFile> CreateBytecodeFileDirect(
       lineinfo ? _fbb.CreateVectorOfStructs<LineInfo>(*lineinfo) : 0,
       filenames ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*filenames) : 0,
       functions ? _fbb.CreateVector<flatbuffers::Offset<Function>>(*functions) : 0,
-      structs ? _fbb.CreateVector<flatbuffers::Offset<Struct>>(*structs) : 0,
+      udts ? _fbb.CreateVector<flatbuffers::Offset<UDT>>(*udts) : 0,
       idents ? _fbb.CreateVector<flatbuffers::Offset<Ident>>(*idents) : 0,
       specidents ? _fbb.CreateVectorOfStructs<SpecIdent>(*specidents) : 0,
       default_int_vector_types ? _fbb.CreateVector<int32_t>(*default_int_vector_types) : 0,

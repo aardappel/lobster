@@ -1,6 +1,6 @@
 // standard color constants
 
-value color:
+struct color:
     red:float
     green:float
     blue:float

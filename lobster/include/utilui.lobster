@@ -2,11 +2,11 @@
 
 include vec
 
-// This struct manages the scale & translation values for a zooming & scrolling view.
+// This class manages the scale & translation values for a zooming & scrolling view.
 // For zoom it supports mousewheel and touch screen pinching.
 // For translation it supports mouse button or finger dragging (with inertia).
 
-struct scrollzoomview:
+class scrollzoomview:
     // Mousewheel / zoom related:
     rate:float   // Zoom base rate, determines how rapid you want to zoom, try 1.2.
     mins:int     // The range of exponents, try e.g. (10, 15, 20) and tweak from there.

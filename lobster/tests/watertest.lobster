@@ -8,7 +8,7 @@ run_test("water"):
 
     rnd_seed(0)
 
-    struct cell { h:float, wh:float, nw:float }
+    class cell { h:float, wh:float, nw:float }
 
     lssize := 100
     hmargin := 0.2

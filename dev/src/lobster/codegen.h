@@ -92,19 +92,19 @@ struct CodeGen  {
                     tt.push_back(TYPE_ELEM_ANY);
                 }
                 break;
-            case V_STRUCT:
-                if (type->struc->typeinfo >= 0)
-                    return type->struc->typeinfo;
-                type->struc->typeinfo = (type_elem_t)type_table.size();
+            case V_UDT:
+                if (type->udt->typeinfo >= 0)
+                    return type->udt->typeinfo;
+                type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
-                type_table.insert(type_table.end(), type->struc->fields.size() + 3, (type_elem_t)0);
-                tt.push_back((type_elem_t)type->struc->idx);
-                tt.push_back((type_elem_t)type->struc->fields.size());
-                for (auto &field : type->struc->fields.v) {
+                type_table.insert(type_table.end(), type->udt->fields.size() + 3, (type_elem_t)0);
+                tt.push_back((type_elem_t)type->udt->idx);
+                tt.push_back((type_elem_t)type->udt->fields.size());
+                for (auto &field : type->udt->fields.v) {
                     tt.push_back(GetTypeTableOffset(field.type));
                 }
-                std::copy(tt.begin(), tt.end(), type_table.begin() + type->struc->typeinfo);
-                return type->struc->typeinfo;
+                std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
+                return type->udt->typeinfo;
             case V_VAR:
                 // This can happen with an empty [] vector that was never bound to anything.
                 // Should be benign to use any, since it is never accessed anywhere.
@@ -156,10 +156,10 @@ struct CodeGen  {
             }
         }
         // Create list of subclasses, to help in creation of dispatch tables.
-        for (auto struc : st.structtable) {
-            if (struc->superclass) {
-                struc->nextsubclass = struc->superclass->firstsubclass;
-                struc->superclass->firstsubclass = struc;
+        for (auto udt : st.udttable) {
+            if (udt->superclass) {
+                udt->nextsubclass = udt->superclass->firstsubclass;
+                udt->superclass->firstsubclass = udt;
             }
         }
         linenumbernodes.push_back(parser.root);
@@ -261,9 +261,9 @@ struct CodeGen  {
                 // See if this entry contains sub-types and generate additional entries.
                 for (size_t j = 0; j < f.nargs(); j++) {
                     auto arg = sf->args.v[j];
-                    if (arg.type->t == V_STRUCT) {
-                        auto struc = arg.type->struc;
-                        for (auto subs = struc->firstsubclass; subs; subs = subs->nextsubclass) {
+                    if (arg.type->t == V_UDT) {
+                        auto udt = arg.type->udt;
+                        for (auto subs = udt->firstsubclass; subs; subs = subs->nextsubclass) {
                             // See if this instance already exists:
                             for (auto osf : sfs) {
                                 // Only check this arg, not all arg, which is reasonable.
@@ -463,8 +463,8 @@ struct CodeGen  {
                 assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD;
             } else if (type->t == V_STRING) {
                 assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
-            } else if (type->t == V_STRUCT) {
-                auto sub = type->struc->sametype;
+            } else if (type->t == V_UDT) {
+                auto sub = type->udt->sametype;
                 bool withscalar = IsScalar(rhs->exptype->t);
                 if (sub->t == V_INT) {
                     lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD;
@@ -503,9 +503,9 @@ struct CodeGen  {
                          ? GENLVALOP(IDXVI, lvalop)
                          : GENLVALOP(IDXVV, lvalop));
                     break;
-                case V_STRUCT:
+                case V_UDT:
                     assert(indexing->index->exptype->t == V_INT &&
-                           indexing->object->exptype->struc->sametype->Numeric());
+                           indexing->object->exptype->udt->sametype->Numeric());
                     Emit(GENLVALOP(IDXNI, lvalop));
                     break;
                 case V_STRING:
@@ -524,8 +524,8 @@ struct CodeGen  {
         auto smtype = n.children[0]->exptype;
         auto stype = n.maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
         auto f = n.fld;
-        assert(stype->t == V_STRUCT);  // Ensured by typechecker.
-        auto idx = stype->struc->Has(f);
+        assert(stype->t == V_UDT);  // Ensured by typechecker.
+        auto idx = stype->udt->Has(f);
         assert(idx >= 0);
         if (lvalop >= 0) Emit(GENLVALOP(FLD, lvalop));
         else Emit(IL_PUSHFLD + (int)maybe);
@@ -556,8 +556,8 @@ struct CodeGen  {
             } else {
                 // If this is a comparison op, be sure to use the child type.
                 TypeRef vectype = opc >= MOP_LT ? ltype : ptype;
-                assert(vectype->t == V_STRUCT);
-                auto sub = vectype->struc->sametype;
+                assert(vectype->t == V_UDT);
+                auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t);
                 if (sub->t == V_INT)
                     Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
@@ -631,8 +631,8 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
                 if (index->exptype->t == V_INT) {
                     etype = etype->Element();
                 } else {
-                    auto &struc = *index->exptype->struc;
-                    for (auto &field : struc.fields.v) {
+                    auto &udt = *index->exptype->udt;
+                    for (auto &field : udt.fields.v) {
                         (void)field;
                         etype = etype->Element();
                     }
@@ -640,8 +640,8 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
                 cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
                 break;
             }
-            case V_STRUCT:
-                assert(index->exptype->t == V_INT && object->exptype->struc->sametype->Numeric());
+            case V_UDT:
+                assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
                 cg.Emit(IL_NPUSHIDXI);
                 break;
             case V_STRING:
@@ -740,9 +740,9 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         switch (ctype->t) {
             case V_INT: cg.Emit(IL_IUMINUS); break;
             case V_FLOAT: cg.Emit(IL_FUMINUS); break;
-            case V_STRUCT:
+            case V_UDT:
             case V_VECTOR: {
-                auto elem = ctype->struc->sametype->t;
+                auto elem = ctype->udt->sametype->t;
                 cg.Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
                 break;
             }
@@ -827,7 +827,7 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
-void StructRef::Generate(CodeGen &cg, size_t retval) const {
+void UDTRef::Generate(CodeGen &cg, size_t retval) const {
     cg.Dummy(retval);
 }
 
@@ -1033,7 +1033,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         case V_INT:    cg.Emit(IL_IFOR); break;
         case V_STRING: cg.Emit(IL_SFOR); break;
         case V_VECTOR: cg.Emit(IL_VFOR); break;
-        case V_STRUCT: cg.Emit(IL_NFOR); break;
+        case V_UDT: cg.Emit(IL_NFOR); break;
         default:       assert(false);
     }
     cg.Emit(startloop);
@@ -1048,7 +1048,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
         case V_INT:    cg.Emit(IL_IFORELEM); break;
         case V_STRING: cg.Emit(IL_SFORELEM); break;
         case V_VECTOR: cg.Emit(IsRefNil(typelt.type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
-        case V_STRUCT: cg.Emit(IL_NFORELEM); break;
+        case V_UDT: cg.Emit(IL_NFORELEM); break;
         default:       assert(false);
     }
 }
@@ -1120,8 +1120,8 @@ void Constructor::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return; 
     cg.TakeTemp(Arity());
     auto offset = cg.GetTypeTableOffset(exptype);
-    if (exptype->t == V_STRUCT) {
-        assert(exptype->struc->fields.size() == Arity());
+    if (exptype->t == V_UDT) {
+        assert(exptype->udt->fields.size() == Arity());
         cg.Emit(IL_NEWSTRUCT, offset);
     } else {
         assert(exptype->t == V_VECTOR);

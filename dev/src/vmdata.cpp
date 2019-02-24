@@ -111,7 +111,7 @@ void RefObj::DECDELETENOW(VM &vm) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
-        case V_STRUCT:     ((LStruct *)this)->DeleteSelf(vm); break;
+        case V_UDT:     ((LStruct *)this)->DeleteSelf(vm); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
         default:           assert(false);
     }
@@ -140,7 +140,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_COROUTINE:   return false;
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
-        case V_STRUCT:      return structural && ((LStruct *)a)->Equal(vm, *(LStruct *)b);
+        case V_UDT:      return structural && ((LStruct *)a)->Equal(vm, *(LStruct *)b);
         default:            assert(0); return false;
     }
 }
@@ -162,7 +162,7 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
         case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
-        case V_STRUCT:    ((LStruct *)ro)->ToString(vm, ss, pp);    break;
+        case V_UDT:    ((LStruct *)ro)->ToString(vm, ss, pp);    break;
         case V_RESOURCE:  ((LResource *)ro)->ToString(ss);          break;
         default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
     }
@@ -184,7 +184,7 @@ intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
-        case V_STRUCT:      return ((LStruct *)this)->Hash(vm);
+        case V_UDT:      return ((LStruct *)this)->Hash(vm);
         default:            return (int)(size_t)this;
     }
 }
@@ -212,7 +212,7 @@ Value Value::Copy(VM &vm) {
         if (len) nv->Init(vm, vval()->Elems(), true);
         return Value(nv);
     }
-    case V_STRUCT: {
+    case V_UDT: {
         auto len = stval()->Len(vm);
         auto nv = vm.NewStruct(len, stval()->tti);
         if (len) nv->Init(vm, stval()->Elems(), len, true);
@@ -236,7 +236,7 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
     s += BaseTypeName(t);
     if (t == V_VECTOR || t == V_NIL) {
         s += "[" + vm.GetTypeInfo(subt).Debug(vm, false) + "]";
-    } else if (t == V_STRUCT) {
+    } else if (t == V_UDT) {
         auto sname = vm.StructName(*this);
         s += ":" + sname;
         if (rec) {

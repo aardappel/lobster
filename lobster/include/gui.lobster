@@ -18,7 +18,7 @@ TODO:
 
 namespace gui
 
-private struct elem { id:int, size:xy_i }
+private class elem { id:int, size:xy_i }
 
 private cursize := [ xy_0i ]
 

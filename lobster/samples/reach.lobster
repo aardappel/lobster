@@ -4,7 +4,7 @@ include std
 include vec
 include color
 
-struct segment { pos:xy_f, dir = xy_0 }
+class segment { pos:xy_f, dir = xy_0 }
 segs := map 7: segment { xy { 0.5, 1 } }
 
 ballradius :== 0.1

@@ -59,7 +59,7 @@ namespace lobster {
     TOK(T_NIL, "nil") \
     TOK(T_DEFAULTVAL, "default value") \
     TOK(T_IDENT, "identifier") \
-    TOK(T_STRUCT, "struct") \
+    TOK(T_CLASS, "class") \
     TOK(T_FUN, "def") \
     TOK(T_RETURN, "return") \
     TOK(T_IS, "is") \
@@ -84,7 +84,7 @@ namespace lobster {
     TOK(T_DEFCONST, ":==") \
     TOK(T_DEFTYPEIN, "::=") \
     TOK(T_TYPEIN, "::") \
-    TOK(T_VALUE, "value") \
+    TOK(T_STRUCT, "struct") \
     TOK(T_INCLUDE, "include") \
     TOK(T_INTTYPE, "int") \
     TOK(T_FLOATTYPE, "float") \

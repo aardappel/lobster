@@ -108,39 +108,39 @@ struct GenericParameter {
     string_view name;
 };
 
-struct Struct : Named {
+struct UDT : Named {
     FieldVector fields { 0 };
     vector<GenericParameter> generics;
-    Struct *next = nullptr, *first = this;
-    Struct *superclass = nullptr;
-    Struct *firstsubclass = nullptr, *nextsubclass = nullptr;  // Used in codegen.
+    UDT *next = nullptr, *first = this;
+    UDT *superclass = nullptr;
+    UDT *firstsubclass = nullptr, *nextsubclass = nullptr;  // Used in codegen.
     bool readonly = false;
     bool predeclaration = false;
-    Type thistype { V_STRUCT, this };  // convenient place to store the type corresponding to this.
+    Type thistype { V_UDT, this };  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
 
-    Struct(string_view _name, int _idx) : Named(_name, _idx) {}
-    Struct()                            : Named("", 0) {}
+    UDT(string_view _name, int _idx) : Named(_name, _idx) {}
+    UDT()                            : Named("", 0) {}
 
     int Has(SharedField *fld) {
         for (auto &uf : fields.v) if (uf.id == fld) return int(&uf - &fields.v[0]);
         return -1;
     }
 
-    Struct *CloneInto(Struct *st) {
+    UDT *CloneInto(UDT *st) {
         *st = *this;
-        st->thistype = Type(V_STRUCT, st);
+        st->thistype = Type(V_UDT, st);
         st->next = next;
         st->first = first;
         next = st;
         return st;
     }
 
-    bool IsSpecialization(Struct *other) {
+    bool IsSpecialization(UDT *other) {
         if (!generics.empty()) {
-            for (auto struc = first->next; struc; struc = struc->next)
-                if (struc == other)
+            for (auto udt = first->next; udt; udt = udt->next)
+                if (udt == other)
                     return true;
             return false;
         } else {
@@ -154,11 +154,11 @@ struct Struct : Named {
         return n;
     }
 
-    flatbuffers::Offset<bytecode::Struct> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+    flatbuffers::Offset<bytecode::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
         for (auto f : fields.v)
             fieldoffsets.push_back(bytecode::CreateField(fbb, fbb.CreateString(f.id->name)));
-        return bytecode::CreateStruct(fbb, fbb.CreateString(name), idx,
+        return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx,
                                       fbb.CreateVector(fieldoffsets));
     }
 };
@@ -282,8 +282,8 @@ struct SymbolTable {
     vector<Ident *> identstack;
     vector<SpecIdent *> specidents;
 
-    unordered_map<string_view, Struct *> structs;  // Key points to value!
-    vector<Struct *> structtable;
+    unordered_map<string_view, UDT *> udts;  // Key points to value!
+    vector<UDT *> udttable;
 
     unordered_map<string_view, SharedField *> fields;  // Key points to value!
     vector<SharedField *> fieldtable;
@@ -318,15 +318,15 @@ struct SymbolTable {
     vector<const char *> stored_names;
 
     ~SymbolTable() {
-        for (auto id : identtable)       delete id;
-        for (auto sid : specidents)      delete sid;
-        for (auto st : structtable)      delete st;
-        for (auto f  : functiontable)    delete f;
-        for (auto sf : subfunctiontable) delete sf;
-        for (auto f  : fieldtable)       delete f;
-        for (auto t  : typelist)         delete t;
-        for (auto t  : tuplelist)        delete t;
-        for (auto n  : stored_names)     delete[] n;
+        for (auto id  : identtable)       delete id;
+        for (auto sid : specidents)       delete sid;
+        for (auto u   : udttable)         delete u;
+        for (auto f   : functiontable)    delete f;
+        for (auto sf  : subfunctiontable) delete sf;
+        for (auto f   : fieldtable)       delete f;
+        for (auto t   : typelist)         delete t;
+        for (auto t   : tuplelist)        delete t;
+        for (auto n   : stored_names)     delete[] n;
     }
 
     string NameSpaced(string_view name) {
@@ -398,13 +398,13 @@ struct SymbolTable {
     }
 
     void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
-        if (t->t != V_STRUCT) lex.Error(":: can only be used with struct/value types");
+        if (t->t != V_UDT) lex.Error(":: can only be used with struct/value types");
         for (auto &wp : withstack)
-            if (wp.type->struc == t->struc)
+            if (wp.type->udt == t->udt)
                 lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
-        assert(t->struc);
+        assert(t->udt);
         withstack.push_back({ t, id, sf });
     }
 
@@ -413,7 +413,7 @@ struct SymbolTable {
         if (!fld) return nullptr;
         assert(!id);
         for (auto &wse : withstack) {
-            if (wse.type->struc->Has(fld) >= 0) {
+            if (wse.type->udt->Has(fld) >= 0) {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wse.id;
             }
@@ -455,10 +455,10 @@ struct SymbolTable {
         withstacklevels.pop_back();
     }
 
-    void UnregisterStruct(const Struct *st, Lex &lex) {
+    void UnregisterStruct(const UDT *st, Lex &lex) {
         if (st->predeclaration) lex.Error("pre-declared struct never defined: " + st->name);
-        auto it = structs.find(st->name);
-        if (it != structs.end()) structs.erase(it);
+        auto it = udts.find(st->name);
+        if (it != udts.end()) udts.erase(it);
     }
 
     void UnregisterFun(Function *f) {
@@ -478,39 +478,39 @@ struct SymbolTable {
         }
     }
 
-    Struct &StructDecl(string_view name, Lex &lex) {
-        auto stit = structs.find(name);
-        if (stit != structs.end()) {
-            if (!stit->second->predeclaration) lex.Error("double declaration of type: " + name);
-            stit->second->predeclaration = false;
-            return *stit->second;
+    UDT &StructDecl(string_view name, Lex &lex) {
+        auto uit = udts.find(name);
+        if (uit != udts.end()) {
+            if (!uit->second->predeclaration) lex.Error("double declaration of type: " + name);
+            uit->second->predeclaration = false;
+            return *uit->second;
         } else {
-            auto st = new Struct(name, (int)structtable.size());
-            structs[st->name /* must be in value */] = st;
-            structtable.push_back(st);
+            auto st = new UDT(name, (int)udttable.size());
+            udts[st->name /* must be in value */] = st;
+            udttable.push_back(st);
             return *st;
         }
     }
 
-    Struct &StructUse(string_view name, Lex &lex) {
-        auto stit = structs.find(name);
-        if (stit != structs.end()) return *stit->second;
+    UDT &StructUse(string_view name, Lex &lex) {
+        auto uit = udts.find(name);
+        if (uit != udts.end()) return *uit->second;
         if (!current_namespace.empty()) {
-            stit = structs.find(NameSpaced(name));
-            if (stit != structs.end()) return *stit->second;
+            uit = udts.find(NameSpaced(name));
+            if (uit != udts.end()) return *uit->second;
         }
         lex.Error("unknown type: " + name);
-        return *stit->second;
+        return *uit->second;
     }
 
-    bool IsSuperTypeOrSame(const Struct *sup, const Struct *sub) {
+    bool IsSuperTypeOrSame(const UDT *sup, const UDT *sub) {
         for (auto t = sub; t; t = t->superclass)
             if (t == sup)
                 return true;
         return false;
     }
 
-    const Struct *CommonSuperType(const Struct *a, const Struct *b) {
+    const UDT *CommonSuperType(const UDT *a, const UDT *b) {
         if (a != b) for (;;) {
             a = a->superclass;
             if (!a) return nullptr;
@@ -616,9 +616,9 @@ struct SymbolTable {
         }
         for (auto name = names; *name; name++) {
             // Can't use stucts.find, since all are out of scope.
-            for (auto struc : structtable) if (struc->name == *name) {
+            for (auto udt : udttable) if (udt->name == *name) {
                 for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
-                    auto vt = TypeRef(&struc->thistype);
+                    auto vt = TypeRef(&udt->thistype);
                     for (size_t j = 0; j < i; j++) vt = Wrap(vt, V_VECTOR);
                     sv[i].push_back(vt);
                 }
@@ -650,7 +650,7 @@ struct SymbolTable {
     bool IsGeneric(TypeRef type) {
         if (type->t == V_ANY) return true;
         auto u = type->UnWrapped();
-        return u->t == V_STRUCT && !u->struc->generics.empty();
+        return u->t == V_UDT && !u->udt->generics.empty();
     }
 
     // This one is used to sort types for multi-dispatch.
@@ -662,13 +662,13 @@ struct SymbolTable {
                 return IsLessGeneralThan(*a.sub, *b.sub);
             case V_FUNCTION:
                 return a.sf->idx < b.sf->idx;
-            case V_STRUCT: {
-                if (a.struc == b.struc) return false;
-                auto ans = a.struc->NumSuperTypes();
-                auto bns = b.struc->NumSuperTypes();
+            case V_UDT: {
+                if (a.udt == b.udt) return false;
+                auto ans = a.udt->NumSuperTypes();
+                auto bns = b.udt->NumSuperTypes();
                 return ans != bns
                     ? ans > bns
-                    : a.struc->idx < b.struc->idx;
+                    : a.udt->idx < b.udt->idx;
             }
             default:
                 return false;
@@ -690,8 +690,8 @@ struct SymbolTable {
         for (auto &f : filenames) fns.push_back(fbb.CreateString(f));
         vector<flatbuffers::Offset<bytecode::Function>> functionoffsets;
         for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
-        vector<flatbuffers::Offset<bytecode::Struct>> structoffsets;
-        for (auto s : structtable) structoffsets.push_back(s->Serialize(fbb));
+        vector<flatbuffers::Offset<bytecode::UDT>> udtoffsets;
+        for (auto u : udttable) udtoffsets.push_back(u->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->cursid->sf_def == toplevel));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
@@ -707,7 +707,7 @@ struct SymbolTable {
             fbb.CreateVectorOfStructs(linenumbers),
             fbb.CreateVector(fns),
             fbb.CreateVector(functionoffsets),
-            fbb.CreateVector(structoffsets),
+            fbb.CreateVector(udtoffsets),
             fbb.CreateVector(identoffsets),
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
@@ -720,8 +720,8 @@ struct SymbolTable {
 
 inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullptr) {
     switch (type->t) {
-    case V_STRUCT:
-        return type->struc->name;
+    case V_UDT:
+        return type->udt->name;
     case V_VECTOR:
         return flen && type->Element()->Numeric()
             ? (flen < 0

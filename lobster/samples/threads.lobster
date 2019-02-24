@@ -1,7 +1,7 @@
 // Simple multi-threading example.
 
-struct fib_request { n:int }
-struct fib_response { fr:int }
+class fib_request { n:int }
+class fib_response { fr:int }
 
 def fib(n:int) -> int:
     return if n <= 1: n else: fib(n - 1) + fib(n - 2)

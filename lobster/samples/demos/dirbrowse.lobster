@@ -6,7 +6,7 @@ indentsize := 20.0
 column_margin := 10.0
 fontsize := 20
 
-struct node:
+class node:
     name:string
     size:int
     parent:node?

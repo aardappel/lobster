@@ -98,9 +98,9 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
                 ImGui::TreePop();
             }
             return;
-        case V_STRUCT: {
+        case V_UDT: {
             if (!v.True()) break;
-            auto st = vm.bcf->structs()->Get(ti.structidx);
+            auto st = vm.bcf->udts()->Get(ti.structidx);
             // Special case for numeric structs & colors.
             if (ti.len >= 2 && ti.len <= 4) {
                 for (int i = 1; i < ti.len; i++)

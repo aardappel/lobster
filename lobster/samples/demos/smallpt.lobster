@@ -17,11 +17,11 @@ include vec
 include color
 include texture
 
-value Ray { o:xyz_f, d:xyz_f }
+struct Ray { o:xyz_f, d:xyz_f }
 
 enum + DIFF, SPEC, REFR   // material types, used in radiance()
 
-value Sphere {
+struct Sphere {
     rad:float,                 // radius
     p:xyz_f, e:xyz_f, c:xyz_f, // position, emission, color
     refl:int                   // reflection type (DIFFuse, SPECular, REFRactive)

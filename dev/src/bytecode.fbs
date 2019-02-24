@@ -15,7 +15,7 @@ table Field {
     name:string;
 }
 
-table Struct {
+table UDT {
     name:string;
     idx:int;
     fields:[Field];
@@ -46,7 +46,7 @@ table BytecodeFile {
     filenames:[string];
 
     functions:[Function];
-    structs:[Struct];
+    udts:[UDT];
     idents:[Ident];
 	specidents:[SpecIdent];
 

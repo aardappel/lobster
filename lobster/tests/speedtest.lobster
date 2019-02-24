@@ -4,7 +4,7 @@ include testing
 
 // Define a custom testrunner:
 // Just collect all tests so we can run them interleaved.
-struct test { name:string, t:testf, runs:int, min:float }
+class test { name:string, t:testf, runs:int, min:float }
 tests := []
 number_of_runs := 1
 current_test_runner = def(name:string, t:testf):

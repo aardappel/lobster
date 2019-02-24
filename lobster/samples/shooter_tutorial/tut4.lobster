@@ -9,7 +9,7 @@ worldsize :== 20.0
 playerpos := xy_0
 playerspeed :== 10
 
-struct bullet { pos:xy_f, dir:xy_f }
+class bullet { pos:xy_f, dir:xy_f }
 
 firerate :== 0.1
 bulletspeed :== 15

@@ -5,16 +5,16 @@
 
 include std
 
-struct node {}
+class node {}
 
-struct integer : node
+class integer : node
     i:int
 
     def pretty(): return string(i)
     def eval(): return i
     def compile(): return string(i)
 
-struct inst : node
+class inst : node
     atom:string
     args:[node]
 

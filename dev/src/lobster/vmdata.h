@@ -88,7 +88,7 @@ enum ValueType : int {
     V_RESOURCE = -5,
     V_COROUTINE = -4,
     V_STRING = -3,
-    V_STRUCT = -2,
+    V_UDT = -2,
     V_VECTOR = -1,
     V_NIL = 0,          // VM: null reference, Type checker: nillable.
     V_INT,
@@ -150,7 +150,7 @@ struct TypeInfo {
     ValueType t;
     union {
         type_elem_t subt;  // V_VECTOR | V_NIL
-        struct { int structidx; int len; type_elem_t elems[1]; };    // V_STRUCT
+        struct { int structidx; int len; type_elem_t elems[1]; };    // V_UDT
         int sfidx;  // V_FUNCTION;
         struct { int cofunidx; type_elem_t yieldtype; };  // V_COROUTINE
     };
@@ -392,7 +392,7 @@ struct Value {
     float       fltval() const { assert(type == V_FLOAT);      return (float)fval_; }
     LString    *sval  () const { assert(type == V_STRING);     return sval_;        }
     LVector    *vval  () const { assert(type == V_VECTOR);     return vval_;        }
-    LStruct    *stval () const { assert(type == V_STRUCT);     return stval_;       }
+    LStruct    *stval () const { assert(type == V_UDT);     return stval_;       }
     LCoRoutine *cval  () const { assert(type == V_COROUTINE);  return cval_;        }
     LResource  *xval  () const { assert(type == V_RESOURCE);   return xval_;        }
     RefObj     *ref   () const { assert(IsRef(type));          return ref_;         }
@@ -421,7 +421,7 @@ struct Value {
 
     inline Value(LString *s)         : TYPE_INIT(V_STRING)     sval_(s)         {}
     inline Value(LVector *v)         : TYPE_INIT(V_VECTOR)     vval_(v)         {}
-    inline Value(LStruct *s)         : TYPE_INIT(V_STRUCT)     stval_(s)        {}
+    inline Value(LStruct *s)         : TYPE_INIT(V_UDT)     stval_(s)        {}
     inline Value(LCoRoutine *c)      : TYPE_INIT(V_COROUTINE)  cval_(c)         {}
     inline Value(LResource *r)       : TYPE_INIT(V_RESOURCE)   xval_(r)         {}
     inline Value(RefObj *r)          : TYPE_INIT(V_NIL)        ref_(r)          { assert(false); }
@@ -1176,7 +1176,7 @@ struct LCoRoutine : RefObj {
         #if RTT_ENABLED
         auto &var = AccessVar(i);
         // FIXME: For testing.
-        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_STRUCT)) {
+        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_UDT)) {
             LOG_INFO("coro elem ", vti.Debug(vm), " != ", BaseTypeName(var.type));
             assert(false);
         }

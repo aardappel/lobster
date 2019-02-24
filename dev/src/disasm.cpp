@@ -118,7 +118,7 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         }
         case IL_NEWSTRUCT: {
             auto ti = (TypeInfo *)(typetable + *ip++);
-            ss << bcf->structs()->Get(ti->structidx)->name()->string_view();
+            ss << bcf->udts()->Get(ti->structidx)->name()->string_view();
             break;
         }
 
