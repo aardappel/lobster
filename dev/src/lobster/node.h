@@ -295,7 +295,7 @@ struct StringConstant : Node {
 struct UDTRef : Node {
     UDT *udt;
     UDTRef(const Line &ln, UDT *_udt) : Node(ln), udt(_udt) {}
-    void Dump(ostringstream &ss) const { ss << (udt->readonly ? "struct " : "class ") << udt->name; }
+    void Dump(ostringstream &ss) const { ss << (udt->is_struct ? "struct " : "class ") << udt->name; }
     SHARED_SIGNATURE(UDTRef, TName(T_CLASS), false)
 };
 

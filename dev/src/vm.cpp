@@ -162,7 +162,9 @@ void VM::DumpLeaks() {
                 case V_COROUTINE:
                 case V_RESOURCE:
                 case V_VECTOR:
-                case V_UDT: {
+                case V_STRUCT_R:
+                case V_STRUCT_S:
+                case V_CLASS: {
                     ro->CycleStr(ss);
                     ss << " = ";
                     RefToString(*this, ss, ro, leakpp);
@@ -207,9 +209,9 @@ LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
     OnAlloc(v);
     return v;
 }
-LStruct *VM::NewStruct(intp max, type_elem_t tti) {
-    assert(GetTypeInfo(tti).t == V_UDT);
-    auto s = new (pool.alloc(sizeof(LStruct) + sizeof(Value) * max)) LStruct(tti);
+LObject *VM::NewStruct(intp max, type_elem_t tti) {
+    assert(IsUDT(GetTypeInfo(tti).t));
+    auto s = new (pool.alloc(sizeof(LObject) + sizeof(Value) * max)) LObject(tti);
     OnAlloc(s);
     return s;
 }
@@ -1042,13 +1044,13 @@ VM_DEF_INS(CONT1) {
 
 VM_DEF_JMP(IFOR) { FORLOOP(iter.ival()); }
 VM_DEF_JMP(VFOR) { FORLOOP(iter.vval()->len); }
-VM_DEF_JMP(NFOR) { FORLOOP(iter.stval()->Len(*this)); }
+VM_DEF_JMP(NFOR) { FORLOOP(iter.oval()->Len(*this)); }
 VM_DEF_JMP(SFOR) { FORLOOP(iter.sval()->len); }
 
 VM_DEF_INS(IFORELEM)    { FORELEM(iter.ival(), PUSH(i)); }
 VM_DEF_INS(VFORELEM)    { FORELEM(iter.vval()->len, PUSH(iter.vval()->At(i.ival()))); }
 VM_DEF_INS(VFORELEMREF) { FORELEM(iter.vval()->len, auto el = iter.vval()->At(i.ival()); el.LTINCRTNIL(); PUSH(el)); }
-VM_DEF_INS(NFORELEM)    { FORELEM(iter.stval()->Len(*this), PUSH(iter.stval()->AtS(i.ival()))); }
+VM_DEF_INS(NFORELEM)    { FORELEM(iter.oval()->Len(*this), PUSH(iter.oval()->AtS(i.ival()))); }
 VM_DEF_INS(SFORELEM)    { FORELEM(iter.sval()->len, PUSH(Value((int)((uchar *)iter.sval()->data())[i.ival()]))); }
 
 VM_DEF_INS(FORLOOPI) {
@@ -1115,18 +1117,18 @@ VM_DEF_INS(DUP)    { auto x = TOP(); PUSH(x); VM_RET; }
 #define _FOP(op, extras) \
     TYPEOP(op, extras, fval(), assert(a.type == V_FLOAT && b.type == V_FLOAT))
 
-#define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.stval()->AtS(i).fval() : (T)a.stval()->AtS(i).ival())
+#define _VELEM(a, i, isfloat, T) (isfloat ? (T)a.oval()->AtS(i).fval() : (T)a.oval()->AtS(i).ival())
 #define _VOP(op, extras, T, isfloat, withscalar, comp) Value res; { \
-    auto len = a.stval()->Len(*this); \
-    assert(withscalar || b.stval()->Len(*this) == len); \
-    auto v = NewStruct(len, comp ? GetIntVectorType((int)len) : a.stval()->tti); \
+    auto len = a.oval()->Len(*this); \
+    assert(withscalar || b.oval()->Len(*this) == len); \
+    auto v = NewStruct(len, comp ? GetIntVectorType((int)len) : a.oval()->tti); \
     res = Value(v); \
     for (intp j = 0; j < len; j++) { \
         if (withscalar) VMTYPEEQ(b, isfloat ? V_FLOAT : V_INT) \
-        else VMTYPEEQ(b.stval()->AtS(j), isfloat ? V_FLOAT : V_INT); \
+        else VMTYPEEQ(b.oval()->AtS(j), isfloat ? V_FLOAT : V_INT); \
         auto bv = withscalar ? (isfloat ? (T)b.fval() : (T)b.ival()) : _VELEM(b, j, isfloat, T); \
         if (extras&1 && bv == 0) Div0(); \
-        VMTYPEEQ(a.stval()->AtS(j), isfloat ? V_FLOAT : V_INT); \
+        VMTYPEEQ(a.oval()->AtS(j), isfloat ? V_FLOAT : V_INT); \
         v->AtS(j) = Value(_VELEM(a, j, isfloat, T) op bv); \
     } \
 }
@@ -1137,6 +1139,7 @@ VM_DEF_INS(DUP)    { auto x = TOP(); PUSH(x); VM_RET; }
 #define _SCAT() Value res = NewString(a.sval()->strv(), b.sval()->strv())
 
 #define ACOMPEN(op)        { GETARGS(); Value res = a.any() op b.any();  PUSH(res); VM_RET; }
+#define STCOMPEN(op)       { assert(false); VM_RET; }
 #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                PUSH(res); VM_RET; }
 #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                PUSH(res); VM_RET; }
 #define IVVOP(op, extras)  { GETARGS(); _IVOP(op, extras, false, false); PUSH(res); VM_RET; }
@@ -1206,6 +1209,8 @@ VM_DEF_INS(FVSGE)  { FVSOPC(>=, 0); }
 
 VM_DEF_INS(AEQ) { ACOMPEN(==); }
 VM_DEF_INS(ANE) { ACOMPEN(!=); }
+VM_DEF_INS(STEQ) { STCOMPEN(==); }
+VM_DEF_INS(STNE) { STCOMPEN(!=); }
 
 VM_DEF_INS(IADD) { IOP(+,  0); }
 VM_DEF_INS(ISUB) { IOP(-,  0); }
@@ -1249,11 +1254,11 @@ VM_DEF_INS(FUMINUS) { Value a = POP(); PUSH(Value(-a.fval())); VM_RET; }
 #define VUMINUS(isfloat, type) { \
     Value a = POP(); \
     Value res; \
-    auto len = a.stval()->Len(*this); \
-    res = Value(NewStruct(len, a.stval()->tti)); \
+    auto len = a.oval()->Len(*this); \
+    res = Value(NewStruct(len, a.oval()->tti)); \
     for (intp i = 0; i < len; i++) { \
-        VMTYPEEQ(a.stval()->AtS(i), isfloat ? V_FLOAT : V_INT); \
-        res.stval()->AtS(i) = Value(-_VELEM(a, i, isfloat, type)); \
+        VMTYPEEQ(a.oval()->AtS(i), isfloat ? V_FLOAT : V_INT); \
+        res.oval()->AtS(i) = Value(-_VELEM(a, i, isfloat, type)); \
     } \
     PUSH(res); \
     VM_RET; \
@@ -1327,8 +1332,8 @@ VM_DEF_INS(PUSHFLD) {
     auto i = *ip++;
     Value r = POP();
     VMASSERT(r.ref());
-    assert(i < r.stval()->Len(*this));
-    PUSH(r.stval()->AtS(i));
+    assert(i < r.oval()->Len(*this));
+    PUSH(r.oval()->AtS(i));
     VM_RET;
 }
 VM_DEF_INS(PUSHFLDMREF) {
@@ -1337,8 +1342,8 @@ VM_DEF_INS(PUSHFLDMREF) {
     if (!r.ref()) {
         PUSH(r);
     } else {
-        assert(i < r.stval()->Len(*this));
-        PUSH(r.stval()->AtS(i));
+        assert(i < r.oval()->Len(*this));
+        PUSH(r.oval()->AtS(i));
     }
     VM_RET;
 }
@@ -1428,8 +1433,8 @@ void VM::PushDerefIdxVector(intp i) {
 void VM::PushDerefIdxStruct(intp i) {
     Value r = POP();
     VMASSERT(r.ref());
-    RANGECHECK(i, r.stval()->Len(*this), r.stval());
-    PUSH(r.stval()->AtS(i));
+    RANGECHECK(i, r.oval()->Len(*this), r.oval());
+    PUSH(r.oval()->AtS(i));
 }
 
 void VM::PushDerefIdxString(intp i) {
@@ -1443,15 +1448,15 @@ void VM::PushDerefIdxString(intp i) {
 Value &VM::GetFieldLVal(intp i) {
     Value vec = POP();
     #ifdef _DEBUG
-        RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
+        RANGECHECK(i, vec.oval()->Len(*this), vec.oval());
     #endif
-    return vec.stval()->AtS(i);
+    return vec.oval()->AtS(i);
 }
 
 Value &VM::GetFieldILVal(intp i) {
     Value vec = POP();
-    RANGECHECK(i, vec.stval()->Len(*this), vec.stval());
-    return vec.stval()->AtS(i);
+    RANGECHECK(i, vec.oval()->Len(*this), vec.oval());
+    return vec.oval()->AtS(i);
 }
 
 Value &VM::GetVecLVal(intp i) {
@@ -1588,7 +1593,9 @@ PPOP(FMMPR, true , -, false, fval)
 
 string VM::ProperTypeName(const TypeInfo &ti) {
     switch (ti.t) {
-        case V_UDT: return string(ReverseLookupType(ti.structidx));
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS: return string(ReverseLookupType(ti.structidx));
         case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
         case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
         default: return string(BaseTypeName(ti.t));
@@ -1610,7 +1617,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
             for (size_t i = 0; i < nf->retvals.v.size(); i++) {
                 auto t = (TOPPTR() - nf->retvals.v.size() + i)->type;
                 auto u = nf->retvals.v[i].type->t;
-                assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && t == V_UDT));
+                assert(t == u || u == V_ANY || u == V_NIL || (u == V_VECTOR && IsUDT(t)));
             }
             assert(nf->retvals.v.size() || TOP().type == V_NIL);
         }
@@ -1621,8 +1628,8 @@ void VM::BCallRetCheck(const NativeFun *nf) {
 
 intp VM::GrabIndex(const Value &idx) {
     auto &v = TOP();
-    for (auto i = idx.stval()->Len(*this) - 1; ; i--) {
-        auto sidx = idx.stval()->AtS(i);
+    for (auto i = idx.oval()->Len(*this) - 1; ; i--) {
+        auto sidx = idx.oval()->AtS(i);
         VMTYPEEQ(sidx, V_INT);
         if (!i) {
             return sidx.ival();
@@ -1695,13 +1702,13 @@ void VM::WorkerWrite(RefObj *ref) {
     if (!tuple_space) return;
     if (!ref) Error("thread write: nil reference");
     auto &ti = ref->ti(*this);
-    if (ti.t != V_UDT) Error("thread write: must be a struct");
-    auto st = (LStruct *)ref;
+    if (ti.t != V_CLASS) Error("thread write: must be a class");
+    auto st = (LObject *)ref;
     auto buf = new Value[ti.len];
     for (int i = 0; i < ti.len; i++) {
         // FIXME: lift this restriction.
         if (IsRefNil(GetTypeInfo(ti.elems[i]).t))
-            Error("thread write: only scalar struct members supported for now");
+            Error("thread write: only scalar class members supported for now");
         buf[i] = st->AtS(i);
     }
     auto &tt = tuple_space->tupletypes[ti.structidx];
@@ -1712,9 +1719,9 @@ void VM::WorkerWrite(RefObj *ref) {
     tt.condition.notify_one();
 }
 
-LStruct *VM::WorkerRead(type_elem_t tti) {
+LObject *VM::WorkerRead(type_elem_t tti) {
     auto &ti = GetTypeInfo(tti);
-    if (ti.t != V_UDT) Error("thread read: must be a struct type");
+    if (ti.t != V_CLASS) Error("thread read: must be a class type");
     Value *buf = nullptr;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {

@@ -69,6 +69,7 @@ enum MathOp {
     F(FVSADD, 0) F(FVSSUB, 0) F(FVSMUL, 0) F(FVSDIV, 0) F(FVSMOD, 0) \
     F(FVSLT, 0) F(FVSGT, 0) F(FVSLE, 0) F(FVSGE, 0) \
     F(AEQ, 0) F(ANE, 0) \
+    F(STEQ, 0) F(STNE, 0) \
     F(IUMINUS, 0) F(FUMINUS, 0) F(IVUMINUS, 0) F(FVUMINUS, 0) \
     F(LOGNOT, 0) F(LOGNOTREF, 0) \
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \

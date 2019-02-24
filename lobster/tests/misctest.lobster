@@ -26,8 +26,8 @@ run_test("misc"):
     assert test_namespace_f() == 1
     assert (test_namespace_g {}).x == 1
 
-    struct testa { a:int }
-    struct testb : testa { b:int }
+    class testa { a:int }
+    class testb : testa { b:int }
 
     def tf(x:int, y:int): return 1
     def tf(x:string, y:float): return 2
@@ -138,7 +138,7 @@ run_test("misc"):
     aa := 5
     aa %= 2
     assert aa == 1
-    assert equal(sign(xyz_f { -6, 0, 6 }), xyz_i { -1, 0, 1 })
+    assert sign(xyz_f { -6, 0, 6 }) == xyz_i { -1, 0, 1 }
 
     // multiple return values
     bb, cc, dd, ee := 1, 1, 1, 1

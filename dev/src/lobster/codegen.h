@@ -92,7 +92,9 @@ struct CodeGen  {
                     tt.push_back(TYPE_ELEM_ANY);
                 }
                 break;
-            case V_UDT:
+            case V_CLASS:
+            case V_STRUCT_R:
+            case V_STRUCT_S:
                 if (type->udt->typeinfo >= 0)
                     return type->udt->typeinfo;
                 type->udt->typeinfo = (type_elem_t)type_table.size();
@@ -261,7 +263,7 @@ struct CodeGen  {
                 // See if this entry contains sub-types and generate additional entries.
                 for (size_t j = 0; j < f.nargs(); j++) {
                     auto arg = sf->args.v[j];
-                    if (arg.type->t == V_UDT) {
+                    if (IsUDT(arg.type->t)) {
                         auto udt = arg.type->udt;
                         for (auto subs = udt->firstsubclass; subs; subs = subs->nextsubclass) {
                             // See if this instance already exists:
@@ -463,7 +465,7 @@ struct CodeGen  {
                 assert(lvalop != LVO_IMOD); lvalop += LVO_FADD - LVO_IADD;
             } else if (type->t == V_STRING) {
                 assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
-            } else if (type->t == V_UDT) {
+            } else if (type->t == V_STRUCT_S) {
                 auto sub = type->udt->sametype;
                 bool withscalar = IsScalar(rhs->exptype->t);
                 if (sub->t == V_INT) {
@@ -503,7 +505,9 @@ struct CodeGen  {
                          ? GENLVALOP(IDXVI, lvalop)
                          : GENLVALOP(IDXVV, lvalop));
                     break;
-                case V_UDT:
+                case V_CLASS:
+                case V_STRUCT_R:
+                case V_STRUCT_S:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
                     Emit(GENLVALOP(IDXNI, lvalop));
@@ -524,7 +528,7 @@ struct CodeGen  {
         auto smtype = n.children[0]->exptype;
         auto stype = n.maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
         auto f = n.fld;
-        assert(stype->t == V_UDT);  // Ensured by typechecker.
+        assert(IsUDT(stype->t));  // Ensured by typechecker.
         auto idx = stype->udt->Has(f);
         assert(idx >= 0);
         if (lvalop >= 0) Emit(GENLVALOP(FLD, lvalop));
@@ -550,13 +554,17 @@ struct CodeGen  {
             Emit(IL_SADD + opc);
         } else {
             if (opc >= MOP_EQ) {  // EQ/NEQ
-                assert(IsRefNil(ltype->t) &&
-                        IsRefNil(rtype->t));
-                Emit(IL_AEQ + opc - MOP_EQ);
+                if (IsStruct(ltype->t)) {
+                    Emit(IL_STEQ + opc - MOP_EQ);
+                } else {
+                    assert(IsRefNil(ltype->t) &&
+                           IsRefNil(rtype->t));
+                    Emit(IL_AEQ + opc - MOP_EQ);
+                }
             } else {
                 // If this is a comparison op, be sure to use the child type.
                 TypeRef vectype = opc >= MOP_LT ? ltype : ptype;
-                assert(vectype->t == V_UDT);
+                assert(vectype->t == V_STRUCT_S);
                 auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t);
                 if (sub->t == V_INT)
@@ -640,7 +648,9 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
                 cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
                 break;
             }
-            case V_UDT:
+            case V_CLASS:
+            case V_STRUCT_R:
+            case V_STRUCT_S:
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
                 cg.Emit(IL_NPUSHIDXI);
                 break;
@@ -740,8 +750,7 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         switch (ctype->t) {
             case V_INT: cg.Emit(IL_IUMINUS); break;
             case V_FLOAT: cg.Emit(IL_FUMINUS); break;
-            case V_UDT:
-            case V_VECTOR: {
+            case V_STRUCT_S: {
                 auto elem = ctype->udt->sametype->t;
                 cg.Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
                 break;
@@ -1030,11 +1039,11 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(body, 0);
     cg.SetLabel(startloop);
     switch (iter->exptype->t) {
-        case V_INT:    cg.Emit(IL_IFOR); break;
-        case V_STRING: cg.Emit(IL_SFOR); break;
-        case V_VECTOR: cg.Emit(IL_VFOR); break;
-        case V_UDT: cg.Emit(IL_NFOR); break;
-        default:       assert(false);
+        case V_INT:      cg.Emit(IL_IFOR); break;
+        case V_STRING:   cg.Emit(IL_SFOR); break;
+        case V_VECTOR:   cg.Emit(IL_VFOR); break;
+        case V_STRUCT_S: cg.Emit(IL_NFOR); break;
+        default:         assert(false);
     }
     cg.Emit(startloop);
     cg.nested_fors--;
@@ -1045,11 +1054,11 @@ void For::Generate(CodeGen &cg, size_t retval) const {
 void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
     auto typelt = cg.temptypestack.back();
     switch (typelt.type->t) {
-        case V_INT:    cg.Emit(IL_IFORELEM); break;
-        case V_STRING: cg.Emit(IL_SFORELEM); break;
-        case V_VECTOR: cg.Emit(IsRefNil(typelt.type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
-        case V_UDT: cg.Emit(IL_NFORELEM); break;
-        default:       assert(false);
+        case V_INT:       cg.Emit(IL_IFORELEM); break;
+        case V_STRING:    cg.Emit(IL_SFORELEM); break;
+        case V_VECTOR:    cg.Emit(IsRefNil(typelt.type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
+        case V_STRUCT_S:  cg.Emit(IL_NFORELEM); break;
+        default:          assert(false);
     }
 }
 
@@ -1120,7 +1129,7 @@ void Constructor::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return; 
     cg.TakeTemp(Arity());
     auto offset = cg.GetTypeTableOffset(exptype);
-    if (exptype->t == V_UDT) {
+    if (IsUDT(exptype->t)) {
         assert(exptype->udt->fields.size() == Arity());
         cg.Emit(IL_NEWSTRUCT, offset);
     } else {

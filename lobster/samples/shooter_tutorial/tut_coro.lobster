@@ -23,6 +23,8 @@ def level(highscore, lframe):
     playerpos := xy_0
     playerspeed :== 10
 
+    tomouse := xy_1
+
     bs := coroutine bulletset()
     es := coroutine enemyset()
 
@@ -46,9 +48,9 @@ def level(highscore, lframe):
         lastbullet := gl_time()
         bullets := []
         forever():
-            dir := frame(nil) or xy_0
+            frame(nil)
             if lastbullet < gl_time():
-                bullets.push(coroutine bullet(playerpos, dir))
+                bullets.push(coroutine bullet(playerpos, tomouse))
                 lastbullet += firerate
 
             bullets = filter(bullets) b:
@@ -105,10 +107,10 @@ def level(highscore, lframe):
             if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
                 playerpos = newpos
 
-            tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
+            tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
 
             es.resume()
-            bs.resume(tomouse)
+            bs.resume()
 
             gl_translate gl_local_mouse_pos(0):
                 gl_line_mode 1:

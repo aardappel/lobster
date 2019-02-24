@@ -62,10 +62,10 @@ template<typename T> Value BinarySearch(VM &vm, Value &l, Value &key, T comparef
 }
 
 Value ReplaceStruct(VM &vm, Value &l, Value &i, Value &a) {
-    auto len = l.stval()->Len(vm);
+    auto len = l.oval()->Len(vm);
     if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
-    auto nv = vm.NewStruct(len, l.stval()->tti);
-    if (len) nv->Init(vm, &l.stval()->AtS(0), len, true);
+    auto nv = vm.NewStruct(len, l.oval()->tti);
+    if (len) nv->Init(vm, &l.oval()->AtS(0), len, true);
     nv->DecS(vm, i.ival());
     nv->AtS(i.ival()) = a;
     return Value(nv);
@@ -201,14 +201,14 @@ nfr("length", "s", "S", "I",
 nfr("length", "s", "F}", "I",
     "number of fields in a numerical struct",
     [](VM &vm, Value &a) {
-        auto len = a.stval()->Len(vm);
+        auto len = a.oval()->Len(vm);
         return Value(len);
     });
 
 nfr("length", "s", "I}", "I",
     "number of fields in a numerical struct",
     [](VM &vm, Value &a) {
-        auto len = a.stval()->Len(vm);
+        auto len = a.oval()->Len(vm);
         return Value(len);
     });
 
@@ -368,7 +368,7 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
 nfr("any", "xs", "I}", "I",
     "returns wether any elements of the numeric struct are true values",
     [](VM &vm, Value &v) {
-        ANY_F(stval, AtS(i), Len(vm))
+        ANY_F(oval, AtS(i), Len(vm))
     });
 
 nfr("any", "xs", "A]*", "I",
@@ -381,9 +381,9 @@ nfr("all", "xs", "I}", "I",
     "returns wether all elements of the numeric struct are true values",
     [](VM &vm, Value &v) {
         Value r(true);
-        auto l = v.stval()->Len(vm);
+        auto l = v.oval()->Len(vm);
         for (intp i = 0; i < l; i++) {
-            if (!v.stval()->AtS(i).True()) {
+            if (!v.oval()->AtS(i).True()) {
                 r = Value(false);
                 break;
             }
@@ -586,14 +586,14 @@ nfr("sqrt", "f", "F", "F",
     [](VM &, Value &a) { return Value(sqrt(a.fval())); });
 
 #define VECTOROPT(op, typeinfo) \
-    auto len = a.stval()->Len(vm); \
+    auto len = a.oval()->Len(vm); \
     auto v = vm.NewStruct(len, typeinfo); \
     for (intp i = 0; i < len; i++) { \
-        auto f = a.stval()->AtS(i); \
+        auto f = a.oval()->AtS(i); \
         v->AtS(i) = Value(op); \
     } \
     return Value(v);
-#define VECTOROP(op) VECTOROPT(op, a.stval()->tti)
+#define VECTOROP(op) VECTOROPT(op, a.oval()->tti)
 #define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
 #define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
 
@@ -686,7 +686,7 @@ nfr("degrees", "angle", "F", "F",
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",
     [](VM &vm, Value &vec) {
-        switch (vec.stval()->Len(vm)) {
+        switch (vec.oval()->Len(vm)) {
             case 2: { auto v = ValueToF<2>(vm, vec);
                 return ToValueF(vm, v == floatp2_0 ? v : normalize(v)); }
             case 3: { auto v = ValueToF<3>(vm, vec);
@@ -751,14 +751,14 @@ nfr("clamp", "x,min,max", "I}I}I}", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
     [](VM &vm, Value &a, Value &b, Value &c) {
         return ToValueI(vm, geom::clamp(ValueToI<4>(vm, a), ValueToI<4>(vm, b), ValueToI<4>(vm, c)),
-                        a.stval()->Len(vm));
+                        a.oval()->Len(vm));
     });
 
 nfr("clamp", "x,min,max", "F}F}F}", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
     [](VM &vm, Value &a, Value &b, Value &c) {
         return ToValueF(vm, geom::clamp(ValueToF<4>(vm, a), ValueToF<4>(vm, b), ValueToF<4>(vm, c)),
-                        a.stval()->Len(vm));
+                        a.oval()->Len(vm));
     });
 
 nfr("in_range", "x,range,bias", "III?", "I",
@@ -813,13 +813,13 @@ nfr("sign", "x", "F}", "I}",
 
 // FIXME: need to guarantee this assert in typechecking
 #define VECBINOP(name,access) \
-    auto len = x.stval()->Len(vm); \
-    if (len != y.stval()->Len(vm)) vm.BuiltinError(#name "() arguments must be equal length"); \
-    auto type = x.stval()->tti; \
-    assert(type == y.stval()->tti); \
+    auto len = x.oval()->Len(vm); \
+    if (len != y.oval()->Len(vm)) vm.BuiltinError(#name "() arguments must be equal length"); \
+    auto type = x.oval()->tti; \
+    assert(type == y.oval()->tti); \
     auto v = vm.NewStruct(len, type); \
     for (intp i = 0; i < len; i++) { \
-        v->AtS(i) = Value(name(x.stval()->AtS(i).access(), y.stval()->AtS(i).access())); \
+        v->AtS(i) = Value(name(x.oval()->AtS(i).access(), y.oval()->AtS(i).access())); \
     } \
     return Value(v);
 
@@ -846,10 +846,10 @@ nfr("min", "x,y", "F}F}", "F}",
     [](VM &vm, Value &x, Value &y) { VECBINOP(min,fval) });
 nfr("min", "v", "I}", "I",
     "smallest component of a int vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), stval, Len(vm), AtS(i)) });
+    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), oval, Len(vm), AtS(i)) });
 nfr("min", "v", "F}", "F",
     "smallest component of a float vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), stval, Len(vm), AtS(i)) });
+    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), oval, Len(vm), AtS(i)) });
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
     [](VM &, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) });
@@ -871,10 +871,10 @@ nfr("max", "x,y", "F}F}", "F}",
     [](VM &vm, Value &x, Value &y) { VECBINOP(max,fval) });
 nfr("max", "v", "I}", "I",
     "largest component of a int vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), stval, Len(vm), AtS(i)) });
+    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), oval, Len(vm), AtS(i)) });
 nfr("max", "v", "F}", "F",
     "largest component of a float vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), stval, Len(vm), AtS(i)) });
+    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), oval, Len(vm), AtS(i)) });
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
     [](VM &, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) });
@@ -891,7 +891,7 @@ nfr("lerp", "x,y,f", "FFF", "F",
 nfr("lerp", "a,b,f", "F}F}F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
     [](VM &vm, Value &x, Value &y, Value &f) {
-        auto numelems = x.stval()->Len(vm);
+        auto numelems = x.oval()->Len(vm);
         return ToValueF(vm, mix(ValueToF<4>(vm, x), ValueToF<4>(vm, y), (float)f.fval()), numelems);
     });
 

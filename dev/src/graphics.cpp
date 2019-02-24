@@ -786,7 +786,7 @@ nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "I",
     " in the shader.",
     [](VM &vm, Value &name, Value &vec, Value &ignore_errors) {
         auto v = ValueToFLT<4>(vm, vec);
-        auto r = SetUniform(vm, name, v.begin(), (int)vec.stval()->Len(vm), ignore_errors.True());
+        auto r = SetUniform(vm, name, v.begin(), (int)vec.oval()->Len(vm), ignore_errors.True());
         return r;
     });
 

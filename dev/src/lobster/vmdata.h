@@ -81,20 +81,22 @@ const intp3 intp3_0 = intp3((intp)0);
 
 enum ValueType : int {
     // refc types are negative
-    V_MINVMTYPES = -9,
-    V_ANY = -8,         // any other reference type.
-    V_STACKFRAMEBUF = -7,
-    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
+    V_MINVMTYPES = -10,
+    V_ANY = -9,         // any other reference type.
+    V_STACKFRAMEBUF = -8,
+    V_VALUEBUF = -7,    // only used as memory type for vector/coro buffers, not used by Value.
+    V_STRUCT_R = -6,
     V_RESOURCE = -5,
     V_COROUTINE = -4,
     V_STRING = -3,
-    V_UDT = -2,
+    V_CLASS = -2,
     V_VECTOR = -1,
     V_NIL = 0,          // VM: null reference, Type checker: nillable.
     V_INT,
     V_FLOAT,
     V_FUNCTION,
     V_YIELD,
+    V_STRUCT_S,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value. 
@@ -108,14 +110,21 @@ inline bool IsUnBoxed(ValueType t) { return t == V_INT || t == V_FLOAT || t == V
 inline bool IsRef(ValueType t) { return t <  V_NIL; }
 inline bool IsRefNil(ValueType t) { return t <= V_NIL; }
 inline bool IsRefNilVar(ValueType t) { return t <= V_NIL || t == V_VAR; }
+inline bool IsRefNilStruct(ValueType t) { return t <= V_NIL || t == V_STRUCT_S; }
+inline bool IsRefNilNoStruct(ValueType t) { return t <= V_NIL && t != V_STRUCT_R; }
 inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 inline bool IsRuntimePrintable(ValueType t) { return t <= V_FLOAT; }
+inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
+inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
+inline bool IsNillable(ValueType t) { return IsRef(t) && t != V_STRUCT_R; }
 
 inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
-        "any", "<value_buffer>", "<stackframe_buffer>",
-        "resource", "coroutine", "string", "struct", "vector",
-        "nil", "int", "float", "function", "yield_function", "variable", "typeid", "void",
+        "any", "<stackframe_buffer>", "<value_buffer>",
+        "struct_ref"
+        "resource", "coroutine", "string", "class", "vector",
+        "nil", "int", "float", "function", "yield_function", "struct_scalar",
+        "variable", "typeid", "void",
         "tuple", "undefined",
         "<logstart>", "<logend>", "<logmarker>"
     };
@@ -150,7 +159,7 @@ struct TypeInfo {
     ValueType t;
     union {
         type_elem_t subt;  // V_VECTOR | V_NIL
-        struct { int structidx; int len; type_elem_t elems[1]; };    // V_UDT
+        struct { int structidx; int len; type_elem_t elems[1]; };    // V_CLASS, V_STRUCT_*
         int sfidx;  // V_FUNCTION;
         struct { int cofunidx; type_elem_t yieldtype; };  // V_COROUTINE
     };
@@ -165,7 +174,7 @@ struct TypeInfo {
 struct Value;
 struct LString;
 struct LVector;
-struct LStruct;
+struct LObject;
 struct LCoRoutine;
 
 struct PrintPrefs {
@@ -321,7 +330,7 @@ struct InsPtr {
     // We use regular pointers of the current architecture.
     typedef LString *LStringPtr;
     typedef LVector *LVectorPtr;
-    typedef LStruct *LStructPtr;
+    typedef LObject *LStructPtr;
     typedef LCoRoutine *LCoRoutinePtr;
     typedef LResource *LResourcePtr;
     typedef RefObj *RefObjPtr;
@@ -347,7 +356,7 @@ struct InsPtr {
     };
     typedef CompressedPtr<LString> LStringPtr;
     typedef CompressedPtr<LVector> LVectorPtr;
-    typedef CompressedPtr<LStruct> LStructPtr;
+    typedef CompressedPtr<LObject> LStructPtr;
     typedef CompressedPtr<LCoRoutine> LCoRoutinePtr;
     typedef CompressedPtr<LResource> LResourcePtr;
     typedef CompressedPtr<BoxedInt> BoxedIntPtr;
@@ -376,7 +385,7 @@ struct Value {
         // Reference values (includes NULL if nillable version).
         LStringPtr sval_;
         LVectorPtr vval_;
-        LStructPtr stval_;
+        LStructPtr oval_;
         LCoRoutinePtr cval_;
         LResourcePtr xval_;
 
@@ -392,7 +401,7 @@ struct Value {
     float       fltval() const { assert(type == V_FLOAT);      return (float)fval_; }
     LString    *sval  () const { assert(type == V_STRING);     return sval_;        }
     LVector    *vval  () const { assert(type == V_VECTOR);     return vval_;        }
-    LStruct    *stval () const { assert(type == V_UDT);     return stval_;       }
+    LObject    *oval  () const { assert(type == V_CLASS);      return oval_;        }
     LCoRoutine *cval  () const { assert(type == V_COROUTINE);  return cval_;        }
     LResource  *xval  () const { assert(type == V_RESOURCE);   return xval_;        }
     RefObj     *ref   () const { assert(IsRef(type));          return ref_;         }
@@ -421,7 +430,7 @@ struct Value {
 
     inline Value(LString *s)         : TYPE_INIT(V_STRING)     sval_(s)         {}
     inline Value(LVector *v)         : TYPE_INIT(V_VECTOR)     vval_(v)         {}
-    inline Value(LStruct *s)         : TYPE_INIT(V_UDT)     stval_(s)        {}
+    inline Value(LObject *s)         : TYPE_INIT(V_CLASS)      oval_(s)         {}
     inline Value(LCoRoutine *c)      : TYPE_INIT(V_COROUTINE)  cval_(c)         {}
     inline Value(LResource *r)       : TYPE_INIT(V_RESOURCE)   xval_(r)         {}
     inline Value(RefObj *r)          : TYPE_INIT(V_NIL)        ref_(r)          { assert(false); }
@@ -453,8 +462,8 @@ struct Value {
 template<typename T> inline T *AllocSubBuf(VM &vm, size_t size, type_elem_t tti);
 template<typename T> inline void DeallocSubBuf(VM &vm, T *v, size_t size);
 
-struct LStruct : RefObj {
-    LStruct(type_elem_t _tti) : RefObj(_tti) {}
+struct LObject : RefObj {
+    LObject(type_elem_t _tti) : RefObj(_tti) {}
 
     // FIXME: reduce the use of these.
     intp Len(VM &vm) const { return ti(vm).len; }
@@ -478,7 +487,7 @@ struct LStruct : RefObj {
 
     void ToString(VM &vm, ostringstream &ss, PrintPrefs &pp);
 
-    bool Equal(VM &vm, const LStruct &o) {
+    bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
         auto len = Len(vm);
         assert(len == o.Len(vm));
@@ -774,7 +783,7 @@ struct VM {
     
     void OnAlloc(RefObj *ro);
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
-    LStruct *NewStruct(intp max, type_elem_t tti);
+    LObject *NewStruct(intp max, type_elem_t tti);
     LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
@@ -796,7 +805,7 @@ struct VM {
     void StartWorkers(size_t numthreads);
     void TerminateWorkers();
     void WorkerWrite(RefObj *ref);
-    LStruct *WorkerRead(type_elem_t tti);
+    LObject *WorkerRead(type_elem_t tti);
 
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_OP_ARGS const int *ip
@@ -941,13 +950,13 @@ template<typename T, bool back> T ReadValLE(const LString *s, intp i) {
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
 template<int N> inline vec<floatp, N> ValueToF(VM &vm, const Value &v, floatp def = 0) {
     vec<floatp, N> t;
-    for (int i = 0; i < N; i++) t[i] = v.stval()->Len(vm) > i ? v.stval()->AtS(i).fval() : def;
+    for (int i = 0; i < N; i++) t[i] = v.oval()->Len(vm) > i ? v.oval()->AtS(i).fval() : def;
     return t;
 }
 
 template<int N> inline vec<intp, N> ValueToI(VM &vm, const Value &v, intp def = 0) {
     vec<intp, N> t;
-    for (int i = 0; i < N; i++) t[i] = v.stval()->Len(vm) > i ? v.stval()->AtS(i).ival() : def;
+    for (int i = 0; i < N; i++) t[i] = v.oval()->Len(vm) > i ? v.oval()->AtS(i).ival() : def;
     return t;
 }
 
@@ -1176,7 +1185,7 @@ struct LCoRoutine : RefObj {
         #if RTT_ENABLED
         auto &var = AccessVar(i);
         // FIXME: For testing.
-        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && var.type == V_UDT)) {
+        if(vt != var.type && var.type != V_NIL && !(vt == V_VECTOR && IsUDT(var.type))) {
             LOG_INFO("coro elem ", vti.Debug(vm), " != ", BaseTypeName(var.type));
             assert(false);
         }

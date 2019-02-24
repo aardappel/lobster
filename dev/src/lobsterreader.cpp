@@ -142,7 +142,7 @@ struct ValueParser {
                 return ParseElems(T_RIGHTBRACKET, typeoff);
             }
             case T_IDENT: {
-                ExpectType(V_UDT, vt);
+                ExpectType(V_CLASS, vt);
                 auto sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);

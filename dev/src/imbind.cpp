@@ -98,7 +98,9 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
                 ImGui::TreePop();
             }
             return;
-        case V_UDT: {
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS: {
             if (!v.True()) break;
             auto st = vm.bcf->udts()->Get(ti.structidx);
             // Special case for numeric structs & colors.
@@ -141,7 +143,7 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
             if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
                 auto fields = st->fields();
                 for (int i = 0; i < ti.len; i++) {
-                    ValToGUI(vm, v.stval()->AtS(i), vm.GetTypeInfo(ti.elems[i]),
+                    ValToGUI(vm, v.oval()->AtS(i), vm.GetTypeInfo(ti.elems[i]),
                              fields->Get(i)->name()->string_view(), false);
                 }
                 ImGui::TreePop();

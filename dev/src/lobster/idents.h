@@ -114,14 +114,15 @@ struct UDT : Named {
     UDT *next = nullptr, *first = this;
     UDT *superclass = nullptr;
     UDT *firstsubclass = nullptr, *nextsubclass = nullptr;  // Used in codegen.
-    bool readonly = false;
+    bool is_struct = false, hasref = false;
     bool predeclaration = false;
-    Type thistype { V_UDT, this };  // convenient place to store the type corresponding to this.
+    Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
 
-    UDT(string_view _name, int _idx) : Named(_name, _idx) {}
-    UDT()                            : Named("", 0) {}
+    UDT(string_view _name, int _idx, bool is_struct) : Named(_name, _idx), is_struct(is_struct) {
+        thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
+    }
 
     int Has(SharedField *fld) {
         for (auto &uf : fields.v) if (uf.id == fld) return int(&uf - &fields.v[0]);
@@ -130,7 +131,7 @@ struct UDT : Named {
 
     UDT *CloneInto(UDT *st) {
         *st = *this;
-        st->thistype = Type(V_UDT, st);
+        st->thistype.udt = st;
         st->next = next;
         st->first = first;
         next = st;
@@ -398,7 +399,7 @@ struct SymbolTable {
     }
 
     void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
-        if (t->t != V_UDT) lex.Error(":: can only be used with struct/value types");
+        if (!IsUDT(t->t)) lex.Error(":: can only be used with struct/value types");
         for (auto &wp : withstack)
             if (wp.type->udt == t->udt)
                 lex.Error("type used twice in the same scope with ::");
@@ -478,14 +479,17 @@ struct SymbolTable {
         }
     }
 
-    UDT &StructDecl(string_view name, Lex &lex) {
+    UDT &StructDecl(string_view name, Lex &lex, bool is_struct) {
         auto uit = udts.find(name);
         if (uit != udts.end()) {
-            if (!uit->second->predeclaration) lex.Error("double declaration of type: " + name);
+            if (!uit->second->predeclaration)
+                lex.Error("double declaration of type: " + name);
+            if (uit->second->is_struct != is_struct)
+                lex.Error("class/struct previously declared as different kind");
             uit->second->predeclaration = false;
             return *uit->second;
         } else {
-            auto st = new UDT(name, (int)udttable.size());
+            auto st = new UDT(name, (int)udttable.size(), is_struct);
             udts[st->name /* must be in value */] = st;
             udttable.push_back(st);
             return *st;
@@ -650,7 +654,7 @@ struct SymbolTable {
     bool IsGeneric(TypeRef type) {
         if (type->t == V_ANY) return true;
         auto u = type->UnWrapped();
-        return u->t == V_UDT && !u->udt->generics.empty();
+        return IsUDT(u->t) && !u->udt->generics.empty();
     }
 
     // This one is used to sort types for multi-dispatch.
@@ -662,7 +666,9 @@ struct SymbolTable {
                 return IsLessGeneralThan(*a.sub, *b.sub);
             case V_FUNCTION:
                 return a.sf->idx < b.sf->idx;
-            case V_UDT: {
+            case V_STRUCT_R:
+            case V_STRUCT_S:
+            case V_CLASS: {
                 if (a.udt == b.udt) return false;
                 auto ans = a.udt->NumSuperTypes();
                 auto bns = b.udt->NumSuperTypes();
@@ -720,39 +726,41 @@ struct SymbolTable {
 
 inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullptr) {
     switch (type->t) {
-    case V_UDT:
-        return type->udt->name;
-    case V_VECTOR:
-        return flen && type->Element()->Numeric()
-            ? (flen < 0
-                ? (type->Element()->t == V_INT ? "vec_i" : "vec_f")  // FIXME: better names?
-                : TypeName(st->VectorType(type, 0, flen)))
-            : (type->Element()->t == V_VAR
-                ? "[]"
-                : "[" + TypeName(type->Element(), flen, st) + "]");
-    case V_FUNCTION:
-        return type->sf // || type->sf->anonymous
-            ? type->sf->parent->name
-            : "function";
-    case V_NIL:
-        return type->Element()->t == V_VAR
-            ? "nil"
-            : TypeName(type->Element(), flen, st) + "?";
-    case V_COROUTINE:
-        return type->sf
-            ? "coroutine(" + type->sf->parent->name + ")"
-            : "coroutine";
-    case V_TUPLE: {
-        string s = "(";
-        for (auto [i, te] : enumerate(*type->tup)) {
-            if (i) s += ", ";
-            s += TypeName(te.type);
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS:
+            return type->udt->name;
+        case V_VECTOR:
+            return flen && type->Element()->Numeric()
+                ? (flen < 0
+                    ? (type->Element()->t == V_INT ? "vec_i" : "vec_f")  // FIXME: better names?
+                    : TypeName(st->VectorType(type, 0, flen)))
+                : (type->Element()->t == V_VAR
+                    ? "[]"
+                    : "[" + TypeName(type->Element(), flen, st) + "]");
+        case V_FUNCTION:
+            return type->sf // || type->sf->anonymous
+                ? type->sf->parent->name
+                : "function";
+        case V_NIL:
+            return type->Element()->t == V_VAR
+                ? "nil"
+                : TypeName(type->Element(), flen, st) + "?";
+        case V_COROUTINE:
+            return type->sf
+                ? "coroutine(" + type->sf->parent->name + ")"
+                : "coroutine";
+        case V_TUPLE: {
+            string s = "(";
+            for (auto [i, te] : enumerate(*type->tup)) {
+                if (i) s += ", ";
+                s += TypeName(te.type);
+            }
+            s += ")";
+            return s;
         }
-        s += ")";
-        return s;
-    }
-    default:
-        return string(BaseTypeName(type->t));
+        default:
+            return string(BaseTypeName(type->t));
     }
 }
 

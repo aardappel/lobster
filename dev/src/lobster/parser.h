@@ -276,10 +276,10 @@ struct Parser {
         }
     }
 
-    void ParseTypeDecl(bool isvalue, bool isprivate, List *parent_list) {
+    void ParseTypeDecl(bool is_struct, bool isprivate, List *parent_list) {
         lex.Next();
         auto sname = st.MaybeNameSpace(ExpectId(), !isprivate);
-        UDT *udt = &st.StructDecl(sname, lex);
+        UDT *udt = &st.StructDecl(sname, lex, is_struct);
         auto parse_sup = [&] () {
             ExpectId();
             return &st.StructUse(lastid, lex);
@@ -323,8 +323,8 @@ struct Parser {
             udt->name = sname;
             if (!parse_specializers())
                 Error("no specialization types specified");
-            if (isvalue != sup->readonly)
-                Error("specialization must use same struct/value keyword");
+            if (is_struct != sup->is_struct)
+                Error("specialization must be same class/struct kind");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
             if (udt->superclass) {
@@ -343,7 +343,6 @@ struct Parser {
             }
         } else if (Either(T_COLON, T_LEFTCURLY, T_LT)) {
             // A regular struct declaration
-            udt->readonly = isvalue;
             udt->isprivate = isprivate;
             if (IsNext(T_LT)) {
                 for (;;) {
@@ -607,10 +606,11 @@ struct Parser {
                 Error("illegal type syntax: " + lex.TokStr());
         }
         if (IsNext(T_QUESTIONMARK)) {
-            if (dest->Numeric()) Error("numeric types can\'t be made nilable");
+            if (!IsNillable(dest->t))
+                Error("value types can\'t be made nilable");
             dest = st.Wrap(dest, V_NIL);
         }
-        if (withtype && dest->t != V_UDT) Error(":: must be used with a struct type");
+        if (withtype && !IsUDT(dest->t)) Error(":: must be used with a class type");
         return -1;
     }
 
@@ -1077,6 +1077,7 @@ struct Parser {
                 auto n = new Nil(lex, nullptr);
                 if (IsNext(T_COLON)) {
                     ParseType(n->giventype, false);
+                    if (!IsNillable(n->giventype->t)) Error("illegal nil type");
                     n->giventype = st.Wrap(n->giventype, V_NIL);
                 }
                 return n;

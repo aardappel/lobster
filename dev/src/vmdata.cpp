@@ -95,10 +95,10 @@ void LVector::DeleteSelf(VM &vm) {
     vm.pool.dealloc_small(this);
 }
 
-void LStruct::DeleteSelf(VM &vm) {
+void LObject::DeleteSelf(VM &vm) {
     auto len = Len(vm);
     for (intp i = 0; i < len; i++) DecS(vm, i);
-    vm.pool.dealloc(this, sizeof(LStruct) + sizeof(Value) * len);
+    vm.pool.dealloc(this, sizeof(LObject) + sizeof(Value) * len);
 }
 
 void LResource::DeleteSelf(VM &vm) {
@@ -111,7 +111,9 @@ void RefObj::DECDELETENOW(VM &vm) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
-        case V_UDT:     ((LStruct *)this)->DeleteSelf(vm); break;
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
         default:           assert(false);
     }
@@ -140,7 +142,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_COROUTINE:   return false;
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
-        case V_UDT:      return structural && ((LStruct *)a)->Equal(vm, *(LStruct *)b);
+        case V_CLASS:      return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
         default:            assert(0); return false;
     }
 }
@@ -162,7 +164,9 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
         case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
-        case V_UDT:    ((LStruct *)ro)->ToString(vm, ss, pp);    break;
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS:     ((LObject *)ro)->ToString(vm, ss, pp);    break;
         case V_RESOURCE:  ((LResource *)ro)->ToString(ss);          break;
         default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
     }
@@ -184,7 +188,9 @@ intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
-        case V_UDT:      return ((LStruct *)this)->Hash(vm);
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+        case V_CLASS:       return ((LObject *)this)->Hash(vm);
         default:            return (int)(size_t)this;
     }
 }
@@ -212,10 +218,12 @@ Value Value::Copy(VM &vm) {
         if (len) nv->Init(vm, vval()->Elems(), true);
         return Value(nv);
     }
-    case V_UDT: {
-        auto len = stval()->Len(vm);
-        auto nv = vm.NewStruct(len, stval()->tti);
-        if (len) nv->Init(vm, stval()->Elems(), len, true);
+    case V_STRUCT_R:
+    case V_STRUCT_S:
+    case V_CLASS: {
+        auto len = oval()->Len(vm);
+        auto nv = vm.NewStruct(len, oval()->tti);
+        if (len) nv->Init(vm, oval()->Elems(), len, true);
         return Value(nv);
     }
     case V_STRING: {
@@ -236,7 +244,7 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
     s += BaseTypeName(t);
     if (t == V_VECTOR || t == V_NIL) {
         s += "[" + vm.GetTypeInfo(subt).Debug(vm, false) + "]";
-    } else if (t == V_UDT) {
+    } else if (IsUDT(t)) {
         auto sname = vm.StructName(*this);
         s += ":" + sname;
         if (rec) {
@@ -257,7 +265,7 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
     if (vt == V_NIL) vt = vm.GetTypeInfo(sti.subt).t; \
     return vt;
 
-ValueType LStruct::ElemTypeS(VM &vm, intp i) const {
+ValueType LObject::ElemTypeS(VM &vm, intp i) const {
     ELEMTYPE(elems[i], assert(i < _ti.len));
 }
 
@@ -319,8 +327,8 @@ template<typename T, bool is_vect> void VectorOrStructToString(
     ss << closeb;
 }
 
-void LStruct::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
-    VectorOrStructToString<LStruct, false>(vm, ss, pp, *this, '{', '}');
+void LObject::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
+    VectorOrStructToString<LObject, false>(vm, ss, pp, *this, '{', '}');
 }
 
 void LVector::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {

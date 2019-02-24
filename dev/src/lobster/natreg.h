@@ -65,7 +65,7 @@ struct Type {
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
-        UDT *udt;           // V_UDT
+        UDT *udt;                // V_CLASS | V_STRUCT_*
         vector<TupleElem> *tup;  // V_TUPLE
     };
 
