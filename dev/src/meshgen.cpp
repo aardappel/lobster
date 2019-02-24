@@ -270,21 +270,29 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     bool flat_triangles_opt = true;
     bool simple_occlusion = false;
     bool marching_cubes = true;
-    auto verts2edge = [&](const int3 &p1, const int3 &p2, const DistVert &dv1, const DistVert &dv2) {
+    bool snap_to_mid = false;
+    if (snap_to_mid) mesh_displacent = false;
+    auto verts2edge = [&](const int3 &p1, const int3 &p2, DistVert &dv1, DistVert &dv2) {
         auto wp1 = grid_to_world(p1);
         auto wp2 = grid_to_world(p2);
         float3 mid;
         int3 iclosest;
-        if (abs(dv1.dist) < 0.00001f || abs(dv2.dist - dv1.dist) < 0.00001f) {
-            mid = wp1;
+        if (snap_to_mid) {
+            // FIXME: this create null-area triangles that should be removed.
+            mid = (wp1 + wp2) / 2;
             iclosest = p1;
-        } else if (abs(dv2.dist) < 0.00001f) {
-            mid = wp2;
-            iclosest = p2;
         } else {
-            auto mu = -dv1.dist / (dv2.dist - dv1.dist);
-            mid = wp1 + mu * (wp2 - wp1);
-            iclosest = abs(mu) < 0.5 ? p1 : p2;
+            if (abs(dv1.dist) < 0.00001f || abs(dv2.dist - dv1.dist) < 0.00001f) {
+                mid = wp1;
+                iclosest = p1;
+            } else if (abs(dv2.dist) < 0.00001f) {
+                mid = wp2;
+                iclosest = p2;
+            } else {
+                auto mu = -dv1.dist / (dv2.dist - dv1.dist);
+                mid = wp1 + mu * (wp2 - wp1);
+                iclosest = abs(mu) < 0.5 ? p1 : p2;
+            }
         }
         return edge(iclosest, mid, dv1.dist < dv2.dist ? dv1.color : dv2.color);
     };

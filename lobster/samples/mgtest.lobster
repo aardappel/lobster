@@ -139,7 +139,7 @@ while gl_frame():
 
     gl_clear(color_dark_grey)
 
-    fovscale := 1.3
+    fovscale := 1.5
 
     if true:
         gl_cursor(0)
@@ -171,15 +171,15 @@ while gl_frame():
                     gl_render_mesh(gun)
 
         if landscape:
-            gl_translate(xy_y * 20):
-                gl_scale(5):
-                    gl_point_scale(5 * fovscale)
+            gl_translate(xy_y * 30):
+                gl_scale(10):
+                    gl_point_scale(10 * fovscale)
                     gl_render_mesh(landscape)
 
         if abstract:
-            gl_translate(xy_y * 30):
+            gl_translate(xy_y * 10):
                 gl_scale(2):
-                    gl_point_scale(5 * fovscale)
+                    gl_point_scale(3 * fovscale)
                     gl_render_mesh(abstract)
 
         for(10) j:
