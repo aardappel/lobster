@@ -208,6 +208,10 @@ struct TypeChecker {
         parser.Error(err, &n);
     }
 
+    void NoStruct(const Node &n, string_view context) {
+        if (IsStruct(n.exptype->t)) TypeError("struct value cannot be used in: " + context, n);
+    }
+
     void NatCallError(string_view errstr, const NativeFun *nf, const NativeCall &callnode) {
         auto err = errstr + nf->name;
         err += "\n  got:";
@@ -539,7 +543,7 @@ struct TypeChecker {
         // This really does: "left = left op right" the result of op is LT_KEEP, which is
         // implicit, so the left var must be LT_KEEP as well. This is ensured elsewhere because
         // all !single_assignment vars are LT_KEEP.
-        assert(!Is<IdentRef>(n.left) || Is<IdentRef>(n.left)->sid->lt == LT_KEEP);
+        assert(!Is<IdentRef>(n.left) || LifetimeType(Is<IdentRef>(n.left)->sid->lt) != LT_BORROW);
         DecBorrowers(n.right->lt, n);
         n.lt = PushBorrow(n.left);
     }
@@ -550,14 +554,12 @@ struct TypeChecker {
         n.exptype = type_int;
         auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
-            // FIXME: rather than nullptr, these TypeError need to figure out which side
-            // caused the error much like MathError
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
-                // pointer comparison
+                // Comparison with one result, but still by value for structs.
                 if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL)
-                    TypeError("numeric / string / vector / struct", u, n);
+                    TypeError(TypeName(n.left->exptype), n.right->exptype, n, "right-hand side");
             } else {
-                // comparison vector op
+                // Comparison vector op: vector inputs, vector out.
                 if (u->t == V_STRUCT_S && u->udt->sametype->Numeric()) {
                     n.exptype = st.default_int_vector_types[0][u->udt->fields.size()];
                 } else if (MathCheckVector(n.exptype, n.left, n.right)) {
@@ -566,7 +568,8 @@ struct TypeChecker {
                     // appropriate anyway.
                     goto out;
                 } else {
-                    TypeError("numeric / string / numeric struct", u, n);
+                    TypeError(n.Name() + " doesn\'t work on " + TypeName(n.left->exptype) +
+                              " and " + TypeName(n.right->exptype), n);
                 }
             }
         }
@@ -1271,6 +1274,7 @@ struct TypeChecker {
         n = RemoveCoercions(n);
         if (!Is<And>(n) && !Is<Or>(n)) {
             TT(n, reqret, LT_ANY);
+            NoStruct(*n, "and / or");
             promoted_type = n->exptype;
             if (promoted_type->t == V_NIL && only_true_type)
                 promoted_type = promoted_type->Element();
@@ -1564,52 +1568,48 @@ struct TypeChecker {
                       size_t argn, const Node &errorn) {
         // See if we can promote the type to one of the standard vector types
         // (xy/xyz/xyzw).
-        if (flen) {
-            if (type->t == V_NIL) {
-                return st.Wrap(ToVStruct(flen, type->sub, exp, nf, test_overloads, argn, errorn),
-                               V_NIL);
-            }
-            auto etype = exp ? exp->exptype : nullptr;
-            auto e = etype;
-            size_t i = 0;
-            for (auto vt = type; vt->t == V_VECTOR && i < SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS;
-                vt = vt->sub) {
-                if (vt->sub->Numeric()) {
-                    // Check if we allow any vector length.
-                    if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
-                        flen = (int)e->udt->fields.size();
+        if (!flen) return type;
+        if (type->t == V_NIL) type = type->sub;
+        auto etype = exp ? exp->exptype : nullptr;
+        auto e = etype;
+        size_t i = 0;
+        for (auto vt = type; vt->t == V_VECTOR && i < SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS;
+            vt = vt->sub) {
+            if (vt->sub->Numeric()) {
+                // Check if we allow any vector length.
+                if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
+                    flen = (int)e->udt->fields.size();
+                }
+                if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
+                    // Special case for "F}?" style types that can be matched against a
+                    // DefaultArg, would be good to solve this more elegantly..
+                    // FIXME: don't know arity, but it doesn't matter, so we pick 2..
+                    return st.VectorType(vt, i, 2);
+                }
+                if (flen >= 2 && flen <= 4) {
+                    if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
+                        e->udt->sametype == vt->sub) {
+                        // Allow any similar vector type, like "color".
+                        return etype;
                     }
-                    if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
-                        // Special case for "F}?" style types that can be matched against a
-                        // DefaultArg, would be good to solve this more elegantly..
-                        // FIXME: don't know arity, but it doesn't matter, so we pick 2..
-                        return st.VectorType(vt, i, 2);
-                    }
-                    if (flen >= 2 && flen <= 4) {
-                        if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
-                            e->udt->sametype == vt->sub) {
-                            // Allow any similar vector type, like "color".
-                            return etype;
-                        }
-                        else {
-                            // Require xy/xyz/xyzw
-                            return st.VectorType(vt, i, flen);
-                        }
+                    else {
+                        // Require xy/xyz/xyzw
+                        return st.VectorType(vt, i, flen);
                     }
                 }
-                e = !e.Null() && e->t == V_VECTOR ? e->sub : nullptr;
-                i++;
             }
-            // We arrive here typically if flen == -1 but we weren't able to derive a length.
-            // Sadly, we can't allow to return a vector type instead of a struct, so we error out,
-            // and rely on the user to specify more precise types.
-            // Not sure if there is a better solution.
-            if (!test_overloads)
-                TypeError("cannot deduce struct type for " +
-                (argn ? cat("argument ", argn) : "return value") +
-                    " of " + nf->name + (!etype.Null() ? ", got: " + TypeName(etype) : ""),
-                    errorn);
+            e = !e.Null() && e->t == V_VECTOR ? e->sub : nullptr;
+            i++;
         }
+        // We arrive here typically if flen == -1 but we weren't able to derive a length.
+        // Sadly, we can't allow to return a vector type instead of a struct, so we error out,
+        // and rely on the user to specify more precise types.
+        // Not sure if there is a better solution.
+        if (!test_overloads)
+            TypeError("cannot deduce struct type for " +
+            (argn ? cat("argument ", argn) : "return value") +
+                " of " + nf->name + (!etype.Null() ? ", got: " + TypeName(etype) : ""),
+                errorn);
         return type;
     };
 
@@ -1682,6 +1682,7 @@ Node *And::TypeCheck(TypeChecker &tc, size_t reqret) {
 
 Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
     tc.TT(condition, 1, LT_BORROW);
+    tc.NoStruct(*condition, "if");
     tc.DecBorrowers(condition->lt, *this);
     Value cval;
     bool isconst = condition->ConstVal(tc, cval);
@@ -2213,8 +2214,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                      children[i]->exptype->t != V_VECTOR ||
                      arg.type->sub->t != V_ANY) &&
                     !tc.ConvertsTo(children[i]->exptype,
-                                   tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, true,
-                                                i + 1, *this),
+                                   tc.ToVStruct(arg.fixed_len, arg.type,
+                                                children[i], nf, true, i + 1, *this),
                                    arg.type->t != V_STRING, false)) goto nomatch;
             }
             nf = cnf;
@@ -2228,6 +2229,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args.v[i];
         auto argtype = tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, false, i + 1, *this);
+        // Filter out functions that are not struct aware.
         bool typed = false;
         if (argtype->t == V_NIL && argtype->sub->Numeric() && !Is<DefaultVal>(c)) {
             // This is somewhat of a hack, because we conflate V_NIL with being optional
@@ -2279,14 +2281,24 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             }
             typed = true;
         }
-        if (argtype->t == V_ANY && !arg.flags) {
-            // Special purpose type checking to allow any reference type for functions like
-            // copy/equal/hash etc. Note that this is the only place in the language where
-            // we allow this!
-            if (!IsRefNilNoStruct(c->exptype->t))
-                tc.TypeError("reference type", c->exptype, *c, nf->args.GetName(i), nf->name);
-            typed = true;
+        if (argtype->t == V_ANY) {
+            if (!arg.flags) {
+                // Special purpose type checking to allow any reference type for functions like
+                // copy/equal/hash etc. Note that this is the only place in the language where
+                // we allow this!
+                if (!IsRefNilNoStruct(c->exptype->t))
+                    tc.TypeError("reference type", c->exptype, *c, nf->args.GetName(i), nf->name);
+                typed = true;
+            } else if (IsStruct(c->exptype->t) &&
+                       !(arg.flags & NF_PUSHVALUEWIDTH) &&
+                       c->exptype->udt->numslots > 1) {
+                // Avoid unsuspecting generic functions taking values as args.
+                // TODO: ideally this does not trigger for any functions.
+                tc.TypeError("function does not support this struct type", *this);
+            }
         }
+        if (nf->fun.fnargs >= 0 && !arg.fixed_len && !(arg.flags & NF_PUSHVALUEWIDTH))
+            tc.NoStruct(*c, nf->name);
         if (!typed)
             tc.SubType(c, argtype, tc.ArgName(i), nf->name);
         auto actualtype = c->exptype;
@@ -2561,9 +2573,10 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(index, 1, LT_BORROW);
     tc.DecBorrowers(index->lt, *this);
     auto vtype = object->exptype;
-    if (IsUDT(vtype->t) && vtype->udt->sametype->t != V_UNDEFINED) {}
-    else if (vtype->t != V_VECTOR && vtype->t != V_STRING)
-        tc.TypeError("vector/string/struct", vtype, *this, "container");
+    if (vtype->t != V_VECTOR &&
+        vtype->t != V_STRING &&
+        (!IsStruct(vtype->t) || !vtype->udt->sametype->Numeric()))
+        tc.TypeError("vector/string/numeric struct", vtype, *this, "container");
     auto itype = index->exptype;
     switch (itype->t) {
         case V_INT:

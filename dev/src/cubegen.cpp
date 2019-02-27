@@ -98,7 +98,7 @@ struct Voxels {
 
 static ResourceType voxel_type = { "voxels", [](void *v) { delete (Voxels *)v; } };
 
-Voxels &GetVoxels(VM &vm, Value &res) {
+Voxels &GetVoxels(VM &vm, const Value &res) {
     return *GetResourceDec<Voxels *>(vm, res, &voxel_type);
 }
 
@@ -113,55 +113,55 @@ Voxels *NewWorld(const int3 &size) {
 
 void AddCubeGen(NativeRegistry &nfr) {
 
-nfr("cg_init", "size", "I]:3", "R",
+nfr("cg_init", "size", "I}:3", "R",
     "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
     " returns the block",
-    [](VM &vm, Value &size) {
-        auto v = NewWorld(ValueToINT<3>(vm, size));
-        return Value(vm.NewResource(v, &voxel_type));
+    [](VM &vm) {
+        auto v = NewWorld(vm.PopVec<int3>());
+        vm.Push(vm.NewResource(v, &voxel_type));
     });
 
-nfr("cg_size", "block", "R", "I]:3",
+nfr("cg_size", "block", "R", "I}:3",
     "returns the current block size",
-    [](VM &vm, Value &wid) {
-        return Value(ToValueINT(vm, GetVoxels(vm, wid).grid.dim));
+    [](VM &vm) {
+        vm.PushVec(GetVoxels(vm, vm.Pop()).grid.dim);
     });
 
-nfr("cg_set", "block,pos,size,paletteindex", "RI]:3I]:3I", "",
+nfr("cg_set", "block,pos,size,paletteindex", "RI}:3I}:3I", "",
     "sets a range of cubes to palette index. index 0 is considered empty space."
     "Coordinates automatically clipped to the size of the grid",
-    [](VM &vm, Value &wid, Value &pos, Value &size, Value &color) {
-        auto p = ValueToINT<3>(vm, pos);
-        auto sz = ValueToINT<3>(vm, size);
-        GetVoxels(vm, wid).Set(p, sz, (uchar)color.ival());
-        return Value();
+    [](VM &vm) {
+        auto color = vm.Pop().ival();
+        auto size = vm.PopVec<int3>();
+        auto pos = vm.PopVec<int3>();
+        GetVoxels(vm, vm.Pop()).Set(pos, size, (uchar)color);
     });
 
-nfr("cg_copy", "block,pos,size,dest,flip", "RI]:3I]:3I]:3I]:3", "",
+nfr("cg_copy", "block,pos,size,dest,flip", "RI}:3I}:3I}:3I}:3", "",
     "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
     " each component, indicating the step from dest."
     " Coordinates automatically clipped to the size of the grid",
-    [](VM &vm, Value &wid, Value &pos, Value &size, Value &dest, Value &flip) {
-        auto p = ValueToINT<3>(vm, pos);
-        auto sz = ValueToINT<3>(vm, size);
-        auto d = ValueToINT<3>(vm, dest);
-        auto fl = ValueToINT<3>(vm, flip);
-        GetVoxels(vm, wid).Copy(p, sz, d, fl);
-        return Value();
+    [](VM &vm) {
+        auto fl = vm.PopVec<int3>();
+        auto d = vm.PopVec<int3>();
+        auto sz = vm.PopVec<int3>();
+        auto p = vm.PopVec<int3>();
+        GetVoxels(vm, vm.Pop()).Copy(p, sz, d, fl);
     });
 
-nfr("cg_color_to_palette", "block,color", "RF]:4", "I",
+nfr("cg_color_to_palette", "block,color", "RF}:4", "I",
     "converts a color to a palette index. alpha < 0.5 is considered empty space."
     " note: this is fast for the default palette, slow otherwise.",
-    [](VM &vm, Value &wid, Value &color) {
-        return Value(GetVoxels(vm, wid).Color2Palette(float4(ValueToF<4>(vm, color))));
+    [](VM &vm) {
+        auto color = vm.PopVec<float4>();
+        vm.Push(GetVoxels(vm, vm.Pop()).Color2Palette(color));
     });
 
-nfr("cg_palette_to_color", "block,paletteindex", "RI", "F]:4",
+nfr("cg_palette_to_color", "block,paletteindex", "RI", "F}:4",
     "converts a palette index to a color. empty space (index 0) will have 0 alpha",
-    [](VM &vm, Value &wid, Value &pal) {
-        auto p = uchar(pal.ival());
-        return Value(ToValueFLT(vm, color2vec(GetVoxels(vm, wid).palette[p])));
+    [](VM &vm) {
+        auto p = uchar(vm.Pop().ival());
+        vm.PushVec(color2vec(GetVoxels(vm, vm.Pop()).palette[p]));
     });
 
 nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",

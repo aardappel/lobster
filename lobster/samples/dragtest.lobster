@@ -34,7 +34,7 @@ while gl_frame():
     // just for demonstration purposes, gl_last_time makes it easy to animate clicks etc.
     // we show little animated circles on each mouse down or up
     for(2) down:
-        gl_color(down and color_green or color_blue)
+        gl_color(if down: color_green else: color_blue)
         clicktime := gl_time() - gl_last_time("mouse1", down)
         if  clicktime < 1:
             gl_translate float(gl_last_pos("mouse1", down)):

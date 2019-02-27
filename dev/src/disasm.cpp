@@ -116,12 +116,14 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
             ss << "vector " << nargs;
             break;
         }
-        case IL_NEWSTRUCT: {
+        case IL_ST2S:
+        case IL_NEWOBJECT: {
             auto ti = (TypeInfo *)(typetable + *ip++);
             ss << bcf->udts()->Get(ti->structidx)->name()->string_view();
             break;
         }
 
+        case IL_BCALLRETV:
         case IL_BCALLRET0:
         case IL_BCALLRET1:
         case IL_BCALLRET2:
@@ -129,6 +131,7 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         case IL_BCALLRET4:
         case IL_BCALLRET5:
         case IL_BCALLRET6:
+        case IL_BCALLREFV:
         case IL_BCALLREF0:
         case IL_BCALLREF1:
         case IL_BCALLREF2:
@@ -136,6 +139,7 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         case IL_BCALLREF4:
         case IL_BCALLREF5:
         case IL_BCALLREF6:
+        case IL_BCALLUNBV:
         case IL_BCALLUNB0:
         case IL_BCALLUNB1:
         case IL_BCALLUNB2:
@@ -153,6 +157,7 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
             LVALOPNAMES
         #undef LVAL
         case IL_PUSHVAR:
+        case IL_PUSHVARV:
             ss << IdName(bcf, *ip++);
             break;
 
@@ -161,7 +166,12 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         #undef LVAL
         case IL_PUSHFLD:
         case IL_PUSHFLDMREF:
+        case IL_PUSHFLDV:
+        case IL_PUSHFLD2V:
+        case IL_PUSHFLDV2V:
         case IL_PUSHLOC:
+        case IL_PUSHLOCV:
+        case IL_POPV:
             ss << *ip++;
             break;
 
@@ -183,9 +193,10 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
             n = *ip++;
             ss << "=> ";
             while (n--) ss << IdName(bcf, *ip++) << ' ';
-            ss << '[' << *ip++ << ']';  // keep
+            auto keepvars = *ip++;
+            if (keepvars) ss << "K:" << keepvars << ' ';
             n = *ip++;  // owned
-            while (n--) ss << IdName(bcf, *ip++) << ' ';
+            while (n--) ss << "O:" << IdName(bcf, *ip++) << ' ';
             ss << ")";
             break;
         }

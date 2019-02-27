@@ -258,7 +258,7 @@ Mesh *VRCreateMesh(uint device) {
 
 using namespace lobster;
 
-MotionController *GetMC(Value &mc) {
+MotionController *GetMC(const Value &mc) {
     auto n = mc.ival();
     return n >= 0 && n < (int)motioncontrollers.size()
         ? &motioncontrollers[n]
@@ -371,22 +371,23 @@ nfr("vr_motion_controller_button", "n,button", "IS", "I",
         #endif
     });
 
-nfr("vr_motion_controller_vec", "n,i", "II", "F]:3",
+nfr("vr_motion_controller_vec", "n,i", "II", "F}:3",
     "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
-    [](VM &vm, Value &mc, Value &idx) {
-        auto mcd = GetMC(mc);
-        if (!mcd) return Value(ToValueFLT(vm, float3_0));
+    [](VM &vm) {
+        auto idx = vm.Pop();
+        auto mcd = GetMC(vm.Pop());
+        if (!mcd) { vm.PushVec(float3_0); return; }
         auto i = RangeCheck(vm, idx, 4);
-        return Value(ToValueFLT(vm, mcd->mat[i].xyz()));
+        vm.PushVec(mcd->mat[i].xyz());
     });
 
 nfr("vr_hmd_vec", "i", "I", "F]:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.",
-    [](VM &vm, Value &idx) {
-        auto i = RangeCheck(vm, idx, 4);
-        return Value(ToValueFLT(vm, hmdpose[i].xyz()));
+    [](VM &vm) {
+        auto i = RangeCheck(vm, vm.Pop(), 4);
+        vm.PushVec(hmdpose[i].xyz());
     });
 
 }  // AddVR

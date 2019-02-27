@@ -22,34 +22,31 @@ namespace lobster {
 
 struct ValueParser {
     vector<string> filenames;
-    vector<Value> allocated;
+    vector<RefObj *> allocated;
     Lex lex;
     VM &vm;
 
     ValueParser(VM &vm, string_view _src) : lex("string", filenames, _src), vm(vm) {}
 
-    Value Parse(type_elem_t typeoff) {
-        bool isref;
-        Value v = ParseFactor(typeoff, isref);
+    void Parse(type_elem_t typeoff) {
+        ParseFactor(typeoff, true);
         Gobble(T_LINEFEED);
         Expect(T_ENDOFFILE);
-        return v;
     }
 
-    Value ParseElems(TType end, type_elem_t typeoff, int numelems = -1) {  // Vector or struct.
+    void ParseElems(TType end, type_elem_t typeoff, int numelems, bool push) {  // Vector or struct.
         Gobble(T_LINEFEED);
-        vector<Value> elems;
         auto &ti = vm.GetTypeInfo(typeoff);
+        auto stack_start = vm.sp;
+        auto NumElems = [&]() { return vm.sp - stack_start; };
         if (lex.token == end) lex.Next();
         else {
             for (;;) {
-                bool isref;
-                if ((int)elems.size() == numelems) {
-                    auto val = ParseFactor(TYPE_ELEM_ANY, isref);
-                    if (isref) { /*val.DECRT(vm);*/ (void)val; }  // Ignore the value.
+                if (NumElems() == numelems) {
+                    ParseFactor(TYPE_ELEM_ANY, false);
                 } else {
-                    elems.push_back(
-                        ParseFactor(ti.t == V_VECTOR ? ti.subt : ti.elems[elems.size()], isref));
+                    auto eti = ti.t == V_VECTOR ? ti.subt : ti.GetElemOrParent(NumElems());
+                    ParseFactor(eti, push);
                 }
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
@@ -58,29 +55,34 @@ struct ValueParser {
             }
             lex.Next();
         }
+        if (!push) return;
         if (numelems >= 0) {
-            while ((int)elems.size() < numelems) {
-                switch (vm.GetTypeInfo(ti.elems[elems.size()]).t) {
-                    case V_INT:   elems.push_back(Value(0)); break;
-                    case V_FLOAT: elems.push_back(Value(0.0f)); break;
-                    case V_NIL:   elems.push_back(Value()); break;
+            while (NumElems() < numelems) {
+                switch (vm.GetTypeInfo(ti.elemtypes[NumElems()]).t) {
+                    case V_INT:   vm.Push(Value(0)); break;
+                    case V_FLOAT: vm.Push(Value(0.0f)); break;
+                    case V_NIL:   vm.Push(Value()); break;
                     default:      lex.Error("no default value exists for missing struct elements");
                 }
             }
         }
-        Value v;
-        if (end == T_RIGHTCURLY) {
-            auto vec = vm.NewStruct((intp)elems.size(), typeoff);
-            if (elems.size()) vec->Init(vm, elems.data(), (intp)elems.size(), false);
-            v = Value(vec);
-        } else {
-            auto vec = vm.NewVec((intp)elems.size(), (intp)elems.size(), typeoff);
-            if (elems.size()) vec->Init(vm, elems.data(), false);
-            v = Value(vec);
+        if (ti.t == V_CLASS) {
+            auto vec = vm.NewObject((intp)NumElems(), typeoff);
+            if (NumElems()) vec->Init(vm, vm.TopPtr() - NumElems(), (intp)NumElems(), false);
+            vm.PopN(NumElems());
+            allocated.push_back(vec);
+            vm.Push(vec);
+        } else if (ti.t == V_VECTOR) {
+            auto &sti = vm.GetTypeInfo(ti.subt);
+            auto width = IsStruct(sti.t) ? sti.len : 1;
+            auto n = (intp)(NumElems() / width);
+            auto vec = vm.NewVec(n, n, typeoff);
+            if (NumElems()) vec->Init(vm, vm.TopPtr() - NumElems(), false);
+            vm.PopN(NumElems());
+            allocated.push_back(vec);
+            vm.Push(vec);
         }
-        allocated.push_back(v);
-        return v;
-
+        // else if ti.t == V_STRUCT_* then.. do nothing!
     }
 
     void ExpectType(ValueType given, ValueType needed) {
@@ -93,67 +95,75 @@ struct ValueParser {
         }
     }
 
-    Value ParseFactor(type_elem_t typeoff, bool &isref) {
+    void ParseFactor(type_elem_t typeoff, bool push) {
         auto &ti = vm.GetTypeInfo(typeoff);
         auto vt = ti.t;
-        isref = true;
         switch (lex.token) {
             case T_INT: {
                 ExpectType(V_INT, vt);
                 auto i = lex.IntVal();
                 lex.Next();
-                isref = false;
-                return Value(i);
+                if (push) vm.Push(i);
+                break;
             }
             case T_FLOAT: {
                 ExpectType(V_FLOAT, vt);
                 auto f = strtod(lex.sattr.data(), nullptr);
                 lex.Next();
-                isref = false;
-                return Value((float)f);
+                if (push) vm.Push(f);
+                break;
             }
             case T_STR: {
                 ExpectType(V_STRING, vt);
                 string s = lex.StringVal();
                 lex.Next();
-                auto str = vm.NewString(s);
-                //str->Inc();
-                allocated.push_back(str);
-                return Value(str);
+                if (push) {
+                    auto str = vm.NewString(s);
+                    allocated.push_back(str);
+                    vm.Push(str);
+                }
+                break;
             }
             case T_NIL: {
                 ExpectType(V_NIL, vt);
                 lex.Next();
-                return Value();
+                if (push) vm.Push(Value());
+                break;
             }
             case T_MINUS: {
                 lex.Next();
-                Value v = ParseFactor(typeoff, isref);
-                switch (typeoff) {
-                    case TYPE_ELEM_INT:   v.setival(v.ival() * -1); break;
-                    case TYPE_ELEM_FLOAT: v.setfval(v.fval() * -1); break;
-                    default: lex.Error("unary minus: numeric value expected");
+                ParseFactor(typeoff, push);
+                if (push) {
+                    switch (typeoff) {
+                        case TYPE_ELEM_INT:   vm.Push(vm.Pop().ival() * -1); break;
+                        case TYPE_ELEM_FLOAT: vm.Push(vm.Pop().fval() * -1); break;
+                        default: lex.Error("unary minus: numeric value expected");
+                    }
                 }
-                return v;
+                break;
             }
             case T_LEFTBRACKET: {
                 ExpectType(V_VECTOR, vt);
                 lex.Next();
-                return ParseElems(T_RIGHTBRACKET, typeoff);
+                ParseElems(T_RIGHTBRACKET, typeoff, -1, push);
+                break;
             }
             case T_IDENT: {
-                ExpectType(V_CLASS, vt);
+                if (!IsUDT(vt) && vt != V_ANY)
+                    lex.Error("class/struct type required, " + BaseTypeName(vt) + " given");
                 auto sname = lex.sattr;
                 lex.Next();
                 Expect(T_LEFTCURLY);
                 auto name = vm.StructName(ti);
                 if (name != sname)
-                    lex.Error("struct type " + name + " required, " + sname + " given");
-                return ParseElems(T_RIGHTCURLY, typeoff, ti.len);
+                    lex.Error("class/struct type " + name + " required, " + sname + " given");
+                ParseElems(T_RIGHTCURLY, typeoff, ti.len, push);
+                break;
             }
             default:
                 lex.Error("illegal start of expression: " + lex.TokStr());
-                return Value();
+                vm.Push(Value());
+                break;
         }
     }
 
@@ -168,19 +178,22 @@ struct ValueParser {
     }
 };
 
-static Value ParseData(VM &vm, type_elem_t typeoff, string_view inp) {
+static void ParseData(VM &vm, type_elem_t typeoff, string_view inp) {
+    auto stack_level = vm.sp;
+    ValueParser parser(vm, inp);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        ValueParser parser(vm, inp);
-        vm.Push(parser.Parse(typeoff));
-        return Value();
+        parser.Parse(typeoff);
+        vm.Push(Value());
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
+        vm.sp = stack_level;
+        for (auto a : parser.allocated) a->Dec(vm);
         vm.Push(Value());
-        return Value(vm.NewString(s));
+        vm.Push(vm.NewString(s));
     }
     #endif
 }
@@ -190,13 +203,14 @@ void AddReader(NativeRegistry &nfr) {
 nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
     "parses a string containing a data structure in lobster syntax (what you get if you convert"
     " an arbitrary data structure to a string) back into a data structure. supports"
-    " int/float/string/vector and structs. structs will be forced to be compatible with their "
+    " int/float/string/vector and classes. classes will be forced to be compatible with their "
     " current definitions, i.e. too many elements will be truncated, missing elements will be"
     " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
     " string as second return value (or nil if no error)",
-    [](VM &vm, Value &type, Value &ins) {
-        Value v = ParseData(vm, (type_elem_t)type.ival(), ins.sval()->strv());
-        return v;
+    [](VM &vm) {
+        auto ins = vm.Pop().sval();
+        auto type = vm.Pop().ival();
+        ParseData(vm, (type_elem_t)type, ins->strv());
     });
 
 }

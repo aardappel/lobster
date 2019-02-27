@@ -16,6 +16,9 @@ current_test_runner = def(name:string, t:testf):
 
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
+number_of_runs = 1  // FIXME
+include structtest
+
 number_of_runs = 5000
 include misctest
 

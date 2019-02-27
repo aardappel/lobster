@@ -67,7 +67,7 @@ def gl_deltatime_over_time():
 // Pass nil for tex to have it created. Recreates tex if the wrong size. Renders f. Returns tex.
 // Depth texture automatically created if depth is true and depthtex is nil.
 def render_to_texture(tex, size, depth, depthtex, texture_format, f):
-    if !tex || !equal(gl_texture_size(tex), size):
+    if !tex || gl_texture_size(tex) != size:
         tex = gl_create_blank_texture(size, color_black, texture_format)
     assert tex  // FIXME
     assert gl_switch_to_framebuffer(tex, depth, texture_format, nil, depthtex)
@@ -76,7 +76,7 @@ def render_to_texture(tex, size, depth, depthtex, texture_format, f):
     return tex
 
 def create_depth_texture(tex, size):
-    if !tex || !equal(gl_texture_size(tex), size):
+    if !tex || gl_texture_size(tex) != size:
         tex = gl_create_blank_texture(size, color_black, texture_format_depth |
             texture_format_nomipmap | texture_format_clamp | texture_format_nearest_mag)
     assert tex  // FIXME

@@ -60,7 +60,7 @@ class scrollzoomview:
                     touchvelocity = touchvelocity.normalize() * speed
                 else:
                     touchvelocity = xy_0
-        if !equal(oldpanoffset, panoffset) and mousewheeldelta <= 0:
+        if oldpanoffset != panoffset and mousewheeldelta <= 0:
             maxo -= float(viewsize) / scale
             if(maxo.x < mino.x):
                 mino = xy { (mino.x + maxo.x) / 2, mino.y }  // FIXME!!!

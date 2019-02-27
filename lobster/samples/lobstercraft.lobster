@@ -55,17 +55,19 @@ while gl_frame():
                     gl_color(colors[e - 1])
                     gl_translate float(v):
                         gl_render_mesh(nbpolys[i])  // draw face
-    first_solid := nil  // find the first solid and last empty block we're looking at
-    last_empty := nil
+    first_solid := xyz_1i * -1 // find the first solid and last empty block we're looking at
+    last_empty := xyz_1i * -1
     camvec := camera_forward_vector()
     for(100) i:  // look at most 10 cubes ahead
         pos := int(camera_position + camvec * (i / 10.0))
-        if inside(pos) and !first_solid:
+        if inside(pos) and first_solid.x < 0:
             if cells[pos]: first_solid = pos
             else: last_empty = pos
     // LMB places blocks and RMB removes blocks
-    if gl_button("mouse1") == 1 and last_empty and inventory.length: cells[last_empty] = inventory.pop()
-    if gl_button("mouse3") == 1 and first_solid: inventory.push(cells[first_solid]); cells[first_solid] = 0
+    if gl_button("mouse1") == 1 and last_empty.x >= 0 and inventory.length:
+        cells[last_empty] = inventory.pop()
+    if gl_button("mouse3") == 1 and first_solid.x >= 0:
+        inventory.push(cells[first_solid]); cells[first_solid] = 0
     gl_set_shader("color")
     gl_blend(blend_alpha)
     wh := 11.7  // let's add some water!

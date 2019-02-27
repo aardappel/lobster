@@ -13,12 +13,14 @@ table Function {
 
 table Field {
     name:string;
+    offset:int;
 }
 
 table UDT {
     name:string;
     idx:int;
     fields:[Field];
+    size:int;
 }
 
 table Ident {

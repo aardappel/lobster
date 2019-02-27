@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
+    memcpy(dest, src, n * sizeof(T));
+}
+template<typename T, typename S> void t_memmove(T *dest, const T *src, S n) {
+    memmove(dest, src, n * sizeof(T));
+}
+
 // Doubly linked list.
 // DLNodeRaw does not initialize nor assumes initialization, so can be used in
 // situations where memory is already allocated DLNodeBase is meant to be a base
@@ -276,7 +284,7 @@ template <typename T> class Accumulator {
         buf->size = _size;
         buf->unused = _size - numelems;
         buf->next = _next;
-        memcpy(buf->Elems(), elems, sizeof(T) * numelems);
+        t_memcpy(buf->Elems(), elems, numelems);
         return buf;
     }
 
@@ -305,7 +313,7 @@ template <typename T> class Accumulator {
         if (last && last->unused) {
             size_t fit = min(amount, last->unused);
             // Note: copy constructor skipped, if any.
-            memcpy(last->Elems() + (last->size - last->unused), newelems, sizeof(T) * fit);
+            t_memcpy(last->Elems() + (last->size - last->unused), newelems, fit);
             last->unused -= fit;
             amount -= fit;
         }
@@ -347,7 +355,7 @@ template <typename T> class Accumulator {
         size_t size;
         ResetIterator();
         while((size = Iterate(buf))) {
-            memcpy(dest, buf, size * sizeof(T));
+            t_memcpy(dest, buf, size);
             dest += size;
         }
     }
@@ -815,6 +823,7 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
 #else
     #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
 #endif
+
 
 
 inline void unit_test_tools() {

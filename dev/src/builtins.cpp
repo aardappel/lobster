@@ -61,16 +61,6 @@ template<typename T> Value BinarySearch(VM &vm, Value &l, Value &key, T comparef
     return Value(i);
 }
 
-Value ReplaceStruct(VM &vm, Value &l, Value &i, Value &a) {
-    auto len = l.oval()->Len(vm);
-    if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
-    auto nv = vm.NewStruct(len, l.oval()->tti);
-    if (len) nv->Init(vm, &l.oval()->AtS(0), len, true);
-    nv->DecS(vm, i.ival());
-    nv->AtS(i.ival()) = a;
-    return Value(nv);
-}
-
 void AddBuiltins(NativeRegistry &nfr) {
 
 nfr("print", "x", "Ss", "",
@@ -198,20 +188,6 @@ nfr("length", "s", "S", "I",
         return Value(len);
     });
 
-nfr("length", "s", "F}", "I",
-    "number of fields in a numerical struct",
-    [](VM &vm, Value &a) {
-        auto len = a.oval()->Len(vm);
-        return Value(len);
-    });
-
-nfr("length", "s", "I}", "I",
-    "number of fields in a numerical struct",
-    [](VM &vm, Value &a) {
-        auto len = a.oval()->Len(vm);
-        return Value(len);
-    });
-
 nfr("length", "xs", "A]*", "I",
     "length of vector",
     [](VM &, Value &a) {
@@ -227,75 +203,60 @@ nfr("equal", "a,b", "AA", "I",
         return Value(eq);
     });
 
-nfr("push", "xs,x", "A]*Ak1", "Ab]1",
+nfr("push", "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector",
-    [](VM &vm, Value &l, Value &x) {
-        l.vval()->Push(vm, x);
-        return l;
+    [](VM &vm) {
+        auto val = vm.PopVecPtr();
+        auto l = vm.Pop().vval();
+        assert(val.second == l->width);
+        l->PushVW(vm, val.first);
+        vm.Push(l);
     });
 
 nfr("pop", "xs", "A]*", "A1",
     "removes last element from vector and returns it",
-    [](VM &vm, Value &l) {
-        if (!l.vval()->len) vm.BuiltinError("pop: empty vector");
-        auto v = l.vval()->Pop();
-        return v;
+    [](VM &vm) {
+        auto l = vm.Pop().vval();
+        if (!l->len) vm.BuiltinError("pop: empty vector");
+        l->PopVW(vm.TopPtr());
+        vm.PushN((int)l->width);
     });
 
 nfr("top", "xs", "A]*", "Ab1",
     "returns last element from vector",
-    [](VM &vm, Value &l) {
-        if (!l.vval()->len) vm.BuiltinError("top: empty vector");
-        auto v = l.vval()->Top();
-        return v;
+    [](VM &vm) {
+        auto l = vm.Pop().vval();
+        if (!l->len) vm.BuiltinError("top: empty vector");
+        l->TopVW(vm.TopPtr());
+        vm.PushN((int)l->width);
     });
 
-nfr("replace", "xs,i,x", "F}IF", "F}",
-    "returns a copy of a numeric struct with the element at i replaced by x",
-    [](VM &vm, Value &l, Value &i, Value &a) {
-        return ReplaceStruct(vm, l, i, a);
-    });
-
-nfr("replace", "xs,i,x", "I}II", "I}",
-    "returns a copy of a numeric struct with the element at i replaced by x",
-    [](VM &vm, Value &l, Value &i, Value &a) {
-        return ReplaceStruct(vm, l, i, a);
-    });
-
-// FIXME: duplication with ReplaceStruct.
-nfr("replace", "xs,i,x", "A]*IAk1", "Ab]1",
-    "returns a copy of a vector with the element at i replaced by x",
-    [](VM &vm, Value &l, Value &i, Value &a) {
-        auto len = l.vval()->len;
-        if ((uintp)i.ival() >= (uintp)len) vm.BuiltinError("replace: index out of range");
-        auto nv = vm.NewVec(len, len, l.vval()->tti);
-        if (len) nv->Init(vm, &l.vval()->At(0), true);
-        nv->Dec(vm, i.ival(), nv->ElemType(vm));
-        nv->At(i.ival()) = a;
-        return Value(nv);
-    });
-
-nfr("insert", "xs,i,x", "A]*IAk1", "Ab]1",
+nfr("insert", "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector",
-    [](VM &vm, Value &l, Value &i, Value &a) {
-        if (i.ival() < 0 || i.ival() > l.vval()->len)
+    [](VM &vm) {
+        auto val = vm.PopVecPtr();
+        auto i = vm.Pop().ival();
+        auto l = vm.Pop().vval();
+        if (i < 0 || i > l->len)
             vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
-        l.vval()->Insert(vm, a, i.ival());
-        return l;
+        assert(val.second == l->width);
+        l->Insert(vm, val.first, i);
+        vm.Push(l);
     });
 
 nfr("remove", "xs,i,n", "A]*II?", "A1",
     "remove element(s) at index i, following elements shift down. pass the number of elements"
     " to remove as an optional argument, default 1. returns the first element removed.",
-    [](VM &vm, Value &l, Value &i, Value &n) {
-        auto amount = max(n.ival(), (intp)1);
-        if (n.ival() < 0 || amount > l.vval()->len || i.ival() < 0 ||
-            i.ival() > l.vval()->len - amount)
-            vm.BuiltinError(cat("remove: index (", i.ival(), ") or n (", amount,
-                                    ") out of range (", l.vval()->len, ")"));
-        auto v = l.vval()->Remove(vm, i.ival(), amount, 1);
-        return v;
+    [](VM &vm) {
+        auto n = vm.Pop().ival();
+        auto i = vm.Pop().ival();
+        auto l = vm.Pop().vval();
+        auto amount = max(n, (intp)1);
+        if (n < 0 || amount > l->len || i < 0 || i > l->len - amount)
+            vm.BuiltinError(cat("remove: index (", i, ") or n (", amount,
+                                    ") out of range (", l->len, ")"));
+        l->Remove(vm, i, amount, 1, true);
     });
 
 nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
@@ -306,7 +267,7 @@ nfr("remove_obj", "xs,obj", "A]*A1", "Ab2",
         for (intp i = 0; i < l.vval()->len; i++) {
             auto e = l.vval()->At(i);
             if (e.Equal(vm, vt, o, vt, false)) {
-                l.vval()->Remove(vm, i--, 1, 0);
+                l.vval()->Remove(vm, i--, 1, 0, false);
                 removed++;
             }
         }
@@ -357,38 +318,37 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
         return Value(nv);
     });
 
-#define ANY_F(acc, at, len) \
-    Value r(false); \
-    auto l = v.acc()->len; \
-    for (auto i = 0; i < l; i++) { \
-        if (v.acc()->at.True()) { r = Value(true); break; } \
-    } \
-    return r; \
-
 nfr("any", "xs", "I}", "I",
     "returns wether any elements of the numeric struct are true values",
-    [](VM &vm, Value &v) {
-        ANY_F(oval, AtS(i), Len(vm))
+    [](VM &vm) {
+        auto r = false; 
+        auto l = vm.Pop().ival(); 
+        for (intp i = 0; i < l; i++) { 
+            if (vm.Pop().True()) r = true;
+        } 
+        vm.Push(r);
     });
 
 nfr("any", "xs", "A]*", "I",
     "returns wether any elements of the vector are true values",
     [](VM &, Value &v) {
-        ANY_F(vval, At(i), len)
+        Value r(false); 
+        intp l = v.vval()->len; 
+        for (auto i = 0; i < l; i++) { 
+            if (v.vval()->At(i).True()) { r = Value(true); break; } 
+        } 
+        return r; 
     });
 
 nfr("all", "xs", "I}", "I",
     "returns wether all elements of the numeric struct are true values",
-    [](VM &vm, Value &v) {
-        Value r(true);
-        auto l = v.oval()->Len(vm);
+    [](VM &vm) {
+        auto r = true;
+        auto l = vm.Pop().ival();
         for (intp i = 0; i < l; i++) {
-            if (!v.oval()->AtS(i).True()) {
-                r = Value(false);
-                break;
-            }
+            if (!vm.Pop().True()) r = false;
         }
-        return r;
+        vm.Push(r);
     });
 
 nfr("all", "xs", "A]*", "I",
@@ -396,10 +356,7 @@ nfr("all", "xs", "A]*", "I",
     [](VM &, Value &v) {
         Value r(true);
         for (intp i = 0; i < v.vval()->len; i++) {
-            if (!v.vval()->At(i).True()) {
-                r = Value(false);
-                break;
-            }
+            if (!v.vval()->At(i).True()) { r = Value(false); break; }
         }
         return r;
     });
@@ -492,7 +449,7 @@ nfr("number_to_string", "number,base,minchars", "III", "S",
             vm.BuiltinError("number_to_string: values out of range");
         auto i = (uintp)n.ival();
         string s;
-        const char *from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        auto from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         while (i || (intp)s.length() < mc.ival()) {
             s.insert(0, 1, from[i % b.ival()]);
             i /= b.ival();
@@ -567,6 +524,17 @@ nfr("repeat_string", "s,n", "SI", "S",
         return Value(ns);
     });
 
+#define VECTOROPT(op, typeinfo) \
+    auto len = vm.Pop().ival(); \
+    auto elems = vm.TopPtr() - len; \
+    for (intp i = 0; i < len; i++) { \
+        auto f = elems[i]; \
+        elems[i] = Value(op); \
+    }
+#define VECTOROP(op) VECTOROPT(op, a.oval()->tti)
+#define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
+#define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
+
 nfr("pow", "a,b", "FF", "F",
     "a raised to the power of b",
     [](VM &, Value &a, Value &b) { return Value(pow(a.fval(), b.fval())); });
@@ -577,6 +545,13 @@ nfr("pow", "a,b", "II", "I",
         return Value(b.ival() >= 0 ? ipow<intp>(a.ival(), b.ival()) : 0);
     });
 
+nfr("pow", "a,b", "F}F", "F}",
+    "vector elements raised to the power of b",
+    [](VM &vm) {
+        auto exp = vm.Pop().fval();
+        VECTOROPF(pow(f.fval(), exp));
+    });
+
 nfr("log", "a", "F", "F",
     "natural logaritm of a",
     [](VM &, Value &a) { return Value(log(a.fval())); });
@@ -585,38 +560,26 @@ nfr("sqrt", "f", "F", "F",
     "square root",
     [](VM &, Value &a) { return Value(sqrt(a.fval())); });
 
-#define VECTOROPT(op, typeinfo) \
-    auto len = a.oval()->Len(vm); \
-    auto v = vm.NewStruct(len, typeinfo); \
-    for (intp i = 0; i < len; i++) { \
-        auto f = a.oval()->AtS(i); \
-        v->AtS(i) = Value(op); \
-    } \
-    return Value(v);
-#define VECTOROP(op) VECTOROPT(op, a.oval()->tti)
-#define VECTOROPI(op) VECTOROPT(op, vm.GetIntVectorType((int)len))
-#define VECTOROPF(op) VECTOROPT(op, vm.GetFloatVectorType((int)len))
-
 nfr("ceiling", "f", "F", "I",
     "the nearest int >= f",
     [](VM &, Value &a) { return Value(fceil(a.fval())); });
 nfr("ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v",
-    [](VM &vm, Value &a) { VECTOROPI(intp(fceil(f.fval()))); });
+    [](VM &vm) { VECTOROPI(intp(fceil(f.fval()))); });
 
 nfr("floor", "f", "F", "I",
     "the nearest int <= f",
     [](VM &, Value &a) { return Value(ffloor(a.fval())); });
 nfr("floor", "v", "F}", "I}",
     "the nearest ints <= each component of v",
-    [](VM &vm, Value &a) { VECTOROPI(ffloor(f.fval())); });
+    [](VM &vm) { VECTOROPI(ffloor(f.fval())); });
 
 nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",
     [](VM &, Value &a) { return Value(intp(a.fval())); });
 nfr("int", "v", "F}", "I}",
     "converts a vector of floats to ints by dropping the fraction",
-    [](VM &vm, Value &a) { VECTOROPI(intp(f.fval())); });
+    [](VM &vm) { VECTOROPI(intp(f.fval())); });
 
 nfr("round", "f", "F", "I",
     "converts a float to the closest int. same as int(f + 0.5), so does not work well on"
@@ -624,21 +587,21 @@ nfr("round", "f", "F", "I",
     [](VM &, Value &a) { return Value(intp(a.fval() + 0.5f)); });
 nfr("round", "v", "F}", "I}",
     "converts a vector of floats to the closest ints",
-    [](VM &vm, Value &a) { VECTOROPI(intp(f.fval() + 0.5f)); });
+    [](VM &vm) { VECTOROPI(intp(f.fval() + 0.5f)); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - int(f)",
     [](VM &, Value &a) { return Value(a.fval() - int(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
     "returns the fractional part of a vector of floats",
-    [](VM &vm, Value &a) { VECTOROP(f.fval() - int(f.fval())); });
+    [](VM &vm) { VECTOROP(f.fval() - int(f.fval())); });
 
 nfr("float", "i", "I", "F",
     "converts an int to float",
     [](VM &, Value &a) { return Value(floatp(a.ival())); });
 nfr("float", "v", "I}", "F}",
     "converts a vector of ints to floats",
-    [](VM &vm, Value &a) { VECTOROPF(floatp(f.ival())); });
+    [](VM &vm) { VECTOROPF(floatp(f.ival())); });
 
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
@@ -651,9 +614,10 @@ nfr("tan", "angle", "F", "F",
     [](VM &, Value &a) { return Value(tan(a.fval() * RAD)); });
 
 nfr("sincos", "angle", "F", "F}:2",
-    "the normalized vector indicated by angle (in degrees), same as [ cos(angle), sin(angle) ]",
-    [](VM &vm, Value &a) {
-        return ToValueF(vm, floatp2(cos(a.fval() * RAD), sin(a.fval() * RAD)));
+    "the normalized vector indicated by angle (in degrees), same as xy { cos(angle), sin(angle) }",
+    [](VM &vm) {
+        auto a = vm.Pop().fval();
+        vm.PushVec(floatp2(cos(a * RAD), sin(a * RAD)));
     });
 
 nfr("arcsin", "y", "F", "F",
@@ -672,8 +636,9 @@ nfr("degrees", "angle", "F", "F",
 
 nfr("atan2", "vec", "F}" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector",
-    [](VM &vm, Value &vec) {
-        auto v = ValueToF<3>(vm, vec); return Value(atan2(v.y, v.x) / RAD);
+    [](VM &vm) {
+        auto v = vm.PopVec<floatp2>();
+        vm.Push(atan2(v.y, v.x) / RAD);
     });
 
 nfr("radians", "angle", "F", "F",
@@ -685,34 +650,56 @@ nfr("degrees", "angle", "F", "F",
 
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",
-    [](VM &vm, Value &vec) {
-        switch (vec.oval()->Len(vm)) {
-            case 2: { auto v = ValueToF<2>(vm, vec);
-                return ToValueF(vm, v == floatp2_0 ? v : normalize(v)); }
-            case 3: { auto v = ValueToF<3>(vm, vec);
-                return ToValueF(vm, v == floatp3_0 ? v : normalize(v)); }
-            case 4: { auto v = ValueToF<4>(vm, vec);
-                return ToValueF(vm, v == floatp4_0 ? v : normalize(v)); }
-            default: return vm.BuiltinError("normalize() only works on vectors of length 2 to 4");
+    [](VM &vm) {
+        switch (vm.Top().ival()) {
+            case 2: {
+                auto v = vm.PopVec<floatp2>();
+                vm.PushVec(v == floatp2_0 ? v : normalize(v));
+                break;
+            }
+            case 3: {
+                auto v = vm.PopVec<floatp3>();
+                vm.PushVec(v == floatp3_0 ? v : normalize(v));
+                break;
+            }
+            case 4: {
+                auto v = vm.PopVec<floatp4>();
+                vm.PushVec(v == floatp4_0 ? v : normalize(v));
+                break;
+            }
+            default:
+                assert(false);
         }
     });
 
 nfr("dot", "a,b", "F}F}", "F",
     "the length of vector a when projected onto b (or vice versa)",
-    [](VM &vm, Value &a, Value &b) { return Value(dot(ValueToF<4>(vm, a), ValueToF<4>(vm, b))); });
+    [](VM &vm) {
+        auto b = vm.PopVec<floatp4>();
+        auto a = vm.PopVec<floatp4>();
+        vm.Push(dot(a, b));
+    });
 
 nfr("magnitude", "v", "F}", "F",
     "the geometric length of a vector",
-    [](VM &vm, Value &a)  { return Value(length(ValueToF<4>(vm, a))); });
+    [](VM &vm) {
+        auto a = vm.PopVec<floatp4>();
+        vm.Push(length(a));
+    });
 
 nfr("manhattan", "v", "I}", "I",
     "the manhattan distance of a vector",
-    [](VM &vm, Value &a) { return Value(manhattan(ValueToI<4>(vm, a))); });
+    [](VM &vm) {
+        auto a = vm.PopVec<intp4>();
+        vm.Push(manhattan(a));
+    });
 
 nfr("cross", "a,b", "F}:3F}:3", "F}:3",
     "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)",
-    [](VM &vm, Value &a, Value &b) {
-        return ToValueF(vm, cross(ValueToF<3>(vm, a), ValueToF<3>(vm, b)));
+    [](VM &vm) {
+        auto b = vm.PopVec<floatp3>();
+        auto a = vm.PopVec<floatp3>();
+        vm.PushVec(cross(a, b));
     });
 
 nfr("rnd", "max", "I", "I",
@@ -720,7 +707,7 @@ nfr("rnd", "max", "I", "I",
     [](VM &, Value &a) { return Value(rnd(max(1, (int)a.ival()))); });
 nfr("rnd", "max", "I}", "I}",
     "a random vector within the range of an input vector.",
-    [](VM &vm, Value &a) { VECTOROP(rnd(max(1, (int)f.ival()))); });
+    [](VM &vm) { VECTOROP(rnd(max(1, (int)f.ival()))); });
 nfr("rnd_float", "", "", "F",
     "a random float [0..1)",
     [](VM &) { return Value(rnd.rnddouble()); });
@@ -749,16 +736,22 @@ nfr("clamp", "x,min,max", "FFF", "F",
 
 nfr("clamp", "x,min,max", "I}I}I}", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
-    [](VM &vm, Value &a, Value &b, Value &c) {
-        return ToValueI(vm, geom::clamp(ValueToI<4>(vm, a), ValueToI<4>(vm, b), ValueToI<4>(vm, c)),
-                        a.oval()->Len(vm));
+    [](VM &vm) {
+        auto l = vm.Top().ival();
+        auto c = vm.PopVec<intp4>();
+        auto b = vm.PopVec<intp4>();
+        auto a = vm.PopVec<intp4>();
+        vm.PushVec(geom::clamp(a, b, c), l);
     });
 
 nfr("clamp", "x,min,max", "F}F}F}", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
-    [](VM &vm, Value &a, Value &b, Value &c) {
-        return ToValueF(vm, geom::clamp(ValueToF<4>(vm, a), ValueToF<4>(vm, b), ValueToF<4>(vm, c)),
-                        a.oval()->Len(vm));
+    [](VM &vm) {
+        auto l = vm.Top().ival();
+        auto c = vm.PopVec<floatp4>();
+        auto b = vm.PopVec<floatp4>();
+        auto a = vm.PopVec<floatp4>();
+        vm.PushVec(geom::clamp(a, b, c), l);
     });
 
 nfr("in_range", "x,range,bias", "III?", "I",
@@ -769,20 +762,20 @@ nfr("in_range", "x,range,bias", "III?", "I",
 
 nfr("in_range", "x,range,bias", "I}I}I}?", "I",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &vm, Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueToI<3>(vm, xv);
-        auto range = ValueToI<3>(vm, rangev, 1);
-        auto bias  = biasv.True() ? ValueToI<3>(vm, biasv) : intp3_0;
-        return Value(x >= bias && x < bias + range);
+    [](VM &vm) {
+        auto bias  = vm.Top().True() ? vm.PopVec<intp3>() : (vm.Pop(), intp3_0);
+        auto range = vm.PopVec<intp3>(1);
+        auto x     = vm.PopVec<intp3>();
+        vm.Push(x >= bias && x < bias + range);
     });
 
 nfr("in_range", "x,range,bias", "F}F}F}?", "I",
     "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
-    [](VM &vm, Value &xv, Value &rangev, Value &biasv) {
-        auto x     = ValueToF<3>(vm, xv);
-        auto range = ValueToF<3>(vm, rangev, 1);
-        auto bias  = biasv.True() ? ValueToF<3>(vm, biasv) : floatp3_0;
-        return Value(x >= bias && x < bias + range);
+    [](VM &vm) {
+        auto bias  = vm.Top().True() ? vm.PopVec<floatp3>() : (vm.Pop(), floatp3_0);
+        auto range = vm.PopVec<floatp3>(1);
+        auto x     = vm.PopVec<floatp3>();
+        vm.Push(x >= bias && x < bias + range);
     });
 
 nfr("abs", "x", "I", "I",
@@ -793,10 +786,10 @@ nfr("abs", "x", "F", "F",
     [](VM &, Value &a) { return Value(fabs(a.fval())); });
 nfr("abs", "x", "I}", "I}",
     "absolute value of an int vector",
-    [](VM &vm, Value &a) { VECTOROP(abs(f.ival())); });
+    [](VM &vm) { VECTOROP(abs(f.ival())); });
 nfr("abs", "x", "F}", "F}",
     "absolute value of a float vector",
-    [](VM &vm, Value &a) { VECTOROP(fabs(f.fval())); });
+    [](VM &vm) { VECTOROP(fabs(f.fval())); });
 
 nfr("sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer",
@@ -806,22 +799,17 @@ nfr("sign", "x", "F", "I",
     [](VM &, Value &a) { return Value(signum(a.fval())); });
 nfr("sign", "x", "I}", "I}",
     "signs of an int vector",
-    [](VM &vm, Value &a) { VECTOROP(signum(f.ival())); });
+    [](VM &vm) { VECTOROP(signum(f.ival())); });
 nfr("sign", "x", "F}", "I}",
     "signs of a float vector",
-    [](VM &vm, Value &a) { VECTOROPI(signum(f.fval())); });
+    [](VM &vm) { VECTOROPI(signum(f.fval())); });
 
-// FIXME: need to guarantee this assert in typechecking
-#define VECBINOP(name,access) \
-    auto len = x.oval()->Len(vm); \
-    if (len != y.oval()->Len(vm)) vm.BuiltinError(#name "() arguments must be equal length"); \
-    auto type = x.oval()->tti; \
-    assert(type == y.oval()->tti); \
-    auto v = vm.NewStruct(len, type); \
-    for (intp i = 0; i < len; i++) { \
-        v->AtS(i) = Value(name(x.oval()->AtS(i).access(), y.oval()->AtS(i).access())); \
-    } \
-    return Value(v);
+// FIXME: need to guarantee in typechecking that both vectors are the same len.
+#define VECBINOP(name, T) \
+    auto len = vm.Top().ival(); \
+    auto y = vm.PopVec<T>(); \
+    auto x = vm.PopVec<T>(); \
+    vm.PushVec(name(x, y), len);
 
 #define VECSCALAROP(type, init, fun, acc, len, at) \
     type v = init; \
@@ -832,55 +820,96 @@ nfr("sign", "x", "F}", "I}",
     } \
     return Value(v);
 
+#define STSCALAROP(type, init, fun) \
+    type v = init; \
+    auto l = vm.Pop().ival(); \
+    for (intp i = 0; i < l; i++) { \
+        auto f = vm.Pop(); \
+        fun; \
+    } \
+    vm.Push(v);
+
 nfr("min", "x,y", "II", "I",
     "smallest of 2 integers.",
-    [](VM &, Value &x, Value &y) { return Value(min(x.ival(), y.ival())); });
+    [](VM &, Value &x, Value &y) {
+        return Value(min(x.ival(), y.ival()));
+    });
 nfr("min", "x,y", "FF", "F",
     "smallest of 2 floats.",
-    [](VM &, Value &x, Value &y) { return Value(min(x.fval(), y.fval())); });
+    [](VM &, Value &x, Value &y) {
+        return Value(min(x.fval(), y.fval()));
+    });
 nfr("min", "x,y", "I}I}", "I}",
     "smallest components of 2 int vectors",
-    [](VM &vm, Value &x, Value &y) { VECBINOP(min,ival) });
+    [](VM &vm) {
+        VECBINOP(min, intp4)
+    });
 nfr("min", "x,y", "F}F}", "F}",
     "smallest components of 2 float vectors",
-    [](VM &vm, Value &x, Value &y) { VECBINOP(min,fval) });
+    [](VM &vm) {
+        VECBINOP(min, floatp4)
+    });
 nfr("min", "v", "I}", "I",
     "smallest component of a int vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), oval, Len(vm), AtS(i)) });
+    [](VM &vm) {
+        STSCALAROP(intp, INT_MAX, v = min(v, f.ival()))
+    });
 nfr("min", "v", "F}", "F",
     "smallest component of a float vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), oval, Len(vm), AtS(i)) });
+    [](VM &vm) {
+        STSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()))
+    });
 nfr("min", "v", "I]", "I",
     "smallest component of a int vector, or INT_MAX if length 0.",
-    [](VM &, Value &x) { VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i)) });
+    [](VM &, Value &x) {
+        VECSCALAROP(intp, INT_MAX, v = min(v, f.ival()), vval, len, At(i))
+    });
 nfr("min", "v", "F]", "F",
     "smallest component of a float vector, or FLT_MAX if length 0.",
-    [](VM &, Value &x) { VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i)) });
+    [](VM &, Value &x) {
+        VECSCALAROP(floatp, FLT_MAX, v = min(v, f.fval()), vval, len, At(i))
+    });
 
 nfr("max", "x,y", "II", "I",
     "largest of 2 integers.",
-    [](VM &, Value &x, Value &y) { return Value(max(x.ival(), y.ival())); });
+    [](VM &, Value &x, Value &y) {
+        return Value(max(x.ival(), y.ival()));
+    });
 nfr("max", "x,y", "FF", "F",
     "largest of 2 floats.",
-    [](VM &, Value &x, Value &y) { return Value(max(x.fval(), y.fval())); });
+    [](VM &, Value &x, Value &y) {
+        return Value(max(x.fval(), y.fval()));
+    });
 nfr("max", "x,y", "I}I}", "I}",
     "largest components of 2 int vectors",
-    [](VM &vm, Value &x, Value &y) { VECBINOP(max,ival) });
+    [](VM &vm) {
+        VECBINOP(max, intp4)
+    });
 nfr("max", "x,y", "F}F}", "F}",
     "largest components of 2 float vectors",
-    [](VM &vm, Value &x, Value &y) { VECBINOP(max,fval) });
+    [](VM &vm) {
+        VECBINOP(max, floatp4)
+    });
 nfr("max", "v", "I}", "I",
     "largest component of a int vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), oval, Len(vm), AtS(i)) });
+    [](VM &vm) {
+        STSCALAROP(intp, INT_MIN, v = max(v, f.ival()))
+    });
 nfr("max", "v", "F}", "F",
     "largest component of a float vector.",
-    [](VM &vm, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), oval, Len(vm), AtS(i)) });
+    [](VM &vm) {
+        STSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()))
+    });
 nfr("max", "v", "I]", "I",
     "largest component of a int vector, or INT_MIN if length 0.",
-    [](VM &, Value &x) { VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i)) });
+    [](VM &, Value &x) {
+        VECSCALAROP(intp, INT_MIN, v = max(v, f.ival()), vval, len, At(i))
+    });
 nfr("max", "v", "F]", "F",
     "largest component of a float vector, or FLT_MIN if length 0.",
-    [](VM &, Value &x) { VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i)) });
+    [](VM &, Value &x) {
+        VECSCALAROP(floatp, FLT_MIN, v = max(v, f.fval()), vval, len, At(i))
+    });
 
 nfr("lerp", "x,y,f", "FFF", "F",
     "linearly interpolates between x and y with factor f [0..1]",
@@ -890,28 +919,39 @@ nfr("lerp", "x,y,f", "FFF", "F",
 
 nfr("lerp", "a,b,f", "F}F}F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
-    [](VM &vm, Value &x, Value &y, Value &f) {
-        auto numelems = x.oval()->Len(vm);
-        return ToValueF(vm, mix(ValueToF<4>(vm, x), ValueToF<4>(vm, y), (float)f.fval()), numelems);
+    [](VM &vm) {
+        auto f = vm.Pop().fltval();
+        auto numelems = vm.Top().ival();
+        auto y = vm.PopVec<floatp4>();
+        auto x = vm.PopVec<floatp4>();
+        vm.PushVec(mix(x, y, f), numelems);
     });
 
 nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)",
-    [](VM &vm, Value &z, Value &a, Value &b, Value &c, Value &f, Value &t) {
-        return ToValueF(vm, cardinal_spline(ValueToF<3>(vm, z),
-                                            ValueToF<3>(vm, a),
-                                            ValueToF<3>(vm, b),
-                                            ValueToF<3>(vm, c), f.fval(), t.fval()));
+    [](VM &vm) {
+        auto t = vm.Pop().fval();
+        auto f = vm.Pop().fval();
+        auto c = vm.PopVec<floatp3>();
+        auto b = vm.PopVec<floatp3>();
+        auto a = vm.PopVec<floatp3>();
+        auto z = vm.PopVec<floatp3>();
+        vm.PushVec(cardinal_spline(z, a, b, c, f, t));
     });
 
-nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "F}:2?",
-    "computes the intersection point between 2 line segments, or nil if no intersection",
-    [](VM &vm, Value &l1a, Value &l1b, Value &l2a, Value &l2b) {
-        floatp2 ipoint;
-        auto r = line_intersect(ValueToF<2>(vm, l1a), ValueToF<2>(vm, l1b),
-                                ValueToF<2>(vm, l2a), ValueToF<2>(vm, l2b), &ipoint);
-        return r ? ToValueF(vm, ipoint) : Value();
+nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
+    "computes if there is an intersection point between 2 line segments, with the point as"
+    " second return value",
+    [](VM &vm) {
+        auto l2b = vm.PopVec<floatp2>();
+        auto l2a = vm.PopVec<floatp2>();
+        auto l1b = vm.PopVec<floatp2>();
+        auto l1a = vm.PopVec<floatp2>();
+        floatp2 ipoint(0, 0);
+        auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
+        vm.Push(r);
+        vm.PushVec(ipoint);
     });
 
 nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "I]]",
@@ -920,7 +960,8 @@ nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "
     " pre-filter indicates objects that should appear in the inner vectors.",
     [](VM &vm, Value &dist, Value &positions, Value &radiuses,
                                         Value &prefilter) {
-        auto len = positions.vval()->len;
+        auto vec = positions.vval();
+        auto len = vec->len;
         if (radiuses.vval()->len != len || prefilter.vval()->len != len)
             return vm.BuiltinError(
                 "circles_within_range: all input vectors must be the same size");
@@ -930,7 +971,7 @@ nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "
         floatp2 minpos = floatp2(FLT_MAX), maxpos(FLT_MIN);
         for (intp i = 0; i < len; i++) {
             auto &n = nodes[i];
-            auto p = ValueToF<2>(vm, positions.vval()->At(i));
+            auto p = ValueToF<2>(vec->AtSt(i), vec->width);
             minpos = min(minpos, p);
             maxpos = max(maxpos, p);
             n.pos = p;
@@ -992,8 +1033,9 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0",
-    [](VM &vm, Value &tilemap, Value &size) {
-        auto sz = ValueToINT<2>(vm, size);
+    [](VM &vm) {
+        auto sz = vm.PopVec<int2>();
+        auto tilemap = vm.Pop();
         auto rows = tilemap.vval()->len;
         vector<const char *> inmap(rows);
         intp cols = 0;
@@ -1012,7 +1054,7 @@ nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
         if (!ok)
             vm.Error("tilemap contained too many tile ids");
         vm.Push(outstrings);
-        return Value(num_contradictions);
+        vm.Push(num_contradictions);
     });
 
 nfr("resume", "coroutine,return_value", "CkAk%?", "C?",

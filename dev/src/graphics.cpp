@@ -43,7 +43,7 @@ ResourceType texture_type = { "texture", [](void *t) {
 Mesh &GetMesh(VM &vm, Value &res) {
     return *GetResourceDec<Mesh *>(vm, res, &mesh_type);
 }
-Texture GetTexture(VM &vm, Value &res) {
+Texture GetTexture(VM &vm, const Value &res) {
     auto tex = GetResourceDec<Texture *>(vm, res, &texture_type);
     return tex ? *tex : Texture();
 }
@@ -97,20 +97,13 @@ float2 localfingerpos(int i) {
 }
 
 Value PushTransform(VM &vm, const float4x4 &forward, const float4x4 &backward, const Value &body) {
-    if (body.True()) {
-        vm.Push(Value(vm.NewString(string_view((char *)&otransforms,
-                                                     sizeof(objecttransforms)))));
-    }
+    if (body.True()) vm.PushAnyAsString(otransforms);
     AppendTransform(forward, backward);
     return body;
 }
 
 void PopTransform(VM &vm) {
-    auto s = vm.Pop();
-    assert(s.type == V_STRING);
-    assert(s.sval()->len == sizeof(objecttransforms));
-    otransforms = *(objecttransforms *)s.sval()->strv().data();
-    s.LTDECRT(vm);
+    vm.PopAnyFromString(otransforms);
 }
 
 int GetSampler(VM &vm, Value &i) {
@@ -124,7 +117,7 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
     auto len = vl.vval()->len;
     if (len < 3) vm.BuiltinError("polygon: must have at least 3 verts");
     vector<BasicVert> vbuf(len);
-    for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vm, vl.vval()->At(i));
+    for (int i = 0; i < len; i++) vbuf[i].pos = ValueToFLT<3>(vl.vval()->AtSt(i), vl.vval()->width);
     auto v1 = vbuf[1].pos - vbuf[0].pos;
     auto v2 = vbuf[2].pos - vbuf[0].pos;
     auto norm = normalize(cross(v2, v1));
@@ -137,7 +130,7 @@ Mesh *CreatePolygon(VM &vm, Value &vl) {
     return m;
 }
 
-Value SetUniform(VM &vm, Value &name, const float *data, int len, bool ignore_errors) {
+Value SetUniform(VM &vm, const Value &name, const float *data, int len, bool ignore_errors) {
     TestGL(vm);
     currentshader->Activate();
     auto ok = currentshader->SetUniform(name.sval()->strv(), data, len);
@@ -289,44 +282,48 @@ nfr("gl_dpi", "screen", "I", "I",
 nfr("gl_window_size", "", "", "I}:2",
     "a vector representing the size (in pixels) of the window, changes when the user resizes",
     [](VM &vm) {
-        return ToValueINT(vm, GetScreenSize());
+        vm.PushVec(GetScreenSize());
     });
 
 nfr("gl_mouse_pos", "i", "I", "I}:2",
     "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
     " fingers (for touch screens only if the corresponding gl_isdown is true)",
-    [](VM &vm, Value &i) {
-        return ToValueINT(vm, GetFinger(i.intval(), false));
+    [](VM &vm) {
+        vm.PushVec(GetFinger(vm.Pop().intval(), false));
     });
 
 nfr("gl_mouse_delta", "i", "I", "I}:2",
     "number of pixels the mouse/finger has moved since the last frame. use this instead of"
     " substracting positions to correctly deal with lifted fingers and FPS mode"
     " (gl_cursor(0))",
-    [](VM &vm, Value &i) {
-        return ToValueINT(vm, GetFinger(i.intval(), true));
+    [](VM &vm) {
+        vm.PushVec(GetFinger(vm.Pop().intval(), true));
     });
 
 nfr("gl_local_mouse_pos", "i", "I", "F}:2",
     "the current mouse/finger position local to the current transform (gl_translate etc)"
     " (for touch screens only if the corresponding gl_isdown is true)",
-    [](VM &vm, Value &i) {
-        return ToValueFLT(vm, localfingerpos(i.intval()));
+    [](VM &vm) {
+        vm.PushVec(localfingerpos(vm.Pop().intval()));
     });
 
 nfr("gl_last_pos", "name,down", "SI", "I}:2",
     "position (in pixels) key/mousebutton/finger last went down (true) or up (false)",
-    [](VM &vm, Value &name, Value &on) {
-        auto p = GetKeyPos(name.sval()->strv(), on.intval());
-        return ToValueINT(vm, p);
+    [](VM &vm) {
+        auto on = vm.Pop().intval();
+        auto name = vm.Pop().sval();
+        auto p = GetKeyPos(name->strv(), on);
+        vm.PushVec(p);
     });
 
 nfr("gl_local_last_pos", "name,down", "SI", "F}:2",
     "position (local to the current transform) key/mousebutton/finger last went down (true) or"
     " up (false)",
-    [](VM &vm, Value &name, Value &on) {
-        auto p = localpos(GetKeyPos(name.sval()->strv(), on.intval()));
-        return ToValueFLT(vm, p);
+    [](VM &vm) {
+        auto on = vm.Pop().intval();
+        auto name = vm.Pop().sval();
+        auto p = localpos(GetKeyPos(name->strv(), on));
+        vm.PushVec(p);
     });
 
 nfr("gl_mousewheel_delta", "", "", "I",
@@ -363,33 +360,33 @@ nfr("gl_last_time", "name,down", "SI", "F",
 
 nfr("gl_clear", "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color",
-    [](VM &vm, Value &col) {
+    [](VM &vm) {
         TestGL(vm);
-        ClearFrameBuffer(ValueToFLT<3>(vm, col));
-        return Value();
+        ClearFrameBuffer(vm.PopVec<float3>());
     });
 
 nfr("gl_color", "col,body", "F}:4B?", "",
     "sets the current color. when a body is given, restores the previous color afterwards",
-    [](VM &vm, Value &col, Value &body) {
-        // FIXME: maybe more efficient as an int
-        if (body.True()) vm.Push(ToValueFLT(vm, curcolor));
-        curcolor = ValueToFLT<4>(vm, col);
-        return body;
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto col = vm.PopVec<float4>();
+        auto cc = quantizec(curcolor);
+        if (body.True()) vm.Push(*(int *)&cc);
+        curcolor = col;
+        vm.Push(body);
     }, [](VM &vm) {
-        auto tmpcol = vm.Pop();
-        curcolor = ValueToFLT<4>(vm, tmpcol);
-        tmpcol.LTDECRT(vm);
+        auto tmpcol = vm.Pop().intval();
+        curcolor = color2vec(*(byte4 *)&tmpcol);
     });
 
-nfr("gl_polygon", "vertlist", "F}]", "Ab1",
-    "renders a polygon using the list of points given. returns the argument."
+nfr("gl_polygon", "vertlist", "F}]", "",
+    "renders a polygon using the list of points given."
     " warning: gl_polygon creates a new mesh every time, gl_new_poly/gl_render_mesh is faster.",
     [](VM &vm, Value &vl) {
         auto m = CreatePolygon(vm, vl);
         m->Render(currentshader);
         delete m;
-        return vl;
+        return Value();
     });
 
 nfr("gl_circle", "radius,segments", "FI", "",
@@ -425,9 +422,10 @@ nfr("gl_unit_cube", "insideout", "I?", "",
 nfr("gl_rotate_x", "vector,body", "F}:2B?", "",
     "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &angle, Value &body) {
-        auto a = ValueToFLT<2>(vm, angle);
-        return PushTransform(vm, rotationX(a), rotationX(a * float2(1, -1)), body);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto a = vm.PopVec<float2>();
+        vm.Push(PushTransform(vm, rotationX(a), rotationX(a * float2(1, -1)), body));
     }, [](VM &vm) {
         PopTransform(vm);
     });
@@ -435,9 +433,10 @@ nfr("gl_rotate_x", "vector,body", "F}:2B?", "",
 nfr("gl_rotate_y", "angle,body", "F}:2B?", "",
     "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &angle, Value &body) {
-        auto a = ValueToFLT<2>(vm, angle);
-        return PushTransform(vm, rotationY(a), rotationY(a * float2(1, -1)), body);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto a = vm.PopVec<float2>();
+        vm.Push(PushTransform(vm, rotationY(a), rotationY(a * float2(1, -1)), body));
     }, [](VM &vm) {
         PopTransform(vm);
     });
@@ -445,9 +444,10 @@ nfr("gl_rotate_y", "angle,body", "F}:2B?", "",
 nfr("gl_rotate_z", "angle,body", "F}:2B?", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
     " as angle. when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &angle, Value &body) {
-        auto a = ValueToFLT<2>(vm, angle);
-        return PushTransform(vm, rotationZ(a), rotationZ(a * float2(1, -1)), body);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto a = vm.PopVec<float2>();
+        vm.Push(PushTransform(vm, rotationZ(a), rotationZ(a * float2(1, -1)), body));
     }, [](VM &vm) {
         PopTransform(vm);
     });
@@ -455,9 +455,10 @@ nfr("gl_rotate_z", "angle,body", "F}:2B?", "",
 nfr("gl_translate", "vec,body", "F}B?", "",
     "translates the current coordinate system along a vector. when a body is given,"
     " restores the previous transform afterwards",
-    [](VM &vm, Value &vec, Value &body) {
-        auto v = ValueToFLT<3>(vm, vec);
-        return PushTransform(vm, translation(v), translation(-v), body);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto v = vm.PopVec<float3>();
+        vm.Push(PushTransform(vm, translation(v), translation(-v), body));
     }, [](VM &vm) {
         PopTransform(vm);
     });
@@ -475,9 +476,10 @@ nfr("gl_scale", "factor,body", "FB?", "",
 nfr("gl_scale", "factor,body", "F}B?", "",
     "scales the current coordinate system using a vector."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &vec, Value &body) {
-        auto v = ValueToFLT<3>(vm, vec, 1);
-        return PushTransform(vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto v = vm.PopVec<float3>();
+        vm.Push(PushTransform(vm, float4x4(float4(v, 1)), float4x4(float4(float3_1 / v, 1)), body));
     }, [](VM &vm) {
         PopTransform(vm);
     });
@@ -487,7 +489,7 @@ nfr("gl_origin", "", "", "F}:2",
     " only makes sense in 2D mode (no gl_perspective called).",
     [](VM &vm) {
         auto pos = floatp2(otransforms.object2view[3].x, otransforms.object2view[3].y);
-        return ToValueF(vm, pos);
+        vm.PushVec(pos);
     });
 
 nfr("gl_scaling", "", "", "F}:2",
@@ -495,7 +497,7 @@ nfr("gl_scaling", "", "", "F}:2",
     " only makes sense in 2D mode (no gl_perspective called).",
     [](VM &vm) {
         auto sc = floatp2(otransforms.object2view[0].x, otransforms.object2view[1].y);
-        return ToValueF(vm, sc);
+        vm.PushVec(sc);
     });
 
 nfr("gl_model_view_projection", "", "", "F]",
@@ -533,9 +535,10 @@ nfr("gl_hit", "vec,i", "F}I", "I",
     " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
     " the last rectangle for which gl_hit was true last frame is of the same size as this one"
     " (allows you to safely test in most cases of overlapping rendering)",
-    [](VM &vm, Value &vec, Value &i) {
-        auto size = ValueToFLT<3>(vm, vec);
-        auto localmousepos = localfingerpos(i.intval());
+    [](VM &vm) {
+        auto i = vm.Pop().intval();
+        auto size = vm.PopVec<float3>();
+        auto localmousepos = localfingerpos(i);
         auto hit = localmousepos.x >= 0 &&
                    localmousepos.y >= 0 &&
                    localmousepos.x < size.x &&
@@ -553,32 +556,34 @@ nfr("gl_hit", "vec,i", "F}I", "I",
         if (ks.wentdown && hit) return true;
         #endif
         */
-        return Value(size == lastframehitsize && hit);
+        vm.Push(size == lastframehitsize && hit);
     });
 
-nfr("gl_rect", "size,centered", "F}I?", "F}b",
+nfr("gl_rect", "size,centered", "F}:2I?", "",
     "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
-    " size. returns the argument.",
-    [](VM &vm, Value &vec, Value &centered) {
+    " size.",
+    [](VM &vm) {
+        auto centered = vm.Pop().True();
+        auto vec = vm.PopVec<float2>();
         TestGL(vm);
-        geomcache->RenderQuad(currentshader, polymode, centered.True(),
-                              float4x4(float4(ValueToFLT<2>(vm, vec), 1)));
-        return vec;
+        geomcache->RenderQuad(currentshader, polymode, centered,
+                              float4x4(float4(vec, 1)));
     });
 
 nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
     "Like gl_rect renders a sized quad, but allows you to specify texture coordinates and"
     " optionally colors (empty list for all white). Slow.",
-    [](VM &vm, Value &size, Value &tc, Value &tcdim, Value &cols) {
+    [](VM &vm) {
         TestGL(vm);
-        auto sz = ValueToFLT<2>(vm, size);
-        auto t = ValueToFLT<2>(vm, tc);
-        auto td = ValueToFLT<2>(vm, tcdim);
+        auto cols = vm.Pop().vval();
+        auto td = vm.PopVec<float2>();
+        auto t = vm.PopVec<float2>();
+        auto sz = vm.PopVec<float2>();
         auto te = t + td;
         struct Vert { float x, y, z, u, v; byte4 c; };
         Vert vb_square[4] = {
             #define _GETCOL(N) \
-                cols.vval()->len > N ? quantizec(ValueToFLT<4>(vm, cols.vval()->At(N))) : byte4_255
+                cols->len > N ? quantizec(ValueToFLT<4>(cols->AtSt(N), cols->width)) : byte4_255
             { 0,    0,    0, t.x,  t.y,  _GETCOL(0) },
             { 0,    sz.y, 0, t.x,  te.y, _GETCOL(1) },
             { sz.x, sz.y, 0, te.x, te.y, _GETCOL(2) },
@@ -586,7 +591,6 @@ nfr("gl_rect_tc_col", "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
         };
         currentshader->Set();
         RenderArraySlow(PRIM_FAN, make_span(vb_square, 4), "PTC");
-        return Value();
     });
 
 nfr("gl_unit_square", "centered", "I?", "",
@@ -599,13 +603,13 @@ nfr("gl_unit_square", "centered", "I?", "",
 
 nfr("gl_line", "start,end,thickness", "F}F}F", "",
     "renders a line with the given thickness",
-    [](VM &vm, Value &start, Value &end, Value &thickness) {
+    [](VM &vm) {
         TestGL(vm);
-        auto v1 = ValueToFLT<3>(vm, start);
-        auto v2 = ValueToFLT<3>(vm, end);
-        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness.fltval());
-        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness.fltval());
-        return Value();
+        auto thickness = vm.Pop().fltval();
+        auto v2 = vm.PopVec<float3>();
+        auto v1 = vm.PopVec<float3>();
+        if (Is2DMode()) geomcache->RenderLine2D(currentshader, polymode, v1, v2, thickness);
+        else geomcache->RenderLine3D(currentshader, v1, v2, float3_0, thickness);
     });
 
 nfr("gl_perspective", "fovy,znear,zfar", "FFF", "",
@@ -630,9 +634,10 @@ nfr("gl_ortho", "rh", "I?", "",
 
 nfr("gl_ortho3d", "center,extends", "F}F}", "",
     "sets a custom ortho projection as 3D projection.",
-    [](VM &vm, Value &center, Value &extends) {
-        Set3DOrtho(ValueToFLT<3>(vm, center), ValueToFLT<3>(vm, extends));
-        return Value();
+    [](VM &vm) {
+        auto extends = vm.PopVec<float3>();
+        auto center = vm.PopVec<float3>();
+        Set3DOrtho(center, extends);
     });
 
 nfr("gl_new_poly", "positions", "F}]", "R",
@@ -681,20 +686,24 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
             int texcoordn = 0;
             for (auto c : fmt) {
                 switch (c) {
-                    case 'P':
-                        WriteMemInc(p, pos = ValueToFLT<3>(vm, positions.vval()->At(i)));
+                    case 'P': {
+                        pos = ValueToFLT<3>(positions.vval()->AtSt(i), positions.vval()->width);
+                        WriteMemInc(p, pos);
                         break;
+                    }
                     case 'C':
                         WriteMemInc(p,
                             i < colors.vval()->len
-                                ? quantizec(ValueToFLT<4>(vm, colors.vval()->At(i), 1))
+                                ? quantizec(ValueToFLT<4>(colors.vval()->AtSt(i),
+                                                          colors.vval()->width, 1))
                                 : byte4_255);
                         break;
                     case 'T': {
                         auto &texcoords = texcoordn ? texcoords2 : texcoords1;
                         WriteMemInc(p,
                             i < texcoords.vval()->len
-                                ? ValueToFLT<2>(vm, texcoords.vval()->At(i), 0)
+                                ? ValueToFLT<2>(texcoords.vval()->AtSt(i),
+                                                texcoords.vval()->width, 0)
                                 : pos.xy());
                         texcoordn++;
                         break;
@@ -703,7 +712,7 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
                         if (!normals.vval()->len) normal_offset = p - start;
                         WriteMemInc(p,
                             i < normals.vval()->len
-                                ? ValueToFLT<3>(vm, normals.vval()->At(i), 0)
+                                ? ValueToFLT<3>(normals.vval()->AtSt(i), normals.vval()->width, 0)
                                 : float3_0);
                         break;
                     default: assert(0);
@@ -784,10 +793,12 @@ nfr("gl_set_shader", "shader", "S", "",
 nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "I",
     "set a uniform on the current shader. size of float vector must match size of uniform"
     " in the shader.",
-    [](VM &vm, Value &name, Value &vec, Value &ignore_errors) {
-        auto v = ValueToFLT<4>(vm, vec);
-        auto r = SetUniform(vm, name, v.begin(), (int)vec.oval()->Len(vm), ignore_errors.True());
-        return r;
+    [](VM &vm) {
+        auto ignore_errors = vm.Pop().True();
+        auto len = vm.Top().intval();
+        auto v = vm.PopVec<float4>();
+        auto r = SetUniform(vm, vm.Pop(), v.begin(), len, ignore_errors);
+        vm.Push(r);
     });
 
 nfr("gl_set_uniform", "name,value,ignore_errors", "SFI?", "I",
@@ -804,7 +815,8 @@ nfr("gl_set_uniform_array", "name,value", "SF}:4]", "I",
     [](VM &vm, Value &name, Value &vec) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
+        for (int i = 0; i < vec.vval()->len; i++)
+            vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
         currentshader->Activate();
         auto ok = currentshader->SetUniform(name.sval()->strv(), vals.data()->data(), 4,
                                             (int)vals.size());
@@ -832,7 +844,8 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I?", "I",
     [](VM &vm, Value &name, Value &vec, Value &ssbo) {
         TestGL(vm);
         vector<float4> vals(vec.vval()->len);
-        for (int i = 0; i < vec.vval()->len; i++) vals[i] = ValueToFLT<4>(vm, vec.vval()->At(i));
+        for (int i = 0; i < vec.vval()->len; i++)
+            vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
         auto id = UniformBufferObject(currentshader, vals.data()->data(),
                                       4 * sizeof(float) * vals.size(),
                                       name.sval()->strv(), ssbo.True());
@@ -862,10 +875,10 @@ nfr("gl_bind_mesh_to_compute", "mesh,binding", "R?I", "",
 nfr("gl_dispatch_compute", "groups", "I}:3", "",
     "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
     " values.",
-    [](VM &vm, Value &groups) {
+    [](VM &vm) {
+        auto groups = vm.PopVec<int3>();
         TestGL(vm);
-        DispatchCompute(ValueToINT<3>(vm, groups));
-        return Value();
+        DispatchCompute(groups);
     });
 
 nfr("gl_dump_shader", "filename,stripnonascii", "SI", "I",
@@ -946,7 +959,7 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
         for (int i = 0; i < ys; i++) {
             auto row = mat->At(i).vval();
             for (int j = 0; j < min(xs, row->len); j++) {
-                float4 col = ValueToFLT<4>(vm, row->At(j));
+                float4 col = ValueToFLT<4>(row->AtSt(j), row->width);
                 auto idx = i * xs + j;
                 if (tf.ival() & TF_FLOAT) ((float4 *)buf)[idx] = col;
                 else                      ((byte4  *)buf)[idx] = quantizec(col);
@@ -960,17 +973,20 @@ nfr("gl_create_texture", "matrix,textureformat", "F}:4]]I?", "R",
 nfr("gl_create_blank_texture", "size,color,textureformat", "I}:2F}:4I?", "R",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format",
-    [](VM &vm, Value &size_, Value &col, Value &tf) {
+    [](VM &vm) {
         TestGL(vm);
-        auto tex = CreateBlankTexture(ValueToINT<2>(vm, size_), ValueToFLT<4>(vm, col), tf.intval());
-        return Value(vm.NewResource(new Texture(tex), &texture_type));
+        auto tf = vm.Pop().intval();
+        auto col = vm.PopVec<float4>();
+        auto size = vm.PopVec<int2>();
+        auto tex = CreateBlankTexture(size, col, tf);
+        vm.Push(vm.NewResource(new Texture(tex), &texture_type));
     });
 
 nfr("gl_texture_size", "tex", "R", "I}:2",
     "returns the size of a texture",
-    [](VM &vm, Value &tex) {
+    [](VM &vm) {
         TestGL(vm);
-        return ToValueINT(vm, GetTexture(vm, tex).size.xy());
+        vm.PushVec(GetTexture(vm, vm.Pop()).size.xy());
     });
 
 nfr("gl_read_texture", "tex", "R", "S?",
@@ -1009,12 +1025,11 @@ nfr("gl_light", "pos,params", "F}:3F}:2", "",
     " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
     " params contains specular exponent in x (try 32/64/128 for different material looks) and"
     " the specular scale in y (try 1 for full intensity)",
-    [](VM &vm, Value &pos, Value &params) {
+    [](VM &vm) {
         Light l;
-        l.pos = otransforms.object2view * float4(ValueToFLT<3>(vm, pos), 1);
-        l.params = ValueToFLT<2>(vm, params);
+        l.params = vm.PopVec<float2>();
+        l.pos = otransforms.object2view * float4(vm.PopVec<float3>(), 1);
         lights.push_back(l);
-        return Value();
     });
 
 nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
@@ -1022,16 +1037,18 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
     " Positions may be anywhere. Tile coordinates are inside the texture map, map size is"
     " the amount of tiles in the texture. Tiles may overlap, they are drawn in order."
     " Before calling this, make sure to have the texture set and a textured shader",
-    [](VM &vm, Value &pos, Value &tile, Value &mapsize) {
+    [](VM &vm) {
         TestGL(vm);
-        auto msize = float2(ValueToI<2>(vm, mapsize));
-        auto len = pos.vval()->len;
-        if (len != tile.vval()->len)
+        auto msize = float2(vm.PopVec<int2>());
+        auto tile = vm.Pop().vval();
+        auto pos = vm.Pop().vval();
+        auto len = pos->len;
+        if (len != tile->len)
             vm.BuiltinError("rendertiles: vectors of different size");
         vector<SpriteVert> vbuf(len * 6);
         for (intp i = 0; i < len; i++) {
-            auto p = ValueToFLT<2>(vm, pos.vval()->At(i));
-            auto t = float2(ValueToI<2>(vm, tile.vval()->At(i))) / msize;
+            auto p = ValueToFLT<2>(pos->AtSt(i), pos->width);
+            auto t = float2(ValueToI<2>(tile->AtSt(i), tile->width)) / msize;
             vbuf[i * 6 + 0].pos = p;
             vbuf[i * 6 + 1].pos = p + float2_y;
             vbuf[i * 6 + 2].pos = p + float2_1;
@@ -1047,41 +1064,42 @@ nfr("gl_render_tiles", "positions,tilecoords,mapsize", "F}:2]I}:2]I}:2", "",
         }
         currentshader->Set();
         RenderArraySlow(PRIM_TRIS, make_span(vbuf), "pT");
-        return Value();
     });
 
 nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
     "renders a grid in space for debugging purposes. num is the number of lines in all 3"
     " directions, and dist their spacing. thickness of the lines in the same units",
-    [](VM &vm, Value &num, Value &dist, Value &thickness) {
+    [](VM &vm) {
         TestGL(vm);
+        auto thickness = vm.Pop().fltval();
+        auto dist = vm.PopVec<float3>();
+        auto num = vm.PopVec<intp3>();
         float3 cp = otransforms.view2object[3].xyz();
-        auto m = float3(ValueToI<3>(vm, num));
-        auto step = ValueToFLT<3>(vm, dist);
+        auto m = float3(num);
+        auto step = dist;
         auto oldcolor = curcolor;
         curcolor = float4(0, 1, 0, 1);
         for (float z = 0; z <= m.z; z += step.x) {
             for (float x = 0; x <= m.x; x += step.x) {
                 geomcache->RenderLine3D(currentshader, float3(x, 0, z), float3(x, m.y, z), cp,
-                             thickness.fltval());
+                             thickness);
             }
         }
         curcolor = float4(1, 0, 0, 1);
         for (float z = 0; z <= m.z; z += step.y) {
             for (float y = 0; y <= m.y; y += step.y) {
                 geomcache->RenderLine3D(currentshader, float3(0, y, z), float3(m.x, y, z), cp,
-                    thickness.fltval());
+                    thickness);
             }
         }
         curcolor = float4(0, 0, 1, 1);
         for (float y = 0; y <= m.y; y += step.z) {
             for (float x = 0; x <= m.x; x += step.z) {
                 geomcache->RenderLine3D(currentshader, float3(x, y, 0), float3(x, y, m.z), cp,
-                    thickness.fltval());
+                    thickness);
             }
         }
         curcolor = oldcolor;
-        return Value();
     });
 
 nfr("gl_screenshot", "filename", "S", "I",

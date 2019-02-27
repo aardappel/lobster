@@ -196,6 +196,7 @@ enum ArgFlags {
     NF_CORESUME = 64,
     AF_WITHTYPE = 128,
     NF_CONVERTANYTOSTRING = 256,
+    NF_PUSHVALUEWIDTH = 512,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 
@@ -243,6 +244,7 @@ struct Narg : Typed {
                 case '@': flags = flags | AF_EXPFUNVAL; break;
                 case '%': flags = flags | NF_CORESUME; break; // FIXME: make a vm op.
                 case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
+                case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;
                 case 'k': lt = LT_KEEP; break;
                 case 'b': lt = LT_BORROW; break;
                 case ']':
@@ -255,8 +257,12 @@ struct Narg : Typed {
                     type = WrapKnown(type, V_NIL);
                     assert(!type.Null());
                     break;
-                case ':': assert(*tid >= '/' && *tid <= '9'); fixed_len = *tid++ - '0'; break;
-                default: assert(false);
+                case ':':
+                    assert(*tid >= '/' && *tid <= '9');
+                    fixed_len = *tid++ - '0';
+                    break;
+                default:
+                    assert(false);
             }
         }
     }
@@ -293,6 +299,7 @@ struct NargVector : GenericArgs {
     }
 };
 
+typedef void  (*builtinfV)(VM &vm);
 typedef Value (*builtinf0)(VM &vm);
 typedef Value (*builtinf1)(VM &vm, Value &);
 typedef Value (*builtinf2)(VM &vm, Value &, Value &);
@@ -304,6 +311,7 @@ typedef Value (*builtinf7)(VM &vm, Value &, Value &, Value &, Value &, Value &, 
 
 struct BuiltinPtr {
     union  {
+        builtinfV fV;
         builtinf0 f0;
         builtinf1 f1;
         builtinf2 f2;
@@ -313,17 +321,18 @@ struct BuiltinPtr {
         builtinf6 f6;
         builtinf7 f7;
     };
-    size_t nargs;
+    int fnargs;
 
-    BuiltinPtr()      : f0(nullptr), nargs(0) {}
-    BuiltinPtr(builtinf0 f) : f0(f), nargs(0) {}
-    BuiltinPtr(builtinf1 f) : f1(f), nargs(1) {}
-    BuiltinPtr(builtinf2 f) : f2(f), nargs(2) {}
-    BuiltinPtr(builtinf3 f) : f3(f), nargs(3) {}
-    BuiltinPtr(builtinf4 f) : f4(f), nargs(4) {}
-    BuiltinPtr(builtinf5 f) : f5(f), nargs(5) {}
-    BuiltinPtr(builtinf6 f) : f6(f), nargs(6) {}
-    BuiltinPtr(builtinf7 f) : f7(f), nargs(7) {}
+    BuiltinPtr()      : f0(nullptr), fnargs(0) {}
+    BuiltinPtr(builtinfV f) : fV(f), fnargs(-1) {}
+    BuiltinPtr(builtinf0 f) : f0(f), fnargs(0) {}
+    BuiltinPtr(builtinf1 f) : f1(f), fnargs(1) {}
+    BuiltinPtr(builtinf2 f) : f2(f), fnargs(2) {}
+    BuiltinPtr(builtinf3 f) : f3(f), fnargs(3) {}
+    BuiltinPtr(builtinf4 f) : f4(f), fnargs(4) {}
+    BuiltinPtr(builtinf5 f) : f5(f), fnargs(5) {}
+    BuiltinPtr(builtinf6 f) : f6(f), fnargs(6) {}
+    BuiltinPtr(builtinf7 f) : f7(f), fnargs(7) {}
 };
 
 struct NativeFun : Named {
@@ -331,7 +340,7 @@ struct NativeFun : Named {
 
     NargVector args, retvals;
 
-    void (*cont1)(VM &vm);
+    builtinfV cont1;
 
     const char *idlist;
     const char *help;
@@ -340,20 +349,31 @@ struct NativeFun : Named {
 
     NativeFun *overloads = nullptr, *first = this;
 
+    int TypeLen(const char *s) {
+        int i = 0;
+        while (*s) if(isupper(*s++)) i++;
+        return i;
+    };
+
     NativeFun(const char *name, BuiltinPtr f, const char *ids, const char *typeids,
-              const char *rets, const char *help, void (*cont1)(VM &vm))
-        : Named(name, 0), fun(f), args(f.nargs, ids), retvals(0, nullptr),
+              const char *rets, const char *help, builtinfV cont1)
+        : Named(name, 0), fun(f), args(TypeLen(typeids), ids), retvals(0, nullptr),
           cont1(cont1), help(help) {
-        auto TypeLen = [](const char *s) { int i = 0; while (*s) if(isupper(*s++)) i++; return i; };
         auto nretvalues = TypeLen(rets);
-        assert(TypeLen(typeids) == f.nargs);
-        for (int i = 0; i < f.nargs; i++) {
+        assert(args.v.size() == f.fnargs || f.fnargs < 0);
+        auto StructArgsVararg = [&](const Narg &arg) {
+            assert(!arg.fixed_len || IsRef(arg.type->sub->t) || f.fnargs < 0);
+            (void)arg;
+        };
+        for (size_t i = 0; i < args.v.size(); i++) {
             args.GetName(i);  // Call this just to trigger the assert.
             args.v[i].Set(typeids, LT_BORROW);
+            StructArgsVararg(args.v[i]);
         }
         for (int i = 0; i < nretvalues; i++) {
             retvals.v.push_back(Narg());
             retvals.v[i].Set(rets, LT_KEEP);
+            StructArgsVararg(retvals.v[i]);
         }
     }
 };
@@ -371,10 +391,11 @@ struct NativeRegistry {
 
     #define REGISTER(N) \
     void operator()(const char *name, const char *ids, const char *typeids, \
-                  const char *rets, const char *help, builtinf##N f, \
-                  void (*cont1)(VM &vm) = nullptr) { \
+                    const char *rets, const char *help, builtinf##N f, \
+                    builtinfV cont1 = nullptr) { \
         Reg(new NativeFun(name, BuiltinPtr(f), ids, typeids, rets, help, cont1)); \
     }
+    REGISTER(V)
     REGISTER(0)
     REGISTER(1)
     REGISTER(2)

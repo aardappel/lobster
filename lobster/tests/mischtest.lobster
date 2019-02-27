@@ -17,7 +17,7 @@ run_test("misch"):
             print(comperr2)
         assert(compres2 == "plugintest return value")
 
-            // Minimal log test with ref types:
+        // Minimal log test with ref types:
         for(3) i:
             gl_log_frame(0.01)
             v ?= []

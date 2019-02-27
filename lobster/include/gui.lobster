@@ -161,7 +161,6 @@ def start(size, alignh, alignv, interact, f:fun):   // top level only
         size_list = []
 
         overalsize = cursize_of(id, f)
-        assert(overalsize)
 
         render_pass = true
         size_index = 1
@@ -197,36 +196,34 @@ def blend(bli, f:fun): nest_if(render_pass, def(): gl_blend(bli, _), f)
 
 private def around(m, draw, id, f):
     size := cursize_of(id, f)
-    if size:
-        size += m * 2
-        advance(size):
-            if draw:
-                position(size): // FIXME: clean this up
-                    gl_rect(xy_f{ size.x, m.y })
+    size += m * 2
+    advance(size):
+        if draw:
+            position(size): // FIXME: clean this up
+                gl_rect(xy_f{ size.x, m.y })
+                gl_rect(xy_f { m.x, size.y })
+                gl_translate xy_f { size.x - m.x, 0 }:
                     gl_rect(xy_f { m.x, size.y })
-                    gl_translate xy_f { size.x - m.x, 0 }:
-                        gl_rect(xy_f { m.x, size.y })
-                    gl_translate xy_f { 0.0, size.y - m.y }:
-                        gl_rect(xy_f { size.x, m.y })
-            def forward():
-                gl_translate([ xy_x, xy_y ][vertical.top] * m[vertical.top])
-            forward()
-            f()
-            forward()
+                gl_translate xy_f { 0.0, size.y - m.y }:
+                    gl_rect(xy_f { size.x, m.y })
+        def forward():
+            gl_translate([ xy_x, xy_y ][vertical.top] * m[vertical.top])
+        forward()
+        f()
+        forward()
 
 def margin(m, f:fun): around(m, false, hash(f), f)
 def border(m, f:fun): around(m, true,  hash(f), f)
 
 private def overlay(stretch, id, f, g):
     size := cursize_of(id, f)
-    if size:
-        advance(size):
-            if stretch:
-                g(max_space(size))
-            else:
-                position(size):
-                    g(size)
-            f()
+    advance(size):
+        if stretch:
+            g(max_space(size))
+        else:
+            position(size):
+                g(size)
+        f()
 
 def backgroundf(stretch, f:fun, background:funs):
     overlay(stretch, hash(f), f) size:

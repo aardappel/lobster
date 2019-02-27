@@ -33,7 +33,7 @@ run_test("astar"):
         ".......OOOOOOOO.................."
     ]
 
-    class pathingcell : astar_node<pathingcell?, xy_i, xy_i?>:
+    class pathingcell : astar_node<pathingcell?, xy_i, xy_i = xy_0i>:
         path:int
         c:int
 

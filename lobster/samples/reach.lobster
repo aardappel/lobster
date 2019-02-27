@@ -33,11 +33,11 @@ while gl_frame():
         gl_color(color_light_grey)
         gl_circle(ballradius / 5, 20)
 
-    target := nil
+    target := xy_0
     seglength := 0.1
 
     for(segs) seg, i:
-        in := i and target or ball
+        in := if i: target else: ball
         seg.dir = normalize(in - seg.pos) * seglength
         target = in - seg.dir
 

@@ -2,6 +2,7 @@
 
 //trace_bytecode(true, false)
 
+include structtest
 include misctest
 include mischtest
 include typetest

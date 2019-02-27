@@ -8,7 +8,7 @@ class astar_node<N,S,D>:
     F = 0.0
     previous:N = nil
     state:S
-    delta:D = nil
+    delta:D
     open = false
     closed = false
 
@@ -93,7 +93,7 @@ class goapaction {
     effect:goapf
 }
 
-class goap_node = astar_node<goap_node?, [int], goapaction?>
+class goap_node = astar_node<goap_node?, [int], goapaction? = nil>
 
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
     H := heuristic(initstate)

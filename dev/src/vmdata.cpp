@@ -45,10 +45,7 @@ void EscapeAndQuote(string_view s, ostringstream &ss) {
 void LString::DeleteSelf(VM &vm) { vm.pool.dealloc(this, sizeof(LString) + len + 1); }
 
 void LString::ToString(ostringstream &ss, PrintPrefs &pp) {
-    if (pp.cycles >= 0) {
-        if (refc < 0) { CycleStr(ss); return; }
-        CycleDone(pp.cycles);
-    }
+    if (CycleCheck(ss, pp)) return;
     auto sv = strv();
     auto dd = string_view();
     if (len > pp.budget) {
@@ -65,13 +62,15 @@ void LString::ToString(ostringstream &ss, PrintPrefs &pp) {
 
 LVector::LVector(VM &vm, intp _initial, intp _max, type_elem_t _tti)
     : RefObj(_tti), len(_initial), maxl(_max) {
-    v = maxl ? AllocSubBuf<Value>(vm, maxl, TYPE_ELEM_VALUEBUF) : nullptr;
+    auto &sti = vm.GetTypeInfo(ti(vm).subt);
+    width = IsStruct(sti.t) ? sti.len : 1;
+    v = maxl ? AllocSubBuf<Value>(vm, maxl * width, TYPE_ELEM_VALUEBUF) : nullptr;
 }
 
 void LVector::Resize(VM &vm, intp newmax) {
     // FIXME: check overflow
-    auto mem = AllocSubBuf<Value>(vm, newmax, TYPE_ELEM_VALUEBUF);
-    if (len) memcpy(mem, v, sizeof(Value) * len);
+    auto mem = AllocSubBuf<Value>(vm, newmax * width, TYPE_ELEM_VALUEBUF);
+    if (len) t_memcpy(mem, v, len * width);
     DeallocBuf(vm);
     maxl = newmax;
     v = mem;
@@ -79,8 +78,11 @@ void LVector::Resize(VM &vm, intp newmax) {
 
 void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
-    memcpy(v + len, from->v + start, sizeof(Value) * amount);
-    if (IsRefNil(from->ElemType(vm))) {
+    assert(width == from->width);
+    t_memcpy(v + len * width, from->v + start * width, amount * width);
+    auto et = from->ElemType(vm)->t;
+    if (IsRefNil(et)) {
+        assert(et != V_STRUCT_R || width == 1);
         for (int i = 0; i < amount; i++) {
             v[len + i].LTINCRTNIL();
         }
@@ -88,16 +90,43 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     len += amount;
 }
 
+void LVector::Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret) {
+    assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
+    if (stack_ret) {
+        t_memcpy(vm.TopPtr(), v + i * width, width);
+        vm.PushN((int)width);
+    }
+    auto et = ElemType(vm)->t;
+    if (IsRefNil(et)) {
+        assert(et != V_STRUCT_R || width == 1);
+        for (intp j = decfrom; j < n; j++) Dec(vm, i + j, et);
+    }
+    t_memmove(v + i * width, v + (i + n) * width, (len - i - n) * width);
+    len -= n;
+}
+
+void LVector::AtVW(VM &vm, intp i) const {
+    auto src = AtSt(i);
+    // TODO: split this up for the width==1 case?
+    t_memcpy(vm.TopPtr(), src, width);
+    vm.PushN((int)width);
+}
+
 void LVector::DeleteSelf(VM &vm) {
-    auto et = ElemType(vm);
-    for (intp i = 0; i < len; i++) Dec(vm, i, et);
+    auto et = ElemType(vm)->t;
+    if (IsRefNil(et)) {
+        assert(et != V_STRUCT_R);
+        for (intp i = 0; i < len; i++) Dec(vm, i, et);
+    }
     DeallocBuf(vm);
     vm.pool.dealloc_small(this);
 }
 
 void LObject::DeleteSelf(VM &vm) {
     auto len = Len(vm);
-    for (intp i = 0; i < len; i++) DecS(vm, i);
+    for (intp i = 0; i < len; i++) {
+        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i)->t);
+    }
     vm.pool.dealloc(this, sizeof(LObject) + sizeof(Value) * len);
 }
 
@@ -142,7 +171,7 @@ bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
         case V_STRING:      return *((LString *)a) == *((LString *)b);
         case V_COROUTINE:   return false;
         case V_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
-        case V_CLASS:      return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
+        case V_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
         default:            assert(0); return false;
     }
 }
@@ -222,7 +251,7 @@ Value Value::Copy(VM &vm) {
     case V_STRUCT_S:
     case V_CLASS: {
         auto len = oval()->Len(vm);
-        auto nv = vm.NewStruct(len, oval()->tti);
+        auto nv = vm.NewObject(len, oval()->tti);
         if (len) nv->Init(vm, oval()->Elems(), len, true);
         return Value(nv);
     }
@@ -250,7 +279,7 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
         if (rec) {
             s += "{";
             for (int i = 0; i < len; i++)
-                s += vm.GetTypeInfo(elems[i]).Debug(vm, false) + ",";
+                s += vm.GetTypeInfo(elemtypes[i]).Debug(vm, false) + ",";
             s += "}";
         }
     }
@@ -260,39 +289,28 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
 #define ELEMTYPE(acc, ass) \
     auto &_ti = ti(vm); \
     ass; \
-    auto &sti = vm.GetTypeInfo(_ti.acc); \
-    auto vt = sti.t; \
-    if (vt == V_NIL) vt = vm.GetTypeInfo(sti.subt).t; \
-    return vt;
+    auto sti = &vm.GetTypeInfo(_ti.acc); \
+    if (sti->t == V_NIL) sti = &vm.GetTypeInfo(sti->subt); \
+    return sti;
 
-ValueType LObject::ElemTypeS(VM &vm, intp i) const {
-    ELEMTYPE(elems[i], assert(i < _ti.len));
+const TypeInfo *LObject::ElemTypeS(VM &vm, intp i) const {
+    ELEMTYPE(elemtypes[i], assert(i < _ti.len));
 }
 
-ValueType LVector::ElemType(VM &vm) const {
+const TypeInfo *LObject::ElemTypeSP(VM &vm, intp i) const {
+    ELEMTYPE(GetElemOrParent(i), assert(i < _ti.len));
+}
+
+const TypeInfo *LVector::ElemType(VM &vm) const {
     ELEMTYPE(subt, {})
 }
 
-template<typename T, bool is_vect> void VectorOrStructToString(
-        VM &vm, ostringstream &ss, PrintPrefs &pp, T &o, char openb, char closeb) {
-    if (pp.cycles >= 0) {
-        if (o.refc < 0) {
-            o.CycleStr(ss);
-            return;
-        }
-        o.CycleDone(pp.cycles);
-    }
-    auto &_ti = o.ti(vm);
-    (void)_ti;
-    if constexpr (!is_vect) {
-        ss << vm.ReverseLookupType(_ti.structidx);
-        if (pp.indent) ss << ' ';
-    }
+void VectorOrObjectToString(VM &vm, ostringstream &ss, PrintPrefs &pp, char openb, char closeb,
+                            intp len, intp width, const Value *elems, bool is_vector,
+                            std::function<const TypeInfo *(intp)> getti) {
     ss << openb;
     if (pp.indent) ss << '\n';
     auto start_size = ss.tellp();
-    intp len;
-    if constexpr(is_vect) len = o.len; else len = o.Len(vm);
     pp.cur_indent += pp.indent;
     auto Indent = [&]() {
         for (int i = 0; i < pp.cur_indent; i++) ss << ' ';
@@ -307,17 +325,18 @@ template<typename T, bool is_vect> void VectorOrStructToString(
             ss << "....";
             break;
         }
-        ValueType elemtype;
-        if constexpr(is_vect) elemtype = o.ElemType(vm); else elemtype = o.ElemTypeS(vm, i);
-        if (pp.depth || !IsRef(elemtype)) {
-            Value v;
-            if constexpr(is_vect) v = o.At(i);
-            else v = o.AtS(i);
+        auto ti = getti(i);
+        if (pp.depth || !IsRef(ti->t)) {
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
-            v.ToString(vm, ss, elemtype, subpp);
+            if (IsStruct(ti->t)) {
+                vm.StructToString(ss, subpp, *ti, elems + i * width);
+                if (!is_vector) i += ti->len - 1;
+            } else {
+                elems[i].ToString(vm, ss, ti->t, subpp);
+            }
         } else {
             ss << "..";
         }
@@ -328,11 +347,27 @@ template<typename T, bool is_vect> void VectorOrStructToString(
 }
 
 void LObject::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
-    VectorOrStructToString<LObject, false>(vm, ss, pp, *this, '{', '}');
+    if (CycleCheck(ss, pp)) return;
+    ss << vm.ReverseLookupType(ti(vm).structidx);
+    if (pp.indent) ss << ' ';
+    VectorOrObjectToString(vm, ss, pp, '{', '}', Len(vm), 1, Elems(), false, [&](intp i) {
+        return ElemTypeSP(vm, i);
+    });
 }
 
 void LVector::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
-    VectorOrStructToString<LVector, true>(vm, ss, pp, *this, '[', ']');
+    if (CycleCheck(ss, pp)) return;
+    VectorOrObjectToString(vm, ss, pp, '[', ']', len, width, v, true, [&](intp) {
+        return ElemType(vm);
+    });
+}
+
+void VM::StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
+    ss << ReverseLookupType(ti.structidx);
+    if (pp.indent) ss << ' ';
+    VectorOrObjectToString(*this, ss, pp, '{', '}', ti.len, 1, elems, false, [&](intp i) {
+        return &GetTypeInfo(ti.GetElemOrParent(i));
+    });
 }
 
 }  // namespace lobster

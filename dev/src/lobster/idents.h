@@ -84,6 +84,7 @@ struct Field {
     SharedField *id = nullptr;
     int genericref = -1;
     Node *defaultval = nullptr;
+    int slot = -1;
 
     Field() = default;
     Field(SharedField *_id, TypeRef _type, int _genericref, Node *_defaultval)
@@ -119,6 +120,7 @@ struct UDT : Named {
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
+    int numslots = -1;
 
     UDT(string_view _name, int _idx, bool is_struct) : Named(_name, _idx), is_struct(is_struct) {
         thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
@@ -155,14 +157,42 @@ struct UDT : Named {
         return n;
     }
 
+    bool ComputeSizes(int depth = 0) {
+        if (numslots >= 0) return true;
+        if (depth > 16) return false;  // Simple protection against recursive references.
+        int size = 0;
+        for (auto &uf : fields.v) {
+            uf.slot = size;
+            if (IsStruct(uf.type->t)) {
+                if (!uf.type->udt->ComputeSizes(depth + 1)) return false;
+                size += uf.type->udt->numslots;
+            } else {
+                size++;
+            }
+        }
+        numslots = size;
+        return true;
+    }
+
     flatbuffers::Offset<bytecode::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<bytecode::Field>> fieldoffsets;
         for (auto f : fields.v)
-            fieldoffsets.push_back(bytecode::CreateField(fbb, fbb.CreateString(f.id->name)));
+            fieldoffsets.push_back(
+                bytecode::CreateField(fbb, fbb.CreateString(f.id->name), f.slot));
         return bytecode::CreateUDT(fbb, fbb.CreateString(name), idx,
-                                      fbb.CreateVector(fieldoffsets));
+                                        fbb.CreateVector(fieldoffsets), numslots);
     }
 };
+
+inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->udt->numslots : 1; }
+
+inline const Field *FindSlot(const UDT &udt, int i) {
+    for (auto &f : udt.fields.v) if (i >= f.slot && i < f.slot + ValWidth(f.type)) {
+        return IsStruct(f.type->t) ? FindSlot(*f.type->udt, i - f.slot) : &f;
+    }
+    assert(false);
+    return nullptr;
+}
 
 struct Arg : Typed {
     SpecIdent *sid = nullptr;

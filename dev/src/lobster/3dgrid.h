@@ -93,11 +93,11 @@ template<typename T> class RLE3DGrid : NonCopyable {
 
     template<typename F> void CopyCurrent(int change, const int3 &pos, F f) {
         auto rle = alloc.alloc_array<RLEItem>(CurSize() + change);
-        memcpy(rle, cur, (it - cur) * sizeof(RLEItem));
+        t_memcpy(rle, cur, it - cur);
         rle[0].count += change;
         auto nit = rle + (it - cur);
         f(nit);
-        memcpy(nit + 2 + change, it + 2, (CurSize() - (it - cur + 2)) * sizeof(RLEItem));
+        t_memcpy(nit + 2 + change, it + 2, CurSize() - (it - cur + 2));
         alloc.dealloc_array(cur, CurSize());
         GridLoc(pos.xy()) = rle;
         cur = rle;

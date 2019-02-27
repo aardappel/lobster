@@ -663,10 +663,10 @@ nfr("mg_sphere", "radius", "F", "",
 
 nfr("mg_cube", "extents", "F}:3", "",
     "a cube (extents are size from center)",
-    [](VM &vm, Value &ext) {
+    [](VM &vm) {
         auto c = new IFCube();
-        c->extents = ValueToFLT<3>(vm, ext);
-        return AddShape(c);
+        c->extents = vm.PopVec<float3>();
+        vm.Push(AddShape(c));
     });
 
 nfr("mg_cylinder", "radius,height", "FF", "",
@@ -691,34 +691,32 @@ nfr("mg_tapered_cylinder", "bot,top,height", "FFF", "",
 nfr("mg_superquadric", "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
     " squares",
-    [](VM &vm, Value &exps, Value &scale) {
+    [](VM &vm) {
         auto sq = new IFSuperQuadric();
-        sq->exp = ValueToFLT<3>(vm, exps);
-        sq->scale = ValueToFLT<3>(vm, scale);
-        return AddShape(sq);
+        sq->scale = vm.PopVec<float3>();
+        sq->exp = vm.PopVec<float3>();
+        AddShape(sq);
     });
 
 nfr("mg_superquadric_non_uniform", "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
     " independently for maximum modelling possibilities",
-    [](VM &vm, Value &posexps, Value &negexps, Value &posscale,
-        Value &negscale) {
+    [](VM &vm) {
         auto sq = new IFSuperQuadricNonUniform();
-        sq->exppos   = ValueToFLT<3>(vm, posexps);
-        sq->expneg   = ValueToFLT<3>(vm, negexps);
-        sq->scalepos = max(float3(0.01f), ValueToFLT<3>(vm, posscale));
-        sq->scaleneg = max(float3(0.01f), ValueToFLT<3>(vm, negscale));
-
-        return AddShape(sq);
+        sq->scaleneg = max(float3(0.01f), vm.PopVec<float3>());
+        sq->scalepos = max(float3(0.01f), vm.PopVec<float3>());
+        sq->expneg   = vm.PopVec<float3>();
+        sq->exppos   = vm.PopVec<float3>();
+        AddShape(sq);
     });
 
 nfr("mg_supertoroid", "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.",
-    [](VM &vm, Value &r, Value &exps) {
+    [](VM &vm) {
         auto t = new IFSuperToroid();
-        t->r = r.fltval();
-        t->exp = ValueToFLT<3>(vm, exps);
-        return AddShape(t);
+        t->exp = vm.PopVec<float3>();
+        t->r = vm.Pop().fltval();
+        AddShape(t);
     });
 
 nfr("mg_landscape", "zscale,xyscale", "FF", "",
@@ -784,82 +782,79 @@ nfr("mg_polygonize", "subdiv", "I", "R",
 nfr("mg_translate", "vec,body", "F}:3B?", "",
     "translates the current coordinate system along a vector. when a body is given,"
     " restores the previous transform afterwards",
-    [](VM &vm, Value &vec, Value &body) {
-        if (body.True()) vm.Push(ToValueFLT(vm, curorig));
-        auto v = ValueToFLT<3>(vm, vec);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto v = vm.PopVec<float3>();
+        if (body.True()) vm.PushAnyAsString(curorig);
         // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
         curorig += currot * (v * cursize);
-        return body;
+        vm.Push(body);
     }, [](VM &vm) {
-        auto tmptrans = vm.Pop();
-        curorig = ValueToFLT<3>(vm, tmptrans);
-        tmptrans.LTDECRT(vm);
+        vm.PopAnyFromString(curorig);
     });
 
 nfr("mg_scale", "f,body", "FB?", "",
     "scales the current coordinate system by the given factor."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &f, Value &body) {
-        if (body.True()) vm.Push(ToValueFLT(vm, cursize));
-        cursize *= f.fltval();
-        return body;
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto f = vm.Pop().fltval();
+        if (body.True()) vm.PushAnyAsString(cursize);
+        cursize *= f;
+        vm.Push(body);
     }, [](VM &vm) {
-        auto tmpscale = vm.Pop();
-        cursize = ValueToFLT<3>(vm, tmpscale);
-        tmpscale.LTDECRT(vm);
+        vm.PopAnyFromString(cursize);
     });
 
 nfr("mg_scale_vec", "vec,body", "F}:3B?", "",
     "non-unimformly scales the current coordinate system using individual factors per axis."
     " when a body is given, restores the previous transform afterwards",
-    [](VM &vm, Value &vec, Value &body) {
-        if (body.True()) vm.Push(ToValueFLT(vm, cursize));
-        auto v = ValueToFLT<3>(vm, vec);
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto v = vm.PopVec<float3>();
+        if (body.True()) vm.PushAnyAsString(cursize);
         cursize *= v;
-        return body;
+        vm.Push(body);
     }, [](VM &vm) {
-        auto tmpscale = vm.Pop();
-        cursize = ValueToFLT<3>(vm, tmpscale);
-        tmpscale.LTDECRT(vm);
+        vm.PopAnyFromString(cursize);
     });
 
 nfr("mg_rotate", "axis,angle,body", "F}:3FB?", "",
     "rotates using axis/angle. when a body is given, restores the previous transform"
     " afterwards",
-    [](VM &vm, Value &axis, Value &angle, Value &body) {
-        if (body.True()) vm.Push(Value(vm.NewString(string_view((char *)&currot,
-                                                                      sizeof(float3x3)))));
-        auto v = ValueToFLT<3>(vm, axis);
-        currot *= float3x3(angle.fltval() * RAD, v);
-        return body;
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto angle = vm.Pop().fltval();
+        auto axis = vm.PopVec<float3>();
+        if (body.True()) vm.PushAnyAsString(currot);
+        currot *= float3x3(angle * RAD, axis);
+        vm.Push(body);
     }, [](VM &vm) {
-        auto s = vm.Pop();
-        assert(s.type == V_STRING);
-        assert(s.sval()->len == sizeof(float3x3));
-        currot = *(float3x3 *)s.sval()->data();
-        s.LTDECRT(vm);
+        vm.PopAnyFromString(currot);
     });
 
 nfr("mg_color", "color,body", "F}:4B?", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves). when a body is given, restores the previous color afterwards.",
-    [](VM &vm, Value &vec, Value &body) {
-        if (body.True()) vm.Push(ToValueFLT(vm, curcol));
-        curcol = ValueToFLT<4>(vm, vec);
-        return body;
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto v = vm.PopVec<float4>();
+        if (body.True()) vm.PushAnyAsString(curcol);
+        curcol = v;
+        vm.Push(body);
     }, [](VM &vm) {
-        auto tmpcol = vm.Pop();
-        curcol = ValueToFLT<4>(vm, tmpcol);
-        tmpcol.LTDECRT(vm);
+        vm.PopAnyFromString(curcol);
     });
 
 nfr("mg_smooth", "smooth,body", "FB?", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens."
     " when a body is given, restores the previous value afterwards.",
-    [](VM &vm, Value &smooth, Value &body) {
+    [](VM &vm) {
+        auto body = vm.Pop();
+        auto smooth = vm.Pop().fltval();
         if (body.True()) vm.Push(Value(cursmoothmink));
-        cursmoothmink = smooth.fltval();
-        return body;
+        cursmoothmink = smooth;
+        vm.Push(body);
     }, [](VM &vm) {
         auto smooth = vm.Pop();
         assert(smooth.type == V_FLOAT);

@@ -121,12 +121,11 @@ inline bool IsNillable(ValueType t) { return IsRef(t) && t != V_STRUCT_R; }
 inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
         "any", "<stackframe_buffer>", "<value_buffer>",
-        "struct_ref"
+        "struct_ref",
         "resource", "coroutine", "string", "class", "vector",
         "nil", "int", "float", "function", "yield_function", "struct_scalar",
         "variable", "typeid", "void",
         "tuple", "undefined",
-        "<logstart>", "<logend>", "<logmarker>"
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {
         assert(false);
@@ -159,9 +158,16 @@ struct TypeInfo {
     ValueType t;
     union {
         type_elem_t subt;  // V_VECTOR | V_NIL
-        struct { int structidx; int len; type_elem_t elems[1]; };    // V_CLASS, V_STRUCT_*
-        int sfidx;  // V_FUNCTION;
-        struct { int cofunidx; type_elem_t yieldtype; };  // V_COROUTINE
+        struct {           // V_CLASS, V_STRUCT_*
+            int structidx;
+            int len;
+            type_elem_t elemtypes[1];  // len elems, followed by len parent types.  
+        };
+        int sfidx;         // V_FUNCTION;
+        struct {           // V_COROUTINE
+            int cofunidx;
+            type_elem_t yieldtype;
+        };
     };
 
     TypeInfo() = delete;
@@ -169,6 +175,11 @@ struct TypeInfo {
     TypeInfo &operator=(const TypeInfo &) = delete;
 
     string Debug(VM &vm, bool rec = true) const;
+
+    type_elem_t GetElemOrParent(intp i) const {
+        auto pti = elemtypes[len + i];
+        return pti >= 0 ? pti : elemtypes[i];
+    }
 };
 
 struct Value;
@@ -246,11 +257,15 @@ struct RefObj : DynAlloc {
         }
     }
 
-    void CycleDone(int &cycles) {
-        refc = -(++cycles);
-    }
-
     void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
+
+    bool CycleCheck(ostringstream &ss, PrintPrefs &pp) {
+        if (pp.cycles >= 0) {
+            if (refc < 0) { CycleStr(ss); return true; }
+            refc = -(++pp.cycles);
+        }
+        return false;
+    }
 
     void DECDELETE(VM &vm);
     void DECDELETENOW(VM &vm);
@@ -391,6 +406,9 @@ struct Value {
 
         // Generic reference access.
         RefObjPtr ref_;
+
+        // Temp: for inline structs.
+        TypeInfo *ti_;
     };
     public:
 
@@ -408,10 +426,11 @@ struct Value {
     RefObj     *refnil() const { assert(IsRefNil(type));       return ref_;         }
     InsPtr      ip    () const { assert(type >= V_FUNCTION);   return ip_;          }
     void       *any   () const {                               return ref_;         }
+    TypeInfo   *tival () const { assert(type == V_STRUCT_S);   return ti_;        }
 
-    template<typename T, bool IF> T ifval() const {
-        if constexpr (IF) { assert(type == V_FLOAT); return (T)fval_; }
-        else              { assert(type == V_INT);   return (T)ival_; }
+    template<typename T> T ifval() const {
+        if constexpr (is_floating_point<T>()) { assert(type == V_FLOAT); return (T)fval_; }
+        else                                  { assert(type == V_INT);   return (T)ival_; }
     }
 
     void setival(intp i)   { assert(type == V_INT);   ival_ = i; }
@@ -434,6 +453,8 @@ struct Value {
     inline Value(LCoRoutine *c)      : TYPE_INIT(V_COROUTINE)  cval_(c)         {}
     inline Value(LResource *r)       : TYPE_INIT(V_RESOURCE)   xval_(r)         {}
     inline Value(RefObj *r)          : TYPE_INIT(V_NIL)        ref_(r)          { assert(false); }
+
+    inline Value(TypeInfo *ti)       : TYPE_INIT(V_STRUCT_S)   ti_(ti)          {}
 
     inline bool True() const { return ival_ != 0; }
 
@@ -475,15 +496,11 @@ struct LObject : RefObj {
         return Elems()[i];
     }
 
-    // This may only be called from a context where i < len has already been ensured/asserted.
-    void DecS(VM &vm, intp i) const {
-        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i));
-    }
-
     void DeleteSelf(VM &vm);
 
     // This may only be called from a context where i < len has already been ensured/asserted.
-    ValueType ElemTypeS(VM &vm, intp i) const;
+    const TypeInfo *ElemTypeS(VM &vm, intp i) const;
+    const TypeInfo *ElemTypeSP(VM &vm, intp i) const;
 
     void ToString(VM &vm, ostringstream &ss, PrintPrefs &pp);
 
@@ -492,7 +509,7 @@ struct LObject : RefObj {
         auto len = Len(vm);
         assert(len == o.Len(vm));
         for (intp i = 0; i < len; i++) {
-            auto et = ElemTypeS(vm, i);
+            auto et = ElemTypeS(vm, i)->t;
             if (!AtS(i).Equal(vm, et, o.AtS(i), et, true))
                 return false;
         }
@@ -501,15 +518,15 @@ struct LObject : RefObj {
 
     intp Hash(VM &vm) {
         intp hash = 0;
-        for (int i = 0; i < Len(vm); i++) hash ^= AtS(i).Hash(vm, ElemTypeS(vm, i));
+        for (int i = 0; i < Len(vm); i++) hash ^= AtS(i).Hash(vm, ElemTypeS(vm, i)->t);
         return hash;
     }
 
     void Init(VM &vm, Value *from, intp len, bool inc) {
         assert(len && len == Len(vm));
-        memcpy(Elems(), from, len * sizeof(Value));
+        t_memcpy(Elems(), from, len);
         if (inc) for (intp i = 0; i < len; i++) {
-            AtS(i).LTINCTYPE(ElemTypeS(vm, i));
+            AtS(i).LTINCTYPE(ElemTypeS(vm, i)->t);
         }
     }
 };
@@ -517,6 +534,7 @@ struct LObject : RefObj {
 struct LVector : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
     intp maxl;
+    intp width;  // TODO: would be great to not have to store this.
 
     private:
     Value *v;   // use At()
@@ -527,7 +545,7 @@ struct LVector : RefObj {
     ~LVector() { assert(0); }   // destructed by DECREF
 
     void DeallocBuf(VM &vm) {
-        if (v) DeallocSubBuf(vm, v, maxl);
+        if (v) DeallocSubBuf(vm, v, maxl * width);
     }
 
     void Dec(VM &vm, intp i, ValueType et) const {
@@ -536,47 +554,64 @@ struct LVector : RefObj {
 
     void DeleteSelf(VM &vm);
 
-    ValueType ElemType(VM &vm) const;
+    const TypeInfo *ElemType(VM &vm) const;
 
     void Resize(VM &vm, intp newmax);
 
     void Push(VM &vm, const Value &val) {
+        assert(width == 1);
         if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
         v[len++] = val;
     }
 
+    void PushVW(VM &vm, const Value *vals) {
+        if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
+        t_memcpy(v + len * width, vals, width);
+        len++;
+    }
+
     Value Pop() {
+        assert(width == 1);
         return v[--len];
     }
 
+    void PopVW(Value *dest) {
+        len--;
+        t_memcpy(dest, v + len * width, width);
+    }
+
     Value &Top() const {
+        assert(width == 1);
         return v[len - 1];
     }
 
-    void Insert(VM &vm, Value &val, intp i) {
-        assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <=
-        if (len + 1 > maxl) Resize(vm, max(len + 1, maxl ? maxl * 2 : 4));
-        memmove(v + i + 1, v + i, sizeof(Value) * (len - i));
-        len++;
-        v[i] = val;
+    void TopVW(Value *dest) {
+        t_memcpy(dest, v + (len - 1) * width, width);
     }
 
-    Value Remove(VM &vm, intp i, intp n, intp decfrom) {
-        assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
-        auto x = v[i];
-        auto et = ElemType(vm);
-        for (intp j = decfrom; j < n; j++) Dec(vm, i + j, et);
-        memmove(v + i, v + i + n, sizeof(Value) * (len - i - n));
-        len -= n;
-        return x;
+    void Insert(VM &vm, const Value *vals, intp i) {
+        assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <=
+        if (len + 1 > maxl) Resize(vm, max(len + 1, maxl ? maxl * 2 : 4));
+        t_memmove(v + (i + 1) * width, v + i * width, (len - i) * width);
+        len++;
+        t_memcpy(v + i * width, vals, width);
     }
+
+    void Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret);
 
     Value *Elems() { return v; }
 
     Value &At(intp i) const {
-        assert(i < len);
+        assert(i < len && width == 1);
         return v[i];
     }
+
+    Value *AtSt(intp i) const {
+        assert(i < len);
+        return v + i * width;
+    }
+
+    void AtVW(VM &vm, intp i) const;
 
     void Append(VM &vm, LVector *from, intp start, intp amount);
 
@@ -584,8 +619,9 @@ struct LVector : RefObj {
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
+        assert(width == 1);
         if (len != o.len) return false;
-        auto et = ElemType(vm);
+        auto et = ElemType(vm)->t;
         for (intp i = 0; i < len; i++) {
             if (!At(i).Equal(vm, et, o.At(i), et, true))
                 return false;
@@ -595,19 +631,22 @@ struct LVector : RefObj {
 
     intp Hash(VM &vm) {
         intp hash = 0;
-        auto et = ElemType(vm);
+        assert(width == 1);
+        auto et = ElemType(vm)->t;
         for (int i = 0; i < len; i++) hash ^= At(i).Hash(vm, et);
         return hash;
     }
 
     void Init(VM &vm, Value *from, bool inc) {
         assert(len);
-        memcpy(&At(0), from, len * sizeof(Value));
-        auto et = ElemType(vm);
-        if (inc && IsRefNil(et))
+        t_memcpy(v, from, len * width);
+        auto et = ElemType(vm)->t;
+        if (inc && IsRefNil(et)) {
+            assert(et != V_STRUCT_R);
             for (intp i = 0; i < len; i++) {
                 At(i).LTINCRTNIL();
             }
+        }
     }
 };
 
@@ -783,7 +822,7 @@ struct VM {
     
     void OnAlloc(RefObj *ro);
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
-    LObject *NewStruct(intp max, type_elem_t tti);
+    LObject *NewObject(intp max, type_elem_t tti);
     LCoRoutine *NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t tti);
     LResource *NewResource(void *v, const ResourceType *t);
     LString *NewString(size_t l);
@@ -870,6 +909,8 @@ struct VM {
     void EvalProgram();
     void EvalProgramInner();
 
+    VM_JMP_RET ForLoop(intp len);
+
     Value &GetFieldLVal(intp i);
     Value &GetFieldILVal(intp i);
     Value &GetLocLVal(int i);
@@ -889,10 +930,51 @@ struct VM {
     void IDXErr(intp i, intp n, const RefObj *v);
     void BCallProf();
     void BCallRetCheck(const NativeFun *nf);
-    intp GrabIndex(const Value &idx);
+    intp GrabIndex();
 
-    void Push(const Value &v);
-    Value Pop();
+    #define VM_PUSH(v) (stack[++sp] = (v))
+    #define VM_TOP() (stack[sp])
+    #define VM_TOPM(n) (stack[sp - (n)])
+    #define VM_POP() (stack[sp--])
+    #define VM_POPN(n) (sp -= (n))
+    #define VM_PUSHN(n) (sp += (n))
+    #define VM_TOPPTR() (stack + sp + 1)
+
+    void Push(const Value &v) { VM_PUSH(v); }
+    Value Pop() { return VM_POP(); }
+    Value Top() { return VM_TOP(); }
+    Value *TopPtr() { return VM_TOPPTR(); }
+    void PushN(int n) { VM_PUSHN(n); }
+    void PopN(int n) { VM_POPN(n); }
+    pair<Value *, int> PopVecPtr() {
+        auto width = VM_POP().intval();
+        VM_POPN(width);
+        return { VM_TOPPTR(), width };
+    }
+    template<typename T, intp N> void PushVec(const vec<T, N> &v, intp truncate = 4) {
+        auto l = min(N, truncate);
+        for (int i = 0; i < l; i++) VM_PUSH(v[i]);
+    }
+    template<typename T> T PopVec(typename T::CTYPE def = 0) {
+        T v;
+        auto l = VM_POP().intval();
+        if (l > T::NUM_ELEMENTS) VM_POPN(l - T::NUM_ELEMENTS);
+        for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
+            v[i] = i < l ? VM_POP().ifval<T::CTYPE>() : def;
+        }
+        return v;
+    }
+    template<typename T> void PushAnyAsString(const T &t) {
+        Push(NewString(string_view((char *)&t, sizeof(T))));
+    }
+
+    template<typename T> void PopAnyFromString(T &t) {
+        auto s = Pop();
+        assert(s.type == V_STRING);
+        assert(s.sval()->len == sizeof(T));
+        t = *(T *)s.sval()->strv().data();
+        s.LTDECRT(*this);
+    }
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(uint v);
@@ -905,6 +987,13 @@ struct VM {
         a.ToString(*this, ss_reuse, vt, programprintprefs);
         return NewString(ss_reuse.str());
     }
+    Value StructToString(const Value *elems, const TypeInfo &ti) {
+        ss_reuse.str(string());
+        ss_reuse.clear();
+        StructToString(ss_reuse, programprintprefs, ti, elems);
+        return NewString(ss_reuse.str());
+    }
+    void StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
 };
 
 inline int64_t Read64FromIp(const int *&ip) {
@@ -947,50 +1036,31 @@ template<typename T, bool back> T ReadValLE(const LString *s, intp i) {
     return flatbuffers::EndianScalar(val);
 }
 
+
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
-template<int N> inline vec<floatp, N> ValueToF(VM &vm, const Value &v, floatp def = 0) {
+template<int N> inline vec<floatp, N> ValueToF(const Value *v, intp width, floatp def = 0) {
     vec<floatp, N> t;
-    for (int i = 0; i < N; i++) t[i] = v.oval()->Len(vm) > i ? v.oval()->AtS(i).fval() : def;
+    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->fval() : def;
     return t;
 }
-
-template<int N> inline vec<intp, N> ValueToI(VM &vm, const Value &v, intp def = 0) {
+template<int N> inline vec<intp, N> ValueToI(const Value *v, intp width, intp def = 0) {
     vec<intp, N> t;
-    for (int i = 0; i < N; i++) t[i] = v.oval()->Len(vm) > i ? v.oval()->AtS(i).ival() : def;
+    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->ival() : def;
+    return t;
+}
+template<int N> inline vec<float, N> ValueToFLT(const Value *v, intp width, float def = 0) {
+    vec<float, N> t;
+    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->fltval() : def;
+    return t;
+}
+template<int N> inline vec<int, N> ValueToINT(const Value *v, intp width, int def = 0) {
+    vec<int, N> t;
+    for (int i = 0; i < N; i++) t[i] = width > i ? (v + i)->intval() : def;
     return t;
 }
 
-// Versions that cast to int/float regardless of the size of intp/floatp.
-template<int N> inline vec<float, N> ValueToFLT(VM &vm, const Value &v, floatp def = 0) {
-    return vec<float, N>(ValueToF<N>(vm, v, def));
-}
-template<int N> inline vec<int, N> ValueToINT(VM &vm, const Value &v, intp def = 0) {
-    return vec<int, N>(ValueToI<N>(vm, v, def));
-}
-
-template <int N> inline Value ToValueI(VM &vm, const vec<intp, N> &v, intp maxelems = 4) {
-    auto numelems = min(maxelems, (intp)N);
-    auto tti = vm.GetIntVectorType((int)numelems);
-    assert(tti >= 0);
-    auto nv = vm.NewStruct(numelems, tti);
-    for (intp i = 0; i < numelems; i++) nv->AtS(i) = Value(v[i]);
-    return Value(nv);
-}
-
-template <int N> inline Value ToValueF(VM &vm, const vec<floatp, N> &v, intp maxelems = 4) {
-    auto numelems = min(maxelems, (intp)N);
-    auto tti = vm.GetFloatVectorType((int)numelems);
-    assert(tti >= 0);
-    auto nv = vm.NewStruct(numelems, tti);
-    for (intp i = 0; i < numelems; i++) nv->AtS(i) = Value(v[i]);
-    return Value(nv);
-}
-
-template <int N> inline Value ToValueINT(VM &vm, const vec<int, N> &v, int maxelems = 4) {
-    return ToValueI<N>(vm, vec<intp, N>(v), maxelems);
-}
-template <int N> inline Value ToValueFLT(VM &vm, const vec<float, N> &v, int maxelems = 4) {
-    return ToValueF<N>(vm, vec<floatp, N>(v), maxelems);
+template <typename T, int N> inline void ToValue(Value *dest, intp width, const vec<T, N> &v) {
+    for (intp i = 0; i < width; i++) dest[i] = i < N ? v[i] : 0;
 }
 
 inline intp RangeCheck(VM &vm, const Value &idx, intp range, intp bias = 0) {
@@ -1000,7 +1070,7 @@ inline intp RangeCheck(VM &vm, const Value &idx, intp range, intp bias = 0) {
     return i;
 }
 
-template<typename T> inline T GetResourceDec(VM &vm, Value &val, const ResourceType *type) {
+template<typename T> inline T GetResourceDec(VM &vm, const Value &val, const ResourceType *type) {
     if (!val.True())
         return nullptr;
     auto x = val.xval();
@@ -1086,13 +1156,12 @@ struct LCoRoutine : RefObj {
         curco = parent;
         parent = nullptr;
         ResizeFrames(vm, (int)stackframes.size() - stackframestart);
-        memcpy(stackframescopy, stackframes.data() + stackframestart,
-               stackframecopylen * sizeof(StackFrame));
+        t_memcpy(stackframescopy, stackframes.data() + stackframestart, stackframecopylen);
         stackframes.erase(stackframes.begin() + stackframestart, stackframes.end());
         stackframestart = -1;
         top_at_suspend = top;
         Resize(vm, top - stackstart);
-        memcpy(stackcopy, stack + stackstart, stackcopylen * sizeof(Value));
+        t_memcpy(stackcopy, stack + stackstart, stackcopylen);
         int ss = stackstart;
         stackstart = -1;
         return ss;
@@ -1117,7 +1186,7 @@ struct LCoRoutine : RefObj {
         stackframes.insert(stackframes.end(), stackframescopy, stackframescopy + stackframecopylen);
         stackstart = top;
         // FIXME: assume that it fits, which is not guaranteed with recursive coros
-        memcpy(stack + top, stackcopy, stackcopylen * sizeof(Value));
+        t_memcpy(stack + top, stackcopy, stackcopylen);
         return stackcopylen;
     }
 

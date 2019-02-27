@@ -41,11 +41,11 @@ template<typename T, bool B> T Read(VM &vm, intp i, const LString *s) {
     return ReadValLE<T, B>(s, i);
 }
 
-template<typename T, bool B, bool IF> Value WriteVal(VM &vm, const Value &str, const Value &idx,
-                                                     const Value &val) {
+template<typename T, bool B> Value WriteVal(VM &vm, const Value &str, const Value &idx,
+                                            const Value &val) {
     auto i = idx.ival();
     if (i < 0) vm.IDXErr(i, 0, str.sval());
-    vm.Push(WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T, IF>()));
+    vm.Push(WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
     return Value(i + (intp)sizeof(T));
 }
 
@@ -184,7 +184,7 @@ auto write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S) \
     nfr(#N, "string,i,val", "SkI" S, "SI", D, \
         [](VM &vm, Value &str, Value &idx, Value &val) { \
-            return WriteVal<T, B, S[0] == 'F'>(vm, str, idx, val); \
+            return WriteVal<T, B>(vm, str, idx, val); \
         });
 WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
 WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I")

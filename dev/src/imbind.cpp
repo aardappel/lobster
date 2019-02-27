@@ -74,66 +74,65 @@ LString *LStringInputText(VM &vm, const char *label, LString *str, ImGuiInputTex
     return cbd.str;
 }
 
-void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expanded) {
+void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expanded) {
     auto l = null_terminated(label);
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti.t) {
         case V_INT: {
-            int i = v.intval();  // FIXME: what if int64_t?
-            if (ImGui::InputInt(l, &i)) v = i;
+            int i = v->intval();  // FIXME: what if int64_t?
+            if (ImGui::InputInt(l, &i)) *v = i;
             return;
         }
         case V_FLOAT: {
-            float f = v.fltval();  // FIXME: what if double?
-            if (ImGui::InputFloat(l, &f)) v = f;
+            float f = v->fltval();  // FIXME: what if double?
+            if (ImGui::InputFloat(l, &f)) *v = f;
             return;
         }
         case V_VECTOR:
-            if (!v.True()) break;
+            if (!v->True()) break;
             if (ImGui::TreeNodeEx(*l ? l : "[]", flags)) {
                 auto &sti = vm.GetTypeInfo(ti.subt);
-                for (intp i = 0; i < v.vval()->len; i++) {
-                    ValToGUI(vm, v.vval()->At(i), sti, to_string(i), false);
+                auto vec = v->vval();
+                for (intp i = 0; i < vec->len; i++) {
+                    ValToGUI(vm, vec->AtSt(i), sti, to_string(i), false);
                 }
                 ImGui::TreePop();
             }
             return;
+        case V_CLASS:
+            if (!v->True()) break;
+            v = v->oval()->Elems();  // To iterate it like a struct.
         case V_STRUCT_R:
-        case V_STRUCT_S:
-        case V_CLASS: {
-            if (!v.True()) break;
+        case V_STRUCT_S: {
             auto st = vm.bcf->udts()->Get(ti.structidx);
             // Special case for numeric structs & colors.
             if (ti.len >= 2 && ti.len <= 4) {
                 for (int i = 1; i < ti.len; i++)
-                    if (ti.elems[i] != ti.elems[0]) goto generic;
-                if (ti.elems[0] == TYPE_ELEM_INT) {
-                    auto nums = ValueToI<4>(vm, v);
+                    if (ti.elemtypes[i] != ti.elemtypes[0]) goto generic;
+                if (ti.elemtypes[0] == TYPE_ELEM_INT) {
+                    auto nums = ValueToI<4>(v, ti.len);
                     if (ImGui::InputScalarN(
                             l, sizeof(intp) == sizeof(int) ? ImGuiDataType_S32 : ImGuiDataType_S64,
                             (void *)nums.data(), ti.len, NULL, NULL, "%d", flags)) {
-                        v.LTDECRT(vm);
-                        v = ToValueI(vm, nums, ti.len);
+                        ToValue(v, ti.len, nums);
                     }
 
                     return;
-                } else if (ti.elems[0] == TYPE_ELEM_FLOAT) {
+                } else if (ti.elemtypes[0] == TYPE_ELEM_FLOAT) {
                     if (strcmp(st->name()->c_str(), "color") == 0) {
-                        auto c = ValueToFLT<4>(vm, v);
+                        auto c = ValueToFLT<4>(v, ti.len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
-                            v.LTDECRT(vm);
-                            v = ToValueFLT(vm, c, ti.len);
+                            ToValue(v, ti.len, c);
                         }
                     } else {
-                        auto nums = ValueToF<4>(vm, v);
+                        auto nums = ValueToF<4>(v, ti.len);
                         // FIXME: format configurable.
                         if (ImGui::InputScalarN(
                                 l,
                                 sizeof(floatp) == sizeof(float) ? ImGuiDataType_Float
                                                                 : ImGuiDataType_Double,
                                 (void *)nums.data(), ti.len, NULL, NULL, "%.3f", flags)) {
-                            v.LTDECRT(vm);
-                            v = ToValueF(vm, nums, ti.len);
+                            ToValue(v, ti.len, nums);
                         }
                     }
                     return;
@@ -142,17 +141,20 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
         generic:
             if (ImGui::TreeNodeEx(*l ? l : st->name()->c_str(), flags)) {
                 auto fields = st->fields();
+                int fi = 0;
                 for (int i = 0; i < ti.len; i++) {
-                    ValToGUI(vm, v.oval()->AtS(i), vm.GetTypeInfo(ti.elems[i]),
-                             fields->Get(i)->name()->string_view(), false);
+                    auto &sti = vm.GetTypeInfo(ti.GetElemOrParent(i));
+                    ValToGUI(vm, v + i, sti,
+                             fields->Get(fi++)->name()->string_view(), false);
+                    if (IsStruct(sti.t)) i += sti.len - 1;
                 }
                 ImGui::TreePop();
             }
             return;
         }
         case V_STRING: {
-            if (!v.True()) break;
-            v = LStringInputText(vm, l, v.sval());
+            if (!v->True()) break;
+            *v = LStringInputText(vm, l, v->sval());
             return;
         }
         case V_NIL:
@@ -160,14 +162,14 @@ void ValToGUI(VM &vm, Value &v, const TypeInfo &ti, string_view label, bool expa
             return;
     }
     ostringstream ss;
-    v.ToString(vm, ss, ti.t, vm.debugpp);
+    v->ToString(vm, ss, ti.t, vm.debugpp);
     ImGui::LabelText(l, "%s", ss.str().c_str());  // FIXME: no formatting?
 }
 
 void VarsToGUI(VM &vm) {
     auto DumpVars = [&](bool constants) {
         for (uint i = 0; i < vm.bcf->specidents()->size(); i++) {
-            auto val = vm.vars[i];
+            auto &val = vm.vars[i];
             auto sid = vm.bcf->specidents()->Get(i);
             auto id = vm.bcf->idents()->Get(sid->ididx());
             if (!id->global() || id->readonly() != constants) continue;
@@ -176,7 +178,8 @@ void VarsToGUI(VM &vm) {
             #if RTT_ENABLED
             if (ti.t != val.type) continue;  // Likely uninitialized.
             #endif
-            ValToGUI(vm, val, ti, name, false);
+            ValToGUI(vm, &val, ti, name, false);
+            if (IsStruct(ti.t)) i += ti.len - 1;
         }
     };
     DumpVars(false);
@@ -340,10 +343,10 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
     });
 
 nfr("im_coloredit", "label,color", "SF}", "A2", "",
-    [](VM &vm, Value &text, Value &col) {
-        auto c = ValueToFLT<4>(vm, col);
-        ImGui::ColorEdit4(text.sval()->data(), (float *)c.data());
-        return Value(ToValueFLT(vm, c));
+    [](VM &vm) {
+        auto c = vm.PopVec<float4>();
+        ImGui::ColorEdit4(vm.Pop().sval()->data(), (float *)c.data());
+        vm.PushVec(c);
     });
 
 nfr("im_treenode", "label,body", "SB", "", "",
@@ -369,7 +372,9 @@ nfr("im_group", "label,body", "SsB", "",
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
     [](VM &vm, Value &v, Value &label) {
-        ValToGUI(vm, v, vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY),
+        // FIXME: would be good to support structs, but that requires typeinfo, not just len.
+        auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
+        ValToGUI(vm, &v, ti,
                  label.True() ? label.sval()->strv() : "", true);
         return v;
     });

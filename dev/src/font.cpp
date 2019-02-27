@@ -146,14 +146,14 @@ nfr("gl_text", "text", "S", "Sb",
 
 nfr("gl_text_size", "text", "S", "I}:2",
     "the x/y size in pixels the given text would need",
-    [](VM &vm, Value &s) {
+    [](VM &vm) {
         auto f = curfont;
-        if (!f) return vm.BuiltinError("gl_text_size: no font size set");
-        auto size = f->TextSize(s.sval()->strv());
+        if (!f) vm.BuiltinError("gl_text_size: no font size set");
+        auto size = f->TextSize(vm.Pop().sval()->strv());
         if (curfontsize > maxfontsize) {
             size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));
         }
-        return ToValueINT(vm, size);
+        vm.PushVec(size);
     });
 
 nfr("gl_get_glyph_name", "i", "I", "S",

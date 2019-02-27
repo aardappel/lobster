@@ -1,8 +1,79 @@
-- docs for recent changes.
+- organize a milestone
+  - finish structs and ownership
+  - do whatever big language fixes still need to happen.
+    - multimethods
+    - remove ?. operator
+    - var/let only?
+  - write lots of docs and examples for all the new functionality
+    - also new syntax highlighting etc
+  - move repo under a different org :)
+  - announce post
+  
+- structs copied by value everywhere.
+  - stage 1 TODO:
+    - optimize PUSHVARV followed by PUSHFIELDV etc to not have to happen by reading var directly.
+      any such combination with PUSHFIELDV
+      - any GenStructSize/GenValueSize remaining should NOT be allowed to straddle a Gen(), or
+        must correctly push the temp stack like NativeCall.
+    - do tests with refcounted types, or disable them
+      - how to DEC in WRITE?
+    - Clean up any asserts in LVector not supporting structs.
+    - Go thru all TakeTemp, to have explicitly false, must use NoStruct in typechecker.
+      - assert that this is true.
+  - stage 1: stored as just the naked fields in parent classes and vectors, but followed
+    by their tti on the stack, this to reduce the amount of special cases.
+    - make "value" structs not have a refcount at all, and be copied instead of incref,
+      deleted instead of decref.
+      2) fully inline by making them behave like multiple value on the stack, in fields and in
+      vectors.
+      - not fully general, as there are spots where we can only really deal with 1 value in the
+        VM, so would need to error out if one of these types is passed there.
+      - it may be easiest to keep the typechecker regarding these as a single value, but enhance
+        the codegen with keeping track of value-width, or even push multiple values on the temp
+        stack, and thus also error out if passed somewhere that can't deal with it.
+        - this would be an incremental process, whereby the VM is enhanced to deal with these
+          in more places.
+      - simpler than 1) in terms of borrowing, since whole copies are always passed, and thus
+        less likely to generate borrow errors.
+        - in fact, for the type checker these are now not even reference types anymore!
+          - though if fields are allowed to be reference types, this will now complicate matters.
+            essentially if any fields are ref types, then the type as a whole is ref as well,
+            and any inc/dec ops apply to all fields equally. can have mixed with scalar fields,
+            as these are simply ignored when doing inc/dec.
+        - probably easiest to split this type up from the current V_STRUCT, into V_VALS and V_VALR
+          where only the latter is a reftype.
+      - simpler than 1) in terms of returning values, since these will just be on the stack.
+      - nice for "zero cost abstraction", as now a struct with a single field has exactly the
+        same cost as a single value!
+  - Further improvements:
+    - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
+      for anything vector related, like MathCheckVector
+    - finally split builtins into one op per len.
+      - get rid of ToVStruct etc.
+    - push() for non-struct has superfluous pushint 1.
+    - Not store len/tti when on stack, requires all ops to encode len, and sometimes type.
+    - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
+      especially in vectors, then structs..
+    - somehow not store LVector::width.
 
 - methods in unrelated types still form a multimethod
+  - this should be the final straw to rework them.
+
+- remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
+  working around it.
+  - Also maybe replace uses that just want to know if its a ref or not by a table that lists
+    all refs. could be two lists for nil and non-nil?
+  - For vectors can just stick a bool in TypeInfo to speed up this case?
+    - does its type-info even need vector wrapped?
+
+- docs for recent changes.
+
+- remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
+  - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
+  - on calls like qsort([..]) the xs arg will be KEEP, but the recursive call will be borrow,
+    so now you end up with 2 specializations.
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
     - things like "while n: ..." (see astar) are a source of unnecessary inc/dec
@@ -34,49 +105,6 @@
     - go thru an AST dump and check that where lifetime changes happen makes sense.
     - somehow get rid of ownedvars in FUNSTART. generally clean up function calling.
   - add language features that make use of this new system:
-  - make "value" structs not have a refcount at all, and be copied instead of incref,
-    deleted instead of decref. put behind #ifdef.
-    - test speed, as these extra allocs may temporarily make things slower than faster.
-    - always store these structs inline in the parent. this should be an awesome further
-      speedup as theres a lot of allocations happening for 2d/3d vectors.
-    - multiple ways to do this:
-      1) store inline, but still represent value as pointer to inline value.
-      - means most existing code will "just work", so simplest.
-      - on the stack, we'd have a region of temp inline values, much like keepvars.
-      - means pointers shouldn't move, so:
-        - stack needs to be made non-resizable, which is probably ok.
-        - objects need to use borrowing to lock parent.
-        - vectors need to use borrowing and also lock against resizing with push()
-      - potentially faster than fully inline, since borrowed vars only put one value on the stack,
-        rather than N
-      - complication: all ops and builtins that result in a temporary need to take the destination
-        as argument now.
-      2) fully inline by making them behave like multiple value on the stack, in fields and in
-      vectors.
-      - not fully general, as there are spots where we can only really deal with 1 value in the
-        VM, so would need to error out if one of these types is passed there.
-      - it may be easiest to keep the typechecker regarding these as a single value, but enhance
-        the codegen with keeping track of value-width, or even push multiple values on the temp
-        stack, and thus also error out if passed somewhere that can't deal with it.
-        - this would be an incremental process, whereby the VM is enhanced to deal with these
-          in more places.
-      - simpler than 1) in terms of borrowing, since whole copies are always passed, and thus
-        less likely to generate borrow errors.
-        - in fact, for the type checker these are now not even reference types anymore!
-          - though if fields are allowed to be reference types, this will now complicate matters.
-            essentially if any fields are ref types, then the type as a whole is ref as well,
-            and any inc/dec ops apply to all fields equally. can have mixed with scalar fields,
-            as these are simply ignored when doing inc/dec.
-        - probably easiest to split this type up from the current V_STRUCT, into V_VALS and V_VALR
-          where only the latter is a reftype.
-      - simpler than 1) in terms of returning values, since these will just be on the stack.
-      - nice for "zero cost abstraction", as now a struct with a single field has exactly the
-        same cost as a single value!
-    - for either approach would be nice as a next step to not store the tti anymore, and generate
-      that on the fly when needed. same for the length field, though that will require we
-      generate that value for builtins, or split up all builtins that can currently do 2/3/4 lens.
-    - approach 2 is more exciting, with potentially bigger gains, I think that should be the
-      way forward.
   - allow variables/fields/types? to be annotated as single owner, such that these can also
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
@@ -326,32 +354,16 @@
 
 - switch jump table based version.
 
-- Ways to represent "value" structs as in-line values.
-  Easiest may be to make a 3 field struct actually take up 3 fields in the parent, that way
-  quite a bit of code can ignore the distinction.
-  "pos.x" instructions can be emitted as just "x"
-  Still, the amount of places in the code that assume they can pass along a single Value for
-  a struct is gigantic, and these all would need to be made in-inline specialized.
-  Unless, we allow a Value that is a pointer to a struct, as a short-lived thing to allow
-  it to be passed to built-in functions etc. But that is also tricky, because now we need
-  to guarantee it is short-lived enough to create a dangling pointer. Certainly with co-routines
-  etc this may be hard.
-  If its only used with built-in functions this may be ok, since they never call into additional
-  code.
-  Additional issue is how to know the type, or at least the number of elements. The parent should
-  be able to provide this, but it needs to be plumbed thru.
-  Vectors of such structs now need to be size aware.
-  Would it be nice to generally make everything size-aware if we do this, so we can also have
-  8/16/32/64 bit values etc. Though that is certainly a lot harder.
-  A way to make a gradual path to this is:
-  - First put structs inside other structs by making the inner one still have its own refc,
-    and increasing the parent refc. Then when the destructor is called, it can decrease the
-    parent refc. This way, pointers to inner structs can be passed along safely lifetime wise.
-  - For stack frames something similar, but now the stack unwind can generate a runtime error if
-    the inline struct refc is not 0.
-    - Probably better to first transition to unwinding being done by code, which would simplify
-      this.
-  - Must of course have new assignment ops for these structs since it needs to overwrite.
+- Should consider an SSA based IR to sit in-between the AST and bytecode gen.
+  - This can do more precise dataflow based type and lifetime checking.
+  - Also a better basis for more hard-core optimizations.
+  - Would have to move the typechecker to it to get the most out of it.
+    To make that not a crazy effort, can think of a hybrid model where any sub-parts
+    of basic blocks that do not interact with SSA form can still be AST trees?
+    So basically the control flow constructs get SSA-ified, and every basic block is
+    an AST, with SSA references baked into it.
+    This way it can be done incrementally, one construct at a time.
+    Then later can decide to flatten this AST into a list of instructions if desired.
 
 - would nil as sentinel have advantages?
   - would need to specialize lots of opcodes and functions that call .True(), so probably not.

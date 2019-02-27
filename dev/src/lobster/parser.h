@@ -292,7 +292,7 @@ struct Parser {
                     udt->generics.erase(udt->generics.begin());
                     TypeRef type;
                     ParseType(type, false);
-                    auto def = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                    auto def = IsNext(T_ASSIGN) ? ParseFactor() : nullptr;
                     for (auto &field : udt->fields.v) {
                         if (field.genericref == i) {
                             field.type = type;

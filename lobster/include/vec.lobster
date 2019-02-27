@@ -72,6 +72,10 @@ def xyzw(v, w): return xyzw { v.x, v.y, v.z, w }
 def xy_v(v):   return xy { v[0], v[1] }
 def xyz_v(v):  return xyz { v[0], v[1], v[2] }
 def xyzw_v(v): return xyzw { v[0], v[1], v[2], v[3] }
+// or to vector
+def v_xy(v):   return [ v.x, v.y ]
+def v_xyz(v):  return [ v.x, v.y, v.z ]
+def v_xyzw(v): return [ v.x, v.y, v.z, v.w ]
 
 // flip vectors
 def yx(v):   return xy { v.y, v.x }

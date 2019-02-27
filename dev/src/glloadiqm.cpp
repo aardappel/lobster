@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// IQM model loader, see: http://lee.fov120.com/iqm/
+// IQM model loader, see: http://sauerbraten.org/iqm/ https://github.com/lsalzman/iqm
 
 #include "lobster/stdafx.h"
 #include "lobster/glinterface.h"
@@ -349,7 +349,7 @@ Mesh *LoadIQM(string_view filename) {
         mesh->numbones = numjoints;
         mesh->numframes = numframes;
         auto mats = new float3x4[numjoints * numframes];
-        memcpy(mats, frames, sizeof(float3x4) * numjoints * numframes);
+        t_memcpy(mats, frames, numjoints * numframes);
         mesh->mats = mats;
     }
     cleanupiqm();
