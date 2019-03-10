@@ -51,7 +51,6 @@ namespace lobster {
     TOK(T_DEF, ":=") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
-    TOK(T_DOTMAYBE, "?.") \
     TOK(T_CODOT, "->") \
     TOK(T_INT, "integer literal") \
     TOK(T_FLOAT, "floating point literal") \

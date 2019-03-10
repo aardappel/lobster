@@ -875,7 +875,7 @@ struct Parser {
 
         // We give precedence to builtins, unless we're calling a known function in a :: context.
         if (nf && (!f || !wse.id)) {
-            auto nc = new GenericCall(lex, idname, nullptr, false, false);
+            auto nc = new GenericCall(lex, idname, nullptr, false);
             ParseFunArgs(nc, coroutine, firstarg, idname, &nf->args, noparens);
             for (auto [i, arg] : enumerate(nf->args.v)) {
                 if (i >= nc->Arity()) {
@@ -921,7 +921,7 @@ struct Parser {
             auto bestf = f;
             for (auto fi = f->sibf; fi; fi = fi->sibf)
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
-            auto call = new GenericCall(lex, idname, nullptr, false, false);
+            auto call = new GenericCall(lex, idname, nullptr, false);
             if (!firstarg) firstarg = SelfArg(f, wse);
             ParseFunArgs(call, coroutine, firstarg, idname, &bestf->subf->args, noparens);
             auto nargs = call->Arity();
@@ -934,7 +934,7 @@ struct Parser {
             ParseFunArgs(dc, coroutine, firstarg);
             return dc;
         } else {
-            auto call = new GenericCall(lex, idname, nullptr, false, false);
+            auto call = new GenericCall(lex, idname, nullptr, false);
             ParseFunArgs(call, coroutine, firstarg);
             ForwardFunctionCall ffc = { st.scopelevels.size(), call, !!firstarg, wse };
             forwardfunctioncalls.push_back(ffc);
@@ -996,7 +996,6 @@ struct Parser {
         auto n = ParseFactor();
         for (;;) switch (lex.token) {
             case T_DOT:
-            case T_DOTMAYBE:
             case T_CODOT: {
                 auto op = lex.token;
                 lex.Next();
@@ -1015,8 +1014,7 @@ struct Parser {
                     auto nf = natreg.FindNative(idname);
                     if (fld || f || nf) {
                         if (fld && lex.token != T_LEFTPAREN) {
-                            auto dot = new GenericCall(lex, idname, f ? f->subf : nullptr,
-                                                       op == T_DOTMAYBE, true);
+                            auto dot = new GenericCall(lex, idname, f ? f->subf : nullptr, true);
                             dot->Add(n);
                             n = dot;
                         } else {
@@ -1265,7 +1263,7 @@ struct Parser {
         Ident *id = nullptr;
         auto fld = st.LookupWithStruct(idname, lex, id);
         if (fld) {
-            auto dot = new GenericCall(lex, idname, nullptr, false, true);
+            auto dot = new GenericCall(lex, idname, nullptr, true);
             dot->Add(new IdentRef(lex, id->cursid));
             return dot;
         }

@@ -2157,7 +2157,6 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     UDT *udt = nullptr;
     if (children.size()) {
         type = children[0]->exptype;
-        if (maybe && type->t == V_NIL) type = type->Element();
         if (IsUDT(type->t)) udt = type->udt;
     }
     Node *r = nullptr;
@@ -2167,7 +2166,6 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         dot->TypeCheckSpecialized(tc, reqret);
         r = dot;
     } else {
-        if (maybe) tc.TypeError("?. may only be used with fields: " + name, *this);
         // See if any of sf's specializations matches type exactly, then it overrides nf.
         bool prefer_sf = false;
         if (sf && udt && sf->parent->nargs()) {
@@ -2548,20 +2546,14 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     tc.AdjustLifetime(children[0], LT_BORROW);
     tc.DecBorrowers(children[0]->lt, *this);  // New borrow created below.
-    auto smtype = children[0]->exptype;
-    auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
+    auto stype = children[0]->exptype;
     if (!IsUDT(stype->t))
         tc.TypeError("class/struct", stype, *this, "object");
     auto udt = stype->udt;
     auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
         tc.TypeError("type " + udt->name + " has no field named " + fld->name, *this);
-    auto &uf = udt->fields.v[fieldidx];
-    if (maybe && !IsRefNil(uf.type->t))
-        tc.TypeError(cat("cannot dereference non-reference field ", fld->name, " with ?."), *this);
-    exptype = maybe && smtype->t == V_NIL && uf.type->t != V_NIL
-            ? tc.st.Wrap(uf.type, V_NIL)
-            : uf.type;
+    exptype = udt->fields.v[fieldidx].type;
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) exptype = tc.UseFlow(fi);
     lt = tc.PushBorrow(this);

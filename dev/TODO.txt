@@ -2,7 +2,6 @@
   - finish structs and ownership
   - do whatever big language fixes still need to happen.
     - multimethods
-    - remove ?. operator
     - var/let only?
   - write lots of docs and examples for all the new functionality
     - also new syntax highlighting etc
@@ -13,6 +12,7 @@
   - stage 1 TODO:
     - optimize PUSHVARV followed by PUSHFIELDV etc to not have to happen by reading var directly.
       any such combination with PUSHFIELDV
+    - benchmark!
     - do tests with refcounted types, or disable them
       - how to DEC in WRITE?
     - Clean up any asserts in LVector not supporting structs.

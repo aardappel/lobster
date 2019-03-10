@@ -26,6 +26,6 @@ run_test("goap"):
 
     assert goap_path.length == 9
     goap_path.pop()
-    assert equal(goap_path.map(): _.delta?.name or "",
+    assert equal(goap_path.map() n: if n.delta: n.delta.name else: "",
         ["eat","buy pizza","sell skin","kill wolf","eat","buy pizza","sell skin","kill wolf"])
 

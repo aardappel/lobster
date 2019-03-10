@@ -313,9 +313,9 @@ struct FunRef : Node {
 struct GenericCall : List {
     string_view name;
     SubFunction *sf;  // Need to store this, since only parser tracks scopes.
-    bool maybe, dotnoparens;
-    GenericCall(const Line &ln, string_view name, SubFunction *sf, bool maybe, bool dotnoparens)
-        : List(ln), name(name), sf(sf), maybe(maybe), dotnoparens(dotnoparens) {};
+    bool dotnoparens;
+    GenericCall(const Line &ln, string_view name, SubFunction *sf, bool dotnoparens)
+        : List(ln), name(name), sf(sf), dotnoparens(dotnoparens) {};
     SHARED_SIGNATURE(GenericCall, "generic call", true)
 };
 
@@ -334,8 +334,8 @@ struct Constructor : List {
 struct Call : GenericCall {
     bool multimethod_specialized = false;
     explicit Call(GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens) {};
-    Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, false) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens) {};
+    Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false) {};
     void Dump(ostringstream &ss) const { ss << sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
@@ -357,7 +357,7 @@ struct NativeCall : GenericCall {
     TypeRef nattype = nullptr;
     Lifetime natlt = LT_UNDEF;
     NativeCall(NativeFun *_nf, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), nf(_nf) {};
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens), nf(_nf) {};
     void Dump(ostringstream &ss) const { ss << nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
@@ -402,10 +402,10 @@ struct Define : Unary {
 struct Dot : GenericCall {
     SharedField *fld;  // FIXME
     Dot(SharedField *_fld, GenericCall &gc)
-        : GenericCall(gc.line, gc.name, gc.sf, gc.maybe, gc.dotnoparens), fld(_fld) {}
+        : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens), fld(_fld) {}
     void Dump(ostringstream &ss) const { ss << Name() << fld->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
-    SHARED_SIGNATURE_NO_TT(Dot, TName(maybe ? T_DOTMAYBE : T_DOT), false)
+    SHARED_SIGNATURE_NO_TT(Dot, TName(T_DOT), false)
 };
 
 struct IsType : Unary {

@@ -677,8 +677,7 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(children[0], retval);
     if (!retval) return;
     cg.TakeTemp(1, true);
-    auto smtype = children[0]->exptype;
-    auto stype = maybe && smtype->t == V_NIL ? smtype->Element() : smtype;
+    auto stype = children[0]->exptype;
     assert(IsUDT(stype->t));  // Ensured by typechecker.
     auto idx = stype->udt->Has(fld);
     assert(idx >= 0);
@@ -696,7 +695,7 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
             cg.Emit(IL_PUSHFLD2V, field.slot);
             cg.GenStructIns(field.type);
         } else {
-            cg.Emit(IL_PUSHFLD + (int)maybe, field.slot);
+            cg.Emit(IL_PUSHFLD, field.slot);
         }
     }
 }

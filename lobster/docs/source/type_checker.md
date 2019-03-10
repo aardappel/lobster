@@ -141,12 +141,6 @@ write `if not a:` instead, you'll be able to access `a` in the `else` block, but
 not in the `then` block. Similarly, if you write `if a and f(a):` then `a` is
 available as non-nil both as argument to `f` *and* in the following block.
 
-De-referencing nillables as in `o and o.f` is so common that there's a shorthand
-for it: `o?.f` (which can be chained). As useful as this looks, note that you
-are just passing on the problem, as the result of such an expression is again a
-nilable type. As such, this is best used inside conditionals or as statements
-where the result is not needed.
-
 `?` is generally the way to indicate a nilable type, e.g. `string?` is a nilable
 string.
 

@@ -236,7 +236,7 @@ struct Lex : LoadedFile {
             case '^': cont = true; return T_XOR;
             case '~': cont = true; return T_NEG;
 
-            case '?': cont = true; second('=', T_LOGASSIGN); second('.', T_DOTMAYBE); cont = false;
+            case '?': cont = true; second('=', T_LOGASSIGN); cont = false;
                       return T_QUESTIONMARK;
 
             case ':':
