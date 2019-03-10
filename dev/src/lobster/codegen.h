@@ -488,9 +488,8 @@ struct CodeGen  {
         if (sid->id->logvar) Emit(IL_LOGWRITE, sid->Idx(), sid->logvaridx);
     }
 
-    void GenStructSize(TypeRef type) {
-        // FIXME: struct variable size.
-        if (IsStruct(type->t)) Emit(IL_PUSHINT, ValWidth(type));
+    void GenStructIns(TypeRef type) {
+        if (IsStruct(type->t)) Emit(ValWidth(type));
     }
 
     void GenValueSize(TypeRef type) {
@@ -528,8 +527,7 @@ struct CodeGen  {
         if (rhs) Gen(rhs, 1);
         if (auto idr = Is<IdentRef>(lval)) {
             TakeTemp(take_temp, true);
-            GenStructSize(idr->sid->type);
-            Emit(GENLVALOP(VAR, lvalop), idr->sid->Idx());
+            Emit(GENLVALOP(VAR, lvalop), idr->sid->Idx()); GenStructIns(idr->sid->type);
             VarModified(idr->sid);
         } else if (auto dot = Is<Dot>(lval)) {
             auto stype = dot->children[0]->exptype;
@@ -537,28 +535,25 @@ struct CodeGen  {
             auto idx = stype->udt->Has(dot->fld);
             assert(idx >= 0);
             auto &field = stype->udt->fields.v[idx];
-            GenStructSize(field.type);
             Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1, true);
-            Emit(GENLVALOP(FLD, lvalop));
-            Emit(field.slot);
+            Emit(GENLVALOP(FLD, lvalop), field.slot); GenStructIns(field.type);
         } else if (auto cod = Is<CoDot>(lval)) {
             auto ir = AssertIs<IdentRef>(cod->variable);
-            GenStructSize(ir->sid->type);
             Gen(cod->coroutine, 1);
             TakeTemp(take_temp + 1, true);
-            Emit(GENLVALOP(LOC, lvalop), ir->sid->Idx());
+            Emit(GENLVALOP(LOC, lvalop), ir->sid->Idx()); GenStructIns(ir->sid->type);
         } else if (auto indexing = Is<Indexing>(lval)) {
-            GenStructSize(type);  // When vector elem is struct.
             Gen(indexing->object, 1);
             Gen(indexing->index, 1);
             TakeTemp(take_temp + 2, true);
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
-                    GenStructSize(indexing->index->exptype);  // When index is struct.
                     Emit(indexing->index->exptype->t == V_INT
                          ? GENLVALOP(IDXVI, lvalop)
                          : GENLVALOP(IDXVV, lvalop));
+                    GenStructIns(indexing->index->exptype);  // When index is struct.
+                    GenStructIns(type);  // When vector elem is struct.
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
@@ -598,8 +593,8 @@ struct CodeGen  {
         } else {
             if (opc >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
-                    GenStructSize(ltype);
                     Emit(IL_STEQ + opc - MOP_EQ);
+                    GenStructIns(ltype);
                 } else {
                     assert(IsRefNil(ltype->t) &&
                            IsRefNil(rtype->t));
@@ -611,12 +606,12 @@ struct CodeGen  {
                 assert(vectype->t == V_STRUCT_S);
                 auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t);
-                GenStructSize(vectype);
                 if (sub->t == V_INT)
                     Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
                 else if (sub->t == V_FLOAT)
                     Emit((withscalar ? IL_FVSADD : IL_FVVADD) + opc);
                 else assert(false);
+                GenStructIns(vectype);
             }
         }
     }
@@ -671,8 +666,8 @@ void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     if (IsStruct(sid->type->t)) {
-        cg.GenStructSize(sid->type);
         cg.Emit(IL_PUSHVARV, sid->Idx());
+        cg.GenStructIns(sid->type);
     } else {
         cg.Emit(IL_PUSHVAR, sid->Idx());
     }
@@ -689,30 +684,27 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
     assert(idx >= 0);
     auto &field = stype->udt->fields.v[idx];
     if (IsStruct(stype->t)) {
-        cg.GenStructSize(stype);
         if (IsStruct(field.type->t)) {
-            cg.GenStructSize(field.type);
-            cg.Emit(IL_PUSHFLDV2V);
+            cg.Emit(IL_PUSHFLDV2V, field.slot);
+            cg.GenStructIns(field.type);
         } else {
-            cg.Emit(IL_PUSHFLDV);
+            cg.Emit(IL_PUSHFLDV, field.slot);
         }
+        cg.GenStructIns(stype);
     } else {
         if (IsStruct(field.type->t)) {
-            cg.GenStructSize(field.type);
-            cg.Emit(IL_PUSHFLD2V);
+            cg.Emit(IL_PUSHFLD2V, field.slot);
+            cg.GenStructIns(field.type);
         } else {
-            cg.Emit(IL_PUSHFLD + (int)maybe);
+            cg.Emit(IL_PUSHFLD + (int)maybe, field.slot);
         }
     }
-    cg.Emit(field.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(object, retval);
-    if (retval) cg.GenStructSize(object->exptype);
     cg.Gen(index, retval);
     if (retval) {
-        cg.GenStructSize(index->exptype);
         cg.TakeTemp(2, true);
         switch (object->exptype->t) {
             case V_VECTOR: {
@@ -727,11 +719,13 @@ void Indexing::Generate(CodeGen &cg, size_t retval) const {
                     }
                 }
                 cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
+                cg.GenStructIns(index->exptype);
                 break;
             }
             case V_STRUCT_S:
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
                 cg.Emit(IL_NPUSHIDXI);
+                cg.GenStructIns(object->exptype);
                 break;
             case V_STRING:
                 assert(index->exptype->t == V_INT);
@@ -753,12 +747,11 @@ void CoDot::Generate(CodeGen &cg, size_t retval) const {
         cg.TakeTemp(1);
         auto sid = AssertIs<IdentRef>(variable)->sid;
         if (IsStruct(sid->type->t)) {
-            cg.GenStructSize(sid->type);
-            cg.Emit(IL_PUSHLOCV);
+            cg.Emit(IL_PUSHLOCV, sid->Idx());
+            cg.GenStructIns(sid->type);
         } else {
-            cg.Emit(IL_PUSHLOC);
+            cg.Emit(IL_PUSHLOC, sid->Idx());
         }
-        cg.Emit(sid->Idx());
     }
 }
 
@@ -784,8 +777,8 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
         // loops with inlined bodies cause this def to be execute multiple times.
         // (also: multiple copies of the same inlined function in one parent).
         // We should emit a specialized opcode for these cases only.
-        cg.GenStructSize(sids[i]->type);
         cg.Emit(GENLVALOP(VAR, cg.AssignBaseOp({ *sids[i] })), sids[i]->Idx());
+        cg.GenStructIns(sids[i]->type);
         cg.VarModified(sids[i]);
     }
     assert(!retval);  // Parser guarantees this.
@@ -838,9 +831,9 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         case V_INT: cg.Emit(IL_IUMINUS); break;
         case V_FLOAT: cg.Emit(IL_FUMINUS); break;
         case V_STRUCT_S: {
-            cg.GenStructSize(ctype);
             auto elem = ctype->udt->sametype->t;
             cg.Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
+            cg.GenStructIns(ctype);
             break;
         }
         default: assert(false);

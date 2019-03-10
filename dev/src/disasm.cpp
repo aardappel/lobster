@@ -39,6 +39,7 @@ const bytecode::LineInfo *LookupLine(const int *ip, const int *code,
 const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, const int *code,
                             const type_elem_t *typetable, const bytecode::BytecodeFile *bcf) {
     auto ilnames = ILNames();
+    auto ilarity = ILArity();
     auto li = LookupLine(ip, code, bcf);
     // FIXME: some indication of the filename, maybe with a table index?
     ss << "I " << int(ip - code) << " \tL " << li->line() << " \t";
@@ -47,32 +48,15 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         return nullptr;
     }
     ss << ilnames[*ip] << ' ';
+    auto arity = ilarity[*ip];
+    auto ins_start = ip;
     int opc = *ip++;
     if (opc < 0 || opc >= IL_MAX_OPS) {
         ss << opc << " ?";
         return ip;
     }
+    int is_struct = 0;
     switch(opc) {
-        case IL_PUSHINT:
-        case IL_PUSHFUN:
-        case IL_CONT1:
-        case IL_JUMP:
-        case IL_JUMPFAIL:
-        case IL_JUMPFAILR:
-        case IL_JUMPFAILN:
-        case IL_JUMPNOFAIL:
-        case IL_JUMPNOFAILR:
-        case IL_LOGREAD:
-        case IL_ISTYPE:
-        case IL_EXIT:
-        case IL_IFOR:
-        case IL_VFOR:
-        case IL_SFOR:
-        case IL_NFOR:
-        case IL_INCREF:
-            ss << *ip++;
-            break;
-
         case IL_PUSHINT64:
         case IL_PUSHFLT64: {
             auto v = Read64FromIp(ip);
@@ -153,26 +137,15 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
         }
 
         #undef LVAL
-        #define LVAL(N) case IL_VAR_##N:
+        #define LVAL(N, V) case IL_VAR_##N: is_struct = V; goto var;
             LVALOPNAMES
         #undef LVAL
-        case IL_PUSHVAR:
         case IL_PUSHVARV:
+            is_struct = 1;
+        case IL_PUSHVAR:
+        var:
             ss << IdName(bcf, *ip++);
-            break;
-
-        #define LVAL(N) case IL_FLD_##N: case IL_LOC_##N:
-            LVALOPNAMES
-        #undef LVAL
-        case IL_PUSHFLD:
-        case IL_PUSHFLDMREF:
-        case IL_PUSHFLDV:
-        case IL_PUSHFLD2V:
-        case IL_PUSHFLDV2V:
-        case IL_PUSHLOC:
-        case IL_PUSHLOCV:
-        case IL_POPV:
-            ss << *ip++;
+            if (is_struct) ss << ' ' << *ip++;
             break;
 
         case IL_PUSHFLT:
@@ -217,7 +190,16 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
             ip += (nargs + 1) * n;
             break;
         }
+
+        default:
+            for (int i = 0; i < arity; i++) {
+                if (i) ss << ' ';
+                ss << *ip++;
+            }
+            break;
     }
+    assert(arity < 0 || ip - ins_start == arity + 1);
+    (void)ins_start;
     return ip;
 }
 

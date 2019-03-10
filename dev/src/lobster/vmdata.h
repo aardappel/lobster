@@ -902,7 +902,7 @@ struct VM {
     #endif
 
     #undef LVAL
-    #define LVAL(N) void LV_##N(Value &a);
+    #define LVAL(N, V) void LV_##N(Value &a);
         LVALOPNAMES
     #undef LVAL
 

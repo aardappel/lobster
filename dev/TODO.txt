@@ -13,8 +13,6 @@
   - stage 1 TODO:
     - optimize PUSHVARV followed by PUSHFIELDV etc to not have to happen by reading var directly.
       any such combination with PUSHFIELDV
-      - any GenStructSize/GenValueSize remaining should NOT be allowed to straddle a Gen(), or
-        must correctly push the temp stack like NativeCall.
     - do tests with refcounted types, or disable them
       - how to DEC in WRITE?
     - Clean up any asserts in LVector not supporting structs.
@@ -50,6 +48,7 @@
       for anything vector related, like MathCheckVector
     - finally split builtins into one op per len.
       - get rid of ToVStruct etc.
+      - get rid of most of GenValueSize
     - push() for non-struct has superfluous pushint 1.
     - Not store len/tti when on stack, requires all ops to encode len, and sometimes type.
     - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,

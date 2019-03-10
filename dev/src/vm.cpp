@@ -435,7 +435,7 @@ InsPtr VM::GetIP() {
 template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     (void)error;
     auto &stf = stackframes.back();
-    if constexpr (is_error) VMASSERT(sp == stf.spstart);
+    if constexpr (!is_error) VMASSERT(sp == stf.spstart);
     auto fip = stf.funstart;
     fip++;  // function id.
     auto nargs = *fip++;
@@ -1143,7 +1143,6 @@ VM_DEF_INS(DUP)    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 
 #define _GETA() VM_TOPPTR() - len
 #define _VOP(op, extras, V_T, field, withscalar, geta) { \
-    auto len = VM_POP().intval(); \
     if (withscalar) { \
         auto b = VM_POP(); \
         VMTYPEEQ(b, V_T) \
@@ -1171,7 +1170,7 @@ VM_DEF_INS(DUP)    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
     } \
 }
 #define STCOMPEN(op, init, andor) { \
-    auto len = VM_POP().intval(); \
+    auto len = *ip++; \
     VM_POPN(len); \
     auto vecb = VM_TOPPTR(); \
     VM_POPN(len); \
@@ -1194,10 +1193,10 @@ VM_DEF_INS(DUP)    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                VM_PUSH(res); VM_RET; }
 #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                VM_PUSH(res); VM_RET; }
 
-#define IVVOP(op, extras)  { _IVOP(op, extras, false, _GETA()); VM_RET; }
-#define FVVOP(op, extras)  { _FVOP(op, extras, false, _GETA()); VM_RET; }
-#define IVSOP(op, extras)  { _IVOP(op, extras, true, _GETA());  VM_RET; }
-#define FVSOP(op, extras)  { _FVOP(op, extras, true, _GETA());  VM_RET; }
+#define IVVOP(op, extras)  { auto len = *ip++; _IVOP(op, extras, false, _GETA()); VM_RET; }
+#define FVVOP(op, extras)  { auto len = *ip++; _FVOP(op, extras, false, _GETA()); VM_RET; }
+#define IVSOP(op, extras)  { auto len = *ip++; _IVOP(op, extras, true, _GETA());  VM_RET; }
+#define FVSOP(op, extras)  { auto len = *ip++; _FVOP(op, extras, true, _GETA());  VM_RET; }
 
 #define SOP(op)            { GETARGS(); _SOP(op);                        VM_PUSH(res); VM_RET; }
 #define SCAT()             { GETARGS(); _SCAT();                         VM_PUSH(res); VM_RET; }
@@ -1301,7 +1300,7 @@ VM_DEF_INS(IUMINUS) { Value a = VM_POP(); VM_PUSH(Value(-a.ival())); VM_RET; }
 VM_DEF_INS(FUMINUS) { Value a = VM_POP(); VM_PUSH(Value(-a.fval())); VM_RET; }
 
 VM_DEF_INS(IVUMINUS) {
-    auto len = VM_POP().intval();
+    auto len = *ip++;
     auto vec = VM_TOPPTR() - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
@@ -1311,7 +1310,7 @@ VM_DEF_INS(IVUMINUS) {
     VM_RET;
 }
 VM_DEF_INS(FVUMINUS) {
-    auto len = VM_POP().intval();
+    auto len = *ip++;
     auto vec = VM_TOPPTR() - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
@@ -1394,8 +1393,9 @@ VM_DEF_INS(PUSHVAR) {
 }
 
 VM_DEF_INS(PUSHVARV) {
-    auto l = VM_POP().intval();
-    t_memcpy(VM_TOPPTR(), &vars[*ip++], l);
+    auto vidx = *ip++;
+    auto l = *ip++;
+    t_memcpy(VM_TOPPTR(), &vars[vidx], l);
     VM_PUSHN(l);
     VM_RET;
 }
@@ -1421,7 +1421,7 @@ VM_DEF_INS(PUSHFLDMREF) {
 }
 VM_DEF_INS(PUSHFLD2V) {
     auto i = *ip++;
-    auto l = VM_POP().intval();
+    auto l = *ip++;
     Value r = VM_POP();
     VMASSERT(r.ref());
     assert(i + l <= r.oval()->Len(*this));
@@ -1431,7 +1431,7 @@ VM_DEF_INS(PUSHFLD2V) {
 }
 VM_DEF_INS(PUSHFLDV) {
     auto i = *ip++;
-    auto l = VM_POP().intval();
+    auto l = *ip++;
     VM_POPN(l);
     auto val = *(VM_TOPPTR() + i);
     VM_PUSH(val);
@@ -1439,8 +1439,8 @@ VM_DEF_INS(PUSHFLDV) {
 }
 VM_DEF_INS(PUSHFLDV2V) {
     auto i = *ip++;
-    auto rl = VM_POP().intval();
-    auto l = VM_POP().intval();
+    auto rl = *ip++;
+    auto l = *ip++;
     VM_POPN(l);
     t_memmove(VM_TOPPTR(), VM_TOPPTR() + i, rl);
     VM_PUSHN(rl);
@@ -1461,7 +1461,7 @@ VM_DEF_INS(PUSHLOC) {
 
 VM_DEF_INS(PUSHLOCV) {
     int i = *ip++;
-    auto l = VM_POP().intval();
+    auto l = *ip++;
     auto coro = VM_POP().cval();
     t_memcpy(VM_TOPPTR(), &coro->GetVar(*this, i), l);
     VM_PUSHN(l);
@@ -1539,7 +1539,7 @@ void VM::PushDerefIdxVector(intp i) {
 }
 
 void VM::PushDerefIdxStruct(intp i) {
-    auto l = VM_POP().intval();
+    auto l = *ip++;
     VM_POPN(l);
     auto val = *(VM_TOPPTR() + i);
     VM_PUSH(val);
@@ -1582,32 +1582,32 @@ Value &VM::GetLocLVal(int i) {
 
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(VAR_##N) { LV_##N(vars[*ip++]); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(VAR_##N) { LV_##N(vars[*ip++]); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(FLD_##N) { LV_##N(GetFieldLVal(*ip++)); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(FLD_##N) { LV_##N(GetFieldLVal(*ip++)); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(LOC_##N) { LV_##N(GetLocLVal(*ip++)); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(LOC_##N) { LV_##N(GetLocLVal(*ip++)); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(IDXVI_##N) { LV_##N(GetVecLVal(VM_POP().ival())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXVI_##N) { LV_##N(GetVecLVal(VM_POP().ival())); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(IDXVV_##N) { LV_##N(GetVecLVal(GrabIndex())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXVV_##N) { LV_##N(GetVecLVal(GrabIndex())); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N) VM_DEF_INS(IDXNI_##N) { LV_##N(GetFieldILVal(VM_POP().ival())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXNI_##N) { LV_##N(GetFieldILVal(VM_POP().ival())); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
 #define LVALCASES(N, B) void VM::LV_##N(Value &a) { Value b = VM_POP(); B; }
-#define LVALCASER(N, B) void VM::LV_##N(Value &fa) { B; }
+#define LVALCASER(N, B) void VM::LV_##N(Value &fa) { auto len = *ip++; B; }
 #define LVALCASESTR(N, B, B2) void VM::LV_##N(Value &a) { Value b = VM_POP(); B; a.LTDECRTNIL(*this); B2; }
 
 LVALCASER(IVVADD , _IVOP(+, 0, false, &fa))
@@ -1618,8 +1618,8 @@ LVALCASER(IVVMUL , _IVOP(*, 0, false, &fa))
 LVALCASER(IVVMULR, _IVOP(*, 0, false, &fa))
 LVALCASER(IVVDIV , _IVOP(/, 1, false, &fa))
 LVALCASER(IVVDIVR, _IVOP(/, 1, false, &fa))
-LVALCASER(IVVMOD , VMASSERT(0); (void)fa)
-LVALCASER(IVVMODR, VMASSERT(0); (void)fa)
+LVALCASER(IVVMOD , VMASSERT(0); (void)fa; (void)len)
+LVALCASER(IVVMODR, VMASSERT(0); (void)fa; (void)len)
 
 LVALCASER(FVVADD , _FVOP(+, 0, false, &fa))
 LVALCASER(FVVADDR, _FVOP(+, 0, false, &fa))
@@ -1638,8 +1638,8 @@ LVALCASER(IVSMUL , _IVOP(*, 0, true,  &fa))
 LVALCASER(IVSMULR, _IVOP(*, 0, true,  &fa))
 LVALCASER(IVSDIV , _IVOP(/, 1, true,  &fa))
 LVALCASER(IVSDIVR, _IVOP(/, 1, true,  &fa))
-LVALCASER(IVSMOD , VMASSERT(0); (void)fa)
-LVALCASER(IVSMODR, VMASSERT(0); (void)fa)
+LVALCASER(IVSMOD , VMASSERT(0); (void)fa; (void)len)
+LVALCASER(IVSMODR, VMASSERT(0); (void)fa; (void)len)
 
 LVALCASER(FVSADD , _FVOP(+, 0, true,  &fa))
 LVALCASER(FVSADDR, _FVOP(+, 0, true,  &fa))
@@ -1679,7 +1679,7 @@ void VM::LV_WRITEREF (Value &a) { auto  b = VM_POP(); a.LTDECRTNIL(*this); a = b
 void VM::LV_WRITERREF(Value &a) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); a = b; }
 
 #define WRITESTRUCT(DECS) \
-    auto l = VM_POP().intval(); \
+    auto l = *ip++; \
     auto b = VM_TOPPTR() - l; \
     DECS; \
     t_memcpy(&a, b, l);
@@ -1749,7 +1749,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
 }
 
 intp VM::GrabIndex() {
-    auto len = VM_POP().ival();
+    auto len = *ip++;
     auto &v = VM_TOPM(len);
     for (len--; ; len--) {
         auto sidx = VM_POP().ival();
