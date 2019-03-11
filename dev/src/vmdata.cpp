@@ -93,7 +93,7 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
 void LVector::Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret) {
     assert(n >= 0 && n <= len && i >= 0 && i <= len - n);
     if (stack_ret) {
-        t_memcpy(vm.TopPtr(), v + i * width, width);
+        tsnz_memcpy(vm.TopPtr(), v + i * width, width);
         vm.PushN((int)width);
     }
     auto et = ElemType(vm)->t;
@@ -108,13 +108,13 @@ void LVector::Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret) {
 void LVector::AtVW(VM &vm, intp i) const {
     auto src = AtSt(i);
     // TODO: split this up for the width==1 case?
-    t_memcpy(vm.TopPtr(), src, width);
+    tsnz_memcpy(vm.TopPtr(), src, width);
     vm.PushN((int)width);
 }
 
 void LVector::AtVWSub(VM &vm, intp i, int w, int off) const {
     auto src = AtSt(i);
-    t_memcpy(vm.TopPtr(), src + off, w);
+    tsnz_memcpy(vm.TopPtr(), src + off, w);
     vm.PushN(w);
 }
 

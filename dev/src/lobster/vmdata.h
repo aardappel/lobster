@@ -566,7 +566,7 @@ struct LVector : RefObj {
 
     void PushVW(VM &vm, const Value *vals) {
         if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
-        t_memcpy(v + len * width, vals, width);
+        tsnz_memcpy(v + len * width, vals, width);
         len++;
     }
 
@@ -577,7 +577,7 @@ struct LVector : RefObj {
 
     void PopVW(Value *dest) {
         len--;
-        t_memcpy(dest, v + len * width, width);
+        tsnz_memcpy(dest, v + len * width, width);
     }
 
     Value &Top() const {
@@ -586,7 +586,7 @@ struct LVector : RefObj {
     }
 
     void TopVW(Value *dest) {
-        t_memcpy(dest, v + (len - 1) * width, width);
+        tsnz_memcpy(dest, v + (len - 1) * width, width);
     }
 
     void Insert(VM &vm, const Value *vals, intp i) {
@@ -594,7 +594,7 @@ struct LVector : RefObj {
         if (len + 1 > maxl) Resize(vm, max(len + 1, maxl ? maxl * 2 : 4));
         t_memmove(v + (i + 1) * width, v + i * width, (len - i) * width);
         len++;
-        t_memcpy(v + i * width, vals, width);
+        tsnz_memcpy(v + i * width, vals, width);
     }
 
     void Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret);

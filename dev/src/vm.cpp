@@ -542,7 +542,7 @@ void VM::FunOut(int towhere, int nrv) {
     sp -= nrv;
     // Have to store these off the stack, since VarCleanup() may cause stack activity if coroutines
     // are destructed.
-    t_memcpy(retvalstemp, VM_TOPPTR(), nrv);
+    ts_memcpy(retvalstemp, VM_TOPPTR(), nrv);
     for(;;) {
         if (!stackframes.size()) {
             Error("\"return from " + bcf->functions()->Get(towhere)->name()->string_view() +
@@ -550,7 +550,7 @@ void VM::FunOut(int towhere, int nrv) {
         }
         if (VarCleanup<0>(nullptr, towhere)) break;
     }
-    t_memcpy(VM_TOPPTR(), retvalstemp, nrv);
+    ts_memcpy(VM_TOPPTR(), retvalstemp, nrv);
     sp += nrv;
 }
 
@@ -1396,7 +1396,7 @@ VM_DEF_INS(PUSHVAR) {
 VM_DEF_INS(PUSHVARV) {
     auto vidx = *ip++;
     auto l = *ip++;
-    t_memcpy(VM_TOPPTR(), &vars[vidx], l);
+    tsnz_memcpy(VM_TOPPTR(), &vars[vidx], l);
     VM_PUSHN(l);
     VM_RET;
 }
@@ -1426,7 +1426,7 @@ VM_DEF_INS(PUSHFLD2V) {
     Value r = VM_POP();
     VMASSERT(r.ref());
     assert(i + l <= r.oval()->Len(*this));
-    t_memcpy(VM_TOPPTR(), &r.oval()->AtS(i), l);
+    tsnz_memcpy(VM_TOPPTR(), &r.oval()->AtS(i), l);
     VM_PUSHN(l);
     VM_RET;
 }
@@ -1466,7 +1466,7 @@ VM_DEF_INS(PUSHLOCV) {
     int i = *ip++;
     auto l = *ip++;
     auto coro = VM_POP().cval();
-    t_memcpy(VM_TOPPTR(), &coro->GetVar(*this, i), l);
+    tsnz_memcpy(VM_TOPPTR(), &coro->GetVar(*this, i), l);
     VM_PUSHN(l);
     VM_RET;
 }
@@ -1700,7 +1700,7 @@ void VM::LV_WRITERREF(Value &a VM_OP_ARGS_C) { auto &b = VM_TOP(); a.LTDECRTNIL(
     auto l = *ip++; \
     auto b = VM_TOPPTR() - l; \
     DECS; \
-    t_memcpy(&a, b, l);
+    tsnz_memcpy(&a, b, l);
 
 void VM::LV_WRITEV    (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); VM_POPN(l); }
 void VM::LV_WRITERV   (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); }

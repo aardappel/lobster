@@ -16,8 +16,40 @@
 template<typename T, typename S> void t_memcpy(T *dest, const T *src, S n) {
     memcpy(dest, src, n * sizeof(T));
 }
+
 template<typename T, typename S> void t_memmove(T *dest, const T *src, S n) {
     memmove(dest, src, n * sizeof(T));
+}
+
+template<typename T, typename S> void ts_memcpy(T *dest, const T *src, S n) {
+    if (n) {
+        *dest++ = *src++;
+        if (n > 1) {
+            *dest++ = *src++;
+            if (n > 2) {
+                *dest++ = *src++;
+                if (n > 3) {
+                    *dest++ = *src++;
+                    for (S i = 4; i < n; i++) *dest++ = *src++;
+                }
+            }
+        }
+    }
+}
+
+template<typename T, typename S> void tsnz_memcpy(T *dest, const T *src, S n) {
+    assert(n);
+    *dest++ = *src++;
+    if (n > 1) {
+        *dest++ = *src++;
+        if (n > 2) {
+            *dest++ = *src++;
+            if (n > 3) {
+                *dest++ = *src++;
+                for (S i = 4; i < n; i++) *dest++ = *src++;
+            }
+        }
+    }
 }
 
 // Doubly linked list.

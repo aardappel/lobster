@@ -4,53 +4,29 @@
     - multimethods
     - var/let only?
   - write lots of docs and examples for all the new functionality
+    - structs
+    - ownership
+    - multithreading
     - also new syntax highlighting etc
   - move repo under a different org :)
   - announce post
   
 - structs copied by value everywhere.
   - stage 1 TODO:
-    - fix gcc/clang build
-    - force structs to have at least 1 field
-    - benchmark: test specialized t_memcpy / why C++ version not faster?
     - do tests with refcounted types, or disable them
       - how to DEC in WRITE?
     - Clean up any asserts in LVector not supporting structs.
     - Go thru all TakeTemp, to have explicitly false, must use NoStruct in typechecker.
       - assert that this is true.
-  - stage 1: stored as just the naked fields in parent classes and vectors, but followed
-    by their tti on the stack, this to reduce the amount of special cases.
-    - make "value" structs not have a refcount at all, and be copied instead of incref,
-      deleted instead of decref.
-      2) fully inline by making them behave like multiple value on the stack, in fields and in
-      vectors.
-      - not fully general, as there are spots where we can only really deal with 1 value in the
-        VM, so would need to error out if one of these types is passed there.
-      - it may be easiest to keep the typechecker regarding these as a single value, but enhance
-        the codegen with keeping track of value-width, or even push multiple values on the temp
-        stack, and thus also error out if passed somewhere that can't deal with it.
-        - this would be an incremental process, whereby the VM is enhanced to deal with these
-          in more places.
-      - simpler than 1) in terms of borrowing, since whole copies are always passed, and thus
-        less likely to generate borrow errors.
-        - in fact, for the type checker these are now not even reference types anymore!
-          - though if fields are allowed to be reference types, this will now complicate matters.
-            essentially if any fields are ref types, then the type as a whole is ref as well,
-            and any inc/dec ops apply to all fields equally. can have mixed with scalar fields,
-            as these are simply ignored when doing inc/dec.
-        - probably easiest to split this type up from the current V_STRUCT, into V_VALS and V_VALR
-          where only the latter is a reftype.
-      - simpler than 1) in terms of returning values, since these will just be on the stack.
-      - nice for "zero cost abstraction", as now a struct with a single field has exactly the
-        same cost as a single value!
   - Further improvements:
     - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
       for anything vector related, like MathCheckVector
     - finally split builtins into one op per len.
       - get rid of ToVStruct etc.
       - get rid of most of GenValueSize
+    - look which ops are most frequent, then specialize them to 1/2/3/4/v widths, as even
+      ts_memcpy still has a cost.
     - push() for non-struct has superfluous pushint 1.
-    - Not store len/tti when on stack, requires all ops to encode len, and sometimes type.
     - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
       especially in vectors, then structs..
     - somehow not store LVector::width.
@@ -64,8 +40,6 @@
     all refs. could be two lists for nil and non-nil?
   - For vectors can just stick a bool in TypeInfo to speed up this case?
     - does its type-info even need vector wrapped?
-
-- docs for recent changes.
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
