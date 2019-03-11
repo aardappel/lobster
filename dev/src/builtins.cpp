@@ -737,7 +737,7 @@ nfr("clamp", "x,min,max", "FFF", "F",
 nfr("clamp", "x,min,max", "I}I}I}", "I}",
     "forces an integer vector to be in the range between min and max (inclusive)",
     [](VM &vm) {
-        auto l = vm.Top().ival();
+        auto l = vm.Top().intval();
         auto c = vm.PopVec<intp4>();
         auto b = vm.PopVec<intp4>();
         auto a = vm.PopVec<intp4>();
@@ -747,7 +747,7 @@ nfr("clamp", "x,min,max", "I}I}I}", "I}",
 nfr("clamp", "x,min,max", "F}F}F}", "F}",
     "forces a float vector to be in the range between min and max (inclusive)",
     [](VM &vm) {
-        auto l = vm.Top().ival();
+        auto l = vm.Top().intval();
         auto c = vm.PopVec<floatp4>();
         auto b = vm.PopVec<floatp4>();
         auto a = vm.PopVec<floatp4>();
@@ -806,7 +806,7 @@ nfr("sign", "x", "F}", "I}",
 
 // FIXME: need to guarantee in typechecking that both vectors are the same len.
 #define VECBINOP(name, T) \
-    auto len = vm.Top().ival(); \
+    auto len = vm.Top().intval(); \
     auto y = vm.PopVec<T>(); \
     auto x = vm.PopVec<T>(); \
     vm.PushVec(name(x, y), len);
@@ -921,7 +921,7 @@ nfr("lerp", "a,b,f", "F}F}F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]",
     [](VM &vm) {
         auto f = vm.Pop().fltval();
-        auto numelems = vm.Top().ival();
+        auto numelems = vm.Top().intval();
         auto y = vm.PopVec<floatp4>();
         auto x = vm.PopVec<floatp4>();
         vm.PushVec(mix(x, y, f), numelems);

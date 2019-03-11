@@ -1357,7 +1357,8 @@ VM_DEF_INS(A2S) {
 VM_DEF_INS(ST2S) {
     auto &ti = GetTypeInfo((type_elem_t)*ip++);
     VM_POPN(ti.len);
-    VM_PUSH(StructToString(VM_TOPPTR(), ti));
+    auto top = VM_TOPPTR();
+    VM_PUSH(StructToString(top, ti));
     VM_RET;
 }
 

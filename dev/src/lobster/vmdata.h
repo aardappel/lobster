@@ -957,7 +957,7 @@ struct VM {
         VM_POPN(width);
         return { VM_TOPPTR(), width };
     }
-    template<typename T, intp N> void PushVec(const vec<T, N> &v, intp truncate = 4) {
+    template<typename T, int N> void PushVec(const vec<T, N> &v, int truncate = 4) {
         auto l = min(N, truncate);
         for (int i = 0; i < l; i++) VM_PUSH(v[i]);
     }
@@ -966,7 +966,7 @@ struct VM {
         auto l = VM_POP().intval();
         if (l > T::NUM_ELEMENTS) VM_POPN(l - T::NUM_ELEMENTS);
         for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
-            v[i] = i < l ? VM_POP().ifval<T::CTYPE>() : def;
+            v[i] = i < l ? VM_POP().ifval<typename T::CTYPE>() : def;
         }
         return v;
     }
