@@ -26,6 +26,7 @@ run_test("misch"):
     aa += 1
     assert aa == xy { 7, 9 }
     c := C { A { 10, 11 }, 12 }
+    assert c.a.x + c.a.y + c.b == 33
     c.a += 1
     assert c.a == A { 11, 12 }
     c.a += A { 1, 2 }
@@ -54,6 +55,14 @@ run_test("misch"):
     assert tri[xyz { 0, 0, 0 }] == 123
     tri[xyz { 0, 0, 0 }] = 124
     assert tri[xyz { 0, 0, 0 }] == 124
+    triv := [ [ [ xy { 10, 11 } ] ] ]
+    assert triv[xyz { 0, 0, 0 }] == xy { 10, 11 }
+    triv[xyz { 0, 0, 0 }] += 4
+    assert triv[xyz { 0, 0, 0 }] == xy { 14, 15 }
+    trivv := [ [ [ B { A { 5, 6 }, 7 } ] ] ]
+    assert trivv[xyz { 0, 0, 0 }].a == A { 5, 6 }
+    assert trivv[xyz { 0, 0, 0 }].a.y == 6
+    assert trivv[xy { 0, 0 }][0].a.y == 6
     assert xyz { 5, 6, 7 }[1] == 6
     assert mm(mm1 { 1 }, xy { 4, 5 }) == 10
     assert mm(mm2 { 0 }, xy { 4, 5 }) == 9

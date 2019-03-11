@@ -2653,6 +2653,8 @@ Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             f.type = f.defaultval->exptype;
         }
     }
+    if (!udt->ComputeSizes())
+        tc.TypeError("structs cannot be self-referential: " + udt->name, *this);
     exptype = type_void;
     lt = LT_ANY;
     return this;

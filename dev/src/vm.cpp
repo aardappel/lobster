@@ -1447,10 +1447,12 @@ VM_DEF_INS(PUSHFLDV2V) {
     VM_RET;
 }
 
-VM_DEF_INS(VPUSHIDXI)    { PushDerefIdxVector(VM_POP().ival()); VM_RET; }
-VM_DEF_INS(VPUSHIDXV)    { PushDerefIdxVector(GrabIndex()); VM_RET; }
-VM_DEF_INS(NPUSHIDXI)    { PushDerefIdxStruct(VM_POP().ival()); VM_RET; }
-VM_DEF_INS(SPUSHIDXI)    { PushDerefIdxString(VM_POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXI)  { PushDerefIdxVector(VM_POP().ival()); VM_RET; }
+VM_DEF_INS(VPUSHIDXV)  { PushDerefIdxVector(GrabIndex(*ip++)); VM_RET; }
+VM_DEF_INS(VPUSHIDXIS) { PushDerefIdxVectorSub(VM_POP().ival() VM_IP_PASS_THRU_C); VM_RET; }
+VM_DEF_INS(VPUSHIDXVS) { auto l = *ip++; PushDerefIdxVectorSub(GrabIndex(l) VM_IP_PASS_THRU_C); VM_RET; }
+VM_DEF_INS(NPUSHIDXI)  { PushDerefIdxStruct(VM_POP().ival(), *ip++); VM_RET; }
+VM_DEF_INS(SPUSHIDXI)  { PushDerefIdxString(VM_POP().ival()); VM_RET; }
 
 VM_DEF_INS(PUSHLOC) {
     int i = *ip++;
@@ -1538,8 +1540,17 @@ void VM::PushDerefIdxVector(intp i) {
     v->AtVW(*this, i);
 }
 
-void VM::PushDerefIdxStruct(intp i) {
-    auto l = *ip++;
+void VM::PushDerefIdxVectorSub(intp i VM_OP_ARGS_C) {
+    Value r = VM_POP();
+    VMASSERT(r.ref());
+    auto v = r.vval();
+    RANGECHECK(i, v->len, v);
+    auto width = *ip++;
+    auto offset = *ip++;
+    v->AtVWSub(*this, i, width, offset);
+}
+
+void VM::PushDerefIdxStruct(intp i, int l) {
     VM_POPN(l);
     auto val = *(VM_TOPPTR() + i);
     VM_PUSH(val);
@@ -1582,33 +1593,39 @@ Value &VM::GetLocLVal(int i) {
 
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(VAR_##N) { LV_##N(vars[*ip++]); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(VAR_##N) { \
+    auto i = *ip++; LV_##N(vars[i] VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(FLD_##N) { LV_##N(GetFieldLVal(*ip++)); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(FLD_##N) { \
+    auto i = *ip++; LV_##N(GetFieldLVal(i) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(LOC_##N) { LV_##N(GetLocLVal(*ip++)); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(LOC_##N) { \
+    auto i = *ip++; LV_##N(GetLocLVal(i) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(IDXVI_##N) { LV_##N(GetVecLVal(VM_POP().ival())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXVI_##N) \
+    { LV_##N(GetVecLVal(VM_POP().ival()) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(IDXVV_##N) { LV_##N(GetVecLVal(GrabIndex())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXVV_##N) \
+    { auto l = *ip++; LV_##N(GetVecLVal(GrabIndex(l)) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVAL(N, V) VM_DEF_INS(IDXNI_##N) { LV_##N(GetFieldILVal(VM_POP().ival())); VM_RET; }
+#define LVAL(N, V) VM_DEF_INS(IDXNI_##N) \
+    { LV_##N(GetFieldILVal(VM_POP().ival()) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
 
-#define LVALCASES(N, B) void VM::LV_##N(Value &a) { Value b = VM_POP(); B; }
-#define LVALCASER(N, B) void VM::LV_##N(Value &fa) { auto len = *ip++; B; }
-#define LVALCASESTR(N, B, B2) void VM::LV_##N(Value &a) { Value b = VM_POP(); B; a.LTDECRTNIL(*this); B2; }
+#define LVALCASES(N, B) void VM::LV_##N(Value &a VM_OP_ARGS_C) { Value b = VM_POP(); B; }
+#define LVALCASER(N, B) void VM::LV_##N(Value &fa VM_OP_ARGS_C) { auto len = *ip++; B; }
+#define LVALCASESTR(N, B, B2) void VM::LV_##N(Value &a VM_OP_ARGS_C) { Value b = VM_POP(); B; a.LTDECRTNIL(*this); B2; }
 
 LVALCASER(IVVADD , _IVOP(+, 0, false, &fa))
 LVALCASER(IVVADDR, _IVOP(+, 0, false, &fa))
@@ -1673,10 +1690,10 @@ LVALCASES(FDIVR  , _FOP(/, 1); a = res; VM_PUSH(res))
 LVALCASESTR(SADD , _SCAT(),    a = res;          )
 LVALCASESTR(SADDR, _SCAT(),    a = res; VM_PUSH(res))
 
-void VM::LV_WRITE    (Value &a) { auto  b = VM_POP();                      a = b; }
-void VM::LV_WRITER   (Value &a) { auto &b = VM_TOP();                      a = b; }
-void VM::LV_WRITEREF (Value &a) { auto  b = VM_POP(); a.LTDECRTNIL(*this); a = b; }
-void VM::LV_WRITERREF(Value &a) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); a = b; }
+void VM::LV_WRITE    (Value &a VM_OP_ARGS_C) { auto  b = VM_POP();                      a = b; }
+void VM::LV_WRITER   (Value &a VM_OP_ARGS_C) { auto &b = VM_TOP();                      a = b; }
+void VM::LV_WRITEREF (Value &a VM_OP_ARGS_C) { auto  b = VM_POP(); a.LTDECRTNIL(*this); a = b; }
+void VM::LV_WRITERREF(Value &a VM_OP_ARGS_C) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); a = b; }
 
 #define WRITESTRUCT(DECS) \
     auto l = *ip++; \
@@ -1684,13 +1701,13 @@ void VM::LV_WRITERREF(Value &a) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); a = b
     DECS; \
     t_memcpy(&a, b, l);
 
-void VM::LV_WRITEV    (Value &a) { WRITESTRUCT({}); VM_POPN(l); }
-void VM::LV_WRITERV   (Value &a) { WRITESTRUCT({}); }
-void VM::LV_WRITEREFV (Value &a) { WRITESTRUCT(assert(0)); VM_POPN(l); }
-void VM::LV_WRITERREFV(Value &a) { WRITESTRUCT(assert(0)); }
+void VM::LV_WRITEV    (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); VM_POPN(l); }
+void VM::LV_WRITERV   (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); }
+void VM::LV_WRITEREFV (Value &a VM_OP_ARGS_C) { WRITESTRUCT(assert(0)); VM_POPN(l); }
+void VM::LV_WRITERREFV(Value &a VM_OP_ARGS_C) { WRITESTRUCT(assert(0)); }
 
 
-#define PPOP(name, ret, op, pre, accessor) void VM::LV_##name(Value &a) { \
+#define PPOP(name, ret, op, pre, accessor) void VM::LV_##name(Value &a VM_OP_ARGS_C) { \
     if (ret && !pre) VM_PUSH(a); \
     a.set##accessor(a.accessor() op 1); \
     if (ret && pre) VM_PUSH(a); \
@@ -1748,8 +1765,7 @@ void VM::BCallRetCheck(const NativeFun *nf) {
     #endif
 }
 
-intp VM::GrabIndex() {
-    auto len = *ip++;
+intp VM::GrabIndex(int len) {
     auto &v = VM_TOPM(len);
     for (len--; ; len--) {
         auto sidx = VM_POP().ival();

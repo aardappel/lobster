@@ -112,6 +112,12 @@ void LVector::AtVW(VM &vm, intp i) const {
     vm.PushN((int)width);
 }
 
+void LVector::AtVWSub(VM &vm, intp i, int w, int off) const {
+    auto src = AtSt(i);
+    t_memcpy(vm.TopPtr(), src + off, w);
+    vm.PushN(w);
+}
+
 void LVector::DeleteSelf(VM &vm) {
     auto et = ElemType(vm)->t;
     if (IsRefNil(et)) {

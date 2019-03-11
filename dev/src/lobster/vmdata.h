@@ -612,6 +612,7 @@ struct LVector : RefObj {
     }
 
     void AtVW(VM &vm, intp i) const;
+    void AtVWSub(VM &vm, intp i, int w, int off) const;
 
     void Append(VM &vm, LVector *from, intp start, intp amount);
 
@@ -848,11 +849,15 @@ struct VM {
 
     #ifdef VM_COMPILED_CODE_MODE
         #define VM_OP_ARGS const int *ip
+        #define VM_OP_ARGS_C , const int *ip
         #define VM_OP_ARGS_CALL const int *ip, block_t fcont
+        #define VM_IP_PASS_THRU_C , ip
         #define VM_JMP_RET bool
     #else
         #define VM_OP_ARGS
+        #define VM_OP_ARGS_C
         #define VM_OP_ARGS_CALL
+        #define VM_IP_PASS_THRU_C
         #define VM_JMP_RET VM_INS_RET
     #endif
 
@@ -902,7 +907,7 @@ struct VM {
     #endif
 
     #undef LVAL
-    #define LVAL(N, V) void LV_##N(Value &a);
+    #define LVAL(N, V) void LV_##N(Value &a VM_OP_ARGS_C);
         LVALOPNAMES
     #undef LVAL
 
@@ -917,7 +922,8 @@ struct VM {
     Value &GetVecLVal(intp i);
 
     void PushDerefIdxVector(intp i);
-    void PushDerefIdxStruct(intp i);
+    void PushDerefIdxVectorSub(intp i VM_OP_ARGS_C);
+    void PushDerefIdxStruct(intp i, int l);
     void PushDerefIdxString(intp i);
     void LvalueIdxVector(int lvalop, intp i);
     void LvalueIdxStruct(int lvalop, intp i);
@@ -930,7 +936,7 @@ struct VM {
     void IDXErr(intp i, intp n, const RefObj *v);
     void BCallProf();
     void BCallRetCheck(const NativeFun *nf);
-    intp GrabIndex();
+    intp GrabIndex(int len);
 
     #define VM_PUSH(v) (stack[++sp] = (v))
     #define VM_TOP() (stack[sp])

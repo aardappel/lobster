@@ -22,8 +22,13 @@
 
 namespace lobster {
 
-inline string_view IdName(const bytecode::BytecodeFile *bcf, int i) {
-    return bcf->idents()->Get(bcf->specidents()->Get(i)->ididx())->name()->string_view();
+inline string IdName(const bytecode::BytecodeFile *bcf, int i) {
+    auto idx = bcf->specidents()->Get(i)->ididx();
+    int j = i;
+    // FIXME: this theoretically can span 2 specializations of the same var.
+    while (j && bcf->specidents()->Get(j - 1)->ididx() == idx) j--;
+    auto basename = bcf->idents()->Get(idx)->name()->string_view();
+    return j == i ? string(basename) : cat(basename, '+', i - j);
 }
 
 const bytecode::LineInfo *LookupLine(const int *ip, const int *code,

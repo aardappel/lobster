@@ -111,9 +111,7 @@ struct CodeGen  {
                     return type->udt->typeinfo;
                 type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
-                if (!type->udt->ComputeSizes())
-                    parser.Error("structs cannot be self-referential: " + type->udt->name,
-                                 parser.root);
+                assert(type->udt->numslots >= 0);
                 auto ttsize = (type->udt->numslots * 2) + 3;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)type->udt->idx);
@@ -630,6 +628,104 @@ struct CodeGen  {
             ? (typelt.type->t == V_STRUCT_R ? LVO_WRITEREFV : LVO_WRITEV)
             : (ShouldDec(typelt) ? LVO_WRITEREF : LVO_WRITE);
     }
+
+    void GenPushVar(size_t retval, TypeRef type, int offset) {
+        if (!retval) return;
+        if (IsStruct(type->t)) {
+            Emit(IL_PUSHVARV, offset);
+            GenStructIns(type);
+        } else {
+            Emit(IL_PUSHVAR, offset);
+        }
+    }
+
+    void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
+        if (IsStruct(stype->t)) {
+            // Attempt to not generate object at all, by reading the field inline.
+            if (auto idr = Is<IdentRef>(object)) {
+                GenPushVar(retval, ftype, idr->sid->Idx() + offset);
+                return;
+            } else if (auto dot = Is<Dot>(object)) {
+                auto sstype = dot->children[0]->exptype;
+                assert(IsUDT(sstype->t));
+                auto idx = sstype->udt->Has(dot->fld);
+                assert(idx >= 0);
+                auto &field = sstype->udt->fields.v[idx];
+                assert(field.slot >= 0);
+                GenPushField(retval, dot->children[0], sstype, ftype, field.slot + offset);
+                return;
+            } else if (auto cod = Is<CoDot>(object)) {
+                // This is already a very slow op, so not worth further optimizing for now.
+            } else if (auto indexing = Is<Indexing>(object)) {
+                // For now only do this for vectors.
+                if (indexing->object->exptype->t == V_VECTOR) {
+                    GenPushIndex(retval, indexing->object, indexing->index, ValWidth(ftype), offset);
+                    return;
+                }
+            }
+        }
+        Gen(object, retval);
+        if (!retval) return;
+        TakeTemp(1, true);
+        if (IsStruct(stype->t)) {
+            if (IsStruct(ftype->t)) {
+                Emit(IL_PUSHFLDV2V, offset);
+                GenStructIns(ftype);
+            } else {
+                Emit(IL_PUSHFLDV, offset);
+            }
+            GenStructIns(stype);
+        } else {
+            if (IsStruct(ftype->t)) {
+                Emit(IL_PUSHFLD2V, offset);
+                GenStructIns(ftype);
+            } else {
+                Emit(IL_PUSHFLD, offset);
+            }
+        }
+    }
+
+    void GenPushIndex(size_t retval, Node *object, Node *index, int width = -1, int offset = -1) {
+        Gen(object, retval);
+        Gen(index, retval);
+        if (!retval) return;
+        TakeTemp(2, true);
+        switch (object->exptype->t) {
+            case V_VECTOR: {
+                auto etype = object->exptype;
+                if (index->exptype->t == V_INT) {
+                    etype = etype->Element();
+                } else {
+                    auto &udt = *index->exptype->udt;
+                    for (auto &field : udt.fields.v) {
+                        (void)field;
+                        etype = etype->Element();
+                    }
+                }
+                if (width < 0) {
+                    Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
+                    GenStructIns(index->exptype);
+                } else {
+                    // We're indexing a sub-part of the element.
+                    Emit(index->exptype->t == V_INT ? IL_VPUSHIDXIS : IL_VPUSHIDXVS);
+                    GenStructIns(index->exptype);
+                    Emit(width, offset);
+                }
+                break;
+            }
+            case V_STRUCT_S:
+                assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
+                Emit(IL_NPUSHIDXI);
+                GenStructIns(object->exptype);
+                break;
+            case V_STRING:
+                assert(index->exptype->t == V_INT);
+                Emit(IL_SPUSHIDXI);
+                break;
+            default:
+                assert(false);
+        }
+    }
 };
 
 void Nil::Generate(CodeGen &cg, size_t retval) const {
@@ -664,76 +760,21 @@ void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
-    if (!retval) return;
-    if (IsStruct(sid->type->t)) {
-        cg.Emit(IL_PUSHVARV, sid->Idx());
-        cg.GenStructIns(sid->type);
-    } else {
-        cg.Emit(IL_PUSHVAR, sid->Idx());
-    }
+    cg.GenPushVar(retval, sid->type, sid->Idx());
 }
 
 void Dot::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(children[0], retval);
-    if (!retval) return;
-    cg.TakeTemp(1, true);
     auto stype = children[0]->exptype;
-    assert(IsUDT(stype->t));  // Ensured by typechecker.
+    assert(IsUDT(stype->t));
     auto idx = stype->udt->Has(fld);
     assert(idx >= 0);
     auto &field = stype->udt->fields.v[idx];
-    if (IsStruct(stype->t)) {
-        if (IsStruct(field.type->t)) {
-            cg.Emit(IL_PUSHFLDV2V, field.slot);
-            cg.GenStructIns(field.type);
-        } else {
-            cg.Emit(IL_PUSHFLDV, field.slot);
-        }
-        cg.GenStructIns(stype);
-    } else {
-        if (IsStruct(field.type->t)) {
-            cg.Emit(IL_PUSHFLD2V, field.slot);
-            cg.GenStructIns(field.type);
-        } else {
-            cg.Emit(IL_PUSHFLD, field.slot);
-        }
-    }
+    assert(field.slot >= 0);
+    cg.GenPushField(retval, children[0], stype, field.type, field.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(object, retval);
-    cg.Gen(index, retval);
-    if (retval) {
-        cg.TakeTemp(2, true);
-        switch (object->exptype->t) {
-            case V_VECTOR: {
-                auto etype = object->exptype;
-                if (index->exptype->t == V_INT) {
-                    etype = etype->Element();
-                } else {
-                    auto &udt = *index->exptype->udt;
-                    for (auto &field : udt.fields.v) {
-                        (void)field;
-                        etype = etype->Element();
-                    }
-                }
-                cg.Emit(index->exptype->t == V_INT ? IL_VPUSHIDXI : IL_VPUSHIDXV);
-                cg.GenStructIns(index->exptype);
-                break;
-            }
-            case V_STRUCT_S:
-                assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
-                cg.Emit(IL_NPUSHIDXI);
-                cg.GenStructIns(object->exptype);
-                break;
-            case V_STRING:
-                assert(index->exptype->t == V_INT);
-                cg.Emit(IL_SPUSHIDXI);
-                break;
-            default:
-                assert(false);
-        }
-    }
+    cg.GenPushIndex(retval, object, index);
 }
 
 void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {

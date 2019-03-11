@@ -10,9 +10,9 @@
   
 - structs copied by value everywhere.
   - stage 1 TODO:
-    - optimize PUSHVARV followed by PUSHFIELDV etc to not have to happen by reading var directly.
-      any such combination with PUSHFIELDV
-    - benchmark!
+    - fix gcc/clang build
+    - force structs to have at least 1 field
+    - benchmark: test specialized t_memcpy / why C++ version not faster?
     - do tests with refcounted types, or disable them
       - how to DEC in WRITE?
     - Clean up any asserts in LVector not supporting structs.
@@ -1582,6 +1582,8 @@ C++64-LLVM: lifetime3 : secs 15.7 (with LLVM, LTCG doesn't appear to work under 
 C++64-MSVC: lifetime3 : secs 13.8 (LTCG on)
 VM64-MSVC: lvalinl    : secs 18.4 Inlined the LvalOp function, one less switch()
 C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
+VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
+C++64-MSVC: inlinestr : secs 13.0 inline structs v1
 
 compiletime speed:
 
