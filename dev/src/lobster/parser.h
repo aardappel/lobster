@@ -385,6 +385,8 @@ struct Parser {
                     udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
                 }
             }, T_LEFTCURLY, T_RIGHTCURLY);
+            if (udt->fields.v.empty() && udt->is_struct)
+                Error("structs cannot be empty");
         } else {
             // A pre-declaration.
             udt->predeclaration = true;
