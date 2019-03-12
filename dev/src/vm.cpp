@@ -1042,13 +1042,11 @@ VM_JMP_RET VM::ForLoop(intp len) {
 
 VM_DEF_JMP(IFOR) { return ForLoop(VM_TOP().ival()); VM_RET; }
 VM_DEF_JMP(VFOR) { return ForLoop(VM_TOP().vval()->len); VM_RET; }
-VM_DEF_JMP(NFOR) { return ForLoop(VM_TOP().oval()->Len(*this)); VM_RET; }
 VM_DEF_JMP(SFOR) { return ForLoop(VM_TOP().sval()->len); VM_RET; }
 
 VM_DEF_INS(IFORELEM)    { FORELEM(iter.ival()); (void)iter; VM_PUSH(i); VM_RET; }
 VM_DEF_INS(VFORELEM)    { FORELEM(iter.vval()->len); iter.vval()->AtVW(*this, i); VM_RET; }
 VM_DEF_INS(VFORELEMREF) { FORELEM(iter.vval()->len); auto el = iter.vval()->At(i); el.LTINCRTNIL(); VM_PUSH(el); VM_RET; }
-VM_DEF_INS(NFORELEM)    { FORELEM(iter.oval()->Len(*this)); VM_PUSH(iter.oval()->AtS(i)); VM_RET; }
 VM_DEF_INS(SFORELEM)    { FORELEM(iter.sval()->len); VM_PUSH(Value((int)((uchar *)iter.sval()->data())[i])); VM_RET; }
 
 VM_DEF_INS(FORLOOPI) {

@@ -55,6 +55,14 @@ run_test("misch"):
         assert trivv[xy { 0, 0 }][0].a.y == 6
         assert xyz { 5, 6, 7 }[1] == 6
 
+    // Control structures.
+    do():
+        assert (if manhattan(xy { 1, 1 }): xy { 1, 2 } else: xy { 3, 4 }).y == 2
+        assert (if true: xy { 1, 2 } else: xy { 3, 4 }).y == 2  // Compile time.
+        assert xy { 1, 2 } == switch manhattan(xy { 1, 1 }):
+                                case 2: xy { 1, 2 }
+                                default: xy { 3, 4 }
+
     // Function calls.
     do():
         def f(a, b, c):

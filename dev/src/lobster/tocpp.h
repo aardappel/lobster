@@ -167,7 +167,7 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
             JumpIns(args[0]);
             ss << "\n";
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
-                   (opc >= IL_IFOR && opc <= IL_NFOR)) {
+                   (opc >= IL_IFOR && opc <= IL_VFOR)) {
             ss << "if (vm.F_" << ilname << "()) ";
             JumpIns(args[0]);
             ss << "\n";

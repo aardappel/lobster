@@ -1,6 +1,7 @@
 - organize a milestone
   - finish structs and ownership
   - do whatever big language fixes still need to happen.
+    - remove ;
     - multimethods
     - var/let only?
   - write lots of docs and examples for all the new functionality
@@ -12,8 +13,6 @@
   - announce post
   
 - Inline structs, further improvements:
-  - Go thru all TakeTemp, to have explicitly false, must use NoStruct in typechecker.
-    - assert that this is true.
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
   - finally split builtins into one op per len.

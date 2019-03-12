@@ -358,18 +358,12 @@ struct CodeGen  {
     }
 
     // This must be called explicitly when any values are consumed.
-    void TakeTemp(size_t n, bool struct_aware = false) {
+    void TakeTemp(size_t n, bool can_handle_structs) {
         assert(node_context.size());
         for (; n; n--) {
             auto tlt = temptypestack.back();
             temptypestack.pop_back();
-            if (!struct_aware && ValWidth(tlt.type) != 1) {
-                // FIXME: this is really an internal error, since it means some part of the
-                // codegen/VM hasn't implemented support for structs yet, but until that is
-                // very complete, this is more robust than an assert.
-                parser.Error("\'" + node_context.back()->Name() + "\' cannot consume struct",
-                             node_context.back());
-            }
+            assert(can_handle_structs || ValWidth(tlt.type) == 1);
         }
     }
 
@@ -617,7 +611,7 @@ struct CodeGen  {
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval) {
-            TakeTemp(2);
+            TakeTemp(2, false);
             Emit(opc);
         }
     }
@@ -783,7 +777,7 @@ void GenericCall::Generate(CodeGen &, size_t /*retval*/) const {
 void CoDot::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(coroutine, retval);
     if (retval) {
-        cg.TakeTemp(1);
+        cg.TakeTemp(1, false);
         auto sid = AssertIs<IdentRef>(variable)->sid;
         if (IsStruct(sid->type->t)) {
             cg.Emit(IL_PUSHLOCV, sid->Idx());
@@ -888,14 +882,14 @@ void ShiftRight::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, 
 void Negate::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     cg.Emit(IL_NEG);
 }
 
 void ToFloat::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     cg.Emit(IL_I2F);
 }
 
@@ -927,14 +921,14 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
 void ToBool::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     cg.Emit(IsRefNil(child->exptype->t) ? IL_E2BREF : IL_E2B);
 }
 
 void ToInt::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     // No actual opcode needed, this node is purely to store correct types.
-    if (retval) cg.TakeTemp(1);
+    if (retval) cg.TakeTemp(1, false);
 }
 
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
@@ -1071,7 +1065,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
                 cg.Gen(c, 1);
             }
             size_t nargs = children.size();
-            cg.TakeTemp(nargs);
+            cg.TakeTemp(nargs, false);
             assert(nargs == 1);
         } else {
             cg.Emit(IL_PUSHNIL);
@@ -1139,7 +1133,7 @@ void Inlined::Generate(CodeGen &cg, size_t retval) const {
 void Seq::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(head, 0);
     cg.Gen(tail, retval);
-    if (retval) cg.TakeTemp(1);
+    if (retval) cg.TakeTemp(1, true);
 }
 
 void MultipleReturn::Generate(CodeGen &cg, size_t retval) const {
@@ -1163,18 +1157,18 @@ void And::Generate(CodeGen &cg, size_t retval) const {
 
 void Or::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1);
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     cg.Emit(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL, 0);
     auto loc = cg.Pos();
     cg.Gen(right, retval);
-    if (retval) cg.TakeTemp(1);
+    if (retval) cg.TakeTemp(1, false);
     cg.SetLabel(loc);
 }
 
 void Not::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (retval) {
-        cg.TakeTemp(1);
+        cg.TakeTemp(1, false);
         cg.Emit(IsRefNil(child->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
     }
 }
@@ -1195,9 +1189,8 @@ void If::Generate(CodeGen &cg, size_t retval) const {
         if (retval) cg.TakeTemp(1, true);
         cg.SetLabel(loc2);
     } else {
-        // If retval, then this will generate nil thru T_E2N
-        cg.Gen(truepart, retval);
-        if (retval) cg.TakeTemp(1);
+        assert(!retval);
+        cg.Gen(truepart, 0);
         cg.SetLabel(loc);
     }
 }
@@ -1206,7 +1199,7 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.SplitAttr(cg.Pos());
     auto loopback = cg.Pos();
     cg.Gen(condition, 1);
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     cg.Emit(IL_JUMPFAIL, 0);
     auto jumpout = cg.Pos();
     cg.Gen(body, 0);
@@ -1229,12 +1222,11 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         case V_INT:      cg.Emit(IL_IFOR); break;
         case V_STRING:   cg.Emit(IL_SFOR); break;
         case V_VECTOR:   cg.Emit(IL_VFOR); break;
-        case V_STRUCT_S: cg.Emit(IL_NFOR); break;
         default:         assert(false);
     }
     cg.Emit(startloop);
     cg.nested_fors--;
-    cg.TakeTemp(2);
+    cg.TakeTemp(2, false);
     cg.Dummy(retval);
 }
 
@@ -1244,7 +1236,6 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
         case V_INT:       cg.Emit(IL_IFORELEM); break;
         case V_STRING:    cg.Emit(IL_SFORELEM); break;
         case V_VECTOR:    cg.Emit(IsRefNil(typelt.type->sub->t) ? IL_VFORELEMREF : IL_VFORELEM); break;
-        case V_STRUCT_S:  cg.Emit(IL_NFORELEM); break;
         default:          assert(false);
     }
 }
@@ -1256,7 +1247,7 @@ void ForLoopCounter::Generate(CodeGen &cg, size_t /*retval*/) const {
 void Switch::Generate(CodeGen &cg, size_t retval) const {
     // TODO: create specialized version for dense range of ints with jump table.
     cg.Gen(value, 1);
-    cg.TakeTemp(1);
+    cg.TakeTemp(1, false);
     auto valtlt = TypeLT { *value, 0 };
     vector<int> nextcase, thiscase, exitswitch;
     for (auto n : cases->children) {
@@ -1293,9 +1284,9 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         for (auto loc : thiscase) cg.SetLabel(loc);
         thiscase.clear();
         cg.GenPop(valtlt);
-        cg.TakeTemp(1);
+        cg.TakeTemp(1, false);
         cg.Gen(cas->body, retval);
-        if (retval) cg.TakeTemp(1);
+        if (retval) cg.TakeTemp(1, true);
         if (n != cases->children.back()) {
             cg.Emit(IL_JUMP, 0);
             exitswitch.push_back(cg.Pos());
@@ -1340,7 +1331,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     // can assume its a ref.
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
-        cg.TakeTemp(1);
+        cg.TakeTemp(1, false);
         cg.Emit(IL_ISTYPE, cg.GetTypeTableOffset(giventype));
     }
 }
@@ -1398,7 +1389,7 @@ void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
     for (auto &arg : sf->coyieldsave.v) cg.Emit(arg.sid->Idx());
     cg.temptypestack.push_back(TypeLT { *this, 0 });
     cg.Gen(call, 1);
-    cg.TakeTemp(2);
+    cg.TakeTemp(2, false);
     cg.Emit(IL_COEND);
     cg.SetLabel(loc);
     if (!retval) cg.Emit(IL_POPREF);

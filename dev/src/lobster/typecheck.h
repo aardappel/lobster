@@ -1092,6 +1092,7 @@ struct TypeChecker {
             // V_YIELD must have perculated up from a coroutine call.
             if (nargs != 1)
                 TypeError("coroutine yield call must have exactly one argument", *args);
+            NoStruct(*args->children[0], "yield");  // FIXME: implement.
             AdjustLifetime(args->children[0], LT_KEEP);
             for (auto scope : reverse(named_scopes)) {
                 auto sf = scope.sf;
@@ -1734,6 +1735,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(condition, 1, LT_BORROW);
+    tc.NoStruct(*condition, "while");
     tc.DecBorrowers(condition->lt, *this);
     // FIXME: this is caused by call forced to LT_KEEP.
     auto condc = AssertIs<Call>(Forward<ToLifetime>(condition));
@@ -1753,9 +1755,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
         itertype = type_int;
     else if (itertype->t == V_VECTOR)
         itertype = itertype->Element();
-    else if (itertype->t == V_STRUCT_S && itertype->udt->sametype->Numeric())
-        itertype = itertype->udt->sametype;
-    else tc.TypeError("for can only iterate over int / string / vector / numeric struct, not: " +
+    else tc.TypeError("for can only iterate over int / string / vector, not: " +
         TypeName(itertype), *this);
     auto bodyc = AssertIs<Call>(body);
     auto &args = bodyc->children;
@@ -2041,6 +2041,7 @@ Node *LessThan::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
+    tc.NoStruct(*child, "not");
     exptype = type_int;
     lt = LT_ANY;
     return this;
@@ -2504,6 +2505,7 @@ Node *TypeAnnotation::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
+    tc.NoStruct(*child, "is");  // FIXME
     tc.DecBorrowers(child->lt, *this);
     exptype = type_int;
     lt = LT_ANY;
@@ -2612,6 +2614,7 @@ Node *CoClosure::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
 
 Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(call, 1, LT_KEEP);
+    tc.NoStruct(*call, "coroutine call return value");  // FIXME
     if (auto fc = Is<Call>(call)) {
         auto sf = fc->sf;
         assert(sf->iscoroutine);
@@ -2653,7 +2656,8 @@ Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             f.type = f.defaultval->exptype;
         }
         // FIXME: this is a temp limitation, remove.
-        if (i && IsRefNil(f.type->t) != IsRefNil(udt->fields.v[0].type->t))
+        if (udt->thistype.t == V_STRUCT_R && i &&
+            IsRefNil(f.type->t) != IsRefNil(udt->fields.v[0].type->t))
             tc.TypeError("structs fields must be either all scalar or all references: " +
                          udt->name, *this);
     }
