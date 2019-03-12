@@ -430,8 +430,7 @@ struct CodeGen  {
 
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
-            assert(typelt.type->t != V_STRUCT_R);  // TODO: emit ref mask?
-            Emit(IL_POPV, typelt.type->udt->numslots);
+            Emit(typelt.type->t == V_STRUCT_R ? IL_POPVREF : IL_POPV, typelt.type->udt->numslots);
         } else {
             Emit(ShouldDec(typelt) ? IL_POPREF : IL_POP);
         }
@@ -946,15 +945,24 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
         if (IsRefNil(child->exptype->Get(i)->t)) {
             assert(i < cg.temptypestack.size());
             auto fi = (int)(retval - i - 1);
+            auto type = cg.temptypestack[cg.temptypestack.size() - 1 - fi].type;
             if (incref & (1LL << i)) {
-                assert(IsRefNil(cg.temptypestack[cg.temptypestack.size() - 1 - fi].type->t));
+                assert(IsRefNil(type->t));
                 cg.Emit(IL_INCREF, fi);
             }
             if (decref & (1LL << i)) {
-                assert(IsRefNil(cg.temptypestack[cg.temptypestack.size() - 1 - fi].type->t));
+                assert(IsRefNil(type->t));
                 int stack_depth = 0;
                 for (auto &tlt : cg.temptypestack) stack_depth += ValWidth(tlt.type);
-                cg.Emit(IL_KEEPREF, fi, cg.keepvars++ + stack_depth);
+                if (type->t == V_STRUCT_R) {
+                    // TODO: alternatively emit a single op with a list or bitmask?
+                    for (int j = 0; j < type->udt->numslots; j++) {
+                        if (IsRefNil(FindSlot(*type->udt, j)->type->t))
+                            cg.Emit(IL_KEEPREF, fi + j, cg.keepvars++ + stack_depth);
+                    }
+                } else {
+                    cg.Emit(IL_KEEPREF, fi, cg.keepvars++ + stack_depth);
+                }
             }
         }
     }

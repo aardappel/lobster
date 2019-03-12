@@ -53,7 +53,7 @@ enum MathOp {
     F(FUNSTART, -1) F(FUNEND, 0) F(FUNMULTI, -1) \
     F(ENDSTATEMENT, 0) \
     F(NEWVEC, 2) F(NEWOBJECT, 1) \
-    F(POP, 0) F(POPREF, 0) F(POPV, 1) \
+    F(POP, 0) F(POPREF, 0) F(POPV, 1) F(POPVREF, 1) \
     F(DUP, 0) \
     F(EXIT, 1) F(ABORT, 0) \
     F(IADD, 0)  F(ISUB, 0)  F(IMUL, 0)  F(IDIV, 0)  F(IMOD, 0) \

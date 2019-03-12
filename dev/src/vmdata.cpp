@@ -82,9 +82,8 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     t_memcpy(v + len * width, from->v + start * width, amount * width);
     auto et = from->ElemType(vm)->t;
     if (IsRefNil(et)) {
-        assert(et != V_STRUCT_R || width == 1);
-        for (int i = 0; i < amount; i++) {
-            v[len + i].LTINCRTNIL();
+        for (int i = 0; i < amount * width; i++) {
+            v[len * width + i].LTINCRTNIL();
         }
     }
     len += amount;
@@ -98,8 +97,7 @@ void LVector::Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret) {
     }
     auto et = ElemType(vm)->t;
     if (IsRefNil(et)) {
-        assert(et != V_STRUCT_R || width == 1);
-        for (intp j = decfrom; j < n; j++) Dec(vm, i + j, et);
+        for (intp j = decfrom * width; j < n * width; j++) DecSlot(vm, i * width + j, et);
     }
     t_memmove(v + i * width, v + (i + n) * width, (len - i - n) * width);
     len -= n;
@@ -121,8 +119,7 @@ void LVector::AtVWSub(VM &vm, intp i, int w, int off) const {
 void LVector::DeleteSelf(VM &vm) {
     auto et = ElemType(vm)->t;
     if (IsRefNil(et)) {
-        assert(et != V_STRUCT_R);
-        for (intp i = 0; i < len; i++) Dec(vm, i, et);
+        for (intp i = 0; i < len * width; i++) DecSlot(vm, i, et);
     }
     DeallocBuf(vm);
     vm.pool.dealloc_small(this);
@@ -146,8 +143,6 @@ void RefObj::DECDELETENOW(VM &vm) {
         case V_STRING:     ((LString *)this)->DeleteSelf(vm); break;
         case V_COROUTINE:  ((LCoRoutine *)this)->DeleteSelf(vm); break;
         case V_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
-        case V_STRUCT_R:
-        case V_STRUCT_S:
         case V_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
         case V_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
         default:           assert(false);
@@ -199,8 +194,6 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
         case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
         case V_COROUTINE: ss << "(coroutine)";                      break;
         case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
-        case V_STRUCT_R:
-        case V_STRUCT_S:
         case V_CLASS:     ((LObject *)ro)->ToString(vm, ss, pp);    break;
         case V_RESOURCE:  ((LResource *)ro)->ToString(ss);          break;
         default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
@@ -223,8 +216,6 @@ intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
         case V_STRING:      return ((LString *)this)->Hash();
         case V_VECTOR:      return ((LVector *)this)->Hash(vm);
-        case V_STRUCT_R:
-        case V_STRUCT_S:
         case V_CLASS:       return ((LObject *)this)->Hash(vm);
         default:            return (int)(size_t)this;
     }
@@ -253,8 +244,6 @@ Value Value::Copy(VM &vm) {
         if (len) nv->Init(vm, vval()->Elems(), true);
         return Value(nv);
     }
-    case V_STRUCT_R:
-    case V_STRUCT_S:
     case V_CLASS: {
         auto len = oval()->Len(vm);
         auto nv = vm.NewObject(len, oval()->tti);

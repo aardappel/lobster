@@ -548,8 +548,8 @@ struct LVector : RefObj {
         if (v) DeallocSubBuf(vm, v, maxl * width);
     }
 
-    void Dec(VM &vm, intp i, ValueType et) const {
-        At(i).LTDECTYPE(vm, et);
+    void DecSlot(VM &vm, intp i, ValueType et) const {
+        AtSlot(i).LTDECTYPE(vm, et);
     }
 
     void DeleteSelf(VM &vm);
@@ -611,6 +611,11 @@ struct LVector : RefObj {
         return v + i * width;
     }
 
+    Value &AtSlot(intp i) const {
+        assert(i < len * width);
+        return v[i];
+    }
+
     void AtVW(VM &vm, intp i) const;
     void AtVWSub(VM &vm, intp i, int w, int off) const;
 
@@ -643,7 +648,6 @@ struct LVector : RefObj {
         t_memcpy(v, from, len * width);
         auto et = ElemType(vm)->t;
         if (inc && IsRefNil(et)) {
-            assert(et != V_STRUCT_R);
             for (intp i = 0; i < len; i++) {
                 At(i).LTINCRTNIL();
             }

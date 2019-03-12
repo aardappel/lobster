@@ -11,25 +11,21 @@
   - move repo under a different org :)
   - announce post
   
-- structs copied by value everywhere.
-  - stage 1 TODO:
-    - do tests with refcounted types, or disable them
-      - how to DEC in WRITE?
-    - Clean up any asserts in LVector not supporting structs.
-    - Go thru all TakeTemp, to have explicitly false, must use NoStruct in typechecker.
-      - assert that this is true.
-  - Further improvements:
-    - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
-      for anything vector related, like MathCheckVector
-    - finally split builtins into one op per len.
-      - get rid of ToVStruct etc.
-      - get rid of most of GenValueSize
-    - look which ops are most frequent, then specialize them to 1/2/3/4/v widths, as even
-      ts_memcpy still has a cost.
-    - push() for non-struct has superfluous pushint 1.
-    - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
-      especially in vectors, then structs..
-    - somehow not store LVector::width.
+- Inline structs, further improvements:
+  - Go thru all TakeTemp, to have explicitly false, must use NoStruct in typechecker.
+    - assert that this is true.
+  - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
+    for anything vector related, like MathCheckVector
+  - finally split builtins into one op per len.
+    - get rid of ToVStruct etc.
+    - get rid of most of GenValueSize
+  - look which ops are most frequent, then specialize them to 1/2/3/4/v widths, as even
+    ts_memcpy still has a cost.
+  - push() for non-struct has superfluous pushint 1.
+  - Support mixed refc/scalar fields in structs.
+  - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
+    especially in vectors, then structs..
+  - somehow not store LVector::width.
 
 - methods in unrelated types still form a multimethod
   - this should be the final straw to rework them.

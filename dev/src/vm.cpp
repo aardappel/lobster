@@ -155,8 +155,6 @@ void VM::DumpLeaks() {
                 case V_COROUTINE:
                 case V_RESOURCE:
                 case V_VECTOR:
-                case V_STRUCT_R:
-                case V_STRUCT_S:
                 case V_CLASS: {
                     ro->CycleStr(ss);
                     ss << " = ";
@@ -1126,9 +1124,10 @@ VM_DEF_INS(NEWOBJECT) {
     VM_RET;
 }
 
-VM_DEF_INS(POP)    { VM_POP(); VM_RET; }
-VM_DEF_INS(POPREF) { auto x = VM_POP(); x.LTDECRTNIL(*this); VM_RET; }
-VM_DEF_INS(POPV)   { VM_POPN(*ip++); VM_RET; }
+VM_DEF_INS(POP)     { VM_POP(); VM_RET; }
+VM_DEF_INS(POPREF)  { auto x = VM_POP(); x.LTDECRTNIL(*this); VM_RET; }
+VM_DEF_INS(POPV)    { VM_POPN(*ip++); VM_RET; }
+VM_DEF_INS(POPVREF) { auto len = *ip++; while (len--) VM_POP().LTDECRTNIL(*this); VM_RET; }
 
 VM_DEF_INS(DUP)    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 
@@ -1699,14 +1698,13 @@ void VM::LV_WRITERREF(Value &a VM_OP_ARGS_C) { auto &b = VM_TOP(); a.LTDECRTNIL(
 #define WRITESTRUCT(DECS) \
     auto l = *ip++; \
     auto b = VM_TOPPTR() - l; \
-    DECS; \
+    if (DECS) for (int i = 0; i < l; i++) (&a)[i].LTDECRTNIL(*this); \
     tsnz_memcpy(&a, b, l);
 
-void VM::LV_WRITEV    (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); VM_POPN(l); }
-void VM::LV_WRITERV   (Value &a VM_OP_ARGS_C) { WRITESTRUCT({}); }
-void VM::LV_WRITEREFV (Value &a VM_OP_ARGS_C) { WRITESTRUCT(assert(0)); VM_POPN(l); }
-void VM::LV_WRITERREFV(Value &a VM_OP_ARGS_C) { WRITESTRUCT(assert(0)); }
-
+void VM::LV_WRITEV    (Value &a VM_OP_ARGS_C) { WRITESTRUCT(false); VM_POPN(l); }
+void VM::LV_WRITERV   (Value &a VM_OP_ARGS_C) { WRITESTRUCT(false); }
+void VM::LV_WRITEREFV (Value &a VM_OP_ARGS_C) { WRITESTRUCT(true); VM_POPN(l); }
+void VM::LV_WRITERREFV(Value &a VM_OP_ARGS_C) { WRITESTRUCT(true); }
 
 #define PPOP(name, ret, op, pre, accessor) void VM::LV_##name(Value &a VM_OP_ARGS_C) { \
     if (ret && !pre) VM_PUSH(a); \

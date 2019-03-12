@@ -2643,7 +2643,7 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    for (auto &f : udt->fields.v) {
+    for (auto [i, f] : enumerate(udt->fields.v)) {
         if (f.defaultval && f.type->t == V_ANY) {
             // FIXME: would be good to not call TT here generically but instead have some
             // specialized checking, just in case TT has a side effect.
@@ -2652,6 +2652,10 @@ Node *UDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             f.defaultval->lt = LT_UNDEF;
             f.type = f.defaultval->exptype;
         }
+        // FIXME: this is a temp limitation, remove.
+        if (i && IsRefNil(f.type->t) != IsRefNil(udt->fields.v[0].type->t))
+            tc.TypeError("structs fields must be either all scalar or all references: " +
+                         udt->name, *this);
     }
     if (!udt->ComputeSizes())
         tc.TypeError("structs cannot be self-referential: " + udt->name, *this);
