@@ -64,8 +64,8 @@ cd dev
 cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It creates in `lobster/lobster_cmake`. Run it from that directory to access the
-samples, e.g. `./lobster_cmake samples/pythtree.lobster`
+It creates in `lobster/lobster`. Run it from that directory to access the
+samples, e.g. `./lobster samples/pythtree.lobster`
 
 ### Android
 

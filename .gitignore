@@ -66,7 +66,7 @@
 /dev/external/SDL/*.cmake
 
 /lobster/lobster_linux
-/lobster/lobster_cmake
+/lobster/lobster
 
 
 dev/compiled_lobster/src/compiled_lobster\.cpp
@@ -80,5 +80,8 @@ dev/compiled_lobster/compiled_lobster/x64/Debug/
 dev/compiled_lobster/compiled_lobster/x64/Release/
 
 /dev/xcode/lobster/build/**
+/dev/.idea/**
+
+/dev/cmake-build-debug/**
 
 **/imgui.ini

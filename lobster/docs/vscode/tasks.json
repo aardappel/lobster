@@ -9,7 +9,7 @@
                 "command": "lobster\\lobster.exe"
             },
             "linux": {
-                "command": "lobster/lobster_cmake"
+                "command": "lobster/lobster"
             },
             "osx": {
                 "command": "lobster/lobster"

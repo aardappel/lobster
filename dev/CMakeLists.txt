@@ -90,11 +90,11 @@ if(WIN32)
   link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../lobster)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lobster)
 
-add_executable(lobster_cmake ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
+add_executable(lobster ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 
-target_link_libraries(lobster_cmake
+target_link_libraries(lobster
   ${SDL_LIBRARIES}
   ${ADDITIONAL_LIBRARIES}
   ${OPENGL_LIBRARIES})
