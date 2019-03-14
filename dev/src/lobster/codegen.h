@@ -364,6 +364,7 @@ struct CodeGen  {
             auto tlt = temptypestack.back();
             temptypestack.pop_back();
             assert(can_handle_structs || ValWidth(tlt.type) == 1);
+            (void)can_handle_structs;
         }
     }
 

@@ -840,7 +840,7 @@ struct VM {
     void VMAssert(const char *what);
     void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
-    void DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
+    int DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
 
     void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip);
 

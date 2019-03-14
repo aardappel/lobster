@@ -304,8 +304,8 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         VarCleanup<1>(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
     }
     ss << "\nglobals:";
-    for (size_t i = 0; i < bcf->specidents()->size(); i++) {
-        DumpVar(ss, vars[i], i, true);
+    for (size_t i = 0; i < bcf->specidents()->size(); ) {
+        i += DumpVar(ss, vars[i], i, true);
     }
     THROW_OR_ABORT(ss.str());
 }
@@ -330,17 +330,23 @@ void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
 #endif
 
-void VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals) {
+int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals) {
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
-    if (id->readonly() || id->global() != dumpglobals) return;
+    if (id->readonly() || id->global() != dumpglobals) return 1;
     auto name = id->name()->string_view();
-    auto static_type = GetVarTypeInfo((int)idx).t;
+    auto &ti = GetVarTypeInfo((int)idx);
     #if RTT_ENABLED
-        if (static_type != x.type) return;  // Likely uninitialized.
+        if (ti.t != x.type) return 1;  // Likely uninitialized.
     #endif
     ss << "\n   " << name << " = ";
-    x.ToString(*this, ss, static_type, debugpp);
+    if (IsStruct(ti.t)) {
+        StructToString(ss, debugpp, ti, &x);
+        return ti.len;
+    } else {
+        x.ToString(*this, ss, ti.t, debugpp);
+        return 1;
+    }
 }
 
 void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip) {
@@ -445,13 +451,13 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
     auto nkeepvars = *fip++;
     if constexpr (is_error) {
         // Do this first, since values may get deleted below.
-        for (int j = 0; j < ndef; j++) {
+        for (int j = 0; j < ndef; ) {
             auto i = *(defvars - j - 1);
-            DumpVar(*error, vars[i], i, false);
+            j += DumpVar(*error, vars[i], i, false);
         }
-        for (int j = 0; j < nargs; j++) {
+        for (int j = 0; j < nargs; ) {
             auto i = *(freevars - j - 1);
-            DumpVar(*error, vars[i], i, false);
+            j += DumpVar(*error, vars[i], i, false);
         }
     }
     for (int i = 0; i < nkeepvars; i++) VM_POP().LTDECRTNIL(*this);

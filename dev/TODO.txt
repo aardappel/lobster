@@ -220,6 +220,10 @@
   current function stack frame function id as such, though that may make future optimisations
   to omit it harder.
 
+- NOTE: now that we have inline structs, ADTs should be based on them, since being same-sized
+  and being inline go so wonderfully together!
+  - This would make types like Maybe/Optional etc super cheap.
+  - does make 
 - Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
   possible in even C++, where there is no need to update pointers to an object.
   Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
@@ -267,7 +271,6 @@
 - things that would help making --to-cpp faster:
   - current lowest hanging fruit:
     - function calling (by far)
-    - small struct (xy(z)) alloc/dealloc
   - a central problem is that things could be improved by splitting e.g. function calling up
     in many small instructions, so not all calls have to pay the price for super generic
     function call mechanism, but many instructions makes the VM slower.
@@ -277,17 +280,27 @@
     - A simple jit would not be hard since most are calls, but would miss inlining. Now
       we'll have extra work to do to special purpose compile things to the JIT that so far
       have been simple instructions.
-      - certainly a super simple JIT is pointless since there is currently a small gap between
-        VM and C++ mode (which does inlining), so a simple JIT would probably gets on the order
-        of 10-15% speedup. We'd first need to get the rest of the code more efficient before this
-        becomes a bigger speedup.
+      - certainly a super simple JIT would not speed up much since there is currently a small gap
+        between VM and C++ mode (which does inlining), so a simple JIT would probably gets on
+        the order of 10-15% speedup. We'd first need to get the rest of the code more efficient
+        before this becomes a bigger speedup.
       - Maybe LLVM as jit can do inlining assuming I have the rest of the code also available
         as .ll, but that becomes almost as unwieldy as going thru C++.
+      - Actually a JIT is a great idea for another reason: it would allow us to aggressively
+        generate more instructions without losing speed. It's objective would not be to be much
+        faster than the current intepreter, but to take the place of the interpreter on most
+        platforms such that we can transition to emit more instructions cheaply. The interpreter
+        would be retained for.. debugging purposes, but would be understood to be slow.
+        On non-JIT platforms like iOS it would mean you HAVE to ship using the C++ backend,
+        since shipping with the interpreter generally is not an option anymore. So be it.
+      - A jit could be really simple, even x86 only, since if iOS is going to require via C++,
+        we could do that for all ARM platforms. Desktop is where you develop and where JIT is
+        likely fast enough, so it is a good match.
+      - if we used libtcc, could even share the code with the C++ backend!
     - Always invoking C++ means easy inlining and easy instruction definition, but complicates
       things / slows things down in always needing to invoke a C++ toolchain.
       - Also easy to profile and debug compared to JIT.
     - Just keep moving forward with an unwieldy instruction set, since it is the simplest.
-  - fmul/fadd are expensive??
   - find places where the trampoline can be avoided, especially for for() and its body.
     - should be easy when return X is followed by X:
     - with the switch based version could do direct jumps, but switch trashes the branch cache?
