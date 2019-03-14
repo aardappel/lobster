@@ -67,6 +67,7 @@
 
 /lobster/lobster_linux
 /lobster/lobster
+/lobster/compiled_lobster
 
 
 dev/compiled_lobster/src/compiled_lobster\.cpp
@@ -76,8 +77,8 @@ lobster/lobster\.exe
 *.tmp
 
 dev/compiled_lobster/compiled_lobster/x64/Debug/
-
 dev/compiled_lobster/compiled_lobster/x64/Release/
+dev/compiled_lobster/build/
 
 /dev/xcode/lobster/build/**
 /dev/.idea/**

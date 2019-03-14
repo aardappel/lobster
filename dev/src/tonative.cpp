@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "lobster/stdafx.h"
 #include "lobster/disasm.h"  // Some shared bytecode utilities.
+#include "lobster/compiler.h"
+#include "lobster/tonative.h"
 
 namespace lobster {
 
@@ -63,8 +66,8 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     return arity;
 }
 
-void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer) {
-    int dispatch = VM_DISPATCH_METHOD;
+string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
+              string_view bytecode_buffer) {
     auto bcf = bytecode::GetBytecodeFile(bytecode_buffer.data());
     assert(FLATBUFFERS_LITTLEENDIAN);
     auto code = (const int *)bcf->bytecode()->Data();  // Assumes we're on a little-endian machine.
@@ -74,36 +77,10 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
         auto f = bcf->functions()->Get(i);
         function_lookup[f->bytecodestart()] = f;
     }
-    ss << "#include \"lobster/stdafx.h\"\n"
-          "#include \"lobster/vmdata.h\"\n"
-          "#include \"lobster/engine.h\"\n"
-          "\n"
-          "#ifndef VM_COMPILED_CODE_MODE\n"
-          "  #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
-          "#endif\n"
-          "\n"
-          "#pragma warning (disable: 4102)  // Unused label.\n"
-          "\n";
+    ng.FileStart();
     auto len = bcf->bytecode()->Length();
     auto ilnames = ILNames();
-    vector<int> block_ids(bcf->bytecode_attr()->size());
-    auto BlockRef = [&](ptrdiff_t ip) {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) ss << "block";
-        ss << (dispatch == VM_DISPATCH_TRAMPOLINE ? ip : block_ids[ip]);
-    };
-    auto JumpIns = [&](ptrdiff_t ip = 0) {
-        if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << "return ";
-        } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            if (ip) ss << "goto block_label";
-            else ss << "{ ip = ";
-        }
-        if (ip) BlockRef(ip); else ss << "vm.next_call_target";
-        ss << ";";
-        if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            if (!ip) ss << " continue; }";
-        }
-    };
+    vector<int> block_ids(bcf->bytecode_attr()->size(), -1);
     const int *ip = code;
     // Skip past 1st jump.
     assert(*ip == IL_JUMP);
@@ -112,11 +89,8 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
     int block_id = 1;
     while (ip < code + len) {
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - code)) & bytecode::Attr_SPLIT) {
-            if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-                ss << "static void *block" << (ip - code) << "(lobster::VM &);\n";
-            } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-                block_ids[ip - code] = block_id++;
-            }
+            auto id = block_ids[ip - code] = block_id++;
+            ng.DeclareBlock(id);
         }
         if (false) {  // Debug corrupt bytecode.
             ostringstream dss;
@@ -125,153 +99,93 @@ void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffe
         }
         int opc = *ip++;
         if (opc < 0 || opc >= IL_MAX_OPS) {
-            ss << "// Corrupt bytecode starts here: " << opc << "\n";
-            return;
+            return cat("Corrupt bytecode: ", opc, " at: ", ip - 1 - code);
         }
         ParseOpAndGetArity(opc, ip, code);
     }
-    ss << "\n";
-    if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-        ss << "static void *one_gigantic_function() {\n  int ip = ";
-        BlockRef(starting_point);
-        ss << ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n";
-    }
+    ng.BeforeBlocks(block_ids[starting_point]);
     ip = code + 2;
     bool already_returned = false;
     while (ip < code + len) {
         int opc = *ip++;
         if (opc == IL_FUNSTART) {
-            ss << "\n";
             auto it = function_lookup.find((int)(ip - 1 - code));
-            if (it != function_lookup.end())
-                ss << "// " << it->second->name()->string_view() << "\n";
+            ng.FunStart(it != function_lookup.end() ? it->second : nullptr);
         }
         auto ilname = ilnames[opc];
         auto args = ip;
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - 1 - code)) & bytecode::Attr_SPLIT) {
-            if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-                ss << "static void *block" << (args - 1 - code) << "(lobster::VM &vm) {\n";
-            } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-                ss << "  case ";
-                BlockRef(args - 1 - code);
-                ss << ": block_label";
-                BlockRef(args - 1 - code);
-                ss << ":\n";
-            }
+            ng.BlockStart(block_ids[args - 1 - code]);
             already_returned = false;
         }
         auto arity = ParseOpAndGetArity(opc, ip, code);
-        ss << "    ";
+        ng.InstStart();
         if (opc == IL_JUMP) {
             already_returned = true;
-            JumpIns(args[0]);
-            ss << "\n";
+            ng.EmitJump(block_ids[args[0]]);
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
-            ss << "if (vm.F_" << ilname << "()) ";
-            JumpIns(args[0]);
-            ss << "\n";
+            ng.EmitConditionalJump(ilname, block_ids[args[0]]);
         } else {
-            ss << "{ ";
-            if (arity) {
-                ss << "static int args[] = {";
-                for (int i = 0; i < arity; i++) {
-                    if (i) ss << ", ";
-                    ss << args[i];
-                }
-                ss << "}; ";
-            }
+            ng.EmitOperands(args, arity);
             if (opc == IL_FUNMULTI) {
-                ss << "static lobster::block_t mmtable[] = {";
+                auto nmethods = args[1];
                 auto nargs = args[2];
-                for (int i = 0; i < args[1]; i++) {
-                    BlockRef(args[3 + (nargs + 1) * i + nargs]);
-                    ss << ", ";
+                vector<int> mmtable;
+                for (int i = 0; i < nmethods; i++) {
+                    mmtable.push_back(block_ids[args[3 + (nargs + 1) * i + nargs]]);
                 }
-                ss << "}; vm.next_mm_table = mmtable; ";
+                ng.EmitMultiMethodDispatch(mmtable);
             // FIXME: make resume a vm op.
             } else if (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
                        natreg.nfuns[args[0]]->name == "resume") {
-                ss << "vm.next_call_target = ";
-                BlockRef(ip - code);
-                ss << "; ";
+                ng.SetNextCallTarget(block_ids[ip - code]);
             }
-            ss << "vm.F_" << ilname << "(" << (arity ? "args" : "nullptr");
+            int target = -1;
             if (opc == IL_CALL || opc == IL_CALLMULTI || opc == IL_CALLV || opc == IL_CALLVCOND ||
                 opc == IL_YIELD) {
-                ss << ", ";
-                BlockRef(ip - code);
+                target = block_ids[ip - code];
             } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
-                ss << ", ";
-                BlockRef(args[0]);
+                target = block_ids[args[0]];
             }
-            ss << ");";
+            ng.EmitGenericInst(ilname, arity, target);
             if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
-                ss << " /* " << natreg.nfuns[args[0]]->name << " */";
+                ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {
-                ss << " /* " << IdName(bcf, args[0])<< " */";
+                ng.Annotate(IdName(bcf, args[0]));
             } else if (ISLVALVARINS(opc)) {
-                ss << " /* " << IdName(bcf, args[1]) << " */";
+                ng.Annotate(IdName(bcf, args[1]));
             } else if (opc == IL_PUSHSTR) {
-                ss << " /* ";
-                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), ss);
-                ss << " */";
+                ostringstream css;
+                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), css);
+                ng.Annotate(css.str());
             } else if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 auto fs = code + args[0];
                 assert(*fs == IL_FUNSTART || *fs == IL_FUNMULTI);
                 fs++;
-                ss << " /* " << bcf->functions()->Get(*fs)->name()->string_view() << " */";
+                ng.Annotate(bcf->functions()->Get(*fs)->name()->string_view());
             }
             if (opc == IL_CALL || opc == IL_CALLMULTI) {
-                ss << " ";
-                JumpIns(args[0]);
+                ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
             } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
                        opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
                        // FIXME: make resume a vm op.
                        (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
                         natreg.nfuns[args[0]]->name == "resume")) {
-                ss << " ";
-                JumpIns();
+                ng.EmitCallIndirect();
                 already_returned = true;
             } else if (opc == IL_CALLVCOND) {
-                ss << " if (vm.next_call_target) ";
-                JumpIns();
+                ng.EmitCallIndirectNull();
             }
-            ss << " }\n";
         }
+        ng.InstEnd();
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - code)) & bytecode::Attr_SPLIT) {
-            if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-                if (!already_returned) {
-                    ss << "  ";
-                    JumpIns(opc == IL_EXIT ? 0 : ip - code);
-                    ss << "\n";
-                }
-                ss << "}\n";
-            }
+            ng.BlockEnd(block_ids[ip - code], already_returned, opc == IL_EXIT);
         }
     }
-    if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-        ss << "}\n}\n";  // End of gigantic function.
-    }
-    // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
-    // in fact, it be nice if those were in readable format in the generated code.
-    ss << "\nstatic const int bytecodefb[] =\n{";
-    auto bytecode_ints = (const int *)bytecode_buffer.data();
-    for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
-        if ((i & 0xF) == 0) ss << "\n  ";
-        ss << bytecode_ints[i] << ", ";
-    }
-    ss << "\n};\n\n";
-    ss << "int main(int argc, char *argv[]){\n";
-    ss << "    return EngineRunCompiledCodeMain(argc, argv, ";
-    if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-        ss << "one_gigantic_function";
-    } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-        ss << "block";
-        ss << starting_point;
-    }
-    ss << ", bytecodefb);\n}\n";
+    ng.FileEnd(block_ids[starting_point], bytecode_buffer);
+    return "";
 }
 
 }

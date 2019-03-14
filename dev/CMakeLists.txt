@@ -2,16 +2,27 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Lobster)
 
+option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
+
 set(SDL_SHARED OFF CACHE BOOL "Build a shared version of the library")
 function(install)
 endfunction(install)
 add_subdirectory("external/SDL")
+
+set(EXE_NAME lobster)
 
 file(GLOB LOBSTER_SRCS
     "src/*.h"
     "src/lobster/*.h"
     "src/*.cpp"
 )
+
+if(LOBSTER_TOCPP)
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+  list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
+  add_definitions(-DVM_COMPILED_CODE_MODE=1)
+  set(EXE_NAME compiled_lobster)
+endif()
 
 file(GLOB_RECURSE EXTERNAL_SRCS
     "include/Box2D/*.cpp"
@@ -92,9 +103,9 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lobster)
 
-add_executable(lobster ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
+add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 
-target_link_libraries(lobster
+target_link_libraries(${EXE_NAME}
   ${SDL_LIBRARIES}
   ${ADDITIONAL_LIBRARIES}
   ${OPENGL_LIBRARIES})

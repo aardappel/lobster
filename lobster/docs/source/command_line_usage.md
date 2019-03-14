@@ -31,10 +31,15 @@ These can be passed to lobster anywhere on the command line.
     files you have specified with the `pakfile` keyword, see “Distributing
     Lobster programs” in the implementation documentation.
 
--   `--to-cpp` : compiles to a .cpp file. Useful if you’ve created something in
+-   `--cpp` : compiles to a .cpp file. Useful if you’ve created something in
     Lobster that could use a bit more speed, for a shipping build. Not recommend
     to be used during development. See [implementation](implementation.html) on
     how to compile the resulting code.
+
+-   `--wasm` : compiles to WebAssembly file. Useful for shipping to a platform
+    that supports WebAssembly, like the web.
+    See [implementation](implementation.html) on how to compile the resulting
+    code.
 
 -   `-w` : makes the compiler wait for commandline input before it exits. Useful
     on Windows.

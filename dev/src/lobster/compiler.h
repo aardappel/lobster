@@ -28,8 +28,6 @@ extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,
                             void (* regfun)(NativeRegistry &));
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 
-extern void ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer);
-
 }
 
 #endif  // LOBSTER_COMPILER

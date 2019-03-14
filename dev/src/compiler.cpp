@@ -23,7 +23,6 @@
 #include "lobster/typecheck.h"
 #include "lobster/optimizer.h"
 #include "lobster/codegen.h"
-#include "lobster/tocpp.h"
 
 namespace lobster {
 

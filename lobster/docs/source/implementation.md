@@ -228,7 +228,7 @@ Rather than directly executing or compiling to bytecode, Lobster can also be
 translated to C++, for a further speed boost. This is useful when releasing a
 shipping build to customers, but hopefully not necessary during development.
 
-With the `--to-cpp` option on the command-line, the compiler will generate a
+With the `--cpp` option on the command-line, the compiler will generate a
 `compiled_lobster.cpp` file. This file contains a `main()` and is otherwise
 self-contained such that when you compile it with the build files for any
 platform (see instructions above) substituting it for the standard `main.cpp`,
@@ -239,8 +239,27 @@ Currently, this process is a bit clunky, you must run the compiler with
 written to `dev/compiled_lobster/`
 
 On Windows, there are project files in that same directory that will
-automatically pick up the compiled lobster code. Eventually there should be
-convenient ways to do this on any platform.
+automatically pick up the compiled lobster code.
+
+On Linux, create a `build` directory anywhere, for example in
+`dev/compiled_lobster/build`, go there, then
+`cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..` will automatically
+substitute the compiled lobster main program. Build with `make -j8` or similar.
+
+
+Compiling Lobster code to WebAssembly
+-------------------------------------
+Similarly to compiling to C++, with `--wasm` the compiler with generate a
+`.wasm` file. This is not a WebAssembly module ready to be run however, it
+is the wasm equivalent of a `.o` file that still needs to be linked against
+the rest of the Lobster runtime, much like in the C++ case.
+
+To do so, we first build the runtime with the Emscripten toolchain as usual,
+then perform the final link with our generated file. Binaryen takes care of
+further optimisation of our generated code with the runtime.
+
+(more details to follow).
+
 
 Extending Lobster
 -----------------

@@ -16,6 +16,7 @@
 
 #include "lobster/compiler.h"
 #include "lobster/disasm.h"
+#include "lobster/tonative.h"
 
 #include "lobster/engine.h"
 
@@ -58,6 +59,7 @@ int main(int argc, char* argv[]) {
         bool parsedump = false;
         bool disasm = false;
         bool to_cpp = false;
+        bool to_wasm = false;
         bool dump_builtins = false;
         bool dump_names = false;
         bool compile_only = false;
@@ -71,7 +73,8 @@ int main(int argc, char* argv[]) {
             "Compile & run FILE, or omit FILE to load default.lpak\n"
             "-w                     Wait for input before exiting.\n"
             "-b                     Compile to pakfile, don't run.\n"
-            "--to-cpp               Compile to C++ code, don't run.\n"
+            "--cpp                  Compile to C++ code, don't run.\n"
+            "--wasm                 Compile to WASM code, don't run.\n"
             "--parsedump            Also dump parse tree.\n"
             "--disasm               Also dump bytecode disassembly.\n"
             "--verbose              Output additional informational text.\n"
@@ -87,7 +90,8 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if (a == "-w") { wait = true; }
                 else if (a == "-b") { lpak = default_lpak; }
-                else if (a == "--to-cpp") { to_cpp = true; }
+                else if (a == "--cpp") { to_cpp = true; }
+                else if (a == "--wasm") { to_wasm = true; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--disasm") { disasm = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
@@ -160,13 +164,27 @@ int main(int argc, char* argv[]) {
             WriteFile("disasm.txt", false, ss.str());
         }
         if (to_cpp) {
+            ostringstream ss;
+            auto err = ToCPP(nfr, ss, bytecode);
+            if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
-            FILE *f = fopen((StripFilePart(argv[0]) +
-                            "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(), "w");
+            FILE* f = fopen((StripFilePart(argv[0]) +
+                            "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(),
+                            "w");
             if (f) {
-                ostringstream ss;
-                ToCPP(nfr, ss, bytecode);
                 fputs(ss.str().c_str(), f);
+                fclose(f);
+            }
+        } else if (to_wasm) {
+            vector<uint8_t> buf;
+            auto err = ToWASM(nfr, buf, bytecode);
+            if (!err.empty()) THROW_OR_ABORT(err);
+            // FIXME: make less hard-coded.
+            FILE* f = fopen((StripFilePart(argv[0]) +
+                            "../dev/compiled_lobster/src/compiled_lobster_wasm.o").c_str(),
+                            "wb");
+            if (f) {
+                fwrite(buf.data(), buf.size(), 1, f);
                 fclose(f);
             }
         } else if (!compile_only) {
