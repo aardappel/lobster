@@ -620,12 +620,15 @@ nfr("sincos", "angle", "F", "F}:2",
         vm.PushVec(floatp2(cos(a * RAD), sin(a * RAD)));
     });
 
-nfr("arcsin", "y", "F", "F",
+nfr("asin", "y", "F", "F",
     "the angle (in degrees) indicated by the y coordinate projected to the unit circle",
     [](VM &, Value &y) { return Value(asin(y.fval()) / RAD); });
-nfr("arccos", "x", "F", "F",
+nfr("acos", "x", "F", "F",
     "the angle (in degrees) indicated by the x coordinate projected to the unit circle",
     [](VM &, Value &x) { return Value(acos(x.fval()) / RAD); });
+nfr("atan", "x", "F", "F",
+    "the angle (in degrees) indicated by the y coordinate of the tangent projected to the unit circle",
+    [](VM &, Value &x) { return Value(atan(x.fval()) / RAD); });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
