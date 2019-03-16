@@ -622,13 +622,14 @@ nfr("gl_perspective", "fovy,znear,zfar", "FFF", "",
         return Value();
     });
 
-nfr("gl_ortho", "rh", "I?", "",
+nfr("gl_ortho", "rh,depth", "I?I?", "",
     "changes back to 2D mode rendering with a coordinate system from (0,0) top-left to the"
     " screen size in pixels bottom right. this is the default at the start of a frame, use this"
     " call to get back to that after gl_perspective."
-    " Pass true to have (0,0) bottom-left instead",
-    [](VM &, Value &rh) {
-        Set2DMode(GetScreenSize(), !rh.True());
+    " Pass true to rh have (0,0) bottom-left instead."
+    " Pass true to depth to have depth testing/writing on.",
+    [](VM &, Value &rh, Value &depth) {
+        Set2DMode(GetScreenSize(), !rh.True(), depth.True());
         return Value();
     });
 

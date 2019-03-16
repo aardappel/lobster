@@ -1149,6 +1149,9 @@
     <None Include="..\..\lobster\shaders\default.materials">
       <Filter>engine\shaders</Filter>
     </None>
+    <None Include="..\..\lobster\shaders\aa.materials">
+      <Filter>engine\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="NatvisFile.natvis" />
