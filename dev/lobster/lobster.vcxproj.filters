@@ -361,6 +361,9 @@
     <ClInclude Include="..\external\imgui\imstb_textedit.h">
       <Filter>engine\imgui\lib</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\cubegen.h">
+      <Filter>engine\meshgen</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">

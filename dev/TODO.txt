@@ -223,7 +223,13 @@
 - NOTE: now that we have inline structs, ADTs should be based on them, since being same-sized
   and being inline go so wonderfully together!
   - This would make types like Maybe/Optional etc super cheap.
-  - does make 
+  - don't even need to invent some separate enum/adt feature and use pattern matching for this,
+    structs that participate in an inheritance hierarchy can simply have a typeinfo prefixed,
+    ONLY when they are in a context of the superclass! That is even more efficient than enums
+    in Rust, which presumably always carry their tag. In fact it is more similar to "fat" trait
+    pointers in Rust, except without the pointers. A tagged struct can even shrink to not need
+    the padding to bring all these structs to the same size.. and all this is easy because they're
+    always copied.
 - Rust's same-size ADTs with value semantics allow interesting copy-over use cases that are not
   possible in even C++, where there is no need to update pointers to an object.
   Maybe we can have a declaration in Lobster that forces a certain set of derived classes to be
@@ -296,7 +302,12 @@
       - A jit could be really simple, even x86 only, since if iOS is going to require via C++,
         we could do that for all ARM platforms. Desktop is where you develop and where JIT is
         likely fast enough, so it is a good match.
-      - if we used libtcc, could even share the code with the C++ backend!
+      - If we used libtcc, could even share the code with the C++ backend!
+        They could become one and the same, once we have done the work of exposing the VM to C.
+        libtcc would become the default way of running in release on desktop.
+        Debug would still use the interpreter.
+        Bonus: expose libtcc as a builtin function to compile bits of C at runtime to
+        Lobster code!
     - Always invoking C++ means easy inlining and easy instruction definition, but complicates
       things / slows things down in always needing to invoke a C++ toolchain.
       - Also easy to profile and debug compared to JIT.
@@ -312,6 +323,7 @@
     - PUSHVAR
       - worth some special purpose ops to combine with PUSHFLD etc?
       - measure most frequent combinations of 2 ops.
+        (re-run this now that we have inline structs).
         instruction PUSHVAR -> PUSHVAR (27133922x)
         instruction VAR_WRITE -> PUSHVAR (20270162x)
         instruction PUSHVAR -> PUSHFLD (9933712x)
@@ -330,6 +342,17 @@
         instruction VFOR -> VFORELEM (3433180x)
         instruction FORLOOPI -> VAR_WRITE (3067440x)
     - function calling.
+
+- The way WASM deals with signed/unsigned is correct, everything signed, with special ops
+  (not types) for doing unsigned semantics on signed bits.
+  We should adopt this for Lobster by providing the exact same unsigned ops as special functions
+  (e.g. udiv, ucmp or ulessthan etc.)
+- while we're at it, would be nice to remove unsigned as much as possible from the C++ code
+  base, and reduce a ton of casts.
+  - add ssize (machine size) and intsize for stl containers, which are the number one source
+    of unsigned. Even overloaded for any size_t.
+  - that still leaves the mess of size of int types though, would be good to finally lock
+    down how the VM deals with ints in 64bit.
 
 - Make includes explicitly depend on eachother.
 

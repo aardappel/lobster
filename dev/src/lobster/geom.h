@@ -807,7 +807,7 @@ inline float4x4 ortho(float left, float right, float bottom, float top, float zn
 inline byte4 quantizec(const float3 &v) { return byte4(float4(v, 1) * 255); }
 inline byte4 quantizec(const float4 &v) { return byte4(v            * 255); }
 
-inline float4 color2vec(byte4 &col) { return float4(col) / 255; }
+inline float4 color2vec(const byte4 &col) { return float4(col) / 255; }
 
 // Spline interpolation.
 template <typename T> inline vec<T, 3> cardinal_spline(const vec<T, 3> &z, const vec<T, 3> &a,
