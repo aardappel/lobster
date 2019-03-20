@@ -340,7 +340,9 @@ struct Lex : LoadedFile {
                     if (*p == '.') { p++; return T_DOTDOT; }
                     return T_DOT;
                 }
-                auto tok = c <= ' ' ? cat("[ascii ", int(c), "]") : cat(int(c));
+                auto tok = c < ' ' || c >= 127
+                    ? cat("[ascii ", int(c), "]")
+                    : cat('\'', char(c), '\'');
                 Error("illegal token: " + tok);
                 return T_NONE;
             }

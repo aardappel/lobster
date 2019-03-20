@@ -23,14 +23,19 @@ class inst : node
 
     def eval():
         return switch atom:
-            case "+": args.fold(0): _a + _e.eval()
-            case "*": args.fold(1): _a * _e.eval()
-            default: assert false  // Verified by parser.
+            case "+":
+                args.fold(0): _a + _e.eval()
+            case "*":
+                args.fold(1): _a * _e.eval()
+            default:
+                assert false  // Verified by parser.
 
     def compile():
         return switch atom:
-            case "+", "*": (args.map(): compile(_)).reduce(): "(" + _a + atom + _e + ")"
-            default: assert false; ""  // Verified by parser.
+            case "+", "*":
+                (args.map(): compile(_)).reduce(): "(" + _a + atom + _e + ")"
+            default:
+                assert false  // Verified by parser.
 
 def parse(s:string):
     token := ""

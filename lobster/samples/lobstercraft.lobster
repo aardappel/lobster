@@ -67,7 +67,8 @@ while gl_frame():
     if gl_button("mouse1") == 1 and last_empty.x >= 0 and inventory.length:
         cells[last_empty] = inventory.pop()
     if gl_button("mouse3") == 1 and first_solid.x >= 0:
-        inventory.push(cells[first_solid]); cells[first_solid] = 0
+        inventory.push(cells[first_solid])
+        cells[first_solid] = 0
     gl_set_shader("color")
     gl_blend(blend_alpha)
     wh := 11.7  // let's add some water!
