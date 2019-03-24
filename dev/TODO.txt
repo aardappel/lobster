@@ -2,7 +2,6 @@
   - finish structs and ownership
   - do whatever big language fixes still need to happen.
     - multimethods
-    - var/let only?
   - write lots of docs and examples for all the new functionality
     - structs
     - ownership
@@ -10,7 +9,7 @@
     - also new syntax highlighting etc
   - move repo under a different org :)
   - announce post
-  
+
 - Inline structs, further improvements:
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
@@ -39,6 +38,7 @@
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
+  - AssignList with instance variables probably doesn't work.
   - on calls like qsort([..]) the xs arg will be KEEP, but the recursive call will be borrow,
     so now you end up with 2 specializations.
   - split up incref/decref in VM for needing nil check and not, since we have this information

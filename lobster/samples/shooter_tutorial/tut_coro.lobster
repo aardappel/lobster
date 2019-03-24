@@ -2,12 +2,12 @@ include std
 include vec
 include color
 
-mode:coroutine? = nil
+var mode:coroutine? = nil
 
 def menu(lastscore, highscore, frame):
     forever():
         frame(nil)
-        msg := "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
+        let msg = "last score: " + lastscore + " - highscore: " + highscore + " - press space to play!"
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:
@@ -15,18 +15,18 @@ def menu(lastscore, highscore, frame):
     return nil
 
 def level(highscore, lframe):
-    score := 0
+    var score = 0
 
-    worldsize :== 20.0
+    let worldsize = 20.0
 
-    playerhealth := 100.0
-    playerpos := xy_0
-    playerspeed :== 10
+    var playerhealth = 100.0
+    var playerpos = xy_0
+    let playerspeed = 10
 
-    tomouse := xy_1
+    var tomouse = xy_1
 
-    bs := coroutine bulletset()
-    es := coroutine enemyset()
+    let bs = coroutine bulletset()
+    let es = coroutine enemyset()
 
     def renderpointytriangle(pos, dir):
         gl_translate pos:
@@ -34,7 +34,7 @@ def level(highscore, lframe):
                 gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])
 
     def bullet(pos, dir, frame):
-        bulletspeed :== 15
+        let bulletspeed = 15
         while magnitude(pos) < worldsize * 2:
             frame(nil)
             pos += dir * gl_delta_time() * bulletspeed
@@ -44,9 +44,9 @@ def level(highscore, lframe):
         return nil
 
     def bulletset(frame):
-        firerate :== 0.1
-        lastbullet := gl_time()
-        bullets := []
+        let firerate = 0.1
+        var lastbullet = gl_time()
+        var bullets = []
         forever():
             frame(nil)
             if lastbullet < gl_time():
@@ -59,13 +59,13 @@ def level(highscore, lframe):
         return nil
 
     def enemy(pos, frame):
-        speed :== 3
-        maxhp :== 5
-        hp := maxhp
+        let speed = 3
+        let maxhp = 5
+        var hp = maxhp
         forever():
             frame(nil)
-            playervec := playerpos - pos
-            playerdir := normalize(playervec)
+            let playervec = playerpos - pos
+            let playerdir = normalize(playervec)
             pos += playerdir * gl_delta_time() * speed
             for(bs->bullets) b:
                 if magnitude(b->pos - pos) < 1:
@@ -81,9 +81,9 @@ def level(highscore, lframe):
         return nil
 
     def enemyset(frame):
-        enemies := []
-        enemyrate := 1.0
-        lastenemy := gl_time()
+        var enemies = []
+        var enemyrate = 1.0
+        var lastenemy = gl_time()
         forever():
             frame(nil)
             if lastenemy < gl_time():
@@ -98,12 +98,12 @@ def level(highscore, lframe):
     while playerhealth > 0:
         lframe(nil)
         gl_translate float(gl_window_size()) / 2.0:
-            scale := gl_window_size().y / worldsize
+            let scale = gl_window_size().y / worldsize
             gl_scale(scale)
 
-            dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+            let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-            newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+            let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
             if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
                 playerpos = newpos
 

@@ -35,8 +35,8 @@ def qsort(xs, lt):
     if xs.length <= 1:
         xs
     else:
-        pivot := xs[0]
-        tail := xs.slice(1, -1)
+        var pivot = xs[0]
+        var tail = xs.slice(1, -1)
         append(append(qsort(tail.filter():  lt(_, pivot), lt), [ pivot ]),
                       qsort(tail.filter(): !lt(_, pivot), lt))
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,8 +54,8 @@ indentation like Lobster and Python.
 
 ### Whitespace
 
-Typical use of whitespace is around any binary operator (in the example `<=
-:=`), after a `,` and inside `[]` when used as vector constructor or definition
+Typical use of whitespace is around any binary operator (in the example `<=`
+`=`), after a `,` and inside `[]` when used as vector constructor or definition
 (but not when used for indexing, and not inside `()`).
 
 ### Alignment

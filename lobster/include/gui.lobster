@@ -20,56 +20,56 @@ namespace gui
 
 private class elem { id:int, size:xy_i }
 
-private cursize := [ xy_0i ]
+private let cursize = [ xy_0i ]
 
-private parent_size := [ xy_0i ]
+private let parent_size = [ xy_0i ]
 
-private vertical := [ true ]
+private let vertical = [ true ]
 
-private render_pass := false
-private size_list := []
-private size_index := 0
+private var render_pass = false
+private var size_list = []
+private var size_index = 0
 
-private align := [ 0 ]
-private spacing := [ 0 ]
+private let align = [ 0 ]
+private let spacing = [ 0 ]
 
-private hover_color := color_dark_grey
-private select_color := color_grey
+private var hover_color = color_dark_grey
+private var select_color = color_grey
 
-private overalsize := xy_0i
+private var overalsize = xy_0i
 
-private interactive := [ true ]
+private let interactive = [ true ]
 
-private actionsfxr := nil
-private actionwav := nil
+private var actionsfxr = nil
+private var actionwav = nil
 
-private num_interactive_elements_hit := 0
-private focus_id := -1
+private var num_interactive_elements_hit = 0
+private var focus_id = -1
 
-private button_key := [ "<none>" ]
+private let button_key = [ "<none>" ]
 
-def fun() :== void
-def funs(v:xy_i) :== void
+def fun() -> void
+def funs(v:xy_i) -> void
 
 private def cache_size(id, f):
     return if !render_pass:
-        e := elem { id, xy_0i }
+        let e = elem { id, xy_0i }
         // push first, just in case f() pushes elements also (keep pre-order)
         size_list.push(e)
         e.size = f()
     else:
-        i := size_index
+        var i = size_index
         // usually this lookup will hit the if on the first iteration, but if not,
         // any skipped elements are old elements just removed by an event handler
         while i < size_list.length:
-            e := size_list[i++]
+            let e = size_list[i++]
             if e.id == id:
                 size_index = i
                 return e.size
         xy_0i   // new element inserted by event handler, do not render yet
 
 private def update_size(v:xy_i):
-    cs := cursize.pop()
+    let cs = cursize.pop()
     cursize.push(
         if vertical.top: xy { max(cs.x, v.x), cs.y + v.y + (cs.y and spacing.top) }
         else:            xy { cs.x + v.x + (cs.x and spacing.top), max(cs.y, v.y) })
@@ -87,7 +87,7 @@ private def max_space(v:xy_i):
         xy { v.x, parent_size.top.y }
 
 private def position(v:xy_i, f):
-    r := max_space(v) - v
+    let r = max_space(v) - v
     gl_translate(float(if(align.top == 1): r / 2 else: r * (align.top / 2)), f)
 
 private def cursize_of(id, f):
@@ -108,8 +108,8 @@ private def element(size:xy_i, f):
                 gl_translate(xy_x * (size.x + spacing.top))
 
 private def block(al, sp, vert, id, f):
-    spi := round(sp * gl_get_font_size())
-    size := cursize_of(id):
+    let spi = round(sp * gl_get_font_size())
+    let size = cursize_of(id):
         spacing.push(spi)
         vertical.push(vert)
         f()
@@ -131,7 +131,7 @@ def text(text:string):
         gl_text(text)
 
 def image(factors, tex):
-    size := round(factors * gl_get_font_size())
+    let size = round(factors * gl_get_font_size())
     element(size):
         gl_set_shader("textured")
         gl_set_primitive_texture(0, tex)
@@ -149,7 +149,7 @@ def space(thickness:float):
     element(xy_1i * round(thickness * gl_get_font_size())): nil
 
 def start(size, alignh, alignv, interact, f:fun):   // top level only
-    id := hash(f)
+    let id = hash(f)
     gl_set_shader("color")
     gl_blend(blend_alpha):
         parent_size.push(size)
@@ -185,8 +185,8 @@ def hblock(al, sp, f:fun): block(al, sp, false, hash(f), f)
 def vblock(al, sp, f:fun): block(al, sp, true,  hash(f), f)
 
 def fontscale(factor, f:fun):
-    os := gl_get_font_size()
-    ool := gl_get_outline_size()
+    let os = gl_get_font_size()
+    let ool = gl_get_outline_size()
     gl_set_font_size(round(os * factor), ool * factor)
     f()
     gl_set_font_size(os, ool)
@@ -195,7 +195,7 @@ def color(col, f:fun): nest_if(render_pass, def(): gl_color(col, _), f)
 def blend(bli, f:fun): nest_if(render_pass, def(): gl_blend(bli, _), f)
 
 private def around(m, draw, id, f):
-    size := cursize_of(id, f)
+    var size = cursize_of(id, f)
     size += m * 2
     advance(size):
         if draw:
@@ -216,7 +216,7 @@ def margin(m, f:fun): around(m, false, hash(f), f)
 def border(m, f:fun): around(m, true,  hash(f), f)
 
 private def overlay(stretch, id, f, g):
-    size := cursize_of(id, f)
+    let size = cursize_of(id, f)
     advance(size):
         if stretch:
             g(max_space(size))
@@ -243,16 +243,16 @@ def key(key_name, f):  // Surround a button with this to also allow keyboard act
 private def button(id, f, do, dofocus, focusf):
     overlay(false, id, f) size:
         if interactive.top:
-            hit := gl_hit(float(size), 0)
-            key := gl_button(button_key.top)
-            active := hit or key >= 0
+            let hit = gl_hit(float(size), 0)
+            let key = gl_button(button_key.top)
+            let active = hit or key >= 0
             if active or (focus_id == id and gl_touchscreen()):
                 // Use the hover color both for mouse-hover, and touch screen buttons that have focus.
                 gl_color hover_color:
                     gl_rect(float(size))
                 if active:
                     num_interactive_elements_hit++
-                    mouse1 := gl_button("mouse1")
+                    let mouse1 = gl_button("mouse1")
                     if mouse1 >= 1 or key >= 1:
                         gl_color(select_color):
                             gl_rect(float(size))

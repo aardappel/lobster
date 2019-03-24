@@ -17,15 +17,15 @@ def mg_mirror_y(dist, body):
         mg_translate(xyz { 0.0, i * dist * 2.0 - dist, 0.0 }, body)
 
 //mg_set_color_noise(0.5, 1)
-aspoints := false
+let aspoints = false
 mg_set_point_mode(aspoints)
 if !aspoints:
     //mg_set_polygon_reduction(3, 0.98, 0.95)
     mg_set_vertex_randomize(0)
 
-density := 80
+let density = 80
 
-abstract := nil
+var abstract = nil
 if true:
     mg_smooth(1)
     mg_color(color_white)
@@ -34,7 +34,7 @@ if true:
         mg_superquadric(xyz_1 * 10, xyz_1)  // Cube with rounded edges
     abstract = mg_polygonize(density)
 
-gun := nil
+var gun = nil
 if true:
     mg_smooth(0.5)
     mg_color(color_white)
@@ -57,7 +57,7 @@ if true:
             mg_cylinder(1, 3)
     gun = mg_polygonize(density)
 
-spaceship := nil
+var spaceship = nil
 if true:
     mg_smooth(0.5)
     mg_color(color_white)
@@ -89,8 +89,8 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)
             mg_translate(xyz_z * branchl):
-                axis := xyz(sincos(rnd(360)), 0)
-                branches := rnd(3) + 1
+                let axis = xyz(sincos(rnd(360)), 0)
+                let branches = rnd(3) + 1
                 for(branches) i:
                     mg_rotate(xyz_z, 360 * i / branches):
                         mg_rotate(axis, 12 * branches):
@@ -101,7 +101,7 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
         mg_color(leafc):
             mg_sphere(leafs)
 
-trees := []
+let trees = []
 
 if true:
     mg_smooth(0.5)
@@ -117,7 +117,7 @@ if true:
     model_tree(9, 2.0, 0.7, 15, color { 0.5, 0.7, 0.5, 1.0 })
     trees.push(mg_polygonize(density))
 
-landscape := nil
+var landscape = nil
 // Currently expensive way to do a landscape.
 if true:
     mg_smooth(0.1)
@@ -139,13 +139,13 @@ while gl_frame():
 
     gl_clear(color_dark_grey)
 
-    fovscale := 1.5
+    let fovscale = 1.5
 
     if true:
         gl_cursor(0)
         gl_perspective(60, 0.1, 1000)
 
-        speed := 10
+        var speed = 10
         if gl_button("left shift") >= 1: speed = 50
         camera_FPS_update("w", "a", "s", "d", speed, 4, true)
         camera_FPS_view()

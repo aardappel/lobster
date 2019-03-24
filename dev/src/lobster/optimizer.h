@@ -149,7 +149,7 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     auto list = new Inlined(line);
     for (auto c : children) {
         auto &arg = sf->args.v[ai];
-        list->Add(opt.Typed(type_void, LT_ANY, new Define(line, arg.sid, c, nullptr)));
+        list->Add(opt.Typed(type_void, LT_ANY, new Define(line, arg.sid, c)));
         ai++;
     }
     // TODO: triple-check this similar in semantics to what happens in CloneFunction() in the

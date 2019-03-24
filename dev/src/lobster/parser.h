@@ -42,6 +42,10 @@ struct Parser {
         lex.Error(err, what ? &what->line : nullptr);
     }
 
+    void Warn(string_view warn, const Node *what = nullptr) {
+        lex.Warn(warn, what ? &what->line : nullptr);
+    }
+
     void Parse() {
         auto sf = st.ScopeStart();
         st.toplevel = sf;
@@ -90,9 +94,12 @@ struct Parser {
                 delete fr;
                 return true;
             } else if (auto d = Is<Define>(def)) {
-                for (auto sid : d->sids) {
-                    sid->id->static_constant =
-                        sid->id->single_assignment && d->child->IsConstInit();
+                for (auto p : d->sids) {
+                    auto id = p.first->id;
+                    id->static_constant =
+                        id->single_assignment && d->child->IsConstInit();
+                    if (id->single_assignment && !id->constant && d->line.fileidx == 0)
+                        Warn("use \'let\' to declare: " + id->name, d);
                 }
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
@@ -125,55 +132,6 @@ struct Parser {
             }
             Expect(T_DEDENT);
         }
-    }
-
-    Node *DefineWith(string_view idname, bool isprivate, bool isdef, bool islogvar,
-                     Node *parent, Node *initial) {
-        if (isdef) {
-            auto id = st.LookupDef(idname, lex, false, true, false);
-            if (islogvar) st.MakeLogVar(id);
-            if (isprivate) id->isprivate = true;
-            if (parent) {
-                auto p = (Define *)parent;
-                p->sids.insert(p->sids.begin(), id->cursid);
-            }
-            return initial ? new Define(lex, id->cursid, initial, nullptr) : nullptr;
-        } else {
-            auto lhs = IdentUseOrWithStruct(idname);
-            if (isprivate) Error("assignment cannot be made private");
-            if (parent) {
-                auto p = (AssignList *)parent;
-                p->children.insert(p->children.begin(), lhs);
-            }
-            return initial ? new AssignList(lex, lhs, initial) : nullptr;
-        }
-    }
-
-    Node *RecMultiDef(string_view idname, bool isprivate, int nids, bool &isdef,
-                            bool &islogvar) {
-        Node *al = nullptr;
-        if (IsNextId()) {
-            auto id2 = lastid;
-            nids++;
-            if (Either(T_DEF, T_LOGASSIGN, T_ASSIGN)) {
-                isdef = lex.token != T_ASSIGN;
-                islogvar = lex.token == T_LOGASSIGN;
-                lex.Next();
-                auto initial = ParseMultiRet(ParseOpExp());
-                al = DefineWith(id2, isprivate, isdef, islogvar, nullptr, initial);
-            } else if (IsNext(T_COMMA)) {
-                al = RecMultiDef(id2, isprivate, nids, isdef, islogvar);
-            } else {
-                lex.Undo(T_IDENT, id2);
-            }
-        }
-        if (al) {
-            DefineWith(idname, isprivate, isdef, islogvar, al, nullptr);
-        } else {
-            lex.Undo(T_COMMA);
-            lex.Undo(T_IDENT, idname);
-        }
-        return al;
     }
 
     void ParseTopExp(List *list, bool isprivate = false) {
@@ -244,7 +202,7 @@ struct Parser {
                         cur = lex.IntVal();
                         Expect(T_INT);
                     }
-                    list->Add(new Define(lex, id->cursid, new IntConstant(lex, cur), nullptr));
+                    list->Add(new Define(lex, id->cursid, new IntConstant(lex, cur)));
                     if (lex.token != T_COMMA) break;
                     lex.Next();
                     if (incremental) cur++; else cur *= 2;
@@ -255,21 +213,47 @@ struct Parser {
             case T_CONST: {
                 auto isconst = lex.token == T_CONST;
                 lex.Next();
-                lastid = st.MaybeNameSpace(ExpectId(), !isprivate);
-                Expect(T_ASSIGN);
-                list->Add(ParseSingleVarDecl(isprivate, isconst, false));
+                auto def = new Define(lex, nullptr, nullptr);
+                for (;;) {
+                    auto idname = ExpectId();
+                    bool withtype = lex.token == T_TYPEIN;
+                    TypeRef type = nullptr;
+                    if (lex.token == T_COLON || withtype) {
+                        lex.Next();
+                        ParseType(type, withtype);
+                    }
+                    auto id = st.LookupDef(idname, lex, false, true, withtype);
+                    if (isconst)  id->constant = true;
+                    if (isprivate) id->isprivate = true;
+                    def->sids.push_back({ id->cursid, type });
+                    if (!IsNext(T_COMMA)) break;
+                }
+                if (IsNext(T_LOGASSIGN)) {
+                    for (auto p : def->sids) st.MakeLogVar(p.first->id);
+                } else {
+                    Expect(T_ASSIGN);
+                }
+                def->child = ParseMultiRet(ParseOpExp());
+                list->Add(def);
                 break;
             }
             default: {
-                if (IsNextId()) {
-                    auto d = ParseVarDecl(isprivate);
-                    if (d) {
-                        list->Add(d);
-                        break;
-                    }
-                }
                 if (isprivate)
                     Error("private only applies to declarations");
+                if (IsNextId()) {
+                    // Regular assigned is handled in normal expression parsing below.
+                    if (lex.token == T_COMMA) {
+                        auto al = new AssignList(lex, IdentUseOrWithStruct(lastid));
+                        while (IsNext(T_COMMA))
+                            al->children.push_back(IdentUseOrWithStruct(ExpectId()));
+                        Expect(T_ASSIGN);
+                        al->children.push_back(ParseMultiRet(ParseOpExp()));
+                        list->Add(al);
+                        break;
+                    } else {
+                        lex.Undo(T_IDENT, lastid);
+                    }
+                }
                 list->Add(ParseExpStat());
                 break;
             }
@@ -394,47 +378,6 @@ struct Parser {
         parent_list->Add(new UDTRef(lex, udt));
     }
 
-    Node *ParseSingleVarDecl(bool isprivate, bool constant, bool logvar) {
-        auto idname = lastid;
-        auto e = ParseExp();
-        auto id = st.LookupDef(idname, lex, false, true, false);
-        if (constant)  id->constant = true;
-        if (isprivate) id->isprivate = true;
-        if (logvar)    st.MakeLogVar(id);
-        return new Define(lex, id->cursid, e, nullptr);
-    }
-
-    Node *ParseVarDecl(bool isprivate) {
-        bool constant = lex.token == T_DEFCONST;
-        bool logvar = lex.token == T_LOGASSIGN;
-        // codegen assumes these defs can only happen at toplevel
-        if (lex.token == T_DEF || constant || logvar) {
-            lex.Next();
-            return ParseSingleVarDecl(isprivate, constant, logvar);
-        }
-        auto idname = lastid;
-        bool withtype = lex.token == T_TYPEIN;
-        if (lex.token == T_COLON || withtype) {
-            lex.Next();
-            TypeRef type;
-            ParseType(type, withtype);
-            Expect(T_ASSIGN);
-            auto e = ParseExp();
-            auto id = st.LookupDef(idname, lex, false, true, withtype);
-            if (isprivate) id->isprivate = true;
-            return new Define(lex, id->cursid, e, type);
-        }
-        if (IsNext(T_COMMA)) {
-            bool isdef = false;
-            bool islogvar = false;
-            auto e = RecMultiDef(idname, isprivate, 1, isdef, islogvar);
-            if (e) return e;
-        } else {
-            lex.Undo(T_IDENT, idname);
-        }
-        return nullptr;
-    }
-
     Node *ParseNamedFunctionDefinition(bool isprivate, UDT *self) {
         // TODO: also exclude functions from namespacing whose first arg is a type namespaced to
         // current namespace (which is same as !self).
@@ -495,25 +438,27 @@ struct Parser {
         if (parens) Expect(T_RIGHTPAREN);
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", context);
         sf->SetParent(f, f.subf);
-        if (name && IsNext(T_DEFCONST)) {
-            if (f.istype || f.subf->next)
-                Error("redefinition of function type: " + *name);
-            f.istype = true;
-            sf->typechecked = true;
-            // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
-            // which specialization that refers to).
-            for (auto &arg : f.subf->args.v) {
-                if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
-                // No idea what the function is going to be, so have to default to borrow.
-                arg.sid->lt = LT_BORROW;
-            }
-            ParseType(sf->returntype, false, nullptr, sf);
-            sf->reqret = sf->returntype->NumValues();
-        } else {
+        if (!expfunval) {
             if (IsNext(T_CODOT)) {  // Return type decl.
                 ParseType(sf->fixedreturntype, false, nullptr, sf);
             }
-            if (!expfunval) Expect(T_COLON);
+            if (!IsNext(T_COLON)) {
+                if (lex.token == T_IDENT || !name) Expect(T_COLON);
+                if (f.istype || f.subf->next)
+                    Error("redefinition of function type: " + *name);
+                f.istype = true;
+                sf->typechecked = true;
+                // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
+                // which specialization that refers to).
+                for (auto &arg : f.subf->args.v) {
+                    if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
+                    // No idea what the function is going to be, so have to default to borrow.
+                    arg.sid->lt = LT_BORROW;
+                }
+                if (sf->fixedreturntype.Null()) Error("missing return type");
+                sf->returntype = sf->fixedreturntype;
+                sf->reqret = sf->returntype->NumValues();
+            }
         }
         if (name) {
             if (f.subf->next) {
@@ -535,7 +480,7 @@ struct Parser {
                 sf->body = ParseStatements(T_DEDENT);
             } else {
                 sf->body = new List(lex);
-                ParseTopExp(sf->body);
+                sf->body->children.push_back(ParseExpStat());
                 CleanupStatements(sf->body);
             }
             ImplicitReturn(sf);

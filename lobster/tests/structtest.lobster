@@ -8,17 +8,17 @@ run_test("misch"):
         struct A { x:int, y:int }
         struct B { a:A, b:int }  // Inline, sizeof(B) == 12 :)
         class C { a:A, b:int }  // Also inline, inside heap allocated, refcounted parent.
-        a := xy { 3, 4 } + xy { 1, 1 } - xy { 1, 1 }
-        b := B { A { 5, 6 }, a.x + a.y }
+        var a = xy { 3, 4 } + xy { 1, 1 } - xy { 1, 1 }
+        let b = B { A { 5, 6 }, a.x + a.y }
         assert b.a.x + b.a.y + b.b == 18
-        aa := a + a
+        var aa = a + a
         assert aa.x + aa.y == 14
         assert aa + 1 == xy { 7, 9 }
         a += a
         assert a == xy { 6, 8 }
         aa += 1
         assert aa == xy { 7, 9 }
-        c := C { A { 10, 11 }, 12 }
+        let c = C { A { 10, 11 }, 12 }
         assert c.a.x + c.a.y + c.b == 33
         c.a += 1
         assert c.a == A { 11, 12 }
@@ -29,10 +29,10 @@ run_test("misch"):
         assert int(xy { 1.0, 2.0 }) == xy { 1, 2 }
         assert min(xy { 1, 2 }) == 1
         assert manhattan(xy { 2, 3 }) == 5
-        nv := xy_0
+        var nv = xy_0
         nv = normalize(xy { 123.0, 456.0 })
         assert abs(magnitude(nv) - 1.0) < 0.001
-        v := [ xy { 1, 2 }, xy { 3, 4 } ]
+        let v = [ xy { 1, 2 }, xy { 3, 4 } ]
         assert v[1] == xy { 3, 4 }
         v[1] = xy { 5, 6 }
         assert v[1] == xy { 5, 6 }
@@ -41,15 +41,15 @@ run_test("misch"):
         assert v[1] == xy { 6, 7 }
         v[1] += 1
         assert v[1] == xy { 7, 8 }
-        tri := [ [ [ 123 ] ] ]
+        let tri = [ [ [ 123 ] ] ]
         assert tri[xyz { 0, 0, 0 }] == 123
         tri[xyz { 0, 0, 0 }] = 124
         assert tri[xyz { 0, 0, 0 }] == 124
-        triv := [ [ [ xy { 10, 11 } ] ] ]
+        let triv = [ [ [ xy { 10, 11 } ] ] ]
         assert triv[xyz { 0, 0, 0 }] == xy { 10, 11 }
         triv[xyz { 0, 0, 0 }] += 4
         assert triv[xyz { 0, 0, 0 }] == xy { 14, 15 }
-        trivv := [ [ [ B { A { 5, 6 }, 7 } ] ] ]
+        let trivv = [ [ [ B { A { 5, 6 }, 7 } ] ] ]
         assert trivv[xyz { 0, 0, 0 }].a == A { 5, 6 }
         assert trivv[xyz { 0, 0, 0 }].a.y == 6
         assert trivv[xy { 0, 0 }][0].a.y == 6
@@ -69,7 +69,7 @@ run_test("misch"):
             return a + b.x + b.y + c
         def g(a): return 1, xy { a, a }, 1
         assert f(1, xy { 2, 3 }, 4) == 10
-        mr1, mr2, mr3 := g(7)
+        let mr1, mr2, mr3 = g(7)
         assert mr2 == xy { 7, 7 }
 
     // Multi-methods.
@@ -86,17 +86,17 @@ run_test("misch"):
     do():
         struct R { a:string, b:[int] }
         struct RN { a:string, r:R }
-        r := R { "hello", [ 123 ] }
+        var r = R { "hello", [ 123 ] }
         def f(x): return R { x.a + x.a, append(x.b, x.b) }
-        fr := f(r)
+        var fr = f(r)
         assert fr.a == "hellohello"
-        rs := [ R { "one", [ 1 ] }, R { "two", [ 2 ] } ]
+        var rs = [ R { "one", [ 1 ] }, R { "two", [ 2 ] } ]
         fr = f(rs[1])
         assert fr.a == "twotwo"
-        rn := RN { "A", R { "B", [ 64 ] } }
+        var rn = RN { "A", R { "B", [ 64 ] } }
         def fn(x): return RN { x.a + x.a, R { x.r.a + x.r.a, append(x.r.b, x.r.b) } }
-        frn := fn(rn)
+        var frn = fn(rn)
         assert frn.a == "AA" and frn.r.b[1] == 64
-        rns := [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
+        var rns = [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
         frn = fn(rns[1])
         assert frn.a == "BBBB" and frn.r.b[1] == 2

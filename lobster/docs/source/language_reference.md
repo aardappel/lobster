@@ -18,7 +18,7 @@ Lexical definition
     and `*/` or single line comments starting with `//`
 
 -   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
-    != < > <= >= <- = := :== ! ? . -> && || and or not ^ << >>`
+    != < > <= >= <- = ! ? . -> && || and or not ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
     `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g. `\xFF` is the
@@ -63,8 +63,7 @@ topexp = `include` [ `from` ] ( string\_constant \| ident ... `.` )
 
 class = ( `class` \| `struct` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
-vardef = ( `var` \| `let` ) ident `=` opexp \| list( ident ) ( `:=` \| `:==`
-\| `<-` ) list( opexp )
+vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 
 enumdef = `enum` [ `+` \| `*` ] list( ident [ `=` integer\_constant ] )
 
@@ -247,32 +246,22 @@ var a = 1
 let a = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`:=` and `:==` are shorthand for `var =` and `let =` respectively:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-a := 1
-b :== 1
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 enum x = 1, y, z
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`enum` is merely a shorthand for `:==`, e.g. the above example is equivalent to
-`x :== 1; y :== 2; z :== 3`. If you leave out the `= 1`, the sequence will start
+`enum` is merely a shorthand for `let`, e.g. the above example is equivalent to
+`let x = 1; let y = 2; let z = 3`. If you leave out the `= 1`, the sequence will start
 at `0` instead. You may specify `+` or `*` after `enum` to indicate wether you
 want the sequence to continue using addition (default, by 1) or multiplication
 (by 2), the latter useful for flags.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-c <- 1
-d, e := 1, 2
-f, g := 1
+var d, e = 1, 2
+var f, g = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`<-` is another assignment operator, that re-defines an existing variable using
-*lexically bounded dynamic scope* instead of the default lexical scope (see
-example below). As you can see in the last 2 lines, all of these operators also
+As you can see in the last 2 lines, all of these operators also
 allow multiple values to be assigned at once (see also multiple return values
 below).
 
@@ -286,8 +275,8 @@ for example).
 You may even use a vector as index, e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mat := [ [ 1, 2 ],  [ 3, 4 ] ]
-pos := [ 0, 1 ]
+var mat = [ [ 1, 2 ],  [ 3, 4 ] ]
+var pos = [ 0, 1 ]
 print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -457,7 +446,7 @@ You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-f := function(arg1, arg2): body
+var f = function(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You call these just like any other function, e.g. `f(1, 2)`.
@@ -504,7 +493,7 @@ As an example of how to pass more than one function value, let's see an example
 for `if`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-nat := if a < 0: 0 else: a
+var nat = if a < 0: 0 else: a
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here we see that all except the first function value must be preceded by the
@@ -562,7 +551,7 @@ received by the multiple assignment syntax introduced above:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def m(): return 1, 2
-a, b := m()
+var a, b = m()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All return statements for any function must all return the same number of return
@@ -590,42 +579,6 @@ are very costly (parent stackframe(s) may have to be dynamically allocated) as
 opposed to Lobster's approach which makes function values and free variables
 have no overhead compared to regular functions and variables.
 
-Lobster also supports a safe way of optionally using *dynamic scope* by making
-it *lexically bounded*, i.e. you can use dynamic scoping only on variables that
-are already defined in lexical scope. As an example:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-x, y := 0
-def f():
-    print x + " " + y
-def g():
-    x := 1
-    y <- 1
-    f()
-g()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This will print `0 1`. This makes sense for `x`, after all, the second `x` is a
-completely separate variable that doesn't influence the print statement. The
-`<-` operator however, changes an existing variable for the duration of it's
-lexical scope, meaning that inside `g` (and thus all functions called from it
-that can see the original variable) `y` has a different value. At the end of
-`g`, the old value is automatically restored.
-
-Alternatively, you can understand the part that does `y <- 1; f()` as doing
-something like this:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-oldy := y
-y = 1
-f()
-y = oldy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This is very useful for when you want to change a variable for the duration of a
-function, which is a common programming pattern. It is also safe because unlike
-other programming languages with dynamic scope, it can't function without a
-governing lexically scoped variable.
 
 Typing
 ------
@@ -659,7 +612,7 @@ can be resumed on demand. Kind of like a separate thread that only runs when you
 want to (*cooperative multitasking*). For example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-co := coroutine cofor(10)
+var co = coroutine cofor(10)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Normally, `cofor` takes two arguments, the range to iterate over, and the
@@ -742,7 +695,7 @@ Reference counting has one problem, which is that it can't deallocate cycles.
 For example, this code:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-a := [ nil ]
+var a = [ nil ]
 a[0] = a
 a = nil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -775,7 +728,7 @@ Lobster optionally provides a garbage collector that can be run periodically to
 clean up left over objects:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-amount_of_leaks := collect_garbage()
+var amount_of_leaks = collect_garbage()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Like most garbage collectors, this function can be slow depending on the amount
@@ -840,10 +793,10 @@ run the body and restore the previous transform afterwards.
 `switch` has its own special syntax, since it does a lot of things different:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-st := switch i:
+var st = switch i:
         case 1: "no"
         case 2, 3:
-            x := i
+            var x = i
             "yes" + x
         case 4..6, 8: "maybe"
         default: "what?"

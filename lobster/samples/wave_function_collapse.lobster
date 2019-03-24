@@ -3,7 +3,7 @@
 
 // Using """ string literals so we don't have to escape \ :(
 
-tilemap :== [
+let tilemap = [
     """   /--\    """,
     """   |  |    """,
     """   |  |    """,
@@ -17,12 +17,12 @@ tilemap :== [
     """           """,
 ]
 
-benchmark :== false
+let benchmark = false
 
 if benchmark:
-    no_conflicts := 0
+    var no_conflicts = 0
     for(1000) i:
-        outmap, conflicts := wave_function_collapse(tilemap, xy { 100, 100 })
+        let outmap, conflicts = wave_function_collapse(tilemap, xy { 100, 100 })
         print i + ": " + conflicts
         if not conflicts: no_conflicts++
     print no_conflicts
@@ -31,7 +31,7 @@ if benchmark:
 else:
     // Just print a single no-conflict example.
     for(100) i:
-        outmap, conflicts := wave_function_collapse(tilemap, xy { 100, 50 })
+        let outmap, conflicts = wave_function_collapse(tilemap, xy { 100, 50 })
         if not conflicts:
             print "iteration: " + i
             for(outmap) s: print s

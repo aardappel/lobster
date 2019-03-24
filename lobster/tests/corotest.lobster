@@ -11,8 +11,8 @@ run_test("coro"):
         for n: f(_)
         return 0
 
-    co1 := coroutine mycoro()   // out of nested HOFs
-    co2 := coroutine myfor(4)   // out of a simple function
+    let co1 = coroutine mycoro()   // out of nested HOFs
+    let co2 = coroutine myfor(4)   // out of a simple function
 
     def interleave(a, b, f):   // test using 2 at once
         while a.active or b.active:
@@ -33,8 +33,8 @@ run_test("coro"):
     def pass_thru(co, f):
         return coroutine_for co: f(_)
 
-    co3 := coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
-    sum := 0
+    let co3 = coroutine pass_thru(coroutine myfor(10))    // test consuming 1 coro with another and then passing that on
+    var sum = 0
     while co3.active:       // we currently can't use coroutine_for here, will be a runtime error (nesting)
         sum += co3.return_value
         co3.resume
@@ -42,29 +42,29 @@ run_test("coro"):
 
     // Access variables inside coroutines from the outside:
     def loctest(f):
-        a := 1
+        let a = 1
         for(10) i:
-            b := 2
+            let b = 2
             f(nil)
         return nil
 
-    co4 := coroutine loctest()
+    let co4 = coroutine loctest()
     assert co4.active
     assert co4->a + co4->i + co4->b == 3
 
     // Even functions that don't yield are cool:
     def conoyield(f): return 1
-    co5 := coroutine conoyield()
+    let co5 = coroutine conoyield()
     assert !co5.active
     assert co5.return_value == 1
 
     def refcoro(borrow, f):
-        ss := [ "A", "B", "C" ]
+        let ss = [ "A", "B", "C" ]
         for(ss): f(_)
         return "D"
-    borrow := "E"
+    let borrow = "E"
     assert (coroutine_for(coroutine refcoro(borrow)): assert(_ + "_" is string)) == "D"
-    rc := coroutine refcoro(borrow)
+    let rc = coroutine refcoro(borrow)
     assert rc->ss[1] == "B"
     rc->ss[1] = "F"
     rc.resume()

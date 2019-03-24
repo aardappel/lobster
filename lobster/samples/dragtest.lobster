@@ -5,7 +5,7 @@ include color
 
 fatal(gl_window("event animation and mouse drag test", 1024, 1024))
 
-lines := []
+let lines = []
 
 while gl_frame():
 
@@ -16,10 +16,10 @@ while gl_frame():
 
     // allow user to drag a line, and store it when complete
     // note how we can track a drag operation conveniently thanks to gl_last_pos
-    start := float(gl_last_pos("mouse1", true))
-    cur := float(gl_mouse_pos(0))
+    let start = float(gl_last_pos("mouse1", true))
+    let cur = float(gl_mouse_pos(0))
     if magnitude(start - cur) > 1:  // a click is not a drag
-        mouse1 := gl_button("mouse1")
+        let mouse1 = gl_button("mouse1")
         if mouse1 >= 1:      // show feedback
             gl_line(start, cur, 1)
         if mouse1 == 0:      // store line
@@ -35,7 +35,7 @@ while gl_frame():
     // we show little animated circles on each mouse down or up
     for(2) down:
         gl_color(if down: color_green else: color_blue)
-        clicktime := gl_time() - gl_last_time("mouse1", down)
+        let clicktime = gl_time() - gl_last_time("mouse1", down)
         if  clicktime < 1:
             gl_translate float(gl_last_pos("mouse1", down)):
                 gl_line_mode 1:

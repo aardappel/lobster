@@ -25,15 +25,15 @@ enum + blend_none,
        blend_pre_multiplied_alpha
 
 // FIXME: put this in a generic map type.
-private texture_names:[string] = []
-private textures:[resource] = []
+private let texture_names:[string] = []
+private let textures:[resource] = []
 
 def loadtexturecached(name, tf):
-    n, i := binary_search(texture_names, name)
+    let n, i = binary_search(texture_names, name)
     if n:
         return textures[i]
     else:
-        tex := gl_load_texture(name, tf)
+        let tex = gl_load_texture(name, tf)
         if tex:
             texture_names.insert(i, name)
             textures.insert(i, tex)

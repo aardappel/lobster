@@ -20,8 +20,10 @@ run_test("misc"):
     assert 2 >> 1 == 1
     assert ~1 == -2
 
-    var vardef = 1    // shorter form: vardef := 1
-    let constdef = 1  // shorter form: constdef :== 1
+    var vardef = 1
+    vardef++
+    let constdef = 1
+    // constdef++ // error!
 
     assert test_namespace_f() == 1
     assert (test_namespace_g {}).x == 1
@@ -54,11 +56,11 @@ run_test("misc"):
     assert(tf("") == 8)
 
     class parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
-    direct := parsetest {
+    let direct = parsetest {
         1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
-    parsed, err := parse_data(typeof direct, "" + direct)
+    let parsed, err = parse_data(typeof direct, "" + direct)
     //print(parsed)
     //print(direct)
     if err: print err
@@ -70,13 +72,13 @@ run_test("misc"):
     assert switch rnd(2):
         default: true
 
-    unicodetests := [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
+    let unicodetests = [0x30E6, 0x30FC, 0x30B6, 0x30FC, 0x5225, 0x30B5, 0x30A4, 0x30C8]
     assert equal(string_to_unicode(unicode_to_string(unicodetests)), unicodetests)
 
-    st := map(10) i: switch i:
+    let st = map(10) i: switch i:
             case 1: "no"
             case 2, 3:
-                x := i
+                let x = i
                 "yes" + x
             case 4..6, 8: "maybe"
             default:
@@ -91,24 +93,24 @@ run_test("misc"):
         default: true
 
     do():
-        a := 0
+        var a = 0
         assert a++ + ++a + a-- + --a == 4
-        b := [0]
+        let b = [0]
         assert b[0]++ + ++b[0] + b[0]-- + --b[0] == 4
 
-    testvector := [ 3, 9, 5, 4, 1, 3, 9, 5, 4, 1 ]
+    let testvector = [ 3, 9, 5, 4, 1, 3, 9, 5, 4, 1 ]
 
-    sorted1 := testvector.qsort(): _a < _b
-    sorted2 := copy(testvector)
+    let sorted1 = testvector.qsort(): _a < _b
+    let sorted2 = copy(testvector)
     sorted2.insertion_sort(): _a < _b
-    sorted3 := copy(testvector)
+    let sorted3 = copy(testvector)
     sorted3.qsort_in_place(): _a < _b
 
     assert equal(sorted1, [1,1,3,3,4,4,5,5,9,9])
     assert equal(sorted1, sorted2)
     assert equal(sorted1, sorted3)
 
-    found, findex := sorted1.binary_search(1)
+    let found, findex = sorted1.binary_search(1)
     assert found == 2 and findex == 0
     found, findex = sorted1.binary_search(9)
     assert found == 2 and findex == 8
@@ -122,40 +124,40 @@ run_test("misc"):
     def factorial(n): return 1 > n or factorial(n - 1) * n
     assert 7.factorial == 5040
 
-    applyto4 := def(f): f(4)
+    let applyto4 = def(f): f(4)
     assert 16 == applyto4(def(x): x * x)
 
     assert ensure_size("abc", 3, 'z') == "abc"
     assert ensure_size("abc", 5, 'z') == "abczz"
     assert ensure_size("abc", -5, 'z') == "zzabc"
-    ns, ni := "".write_int16_le(0, 1027)
+    let ns, ni = "".write_int16_le(0, 1027)
     assert ns == "\x03\x04\x00\x00" and ni == 2
     assert ns.read_int32_le(0) == 1027
     ns, ni = "".write_int16_le_back(0, 2050)
     assert ns == "\x00\x00\x02\x08" and ni == 2
     assert ns.read_int16_le_back(0) == 2050
 
-    aa := 5
+    var aa = 5
     aa %= 2
     assert aa == 1
     assert sign(xyz_f { -6, 0, 6 }) == xyz_i { -1, 0, 1 }
 
     // multiple return values
-    bb, cc, dd, ee := 1, 1, 1, 1
+    let bb, cc, dd, ee = 1, 1, 1, 1
     assert bb == 1 and bb == cc and dd == ee
-    ff, gg := 2, 3
+    let ff, gg = 2, 3
     assert ff == 2 and gg == 3
     ff, gg = 8, 9
     assert ff == 8 and gg == 9
     def multiret():
         if sin(0): return 4, 5
         return 6, 7
-    hh, ii := multiret()
+    var hh, ii = multiret()
     assert hh == 6 and ii == 7
     hh = multiret()
     assert hh == 6
     def multiretpassthru(): return multiret()  // doesn't work without the return!
-    jj, kk := multiretpassthru()
+    let jj, kk = multiretpassthru()
     assert jj == 6 and kk == 7
 
     // Union return types (should infer string?):
@@ -192,11 +194,11 @@ run_test("misc"):
     // Define your own HOFs with lazy expressions, much like the built-in while loop:
     def whilenot(cond:lazy_expression, body):
         while not cond(): body()
-    wnt := 0
+    var wnt = 0
     whilenot wnt == 10: wnt++
     assert wnt == 10
 
-    starttime := seconds_elapsed()
+    let starttime = seconds_elapsed()
     for 10:
         7.factorial
         testvector.fold(0): _x + _y

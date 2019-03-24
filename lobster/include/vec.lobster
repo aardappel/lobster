@@ -4,51 +4,51 @@ include std
 
 // Convenient constants:
 
-xy_0 :== xy { 0.0, 0.0 }
-xy_1 :== xy { 1.0, 1.0 }
-xy_h :== xy { 0.5, 0.5 }
-xy_x :== xy { 1.0, 0.0 }
-xy_y :== xy { 0.0, 1.0 }
+let xy_0 = xy { 0.0, 0.0 }
+let xy_1 = xy { 1.0, 1.0 }
+let xy_h = xy { 0.5, 0.5 }
+let xy_x = xy { 1.0, 0.0 }
+let xy_y = xy { 0.0, 1.0 }
 
-xyz_0 :== xyz { 0.0, 0.0, 0.0 }
-xyz_1 :== xyz { 1.0, 1.0, 1.0 }
-xyz_x :== xyz { 1.0, 0.0, 0.0 }
-xyz_y :== xyz { 0.0, 1.0, 0.0 }
-xyz_z :== xyz { 0.0, 0.0, 1.0 }
+let xyz_0 = xyz { 0.0, 0.0, 0.0 }
+let xyz_1 = xyz { 1.0, 1.0, 1.0 }
+let xyz_x = xyz { 1.0, 0.0, 0.0 }
+let xyz_y = xyz { 0.0, 1.0, 0.0 }
+let xyz_z = xyz { 0.0, 0.0, 1.0 }
 
-xyzw_0 :== xyzw { 0.0, 0.0, 0.0, 0.0 }
-xyzw_1 :== xyzw { 1.0, 1.0, 1.0, 1.0 }
-xyzw_x :== xyzw { 1.0, 0.0, 0.0, 0.0 }
-xyzw_y :== xyzw { 0.0, 1.0, 0.0, 0.0 }
-xyzw_z :== xyzw { 0.0, 0.0, 1.0, 0.0 }
-xyzw_w :== xyzw { 0.0, 0.0, 0.0, 1.0 }
+let xyzw_0 = xyzw { 0.0, 0.0, 0.0, 0.0 }
+let xyzw_1 = xyzw { 1.0, 1.0, 1.0, 1.0 }
+let xyzw_x = xyzw { 1.0, 0.0, 0.0, 0.0 }
+let xyzw_y = xyzw { 0.0, 1.0, 0.0, 0.0 }
+let xyzw_z = xyzw { 0.0, 0.0, 1.0, 0.0 }
+let xyzw_w = xyzw { 0.0, 0.0, 0.0, 1.0 }
 
 // int versions
 
-xy_0i :== xy { 0, 0 }
-xy_1i :== xy { 1, 1 }
-xy_xi :== xy { 1, 0 }
-xy_yi :== xy { 0, 1 }
+let xy_0i = xy { 0, 0 }
+let xy_1i = xy { 1, 1 }
+let xy_xi = xy { 1, 0 }
+let xy_yi = xy { 0, 1 }
 
-xyz_0i :== xyz { 0, 0, 0 }
-xyz_1i :== xyz { 1, 1, 1 }
-xyz_xi :== xyz { 1, 0, 0 }
-xyz_yi :== xyz { 0, 1, 0 }
-xyz_zi :== xyz { 0, 0, 1 }
+let xyz_0i = xyz { 0, 0, 0 }
+let xyz_1i = xyz { 1, 1, 1 }
+let xyz_xi = xyz { 1, 0, 0 }
+let xyz_yi = xyz { 0, 1, 0 }
+let xyz_zi = xyz { 0, 0, 1 }
 
-xyzw_0i :== xyzw { 0, 0, 0, 0 }
-xyzw_1i :== xyzw { 1, 1, 1, 1 }
-xyzw_xi :== xyzw { 1, 0, 0, 0 }
-xyzw_yi :== xyzw { 0, 1, 0, 0 }
-xyzw_zi :== xyzw { 0, 0, 1, 0 }
-xyzw_wi :== xyzw { 0, 0, 0, 1 }
+let xyzw_0i = xyzw { 0, 0, 0, 0 }
+let xyzw_1i = xyzw { 1, 1, 1, 1 }
+let xyzw_xi = xyzw { 1, 0, 0, 0 }
+let xyzw_yi = xyzw { 0, 1, 0, 0 }
+let xyzw_zi = xyzw { 0, 0, 1, 0 }
+let xyzw_wi = xyzw { 0, 0, 0, 1 }
 
-cardinal_directions :== [ xy { 0, -1 }, xy { 1, 0 }, xy { 0, 1 }, xy { -1, 0 } ]
-diagonal_directions :== [ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } ]
+let cardinal_directions = [ xy { 0, -1 }, xy { 1, 0 }, xy { 0, 1 }, xy { -1, 0 } ]
+let diagonal_directions = [ xy { -1, -1 }, xy { 1, 1 }, xy { 1, -1 }, xy { -1, 1 } ]
 
-positive_directions :== [ xy { 0, 0 }, xy { 1, 0 }, xy { 1, 1 }, xy { 0, 1 } ]
+let positive_directions = [ xy { 0, 0 }, xy { 1, 0 }, xy { 1, 1 }, xy { 0, 1 } ]
 
-octant_directions :== [
+let octant_directions = [
     xyz {  1,  1,  1 },
     xyz {  1,  1, -1 },
     xyz {  1, -1,  1 },
@@ -104,8 +104,8 @@ def vecfromyawpitch(yaw, pitch, move, strafe):
         cos(pitch) + xyz_z * sin(pitch)) * move + xyz(sincos(yaw), 0.0) * strafe
 
 def rotate2D(v, angle):
-    s := sin(-angle)
-    c := cos(-angle)
+    let s = sin(-angle)
+    let c = cos(-angle)
     return xy { v.x * c + v.y * s,
                 v.y * c - v.x * s }
 

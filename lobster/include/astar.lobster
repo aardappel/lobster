@@ -20,14 +20,14 @@ def astar_clear(n::astar_node):
 // use specialized versions below
 
 def astar_generic(startnode, endcondition, generatenewstates, heuristic):
-    openlist := [ startnode ]
-    n := startnode or nil
+    let openlist = [ startnode ]
+    var n = startnode or nil
     while n and !endcondition(n):
         openlist.remove_obj(n)
         n.closed = true
         generatenewstates(n) delta, cost, nn:
             if !nn.closed:
-                G := n.G + cost
+                let G = n.G + cost
                 if ((!nn.open and openlist.push(nn)) or G < nn.G):
                     nn.open = true
                     nn.delta = delta
@@ -39,7 +39,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
         for(openlist) c:
             if !n or c.F < n.F or (c.F == n.F and c.H < n.H):
                 n = c
-    path := []
+    let path = []
     while n:
         path.push(n)
         n = n.previous
@@ -56,7 +56,7 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
         n == endnode
     generatenewstates n, f:
         neighbors(n) nn:
-            cost := costf(n, nn)
+            let cost = costf(n, nn)
             if cost > 0:
                 f(nn.state - n.state, cost, nn)
     heuristic state:
@@ -65,27 +65,27 @@ def astar_graph(startnode, endnode, costf, distancef, neighbors):
 // specialized to a 2D grid (specialized case of a graph)
 
 def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
-    directions := cardinal_directions
+    var directions = cardinal_directions
     def astar_distance(distancef):
         return astar_graph(startnode, endnode, costf, distancef) n, f:
             for(directions) delta:
-                np := n.state + delta
+                let np = n.state + delta
                 if np.in_range(gridsize):
                     f(getnode(np))
     return if isocta:
         directions = append(directions, diagonal_directions)
         astar_distance() v:
-            x := abs(v.x)
-            y := abs(v.y)
-            big := max(x, y)
-            small := min(x, y)
+            let x = abs(v.x)
+            let y = abs(v.y)
+            let big = max(x, y)
+            let small = min(x, y)
             sqrt(2) * small + big - small
     else:
         astar_distance(): manhattan(_)
 
 // specialized to do GOAP (nodes created on the fly)
 
-def goapf(state:[int]) :== int
+def goapf(state:[int]) -> int
 
 class goapaction {
     name:string,
@@ -96,18 +96,18 @@ class goapaction {
 class goap_node = astar_node<goap_node?, [int], goapaction? = nil>
 
 def astar_goap(goapactions:[goapaction], initstate:[int], heuristic, endcondition):
-    H := heuristic(initstate)
-    existingnodes := [ goap_node { H: H, F: H, state: initstate } ]
+    let H = heuristic(initstate)
+    let existingnodes = [ goap_node { H: H, F: H, state: initstate } ]
     return astar_generic(existingnodes[0]):
         endcondition(_.state)
     generatenewstates n, f:
         for(goapactions) act:
-            pre := act.precondition
+            let pre = act.precondition
             if pre(n.state):
-                nstate := n.state.copy
-                eff := act.effect
+                let nstate = n.state.copy
+                let eff = act.effect
                 eff(nstate)
-                i := existingnodes.find(): equal(_.state, nstate)
+                var i = existingnodes.find(): equal(_.state, nstate)
                 if i < 0:
                     i = existingnodes.length
                     existingnodes.push(goap_node { nstate })

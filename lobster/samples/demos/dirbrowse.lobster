@@ -2,9 +2,9 @@ include std
 include vec
 include color
 
-indentsize := 20.0
-column_margin := 10.0
-fontsize := 20
+let indentsize = 20.0
+let column_margin = 10.0
+let fontsize = 20
 
 class node:
     name:string
@@ -12,16 +12,16 @@ class node:
     parent:node?
     children:[node] = []
 
-root := node { "", -1, nil }
-selected := root
-entries := []
+let root = node { "", -1, nil }
+var selected = root
+var entries = []
 
 def fullpath(n::node):
     return if parent: parent.fullpath() + "/" + name else: name
 
 def scan(n:node):
     entries = []
-    names, sizes := scan_folder(n.fullpath, 1024)
+    let names, sizes = scan_folder(n.fullpath, 1024)
     if names and sizes:
         for(names) name, i:
             entries.push(node { name, sizes[i], nil })
@@ -39,10 +39,10 @@ def unparent(n::node):
 select(root)
 
 def render_tree(n:node):
-    text := n.name
+    var text = n.name
     if text == "": text = "(root)"
-    size := float(gl_text_size(text))
-    width := size.x
+    let size = float(gl_text_size(text))
+    var width = size.x
     gl_color(if n.size < 0: color_blue else: color_black):
         if gl_hit(size, 0):
             if gl_button("mouse1") == 1:
@@ -63,15 +63,15 @@ def render_tree(n:node):
 def render_entries():
     for(entries) e:
         gl_color(if e.size < 0: color_blue else: color_black):
-            text := e.name
-            size := float(gl_text_size(text))
+            let text = e.name
+            let size = float(gl_text_size(text))
             if gl_hit(size, 0):
                 if gl_button("mouse1") == 1:
-                    dups := filter selected.children: _.name == e.name
+                    let dups = filter selected.children: _.name == e.name
                     if dups.length:
                         select(dups[0])
                     else:
-                        n := node { e.name, e.size, selected }
+                        let n = node { e.name, e.size, selected }
                         selected.children.push(n)
                         select(n)
                 gl_color color_light_grey:
@@ -80,11 +80,11 @@ def render_entries():
             gl_translate xy { 0.0, fontsize }
 
 def render_sizes(old_width):
-    width := 0.0
+    var width = 0.0
     for(entries) e:
         gl_color color_dark_green:
-            text := if e.size < 0: "---" else: e.size + 1 + "K"
-            size := gl_text_size(text)
+            let text = if e.size < 0: "---" else: e.size + 1 + "K"
+            let size = gl_text_size(text)
             width = max(width, size.x)
             gl_translate xy { old_width - size.x - column_margin, 0.0 }:
                 gl_text(text)
@@ -95,8 +95,8 @@ fatal(gl_window("dirbrowsing", 1024, 768))
 check(gl_set_font_name("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf") and
       gl_set_font_size(fontsize), "can\'t load font!")
 
-treesize := 400.0
-sizesize := 100.0
+var treesize = 400.0
+var sizesize = 100.0
 while(gl_frame() and gl_button("escape") != 1):
     gl_clear(color_white)
     gl_color(color_black)

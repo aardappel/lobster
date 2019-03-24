@@ -241,10 +241,8 @@ struct Lex : LoadedFile {
 
             case ':':
                 cont = true;
-                secondb('=', T_DEF, second('=', T_DEFCONST));
                 if (*p == ':') {
                     p++;
-                    second('=', T_DEFTYPEIN);
                     return T_TYPEIN;
                 };
                 cont = false;
@@ -481,6 +479,10 @@ struct Lex : LoadedFile {
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
         //LOG_DEBUG(err);
         THROW_OR_ABORT(err);
+    }
+
+    void Warn(string_view msg, const Line *ln = nullptr) {
+        LOG_WARN(Location(ln ? *ln : *this) + ": warning: " + msg);
     }
 };
 

@@ -1,6 +1,12 @@
+include testing
+
 // This includes all tests in default run-once mode, as a simple unit test.
 
 //trace_bytecode(true, false)
+
+current_test_runner = def(name:string, t:testf):
+    print "testing: " + name
+    t()
 
 include structtest
 include misctest

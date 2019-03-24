@@ -20,9 +20,9 @@ class Thingy:
     fruits = ["apple", "banana", "pear"]
     others:[Thingy]
 
-d := Thingy { map(3): Thingy { [] } }
-demo := false
-foo := "bar"  // Will show up in debug view.
+var d = Thingy { map(3): Thingy { [] } }
+var demo = false
+let foo = "bar"  // Will show up in debug view.
 
 while gl_frame():
     gl_clear(color_grey)

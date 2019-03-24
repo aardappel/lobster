@@ -5,7 +5,7 @@ include color
 include texture
 include util3d
 
-vrmode := vr_init()
+let vrmode = vr_init()
 
 fatal(gl_window(if vrmode: "VR Test" else: "No VR device", 1280, 640, false, vrmode, 16 /*samples*/))
 
@@ -16,8 +16,8 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
         mg_translate(xyz_z * branchl):
             mg_tapered_cylinder(1, narrowf, branchl)
             mg_translate(xyz_z * branchl):
-                axis := sincos(rnd(360))
-                branches := rnd(3) + 1
+                let axis = sincos(rnd(360))
+                let branches = rnd(3) + 1
                 for(branches) i:
                     mg_rotate(xyz_z, 360 * i / branches):
                         mg_rotate(xyz(axis, 0), 12 * branches):
@@ -31,20 +31,20 @@ def model_tree(numb, branchl, narrowf, leafs, leafc):
 mg_smooth(0.5)
 mg_color(color { 0.7, 0.6, 0.5, 1.0 })
 model_tree(10, 1.5, 0.75, 12, color { 0.6, 1.0, 0.6, 1.0 })
-tree := mg_polygonize(50)
+let tree = mg_polygonize(50)
 
 mg_smooth(0.0)
 mg_color(color_red)
 mg_sphere(1)
-sphere := mg_polygonize(3)
+let sphere = mg_polygonize(3)
 
 camera_position = xyz { 0.0, 0.0, 3.0 }
 camera_yaw = 135
 camera_pitch = 20
 
-balls := []::[xyz_f]
+let balls = []::[xyz_f]
 
-controller_meshes := map(10): nil
+let controller_meshes = map(10): nil
 
 def drawworld():
     gl_clear(color_grey)
@@ -71,8 +71,8 @@ def drawworld():
 while gl_frame():
     if gl_button("escape") == 1: return
 
-    znear := 0.1
-    zfar := 1000
+    let znear = 0.1
+    let zfar = 1000
     if vrmode:
         vr_start()
         for(2) e:
@@ -81,7 +81,7 @@ while gl_frame():
                 drawworld()
             for(vr_num_motion_controllers()) mc:
                 if vr_motioncontrollerstracking(mc):
-                    mcmesh := controller_meshes[mc]
+                    var mcmesh = controller_meshes[mc]
                     if !mcmesh:
                         // FIXME: sadly have to do this on the fly because at init controllers and
                         // meshes are not available for some reason.
@@ -94,8 +94,8 @@ while gl_frame():
         vr_finish()
         for(2) mc:
             if vr_motion_controller_button(mc, "trigger") == 1:
-                pos := to_z_up(vr_motion_controller_vec(mc, 3))
-                dir := to_z_up(vr_motion_controller_vec(mc, 2))
+                let pos = to_z_up(vr_motion_controller_vec(mc, 3))
+                let dir = to_z_up(vr_motion_controller_vec(mc, 2))
                 balls.push([ pos, -dir ])
         // Render the two eye textures to the non-VR window for feedback:
         gl_clear(color_black)

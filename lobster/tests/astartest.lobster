@@ -3,7 +3,7 @@ include astar
 
 run_test("astar"):
 
-    initworld := [
+    let initworld = [
         ".................................",
         "................S................",
         "........#..............#.........",
@@ -18,7 +18,7 @@ run_test("astar"):
         "................................."
     ]
 
-    expected_result := [
+    let expected_result = [
         "......OXXXXXXXXXXXXXXXXXXXO......",
         ".....OXPPPPPPPPPPXXXXXXXXXXO.....",
         ".....OXP#XXXXXXXXXXXXXX#XXXO.....",
@@ -37,18 +37,18 @@ run_test("astar"):
         path:int
         c:int
 
-    worldsize := xy { initworld[0].length, initworld.length }
+    let worldsize = xy { initworld[0].length, initworld.length }
 
-    startpos := xy_0i
-    endpos := xy_0i
+    var startpos = xy_0i
+    var endpos = xy_0i
 
-    world := worldsize.y.map() y: worldsize.x.map() x:
-        c := initworld[y][x]
+    let world = worldsize.y.map() y: worldsize.x.map() x:
+        let c = initworld[y][x]
         if c == 'S': startpos = xy { x, y }
         if c == 'E': endpos   = xy { x, y }
         pathingcell { xy { x, y }, false, c }
 
-    path :=
+    let path =
         astar_2dgrid(false, worldsize, world[startpos], world[endpos], def(): world[_]) (n, nn::pathingcell):
             (c == '#' and -1) or (c == '/' and 5) or 1
 
@@ -57,7 +57,7 @@ run_test("astar"):
     for(path) n:
         n.path = true
 
-    astar_result := map(world) row: fold(row, "") accum, n:
+    let astar_result = map(world) row: fold(row, "") accum, n:
         accum + ((n.path   and "P") or
                  (n.closed and "X") or
                  (n.open   and "O") or

@@ -48,7 +48,6 @@ namespace lobster {
     TOK(T_ASR, ">>") \
     TOK(T_ASSIGN, "=") \
     TOK(T_LOGASSIGN, "?=") \
-    TOK(T_DEF, ":=") \
     TOK(T_DOT, ".") \
     TOK(T_DOTDOT, "..") \
     TOK(T_CODOT, "->") \
@@ -80,8 +79,6 @@ namespace lobster {
     TOK(T_QUESTIONMARK, "?") \
     TOK(T_COMMA, ",") \
     TOK(T_COLON, ":") \
-    TOK(T_DEFCONST, ":==") \
-    TOK(T_DEFTYPEIN, "::=") \
     TOK(T_TYPEIN, "::") \
     TOK(T_STRUCT, "struct") \
     TOK(T_INCLUDE, "include") \

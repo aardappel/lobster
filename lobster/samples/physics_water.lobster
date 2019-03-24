@@ -8,22 +8,22 @@ include physics
 
 fatal(gl_window("Physics demo : water", 1024, 768))
 
-worldsize :== xy { 60.0, 40.0 }
+let worldsize = xy { 60.0, 40.0 }
 
 ph_initialize(xy { 0.0, -10.0 })
 ph_initialize_particles(0.15)
 ph_set_shader(nil, "color_attr_particle")
 
-floor := ph_create_box(xy {   0.0, 1.0 }, xy { 20.0, 1.0 })
-wall1 := ph_create_box(xy { -20.0, 7.0 }, xy {  1.0, 7.0 })
-wall2 := ph_create_box(xy {  20.0, 7.0 }, xy {  1.0, 7.0 })
+let floor = ph_create_box(xy {   0.0, 1.0 }, xy { 20.0, 1.0 })
+let wall1 = ph_create_box(xy { -20.0, 7.0 }, xy {  1.0, 7.0 })
+let wall2 = ph_create_box(xy {  20.0, 7.0 }, xy {  1.0, 7.0 })
 
 floor.ph_set_color(color_grey)
 wall1.ph_set_color(color_grey)
 wall2.ph_set_color(color_grey)
 
-boxes := map 5:
-    b := ph_create_box(xy { 0.0, 10.0 + _ * 3.0 }, xy { 1.0, 1.0 })
+let boxes = map 5:
+    let b = ph_create_box(xy { 0.0, 10.0 + _ * 3.0 }, xy { 1.0, 1.0 })
     b.ph_dynamic(true)
     b
 

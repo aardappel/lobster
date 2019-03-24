@@ -377,9 +377,8 @@ struct MultipleReturn : List {
 };
 
 struct AssignList : List {
-    AssignList(const Line &ln, Node *lhs, Node *rhs) : List(ln) {
-        children.push_back(lhs);
-        children.push_back(rhs);
+    AssignList(const Line &ln, Node *a) : List(ln) {
+        children.push_back(a);
     }
     void Dump(ostringstream &ss) const {
         for (auto e : children) ss << e << " ";
@@ -388,15 +387,15 @@ struct AssignList : List {
 };
 
 struct Define : Unary {
-    vector<SpecIdent *> sids;
-    TypeRef giventype;
-    Define(const Line &ln, SpecIdent *sid, Node *_a, TypeRef gt)
-        : Unary(ln, _a), giventype(gt) { if (sid) sids.push_back(sid); }
+    vector<pair<SpecIdent *, TypeRef>> sids;
+    Define(const Line &ln, SpecIdent *sid, Node *_a) : Unary(ln, _a) {
+        if (sid) sids.push_back({ sid, nullptr });
+    }
     void Dump(ostringstream &ss) const {
-        for (auto sid : sids) ss << sid->id->name << " ";
+        for (auto p : sids) ss << p.first->id->name << " ";
         ss << Name();
     }
-    SHARED_SIGNATURE(Define, TName(T_DEF), true)
+    SHARED_SIGNATURE(Define, "var", true)
 };
 
 struct Dot : GenericCall {

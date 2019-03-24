@@ -1,0 +1,208 @@
+===== Crash Log =====
+Date: 2019-03-20, Time: 19:42:38
+CMD: C:\w\lobster\lobster\lobster.exe --compile-only --silent C:\w\lobster\projects\zombietele.lobster 
+ExpCode: 0x80000003, ExpFlags: 0, ExpAddress: 0x9BC5C355
+SymInit: Symbol-SearchPath: '.;C:\w\lobster\dev\lobster;C:\w\lobster\lobster;C:\WINDOWS;C:\WINDOWS\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'woute'
+OS-Version: 6.2.9200 () 0x100-0x1
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (28): issue_debug_notification
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (154): __acrt_report_runtime_error
+minkernel\crts\ucrt\src\appcrt\startup\abort.cpp (61): abort
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (161): common_assert_to_stderr_direct
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (179): common_assert_to_stderr<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (420): common_assert<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (444): _wassert
+c:\w\lobster\dev\src\lobster\tools.h (753): AssertIs<lobster::IdentRef,lobster::Node>
+c:\w\lobster\dev\src\lobster\typecheck.h (1489): lobster::TypeChecker::AdjustLifetime
+c:\w\lobster\dev\src\lobster\typecheck.h (1565): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1917): lobster::AssignList::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1766): lobster::For::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1132): lobster::TypeChecker::TypeCheckBranch
+c:\w\lobster\dev\src\lobster\typecheck.h (1744): lobster::While::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (2457): lobster::Return::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (100): lobster::TypeChecker::TypeChecker
+c:\w\lobster\dev\src\compiler.cpp (308): lobster::Compile
+c:\w\lobster\dev\src\main.cpp (143): SDL_main
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (127): main_utf8
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (159): main_getcmdline
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (172): main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (79): invoke_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (288): __scrt_common_main_seh
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (331): __scrt_common_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp (17): mainCRTStartup
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE349181F4)
+00007FFE349181F4 (KERNEL32): (filename not available): BaseThreadInitThunk
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE36B4A251)
+00007FFE36B4A251 (ntdll): (filename not available): RtlUserThreadStart
+
+===== Crash Log =====
+Date: 2019-03-20, Time: 19:42:46
+CMD: C:\w\lobster\lobster\lobster.exe --compile-only --silent C:\w\lobster\lobster\samples\demos\dirbrowse.lobster 
+ExpCode: 0x80000003, ExpFlags: 0, ExpAddress: 0x9BC5C355
+SymInit: Symbol-SearchPath: '.;C:\w\lobster\dev\lobster;C:\w\lobster\lobster;C:\WINDOWS;C:\WINDOWS\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'woute'
+OS-Version: 6.2.9200 () 0x100-0x1
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (28): issue_debug_notification
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (154): __acrt_report_runtime_error
+minkernel\crts\ucrt\src\appcrt\startup\abort.cpp (61): abort
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (161): common_assert_to_stderr_direct
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (179): common_assert_to_stderr<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (420): common_assert<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (444): _wassert
+c:\w\lobster\dev\src\lobster\tools.h (753): AssertIs<lobster::IdentRef,lobster::Node>
+c:\w\lobster\dev\src\lobster\typecheck.h (1489): lobster::TypeChecker::AdjustLifetime
+c:\w\lobster\dev\src\lobster\typecheck.h (1565): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1917): lobster::AssignList::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (2457): lobster::Return::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (100): lobster::TypeChecker::TypeChecker
+c:\w\lobster\dev\src\compiler.cpp (308): lobster::Compile
+c:\w\lobster\dev\src\main.cpp (143): SDL_main
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (127): main_utf8
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (159): main_getcmdline
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (172): main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (79): invoke_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (288): __scrt_common_main_seh
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (331): __scrt_common_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp (17): mainCRTStartup
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE349181F4)
+00007FFE349181F4 (KERNEL32): (filename not available): BaseThreadInitThunk
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE36B4A251)
+00007FFE36B4A251 (ntdll): (filename not available): RtlUserThreadStart
+
+===== Crash Log =====
+Date: 2019-03-20, Time: 19:42:51
+CMD: C:\w\lobster\lobster\lobster.exe --compile-only --silent C:\w\lobster\lobster\samples\eulerspiral.lobster 
+ExpCode: 0x80000003, ExpFlags: 0, ExpAddress: 0x9BC5C355
+SymInit: Symbol-SearchPath: '.;C:\w\lobster\dev\lobster;C:\w\lobster\lobster;C:\WINDOWS;C:\WINDOWS\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'woute'
+OS-Version: 6.2.9200 () 0x100-0x1
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (28): issue_debug_notification
+minkernel\crts\ucrt\src\appcrt\internal\report_runtime_error.cpp (154): __acrt_report_runtime_error
+minkernel\crts\ucrt\src\appcrt\startup\abort.cpp (61): abort
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (161): common_assert_to_stderr_direct
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (179): common_assert_to_stderr<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (420): common_assert<wchar_t>
+minkernel\crts\ucrt\src\appcrt\startup\assert.cpp (444): _wassert
+c:\w\lobster\dev\src\lobster\tools.h (753): AssertIs<lobster::IdentRef,lobster::Node>
+c:\w\lobster\dev\src\lobster\typecheck.h (1489): lobster::TypeChecker::AdjustLifetime
+c:\w\lobster\dev\src\lobster\typecheck.h (1565): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1917): lobster::AssignList::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (2457): lobster::Return::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1132): lobster::TypeChecker::TypeCheckBranch
+c:\w\lobster\dev\src\lobster\typecheck.h (1725): lobster::If::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1883): lobster::Define::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1132): lobster::TypeChecker::TypeCheckBranch
+c:\w\lobster\dev\src\lobster\typecheck.h (1744): lobster::While::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (2457): lobster::Return::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (1397): lobster::TypeChecker::TypeCheckList
+c:\w\lobster\dev\src\lobster\typecheck.h (672): lobster::TypeChecker::TypeCheckFunctionDef
+c:\w\lobster\dev\src\lobster\typecheck.h (807): lobster::TypeChecker::TypeCheckMatchingCall
+c:\w\lobster\dev\src\lobster\typecheck.h (1047): lobster::TypeChecker::TypeCheckCall
+c:\w\lobster\dev\src\lobster\typecheck.h (2403): lobster::Call::TypeCheckSpecialized
+c:\w\lobster\dev\src\lobster\typecheck.h (2190): lobster::GenericCall::TypeCheck
+c:\w\lobster\dev\src\lobster\typecheck.h (1532): lobster::TypeChecker::TT
+c:\w\lobster\dev\src\lobster\typecheck.h (100): lobster::TypeChecker::TypeChecker
+c:\w\lobster\dev\src\compiler.cpp (308): lobster::Compile
+c:\w\lobster\dev\src\main.cpp (143): SDL_main
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (127): main_utf8
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (159): main_getcmdline
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (172): main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (79): invoke_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (288): __scrt_common_main_seh
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (331): __scrt_common_main
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_main.cpp (17): mainCRTStartup
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE349181F4)
+00007FFE349181F4 (KERNEL32): (filename not available): BaseThreadInitThunk
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE36B4A251)
+00007FFE36B4A251 (ntdll): (filename not available): RtlUserThreadStart
+
+===== Crash Log =====
+Date: 2019-03-24, Time: 20:27:32
+CMD: lobster\lobster.exe c:\w\lobster\lobster\samples\vrtest.lobster 
+ExpCode: 0xC06D007E, ExpFlags: 0, ExpAddress: 0x32F89149
+SymInit: Symbol-SearchPath: '.;c:\w\lobster;c:\w\lobster\lobster;C:\WINDOWS;C:\WINDOWS\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'woute'
+OS-Version: 6.2.9200 () 0x100-0x1
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE32F89149)
+00007FFE32F89149 (KERNELBASE): (filename not available): RaiseException
+d:\agent\_work\3\s\src\vctools\delayimp\delayhlp.cpp (323): __delayLoadHelper2
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FF68A5F8CC1)
+00007FF68A5F8CC1 (lobster): (filename not available): _tailMerge_openvr_api_dll
+c:\w\lobster\dev\src\glvr.cpp (94): VRInit
+c:\w\lobster\dev\src\glvr.cpp (285): <lambda_3d205d2193cbc18126e0aee2c8ec9d7a>::<lambda_invoker_cdecl>
+c:\w\lobster\dev\src\vm.cpp (1102): lobster::VM::F_BCALLRET0
+c:\w\lobster\dev\src\vm.cpp (838): lobster::VM::EvalProgramInner
+c:\w\lobster\dev\src\vm.cpp (764): lobster::VM::EvalProgram
+c:\w\lobster\dev\src\engine.cpp (93): EngineRunByteCode
+c:\w\lobster\dev\src\main.cpp (173): SDL_main
+c:\w\lobster\dev\external\sdl\src\main\windows\sdl_windows_main.c (162): main_getcmdline
+d:\agent\_work\3\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl (288): __scrt_common_main_seh
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE349181F4)
+00007FFE349181F4 (KERNEL32): (filename not available): BaseThreadInitThunk
+ERROR: SymGetLineFromAddr64, GetLastError: 487 (Address: 00007FFE36B4A251)
+00007FFE36B4A251 (ntdll): (filename not available): RtlUserThreadStart
+

@@ -5,8 +5,8 @@ include testing
 // Define a custom testrunner:
 // Just collect all tests so we can run them interleaved.
 class test { name:string, t:testf, runs:int, min:float }
-tests := []
-number_of_runs := 1
+var tests = []
+var number_of_runs = 1
 current_test_runner = def(name:string, t:testf):
     tests.push(test { name, t, number_of_runs, 999999.9 })
 
@@ -58,15 +58,15 @@ include smallpttest
 
 // We interleave all tests, and take the min of all meta runs, to eliminate variance as best as
 // possible.
-meta_runs :== 17
-total_time_taken := 0.0
+let meta_runs = 17
+var total_time_taken = 0.0
 for meta_runs:
     for(tests) t:
-        starttime := seconds_elapsed()
+        var starttime = seconds_elapsed()
         for t.runs:
-            f := t.t
+            var f = t.t
             f()
-        time_taken := seconds_elapsed() - starttime
+        var time_taken = seconds_elapsed() - starttime
         t.min = min(t.min, time_taken)
 for(tests) t:
     total_time_taken += meta_runs * t.min

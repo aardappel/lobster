@@ -7,9 +7,9 @@ include util3d
 
 fatal(gl_window("My Lobster OpenGL window!", 1280, 1024))
 
-iqmtest := check(gl_new_mesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
+let iqmtest = check(gl_new_mesh_iqm("models/mrfixit.iqm"), "can\'t load model!")
 
-textures := map(gl_mesh_parts(iqmtest)) name, i:
+let textures = map(gl_mesh_parts(iqmtest)) name, i:
     check(gl_load_texture("models/" + name + ".png"), "problem loading " + name)
 
 for(textures) tex, i: gl_set_mesh_texture(iqmtest, i, 0, tex)
@@ -25,7 +25,7 @@ while gl_frame():
     gl_cursor(0)
     gl_perspective(70, 0.1, 1000)
 
-    speed := 10
+    var speed = 10
     if gl_button("left shift") >= 1: speed = 50
     camera_FPS_update("w", "a", "s", "d", speed, 4, true)
     if gl_button("space") >= 1: camera_direction(xyz_1 * 10 - camera_position)

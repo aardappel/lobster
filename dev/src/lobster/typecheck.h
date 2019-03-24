@@ -199,8 +199,8 @@ struct TypeChecker {
             err += SignatureWithFreeVars(*scope.sf, &already_seen);
             for (auto dl : scope.sf->body->children) {
                 if (auto def = Is<Define>(dl)) {
-                    for (auto sid : def->sids) {
-                        err += ", " + sid->id->name + ":" + TypeName(sid->type);
+                    for (auto p : def->sids) {
+                        err += ", " + p.first->id->name + ":" + TypeName(p.first->type);
                     }
                 }
             }
@@ -1486,6 +1486,7 @@ struct TypeChecker {
             assert (n->lt != LT_MULTIPLE || rt->t == V_TUPLE);
             auto givenlt = rt->GetLifetime(i, n->lt);
             auto given = LifetimeType(givenlt);
+            // FIXME: what if idents contains Dot objects?
             if (idents) recip = AssertIs<IdentRef>((*idents)[i])->sid->lt;  // FIXME: overwrite var?
             recip = LifetimeType(recip);
             if (given != recip) {
@@ -1865,13 +1866,13 @@ Node *CoDot::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
-    for (auto &sid : sids) {
-        tc.UpdateCurrentSid(sid);
+    for (auto &p : sids) {
+        tc.UpdateCurrentSid(p.first);
         // We have to set these here just in case the init exp is a function/coroutine call that
         // tries use/assign this variable, type_undefined will force that to be an error.
         // TODO: could make this a specialized error, but probably not worth it because it is rare.
-        sid->type = type_undefined;
-        sid->lt = LT_UNDEF;
+        p.first->type = type_undefined;
+        p.first->lt = LT_UNDEF;
     }
     // We default to LT_KEEP here.
     // There are case where we could allow borrow, but in practise this runs into trouble easily:
@@ -1880,15 +1881,16 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     // - old := cur cases, where old is meant to hang on to the previous value as cur gets updated,
     //   which then runs into borrowing errors.
     tc.TT(child, sids.size(), LT_KEEP);
-    for (auto [i, sid] : enumerate(sids)) {
+    for (auto [i, p] : enumerate(sids)) {
         auto var = TypeLT(*child, i);
-        if (!giventype.Null()) {
-            var.type = giventype;
+        if (!p.second.Null()) {
+            var.type = p.second;
             // Have to subtype the initializer value, as that node may contain
             // unbound vars (a:[int] = []) or values that that need to be coerced
             // (a:float = 1)
             tc.SubType(child, var.type, "initializer", "definition");
         }
+        auto sid = p.first;
         sid->type = var.type;
         tc.StorageType(var.type, *this);
         sid->type = var.type;

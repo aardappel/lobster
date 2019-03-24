@@ -107,7 +107,7 @@ these cannot be accessed (e.g. dereferenced) unless they are first converted to
 their underlying type:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-a := nil      // a is a nilable of unknown type
+var a = nil      // a is a nilable of unknown type
 if ..:
     a = "foo" // a is a nilable string
 a += "bar"    // error: + not defined for nil
@@ -175,7 +175,7 @@ scope.
 Assignment can work similar to conditionals:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-a := nil
+var a = nil
 if ..: a = xyz_0
 a.x        // error
 a = xyz_0  // a is guaranteed non-nil below

@@ -14,11 +14,11 @@ gl_set_font_size(100)
 // for(filter(map(10000): gl_get_glyph_name(_)): _.length): print _
 
 // pick some icons we like:
-names := [ "cactus", "ghost", "hydra", "leg-armor", "lever", "lion", "linden-leaf", "mac-10",
-           "monkey", "poison-bottle", "refinery", "rose", "shambling-zombie" ]
+let names = [ "cactus", "ghost", "hydra", "leg-armor", "lever", "lion", "linden-leaf", "mac-10",
+              "monkey", "poison-bottle", "refinery", "rose", "shambling-zombie" ]
 
-indices := map(names) name: assert gl_get_char_code(name)
-str := unicode_to_string(indices)
+let indices = map(names) name: assert gl_get_char_code(name)
+let str = unicode_to_string(indices)
 
 while gl_frame():
     gl_clear(color_black)

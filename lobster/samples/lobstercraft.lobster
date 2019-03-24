@@ -10,30 +10,30 @@ include color
 include texture
 include util3d
 
-lssize := 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
-inventory := []::int // blocks we've mined
+let lssize = 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
+let inventory = []::int // blocks we've mined
 camera_position = xyz_1 * lssize / 2
 camera_yaw = 45
 
 def inside(v): return all(v > 0) and all(v < lssize - 1)    // keep the outer blocks empty for simplicity
 
-cells := map(lssize) z:
+let cells = map(lssize) z:
             map(lssize) y:
                 map(lssize) x:
-                    v := xyz { x, y, z }
-                    h := simplex(float(v) / lssize + 11, 6, 1, 0.55)   // generate blocks using noise
+                    let v = xyz { x, y, z }
+                    let h = simplex(float(v) / lssize + 11, 6, 1, 0.55)   // generate blocks using noise
                     // more likely to be solid the lower it is, and only when not on the outside:
-                    solid := h / 1.5 > div(z, lssize) - 0.5 and inside(v)
+                    var solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
                     // pick material with noise too:
                     if solid: solid = int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
                     solid
 
-colors := [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
-nbdirs := [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
+let colors = [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
+let nbdirs = [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
 
 fatal(gl_window("LobsterCraft(tm)", 800, 600))
 
-nbpolys := map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
+let nbpolys = map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
     gl_new_poly(map(s) c: xyz_v(map(3) i: float(c & (1 << (2 - i)) != 0)))
 
 while gl_frame():
@@ -48,18 +48,18 @@ while gl_frame():
     gl_set_shader("phong")
     for(cells) zl, z: for(zl) yl, y: for(yl) e, x:  // for all cells in the world
         if e:  // if this cell is solid
-            v := xyz { x, y, z }
+            let v = xyz { x, y, z }
             for(nbdirs) nv, i:
                 if(!cells[nv + v]):  // and neighbor is empty
                     // we do this here rather than outside the loop (there's less visible faces than total solid cubes)
                     gl_color(colors[e - 1])
                     gl_translate float(v):
                         gl_render_mesh(nbpolys[i])  // draw face
-    first_solid := xyz_1i * -1 // find the first solid and last empty block we're looking at
-    last_empty := xyz_1i * -1
-    camvec := camera_forward_vector()
+    var first_solid = xyz_1i * -1 // find the first solid and last empty block we're looking at
+    var last_empty = xyz_1i * -1
+    let camvec = camera_forward_vector()
     for(100) i:  // look at most 10 cubes ahead
-        pos := int(camera_position + camvec * (i / 10.0))
+        let pos = int(camera_position + camvec * (i / 10.0))
         if inside(pos) and first_solid.x < 0:
             if cells[pos]: first_solid = pos
             else: last_empty = pos
@@ -71,7 +71,7 @@ while gl_frame():
         cells[first_solid] = 0
     gl_set_shader("color")
     gl_blend(blend_alpha)
-    wh := 11.7  // let's add some water!
+    let wh = 11.7  // let's add some water!
     gl_color(color { 0.5, 0.5, 1.0, 0.5 })
     gl_polygon([ xyz { 1.0, 1.0, wh }, xyz { 1.0, lssize - 1.0, wh },
                  xyz { lssize - 1.0, lssize - 1.0, wh }, xyz {lssize - 1.0, 1.0, wh } ])

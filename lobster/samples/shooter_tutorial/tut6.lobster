@@ -6,30 +6,30 @@ fatal(gl_window("Shooter Tutorial", 640, 480))
 
 check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
 
-worldsize :== 20.0
+let worldsize = 20.0
 
-playerpos := xy_0
-playerspeed :== 10
-playerhealth := 0.0
+var playerpos = xy_0
+let playerspeed = 10
+var playerhealth = 0.0
 
 class bullet { pos:xy_f, dir:xy_f }
 
-firerate :== 0.1
-bulletspeed :== 15
-bullets := []
-lastbullet := gl_time()
+let firerate = 0.1
+let bulletspeed = 15
+var bullets = []
+var lastbullet = gl_time()
 
 class enemy { pos:xy_f, hp:int }
 
-enemyrate := 1.0
-enemyspeed :== 3
-enemymaxhp :== 5
-enemies := []
-lastenemy := gl_time()
+var enemyrate = 1.0
+let enemyspeed = 3
+let enemymaxhp = 5
+var enemies = []
+var lastenemy = gl_time()
 
-score := 0
-highscore := 0
-playing := false
+var score = 0
+var highscore = 0
+var playing = false
 
 def renderpointytriangle(pos, dir):
     gl_translate pos:
@@ -42,16 +42,16 @@ while gl_frame() and gl_button("escape") != 1:
 
     if playing:
         gl_translate float(gl_window_size()) / 2.0:
-            scale := gl_window_size().y / worldsize
+            let scale = gl_window_size().y / worldsize
             gl_scale(scale)
 
-            dir := xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
+            let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
                           (gl_button("s") >= 1) - (gl_button("w") >= 1) }
-            newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+            let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
             if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
                 playerpos = newpos
 
-            tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
+            let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
 
             if lastenemy < gl_time():
                 enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
@@ -63,8 +63,8 @@ while gl_frame() and gl_button("escape") != 1:
                 lastbullet += firerate
 
             for(enemies) e:
-                playervec := playerpos - e.pos
-                playerdir := normalize(playervec)
+                let playervec = playerpos - e.pos
+                let playerdir = normalize(playervec)
                 e.pos += playerdir * gl_delta_time() * enemyspeed
                 for(bullets) b:
                     if magnitude(b.pos - e.pos) < 1:
@@ -100,7 +100,7 @@ while gl_frame() and gl_button("escape") != 1:
 
             renderpointytriangle(playerpos, tomouse)
     else:
-        msg := "press space to play!"
+        let msg = "press space to play!"
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button("space") == 1:

@@ -7,10 +7,10 @@ include vec
 include color
 include texture
 
-camera_position := xyz_0
-camera_yaw := 0.0
-camera_pitch := 0.0
-camera_velocity := xyz_0
+var camera_position = xyz_0
+var camera_yaw = 0.0
+var camera_pitch = 0.0
+var camera_velocity = xyz_0
 
 def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mousesens:float, dopitch):
     camera_yaw -= gl_mouse_delta(0).x / mousesens
@@ -18,11 +18,11 @@ def camera_FPS_update(upkey, leftkey, downkey, rightkey, movementspeed:float, mo
         camera_pitch -= gl_mouse_delta(0).y / mousesens
         camera_pitch = min(85.0, max(-85.0, camera_pitch))
 
-    move   := (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
-    strafe := (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
-    friction :== 20
-    velspeed := min(1.0, friction * gl_delta_time())
-    dir := vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
+    let move   = (gl_button(upkey) >= 1) - (gl_button(downkey) >= 1)
+    let strafe = (gl_button(rightkey) >= 1) - (gl_button(leftkey) >= 1)
+    let friction = 20
+    let velspeed = min(1.0, friction * gl_delta_time())
+    let dir = vecfromyawpitch(camera_yaw, camera_pitch, move, strafe)
     camera_velocity = lerp(camera_velocity, dir, velspeed)
     camera_position += camera_velocity * gl_delta_time() * movementspeed
 
@@ -53,12 +53,12 @@ def camera_direction(v):
     camera_pitch = asin(v.z)
 
 def camera_2d_worldspace(size:xy_f, origin:xy_f, scale:xy_f):
-    ws := float(gl_window_size())
+    let ws = float(gl_window_size())
     gl_translate(ws * origin)
-    sc := ws / size
+    let sc = ws / size
     gl_scale(scale * min(sc))
 
-private delta_time_log :== map(60): 1 / 30.0
+private let delta_time_log = map(60): 1 / 30.0
 def gl_deltatime_over_time():
     delta_time_log.push(gl_delta_time())
     delta_time_log.remove(0)
@@ -84,7 +84,7 @@ def create_depth_texture(tex, size):
 
 // Same, but processes a source texture. Takes size from that texture.
 def render_to_texture_from(tex, shader, srctex):
-    texture_format :== texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
+    let texture_format = texture_format_clamp | texture_format_nomipmap | texture_format_nearest_mag
     return render_to_texture(tex, gl_texture_size(srctex), false, nil, texture_format):
         gl_set_primitive_texture(0, srctex)
         gl_set_shader(shader)
@@ -92,7 +92,7 @@ def render_to_texture_from(tex, shader, srctex):
 
 // Same but renders to the screen.
 def post_process(tex, size, shader, depth, f):
-    texture_format :== texture_format_clamp | texture_format_nomipmap
+    let texture_format = texture_format_clamp | texture_format_nomipmap
     tex = render_to_texture(tex, size, depth, nil, texture_format, f)
     gl_set_primitive_texture(0, tex, texture_format)
     gl_set_shader(shader)

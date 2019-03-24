@@ -22,7 +22,7 @@ def ints(start, end, f):
 
 // Generic way to only consume n values out of a lazy generator.
 def take(n, gen):
-    i := 0
+    var i = 0
     gen() f:
         // This returns from take (and thus terminates all generators in between), which is not
         // possible in most languages.
@@ -70,7 +70,7 @@ py_triples(100) t:
 */
 
 // Oh, want more magic? How about the above as a co-routine?
-c := coroutine py_triples(100)
+let c = coroutine py_triples(100)
 while c.active:
     print c.return_value
     c.resume

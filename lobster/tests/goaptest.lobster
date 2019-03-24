@@ -5,7 +5,7 @@ run_test("goap"):
 
     enum wolves, skins, money, flour, bread, pizza, hungry
 
-    goapactions := [
+    let goapactions = [
         goapaction { "kill wolf",  def(s): s[wolves] >= 1, def(s): s[wolves]--;   s[skins]++ },
         goapaction { "sell skin",  def(s): s[skins]  >= 1, def(s): s[money] += 2; s[skins]-- },
         goapaction { "buy pizza",  def(s): s[money]  >= 2, def(s): s[money] -= 2; s[pizza]++ },
@@ -18,7 +18,7 @@ run_test("goap"):
         }
     ]
 
-    goap_path :=
+    let goap_path =
         astar_goap(goapactions, [ 3, 0, 0, 0, 0, 0, 2 ]) state:
             state[hungry]
         endcondition s:

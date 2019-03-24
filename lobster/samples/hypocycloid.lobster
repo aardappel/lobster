@@ -10,8 +10,8 @@ while gl_frame():
     gl_clear(color_black)
     gl_translate(float(gl_window_size()) / 2.0)
     gl_scale(gl_window_size().y / 4.0)
-    scalechange := sin(gl_time() * 50) * 0.2
-    pts := map(360 * 4 + 1) a:
+    let scalechange = sin(gl_time() * 50) * 0.2
+    let pts = map(360 * 4 + 1) a:
         fold(5, xy_0) p, i:
             p + sincos(a / 4.0 * pow(3, i)) * pow(0.4 + scalechange, i)
     gl_line_mode 1:

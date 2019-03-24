@@ -4,7 +4,7 @@ include vec
 include color
 
 def branch(n, max, scale, len):
-    poly := [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]
+    let poly = [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]
     gl_color(color { n / max, 0.8, n / max, 1 })
     gl_polygon(poly)
     gl_color(color { 0.3, 0.1, 0, 0.7 })

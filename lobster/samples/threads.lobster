@@ -7,15 +7,15 @@ def fib(n:int) -> int:
     return if n <= 1: n else: fib(n - 1) + fib(n - 2)
 
 def time(name, f):
-    start := seconds_elapsed()
+    let start = seconds_elapsed()
     f()
     print name + " took: " + (seconds_elapsed() - start)
 
 if not is_worker_thread():
-    hwthreads, hwcores := thread_information()
+    let hwthreads, hwcores = thread_information()
     print "running on " + hwthreads + " hardware threads and " + hwcores + " cores"
-    fibn :== 30
-    fibr :== 832040
+    let fibn = 30
+    let fibr = 832040
     time("single thread fib " + fibn): assert fib(fibn) == fibr
     // Let's launch some threads!
     start_worker_threads(hwthreads)
@@ -24,10 +24,10 @@ if not is_worker_thread():
         for(hwthreads): thread_write(fib_request { fibn })
         // And wait for the responses.
         for(hwthreads):
-            r := thread_read(typeof fib_response)
+            let r = thread_read(typeof fib_response)
             assert r && r.fr == fibr
 else:
     // We're a worker.. process jobs.
     while workers_alive():
-        r := thread_read(typeof fib_request)
+        let r = thread_read(typeof fib_request)
         if r: thread_write(fib_response { fib(r.n) })

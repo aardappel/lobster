@@ -14,7 +14,7 @@ let TILE_CLOSED_DOOR = '+'
 let TILE_PLAYER      = '@'
 
 let fsize = xy { 80, 40 }
-var field = mapxy(fsize): TILE_VOID
+let field = mapxy(fsize): TILE_VOID
 
 def cave(with_player):
     // csize/start are all inner dimensions/coordinates (w/o walls)

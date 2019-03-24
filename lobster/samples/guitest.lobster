@@ -4,17 +4,17 @@ fatal(gl_window("gui test", 960, 640))
 check(gl_set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")
 //check(gl_set_font_name("C:\\Windows\\Fonts\\arialuni.ttf"), "can\'t load font!")
 
-ghosttex := gl_load_texture("data/textures/lobster.jpg")
+let ghosttex = gl_load_texture("data/textures/lobster.jpg")
 assert ghosttex
 
-clicked := false
-focused := false
+var clicked = false
+var focused = false
 
 while gl_frame():
     if gl_button("escape") == 1:
         return
 
-    fontsize := gl_window_size().y / 10
+    let fontsize = gl_window_size().y / 10
     gl_set_font_size(fontsize, fontsize / 40.0)
     //gl_set_max_font_size(512)
 

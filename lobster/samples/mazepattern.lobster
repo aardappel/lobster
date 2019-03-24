@@ -20,7 +20,7 @@ while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_black)
     rnd_seed(0)
-    scale := gl_window_size().y / 25
+    let scale = gl_window_size().y / 25
     gl_scale(scale)
     forxy(gl_window_size() / scale + 1) v:
         gl_translate float(v):

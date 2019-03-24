@@ -803,17 +803,18 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
 void Define::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, sids.size());
     for (int i = (int)sids.size() - 1; i >= 0; i--) {
-        if (sids[i]->id->logvar)
-            cg.Emit(IL_LOGREAD, sids[i]->logvaridx);
+        auto sid = sids[i].first;
+        if (sid->id->logvar)
+            cg.Emit(IL_LOGREAD, sid->logvaridx);
         cg.TakeTemp(1, true);
         // FIXME: Sadly, even though FunIntro now guarantees that variables start as V_NIL,
         // we still can't replace this with a WRITEDEF that doesn't have to decrement, since
         // loops with inlined bodies cause this def to be execute multiple times.
         // (also: multiple copies of the same inlined function in one parent).
         // We should emit a specialized opcode for these cases only.
-        cg.Emit(GENLVALOP(VAR, cg.AssignBaseOp({ *sids[i] })), sids[i]->Idx());
-        cg.GenStructIns(sids[i]->type);
-        cg.VarModified(sids[i]);
+        cg.Emit(GENLVALOP(VAR, cg.AssignBaseOp({ *sid })), sid->Idx());
+        cg.GenStructIns(sid->type);
+        cg.VarModified(sid);
     }
     assert(!retval);  // Parser guarantees this.
     (void)retval;
