@@ -16,6 +16,15 @@
 		3307DA4421098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
 		3307DA4521098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
 		3307DA4621098A8100B98515 /* idl_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3307DA3D21098A8100B98515 /* idl_parser.cpp */; };
+		332249F722482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
+		332249F822482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
+		332249F922482B13009BDE0E /* tocpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F422482B13009BDE0E /* tocpp.cpp */; };
+		332249FA22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
+		332249FB22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
+		332249FC22482B13009BDE0E /* towasm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F522482B13009BDE0E /* towasm.cpp */; };
+		332249FD22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
+		332249FE22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
+		332249FF22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
 		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -868,6 +877,9 @@
 		3307DA3C21098A8100B98515 /* idl_gen_text.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = idl_gen_text.cpp; path = ../../external/flatbuffers/src/idl_gen_text.cpp; sourceTree = "<group>"; };
 		3307DA3D21098A8100B98515 /* idl_parser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = idl_parser.cpp; path = ../../external/flatbuffers/src/idl_parser.cpp; sourceTree = "<group>"; };
 		331D9B66148BFD0300F1069A /* libfreetype.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreetype.a; path = ../../lib/libfreetype.a; sourceTree = "<group>"; };
+		332249F422482B13009BDE0E /* tocpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tocpp.cpp; sourceTree = "<group>"; };
+		332249F522482B13009BDE0E /* towasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = towasm.cpp; sourceTree = "<group>"; };
+		332249F622482B13009BDE0E /* tonative.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tonative.cpp; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3331457A17596EFD00D488CC /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -880,7 +892,6 @@
 		3342B79B1B2B4CE500FA2F0B /* compiler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler.cpp; sourceTree = "<group>"; };
 		3342B79E1B2B4CE500FA2F0B /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		3342B79F1B2B4CE500FA2F0B /* vm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vm.cpp; sourceTree = "<group>"; };
-		335BD085175BAE68002064AE /* pythtree.lobster */ = {isa = PBXFileReference; lastKnownFileType = text; name = pythtree.lobster; path = ../../../lobster/samples/pythtree.lobster; sourceTree = "<group>"; };
 		33632F5E1B5DD16B00550981 /* bytecode.fbs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = bytecode.fbs; sourceTree = "<group>"; };
 		3375EB0C20DDBD5F00EBAB26 /* engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = engine.cpp; sourceTree = "<group>"; };
 		3375EB0D20DDBD6000EBAB26 /* lobster */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lobster; sourceTree = "<group>"; };
@@ -960,7 +971,6 @@
 		3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-Portrait~ipad.png"; sourceTree = "<group>"; };
 		3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-Landscape@2x~ipad.png"; sourceTree = "<group>"; };
 		3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-Landscape~ipad.png"; sourceTree = "<group>"; };
-		339BBBEB175BE41300C6F3AB /* reach.lobster */ = {isa = PBXFileReference; lastKnownFileType = text; name = reach.lobster; path = ../../../lobster/samples/reach.lobster; sourceTree = "<group>"; };
 		33A3356E15DB262D0068ECA4 /* libSDL2hw.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2hw.a; path = ../../lib/ios/libSDL2hw.a; sourceTree = "<group>"; };
 		33A3356F15DB262E0068ECA4 /* libSDL2sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2sim.a; path = ../../lib/ios/libSDL2sim.a; sourceTree = "<group>"; };
 		33A3357615DB3D690068ECA4 /* TODO.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = TODO.txt; path = ../../TODO.txt; sourceTree = "<group>"; };
@@ -1479,29 +1489,43 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		3368FEB21488AA88008B38B6 = {
+		33224A0122482B83009BDE0E /* icons */ = {
+			isa = PBXGroup;
+			children = (
+				3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */,
+				3395E40A176689E600E06FCE /* Default-Portrait@2x~ipad.png */,
+				3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */,
+				3395E4081766894000E06FCE /* Default.png */,
+				3395E4031766888000E06FCE /* icon144.png */,
+				3395E4011766887900E06FCE /* icon72.png */,
+				3395E406176688F500E06FCE /* Default@2x.png */,
+				3395E3FB1766820000E06FCE /* Default-568h@2x.png */,
+				3395E3FF1766886B00E06FCE /* icon114.png */,
+				3395E3FD1766886400E06FCE /* icon57.png */,
+				3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */,
+			);
+			name = icons;
+			sourceTree = "<group>";
+		};
+		33224A0222482BB8009BDE0E /* FlatBuffers */ = {
 			isa = PBXGroup;
 			children = (
 				3307DA3C21098A8100B98515 /* idl_gen_text.cpp */,
 				3307DA3D21098A8100B98515 /* idl_parser.cpp */,
 				3307DA3B21098A8000B98515 /* util.cpp */,
+			);
+			name = FlatBuffers;
+			sourceTree = "<group>";
+		};
+		3368FEB21488AA88008B38B6 = {
+			isa = PBXGroup;
+			children = (
+				33224A0222482BB8009BDE0E /* FlatBuffers */,
 				33878C881F7B1FC8007BB196 /* SDLMixer */,
 				33DAC5581E5CC7250003767C /* include */,
 				33D15CC81BAB99F700BAD84D /* SDL */,
 				33D15C731BAB7C8E00BAD84D /* FreeType */,
-				3395E41017668A5400E06FCE /* Default-Landscape~ipad.png */,
-				3395E40E17668A4B00E06FCE /* Default-Landscape@2x~ipad.png */,
-				3395E40C17668A3E00E06FCE /* Default-Portrait~ipad.png */,
-				3395E40A176689E600E06FCE /* Default-Portrait@2x~ipad.png */,
-				3395E4081766894000E06FCE /* Default.png */,
-				3395E406176688F500E06FCE /* Default@2x.png */,
-				3395E4031766888000E06FCE /* icon144.png */,
-				3395E4011766887900E06FCE /* icon72.png */,
-				3395E3FF1766886B00E06FCE /* icon114.png */,
-				3395E3FD1766886400E06FCE /* icon57.png */,
-				3395E3FB1766820000E06FCE /* Default-568h@2x.png */,
-				339BBBEB175BE41300C6F3AB /* reach.lobster */,
-				335BD085175BAE68002064AE /* pythtree.lobster */,
+				33224A0122482B83009BDE0E /* icons */,
 				33F7F3EF17238C09005B7988 /* include */,
 				33F7F3EB1723738E005B7988 /* shaders */,
 				3381CAB5162340540069B2E8 /* src */,
@@ -1686,6 +1710,9 @@
 		3395A8BE176140570047BE1F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
+				332249F422482B13009BDE0E /* tocpp.cpp */,
+				332249F622482B13009BDE0E /* tonative.cpp */,
+				332249F522482B13009BDE0E /* towasm.cpp */,
 				33FDF160220A59C400D7B010 /* disasm.cpp */,
 				33D4B5951DE0CF8300C6FEB9 /* vmlog.cpp */,
 				3342B79E1B2B4CE500FA2F0B /* main.cpp */,
@@ -2876,6 +2903,7 @@
 				33D15F9F1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
 				33FDF163220A59C400D7B010 /* imbind.cpp in Sources */,
 				33D15C8F1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
+				332249F922482B13009BDE0E /* tocpp.cpp in Sources */,
 				33D1602A1BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD71F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
 				8C760382195E457400EADF6F /* b2ChainAndCircleContact.cpp in Sources */,
@@ -2969,6 +2997,7 @@
 				3307DA4021098A8100B98515 /* util.cpp in Sources */,
 				8C760397195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA71BAB7D3C00BAD84D /* ftsystem.c in Sources */,
+				332249FC22482B13009BDE0E /* towasm.cpp in Sources */,
 				33D161511BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
 				33FDF153220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */,
 				33D162D71BAB9A2200BAD84D /* SDL_pixels.c in Sources */,
@@ -3025,6 +3054,7 @@
 				33D162C81BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33FDF150220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC81F7B201D007BB196 /* dynamic_mod.c in Sources */,
+				332249FF22482B13009BDE0E /* tonative.cpp in Sources */,
 				3375EB1020DDBD6000EBAB26 /* engine.cpp in Sources */,
 				33FDF166220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1EA1D53E2B20064979E /* cubegen.cpp in Sources */,
@@ -3136,6 +3166,7 @@
 				33D15F9E1BAB9A2200BAD84D /* SDL_spinlock.c in Sources */,
 				33FDF162220A59C400D7B010 /* imbind.cpp in Sources */,
 				33D15C8E1BAB7D3C00BAD84D /* ftbitmap.c in Sources */,
+				332249F822482B13009BDE0E /* tocpp.cpp in Sources */,
 				33D160291BAB9A2200BAD84D /* SDL_events.c in Sources */,
 				33878CD61F7B201D007BB196 /* dynamic_fluidsynth.c in Sources */,
 				3381CB32162371AB0069B2E8 /* vmdata.cpp in Sources */,
@@ -3229,6 +3260,7 @@
 				3307DA3F21098A8100B98515 /* util.cpp in Sources */,
 				8C760396195E457400EADF6F /* b2PolygonAndCircleContact.cpp in Sources */,
 				33D15CA61BAB7D3C00BAD84D /* ftsystem.c in Sources */,
+				332249FB22482B13009BDE0E /* towasm.cpp in Sources */,
 				33D161501BAB9A2200BAD84D /* SDL_rotate.c in Sources */,
 				33FDF152220A599400D7B010 /* imgui_impl_opengl3.cpp in Sources */,
 				33D162D61BAB9A2200BAD84D /* SDL_pixels.c in Sources */,
@@ -3285,6 +3317,7 @@
 				33D162C71BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				33FDF14F220A599400D7B010 /* imgui.cpp in Sources */,
 				33878CC71F7B201D007BB196 /* dynamic_mod.c in Sources */,
+				332249FE22482B13009BDE0E /* tonative.cpp in Sources */,
 				3375EB0F20DDBD6000EBAB26 /* engine.cpp in Sources */,
 				33FDF165220A59C400D7B010 /* disasm.cpp in Sources */,
 				333FE1E91D53E2B10064979E /* cubegen.cpp in Sources */,
@@ -3316,6 +3349,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				332249FD22482B13009BDE0E /* tonative.cpp in Sources */,
 				33D1621B1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
 				33D1611F1BAB9A2200BAD84D /* SDL_render_gl.c in Sources */,
 				33D162451BAB9A2200BAD84D /* SDL_nullvideo.c in Sources */,
@@ -3354,6 +3388,7 @@
 				333FE1E51D53E2580064979E /* glvr.cpp in Sources */,
 				33AE2429164ABCE2007F578F /* file.cpp in Sources */,
 				33878CF91F7B201D007BB196 /* effect_position.c in Sources */,
+				332249FA22482B13009BDE0E /* towasm.cpp in Sources */,
 				8C7603A1195E457400EADF6F /* b2GearJoint.cpp in Sources */,
 				33D162BD1BAB9A2200BAD84D /* SDL_blit_auto.c in Sources */,
 				33AE242A164ABCE2007F578F /* graphics.cpp in Sources */,
@@ -3389,6 +3424,7 @@
 				33D162BA1BAB9A2200BAD84D /* SDL_blit_A.c in Sources */,
 				8C7603BF195E457400EADF6F /* b2Particle.cpp in Sources */,
 				33D162E41BAB9A2200BAD84D /* SDL_surface.c in Sources */,
+				332249F722482B13009BDE0E /* tocpp.cpp in Sources */,
 				33D162C61BAB9A2200BAD84D /* SDL_blit_slow.c in Sources */,
 				8C760365195E457400EADF6F /* b2Stat.cpp in Sources */,
 				8C7603C2195E457400EADF6F /* b2ParticleGroup.cpp in Sources */,
