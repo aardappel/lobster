@@ -21,6 +21,9 @@
     <Filter Include="compiler\builtins\flatbuffers">
       <UniqueIdentifier>{28705062-822f-4b9e-a663-02b43d056eb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tonative">
+      <UniqueIdentifier>{849d593b-fb90-4a4d-89c5-66130f92b9a4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -61,6 +64,15 @@
     </ClCompile>
     <ClCompile Include="..\src\disasm.cpp">
       <Filter>dvm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tocpp.cpp">
+      <Filter>tonative</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tonative.cpp">
+      <Filter>tonative</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\towasm.cpp">
+      <Filter>tonative</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,9 +131,6 @@
       <Filter>compiler</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\parser.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\lobster\tocpp.h">
       <Filter>compiler</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\ttypes.h">
@@ -183,6 +192,12 @@
     </ClInclude>
     <ClInclude Include="..\include\flatbuffers\util.h">
       <Filter>compiler\builtins\flatbuffers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\tonative.h">
+      <Filter>tonative</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\wasm_binary_writer.h">
+      <Filter>tonative</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
