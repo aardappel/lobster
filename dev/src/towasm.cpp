@@ -30,42 +30,62 @@ class WASMGenerator : public NativeGenerator {
     explicit WASMGenerator(vector<uint8_t> &dest) : bw(dest) {}
 
     void FileStart() override {
+        bw.BeginSection(WASM::Section::Type);
+        bw.AddType({ WASM::I32 }, { WASM::I32 });
+        bw.AddType({ WASM::I32 }, { WASM::I32, WASM::I32 });
+        bw.EndSection(WASM::Section::Type);
+
+        bw.BeginSection(WASM::Section::Function);
+        bw.AddFunction(0);  // main().
     }
 
-    void DeclareBlock(int id) override {
+    void DeclareBlock(int /*id*/) override {
+        bw.AddFunction(0);
     }
 
     void BeforeBlocks(int start_id) override {
+        bw.EndSection(WASM::Section::Function);
+
+        bw.BeginSection(WASM::Section::Start);
+        bw.AddStart(0);
+        bw.EndSection(WASM::Section::Start);
+
+        bw.BeginSection(WASM::Section::Code);
+
+        // Emit main().
+        bw.AddCode({});
+        bw.EmitEndFunction();
     }
 
-    void FunStart(const bytecode::Function *f) override {
+    void FunStart(const bytecode::Function * /*f*/) override {
     }
 
-    void BlockStart(int id) override {
+    void BlockStart(int /*id*/) override {
+        bw.AddCode({});
     }
 
     void InstStart() override {
     }
 
-    void EmitJump(int id) override {
+    void EmitJump(int /*id*/) override {
     }
 
-    void EmitConditionalJump(const char *ilname, int id) override {
+    void EmitConditionalJump(const char * /*ilname*/, int /*id*/) override {
     }
 
-    void EmitOperands(const int *args, int arity) override {
+    void EmitOperands(const int * /*args*/, int /*arity*/) override {
     }
 
-    void EmitMultiMethodDispatch(const vector<int> &mmtable) override {
+    void EmitMultiMethodDispatch(const vector<int> & /*mmtable*/) override {
     }
 
-    void SetNextCallTarget(int id) override {
+    void SetNextCallTarget(int /*id*/) override {
     }
 
-    void EmitGenericInst(const char *ilname, int arity, int target) override {
+    void EmitGenericInst(const char * /*ilname*/, int /*arity*/, int /*target*/) override {
     }
 
-    void EmitCall(int id) override {
+    void EmitCall(int /*id*/) override {
     }
 
     void EmitCallIndirect() override {
@@ -77,13 +97,16 @@ class WASMGenerator : public NativeGenerator {
     void InstEnd() override {
     }
 
-    void BlockEnd(int id, bool already_returned, bool is_exit) override {
+    void BlockEnd(int /*id*/, bool /*already_returned*/, bool /*is_exit*/) override {
+        bw.EmitEndFunction();
     }
 
-    void FileEnd(int start_id, string_view bytecode_buffer) override {
+    void FileEnd(int /*start_id*/, string_view /*bytecode_buffer*/) override {
+        bw.EndSection(WASM::Section::Code);
+        bw.Finish();
     }
 
-    void Annotate(string_view comment) override {
+    void Annotate(string_view /*comment*/) override {
     }
 };
 
