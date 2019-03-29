@@ -127,7 +127,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
             ng.EmitConditionalJump(ilname, block_ids[args[0]]);
         } else {
-            ng.EmitOperands(args, arity);
+            ng.EmitOperands(bytecode_buffer.data(), args, arity);
             if (opc == IL_FUNMULTI) {
                 auto nmethods = args[1];
                 auto nargs = args[2];
@@ -148,7 +148,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
                 target = block_ids[args[0]];
             }
-            ng.EmitGenericInst(ilname, arity, target);
+            ng.EmitGenericInst(ilname, arity, target, opc);
             if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
                 ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {

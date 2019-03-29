@@ -29,39 +29,73 @@ class WASMGenerator : public NativeGenerator {
 
     explicit WASMGenerator(vector<uint8_t> &dest) : bw(dest) {}
 
+    enum {
+        TI_I_I,
+        TI_I_II,
+        TI_I_III,
+        TI_I_IIII,
+    };
+
     void FileStart() override {
         bw.BeginSection(WASM::Section::Type);
+        // NOTE: this must match the enum above.
         bw.AddType({ WASM::I32 }, { WASM::I32 });
         bw.AddType({ WASM::I32 }, { WASM::I32, WASM::I32 });
+        bw.AddType({ WASM::I32 }, { WASM::I32, WASM::I32, WASM::I32 });
+        bw.AddType({ WASM::I32 }, { WASM::I32, WASM::I32, WASM::I32, WASM::I32 });
         bw.EndSection(WASM::Section::Type);
 
+        bw.BeginSection(WASM::Section::Import);
+        #define F(N, A) bw.AddImportLinkFunction("VM_" #N, TI_I_II);
+            LVALOPNAMES
+        #undef F
+        #define F(N, A) bw.AddImportLinkFunction("VM_" #N, TI_I_II);
+            ILBASENAMES
+        #undef F
+        #define F(N, A) bw.AddImportLinkFunction("VM_" #N, TI_I_III);
+            ILCALLNAMES
+        #undef F
+        #define F(N, A) bw.AddImportLinkFunction("VM_" #N, TI_I_I);
+            ILJUMPNAMES
+        #undef F
+        bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIII);
+        bw.EndSection(WASM::Section::Import);
+
         bw.BeginSection(WASM::Section::Function);
-        bw.AddFunction(0);  // main().
+        bw.AddFunction(TI_I_II);  // main().
     }
 
     void DeclareBlock(int /*id*/) override {
-        bw.AddFunction(0);
+        bw.AddFunction(TI_I_I);
     }
 
     void BeforeBlocks(int start_id) override {
         bw.EndSection(WASM::Section::Function);
 
+        bw.BeginSection(WASM::Section::Memory);
+        bw.AddMemory(1);
+        bw.EndSection(WASM::Section::Memory);
+
+        // Don't emit a Start section, since this will be determined by the
+        // linker (and where-ever the main() symbol ends up).
+        /*
         bw.BeginSection(WASM::Section::Start);
         bw.AddStart(0);
         bw.EndSection(WASM::Section::Start);
+        */
 
         bw.BeginSection(WASM::Section::Code);
 
         // Emit main().
-        bw.AddCode({});
+        bw.AddCode({}, "main", false);
         bw.EmitEndFunction();
     }
 
     void FunStart(const bytecode::Function * /*f*/) override {
     }
 
-    void BlockStart(int /*id*/) override {
-        bw.AddCode({});
+    void BlockStart(int id) override {
+        bw.AddCode({}, "block" + std::to_string(id), true);
     }
 
     void InstStart() override {
@@ -73,7 +107,9 @@ class WASMGenerator : public NativeGenerator {
     void EmitConditionalJump(const char * /*ilname*/, int /*id*/) override {
     }
 
-    void EmitOperands(const int * /*args*/, int /*arity*/) override {
+    void EmitOperands(const char *base, const int *args, int arity) override {
+        if (arity) bw.EmitI32ConstDataRef(0, (const char *)args - base);
+        else bw.EmitI32Const(0);  // nullptr
     }
 
     void EmitMultiMethodDispatch(const vector<int> & /*mmtable*/) override {
@@ -82,7 +118,9 @@ class WASMGenerator : public NativeGenerator {
     void SetNextCallTarget(int /*id*/) override {
     }
 
-    void EmitGenericInst(const char * /*ilname*/, int /*arity*/, int /*target*/) override {
+    void EmitGenericInst(const char * /*ilname*/, int /*arity*/, int target, int opcode) override {
+        if (target >= 0) {}
+        bw.EmitCall((size_t)opcode);
     }
 
     void EmitCall(int /*id*/) override {
@@ -101,8 +139,14 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitEndFunction();
     }
 
-    void FileEnd(int /*start_id*/, string_view /*bytecode_buffer*/) override {
+    void FileEnd(int /*start_id*/, string_view bytecode_buffer) override {
         bw.EndSection(WASM::Section::Code);
+
+        bw.BeginSection(WASM::Section::Data);
+        // TODO: don't really want to store all of this.
+        bw.AddData(bytecode_buffer, "static_data", 16);
+        bw.EndSection(WASM::Section::Data);
+
         bw.Finish();
     }
 

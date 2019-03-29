@@ -897,10 +897,10 @@ struct VM {
 
     #ifndef VM_INS_SWITCH
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
-            ILBASENAMES
+            LVALOPNAMES
         #undef F
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
-            LVALOPNAMES
+            ILBASENAMES
         #undef F
         #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
             ILCALLNAMES
@@ -910,10 +910,12 @@ struct VM {
         #undef F
     #endif
 
+    #pragma push_macro("LVAL")
     #undef LVAL
     #define LVAL(N, V) void LV_##N(Value &a VM_OP_ARGS_C);
         LVALOPNAMES
     #undef LVAL
+    #pragma pop_macro("LVAL")
 
     void EvalProgram();
     void EvalProgramInner();
