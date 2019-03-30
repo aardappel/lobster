@@ -2,6 +2,7 @@
   - finish structs and ownership
   - do whatever big language fixes still need to happen.
     - multimethods
+    - http://rigaux.org/language-study/syntax-across-languages.html
   - write lots of docs and examples for all the new functionality
     - structs
     - ownership
@@ -1310,6 +1311,14 @@ LIFETIME NOTES:
   - Nim: seems to have a nice middle ground inspired by ParaSail.
     https://nim-lang.org/araq/destructors.html
     https://github.com/nim-lang/Nim/wiki/Destructors
+    Actually this latest version appears inspired by Gel below:
+    https://nim-lang.org/araq/ownedrefs.html
+    The idea of leaning on typed allocators to allow unlikely dangling (and thus not
+    having to do refc in release mode for example) is pretty damn smart.
+    You could make this model even simpler, by just ignoring the refc entirely, even in debug,
+    so you just have owned vars that blindly deallocate, any amount of non-owned aliasing,
+    and typed allocators, giving you speed, safety and simplicity at the cost of the occasional
+    unwanted sharing of dangling objects. Nice for a "small language".
   - Gel: https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf
     Very pragmatic and much simpler than Rust, but still needs too many ownership annotations
     for things that should be obvious.

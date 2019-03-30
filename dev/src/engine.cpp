@@ -35,6 +35,7 @@ void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
     extern void AddNoise(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "noise",     AddNoise);
     extern void AddMeshGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "meshgen",   AddMeshGen);
     extern void AddCubeGen(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "cubegen",   AddCubeGen);
+    extern void AddOcTree(NativeRegistry &nfr);   lobster::RegisterBuiltin(nfr, "octree",    AddOcTree);
     extern void AddVR(NativeRegistry &nfr);       lobster::RegisterBuiltin(nfr, "vr",        AddVR);
     extern void AddSteam(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "steam",     AddSteam);
     extern void AddIMGUI(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "imgui",     AddIMGUI);

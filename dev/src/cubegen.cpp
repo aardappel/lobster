@@ -120,6 +120,32 @@ nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
         return Value();
     });
 
+nfr("cg_resample_half", "fromworld", "R", "", "",
+    [](VM &vm, Value &world) {
+    auto &v = GetVoxels(vm, world);
+    for (int x = 0; x < v.grid.dim.x / 2; x++) {
+        for (int y = 0; y < v.grid.dim.y / 2; y++) {
+            for (int z = 0; z < v.grid.dim.z / 2; z++) {
+                auto pos = int3(x, y, z);
+                int4 acc(0);
+                for (int xd = 0; xd < 2; xd++) {
+                    for (int yd = 0; yd < 2; yd++) {
+                        for (int zd = 0; zd < 2; zd++) {
+                            auto d = int3(xd, yd, zd);
+                            auto c = v.grid.Get(pos * 2 + d);
+                            acc += int4(v.palette[c]);
+                        }
+                    }
+                }
+                auto np = v.Color2Palette(float4(acc) / (8 * 255));
+                v.grid.Get(pos) = np;
+            }
+        }
+    }
+    v.grid.Shrink(v.grid.dim / 2);
+    return Value();
+});
+
 nfr("cg_create_mesh", "block", "R", "R",
     "converts block to a mesh",
     [](VM &vm, Value &wid) {
@@ -277,8 +303,9 @@ nfr("cg_load_vox", "name", "S", "R?",
             p += 8;
             if (!strncmp(id, "SIZE", 4)) {
                 size = int3((int *)p);
+                voxels = NewWorld(size);
             } else if (!strncmp(id, "RGBA", 4)) {
-                assert(voxels);
+                if (!voxels) return Value();
                 voxels->palette.clear();
                 voxels->palette.push_back(byte4_0);
                 voxels->palette.insert(voxels->palette.end(), (byte4 *)p, ((byte4 *)p) + 255);
@@ -289,12 +316,12 @@ nfr("cg_load_vox", "name", "S", "R?",
                     }
                 }
             } else if (!strncmp(id, "XYZI", 4)) {
-                assert(size.x);
-                voxels = NewWorld(size);
+                if (!voxels) return Value();
                 auto numvoxels = *((int *)p);
                 for (int i = 0; i < numvoxels; i++) {
                     auto vox = byte4((uchar *)(p + i * 4 + 4));
-                    voxels->grid.Get(int3(vox.xyz())) = vox.w;  // FIXME: check bounds.
+                    auto pos = int3(vox.xyz());
+                    if (pos < voxels->grid.dim) voxels->grid.Get(pos) = vox.w;
                 }
             }
             p += contentlen;
@@ -347,6 +374,55 @@ nfr("cg_save_vox", "block,name", "RS", "I",
         fwrite(voxels.data(), 4, voxels.size(), f);
         fclose(f);
         return Value(true);
+    });
+
+nfr("cg_get_buf", "block", "R", "S",
+    "returns the data as a string of all palette indices, in z-major order",
+    [](VM &vm, Value &wid) {
+        auto &v = GetVoxels(vm, wid);
+        auto buf = vm.NewString(v.grid.dim.volume());
+        v.grid.ToContinousGrid((uchar *)buf->strv().data());
+        return Value(buf);
+    });
+
+nfr("cg_average_surface_color", "world", "R", "F}:4", "",
+    [](VM &vm) {
+        auto &v = GetVoxels(vm, vm.Pop());
+        int3 col(0);
+        int nsurf = 0;
+        int nvol = 0;
+        int3 neighbors[] = {
+            int3( 0,  0,  1),
+            int3( 0,  1,  0),
+            int3( 1,  0,  0),
+            int3( 0,  0, -1),
+            int3( 0, -1,  0),
+            int3(-1,  0,  0),
+        };
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    uchar c = v.grid.Get(pos);
+                    if (c) {
+                        nvol++;
+                        // Only count voxels that lay on the surface for color average.
+                        for (int i = 0; i < 6; i++) {
+                            auto p = pos + neighbors[i];
+                            if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
+                                col += int3(v.palette[c].xyz());
+                                nsurf++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (nsurf) col /= nsurf;
+        vm.PushVec(nvol < v.grid.dim.volume() / 2
+                   ? float4(0.0f)
+                   : float4(float3(col) / 255.0f, 1.0f));
     });
 
 }  // AddCubeGen

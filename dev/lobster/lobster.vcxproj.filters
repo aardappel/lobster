@@ -364,6 +364,9 @@
     <ClInclude Include="..\src\lobster\cubegen.h">
       <Filter>engine\meshgen</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\octree.h">
+      <Filter>engine\meshgen</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -1145,6 +1148,9 @@
     </ClCompile>
     <ClCompile Include="..\external\imgui\imgui_demo.cpp">
       <Filter>engine\imgui\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\octree.cpp">
+      <Filter>engine\meshgen</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

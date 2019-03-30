@@ -837,7 +837,7 @@ nfr("gl_set_uniform_matrix", "name,value", "SF]", "I",
         return Value(ok);
     });
 
-nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I?", "I",
+nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I", "I",
     "creates a uniform buffer object, and attaches it to the current shader at the given"
     " uniform block name. uniforms in the shader must be all vec4s, or an array of them."
     " ssbo indicates if you want a shader storage block instead."
@@ -852,6 +852,20 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I?", "I",
                                       name.sval()->strv(), ssbo.True());
         return Value((int)id);
     });
+
+nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
+    "creates a uniform buffer object, and attaches it to the current shader at the given"
+    " uniform block name. uniforms in the shader can be any type, as long as it matches the"
+    " data layout in the string buffer."
+    " ssbo indicates if you want a shader storage block instead."
+    " returns buffer id or 0 on error.",
+    [](VM &vm, Value &name, Value &vec, Value &ssbo) {
+    TestGL(vm);
+    auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
+                                  vec.sval()->strv().size(),
+                                  name.sval()->strv(), ssbo.True());
+    return Value((int)id);
+});
 
 nfr("gl_delete_buffer_object", "id", "I", "",
     "deletes a buffer objects, e.g. one allocated by gl_uniform_buffer_object().",

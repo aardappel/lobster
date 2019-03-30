@@ -836,11 +836,18 @@ template<typename T> T ReadMem(const void *p) {
     return dest;
 }
 
+template<typename T> T ReadMemInc(const uchar *&p) {
+    T dest = ReadMem<T>(p);
+    p += sizeof(T);
+    return dest;
+}
+
 template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
     memcpy(dest, &src, sizeof(T));
     dest += sizeof(T);
 }
 
+// Enum operators.
 
 #define DEFINE_BITWISE_OPERATORS_FOR_ENUM(T) \
     inline T operator~ (T a) { return (T)~(int)a; } \
@@ -855,7 +862,6 @@ template<typename T> void WriteMemInc(uchar *&dest, const T &src) {
 #else
     #define THROW_OR_ABORT(X) { printf("%s\n", (X).c_str()); abort(); }
 #endif
-
 
 
 inline void unit_test_tools() {

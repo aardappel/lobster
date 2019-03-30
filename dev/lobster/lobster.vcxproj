@@ -334,6 +334,7 @@
     <ClInclude Include="..\src\lobster\glinterface.h" />
     <ClInclude Include="..\src\lobster\mctables.h" />
     <ClInclude Include="..\src\lobster\meshgen.h" />
+    <ClInclude Include="..\src\lobster\octree.h" />
     <ClInclude Include="..\src\lobster\polyreduce.h" />
     <ClInclude Include="..\src\lobster\sdlincludes.h" />
     <ClInclude Include="..\src\lobster\sdlinterface.h" />
@@ -1650,6 +1651,7 @@
     </ClCompile>
     <ClCompile Include="..\src\meshgen.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
+    <ClCompile Include="..\src\octree.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
     <ClCompile Include="..\src\sdlsystem.cpp" />
     <ClCompile Include="..\src\sdlaudiosfxr.cpp">
