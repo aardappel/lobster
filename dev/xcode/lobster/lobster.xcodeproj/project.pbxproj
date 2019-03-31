@@ -25,6 +25,9 @@
 		332249FD22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
 		332249FE22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
 		332249FF22482B13009BDE0E /* tonative.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 332249F622482B13009BDE0E /* tonative.cpp */; };
+		33224A0422504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
+		33224A0522504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
+		33224A0622504342009BDE0E /* octree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33224A0322504341009BDE0E /* octree.cpp */; };
 		3331456017596D7300D488CC /* lobster in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3331455717596B6100D488CC /* lobster */; };
 		3331456117596E1100D488CC /* glgeom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C51723671F005B7988 /* glgeom.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3331456217596E1100D488CC /* glsystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 33F7F3C81723671F005B7988 /* glsystem.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -880,6 +883,8 @@
 		332249F422482B13009BDE0E /* tocpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tocpp.cpp; sourceTree = "<group>"; };
 		332249F522482B13009BDE0E /* towasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = towasm.cpp; sourceTree = "<group>"; };
 		332249F622482B13009BDE0E /* tonative.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tonative.cpp; sourceTree = "<group>"; };
+		33224A0322504341009BDE0E /* octree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree.cpp; sourceTree = "<group>"; };
+		33224A072250438B009BDE0E /* octree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = octree.h; path = lobster/octree.h; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3331457A17596EFD00D488CC /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -1738,6 +1743,8 @@
 		3395A8C0176140870047BE1F /* MeshGen */ = {
 			isa = PBXGroup;
 			children = (
+				33224A072250438B009BDE0E /* octree.h */,
+				33224A0322504341009BDE0E /* octree.cpp */,
 				333FE1E21D53E23B0064979E /* cubegen.cpp */,
 				3381CAC5162340540069B2E8 /* meshgen.cpp */,
 			);
@@ -2919,6 +2926,7 @@
 				33FDF15B220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160931BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D160301BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
+				33224A0622504342009BDE0E /* octree.cpp in Sources */,
 				33878CF51F7B201D007BB196 /* load_mp3.c in Sources */,
 				33878CE01F7B201D007BB196 /* music_flac.c in Sources */,
 				3342B7A31B2B4CE500FA2F0B /* compiler.cpp in Sources */,
@@ -3182,6 +3190,7 @@
 				33FDF15A220A599400D7B010 /* imgui_impl_sdl.cpp in Sources */,
 				33D160921BAB9A2200BAD84D /* SDL_joystick.c in Sources */,
 				33D1602F1BAB9A2200BAD84D /* SDL_keyboard.c in Sources */,
+				33224A0522504342009BDE0E /* octree.cpp in Sources */,
 				33878CF41F7B201D007BB196 /* load_mp3.c in Sources */,
 				33878CDF1F7B201D007BB196 /* music_flac.c in Sources */,
 				3342B7A21B2B4CE500FA2F0B /* compiler.cpp in Sources */,
@@ -3594,6 +3603,7 @@
 				33DAC5831E5CCE930003767C /* SDL_sysjoystick.m in Sources */,
 				33878D151F7B20D8007BB196 /* steamworks.cpp in Sources */,
 				33D161581BAB9A2200BAD84D /* SDL_malloc.c in Sources */,
+				33224A0422504342009BDE0E /* octree.cpp in Sources */,
 				33D161AF1BAB9A2200BAD84D /* SDL_sysmutex.c in Sources */,
 				33D162181BAB9A2200BAD84D /* SDL_cocoashape.m in Sources */,
 				33D160281BAB9A2200BAD84D /* SDL_events.c in Sources */,

@@ -54,13 +54,13 @@ template<typename T> bool FileWriteVal(FILE *f, const T &v) {
 
 template<typename T> bool FileWriteVec(FILE *f, const T &v) {
     return FileWriteVal(f, (uint64_t)v.size()) &&
-        fwrite(v.data(), sizeof(T::value_type), v.size(), f) == v.size();
+        fwrite(v.data(), sizeof(typename T::value_type), v.size(), f) == v.size();
 }
 
 template<typename T> void ReadVec(const uchar *&p, T &v) {
     auto len = ReadMemInc<uint64_t>(p);
     v.resize((size_t)len);
-    auto blen = sizeof(T::value_type) * v.size();
+    auto blen = sizeof(typename T::value_type) * v.size();
     memcpy(v.data(), p, blen);
     p += blen;
 }
@@ -96,7 +96,7 @@ nfr("oc_load", "name", "S", "R?", "",
         auto ocworld = new OcTree<OcVal>(bits);
         ReadVec(p, ocworld->nodes);
         ReadVec(p, ocworld->freelist);
-        assert(p == buf.data() + buf.size());
+        assert(p == (void *)(buf.data() + buf.size()));
         return Value(vm.NewResource(ocworld, GetOcTreeType()));
     });
 

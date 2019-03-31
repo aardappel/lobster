@@ -43,7 +43,7 @@ template<typename T> struct OcTree {
             if (bit) {  // Not at bottom yet.
                 if (oval.IsLeaf()) {  // Values are not equal, so we must subdivide.
                     int ncur;
-                    OcVal parent;
+                    T parent;
                     parent.SetNodeIdx(ccur);
                     if (freelist.empty()) {
                         ncur = (int)nodes.size();
@@ -109,7 +109,7 @@ template<typename T> struct OcTree {
             auto &n = nodes[cur + i];
             if (!n.IsLeaf()) n = Merge(n.NodeIdx());
         }
-        OcVal ov;
+        T ov;
         ov.node = cur;
         if (!nodes[cur].IsLeaf()) return ov;
         for (int i = 1; i < OCTREE_SUBDIV; i++) {

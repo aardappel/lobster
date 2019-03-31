@@ -92,7 +92,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             auto id = block_ids[ip - code] = block_id++;
             ng.DeclareBlock(id);
         }
-        if (false) {  // Debug corrupt bytecode.
+        if ((false)) {  // Debug corrupt bytecode.
             ostringstream dss;
             DisAsmIns(natreg, dss, ip, code, (const type_elem_t *)bcf->typetable()->Data(), bcf);
             LOG_DEBUG(dss.str());
