@@ -386,43 +386,71 @@ nfr("cg_get_buf", "block", "R", "S",
     });
 
 nfr("cg_average_surface_color", "world", "R", "F}:4", "",
-    [](VM &vm) {
-        auto &v = GetVoxels(vm, vm.Pop());
-        int3 col(0);
-        int nsurf = 0;
-        int nvol = 0;
-        int3 neighbors[] = {
-            int3( 0,  0,  1),
-            int3( 0,  1,  0),
-            int3( 1,  0,  0),
-            int3( 0,  0, -1),
-            int3( 0, -1,  0),
-            int3(-1,  0,  0),
-        };
+	[](VM &vm) {
+		auto &v = GetVoxels(vm, vm.Pop());
+		int3 col(0);
+		int nsurf = 0;
+		int nvol = 0;
+		int3 neighbors[] = {
+			int3(0, 0, 1),  int3(0, 1, 0),  int3(1, 0, 0),
+			int3(0, 0, -1), int3(0, -1, 0), int3(-1, 0, 0),
+		};
+		for (int x = 0; x < v.grid.dim.x; x++) {
+			for (int y = 0; y < v.grid.dim.y; y++) {
+				for (int z = 0; z < v.grid.dim.z; z++) {
+					auto pos = int3(x, y, z);
+					uchar c = v.grid.Get(pos);
+					if (c) {
+						nvol++;
+						// Only count voxels that lay on the surface for color average.
+						for (int i = 0; i < 6; i++) {
+							auto p = pos + neighbors[i];
+							if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
+								col += int3(v.palette[c].xyz());
+								nsurf++;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (nsurf) col /= nsurf;
+		vm.PushVec(nvol < v.grid.dim.volume() / 2 ? float4(0.0f)
+												  : float4(float3(col) / 255.0f, 1.0f));
+	});
+
+nfr("cg_rotate", "block,n", "RI", "R",
+    "returns a new block rotated by n 90 degree steps from the input",
+    [](VM &vm, Value &wid, Value &rots) {
+        auto &v = GetVoxels(vm, wid);
+        auto n = rots.ival();
+        auto &d = n == 1 || n == 3
+			? *NewWorld(int3(v.grid.dim.y, v.grid.dim.x, v.grid.dim.z))
+            : *NewWorld(v.grid.dim);
+        d.palette.assign(v.palette.begin(), v.palette.end());
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
                 for (int z = 0; z < v.grid.dim.z; z++) {
-                    auto pos = int3(x, y, z);
-                    uchar c = v.grid.Get(pos);
-                    if (c) {
-                        nvol++;
-                        // Only count voxels that lay on the surface for color average.
-                        for (int i = 0; i < 6; i++) {
-                            auto p = pos + neighbors[i];
-                            if (!(p >= 0) || !(p < v.grid.dim) || !v.grid.Get(p)) {
-                                col += int3(v.palette[c].xyz());
-                                nsurf++;
-                                break;
-                            }
-                        }
-                    }
+                    uchar c = v.grid.Get(int3(x, y, z));
+					switch (n) {
+                        case 1:
+							d.grid.Get(int3(v.grid.dim.y - y - 1, x, z)) = c;
+							break;
+                        case 2:
+                            d.grid.Get(int3(v.grid.dim.x - x - 1, v.grid.dim.y - y - 1, z)) = c;
+                            break;
+                        case 3:
+							d.grid.Get(int3(y, v.grid.dim.x - x - 1, z)) = c;
+							break;
+                        default:
+							d.grid.Get(int3(x, y, z)) = c;
+							break;
+					}
                 }
             }
         }
-        if (nsurf) col /= nsurf;
-        vm.PushVec(nvol < v.grid.dim.volume() / 2
-                   ? float4(0.0f)
-                   : float4(float3(col) / 255.0f, 1.0f));
+        return Value(vm.NewResource(&d, GetVoxelType()));
     });
 
 }  // AddCubeGen
