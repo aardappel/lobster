@@ -414,6 +414,8 @@ void DispatchCompute(const int3 &groups) {
 
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
+// Use this for reusing BO's for now:
+map<string, uint, less<>> ubomap;
 uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view uniformblockname,
                          bool ssbo) {
     GLuint bo = 0;
@@ -432,7 +434,15 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view u
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-                bo = GenBO_(type, len, data);
+                auto it = ubomap.find(uniformblockname);
+                if (it == ubomap.end()) {
+                    bo = GenBO_(type, len, data);
+                    ubomap[string(uniformblockname)] = bo;
+				} else {
+                    bo = it->second;
+                    glBindBuffer(type, bo);
+                    glBufferData(type, len, data, GL_STATIC_DRAW);
+                }
                 GL_CALL(glBindBuffer(type, 0));
                 static GLuint bo_binding_point_index = 0;
                 bo_binding_point_index++;  // FIXME: how do we allocate these properly?
