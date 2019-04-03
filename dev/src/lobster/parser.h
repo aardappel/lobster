@@ -243,9 +243,9 @@ struct Parser {
                 if (IsNextId()) {
                     // Regular assigned is handled in normal expression parsing below.
                     if (lex.token == T_COMMA) {
-                        auto al = new AssignList(lex, IdentUseOrWithStruct(lastid));
+                        auto al = new AssignList(lex, Modify(IdentUseOrWithStruct(lastid)));
                         while (IsNext(T_COMMA))
-                            al->children.push_back(IdentUseOrWithStruct(ExpectId()));
+                            al->children.push_back(Modify(IdentUseOrWithStruct(ExpectId())));
                         Expect(T_ASSIGN);
                         al->children.push_back(ParseMultiRet(ParseOpExp()));
                         list->Add(al);
@@ -707,9 +707,10 @@ struct Parser {
         return e;
     }
 
-    void Modify(Node *e) {
+    Node *Modify(Node *e) {
         if (auto idr = Is<IdentRef>(e))
             idr->sid->id->Assign(lex);
+        return e;
     }
 
     void CheckOpEq(Node *e) {
@@ -778,8 +779,7 @@ struct Parser {
         auto t = lex.token;
         lex.Next();
         auto e = ParseUnary();
-        if (t == T_INCR || t == T_DECR) Modify(e);
-        return e;
+        return t == T_INCR || t == T_DECR ? Modify(e) : e;
     }
 
     Node *ParseUnary() {
@@ -980,13 +980,11 @@ struct Parser {
                 break;
             }
             case T_INCR:
-                Modify(n);
-                n = new PostIncr(lex, n);
+                n = new PostIncr(lex, Modify(n));
                 lex.Next();
                 return n;
             case T_DECR:
-                Modify(n);
-                n = new PostDecr(lex, n);
+                n = new PostDecr(lex, Modify(n));
                 lex.Next();
                 return n;
             case T_IS: {

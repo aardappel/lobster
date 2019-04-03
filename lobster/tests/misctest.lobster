@@ -60,7 +60,7 @@ run_test("misc"):
         1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
-    let parsed, err = parse_data(typeof direct, "" + direct)
+    var parsed, err = parse_data(typeof direct, "" + direct)
     //print(parsed)
     //print(direct)
     if err: print err
@@ -110,7 +110,7 @@ run_test("misc"):
     assert equal(sorted1, sorted2)
     assert equal(sorted1, sorted3)
 
-    let found, findex = sorted1.binary_search(1)
+    var found, findex = sorted1.binary_search(1)
     assert found == 2 and findex == 0
     found, findex = sorted1.binary_search(9)
     assert found == 2 and findex == 8
@@ -130,7 +130,7 @@ run_test("misc"):
     assert ensure_size("abc", 3, 'z') == "abc"
     assert ensure_size("abc", 5, 'z') == "abczz"
     assert ensure_size("abc", -5, 'z') == "zzabc"
-    let ns, ni = "".write_int16_le(0, 1027)
+    var ns, ni = "".write_int16_le(0, 1027)
     assert ns == "\x03\x04\x00\x00" and ni == 2
     assert ns.read_int32_le(0) == 1027
     ns, ni = "".write_int16_le_back(0, 2050)
@@ -145,17 +145,17 @@ run_test("misc"):
     // multiple return values
     let bb, cc, dd, ee = 1, 1, 1, 1
     assert bb == 1 and bb == cc and dd == ee
-    let ff, gg = 2, 3
+    var ff, gg = 2, 3
     assert ff == 2 and gg == 3
     ff, gg = 8, 9
     assert ff == 8 and gg == 9
     def multiret():
         if sin(0): return 4, 5
         return 6, 7
-    var hh, ii = multiret()
+    let hh, ii = multiret()
     assert hh == 6 and ii == 7
-    hh = multiret()
-    assert hh == 6
+    let ll = multiret()
+    assert ll == 6
     def multiretpassthru(): return multiret()  // doesn't work without the return!
     let jj, kk = multiretpassthru()
     assert jj == 6 and kk == 7
