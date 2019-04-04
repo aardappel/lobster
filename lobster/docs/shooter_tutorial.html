@@ -49,7 +49,7 @@ include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-worldsize := 20.0
+let worldsize = 20.0
 
 while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
@@ -73,21 +73,21 @@ include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-worldsize := 20.0
-playerpos := xy_0
-playerspeed := 10
+let worldsize = 20.0
+var playerpos = xy_0
+let playerspeed = 10
 
 while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
     gl_translate(float(gl_window_size()) / 2.0)
-    scale := gl_window_size().y / worldsize
+    let scale = gl_window_size().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
+    let dir = xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
                   (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
-    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
     if !any(abs(newpos) &gt; float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
@@ -112,33 +112,33 @@ include color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
-worldsize :== 20.0
+let worldsize = 20.0
 
-playerpos := xy_0
-playerspeed :== 10
+var playerpos = xy_0
+let playerspeed = 10
 
-struct bullet { pos:xy_f, dir:xy_f }
+class bullet { pos:xy_f, dir:xy_f }
 
-firerate :== 0.1
-bulletspeed :== 15
-bullets := []
-lastbullet := gl_time()
+let firerate = 0.1
+let bulletspeed = 15
+var bullets = []
+var lastbullet = gl_time()
 
 while gl_frame() and gl_button(&quot;escape&quot;) != 1:
     gl_clear(color_black)
     gl_color(color_white)
 
     gl_translate(float(gl_window_size()) / 2.0)
-    scale := gl_window_size().y / worldsize
+    let scale = gl_window_size().y / worldsize
     gl_scale(scale)
 
-    dir := xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
+    let dir = xy_f { (gl_button(&quot;d&quot;) &gt;= 1) - (gl_button(&quot;a&quot;) &gt;= 1),
                   (gl_button(&quot;s&quot;) &gt;= 1) - (gl_button(&quot;w&quot;) &gt;= 1) }
-    newpos := playerpos + normalize(dir) * gl_delta_time() * playerspeed
+    let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
     if !any(abs(newpos) &gt; float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
-    tomouse := normalize(gl_local_mouse_pos(0) - playerpos)
+    let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
 
     if lastbullet &lt; gl_time():
         bullets.push(bullet { playerpos, tomouse })
@@ -181,13 +181,13 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
         gl_rotate_z dir:
             gl_polygon([ xy { -0.5, 0.5 }, xy_x, xy { -0.5, -0.5 } ])</code></pre>
 <p>First, let’s take the code for rendering the player and put it in it’s own function, since we’ll be needing it for enemies too. Call instead of the original code with <code>renderpointytriangle(playerpos, tomouse)</code></p>
-<pre><code>struct enemy { pos:xy_f, hp:int }
+<pre><code>class enemy { pos:xy_f, hp:int }
 
-enemyrate := 1.0
-enemyspeed :== 3
-enemymaxhp :== 5
-enemies := []
-lastenemy := gl_time()</code></pre>
+var enemyrate = 1.0
+let enemyspeed = 3
+let enemymaxhp = 5
+var enemies = []
+var lastenemy = gl_time()</code></pre>
 <p>We can set up enemies analogous to bullets. Of course, we could share some of this functionality between them, but let’s not complicate matters for now. Add this to the declarations.</p>
 <pre><code>    if lastenemy &lt; gl_time():
         enemies.push(enemy { sincos(rnd(360)) * worldsize * 2, enemymaxhp })
@@ -195,7 +195,7 @@ lastenemy := gl_time()</code></pre>
         enemyrate *= 0.999
 
     for(enemies) e:
-        playerdir := normalize(playerpos - e.pos)
+        let playerdir = normalize(playerpos - e.pos)
         e.pos += playerdir * gl_delta_time() * enemyspeed
         for(bullets) b:
             if magnitude(b.pos - e.pos) &lt; 1:
@@ -219,12 +219,12 @@ lastenemy := gl_time()</code></pre>
 <pre><code>check(gl_set_font_name(&quot;data/fonts/US101/US101.TTF&quot;) and gl_set_font_size(32), &quot;can\&#39;t load font!&quot;)</code></pre>
 <p><code>check</code> is another useful function much like fatal, that ensures the first argument is true, and if not, exits the program with the given message.</p>
 <p>To implement the functionality, we start with some new variables:</p>
-<pre><code>playerhealth := 0.0
-score := 0
-highscore := 0
-playing := false</code></pre>
+<pre><code>var playerhealth = 0.0
+var score = 0
+var highscore = 0
+var playing = false</code></pre>
 <p>inside our frame, we then test our <code>playing</code> variable, and when true, run the game code we were running before, and if false, display the in-between screen, which simply says:</p>
-<pre><code>        msg := &quot;press space to play!&quot;
+<pre><code>        let msg = &quot;press space to play!&quot;
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button(&quot;space&quot;) == 1:
@@ -241,7 +241,7 @@ playing := false</code></pre>
 <p>To show the current state to the player, we use the simple:</p>
 <pre><code>    gl_text(&quot;health: &quot; + ceiling(playerhealth) + &quot; - score: &quot; + score + &quot; - highscore: &quot; + highscore)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible regardless of wether the player is in-game or not, for simplicity. <code>ceiling</code> is useful since we’ll be calculating the player’s health in float, but want to show only the whole numbers. <code>ceiling</code> here is better than <code>truncate</code>, since we only want to show <code>0</code> when the player is truely dead.</p>
-<pre><code>                if magnitude(playervec) &lt; 1:
+<pre><code>                if magnitude(playerpos - e.pos) &lt; 1:
                     playerhealth -= gl_delta_time() * 50
                     if playerhealth &lt;= 0:
                         playerhealth = 0
