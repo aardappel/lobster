@@ -43,7 +43,7 @@
 <p>So far, the type system tries to preserve as much freedom of dynamic typing as possible. One area where it is however <em>more</em> strict than most existing languages is how it deals with <code>nil</code>.</p>
 <p><code>nil</code> (or <code>null</code> in other languages) is usually a default value of all reference types, which is very convenient in expressing uninitialized or optional values. But this convenience comes at a high cost: if you forget to check for <code>nil</code> before you access a value, your program may terminate with a run-time error. Very often we know a value cannot be <code>nil</code>, but we cannot guarantee this, or are lazy to do so. Result: random errors popping up in random places. Not good.</p>
 <p>Lobster takes the obvious approach: <code>nil</code> is a separate type that is <em>not a valid value</em> of a reference type. You may still create “nilable” types, but these cannot be accessed (e.g. dereferenced) unless they are first converted to their underlying type:</p>
-<pre><code>a := nil      // a is a nilable of unknown type
+<pre><code>var a = nil      // a is a nilable of unknown type
 if ..:
     a = &quot;foo&quot; // a is a nilable string
 a += &quot;bar&quot;    // error: + not defined for nil
@@ -53,11 +53,10 @@ if a:         // guaranteed not be nil inside block
 <p>And now that <code>nil</code> is a separate type, we can improve our code by not using <code>nil</code> unless absolutely necessary. Many uses of <code>nil</code> in legacy code are lazy, and can be avoided:</p>
 <ul>
 <li><p>If at all possible, try to reorder code such that variables can be initialized to a valid value right where they are defined. This is often possible.</p></li>
-<li><p>If the variable cannot be initialized where it must be defined, see if there’s a “empty” version of the reference type that the variable can be initialized with, such as an empty vector or string, or a struct filled with zeroes, that has a benign effect when used.</p></li>
+<li><p>If the variable cannot be initialized where it must be defined, see if there’s a “empty” version of the reference type that the variable can be initialized with, such as an empty vector or string, or a class filled with zeroes, that has a benign effect when used.</p></li>
 <li><p>If you must start with <code>nil</code>, try to have the if-check for it as early on as possible, so all code deeper down the call chain can benefit from a non-nil type that doesn’t need to be checked.</p></li>
 </ul>
 <p>The flow based analysis generally understand logical expressions, so if you write <code>if not a:</code> instead, you’ll be able to access <code>a</code> in the <code>else</code> block, but not in the <code>then</code> block. Similarly, if you write <code>if a and f(a):</code> then <code>a</code> is available as non-nil both as argument to <code>f</code> <em>and</em> in the following block.</p>
-<p>De-referencing nillables as in <code>o and o.f</code> is so common that there’s a shorthand for it: <code>o?.f</code> (which can be chained). As useful as this looks, note that you are just passing on the problem, as the result of such an expression is again a nilable type. As such, this is best used inside conditionals or as statements where the result is not needed.</p>
 <p><code>?</code> is generally the way to indicate a nilable type, e.g. <code>string?</code> is a nilable string.</p>
 <p>One more thing to notice about <code>nil</code> is that it only knows what exact nilable type it represents once it comes “in contact with” its reference type. That means that if you tried to access <code>a</code> right after it was defined, it would have still have type <code>nil</code> rather than <code>string?</code>. Similarly, if you tried to assign a vector to <code>a</code> after the first assignment, it would complain that only a <code>string?</code> is valid, i.e. a <code>string</code> or <code>nil</code> value.</p>
 <p>To bypass that process and force <code>nil</code> to represent a particular nilable type, you can attach a type, like <code>nil:string</code>, which creates a value of type <code>string?</code>. Alternatively you could write <code>nil and a</code>, which makes <code>nil</code> have the type of whatever <code>a</code> has, which may be a generic variable. Similarly, <code>a or nil</code> has the same nilable type, but now the value is actually <code>a</code> rather than <code>nil</code>.</p>
@@ -67,7 +66,7 @@ if a:         // guaranteed not be nil inside block
 <pre><code>if a is xyz: a.x</code></pre>
 <p>We can access fields of <code>xyz</code> regardless of what type <code>a</code> had outside this scope.</p>
 <p>Assignment can work similar to conditionals:</p>
-<pre><code>a := nil
+<pre><code>var a = nil
 if ..: a = xyz_0
 a.x        // error
 a = xyz_0  // a is guaranteed non-nil below
@@ -90,15 +89,15 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>You can do something similar with multi-methods, but that may require more code or may be less efficient.</p>
 <h2 id="generic-objects">Generic objects</h2>
 <p>Besides functions, objects can also be generic. If you define any field without types:</p>
-<pre><code>struct foo { a:string, b }</code></pre>
+<pre><code>class foo { a:string, b }</code></pre>
 <p>You create a generic type.</p>
 <p>Unlike functions however, Lobster is a bit more strict here in that it requires you to explicitly define a specialization before you can use it<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<pre><code>struct foo_f: foo(float)</code></pre>
+<pre><code>class foo_f: foo(float)</code></pre>
 <p>You can now construct a foo with floats, either explicitly with <code>foo_f { &quot;hi&quot;, 2.0 }</code>, or you can use the generic type: <code>foo { &quot;hi&quot;, 2.0 }</code> and let the compiler pick from all available specializations.</p>
 <p>Functions written to accept <code>foo</code> arguments will of course work on any of the specializations.</p>
 <p>You can even specialize and subclass at the same time:</p>
-<pre><code>struct bar : foo { c }
-struct bar : foo(float) { c:int }</code></pre>
+<pre><code>class bar : foo { c }
+class bar : foo(float) { c:int }</code></pre>
 <p>The first version subclasses <code>foo</code> into another generic type, and the second specializes and subclasses at the same time, creating a non-generic type instead.</p>
 <h2 id="numeric-structs-math-vector-types">Numeric Structs (math vector types)</h2>
 <p>Structs whose fields are either all int or all float, and have between 2-4 fields have a special status in the type system, as they are accepted as arguments to vector versions of the built-in operators (<code>+ - * /</code> etc) as well as many vector operations part of the built-in functions (e.g. <code>normalize</code>).</p>

@@ -165,7 +165,7 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <p>To make the players orientation visual, we first render the player differently: rather than a simple circle, we render him as a pointy triangle, to make it clear what direction he’s looking at. That’s the <code>gl_polygon</code> at the end with 3 explicit coordinates (relative to the playerpos, which has now become our coordinate system origin thanks to <code>gl_translate</code>). Additionally, we insert a <code>gl_rotate_z</code> command to make the pointy part of the triangle always look towards the mouse cursor. The <code>z</code> is because if we rotate around the z axis, we end up rotating the xy plane, which is what we look at in 2D. The argument to <code>gl_rotate_z</code> can either be a vector (as used here) or an angle in degrees. Vectors are generally awesomer.</p>
 <p>Additionally, to cater for situations where the mouse cursor isn’t visible (which it typically isn’t in games) we draw a circle (for now) at the mouse location to give the player feedback where he’s aiming at. This starts at the <code>gl_translate</code> before where we draw the player (before, because if the two overlap, the last one will be drawn on top). We translate to the mouse location in world space, change the linemode to 1 (which draws just the outline instead of a filled circle) and change the color. As you can see, all these commands are ones that undo themselves automatically after the circle is drawn, which is very convenient.</p>
 <p>Now let’s start firing bullets. To keep things simple for now, we fire them automatically, but firing them using a button would be very easy to add (try it!). We add some constants up top, a firerate (second to fire the next bullet) and their speed of travel in the world. To keep track of what’s going on, we just need a list of bullets, and track when the last bullet was fired.</p>
-<p>We define what a bullet is by defining a new struct type, saying that it just has a current position and direction.</p>
+<p>We define what a bullet is by defining a new class type, saying that it just has a current position and direction.</p>
 <p>Now look at the <code>if</code> inside the code: we check if time has progressed beyond the point the last bullet was supposed to be fired, and if so, we add a new bullet to the list of bullets, making it start at the current player position, travelling in the direction of the mouse. We also increase the <code>lastbullet</code> variable to cause the next one to be fired in 0.1 seconds.</p>
 <p>A sidenote on how we’re implementing bullets here: there’s a couple of things not ideal about this, which we do all to keep the example simple and to really build a game from the ground up. First, the way the checking for time is implemented here is a bit fragile, as big time fluctuations may cause bullets to be shot at irregular intervals. Second, this checking for time across frames is better done with <em>coroutines</em>, but that would complicate this tutorial.</p>
 <p>Now that we have a list of bullets being generated, we have to update them and draw them. The first line in our <code>for</code> loop updates them, in a manner that should look familiar by now: we move the position along the direction, scaled by the amount of time that has passed this frame and their general speed in world units per second.</p>
@@ -224,7 +224,7 @@ var score = 0
 var highscore = 0
 var playing = false</code></pre>
 <p>inside our frame, we then test our <code>playing</code> variable, and when true, run the game code we were running before, and if false, display the in-between screen, which simply says:</p>
-<pre><code>        let msg = &quot;press space to play!&quot;
+<pre><code>        var msg = &quot;press space to play!&quot;
         gl_translate float(gl_window_size() - gl_text_size(msg)) / 2:
             gl_text(msg)
         if gl_button(&quot;space&quot;) == 1:
@@ -241,7 +241,7 @@ var playing = false</code></pre>
 <p>To show the current state to the player, we use the simple:</p>
 <pre><code>    gl_text(&quot;health: &quot; + ceiling(playerhealth) + &quot; - score: &quot; + score + &quot; - highscore: &quot; + highscore)</code></pre>
 <p>We call this as the very last thing in the frame, so it is visible regardless of wether the player is in-game or not, for simplicity. <code>ceiling</code> is useful since we’ll be calculating the player’s health in float, but want to show only the whole numbers. <code>ceiling</code> here is better than <code>truncate</code>, since we only want to show <code>0</code> when the player is truely dead.</p>
-<pre><code>                if magnitude(playerpos - e.pos) &lt; 1:
+<pre><code>                if magnitude(playervec) &lt; 1:
                     playerhealth -= gl_delta_time() * 50
                     if playerhealth &lt;= 0:
                         playerhealth = 0

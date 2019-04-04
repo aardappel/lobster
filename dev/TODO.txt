@@ -1334,6 +1334,11 @@ LIFETIME NOTES:
     terrible.
     Luckily Lobster doesn't have most issues in this doc, thanks to its callgraph based type
     checking and specialization, and lack of runtime generics, escaping closures etc.
+  - This paper eliminates inner borrowed variables from reference counting:
+    http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf
+  - Dyon: https://github.com/PistonDevelopers/dyon/issues/173
+    This requires the programmer to get lifetimes right using annotations, ordering or clone
+	ops.
   We'd want to keep Lobsters light syntax, so any system that requires type annotations
   frequently can't be used. 99% of code should "just work", even if it occasionally makes
   copies you don't expect.
