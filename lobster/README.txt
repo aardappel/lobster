@@ -1,4 +1,4 @@
-This folder contains all you need to develop Lobster programs, assuming a pre-built executable is available
+This folder contains all you need to develop Lobster programs, assuming a pre-built executable
 for your platform is available in this folder (likely for win32 / OS X)
 
 Full documentation is available in docs/readme_first.html
@@ -12,4 +12,3 @@ google+ community: https://plus.google.com/u/0/communities/102851862468639498591
 facebook: http://www.facebook.com/lobsterprogramminglanguage
 
 Wouter van Oortmerssen
-
