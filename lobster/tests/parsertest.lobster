@@ -1,7 +1,7 @@
 // test version of samples/demos/simple_parser_eval.lobster
 
-include testing
-include std
+import testing
+import std
 
 run_test("parsereval"):
 

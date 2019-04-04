@@ -1,4 +1,4 @@
-include vec
+import vec
 
 let knight_moves = [ xy { 1, 2 }, xy { 1, -2 }, xy { -1, 2 }, xy { -1, -2 },
                      xy { 2, 1 }, xy { 2, -1 }, xy { -2, 1 }, xy { -2, -1 } ]

@@ -1,9 +1,9 @@
 // graphics demo showing Lobster's built-in loading of (animated) .iqm models
 
-include vec
-include color
-include texture
-include util3d
+import vec
+import color
+import texture
+import util3d
 
 let vrmode = vr_init()
 

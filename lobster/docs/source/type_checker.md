@@ -276,7 +276,7 @@ arguments to vector versions of the built-in operators (`+ - * /` etc) as
 well as many vector operations part of the built-in functions (e.g. `normalize`).
 
 You can see the default types for these (`xy`, `xyz`, and `xyzw`) defined in
-`include/stdtype.lobster`. Other types also work with these operations, though
+`modules/stdtype.lobster`. Other types also work with these operations, though
 (e.g. `color`).
 
 Confusingly, in math, such 2-4 dimensional things are commonly referred to as

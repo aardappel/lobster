@@ -1,5 +1,5 @@
-include vec
-include color
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 

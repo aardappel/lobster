@@ -1,3 +1,6 @@
+- go thru https://news.ycombinator.com/item?id=19567160
+  and see if there's anything to improve based on those comments.
+
 - organize a milestone
   - finish structs and ownership
   - do whatever big language fixes still need to happen.

@@ -40,11 +40,11 @@
 <h2 id="default-directories">Default directories</h2>
 <p>It’s useful to understand the directories lobster uses, both for reading source code files and any data files the program may use:</p>
 <ul>
-<li><p>the main directory (<code>lobster</code>): this is where the lobster exe resides, or the “Resource” folder on Apple platforms (when run from an app bundle instead of the command line). This is the folder this has the default <code>include shaders data docs samples</code> folders inside of it.</p></li>
+<li><p>the main directory (<code>lobster</code>): this is where the lobster exe resides, or the “Resource” folder on Apple platforms (when run from an app bundle instead of the command line). This is the folder this has the default <code>modules shaders data docs samples</code> folders inside of it.</p></li>
 <li><p>the auxiliary directory: this is where the main <code>.lobster</code> file being compiled resides.</p></li>
 <li><p>the directory for writing files: the same as auxiliary on desktop platforms, but often a special directory on mobile platforms.</p></li>
 </ul>
-<p>Additionally, if any of these folders contains an “<code>include</code>” directory, it will load source code from there as well.</p>
+<p>Additionally, if any of these folders contains a “<code>modules</code>” directory, it will load source code from there as well.</p>
 <p>Any of the Lobster builtin commands that load data files specify paths relative to either the main or auxiliary directories (and either / or  may be used as path separators). If you package up a Lobster program for distribution, all these files can be packed into a pakfile, see <code>-b</code>.</p>
 <h2 id="output">Output</h2>
 <p>Running lobster may result in a compiler error, that generally look something like this:</p>

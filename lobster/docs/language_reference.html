@@ -30,7 +30,7 @@
 <li><p>Strings delimited by <code>&quot;</code> and character constants with <code>'</code> using escape codes <code>\n \t \r \&quot; \' \ \x</code> (followed by 2 hex digits, e.g. <code>\xFF</code> is the character with value 255). Alternatively, strings can be enclosed in triple-quotes (<code>&quot;&quot;&quot;</code>) and may then contain any characters verbatim, including new-lines, quotes, and escape codes (which are all left untouched).</p></li>
 <li><p>Numbers consisting of a series of digits to indicate an integer constant (e.g. <code>123</code>) or hex digits with a leading <code>0x</code> (e.g. <code>0xABADCAFE</code>) or digits with a single <code>.</code> (e.g. <code>.1</code> or <code>1.</code> or <code>1.1</code>) to indicate a floating point constant.</p></li>
 <li><p>Identifiers made from alpha-numeric characters and the <code>_</code> (except no digits for the first character).</p></li>
-<li><p>Keywords: <code>nil true false return from class value include int float string vector def super is program private coroutine enum</code></p></li>
+<li><p>Keywords: <code>nil true false return from class value import int float string vector def super is program private coroutine enum</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an incomplete expression (such as <code>+</code> or <code>,</code>) and an actual token otherwise (used to separate lists of expressions inside a block, see below).</p></li>
 <li><p><code>indent</code> and <code>dedent</code> tokens are generated whenever the indentation level changes. Indentation of any 2 adjacent lines must start with the same sequence of spaces and/or tabs. This ensures it is impossible to create indentation that behaves differently from the way it looks visually.</p></li>
 </ul>
@@ -38,7 +38,7 @@
 <p>Below, <code>...</code> indicates a loop with exit point at that scope level, and <code>||</code> is like <code>|</code> except indicates a precedence level difference.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
-<p>topexp = <code>include</code> [ <code>from</code> ] ( string_constant | ident … <code>.</code> ) | [ <code>private</code> ] ( <code>def</code> ident functiondef | class | vardef | enumdef ) | expstat</p>
+<p>topexp = <code>import</code> [ <code>from</code> ] ( string_constant | ident … <code>.</code> ) | [ <code>private</code> ] ( <code>def</code> ident functiondef | class | vardef | enumdef ) | expstat</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident <code>:</code> [ ident ] <code>[</code> indlist( ident ) <code>]</code></p>
 <p>vardef = ( <code>var</code> | <code>let</code> ) list( ident ) <code>=</code> opexp</p>
 <p>enumdef = <code>enum</code> [ <code>+</code> | <code>*</code> ] list( ident [ <code>=</code> integer_constant ] )</p>
@@ -222,11 +222,11 @@ var a, b = m()</code></pre>
 <p>Calling co.return_value when co.active has turned false will get you the return value of the coroutine call as a whole.</p>
 <p>If you create a coroutine object based on a function that contains local variables, you can access those local variables even when the coroutine is not running, using the <code>-&gt;</code> operator: <code>co-&gt;local</code> accesses a particular local variable in a coroutine object. You can use these variables just like you can any other variable (assign to them etc.).</p>
 <h2 id="programs-structure">Programs Structure</h2>
-<p>A lobster program is like the body of a function: a list of expressions on separate lines, defined by a single file, the main file of your program. At this top level of a file, you can additionally use the <code>include</code> keyword to bring additional code into your program:</p>
-<pre><code>include std</code></pre>
-<p>The contents of that file will be merged into your main file at the location of the <code>include</code> for the purpose of compilation. If you you include the same file twice, the second occurrence will be ignored.</p>
+<p>A lobster program is like the body of a function: a list of expressions on separate lines, defined by a single file, the main file of your program. At this top level of a file, you can additionally use the <code>import</code> keyword to bring additional code into your program:</p>
+<pre><code>import std</code></pre>
+<p>The contents of that file will be merged into your main file at the location of the <code>import</code> for the purpose of compilation. If you you import the same file twice, the second occurrence will be ignored.</p>
 <p>An identifier like <code>std</code> is the same as specifying <code>&quot;std.lobster&quot;</code>, similarly <code>a.b</code> is short for <code>&quot;a/b.lobster&quot;</code>.</p>
-<p>Include files will typically be loaded relative to 2 locations: the current main .lobster file being compiled, and whereever the lobster compiler is installed. In both those locations, files may be optionally be found under an <code>include</code> sub-directory. You can use <code>include from &quot;path/to/&quot;</code> to provide additional such starting directories (relative to the current main <code>.lobster</code> file being compiled) that any following include statements (recursively) can use.</p>
+<p>Include files will typically be loaded relative to 2 locations: the current main .lobster file being compiled, and whereever the lobster compiler is installed. In both those locations, files may be optionally be found under an <code>modules</code> sub-directory. You can use <code>import from &quot;path/to/&quot;</code> to provide additional such starting directories (relative to the current main <code>.lobster</code> file being compiled) that any following import statements (recursively) can use.</p>
 <p>You may use the keyword <code>private</code> at the top level in a file to prefix structs, variables, and functions that you don’t want to be visible outside that file.</p>
 <h2 id="memory-management">Memory Management</h2>
 <p>Lobster uses reference counting as its basic form of management for many reasons. Besides simplicity and space efficiency, reference counting makes a language more predictable in how much time is spent for a given amount of code, since memory management cost is spread equally through all code, instead of causing possibly long pauses like with garbage collection. Lobster has a custom allocator for its vector object that is very fast.</p>

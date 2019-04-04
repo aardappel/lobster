@@ -1,8 +1,8 @@
 // simple demo showing integration of https://github.com/ocornut/imgui
 
-include vec
-include color
-include imgui
+import vec
+import color
+import imgui
 
 fatal(gl_window("imgui demo", 1280, 1024))
 

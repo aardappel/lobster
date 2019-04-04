@@ -1,4 +1,4 @@
-include vec
+import vec
 
 class pathmap:
     steps:int

@@ -1,5 +1,5 @@
-include testing
-include std
+import testing
+import std
 
 // Misc tests related to type checking.
 

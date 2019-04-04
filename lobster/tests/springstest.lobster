@@ -1,5 +1,5 @@
-include testing
-include vec
+import testing
+import vec
 
 // A spring system that moves verts until they're evenly spaced, then computes polygons from them.
 

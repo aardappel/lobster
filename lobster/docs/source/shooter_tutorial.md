@@ -24,8 +24,8 @@ Let's start by creating a blank canvas for us to draw on. Something like this:
 Impressively.. empty.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include vec
-include color
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -69,9 +69,9 @@ how we want to draw:
 Look at that! This is starting to look impressive! Check out those polygons!
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -136,9 +136,9 @@ up, let's move our player around. Because games are supposed to be...
 It moved! I swear!
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
@@ -230,9 +230,9 @@ What happens as I move the mouse cursor in a clockwise arc around the player
 from 12 to 3.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 

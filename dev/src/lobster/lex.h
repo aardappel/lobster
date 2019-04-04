@@ -51,7 +51,7 @@ struct LoadedFile : Line {
         if (!stringsource.empty()) {
             *source.get() = stringsource;
         } else {
-            if (LoadFile("include/" + fn, source.get()) < 0 &&
+            if (LoadFile("modules/" + fn, source.get()) < 0 &&
                 LoadFile(fn, source.get()) < 0) {
                 THROW_OR_ABORT("can't open file: " + fn);
             }
@@ -283,7 +283,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "return")    return T_RETURN;
                     else if (sattr == "class")     return T_CLASS;
                     else if (sattr == "struct")    return T_STRUCT;
-                    else if (sattr == "include")   return T_INCLUDE;
+                    else if (sattr == "import")    return T_INCLUDE;
                     else if (sattr == "int")       return T_INTTYPE;
                     else if (sattr == "bool")      return T_INTTYPE;
                     else if (sattr == "float")     return T_FLOATTYPE;

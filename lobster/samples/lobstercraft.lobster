@@ -4,11 +4,11 @@
 // NOTE: this code is seriously inefficient, it was written for small size only.
 // Don't use this as a base to write a minecraft clone.
 
-include std
-include vec
-include color
-include texture
-include util3d
+import std
+import vec
+import color
+import texture
+import util3d
 
 let lssize = 32 // uses lssize^3 blocks... make this bigger, and you'll anger the gods of framerate
 let inventory = []::int // blocks we've mined

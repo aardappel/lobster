@@ -1,10 +1,10 @@
 // Showing off physics features in Lobster
 
-include vec
-include color
-include texture
-include util3d
-include physics
+import vec
+import color
+import texture
+import util3d
+import physics
 
 fatal(gl_window("Physics demo : water", 1024, 768))
 

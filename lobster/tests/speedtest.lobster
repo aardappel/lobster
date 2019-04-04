@@ -1,4 +1,4 @@
-include testing
+import testing
 
 // This is a speed test to help optimize the implementation.
 
@@ -17,43 +17,43 @@ current_test_runner = def(name:string, t:testf):
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
 number_of_runs = 1  // FIXME
-include structtest
+import structtest
 
 number_of_runs = 5000
-include misctest
+import misctest
 
 number_of_runs = 4000
-include typetest
+import typetest
 
 number_of_runs = 4000
-include corotest
+import corotest
 
 number_of_runs = 100
-include astartest
+import astartest
 
 number_of_runs = 200
-include goaptest
+import goaptest
 
 number_of_runs = 100
-include knightstest
+import knightstest
 
 number_of_runs = 500
-include parsertest
+import parsertest
 
 number_of_runs = 100
-include floodtest
+import floodtest
 
 number_of_runs = 10
-include watertest
+import watertest
 
 number_of_runs = 10
-include gradienttest
+import gradienttest
 
 number_of_runs = 10
-include springstest
+import springstest
 
 number_of_runs = 10
-include smallpttest
+import smallpttest
 
 
 // We interleave all tests, and take the min of all meta runs, to eliminate variance as best as

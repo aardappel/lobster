@@ -1,7 +1,7 @@
 // match.lobster: pattern matching functionality similar to regexps, but more generally applicable
 // as it works on vectors of any kind of values, and can also easily be used with (unicode) strings.
 
-include std
+import std
 
 private var iterv = nil
 private var i = 0
@@ -36,7 +36,7 @@ def match_sequence(v):
         return false
     return true
 
-if program_name() == "match.lobster" or program_name() == "include/match.lobster":
+if program_name() == "match.lobster" or program_name() == "modules/match.lobster":
 
     // example: match any number of A's, followed by either a B or C/D in sequence (and capture this
     // substring), followed by an E and then the end of the sequence:

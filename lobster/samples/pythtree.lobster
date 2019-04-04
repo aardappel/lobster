@@ -1,7 +1,7 @@
 // graphics demo showing an animated "tree of pythagoras"
 
-include vec
-include color
+import vec
+import color
 
 def branch(n, max, scale, len):
     let poly = [ xy_x, -xy_x, xy { -scale, len }, xy { scale, len } ]

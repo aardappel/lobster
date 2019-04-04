@@ -2,9 +2,9 @@
 // Files: https://github.com/seiyria/gameicons-font
 // Original SVGs: https://game-icons.net/
 
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 gl_window("testing icons", 1200, 600)
 gl_set_font_name("data/fonts/Game_Icons/game-icons.ttf")

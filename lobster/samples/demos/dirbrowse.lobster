@@ -1,6 +1,6 @@
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 let indentsize = 20.0
 let column_margin = 10.0

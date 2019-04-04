@@ -1,4 +1,4 @@
-include std
+import std
 
 forbias(100, 1) i:
     let fb = (i % 3 == 0 and "fizz" or "") +

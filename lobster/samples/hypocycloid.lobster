@@ -1,7 +1,7 @@
 // simple graphics demo showing hypocycloids: http://en.wikipedia.org/wiki/Hypocycloid
 
-include vec
-include color
+import vec
+import color
 
 fatal(gl_window("hypocycloid", 1024, 768))
 

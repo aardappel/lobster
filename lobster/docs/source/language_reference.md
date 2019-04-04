@@ -35,7 +35,7 @@ Lexical definition
 -   Identifiers made from alpha-numeric characters and the `_` (except no digits
     for the first character).
 
--   Keywords: `nil true false return from class value include int float string
+-   Keywords: `nil true false return from class value import int float string
     vector def super is program private coroutine enum`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
@@ -57,7 +57,7 @@ program = stats end\_of\_file
 
 stats = topexp … linefeed
 
-topexp = `include` [ `from` ] ( string\_constant \| ident ... `.` )
+topexp = `import` [ `from` ] ( string\_constant \| ident ... `.` )
       \| [ `private` ] ( `def` ident functiondef
       \| class \| vardef \| enumdef ) \| expstat
 
@@ -656,15 +656,15 @@ Programs Structure
 
 A lobster program is like the body of a function: a list of expressions on
 separate lines, defined by a single file, the main file of your program. At this
-top level of a file, you can additionally use the `include` keyword to bring
+top level of a file, you can additionally use the `import` keyword to bring
 additional code into your program:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-include std
+import std
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents of that file will be merged into your main file at the location of
-the `include` for the purpose of compilation. If you you include the same file
+the `import` for the purpose of compilation. If you you import the same file
 twice, the second occurrence will be ignored.
 
 An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a.b`
@@ -672,10 +672,10 @@ is short for `"a/b.lobster"`.
 
 Include files will typically be loaded relative to 2 locations: the current
 main .lobster file being compiled, and whereever the lobster compiler is installed.
-In both those locations, files may be optionally be found under an `include`
+In both those locations, files may be optionally be found under an `modules`
 sub-directory.
-You can use `include from "path/to/"` to provide additional such starting directories
-(relative to the current main `.lobster` file being compiled) that any following include
+You can use `import from "path/to/"` to provide additional such starting directories
+(relative to the current main `.lobster` file being compiled) that any following import
 statements (recursively) can use.
 
 You may use the keyword `private` at the top level in a file to prefix structs,

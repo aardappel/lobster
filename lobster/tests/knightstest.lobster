@@ -1,5 +1,5 @@
-include testing
-include vec
+import testing
+import vec
 
 run_test("knightstour"):
 

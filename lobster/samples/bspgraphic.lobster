@@ -1,5 +1,5 @@
-include vec
-include color
+import vec
+import color
 
 let dirs = [ xy_xi, xy_yi ]
 

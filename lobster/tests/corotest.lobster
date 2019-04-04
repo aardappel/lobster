@@ -1,5 +1,5 @@
-include testing
-include std
+import testing
+import std
 
 run_test("coro"):
 

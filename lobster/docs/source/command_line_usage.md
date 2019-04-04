@@ -65,7 +65,7 @@ code files and any data files the program may use:
 -   the main directory (`lobster`): this is where the lobster exe resides, or
     the "Resource" folder on Apple platforms (when run from an app bundle
     instead of the command line). This is the folder this has the default
-    `include shaders data docs samples` folders inside of it.
+    `modules shaders data docs samples` folders inside of it.
 
 -   the auxiliary directory: this is where the main `.lobster` file being
     compiled resides.
@@ -73,7 +73,7 @@ code files and any data files the program may use:
 -   the directory for writing files: the same as auxiliary on desktop platforms,
     but often a special directory on mobile platforms.
 
-Additionally, if any of these folders contains an "`include`" directory, it will
+Additionally, if any of these folders contains a "`modules`" directory, it will
 load source code from there as well.
 
 Any of the Lobster builtin commands that load data files specify paths relative

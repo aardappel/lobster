@@ -1,6 +1,6 @@
 // A* search functionality
 
-include vec
+import vec
 
 class astar_node<N,S,D>:
     G = 0.0

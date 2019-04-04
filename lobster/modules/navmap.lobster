@@ -1,4 +1,4 @@
-include vec
+import vec
 
 // For each position, indicates the direction you should move to when on this cell, out of 8 possible
 // cardinal and diagonal directions.

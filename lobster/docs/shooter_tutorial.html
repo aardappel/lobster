@@ -28,8 +28,8 @@
 <p>Let’s start by creating a blank canvas for us to draw on. Something like this:</p>
 <p><img src="screenshots/shooter/tut1.jpg" /></p>
 <p>Impressively.. empty.</p>
-<pre><code>include vec
-include color
+<pre><code>import vec
+import color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -43,9 +43,9 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <p>So now we can start drawing, right? Well, we also have to determine where and how we want to draw:</p>
 <p><img src="screenshots/shooter/tut2.jpg" /></p>
 <p>Look at that! This is starting to look impressive! Check out those polygons!</p>
-<pre><code>include std
-include vec
-include color
+<pre><code>import std
+import vec
+import color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -67,9 +67,9 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <h3 id="input-movement-and-collision">3: Input, Movement, and Collision</h3>
 <p><img src="screenshots/shooter/tut3.jpg" /></p>
 <p>It moved! I swear!</p>
-<pre><code>include std
-include vec
-include color
+<pre><code>import std
+import vec
+import color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 
@@ -106,9 +106,9 @@ while gl_frame() and gl_button(&quot;escape&quot;) != 1:
 <h3 id="orientation-and-shooting">4: Orientation and Shooting</h3>
 <p><img src="screenshots/shooter/tut4.jpg" /></p>
 <p>What happens as I move the mouse cursor in a clockwise arc around the player from 12 to 3.</p>
-<pre><code>include std
-include vec
-include color
+<pre><code>import std
+import vec
+import color
 
 fatal(gl_window(&quot;Shooter Tutorial&quot;, 640, 480))
 

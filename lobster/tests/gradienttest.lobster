@@ -1,6 +1,6 @@
-include testing
-include std
-include vec
+import testing
+import std
+import vec
 
 run_test("gradient"):
 

@@ -1,9 +1,9 @@
 // A test version of samples/demos/smallpt.lobster, for speed testing.
 
-include testing
-include vec
-include color
-include texture
+import testing
+import vec
+import color
+import texture
 
 run_test("smallpt"):
 

@@ -1,6 +1,6 @@
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 

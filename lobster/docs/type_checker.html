@@ -101,7 +101,7 @@ class bar : foo(float) { c:int }</code></pre>
 <p>The first version subclasses <code>foo</code> into another generic type, and the second specializes and subclasses at the same time, creating a non-generic type instead.</p>
 <h2 id="numeric-structs-math-vector-types">Numeric Structs (math vector types)</h2>
 <p>Structs whose fields are either all int or all float, and have between 2-4 fields have a special status in the type system, as they are accepted as arguments to vector versions of the built-in operators (<code>+ - * /</code> etc) as well as many vector operations part of the built-in functions (e.g. <code>normalize</code>).</p>
-<p>You can see the default types for these (<code>xy</code>, <code>xyz</code>, and <code>xyzw</code>) defined in <code>include/stdtype.lobster</code>. Other types also work with these operations, though (e.g. <code>color</code>).</p>
+<p>You can see the default types for these (<code>xy</code>, <code>xyz</code>, and <code>xyzw</code>) defined in <code>modules/stdtype.lobster</code>. Other types also work with these operations, though (e.g. <code>color</code>).</p>
 <p>Confusingly, in math, such 2-4 dimensional things are commonly referred to as “vectors”, whereas Lobster calls its resizable arrays “vectors”. So in Lobster these things are “numeric structs”, but on occasion may still also be called “vectors”, sorry for the confusion.</p>
 <p>Originally, vector operations would work on any size structs/vectors, but to make the type system more precise (clearly distinguish between structs and vectors), make the VM faster, allow SIMD use, and generally simplify things, they are focussed on the common dimensions of 2-4.</p>
 <section class="footnotes">

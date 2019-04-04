@@ -1,8 +1,8 @@
 // graphics demo showing very simple link based physics, based on a processing.js example
 
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 class segment { pos:xy_f, dir = xy_0 }
 let segs = map 7: segment { xy { 0.5, 1 } }

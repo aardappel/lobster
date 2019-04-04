@@ -1,4 +1,4 @@
-include gui
+import gui
 
 fatal(gl_window("gui test", 960, 640))
 check(gl_set_font_name("data/fonts/US101/US101.ttf"), "can\'t load font!")

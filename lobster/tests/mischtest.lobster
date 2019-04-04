@@ -1,7 +1,7 @@
-include testing
-include std
-include exception
-include vec
+import testing
+import std
+import exception
+import vec
 
 // Misc small tests that should only be run once.
 

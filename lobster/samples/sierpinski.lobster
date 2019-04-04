@@ -1,7 +1,7 @@
 // graphics demo showing a sierpinski triangle: http://en.wikipedia.org/wiki/Sierpinski_triangle
 
-include vec
-include color
+import vec
+import color
 
 let directions = [ xy_0, xy_x, xy_y ]
 

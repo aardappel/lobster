@@ -1,5 +1,5 @@
-include testing
-include astar
+import testing
+import astar
 
 run_test("goap"):
 

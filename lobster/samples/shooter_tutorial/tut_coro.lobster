@@ -1,6 +1,6 @@
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 var mode:coroutine? = nil
 

@@ -1,9 +1,9 @@
 // based on: http://www.physicsandbox.com/projects/double-pendulum.html
 
-include std
-include vec
-include color
-include texture
+import std
+import vec
+import color
+import texture
 
 let g = 9.8
 let mass = 1

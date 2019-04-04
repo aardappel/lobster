@@ -7,8 +7,8 @@ http://10print.org/
 
 */
 
-include vec
-include color
+import vec
+import color
 
 fatal(gl_window("rndmaze", 1024, 768))
 

@@ -1,8 +1,8 @@
 // 2D water simulation code taken from a game prototype.
 
-include testing
-include std
-include vec
+import testing
+import std
+import vec
 
 run_test("water"):
 

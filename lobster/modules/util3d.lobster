@@ -3,9 +3,9 @@
 // implement a standard FPS view with xy as the ground plane, and Z up
 // first call update, then view
 
-include vec
-include color
-include texture
+import vec
+import color
+import texture
 
 var camera_position = xyz_0
 var camera_yaw = 0.0

@@ -1,8 +1,8 @@
 // graphics demo showing ability to create cube meshes.
 
-include vec
-include color
-include util3d
+import vec
+import color
+import util3d
 
 fatal(gl_window("cubegen test", 1280, 800))
 

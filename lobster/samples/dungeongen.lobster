@@ -1,9 +1,9 @@
 // based on: https://gist.github.com/munificent/b1bcd969063da3e6c298be070a22b604
 // via: https://gist.github.com/Joker-vD/cc5372a349559b9d1a3b220d5eaf2b01
 
-include std
-include vec
-include color
+import std
+import vec
+import color
 
 let TILE_VOID        = ' '
 let TILE_FLOOR       = '.'
