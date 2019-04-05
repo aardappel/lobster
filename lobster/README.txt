@@ -7,8 +7,7 @@ Lobster is licensed under the ZLIB license.
 
 homepage: http://strlen.com/lobster
 github: https://github.com/aardappel/lobster
-online docs: http://htmlpreview.github.io/?https://github.com/aardappel/lobster/blob/master/lobster/docs/README_FIRST.html
-google+ community: https://plus.google.com/u/0/communities/102851862468639498591
+online docs: http://aardappel.github.io/lobster/lobster/docs/README_FIRST.html
 facebook: http://www.facebook.com/lobsterprogramminglanguage
 
 Wouter van Oortmerssen
