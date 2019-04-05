@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
             string dump;
             string pakfile;
             auto start_time = SecondsSinceStart();
-            auto bench_iters = 1000;
+            size_t bench_iters = 1000;
             for (size_t i = 0; i < (compile_bench ? bench_iters : 1); i++) {
                 dump.clear();
                 pakfile.clear();

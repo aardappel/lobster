@@ -360,7 +360,7 @@ struct NativeFun : Named {
         : Named(name, 0), fun(f), args(TypeLen(typeids), ids), retvals(0, nullptr),
           cont1(cont1), help(help) {
         auto nretvalues = TypeLen(rets);
-        assert(args.v.size() == f.fnargs || f.fnargs < 0);
+        assert((int)args.v.size() == f.fnargs || f.fnargs < 0);
         auto StructArgsVararg = [&](const Narg &arg) {
             assert(!arg.fixed_len || IsRef(arg.type->sub->t) || f.fnargs < 0);
             (void)arg;

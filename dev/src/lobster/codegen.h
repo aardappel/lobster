@@ -363,7 +363,7 @@ struct CodeGen  {
         for (; n; n--) {
             auto tlt = temptypestack.back();
             temptypestack.pop_back();
-            assert(can_handle_structs || ValWidth(tlt.type) == 1);
+            assert(can_handle_structs || ValWidth(tlt.type) == 1); (void)tlt;
             (void)can_handle_structs;
         }
     }
@@ -650,6 +650,7 @@ struct CodeGen  {
                 return;
             } else if (auto cod = Is<CoDot>(object)) {
                 // This is already a very slow op, so not worth further optimizing for now.
+                (void)cod;
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
                 if (indexing->object->exptype->t == V_VECTOR) {

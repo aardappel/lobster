@@ -829,7 +829,8 @@ struct TypeChecker {
     // See if returns produced by an existing specialization are compatible with our current
     // context of functions.
     bool CompatibleReturns(const SubFunction &ssf) {
-        for (auto [sf, type] : ssf.reuse_return_events) {
+        for (auto re : ssf.reuse_return_events) {
+            auto sf = re.first;
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) {
                     if (isc.sf->reqret != sf->reqret) return false;
@@ -2642,7 +2643,7 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckList(this, false, 1, LT_ANY);
     exptype = tc.NewTuple(children.size());
     for (auto [i, mrc] : enumerate(children))
-        exptype->Set(i, children[i]->exptype.get(), children[i]->lt);
+        exptype->Set(i, mrc->exptype.get(), mrc->lt);
     lt = LT_MULTIPLE;
     return this;
 }
