@@ -121,7 +121,7 @@ class BinaryWriter {
             UInt8(v & 0x7F);
             auto sign = v & 0x40;
             v = (T)(v >> 7);
-            if (negative) v |= ~T(0) << (sizeof(T) * 8 - 7);
+            if (negative) v |= T(0x7F) << (sizeof(T) * 8 - 7);
             if ((!v && !sign) || (v == -1 && sign)) break;
             buf.back() |= 0x80;
         }

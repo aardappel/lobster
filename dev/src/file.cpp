@@ -289,7 +289,7 @@ nfr("flatbuffers_field_vector", "string,tablei,vo", "SII", "I",
     [](VM &vm, Value &str, Value &idx, Value &vidx) {
         auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                         Value(0)).ival();
-        Value ret(fi ? fi + sizeof(flatbuffers::uoffset_t) : 0);
+        Value ret(fi ? fi + (intp)sizeof(flatbuffers::uoffset_t) : 0);
         return ret;
     });
 

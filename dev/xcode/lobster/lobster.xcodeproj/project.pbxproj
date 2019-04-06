@@ -884,7 +884,6 @@
 		332249F522482B13009BDE0E /* towasm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = towasm.cpp; sourceTree = "<group>"; };
 		332249F622482B13009BDE0E /* tonative.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tonative.cpp; sourceTree = "<group>"; };
 		33224A0322504341009BDE0E /* octree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = octree.cpp; sourceTree = "<group>"; };
-		33224A072250438B009BDE0E /* octree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = octree.h; path = lobster/octree.h; sourceTree = "<group>"; };
 		3331455717596B6100D488CC /* lobster */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = lobster; sourceTree = BUILT_PRODUCTS_DIR; };
 		3331457917596EFD00D488CC /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		3331457A17596EFD00D488CC /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -1743,7 +1742,6 @@
 		3395A8C0176140870047BE1F /* MeshGen */ = {
 			isa = PBXGroup;
 			children = (
-				33224A072250438B009BDE0E /* octree.h */,
 				33224A0322504341009BDE0E /* octree.cpp */,
 				333FE1E21D53E23B0064979E /* cubegen.cpp */,
 				3381CAC5162340540069B2E8 /* meshgen.cpp */,
@@ -2767,6 +2765,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 3368FEB21488AA88008B38B6;
