@@ -73,6 +73,10 @@ code files and any data files the program may use:
 -   the directory for writing files: the same as auxiliary on desktop platforms,
     but often a special directory on mobile platforms.
 
+-   On Linux additionally it can load files from `/usr/share/lobster/` if
+    the above paths don't work. This is to allow package managers to install
+    Lobster in the system directories.
+
 Additionally, if any of these folders contains a "`modules`" directory, it will
 load source code from there as well.
 

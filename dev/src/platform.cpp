@@ -197,6 +197,9 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
             write_dir = exepath;
         }
         data_dirs.push_back(string(exepath));
+        #ifdef __linux__
+            data_dirs.push_back("/usr/share/lobster/");
+        #endif
         #ifdef _WIN32
             have_console = GetConsoleWindow() != nullptr;
         #endif
