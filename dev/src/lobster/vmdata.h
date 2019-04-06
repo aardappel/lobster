@@ -463,15 +463,26 @@ struct Value {
         ref_->Inc();
         return *this;
     }
-    inline Value &LTINCRTNIL() { if (ref_) LTINCRT(); return *this; }
-    inline Value &LTINCTYPE(ValueType t) { return IsRefNil(t) ? LTINCRTNIL() : *this; }
+    inline Value &LTINCRTNIL() {
+        // Can't assert IsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
+        if (ref_) LTINCRT();
+        return *this;
+    }
+    inline Value &LTINCTYPE(ValueType t) {
+        return IsRefNil(t) ? LTINCRTNIL() : *this;
+    }
 
     inline void LTDECRT(VM &vm) const {  // we already know its a ref type
         assert(IsRef(type) && ref_);
         ref_->Dec(vm);
     }
-    inline void LTDECRTNIL(VM &vm) const { if (ref_) LTDECRT(vm); }
-    inline void LTDECTYPE(VM &vm, ValueType t) const { if (IsRefNil(t)) LTDECRTNIL(vm); }
+    inline void LTDECRTNIL(VM &vm) const {
+        // Can't assert IsRefNil here, since scalar 0 are valid NIL values due to e.g. and/or.
+        if (ref_) LTDECRT(vm);
+    }
+    inline void LTDECTYPE(VM &vm, ValueType t) const {
+        if (IsRefNil(t)) LTDECRTNIL(vm);
+    }
 
 
     void ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const;

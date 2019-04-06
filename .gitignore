@@ -88,3 +88,5 @@ dev/compiled_lobster/build/
 **/imgui.ini
 
 \.vs/slnx\.sqlite
+
+\.vs/

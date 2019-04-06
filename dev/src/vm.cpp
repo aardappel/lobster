@@ -1694,10 +1694,12 @@ LVALCASES(FDIVR  , _FOP(/, 1); a = res; VM_PUSH(res))
 LVALCASESTR(SADD , _SCAT(),    a = res;          )
 LVALCASESTR(SADDR, _SCAT(),    a = res; VM_PUSH(res))
 
-void VM::LV_WRITE    (Value &a VM_OP_ARGS_C) { auto  b = VM_POP();                      a = b; }
-void VM::LV_WRITER   (Value &a VM_OP_ARGS_C) { auto &b = VM_TOP();                      a = b; }
-void VM::LV_WRITEREF (Value &a VM_OP_ARGS_C) { auto  b = VM_POP(); a.LTDECRTNIL(*this); a = b; }
-void VM::LV_WRITERREF(Value &a VM_OP_ARGS_C) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); a = b; }
+#define OVERWRITE_VAR(a, b) { assert(a.type == b.type || a.type == V_NIL || b.type == V_NIL); a = b; }
+
+void VM::LV_WRITE    (Value &a VM_OP_ARGS_C) { auto  b = VM_POP();                      OVERWRITE_VAR(a, b); }
+void VM::LV_WRITER   (Value &a VM_OP_ARGS_C) { auto &b = VM_TOP();                      OVERWRITE_VAR(a, b); }
+void VM::LV_WRITEREF (Value &a VM_OP_ARGS_C) { auto  b = VM_POP(); a.LTDECRTNIL(*this); OVERWRITE_VAR(a, b); }
+void VM::LV_WRITERREF(Value &a VM_OP_ARGS_C) { auto &b = VM_TOP(); a.LTDECRTNIL(*this); OVERWRITE_VAR(a, b); }
 
 #define WRITESTRUCT(DECS) \
     auto l = *ip++; \

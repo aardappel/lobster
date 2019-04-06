@@ -1,10 +1,19 @@
-- go thru https://news.ycombinator.com/item?id=19567160
-  and see if there's anything to improve based on those comments.
-
 - organize a milestone
+  - go thru https://news.ycombinator.com/item?id=19567160
+    https://www.reddit.com/r/ProgrammingLanguages/comments/b949a8/the_lobster_programming_language/
+    and see if there's anything to improve based on those comments.
+    - better getting started docs.
+      rather than scattered in multiple places, there should be a step by step
+      sequence for each OS, including command-line steps to get the repo on linux.
+    - better "why should I want this language" intro rather than just a list of features.
+    - maybe more of a document that is meant to show the best of the language, with
+      examples, kind of like whats on the home page but more extensive.
+    - several people on https://news.ycombinator.com/item?id=19567160 want more detail
+      on the lifetime and typesystems.
   - finish structs and ownership
   - do whatever big language fixes still need to happen.
     - multimethods
+	- bools?
     - http://rigaux.org/language-study/syntax-across-languages.html
   - write lots of docs and examples for all the new functionality
     - structs

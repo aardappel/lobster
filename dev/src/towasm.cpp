@@ -69,7 +69,7 @@ class WASMGenerator : public NativeGenerator {
         bw.AddFunction(TI_I_I);
     }
 
-    void BeforeBlocks(int start_id) override {
+    void BeforeBlocks(int /*start_id*/) override {
         bw.EndSection(WASM::Section::Function);
 
         bw.BeginSection(WASM::Section::Memory);

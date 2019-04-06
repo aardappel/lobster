@@ -1042,7 +1042,10 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         }
     }
     if (nf->retvals.v.size() > 1) {
-        for (auto &rv : nf->retvals.v) cg.rettypes.push_back({ rv.type, rv.lt });
+        assert(nf->retvals.v.size() == nattype->NumValues());
+        for (size_t i = 0; i < nattype->NumValues(); i++) {
+            cg.rettypes.push_back({ nattype->Get(i), nattype->GetLifetime(i, natlt) });
+        }
     } else {
         assert(nf->retvals.v.size() >= retval);
     }
