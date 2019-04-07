@@ -1,5 +1,4 @@
 /*
-
     This file takes every entry in the "examples" vector, converts the special
     characters into HTML Entities, and (optionally) outputs each example into a
     single markdown table row. If outputting to a table, the "description"
