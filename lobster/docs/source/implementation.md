@@ -59,10 +59,14 @@ compile using the OS X exe, then run that same bytecode using the iOS exe.
 
 You can build with CMake on Linux (and possibly other platforms, untested):
 
+This requires a C++17 compiler, and the mesa dev files
+should be installed (`apt-get install mesa-common-dev`).
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 cd dev
 cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 It creates in `lobster/lobster`. Run it from that directory to access the
 samples, e.g. `./lobster samples/pythtree.lobster`

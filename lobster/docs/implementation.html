@@ -37,6 +37,7 @@
 <p>Distribution is currently a bit clumsier. You’ll need to run lobster to produce a bytecode file (see <a href="command_line_usage.html">command line</a>), then make a copy of the bundle, and stick the bytecode file (+data) in the Resource location, and you should have something that can be distributed to users. For iOS you can compile using the OS X exe, then run that same bytecode using the iOS exe.</p>
 <h3 id="cmake-linux">CMake / Linux</h3>
 <p>You can build with CMake on Linux (and possibly other platforms, untested):</p>
+<p>This requires a C++17 compiler, and the mesa dev files should be installed (<code>apt-get install mesa-common-dev</code>).</p>
 <pre><code>cd dev
 cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>It creates in <code>lobster/lobster</code>. Run it from that directory to access the samples, e.g. <code>./lobster samples/pythtree.lobster</code></p>

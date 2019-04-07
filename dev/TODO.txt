@@ -1,7 +1,4 @@
 - organize a milestone
-  - go thru https://news.ycombinator.com/item?id=19567160
-    https://www.reddit.com/r/ProgrammingLanguages/comments/b949a8/the_lobster_programming_language/
-    and see if there's anything to improve based on those comments.
     - better getting started docs.
       rather than scattered in multiple places, there should be a step by step
       sequence for each OS, including command-line steps to get the repo on linux.
@@ -11,15 +8,23 @@
     - several people on https://news.ycombinator.com/item?id=19567160 want more detail
       on the lifetime and typesystems.
   - finish structs and ownership
+  - repo structure:
+    - docs would be better at the root.
+    - "lobster" dir is confusing with repo name and other lobster dirs.
   - do whatever big language fixes still need to happen.
     - multimethods
-	- bools?
+    - bools?
     - http://rigaux.org/language-study/syntax-across-languages.html
+    - maybe disable old {} syntax for multiline classes:
+      https://github.com/aardappel/lobster/issues/31
   - write lots of docs and examples for all the new functionality
     - structs
     - ownership
     - multithreading
     - also new syntax highlighting etc
+  - A discussion place? Github has no way to announce anything to people that care about the
+    language, other than posting an issue which won't reach most people.
+    - So far we have https://gitter.im/lobster_programming_language/community
   - move repo under a different org :)
   - announce post
 
@@ -36,6 +41,17 @@
   - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
     especially in vectors, then structs..
   - somehow not store LVector::width.
+
+- think about special casing parsing of if/while/for, that way some crazy syntax features can be
+  reduced
+  - if can gain an elseif
+  - if's typical ambiguity with if x + f(): in terms of the closure can now be default to
+    the close being part of the if?
+  - while can be the sole user of exp as closure..
+    - also can fix issues with lifetimes
+  - for can lose the brackets?
+  - what features could we remove from function calling that are unnecessary?
+    - maybe _ args?
 
 - methods in unrelated types still form a multimethod
   - this should be the final straw to rework them.
@@ -181,6 +197,13 @@
   - memcpy, memmove
   - write_string
   - ops for doing things with unsigned values stored inside signed ones?
+
+- We should ideally enforce non-escaping lambdas at compile time.
+  Currently, "benign" things happen at runtime if you try, since the set of all vars is
+  always available, and if you return to a function from the lambda that doesn't exist,
+  you simply terminate.
+  But would be good to exclude this. Problem is that there are legit use of lambdas
+  stored in data structures that are not escaping but hard to prove that they are.
 
 - strong typedefs.
   Will basically add a tag to any base type.
@@ -998,7 +1021,7 @@
          still have all these functions work.
          We could overload all these functions..
        - Also would be helpful to change some vector builtins (like append) to lobster code, such that specialization
-	     can still allow them to work on these vectors.
+       can still allow them to work on these vectors.
      - For compact structs, currently will be wasteful that in RefObj refc & ti can be 64-bits.
      1b) Alternatively, if the above is not all that crazy useful, implement my "typed buffers" approach
          and store the buffers inside strings.. doesn't need a new type, and allows all sorts of fun optimized
@@ -1007,7 +1030,7 @@
          And helps more generally combat the heavy nature of non-inline objects.
          Then again, would be even better if structs could be separated from vectors more so we can add these
          features (variable data sizes, inline structs, trailing vectors) to regular structs.
-		 Hmm, trailing vectors means reallocation, so not good to have in regular structs.
+     Hmm, trailing vectors means reallocation, so not good to have in regular structs.
          Actually, no need to separate them, can just disallow them to be passed to generic vector functions.
          Only valid for structs that look like a vector.
   2) Could somehow make all the pointers stored in there into 32bit offsets in 64bit mode (and still raw
@@ -1350,7 +1373,7 @@ LIFETIME NOTES:
     http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf
   - Dyon: https://github.com/PistonDevelopers/dyon/issues/173
     This requires the programmer to get lifetimes right using annotations, ordering or clone
-	ops.
+  ops.
   We'd want to keep Lobsters light syntax, so any system that requires type annotations
   frequently can't be used. 99% of code should "just work", even if it occasionally makes
   copies you don't expect.

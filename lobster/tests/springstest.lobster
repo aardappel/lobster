@@ -7,7 +7,7 @@ run_test("springs"):
 
     rnd_seed(0)
 
-    class triangle { verts:[xy_f], neighbors:[int], used:int }
+    class triangle { verts:[xy_f], neighbors:[int] }
     class node { t1:triangle, t2:triangle }
 
     var verts = []::xy_f
