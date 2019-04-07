@@ -154,7 +154,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (opc == IL_PUSHVAR) {
                 ng.Annotate(IdName(bcf, args[0]));
             } else if (ISLVALVARINS(opc)) {
-                ng.Annotate(IdName(bcf, args[1]));
+                ng.Annotate(IdName(bcf, args[0]));
             } else if (opc == IL_PUSHSTR) {
                 ostringstream css;
                 EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), css);
