@@ -1,0 +1,130 @@
+namespace gltf;
+
+table Asset {
+  generator:string;
+  version:string;
+}
+
+table Scene {
+  name:string;
+  nodes:[int];
+}
+
+table Node {
+  mesh:int;
+  name:string;
+  children:[int];
+  translation:[float];
+  rotation:[float];
+  scale:[float];
+}
+
+table Target {
+  node:int;
+  path:string;
+}
+
+table Channel {
+  sampler:int;
+  target:Target;
+}
+
+enum Interpolation : short { LINEAR }
+
+table Sampler {
+  input:int;
+  interpolation:Interpolation;
+  output:int;
+}
+
+table Animation {
+  channels:[Channel];
+  name:string;
+  samplers:[Sampler];
+}
+
+table ColorTexture {
+  index:int;
+  texCoord:int;
+}
+
+table MetallicRoughness {
+  baseColorTexture:ColorTexture;
+  metallicFactor:float;
+  roughnessFactor:float;
+}
+
+table Material {
+  name:string;
+  pbrMetallicRoughness:MetallicRoughness;
+}
+
+table Attributes {
+  POSITION:int;
+  NORMAL:int;
+  TANGENT:int;
+  TEXCOORD_0:int;
+}
+
+table Primitive {
+  attributes:Attributes;
+  indices:int;
+  material:int;
+  mode:int;
+}
+
+table Mesh {
+  name:string;
+  primitives:[Primitive];
+}
+
+table Texture {
+  source:int;
+}
+
+table Image {
+  mimeType:string;
+  name:string;
+  uri:string;
+}
+
+enum AccessorType : short { SCALAR, VEC2, VEC3, VEC4 }
+
+table Accessor {
+  bufferView:int;
+  byteOffset:int;
+  componentType:int;
+  type:string;
+  count:int;
+  max:[float];
+  min:[float];
+}
+
+table BufferView {
+  buffer:int;
+  byteLength:int;
+  byteOffset:int;
+  byteStride:int;
+}
+
+table Buffer {
+  byteLength:int;
+  uri:string;
+}
+
+table GLTF {
+  asset:Asset;
+  scene:int;
+  scenes:[Scene];
+  nodes:[Node];
+  animations:[Animation];
+  materials:[Material];
+  meshes:[Mesh];
+  textures:[Texture];
+  images:[Image];
+  accessors:[Accessor];
+  bufferViews:[BufferView];
+  buffers:[Buffer];
+}
+
+root_type GLTF;
