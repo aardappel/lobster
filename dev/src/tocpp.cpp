@@ -61,7 +61,7 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void BeforeBlocks(int start_id) override {
+    void BeforeBlocks(int start_id, string_view /*bytecode_buffer*/) override {
         ss << "\n";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             ss << "static void *one_gigantic_function() {\n  int ip = " << start_id;
@@ -94,8 +94,8 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void EmitConditionalJump(const char *ilname, int id) override {
-        ss << "if (vm.F_" << ilname << "()) ";
+    void EmitConditionalJump(int opc, int id) override {
+        ss << "if (vm.F_" << ILNames()[opc] << "()) ";
         EmitJump(id);
     }
 
@@ -122,8 +122,8 @@ class CPPGenerator : public NativeGenerator {
         ss << "vm.next_call_target = " << Block() << id << "; ";
     }
 
-    void EmitGenericInst(const char *ilname, int arity, int target, int /*opcode*/) override {
-        ss << "vm.F_" << ilname << "(" << (arity ? "args" : "nullptr");
+    void EmitGenericInst(int opc, int arity, int target) override {
+        ss << "vm.F_" << ILNames()[opc] << "(" << (arity ? "args" : "nullptr");
         if (target >= 0) ss << ", " << Block() << target;
         ss << ");";
     }
@@ -178,7 +178,7 @@ class CPPGenerator : public NativeGenerator {
         } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
             ss << Block() << start_id;
         }
-        ss << ", bytecodefb);\n}\n";
+        ss << ", bytecodefb, " << bytecode_buffer.size() << ");\n}\n";
     }
 
     void Annotate(string_view comment) override {

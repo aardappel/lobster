@@ -728,6 +728,7 @@ struct VM {
 
     #ifdef VM_COMPILED_CODE_MODE
         block_t next_call_target = 0;
+        vector<block_t> temp_mm_table;
         block_t *next_mm_table = nullptr;
         const int *next_mm_call = nullptr;
     #else
@@ -810,6 +811,7 @@ struct VM {
 
     const void *compiled_code_ip;
     const void *compiled_code_bc;
+    size_t compiled_code_size;
 
     const vector<string> &program_args;
 
@@ -818,12 +820,14 @@ struct VM {
     TupleSpace *tuple_space = nullptr;
 
     VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, const vector<string> &args);
+       const void *static_bytecode, size_t static_size, const vector<string> &args);
     ~VM();
 
     void OneMoreFrame();
 
-    const TypeInfo &GetTypeInfo(type_elem_t offset) { return *(TypeInfo *)(typetable + offset); }
+    const TypeInfo &GetTypeInfo(type_elem_t offset) {
+        return *(TypeInfo *)(typetable + offset);
+    }
     const TypeInfo &GetVarTypeInfo(int varidx);
 
     void SetMaxStack(int ms) { maxstacksize = ms; }
@@ -835,7 +839,9 @@ struct VM {
     void DumpVal(RefObj *ro, const char *prefix);
     void DumpFileLine(const int *fip, ostringstream &ss);
     void DumpLeaks();
-    
+
+    ostringstream &TraceStream();
+
     void OnAlloc(RefObj *ro);
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
     LObject *NewObject(intp max, type_elem_t tti);

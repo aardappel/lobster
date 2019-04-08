@@ -79,7 +79,6 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
     }
     ng.FileStart();
     auto len = bcf->bytecode()->Length();
-    auto ilnames = ILNames();
     vector<int> block_ids(bcf->bytecode_attr()->size(), -1);
     const int *ip = code;
     // Skip past 1st jump.
@@ -103,7 +102,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
         }
         ParseOpAndGetArity(opc, ip, code);
     }
-    ng.BeforeBlocks(block_ids[starting_point]);
+    ng.BeforeBlocks(block_ids[starting_point], bytecode_buffer);
     ip = code + 2;
     bool already_returned = false;
     while (ip < code + len) {
@@ -112,7 +111,6 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             auto it = function_lookup.find((int)(ip - 1 - code));
             ng.FunStart(it != function_lookup.end() ? it->second : nullptr);
         }
-        auto ilname = ilnames[opc];
         auto args = ip;
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - 1 - code)) & bytecode::Attr_SPLIT) {
             ng.BlockStart(block_ids[args - 1 - code]);
@@ -125,7 +123,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             ng.EmitJump(block_ids[args[0]]);
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
-            ng.EmitConditionalJump(ilname, block_ids[args[0]]);
+            ng.EmitConditionalJump(opc, block_ids[args[0]]);
         } else {
             ng.EmitOperands(bytecode_buffer.data(), args, arity);
             if (opc == IL_FUNMULTI) {
@@ -148,7 +146,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
                 target = block_ids[args[0]];
             }
-            ng.EmitGenericInst(ilname, arity, target, opc);
+            ng.EmitGenericInst(opc, arity, target);
             if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
                 ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {

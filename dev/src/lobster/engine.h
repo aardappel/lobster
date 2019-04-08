@@ -20,9 +20,9 @@
 extern void RegisterCoreEngineBuiltins(lobster::NativeRegistry &natreg);
 extern void EngineRunByteCode(lobster::NativeRegistry &natreg, const char *fn, string &bytecode,
                               const void *entry_point, const void *static_bytecode,
-                              const vector<string> &program_args);
-extern int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
-                                     const void *bytecodefb);
+                              size_t static_size, const vector<string> &program_args);
+extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
+                                         const void *bytecodefb, size_t static_size);
 extern void EngineSuspendIfNeeded();
 extern void EngineExit(int code);
 

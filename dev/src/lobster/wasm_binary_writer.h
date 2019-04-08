@@ -172,6 +172,20 @@ class BinaryWriter {
         R_WASM_EVENT_INDEX_LEB = 10,
     };
 
+
+    void RelocULEB(uint8_t reloc_type, size_t index, size_t addend, bool is_function) {
+        relocs.push_back({ reloc_type,
+                           buf.size() - section_data,
+                           index,
+                           addend,
+                           is_function });
+        // A relocatable LEB typically can be 0, since all information about
+        // this value is stored in the relocation itself. But putting
+        // a meaningful value here will help with reading the output of
+        // objdump.
+        PatchULEB(PatchableLEB(), is_function ? index : addend);
+    };
+
   public:
 
     explicit BinaryWriter(std::vector<uint8_t> &dest) : buf(dest) {
@@ -225,15 +239,17 @@ class BinaryWriter {
         section_count++;
     }
 
-    void AddImportLinkFunction(std::string_view name, size_t tidx) {
+    size_t AddImportLinkFunction(std::string_view name, size_t tidx) {
         LenChars("");  // Module, unused.
         LenChars(name);
         UInt8(0);  // Function.
         ULEB(tidx);
         function_symbols.push_back({ std::string(name), true, true });
-        num_imports++;
         section_count++;
+        return num_imports++;
     }
+
+    size_t GetNumImports() { return num_imports; }
 
     void AddFunction(size_t tidx) {
         assert(cur_section == Section::Function);
@@ -241,6 +257,8 @@ class BinaryWriter {
         num_function_decls++;
         section_count++;
     }
+
+    size_t GetNumDefinedFunctions() { return num_function_decls; }
 
     void AddMemory(size_t initial_pages) {
         assert(cur_section == Section::Memory);
@@ -283,25 +301,28 @@ class BinaryWriter {
 
     void EmitI32ConstDataRef(size_t segment, size_t addend) {
         UInt8(0x41);
-        relocs.push_back({ R_WASM_MEMORY_ADDR_SLEB,
-                           buf.size() - section_data,
-                           segment,
-                           addend,
-                           false });
-        PatchableLEB();
+        RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false );
     }
 
+    // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
+    void EmitI32FunctionRef(size_t fun_idx) {
+        UInt8(0x41);
+        RelocULEB(R_WASM_TABLE_INDEX_SLEB, fun_idx, 0, true);
+    }
+
+    // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
     void EmitCall(size_t fun_idx) {
         UInt8(0x10);
-        relocs.push_back({ R_WASM_FUNCTION_INDEX_LEB,
-                           buf.size() - section_data,
-                           fun_idx,
-                           0,
-                           true });
-        ULEB(fun_idx);
+        RelocULEB(R_WASM_FUNCTION_INDEX_LEB, fun_idx, 0, true);
     }
 
+    void EmitReturn() { UInt8(0x0F); }
+
     void EmitEnd() { UInt8(0x0B); }
+
+    void EmitGetLocal(size_t local) { UInt8(0x20); ULEB(local); }
+
+    void EmitIf(uint8_t block_type) { UInt8(0x04); UInt8(block_type); }
 
     void EmitEndFunction() {
         assert(cur_section == Section::Code);

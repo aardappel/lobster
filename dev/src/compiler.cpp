@@ -331,7 +331,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        VM vm(parent_vm.nfr, fn, bytecode, nullptr, nullptr, args);
+        VM vm(parent_vm.nfr, fn, bytecode, nullptr, nullptr, 0, args);
         vm.EvalProgram();
         auto ret = vm.evalret;
         parent_vm.Push(Value(parent_vm.NewString(ret)));

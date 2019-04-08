@@ -22,16 +22,16 @@ namespace lobster {
 struct NativeGenerator {
     virtual void FileStart() = 0;
     virtual void DeclareBlock(int id) = 0;
-    virtual void BeforeBlocks(int start_id) = 0;
+    virtual void BeforeBlocks(int start_id, string_view bytecode_buffer) = 0;
     virtual void FunStart(const bytecode::Function *f) = 0;
     virtual void BlockStart(int id) = 0;
     virtual void InstStart() = 0;
     virtual void EmitJump(int id) = 0;
-    virtual void EmitConditionalJump(const char *ilname, int id) = 0;
+    virtual void EmitConditionalJump(int opc, int id) = 0;
     virtual void EmitOperands(const char *base, const int *args, int arity) = 0;
     virtual void EmitMultiMethodDispatch(const vector<int> &mmtable) = 0;
     virtual void SetNextCallTarget(int id) = 0;
-    virtual void EmitGenericInst(const char *ilname, int arity, int target, int opcode) = 0;
+    virtual void EmitGenericInst(int opc, int arity, int target) = 0;
     virtual void EmitCall(int id) = 0;
     virtual void EmitCallIndirect() = 0;
     virtual void EmitCallIndirectNull() = 0;

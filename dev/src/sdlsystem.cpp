@@ -258,10 +258,8 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
 
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_WARN);
 
-    #ifndef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
-    #endif
     #ifdef PLATFORM_ES3
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     #else

@@ -23,6 +23,8 @@
 
 #include "lobster/sdlinterface.h"
 
+#include "lobster/engine.h"
+
 using namespace lobster;
 
 void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
@@ -64,7 +66,7 @@ void one_frame_callback(void *arg) {
     auto &vm = *(lobster::VM *)arg;
     #ifdef USE_EXCEPTION_HANDLING
     try
-        #endif
+    #endif
     {
         GraphicsFrameStart();
         vm.vml.LogFrame();
@@ -84,12 +86,12 @@ void one_frame_callback(void *arg) {
 }
 
 void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, const void *entry_point,
-                       const void *static_bytecode, const vector<string> &program_args) {
+                       const void *static_bytecode, size_t static_size, const vector<string> &program_args) {
     lobster::VM vm(nfr, fn ? StripDirPart(fn) : "", bytecode, entry_point,
-                   static_bytecode, program_args);
+                   static_bytecode, static_size, program_args);
     #ifdef USE_EXCEPTION_HANDLING
     try
-        #endif
+    #endif
     {
         vm.EvalProgram();
     }
@@ -114,7 +116,7 @@ void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, co
             while (vm.evalret == "") one_frame_callback(&vm);
             #endif
         } else
-            #endif
+        #endif
         {
             // An actual error.
             THROW_OR_ABORT(s);
@@ -123,14 +125,15 @@ void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, co
     #endif
 }
 
-int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, const void *bytecodefb) {
+extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
+                                         const void *bytecodefb, size_t static_size) {
     (void)argc;
 
     min_output_level = OUTPUT_INFO;
 
     #ifdef USE_EXCEPTION_HANDLING
     try
-        #endif
+    #endif
     {
         InitPlatform ("../../lobster/", "", false, SDLLoadFile);  // FIXME
         NativeRegistry nfr;
@@ -139,7 +142,7 @@ int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point, c
         string empty;
         vector<string> args;
         for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, args);
+        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, static_size, args);
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

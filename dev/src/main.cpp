@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
                 fclose(f);
             }
         } else if (!compile_only) {
-            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, program_args);
+            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, 0, program_args);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING

@@ -49,6 +49,8 @@
 /dev/emscripten/*.mem
 /dev/emscripten/*.wasm
 /dev/emscripten/*.wast
+/dev/emscripten/*.wasm.pre
+/dev/emscripten/*.wast.mappedGlobals
 
 /dev/CMakeCache.txt
 /dev/CMakeFiles/

@@ -3,22 +3,37 @@
 CXX= emcc
 CC= emcc
 
-# use -g4 for maximum debug info.
+# Fast debug mode.
 OPTLEVEL= -g4 -O2
+# Pure debug mode.
+#OPTLEVEL= -g4
+# Release / benchmark mode.
+#OPTLEVEL= -O2 -DNDEBUG
+
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
-# Note: exceptions disabled because of: https://github.com/kripken/emscripten/issues/7399
-override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=1 -std=c++17 -Wall -pedantic -Wno-switch \
+override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -s NO_EXIT_RUNTIME=1 \
+                    -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
 override CFLAGS+= -Wall
 
-INCLUDES= -I. -I../include -I../src -I../external/freetype/include -I../external/SDLMixer
+INCLUDES=   -I. \
+			-I../include \
+			-I../src \
+			-I../external/freetype/include \
+			-I../external/SDLMixer \
+			-I../external/imgui
 LIBS=
+
+HEADERS= $(wildcard ../src/lobster/*.h)
 
 CPPSRCS= \
 	../src/audio.cpp \
 	../src/builtins.cpp \
+	../src/compiler.cpp \
+	../src/cubegen.cpp \
+	../src/disasm.cpp \
 	../src/engine.cpp \
 	../src/file.cpp \
 	../src/font.cpp \
@@ -29,22 +44,24 @@ CPPSRCS= \
 	../src/glsystem.cpp \
 	../src/gltexture.cpp \
 	../src/glvr.cpp \
-	../src/steamworks.cpp \
-	../src/cubegen.cpp \
 	../src/graphics.cpp \
-	../src/compiler.cpp \
-	../src/vmlog.cpp \
-    ../src/vm.cpp \
-    ../src/main.cpp \
+	../src/imbind.cpp \
 	../src/lobsterreader.cpp \
 	../src/meshgen.cpp \
+	../src/octree.cpp \
 	../src/platform.cpp \
 	../src/physics.cpp \
 	../src/sdlaudiosfxr.cpp \
 	../src/sdlsystem.cpp \
 	../src/simplex.cpp \
+	../src/steamworks.cpp \
 	../src/stdafx.cpp \
+	../src/tocpp.cpp \
+	../src/tonative.cpp \
+	../src/towasm.cpp \
+    ../src/vm.cpp \
 	../src/vmdata.cpp \
+	../src/vmlog.cpp \
     $(wildcard ../include/Box2D/Collision/*.cpp) \
     $(wildcard ../include/Box2D/Collision/Shapes/*.cpp) \
     $(wildcard ../include/Box2D/Common/*.cpp) \
@@ -53,7 +70,9 @@ CPPSRCS= \
     $(wildcard ../include/Box2D/Dynamics/Joints/*.cpp) \
     $(wildcard ../include/Box2D/Particle/*.cpp) \
     $(wildcard ../include/Box2D/Rope/*.cpp) \
-    $(wildcard ../external/flatbuffers/src/*.cpp)
+    $(wildcard ../external/flatbuffers/src/*.cpp) \
+    $(wildcard ../external/imgui/*.cpp)
+MAINSRC= ../src/main.cpp
 CSRCS= \
     ../external/freetype/src/autofit/autofit.c \
 	../external/freetype/src/base/basepic.c \
@@ -79,23 +98,35 @@ CSRCS= \
 
 COBJS := $(patsubst %.c,%.o,$(CSRCS))
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
+MAINOBJ := $(patsubst %.cpp,%.o,$(MAINSRC))
 
 $(CPPOBJS): CXXFLAGS += $(INCLUDES)
+$(MAINOBJ): CXXFLAGS += $(INCLUDES)
+
+$(CPPOBJS): $(HEADERS)
+$(MAINOBJ): $(HEADERS)
 
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
 # add -s ASSERTIONS=2 when troubleshooting.
-#EMCC_WASM_BACKEND=1
-lobster: $(COBJS) $(CPPOBJS)
-	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
-	  -s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
-	  -s DEMANGLE_SUPPORT=1 --emrun
+EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ASSERTIONS=2 \
+		--source-map-base http://localhost:6931/ \
+		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
+		-s DEMANGLE_SUPPORT=1 --emrun
+
+lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
+	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
+
+WASMOUT= ../compiled_lobster/src/compiled_lobster_wasm.o
+lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
+lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
+	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
 
 install: all
 	cp lobster ../../lobster/
 
 clean:
-	-$(RM) $(COBJS) $(CPPOBJS) lobster
+	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) lobster
 
 all: lobster
 

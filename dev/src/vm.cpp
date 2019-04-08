@@ -46,11 +46,15 @@ int last_instruction_opc = -1;
 #endif
 
 VM::VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, const vector<string> &args)
+       const void *static_bytecode, size_t static_size, const vector<string> &args)
       : nfr(nfr), maxstacksize(DEFMAXSTACKSIZE),
         bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
-        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode), program_args(args) {
+        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode), compiled_code_size(static_size), program_args(args) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
+    auto bcs = static_bytecode ? static_size : bytecode_buffer.size();
+    flatbuffers::Verifier verifier(bcfb, bcs);
+    auto ok = bytecode::VerifyBytecodeFileBuffer(verifier);
+    if (!ok) THROW_OR_ABORT(string("bytecode file failed to verify"));
     bcf = bytecode::GetBytecodeFile(bcfb);
     if (bcf->bytecode_version() != LOBSTER_BYTECODE_FORMAT_VERSION)
         THROW_OR_ABORT(string("bytecode is from a different version of Lobster"));
@@ -194,12 +198,14 @@ void VM::OnAlloc(RefObj *ro) {
 }
 
 #undef new
+
 LVector *VM::NewVec(intp initial, intp max, type_elem_t tti) {
     assert(GetTypeInfo(tti).t == V_VECTOR);
     auto v = new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
     OnAlloc(v);
     return v;
 }
+
 LObject *VM::NewObject(intp max, type_elem_t tti) {
     assert(IsUDT(GetTypeInfo(tti).t));
     auto s = new (pool.alloc(sizeof(LObject) + sizeof(Value) * max)) LObject(tti);
@@ -209,7 +215,7 @@ LObject *VM::NewObject(intp max, type_elem_t tti) {
 LString *VM::NewString(size_t l) {
     auto s = new (pool.alloc(sizeof(LString) + l + 1)) LString((int)l);
     OnAlloc(s);
-    return s;
+    return s;\
 }
 LCoRoutine *VM::NewCoRoutine(InsPtr rip, const int *vip, LCoRoutine *p, type_elem_t cti) {
     assert(GetTypeInfo(cti).t == V_COROUTINE);
@@ -770,6 +776,15 @@ void VM::EvalProgram() {
     #endif
 }
 
+ostringstream &VM::TraceStream() {
+  size_t trace_size = trace_tail ? 50 : 1;
+  if (trace_output.size() < trace_size) trace_output.resize(trace_size);
+  if (trace_ring_idx == trace_size) trace_ring_idx = 0;
+  auto &ss = trace_output[trace_ring_idx++];
+  ss.str(string());
+  return ss;
+}
+
 void VM::EvalProgramInner() {
     for (;;) {
         #ifdef VM_COMPILED_CODE_MODE
@@ -782,11 +797,7 @@ void VM::EvalProgramInner() {
         #else
             #ifndef NDEBUG
                 if (trace) {
-                    size_t trace_size = trace_tail ? 50 : 1;
-                    if (trace_output.size() < trace_size) trace_output.resize(trace_size);
-                    if (trace_ring_idx == trace_size) trace_ring_idx = 0;
-                    auto &ss = trace_output[trace_ring_idx++];
-                    ss.str(string());
+                    auto &ss = TraceStream();
                     DisAsmIns(nfr, ss, ip, codestart, typetable, bcf);
                     ss << " [" << (sp + 1) << "] -";
                     #if RTT_ENABLED
@@ -1595,6 +1606,7 @@ Value &VM::GetLocLVal(int i) {
     return coro.cval()->GetVar(*this, i);
 }
 
+#pragma push_macro("LVAL")
 #undef LVAL
 
 #define LVAL(N, V) VM_DEF_INS(VAR_##N) { \
@@ -1626,6 +1638,8 @@ Value &VM::GetLocLVal(int i) {
     { LV_##N(GetFieldILVal(VM_POP().ival()) VM_IP_PASS_THRU_C); VM_RET; }
     LVALOPNAMES
 #undef LVAL
+
+#pragma pop_macro("LVAL")
 
 #define LVALCASES(N, B) void VM::LV_##N(Value &a VM_OP_ARGS_C) { Value b = VM_POP(); B; }
 #define LVALCASER(N, B) void VM::LV_##N(Value &fa VM_OP_ARGS_C) { auto len = *ip++; B; }
@@ -1801,7 +1815,7 @@ void VM::StartWorkers(size_t numthreads) {
         // FIXME: have to copy this even though it is read-only.
         auto bc = bytecode_buffer;
         auto wvm = new VM(nfr, programname, bc, compiled_code_ip, compiled_code_bc,
-                          vector<string>());
+                          compiled_code_size, vector<string>());
         wvm->is_worker = true;
         wvm->tuple_space = tuple_space;
         workers.emplace_back([wvm] {
@@ -1876,3 +1890,69 @@ LObject *VM::WorkerRead(type_elem_t tti) {
 }
 
 }  // namespace lobster
+
+
+// Make VM ops available as C functions for linking purposes:
+
+#ifdef VM_COMPILED_CODE_MODE
+
+extern "C" {
+
+using namespace lobster;
+
+#ifndef NDEBUG
+    #define CHECKI(B) \
+        if (vm->trace) { \
+            auto &ss = vm->TraceStream(); \
+            ss << B; \
+            if (vm->trace_tail) { ss << '\n'; } else { LOG_ERROR(ss.str()); } \
+        }
+    #define CHECK(N, A) CHECKI(#N <<  " " << (A > 0 ? to_string(ip[0]) : "") << " " \
+                        << (A > 1 ? to_string(ip[1]) : ""))
+    #define CHECKJ(N, A) CHECKI(#N)
+#else
+    #define CHECK(N, A)
+    #define CHECKJ(N, A)
+#endif
+
+
+void CVM_SetNextCallTarget(VM *vm, block_t fcont) {
+    vm->next_call_target = fcont;
+}
+
+block_t CVM_GetNextCallTarget(VM *vm) {
+    return vm->next_call_target;
+}
+
+void CVM_TempMMTable(VM *vm, block_t entry, int idx) {
+    if (!idx) vm->temp_mm_table.clear();
+    vm->temp_mm_table.push_back(entry);
+    vm->next_mm_table = vm->temp_mm_table.data();
+}
+
+#ifndef VM_INS_SWITCH
+    #define F(N, A) \
+        void CVM_##N(VM *vm, const int *ip) { \
+            CHECK(N, A); vm->F_##N(ip); }
+        LVALOPNAMES
+    #undef F
+    #define F(N, A) \
+        void CVM_##N(VM *vm, const int *ip) { \
+            CHECK(N, A); vm->F_##N(ip); }
+        ILBASENAMES
+    #undef F
+    #define F(N, A) \
+        void CVM_##N(VM *vm, const int *ip, block_t fcont) { \
+            CHECK(N, A); vm->F_##N(ip, fcont); }
+        ILCALLNAMES
+    #undef F
+    #define F(N, A) \
+        bool CVM_##N(VM *vm) { \
+            CHECKJ(N, A); return vm->F_##N(); }
+        ILJUMPNAMES
+    #undef F
+#endif
+
+}  // extern "C"
+
+#endif  // VM_COMPILED_CODE_MODE

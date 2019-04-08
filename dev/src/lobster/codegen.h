@@ -195,6 +195,7 @@ struct CodeGen  {
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
         auto dummyfun = Pos();
+        SplitAttr(dummyfun);
         Emit(IL_FUNSTART, -1, 0, 0);
         Emit(0, 0);  // keepvars, ownedvars
         Emit(IL_ABORT);
