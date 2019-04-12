@@ -210,8 +210,8 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
             write_dir = maindir;
         }
         data_dirs.push_back(maindir);
-        #ifdef __linux__
-            data_dirs.push_back("/usr/share/lobster/");
+        #ifdef PLATFORM_DATADIR
+            data_dirs.push_back(PLATFORM_DATADIR);
         #endif
         #ifdef _WIN32
             have_console = GetConsoleWindow() != nullptr;

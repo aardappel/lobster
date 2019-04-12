@@ -4,10 +4,13 @@ project(Lobster)
 
 option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 
-set(SDL_SHARED OFF CACHE BOOL "Build a shared version of the library")
-function(install)
-endfunction(install)
-add_subdirectory("external/SDL")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
+endif()
+set(SDL_SHARED OFF CACHE INTERNAL "")
+set(SDL_STATIC ON CACHE INTERNAL "")
+set(VIDEO_VULKAN OFF CACHE INTERNAL "")
+add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
 
 set(EXE_NAME lobster)
 
@@ -109,3 +112,22 @@ target_link_libraries(${EXE_NAME}
   ${SDL_LIBRARIES}
   ${ADDITIONAL_LIBRARIES}
   ${OPENGL_LIBRARIES})
+
+if(UNIX)
+   include(GNUInstallDirs)
+   set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+   set(DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME})
+   set(DOCDIR ${CMAKE_INSTALL_FULL_DOCDIR})
+   set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
+else()
+   set(BINDIR ${CMAKE_INSTALL_PREFIX})
+   set(DATADIR ${CMAKE_INSTALL_PREFIX})
+   set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
+endif()
+install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../data" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../modules" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../samples" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../tests" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../docs/" DESTINATION ${DOCDIR})
+message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
