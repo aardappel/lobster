@@ -2130,6 +2130,9 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.UpdateCurrentSid(sid);
+    for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
+    tc.TypeError("free variable not in scope: " + sid->id->name, *this);
+    in_scope:
     exptype = tc.TypeCheckId(sid);
     FlowItem fi(*this, exptype);
     assert(fi.IsValid());
