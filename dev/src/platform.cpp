@@ -188,6 +188,12 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
         data_dirs.push_back("");
         data_dirs.push_back(write_dir);
     #else  // Linux, Windows, and OS X console mode.
+        #ifdef _WIN32
+            // Windows can pass just the exe name without a full path, which is useless.
+            char winfn[MAX_PATH + 1];
+            GetModuleFileName(NULL, winfn, MAX_PATH + 1);
+            exefile = winfn;
+        #endif
         auto exepath = StripFilePart(exefile);
         if (auxfilepath) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
