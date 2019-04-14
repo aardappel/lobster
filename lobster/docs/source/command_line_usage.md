@@ -22,7 +22,7 @@ Command line options
 
 These can be passed to lobster anywhere on the command line.
 
--   `-b` : generates a pakfile (currently always called "`default.lpak`") in the
+-   `--pak` : generates a pakfile (currently always called "`default.lpak`") in the
     same folder as the `.lobster` file it reads, and doesn't run the program
     afterwards. If you run lobster with no arguments at all, it will try to load
     "`default.lpak`" from the same folder it resides in. Thus distributing
@@ -41,7 +41,7 @@ These can be passed to lobster anywhere on the command line.
     See [implementation](implementation.html) on how to compile the resulting
     code.
 
--   `-w` : makes the compiler wait for commandline input before it exits. Useful
+-   `--wait` : makes the compiler wait for commandline input before it exits. Useful
     on Windows.
 
 -   `--gen-builtins-html` : dumps a help file of all builtin functions the

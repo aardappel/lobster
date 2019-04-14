@@ -71,8 +71,7 @@ int main(int argc, char* argv[]) {
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
-            "-w                     Wait for input before exiting.\n"
-            "-b                     Compile to pakfile, don't run.\n"
+            "--pak                  Compile to pakfile, don't run.\n"
             "--cpp                  Compile to C++ code, don't run.\n"
             "--wasm                 Compile to WASM code, don't run.\n"
             "--parsedump            Also dump parse tree.\n"
@@ -83,13 +82,14 @@ int main(int argc, char* argv[]) {
             "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
-            "--non-interactive-test Quit after running 1 frame.\n";
-        int arg = 1;
+            "--non-interactive-test Quit after running 1 frame.\n"
+            "--wait                 Wait for input before exiting.\n";
+            int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
                 string a = argv[arg];
-                if (a == "-w") { wait = true; }
-                else if (a == "-b") { lpak = default_lpak; }
+                if      (a == "--wait") { wait = true; }
+                else if (a == "--pak") { lpak = default_lpak; }
                 else if (a == "--cpp") { to_cpp = true; }
                 else if (a == "--wasm") { to_wasm = true; }
                 else if (a == "--parsedump") { parsedump = true; }
