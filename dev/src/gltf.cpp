@@ -21,8 +21,8 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-#include "lobster/stdafx.h"
 #include "lobster/engine.h"
+#include "lobster/stdafx.h"
 
 #include "lobster/gltf_scene.h"
 
@@ -30,39 +30,35 @@ using namespace lobster;
 
 typedef fgltf::Scene Scene;
 
-ResourceType scene_type = {"scene", [](void *s) { delete (Scene *)s; }};
+ResourceType scene_type = { "scene", [](void *s) { delete (Scene *)s; } };
 
-Scene &GetScene(VM &vm, Value &res) {
-  return *GetResourceDec<Scene *>(vm, res, &scene_type);
-}
+Scene &GetScene(VM &vm, Value &res) { return *GetResourceDec<Scene *>(vm, res, &scene_type); }
 
 Scene *LoadGLTF(string_view gltf_filename, string_view schema_filename) {
-  Scene *scene = new fgltf::Scene;
-  *scene = fgltf::LoadScene(gltf_filename, schema_filename);
-  if (scene->roots.size() == 0) {
-    delete scene;
-    return nullptr;
-  }
-  return scene;
+    Scene *scene = new fgltf::Scene;
+    *scene = fgltf::LoadScene(gltf_filename, schema_filename);
+    if (scene->roots.size() == 0) {
+        delete scene;
+        return nullptr;
+    }
+    return scene;
 }
 
 // found in graphics.cpp
 extern void TestGL(VM &vm);
 
 void AddGLTF(NativeRegistry &nfr) {
+    nfr("gltf_new_scene", "gltf_filename,schema_filename", "SS", "R?",
+        "Loads a .gltf file into a scene, returns scene or nil on failure to load.",
+        [](VM &vm, Value &gfn, Value &sfn) {
+            TestGL(vm);
+            auto s = LoadGLTF(gfn.sval()->strv(), sfn.sval()->strv());
+            return s ? Value(vm.NewResource(s, &scene_type)) : Value();
+        });
 
-  nfr("gltf_new_scene", "gltf_filename,schema_filename", "SS", "R?",
-      "Loads a .gltf file into a scene, returns scene or nil on failure to load.",
-      [](VM &vm, Value &gfn, Value &sfn) {
-        TestGL(vm);
-        auto s = LoadGLTF(gfn.sval()->strv(), sfn.sval()->strv());
-        return s ? Value(vm.NewResource(s, &scene_type)) : Value();
-      });
-
-  nfr("gltf_render_scene", "s", "R", "", "Renders the specified scene.",
-      [](VM &vm, Value &i) {
+    nfr("gltf_render_scene", "s", "R", "", "Renders the specified scene.", [](VM &vm, Value &i) {
         TestGL(vm);
         return Value(fgltf::DrawScene(GetScene(vm, i), otransforms.object2view, view2clip));
-      });
+    });
 
-} // AddGLTF
+}  // AddGLTF

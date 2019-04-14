@@ -29,7 +29,8 @@ void RegisterCoreEngineBuiltins(NativeRegistry &nfr) {
     lobster::RegisterCoreLanguageBuiltins(nfr);
 
     extern void AddGraphics(NativeRegistry &nfr); lobster::RegisterBuiltin(nfr, "graphics",  AddGraphics);
-    extern void AddGLTF(NativeRegistry &nfr);     lobster::RegisterBuiltin(nfr, "gltf",      AddGLTF);
+    extern void AddGLTF(NativeRegistry & nfr);
+    lobster::RegisterBuiltin(nfr, "gltf", AddGLTF);
     extern void AddFont(NativeRegistry &nfr);     lobster::RegisterBuiltin(nfr, "font",      AddFont);
     extern void AddSound(NativeRegistry &nfr);    lobster::RegisterBuiltin(nfr, "sound",     AddSound);
     extern void AddPhysics(NativeRegistry &nfr);  lobster::RegisterBuiltin(nfr, "physics",   AddPhysics);
