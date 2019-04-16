@@ -866,7 +866,7 @@
 		3331455517596B6100D488CC /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 12;
-			dstPath = $PROJECT_DIR/../../../lobster;
+			dstPath = $PROJECT_DIR/../../../bin;
 			dstSubfolderSpec = 0;
 			files = (
 				3331456017596D7300D488CC /* lobster in CopyFiles */,
@@ -1283,8 +1283,8 @@
 		33F7F3D117236720005B7988 /* font.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = font.cpp; sourceTree = "<group>"; };
 		33F7F3D217236720005B7988 /* platform.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = platform.cpp; sourceTree = "<group>"; };
 		33F7F3D417236720005B7988 /* glshader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = glshader.cpp; path = ../../src/glshader.cpp; sourceTree = "<group>"; };
-		33F7F3EB1723738E005B7988 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../../lobster/shaders; sourceTree = "<group>"; };
-		33F7F3EF17238C09005B7988 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = ../../../lobster/include; sourceTree = "<group>"; };
+		33F7F3EB1723738E005B7988 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../../data/shaders; sourceTree = "<group>"; };
+		33F7F3EF17238C09005B7988 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; name = include; path = ../../../data/include; sourceTree = "<group>"; };
 		33F9FE34148C42140029564B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		33F9FE35148C42140029564B /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		33F9FE36148C42140029564B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };

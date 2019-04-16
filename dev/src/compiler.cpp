@@ -142,7 +142,7 @@ void BuildPakFile(string &pakfile, string &bytecode, set<string> &files) {
     // Bytecode always first entry.
     add_file(bytecode, bcname);
     // Followed by all files.
-    files.insert("shaders/default.materials");  // If it hadn't already been added.
+    files.insert("data/shaders/default.materials");  // If it hadn't already been added.
     string buf;
     for (auto &filename : files) {
         auto l = LoadFile(filename, &buf);

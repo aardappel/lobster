@@ -6,13 +6,13 @@
         {
             "taskName": "Lobster",
             "windows": {
-                "command": "lobster\\lobster.exe"
+                "command": "bin\\lobster.exe"
             },
             "linux": {
-                "command": "lobster/lobster"
+                "command": "bin/lobster"
             },
             "osx": {
-                "command": "lobster/lobster"
+                "command": "bin/lobster"
             },
             "type": "shell",
             "args": [ "${file}" ],

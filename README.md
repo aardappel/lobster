@@ -1,12 +1,14 @@
 Welcome to the Lobster programming language!
 ============================================
 
-Please read lobster/docs/readme_first.html to learn how to use Lobster
-(or here [online](http://aardappel.github.io/lobster/lobster/docs/README_FIRST.html))
+Please read docs/README_FIRST.html to learn how to use Lobster
+(or here [online](http://aardappel.github.io/lobster/README_FIRST.html))
 
 [homepage](http://strlen.com/lobster),
 [github](https://github.com/aardappel/lobster),
 [facebook](http://www.facebook.com/lobsterprogramminglanguage)
+
+Lobster is licensed under the Apache v2 license.
 
 Wouter van Oortmerssen
 

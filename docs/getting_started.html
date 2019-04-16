@@ -27,8 +27,8 @@
 cd lobster/dev
 cmake -DCMAKE_BUILD_TYPE=Release
 make -j8
-cd ../lobster
-./lobster samples/pythtree.lobster</code></pre>
+cd ..
+bin/lobster samples/pythtree.lobster</code></pre>
 <p>For more advanced usage check the rest of <a href="README_FIRST.html">the docs</a></p>
 <h2 id="windows">Windows</h2>
 <h3 id="building-it-yourself-best">Building it yourself (best)</h3>
@@ -37,9 +37,9 @@ cd ../lobster
 <p>Open <code>dev\lobster\lobster.sln</code>, ensure <code>Release</code> is selected in the top bar, <code>Build -&gt; Build Solution</code>, then close if no errors.</p>
 <h3 id="alternatively-getting-latest-pre-built">Alternatively: getting latest pre-built</h3>
 <p>If you don’t want to deal with building it yourself, you may be able to use a pre-built executable, though these can be out of date.</p>
-<p>On https://github.com/aardappel/lobster/releases, for the last release that has a <code>lobster_&lt;date&gt;_windows.zip</code> also get <code>Source code (zip)</code> (this has all the data files and examples). Unpack both, and place the exe you find in the first inside the top <code>lobster</code> dir you find in the second.</p>
+<p>On https://github.com/aardappel/lobster/releases, for the last release that has a <code>lobster_&lt;date&gt;_windows.zip</code> also get <code>Source code (zip)</code> (this has all the data files and examples). Unpack both, and place the exe you find in the first inside the top <code>bin</code> dir you find in the second.</p>
 <h3 id="running-it">Running it</h3>
-<p>You now have a <code>lobster\lobster.exe</code>. You can run this with any Lobster file as argument to run it, for example <code>lobster\lobster.exe lobster\samples\pythtree.lobster</code> should work.</p>
+<p>You now have a <code>bin\lobster.exe</code>. You can run this with any Lobster file as argument to run it, for example <code>bin\lobster.exe samples\pythtree.lobster</code> should work.</p>
 <p>For more advanced usage, including how to run it from an editor, check the rest of <a href="README_FIRST.html">the docs</a></p>
 <h2 id="os-x">OS X</h2>
 <h3 id="building-it-yourself-best-1">Building it yourself (best)</h3>
@@ -48,9 +48,9 @@ cd ../lobster
 <p>Open <code>dev/xcode/lobster/lobster.xcodeproj</code>, ensure <code>lobster_release &gt; My Mac</code> is selected as scheme in the top bar, <code>Product -&gt; Build</code>, then close if no errors.</p>
 <h3 id="alternatively-getting-latest-pre-built-1">Alternatively: getting latest pre-built</h3>
 <p>If you don’t want to deal with building it yourself, you may be able to use a pre-built executable, though these can be out of date.</p>
-<p>On https://github.com/aardappel/lobster/releases, for the last release that has a <code>lobster_&lt;date&gt;_osx.zip</code> also get <code>Source code (zip)</code> (this has all the data files and examples). Unpack both, and place the executable you find in the first inside the top <code>lobster</code> dir you find in the second.</p>
+<p>On https://github.com/aardappel/lobster/releases, for the last release that has a <code>lobster_&lt;date&gt;_osx.zip</code> also get <code>Source code (zip)</code> (this has all the data files and examples). Unpack both, and place the executable you find in the first inside the top <code>bin</code> dir you find in the second.</p>
 <h3 id="running-it-1">Running it</h3>
-<p>You now have a <code>lobster/lobster</code> executable. You can run this with any Lobster file as argument to run it, for example <code>lobster/lobster lobster/samples/pythtree.lobster</code></p>
+<p>You now have a <code>bin/lobster</code> executable. You can run this with any Lobster file as argument to run it, for example <code>bin/lobster samples/pythtree.lobster</code></p>
 <p>For more advanced usage, including how to run it from an editor, check the rest of <a href="README_FIRST.html">the docs</a></p>
 </body>
 </html>

@@ -152,7 +152,7 @@ nfr("gl_window", "title,xs,ys,fullscreen,novsync,samples", "SIII?I?I?", "S?",
                              fullscreen.ival() != 0, novsync.ival() == 0,
                              max(1, samples.intval()));
         if (err.empty()) {
-            err = LoadMaterialFile("shaders/default.materials");
+            err = LoadMaterialFile("data/shaders/default.materials");
         }
         if (!err.empty()) {
             LOG_INFO(err);
@@ -174,7 +174,7 @@ nfr("gl_require_version", "major,minor", "II", "",
     });
 
 nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
-    "loads an additional materials file (shader/default.materials is already loaded by default"
+    "loads an additional materials file (data/shaders/default.materials is already loaded by default"
     " by gl_window()). if inline is true, materialdefs is not a filename, but the actual"
     " materials. returns error string if any problems, nil otherwise.",
     [](VM &vm, Value &fn, Value &isinline) {

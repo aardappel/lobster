@@ -13,8 +13,8 @@ git clone https://github.com/aardappel/lobster.git
 cd lobster/dev
 cmake -DCMAKE_BUILD_TYPE=Release
 make -j8
-cd ../lobster
-./lobster samples/pythtree.lobster
+cd ..
+bin/lobster samples/pythtree.lobster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For more advanced usage check the rest of [the docs](README_FIRST.html)
@@ -41,12 +41,12 @@ a pre-built executable, though these can be out of date.
 On https://github.com/aardappel/lobster/releases, for the last release that has a
 `lobster_<date>_windows.zip` also get `Source code (zip)` (this has all the data files
 and examples). Unpack both, and place the exe you find in the first inside the top
-`lobster` dir you find in the second.
+`bin` dir you find in the second.
 
 ### Running it
 
-You now have a `lobster\lobster.exe`. You can run this with any Lobster file
-as argument to run it, for example `lobster\lobster.exe lobster\samples\pythtree.lobster`
+You now have a `bin\lobster.exe`. You can run this with any Lobster file
+as argument to run it, for example `bin\lobster.exe samples\pythtree.lobster`
 should work.
 
 For more advanced usage, including how to run it from an editor,
@@ -74,12 +74,12 @@ a pre-built executable, though these can be out of date.
 On https://github.com/aardappel/lobster/releases, for the last release that has a
 `lobster_<date>_osx.zip` also get `Source code (zip)` (this has all the data files
 and examples). Unpack both, and place the executable you find in the first inside the top
-`lobster` dir you find in the second.
+`bin` dir you find in the second.
 
 ### Running it
 
-You now have a `lobster/lobster` executable. You can run this with any Lobster file
-as argument to run it, for example `lobster/lobster lobster/samples/pythtree.lobster`
+You now have a `bin/lobster` executable. You can run this with any Lobster file
+as argument to run it, for example `bin/lobster samples/pythtree.lobster`
 
 For more advanced usage, including how to run it from an editor,
 check the rest of [the docs](README_FIRST.html)

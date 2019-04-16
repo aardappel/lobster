@@ -1,2 +1,2 @@
 find ../.. -name '*.lobster' -print \
-  -exec ../../lobster/lobster.exe --non-interactive-test --silent {} \;
+  -exec ../../bin/lobster.exe --non-interactive-test --silent {} \;

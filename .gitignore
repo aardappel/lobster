@@ -23,9 +23,6 @@
 /build/
 /external/
 
-/lobster/lobsterDBG.*
-/lobster/lobster
-**/lobster.lib
 
 /dev/android/assets/
 /dev/android/VS/LobsterAndroid/Tegra-Android/Debug/
@@ -67,14 +64,16 @@
 /dev/external/SDL/sdl2.pc
 /dev/external/SDL/*.cmake
 
-/lobster/lobster_linux
-/lobster/lobster
-/lobster/compiled_lobster
+/bin/lobster_linux
+/bin/lobster
+/bin/compiled_lobster
+/bin/lobster\.exe
+/bin/lobsterDBG.*
+**/lobster.lib
 
 
 dev/compiled_lobster/src/compiled_lobster\.cpp
 
-lobster/lobster\.exe
 
 *.tmp
 

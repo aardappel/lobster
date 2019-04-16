@@ -117,13 +117,10 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ASSERTIONS=2 \
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
-WASMOUT= ../compiled_lobster/src/compiled_lobster_wasm.o
+WASMOUT= compiled_lobster_wasm.o
 lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
 lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
-
-install: all
-	cp lobster ../../lobster/
 
 clean:
 	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) lobster

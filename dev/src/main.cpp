@@ -168,24 +168,27 @@ int main(int argc, char* argv[]) {
             auto err = ToCPP(nfr, ss, bytecode);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
-            FILE* f = fopen((StripFilePart(argv[0]) +
-                            "../dev/compiled_lobster/src/compiled_lobster.cpp").c_str(),
-                            "w");
+            auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
+            FILE *f = fopen((MainDir() + out).c_str(), "w");
             if (f) {
                 fputs(ss.str().c_str(), f);
                 fclose(f);
+            } else {
+                THROW_OR_ABORT(cat("cannot write: ", out));
             }
         } else if (to_wasm) {
             vector<uint8_t> buf;
             auto err = ToWASM(nfr, buf, bytecode);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
-            FILE* f = fopen((StripFilePart(argv[0]) +
-                            "../dev/compiled_lobster/src/compiled_lobster_wasm.o").c_str(),
-                            "wb");
+            auto out = "dev/emscripten/compiled_lobster_wasm.o";
+            FILE *f = fopen((MainDir() + out).c_str(), "wb");
             if (f) {
                 fwrite(buf.data(), buf.size(), 1, f);
                 fclose(f);
+            }
+            else {
+                THROW_OR_ABORT(cat("cannot write: ", out));
             }
         } else if (!compile_only) {
             EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, 0, program_args);

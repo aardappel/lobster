@@ -47,7 +47,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/aardappel/lobster/lobster"
+      customWorkingDirectory = "/Users/aardappel/lobster"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "NO"
       debugServiceExtension = "internal"
@@ -68,7 +68,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-c /Users/aardappel/lobster/lobster/samples/framelogtest.lobster"
+            argument = "-c /Users/aardappel/lobster/samples/framelogtest.lobster"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

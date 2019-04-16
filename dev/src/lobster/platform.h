@@ -21,6 +21,7 @@ extern bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool 
                              FileLoader loader);
 extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
 extern string_view ProjectDir();
+extern string_view MainDir();
 
 extern string_view StripFilePart(string_view filepath);
 extern const char *StripDirPart(const char *filepath);

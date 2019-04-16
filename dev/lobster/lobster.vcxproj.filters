@@ -1155,10 +1155,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
-    <None Include="..\..\lobster\shaders\default.materials">
+    <None Include="..\..\data\shaders\default.materials">
       <Filter>engine\shaders</Filter>
     </None>
-    <None Include="..\..\lobster\shaders\aa.materials">
+    <None Include="..\..\data\shaders\aa.materials">
       <Filter>engine\shaders</Filter>
     </None>
   </ItemGroup>

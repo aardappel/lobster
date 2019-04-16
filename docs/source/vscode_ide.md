@@ -5,7 +5,7 @@ title: VSCode as Lobster IDE
 Running Lobster programs from within the editor
 -----------------------------------------------
 
--   Copy `lobster/docs/vscode/tasks.json` to a `.vscode` workspace folder that
+-   Copy `docs/vscode/tasks.json` to a `.vscode` workspace folder that
     is in the root of where you keep your lobster code.
 
 -   Load some lobster code. pressing `ctrl+shift+b` should run it. If there was
@@ -15,7 +15,7 @@ Running Lobster programs from within the editor
 Syntax Highlighting
 -------------------
 
-Copy the folder `lobster/docs/vscode/lobster` to `.vscode/extensions` *within
+Copy the folder `docs/vscode/lobster` to `.vscode/extensions` *within
 your user folder*, not your workspace folder. This will enable syntax
 highlighting next time VSCode is run.
 

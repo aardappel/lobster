@@ -14,7 +14,7 @@ print("Hello, World!")
 then running it like so will compile and run it:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-lobster helloworld.lobster
+bin/lobster helloworld.lobster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Command line options
@@ -62,10 +62,8 @@ Default directories
 It's useful to understand the directories lobster uses, both for reading source
 code files and any data files the program may use:
 
--   the main directory (`lobster`): this is where the lobster exe resides, or
-    the "Resource" folder on Apple platforms (when run from an app bundle
-    instead of the command line). This is the folder this has the default
-    `modules shaders data docs samples` folders inside of it.
+-   the root repo directory: This is the folder this has the default
+    `bin modules data docs samples tests` folders inside of it.
 
 -   the auxiliary directory: this is where the main `.lobster` file being
     compiled resides.

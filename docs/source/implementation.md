@@ -18,7 +18,7 @@ Lobster uses OpenGL, SDL 2.x and FreeType, these are included, so should compile
 out of the box with no further external dependencies.
 
 All source code and other files related to building Lobster for all platforms
-sit in the `dev` folder, which is usually parallel to the main lobster folder.
+sit in the `dev` folder.
 
 Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all
 Lobster values will take double the size (and precision), and thus use more
@@ -29,7 +29,7 @@ benefits a lot from extra registers).
 
 This platform is definitely best supported and easiest to use for now. Open up
 `dev\lobster\lobster.sln` with Visual Studio. The project is set up to build
-lobster.exe in the main lobster folder, and will be ready for use as described
+lobster.exe in the `bin` folder, and will be ready for use as described
 either from the [command line](command_line_usage.html) or [VS Code](vscode_ide.html) /
 [Notepad++](notepadpp_ide.html) / [SublimeText](sublime_ide.html).
 
@@ -38,7 +38,7 @@ either from the [command line](command_line_usage.html) or [VS Code](vscode_ide.
 Building for either one is easy using the single Xcode project (in
 `dev/xcode/lobster`) which produces a .app bundle for either platform (the
 `lobsterapp` and `lobster_ios` targets), or a command line version for OS X (the
-`lobster` target) placed in the main lobster folder much like Windows.
+`lobster` target) placed in the `bin` folder much like Windows.
 
 To develop Lobster code on OS X, easiest probably is to use the command line
 version. Many OS X editors support running a command line compiler, e.g.
@@ -68,8 +68,8 @@ cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-It creates in `lobster/lobster`. Run it from that directory to access the
-samples, e.g. `./lobster samples/pythtree.lobster`
+It creates in `bin/lobster`. Run it to access the
+samples, e.g. `bin/lobster samples/pythtree.lobster`
 
 ### Android
 
@@ -203,7 +203,7 @@ These must be (including correct paths):
 
     -   The bytecode.
 
-    -   `shaders/default.materials` (these are the minimum shader definitions
+    -   `data/shaders/default.materials` (these are the minimum shader definitions
         needed for to render anything, and is implicitly loaded by `gl_window`).
 
     -   Any other files/directories you have specified with `pakfile`, e.g:
@@ -216,7 +216,7 @@ These must be (including correct paths):
 -   Any files your code references that are not in the pakfile (e.g.
     `gl_load_texture(”mypath/myfile.png”)` ).
 
--   On Windows, you’ll need to include `openvr_api.dll` and/or `steam_api.dll`
+-   On Windows, you’ll need to include `bin\openvr_api.dll` and/or `bin\steam_api.dll`
     next to `lobster.exe` ONLY if you use functions starting with `vr_` or
     `steam_` respectively.
 
@@ -239,7 +239,7 @@ platform (see instructions above) substituting it for the standard `main.cpp`,
 you’ll end up with an executable that runs only that specific program.
 
 Currently, this process is a bit clunky, you must run the compiler with
-`lobster/` as you current directory, and the compiled file will always be
+the repo root as you current directory, and the compiled file will always be
 written to `dev/compiled_lobster/`
 
 On Windows, there are project files in that same directory that will

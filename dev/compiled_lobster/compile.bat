@@ -1,3 +1,3 @@
-cd ..\..\lobster
-lobster.exe --to-cpp tests\speedtest.lobster
+cd ..\..\
+bin\lobster.exe --cpp tests\speedtest.lobster
 pause

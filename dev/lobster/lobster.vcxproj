@@ -1697,8 +1697,8 @@
     <ClCompile Include="..\src\steamworks.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\lobster\shaders\aa.materials" />
-    <None Include="..\..\lobster\shaders\default.materials" />
+    <None Include="..\..\data\shaders\aa.materials" />
+    <None Include="..\..\data\shaders\default.materials" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
   <ItemGroup>

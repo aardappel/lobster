@@ -58,9 +58,10 @@ vector<string> data_dirs;
 // Folder to write to, usually the same as project dir, special folder on mobile platforms.
 string write_dir;
 
-string exefile;
+string maindir;
 string projectdir;
 string_view ProjectDir() { return projectdir; }
+string_view MainDir() { return maindir; }
 
 FileLoader cur_loader = nullptr;
 
@@ -137,11 +138,17 @@ const char *StripDirPart(const char *filepath) {
     return fpos ? fpos + 1 : filepath;
 }
 
+string_view StripTrailing(string_view in, string_view tail) {
+    if (in.size() >= tail.size() && in.substr(in.size() - tail.size()) == tail)
+        return in.substr(0, in.size() - tail.size());
+    return in;
+}
+
 bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
     InitTime();
     InitCPU();
-    exefile = SanitizePath(exefilepath);
+    maindir = SanitizePath(exefilepath);
     cur_loader = loader;
     // FIXME: use SDL_GetBasePath() instead?
     #if defined(__APPLE__)
@@ -192,17 +199,17 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
             // Windows can pass just the exe name without a full path, which is useless.
             char winfn[MAX_PATH + 1];
             GetModuleFileName(NULL, winfn, MAX_PATH + 1);
-            exefile = winfn;
+            maindir = winfn;
         #endif
-        auto exepath = StripFilePart(exefile);
+        maindir = StripTrailing(StripTrailing(StripFilePart(maindir), "bin/"), "bin\\");
         if (auxfilepath) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
             data_dirs.push_back(projectdir);
             write_dir = projectdir;
         } else {
-            write_dir = exepath;
+            write_dir = maindir;
         }
-        data_dirs.push_back(string(exepath));
+        data_dirs.push_back(maindir);
         #ifdef __linux__
             data_dirs.push_back("/usr/share/lobster/");
         #endif
@@ -281,7 +288,9 @@ string WriteFileName(string_view relfilename) {
 }
 
 FILE *OpenForWriting(string_view relfilename, bool binary) {
-    return fopen(WriteFileName(relfilename).c_str(), binary ? "wb" : "w");
+    auto fn = WriteFileName(relfilename);
+    LOG_INFO("write: ", fn);
+    return fopen(fn.c_str(), binary ? "wb" : "w");
 }
 
 bool WriteFile(string_view relfilename, bool binary, string_view contents) {
@@ -383,7 +392,7 @@ void LogOutput(OutputType ot, const char *buf) {
         printf("%s\n", buf);
     #endif
     if (!have_console) {
-        auto f = fopen((exefile + ".con.log").c_str(), "a");
+        auto f = fopen((maindir + "lobster.exe.con.log").c_str(), "a");
         if (f) {
             fputs(buf, f);
             fputs("\n", f);

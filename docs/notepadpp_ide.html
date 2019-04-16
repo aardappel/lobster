@@ -26,7 +26,7 @@
 <li><p>Install <a href="http://notepad-plus-plus.org/">Notepad++</a> (default install) and the NppExec plugin (<a href="http://sourceforge.net/projects/npp-plugins/files/NppExec/">download</a>, unzip the .dll and other files into the plugins folder of where you installed Notepad++).</p></li>
 <li><p>Open menu Plugins -&gt; NppExec -&gt; Execute and enter:</p>
 <pre><code>NPP_SAVE
-cmd /C C:\path_to_lobster_goes_here\lobster.exe &quot;$(FULL_CURRENT_PATH)&quot;</code></pre></li>
+cmd /C C:\path_to_lobster_goes_here\bin\lobster.exe &quot;$(FULL_CURRENT_PATH)&quot;</code></pre></li>
 <li><p>Save script under name “<code>lobster</code>”</p></li>
 <li><p>Load some lobster code. pressing <code>F6</code> and then “ok” should run it. Next time press <code>Ctrl+F6</code> to bypass the dialog.</p></li>
 <li><p>NOTE: running from within Notepad++ doesn’t work for programs that do console input thru e.g. <code>get_line()</code>. Output (thru <code>print()</code>) does work, but is sometimes delayed. Graphical programs work well.</p></li>

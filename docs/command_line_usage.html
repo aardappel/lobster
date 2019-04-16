@@ -25,7 +25,7 @@
 <p>If you have a file <code>helloworld.lobster</code> that contains</p>
 <pre><code>print(&quot;Hello, World!&quot;)</code></pre>
 <p>then running it like so will compile and run it:</p>
-<pre><code>lobster helloworld.lobster</code></pre>
+<pre><code>bin/lobster helloworld.lobster</code></pre>
 <h2 id="command-line-options">Command line options</h2>
 <p>These can be passed to lobster anywhere on the command line.</p>
 <ul>
@@ -40,7 +40,7 @@
 <h2 id="default-directories">Default directories</h2>
 <p>It’s useful to understand the directories lobster uses, both for reading source code files and any data files the program may use:</p>
 <ul>
-<li><p>the main directory (<code>lobster</code>): this is where the lobster exe resides, or the “Resource” folder on Apple platforms (when run from an app bundle instead of the command line). This is the folder this has the default <code>modules shaders data docs samples</code> folders inside of it.</p></li>
+<li><p>the root repo directory: This is the folder this has the default <code>bin modules data docs samples tests</code> folders inside of it.</p></li>
 <li><p>the auxiliary directory: this is where the main <code>.lobster</code> file being compiled resides.</p></li>
 <li><p>the directory for writing files: the same as auxiliary on desktop platforms, but often a special directory on mobile platforms.</p></li>
 <li><p>On Linux additionally it can load files from <code>/usr/share/lobster/</code> if the above paths don’t work. This is to allow package managers to install Lobster in the system directories.</p></li>

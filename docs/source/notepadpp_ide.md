@@ -15,7 +15,7 @@ Running Lobster programs from within the editor
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NPP_SAVE
-    cmd /C C:\path_to_lobster_goes_here\lobster.exe "$(FULL_CURRENT_PATH)"
+    cmd /C C:\path_to_lobster_goes_here\bin\lobster.exe "$(FULL_CURRENT_PATH)"
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -   Save script under name "`lobster`"

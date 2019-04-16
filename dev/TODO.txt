@@ -1,16 +1,10 @@
 - organize a milestone
-  - repo structure:
-    - docs would be better at the root.
-    - "lobster" dir is confusing with repo name and other lobster dirs.
-      - maybe remove it alltogether?
   - write lots of docs and examples for all the new functionality
     - better "why should I want this language" intro rather than just a list of features.
     - maybe more of a document that is meant to show the best of the language, with
       examples, kind of like whats on the home page but more extensive.
     - several people on https://news.ycombinator.com/item?id=19567160 want more detail
       on the lifetime and typesystems.
-    - structs
-    - ownership
     - multithreading
     - escaping lambdas
     - also new syntax highlighting etc
@@ -115,8 +109,6 @@
   - allow variables/fields/types? to be annotated as single owner, such that these can also
     lose their reference count (but stay heap allocated). Instead if incref they error.
   - optimize other remaining/related features.
-  - profit: Rust efficiency without all the annotations and overly strict "borrow checker".
-  - write all this up in an article.. should interest others how it works :)
   - should really centrally organize the concept of const vs owner vs refc, since besides for
     structs, will need these concepts for strings/vectors/coroutines as well (will especially be
     nice to separate out the default const string from niche mutable use). We also have const/var

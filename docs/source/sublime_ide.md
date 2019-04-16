@@ -7,7 +7,7 @@ title: SublimeText as Lobster IDE
 -   This assumes SublimeText 3, though may also work with older
     versions.
 
--   Copy the files in the `lobster/docs/sublime` folder to your
+-   Copy the files in the `docs/sublime` folder to your
     `Packages/User` folder (on Windows this is
     `\Users\YourUserName\AppData\Roaming\Sublime Text 3\Packages\User`).
 

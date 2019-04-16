@@ -72,21 +72,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>..\..\build\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
-    <OutDir>..\..\lobster\</OutDir>
+    <OutDir>..\..\bin\</OutDir>
     <TargetName>$(ProjectName)DBG</TargetName>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\..\lobster\</OutDir>
+    <OutDir>..\..\bin\</OutDir>
     <IntDir>..\..\build\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>lobster</TargetName>
-    <OutDir>..\..\lobster\</OutDir>
+    <OutDir>..\..\bin\</OutDir>
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
     <IntDir>..\..\build\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -94,7 +94,7 @@
     <CodeAnalysisRuleSet>NativeMinimumRules.ruleset</CodeAnalysisRuleSet>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>lobster</TargetName>
-    <OutDir>..\..\lobster\</OutDir>
+    <OutDir>..\..\bin\</OutDir>
     <IntDir>..\..\build\$(ProjectName)\$(PlatformName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

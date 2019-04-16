@@ -26,12 +26,12 @@
 <h2 id="building-lobster">Building Lobster</h2>
 <p>Lobster uses recent C++17 features, so will need Visual Studio 2017 (the free community edition will do), Xcode 9.x, or a recent GCC (7.0 preferably) to be compiled.</p>
 <p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included, so should compile out of the box with no further external dependencies.</p>
-<p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder, which is usually parallel to the main lobster folder.</p>
+<p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder.</p>
 <p>Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all Lobster values will take double the size (and precision), and thus use more memory. Despite that, for most programs, 64-bit is still a speed-up (the VM benefits a lot from extra registers).</p>
 <h3 id="windows">Windows</h3>
-<p>This platform is definitely best supported and easiest to use for now. Open up <code>dev\lobster\lobster.sln</code> with Visual Studio. The project is set up to build lobster.exe in the main lobster folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="notepadpp_ide.html">Notepad++</a> / <a href="sublime_ide.html">SublimeText</a>.</p>
+<p>This platform is definitely best supported and easiest to use for now. Open up <code>dev\lobster\lobster.sln</code> with Visual Studio. The project is set up to build lobster.exe in the <code>bin</code> folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="notepadpp_ide.html">Notepad++</a> / <a href="sublime_ide.html">SublimeText</a>.</p>
 <h3 id="os-x-ios">OS X &amp; iOS</h3>
-<p>Building for either one is easy using the single Xcode project (in <code>dev/xcode/lobster</code>) which produces a .app bundle for either platform (the <code>lobsterapp</code> and <code>lobster_ios</code> targets), or a command line version for OS X (the <code>lobster</code> target) placed in the main lobster folder much like Windows.</p>
+<p>Building for either one is easy using the single Xcode project (in <code>dev/xcode/lobster</code>) which produces a .app bundle for either platform (the <code>lobsterapp</code> and <code>lobster_ios</code> targets), or a command line version for OS X (the <code>lobster</code> target) placed in the <code>bin</code> folder much like Windows.</p>
 <p>To develop Lobster code on OS X, easiest probably is to use the command line version. Many OS X editors support running a command line compiler, e.g. SublimeText, or Komodo Edit with Tools -&gt; Run Command.</p>
 <p>Alternatively, you could add your lobster source (and extra data it might need) to the Xcode project, and add it to the build rules such that these are copied to the Resource location in the bundle, then running from Xcode with the main lobster file as command line argument.</p>
 <p>Distribution is currently a bit clumsier. You’ll need to run lobster to produce a bytecode file (see <a href="command_line_usage.html">command line</a>), then make a copy of the bundle, and stick the bytecode file (+data) in the Resource location, and you should have something that can be distributed to users. For iOS you can compile using the OS X exe, then run that same bytecode using the iOS exe.</p>
@@ -40,7 +40,7 @@
 <p>This requires a C++17 compiler, and the mesa dev files should be installed (<code>apt-get install mesa-common-dev</code>).</p>
 <pre><code>cd dev
 cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
-<p>It creates in <code>lobster/lobster</code>. Run it from that directory to access the samples, e.g. <code>./lobster samples/pythtree.lobster</code></p>
+<p>It creates in <code>bin/lobster</code>. Run it to access the samples, e.g. <code>bin/lobster samples/pythtree.lobster</code></p>
 <h3 id="android">Android</h3>
 <p>You must have the following installed:</p>
 <ul>
@@ -89,17 +89,17 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <li><p><code>default.lpak</code>. This is the Lobster pakfile file you obtain from compiling your program with the <code>-b</code> option, it includes:</p>
 <ul>
 <li><p>The bytecode.</p></li>
-<li><p><code>shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything, and is implicitly loaded by <code>gl_window</code>).</p></li>
+<li><p><code>data/shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything, and is implicitly loaded by <code>gl_window</code>).</p></li>
 <li><p>Any other files/directories you have specified with <code>pakfile</code>, e.g: <code>gl_load_texture(pakfile ”mypath/myfile.png”)</code>. <code>pakfile</code> can prefix filenames or directories (ending in <code>/</code>), in which case all files in the directory will (non-recursively) be added. When running with <code>--verbose</code> you can see what files are added/loaded from a pakfile, and which are loaded individually.</p></li>
 </ul></li>
 <li><p>Any files your code references that are not in the pakfile (e.g. <code>gl_load_texture(”mypath/myfile.png”)</code> ).</p></li>
-<li><p>On Windows, you’ll need to include <code>openvr_api.dll</code> and/or <code>steam_api.dll</code> next to <code>lobster.exe</code> ONLY if you use functions starting with <code>vr_</code> or <code>steam_</code> respectively.</p></li>
+<li><p>On Windows, you’ll need to include <code>bin\openvr_api.dll</code> and/or <code>bin\steam_api.dll</code> next to <code>lobster.exe</code> ONLY if you use functions starting with <code>vr_</code> or <code>steam_</code> respectively.</p></li>
 </ul>
 <p>Where you place these files depends on the platform, on Windows / Linux it is next to the lobster executable, on OS X / iOS it is the application bundle under Contents, on Android it’s under assets in the .apk, and with emscripten there’s an assets directory also.</p>
 <h2 id="compiling-lobster-code-to-c">Compiling Lobster code to C++</h2>
 <p>Rather than directly executing or compiling to bytecode, Lobster can also be translated to C++, for a further speed boost. This is useful when releasing a shipping build to customers, but hopefully not necessary during development.</p>
 <p>With the <code>--cpp</code> option on the command-line, the compiler will generate a <code>compiled_lobster.cpp</code> file. This file contains a <code>main()</code> and is otherwise self-contained such that when you compile it with the build files for any platform (see instructions above) substituting it for the standard <code>main.cpp</code>, you’ll end up with an executable that runs only that specific program.</p>
-<p>Currently, this process is a bit clunky, you must run the compiler with <code>lobster/</code> as you current directory, and the compiled file will always be written to <code>dev/compiled_lobster/</code></p>
+<p>Currently, this process is a bit clunky, you must run the compiler with the repo root as you current directory, and the compiled file will always be written to <code>dev/compiled_lobster/</code></p>
 <p>On Windows, there are project files in that same directory that will automatically pick up the compiled lobster code.</p>
 <p>On Linux, create a <code>build</code> directory anywhere, for example in <code>dev/compiled_lobster/build</code>, go there, then <code>cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..</code> will automatically substitute the compiled lobster main program. Build with <code>make -j8</code> or similar.</p>
 <h2 id="compiling-lobster-code-to-webassembly">Compiling Lobster code to WebAssembly</h2>
