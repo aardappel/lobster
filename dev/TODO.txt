@@ -1,27 +1,27 @@
 - organize a milestone
-    - better getting started docs.
-      rather than scattered in multiple places, there should be a step by step
-      sequence for each OS, including command-line steps to get the repo on linux.
+  - repo structure:
+    - docs would be better at the root.
+    - "lobster" dir is confusing with repo name and other lobster dirs.
+      - maybe remove it alltogether?
+  - write lots of docs and examples for all the new functionality
     - better "why should I want this language" intro rather than just a list of features.
     - maybe more of a document that is meant to show the best of the language, with
       examples, kind of like whats on the home page but more extensive.
     - several people on https://news.ycombinator.com/item?id=19567160 want more detail
       on the lifetime and typesystems.
-  - finish structs and ownership
-  - repo structure:
-    - docs would be better at the root.
-    - "lobster" dir is confusing with repo name and other lobster dirs.
+    - structs
+    - ownership
+    - multithreading
+    - escaping lambdas
+    - also new syntax highlighting etc
+    - have selectable examples like e.g. https://dlang.org/
   - do whatever big language fixes still need to happen.
     - multimethods
     - bools?
     - http://rigaux.org/language-study/syntax-across-languages.html
     - maybe disable old {} syntax for multiline classes:
       https://github.com/aardappel/lobster/issues/31
-  - write lots of docs and examples for all the new functionality
-    - structs
-    - ownership
-    - multithreading
-    - also new syntax highlighting etc
+  - finish structs and ownership
   - A discussion place? Github has no way to announce anything to people that care about the
     language, other than posting an issue which won't reach most people.
     - So far we have https://gitter.im/lobster_programming_language/community
@@ -29,6 +29,10 @@
   - announce post
 
 - Inline structs, further improvements:
+  - These were immutable in the past, because values were shared by pointer, but now there
+    really is no reason to anymore, as they're always copied, so modifying a field of
+    a struct that sits in a variable would totally be fine and useful.
+    - Will greatly expand the zero abstraction use cases where
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
   - finally split builtins into one op per len.
@@ -52,6 +56,13 @@
   - for can lose the brackets?
   - what features could we remove from function calling that are unnecessary?
     - maybe _ args?
+  - besides the syntax, the question is should it also change the bodies from
+    functions into inlined blocks?
+    - pro: simplifies a lot of code in the type checker, reduces pressure on
+      inlining, makes ast more readable etc.
+    - con: some logic related to functions will need to be duplicated for blocks.
+    on the whole I think its worth it, but do it seperate from syntax.
+    probably while condition can be made into a non-function first.
 
 - methods in unrelated types still form a multimethod
   - this should be the final straw to rework them.
@@ -394,6 +405,9 @@
 
 - switch jump table based version.
 
+- We have a check in IdentRef::TypeCheck to avoid escaping lambdas, but this only works
+  for static ones, not for calls over a function type.
+
 - Should consider an SSA based IR to sit in-between the AST and bytecode gen.
   - This can do more precise dataflow based type and lifetime checking.
   - Also a better basis for more hard-core optimizations.
@@ -487,6 +501,10 @@
   somestruct { def ():
     multi-line-anonymous-function-body
   }
+
+- def adder(x): return def(y): x + y
+  print(adder(1)(20)) // test.lobster(2): error: identifier expected, found: 20
+  It thinks is its parsing a lambda.. can this be a better error?
 
 - This parses the map without the lambda:     assert 1 == map(2) i: 3
 

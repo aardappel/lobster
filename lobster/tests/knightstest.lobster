@@ -4,7 +4,7 @@ import vec
 run_test("knightstour"):
 
     let knight_moves = [ xy { 1, 2 }, xy { 1, -2 }, xy { -1, 2 }, xy { -1, -2 },
-                       xy { 2, 1 }, xy { 2, -1 }, xy { -2, 1 }, xy { -2, -1 } ]
+                         xy { 2, 1 }, xy { 2, -1 }, xy { -2, 1 }, xy { -2, -1 } ]
 
     def knights_tour(dim):
         let board = mapxy(dim): -1

@@ -113,7 +113,7 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitGetLocal(1 /*argv*/);
         bw.EmitI32FunctionRef(bw.GetNumImports() + start_id);
         bw.EmitI32ConstDataRef(0, 0);  // Bytecode, for data refs.
-        bw.EmitI32Const(bytecode_buffer.size());
+        bw.EmitI32Const((int)bytecode_buffer.size());
         bw.EmitCall(import_erccm);
         bw.EmitEndFunction();
     }
@@ -152,7 +152,7 @@ class WASMGenerator : public NativeGenerator {
         for (auto [i, id] : enumerate(mmtable)) {
             bw.EmitGetLocal(0 /*VM*/);
             bw.EmitI32FunctionRef(bw.GetNumImports() + id);
-            bw.EmitI32Const(i);
+            bw.EmitI32Const((int)i);
             bw.EmitCall(import_tmmt);
         }
     }
