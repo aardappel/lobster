@@ -33,7 +33,7 @@ Lobster.
 To learn the language more in-depth: The [language
 reference](language_reference.html). Check out the [style
 guide](style_guide.html) before you write lots of code :) Read about the [type
-system](type_checker.html).
+system](type_checker.html) or [memory management](memory_management.html).
 
 Building Lobster
 ----------------
