@@ -55,6 +55,7 @@ of these at compile time, runtime, or a mix?
 
 There have been many ownership models in the past, but only recently they are
 becoming more mainstream:
+
 * Rust is the poster child, which tries to solve all of the above questions at
   compile time, at the cost of much programmer assistence.
 * Modern C++ with `std::unique_ptr` is essentially an ownership model, except one
@@ -99,7 +100,7 @@ in the parent, where "parent" can be another struct or class, a vector, or
 simply the stack (as a local variable). On an implementation level, it is
 as if you added all the fields of the struct as fields/variables to the
 parent, so writing `s.x` (where `s` is a struct) is just as cheap as
-writing `x`. The struct dissapears.
+writing `x`. The struct disappears.
 
 This of course has limitations, in that you're completely dependent on
 the lifetime of the parent, and that you assign these kinds of struct by
@@ -202,7 +203,9 @@ The algorithm in detail
 
 The "ground truth" for how the algorithm is to be found in `typecheck.h`,
 this section is merely a description of it. If you were hoping for pages of
-equations like the typical PL paper, I am going to have to dissapoint.
+equations like the typical PL paper, I am going to have to disappoint.
+
+More on the type checker [here](type_checker.html).
 
 Wait, what, the type checker? Yes, as much as I would have preferred to make
 the lifetime checker a standalone algorithm, it is interwoven with type checking.
@@ -222,6 +225,7 @@ values in the language.
 To be more precise, every AST node has a lifetime it expects of its children,
 and a lifetime it passes to its parent. The core of the algorithm is thus the
 matching that takes place between child and parent:
+
 * When the two agree, nothing happens. This is most of the time. For example in
   `let a = [ 1, 2, 3 ]` the vector wants to be owned, and the variable wants to own,
   everybody is happy. No Reference counts touched.
@@ -257,6 +261,9 @@ difficult. This could be revisited in the future once the consequences of
 the algorithm are better understood, or maybe when more accurate dataflow
 information is present.
 
+The end of a variable's lifetime is typically the end of the scope, though
+making it its "last use" is being worked on, see `return` below.
+
 ### Function specialization by lifetime.
 
 Function lifetime specialization is probably quite unique to Lobster, and solves an
@@ -264,9 +271,24 @@ important problem: if different callers to a function have different lifetimes
 that would be ideal for their arguments, the compiler (or worse, the programmer)
 would have to pick one, and let the others be suboptimal. Not only does this
 produce unnecessary reference counting, it reduces the amount of code that
-could otherwise work error-free in the context of strict ownership.
+could otherwise work error-free in the context of strict ownership. For example:
+
+~~~~
+def f(x): print x
+f([ 1, 2, 3 ])
+f(a)
+~~~~
+
+If `x` had been fixed to own because of the first call, the second call
+would have been less efficient, or even an error. Now they both get to be
+maximally efficient because of specialization. Now in this simple example
+it is easy to see that `x` should really borrow, but it isn't always that
+trivial, and would need a more complex lifetime analysis that employs
+"logical variables" much like type inference currently does (assuming
+you want to do this without help of the programmer).
 
 There are currently some exceptions to this:
+
 * Arguments that are assigned to are always owned.
 * Coroutines always own (because they are longer lived).
 * Multimethods speculatively adopt the lifetimes of the first caller,
@@ -306,15 +328,16 @@ is cool with any kind of lifetime.
 * `for` borrows what it iterates over and doesn't care about its body.
   It produces an element variable that wants to be owned.
   Note: this may change in the future to also allow borrowing.
-* String constants conceptually result in an owned value (they are heap
+* String constants conceptually result in an owned value (they are a heap
   object), but currently they actually result in a borrow. This is
-  because strings are most frequently passed to context that would prefer
+  because strings are most frequently passed to contexts that would prefer
   to borrow (like `+` or many builtin functions) and thus produce a lot
   of reference count churn. To avoid this, the VM allocates strings on
   first use, but never lets the reference count drop to 0, meaning they
   can safely be borrowed, and reduce total reference counting.
   Or more simply: it's as if there exists an anonymous global variable
-  for each string constant that's actually used.
+  for each string constant that's actually used, and which you borrow
+  from.
 * `+` on strings wants to borrow, and returns owned. This is the same
   in principle for all binary operators, but thanks to "inline structs"
   this doesn't matter for most of them anymore.
