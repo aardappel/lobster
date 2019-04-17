@@ -119,21 +119,6 @@ struct Parser {
         Expect(closing);
     }
 
-    void ParseIndentedorVector(const function<void()> &f, TType opening, TType closing) {
-        bool isindent = IsNext(T_INDENT);
-        if (!isindent) {
-            if (IsNext(opening)) ParseVector(f, closing);
-            else { /* likely a lf or dedent, meaning an empty indented section */ }
-        } else {
-            for (;;) {
-                f();
-                if (!IsNext(T_LINEFEED)) break;
-                if (Either(T_ENDOFFILE, T_DEDENT)) break;
-            }
-            Expect(T_DEDENT);
-        }
-    }
-
     void ParseTopExp(List *list, bool isprivate = false) {
         switch(lex.token) {
             case T_NAMESPACE:
@@ -351,24 +336,35 @@ struct Parser {
                 parse_specializers();
                 if (IsNext(T_COLON) && lex.token != T_INDENT) lex.Undo(T_COLON);
             }
-            bool fieldsdone = false;
-            ParseIndentedorVector([&] () {
-                if (IsNext(T_FUN)) {
-                    fieldsdone = true;
-                    parent_list->Add(ParseNamedFunctionDefinition(false, udt));
-                } else {
-                    ExpectId();
-                    if (fieldsdone) Error("fields must be declared before methods");
-                    auto &sfield = st.FieldDecl(lastid);
-                    TypeRef type = type_any;
-                    int genericref = -1;
-                    if (IsNext(T_COLON)) {
-                        genericref = ParseType(type, false, udt);
-                    }
-                    Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                    udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
+            auto ParseField = [&]() {
+                ExpectId();
+                auto& sfield = st.FieldDecl(lastid);
+                TypeRef type = type_any;
+                int genericref = -1;
+                if (IsNext(T_COLON)) {
+                    genericref = ParseType(type, false, udt);
                 }
-            }, T_LEFTCURLY, T_RIGHTCURLY);
+                Node* defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
+            };
+            if (!IsNext(T_INDENT)) {
+                if (IsNext(T_LEFTCURLY)) ParseVector(ParseField, T_RIGHTCURLY);
+                else { /* likely a lf or dedent, meaning an empty indented section */ }
+            } else {
+                bool fieldsdone = false;
+                for (;;) {
+                    if (IsNext(T_FUN)) {
+                        fieldsdone = true;
+                        parent_list->Add(ParseNamedFunctionDefinition(false, udt));
+                    } else {
+                        if (fieldsdone) Error("fields must be declared before methods");
+                        ParseField();
+                    }
+                    if (!IsNext(T_LINEFEED)) break;
+                    if (Either(T_ENDOFFILE, T_DEDENT)) break;
+                }
+                Expect(T_DEDENT);
+            }
             if (udt->fields.v.empty() && udt->is_struct)
                 Error("structs cannot be empty");
         } else {
