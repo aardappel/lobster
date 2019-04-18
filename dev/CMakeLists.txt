@@ -12,20 +12,11 @@ set(SDL_STATIC ON CACHE INTERNAL "")
 set(VIDEO_VULKAN OFF CACHE INTERNAL "")
 add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
 
-set(EXE_NAME lobster)
-
 file(GLOB LOBSTER_SRCS
     "src/*.h"
     "src/lobster/*.h"
     "src/*.cpp"
 )
-
-if(LOBSTER_TOCPP)
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-  list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
-  add_definitions(-DVM_COMPILED_CODE_MODE=1)
-  set(EXE_NAME compiled_lobster)
-endif()
 
 file(GLOB_RECURSE EXTERNAL_SRCS
     "include/Box2D/*.cpp"
@@ -104,27 +95,37 @@ if(WIN32)
   link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
 endif()
 
-add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
-
-target_link_libraries(${EXE_NAME}
-  ${SDL_LIBRARIES}
-  ${ADDITIONAL_LIBRARIES}
-  ${OPENGL_LIBRARIES})
-
 if(UNIX)
    include(GNUInstallDirs)
    set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
    set(DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME})
    set(DOCDIR ${CMAKE_INSTALL_FULL_DOCDIR})
    set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
+   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+   endif()
 else()
    set(BINDIR ${CMAKE_INSTALL_PREFIX})
    set(DATADIR ${CMAKE_INSTALL_PREFIX})
    set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
-   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+   if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINDIR})
    endif()
 endif()
+
+set(EXE_NAME lobster)
+if(LOBSTER_TOCPP)
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+  list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
+  add_definitions(-DVM_COMPILED_CODE_MODE=1)
+  set(EXE_NAME compiled_lobster)
+endif()
+add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
+target_link_libraries(${EXE_NAME}
+  ${SDL_LIBRARIES}
+  ${ADDITIONAL_LIBRARIES}
+  ${OPENGL_LIBRARIES})
+
 install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../data" DESTINATION ${DATADIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../modules" DESTINATION ${DATADIR})
