@@ -104,8 +104,6 @@ if(WIN32)
   link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
-
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 
 target_link_libraries(${EXE_NAME}
@@ -123,6 +121,9 @@ else()
    set(BINDIR ${CMAKE_INSTALL_PREFIX})
    set(DATADIR ${CMAKE_INSTALL_PREFIX})
    set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
+   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINDIR})
+   endif()
 endif()
 install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../data" DESTINATION ${DATADIR})
@@ -130,4 +131,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/../modules" DESTINATION ${DATADIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../samples" DESTINATION ${DATADIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../tests" DESTINATION ${DATADIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../docs/" DESTINATION ${DOCDIR})
-message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
+
+enable_testing()
+add_test(unittest ${EXE_NAME} ${CMAKE_SOURCE_DIR}/../tests/unittest.lobster)
+add_test(speedtest ${EXE_NAME} ${CMAKE_SOURCE_DIR}/../tests/speedtest.lobster)
