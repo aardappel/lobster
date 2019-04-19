@@ -376,6 +376,11 @@ struct NativeFun : Named {
             StructArgsVararg(retvals.v[i]);
         }
     }
+
+    bool CanChangeControlFlow() {
+        // FIXME: make resume a VM op.
+        return name == "resume" || name == "gl_frame";
+    }
 };
 
 struct NativeRegistry {

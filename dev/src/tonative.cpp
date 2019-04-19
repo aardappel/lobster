@@ -135,8 +135,8 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 }
                 ng.EmitMultiMethodDispatch(mmtable);
             // FIXME: make resume a vm op.
-            } else if (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
-                       natreg.nfuns[args[0]]->name == "resume") {
+            } else if (ISBCALL(opc) &&
+                       natreg.nfuns[args[0]]->CanChangeControlFlow()) {
                 ng.SetNextCallTarget(block_ids[ip - code]);
             }
             int target = -1;
@@ -147,7 +147,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 target = block_ids[args[0]];
             }
             ng.EmitGenericInst(opc, arity, target);
-            if (opc >= IL_BCALLRET0 && opc <= IL_BCALLUNB6) {
+            if (ISBCALL(opc)) {
                 ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {
                 ng.Annotate(IdName(bcf, args[0]));
@@ -169,8 +169,8 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
                        opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
                        // FIXME: make resume a vm op.
-                       (opc >= IL_BCALLRET2 && opc <= IL_BCALLUNB2 &&
-                        natreg.nfuns[args[0]]->name == "resume")) {
+                       (ISBCALL(opc) &&
+                        natreg.nfuns[args[0]]->CanChangeControlFlow())) {
                 ng.EmitCallIndirect();
                 already_returned = true;
             } else if (opc == IL_CALLVCOND) {

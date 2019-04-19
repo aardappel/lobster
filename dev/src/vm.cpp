@@ -24,8 +24,10 @@ namespace lobster {
 
 #ifdef VM_COMPILED_CODE_MODE
     #define VM_OP_PASSTHRU ip, fcont
-    #pragma warning (disable: 4458)  // ip hides class member, which we rely on
-    #pragma warning (disable: 4100)  // ip may not be touched
+    #ifdef _WIN32
+        #pragma warning (disable: 4458)  // ip hides class member, which we rely on
+        #pragma warning (disable: 4100)  // ip may not be touched
+    #endif
 #else
     #define VM_OP_PASSTHRU
 #endif
@@ -97,6 +99,12 @@ void VM::OneMoreFrame() {
     // We just landed back into the VM after being suspended inside a gl_frame() call.
     // Emulate the return of gl_frame():
     VM_PUSH(Value(1));  // We're not terminating yet.
+    #ifdef VM_COMPILED_CODE_MODE
+        // Native code generators ensure that next_call_target is set before
+        // a native function call, and that it is returned to the trampoline
+        // after, so do the same thing here.
+        compiled_code_ip = (const void *)next_call_target;
+    #endif
     EvalProgram();   // Continue execution as if nothing happened.
 }
 
