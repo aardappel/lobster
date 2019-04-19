@@ -191,6 +191,10 @@ similar. Note that just loading up the html in your browser directly may not
 work because of security restrictions. Alternatively place all the generated
 files on a webserver, and load from there.
 
+Note: the above compiles the bytecode interpreter to wasm. To instead
+compile the lobster bytecode to wasm directly, see
+"Compiling Lobster code to WebAssembly" below.
+
 Distributing Lobster programs.
 ------------------------------
 
@@ -253,17 +257,33 @@ substitute the compiled lobster main program. Build with `make -j8` or similar.
 
 Compiling Lobster code to WebAssembly
 -------------------------------------
+Note: this is about generating wasm code form lobster bytecode directly.
+If you just want to build the bytecode interpreter for wasm, see the
+"WebAssembly / Emscripten" section above.
+
 Similarly to compiling to C++, with `--wasm` the compiler with generate a
-`.wasm` file. This is not a WebAssembly module ready to be run however, it
+`.wasm` file, e.g. `bin/lobster samples/pythtree.lobster`
+
+This is not a WebAssembly module ready to be run however, it
 is the wasm equivalent of a `.o` file that still needs to be linked against
-the rest of the Lobster runtime, much like in the C++ case.
+the rest of the Lobster runtime, much like in the C++ case. The file is
+currently hard-coded to be written to `dev/emscripten/compiled_lobster_wasm.o`
+such that it can automatically be picked up by the buildfiles there.
 
-To do so, we first build the runtime with the Emscripten toolchain as usual,
-then perform the final link with our generated file. Binaryen takes care of
-further optimisation of our generated code with the runtime.
+To compile the project and link in the `.o` we just generated, we build
+similarly to described in the `WebAssembly / Emscripten` section above,
+except we use a special make target to indicate it should link in our
+compiled code as the main program instead of the default:
+`make -j8 lobster_wasmout`.
 
-(more details to follow).
+Don't forget to place needed files in the `assets` dir as described above.
+You can even place an `lpak` file there (which currently will contain bytecode,
+which will be unused).
 
+You now run this much descrived above.
+
+If you're interested in the details of how Lobster is translated to wasm,
+or how you can generate wasm yourself, read more [here](implementation_wasm.html).
 
 Extending Lobster
 -----------------

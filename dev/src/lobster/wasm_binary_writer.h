@@ -229,14 +229,14 @@ class BinaryWriter {
         section_index_in_file++;
     }
 
-    void AddType(const std::vector<unsigned> &params, const std::vector<unsigned> &returns) {
+    size_t AddType(const std::vector<unsigned> &params, const std::vector<unsigned> &returns) {
         assert(cur_section == Section::Type);
         ULEB(FUNC);
         ULEB(params.size());
         for (auto p : params) ULEB(p);
         ULEB(returns.size());
         for (auto r : returns) ULEB(r);
-        section_count++;
+        return section_count++;
     }
 
     size_t AddImportLinkFunction(std::string_view name, size_t tidx) {
