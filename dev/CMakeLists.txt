@@ -4,25 +4,19 @@ project(Lobster)
 
 option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 
-set(SDL_SHARED OFF CACHE BOOL "Build a shared version of the library")
-function(install)
-endfunction(install)
-add_subdirectory("external/SDL")
-
-set(EXE_NAME lobster)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
+endif()
+set(SDL_SHARED OFF CACHE INTERNAL "")
+set(SDL_STATIC ON CACHE INTERNAL "")
+set(VIDEO_VULKAN OFF CACHE INTERNAL "")
+add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
 
 file(GLOB LOBSTER_SRCS
     "src/*.h"
     "src/lobster/*.h"
     "src/*.cpp"
 )
-
-if(LOBSTER_TOCPP)
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-  list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
-  add_definitions(-DVM_COMPILED_CODE_MODE=1)
-  set(EXE_NAME compiled_lobster)
-endif()
 
 file(GLOB_RECURSE EXTERNAL_SRCS
     "include/Box2D/*.cpp"
@@ -101,11 +95,44 @@ if(WIN32)
   link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
+if(UNIX)
+   include(GNUInstallDirs)
+   set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+   set(DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME})
+   set(DOCDIR ${CMAKE_INSTALL_FULL_DOCDIR})
+   set_source_files_properties(src/platform.cpp PROPERTIES COMPILE_FLAGS -DPLATFORM_DATADIR="\\\"${DATADIR}/\\\"")
+   if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+   endif()
+else()
+   set(BINDIR ${CMAKE_INSTALL_PREFIX})
+   set(DATADIR ${CMAKE_INSTALL_PREFIX})
+   set(DOCDIR ${CMAKE_INSTALL_PREFIX}/docs)
+   if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINDIR})
+   endif()
+endif()
 
+set(EXE_NAME lobster)
+if(LOBSTER_TOCPP)
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+  list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
+  add_definitions(-DVM_COMPILED_CODE_MODE=1)
+  set(EXE_NAME compiled_lobster)
+endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
-
 target_link_libraries(${EXE_NAME}
   ${SDL_LIBRARIES}
   ${ADDITIONAL_LIBRARIES}
   ${OPENGL_LIBRARIES})
+
+install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../data" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../modules" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../samples" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../tests" DESTINATION ${DATADIR})
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/../docs/" DESTINATION ${DOCDIR})
+
+enable_testing()
+add_test(unittest ${EXE_NAME} ${CMAKE_SOURCE_DIR}/../tests/unittest.lobster)
+add_test(speedtest ${EXE_NAME} ${CMAKE_SOURCE_DIR}/../tests/speedtest.lobster)
