@@ -22,6 +22,7 @@ namespace lobster {
 class CPPGenerator : public NativeGenerator {
     ostringstream &ss;
     const int dispatch = VM_DISPATCH_METHOD;
+    int current_block_id = -1;
 
     string_view Block() {
         return dispatch == VM_DISPATCH_TRAMPOLINE ? "block" : "";
@@ -64,7 +65,8 @@ class CPPGenerator : public NativeGenerator {
     void BeforeBlocks(int start_id, string_view /*bytecode_buffer*/) override {
         ss << "\n";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "static void *one_gigantic_function() {\n  int ip = " << start_id;
+            ss << "static void *one_gigantic_function(lobster::VM &vm) {\n";
+            ss << "  lobster::block_t ip = " << start_id;
             ss << ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n";
         }
     }
@@ -88,7 +90,14 @@ class CPPGenerator : public NativeGenerator {
 
     void EmitJump(int id) override {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << "return (void *)block" << id << ";";
+            if (id <= current_block_id) {
+                // A backwards jump, go via the trampoline to be safe
+                // (just in-case the compiler doesn't optimize tail calls).
+                ss << "return (void *)block" << id << ";";
+            } else {
+                // A forwards call, should be safe to tail-call.
+                ss << "return block" << id << "(vm);";
+            }
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             ss << "goto block_label" << id << ";";
         }

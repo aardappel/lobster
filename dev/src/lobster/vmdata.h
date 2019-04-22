@@ -99,7 +99,7 @@ enum ValueType : int {
     V_STRUCT_S,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
     V_TYPEID,           // [typechecker only] a typetable offset.
-    V_VOID,             // [typechecker/codegen only] this exp does not produce a value. 
+    V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
     V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
     V_UNDEFINED,        // [typechecker only] this type should never be accessed.
     V_MAXVMTYPES
@@ -161,7 +161,7 @@ struct TypeInfo {
         struct {           // V_CLASS, V_STRUCT_*
             int structidx;
             int len;
-            type_elem_t elemtypes[1];  // len elems, followed by len parent types.  
+            type_elem_t elemtypes[1];  // len elems, followed by len parent types.
         };
         int sfidx;         // V_FUNCTION;
         struct {           // V_COROUTINE

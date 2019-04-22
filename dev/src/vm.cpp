@@ -799,7 +799,7 @@ void VM::EvalProgramInner() {
             #if VM_DISPATCH_METHOD == VM_DISPATCH_TRAMPOLINE
                 compiled_code_ip = ((block_t)compiled_code_ip)(*this);
             #elif VM_DISPATCH_METHOD == VM_DISPATCH_SWITCH_GOTO
-                ((block_base_t)compiled_code_ip)();
+                ((block_base_t)compiled_code_ip)(*this);
                 assert(false);  // Should not return here.
             #endif
         #else

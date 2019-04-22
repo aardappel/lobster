@@ -20,6 +20,10 @@
 namespace lobster {
 
 struct NativeGenerator {
+    int current_block_id = -1;
+
+    virtual ~NativeGenerator() {}
+
     virtual void FileStart() = 0;
     virtual void DeclareBlock(int id) = 0;
     virtual void BeforeBlocks(int start_id, string_view bytecode_buffer) = 0;

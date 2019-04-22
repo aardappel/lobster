@@ -113,7 +113,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
         }
         auto args = ip;
         if (bcf->bytecode_attr()->Get((flatbuffers::uoffset_t)(ip - 1 - code)) & bytecode::Attr_SPLIT) {
-            ng.BlockStart(block_ids[args - 1 - code]);
+            auto cid = block_ids[args - 1 - code];
+            ng.current_block_id = cid;
+            ng.BlockStart(cid);
             already_returned = false;
         }
         auto arity = ParseOpAndGetArity(opc, ip, code);

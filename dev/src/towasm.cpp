@@ -129,7 +129,14 @@ class WASMGenerator : public NativeGenerator {
     }
 
     void EmitJump(int id) override {
-        bw.EmitI32FunctionRef(bw.GetNumImports() + id);
+        if (id <= current_block_id) {
+            // A backwards jump, go via the trampoline.
+            bw.EmitI32FunctionRef(bw.GetNumImports() + id);
+        } else {
+            // A forwards call, should be safe to tail-call.
+            bw.EmitGetLocal(0 /*VM*/);
+            bw.EmitCall(bw.GetNumImports() + id);
+        }
         bw.EmitReturn();
     }
 
