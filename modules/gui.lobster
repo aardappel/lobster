@@ -295,5 +295,3 @@ def setclickcolors(hover, sel):
 
 def setactionsfxr(snd): actionsfxr = snd
 def setactionwav(snd): actionwav = snd
-
-

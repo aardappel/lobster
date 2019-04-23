@@ -58,7 +58,7 @@ void FontCleanup() {
 
 void AddFont(NativeRegistry &nfr) {
 
-nfr("gl_set_font_name", "filename", "S", "I",
+nfr("gl_set_font_name", "filename", "S", "B",
     "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
     " true if success.",
     [](VM &vm, Value &fname) {
@@ -82,7 +82,7 @@ nfr("gl_set_font_name", "filename", "S", "I",
         }
     });
 
-nfr("gl_set_font_size", "size,outlinesize", "IF?", "I",
+nfr("gl_set_font_size", "size,outlinesize", "IF?", "B",
     "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
     " time this size is used, flushes from cache if this size is not used an entire frame. font"
     " rendering will look best if using 1:1 pixels (careful with gl_scale/gl_translate)."

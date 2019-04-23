@@ -68,8 +68,8 @@ struct TypeChecker {
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq) : parser(_p), st(_st) {
         // FIXME: this is unfriendly.
-        if (!st.RegisterDefaultVectorTypes())
-            TypeError("cannot find standard vector types (include stdtype.lobster)", *parser.root);
+        if (!st.RegisterDefaultTypes())
+            TypeError("cannot find standard types (from stdtype.lobster)", *parser.root);
         for (auto &udt : st.udttable) {
             if (udt->generics.empty()) {
                 // NOTE: all users of sametype will only act on it if it is numeric, since
@@ -288,7 +288,8 @@ struct TypeChecker {
             case V_VOID:      return coercions;
             case V_VAR:       UnifyVar(type, sub); return true;
             case V_FLOAT:     return type->t == V_INT && coercions;
-            case V_INT:       return type->t == V_TYPEID && coercions;
+            case V_INT:       return (type->t == V_TYPEID && coercions) ||
+                                     (type->t == V_INT && !sub->e);
             case V_STRING:    return coercions && IsRuntimePrintable(type->t);
             case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
             case V_NIL:       return (type->t == V_NIL &&
@@ -296,7 +297,8 @@ struct TypeChecker {
                                                  unifications)) ||
                                      (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
                                       ConvertsTo(type, sub->Element(), false, unifications)) ||
-                                     (type->Numeric() && type == sub->Element());  // For builtins.
+                                     (type->Numeric() &&  // For builtins.
+                                      ConvertsTo(type, sub->Element(), false, unifications));
             case V_VECTOR:    return (type->t == V_VECTOR &&
                                       ConvertsTo(type->Element(), sub->Element(), false,
                                                  unifications));
@@ -355,7 +357,7 @@ struct TypeChecker {
         DecBorrowers(a->lt, *a);
         if (a->exptype->t == V_INT) return;
         a = new ToBool(a->line, a);
-        a->exptype = type_int;
+        a->exptype = &st.default_bool_type->thistype;
         a->lt = LT_ANY;
     }
 
@@ -564,7 +566,7 @@ struct TypeChecker {
     void TypeCheckComp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        n.exptype = type_int;
+        n.exptype = &st.default_bool_type->thistype;
         auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
         if (!u->Numeric() && u->t != V_STRING) {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
@@ -596,8 +598,10 @@ struct TypeChecker {
     void TypeCheckBitOp(BinOp &n) {
         TT(n.left, 1, LT_BORROW);
         TT(n.right, 1, LT_BORROW);
-        SubTypeLR(type_int, n);
-        n.exptype = type_int;
+        auto u = Union(n.left->exptype, n.right->exptype, true, nullptr);
+        if (u->t != V_INT) u = type_int;
+        SubTypeLR(u, n);
+        n.exptype = u;
         DecBorrowers(n.left->lt, n);
         DecBorrowers(n.right->lt, n);
         n.lt = LT_ANY;
@@ -856,21 +860,35 @@ struct TypeChecker {
         return true;
     }
 
+    void CheckReturnPast(const SubFunction *sf, const SubFunction *sf_to, const Node &context) {
+        // Special case for returning out of top level, which is always allowed.
+        if (sf_to == st.toplevel) return;
+        if (sf->iscoroutine) {
+            TypeError("cannot return out of coroutine", context);
+        }
+        if (sf->isdynamicfunctionvalue) {
+            // This is because the function has been typechecked against one context, but
+            // can be called again in a different context that does not have the same callers.
+            TypeError("cannot return out of dynamic function value", context);
+        }
+    }
+
     // Apply effects of return statements for functions being reused, see RetVal above.
-    void ReplayReturns(const SubFunction &ssf, const Node &error_context) {
+    void ReplayReturns(const SubFunction &ssf, const Node &context) {
         for (auto [sf, type] : ssf.reuse_return_events) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) {
                     // FIXME: will have to re-apply lifetimes as well if we change from default
                     // of LT_KEEP.
-                    RetVal(type, isc.sf, &error_context, false);
+                    RetVal(type, isc.sf, &context, false);
                     // This should in theory not cause an error, since the previous specialization
                     // was also ok with this set of return types. It could happen though if
                     // this specialization has an additional return statement that was optimized
                     // out in the previous one.
-                    SubTypeT(type, isc.sf->returntype, error_context, "", "reused return value");
+                    SubTypeT(type, isc.sf->returntype, context, "", "reused return value");
                     break;
                 }
+                CheckReturnPast(isc.sf, sf, context);
             }
         }
     }
@@ -1273,7 +1291,7 @@ struct TypeChecker {
                 // values to bools.
                 MakeBool(ao.left);
                 MakeBool(ao.right);
-                ao.exptype = type_int;
+                ao.exptype = &st.default_bool_type->thistype;
                 ao.lt = LT_ANY;
             } else {
                 ao.lt = LifetimeUnion(ao.left, ao.right);
@@ -1580,8 +1598,13 @@ struct TypeChecker {
     }
 
     // TODO: Can't do this transform ahead of time, since it often depends upon the input args.
-    TypeRef ToVStruct(int flen, TypeRef type, Node *exp, const NativeFun *nf, bool test_overloads,
-                      size_t argn, const Node &errorn) {
+    TypeRef ActualBuiltinType(int flen, TypeRef type, ArgFlags flags, Node *exp,
+                              const NativeFun *nf, bool test_overloads, size_t argn,
+                              const Node &errorn) {
+        if (flags & NF_BOOL) {
+            assert(type->t == V_INT);
+            return &st.default_bool_type->thistype;
+        }
         // See if we can promote the type to one of the standard vector types
         // (xy/xyz/xyzw).
         if (!flen) return type;
@@ -1766,7 +1789,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     // Alternatively we could IncBorrowers on iter, but that would be very restrictive.
     tc.TT(iter, 1, LT_BORROW);
     auto itertype = iter->exptype;
-    if (itertype->t == V_INT || itertype->t == V_STRING)
+    if (itertype->t == V_INT) {}
+    else if (itertype->t == V_STRING)
         itertype = type_int;
     else if (itertype->t == V_VECTOR)
         itertype = itertype->Element();
@@ -1947,7 +1971,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 Node *IntConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
-    exptype = type_int;
+    exptype = from ? &from->e->thistype : type_int;
     lt = LT_ANY;
     return this;
 }
@@ -2058,7 +2082,7 @@ Node *Not::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
     tc.NoStruct(*child, "not");
-    exptype = type_int;
+    exptype = &tc.st.default_bool_type->thistype;
     lt = LT_ANY;
     return this;
 }
@@ -2092,7 +2116,7 @@ Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.SubType(child, type_int, "negated value", *this);
     tc.DecBorrowers(child->lt, *this);
-    exptype = type_int;
+    exptype = child->exptype;
     lt = LT_ANY;
     return this;
 }
@@ -2232,8 +2256,8 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                      children[i]->exptype->t != V_VECTOR ||
                      arg.type->sub->t != V_ANY) &&
                     !tc.ConvertsTo(children[i]->exptype,
-                                   tc.ToVStruct(arg.fixed_len, arg.type,
-                                                children[i], nf, true, i + 1, *this),
+                                   tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags,
+                                                        children[i], nf, true, i + 1, *this),
                                    arg.type->t != V_STRING, false)) goto nomatch;
             }
             nf = cnf;
@@ -2246,7 +2270,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     vector<TypeRef> argtypes(children.size());
     for (auto [i, c] : enumerate(children)) {
         auto &arg = nf->args.v[i];
-        auto argtype = tc.ToVStruct(arg.fixed_len, arg.type, children[i], nf, false, i + 1, *this);
+        auto argtype = tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags, children[i], nf, false, i + 1, *this);
         // Filter out functions that are not struct aware.
         bool typed = false;
         if (argtype->t == V_NIL && argtype->sub->Numeric() && !Is<DefaultVal>(c)) {
@@ -2389,12 +2413,10 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                                                   : tc.NewTypeVar();
                 assert(rlt == LT_KEEP);
                 break;
-            default:
-                assert(ret.flags == AF_NONE);
-                break;
         }
-        type = tc.ToVStruct(ret.fixed_len, type, !i && Arity() ? children[0] : nullptr, nf, false,
-                               0, *this);
+        type = tc.ActualBuiltinType(ret.fixed_len, type, ret.flags,
+                                    !i && Arity() ? children[0] : nullptr, nf, false,
+                                    0, *this);
         if (!IsRefNilVar(type->t)) rlt = LT_ANY;
         if (nf->retvals.v.size() > 1) {
             exptype->Set(i, type.get(), rlt);
@@ -2446,10 +2468,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             sf = isc.sf;  // Take specialized version.
             break;
         }
-        if (isc.sf->iscoroutine)
-            tc.TypeError("cannot return out of coroutine", *this);
-        if (isc.sf->isdynamicfunctionvalue)
-            tc.TypeError("cannot return out of dynamic function value", *this);
+        tc.CheckReturnPast(isc.sf, sf, *this);
     }
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
@@ -2526,7 +2545,7 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.NoStruct(*child, "is");  // FIXME
     tc.DecBorrowers(child->lt, *this);
-    exptype = type_int;
+    exptype = &tc.st.default_bool_type->thistype;
     lt = LT_ANY;
     return this;
 }
@@ -2661,6 +2680,10 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     for (auto [i, mrc] : enumerate(children))
         exptype->Set(i, mrc->exptype.get(), mrc->lt);
     lt = LT_MULTIPLE;
+    return this;
+}
+
+Node *EnumRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/) {
     return this;
 }
 

@@ -278,7 +278,7 @@ vr::EVRButtonId GetButtonId(VM &vm, Value &button) {
 
 void AddVR(NativeRegistry &nfr) {
 
-nfr("vr_init", "", "", "I",
+nfr("vr_init", "", "", "B",
     "initializes VR mode. returns true if a hmd was found and initialized",
     [](VM &) {
         return Value(VRInit());
@@ -321,7 +321,7 @@ nfr("vr_num_motion_controllers", "", "", "I",
         return Value((int)motioncontrollers.size());
     });
 
-nfr("vr_motioncontrollerstracking", "n", "I", "I",
+nfr("vr_motioncontrollerstracking", "n", "I", "B",
     "returns if motion controller n is tracking",
     [](VM &, Value &mc) {
         auto mcd = GetMC(mc);
@@ -332,7 +332,7 @@ extern Value PushTransform(VM &vm, const float4x4 &forward, const float4x4 &back
                             const Value &body);
 extern void PopTransform(VM &vm);
 
-nfr("vr_motion_controller", "n,body", "IB?", "",
+nfr("vr_motion_controller", "n,body", "IL?", "",
     "sets up the transform ready to render controller n."
     " when a body is given, restores the previous transform afterwards."
     " if there is no controller n (or it is currently not"

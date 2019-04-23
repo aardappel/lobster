@@ -184,7 +184,7 @@ nfr("ph_create_polygon", "position,vertices,attachto", "F}:2F}:2]R?", "R",
         vm.Push(CreateFixture(vm, body, shape));
     });
 
-nfr("ph_dynamic", "shape,on", "RI", "",
+nfr("ph_dynamic", "shape,on", "RB", "",
     "makes a shape dynamic (on = true) or not.",
     [](VM &vm, Value &fixture_id, Value &on) {
         CheckPhysics();

@@ -55,6 +55,8 @@ struct Named {
 
 struct SubFunction;
 
+struct Enum;
+
 struct UDT;
 
 struct Type {
@@ -66,6 +68,7 @@ struct Type {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
         UDT *udt;                // V_CLASS | V_STRUCT_*
+        Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
     };
 
@@ -74,6 +77,7 @@ struct Type {
     Type(ValueType _t, const Type *_s)   : t(_t),    sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
     Type(ValueType _t, UDT *_udt)        : t(_t),    udt(_udt)    {}
+    Type(Enum *_e)                       : t(V_INT), e(_e)        {}
 
     bool operator==(const Type &o) const {
         return t == o.t &&
@@ -197,6 +201,7 @@ enum ArgFlags {
     AF_WITHTYPE = 128,
     NF_CONVERTANYTOSTRING = 256,
     NF_PUSHVALUEWIDTH = 512,
+    NF_BOOL = 1024,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 
@@ -226,9 +231,10 @@ struct Narg : Typed {
         switch (t) {
             case 'A': type = type_any; break;
             case 'I': type = type_int; break;
+            case 'B': type = type_int; flags = flags | NF_BOOL; break;
             case 'F': type = type_float; break;
             case 'S': type = type_string; break;
-            case 'B': type = type_function_null; break;
+            case 'L': type = type_function_null; break;
             case 'C': type = type_coroutine; break;
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;

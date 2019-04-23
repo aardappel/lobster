@@ -19,7 +19,10 @@ import texture
 
 struct Ray { o:xyz_f, d:xyz_f }
 
-enum + DIFF, SPEC, REFR   // material types, used in radiance()
+enum Material:  // Used in radiance()
+    DIFF
+    SPEC
+    REFR
 
 struct Sphere {
     rad:float,                 // radius

@@ -48,6 +48,7 @@
 #include <functional>
 #include <array>
 #include <type_traits>
+#include <memory>
 
 #if defined(__has_include) && __has_include(<string_view>)
     #include <string_view>

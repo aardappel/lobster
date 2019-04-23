@@ -184,7 +184,7 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
         return err[0] ? Value(vm.NewString(err)) : Value();
     });
 
-nfr("gl_frame", "", "", "I",
+nfr("gl_frame", "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns true if the closebutton on the window was pressed",
     [](VM &vm) {
@@ -230,14 +230,14 @@ nfr("gl_window_min_max", "dir", "I", "",
         return Value();
     });
 
-nfr("gl_visible", "", "", "I",
+nfr("gl_visible", "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
     " foreground). If false, you should not render anything, nor run the frame's code.",
     [](VM &) {
         return Value(!SDLIsMinimized());
     });
 
-nfr("gl_cursor", "on", "I", "I",
+nfr("gl_cursor", "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
     " wether it's on.",
     [](VM &vm, Value &on) {
@@ -245,14 +245,14 @@ nfr("gl_cursor", "on", "I", "I",
         return Value(SDLCursor(on.ival() != 0));
     });
 
-nfr("gl_grab", "on", "I", "I",
+nfr("gl_grab", "on", "B", "B",
     "grabs the mouse when the window is active. return wether it's on.",
     [](VM &vm, Value &on) {
         TestGL(vm);
         return Value(SDLGrab(on.ival() != 0));
     });
 
-nfr("gl_button", "name", "S", "I",
+nfr("gl_button", "name", "S", "B",
     "returns the state of a key/mousebutton/finger."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
     " (pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1 etc."
@@ -262,7 +262,7 @@ nfr("gl_button", "name", "S", "I",
         return Value(ks.Step());
     });
 
-nfr("gl_touchscreen", "", "", "I",
+nfr("gl_touchscreen", "", "", "B",
     "wether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)",
     [](VM &) {
         #ifdef PLATFORM_TOUCH
@@ -365,7 +365,7 @@ nfr("gl_clear", "col", "F}:4", "",
         ClearFrameBuffer(vm.PopVec<float3>());
     });
 
-nfr("gl_color", "col,body", "F}:4B?", "",
+nfr("gl_color", "col,body", "F}:4L?", "",
     "sets the current color. when a body is given, restores the previous color afterwards",
     [](VM &vm) {
         auto body = vm.Pop();
@@ -419,7 +419,7 @@ nfr("gl_unit_cube", "insideout", "I?", "",
         return Value();
     });
 
-nfr("gl_rotate_x", "vector,body", "F}:2B?", "",
+nfr("gl_rotate_x", "vector,body", "F}:2L?", "",
     "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -430,7 +430,7 @@ nfr("gl_rotate_x", "vector,body", "F}:2B?", "",
         PopTransform(vm);
     });
 
-nfr("gl_rotate_y", "angle,body", "F}:2B?", "",
+nfr("gl_rotate_y", "angle,body", "F}:2L?", "",
     "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -441,7 +441,7 @@ nfr("gl_rotate_y", "angle,body", "F}:2B?", "",
         PopTransform(vm);
     });
 
-nfr("gl_rotate_z", "angle,body", "F}:2B?", "",
+nfr("gl_rotate_z", "angle,body", "F}:2L?", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
     " as angle. when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -452,7 +452,7 @@ nfr("gl_rotate_z", "angle,body", "F}:2B?", "",
         PopTransform(vm);
     });
 
-nfr("gl_translate", "vec,body", "F}B?", "",
+nfr("gl_translate", "vec,body", "F}L?", "",
     "translates the current coordinate system along a vector. when a body is given,"
     " restores the previous transform afterwards",
     [](VM &vm) {
@@ -463,7 +463,7 @@ nfr("gl_translate", "vec,body", "F}B?", "",
         PopTransform(vm);
     });
 
-nfr("gl_scale", "factor,body", "FB?", "",
+nfr("gl_scale", "factor,body", "FL?", "",
     "scales the current coordinate system using a numerical factor."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm, Value &f, Value &body) {
@@ -473,7 +473,7 @@ nfr("gl_scale", "factor,body", "FB?", "",
         PopTransform(vm);
     });
 
-nfr("gl_scale", "factor,body", "F}B?", "",
+nfr("gl_scale", "factor,body", "F}L?", "",
     "scales the current coordinate system using a vector."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -519,7 +519,7 @@ nfr("gl_point_scale", "factor", "F", "",
         return Value();
     });
 
-nfr("gl_line_mode", "on,body", "IB", "",
+nfr("gl_line_mode", "on,body", "IL", "",
     "set line mode (true == on). when a body is given,"
     " restores the previous mode afterwards",
     [](VM &vm, Value &on, Value &body) {
@@ -530,7 +530,7 @@ nfr("gl_line_mode", "on,body", "IB", "",
         polymode = (Primitive)vm.Pop().ival();
     });
 
-nfr("gl_hit", "vec,i", "F}I", "I",
+nfr("gl_hit", "vec,i", "F}I", "B",
     "wether the mouse/finger is inside of the rectangle specified in terms of the current"
     " transform (for touch screens only if the corresponding gl_isdown is true). Only true if"
     " the last rectangle for which gl_hit was true last frame is of the same size as this one"
@@ -771,7 +771,7 @@ nfr("gl_render_mesh", "m", "R", "",
         return Value();
     });
 
-nfr("gl_save_mesh", "m,name", "RS", "I",
+nfr("gl_save_mesh", "m,name", "RS", "B",
     "saves the specified mesh to a file in the PLY format. useful if the mesh was generated"
     " procedurally. returns false if the file could not be written",
     [](VM &vm, Value &i, Value &name) {
@@ -791,7 +791,7 @@ nfr("gl_set_shader", "shader", "S", "",
         return Value();
     });
 
-nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "I",
+nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "B",
     "set a uniform on the current shader. size of float vector must match size of uniform"
     " in the shader.",
     [](VM &vm) {
@@ -802,7 +802,7 @@ nfr("gl_set_uniform", "name,value,ignore_errors", "SF}I?", "I",
         vm.Push(r);
     });
 
-nfr("gl_set_uniform", "name,value,ignore_errors", "SFI?", "I",
+nfr("gl_set_uniform", "name,value,ignore_errors", "SFI?", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single float.",
     [](VM &vm, Value &name, Value &vec, Value &ignore_errors) {
@@ -810,7 +810,7 @@ nfr("gl_set_uniform", "name,value,ignore_errors", "SFI?", "I",
         return SetUniform(vm, name, &f, 1, ignore_errors.True());
     });
 
-nfr("gl_set_uniform_array", "name,value", "SF}:4]", "I",
+nfr("gl_set_uniform_array", "name,value", "SF}:4]", "B",
     "set a uniform on the current shader. uniform in the shader must be an array of vec4."
     " returns false on error.",
     [](VM &vm, Value &name, Value &vec) {
@@ -824,7 +824,7 @@ nfr("gl_set_uniform_array", "name,value", "SF}:4]", "I",
         return Value(ok);
     });
 
-nfr("gl_set_uniform_matrix", "name,value", "SF]", "I",
+nfr("gl_set_uniform_matrix", "name,value", "SF]", "B",
     "set a uniform on the current shader. pass a vector of 4/9/12/16 floats to set a"
     " mat2/mat3/mat3x4/mat4 respectively. returns false on error.",
     [](VM &vm, Value &name, Value &vec) {
@@ -896,7 +896,7 @@ nfr("gl_dispatch_compute", "groups", "I}:3", "",
         DispatchCompute(groups);
     });
 
-nfr("gl_dump_shader", "filename,stripnonascii", "SI", "I",
+nfr("gl_dump_shader", "filename,stripnonascii", "SB", "B",
     "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
     " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
     " pass true for stripnonascii if you're only interested in that part.",
@@ -907,7 +907,7 @@ nfr("gl_dump_shader", "filename,stripnonascii", "SI", "I",
         return Value(ok);
     });
 
-nfr("gl_blend", "on,body", "IB?", "",
+nfr("gl_blend", "on,body", "IL?", "",
     "changes the blending mode (use blending constants from color.lobster). when a body is"
     " given, restores the previous mode afterwards",
     [](VM &vm, Value &mode, Value &body) {
@@ -1018,7 +1018,7 @@ nfr("gl_read_texture", "tex", "R", "S?",
         return Value(s);
     });
 
-nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex", "R?I?I?R?R?", "I",
+nfr("gl_switch_to_framebuffer", "tex,hasdepth,textureformat,resolvetex,depthtex", "R?I?I?R?R?", "B",
     "switches to a new framebuffer, that renders into the given texture."
     " also allocates a depth buffer for it if depth is true."
     " pass the textureformat that was used for this texture."
@@ -1117,7 +1117,7 @@ nfr("gl_debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         curcolor = oldcolor;
     });
 
-nfr("gl_screenshot", "filename", "S", "I",
+nfr("gl_screenshot", "filename", "S", "B",
     "saves a screenshot in .png format, returns true if succesful",
     [](VM &, Value &fn) {
         bool ok = ScreenShot(fn.sval()->strv());

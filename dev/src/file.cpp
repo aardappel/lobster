@@ -154,7 +154,7 @@ nfr("read_file", "file,textmode", "SI?", "S?",
         return Value(s);
     });
 
-nfr("write_file", "file,contents,textmode", "SSI?", "I",
+nfr("write_file", "file,contents,textmode", "SSI?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible",
     [](VM &, Value &file, Value &contents, Value &textmode) {
         auto ok = WriteFile(file.sval()->strv(), !textmode.True(), contents.sval()->strv());

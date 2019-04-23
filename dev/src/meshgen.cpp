@@ -774,7 +774,7 @@ nfr("mg_set_vertex_randomize", "factor", "F", "",
         return Value();
     });
 
-nfr("mg_set_point_mode", "on", "I", "",
+nfr("mg_set_point_mode", "on", "B", "",
     "generates a point mesh instead of polygons",
     [](VM &, Value &aspoints) {
         pointmode = aspoints.True();
@@ -793,7 +793,7 @@ nfr("mg_polygonize", "subdiv", "I", "R",
         return Value(vm.NewResource(mesh, &mesh_type));
     });
 
-nfr("mg_translate", "vec,body", "F}:3B?", "",
+nfr("mg_translate", "vec,body", "F}:3L?", "",
     "translates the current coordinate system along a vector. when a body is given,"
     " restores the previous transform afterwards",
     [](VM &vm) {
@@ -807,7 +807,7 @@ nfr("mg_translate", "vec,body", "F}:3B?", "",
         vm.PopAnyFromString(curorig);
     });
 
-nfr("mg_scale", "f,body", "FB?", "",
+nfr("mg_scale", "f,body", "FL?", "",
     "scales the current coordinate system by the given factor."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -820,7 +820,7 @@ nfr("mg_scale", "f,body", "FB?", "",
         vm.PopAnyFromString(cursize);
     });
 
-nfr("mg_scale_vec", "vec,body", "F}:3B?", "",
+nfr("mg_scale_vec", "vec,body", "F}:3L?", "",
     "non-unimformly scales the current coordinate system using individual factors per axis."
     " when a body is given, restores the previous transform afterwards",
     [](VM &vm) {
@@ -833,7 +833,7 @@ nfr("mg_scale_vec", "vec,body", "F}:3B?", "",
         vm.PopAnyFromString(cursize);
     });
 
-nfr("mg_rotate", "axis,angle,body", "F}:3FB?", "",
+nfr("mg_rotate", "axis,angle,body", "F}:3FL?", "",
     "rotates using axis/angle. when a body is given, restores the previous transform"
     " afterwards",
     [](VM &vm) {
@@ -847,7 +847,7 @@ nfr("mg_rotate", "axis,angle,body", "F}:3FB?", "",
         vm.PopAnyFromString(currot);
     });
 
-nfr("mg_color", "color,body", "F}:4B?", "",
+nfr("mg_color", "color,body", "F}:4L?", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves). when a body is given, restores the previous color afterwards.",
     [](VM &vm) {
@@ -860,7 +860,7 @@ nfr("mg_color", "color,body", "F}:4B?", "",
         vm.PopAnyFromString(curcol);
     });
 
-nfr("mg_smooth", "smooth,body", "FB?", "",
+nfr("mg_smooth", "smooth,body", "FL?", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens."
     " when a body is given, restores the previous value afterwards.",
     [](VM &vm) {

@@ -108,7 +108,7 @@ while gl_frame():
                     gl_rect(xy { gl_window_size().x / 2.0, -gl_window_size().y })
     else:
         // This is how we'd render normally, with no HMD connected:
-        gl_cursor(0)
+        gl_cursor(false)
         camera_FPS_update("w", "a", "s", "d", 10, 4, true)
         gl_clear(color_dark_grey)
         gl_blend(blend_none)

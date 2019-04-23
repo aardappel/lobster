@@ -65,7 +65,7 @@ class = ( `class` \| `struct` ) ident `:` [ ident ] `[` indlist( ident ) `]`
 
 vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 
-enumdef = `enum` [ `+` \| `*` ] list( ident [ `=` integer\_constant ] )
+enumdef = ( `enum` | `enum_flags` ) indlist( ident [ `=` integer\_constant ] )
 
 functiondef = `(` args `) :` body
 
@@ -247,18 +247,7 @@ let a = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-enum x = 1, y, z
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-`enum` is merely a shorthand for `let`, e.g. the above example is equivalent to
-`let x = 1; let y = 2; let z = 3`. If you leave out the `= 1`, the sequence will start
-at `0` instead. You may specify `+` or `*` after `enum` to indicate wether you
-want the sequence to continue using addition (default, by 1) or multiplication
-(by 2), the latter useful for flags.
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var d, e = 1, 2
-var f, g = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As you can see in the last 2 lines, all of these operators also
@@ -579,7 +568,6 @@ are very costly (parent stackframe(s) may have to be dynamically allocated) as
 opposed to Lobster's approach which makes function values and free variables
 have no overhead compared to regular functions and variables.
 
-
 Typing
 ------
 
@@ -597,6 +585,38 @@ most types can be inferred. You specify types:
 As we've seen, you can type function arguments and UDT fields.
 
 For more detail, see the [type system](type_checker.html).
+
+Enums
+-----
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enum example:
+    foo = 1
+    bar
+    baz
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An `enum` defines a "strongly typed alias" for the `int` type. What this means is
+that these values are fully compatible with `int` in any use, but a regular `int`
+can't be passed to a context where an enum type is explicitly requested.
+
+If you leave out the `= 1`, the sequence will start
+at `0` instead. Values automatically increment from the last explicitly specified value,
+so `bar` will be `2` here. Instead of `enum` you can use `enum_flags`, which changes the
+default first value to `1` and uses `* 2` to get to next value instead of `+ 1`.
+
+### Booleans
+
+A bool is not a built-in type, rather it is defined as an `enum` in `stdtype.lobster`:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enum bool:
+    false
+    true
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because they are enums, they have the same typing rules: a `bool` can be used anywhere
+an `int` is expected, but not the other way around.
 
 Coroutines
 ----------

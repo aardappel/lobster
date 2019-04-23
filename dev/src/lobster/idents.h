@@ -73,6 +73,24 @@ struct SpecIdent {
     SpecIdent *&Current() { return id->cursid; }
 };
 
+struct Enum;
+
+struct EnumVal : Named {
+    int64_t val = 0;
+    Enum *e = nullptr;
+
+    EnumVal(string_view _name, int _idx) : Named(_name, _idx) {}
+};
+
+struct Enum : Named {
+    vector<unique_ptr<EnumVal>> vals;
+    Type thistype;
+
+    Enum(string_view _name, int _idx) : Named(_name, _idx) {
+        thistype = Type { this };
+    }
+};
+
 // Only still needed because we have no idea which struct it refers to at parsing time.
 struct SharedField : Named {
     SharedField(string_view _name, int _idx) : Named(_name, _idx) {}
@@ -324,6 +342,10 @@ struct SymbolTable {
     vector<SubFunction *> subfunctiontable;
     SubFunction *toplevel = nullptr;
 
+    unordered_map<string_view, Enum *> enums;  // Key points to value!
+    unordered_map<string_view, EnumVal *> enumvals;  // Key points to value!
+    vector<Enum *> enumtable;
+
     vector<string> filenames;
 
     vector<size_t> scopelevels;
@@ -335,6 +357,7 @@ struct SymbolTable {
     enum { NUM_VECTOR_TYPE_WRAPPINGS = 3 };
     vector<TypeRef> default_int_vector_types[NUM_VECTOR_TYPE_WRAPPINGS],
                     default_float_vector_types[NUM_VECTOR_TYPE_WRAPPINGS];
+    Enum *default_bool_type = nullptr;
 
     // Used during parsing.
     vector<SubFunction *> defsubfunctionstack;
@@ -353,6 +376,7 @@ struct SymbolTable {
         for (auto sid : specidents)       delete sid;
         for (auto u   : udttable)         delete u;
         for (auto f   : functiontable)    delete f;
+        for (auto e   : enumtable)        delete e;
         for (auto sf  : subfunctiontable) delete sf;
         for (auto f   : fieldtable)       delete f;
         for (auto t   : typelist)         delete t;
@@ -498,6 +522,17 @@ struct SymbolTable {
             functions.erase(it);
     }
 
+    void UnregisterEnum(Enum *e) {
+        for (auto &ev : e->vals) {
+            auto it = enumvals.find(ev->name);
+            assert(it != enumvals.end());
+            enumvals.erase(it);
+        }
+        auto it = enums.find(e->name);
+        assert(it != enums.end());
+        enums.erase(it);
+    }
+
     void EndOfInclude() {
         current_namespace.clear();
         auto it = idents.begin();
@@ -509,6 +544,31 @@ struct SymbolTable {
         }
     }
 
+    Enum *EnumLookup(string_view name, Lex &lex, bool decl) {
+        auto eit = enums.find(name);
+        if (eit != enums.end()) {
+            if (decl) lex.Error("double declaration of enum: " + name);
+            return eit->second;
+        }
+        if (!decl) return nullptr;
+        auto e = new Enum(name, (int)enumtable.size());
+        enumtable.push_back(e);
+        enums[e->name /* must be in value */] = e;
+        return e;
+    }
+
+    EnumVal *EnumValLookup(string_view name, Lex &lex, bool decl) {
+        auto evit = enumvals.find(name);
+        if (evit != enumvals.end()) {
+            if (decl) lex.Error("double declaration of enum value: " + name);
+            return evit->second;
+        }
+        if (!decl) return nullptr;
+        auto ev = new EnumVal(name, 0);
+        enumvals[ev->name /* must be in value */] = ev;
+        return ev;
+    }
+
     UDT &StructDecl(string_view name, Lex &lex, bool is_struct) {
         auto uit = udts.find(name);
         if (uit != udts.end()) {
@@ -518,12 +578,11 @@ struct SymbolTable {
                 lex.Error("class/struct previously declared as different kind");
             uit->second->predeclaration = false;
             return *uit->second;
-        } else {
-            auto st = new UDT(name, (int)udttable.size(), is_struct);
-            udts[st->name /* must be in value */] = st;
-            udttable.push_back(st);
-            return *st;
         }
+        auto st = new UDT(name, (int)udttable.size(), is_struct);
+        udts[st->name /* must be in value */] = st;
+        udttable.push_back(st);
+        return *st;
     }
 
     UDT &StructUse(string_view name, Lex &lex) {
@@ -664,15 +723,22 @@ struct SymbolTable {
         return true;
     }
 
-    bool RegisterDefaultVectorTypes() {
+    bool RegisterDefaultTypes() {
         // TODO: This isn't great hardcoded in the compiler, would be better if it was declared in
         // lobster code.
+        for (auto e : enumtable) {
+            if (e->name == "bool") {
+                default_bool_type = e;
+                break;
+            }
+        }
         static const char *default_int_vector_type_names[]   =
             { "xy_i", "xyz_i", "xyzw_i", nullptr };
         static const char *default_float_vector_type_names[] =
             { "xy_f", "xyz_f", "xyzw_f", nullptr };
         return RegisterTypeVector(default_int_vector_types, default_int_vector_type_names) &&
-               RegisterTypeVector(default_float_vector_types, default_float_vector_type_names);
+               RegisterTypeVector(default_float_vector_types, default_float_vector_type_names) &&
+               default_bool_type;
     }
 
     TypeRef VectorType(TypeRef vt, size_t level, int arity) const {
@@ -789,6 +855,8 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             s += ")";
             return s;
         }
+        case V_INT:
+            return type->e ? type->e->name : "int";
         default:
             return string(BaseTypeName(type->t));
     }

@@ -100,7 +100,7 @@ nfr("oc_load", "name", "S", "R?", "",
         return Value(vm.NewResource(ocworld, GetOcTreeType()));
     });
 
-nfr("oc_save", "octree,name", "RS", "I", "",
+nfr("oc_save", "octree,name", "RS", "B", "",
     [](VM &vm, Value &oc, Value &name) {
         auto &ocworld = GetOcTree(vm, oc);
         auto f = OpenForWriting(name.sval()->strv(), true);

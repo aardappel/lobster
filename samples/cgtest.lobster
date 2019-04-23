@@ -30,7 +30,7 @@ while gl_frame():
 
     gl_clear(color_dark_grey)
 
-    gl_cursor(0)
+    gl_cursor(false)
     gl_perspective(60, 0.1, 1000)
 
     let speed = 50

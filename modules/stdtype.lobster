@@ -19,3 +19,9 @@ struct xyz_i = xyz<int>
 
 struct xyzw_f = xyzw<float>
 struct xyzw_i = xyzw<int>
+
+// Booleans are an enum.
+
+enum bool:
+    false
+    true

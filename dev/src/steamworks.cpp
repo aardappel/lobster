@@ -142,7 +142,7 @@ using namespace lobster;
 
 void AddSteam(NativeRegistry &nfr) {
 
-nfr("steam_init", "appid,allowscreenshots", "II", "I",
+nfr("steam_init", "appid,allowscreenshots", "IB", "I",
     "initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you"
     " want to restart from steam if this wasn't started from steam (the return value in this"
     " case will be -1 to indicate you should terminate this instance). If you don't specify an"
@@ -153,7 +153,7 @@ nfr("steam_init", "appid,allowscreenshots", "II", "I",
         return Value(SteamInit((uint)appid.ival(), ss.True()));
     });
 
-nfr("steam_overlay", "", "", "I",
+nfr("steam_overlay", "", "", "B",
     "returns true if the steam overlay is currently on (you may want to auto-pause if so)",
     [](VM &) {
         return Value(OverlayActive());
@@ -165,7 +165,7 @@ nfr("steam_username", "", "", "S",
         return Value(vm.NewString(UserName()));
     });
 
-nfr("steam_unlock_achievement", "achievementname", "S", "I",
+nfr("steam_unlock_achievement", "achievementname", "S", "B",
     "Unlocks an achievement and shows the achievement overlay if not already achieved before."
     " Will also Q-up saving achievement to Steam."
     " Returns true if succesful.",
@@ -174,7 +174,7 @@ nfr("steam_unlock_achievement", "achievementname", "S", "I",
         return Value(ok);
     });
 
-nfr("steam_write_file", "file,contents", "SS", "I",
+nfr("steam_write_file", "file,contents", "SS", "B",
     "writes a file with the contents of a string to the steam cloud, or local storage if that"
     " fails, returns false if writing wasn't possible at all",
     [](VM &, Value &file, Value &contents) {

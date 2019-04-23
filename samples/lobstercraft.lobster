@@ -25,8 +25,8 @@ let cells = map(lssize) z:
                     // more likely to be solid the lower it is, and only when not on the outside:
                     var solid = h / 1.5 > div(z, lssize) - 0.5 and inside(v)
                     // pick material with noise too:
-                    if solid: solid = int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
-                    solid
+                    if solid: int((simplex(float(v) / lssize, 8, 3, 0.55) + 1) * 2) + 1
+                    else: 0
 
 let colors = [ color_dark_red, color_olive, color_green, color_dark_grey, color_grey ]
 let nbdirs = [ xyz_xi, -xyz_xi, xyz_yi, -xyz_yi, xyz_zi, -xyz_zi ]
@@ -39,7 +39,7 @@ let nbpolys = map([ "4576", "0231", "2673", "0154", "1375", "0462" ]) s:
 while gl_frame():
     if gl_button("escape") == 1: return
     gl_clear(color_light_blue)
-    gl_cursor(0)
+    gl_cursor(false)
     gl_perspective(70, 0.1, 1000)
     camera_FPS_update("w", "a", "s", "d", 10, 4, true)
     camera_FPS_view()

@@ -343,7 +343,7 @@ nfr("cg_load_vox", "name", "S", "R?",
         return Value(vm.NewResource(voxels, GetVoxelType()));
     });
 
-nfr("cg_save_vox", "block,name", "RS", "I",
+nfr("cg_save_vox", "block,name", "RS", "B",
     "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
     " this format can only save blocks < 256^3, will fail if bigger",
     [](VM &vm, Value &wid, Value &name) {

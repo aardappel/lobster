@@ -94,7 +94,7 @@ nfr("set_print_length", "len", "I", "",
         return Value();
     });
 
-nfr("set_print_quoted", "quoted", "I", "",
+nfr("set_print_quoted", "quoted", "B", "",
     "for printing / string conversion: if the top level value is a string, whether to convert"
     " it with escape codes and quotes (default false)",
     [](VM &vm, Value &a) {
@@ -129,7 +129,7 @@ nfr("get_line", "", "", "S",
         return Value(vm.NewString(buf));
     });
 
-nfr("if", "cond,then,else", "ABB?", "A",
+nfr("if", "cond,then,else", "ALL?", "A",
     "evaluates then or else depending on cond, else is optional",
     [](VM &, Value &c, Value &t, Value &e) {
         assert(0);  // Special case implementation in the VM
@@ -139,7 +139,7 @@ nfr("if", "cond,then,else", "ABB?", "A",
         return Value();
     });
 
-nfr("while", "cond,do", "B@B", "A",
+nfr("while", "cond,do", "L@L", "A",
     "evaluates body while cond (converted to a function) holds true, returns last body value",
     [](VM &, Value &c, Value &b) {
         assert(0);  // Special case implementation in the VM
@@ -148,7 +148,7 @@ nfr("while", "cond,do", "B@B", "A",
         return Value();
     });
 
-nfr("for", "iter,do", "AB", "",
+nfr("for", "iter,do", "AL", "",
     "iterates over int/vector/string, body may take [ element [ , index ] ] arguments",
     [](VM &, Value &iter, Value &body) {
         assert(0);  // Special case implementation in the VM
@@ -195,7 +195,7 @@ nfr("length", "xs", "A]*", "I",
         return Value(len);
     });
 
-nfr("equal", "a,b", "AA", "I",
+nfr("equal", "a,b", "AA", "B",
     "structural equality between any two values (recurses into vectors/objects,"
     " unlike == which is only true for vectors/objects if they are the same object)",
     [](VM &vm, Value &a, Value &b) {
@@ -318,7 +318,7 @@ nfr("slice", "xs,start,size", "A]*II", "A]1",
         return Value(nv);
     });
 
-nfr("any", "xs", "I}", "I",
+nfr("any", "xs", "I}", "B",
     "returns wether any elements of the numeric struct are true values",
     [](VM &vm) {
         auto r = false; 
@@ -329,7 +329,7 @@ nfr("any", "xs", "I}", "I",
         vm.Push(r);
     });
 
-nfr("any", "xs", "A]*", "I",
+nfr("any", "xs", "A]*", "B",
     "returns wether any elements of the vector are true values",
     [](VM &, Value &v) {
         Value r(false); 
@@ -340,7 +340,7 @@ nfr("any", "xs", "A]*", "I",
         return r; 
     });
 
-nfr("all", "xs", "I}", "I",
+nfr("all", "xs", "I}", "B",
     "returns wether all elements of the numeric struct are true values",
     [](VM &vm) {
         auto r = true;
@@ -351,7 +351,7 @@ nfr("all", "xs", "I}", "I",
         vm.Push(r);
     });
 
-nfr("all", "xs", "A]*", "I",
+nfr("all", "xs", "A]*", "B",
     "returns wether all elements of the vector are true values",
     [](VM &, Value &v) {
         Value r(true);
@@ -375,7 +375,7 @@ nfr("substring", "s,start,size", "SII", "S",
         return Value(ns);
     });
 
-nfr("string_to_int", "s", "S", "II",
+nfr("string_to_int", "s", "S", "IB",
     "converts a string to an int. returns 0 if no numeric data could be parsed."
     "second return value is true if all characters of the string were parsed",
     [](VM &vm, Value &s) {
@@ -757,13 +757,13 @@ nfr("clamp", "x,min,max", "F}F}F}", "F}",
         vm.PushVec(geom::clamp(a, b, c), l);
     });
 
-nfr("in_range", "x,range,bias", "III?", "I",
+nfr("in_range", "x,range,bias", "III?", "B",
     "checks if an integer is >= bias and < bias + range. Bias defaults to 0.",
     [](VM &, Value &x, Value &range, Value &bias) {
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     });
 
-nfr("in_range", "x,range,bias", "I}I}I}?", "I",
+nfr("in_range", "x,range,bias", "I}I}I}?", "B",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
     [](VM &vm) {
         auto bias  = vm.Top().True() ? vm.PopVec<intp3>() : (vm.Pop(), intp3_0);
@@ -772,7 +772,7 @@ nfr("in_range", "x,range,bias", "I}I}I}?", "I",
         vm.Push(x >= bias && x < bias + range);
     });
 
-nfr("in_range", "x,range,bias", "F}F}F}?", "I",
+nfr("in_range", "x,range,bias", "F}F}F}?", "B",
     "checks if a 2d/3d float vector is >= bias and < bias + range. Bias defaults to 0.",
     [](VM &vm) {
         auto bias  = vm.Top().True() ? vm.PopVec<floatp3>() : (vm.Pop(), floatp3_0);
@@ -1080,14 +1080,14 @@ nfr("return_value", "coroutine", "C", "A1",
         return rv;
     });
 
-nfr("active", "coroutine", "C", "I",
+nfr("active", "coroutine", "C", "B",
     "wether the given coroutine is still active",
     [](VM &, Value &co) {
         bool active = co.cval()->active;
         return Value(active);
     });
 
-nfr("hash", "x", "B", "I",
+nfr("hash", "x", "L", "I",
     "hashes a function value into an int",
     [](VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FUNCTION);
@@ -1106,7 +1106,7 @@ nfr("program_name", "", "", "S",
         return Value(vm.NewString(vm.GetProgramName()));
     });
 
-nfr("vm_compiled_mode", "", "", "I",
+nfr("vm_compiled_mode", "", "", "B",
     "returns if the VM is running in compiled mode (Lobster -> C++).",
     [](VM &) {
         return Value(
@@ -1132,7 +1132,7 @@ nfr("assert", "condition", "A*", "Ab1",
         return c;
     });
 
-nfr("trace_bytecode", "on,tail", "II", "",
+nfr("trace_bytecode", "on,tail", "BB", "",
     "tracing shows each bytecode instruction as it is being executed, not very useful unless"
     " you are trying to isolate a compiler bug",
     [](VM &vm, Value &i, Value &tail) {
@@ -1154,7 +1154,7 @@ nfr("reference_count", "val", "A", "I",
         return Value(refc);
     });
 
-nfr("set_console", "on", "I", "",
+nfr("set_console", "on", "B", "",
     "lets you turn on/off the console window (on Windows)",
     [](VM &, Value &x) {
         SetConsole(x.True());
@@ -1174,7 +1174,7 @@ nfr("thread_information", "", "", "II",
         return Value(NumHWCores());
     });
 
-nfr("is_worker_thread", "", "", "I",
+nfr("is_worker_thread", "", "", "B",
     "wether the current thread is a worker thread",
     [](VM &vm) {
         return Value(vm.is_worker);
@@ -1196,7 +1196,7 @@ nfr("stop_worker_threads", "", "", "",
         return Value();
     });
 
-nfr("workers_alive", "", "", "I",
+nfr("workers_alive", "", "", "B",
     "wether workers should continue doing work. returns false after"
             " stop_worker_threads() has been called.",
     [](VM &vm) {

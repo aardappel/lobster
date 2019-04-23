@@ -317,7 +317,7 @@ is cool with any kind of lifetime.
 * `switch` is similar to `if`, but currently always defaults to owning the
   value returned by the cases, since doing a correct lifetime union
   between many cases in the context of branches not returning is harder.
-  This to be improved.
+  This should be improved.
 * `and` and `or` are again similar to `if`, but have some special cases
   because sometimes a value is guaranteed ignored (`a and b or c` never
   results in `a`) or values are coerced to `bool` when they are

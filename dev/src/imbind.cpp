@@ -196,7 +196,7 @@ void EngineStatsGUI() {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style", "I", "", "",
+nfr("im_init", "dark_style", "B", "", "",
     [](VM &, Value &darkstyle) {
         if (imgui_init) return Value();
         IMGUI_CHECKVERSION();
@@ -209,7 +209,7 @@ nfr("im_init", "dark_style", "I", "", "",
         return Value();
     });
 
-nfr("im_add_font", "font_path,size", "SF", "I", "",
+nfr("im_add_font", "font_path,size", "SF", "B", "",
     [](VM &vm, Value &fontname, Value &size) {
         IsInit(vm);
         string buf;
@@ -224,7 +224,7 @@ nfr("im_add_font", "font_path,size", "SF", "I", "",
         return Value(font != nullptr);
     });
 
-nfr("im_frame", "body", "B", "", "",
+nfr("im_frame", "body", "L", "", "",
     [](VM &vm, Value &body) {
         IsInit(vm);
         ImGui_ImplOpenGL3_NewFrame();
@@ -236,7 +236,7 @@ nfr("im_frame", "body", "B", "", "",
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     });
 
-nfr("im_window_demo", "", "", "I", "",
+nfr("im_window_demo", "", "", "B", "",
     [](VM &vm) {
         IsInit(vm);
         bool show = true;
@@ -244,7 +244,7 @@ nfr("im_window_demo", "", "", "I", "",
         return Value(show);
     });
 
-nfr("im_window", "title,flags,body", "SIB", "", "",
+nfr("im_window", "title,flags,body", "SIL", "", "",
     [](VM &vm, Value &title, Value &flags, Value &body) {
         IsInit(vm);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
@@ -253,7 +253,7 @@ nfr("im_window", "title,flags,body", "SIB", "", "",
         ImGui::End();
     });
 
-nfr("im_button", "label,body", "SB", "", "",
+nfr("im_button", "label,body", "SL", "", "",
     [](VM &, Value &title, Value &body) {
         auto press = ImGui::Button(title.sval()->data());
         return press ? body : Value();
@@ -284,7 +284,7 @@ nfr("im_tooltip", "label", "S", "", "",
         return Value();
     });
 
-nfr("im_checkbox", "label,bool", "SI", "I", "",
+nfr("im_checkbox", "label,bool", "SI", "I2", "",
     [](VM &, Value &text, Value &boolean) {
         bool b = boolean.True();
         ImGui::Checkbox(text.sval()->data(), &b);
@@ -349,7 +349,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2", "",
         vm.PushVec(c);
     });
 
-nfr("im_treenode", "label,body", "SB", "", "",
+nfr("im_treenode", "label,body", "SL", "", "",
     [](VM &vm, Value &title, Value &body) {
         auto open = ImGui::TreeNode(title.sval()->data());
         vm.Push(open);
@@ -358,7 +358,7 @@ nfr("im_treenode", "label,body", "SB", "", "",
         if (vm.Pop().True()) ImGui::TreePop();
     });
 
-nfr("im_group", "label,body", "SsB", "",
+nfr("im_group", "label,body", "SsL", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
     " label)",

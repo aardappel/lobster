@@ -73,7 +73,7 @@ struct Parser {
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
         auto b = list->children.back();
-        if (Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
+        if (Is<EnumRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) list->Add(new IntConstant(lex, 0));
             else Error("last expression in list can\'t be a definition");
         }
@@ -86,7 +86,9 @@ struct Parser {
         ResolveForwardFunctionCalls();
         list->children.erase(remove_if(list->children.begin(), list->children.end(),
                                        [&](auto def) {
-            if (auto sr = Is<UDTRef>(def)) {
+            if (auto er = Is<EnumRef>(def)) {
+                st.UnregisterEnum(er->e);
+            } else if (auto sr = Is<UDTRef>(def)) {
                 st.UnregisterStruct(sr->udt, lex);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
@@ -174,24 +176,32 @@ struct Parser {
                 list->Add(ParseNamedFunctionDefinition(isprivate, nullptr));
                 break;
             }
-            case T_ENUM: {
+            case T_ENUM:
+            case T_ENUM_FLAGS: {
+                bool incremental = lex.token == T_ENUM;
                 lex.Next();
-                bool incremental = IsNext(T_PLUS) || !IsNext(T_MULT);
                 int64_t cur = incremental ? 0 : 1;
+                auto enumname = st.MaybeNameSpace(ExpectId(), !isprivate);
+                auto def = st.EnumLookup(enumname, lex, true);
+                def->isprivate = isprivate;  // FIXME: not used?
+                Expect(T_COLON);
+                Expect(T_INDENT);
                 for (;;) {
                     auto evname = st.MaybeNameSpace(ExpectId(), !isprivate);
-                    auto id = st.LookupDef(evname, lex, false, true, false);
-                    id->constant = true;
-                    if (isprivate) id->isprivate = true;
                     if (IsNext(T_ASSIGN)) {
                         cur = lex.IntVal();
                         Expect(T_INT);
                     }
-                    list->Add(new Define(lex, id->cursid, new IntConstant(lex, cur)));
-                    if (lex.token != T_COMMA) break;
-                    lex.Next();
+                    auto ev = st.EnumValLookup(evname, lex, true);
+                    ev->isprivate = isprivate;  // FIXME: not used?
+                    ev->val = cur;
+                    ev->e = def;
+                    def->vals.emplace_back(ev);
                     if (incremental) cur++; else cur *= 2;
+                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
+                Expect(T_DEDENT);
+                list->Add(new EnumRef(lex, def));
                 break;
             }
             case T_VAR:
@@ -360,8 +370,7 @@ struct Parser {
                         if (fieldsdone) Error("fields must be declared before methods");
                         ParseField();
                     }
-                    if (!IsNext(T_LINEFEED)) break;
-                    if (Either(T_ENDOFFILE, T_DEDENT)) break;
+                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
             }
@@ -522,10 +531,17 @@ struct Parser {
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
                     dest = &f->subf->thistype;
-                } else {
-                    auto &udt = st.StructUse(lex.sattr, lex);
-                    dest = &udt.thistype;
+                    lex.Next();
+                    return -1;
                 }
+                auto e = st.EnumLookup(lex.sattr, lex, false);
+                if (e) {
+                    dest = &e->thistype;
+                    lex.Next();
+                    return -1;
+                }
+                auto &udt = st.StructUse(lex.sattr, lex);
+                dest = &udt.thistype;
                 lex.Next();
                 break;
             }
@@ -1194,6 +1210,13 @@ struct Parser {
             // Check for function call without ().
             if (!id && (nf || f) && lex.whitespacebefore > 0) {
                 return ParseFunctionCall(f, nf, idname, nullptr, false, true);
+            }
+            // Check for enum value.
+            auto ev = st.EnumValLookup(idname, lex, false);
+            if (ev) {
+                auto ic = new IntConstant(lex, ev->val);
+                ic->from = ev;
+                return ic;
             }
             return IdentUseOrWithStruct(idname);
         }

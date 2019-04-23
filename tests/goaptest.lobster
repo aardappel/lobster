@@ -3,7 +3,14 @@ import astar
 
 run_test("goap"):
 
-    enum wolves, skins, money, flour, bread, pizza, hungry
+    enum resources:
+        wolves
+        skins
+        money
+        flour
+        bread
+        pizza
+        hungry
 
     let goapactions = [
         goapaction { "kill wolf",  def(s): s[wolves] >= 1, def(s): s[wolves]--;   s[skins]++ },

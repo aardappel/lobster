@@ -278,14 +278,11 @@ struct Lex : LoadedFile {
                     while (isalnum(*p) || *p == '_' || *p < 0) p++;
                     sattr = string_view(tokenstart, p - tokenstart);
                     if      (sattr == "nil")       return T_NIL;
-                    else if (sattr == "true")      { sattr = "1"; return T_INT; }
-                    else if (sattr == "false")     { sattr = "0"; return T_INT; }
                     else if (sattr == "return")    return T_RETURN;
                     else if (sattr == "class")     return T_CLASS;
                     else if (sattr == "struct")    return T_STRUCT;
                     else if (sattr == "import")    return T_INCLUDE;
                     else if (sattr == "int")       return T_INTTYPE;
-                    else if (sattr == "bool")      return T_INTTYPE;
                     else if (sattr == "float")     return T_FLOATTYPE;
                     else if (sattr == "string")    return T_STRTYPE;
                     else if (sattr == "any")       return T_ANYTYPE;
@@ -298,6 +295,7 @@ struct Lex : LoadedFile {
                     else if (sattr == "coroutine") return T_COROUTINE;
                     else if (sattr == "resource")  return T_RESOURCE;
                     else if (sattr == "enum")      return T_ENUM;
+                    else if (sattr == "enum_flags")return T_ENUM_FLAGS;
                     else if (sattr == "typeof")    return T_TYPEOF;
                     else if (sattr == "var")       return T_VAR;
                     else if (sattr == "let")       return T_CONST;

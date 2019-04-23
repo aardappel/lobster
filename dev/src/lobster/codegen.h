@@ -984,6 +984,10 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
+void EnumRef::Generate(CodeGen &cg, size_t retval) const {
+    cg.Dummy(retval);
+}
+
 void UDTRef::Generate(CodeGen &cg, size_t retval) const {
     cg.Dummy(retval);
 }

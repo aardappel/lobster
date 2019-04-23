@@ -92,6 +92,7 @@ namespace lobster {
     TOK(T_PRIVATE, "private") \
     TOK(T_RESOURCE, "resource") \
     TOK(T_ENUM, "enum") \
+    TOK(T_ENUM_FLAGS, "enum_flags") \
     TOK(T_VAR, "var") \
     TOK(T_CONST, "let") \
     TOK(T_PAKFILE, "pakfile") \

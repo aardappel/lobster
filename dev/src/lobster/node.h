@@ -262,9 +262,10 @@ struct IdentRef : Node {
 
 struct IntConstant : Node {
     int64_t integer;
-    IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i) {}
+    EnumVal *from;
+    IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
-    void Dump(ostringstream &ss) const { ss << integer; }
+    void Dump(ostringstream& ss) const { if (from) ss << from->name; else ss << integer; }
     bool ConstVal(TypeChecker &, Value &val) const {
         val = Value(integer);  // FIXME: this clips.
         return true;
@@ -290,6 +291,13 @@ struct StringConstant : Node {
     bool IsConstInit() const { return true; }
     void Dump(ostringstream &ss) const { EscapeAndQuote(str, ss); }
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
+};
+
+struct EnumRef : Node {
+    Enum *e;
+    EnumRef(const Line &ln, Enum *_e) : Node(ln), e(_e) {}
+    void Dump(ostringstream &ss) const { ss << "enum" << e->name; }
+    SHARED_SIGNATURE(EnumRef, TName(T_ENUM), false)
 };
 
 struct UDTRef : Node {
