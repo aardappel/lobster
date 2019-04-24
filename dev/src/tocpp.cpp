@@ -108,8 +108,8 @@ class CPPGenerator : public NativeGenerator {
         EmitJump(id);
     }
 
-    void EmitOperands(const char * /*base*/, const int *args, int arity) override {
-        if (arity) {
+    void EmitOperands(const char * /*base*/, const int *args, int arity, bool is_vararg) override {
+        if (is_vararg && arity) {
             ss << "static int args[] = {";
             for (int i = 0; i < arity; i++) {
                 if (i) ss << ", ";
@@ -131,9 +131,20 @@ class CPPGenerator : public NativeGenerator {
         ss << "vm.next_call_target = " << Block() << id << "; ";
     }
 
-    void EmitGenericInst(int opc, int arity, int target) override {
-        ss << "vm.F_" << ILNames()[opc] << "(" << (arity ? "args" : "nullptr");
-        if (target >= 0) ss << ", " << Block() << target;
+    void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
+        ss << "vm.U_" << ILNames()[opc] << "(";
+        if (is_vararg) {
+            ss << "args";
+        } else {
+            for (int i = 0; i < arity; i++) {
+                if (i) ss << ", ";
+                ss << args[i];
+            }
+        }
+        if (target >= 0) {
+            if (arity) ss << ", ";
+            ss << Block() << target;
+        }
         ss << ");";
     }
 

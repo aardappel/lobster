@@ -28,6 +28,8 @@ enum MathOp {
     MOP_ADD, MOP_SUB, MOP_MUL, MOP_DIV, MOP_MOD, MOP_LT, MOP_GT, MOP_LE, MOP_GE, MOP_EQ, MOP_NE
 };
 
+#define ILUNKNOWNARITY 9
+
 #define ILBASENAMES \
     F(PUSHINT, 1) \
     F(PUSHINT64, 2) \
@@ -39,7 +41,7 @@ enum MathOp {
     F(PUSHVARV, 2) \
     F(VPUSHIDXI, 0) F(VPUSHIDXV, 1) F(VPUSHIDXIS, 2) F(VPUSHIDXVS, 3) F(NPUSHIDXI, 1) F(SPUSHIDXI, 0) \
     F(PUSHFLD, 1) F(PUSHFLDMREF, 1) F(PUSHFLDV, 2) F(PUSHFLD2V, 2) F(PUSHFLDV2V, 3) \
-    F(PUSHLOC, 1) F(PUSHLOCV, 1) \
+    F(PUSHLOC, 1) F(PUSHLOCV, 2) \
     F(BCALLRETV, 1) F(BCALLREFV, 1) F(BCALLUNBV, 1) \
     F(BCALLRET0, 1) F(BCALLREF0, 1) F(BCALLUNB0, 1) \
     F(BCALLRET1, 1) F(BCALLREF1, 1) F(BCALLUNB1, 1) \
@@ -50,7 +52,7 @@ enum MathOp {
     F(BCALLRET6, 1) F(BCALLREF6, 1) F(BCALLUNB6, 1) \
     F(BCALLRET7, 1) F(BCALLREF7, 1) F(BCALLUNB7, 1) \
     F(CONT1, 1) \
-    F(FUNSTART, -1) F(FUNEND, 0) F(FUNMULTI, -1) \
+    F(FUNSTART, ILUNKNOWNARITY) F(FUNEND, 0) F(FUNMULTI, ILUNKNOWNARITY) \
     F(ENDSTATEMENT, 0) \
     F(NEWVEC, 2) F(NEWOBJECT, 1) \
     F(POP, 0) F(POPREF, 0) F(POPV, 1) F(POPVREF, 1) \
@@ -83,8 +85,8 @@ enum MathOp {
     F(INCREF, 1) F(KEEPREF, 2)
 
 #define ILCALLNAMES \
-    F(CALL, 1) F(CALLMULTI, -1) F(CALLV, 0) F(CALLVCOND, 0) \
-    F(PUSHFUN, 1) F(CORO, -1) F(YIELD, 0)
+    F(CALL, 1) F(CALLMULTI, ILUNKNOWNARITY) F(CALLV, 0) F(CALLVCOND, 0) \
+    F(PUSHFUN, 1) F(CORO, ILUNKNOWNARITY) F(YIELD, 0)
 
 #define ILJUMPNAMES \
     F(JUMP, 1) \
@@ -116,8 +118,13 @@ enum LVALOP {
 
 #define NUMBASELVALOPS 6  // HAS to match LVAL below!
 #define GENLVALOP(LV, OP) (IL_##LV##_WRITE + (OP) * NUMBASELVALOPS)  // WRITE assumed to be first!
-#define LVAL(N, V) F(VAR_##N, 1 + V) F(FLD_##N, 1 + V) F(LOC_##N, 1 + V) \
-                F(IDXVI_##N, 0 + V) F(IDXVV_##N, 1 + V) F(IDXNI_##N, 0 + V)
+#define ILADD00 0
+#define ILADD01 1
+#define ILADD10 1
+#define ILADD11 2
+#define ILADD(X, Y) ILADD##X##Y
+#define LVAL(N, V) F(VAR_##N, ILADD(1, V)) F(FLD_##N, ILADD(1, V)) F(LOC_##N, ILADD(1, V)) \
+                   F(IDXVI_##N, ILADD(0, V)) F(IDXVV_##N, ILADD(1, V)) F(IDXNI_##N, ILADD(0, V))
 // This assumes VAR is first!
 #define ISLVALVARINS(O) O >= IL_VAR_WRITE && O <= IL_VAR_FMMPR && (O % NUMBASELVALOPS) == 0
 

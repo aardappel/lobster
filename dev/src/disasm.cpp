@@ -59,7 +59,8 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
     switch(opc) {
         case IL_PUSHINT64:
         case IL_PUSHFLT64: {
-            auto v = Read64FromIp(ip);
+            auto a = *ip++;
+            auto v = Int64FromInts(a, *ip++);
             if (opc == IL_PUSHINT64) ss << v;
             else {
                 int2float64 i2f;
@@ -198,7 +199,7 @@ const int *DisAsmIns(NativeRegistry &nfr, ostringstream &ss, const int *ip, cons
             }
             break;
     }
-    assert(arity < 0 || ip - ins_start == arity + 1);
+    assert(arity == ILUNKNOWNARITY || ip - ins_start == arity + 1);
     (void)ins_start;
     return ip;
 }

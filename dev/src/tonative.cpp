@@ -24,7 +24,7 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
     auto ips = ip;
     switch(opc) {
         default: {
-            assert(arity >= 0);
+            assert(arity != ILUNKNOWNARITY);
             ip += arity;
             break;
         }
@@ -119,6 +119,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             already_returned = false;
         }
         auto arity = ParseOpAndGetArity(opc, ip, code);
+        auto is_vararg = ILArity()[opc] == ILUNKNOWNARITY;
         ng.InstStart();
         if (opc == IL_JUMP) {
             already_returned = true;
@@ -127,7 +128,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
             ng.EmitConditionalJump(opc, block_ids[args[0]]);
         } else {
-            ng.EmitOperands(bytecode_buffer.data(), args, arity);
+            ng.EmitOperands(bytecode_buffer.data(), args, arity, is_vararg);
             if (opc == IL_FUNMULTI) {
                 auto nmethods = args[1];
                 auto nargs = args[2];
@@ -148,7 +149,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
                 target = block_ids[args[0]];
             }
-            ng.EmitGenericInst(opc, arity, target);
+            ng.EmitGenericInst(opc, args, arity, is_vararg, target);
             if (ISBCALL(opc)) {
                 ng.Annotate(natreg.nfuns[args[0]]->name);
             } else if (opc == IL_PUSHVAR) {

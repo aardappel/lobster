@@ -32,10 +32,10 @@ struct NativeGenerator {
     virtual void InstStart() = 0;
     virtual void EmitJump(int id) = 0;
     virtual void EmitConditionalJump(int opc, int id) = 0;
-    virtual void EmitOperands(const char *base, const int *args, int arity) = 0;
+    virtual void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) = 0;
     virtual void EmitMultiMethodDispatch(const vector<int> &mmtable) = 0;
     virtual void SetNextCallTarget(int id) = 0;
-    virtual void EmitGenericInst(int opc, int arity, int target) = 0;
+    virtual void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) = 0;
     virtual void EmitCall(int id) = 0;
     virtual void EmitCallIndirect() = 0;
     virtual void EmitCallIndirectNull() = 0;

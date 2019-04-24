@@ -63,13 +63,25 @@ class WASMGenerator : public NativeGenerator {
         bw.EndSection(WASM::Section::Type);
 
         bw.BeginSection(WASM::Section::Import);
-        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_V_II);
+        #define S_ARGS0 TI_V_I
+        #define S_ARGS1 TI_V_II
+        #define S_ARGS2 TI_V_III
+        #define S_ARGS3 TI_V_IIII
+        #define S_ARGS9 TI_V_II  // ILUNKNOWNARITY
+        #define S_ARGSN(N) S_ARGS##N
+        #define C_ARGS0 TI_V_II
+        #define C_ARGS1 TI_V_III
+        #define C_ARGS2 TI_V_IIII
+        #define C_ARGS3 TI_V_IIIII
+        #define C_ARGS9 TI_V_III  // ILUNKNOWNARITY
+        #define C_ARGSN(N) C_ARGS##N
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
             LVALOPNAMES
         #undef F
-        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_V_II);
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
             ILBASENAMES
         #undef F
-        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_V_III);
+        #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
             ILCALLNAMES
         #undef F
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_I);
@@ -148,10 +160,12 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitEnd();
     }
 
-    void EmitOperands(const char *base, const int *args, int arity) override {
+    void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) override {
         bw.EmitGetLocal(0 /*VM*/);
-        if (arity) bw.EmitI32ConstDataRef(0, (const char *)args - base);
-        else bw.EmitI32Const(0);  // nullptr
+        if (is_vararg) {
+            if (arity) bw.EmitI32ConstDataRef(0, (const char *)args - base);
+            else bw.EmitI32Const(0);  // nullptr
+        }
     }
 
     void EmitMultiMethodDispatch(const vector<int> &mmtable) override {
@@ -170,7 +184,10 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitCall(import_snct);
     }
 
-    void EmitGenericInst(int opc, int /*arity*/, int target) override {
+    void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
+        if (!is_vararg) {
+            for (int i = 0; i < arity; i++) bw.EmitI32Const(args[i]);
+        }
         if (target >= 0) { bw.EmitI32FunctionRef(bw.GetNumImports() + target); }
         bw.EmitCall((size_t)opc);  // Opcodes are the 0..N of imports.
     }

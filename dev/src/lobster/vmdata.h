@@ -779,35 +779,19 @@ struct VM {
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
 
-    #ifndef VM_COMPILED_CODE_MODE
-        //#define VM_INS_SWITCH
-    #endif
-
     //#define VM_ERROR_RET_EXPERIMENT
     #if defined(VM_ERROR_RET_EXPERIMENT) && !defined(VM_COMPILED_CODE_MODE)
         #define VM_INS_RET bool
-        #ifdef VM_INS_SWITCH
-            #define VM_RET break
-            #define VM_TERMINATE return
-        #else
-            #define VM_RET return false
-            #define VM_TERMINATE return true
-        #endif
+        #define VM_RET return false
+        #define VM_TERMINATE return true
     #else
         #define VM_INS_RET void
-        #ifdef VM_INS_SWITCH
-            #define VM_RET break
-            #define VM_TERMINATE return
-        #else
-            #define VM_RET
-            #define VM_TERMINATE
-        #endif
+        #define VM_RET
+        #define VM_TERMINATE
     #endif
 
-    #ifndef VM_INS_SWITCH
     typedef VM_INS_RET (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
-    #endif
 
     const void *compiled_code_ip;
     const void *compiled_code_bc;
@@ -869,16 +853,18 @@ struct VM {
     LObject *WorkerRead(type_elem_t tti);
 
     #ifdef VM_COMPILED_CODE_MODE
+        #define VM_COMMA ,
         #define VM_OP_ARGS const int *ip
-        #define VM_OP_ARGS_C , const int *ip
-        #define VM_OP_ARGS_CALL const int *ip, block_t fcont
-        #define VM_IP_PASS_THRU_C , ip
+        #define VM_OP_ARGS_CALL block_t fcont
+        #define VM_IP_PASS_THRU ip
+        #define VM_FC_PASS_THRU fcont
         #define VM_JMP_RET bool
     #else
+        #define VM_COMMA
         #define VM_OP_ARGS
-        #define VM_OP_ARGS_C
         #define VM_OP_ARGS_CALL
-        #define VM_IP_PASS_THRU_C
+        #define VM_IP_PASS_THRU
+        #define VM_FC_PASS_THRU
         #define VM_JMP_RET VM_INS_RET
     #endif
 
@@ -892,7 +878,7 @@ struct VM {
 
     void CoVarCleanup(LCoRoutine *co);
     void CoNonRec(const int *varip);
-    void CoNew(VM_OP_ARGS_CALL);
+    void CoNew(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL);
     void CoSuspend(InsPtr retip);
     void CoClean();
     void CoYield(VM_OP_ARGS_CALL);
@@ -901,35 +887,72 @@ struct VM {
     void EndEval(const Value &ret, ValueType vt);
 
     void InstructionPointerInit() {
-        #ifndef VM_INS_SWITCH
-            #ifdef VM_COMPILED_CODE_MODE
-                #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
-            #else
-                #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
-            #endif
-            ILNAMES
-            #undef F
+        #ifdef VM_COMPILED_CODE_MODE
+            #define F(N, A) f_ins_pointers[IL_##N] = nullptr;
+        #else
+            #define F(N, A) f_ins_pointers[IL_##N] = &VM::F_##N;
         #endif
+        ILNAMES
+        #undef F
     }
 
-    #ifndef VM_INS_SWITCH
-        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
-            LVALOPNAMES
-        #undef F
-        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS);
-            ILBASENAMES
-        #undef F
-        #define F(N, A) VM_INS_RET F_##N(VM_OP_ARGS_CALL);
-            ILCALLNAMES
-        #undef F
-        #define F(N, A) VM_JMP_RET F_##N();
-            ILJUMPNAMES
-        #undef F
-    #endif
+    #define VM_OP_ARGS0
+    #define VM_OP_ARGS1 int _a
+    #define VM_OP_ARGS2 int _a, int _b
+    #define VM_OP_ARGS3 int _a, int _b, int _c
+    #define VM_OP_ARGS9 VM_OP_ARGS  // ILUNKNOWNARITY
+    #define VM_OP_ARGSN(N) VM_OP_ARGS##N
+    #define VM_OP_DEFS0
+    #define VM_OP_DEFS1 int _a = *ip++;
+    #define VM_OP_DEFS2 int _a = *ip++; int _b = *ip++;
+    #define VM_OP_DEFS3 int _a = *ip++; int _b = *ip++; int _c = *ip++;
+    #define VM_OP_DEFS9  // ILUNKNOWNARITY
+    #define VM_OP_DEFSN(N) VM_OP_DEFS##N (void)ip;
+    #define VM_OP_PASS0
+    #define VM_OP_PASS1 _a
+    #define VM_OP_PASS2 _a, _b
+    #define VM_OP_PASS3 _a, _b, _c
+    #define VM_OP_PASS9 VM_IP_PASS_THRU  // ILUNKNOWNARITY
+    #define VM_OP_PASSN(N) VM_OP_PASS##N
+    #define VM_COMMA_0
+    #define VM_COMMA_1 ,
+    #define VM_COMMA_2 ,
+    #define VM_COMMA_3 ,
+    #define VM_COMMA_9 ,
+    #define VM_COMMA_IF(N) VM_COMMA_##N
+    #define VM_CCOMMA_0
+    #define VM_CCOMMA_1 VM_COMMA
+    #define VM_CCOMMA_9 VM_COMMA
+    #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
+
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A)); \
+                    VM_INS_RET F_##N(VM_OP_ARGS) { \
+                        VM_OP_DEFSN(A); \
+                        return U_##N(VM_OP_PASSN(A)); \
+                    }
+        LVALOPNAMES
+    #undef F
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A)); \
+                    VM_INS_RET F_##N(VM_OP_ARGS) { \
+                        VM_OP_DEFSN(A); \
+                        return U_##N(VM_OP_PASSN(A)); \
+                    }
+        ILBASENAMES
+    #undef F
+    #define F(N, A) VM_INS_RET U_##N(VM_OP_ARGSN(A) VM_CCOMMA_IF(A) VM_OP_ARGS_CALL); \
+                    VM_INS_RET F_##N(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) { \
+                        VM_OP_DEFSN(A); \
+                        return U_##N(VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
+                    }
+        ILCALLNAMES
+    #undef F
+    #define F(N, A) VM_JMP_RET U_##N(); VM_JMP_RET F_##N() { return U_##N(); }
+        ILJUMPNAMES
+    #undef F
 
     #pragma push_macro("LVAL")
     #undef LVAL
-    #define LVAL(N, V) void LV_##N(Value &a VM_OP_ARGS_C);
+    #define LVAL(N, V) void LV_##N(Value &a VM_COMMA_IF(V) VM_OP_ARGSN(V));
         LVALOPNAMES
     #undef LVAL
     #pragma pop_macro("LVAL")
@@ -945,7 +968,7 @@ struct VM {
     Value &GetVecLVal(intp i);
 
     void PushDerefIdxVector(intp i);
-    void PushDerefIdxVectorSub(intp i VM_OP_ARGS_C);
+    void PushDerefIdxVectorSub(intp i, int width, int offset);
     void PushDerefIdxStruct(intp i, int l);
     void PushDerefIdxString(intp i);
     void LvalueIdxVector(int lvalop, intp i);
@@ -1025,9 +1048,9 @@ struct VM {
     void StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
 };
 
-inline int64_t Read64FromIp(const int *&ip) {
-    int64_t v = (uint)*ip++;
-    v |= ((int64_t)*ip++) << 32;
+inline int64_t Int64FromInts(int a, int b) {
+    int64_t v = (uint)a;
+    v |= ((int64_t)b) << 32;
     return v;
 }
 
