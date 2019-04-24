@@ -196,7 +196,7 @@ void EngineStatsGUI() {
 
 void AddIMGUI(NativeRegistry &nfr) {
 
-nfr("im_init", "dark_style", "B", "", "",
+nfr("im_init", "dark_style", "B?", "", "",
     [](VM &, Value &darkstyle) {
         if (imgui_init) return Value();
         IMGUI_CHECKVERSION();
@@ -254,38 +254,44 @@ nfr("im_window", "title,flags,body", "SIL", "", "",
     });
 
 nfr("im_button", "label,body", "SL", "", "",
-    [](VM &, Value &title, Value &body) {
+    [](VM &vm, Value &title, Value &body) {
+        IsInit(vm);
         auto press = ImGui::Button(title.sval()->data());
         return press ? body : Value();
     }, [](VM &) {
     });
 
 nfr("im_same_line", "", "", "", "",
-    [](VM &) {
+    [](VM &vm) {
+        IsInit(vm);
         ImGui::SameLine();
         return Value();
     });
 
 nfr("im_separator", "", "", "", "",
-    [](VM &) {
+    [](VM &vm) {
+        IsInit(vm);
         ImGui::Separator();
         return Value();
     });
 
 nfr("im_text", "label", "S", "", "",
-    [](VM &, Value &text) {
+    [](VM &vm, Value &text) {
+        IsInit(vm);
         ImGui::Text("%s", text.sval()->data());
         return Value();
     });
 
 nfr("im_tooltip", "label", "S", "", "",
-    [](VM &, Value &text) {
+    [](VM &vm, Value &text) {
+        IsInit(vm);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", text.sval()->data());
         return Value();
     });
 
 nfr("im_checkbox", "label,bool", "SI", "I2", "",
-    [](VM &, Value &text, Value &boolean) {
+    [](VM &vm, Value &text, Value &boolean) {
+        IsInit(vm);
         bool b = boolean.True();
         ImGui::Checkbox(text.sval()->data(), &b);
         return Value(b);
@@ -293,11 +299,13 @@ nfr("im_checkbox", "label,bool", "SI", "I2", "",
 
 nfr("im_input_text", "label,str", "SSk", "S", "",
     [](VM &vm, Value &text, Value &str) {
+        IsInit(vm);
         return Value(LStringInputText(vm, text.sval()->data(), str.sval()));
     });
 
 nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
-    [](VM &, Value &strs, Value &active, Value &horiz) {
+    [](VM &vm, Value &strs, Value &active, Value &horiz) {
+        IsInit(vm);
         int sel = active.intval();
         for (intp i = 0; i < strs.vval()->len; i++) {
             if (i && horiz.True()) ImGui::SameLine();
@@ -307,7 +315,8 @@ nfr("im_radio", "labels,active,horiz", "S]II", "I", "",
     });
 
 nfr("im_combo", "label,labels,active", "SS]I", "I", "",
-    [](VM &, Value &text, Value &strs, Value &active) {
+    [](VM &vm, Value &text, Value &strs, Value &active) {
+        IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (intp i = 0; i < strs.vval()->len; i++) {
@@ -318,7 +327,8 @@ nfr("im_combo", "label,labels,active", "SS]I", "I", "",
     });
 
 nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
-    [](VM &, Value &text, Value &strs, Value &active, Value &height) {
+    [](VM &vm, Value &text, Value &strs, Value &active, Value &height) {
+        IsInit(vm);
         int sel = active.intval();
         vector<const char *> items(strs.vval()->len);
         for (intp i = 0; i < strs.vval()->len; i++) {
@@ -329,14 +339,16 @@ nfr("im_listbox", "label,labels,active,height", "SS]II", "I", "",
     });
 
 nfr("im_sliderint", "label,i,min,max", "SIII", "I", "",
-    [](VM &, Value &text, Value &integer, Value &min, Value &max) {
+    [](VM &vm, Value &text, Value &integer, Value &min, Value &max) {
+        IsInit(vm);
         int i = integer.intval();
         ImGui::SliderInt(text.sval()->data(), &i, min.intval(), max.intval());
         return Value(i);
     });
 
 nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
-    [](VM &, Value &text, Value &flt, Value &min, Value &max) {
+    [](VM &vm, Value &text, Value &flt, Value &min, Value &max) {
+        IsInit(vm);
         float f = flt.fltval();
         ImGui::SliderFloat(text.sval()->data(), &f, min.fltval(), max.fltval());
         return Value(f);
@@ -344,6 +356,7 @@ nfr("im_sliderfloat", "label,f,min,max", "SFFF", "F", "",
 
 nfr("im_coloredit", "label,color", "SF}", "A2", "",
     [](VM &vm) {
+        IsInit(vm);
         auto c = vm.PopVec<float4>();
         ImGui::ColorEdit4(vm.Pop().sval()->data(), (float *)c.data());
         vm.PushVec(c);
@@ -351,6 +364,7 @@ nfr("im_coloredit", "label,color", "SF}", "A2", "",
 
 nfr("im_treenode", "label,body", "SL", "", "",
     [](VM &vm, Value &title, Value &body) {
+        IsInit(vm);
         auto open = ImGui::TreeNode(title.sval()->data());
         vm.Push(open);
         return open ? body : Value();
@@ -362,7 +376,8 @@ nfr("im_group", "label,body", "SsL", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
     " label)",
-    [](VM &, Value &title, Value &body) {
+    [](VM &vm, Value &title, Value &body) {
+        IsInit(vm);
         ImGui::PushID(title.sval()->data());
         return body;
     }, [](VM &) {
@@ -372,6 +387,7 @@ nfr("im_group", "label,body", "SsL", "",
 nfr("im_edit_anything", "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version",
     [](VM &vm, Value &v, Value &label) {
+        IsInit(vm);
         // FIXME: would be good to support structs, but that requires typeinfo, not just len.
         auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
         ValToGUI(vm, &v, ti,
@@ -380,7 +396,8 @@ nfr("im_edit_anything", "value,label", "AkS?", "A1",
     });
 
 nfr("im_graph", "label,values,ishistogram", "SF]I", "", "",
-    [](VM &, Value &label, Value &vals, Value &histogram) {
+    [](VM &vm, Value &label, Value &vals, Value &histogram) {
+        IsInit(vm);
         auto getter = [](void *data, int i) -> float {
             return ((Value *)data)[i].fltval();
         };
@@ -397,12 +414,14 @@ nfr("im_graph", "label,values,ishistogram", "SF]I", "", "",
 nfr("im_show_vars", "", "", "",
     "shows an automatic editing UI for each global variable in your program",
     [](VM &vm) {
+        IsInit(vm);
         VarsToGUI(vm);
         return Value();
     });
 
 nfr("im_show_engine_stats", "", "", "", "",
-    [](VM &) {
+    [](VM &vm) {
+        IsInit(vm);
         EngineStatsGUI();
         return Value();
     });
