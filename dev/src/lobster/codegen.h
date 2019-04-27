@@ -1396,8 +1396,15 @@ void CoRoutine::Generate(CodeGen &cg, size_t retval) const {
     cg.Emit(cg.GetTypeTableOffset(exptype));
     // TODO: We shouldn't need to store this table for each call, instead do it once for
     // each function.
-    cg.Emit((int)sf->coyieldsave.v.size());
-    for (auto &arg : sf->coyieldsave.v) cg.Emit(arg.sid->Idx());
+    auto num = cg.Pos();
+    cg.Emit(0);
+    for (auto &arg : sf->coyieldsave.v) {
+        auto n = ValWidth(arg.sid->type);
+        for (int i = 0; i < n; i++) {
+            cg.Emit(arg.sid->Idx() + i);
+            cg.code[num]++;
+        }
+    }
     cg.temptypestack.push_back(TypeLT { *this, 0 });
     cg.Gen(call, 1);
     cg.TakeTemp(2, false);
