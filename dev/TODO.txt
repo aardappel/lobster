@@ -1657,6 +1657,7 @@ VM64-MSVC: lvalinl    : secs 18.4 Inlined the LvalOp function, one less switch()
 C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
 VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
 C++64-MSVC: inlinestr : secs 13.0 inline structs v1
+C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
 
 compiletime speed:
 

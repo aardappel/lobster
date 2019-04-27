@@ -1206,7 +1206,7 @@ VM_INS_RET VM::U_IVVADD(int len) { IVVOP(+,  0);  }
 VM_INS_RET VM::U_IVVSUB(int len) { IVVOP(-,  0);  }
 VM_INS_RET VM::U_IVVMUL(int len) { IVVOP(*,  0);  }
 VM_INS_RET VM::U_IVVDIV(int len) { IVVOP(/,  1);  }
-VM_INS_RET VM::U_IVVMOD(int len) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_IVVMOD(int)     { VMASSERT(0); VM_RET; }
 VM_INS_RET VM::U_IVVLT(int len)  { IVVOP(<,  0);  }
 VM_INS_RET VM::U_IVVGT(int len)  { IVVOP(>,  0);  }
 VM_INS_RET VM::U_IVVLE(int len)  { IVVOP(<=, 0);  }
@@ -1215,7 +1215,7 @@ VM_INS_RET VM::U_FVVADD(int len) { FVVOP(+,  0);  }
 VM_INS_RET VM::U_FVVSUB(int len) { FVVOP(-,  0);  }
 VM_INS_RET VM::U_FVVMUL(int len) { FVVOP(*,  0);  }
 VM_INS_RET VM::U_FVVDIV(int len) { FVVOP(/,  1);  }
-VM_INS_RET VM::U_FVVMOD(int len) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_FVVMOD(int)     { VMASSERT(0); VM_RET; }
 VM_INS_RET VM::U_FVVLT(int len)  { FVVOP(<,  0); }
 VM_INS_RET VM::U_FVVGT(int len)  { FVVOP(>,  0); }
 VM_INS_RET VM::U_FVVLE(int len)  { FVVOP(<=, 0); }
@@ -1225,7 +1225,7 @@ VM_INS_RET VM::U_IVSADD(int len) { IVSOP(+,  0);  }
 VM_INS_RET VM::U_IVSSUB(int len) { IVSOP(-,  0);  }
 VM_INS_RET VM::U_IVSMUL(int len) { IVSOP(*,  0);  }
 VM_INS_RET VM::U_IVSDIV(int len) { IVSOP(/,  1);  }
-VM_INS_RET VM::U_IVSMOD(int len) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_IVSMOD(int)     { VMASSERT(0); VM_RET; }
 VM_INS_RET VM::U_IVSLT(int len)  { IVSOP(<,  0);  }
 VM_INS_RET VM::U_IVSGT(int len)  { IVSOP(>,  0);  }
 VM_INS_RET VM::U_IVSLE(int len)  { IVSOP(<=, 0);  }
@@ -1234,7 +1234,7 @@ VM_INS_RET VM::U_FVSADD(int len) { FVSOP(+,  0);  }
 VM_INS_RET VM::U_FVSSUB(int len) { FVSOP(-,  0);  }
 VM_INS_RET VM::U_FVSMUL(int len) { FVSOP(*,  0);  }
 VM_INS_RET VM::U_FVSDIV(int len) { FVSOP(/,  1);  }
-VM_INS_RET VM::U_FVSMOD(int len) { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_FVSMOD(int)     { VMASSERT(0); VM_RET; }
 VM_INS_RET VM::U_FVSLT(int len)  { FVSOP(<,  0); }
 VM_INS_RET VM::U_FVSGT(int len)  { FVSOP(>,  0); }
 VM_INS_RET VM::U_FVSLE(int len)  { FVSOP(<=, 0); }
