@@ -331,6 +331,7 @@ struct InsPtr {
     #endif
     InsPtr() : f(0) {}
     bool operator==(const InsPtr o) const { return f == o.f; }
+    bool operator!=(const InsPtr o) const { return f != o.f; }
 };
 
 #if RTT_ENABLED
@@ -392,10 +393,10 @@ struct Value {
         // All these types can be defined to be either all 32 or 64-bit, depending on the
         // compilation mode.
 
-        // Unboxed values.
+        // Non-reference values.
         intp ival_;      // scalars stored as pointer-sized versions.
         floatp fval_;
-        InsPtr ip_;  // Never gets converted to any, so no boxed version available.
+        InsPtr ip_;
 
         // Reference values (includes NULL if nillable version).
         LStringPtr sval_;

@@ -1178,6 +1178,8 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                VM_PUSH(res); VM_RET; }
 #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                VM_PUSH(res); VM_RET; }
 
+#define LOP(op)            { GETARGS(); auto res = a.ip() op b.ip();     VM_PUSH(res); VM_RET; } 
+
 #define IVVOP(op, extras)  { _IVOP(op, extras, false, _GETA()); VM_RET; }
 #define FVVOP(op, extras)  { _FVOP(op, extras, false, _GETA()); VM_RET; }
 #define IVSOP(op, extras)  { _IVOP(op, extras, true, _GETA());  VM_RET; }
@@ -1244,6 +1246,8 @@ VM_INS_RET VM::U_AEQ()  { ACOMPEN(==); }
 VM_INS_RET VM::U_ANE()  { ACOMPEN(!=); }
 VM_INS_RET VM::U_STEQ(int len) { STCOMPEN(==, true, &&); }
 VM_INS_RET VM::U_STNE(int len) { STCOMPEN(!=, false, ||); }
+VM_INS_RET VM::U_LEQ() { LOP(==); }
+VM_INS_RET VM::U_LNE() { LOP(!=); }
 
 VM_INS_RET VM::U_IADD() { IOP(+,  0); }
 VM_INS_RET VM::U_ISUB() { IOP(-,  0); }

@@ -583,6 +583,9 @@ struct CodeGen  {
             Emit(IL_FADD + opc);
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             Emit(IL_SADD + opc);
+        } else if (rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) {
+            assert(opc == MOP_EQ || opc == MOP_NE);
+            Emit(IL_LEQ + (opc - MOP_EQ));
         } else {
             if (opc >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {

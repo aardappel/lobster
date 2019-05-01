@@ -571,7 +571,7 @@ struct TypeChecker {
         if (!u->Numeric() && u->t != V_STRING) {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
-                if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL)
+                if (u->t != V_VECTOR && !IsUDT(u->t) && u->t != V_NIL && u->t != V_FUNCTION)
                     TypeError(TypeName(n.left->exptype), n.right->exptype, n, "right-hand side");
             } else {
                 // Comparison vector op: vector inputs, vector out.
