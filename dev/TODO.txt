@@ -1,10 +1,6 @@
 - enums
-  - coercion ops
-  - gui_multiselect called with enum type for selected (cityclicker2)
   - use namespaces
     - remove keywords?
-  - now that we have less global constants:
-    - things like diagonal_directions should be functions?
   - add them to bytecode so they can be printed/parsed
     - imgui reflection use checkbox for bools, maybe also for other enums.
       https://github.com/aardappel/lobster/issues/38
@@ -27,7 +23,13 @@
 
 - do whatever big language fixes still need to happen.
   - multimethods
-  - bools?
+
+- Should add template arg types also to regular functions.
+  - an example is gui_multiselect called with enum type for selected.
+
+- Optimize out variables that are not used.
+  This in particular will be good for vec/color.lobster that create a lot of globals,
+  also means they don't show up in stack traces / debug windows etc.
 
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there
@@ -64,6 +66,10 @@
     - con: some logic related to functions will need to be duplicated for blocks.
     on the whole I think its worth it, but do it seperate from syntax.
     probably while condition can be made into a non-function first.
+  - can consider also making higher order functions introduce the lambda with a keyword to
+    make it all more parsable.
+    map xs do x: body
+    map x in xs: body  // Python-esque, sadly in an odd order.
 
 - methods in unrelated types still form a multimethod
   - this should be the final straw to rework them.

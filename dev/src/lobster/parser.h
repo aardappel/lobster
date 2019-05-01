@@ -236,7 +236,7 @@ struct Parser {
                 if (isprivate)
                     Error("private only applies to declarations");
                 if (IsNextId()) {
-                    // Regular assigned is handled in normal expression parsing below.
+                    // Regular assign is handled in normal expression parsing below.
                     if (lex.token == T_COMMA) {
                         auto al = new AssignList(lex, Modify(IdentUseOrWithStruct(lastid)));
                         while (IsNext(T_COMMA))

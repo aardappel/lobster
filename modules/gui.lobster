@@ -281,11 +281,15 @@ def button_id_image(id:int, size, tex, do:fun, focus:fun): button(id,        def
 
 def custombackground(f:funs): if render_pass: f(overalsize)
 
-def multiselect(labels, selected, mspacing):
+def multiselect(labels, selected:int, mspacing):
     hblock(1, mspacing):
         for(labels) name, i:
             color(if selected == i: color_white else: color_grey):
                 button_text(name):
+                    // FIXME: we force "selected" to int, because otherwise this assign will
+                    // fail when selected is an enum. We currently have no way to coerce
+                    // i to "whatever type selected is" (e.g. template parameters).
+                    // Problem is that the caller of this function needs to now coerce.
                     selected = i
     return selected
 
