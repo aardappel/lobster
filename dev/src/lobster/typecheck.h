@@ -1603,14 +1603,15 @@ struct TypeChecker {
     TypeRef ActualBuiltinType(int flen, TypeRef type, ArgFlags flags, Node *exp,
                               const NativeFun *nf, bool test_overloads, size_t argn,
                               const Node &errorn) {
-        if (type->t == V_NIL) type = type->sub;
         if (flags & NF_BOOL) {
+            type = type->ElementIfNil();
             assert(type->t == V_INT);
             return &st.default_bool_type->thistype;
         }
         // See if we can promote the type to one of the standard vector types
         // (xy/xyz/xyzw).
         if (!flen) return type;
+        type = type->ElementIfNil();
         auto etype = exp ? exp->exptype : nullptr;
         auto e = etype;
         size_t i = 0;
