@@ -424,6 +424,14 @@ struct IsType : Unary {
     OPTMETHOD
 };
 
+struct EnumCoercion : Unary {
+    Enum *e;
+    EnumCoercion(const Line &ln, Node *_a, Enum *e) : Unary(ln, _a), e(e) {}
+    void Dump(ostringstream &ss) const { ss << e->name; }
+    CONSTVALMETHOD
+    SHARED_SIGNATURE(EnumCoercion, e->name, false)
+};
+
 struct ToLifetime : Coercion {
     uint64_t incref, decref;
     ToLifetime(const Line &ln, Node *_a, uint64_t incref, uint64_t decref)

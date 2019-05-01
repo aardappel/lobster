@@ -600,6 +600,9 @@ An `enum` defines a "strongly typed alias" for the `int` type. What this means i
 that these values are fully compatible with `int` in any use, but a regular `int`
 can't be passed to a context where an enum type is explicitly requested.
 
+You can convert integers explicitly to an enum with a coercion function, e.g.
+`example(1)` will create a value equivalent in type and value to `foo`.
+
 If you leave out the `= 1`, the sequence will start
 at `0` instead. Values automatically increment from the last explicitly specified value,
 so `bar` will be `2` here. Instead of `enum` you can use `enum_flags`, which changes the
@@ -616,7 +619,8 @@ enum bool:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Because they are enums, they have the same typing rules: a `bool` can be used anywhere
-an `int` is expected, but not the other way around.
+an `int` is expected, but not the other way around. Similarly, you can use e.g. `bool(1)`
+to convert ints.
 
 Coroutines
 ----------

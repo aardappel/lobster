@@ -2677,6 +2677,15 @@ Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     return this;
 }
 
+Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
+    tc.TT(child, 1, LT_BORROW);
+    tc.SubType(child, type_int, "coerced value", *this);
+    tc.DecBorrowers(child->lt, *this);
+    exptype = &e->thistype;
+    lt = LT_ANY;
+    return this;
+}
+
 Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckList(this, false, 1, LT_ANY);
     exptype = tc.NewTuple(children.size());
@@ -2746,6 +2755,10 @@ bool IsType::ConstVal(TypeChecker &tc, Value &val) const {
     // This means it is always a reference type, since int/float/function don't convert
     // into anything without coercion.
     return false;
+}
+
+bool EnumCoercion::ConstVal(TypeChecker &tc, Value &val) const {
+    return child->ConstVal(tc, val);
 }
 
 }  // namespace lobster

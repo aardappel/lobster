@@ -40,3 +40,8 @@ run_test("types"):
     def return_from2(): return testa { 0 } from return_from
     assert return_from(1) is testa
     assert return_from("") is testa
+
+    // strongly typed enums.
+    var b = true
+    b = bool(1)
+    assert b == true

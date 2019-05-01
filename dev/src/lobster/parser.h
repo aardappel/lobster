@@ -1207,7 +1207,14 @@ struct Parser {
             // don't have C's ","-operator).
             auto nf = natreg.FindNative(idname);
             auto f = st.FindFunction(idname);
+            auto e = st.EnumLookup(idname, lex, false);
             if (lex.token == T_LEFTPAREN && lex.whitespacebefore == 0) {
+                if (e && !f && !nf) {
+                    lex.Next();
+                    auto ec = new EnumCoercion(lex, ParseExp(), e);
+                    Expect(T_RIGHTPAREN);
+                    return ec;
+                }
                 return ParseFunctionCall(f, nf, idname, nullptr, false, false);
             }
             // Check for implicit variable.

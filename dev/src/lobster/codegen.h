@@ -1350,6 +1350,11 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
+void EnumCoercion::Generate(CodeGen &cg, size_t retval) const {
+    cg.Gen(child, retval);
+    if (retval) cg.TakeTemp(1, false);
+}
+
 void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!retval);
     (void)retval;
