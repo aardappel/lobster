@@ -415,7 +415,9 @@ struct TypeChecker {
                     // needed.
                     auto sf = a->exptype->sf;
                     auto ss = sub->sf;
-                    assert(ss->parent->istype);
+                    if (!ss->parent->istype)
+                        TypeError("dynamic function value can only be passed to declared "
+                                  "function type", *a);
                     if (sf->args.v.size() != ss->args.v.size()) break;
                     for (auto [i, arg] : enumerate(sf->args.v)) {
                         // Specialize to the function type, if requested.
