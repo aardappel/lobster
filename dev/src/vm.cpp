@@ -1334,10 +1334,9 @@ VM_INS_RET VM::U_I2F() {
     VM_RET;
 }
 
-VM_INS_RET VM::U_A2S() {
+VM_INS_RET VM::U_A2S(int t) {
     Value a = VM_POP();
-    assert(IsRefNil(a.type));
-    VM_PUSH(ToString(a, a.ref() ? a.ref()->ti(*this).t : V_NIL));
+    VM_PUSH(ToString(a, (ValueType)t));
     VM_RET;
 }
 

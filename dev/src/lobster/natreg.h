@@ -103,6 +103,10 @@ struct Type {
         return sub;
     }
 
+    const Type *ElementIfNil() const {
+        return t == V_NIL ? sub : this;
+    }
+
     Type *Wrap(Type *dest, ValueType with) const {
         *dest = Type(with, this);
         return dest;

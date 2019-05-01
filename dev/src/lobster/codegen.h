@@ -751,7 +751,7 @@ void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     // Optional args are indicated by being nillable, but for structs passed to builtins the type
     // has already been made non-nil.
-    switch (exptype->t == V_NIL ? exptype->sub->t : exptype->t) {
+    switch (exptype->ElementIfNil()->t) {
         case V_INT:   cg.Emit(IL_PUSHINT, 0); break;
         case V_FLOAT: cg.GenFloat(0); break;
         default:      cg.Emit(IL_PUSHNIL); break;
@@ -919,7 +919,7 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
             break;
         }
         default: {
-            cg.Emit(IL_A2S);
+            cg.Emit(IL_A2S, child->exptype->ElementIfNil()->t);
             break;
         }
     }

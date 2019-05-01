@@ -279,7 +279,7 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
                 s += ":";
                 s += a.flags & NF_BOOL
                     ? "bool"
-                    : TypeName(a.type->t == V_NIL ? a.type->Element() : a.type, a.fixed_len, &st);
+                    : TypeName(a.type->ElementIfNil(), a.fixed_len, &st);
             }
             s += "</font>";
             if (a.type->t == V_NIL && (int)i > last_non_nil)
