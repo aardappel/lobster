@@ -217,6 +217,8 @@
   But would be good to exclude this. Problem is that there are legit use of lambdas
   stored in data structures that are not escaping but hard to prove that they are.
 
+- enable dynamic function value call on any exp, see ParseDeref.
+
 - strong typedefs.
   Will basically add a tag to any base type.
   If a functionally specifically requests the tag, the tags must match.

@@ -953,6 +953,8 @@ struct Parser {
 
     Node *ParseDeref() {
         auto n = ParseFactor();
+        // FIXME: it would be good to narrow the kind of factors these derefs can attach to,
+        // since for some of them it makes no sense (e.g. function call with lambda args).
         for (;;) switch (lex.token) {
             case T_DOT:
             case T_CODOT: {
@@ -984,6 +986,12 @@ struct Parser {
                     }
                 }
                 break;
+            }
+            case T_LEFTPAREN: {
+                // Special purpose error to make this more understandable for the user.
+                // FIXME: can remove this restriction if we make DynCall work with any node.
+                Error("dynamic function value call must be on variable");
+                return n;
             }
             case T_LEFTBRACKET: {
                 lex.Next();
