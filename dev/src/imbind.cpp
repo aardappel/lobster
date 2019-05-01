@@ -33,6 +33,7 @@ extern SDL_Window *_sdl_window;
 extern SDL_GLContext _sdl_context;
 
 bool imgui_init = false;
+int imgui_windows = 0;
 
 void IMGUICleanup() {
     if (!imgui_init) return;
@@ -40,10 +41,12 @@ void IMGUICleanup() {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     imgui_init = false;
+    imgui_windows = 0;
 }
 
-void IsInit(VM &vm) {
+void IsInit(VM &vm, bool require_window = true) {
     if (!imgui_init) vm.BuiltinError("IMGUI not running: call im_init first");
+    if (!imgui_windows && require_window) vm.BuiltinError("no window: call im_window first");
 }
 
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
@@ -211,7 +214,7 @@ nfr("im_init", "dark_style", "B?", "", "",
 
 nfr("im_add_font", "font_path,size", "SF", "B", "",
     [](VM &vm, Value &fontname, Value &size) {
-        IsInit(vm);
+        IsInit(vm, false);
         string buf;
         auto l = LoadFile(fontname.sval()->strv(), &buf);
         if (l < 0) return Value();
@@ -226,7 +229,7 @@ nfr("im_add_font", "font_path,size", "SF", "B", "",
 
 nfr("im_frame", "body", "L", "", "",
     [](VM &vm, Value &body) {
-        IsInit(vm);
+        IsInit(vm, false);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
@@ -238,7 +241,7 @@ nfr("im_frame", "body", "L", "", "",
 
 nfr("im_window_demo", "", "", "B", "",
     [](VM &vm) {
-        IsInit(vm);
+        IsInit(vm, false);
         bool show = true;
         ImGui::ShowDemoWindow(&show);
         return Value(show);
@@ -246,11 +249,13 @@ nfr("im_window_demo", "", "", "B", "",
 
 nfr("im_window", "title,flags,body", "SIL", "", "",
     [](VM &vm, Value &title, Value &flags, Value &body) {
-        IsInit(vm);
+        IsInit(vm, false);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
+        imgui_windows++;
         return body;
     }, [](VM &) {
         ImGui::End();
+        imgui_windows--;
     });
 
 nfr("im_button", "label,body", "SL", "", "",
