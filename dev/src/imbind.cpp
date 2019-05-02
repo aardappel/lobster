@@ -82,8 +82,27 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
     switch (ti.t) {
         case V_INT: {
-            int i = v->intval();  // FIXME: what if int64_t?
-            if (ImGui::InputInt(l, &i)) *v = i;
+            if (ti.enumidx == 0) {
+                assert(vm.EnumName(ti.enumidx) == "bool");
+                bool b = v->True();
+                if (ImGui::Checkbox(l, &b)) *v = b;
+            } else if (ti.enumidx >= 0) {
+                int val = v->intval();
+                int sel = 0;
+                auto &vals = *vm.bcf->enums()->Get(ti.enumidx)->vals();
+                vector<const char *> items(vals.size());
+                int i = 0;
+                for (auto vi : vals) {
+                    items[i] = vi->name()->c_str();
+                    if (val == vi->val()) sel = i;
+                    i++;
+                }
+                ImGui::Combo(l, &sel, items.data(), (int)items.size());
+                *v = vals[sel]->val();
+            } else {
+                int i = v->intval();  // FIXME: what if int64_t?
+                if (ImGui::InputInt(l, &i)) *v = i;
+            }
             return;
         }
         case V_FLOAT: {

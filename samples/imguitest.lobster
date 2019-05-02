@@ -19,6 +19,7 @@ class Thingy:
     pos = xy_1
     fruits = ["apple", "banana", "pear"]
     others:[Thingy]
+    enumtest = im_window_no_scrollbar
 
 var d = Thingy { map(3): Thingy { [] } }
 var demo = false
