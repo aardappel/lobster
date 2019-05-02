@@ -2,30 +2,67 @@
 matrix:
   include:
     - os: "linux"
+      dist: trusty
       language: cpp
-      compiler:
-        - gcc
-        - clang
+      compiler: g++
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
           packages:
-            - g++-7
-            - clang-5.0
+            - g++-8
+            - mesa-common-dev
       install:
-        - "[ $CXX = g++ ] && export CXX=g++-7 || true"
-        - "[ $CXX = clang++ ] && export CXX=clang++-5.0 || true"
+        - "[ $CXX = g++ ] && export CXX=g++-8 || true"
       env:
-        - BUILD_TYPE=Debug
         - BUILD_TYPE=Release
+        - BUILD_TYPE=Debug
       script:
         - cd dev && cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make
+
+    - os: "linux"
+      dist: trusty
+      language: cpp
+      compiler: clang++
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-8
+          packages:
+            - g++-8
+            - libc++-dev
+            - clang-8
+            - mesa-common-dev
+      install:
+        - "[ $CXX = clang++ ] && export CXX=clang++-8 || true"
+      env:
+        - BUILD_TYPE=Release
+        - BUILD_TYPE=Debug
+      script:
+        - cd dev && cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make
+
     - os: "osx"
-      osx_image: xcode9.3
+      osx_image: xcode10.2
       language: cpp
       script:
         - "[ $CXX = clang++ ] && export CXX=clang++ || true"
         - cd dev/xcode/lobster && xcodebuild -toolchain clang -target lobster
+
+    - os: windows
+      language: cpp
+      env:
+        - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+        - BUILD_TYPE=Release
+        - BUILD_TYPE=Debug
+      script:
+        - export PATH=$MSBUILD_PATH:$PATH
+        # Have to wait until travis has VS2019, doesn't have the toolset.
+        #- cd dev/lobster && msbuild.exe lobster.sln //p:Configuration=Debug //p:Platform=x64
+        # Until then, attempt to build with CMake?
+        # sadly, this needs more work to make it compile, lots of options in the .vcxproj
+        #- cd dev
+        #- cmake -G"Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=$BUILD_TYPE .
+        #- cmake --build .
+
 

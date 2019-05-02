@@ -108,7 +108,7 @@ extern void SetConsole(bool on);
 	#define PLATFORM_WINNIX
 #endif
 
-#if defined(_WIN32)  // FIXME: Also make work on Linux/OS X.
+#if defined(_WIN32) && !defined(SKIP_SDKS)  // FIXME: Also make work on Linux/OS X.
     #define PLATFORM_VR
     #define PLATFORM_STEAMWORKS
 #endif

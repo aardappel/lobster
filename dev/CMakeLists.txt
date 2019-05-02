@@ -59,7 +59,7 @@ if(APPLE)
     "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
+    "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libstdc++ ${COMMON_GCC_STYLE}")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS
     "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON_GCC_STYLE}")
@@ -69,6 +69,8 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
   #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
   #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  add_compile_options("/std:c++latest")
+  add_compile_definitions(SKIP_SDKS)
 endif()
 
 include_directories(include
