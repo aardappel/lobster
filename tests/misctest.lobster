@@ -55,9 +55,9 @@ run_test("misc"):
 
     assert(tf("") == 8)
 
-    class parsetest { a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
+    class parsetest { h:bool, a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
     let direct = parsetest {
-        1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
+        false, 1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true
     }
     var parsed, err = parse_data(typeof direct, "" + direct)
@@ -66,9 +66,9 @@ run_test("misc"):
     if err: print err
     assert equal(parsed, direct)
     // Test defaults:
-    parsed, err = parse_data(typeof direct, "parsetest { 1, 1.0, xyz_f {}, \"\", [] }")
+    parsed, err = parse_data(typeof direct, "parsetest { true, 1, 1.0, xyz_f {}, \"\", [] }")
     if err: print err
-    assert equal(parsed, parsetest { 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 })
+    assert equal(parsed, parsetest { true, 1, 1.0, xyz { 0.0, 0.0, 0.0 }, "", [], nil, 0 })
     assert switch rnd(2):
         default: true
 

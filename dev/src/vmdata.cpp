@@ -80,7 +80,7 @@ void LVector::Append(VM &vm, LVector *from, intp start, intp amount) {
     if (len + amount > maxl) Resize(vm, len + amount);  // FIXME: check overflow
     assert(width == from->width);
     t_memcpy(v + len * width, from->v + start * width, amount * width);
-    auto et = from->ElemType(vm)->t;
+    auto et = from->ElemType(vm).t;
     if (IsRefNil(et)) {
         for (int i = 0; i < amount * width; i++) {
             v[len * width + i].LTINCRTNIL();
@@ -95,7 +95,7 @@ void LVector::Remove(VM &vm, intp i, intp n, intp decfrom, bool stack_ret) {
         tsnz_memcpy(vm.TopPtr(), v + i * width, width);
         vm.PushN((int)width);
     }
-    auto et = ElemType(vm)->t;
+    auto et = ElemType(vm).t;
     if (IsRefNil(et)) {
         for (intp j = decfrom * width; j < n * width; j++) DecSlot(vm, i * width + j, et);
     }
@@ -117,7 +117,7 @@ void LVector::AtVWSub(VM &vm, intp i, int w, int off) const {
 }
 
 void LVector::DeleteSelf(VM &vm) {
-    auto et = ElemType(vm)->t;
+    auto et = ElemType(vm).t;
     if (IsRefNil(et)) {
         for (intp i = 0; i < len * width; i++) DecSlot(vm, i, et);
     }
@@ -128,7 +128,7 @@ void LVector::DeleteSelf(VM &vm) {
 void LObject::DeleteSelf(VM &vm) {
     auto len = Len(vm);
     for (intp i = 0; i < len; i++) {
-        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i)->t);
+        AtS(i).LTDECTYPE(vm, ElemTypeS(vm, i).t);
     }
     vm.pool.dealloc(this, sizeof(LObject) + sizeof(Value) * len);
 }
@@ -200,17 +200,36 @@ void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
     }
 }
 
-void Value::ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const {
-    if (IsRefNil(vtype)) {
-        RefToString(vm, ss, ref_, pp);
+void Value::ToString(VM &vm, ostringstream &ss, const TypeInfo &ti, PrintPrefs &pp) const {
+    if (ti.t == V_INT && ti.enumidx >= 0) {
+        auto name = vm.EnumName(ival(), ti.enumidx);
+        if (!name.empty()) {
+            ss << name;
+            return;
+        }
     }
-    else switch (vtype) {
-        case V_INT:      ss << ival();                                    break;
-        case V_FLOAT:    ss << to_string_float(fval(), (int)pp.decimals); break;
-        case V_FUNCTION: ss << "<FUNCTION>";                              break;
-        default:         ss << '(' << BaseTypeName(vtype) << ')';         break;
+    ToStringBase(vm, ss, ti.t, pp);
+}
+
+void Value::ToStringBase(VM &vm, ostringstream &ss, ValueType t, PrintPrefs &pp) const {
+    if (IsRefNil(t)) {
+        RefToString(vm, ss, ref_, pp);
+    } else switch (t) {
+        case V_INT:
+            ss << ival();
+            break;
+        case V_FLOAT:
+            ss << to_string_float(fval(), (int)pp.decimals);
+            break;
+        case V_FUNCTION:
+            ss << "<FUNCTION>";
+            break;
+        default:
+            ss << '(' << BaseTypeName(t) << ')';
+            break;
     }
 }
+
 
 intp RefObj::Hash(VM &vm) {
     switch (ti(vm).t) {
@@ -284,25 +303,24 @@ string TypeInfo::Debug(VM &vm, bool rec) const {
 #define ELEMTYPE(acc, ass) \
     auto &_ti = ti(vm); \
     ass; \
-    auto sti = &vm.GetTypeInfo(_ti.acc); \
-    if (sti->t == V_NIL) sti = &vm.GetTypeInfo(sti->subt); \
-    return sti;
+    auto &sti = vm.GetTypeInfo(_ti.acc); \
+    return sti.t == V_NIL ? vm.GetTypeInfo(sti.subt) : sti;
 
-const TypeInfo *LObject::ElemTypeS(VM &vm, intp i) const {
+const TypeInfo &LObject::ElemTypeS(VM &vm, intp i) const {
     ELEMTYPE(elemtypes[i], assert(i < _ti.len));
 }
 
-const TypeInfo *LObject::ElemTypeSP(VM &vm, intp i) const {
+const TypeInfo &LObject::ElemTypeSP(VM &vm, intp i) const {
     ELEMTYPE(GetElemOrParent(i), assert(i < _ti.len));
 }
 
-const TypeInfo *LVector::ElemType(VM &vm) const {
+const TypeInfo &LVector::ElemType(VM &vm) const {
     ELEMTYPE(subt, {})
 }
 
 void VectorOrObjectToString(VM &vm, ostringstream &ss, PrintPrefs &pp, char openb, char closeb,
                             intp len, intp width, const Value *elems, bool is_vector,
-                            std::function<const TypeInfo *(intp)> getti) {
+                            std::function<const TypeInfo &(intp)> getti) {
     ss << openb;
     if (pp.indent) ss << '\n';
     auto start_size = ss.tellp();
@@ -320,17 +338,17 @@ void VectorOrObjectToString(VM &vm, ostringstream &ss, PrintPrefs &pp, char open
             ss << "....";
             break;
         }
-        auto ti = getti(i);
-        if (pp.depth || !IsRef(ti->t)) {
+        auto &ti = getti(i);
+        if (pp.depth || !IsRef(ti.t)) {
             PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
-            if (IsStruct(ti->t)) {
-                vm.StructToString(ss, subpp, *ti, elems + i * width);
-                if (!is_vector) i += ti->len - 1;
+            if (IsStruct(ti.t)) {
+                vm.StructToString(ss, subpp, ti, elems + i * width);
+                if (!is_vector) i += ti.len - 1;
             } else {
-                elems[i].ToString(vm, ss, ti->t, subpp);
+                elems[i].ToString(vm, ss, ti, subpp);
             }
         } else {
             ss << "..";
@@ -345,24 +363,30 @@ void LObject::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
     if (CycleCheck(ss, pp)) return;
     ss << vm.ReverseLookupType(ti(vm).structidx);
     if (pp.indent) ss << ' ';
-    VectorOrObjectToString(vm, ss, pp, '{', '}', Len(vm), 1, Elems(), false, [&](intp i) {
-        return ElemTypeSP(vm, i);
-    });
+    VectorOrObjectToString(vm, ss, pp, '{', '}', Len(vm), 1, Elems(), false,
+        [&](intp i) -> const TypeInfo & {
+            return ElemTypeSP(vm, i);
+        }
+    );
 }
 
 void LVector::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
     if (CycleCheck(ss, pp)) return;
-    VectorOrObjectToString(vm, ss, pp, '[', ']', len, width, v, true, [&](intp) {
-        return ElemType(vm);
-    });
+    VectorOrObjectToString(vm, ss, pp, '[', ']', len, width, v, true,
+        [&](intp) ->const TypeInfo & {
+            return ElemType(vm);
+        }
+    );
 }
 
 void VM::StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
     ss << ReverseLookupType(ti.structidx);
     if (pp.indent) ss << ' ';
-    VectorOrObjectToString(*this, ss, pp, '{', '}', ti.len, 1, elems, false, [&](intp i) {
-        return &GetTypeInfo(ti.GetElemOrParent(i));
-    });
+    VectorOrObjectToString(*this, ss, pp, '{', '}', ti.len, 1, elems, false,
+        [&](intp i) -> const TypeInfo & {
+            return GetTypeInfo(ti.GetElemOrParent(i));
+        }
+    );
 }
 
 }  // namespace lobster

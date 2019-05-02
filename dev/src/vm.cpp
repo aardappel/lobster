@@ -355,7 +355,7 @@ int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals)
         StructToString(ss, debugpp, ti, &x);
         return ti.len;
     } else {
-        x.ToString(*this, ss, ti.t, debugpp);
+        x.ToString(*this, ss, ti, debugpp);
         return 1;
     }
 }
@@ -680,12 +680,12 @@ void VM::CoResume(LCoRoutine *co) {
     // the builtin call takes care of the return value
 }
 
-void VM::EndEval(const Value &ret, ValueType vt) {
+void VM::EndEval(const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
     ostringstream ss;
-    ret.ToString(*this, ss, vt, programprintprefs);
+    ret.ToString(*this, ss, ti, programprintprefs);
     evalret = ss.str();
-    ret.LTDECTYPE(*this, vt);
+    ret.LTDECTYPE(*this, ti.t);
     assert(sp == -1);
     FinalStackVarsCleanup();
     vml.LogCleanup();
@@ -811,7 +811,7 @@ void VM::EvalProgramInner() {
                     for (int i = 0; i < 3 && sp - i >= 0; i++) {
                         auto x = VM_TOPM(i);
                         ss << ' ';
-                        x.ToString(*this, ss, x.type, debugpp);
+                        x.ToStringBase(*this, ss, x.type, debugpp);
                     }
                     #endif
                     if (trace_tail) {
@@ -991,8 +991,8 @@ VM_INS_RET VM::U_ENDSTATEMENT() {
 }
 
 VM_INS_RET VM::U_EXIT(int tidx) {
-    if (tidx >= 0) EndEval(VM_POP(), GetTypeInfo((type_elem_t)tidx).t);
-    else EndEval(Value(), V_NIL);
+    if (tidx >= 0) EndEval(VM_POP(), GetTypeInfo((type_elem_t)tidx));
+    else EndEval(Value(), GetTypeInfo(TYPE_ELEM_ANY));
     VM_TERMINATE;
 }
 
@@ -1334,9 +1334,9 @@ VM_INS_RET VM::U_I2F() {
     VM_RET;
 }
 
-VM_INS_RET VM::U_A2S(int t) {
+VM_INS_RET VM::U_A2S(int ty) {
     Value a = VM_POP();
-    VM_PUSH(ToString(a, (ValueType)t));
+    VM_PUSH(ToString(a, GetTypeInfo((type_elem_t)ty)));
     VM_RET;
 }
 
@@ -1345,20 +1345,6 @@ VM_INS_RET VM::U_ST2S(int ty) {
     VM_POPN(ti.len);
     auto top = VM_TOPPTR();
     VM_PUSH(StructToString(top, ti));
-    VM_RET;
-}
-
-VM_INS_RET VM::U_I2S() {
-    Value i = VM_POP();
-    VMTYPEEQ(i, V_INT);
-    VM_PUSH(ToString(i, V_INT));
-    VM_RET;
-}
-
-VM_INS_RET VM::U_F2S() {
-    Value f = VM_POP();
-    VMTYPEEQ(f, V_FLOAT);
-    VM_PUSH(ToString(f, V_FLOAT));
     VM_RET;
 }
 
@@ -1703,6 +1689,7 @@ string VM::ProperTypeName(const TypeInfo &ti) {
         case V_CLASS: return string(ReverseLookupType(ti.structidx));
         case V_NIL: return ProperTypeName(GetTypeInfo(ti.subt)) + "?";
         case V_VECTOR: return "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
+        case V_INT: return ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
         default: return string(BaseTypeName(ti.t));
     }
 }
@@ -1747,6 +1734,27 @@ string_view VM::StructName(const TypeInfo &ti) {
 
 string_view VM::ReverseLookupType(uint v) {
     return bcf->udts()->Get(v)->name()->string_view();
+}
+
+string_view VM::EnumName(intp val, int enumidx) {
+    auto &vals = *bcf->enums()->Get(enumidx)->vals();
+    // FIXME: can store a bool that says wether this enum is contiguous, so we just index instead.
+    for (auto v : vals)
+        if (v->val() == val)
+            return v->name()->string_view();
+    return {};
+}
+
+string_view VM::EnumName(int enumidx) {
+    return bcf->enums()->Get(enumidx)->name()->string_view();
+}
+
+optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
+    auto &vals = *bcf->enums()->Get(enumidx)->vals();
+    for (auto v : vals)
+        if (v->name()->string_view() == name)
+            return v->val();
+    return {};
 }
 
 void VM::StartWorkers(size_t numthreads) {

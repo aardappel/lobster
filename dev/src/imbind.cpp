@@ -165,7 +165,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             return;
     }
     ostringstream ss;
-    v->ToString(vm, ss, ti.t, vm.debugpp);
+    v->ToString(vm, ss, ti, vm.debugpp);
     ImGui::LabelText(l, "%s", ss.str().c_str());  // FIXME: no formatting?
 }
 

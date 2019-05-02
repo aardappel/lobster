@@ -89,6 +89,14 @@ struct Enum : Named {
     Enum(string_view _name, int _idx) : Named(_name, _idx) {
         thistype = Type { this };
     }
+
+    flatbuffers::Offset<bytecode::Enum> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+        vector<flatbuffers::Offset<bytecode::EnumVal>> valoffsets;
+        for (auto &v : vals)
+            valoffsets.push_back(
+                bytecode::CreateEnumVal(fbb, fbb.CreateString(v->name), v->val));
+        return bytecode::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets));
+    }
 };
 
 // Only still needed because we have no idea which struct it refers to at parsing time.
@@ -796,6 +804,8 @@ struct SymbolTable {
         for (auto u : udttable) udtoffsets.push_back(u->Serialize(fbb));
         vector<flatbuffers::Offset<bytecode::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->cursid->sf_def == toplevel));
+        vector<flatbuffers::Offset<bytecode::Enum>> enumoffsets;
+        for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
         auto bcf = bytecode::CreateBytecodeFile(fbb,
             LOBSTER_BYTECODE_FORMAT_VERSION,
             fbb.CreateVector(code),
@@ -814,7 +824,8 @@ struct SymbolTable {
             fbb.CreateVectorOfStructs(sids),
             fbb.CreateVector((vector<int> &)vint_typeoffsets),
             fbb.CreateVector((vector<int> &)vfloat_typeoffsets),
-            fbb.CreateVector(speclogvars));
+            fbb.CreateVector(speclogvars),
+            fbb.CreateVector(enumoffsets));
         bytecode::FinishBytecodeFileBuffer(fbb, bcf);
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }

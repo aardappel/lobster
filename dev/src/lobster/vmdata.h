@@ -136,20 +136,20 @@ inline string_view BaseTypeName(ValueType t) {
 
 enum type_elem_t : int {  // Strongly typed element of typetable.
     // These must correspond to typetable init in Codegen constructor.
-    TYPE_ELEM_INT,
-    TYPE_ELEM_FLOAT,
-    TYPE_ELEM_STRING,
-    TYPE_ELEM_RESOURCE,
-    TYPE_ELEM_ANY,
-    TYPE_ELEM_VALUEBUF,
-    TYPE_ELEM_STACKFRAMEBUF,
-    TYPE_ELEM_VECTOR_OF_INT = 7,   // 2 each.
-    TYPE_ELEM_VECTOR_OF_FLOAT = 9,
-    TYPE_ELEM_VECTOR_OF_STRING = 11,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 13,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 15,
+    TYPE_ELEM_INT = 0,  // This has -1 for its enumidx.
+    TYPE_ELEM_FLOAT = 2,
+    TYPE_ELEM_STRING = 3,
+    TYPE_ELEM_RESOURCE = 4,
+    TYPE_ELEM_ANY = 5,
+    TYPE_ELEM_VALUEBUF = 6,
+    TYPE_ELEM_STACKFRAMEBUF = 7,
+    TYPE_ELEM_VECTOR_OF_INT = 8,   // 2 each.
+    TYPE_ELEM_VECTOR_OF_FLOAT = 10,
+    TYPE_ELEM_VECTOR_OF_STRING = 12,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 14,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 16,
 
-    TYPE_ELEM_FIXED_OFFSET_END = 17
+    TYPE_ELEM_FIXED_OFFSET_END = 18
 };
 
 struct VM;
@@ -163,6 +163,7 @@ struct TypeInfo {
             int len;
             type_elem_t elemtypes[1];  // len elems, followed by len parent types.
         };
+        int enumidx;       // V_INT, -1 if not an enum.
         int sfidx;         // V_FUNCTION;
         struct {           // V_COROUTINE
             int cofunidx;
@@ -485,8 +486,9 @@ struct Value {
         if (IsRefNil(t)) LTDECRTNIL(vm);
     }
 
+    void ToString(VM &vm, ostringstream &ss, const TypeInfo &ti, PrintPrefs &pp) const;
+    void ToStringBase(VM &vm, ostringstream &ss, ValueType t, PrintPrefs &pp) const;
 
-    void ToString(VM &vm, ostringstream &ss, ValueType vtype, PrintPrefs &pp) const;
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     intp Hash(VM &vm, ValueType vtype);
     Value Copy(VM &vm);  // Shallow.
@@ -511,8 +513,8 @@ struct LObject : RefObj {
     void DeleteSelf(VM &vm);
 
     // This may only be called from a context where i < len has already been ensured/asserted.
-    const TypeInfo *ElemTypeS(VM &vm, intp i) const;
-    const TypeInfo *ElemTypeSP(VM &vm, intp i) const;
+    const TypeInfo &ElemTypeS(VM &vm, intp i) const;
+    const TypeInfo &ElemTypeSP(VM &vm, intp i) const;
 
     void ToString(VM &vm, ostringstream &ss, PrintPrefs &pp);
 
@@ -521,7 +523,7 @@ struct LObject : RefObj {
         auto len = Len(vm);
         assert(len == o.Len(vm));
         for (intp i = 0; i < len; i++) {
-            auto et = ElemTypeS(vm, i)->t;
+            auto et = ElemTypeS(vm, i).t;
             if (!AtS(i).Equal(vm, et, o.AtS(i), et, true))
                 return false;
         }
@@ -530,7 +532,7 @@ struct LObject : RefObj {
 
     intp Hash(VM &vm) {
         intp hash = 0;
-        for (int i = 0; i < Len(vm); i++) hash ^= AtS(i).Hash(vm, ElemTypeS(vm, i)->t);
+        for (int i = 0; i < Len(vm); i++) hash ^= AtS(i).Hash(vm, ElemTypeS(vm, i).t);
         return hash;
     }
 
@@ -538,7 +540,7 @@ struct LObject : RefObj {
         assert(len && len == Len(vm));
         t_memcpy(Elems(), from, len);
         if (inc) for (intp i = 0; i < len; i++) {
-            AtS(i).LTINCTYPE(ElemTypeS(vm, i)->t);
+            AtS(i).LTINCTYPE(ElemTypeS(vm, i).t);
         }
     }
 };
@@ -566,7 +568,7 @@ struct LVector : RefObj {
 
     void DeleteSelf(VM &vm);
 
-    const TypeInfo *ElemType(VM &vm) const;
+    const TypeInfo &ElemType(VM &vm) const;
 
     void Resize(VM &vm, intp newmax);
 
@@ -639,7 +641,7 @@ struct LVector : RefObj {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
         assert(width == 1);
         if (len != o.len) return false;
-        auto et = ElemType(vm)->t;
+        auto et = ElemType(vm).t;
         for (intp i = 0; i < len; i++) {
             if (!At(i).Equal(vm, et, o.At(i), et, true))
                 return false;
@@ -650,7 +652,7 @@ struct LVector : RefObj {
     intp Hash(VM &vm) {
         intp hash = 0;
         assert(width == 1);
-        auto et = ElemType(vm)->t;
+        auto et = ElemType(vm).t;
         for (int i = 0; i < len; i++) hash ^= At(i).Hash(vm, et);
         return hash;
     }
@@ -658,7 +660,7 @@ struct LVector : RefObj {
     void Init(VM &vm, Value *from, bool inc) {
         assert(len);
         t_memcpy(v, from, len * width);
-        auto et = ElemType(vm)->t;
+        auto et = ElemType(vm).t;
         if (inc && IsRefNil(et)) {
             for (intp i = 0; i < len; i++) {
                 At(i).LTINCRTNIL();
@@ -885,7 +887,7 @@ struct VM {
     void CoYield(VM_OP_ARGS_CALL);
     void CoResume(LCoRoutine *co);
 
-    void EndEval(const Value &ret, ValueType vt);
+    void EndEval(const Value &ret, const TypeInfo &ti);
 
     void InstructionPointerInit() {
         #ifdef VM_COMPILED_CODE_MODE
@@ -1034,10 +1036,10 @@ struct VM {
     void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
     double Time() { return SecondsSinceStart(); }
 
-    Value ToString(const Value &a, ValueType vt) {
+    Value ToString(const Value &a, const TypeInfo &ti) {
         ss_reuse.str(string());
         ss_reuse.clear();
-        a.ToString(*this, ss_reuse, vt, programprintprefs);
+        a.ToString(*this, ss_reuse, ti, programprintprefs);
         return NewString(ss_reuse.str());
     }
     Value StructToString(const Value *elems, const TypeInfo &ti) {
@@ -1047,6 +1049,10 @@ struct VM {
         return NewString(ss_reuse.str());
     }
     void StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
+
+    string_view EnumName(intp val, int enumidx);
+    string_view EnumName(int enumidx);
+    optional<int64_t> LookupEnum(string_view name, int enumidx);
 };
 
 inline int64_t Int64FromInts(int a, int b) {

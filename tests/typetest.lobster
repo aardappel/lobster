@@ -45,3 +45,4 @@ run_test("types"):
     var b = true
     b = bool(1)
     assert b == true
+    assert string(true) == "true"

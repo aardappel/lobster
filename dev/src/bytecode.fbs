@@ -37,6 +37,16 @@ table UDT {
     size:int;
 }
 
+table EnumVal {
+    name:string;
+    val:long;
+}
+
+table Enum {
+    name:string;
+    vals:[EnumVal];
+}
+
 table Ident {
     name:string;
     readonly:bool;
@@ -70,6 +80,8 @@ table BytecodeFile {
     default_float_vector_types:[int];
 
     logvars:[int];  // Index into specidents.
+
+    enums:[Enum];
 }
 
 root_type BytecodeFile;

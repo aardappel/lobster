@@ -149,6 +149,13 @@ struct ValueParser {
                 break;
             }
             case T_IDENT: {
+                if (vt == V_INT && ti.enumidx >= 0) {
+                    auto opt = vm.LookupEnum(lex.sattr, ti.enumidx);
+                    if (!opt) lex.Error("unknown enum value " + lex.sattr);
+                    lex.Next();
+                    if (push) vm.Push(*opt);
+                    break;
+                }
                 if (!IsUDT(vt) && vt != V_ANY)
                     lex.Error("class/struct type required, " + BaseTypeName(vt) + " given");
                 auto sname = lex.sattr;

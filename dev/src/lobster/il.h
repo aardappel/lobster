@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 13;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 14;
 const int MAX_RETURN_VALUES = 64;
 
 // Any type specialized ops below must always have this ordering.
@@ -78,7 +78,7 @@ enum MathOp {
     F(IUMINUS, 0) F(FUMINUS, 0) F(IVUMINUS, 1) F(FVUMINUS, 1) \
     F(LOGNOT, 0) F(LOGNOTREF, 0) \
     F(BINAND, 0) F(BINOR, 0) F(XOR, 0) F(ASL, 0) F(ASR, 0) F(NEG, 0) \
-    F(I2F, 0) F(A2S, 1) F(I2S, 0) F(F2S, 0) F(E2B, 0) F(E2BREF, 0) F(ST2S, 1) \
+    F(I2F, 0) F(A2S, 1) F(E2B, 0) F(E2BREF, 0) F(ST2S, 1) \
     F(RETURN, 2) \
     F(ISTYPE, 1) F(COCL, 0) F(COEND, 0) \
     F(LOGREAD, 1) F(LOGWRITE, 2) \

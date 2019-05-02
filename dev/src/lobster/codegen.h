@@ -81,6 +81,9 @@ struct CodeGen  {
         vector<type_elem_t> tt;
         tt.push_back((type_elem_t)type->t);
         switch (type->t) {
+            case V_INT:
+                tt.push_back((type_elem_t)(type->e ? type->e->idx : -1));
+                break;
             case V_NIL:
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));
@@ -905,21 +908,14 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     cg.TakeTemp(1, true);
     switch (child->exptype->t) {
-        case V_INT: {
-            cg.Emit(IL_I2S);
-            break;
-        }
-        case V_FLOAT: {
-            cg.Emit(IL_F2S);
-            break;
-        }
         case V_STRUCT_R:
         case V_STRUCT_S: {
+            // TODO: can also roll these into A2S?
             cg.Emit(IL_ST2S, cg.GetTypeTableOffset(child->exptype));
             break;
         }
         default: {
-            cg.Emit(IL_A2S, child->exptype->ElementIfNil()->t);
+            cg.Emit(IL_A2S, cg.GetTypeTableOffset(child->exptype->ElementIfNil()));
             break;
         }
     }
