@@ -86,6 +86,8 @@ dev/compiled_lobster/build/
 
 /dev/cmake-build-debug/**
 
+/build-dev-*
+
 **/imgui.ini
 
 \.vs/slnx\.sqlite

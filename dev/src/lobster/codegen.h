@@ -34,6 +34,7 @@ struct CodeGen  {
     vector<const Node *> node_context;
     vector<int> speclogvars;  // Index into specidents.
     int keepvars = 0;
+    int runtime_checks;
 
     int Pos() { return (int)code.size(); }
 
@@ -143,8 +144,8 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value)
-        : parser(_p), st(_st) {
+    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks)
+        : parser(_p), st(_st), runtime_checks(runtime_checks) {
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -311,7 +312,7 @@ struct CodeGen  {
         keepvars = 0;
         sf.subbytecodestart = Pos();
         if (!sf.typechecked) {
-            auto s = Dump(*sf.body, 0);
+            auto s = DumpNode(*sf.body, 0, false);
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
             assert(0);
         }
@@ -348,15 +349,11 @@ struct CodeGen  {
         for (auto si : ownedvars) Emit(si);
         if (sf.body) for (auto c : sf.body->children) {
             Gen(c, 0);
-            #ifdef _DEBUG
-            Emit(IL_ENDSTATEMENT);
-            #endif
+            if (runtime_checks >= RUNTIME_ASSERT_PLUS)
+                Emit(IL_ENDSTATEMENT, c->line.line, c->line.fileidx);
         }
         else Dummy(sf.reqret);
         assert(temptypestack.empty());
-        #ifdef _DEBUG
-        Emit(IL_FUNEND);  // FIXME: remove entirely.
-        #endif
         code[keepvarspos] = keepvars;
         linenumbernodes.pop_back();
     }
@@ -992,6 +989,23 @@ void UDTRef::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void NativeCall::Generate(CodeGen &cg, size_t retval) const {
+    if (nf->IsAssert()) {
+        // FIXME: lift this into a language feature.
+        auto c = children[0];
+        if (retval || cg.runtime_checks >= RUNTIME_ASSERT) {
+            cg.Gen(c, 1);
+            cg.TakeTemp(1, false);
+            if (cg.runtime_checks >= RUNTIME_ASSERT) {
+                cg.Emit(IL_ASSERT + (!!retval), c->line.line, c->line.fileidx);
+                cg.Emit((int)cg.stringtable.size());
+                // FIXME: would be better to use the original source code here.
+                cg.stringtable.push_back(cg.st.StoreName(DumpNode(*c, 0, true)));
+            }
+        } else {
+            cg.Gen(c, 0);
+        }
+        return;
+    }
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     size_t numstructs = 0;

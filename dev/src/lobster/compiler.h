@@ -19,9 +19,11 @@
 
 namespace lobster {
 
+enum { RUNTIME_NO_ASSERT, RUNTIME_ASSERT, RUNTIME_ASSERT_PLUS };
+
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
                     string &bytecode, string *parsedump, string *pakfile,
-                    bool dump_builtins, bool dump_names, bool return_value);
+                    bool dump_builtins, bool dump_names, bool return_value, int runtime_checks);
 extern bool LoadPakDir(const char *lpak);
 extern bool LoadByteCode(string &bytecode);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *name,

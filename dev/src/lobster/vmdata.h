@@ -231,7 +231,7 @@ struct RefObj : DynAlloc {
     {}
 
     void Inc() {
-        #ifdef _DEBUG
+        #ifndef NDEBUG
             if (refc <= 0) {  // Should never be "re-vived".
                 #if DELETE_DELAY
                     LOG_DEBUG("revive: ", (size_t)this);
@@ -247,7 +247,7 @@ struct RefObj : DynAlloc {
 
     void Dec(VM &vm) {
         refc--;
-        #ifdef _DEBUG
+        #ifndef NDEBUG
             DECSTAT(vm);
         #endif
         #if DELETE_DELAY

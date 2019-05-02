@@ -202,4 +202,4 @@ run_test("misc"):
     for 10:
         7.factorial
         testvector.fold(0): _x + _y
-    assert(seconds_elapsed() - starttime > 0)
+

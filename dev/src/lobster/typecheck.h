@@ -28,11 +28,11 @@ struct LValContext {
         sid = idr ? idr->sid : nullptr;
     }
     bool IsValid() { return sid; }
-	bool DerefsEqual(const LValContext &o) {
-		if (derefs.size() != o.derefs.size()) return false;
-		for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
-		return true;
-	}
+    bool DerefsEqual(const LValContext &o) {
+        if (derefs.size() != o.derefs.size()) return false;
+        for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
+        return true;
+    }
     bool IsPrefix(const LValContext &o) {
         if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
         for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
@@ -1416,7 +1416,7 @@ struct TypeChecker {
             // A function may end in "assert false" and have only its previous return statements
             // taken into account.
             Value cval;
-            if (nc->name == "assert" && nc->children[0]->ConstVal(*this, cval) && !cval.True())
+            if (nc->nf->IsAssert() && nc->children[0]->ConstVal(*this, cval) && !cval.True())
                 return true;
         }
         // TODO: Other situations?
@@ -1746,7 +1746,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
                 exptype = tc.Union(tleft, tright, true, this);
                 // These will potentially make either body from T_CALL into some
                 // coercion.
-				tc.SubType(truepart, exptype, "then branch", *this);
+                tc.SubType(truepart, exptype, "then branch", *this);
                 tc.SubType(falsepart, exptype, "else branch", *this);
                 lt = tc.LifetimeUnion(truepart, falsepart);
             }
@@ -2430,7 +2430,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
         }
     }
 
-    if (nf->name == "assert") {
+    if (nf->IsAssert()) {
         // Special case, add to flow:
         tc.CheckFlowTypeChanges(true, children[0]);
         // Also make result non-nil, if it was.

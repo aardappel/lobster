@@ -242,7 +242,7 @@ BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
 BINARY_NODE(Range, "range", false, start, end, )
 
 struct Nil : Node {
-	TypeRef giventype;
+    TypeRef giventype;
     Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
     bool ConstVal(TypeChecker &, Value &val) const {
         val = Value();
@@ -445,7 +445,7 @@ template<typename T> Node *Forward(Node *n) {
     return n;
 }
 
-inline string Dump(Node &n, int indent) {
+inline string DumpNode(Node &n, int indent, bool single_line) {
     ostringstream ss;
     n.Dump(ss);
     string s = ss.str();
@@ -456,7 +456,7 @@ inline string Dump(Node &n, int indent) {
     vector<string> sv;
     size_t total = 0;
     for (size_t i = 0; i < arity; i++) {
-        auto a = Dump(*ch[i], indent + 2);
+        auto a = DumpNode(*ch[i], indent + 2, single_line);
         a += ":";
         a += TypeName(ch[i]->exptype);
         if (a[0] == ' ') ml = true;
@@ -464,7 +464,7 @@ inline string Dump(Node &n, int indent) {
         sv.push_back(a);
     }
     if (total > 60) ml = true;
-    if (ml) {
+    if (ml && !single_line) {
         s = string(indent, ' ') + "(" + s;
         s += "\n";
         for (size_t i = 0; i < arity; i++) {

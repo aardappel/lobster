@@ -179,7 +179,7 @@ void VM::DumpLeaks() {
                 default: assert(false);
             }
         }
-        #ifdef _DEBUG
+        #ifndef NDEBUG
             LOG_ERROR(ss.str());
         #else
             if (leaks.size() < 50) {
@@ -814,11 +814,7 @@ void VM::EvalProgramInner() {
                         x.ToStringBase(*this, ss, x.type, debugpp);
                     }
                     #endif
-                    if (trace_tail) {
-                        ss << '\n';
-                    } else {
-                        LOG_DEBUG(ss.str());
-                    }
+                    if (trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str());
                 }
                 //currentline = LookupLine(ip).line;
             #endif
@@ -975,17 +971,19 @@ VM_INS_RET VM::U_FUNSTART(VM_OP_ARGS) {
     VM_RET;
 }
 
-VM_INS_RET VM::U_FUNEND() {
-    assert(false);
-    VM_RET;
-}
-
 VM_INS_RET VM::U_RETURN(int df, int nrv) {
     FunOut(df, nrv);
     VM_RET;
 }
 
-VM_INS_RET VM::U_ENDSTATEMENT() {
+VM_INS_RET VM::U_ENDSTATEMENT(int line, int fileidx) {
+    #ifndef NDEBUG
+        if (trace) {
+            auto &ss = TraceStream();
+            ss << bcf->filenames()->Get(fileidx)->string_view() << '(' << line << ')';
+            if (trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str());
+        }
+    #endif
     assert(sp == stackframes.back().spstart);
     VM_RET;
 }
@@ -1091,6 +1089,23 @@ BCALLOP(5, auto a4 = VM_POP();auto a3 = VM_POP();auto a2 = VM_POP();auto a1 = VM
 BCALLOP(6, auto a5 = VM_POP();auto a4 = VM_POP();auto a3 = VM_POP();auto a2 = VM_POP();auto a1 = VM_POP();auto a0 = VM_POP(), (*this, a0, a1, a2, a3, a4, a5));
 BCALLOP(7, auto a6 = VM_POP();auto a5 = VM_POP();auto a4 = VM_POP();auto a3 = VM_POP();auto a2 = VM_POP();auto a1 = VM_POP();auto a0 = VM_POP(), (*this, a0, a1, a2, a3, a4, a5, a6));
 
+VM_INS_RET VM::U_ASSERTR(int line, int fileidx, int stringidx) {
+    if (!VM_TOP().True()) {
+        Error(cat(
+            #ifdef VM_COMPILED_CODE_MODE
+                bcf->filenames()->Get(fileidx)->string_view(), "(", line, "): ",
+            #endif
+            "assertion failed: ", bcf->stringtable()->Get(stringidx)->string_view()));
+    }
+    VM_RET;
+}
+
+VM_INS_RET VM::U_ASSERT(int line, int fileidx, int stringidx) {
+    U_ASSERTR(line, fileidx, stringidx);
+    VM_POP();
+    VM_RET;
+}
+
 VM_INS_RET VM::U_NEWVEC(int ty, int len) {
     auto type = (type_elem_t)ty;
     auto vec = NewVec(len, len, type);
@@ -1178,7 +1193,7 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 #define IOP(op, extras)    { GETARGS(); _IOP(op, extras);                VM_PUSH(res); VM_RET; }
 #define FOP(op, extras)    { GETARGS(); _FOP(op, extras);                VM_PUSH(res); VM_RET; }
 
-#define LOP(op)            { GETARGS(); auto res = a.ip() op b.ip();     VM_PUSH(res); VM_RET; } 
+#define LOP(op)            { GETARGS(); auto res = a.ip() op b.ip();     VM_PUSH(res); VM_RET; }
 
 #define IVVOP(op, extras)  { _IVOP(op, extras, false, _GETA()); VM_RET; }
 #define FVVOP(op, extras)  { _FVOP(op, extras, false, _GETA()); VM_RET; }
@@ -1515,7 +1530,7 @@ void VM::PushDerefIdxString(intp i) {
 
 Value &VM::GetFieldLVal(intp i) {
     Value vec = VM_POP();
-    #ifdef _DEBUG
+    #ifndef NDEBUG
         RANGECHECK(i, vec.oval()->Len(*this), vec.oval());
     #endif
     return vec.oval()->AtS(i);
@@ -1860,7 +1875,7 @@ using namespace lobster;
         if (vm->trace) { \
             auto &ss = vm->TraceStream(); \
             ss << B; \
-            if (vm->trace_tail) { ss << '\n'; } else { LOG_ERROR(ss.str()); } \
+            if (vm->trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str()); \
         }
     // FIXME: add spaces.
     #define CHECK(N, A) CHECKI(#N << cat A)

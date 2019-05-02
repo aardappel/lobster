@@ -169,7 +169,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             if (opc == IL_CALL || opc == IL_CALLMULTI) {
                 ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
-            } else if (opc == IL_CALLV || opc == IL_FUNEND || opc == IL_FUNMULTI ||
+            } else if (opc == IL_CALLV || opc == IL_FUNMULTI ||
                        opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
                        // FIXME: make resume a vm op.
                        (ISBCALL(opc) &&

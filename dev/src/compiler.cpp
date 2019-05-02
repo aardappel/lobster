@@ -19,6 +19,9 @@
 #include "lobster/lex.h"
 #include "lobster/idents.h"
 #include "lobster/node.h"
+
+#include "lobster/compiler.h"
+
 #include "lobster/parser.h"
 #include "lobster/typecheck.h"
 #include "lobster/optimizer.h"
@@ -302,7 +305,8 @@ void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
 }
 
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &bytecode,
-    string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value) {
+    string *parsedump, string *pakfile, bool dump_builtins, bool dump_names, bool return_value,
+    int runtime_checks) {
     SymbolTable st;
     Parser parser(nfr, fn, st, stringsource);
     parser.Parse();
@@ -311,7 +315,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     // rely on it culling const if-thens and other things.
     Optimizer opt(parser, st, tc);
     if (parsedump) *parsedump = parser.DumpAll(true);
-    CodeGen cg(parser, st, return_value);
+    CodeGen cg(parser, st, return_value, runtime_checks);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
         cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
@@ -327,7 +331,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     {
         string bytecode;
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode, nullptr, nullptr, false, false, true);
+                bytecode, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.

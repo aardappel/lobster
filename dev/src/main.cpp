@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
         bool dump_names = false;
         bool compile_only = false;
         bool compile_bench = false;
+        int runtime_checks = 1;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
@@ -79,6 +80,9 @@ int main(int argc, char* argv[]) {
             "--verbose              Output additional informational text.\n"
             "--debug                Output compiler internal logging.\n"
             "--silent               Only output errors.\n"
+            "--runtime-shipping     Compile with asserts off.\n"
+            "--runtime-asserts      Compile with asserts on (default).\n"
+            "--runtime-verbose      Compile with asserts on + additional debug.\n"
             "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
@@ -97,6 +101,9 @@ int main(int argc, char* argv[]) {
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
+                else if (a == "--runtime-shipping") { runtime_checks = RUNTIME_NO_ASSERT; }
+                else if (a == "--runtime-asserts") { runtime_checks = RUNTIME_ASSERT; }
+                else if (a == "--runtime-verbose") { runtime_checks = RUNTIME_ASSERT_PLUS; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
@@ -143,7 +150,7 @@ int main(int argc, char* argv[]) {
                 pakfile.clear();
                 bytecode.clear();
                 Compile(nfr, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
-                        lpak ? &pakfile : nullptr, dump_builtins, dump_names, false);
+                        lpak ? &pakfile : nullptr, dump_builtins, dump_names, false, runtime_checks);
             }
             if (compile_bench) {
                 auto compile_time = (SecondsSinceStart() - start_time);

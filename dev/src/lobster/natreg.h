@@ -391,6 +391,11 @@ struct NativeFun : Named {
         // FIXME: make resume a VM op.
         return name == "resume" || name == "gl_frame";
     }
+
+    bool IsAssert() {
+        // FIXME: make into a language feature.
+        return name == "assert";
+    }
 };
 
 struct NativeRegistry {

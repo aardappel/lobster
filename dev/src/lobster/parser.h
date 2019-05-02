@@ -1295,7 +1295,7 @@ struct Parser {
                     s += ") -> ";
                     s += TypeName(sf->returntype);
                     s += "\n";
-                    if (sf->body) s += Dump(*sf->body, 4);
+                    if (sf->body) s += DumpNode(*sf->body, 4, false);
                     s += "\n\n";
                 }
             }
