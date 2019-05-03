@@ -217,7 +217,7 @@ void RenderArraySlow(Primitive prim, span<T> vbuf1, string_view fmt,
     if (ibuf.empty()) {
         RenderArray(prim, &geom);
     } else {
-        Surface surf(make_span(ibuf), prim);
+        Surface surf(ibuf, prim);
         RenderArray(prim, &geom, surf.ibo, ibuf.size());
     }
 }

@@ -1,9 +1,6 @@
 - enums
   - use namespaces
     - remove keywords?
-  - add them to bytecode so they can be printed/parsed
-    - imgui reflection use checkbox for bools, maybe also for other enums.
-      https://github.com/aardappel/lobster/issues/38
   - get their names
   - get min/max
   - check all are tested in a switch

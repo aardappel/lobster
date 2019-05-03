@@ -1090,6 +1090,8 @@ BCALLOP(6, auto a5 = VM_POP();auto a4 = VM_POP();auto a3 = VM_POP();auto a2 = VM
 BCALLOP(7, auto a6 = VM_POP();auto a5 = VM_POP();auto a4 = VM_POP();auto a3 = VM_POP();auto a2 = VM_POP();auto a1 = VM_POP();auto a0 = VM_POP(), (*this, a0, a1, a2, a3, a4, a5, a6));
 
 VM_INS_RET VM::U_ASSERTR(int line, int fileidx, int stringidx) {
+    (void)line;
+    (void)fileidx;
     if (!VM_TOP().True()) {
         Error(cat(
             #ifdef VM_COMPILED_CODE_MODE
