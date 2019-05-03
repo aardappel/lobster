@@ -434,7 +434,7 @@ class BinaryWriter {
                     r.type == R_WASM_MEMORY_ADDR_I32 ||
                     r.type == R_WASM_FUNCTION_OFFSET_I32 ||
                     r.type == R_WASM_SECTION_OFFSET_I32)
-                    SLEB(r.addend);
+                    SLEB((ptrdiff_t)r.addend);
             }
             EndSection(Section::Custom);  // reloc.CODE
         }

@@ -52,7 +52,7 @@ file(GLOB_RECURSE EXTERNAL_SRCS
 
 add_definitions(-DFT2_BUILD_LIBRARY=1)
 
-set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value") # -fno-exceptions
+set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-multichar") # -fno-exceptions
 
 if(APPLE)
   set(CMAKE_CXX_FLAGS
@@ -114,6 +114,9 @@ else()
      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)
    endif()
 endif()
+
+# Turn off warnings for files we don't control.
+set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
 
 set(EXE_NAME lobster)
 if(LOBSTER_TOCPP)

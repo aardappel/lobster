@@ -116,7 +116,7 @@ struct CodeGen  {
                 type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 assert(type->udt->numslots >= 0);
-                auto ttsize = (type->udt->numslots * 2) + 3;
+                auto ttsize = (size_t)(type->udt->numslots * 2) + 3;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)type->udt->idx);
                 tt.push_back((type_elem_t)type->udt->numslots);
