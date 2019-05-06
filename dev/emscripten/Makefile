@@ -4,11 +4,11 @@ CXX= emcc
 CC= emcc
 
 # Fast debug mode.
-OPTLEVEL= -g4 -O2
+#OPTLEVEL= -g4 -O2
 # Pure debug mode.
 #OPTLEVEL= -g4
 # Release / benchmark mode.
-#OPTLEVEL= -O2 -DNDEBUG
+OPTLEVEL= -O2 -DNDEBUG
 
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
@@ -73,6 +73,7 @@ CPPSRCS= \
     $(wildcard ../external/flatbuffers/src/*.cpp) \
     $(wildcard ../external/imgui/*.cpp)
 MAINSRC= ../src/main.cpp
+MAINCOMPSRC= ../compiled_lobster/src/compiled_lobster.cpp
 CSRCS= \
     ../external/freetype/src/autofit/autofit.c \
 	../external/freetype/src/base/basepic.c \
@@ -99,12 +100,15 @@ CSRCS= \
 COBJS := $(patsubst %.c,%.o,$(CSRCS))
 CPPOBJS := $(patsubst %.cpp,%.o,$(CPPSRCS))
 MAINOBJ := $(patsubst %.cpp,%.o,$(MAINSRC))
+MAINCOMPOBJ := $(patsubst %.cpp,%.o,$(MAINCOMPSRC))
 
 $(CPPOBJS): CXXFLAGS += $(INCLUDES)
 $(MAINOBJ): CXXFLAGS += $(INCLUDES)
+$(MAINCOMPOBJ): CXXFLAGS += $(INCLUDES)
 
 $(CPPOBJS): $(HEADERS)
 $(MAINOBJ): $(HEADERS)
+$(MAINCOMPOBJ): $(HEADERS)
 
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
@@ -116,6 +120,10 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ASSERTIONS=2 \
 
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
+
+lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
+lobster_cppout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
+	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
 
 WASMOUT= compiled_lobster_wasm.o
 lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
