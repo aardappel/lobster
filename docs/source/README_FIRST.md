@@ -20,7 +20,7 @@ Learning the language
 ---------------------
 
 If you already know how to program in at least one C-style language
-(C/C++/C\#/Java/JavaScript/PHP etc), then a way to get a quick idea of where
+(C/C++/C\#/Java/JavaScript etc), then a way to get a quick idea of where
 Lobster is different is by looking at the [C-style language Cheat
 Sheet](C_style%20language%20Cheat%20Sheet%20for%20Lobster.html).
 
@@ -50,5 +50,3 @@ gmail dot com / strlen.com).
 It has been released under the Apache v2 open source licence.
 
 Read about the [design philosophy, history and future](philosophy.html).
-
-Thanks to Martin Mittring and Lee Salzman for early feedback.

@@ -1,47 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-  <meta charset="utf-8">
-  <meta name="generator" content="pandoc">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>The Lobster WASM code generator implementation</title>
-  <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
-div.sourceCode { overflow-x: auto; }
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code > span.dt { color: #902000; } /* DataType */
-code > span.dv { color: #40a070; } /* DecVal */
-code > span.bn { color: #40a070; } /* BaseN */
-code > span.fl { color: #40a070; } /* Float */
-code > span.ch { color: #4070a0; } /* Char */
-code > span.st { color: #4070a0; } /* String */
-code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code > span.ot { color: #007020; } /* Other */
-code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code > span.fu { color: #06287e; } /* Function */
-code > span.er { color: #ff0000; font-weight: bold; } /* Error */
-code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-code > span.cn { color: #880000; } /* Constant */
-code > span.sc { color: #4070a0; } /* SpecialChar */
-code > span.vs { color: #4070a0; } /* VerbatimString */
-code > span.ss { color: #bb6688; } /* SpecialString */
-code > span.im { } /* Import */
-code > span.va { color: #19177c; } /* Variable */
-code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code > span.op { color: #666666; } /* Operator */
-code > span.bu { } /* BuiltIn */
-code > span.ex { } /* Extension */
-code > span.pp { color: #bc7a00; } /* Preprocessor */
-code > span.at { color: #7d9029; } /* Attribute */
-code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style type="text/css">
+a.sourceLine { display: inline-block; min-height: 1.25em; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; }
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; color: initial; }
+}
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.bn { color: #40a070; } /* BaseN */
+code span.fl { color: #40a070; } /* Float */
+code span.ch { color: #4070a0; } /* Char */
+code span.st { color: #4070a0; } /* String */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.ot { color: #007020; } /* Other */
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.fu { color: #06287e; } /* Function */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code span.cn { color: #880000; } /* Constant */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.im { } /* Import */
+code span.va { color: #19177c; } /* Variable */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.op { color: #666666; } /* Operator */
+code span.bu { } /* BuiltIn */
+code span.ex { } /* Extension */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.at { color: #7d9029; } /* Attribute */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
   </style>
   <link rel="stylesheet" href="github.css">
   <!--[if lt IE 9]>
@@ -62,10 +86,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><code>wasm_binary_writer.h</code> is a utility class that does all the heavy lifting of actually generating a valid wasm module. It is written such that it is entirely independent of the rest of the Lobster code base, and depends only on a few STL containers, to ensure it can easily be adopted by others wishing to emit wasm. It contains functionality for low level encoding (LEBs etc), emitting sections, individual instructions, and importantly, linking and relocation information.</li>
 </ul>
 <h2 id="design-of-the-binary-writer">Design of the binary writer</h2>
-<p>Most languages, like Lobster, come with a runtime in C or C++ that you wouldn't want to translate to wasm by hand (or worse, emit instruction by instruction from a backend), so it is imporant that generated wasm code can be linked correctly against a runtime compiled to object files by the C/C++ compiler. In this case we're piggy-backing on Clang, LLD and Binaryen as used in the Emscripten toolchain.</p>
-<p>This means generating a wasm module with linking information, and supplying the right relocations. Many instructions in wasm refer to functions and other things by index, but the linker has to merge many such index spaces into the final module, which means renumbering all of these indices. Luckily, the binary writer takes care of all this automatically, and allows us the generate code as-if we're the only ones.</p>
+<p>Most languages, like Lobster, come with a runtime in C or C++ that you wouldn’t want to translate to wasm by hand (or worse, emit instruction by instruction from a backend), so it is imporant that generated wasm code can be linked correctly against a runtime compiled to object files by the C/C++ compiler. In this case we’re piggy-backing on Clang, LLD and Binaryen as used in the Emscripten toolchain.</p>
+<p>This means generating a wasm module with linking information, and supplying the right relocations. Many instructions in wasm refer to functions and other things by index, but the linker has to merge many such index spaces into the final module, which means renumbering all of these indices. Luckily, the binary writer takes care of all this automatically, and allows us the generate code as-if we’re the only ones.</p>
 <h3 id="streaming-interface.">Streaming interface.</h3>
-<p>The binary writer is a &quot;streaming&quot; API (as opposed to an object API), meaning that it immediately writes out the wasm module data with no or few intermediary data structures. This has the advantage that it is low in memory usage and is very fast, with the downside being that most things have to be supplied to it in order. This should not be very difficult for most code generators, however.</p>
+<p>The binary writer is a “streaming” API (as opposed to an object API), meaning that it immediately writes out the wasm module data with no or few intermediary data structures. This has the advantage that it is low in memory usage and is very fast, with the downside being that most things have to be supplied to it in order. This should not be very difficult for most code generators, however.</p>
 <p>A wasm module should contain sections in order, and the API enforces this same order:</p>
 <pre><code>Type     1    Function signature declarations
 Import   2    Import declarations
@@ -80,81 +104,81 @@ Code    10    Function bodies (code)
 Data    11    Data segments</code></pre>
 <p>What is not shown here is custom sections, which may appear before and after each of these sections. One such custom section is the linking section, which appears at the end of all of the above. Its contents is generated automatically by the binary writer as a consequence of all the things emitted in the above section (primarily the Code section).</p>
 <h3 id="simple-example.">Simple example.</h3>
-<p>A minimal usage of the API, where we generate code for &quot;hello world&quot;, assuming the printing function is in the runtime.</p>
-<p>Note that this assumes a minimum familiarity with wasm in general. I am not going to explain the &quot;why&quot; of this design, if you end up using this API then reading up on the wasm module format would be useful.</p>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">vector&lt;<span class="dt">uint8_t</span>&gt; bytes;
-WASM::BinaryWriter bw(bytes);
-
-<span class="co">// Write a (function) type section, to be referred to by functions below.</span>
-<span class="co">// For any of these sections, if you write them out of order, or don&#39;t match</span>
-<span class="co">// begin/end, you&#39;ll get an assert.</span>
-<span class="co">// As with everything, to refer to things in wasm, use a 0 based index.</span>
-bw.BeginSection(WASM::Section::Type);
-<span class="co">// A list of arguments followed by a list of return values.</span>
-<span class="co">// You don&#39;t have to use the return value, but it may make referring to this</span>
-<span class="co">// type easier.</span>
-<span class="kw">auto</span> type_ii_i = bw.AddType({ WASM::I32, WASM::I32 }, { WASM::I32 });  <span class="co">// 0</span>
-<span class="kw">auto</span> type_i_v = bw.AddType({ WASM::I32 }, {});  <span class="co">// 1</span>
-bw.EndSection(WASM::Section::Type);
-
-<span class="co">// Import some functions, from the runtime compiled in other modules.</span>
-<span class="co">// For our example that will just be the printing function.</span>
-<span class="co">// Note: we assume this function has been declared with: extern &quot;C&quot;</span>
-<span class="co">// You can link against C++ functions as well if you don&#39;t mind dealing</span>
-<span class="co">// with name mangling.</span>
-bw.BeginSection(WASM::Section::Import);
-<span class="kw">auto</span> import_print = bw.AddImportLinkFunction(<span class="st">&quot;print&quot;</span>, type_i_v);  <span class="co">// 0</span>
-bw.EndSection(WASM::Section::Import);
-
-<span class="co">// Declare all the functions we will generate. Note this is just the type,</span>
-<span class="co">// the body of the code will follow below.</span>
-bw.BeginSection(WASM::Section::Function);
-bw.AddFunction(type_ii_i);  <span class="co">// main()</span>
-bw.EndSection(WASM::Section::Function);
-
-<span class="co">// Declare the linear memory we want to use, with 1 initial page.</span>
-bw.BeginSection(WASM::Section::Memory);
-bw.AddMemory(<span class="dv">1</span>);
-bw.EndSection(WASM::Section::Memory);
-
-<span class="co">// Here we&#39;d normally declare a &quot;Start&quot; section, but the linker will</span>
-<span class="co">// take care for that for us.</span>
-
-<span class="co">// Now the exciting part: emitting function bodies.</span>
-bw.BeginSection(WASM::Section::Code);
-
-<span class="co">// A list of 0 local types,</span>
-bw.AddCode({}, <span class="st">&quot;main&quot;</span>, <span class="kw">false</span>);
-<span class="co">// Refers to data segment 0 at offset 0 below. This emits an i32.const</span>
-<span class="co">// instruction, whose immediate value will get relocated to refer to the</span>
-<span class="co">// data correctly.</span>
-bw.EmitI32ConstDataRef(<span class="dv">0</span>, <span class="dv">0</span>);
-bw.EmitCall(import_print);
-bw.EmitEndFunction();
-
-<span class="co">// Here, call AddCode..EmitEndFunction for more functions.</span>
-
-bw.EndSection(WASM::Section::Code);
-
-<span class="co">// Add all our static data.</span>
-bw.BeginSection(WASM::Section::Data);
-<span class="co">// This is our first segment, we referred to this above as 0.</span>
-<span class="kw">auto</span> hello = <span class="st">&quot;Hello, World</span><span class="sc">\n</span><span class="st">\0&quot;</span>sv;
-<span class="co">// Data, name, and alignment.</span>
-bw.AddData(hello, <span class="st">&quot;hello&quot;</span>, <span class="dv">0</span>);
-bw.EndSection(WASM::Section::Data);
-
-<span class="co">// This call does all the remaining work of generating the linking</span>
-<span class="co">// information, and wrapping up the file.</span>
-bw.Finish();
-
-<span class="co">// Here, we can write the contents of &quot;bytes&quot; above to a file.</span>
-<span class="co">// Then, using emcc to link print.c and generated.o should actually</span>
-<span class="co">// produce a valid module!</span></code></pre></div>
+<p>A minimal usage of the API, where we generate code for “hello world”, assuming the printing function is in the runtime.</p>
+<p>Note that this assumes a minimum familiarity with wasm in general. I am not going to explain the “why” of this design, if you end up using this API then reading up on the wasm module format would be useful.</p>
+<pre class="sourceCode cpp" id="cb2"><code class="sourceCode cpp"><a class="sourceLine" id="cb2-1" data-line-number="1">vector&lt;<span class="dt">uint8_t</span>&gt; bytes;</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">WASM::BinaryWriter bw(bytes);</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="co">// Write a (function) type section, to be referred to by functions below.</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">// For any of these sections, if you write them out of order, or don&#39;t match</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">// begin/end, you&#39;ll get an assert.</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">// As with everything, to refer to things in wasm, use a 0 based index.</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">bw.BeginSection(WASM::Section::Type);</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">// A list of arguments followed by a list of return values.</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">// You don&#39;t have to use the return value, but it may make referring to this</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">// type easier.</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="kw">auto</span> type_ii_i = bw.AddType({ WASM::I32, WASM::I32 }, { WASM::I32 });  <span class="co">// 0</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">auto</span> type_i_v = bw.AddType({ WASM::I32 }, {});  <span class="co">// 1</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">bw.EndSection(WASM::Section::Type);</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="co">// Import some functions, from the runtime compiled in other modules.</span></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="co">// For our example that will just be the printing function.</span></a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"><span class="co">// Note: we assume this function has been declared with: extern &quot;C&quot;</span></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="co">// You can link against C++ functions as well if you don&#39;t mind dealing</span></a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">// with name mangling.</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21">bw.BeginSection(WASM::Section::Import);</a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="kw">auto</span> import_print = bw.AddImportLinkFunction(<span class="st">&quot;print&quot;</span>, type_i_v);  <span class="co">// 0</span></a>
+<a class="sourceLine" id="cb2-23" data-line-number="23">bw.EndSection(WASM::Section::Import);</a>
+<a class="sourceLine" id="cb2-24" data-line-number="24"></a>
+<a class="sourceLine" id="cb2-25" data-line-number="25"><span class="co">// Declare all the functions we will generate. Note this is just the type,</span></a>
+<a class="sourceLine" id="cb2-26" data-line-number="26"><span class="co">// the body of the code will follow below.</span></a>
+<a class="sourceLine" id="cb2-27" data-line-number="27">bw.BeginSection(WASM::Section::Function);</a>
+<a class="sourceLine" id="cb2-28" data-line-number="28">bw.AddFunction(type_ii_i);  <span class="co">// main()</span></a>
+<a class="sourceLine" id="cb2-29" data-line-number="29">bw.EndSection(WASM::Section::Function);</a>
+<a class="sourceLine" id="cb2-30" data-line-number="30"></a>
+<a class="sourceLine" id="cb2-31" data-line-number="31"><span class="co">// Declare the linear memory we want to use, with 1 initial page.</span></a>
+<a class="sourceLine" id="cb2-32" data-line-number="32">bw.BeginSection(WASM::Section::Memory);</a>
+<a class="sourceLine" id="cb2-33" data-line-number="33">bw.AddMemory(<span class="dv">1</span>);</a>
+<a class="sourceLine" id="cb2-34" data-line-number="34">bw.EndSection(WASM::Section::Memory);</a>
+<a class="sourceLine" id="cb2-35" data-line-number="35"></a>
+<a class="sourceLine" id="cb2-36" data-line-number="36"><span class="co">// Here we&#39;d normally declare a &quot;Start&quot; section, but the linker will</span></a>
+<a class="sourceLine" id="cb2-37" data-line-number="37"><span class="co">// take care for that for us.</span></a>
+<a class="sourceLine" id="cb2-38" data-line-number="38"></a>
+<a class="sourceLine" id="cb2-39" data-line-number="39"><span class="co">// Now the exciting part: emitting function bodies.</span></a>
+<a class="sourceLine" id="cb2-40" data-line-number="40">bw.BeginSection(WASM::Section::Code);</a>
+<a class="sourceLine" id="cb2-41" data-line-number="41"></a>
+<a class="sourceLine" id="cb2-42" data-line-number="42"><span class="co">// A list of 0 local types,</span></a>
+<a class="sourceLine" id="cb2-43" data-line-number="43">bw.AddCode({}, <span class="st">&quot;main&quot;</span>, <span class="kw">false</span>);</a>
+<a class="sourceLine" id="cb2-44" data-line-number="44"><span class="co">// Refers to data segment 0 at offset 0 below. This emits an i32.const</span></a>
+<a class="sourceLine" id="cb2-45" data-line-number="45"><span class="co">// instruction, whose immediate value will get relocated to refer to the</span></a>
+<a class="sourceLine" id="cb2-46" data-line-number="46"><span class="co">// data correctly.</span></a>
+<a class="sourceLine" id="cb2-47" data-line-number="47">bw.EmitI32ConstDataRef(<span class="dv">0</span>, <span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb2-48" data-line-number="48">bw.EmitCall(import_print);</a>
+<a class="sourceLine" id="cb2-49" data-line-number="49">bw.EmitEndFunction();</a>
+<a class="sourceLine" id="cb2-50" data-line-number="50"></a>
+<a class="sourceLine" id="cb2-51" data-line-number="51"><span class="co">// Here, call AddCode..EmitEndFunction for more functions.</span></a>
+<a class="sourceLine" id="cb2-52" data-line-number="52"></a>
+<a class="sourceLine" id="cb2-53" data-line-number="53">bw.EndSection(WASM::Section::Code);</a>
+<a class="sourceLine" id="cb2-54" data-line-number="54"></a>
+<a class="sourceLine" id="cb2-55" data-line-number="55"><span class="co">// Add all our static data.</span></a>
+<a class="sourceLine" id="cb2-56" data-line-number="56">bw.BeginSection(WASM::Section::Data);</a>
+<a class="sourceLine" id="cb2-57" data-line-number="57"><span class="co">// This is our first segment, we referred to this above as 0.</span></a>
+<a class="sourceLine" id="cb2-58" data-line-number="58"><span class="kw">auto</span> hello = <span class="st">&quot;Hello, World</span><span class="sc">\n</span><span class="st">\0&quot;</span>sv;</a>
+<a class="sourceLine" id="cb2-59" data-line-number="59"><span class="co">// Data, name, and alignment.</span></a>
+<a class="sourceLine" id="cb2-60" data-line-number="60">bw.AddData(hello, <span class="st">&quot;hello&quot;</span>, <span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb2-61" data-line-number="61">bw.EndSection(WASM::Section::Data);</a>
+<a class="sourceLine" id="cb2-62" data-line-number="62"></a>
+<a class="sourceLine" id="cb2-63" data-line-number="63"><span class="co">// This call does all the remaining work of generating the linking</span></a>
+<a class="sourceLine" id="cb2-64" data-line-number="64"><span class="co">// information, and wrapping up the file.</span></a>
+<a class="sourceLine" id="cb2-65" data-line-number="65">bw.Finish();</a>
+<a class="sourceLine" id="cb2-66" data-line-number="66"></a>
+<a class="sourceLine" id="cb2-67" data-line-number="67"><span class="co">// Here, we can write the contents of &quot;bytes&quot; above to a file.</span></a>
+<a class="sourceLine" id="cb2-68" data-line-number="68"><span class="co">// Then, using emcc to link print.c and generated.o should actually</span></a>
+<a class="sourceLine" id="cb2-69" data-line-number="69"><span class="co">// produce a valid module!</span></a></code></pre>
 <h3 id="the-lobster-generator.">The Lobster generator.</h3>
 <p>A more complex example using the binary writer is the Lobster generator in <code>towasm.cpp</code>, which follows the same pattern as the above simple example. Because it is being driven by calls from <code>tonative.cpp</code> it is in separate functions, but these functions are in the order of being called, so should be easy to follow.</p>
 <p>In terms of imports, it imports one function for each of Lobsters bytecodes, which means a Lobster bytecode can be directly mapped to a function id. Then there are a couple of additional functions in the runtime it needs, most importantly <code>EngineRunCompiledCodeMain</code> which it calls with the starting compiled function, such that runtime can initialize itself and then call back into the Lobster compiled code. This structure was chosen such that the maximum amount of code can live in the runtime, and the minimum needs to be explicitly generated.</p>
-<p>It generates Lobster code not on a per function basis, but per basic block. This is because Lobster has more complicated control flow features (such as non-local returns and co-routines) which (at the time of writing) wasm can't support natively. So it uses a &quot;trampoline&quot; system where each basic block returns the function address of the next basic block it wants to go to. Some of these transitions can be optimized, but in the most general case this has to be an indirect jump.</p>
+<p>It generates Lobster code not on a per function basis, but per basic block. This is because Lobster has more complicated control flow features (such as non-local returns and co-routines) which (at the time of writing) wasm can’t support natively. So it uses a “trampoline” system where each basic block returns the function address of the next basic block it wants to go to. Some of these transitions can be optimized, but in the most general case this has to be an indirect jump.</p>
 <p>The actual instructions generated are pretty simple, with it mostly emitting a call per VM instruction, with the exception of control flow operations which have more special purpose implementation.</p>
 <p>(to be expanded)</p>
 </body>

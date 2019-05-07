@@ -5,6 +5,9 @@ title: "Lobster Design Philosophy, History, and Future"
 This document tries to clarify why certain design choices were made in the
 Lobster language and system.
 
+NOTE: this may be a little out of date. Lobster has evolved a lot since I
+wrote this.
+
 ### Primary Motivation
 
 The most important over-arching reason behind everything in Lobster was to make
@@ -96,6 +99,9 @@ suitable for my style of programming (heavily refactoring-based).
 
 -   A type system that tries to get as close to the experience of using a
     dynamically typed language as possible while allowing maximum efficiency.
+
+-   A language that tries to be very efficient with memory, thanks to
+    compile time reference counting, inline structs, and a very fast allocator.
 
 -   The belief that the ideal programming language is... TWO programming
     languages. Any larger project consists of a lot of high level and glue code
@@ -201,43 +207,4 @@ I made it a bit more strict than I planned (i.e. making `nil` its own type).
 ### What Lobster will be (Future Plans)
 
 I've collected many random scribbles about what I think Lobster still needs in
-`dev/TODO.TXT`, but here are some broad ideas as to what I think Lobster still
-needs, roughly in this order:
-
--   More documentation, tutorials, examples, and reusable Lobster code for
-    games.
-
--   More built-in / graphics functionality. So far I've just added what I needed
-    for my own game prototypes, but it is pretty barren.
-
--   Generally more standard sub-systems. Related to sound, threading,
-    networking, physics etc etc. I want to be careful however to not expand the
-    number of library dependencies unless I absolutely have to, since that makes
-    building and integrating so much more painful, and gives a lot of people
-    bloat they don't need. I am hoping that I can make a nice set of
-    functionality with minimal code that can serve most people for small to
-    medium projects, and for those who want extensive engine functionality to be
-    linking their own additional libraries themselves (or at least make them
-    optional components).
-
--   Platform features: better testing / building / integration on some of the
-    neglected platforms.
-
--   A way to automatically package assets into a package for distribution
-    purposes.
-
--   Debugging: some form of interactive debugging. I'm not missing it myself
-    much, but I know others will.
-
--   Separate out the Lobster language from the engine even better, so it's
-    easier for people to use Lobster for entirely different purposes.
-
--   Allowing for multiple simultanuous VMs and simultanuous windows (cleaning up
-    global state for that), which relates to being able to add threading
-    features and potentially write a visual debugger in Lobster itself.
-
--   A high-level optimizer
-
--   An LLVM backend
-
--   Make the VM file format simpler, smaller, and more self-contained.
+`dev/TODO.txt`.

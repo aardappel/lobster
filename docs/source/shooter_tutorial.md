@@ -155,9 +155,9 @@ while gl_frame() and gl_button("escape") != 1:
     gl_scale(scale)
 
     let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                  (gl_button("s") >= 1) - (gl_button("w") >= 1) }
+                     (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     gl_translate(playerpos):
@@ -166,7 +166,7 @@ while gl_frame() and gl_button("escape") != 1:
 
 To make our player move, we added 2 new variables: `playerpos` and
 `playerspeed`. We initialize the former with a vector constant from
-`vec.lobster`: `vec_0` means all zeroes.
+`vec.lobster`: `xy_0` means all zeroes.
 
 We first figure out which direction the player wants to move by checking the
 current state of the WASD keys: by combining the boolean values (0 / 1) for each
@@ -241,7 +241,9 @@ let worldsize = 20.0
 var playerpos = xy_0
 let playerspeed = 10
 
-class bullet { pos:xy_f, dir:xy_f }
+class bullet:
+    pos:xy_f
+    dir:xy_f
 
 let firerate = 0.1
 let bulletspeed = 15
@@ -257,9 +259,9 @@ while gl_frame() and gl_button("escape") != 1:
     gl_scale(scale)
 
     let dir = xy_f { (gl_button("d") >= 1) - (gl_button("a") >= 1),
-                  (gl_button("s") >= 1) - (gl_button("w") >= 1) }
+                     (gl_button("s") >= 1) - (gl_button("w") >= 1) }
     let newpos = playerpos + normalize(dir) * gl_delta_time() * playerspeed
-    if !any(abs(newpos) > float(gl_window_size()) / scale / 2):
+    if not any(abs(newpos) > float(gl_window_size()) / scale / 2):
         playerpos = newpos
 
     let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
@@ -385,7 +387,9 @@ function, since we'll be needing it for enemies too. Call instead of the
 original code with `renderpointytriangle(playerpos, tomouse)`
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class enemy { pos:xy_f, hp:int }
+class enemy:
+    pos:xy_f
+    hp:int
 
 var enemyrate = 1.0
 let enemyspeed = 3

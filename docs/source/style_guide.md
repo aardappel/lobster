@@ -35,10 +35,10 @@ def qsort(xs, lt):
     if xs.length <= 1:
         xs
     else:
-        var pivot = xs[0]
-        var tail = xs.slice(1, -1)
-        append(append(qsort(tail.filter():  lt(_, pivot), lt), [ pivot ]),
-                      qsort(tail.filter(): !lt(_, pivot), lt))
+        let pivot = xs[0]
+        let tail = xs.slice(1, -1)
+        append(append(qsort(tail.filter():     lt(_, pivot), lt), [ pivot ]),
+                      qsort(tail.filter(): not lt(_, pivot), lt))
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ### Indentation: Tabs vs Spaces
@@ -46,6 +46,9 @@ def qsort(xs, lt):
 By default, you should use 4 spaces to indent (same as Python). The compiler
 will allow you to use tabs (discouraged), and in some cases even a mix (highly
 discouraged).
+
+The compiler will error on mixed use of tabs and spaces, as that could change
+what code appears to mean.
 
 In theory, tabs are superior for editing, but in practice, different editors and
 different methods of displaying code can make tab based code work

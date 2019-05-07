@@ -18,5 +18,3 @@ Syntax Highlighting
 Copy the folder `docs/vscode/lobster` to `.vscode/extensions` *within
 your user folder*, not your workspace folder. This will enable syntax
 highlighting next time VSCode is run.
-
- 

@@ -32,12 +32,13 @@
     if xs.length &lt;= 1:
         xs
     else:
-        var pivot = xs[0]
-        var tail = xs.slice(1, -1)
-        append(append(qsort(tail.filter():  lt(_, pivot), lt), [ pivot ]),
-                      qsort(tail.filter(): !lt(_, pivot), lt))</code></pre>
+        let pivot = xs[0]
+        let tail = xs.slice(1, -1)
+        append(append(qsort(tail.filter():     lt(_, pivot), lt), [ pivot ]),
+                      qsort(tail.filter(): not lt(_, pivot), lt))</code></pre>
 <h3 id="indentation-tabs-vs-spaces">Indentation: Tabs vs Spaces</h3>
 <p>By default, you should use 4 spaces to indent (same as Python). The compiler will allow you to use tabs (discouraged), and in some cases even a mix (highly discouraged).</p>
+<p>The compiler will error on mixed use of tabs and spaces, as that could change what code appears to mean.</p>
 <p>In theory, tabs are superior for editing, but in practice, different editors and different methods of displaying code can make tab based code work inconsistently, which is more of a problem for a language with significant indentation like Lobster and Python.</p>
 <h3 id="whitespace">Whitespace</h3>
 <p>Typical use of whitespace is around any binary operator (in the example <code>&lt;=</code> <code>=</code>), after a <code>,</code> and inside <code>[]</code> when used as vector constructor or definition (but not when used for indexing, and not inside <code>()</code>).</p>

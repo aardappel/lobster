@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-  <meta charset="utf-8">
-  <meta name="generator" content="pandoc">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>The Lobster C++ Implementation</title>
-  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
   <link rel="stylesheet" href="github.css">
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
@@ -15,26 +21,26 @@
 <header>
 <h1 class="title">The Lobster C++ Implementation</h1>
 </header>
-<p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, reusing, and compiling Lobster code to C++.</p>
+<p>This document gives hints on how to work with the Lobster C++ code in terms of building, extending, reusing, and compiling Lobster code to C++ or WASM.</p>
 <p>Lobster has been released under the Apache 2 open source license.</p>
 <h2 id="building-lobster">Building Lobster</h2>
-<p>Lobster uses recent C++17 features, so will need Visual Studio 2017 (the free community edition will do), Xcode 9.x, or a recent GCC (7.0 preferably) to be compiled.</p>
-<p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included, so should compile out of the box with no further external dependencies.</p>
+<p>Lobster uses recent C++17 features, so will need Visual Studio 2019 (the free community edition will do), Xcode 10.x, or a recent GCC (7+) / Clang (6+) to be compiled.</p>
+<p>Lobster uses OpenGL, SDL 2.x and FreeType, these are included in the repo, so should compile out of the box with no further external dependencies.</p>
 <p>All source code and other files related to building Lobster for all platforms sit in the <code>dev</code> folder.</p>
 <p>Lobster can be built for 32 or 64-bit on all platforms. On 64-bit, all Lobster values will take double the size (and precision), and thus use more memory. Despite that, for most programs, 64-bit is still a speed-up (the VM benefits a lot from extra registers).</p>
 <h3 id="windows">Windows</h3>
-<p>This platform is definitely best supported and easiest to use for now. Open up <code>dev\lobster\lobster.sln</code> with Visual Studio. The project is set up to build lobster.exe in the <code>bin</code> folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="notepadpp_ide.html">Notepad++</a> / <a href="sublime_ide.html">SublimeText</a>.</p>
+<p>Open up <code>dev\lobster\lobster.sln</code> with Visual Studio, and ensure <code>Release</code> mode is selected. The project is set up to build lobster.exe in the <code>bin</code> folder, and will be ready for use as described either from the <a href="command_line_usage.html">command line</a> or <a href="vscode_ide.html">VS Code</a> / <a href="sublime_ide.html">SublimeText</a> / <a href="notepadpp_ide.html">Notepad++</a>.</p>
 <h3 id="os-x-ios">OS X &amp; iOS</h3>
 <p>Building for either one is easy using the single Xcode project (in <code>dev/xcode/lobster</code>) which produces a .app bundle for either platform (the <code>lobsterapp</code> and <code>lobster_ios</code> targets), or a command line version for OS X (the <code>lobster</code> target) placed in the <code>bin</code> folder much like Windows.</p>
-<p>To develop Lobster code on OS X, easiest probably is to use the command line version. Many OS X editors support running a command line compiler, e.g. SublimeText, or Komodo Edit with Tools -&gt; Run Command.</p>
+<p>To develop Lobster code on OS X, easiest probably is to use the command line version. Many OS X editors support running a command line compiler, e.g. VSCode, SublimeText, or Komodo Edit with Tools -&gt; Run Command.</p>
 <p>Alternatively, you could add your lobster source (and extra data it might need) to the Xcode project, and add it to the build rules such that these are copied to the Resource location in the bundle, then running from Xcode with the main lobster file as command line argument.</p>
-<p>Distribution is currently a bit clumsier. You'll need to run lobster to produce a bytecode file (see <a href="command_line_usage.html">command line</a>), then make a copy of the bundle, and stick the bytecode file (+data) in the Resource location, and you should have something that can be distributed to users. For iOS you can compile using the OS X exe, then run that same bytecode using the iOS exe.</p>
-<h3 id="cmake-linux">CMake / Linux</h3>
-<p>You can build with CMake on Linux (and possibly other platforms, untested):</p>
+<p>Distribution is currently a bit clumsier. You’ll need to run lobster to produce a pak file (see <a href="command_line_usage.html">command line</a>), then make a copy of the bundle, and stick the bytecode file (+data) in the Resource location, and you should have something that can be distributed to users. For iOS you can compile using the OS X exe, then run that same pak file using the iOS exe.</p>
+<h3 id="linux">Linux</h3>
+<p>You can build with CMake on Linux:</p>
 <p>This requires a C++17 compiler, and the mesa dev files should be installed (<code>apt-get install mesa-common-dev</code>).</p>
 <pre><code>cd dev
 cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
-<p>It creates in <code>bin/lobster</code>. Run it to access the samples, e.g. <code>bin/lobster samples/pythtree.lobster</code></p>
+<p>It creates <code>bin/lobster</code>. Run it to access the samples, e.g. <code>bin/lobster samples/pythtree.lobster</code></p>
 <h3 id="android">Android</h3>
 <p>You must have the following installed:</p>
 <ul>
@@ -54,11 +60,10 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <pre><code>python -B build_all_android.py -j4 -f NDK_DEBUG=0 -S -k debug.keystore -K android -P debugkey.txt</code></pre>
 <p>(Windows users: there’s a convenient <code>build.bat</code> that does the same).</p>
 <p>If this gives any errors indicating missing programs, check the what you installed above.</p>
-<p>If this gives C++ compilation errors, please email me, or better yet, open an issue on <a href="https://github.com/aardappel/lobster/issues">github</a>.</p>
 <p><code>dev/android/apks/</code> should now contain a .apk file.</p>
 <p>The Python script above comes from <a href="https://google.github.io/fplutil/">FPLUtil</a>, and has lots of options that allow you to check devices, run, sign your apk, which you’ll need to release to the play store (in particular, you’ll need to generate your own certifcate using keytool, and replace the above arguments). To see more, run:</p>
 <pre><code>python -B build_all_android.py --help</code></pre>
-<p>Install .apk on an attached Android device (note, emulators are not recommended, since Lobster is graphic heavy):</p>
+<p>Install .apk on an attached Android device (note, emulators are not recommended, since Lobster is graphics heavy):</p>
 <pre><code>adb install -r apks\app.apk</code></pre>
 <p>If this fails, make sure you can see the device using <code>adb devices</code>. If nothing shows up, that’s likely because the device has not been put in developer mode, or not using usb for debugging, etc.</p>
 <p>You can now run it by tapping its icon on the device (it’s called LobsterApp by default)</p>
@@ -67,7 +72,7 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>In particular, look for messages showing files it can’t load.</p>
 <p>Things to change if you want to release your app in the Google Play store:</p>
 <ul>
-<li><p>Generate your own signing key with <code>keytool</code>, and substitute the <code>-k -K -P</code> parameters above. Make sure to also delete any old debug copy of the app from your device, or you’ll get a signture mismatch error.</p></li>
+<li><p>Generate your own signing key with <code>keytool</code>, and substitute the <code>-k -K -P</code> parameters above. Make sure to also delete any old debug copy of the app from your device, or you’ll get a signature mismatch error.</p></li>
 <li><p>Change LobsterApp to something else in <code>res/values/strings.xml</code>.</p></li>
 <li><p>Change the .png files in <code>res/</code> with your own application icon.</p></li>
 <li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
@@ -77,11 +82,11 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
 <p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code>. This should produce a lobster.[wasm|js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
 <p>You can now run it with <code>emrun --browser chrome lobster.html --verbose</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
-<p>Note: the above compiles the bytecode interpreter to wasm. To instead compile the lobster bytecode to wasm directly, see &quot;Compiling Lobster code to WebAssembly&quot; below.</p>
+<p>Note: the above compiles the bytecode interpreter to wasm. To instead compile the lobster bytecode to wasm directly, see “Compiling Lobster code to WebAssembly” below.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>
-<li><p><code>default.lpak</code>. This is the Lobster pakfile file you obtain from compiling your program with the <code>-b</code> option, it includes:</p>
+<li><p><code>default.lpak</code>. This is the Lobster pakfile file you obtain from compiling your program with the <code>--pak</code> option, it includes:</p>
 <ul>
 <li><p>The bytecode.</p></li>
 <li><p><code>data/shaders/default.materials</code> (these are the minimum shader definitions needed for to render anything, and is implicitly loaded by <code>gl_window</code>).</p></li>
@@ -98,53 +103,52 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>On Windows, there are project files in that same directory that will automatically pick up the compiled lobster code.</p>
 <p>On Linux, create a <code>build</code> directory anywhere, for example in <code>dev/compiled_lobster/build</code>, go there, then <code>cmake -DLOBSTER_TOCPP=ON -DCMAKE_BUILD_TYPE=Release ../..</code> will automatically substitute the compiled lobster main program. Build with <code>make -j8</code> or similar.</p>
 <h2 id="compiling-lobster-code-to-webassembly">Compiling Lobster code to WebAssembly</h2>
-<p>Note: this is about generating wasm code form lobster bytecode directly. If you just want to build the bytecode interpreter for wasm, see the &quot;WebAssembly / Emscripten&quot; section above.</p>
-<p>Similarly to compiling to C++, with <code>--wasm</code> the compiler with generate a <code>.wasm</code> file, e.g. <code>bin/lobster samples/pythtree.lobster</code></p>
-<p>This is not a WebAssembly module ready to be run however, it is the wasm equivalent of a <code>.o</code> file that still needs to be linked against the rest of the Lobster runtime, much like in the C++ case. The file is currently hard-coded to be written to <code>dev/emscripten/compiled_lobster_wasm.o</code> such that it can automatically be picked up by the buildfiles there.</p>
+<p>Note: this is about <em>generating wasm code from lobster bytecode</em> directly. If you just want to build the bytecode interpreter for wasm, see the “WebAssembly / Emscripten” section above.</p>
+<p>Similarly to compiling to C++, with <code>--wasm</code> the compiler with generate <code>dev/emscripten/compiled_lobster_wasm.o</code> file, from e.g. <code>bin/lobster --wasm samples/pythtree.lobster</code></p>
+<p>Though this file has the same format as a <code>.wasm</code> file (and can be inspected by the tools in e.g. WABT), this is not a WebAssembly module ready to be run however, it is a file that still needs to be linked against the rest of the Lobster runtime, much like in the C++ case. The build files in <code>dev/emscripten</code> can pick up this file.</p>
 <p>To compile the project and link in the <code>.o</code> we just generated, we build similarly to described in the <code>WebAssembly / Emscripten</code> section above, except we use a special make target to indicate it should link in our compiled code as the main program instead of the default: <code>make -j8 lobster_wasmout</code>.</p>
-<p>Don't forget to place needed files in the <code>assets</code> dir as described above. You can even place an <code>lpak</code> file there (which currently will contain bytecode, which will be unused).</p>
+<p>Don’t forget to place needed files in the <code>assets</code> dir as described above. You can even place an <code>lpak</code> file there (which currently will contain bytecode, which will be unused).</p>
 <p>You now run this much descrived above.</p>
-<p>If you're interested in the details of how Lobster is translated to wasm, or how you can generate wasm yourself, read more <a href="implementation_wasm.html">here</a>.</p>
+<p>If you’re interested in the details of how Lobster is translated to wasm, or how you can generate wasm yourself, read more <a href="implementation_wasm.html">here</a>.</p>
 <h2 id="extending-lobster">Extending Lobster</h2>
 <p>Besides using Lobster as a stand-alone programming language as-is, there are 2 ways of extending Lobster, by adding your code to Lobster, or adding Lobster to your project.</p>
-<p>Note that unlike other scripting languages, Lobster has been designed as a stand-alone language first, rather than a plug-in scripting system (more like Python and Ruby, not like Lua and UnrealScript). You use Lobster code as your &quot;main program&quot;, with the &quot;engine&quot; being the library you call into. Most game engines are the opposite: the engine code is the main program, and the scripting language is being called into. For that reason, adding your own code to Lobster is by the far the preferable way of building an application that uses Lobster, and will generally be a much more productive environment.</p>
+<p>Note that unlike other scripting languages, Lobster has been designed as a stand-alone language first, rather than a plug-in scripting system (more like Python and Ruby, not like Lua and UnrealScript). You use Lobster code as your “main program”, with the “engine” being the library you call into. Most game engines are the opposite: the engine code is the main program, and the scripting language is being called into. For that reason, adding your own code to Lobster is by the far the preferable way of building an application that uses Lobster, and will generally be a much more productive environment.</p>
 <p>The thinking here is that you use C++ purely to write performance critical code, which can usually be contained in libraries. For the non-performance critical code, which includes the general setup of your main program determining how things fit together, you are much better off using a friendlier language, like Lobster. It means that changing the structure of your project is much quicker, and it is easier to experiment with new game ideas based on your C++ libraries. Iterations in Lobster can be done more rapidly and more safely, often in less code, than C++.</p>
 <h3 id="adding-your-code-to-lobster">Adding your code to Lobster</h3>
 <p>Depending on what you want to write, the current engine functionality of Lobster may not be sufficient. Lobster adds C++ functions to the language in a modular fashion, in the Visual Studio project you can see all things added to Lobster in 2 places:</p>
 <ul>
-<li><p>The &quot;builtins&quot; folder, which should really be part of any Lobster implementation. <code>buitins.cpp</code> is the most important one that adds control structures, vector &amp; math operations etc., without which the language would be hard to use. <code>file.cpp</code> adds file I/O related functions, and <code>lobsterreader.cpp</code> allows you to parse data structures in lobster syntax from a running program.</p></li>
+<li><p>The “builtins” folder, which should really be part of any Lobster implementation. <code>buitins.cpp</code> is the most important one that adds vector &amp; math operations etc., without which the language would be hard to use. <code>file.cpp</code> adds file I/O related functions, and <code>lobsterreader.cpp</code> allows you to parse data structures in lobster syntax from a running program.</p></li>
 <li><p>The engine folder. This contains all graphics/font/audio etc functionality. <code>graphics.cpp</code> / <code>font.cpp</code> build on top of the above mentioned 3 libraries, and can either be kept, or replaced entirely by functions that use a different rendering system. You can turn Lobster into a console-only language in one step by simply removing the engine folder from the project.</p></li>
 </ul>
 <p>You can always run Lobster with the <code>-r</code> option to get an overview of all functions currently added to the system (the current list is <a href="builtin_functions_reference.html">here</a>). To add/remove functionality is generally as easy as adding/removing the corresponding <code>.cpp</code> file.</p>
 <p>Lobster uses some macros to allow you to define a native function in one location without declarations needed elsewhere. To learn how to write your own .cpp of native functions, best to start with a simple example, such as <code>audio.cpp</code>, then browse through more complex examples in <code>builtin.cpp</code> and <code>graphics.cpp</code>.</p>
-<p>Here's a simple example of a self-contained Lobster extension:</p>
+<p>Here’s a simple example of a self-contained Lobster extension:</p>
 <pre><code>#include &quot;stdafx.h&quot;
 
-#include &quot;vmdata.h&quot;
 #include &quot;natreg.h&quot;
 
-void MyNativeOps()
-{
-    STARTDECL(add) (Value &amp;x, Value &amp;y)
-    {
-        return Value(x.ival() + y.ival());
-    }
-    ENDDECL2(add, &quot;x,y&quot;, &quot;II&quot;, &quot;I&quot;, &quot;adds two integers.&quot;);
+void MyNativeOps(NativeRegistry &amp;nfr) {
+
+    nfr(&quot;add&quot;, &quot;x,y&quot;, &quot;II&quot;, &quot;I&quot;,
+        &quot;Adds two integers.&quot;,
+        [](VM &amp;, Value &amp;x, Value &amp;y) {
+            return x.ival() + y.ival();
+        });
 
     // more such declarations here
 }
 
 AutoRegister __mno(&quot;name&quot;, MyNativeOps);</code></pre>
-<p>You'll need to become somewhat familiar with the Lobster internals to write these functions succesfully, in particular with the <code>Value</code> type (see <code>vmbase.h</code>), which is a union of all possible lobster types. If you specify specific types (such as <code>I</code> for <code>int</code>, <code>F</code> for <code>float</code>, <code>S</code> for <code>string</code>, <code>V</code> for <code>vector</code>, <code>C</code> for a <code>function</code> value, <code>R</code> for a <code>coroutine</code> and <code>A</code> for any type in the declaration, then the <code>Value</code> will already have been typechecked and guaranteed to be that type, such that you can directly access the component (e.g. <code>.ival()</code>) without checking the type (you'll get an assert if you get this wrong).</p>
+<p>You’ll need to become somewhat familiar with the Lobster internals to write these functions succesfully, in particular with the <code>Value</code> type (see <code>vmbase.h</code>), which is a union of all possible lobster types. If you specify specific types (such as <code>I</code> for <code>int</code>, <code>F</code> for <code>float</code>, <code>S</code> for <code>string</code>, <code>V</code> for <code>vector</code>, <code>L</code> for a function value etc (more details in <code>natreg.h</code>), then the <code>Value</code> will already have been typechecked and guaranteed to be that type, such that you can directly access the component (e.g. <code>.ival()</code>) without checking the type (you’ll get an assert if you get this wrong).</p>
 <p>As you can see, even the help text is included in the declaration, so everything related to the function is in one location.</p>
-<p>Important is dealing with reference counting, all of your string/vector/coroutine arguments will have the proper reference count before your function is called, and if you're not returning/reusing this value, you need to decrement them when you're done with them (look for functions that use these types as an example). If you fail to do this, the person writing Lobster code in your dialect will get memory leaks he can't fix.</p>
-<p>In designing your extension library, if you intend to add a lot of functions, it is a good idea to choose a small prefix (similar to <code>gl_</code> for all the graphics functionality) to all your functions. Lobster does not have a namespace facility currently, so the burden on making sure there are no name clashes is on the programmer integrating new libraries (you will get an assert if 2 names ever clash).</p>
-<p><code>AutoRegister</code> in the example above simply adds the function that contains your native function implementations to a list, so that the compiler can bind them. This means that the above .cpp file doesn't need any extra mechanism to be added to a Lobster implementation, simply link in the file and the functions will be available.</p>
+<p>Important is dealing with memory management: by default, you <em>borrow</em> all arguments, meaning you’re not supposed to keep a pointer to them after the function ends. If you return a value that was allocated (see e.g. <code>VM::NewString</code>) then the caller will own this value. This is typically what you want. If for whatever reason you want to hold on to a value, have a look at functions that do so, like <code>push</code>.</p>
+<p>In designing your extension library, if you intend to add a lot of functions, it is a good idea to choose a namespace (similar to <code>gl_</code> for all the graphics functionality) to all your functions. Lobster uses <code>_</code> for namespacing also in the language. The burden on making sure there are no name clashes is on the programmer integrating new libraries (you will get an assert if 2 names ever clash).</p>
+<p><code>AutoRegister</code> in the example above simply adds the function that contains your native function implementations to a list, so that the compiler can bind them. This means that the above .cpp file doesn’t need any extra mechanism to be added to a Lobster implementation, simply link in the file and the functions will be available.</p>
 <h3 id="adding-lobster-to-your-project">Adding Lobster to your project</h3>
 <p>This should still be fairly easy, as Lobster was made to be fairly modular, but is a bit more work than above. I will strive to make this path easier in the future.</p>
 <p>First step would be to strip Lobster down from external dependencies. As mentioned above, if you remove the graphics related <code>.cpp</code> builtin files (<code>graphics.cpp</code>, <code>font.cpp</code> and others) from the lobster project (again, see <code>PopulateNativeRegistry()</code> for a list of what it is currently using), you should then also be able to remove all source code files that are prefixed with <code>gl</code>, <code>sdl</code>, <code>ft</code>, and <code>stb</code>, and be left with a version of Lobster that has no external dependencies.</p>
 <p>You should be able to stick the remaining code somewhere in your project and have it compile. I might make this easier in the future by making this part of the code a separate library.</p>
-<p>For now, look at <code>main.cpp</code> for an example of how to call scripts from your code base (replace <code>main()</code> with something else). You'll want to add your own functionality as native functions as described in the previous section.</p>
-<p>Some of Lobster relies on it's own math library (<code>geom.h</code>), but it should be very easy to make convenient functions to convert Lobster vectors into your own math types (you could wrap around the <code>ToValue</code> and <code>ValueTo</code> functions).</p>
+<p>For now, look at <code>main.cpp</code> for an example of how to call scripts from your code base (replace <code>main()</code> with something else). You’ll want to add your own functionality as native functions as described in the previous section.</p>
+<p>Some of Lobster relies on it’s own math library (<code>geom.h</code>), but it should be very easy to make convenient functions to convert Lobster vectors into your own math types (you could wrap around the <code>ToValue</code> and <code>ValueTo</code> functions).</p>
 </body>
 </html>

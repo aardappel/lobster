@@ -1,17 +1,4 @@
-- write lots of docs and examples for all the new functionality
-  - do a pass thru all existing docs fixing things that are out of date.
-  - better "why should I want this language" intro rather than just a list of features.
-  - maybe more of a document that is meant to show the best of the language, with
-    examples, kind of like whats on the home page but more extensive.
-  - several people on https://news.ycombinator.com/item?id=19567160 want more detail
-    on the lifetime and typesystems.
-  - multithreading
-  - escaping lambdas
-  - also new syntax highlighting etc
-  - have selectable examples like e.g. https://dlang.org/
-  - ownership docs:
-    - Cone
-    - https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1
+- disallow tab characters?
 
 - rework/replace multimethods
 
@@ -87,6 +74,14 @@
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
+
+- improve docs.
+  - better "why should I want this language" intro rather than just a list of features.
+  - maybe more of a document that is meant to show the best of the language, with
+    examples, kind of like whats on the home page but more extensive.
+  - multithreading
+  - have selectable examples like e.g. https://dlang.org/
+  - redo philosophy doc.
 
 - move all string formatting and parsing to to_chars and from_chars
 

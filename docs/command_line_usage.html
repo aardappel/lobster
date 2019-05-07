@@ -23,30 +23,38 @@
 </header>
 <h2 id="basic-usage">Basic usage</h2>
 <p>If you have a file <code>helloworld.lobster</code> that contains</p>
-<pre><code>print(&quot;Hello, World!&quot;)</code></pre>
+<pre><code>print &quot;Hello, World!&quot;</code></pre>
 <p>then running it like so will compile and run it:</p>
 <pre><code>bin/lobster helloworld.lobster</code></pre>
 <h2 id="command-line-options">Command line options</h2>
-<p>These can be passed to lobster anywhere on the command line.</p>
+<p>Format: <code>lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]</code></p>
 <ul>
-<li><p><code>--pak</code> : generates a pakfile (currently always called “<code>default.lpak</code>”) in the same folder as the <code>.lobster</code> file it reads, and doesn’t run the program afterwards. If you run lobster with no arguments at all, it will try to load “<code>default.lpak</code>” from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a pakfile. The pakfile contains the bytecode, and any data files you have specified with the <code>pakfile</code> keyword, see “Distributing Lobster programs” in the implementation documentation.</p></li>
+<li><p><code>FILE</code> : main Lobster file to compile &amp; run.</p></li>
+<li><p><code>-- ARGS</code> pass args to the running Lobster program, available from <code>command_line_arguments()</code>. Must be last on the command-line.</p></li>
+<li><p><code>--pak</code> : generates a pakfile (currently always called “<code>default.lpak</code>”) in the same folder as the <code>.lobster</code> file it reads, and doesn’t run the program afterwards. If you run lobster with no arguments at all, it will try to load “<code>default.lpak</code>” from the same folder it resides in. Thus distributing programs created in lobster is as simple as packaging up the lobster executable with a pakfile. The pakfile contains the bytecode, and any data files you have specified with the <code>pakfile</code> keyword, see “Distributing Lobster programs” in the <a href="implementation.html">implementation</a> documentation.</p></li>
 <li><p><code>--cpp</code> : compiles to a .cpp file. Useful if you’ve created something in Lobster that could use a bit more speed, for a shipping build. Not recommend to be used during development. See <a href="implementation.html">implementation</a> on how to compile the resulting code.</p></li>
 <li><p><code>--wasm</code> : compiles to WebAssembly file. Useful for shipping to a platform that supports WebAssembly, like the web. See <a href="implementation.html">implementation</a> on how to compile the resulting code.</p></li>
-<li><p><code>--wait</code> : makes the compiler wait for commandline input before it exits. Useful on Windows.</p></li>
+<li><code>--runtime-shipping</code> : Compile with asserts off.</li>
+<li><code>--runtime-asserts</code> : Compile with asserts on (default)</li>
+<li><p><code>--runtime-verbose</code> : Compile with asserts on + additional debug.</p></li>
+<li><code>--wait</code> : makes the compiler wait for commandline input before it exits. Useful in Windows batch files.</li>
+<li><p><code>--noconsole</code> : Close console window (Windows)</p></li>
+<li><code>--verbose</code> : verbose mode, outputs additional stats about the program being compiled/run. <code>--debug</code> outputs even more, only useful for working on the compiler.</li>
+<li><p><code>--silent</code> : Only output errors.</p></li>
 <li><p><code>--gen-builtins-html</code> : dumps a help file of all builtin functions the compiler knows about to <code>builtin_functions_reference.html</code>. <code>--gen-builtins-names</code> dumps a plain text list of functions, useful for adding to syntax highlighting files etc.</p></li>
-<li><p><code>--verbose</code> : verbose mode, outputs additional stats about the program being compiled</p></li>
 <li><p><code>--parsedump</code> : dumps internal representations of the program as AST, and <code>--disasm</code> for a readable bytecode dump. Only useful for compiler development or if you are really curious.</p></li>
+<li><p><code>--non-interactive-test</code> : Quit after running 1 frame. Useful for running graphical programs as part of a test suite.</p></li>
 </ul>
 <h2 id="default-directories">Default directories</h2>
 <p>It’s useful to understand the directories lobster uses, both for reading source code files and any data files the program may use:</p>
 <ul>
-<li><p>the root repo directory: This is the folder this has the default <code>bin modules data docs samples tests</code> folders inside of it.</p></li>
+<li><p>the root repo directory: This is the main folder that has the default <code>bin modules data docs samples tests</code> folders inside of it.</p></li>
 <li><p>the auxiliary directory: this is where the main <code>.lobster</code> file being compiled resides.</p></li>
 <li><p>the directory for writing files: the same as auxiliary on desktop platforms, but often a special directory on mobile platforms.</p></li>
-<li><p>On Linux additionally it can load files from <code>/usr/share/lobster/</code> if the above paths don’t work. This is to allow package managers to install Lobster in the system directories.</p></li>
+<li><p>On Linux additionally it can load files from <code>/usr/share/lobster/</code> (or whatever path was configured for install by CMake, see <code>DATADIR</code>) if the above paths don’t work. This is to allow package managers to install Lobster in the system directories.</p></li>
 </ul>
-<p>Additionally, if any of these folders contains a “<code>modules</code>” directory, it will load source code from there as well.</p>
-<p>Any of the Lobster builtin commands that load data files specify paths relative to either the main or auxiliary directories (and either / or  may be used as path separators). If you package up a Lobster program for distribution, all these files can be packed into a pakfile, see <code>-b</code>.</p>
+<p>Additionally, if any of these folders contains a <code>modules</code> directory, it will load source code from there as well.</p>
+<p>Any of the Lobster builtin commands that load data files specify paths relative to either the main or auxiliary directories (and either / or  may be used as path separators). If you package up a Lobster program for distribution, all these files can be packed into a pakfile, see <code>--pak</code>.</p>
 <h2 id="output">Output</h2>
 <p>Running lobster may result in a compiler error, that generally look something like this:</p>
 <pre><code>mygame.lobster(960): error: unknown identifier: highscor</code></pre>

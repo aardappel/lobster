@@ -242,7 +242,7 @@ void RegisterBuiltin(NativeRegistry &nfr, const char *name,
 void DumpBuiltins(NativeRegistry &nfr, bool justnames, const SymbolTable &st) {
     string s;
     if (justnames) {
-        for (auto nf : nfr.nfuns) { s += nf->name; s += " "; }
+        for (auto nf : nfr.nfuns) { s += nf->name; s += "|"; }
         WriteFile("builtin_functions_names.txt", false, s);
         return;
     }

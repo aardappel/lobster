@@ -70,11 +70,13 @@ becoming more mainstream:
   [1](https://nim-lang.org/araq/destructors.html)
   [2](https://nim-lang.org/araq/ownedrefs.html)) with a model that is partially
   programmer assisted and partially runtime.
-* Many more research-y languages, e.g.
+* Many more research-y or less known languages, e.g.
   [Gel](https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf),
   [Dyon](https://github.com/PistonDevelopers/dyon/issues/173),
   [CoSy](http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf),
   [ParaSail](https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view)
+  [Cone](http://cone.jondgoodwin.com/memory.html)
+  [Scopes](https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1)
 
 I personally think this general direction is the future of memory management.
 It just needs to be made more friendly than Rust for most programmers to

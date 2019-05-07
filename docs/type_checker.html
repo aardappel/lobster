@@ -87,18 +87,22 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>Also note the return type is just the else branch in the string case, it doesn’t need to make a type union between the branches anymore.</p>
 <p>This is powerful, because it allows you to write generic functions that do subtly different things depending on the input, with no overhead from the conditional, and the ability to operate differently on each case.</p>
 <p>You can do something similar with multi-methods, but that may require more code or may be less efficient.</p>
-<h2 id="generic-objects">Generic objects</h2>
-<p>Besides functions, objects can also be generic. If you define any field without types:</p>
-<pre><code>class foo { a:string, b }</code></pre>
-<p>You create a generic type.</p>
-<p>Unlike functions however, Lobster is a bit more strict here in that it requires you to explicitly define a specialization before you can use it<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
-<pre><code>class foo_f: foo(float)</code></pre>
+<h2 id="generic-classes-and-structs">Generic classes and structs</h2>
+<p>Besides functions, classes can also be generic, but here we use explicit generic parameters to do so:</p>
+<pre><code>class foo&lt;T&gt;:
+    a:string
+    b:T</code></pre>
+<p>And unlike functions, Lobster is a bit more strict here in that it requires you to explicitly define a specialization before you can use it<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>:</p>
+<pre><code>class foo_f = foo&lt;float&gt;</code></pre>
 <p>You can now construct a foo with floats, either explicitly with <code>foo_f { &quot;hi&quot;, 2.0 }</code>, or you can use the generic type: <code>foo { &quot;hi&quot;, 2.0 }</code> and let the compiler pick from all available specializations.</p>
 <p>Functions written to accept <code>foo</code> arguments will of course work on any of the specializations.</p>
 <p>You can even specialize and subclass at the same time:</p>
-<pre><code>class bar : foo { c }
-class bar : foo(float) { c:int }</code></pre>
-<p>The first version subclasses <code>foo</code> into another generic type, and the second specializes and subclasses at the same time, creating a non-generic type instead.</p>
+<pre><code>class bar : foo&lt;float&gt;
+    c:int
+
+class bar&lt;T, U&gt; : foo&lt;T&gt;
+    c:U</code></pre>
+<p>The first specializes and subclasses at the same time, creating a non-generic type. the second version subclasses <code>foo</code> into another generic type, passing on one generic parameter and introducing another.</p>
 <h2 id="numeric-structs-math-vector-types">Numeric Structs (math vector types)</h2>
 <p>Structs whose fields are either all int or all float, and have between 2-4 fields have a special status in the type system, as they are accepted as arguments to vector versions of the built-in operators (<code>+ - * /</code> etc) as well as many vector operations part of the built-in functions (e.g. <code>normalize</code>).</p>
 <p>You can see the default types for these (<code>xy</code>, <code>xyz</code>, and <code>xyzw</code>) defined in <code>modules/stdtype.lobster</code>. Other types also work with these operations, though (e.g. <code>color</code>).</p>

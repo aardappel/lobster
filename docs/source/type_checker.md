@@ -228,26 +228,26 @@ conditional, and the ability to operate differently on each case.
 You can do something similar with multi-methods, but that may require more code
 or may be less efficient.
 
-Generic objects
----------------
+Generic classes and structs
+--------------------------
 
-Besides functions, objects can also be generic. If you define any field without
-types:
+Besides functions, classes can also be generic, but here we use explicit
+generic parameters to do so:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class foo { a:string, b }
+class foo<T>:
+    a:string
+    b:T
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You create a generic type.
-
-Unlike functions however, Lobster is a bit more strict here in that it requires
+And unlike functions, Lobster is a bit more strict here in that it requires
 you to explicitly define a specialization before you can use it[^1]:
 
 [^1]: The initial typed version of Lobster would create specializations on the
 fly, but this could cause very hard to track down type errors.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class foo_f: foo(float)
+class foo_f = foo<float>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can now construct a foo with floats, either explicitly with `foo_f { "hi",
@@ -260,13 +260,17 @@ specializations.
 You can even specialize and subclass at the same time:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class bar : foo { c }
-class bar : foo(float) { c:int }
+class bar : foo<float>
+    c:int
+
+class bar<T, U> : foo<T>
+    c:U
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first version subclasses `foo` into another generic type, and the second
-specializes and subclasses at the same time, creating a non-generic type
-instead.
+The first specializes and subclasses at the same time, creating a non-generic type.
+the second version subclasses `foo` into another generic type, passing on one generic
+parameter and introducing another.
+
 
 Numeric Structs (math vector types)
 -----------------------------------

@@ -18,7 +18,7 @@ Lexical definition
     and `*/` or single line comments starting with `//`
 
 -   Operator tokens are `( ) [ ] { } : ; , & | + ++ += - -- -= * *= / /= % %= ==
-    != < > <= >= <- = ! ? . -> && || and or not ^ << >>`
+    != < > <= >= <- = ! ? . -> && || ^ << >>`
 
 -   Strings delimited by `"` and character constants with `'` using escape codes
     `\n \t \r \" \' \ \x` (followed by 2 hex digits, e.g. `\xFF` is the
@@ -35,8 +35,9 @@ Lexical definition
 -   Identifiers made from alpha-numeric characters and the `_` (except no digits
     for the first character).
 
--   Keywords: `nil true false return from class value import int float string
-    vector def super is program private coroutine enum`
+-   Keywords: `nil return class struct import int float string any void
+    def is from program private coroutine resource enum enum_flags typeof
+    var let pakfile switch case default namespace not and or`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
     expression (such as `+` or `,`) and an actual token otherwise (used to
@@ -57,26 +58,34 @@ program = stats end\_of\_file
 
 stats = topexp … linefeed
 
-topexp = `import` [ `from` ] ( string\_constant \| ident ... `.` )
-      \| [ `private` ] ( `def` ident functiondef
-      \| class \| vardef \| enumdef ) \| expstat
+topexp = `namespace` ident
+      \|`import` [ `from` ] ( string\_constant \| ( ident ... `.` ) )
+      \| [ `private` ] ( functiondef \| class \| vardef \| enumdef )
+      \| expstat
 
-class = ( `class` \| `struct` ) ident `:` [ ident ] `[` indlist( ident ) `]`
+class = ( `class` \| `struct` ) ident
+        ( `=` ident specializers
+       \| [ generics ] `:` [ ident [ specializers ] ]
+          indlist( ident [ `:` type ] [ `=` exp ] \| functiondef ) )
+
+specializers = `<` list( type ) `>`
+generics = `<` list( ident ) `>`
 
 vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `(` args `) :` body
+functiondef = `def` ident functionargsbody
+functionargsbody = `(` args `) :` body
 
-block = args `:` body \| functiondef
+block = [ args ] `:` body \| functionargsbody
 
 args = [ list( ident [ ( `:` \| `::` ) type ] ) ]
 
 body = ( expstat \| indent stats dedent )
 
-type = `int` \| `float` \| `string` \| `vector` \| `def` \| `coroutine` \| `nil`
-\| ident
+type = `int` \| `float` \| `string` \| `[` type `]` \| `coroutine` \| `resource` \| `void`
+    \| ident
 
 call = `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
 
@@ -94,16 +103,15 @@ unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
 \| `++` \| `--` \| call \| `is` type ]
 
-factor = constant \| `(` exp `)` \| constructor \| `def` functiondef \|
+factor = constant \| `(` exp `)` \| constructor \| `def` functionargsbody \|
 `coroutine` ident call \| ident [ call ]
 
-constructor = `[` [ indlist( exp ) ] `]` [ `::` type ] \| ident `{` [ indlist(
+constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
 exp ) ] `}`
 
 constant = numeric\_constant \| string\_constant \| character\_constant \| `nil`
-\| `true` \| `false`
 
-indlist(e) = list(e) \| indent list(e) [ linefeed ] dedent linefeed
+indlist(e) = indent list(e) [ linefeed ] dedent linefeed
 
 list(e) = e ... `,`
 
@@ -113,9 +121,9 @@ Types
 Lobster is statically typed, and any variable, argument or vector element can be
 a value of one of the following types:
 
--   Scalar types:
+-   Scalar types (32 or 64 bit depending on the host architecture):
 
-    -   `int` : a 32bit signed integer. Constructed using:
+    -   `int` : a 32/64bit signed integer. Constructed using:
 
         -   integer constants : `123`
 
@@ -125,9 +133,9 @@ a value of one of the following types:
 
         -   default boolean values `true` and `false` (same as `1` and `0`)
 
-    -   `float` : 32bit IEEE floating point number
+    -   `float` : 32/64bit IEEE floating point number
 
-    -   a function values, can be called just like normal functions. See below.
+    -   a function value, can be called just like normal functions. See below.
 
 -   Reference values:
 
@@ -139,14 +147,13 @@ a value of one of the following types:
         functions string_to_unicode and unicode_to_string. Immutable: can be indexed
         into for reading but not writing.
 
-    -   `vector` : a dynamically sized array of any Lobster values, constructed
+    -   vector : a dynamically sized array of any Lobster values, constructed
         with square brackets surrounding 0 or more comma separated values, e.g.
         `[ 1, 2, 3 ]`. May be dereferenced for reading/writing using indices
         (e.g. `a[0]`). Vectors may be typed by being suffixed by `: type`, which
         will require all elements to be of that type
 
-    -   `class` / `struct` : a user defined data structure similar to a
-        `vector`, see below.
+    -   `class` / `struct` : a user defined data structure, see below.
 
     -   `coroutine` : a special object that contains a suspended computation,
         see the section on coroutines below.
@@ -156,12 +163,13 @@ a value of one of the following types:
         "nilable", for more on that see the document on type checking,
         [here](type_checker.html).
 
-Lobster does not have a separate boolean type. Instead, for boolean tests such
-as the `! & |` operators (see below) or the builtin function `if`, the values `0
-0.0 nil` (which includes the keyword `false`) are all considered to be false,
+Lobster does not have a built-in boolean type, though it does have a pre-defined
+`bool` enum (see enums below). In general, for boolean tests such
+as the `not and or` operators (see below) or the builtin function `if`, the values
+`0 0.0 nil` (which includes the enum value `false`) are all considered to be false,
 and all other values are true.
 
-The `vector` / `class` and `coroutine` types are the only mutable objects (can
+The vector / `class` and `coroutine` types are the only mutable objects (can
 change after creation), and have reference semantics (multiple values can refer
 to the same object in memory, and thus changes can be observed from each).
 
@@ -169,60 +177,65 @@ User Defined Types
 ------------------
 
 The `class` and `struct` keywords allow you to define a user defined type. For
-example, from `vec.lobster`:
+example:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy { x, y }
-struct xyz : xy { z }
+struct xy:
+    x:int
+    y:int
+
+struct xyz : xy
+    z:int
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use either `class` or `struct` to define these, both giving the same
-result except for the latter being more restrictive: it does not allow fields to
-be modified (assigned to) after it has been constructed. This makes sense for
-small objects such as the one in this example, and can be used to enforce a more
-functional style of programming.
+You can use either `class` or `struct` to define these, with the latter being more
+restrictive: it does not allow fields to be modified (assigned to) after it has
+been constructed, they are stored in-inline in their parent and copied.
+This makes sense for small objects such as the one in this example, and can be used
+to enforce a more functional style of programming.
 
-You specify a list of fields between `{` and `}`. The above example has no types
-specified, which makes it a generic type, more about the [type
-system](type_checker.html).
+You specify a list of fields using indentation.
 
 Optionally, you specify a supertype, which has the effect of adding all the
 fields of the supertype to the current type, thus making it an extension of the
 former.
 
+The above example uses ints directly, but you
+can also define types more generically, and then define specializations of them:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct xy<T>:
+    x:T
+    y:T
+
+struct xy_i = xy<int>
+struct xy_f = xy<float>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var v = xyz { 1, 0, 0 }
+let v = xyz { 1, 0, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The type ensures that the right number of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
 
-Optionally, you may declare types of elements, which will cause these types to
-be checked upon construction.
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy { x:float = 0.0, y:float = 0.0 }
+struct xy:
+    x = 0.0
+    y = 0.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Additionally, you may specify default values, if these are given, then these
 values are not arguments to the constructor, e.g. `xy {}`.
-
-For larger class definitions, you can use the indentation based syntax instead:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct xy:
-    x:float = 0.0
-    y:float = 0.0
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Operators
 ---------
 
 Lobster comes with a set of built-in operators mostly familiar from other
 languages that attempt to work on as many of the above types as makes sense. In
-particular, unlike most languages, many of them work on whole vectors, which
+particular, unlike most languages, many of them work on (numeric) structs, which
 makes typical game code both convenient and fast.
 
 ### Assignment and Definition
@@ -237,13 +250,13 @@ v.x = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All variables must already have been declared, or this will result in an error.
-Instead, `var` defines and assigns in one go, and requires the variable to not
+`var` defines and assigns in one go, and requires the variable to not
 have been declared yet in this scope. `let` does the same for variables which
 cannot be modified afterwards:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 var a = 1
-let a = 1
+let b = 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,16 +269,15 @@ below).
 
 ### Indexing
 
-As indicated, square brackets can be used to index into vectors, with the .
-notation being a convenient shorthand for constant indices when field names are
-available. These may be chained arbitrarily (to index into a vector of vectors
-for example).
+As indicated, square brackets can be used to index into vectors, and similarly
+`.` can dereference fields of a `class` or `struct`.
+These may be chained arbitrarily.
 
 You may even use a vector as index, e.g.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-var pos = [ 0, 1 ]
+let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
+let pos = xy { 0, 1 }
 print mat[pos]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -277,30 +289,16 @@ places 2d arrays are usually most naturally thought of as row-major.
 
 The 5 binary mathematical operators `+ - * / %` (the last 3 having higher
 precedence) work on `int`, `float` (or a combination, where the end result will
-be `float`). They also work on vectors containing ints or floats with either
-another vector or a single int or float. The resulting vector will have the
-length of the shortest of all input vectors, and will contain `float` elements
-unless *all* values involved were `int`. The type of the shortest vector (or
-left hand side if both equal) is preserved in the result:
+be `float`). They also work on structs containing ints or floats with either
+another struct or a single int or float. These structs must be the same type.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[ 1, 2, 3 ] * xy { 4, 5.5 }  // results in xy { 4.0, 11.0 }
+xy { 1, 2 } * xy { 4, 5 }  // results in xy { 4, 10 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All 5 also have have a combined assignment operator version, `+= -= *= /= %=`,
 which are implemented to have exactly the same effect as their expanded form,
 e.g. `a += 1` is always exactly the same as `a = a + 1`.
-
-This matters for vectors, where `+=` does *not* overwrite the left hand side
-vector with new values, but instead assigns the variable the newly constructed
-vector that is the result of the `+` operation. This is vital given that vectors
-use reference semantics, because otherwise assigning a constant vector to a
-variable followed by `+=` would also modify that constant, which would cause
-subtle bugs and generally go against Lobster's functional programming oriented
-design. The downside of this is that if you pass a vector to a function, and
-then use += to modify it, you are modifying your local variable only, and the
-caller's vector will be unaffected. Instead, you'll have to use (multiple)
-return values to give the modified value back to the caller.
 
 In addition, the `+` operator also works as string concatenation if either side
 is of string type (the other side will be converted to a string representation
@@ -310,15 +308,15 @@ Unary minus (`-`) acts on the same types in the same way as the binary version.
 
 The increment and decrement operators `++` and `--` work either as prefix
 (increment, return new value) and as postfix (increment, return old value) on
-variables and vector index.
+any lvalues.
 
 Bitwise operators `& | ^ ~ << >>` behave like they do in any other language.
 
 ### Comparison and Logical Operators
 
 The next lower level of precedence are the comparison operators `< > <= >=`
-which work on `int`, `float` and `string` and `vector` (returning a vector of
-booleans, use builtin functions `any` and `all` to test these), and then the
+which work on `int`, `float` and `string` and structs (returning a struct of
+ints, use builtin functions `any` and `all` to test these), and then the
 equality operators `==` and `!=` which additionally work on all other types, but
 in particular for `vector` and `coroutine` compare *by reference*, i.e they will
 give true only if both sides refer to the same object (*object identity*). To
@@ -368,8 +366,8 @@ which don't need an explicit `return` (it is automatically the last expression
 evaluated).
 
 Arguments can be just an argument name (which will be available as a lexically
-scoped local variable inside body), or a typed name (e.g. `s:string`). Types are
-checked at compile time. If you don't specify types, the function is generic,
+scoped local variable inside body), or a typed name (e.g. `s:string`).
+If you don't specify types, the function is generic,
 meaning it will receive types from the caller.
 
 You can use :: instead of : for typed vector arguments, which allows you to
@@ -435,23 +433,24 @@ You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var f = function(arg1, arg2): body
+var f = def(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You call these just like any other function, e.g. `f(1, 2)`.
+You call these just like any other function, e.g. `f(1, 2)`. You must call them
+using a variable.
 
 The full `function` syntax is infrequently used however, because most function
 values are created to be passed to other functions, and Lobster has a special
 syntax for this situation that is meant to mimic control structures in other
 languages. Any function call may be followed by one or more function values,
-where the `function` keyword is omitted:
+where the `def` keyword is omitted:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 for(10) (i): print(i)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here, the function `for` is called with 2 arguments, the first is `10`, and the
-second is the function value `function(i): print(i)`. Lobster allows three more
+second is the function value `def(i): print(i)`. Lobster allows three more
 levels of further simplification of the syntax if the arguments do not contain
 type annotations:
 
@@ -474,9 +473,9 @@ have any argument declarations.
 This style of syntax is intended to make each function that takes a function as
 argument (a *higher order function*) have the convenient syntax of a control
 structure, since that's what those functions usually are meant to be anyway. In
-fact, Lobster does not have built-in control structures as part of the language,
-`for` and `if` are examples of built-in functions, and have no different syntax
-from any such function the user could define.
+fact, Lobster's  built-in control structures `if` `for` and `while` are actually
+parsed just like any other function, and have no special syntactical status
+(you'll notice they're not part of the language grammar above).
 
 As an example of how to pass more than one function value, let's see an example
 for `if`:
@@ -540,7 +539,7 @@ received by the multiple assignment syntax introduced above:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def m(): return 1, 2
-var a, b = m()
+let a, b = m()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All return statements for any function must all return the same number of return
@@ -700,7 +699,7 @@ twice, the second occurrence will be ignored.
 An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a.b`
 is short for `"a/b.lobster"`.
 
-Include files will typically be loaded relative to 2 locations: the current
+Modules will typically be loaded relative to 2 locations: the current
 main .lobster file being compiled, and whereever the lobster compiler is installed.
 In both those locations, files may be optionally be found under an `modules`
 sub-directory.
@@ -714,25 +713,32 @@ variables, and functions that you don't want to be visible outside that file.
 Memory Management
 -----------------
 
-Lobster uses reference counting as its basic form of management for many
+Lobster uses (compile time) reference counting as its form of management for many
 reasons. Besides simplicity and space efficiency, reference counting makes a
 language more predictable in how much time is spent for a given amount of code,
 since memory management cost is spread equally through all code, instead of
 causing possibly long pauses like with garbage collection. Lobster has a custom
 allocator for its vector object that is very fast.
 
+Most reference counting happens at compile time using a "lifetime analysis"
+algorithm, details [here](memory_management.html).
+
 Reference counting has one problem, which is that it can't deallocate cycles.
 For example, this code:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var a = [ nil ]
-a[0] = a
-a = nil
+class rec:
+    r:rec?
+
+var x = nil
+x = rec { nil }
+x.r = x
+x = nil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-will cause a memory leak, since initially the vector that a points at has a
+will cause a memory leak, since initially the object that `x` points at has a
 reference count of 1, then that count increases to 2 because it now points to
-itself, and then when the count is reduced to 1 because of `a`'s reference going
+itself, and then when the count is reduced to 1 because of `x`'s reference going
 away, we now have an object with no outside references that still thinks its
 being referenced, thus not deallocated. That is a leak. Now this is a simple
 example, but in the general case with complex data structures, it is not
@@ -745,43 +751,30 @@ both die at the same time with the programmer forgetting to reset the enemy
 field before they die.
 
 Lobster deals with this by detecting that such objects are left over at the end
-of the program, and alerting the programmer that there are leaks. It then writes
-a text file with all leaks in somewhat readable form (with types and values),
+of the program, and alerting the programmer that there are leaks. It then outputs
+a "leak report" with all leaks in somewhat readable form (with types and values),
 making it easier for the programmer to figure out what caused the leak. The
 programmer can then easily fix the leak by setting the reference causing the
 cycle to `nil`, like clearing the enemy field when a unit dies, or by writing
-`a[0] = nil` in the above simplified example.
+`x.r = nil` in the above simplified example.
 
-Manually fixing leaks is certainly preferable, but for the cases where a Lobster
-program may run for a long time, and leak-free code cannot be guaranteed,
-Lobster optionally provides a garbage collector that can be run periodically to
-clean up left over objects:
+More details on Lobster's [memory management](memory_management.html).
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var amount_of_leaks = collect_garbage()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Like most garbage collectors, this function can be slow depending on the amount
-of memory in use, so call it infrequently.
+Control Structures
+-----------------
 
-Built-in Functions
-------------------
-
-Built-in functions are not strictly part of the language, but since Lobster
-relegates so much core functionality to them, it is useful to have a look how
-the important ones work. For a complete list, please refer to the [built-in
-function reference](builtin_functions_reference.html).
-
-### Control Structures
+As notes, all of these follow general function syntax (except `switch`),
+but are otherwise treated specially by the language.
 
 We've already seen `if`, and it functions quite like you expect. The second
 function argument is optional.
 
-The loop constructs `for`, `map`, `filter`, and `exists` all function similarly
+The loop constructs `for` (built-in), `map`, `filter`, and `exists` all function similarly
 in that the iteration argument can be an int N (iterate 0..N-1), a string (each
 byte value), or a vector (each element). They all supply 0, 1 (the element) or 2
 (element, index) values to the function value, depending on the function value.
-`for` returns the number of calls that returned a true value, `map` simply
+`for` returns void, `map` simply
 returns all return values in a vector, `filter` returns a vector of all elements
 for which the call returned a true value, and exists returns the first element
 for which the call returns true (and doesn't iterate further!) or `false`
@@ -812,12 +805,12 @@ than once yet does not use / cannot use the block `{}` syntax. This exception is
 carried over in Lobster. This is not great for readability so isn't generally
 used elsewhere.
 
-`while` returns the last return value of the body, or nil if never executed. A
+`while` returns void. A
 similar function `collectwhile` returns a vector of all body return values.
 
 Many other functions that look like regular functions are actually also control
 structures, like many of the graphics function that change the current rendering
-state. An example is `gl_translate()`, that optionally takes a body, and will
+state. An example is `gl_translate`, that optionally takes a body, and will
 run the body and restore the previous transform afterwards.
 
 `switch` has its own special syntax, since it does a lot of things different:
@@ -854,3 +847,9 @@ Type Checking
 -------------
 
 This has its own document, [here](type_checker.html).
+
+
+Built-in Functions
+------------------
+
+Please refer to the [built-in function reference](builtin_functions_reference.html).
