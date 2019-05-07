@@ -5,7 +5,7 @@ import std
 
 run_test("parsereval"):
 
-    class node {}
+    class node:
 
     class integer : node
         i:int

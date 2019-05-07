@@ -2,14 +2,20 @@ import vec
 
 // For each position, indicates the direction you should move to when on this cell, out of 8 possible
 // cardinal and diagonal directions.
-class nav_map { grid:[[xy_i]], start:xy_i }
+class nav_map:
+    grid:[[xy_i]]
+    start:xy_i
 
 // blocked_cost should be a multiple of the base cost 1, or 0 to disallow movement over blocked areas completely.
 // is_blocked should say for any world position whether it is blocked or not.
 // allow_diag says if you want to automatically create diagonal steps where possible.
 // TODO: more efficient to make a seperate blocked Q for efficiency
 def create_nav_map(start:xy_i, worlddim:xy_i, allow_diag:int, blocked_cost:int, is_blocked):
-    class nav_cell { pdir:xy_i, pos:xy_i, psteps = -1, cost = 0 }
+    class nav_cell:
+        pdir:xy_i
+        pos:xy_i
+        psteps = -1
+        cost = 0
     assert blocked_cost or !is_blocked(start)
     let pathq = []::nav_cell
     let grid = mapxy(worlddim) v: nav_cell { xy_0i, v }

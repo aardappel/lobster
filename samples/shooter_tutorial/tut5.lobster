@@ -9,14 +9,18 @@ let worldsize = 20.0
 var playerpos = xy_0
 let playerspeed = 10
 
-class bullet { pos:xy_f, dir:xy_f }
+class bullet:
+    pos:xy_f
+    dir:xy_f
 
 let firerate = 0.1
 let bulletspeed = 15
 var bullets = []
 var lastbullet = gl_time()
 
-class enemy { pos:xy_f, hp:int }
+class enemy:
+    pos:xy_f
+    hp:int
 
 var enemyrate = 1.0
 let enemyspeed = 3

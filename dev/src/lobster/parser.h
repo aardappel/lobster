@@ -111,16 +111,6 @@ struct Parser {
         }), list->children.end());
     }
 
-    void ParseVector(const function<void ()> &f, TType closing) {
-        if (IsNext(closing)) return;
-        assert(lex.token != T_INDENT);  // Not generated inside brackets/braces.
-        for (;;) {
-            f();
-            if (!IsNext(T_COMMA) || lex.token == closing) break;
-        }
-        Expect(closing);
-    }
-
     void ParseTopExp(List *list, bool isprivate = false) {
         switch(lex.token) {
             case T_NAMESPACE:
@@ -306,6 +296,8 @@ struct Parser {
                 Error("specialization must be same class/struct kind");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
+            if (sup->predeclaration)
+                Error("must specialization fully defined type");
             if (udt->superclass) {
                 // This points to a generic version of the superclass of this class.
                 // See if we can find a matching specialization instead.
@@ -320,7 +312,7 @@ struct Parser {
                 done:
                 udt->superclass = sti;  // Either a match or nullptr.
             }
-        } else if (Either(T_COLON, T_LEFTCURLY, T_LT)) {
+        } else if (Either(T_COLON, T_LT)) {
             // A regular struct declaration
             udt->isprivate = isprivate;
             if (IsNext(T_LT)) {
@@ -334,9 +326,11 @@ struct Parser {
                     Expect(T_COMMA);
                 }
             }
-            if (IsNext(T_COLON) && lex.token != T_INDENT) {
+            Expect(T_COLON);
+            if (lex.token == T_IDENT) {
                 auto sup = parse_sup();
                 if (sup) {
+                    if (sup->predeclaration) sup->predeclaration = false;  // Empty base class.
                     udt->superclass = sup;
                     udt->generics = sup->generics;
                     for (auto &fld : sup->fields.v) {
@@ -344,31 +338,25 @@ struct Parser {
                     }
                 }
                 parse_specializers();
-                if (IsNext(T_COLON) && lex.token != T_INDENT) lex.Undo(T_COLON);
             }
-            auto ParseField = [&]() {
-                ExpectId();
-                auto& sfield = st.FieldDecl(lastid);
-                TypeRef type = type_any;
-                int genericref = -1;
-                if (IsNext(T_COLON)) {
-                    genericref = ParseType(type, false, udt);
-                }
-                Node* defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
-                udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
-            };
-            if (!IsNext(T_INDENT)) {
-                if (IsNext(T_LEFTCURLY)) ParseVector(ParseField, T_RIGHTCURLY);
-                else { /* likely a lf or dedent, meaning an empty indented section */ }
-            } else {
+            if (IsNext(T_INDENT)) {
                 bool fieldsdone = false;
                 for (;;) {
                     if (IsNext(T_FUN)) {
                         fieldsdone = true;
                         parent_list->Add(ParseNamedFunctionDefinition(false, udt));
-                    } else {
+                    }
+                    else {
                         if (fieldsdone) Error("fields must be declared before methods");
-                        ParseField();
+                        ExpectId();
+                        auto &sfield = st.FieldDecl(lastid);
+                        TypeRef type = type_any;
+                        int genericref = -1;
+                        if (IsNext(T_COLON)) {
+                            genericref = ParseType(type, false, udt);
+                        }
+                        Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                        udt->fields.v.push_back(Field(&sfield, type, genericref, defaultval));
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
@@ -1153,6 +1141,16 @@ struct Parser {
                 Error("illegal start of expression: " + lex.TokStr());
                 return nullptr;
         }
+    }
+
+    void ParseVector(const function<void()> &f, TType closing) {
+        if (IsNext(closing)) return;
+        assert(lex.token != T_INDENT);  // Not generated inside brackets/braces.
+        for (;;) {
+            f();
+            if (!IsNext(T_COMMA) || lex.token == closing) break;
+        }
+        Expect(closing);
     }
 
     Node *IdentFactor(string_view idname) {

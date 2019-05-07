@@ -30,8 +30,10 @@ run_test("types"):
 
     assert typeof int == 0  // Always the first one added to the typetable.
 
-    class testa { a:int }
-    class testb : testa { b:int }
+    class testa:
+        a:int
+    class testb : testa
+        b:int
 
     // return from should generalize both specializations
     def return_from(a):

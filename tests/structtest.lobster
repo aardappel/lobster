@@ -5,9 +5,15 @@ run_test("misch"):
 
     // Basic struct and nested struct usage.
     do():
-        struct A { x:int, y:int }
-        struct B { a:A, b:int }  // Inline, sizeof(B) == 12 :)
-        class C { a:A, b:int }  // Also inline, inside heap allocated, refcounted parent.
+        struct A:
+            x:int
+            y:int
+        struct B:
+            a:A  // Inline, sizeof(B) == 12 :)
+            b:int
+        class C:
+            a:A  // Also inline, inside heap allocated parent.
+            b:int
         var a = xy { 3, 4 } + xy { 1, 1 } - xy { 1, 1 }
         let b = B { A { 5, 6 }, a.x + a.y }
         assert b.a.x + b.a.y + b.b == 18
@@ -74,8 +80,9 @@ run_test("misch"):
 
     // Multi-methods.
     do():
-        class mm1 { m:int }
-        class mm2 : mm1 {}
+        class mm1:
+            m:int
+        class mm2 : mm1
         def mm(a:mm1, b:xy_i): return a.m + b.x + b.y
         def mm(a:mm2, b:xy_i): return a.m + b.x + b.y
         assert mm(mm1 { 1 }, xy { 4, 5 }) == 10
@@ -84,19 +91,23 @@ run_test("misch"):
     // Structs with reference counted members.
     // This very preliminary: doesn't support mixed refc/scalar, needs more testing.
     do():
-        struct R { a:string, b:[int] }
-        struct RN { a:string, r:R }
-        var r = R { "hello", [ 123 ] }
+        struct R:
+            a:string
+            b:[int]
+        struct RN:
+            a:string
+            r:R
+        let r = R { "hello", [ 123 ] }
         def f(x): return R { x.a + x.a, append(x.b, x.b) }
         var fr = f(r)
         assert fr.a == "hellohello"
-        var rs = [ R { "one", [ 1 ] }, R { "two", [ 2 ] } ]
+        let rs = [ R { "one", [ 1 ] }, R { "two", [ 2 ] } ]
         fr = f(rs[1])
         assert fr.a == "twotwo"
-        var rn = RN { "A", R { "B", [ 64 ] } }
+        let rn = RN { "A", R { "B", [ 64 ] } }
         def fn(x): return RN { x.a + x.a, R { x.r.a + x.r.a, append(x.r.b, x.r.b) } }
         var frn = fn(rn)
         assert frn.a == "AA" and frn.r.b[1] == 64
-        var rns = [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
+        let rns = [ RN { "AA", R { "one", [ 1 ] } }, RN { "BB", R { "two", [ 2 ] } } ]
         frn = fn(rns[1])
         assert frn.a == "BBBB" and frn.r.b[1] == 2

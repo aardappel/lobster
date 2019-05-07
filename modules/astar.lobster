@@ -87,11 +87,10 @@ def astar_2dgrid(isocta, gridsize, startnode, endnode, getnode, costf):
 
 def goapf(state:[int]) -> int
 
-class goapaction {
-    name:string,
-    precondition:goapf,
+class goapaction:
+    name:string
+    precondition:goapf
     effect:goapf
-}
 
 class goap_node = astar_node<goap_node?, [int], goapaction? = nil>
 

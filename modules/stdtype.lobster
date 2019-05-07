@@ -5,9 +5,15 @@
 
 // vector types: generally for float or int elements, but useful for other types as well.
 
-struct xy<T> { x:T, y:T }
-struct xyz : xy { z:T }
-struct xyzw : xyz { w:T }
+struct xy<T>:
+    x:T
+    y:T
+
+struct xyz : xy
+    z:T
+
+struct xyzw : xyz
+    w:T
 
 // Specialized type names:
 

@@ -18,7 +18,9 @@ TODO:
 
 namespace gui
 
-private class elem { id:int, size:xy_i }
+private class elem:
+    id:int
+    size:xy_i
 
 private let cursize = [ xy_0i ]
 

@@ -8,7 +8,10 @@ run_test("water"):
 
     rnd_seed(0)
 
-    class cell { h:float, wh:float, nw:float }
+    class cell:
+        h:float
+        wh:float
+        nw:float
 
     let lssize = 100
     let hmargin = 0.2

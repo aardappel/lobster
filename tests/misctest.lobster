@@ -8,7 +8,8 @@ import vec
 namespace test_namespace
 
 def f(): return 1
-class g { x = 1 }
+class g:
+    x = 1
 
 namespace whatever
 
@@ -28,8 +29,10 @@ run_test("misc"):
     assert test_namespace_f() == 1
     assert (test_namespace_g {}).x == 1
 
-    class testa { a:int }
-    class testb : testa { b:int }
+    class testa:
+        a:int
+    class testb : testa
+        b:int
 
     def tf(x:int, y:int): return 1
     def tf(x:string, y:float): return 2
@@ -55,7 +58,16 @@ run_test("misc"):
 
     assert(tf("") == 8)
 
-    class parsetest { h:bool, a:int, b:float, c:xyz_f, d:string, e:[int], f:string?, g:int }
+    class parsetest:
+        h:bool
+        a:int
+        b:float
+        c:xyz_f
+        d:string
+        e:[int]
+        f:string?
+        g:int
+
     let direct = parsetest {
         false, 1, 2, xyz { 3.0, 4.0, 5.0 }, "hello, world!\n\"\'\r\t\\\xC0",
         [ 0, -64 ], nil, true

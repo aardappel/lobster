@@ -4,7 +4,11 @@ import testing
 
 // Define a custom testrunner:
 // Just collect all tests so we can run them interleaved.
-class test { name:string, t:testf, runs:int, min:float }
+class test:
+    name:string
+    t:testf
+    runs:int
+    min:float
 var tests = []
 var number_of_runs = 1
 current_test_runner = def(name:string, t:testf):

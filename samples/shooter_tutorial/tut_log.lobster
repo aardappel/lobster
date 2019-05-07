@@ -39,8 +39,13 @@ while gl_frame() and gl_button("escape") != 1:
 
         let tomouse = normalize(gl_local_mouse_pos(0) - playerpos)
 
-        class enemy { pos:xy_f, hp:int }
-        class bullet { pos:xy_f, dir:xy_f }
+        class enemy:
+            pos:xy_f
+            hp:int
+
+        class bullet:
+            pos:xy_f
+            dir:xy_f
 
         var enemies ?= []
         var bullets ?= []

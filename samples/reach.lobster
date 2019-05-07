@@ -4,7 +4,10 @@ import std
 import vec
 import color
 
-class segment { pos:xy_f, dir = xy_0 }
+class segment:
+    pos:xy_f
+    dir = xy_0
+
 let segs = map 7: segment { xy { 0.5, 1 } }
 
 let ballradius = 0.1

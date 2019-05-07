@@ -7,18 +7,21 @@ import texture
 
 run_test("smallpt"):
 
-    struct Ray { o:xyz_f, d:xyz_f }
+    struct Ray:
+        o:xyz_f
+        d:xyz_f
 
     enum Material:  // Used in radiance()
         DIFF
         SPEC
         REFR
 
-    class Sphere {
-        rad:float,                 // radius
-        p:xyz_f, e:xyz_f, c:xyz_f, // position, emission, color
-        refl:int                   // reflection type (DIFFuse, SPECular, REFRactive)
-    }
+    class Sphere:
+        rad:float       // radius
+        p:xyz_f         // position
+        e:xyz_f         // emission
+        c:xyz_f         // color
+        refl:Material
 
     def intersect(sphere::Sphere, r:Ray):  // returns distance, 0 if nohit
         let op = p-r.o   // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0
