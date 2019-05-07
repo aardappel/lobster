@@ -438,9 +438,7 @@ Scene LoadScene(string_view gltf_path, string_view schema_path) {
                                     break;
                                 case 3:
                                     verts[i].uv[0] = v_dat[0];
-                                    // OpenGL UVs are vertically flipped, glTF UVs work like Vulkan
-                                    // UVs.
-                                    verts[i].uv[1] = 1.0f - v_dat[1];
+                                    verts[i].uv[1] = v_dat[1];
                             }
                         }
                         LOG_DEBUG(" ");  // A blank line.
