@@ -1833,6 +1833,8 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         tc.TypeError("switch value must be int / float / string", *this);
     exptype = nullptr;
     bool have_default = false;
+    vector<bool> enum_cases;
+    if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
     for (auto &n : cases->children) {
         tc.TT(n, reqret, LT_KEEP);
         auto cas = AssertIs<Case>(n);
@@ -1840,6 +1842,16 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         for (auto c : cas->pattern->children) {
             tc.SubTypeT(c->exptype, ptype, *c, "", "case");
             tc.DecBorrowers(c->lt, *cas);
+            if (ptype->IsEnum()) {
+                assert(c->exptype->IsEnum());
+                Value v;
+                if (c->ConstVal(tc, v)) {
+                    for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.ival()) {
+                        enum_cases[i] = true;
+                        break;
+                    }
+                }
+            }
         }
         auto body = AssertIs<Call>(cas->body);
         if (!tc.NeverReturns(body)) {
@@ -1856,8 +1868,13 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret) {
         }
     }
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
-    if (reqret && !have_default)
-        tc.TypeError("switch that returns a value must have a default case", *this);
+    if (!have_default) {
+        if (reqret) tc.TypeError("switch that returns a value must have a default case", *this);
+        if (ptype->IsEnum()) {
+            for (auto [i, ev] : enumerate(ptype->e->vals)) if (!enum_cases[i])
+                tc.TypeError("enum value not tested in switch: " + ev->name, *value);
+        }
+    }
     tc.DecBorrowers(value->lt, *this);
     lt = LT_KEEP;
     return this;

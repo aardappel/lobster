@@ -1,11 +1,3 @@
-- enums
-  - use namespaces
-    - remove keywords?
-  - get their names
-  - get min/max
-  - check all are tested in a switch
-  - iterate them? return a vector of all values?
-
 - write lots of docs and examples for all the new functionality
   - do a pass thru all existing docs fixing things that are out of date.
   - better "why should I want this language" intro rather than just a list of features.
@@ -17,9 +9,24 @@
   - escaping lambdas
   - also new syntax highlighting etc
   - have selectable examples like e.g. https://dlang.org/
+  - ownership docs:
+    - Cone
+    - https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1
 
-- do whatever big language fixes still need to happen.
-  - multimethods
+- rework/replace multimethods
+
+- do more inlining:
+  - mark certain functions as un-inlinable.
+  - for the remainder, compute a) the cumulative size if everything beneath it got inlined,
+    then b) the number of callers
+  - now based on this cumulative number for the root function, determine a maximum blow-up
+    amount that is desirable. Then mark as not in-lineable the function that would make the
+    biggest reduction in code size according to a*b. Recompute sizes of parents.
+    Repeat until desired code size is reached.
+  - now blindly inline absolutely everything else that remains.
+  - for programs that don't contain any combinatorial patterns, this will allow everything
+    to be inline.
+  - need to see what consequences this has for making the lifetimes of variables longer.
 
 - Should add template arg types also to regular functions.
   - an example is gui_multiselect called with enum type for selected.
@@ -138,12 +145,6 @@
     - drawcalls? triangles?
   - add screenshot & link to imgui page?
 
-- typechecking for bool, including output to true/false when printing etc.
-- how about slightly stronger typed enums, while we're at it?
-  - enums as types, and require explicit conversion int -> enum.
-  - or make bool an enum declared in stdtype.lobster? :)
-    - have to then make comparison ops return this type.
-
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?
 
@@ -221,6 +222,12 @@
   stored in data structures that are not escaping but hard to prove that they are.
 
 - enable dynamic function value call on any exp, see ParseDeref.
+
+- enums
+  - use namespaces
+    - remove keywords?
+  - get min/max
+  - iterate them? return a vector of all values?
 
 - strong typedefs.
   Will basically add a tag to any base type.

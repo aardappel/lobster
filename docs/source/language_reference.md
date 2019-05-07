@@ -608,6 +608,12 @@ at `0` instead. Values automatically increment from the last explicitly specifie
 so `bar` will be `2` here. Instead of `enum` you can use `enum_flags`, which changes the
 default first value to `1` and uses `* 2` to get to next value instead of `+ 1`.
 
+Functions like `string`, `print` will get you the name of an enum value, and likewise
+`parse_data` can turn these names into enum values (when part of a data structure).
+
+When you use an enum in a `switch`, it is an error to not test all values of an enum
+(if there is no default case).
+
 ### Booleans
 
 A bool is not a built-in type, rather it is defined as an `enum` in `stdtype.lobster`:

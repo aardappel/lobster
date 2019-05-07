@@ -214,13 +214,16 @@ var a, b = m()</code></pre>
     bar
     baz</code></pre>
 <p>An <code>enum</code> defines a “strongly typed alias” for the <code>int</code> type. What this means is that these values are fully compatible with <code>int</code> in any use, but a regular <code>int</code> can’t be passed to a context where an enum type is explicitly requested.</p>
+<p>You can convert integers explicitly to an enum with a coercion function, e.g. <code>example(1)</code> will create a value equivalent in type and value to <code>foo</code>.</p>
 <p>If you leave out the <code>= 1</code>, the sequence will start at <code>0</code> instead. Values automatically increment from the last explicitly specified value, so <code>bar</code> will be <code>2</code> here. Instead of <code>enum</code> you can use <code>enum_flags</code>, which changes the default first value to <code>1</code> and uses <code>* 2</code> to get to next value instead of <code>+ 1</code>.</p>
+<p>Functions like <code>string</code>, <code>print</code> will get you the name of an enum value, and likewise <code>parse_data</code> can turn these names into enum values (when part of a data structure).</p>
+<p>When you use an enum in a <code>switch</code>, it is an error to not test all values of an enum (if there is no default case).</p>
 <h3 id="booleans">Booleans</h3>
 <p>A bool is not a built-in type, rather it is defined as an <code>enum</code> in <code>stdtype.lobster</code>:</p>
 <pre><code>enum bool:
     false
     true</code></pre>
-<p>Because they are enums, they have the same typing rules: a <code>bool</code> can be used anywhere an <code>int</code> is expected, but not the other way around.</p>
+<p>Because they are enums, they have the same typing rules: a <code>bool</code> can be used anywhere an <code>int</code> is expected, but not the other way around. Similarly, you can use e.g. <code>bool(1)</code> to convert ints.</p>
 <h2 id="coroutines">Coroutines</h2>
 <p>The higher order functions (function that take a function argument) we saw above often perform iteration, and then call the function value back 0..N times. But what if you want to iterate, but you don’t want to run all iterations all at once? For example, what if you want the iteration to happen across frames in a game? In most languages, that means writing iteration code that is a lot clumsier than the nice functions you already have. In Lobster however, you can turn any such function into a coroutine, which is a higher order function that can be resumed on demand. Kind of like a separate thread that only runs when you want to (<em>cooperative multitasking</em>). For example:</p>
 <pre><code>var co = coroutine cofor(10)</code></pre>

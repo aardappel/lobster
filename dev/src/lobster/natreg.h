@@ -120,6 +120,8 @@ struct Type {
 
     bool IsFunction() const { return t == V_FUNCTION && sf; }
 
+    bool IsEnum() const { return t == V_INT && e; }
+
     bool IsBoundVar() const { return t == V_VAR && sub; }
 
     bool HasValueType(ValueType vt) const {
