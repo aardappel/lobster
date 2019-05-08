@@ -419,9 +419,15 @@ struct Lex : LoadedFile {
         // Check if its a multi-line constant.
         if (initial == '\"' && s[0] == '\"' && s[1] == '\"') {
             auto start = s + 2;
+            if (*start == '\r') start++;
             if (*start == '\n') start++;
             auto end = sattr.data() + sattr.size() - 3;
-            return string(start, end);
+            string r;
+            r.reserve(end - start);
+            for (auto c : string_view(start, end - start)) {
+                if (c != '\r') r += c;
+            }
+            return r;
         }
         // Regular string or character constant.
         string r;
