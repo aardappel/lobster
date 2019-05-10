@@ -15,7 +15,7 @@ def filter(xs, fun):
             r.push(x)
     return r
 
-def filterindices(l, f):
+def filter_indices(l, f):
     let r = []
     for(l) x, i:
         if f(x, i):
@@ -48,7 +48,7 @@ def reduce(xs, fun):
 def connect(xs, fun):
     return map(max(0, xs.length - 1)) i: fun(xs[i], xs[i + 1])
 
-def reducerev(xs, fun):
+def reduce_reverse(xs, fun):
     assert xs.length
     var acc = xs[xs.length - 1]
     for(xs.length - 1) i: acc = fun(xs[xs.length - i - 2], acc)
@@ -69,7 +69,7 @@ def find_best(xs, fun):
             best = v
     return i
 
-def weightedpick(list, zero, wf):
+def weighted_pick(list, zero, wf):
     // FIXME: "zero" is an easy way to select float vs int implementation, explicit template
     // arg would be better here.
     let weights = fold(list, zero): _a + wf(_x)
@@ -87,7 +87,7 @@ def product(xs): return fold(xs, 1): _x * _y
 def zip(xs, ys): return map xs.length: [ xs[_], ys[_] ]
 
 def reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
-def reverselist(xs): return map(xs.length) i: xs[xs.length - i - 1]
+def reverse_list(xs): return map(xs.length) i: xs[xs.length - i - 1]
 
 def flatten(xs): return fold(xs, []): append(_a, _b)
 
@@ -157,11 +157,11 @@ def return_after(v, f):
 
 def do(f): f()  // Useful to create a scope where there is none.
 
-def forbias (num, bias,  fun): for num: fun(_ + bias)
-def forscale(num, scale, fun): for num: fun(_ * scale)
+def for_bias (num, bias,  fun): for num: fun(_ + bias)
+def for_scale(num, scale, fun): for num: fun(_ * scale)
 
-def forrange    (a, b, fun): forbias(b - a,     a, fun)
-def forrangeincl(a, b, fun): forbias(b - a + 1, a, fun)
+def for_range     (a, b, fun): for_bias(b - a,     a, fun)
+def for_range_incl(a, b, fun): for_bias(b - a + 1, a, fun)
 
 // HOFs that work on other HOFs:
 

@@ -19,7 +19,7 @@ class Thingy:
     pos = xy_1
     fruits = ["apple", "banana", "pear"]
     others:[Thingy]
-    enumtest = im_window_no_scrollbar
+    windowflag = im_window_always_autoresize
 
 var d = Thingy { map(3): Thingy { [] } }
 var demo = false
@@ -32,7 +32,7 @@ while gl_frame():
 
     im_frame():
         // Maximum convenience: turn any data structure into editable UI!
-        im_window("Created from a class", im_window_always_autoresize):
+        im_window("Automatically created from a class", d.windowflag):
             d = im_edit_anything(d)
 
         // Manually created widgets, so you can choose how to represent and layout data:

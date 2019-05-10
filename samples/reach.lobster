@@ -44,7 +44,7 @@ while gl_frame():
         seg.dir = normalize(in - seg.pos) * seglength
         target = in - seg.dir
 
-    reducerev(segs) b, a:
+    reduce_reverse(segs) b, a:
         b.pos = a.pos + a.dir
         b
 

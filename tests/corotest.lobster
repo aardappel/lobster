@@ -4,7 +4,7 @@ import std
 run_test("coro"):
 
     def mycoro(f):
-        forrange(3, 6): f(_)
+        for_range(3, 6): f(_)
         return 1337
 
     def myfor(n, f):

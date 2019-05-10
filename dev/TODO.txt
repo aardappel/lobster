@@ -1,6 +1,5 @@
-- disallow tab characters?
-
 - rework/replace multimethods
+  - may also make default/tagged args easier / more logical.
 
 - do more inlining:
   - mark certain functions as un-inlinable.
@@ -21,6 +20,7 @@
 - Optimize out variables that are not used.
   This in particular will be good for vec/color.lobster that create a lot of globals,
   also means they don't show up in stack traces / debug windows etc.
+  and can reduce function usage as well, if they're in initializers
 
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there
@@ -80,7 +80,7 @@
   - maybe more of a document that is meant to show the best of the language, with
     examples, kind of like whats on the home page but more extensive.
   - multithreading
-  - have selectable examples like e.g. https://dlang.org/
+  - have selectable examples like e.g. https://dlang.org/ https://ziglang.org/
   - redo philosophy doc.
 
 - move all string formatting and parsing to to_chars and from_chars
@@ -139,6 +139,8 @@
     - some basic profiling segments of code?
     - drawcalls? triangles?
   - add screenshot & link to imgui page?
+
+- Built-in dictionary type?
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?

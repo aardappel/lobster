@@ -38,59 +38,47 @@ version</big></td>
 version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
-<tr><td>a = 1</td><td>a = 1;</td><td>assign existing variable</td></tr><tr><td>var a = 1</td><td>int a = 1;</td><td>create new variable, type thru type inference</td></tr><tr><td>let a = 1</td><td>const int a = 1;</td><td>create constant variable</td></tr><tr>
-<td>a := 1</td>
-<td>int a = 1;</td>
-<td>short version of: var a = 1</td>
-</tr>
+<tr><td>a = 1</td><td>a = 1;</td><td>Assign existing variable.</td></tr><tr><td>var a = 1</td><td>int a = 1;</td><td>Create new variable, type thru type inference.</td></tr><tr><td>let a = 1</td><td>const int a = 1;</td><td>Create constant variable.</td></tr>
+
 
 <tr>
-<td>a :== 1</td>
-<td>const int a = 1;</td>
-<td>short version of: let a = 1</td>
-</tr>
-<tr>
-<td>a, b := 1, 2</td>
+<td>let a, b&nbsp;= 1, 2</td>
 <td>int a = 1; int b = 2;</td>
-<td></td>
+<td>Define multiple at once.</td>
 </tr>
 <tr>
-<td>a, b := 1</td>
-<td>int a = 1; int b = 1;</td>
-<td></td>
+<td>let a, b&nbsp;= f()</td>
+<td>int a = f(&amp;b);</td>
+<td>Define multiple from a function returning multiple values.</td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">v := [ 1, 2, 3 ]</td>
+<td style="white-space: nowrap;">let v&nbsp;= [ 1, 2, 3 ]</td>
 <td>int[] v = new int[] { 1, 2, 3 };</td>
 <td>The type of vectors is inferred. They are also resizable, so they are probably more
 akin a C# List than an array.</td>
 </tr>
 <tr>
-<td>w := v + v</td>
-<td style="white-space: nowrap;">int[] w = new
-int[3];<br>
-for (int i = 0; i &lt; 3; i++) w[i] = v[i] + v[i];</td>
-<td></td>
+<td>let w&nbsp;= v + v</td>
+<td style="white-space: nowrap;">vec3 w = new Vec3;<br>w.x = v.x + v.x;<br>w.y = v.y + v.y;<br>w.z = v.z + v.z;</td>
+<td>Vector operation exist for most operators and functions.</td>
 </tr>
 <tr>
 <td>nil</td>
 <td>null</td>
-<td>nil is more strict in lobster, in that a reference type which can
+<td>Nil is more strict in lobster, in that a reference type which can
 be nil is different from those that are never nil, and you explicitly
-convert between them</td>
+convert between them.</td>
 </tr>
 <tr>
-<td>a | b &amp; c</td>
+<td>a or b and c</td>
 <td>(a || b) &amp;&amp; c</td>
-<td>these are really the only operators that are different.
-the bitwise operators from C-style languages are instead functions and()
-or() not()</td>
+<td>These are really the only operators that are different.</td>
 </tr>
 <tr>
-<td>a := f() | g()</td>
+<td>let a&nbsp;= f() or g()</td>
 <td>var a = f();<br>
 if (a == null) a = g();</td>
-<td>the | operator works slightly differently in that
+<td>The or operator works slightly differently in that
 rather than returning true, it returns whatever value was true (and
 true is everything that is not nil, false, 0 or 0.0)</td>
 </tr>
@@ -149,12 +137,7 @@ else:<br>
 <td>while (a) b;</td>
 <td></td>
 </tr>
-<tr>
-<td>collectwhile a: b</td>
-<td>var list = new List();<br>
-while (a) list.Add(b);</td>
-<td></td>
-</tr>
+
 <tr>
 <td>for(list) a: print a</td>
 <td>foreach (var a in list) print(a);</td>
@@ -208,49 +191,49 @@ version</big></td>
 version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
-<tr><td>def&nbsp;name(a:int, b:int) -&gt; int: a + b</td><td>int name(int a, int b) { return a + b; }</td><td>In Lobster it is unusual to specify types, especially the return type</td></tr><tr>
-<td>def&nbsp;name(a, b): a + b</td>
+<tr><td>def&nbsp;name(a:int, b:int) -&gt; int:<br>&nbsp; &nbsp;&nbsp;return a + b</td><td>int name(int a, int b) { return a + b; }</td><td>In Lobster it is unusual to specify types, especially the return type.</td></tr><tr>
+<td>def&nbsp;name(a, b):<br>&nbsp; &nbsp; return a + b</td>
 <td>T&nbsp;name&lt;T&gt;(T a, T b) { return a + b; }</td>
 <td>By default function are declared without types, and automatically inferred on use.<br></td>
 </tr>
 <tr>
 <td>def&nbsp;name(a, b):<br>
-&nbsp; &nbsp; a + b</td>
+&nbsp; &nbsp; return a + b</td>
 <td>T&nbsp;name&lt;T&gt;(T a, T b) {<br>
 &nbsp; &nbsp; return a + b;<br>
 }</td>
 <td>For multiple lines, use indentation.</td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">def&nbsp;magnitude(v::xy): sqrt(x * x + y * y)</td>
+<td style="white-space: nowrap;">def&nbsp;magnitude(v::xy):<br>&nbsp; &nbsp; return sqrt(x * x + y * y)</td>
 <td style="white-space: nowrap;">// inside class xy<br>
 float&nbsp;magnitude() { return x * x + y * y; }</td>
-<td>the :: way to indicate a type (v is of type xy) allows you to access
+<td>The :: way to indicate a type (v is of type xy) allows you to access
 object elements directly rather than having to write v.x etc. This is
 similar to writing a&nbsp;method, though Lobster makes no such distinction.</td>
 </tr>
-<tr><td>// inside class/struct xy<br>def&nbsp;magnitude(): sqrt(x * x + y * y)</td><td>// inside class xy<br>
-float&nbsp;magnitude() { return x * x + y * y; }</td><td>this is an equivalent way of writing the above when inside the scope of a class/struct (see below).</td></tr><tr>
+<tr><td>// inside class/struct xy<br>def&nbsp;magnitude():<br>&nbsp; &nbsp; return sqrt(x * x + y * y)</td><td>// inside class xy<br>
+float&nbsp;magnitude() { return x * x + y * y; }</td><td>This is an equivalent way of writing the above when inside the scope of a class/struct (see below).</td></tr><tr>
 <td>v.magnitude()</td>
 <td>v.magnitude()</td>
-<td>on a function call, you can move the first argument to
+<td>On a function call, you can move the first argument to
 before the call, for <span style="font-style: italic;">any</span>
-function.</td>
+function, not just "methods".</td>
 </tr>
 <tr>
-<td>def&nbsp;name(x:X): 0<br>
-def name(y:Y): 1</td>
+<td>def&nbsp;name(x:X): return 0<br>
+def name(y:Y): return 1</td>
 <td>/* inside class X */ int name() { return 0; }<br>
 /* inside class Y */ int name() { return 1; }</td>
-<td>you write polymorphic functions (like virtual methods,
+<td>You write polymorphic functions (like virtual methods,
 dynamic dispatch, and unlike overloading which is static) by simply
 writing multiple functions. These functions can work on user defined
 types or builtin ones. They can be written by whoever wrote the type, or completely separately. </td>
 </tr>
 <tr>
-<td>def&nbsp;name(x:X, z:Z): 0<br>
-def name(x:X, w:W): 1<br>
-def name(y:Y, z:Z): 2</td>
+<td>def&nbsp;name(x:X, z:Z): return 0<br>
+def name(x:X, w:W): return 1<br>
+def name(y:Y, z:Z): return 2</td>
 <td style="white-space: nowrap;">/* inside class X
 */ int name(B b) { return b.nameX(); }<br>
 /* inside class Y */ int name(Z z) { return 2; }<br>
@@ -262,17 +245,17 @@ that we're assuming we don't know the dynamic argument types to name(),
 so we can't use overloading.</td>
 </tr>
 <tr>
-<td>f := def(a, b): a + b</td>
+<td>let f&nbsp;= def(a, b):&nbsp;a + b</td>
 <td>var f = (int a, int b) =&gt; a + b</td>
-<td>function value in C#</td>
+<td>Function value in C#</td>
 </tr>
 <tr>
-<td>f := def(a, b): a + b</td>
+<td>let f&nbsp;= def(a, b): a + b</td>
 <td>auto f = [](int a, int a) { return a + b; }</td>
-<td>function value in C++</td>
+<td>Function value in C++</td>
 </tr>
 <tr>
-<td>def&nbsp;fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; init</td>
+<td>def&nbsp;fold(xs, init, fun): <br>&nbsp;&nbsp;&nbsp; for(xs): init = fun(init, _)<br>&nbsp;&nbsp;&nbsp; return init</td>
 <td>T fold&lt;T&gt;(List&lt;T&gt; xs, T init, Func&lt;T, T, T&gt; fun) {<br>&nbsp; &nbsp; foreach (var x in xs) init = fun(init, x);<br>&nbsp; &nbsp; return init;<br>}</td>
 <td>How to write a <span style="font-style: italic;">Higher Order Function</span>:
 a function that takes a function argument. In this case "fold": take a
@@ -287,28 +270,28 @@ effectively "folding" the list into a single value.</td>
 <tr>
 <td>r := fold(list, 0): _a + _b</td>
 <td>var r = fold(list, 0, (a, b) =&gt; a + b);</td>
-<td>anonymous arguments in lexical order, see language reference</td>
+<td>Anonymous arguments in lexical order, see language reference.</td>
 </tr>
 <tr>
 <td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; print a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>var r = fold(list, 0, (a, b) =&gt; {<br>&nbsp; &nbsp; print(a);<br>&nbsp; &nbsp; return a + b;<br>});</td>
-<td>note how in most languages lambda syntax becomes messy when you
+<td>Note how in most languages lambda syntax becomes messy when you
 want to use them with a larger body, and looking very different from
 builtin control structures.</td>
 </tr>
 <tr>
 <td>r := fold(list, 0) a, b:<br>&nbsp; &nbsp; if a &lt; 0: return a<br>&nbsp; &nbsp;&nbsp;a +&nbsp;b</td>
 <td>/* not possible */</td>
-<td>another way in which lambdas in most languages differ from Lobster:
+<td>Another way in which lambdas in most languages differ from Lobster:
 you cannot return/break
 from the loop, making them often useless as control structures. In
 Lobster, they function just like real constrol structures would. By
 default, return returns from the lexically enclosing named function.</td>
 </tr>
 <tr>
-<td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if something: return 1 from f<br>&nbsp; &nbsp; 0</td>
+<td>def&nbsp;f():<br>&nbsp; &nbsp; g()<br>&nbsp; &nbsp; return 0<br>def&nbsp;g():<br>&nbsp; &nbsp; if something: return 1 from f<br>&nbsp; &nbsp; return 0</td>
 <td>int f() {<br>&nbsp; &nbsp; try { g(); return 0; }<br>&nbsp; &nbsp; catch (int x) { return x; }<br>}<br>int g() {<br>&nbsp; &nbsp; if (something) throw 1;<br>&nbsp; &nbsp; return 0;<br>}</td>
-<td>return even allows you to specify which function to return from,
+<td>Return even allows you to specify which function to return from,
 which in other languages you can do with exception handling. In fact,
 exception handling in Lobster is not a language feature, it is simply
 some utility functions (try/catch/...) implemented on top of
@@ -323,20 +306,7 @@ return/from (implemented in exception.lobster).</td>
 
 
 
-<tr>
-<td>a := 0<br>def&nbsp;g(): print a&nbsp; // 1<br>def&nbsp;f():<br>
-&nbsp; &nbsp; a &lt;- 1<br>
-&nbsp; &nbsp; g()</td>
-<td>int a = 0;<br>void g() { print(a); } // 1<br>void f() {<br>
-&nbsp; &nbsp;var olda = a;<br>
-&nbsp; &nbsp;a = 1;<br>
-&nbsp; &nbsp;g();<br>
-&nbsp; &nbsp;a = olda;<br>
-}</td>
-<td>unlike dynamic scope in other languages, the variable a it is
-overriding must exist as lexically enclosing variable, making it a much
-safer feature</td>
-</tr>
+
 <tr>
 <td>def&nbsp;mret(): return 1, 2</td>
 <td style="white-space: nowrap;">int mret(out int o)
@@ -344,8 +314,8 @@ safer feature</td>
 <td></td>
 </tr>
 <tr>
-<td>a, b := mret()</td>
-<td>var b; var a = mret(b);</td>
+<td>let a, b&nbsp;= mret()</td>
+<td>var b; var a = mret(&amp;b);</td>
 <td></td>
 </tr>
 
@@ -370,28 +340,28 @@ version</big></td>
 <td style="font-weight: bold;"><big>Comments</big></td>
 </tr>
 <tr>
-<td>struct xy { x:float, y:float }</td>
+<td>struct xy:<br>&nbsp; &nbsp;&nbsp;x:float<br>&nbsp; &nbsp;&nbsp;y:float</td>
 <td>public struct xy { float x; float y; }</td>
 <td><br></td>
 </tr>
 <tr>
-<td>struct xy { x, y }</td>
+<td>struct xy&lt;T&gt;<br>&nbsp; &nbsp;&nbsp;x:T<br>&nbsp; &nbsp;&nbsp;y:T</td>
 <td>public struct xy&lt;T&gt; { T x; T y; }</td>
-<td>or generics</td>
+<td>Generics: unlike functions, these are explicitly specified in Lobster.</td>
 </tr>
 
 <tr>
-<td>struct xyz : xy { z:float }</td>
+<td>struct xyz : xy:<br>&nbsp; &nbsp;&nbsp;z:float</td>
 <td>public struct xyz : xy { float z; }</td>
-<td></td>
+<td>Inheritance.</td>
 </tr>
 <tr>
-<td>v := xyz { 1, 0, 0 }</td>
+<td>let v&nbsp;= xyz { 1, 0, 0 }</td>
 <td>var v = new xyz(1, 0, 0)</td>
-<td>you'd actually have to define the constructor in C# to
-be able to do this</td>
-</tr><tr><td>struct xy:<br>&nbsp; &nbsp; x:float<br>&nbsp; &nbsp; y:float<br>&nbsp; &nbsp; def&nbsp;magnitude():<br>&nbsp; &nbsp; &nbsp; &nbsp; sqrt(x * x + y * y)</td><td>public class xy {<br>&nbsp; &nbsp; float x;<br>&nbsp; &nbsp; float y;<br>
-&nbsp; &nbsp; float&nbsp;magnitude() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return x * x + y * y;<br>&nbsp; &nbsp; }<br>}</td><td>Intendation based syntax, with inline function definition (automatic this argument)</td></tr><tr><td>enum color:<br>&nbsp; &nbsp; red = 1<br>&nbsp; &nbsp; green<br>&nbsp; &nbsp; blue<br>&nbsp; &nbsp; yellow = 10</td><td>enum color {<br>&nbsp; &nbsp; red = 1,<br>&nbsp; &nbsp; green,<br>&nbsp; &nbsp; blue,<br>&nbsp; &nbsp; yellow = 10<br>}</td><td></td></tr>
+<td>You'd actually have to define the constructor in C# to
+be able to do this.</td>
+</tr><tr><td>struct xy:<br>&nbsp; &nbsp; x:float<br>&nbsp; &nbsp; y:float<br>&nbsp; &nbsp; def&nbsp;magnitude():<br>&nbsp; &nbsp; &nbsp; &nbsp; return sqrt(x * x + y * y)</td><td>public class xy {<br>&nbsp; &nbsp; float x;<br>&nbsp; &nbsp; float y;<br>
+&nbsp; &nbsp; float&nbsp;magnitude() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return x * x + y * y;<br>&nbsp; &nbsp; }<br>}</td><td>Intendation based syntax, with inline function definition (automatic this argument).</td></tr><tr><td>enum color:<br>&nbsp; &nbsp; red = 1<br>&nbsp; &nbsp; green<br>&nbsp; &nbsp; blue<br>&nbsp; &nbsp; yellow = 10</td><td>enum color {<br>&nbsp; &nbsp; red = 1,<br>&nbsp; &nbsp; green,<br>&nbsp; &nbsp; blue,<br>&nbsp; &nbsp; yellow = 10<br>}</td><td></td></tr>
 
 
 
@@ -417,7 +387,7 @@ version</big></td>
 <tr>
 <td style="white-space: nowrap;">def&nbsp;myiter(f):<br>&nbsp; &nbsp; for(10) i: f(i)</td>
 <td style="white-space: nowrap;">IEnumerable&lt;T&gt; myiter() {<br>&nbsp; &nbsp; for (int i = 0; i &lt; 10; i++) yield return i;<br>}</td>
-<td>unlike most languages, you define coroutines just as you would any
+<td>Unlike most languages, you define coroutines just as you would any
 iteration function: by calling a function value. This allows you to
 define iteration functions without having to decide if you want to use
 them as control structure or as coroutine. "yield return" can also only
@@ -425,30 +395,30 @@ be called from the myiter function body, not from any functions called
 from it. Lobster has no such limitations.</td>
 </tr>
 <tr>
-<td style="white-space: nowrap;">co := coroutine myiter()</td>
+<td style="white-space: nowrap;">let co&nbsp;= coroutine myiter()</td>
 <td>var co = myiter()</td>
 <td></td>
 </tr>
 <tr>
 <td>co.return_value</td>
 <td style="white-space: nowrap;">co.Current</td>
-<td>last value produced, or in the case of Lobster also the value returned at the end</td>
+<td>Last value produced, or in the case of Lobster also the value returned at the end.</td>
 </tr>
 <tr>
 <td>co.resume</td>
 <td>co.MoveNext</td>
-<td>ask coroutine to produce next value.</td>
+<td>Ask coroutine to produce next value.</td>
 </tr>
 <tr>
 <td>co.resume(x)</td>
 <td>/* not available */</td>
-<td>ask coroutine to produce next value, returning x from the function value call that yielded the coroutine last</td>
+<td>Ask coroutine to produce next value, returning x from the function value call that yielded the coroutine last.</td>
 </tr>
-<tr><td>r := co.resume</td><td>/* not available */</td><td>ask coroutine to produce next value, receiving back argument to function value call</td></tr><tr>
+<tr><td>let r&nbsp;= co.resume</td><td>/* not available */</td><td>Ask coroutine to produce next value, receiving back argument to function value call.</td></tr><tr>
 <td>co.active</td>
 <td>/* not available */</td>
-<td>in C#, MoveNext returns a boolean that plays this role</td>
-</tr><tr><td>co-&gt;i</td><td>/* not available */</td><td>access local vars inside a coroutine object. This feature makes it easier to have multiple coroutines communicate</td></tr>
+<td>In C#, MoveNext returns a boolean that plays this role.</td>
+</tr><tr><td>co-&gt;i</td><td>/* not available */</td><td>Access local vars inside a coroutine object. This feature makes it easier to have multiple coroutines communicate.</td></tr>
 
 
 
