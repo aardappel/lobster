@@ -23,6 +23,7 @@ class CPPGenerator : public NativeGenerator {
     ostringstream &ss;
     const int dispatch = VM_DISPATCH_METHOD;
     int current_block_id = -1;
+    int tail_calls_in_a_row = 0;
 
     string_view Block() {
         return dispatch == VM_DISPATCH_TRAMPOLINE ? "block" : "";
@@ -90,13 +91,24 @@ class CPPGenerator : public NativeGenerator {
 
     void EmitJump(int id) override {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            if (id <= current_block_id) {
+            // FIXME: if we make all forward calls tail calls, then under
+            // WASM/Emscripten/V8, we occasionally run out of stack.
+            // This bounds the number of tail calls in a simple way,
+            // but this is not correct, in that call targets are not necessarily
+            // in linear order, though it should catch most long runs of calls.
+            // We really need to do this with an algorithm that better understands
+            // the call structure instead. Hopefully this bounding will allow
+            // us to keep some of the performance advantage of tail calls vs
+            // not doing them at all.
+            if (tail_calls_in_a_row > 10 || id <= current_block_id) {
                 // A backwards jump, go via the trampoline to be safe
                 // (just in-case the compiler doesn't optimize tail calls).
                 ss << "return (void *)block" << id << ";";
+                tail_calls_in_a_row = 0;
             } else {
                 // A forwards call, should be safe to tail-call.
                 ss << "return block" << id << "(vm);";
+                tail_calls_in_a_row++;
             }
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             ss << "goto block_label" << id << ";";

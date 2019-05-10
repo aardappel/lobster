@@ -18,6 +18,8 @@ current_test_runner = def(name:string, t:testf):
 
 //trace_bytecode(true, false)
 
+print "VM MODE: " + (if vm_compiled_mode(): "compiled" else: "interpreted")
+
 // Balance these numbers to get a good blend of what kind of code we're optimizing for.
 
 number_of_runs = 1  // FIXME

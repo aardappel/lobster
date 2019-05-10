@@ -3,16 +3,21 @@
 CXX= emcc
 CC= emcc
 
-# Fast debug mode.
-#OPTLEVEL= -g4 -O2
+# LTO only works for the cppout target, where it gives a huge speedup.
+LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -s WASM_OBJECT_FILES=0
+
 # Pure debug mode.
-#OPTLEVEL= -g4
-# Release / benchmark mode.
-OPTLEVEL= -O2 -DNDEBUG
+#OPTLEVEL= -g4 -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0
+# Fast debug mode.
+#OPTLEVEL= -g4 -O2 -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0
+# Release/Shipping mode
+OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -s DISABLE_EXCEPTION_CATCHING=0
+# Benchmark mode: does not support graphics/exceptions.
+#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING
 
 CXXFLAGS= $(OPTLEVEL)
 # apparently exception catching is slow, but we need them for the moment.
-override CXXFLAGS+= -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -s NO_EXIT_RUNTIME=1 \
+override CXXFLAGS+= -s USE_SDL=2 -s NO_EXIT_RUNTIME=1 \
                     -std=c++17 -Wall -pedantic -Wno-switch \
                     -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CFLAGS= $(OPTLEVEL)
@@ -112,8 +117,7 @@ $(MAINCOMPOBJ): $(HEADERS)
 
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
-# add -s ASSERTIONS=2 when troubleshooting.
-EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ASSERTIONS=2 \
+EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
 		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
 		-s DEMANGLE_SUPPORT=1 --emrun
@@ -121,8 +125,8 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s ASSERTIONS=2 \
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
-lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
 lobster_cppout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
+lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
 
 WASMOUT= compiled_lobster_wasm.o
@@ -131,7 +135,7 @@ lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
 
 clean:
-	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) lobster
+	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout
 
 all: lobster
 
