@@ -67,7 +67,7 @@ def f(y):
 f(x)</code></pre>
 <p>Here, <code>y</code> borrows <code>x</code>, then <code>f</code> tries to overwrite <code>x</code> while still being borrowed, which would cause it to deallocate <code>&quot;hello&quot;</code> while <code>y</code> is still pointing at it. It is pretty rare for code that uses a borrowed value to be accessing the original value also. As I mentioned, this only happened twice in a large volume of test code, and is easy to avoid.</p>
 <pre><code>cannot assign to borrowed argument: x</code></pre>
-<p>This typically never triggers, as arguments that are assigned to are typically forced to be owners, but there are currently some exceptions related to multi-methods where this may still happen. Likely will be eliminated entirely in the future.</p>
+<p>This typically never triggers, as arguments that are assigned to are typically forced to be owners, but there are currently some exceptions related to dynamic dispatch where this may still happen. Likely will be eliminated entirely in the future.</p>
 <pre><code>variable x still has 1 borrowers
 
 x used in &lt;feature&gt; without being borrowed</code></pre>
@@ -99,7 +99,6 @@ f(a)</code></pre>
 <ul>
 <li>Arguments that are assigned to are always owned.</li>
 <li>Coroutines always own (because they are longer lived).</li>
-<li>Multimethods speculatively adopt the lifetimes of the first caller, since we currently don’t specialize multimethods.</li>
 <li>The return value of a function is currently always owned.</li>
 </ul>
 <p>Much like variables, some of these could be relaxed/improved in the future.</p>

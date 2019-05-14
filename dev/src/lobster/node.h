@@ -340,7 +340,7 @@ struct Constructor : List {
 };
 
 struct Call : GenericCall {
-    bool multimethod_specialized = false;
+    int vtable_idx = -1;
     explicit Call(GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens) {};
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false) {};

@@ -28,7 +28,7 @@ import structtest
 number_of_runs = 5000
 import misctest
 
-number_of_runs = 4000
+number_of_runs = 1500
 import typetest
 
 number_of_runs = 4000

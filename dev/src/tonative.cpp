@@ -19,7 +19,7 @@
 
 namespace lobster {
 
-int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
+int ParseOpAndGetArity(int opc, const int *&ip) {
     auto arity = ILArity()[opc];
     auto ips = ip;
     switch(opc) {
@@ -35,12 +35,6 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             arity = int(ip - ips);
             break;
         }
-        case IL_CALLMULTI: {
-            auto nargs = code[*ip++ + 3];
-            ip += nargs;
-            arity = int(ip - ips);
-            break;
-        }
         case IL_FUNSTART: {
             ip++;  // function idx.
             int n = *ip++;
@@ -50,15 +44,6 @@ int ParseOpAndGetArity(int opc, const int *&ip, const int *code) {
             ip++;  // keepvar
             int o = *ip++;  // ownedvar
             ip += o;
-            arity = int(ip - ips);
-            break;
-        }
-        case IL_FUNMULTI: {
-            ip++;  // function idx.
-            auto n = *ip++;
-            auto nargs = *ip++;
-            auto tablesize = (nargs + 1) * n;
-            ip += tablesize;
             arity = int(ip - ips);
             break;
         }
@@ -100,7 +85,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
         if (opc < 0 || opc >= IL_MAX_OPS) {
             return cat("Corrupt bytecode: ", opc, " at: ", ip - 1 - code);
         }
-        ParseOpAndGetArity(opc, ip, code);
+        ParseOpAndGetArity(opc, ip);
     }
     ng.BeforeBlocks(block_ids[starting_point], bytecode_buffer);
     ip = code + 2;
@@ -118,7 +103,7 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             ng.BlockStart(cid);
             already_returned = false;
         }
-        auto arity = ParseOpAndGetArity(opc, ip, code);
+        auto arity = ParseOpAndGetArity(opc, ip);
         auto is_vararg = ILArity()[opc] == ILUNKNOWNARITY;
         ng.InstStart();
         if (opc == IL_JUMP) {
@@ -126,25 +111,18 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             ng.EmitJump(block_ids[args[0]]);
         } else if ((opc >= IL_JUMPFAIL && opc <= IL_JUMPNOFAILR) ||
                    (opc >= IL_IFOR && opc <= IL_VFOR)) {
-            ng.EmitConditionalJump(opc, block_ids[args[0]]);
+            auto id = block_ids[args[0]];
+            assert(id >= 0);
+            ng.EmitConditionalJump(opc, id);
         } else {
             ng.EmitOperands(bytecode_buffer.data(), args, arity, is_vararg);
-            if (opc == IL_FUNMULTI) {
-                auto nmethods = args[1];
-                auto nargs = args[2];
-                vector<int> mmtable;
-                for (int i = 0; i < nmethods; i++) {
-                    mmtable.push_back(block_ids[args[3 + (nargs + 1) * i + nargs]]);
-                }
-                ng.EmitMultiMethodDispatch(mmtable);
-            // FIXME: make resume a vm op.
-            } else if (ISBCALL(opc) &&
+            if (ISBCALL(opc) &&
                        natreg.nfuns[args[0]]->CanChangeControlFlow()) {
                 ng.SetNextCallTarget(block_ids[ip - code]);
             }
             int target = -1;
-            if (opc == IL_CALL || opc == IL_CALLMULTI || opc == IL_CALLV || opc == IL_CALLVCOND ||
-                opc == IL_YIELD) {
+            if (opc == IL_CALL || opc == IL_CALLV || opc == IL_CALLVCOND ||
+                opc == IL_YIELD || opc == IL_DDCALL) {
                 target = block_ids[ip - code];
             } else if (opc == IL_PUSHFUN || opc == IL_CORO) {
                 target = block_ids[args[0]];
@@ -160,17 +138,17 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                 ostringstream css;
                 EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), css);
                 ng.Annotate(css.str());
-            } else if (opc == IL_CALL || opc == IL_CALLMULTI) {
+            } else if (opc == IL_CALL) {
                 auto fs = code + args[0];
-                assert(*fs == IL_FUNSTART || *fs == IL_FUNMULTI);
+                assert(*fs == IL_FUNSTART);
                 fs++;
                 ng.Annotate(bcf->functions()->Get(*fs)->name()->string_view());
             }
-            if (opc == IL_CALL || opc == IL_CALLMULTI) {
+            if (opc == IL_CALL) {
                 ng.EmitCall(block_ids[args[0]]);
                 already_returned = true;
-            } else if (opc == IL_CALLV || opc == IL_FUNMULTI ||
-                       opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
+            } else if (opc == IL_CALLV || opc == IL_YIELD || opc == IL_COEND || opc == IL_RETURN ||
+                       opc == IL_DDCALL ||
                        // FIXME: make resume a vm op.
                        (ISBCALL(opc) &&
                         natreg.nfuns[args[0]]->CanChangeControlFlow())) {
@@ -185,6 +163,17 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             ng.BlockEnd(block_ids[ip - code], already_returned, opc == IL_EXIT);
         }
     }
+    ng.CodeEnd();
+    vector<int> vtables;
+    for (auto bcs : *bcf->vtables()) {
+        int id = -1;
+        if (bcs >= 0) {
+            id = block_ids[bcs];
+            assert(id >= 0);
+        }
+        vtables.push_back(id);
+    }
+    ng.VTables(vtables);
     ng.FileEnd(block_ids[starting_point], bytecode_buffer);
     return "";
 }

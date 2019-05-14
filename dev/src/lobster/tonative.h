@@ -33,7 +33,6 @@ struct NativeGenerator {
     virtual void EmitJump(int id) = 0;
     virtual void EmitConditionalJump(int opc, int id) = 0;
     virtual void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) = 0;
-    virtual void EmitMultiMethodDispatch(const vector<int> &mmtable) = 0;
     virtual void SetNextCallTarget(int id) = 0;
     virtual void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) = 0;
     virtual void EmitCall(int id) = 0;
@@ -41,6 +40,8 @@ struct NativeGenerator {
     virtual void EmitCallIndirectNull() = 0;
     virtual void InstEnd() = 0;
     virtual void BlockEnd(int id, bool already_returned, bool is_exit) = 0;
+    virtual void CodeEnd() = 0;
+    virtual void VTables(vector<int> &vtables) = 0;
     virtual void FileEnd(int start_id, string_view bytecode_buffer) = 0;
     virtual void Annotate(string_view comment) = 0;
 };

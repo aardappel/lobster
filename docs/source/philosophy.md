@@ -89,8 +89,8 @@ suitable for my style of programming (heavily refactoring-based).
     possible, with a very terse and uniform higher order function call syntax,
     optionally immutable objects and coroutines that reduce the need for global
     state in the first place.
-    Lobster actually has very powerful object oriented features (multimethods
-    being more expressive than traditional single dispatch in most OO
+    Lobster actually has very powerful object oriented features (its overloading
+    and dynamic dispatch being more expressive than in most OO
     languages), but it doesn't push it's OO angle to the forefront, and unlike
     OO languages doesn't have an object heavy API. While OO brought us many
     important ideas in programming, it is also single-handedly responsible for
@@ -203,6 +203,16 @@ flow-sensitive typing to get very far in being able to type-check all existing
 Lobster code without having to litter it with types. That challenge took it much
 further than I anticipated. The end result is impressively powerful, even though
 I made it a bit more strict than I planned (i.e. making `nil` its own type).
+More here: [type system](type_checker.html).
+
+Another big change is moving to compile-time reference counts (lifetime
+analysis) and in-line structs, about which you can read more in
+[memory management](memory_management.html).
+
+This signals the move of Lobster to a more efficiency/strong typing oriented language.
+Strongly typed enums and bools got added, and multi-methods got replaced by a very
+flexible overloading / dispatching system.
+See the [language reference](language_reference.html).
 
 ### What Lobster will be (Future Plans)
 

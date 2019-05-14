@@ -107,6 +107,7 @@ struct TypeChecker {
                     PromoteStructIdx(field.type, udt->superclass, udt);
                 }
             }
+            for (auto u = udt; u; u = u->superclass) u->subudts.push_back(udt);
         }
         parser.root->sf->reqret = retreq;
         TT((Node *&)parser.root, retreq, LT_KEEP);
@@ -303,7 +304,7 @@ struct TypeChecker {
                                       ConvertsTo(type->Element(), sub->Element(), false,
                                                  unifications));
             case V_CLASS:     return type->t == V_CLASS &&
-                                     st.IsSuperTypeOrSame(sub->udt, type->udt);
+                                     st.SuperDistance(sub->udt, type->udt) >= 0;
             case V_STRUCT_R:
             case V_STRUCT_S:  return type->t == sub->t && type->udt == sub->udt;
             case V_COROUTINE: return type->t == V_COROUTINE &&
@@ -438,7 +439,7 @@ struct TypeChecker {
                         sf->reqret = ss->reqret;
                     }
                     sf->isdynamicfunctionvalue = true;
-                    TypeCheckFunctionDef(*sf, sf->body);
+                    TypeCheckFunctionDef(*sf, *sf->body);
                     // Covariant again.
                     if (sf->returntype->NumValues() != ss->returntype->NumValues() ||
                         !ConvertsTo(sf->returntype, ss->returntype, false))
@@ -622,7 +623,7 @@ struct TypeChecker {
         return _scopes.empty() ? nullptr : _scopes.back().sf;
     }
 
-    void RetVal(TypeRef type, SubFunction *sf, const Node *err, bool register_return = true) {
+    void RetVal(TypeRef type, SubFunction *sf, const Node &err, bool register_return = true) {
         if (register_return) {
             for (auto isc : reverse(scopes)) {
                 if (isc.sf->parent == sf->parent) break;
@@ -645,7 +646,7 @@ struct TypeChecker {
                 // be callers dependent on the return type so far, so any others must be subtypes.
                 if (!sf->isrecursivelycalled) {
                     // We can safely generalize the type if needed, though not with coercions.
-                    sf->returntype = Union(type, sf->returntype, false, err);
+                    sf->returntype = Union(type, sf->returntype, false, &err);
                 }
             } else {
                 // The caller doesn't want return values.
@@ -654,17 +655,17 @@ struct TypeChecker {
         }
     }
 
-    void TypeCheckFunctionDef(SubFunction &sf, const Node *call_context) {
+    void TypeCheckFunctionDef(SubFunction &sf, const Node &call_context) {
         if (sf.typechecked) return;
         LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
         scope.sf = &sf;
-        scope.call_context = call_context;
+        scope.call_context = &call_context;
         scopes.push_back(scope);
         //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         sf.typechecked = true;
-        for (auto &arg : sf.args.v) StorageType(arg.type, *call_context);
+        for (auto &arg : sf.args.v) StorageType(arg.type, call_context);
         for (auto &fv : sf.freevars.v) UpdateCurrentSid(fv.sid);
         auto backup_vars = [&](ArgVector &in, ArgVector &backup) {
             for (auto [i, arg] : enumerate(in.v)) {
@@ -677,7 +678,7 @@ struct TypeChecker {
         auto backup_args = sf.args; backup_vars(sf.args, backup_args);
         auto backup_locals = sf.locals; backup_vars(sf.locals, backup_locals);
         auto enter_scope = [&](const Arg &var) {
-            IncBorrowers(var.sid->lt, *call_context);
+            IncBorrowers(var.sid->lt, call_context);
         };
         for (auto &arg : sf.args.v) enter_scope(arg);
         for (auto &local : sf.locals.v) enter_scope(local);
@@ -696,7 +697,7 @@ struct TypeChecker {
         }
         // Let variables go out of scope in reverse order of declaration.
         auto exit_scope = [&](const Arg &var) {
-            DecBorrowers(var.sid->lt, *call_context);
+            DecBorrowers(var.sid->lt, call_context);
         };
         for (auto &local : reverse(sf.locals.v)) exit_scope(local);
         for (auto &arg : sf.args.v) exit_scope(arg);  // No order.
@@ -761,7 +762,7 @@ struct TypeChecker {
         auto givenu = given->UnWrapped();
         if (!IsUDT(given->t) ||
             (!spec_struc->IsSpecialization(givenu->udt) &&
-             (!subtypeok || !st.IsSuperTypeOrSame(spec_struc, givenu->udt)))) {
+             (!subtypeok || st.SuperDistance(spec_struc, givenu->udt) < 0))) {
             TypeError(req.data() ? req : spec_struc->name, given, n, argname, context);
         }
     }
@@ -800,10 +801,10 @@ struct TypeChecker {
         return true;
     }
 
-    SubFunction *CloneFunction(SubFunction *csf) {
+    SubFunction *CloneFunction(SubFunction *csf, int i) {
         LOG_DEBUG("cloning: ", csf->parent->name);
         auto sf = st.CreateSubFunction();
-        sf->SetParent(*csf->parent, csf->parent->subf);
+        sf->SetParent(*csf->parent, csf->parent->overloads[i]);
         // Any changes here make sure this corresponds what happens in Inline() in the optimizer.
         st.CloneIds(*sf, *csf);
         sf->body = (List *)csf->body->Clone();
@@ -811,38 +812,8 @@ struct TypeChecker {
         sf->fixedreturntype = csf->fixedreturntype;
         sf->returntype = csf->returntype;
         sf->logvarcallgraph = csf->logvarcallgraph;
+        sf->method_of = csf->method_of;
         return sf;
-    }
-
-    TypeRef TypeCheckMatchingCall(SubFunction *sf, List *call_args, SubFunction *&chosen,
-                                  Node *call_context) {
-        // Here we have a SubFunction witch matching specialized types.
-        sf->numcallers++;
-        Function &f = *sf->parent;
-        if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
-        // Finally check all the manually typed args. We do this after checking the function
-        // definition, since SubType below can cause specializations of the current function
-        // to be typechecked with strongly typed function value arguments.
-        for (auto [i, c] : enumerate(call_args->children)) {
-            if (i < f.nargs()) /* see below */ {
-                auto &arg = sf->args.v[i];
-                if (!(arg.flags & AF_GENERIC))
-                    SubType(c, arg.type, ArgName(i), f.name);
-                AdjustLifetime(c, arg.sid->lt);
-            }
-            // This has to happen even to dead args:
-            DecBorrowers(c->lt, *call_context);
-        }
-        chosen = sf;
-        for (auto &freevar : sf->freevars.v) {
-            // New freevars may have been added during the function def typecheck above.
-            // In case their types differ from the flow-sensitive value at the callsite (here),
-            // we want to override them.
-            freevar.type = freevar.sid->Current()->type;
-        }
-        // See if this call is recursive:
-        for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
-        return sf->returntype;
     }
 
     // See if returns produced by an existing specialization are compatible with our current
@@ -875,146 +846,79 @@ struct TypeChecker {
         }
     }
 
-    // Apply effects of return statements for functions being reused, see RetVal above.
-    void ReplayReturns(const SubFunction &ssf, const Node &context) {
-        for (auto [sf, type] : ssf.reuse_return_events) {
-            for (auto isc : reverse(scopes)) {
-                if (isc.sf->parent == sf->parent) {
-                    // FIXME: will have to re-apply lifetimes as well if we change from default
-                    // of LT_KEEP.
-                    RetVal(type, isc.sf, &context, false);
-                    // This should in theory not cause an error, since the previous specialization
-                    // was also ok with this set of return types. It could happen though if
-                    // this specialization has an additional return statement that was optimized
-                    // out in the previous one.
-                    SubTypeT(type, isc.sf->returntype, context, "", "reused return value");
-                    break;
-                }
-                CheckReturnPast(isc.sf, sf, context);
-            }
-        }
-    }
-
-    bool SpecializationIsCompatible(const SubFunction &sf, size_t reqret) {
-        return reqret == sf.reqret &&
-               FreeVarsSameAsCurrent(sf, false) &&
-               CompatibleReturns(sf);
-    }
-
     TypeRef TypeCheckCall(SubFunction *csf, List *call_args, SubFunction *&chosen,
-                          Node *call_context, size_t reqret) {
+                          const Node &call_context, size_t reqret, int &vtable_idx) {
         Function &f = *csf->parent;
-        if (f.multimethod) {
-            if (!f.subf->numcallers) {
-                // Simplistic: typechecked with actual argument types.
-                // FIXME: reqret is always that of the first caller for multimethods, because we
-                // don't want to specialize the whole set, but this is problematic.
-                // Set these vars first just in case it is recursive.
-                f.multimethodretval = NewTypeVar();
-                for (auto sf = f.subf; sf; sf = sf->next) {
-                    sf->numcallers++;
-                    sf->reqret = reqret;
-                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                        sf->args.v[i].sid->lt = c->lt;
+        UDT *dispatch_udt = nullptr;
+        vtable_idx = -1;
+
+        auto TypeCheckMatchingCall = [&](SubFunction *sf, bool static_dispatch, bool first_dynamic) {
+            // Here we have a SubFunction witch matching specialized types.
+            sf->numcallers++;
+            Function &f = *sf->parent;
+            if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
+            // Finally check all the manually typed args. We do this after checking the function
+            // definition, since SubType below can cause specializations of the current function
+            // to be typechecked with strongly typed function value arguments.
+            for (auto [i, c] : enumerate(call_args->children)) {
+                if (i < f.nargs()) /* see below */ {
+                    auto &arg = sf->args.v[i];
+                    if (static_dispatch || first_dynamic) {
+                        // Check a dynamic dispatch only for the first case, and then skip
+                        // checking the first arg.
+                        if (!(arg.flags & AF_GENERIC) && (static_dispatch || i))
+                            SubType(c, arg.type, ArgName(i), f.name);
+                        AdjustLifetime(c, arg.sid->lt);
                     }
                 }
-                for (auto sf = f.subf; sf; sf = sf->next) {
-                    TypeCheckFunctionDef(*sf, call_context);
-                }
-                bool is_bound = f.multimethodretval->IsBoundVar();
-                for (auto sf = f.subf; sf; sf = sf->next) {
-                    // FIXME: Lift these limits?
-                    if (sf->returntype->NumValues() > 1)
-                        TypeError("multi-methods can currently return only 1 value.",
-                                  *call_context);
-                    auto u = sf->returntype;
-                    if (is_bound) {
-                        // Typically in recursive calls, but can happen otherwise also?
-                        if (!ConvertsTo(u, f.multimethodretval, false))
-                            // FIXME: not a great error, but should be rare.
-                            TypeError("multi-method " + f.name +
-                                      " return value type " +
-                                      TypeName(sf->returntype) +
-                                      " doesn\'t match other case returning " +
-                                      TypeName(f.multimethodretval), *sf->body);
-                    } else {
-                        if (sf != f.subf) {
-                            // We have to be able to take the union of all retvals without
-                            // coercion, since we're not fixing up any previously typechecked
-                            // functions.
-                            u = Union(u, f.multimethodretval, false, call_context);
-                            // Ensure we didn't accidentally widen the type from a scalar.
-                            assert(IsRef(f.multimethodretval->t) || !IsRef(u->t));
-                        }
-                        f.multimethodretval = u;
+                // This has to happen even to dead args:
+                if (static_dispatch || first_dynamic) DecBorrowers(c->lt, call_context);
+            }
+            chosen = sf;
+            for (auto &freevar : sf->freevars.v) {
+                // New freevars may have been added during the function def typecheck above.
+                // In case their types differ from the flow-sensitive value at the callsite (here),
+                // we want to override them.
+                freevar.type = freevar.sid->Current()->type;
+            }
+            // See if this call is recursive:
+            for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
+            return sf->returntype;
+        };
+
+        auto SpecializationIsCompatible = [&](const SubFunction &sf) {
+            return reqret == sf.reqret &&
+                FreeVarsSameAsCurrent(sf, false) &&
+                CompatibleReturns(sf);
+        };
+
+        auto ReplayReturns = [&](const SubFunction *sf) {
+            // Apply effects of return statements for functions being reused, see
+            // RetVal above.
+            for (auto [isf, type] : sf->reuse_return_events) {
+                for (auto isc : reverse(scopes)) {
+                    if (isc.sf->parent == isf->parent) {
+                        // NOTE: will have to re-apply lifetimes as well if we change
+                        // from default of LT_KEEP.
+                        RetVal(type, isc.sf, call_context, false);
+                        // This should in theory not cause an error, since the previous
+                        // specialization was also ok with this set of return types.
+                        // It could happen though if this specialization has an
+                        // additional return statement that was optimized
+                        // out in the previous one.
+                        SubTypeT(type, isc.sf->returntype, call_context, "",
+                            "reused return value");
+                        break;
                     }
-                }
-                for (auto sf = f.subf; sf; sf = sf->next) {
-                    // Overwrite any recursive cases that might return a type var.
-                    sf->returntype = f.multimethodretval;
-                }
-            } else {
-                // We're calling an existing multimethod as-is.
-                for (auto sf = f.subf; sf; sf = sf->next) {
-                    if (!SpecializationIsCompatible(*sf, reqret))
-                        TypeError(cat("multimethod ", f.name,
-                           " previously specialized for different return values or free variable"),
-                           *call_context);
-                    ReplayReturns(*sf, *call_context);
-                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                        // This is a bit odd, we bias towards the desired lifetimes of the first
-                        // caller. Though since most calls will be similar, this should actually
-                        // be decently efficient.
-                        // Alternatively we could just make multimethods always LT_BORROW, which
-                        // would be a reasonable default.
-                        // Of course, if we end up specializing multimethods and we also specialize
-                        // on lifetimes like regular functions that is even more flexible,
-                        // but potentially also wasteful in code size.
-                        auto &lt = sf->args.v[i].sid->lt;
-                        if (lt == LT_ANY) lt = c->lt;
-                        else AdjustLifetime(c, lt);
-                    }
+                    CheckReturnPast(isc.sf, isf, call_context);
                 }
             }
-            // See how many cases match, if only 1 (as subtype of declared) we can specialize,
-            // if 0 (as sub or supertype of declared) we can avoid a runtime error.
-            SubFunction *lastmatch = nullptr;
-            int numsubmatches = 0;
-            int numsupmatches = 0;
-            for (auto sf = f.subf; sf; sf = sf->next) {
-                bool subtypematch = true;
-                bool suptypematch = true;
-                for (size_t i = 0; i < f.nargs(); i++) {
-                    auto submatch = ConvertsTo(call_args->children[i]->exptype, sf->args.v[i].type,
-                                               false, false);
-                    auto supmatch = ConvertsTo(sf->args.v[i].type, call_args->children[i]->exptype,
-                                               false, false);
-                    subtypematch = subtypematch && submatch;
-                    suptypematch = suptypematch && (submatch || supmatch);
-                }
-                if (subtypematch) { numsubmatches++; lastmatch = sf; }
-                if (suptypematch) numsupmatches++;
-            }
-            if (!numsupmatches)
-                TypeError("multi-method call does not match any functions: " + f.name,
-                          *call_context);
-            if (numsubmatches == 1 && numsupmatches <= 1) {
-                auto call = Is<Call>(call_context);
-                if (call) {
-                    chosen = lastmatch;
-                    call->multimethod_specialized = true;
-                }
-            }
-            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                DecBorrowers(c->lt, *call_context);
-            }
-            return f.multimethodretval;
-        } else if (f.istype) {
-            // Function types are always fully typed.
-            // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
-            return TypeCheckMatchingCall(csf, call_args, chosen, call_context);
-        } else {
-            if (csf->logvarcallgraph) {
+        };
+
+        auto TypeCheckCallStatic = [&](int overload_idx, bool static_dispatch, bool first_dynamic) {
+            Function &f = *csf->parent;
+            SubFunction *sf = f.overloads[overload_idx];
+            if (sf->logvarcallgraph) {
                 // Mark call-graph up to here as using logvars, if it hasn't been already.
                 for (auto sc : reverse(scopes)) {
                     if (sc.sf->logvarcallgraph) break;
@@ -1023,40 +927,40 @@ struct TypeChecker {
             }
             // Check if we need to specialize: generic args, free vars and need of retval
             // must match previous calls.
-            SubFunction *sf = csf;
-            auto AllowAnyLifetime = [&](const Arg &arg) {
+            auto AllowAnyLifetime = [&](const Arg & arg) {
                 return arg.sid->id->single_assignment && !sf->iscoroutine;
             };
-            if (sf->typechecked) {
-                // Check if any existing specializations match.
-                for (sf = f.subf; sf; sf = sf->next) {
-                    if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
-                        // We check against f.nargs because HOFs are allowed to call a function
-                        // value with more arguments than it needs (if we're called from
-                        // TypeCheckDynCall). Optimizer always removes these.
-                        // Note: we compare only lt, since calling with other borrowed sid
-                        // should be ok to reuse.
-                        for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                            auto &arg = sf->args.v[i];
-                            if ((arg.flags & AF_GENERIC && !ExactType(c->exptype, arg.type)) ||
-                                (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
-                                 AllowAnyLifetime(arg))) goto fail;
-                        }
-                        if (SpecializationIsCompatible(*sf, reqret)) {
-                            // This function can be reused.
-                            // But first make sure to add any freevars this call caused to be
-                            // added to its parents also to the current parents, just in case
-                            // they're different.
-                            for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
-                            ReplayReturns(*sf, *call_context);
-                            return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
-                        }
-                        fail:;
+            // Check if any existing specializations match.
+            for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
+                if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
+                    // We check against f.nargs because HOFs are allowed to call a function
+                    // value with more arguments than it needs (if we're called from
+                    // TypeCheckDynCall). Optimizer always removes these.
+                    // Note: we compare only lt, since calling with other borrowed sid
+                    // should be ok to reuse.
+                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                        auto &arg = sf->args.v[i];
+                        if ((arg.flags & AF_GENERIC && !ExactType(c->exptype, arg.type)) ||
+                            (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
+                                AllowAnyLifetime(arg))) goto fail;
                     }
+                    if (SpecializationIsCompatible(*sf)) {
+                        // This function can be reused.
+                        // Make sure to add any freevars this call caused to be
+                        // added to its parents also to the current parents, just in case
+                        // they're different.
+                        LOG_DEBUG("re-using: ", Signature(*sf));
+                        for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
+                        ReplayReturns(sf);
+                        return TypeCheckMatchingCall(sf, static_dispatch, first_dynamic);
+                    }
+                    fail:;
                 }
-                // No fit. Specialize existing function, or its clone.
-                sf = CloneFunction(csf);
             }
+            // No match.
+            sf = f.overloads[overload_idx];
+            // Specialize existing function, or its clone.
+            if (sf->typechecked) sf = CloneFunction(sf, overload_idx);
             // Now specialize.
             sf->reqret = reqret;
             // See if this is going to be a coroutine.
@@ -1070,7 +974,7 @@ struct TypeChecker {
                 if (arg.flags & AF_GENERIC) {
                     arg.type = c->exptype;  // Specialized to arg.
                     CheckGenericArg(f.orig_args.v[i].type, arg.type, arg.sid->id->name,
-                                    *c, f.name);
+                        *c, f.name);
                     LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
                 }
             }
@@ -1078,29 +982,252 @@ struct TypeChecker {
             assert(!f.anonymous || sf->freevarchecked);
             assert(!sf->freevars.v.size());
             LOG_DEBUG("specialization: ", Signature(*sf));
-            return TypeCheckMatchingCall(sf, call_args, chosen, call_context);
+            return TypeCheckMatchingCall(sf, static_dispatch, first_dynamic);
+        };
+
+        auto TypeCheckCallDispatch = [&]() {
+            // We must assume the instance may dynamically be different, so go thru vtable.
+            // See if we already have a vtable entry for this type of call.
+            for (auto [i, disp] : enumerate(dispatch_udt->dispatch)) {
+                // FIXME: does this guarantee it find it in the recursive case?
+                // TODO: we chould check for a superclass vtable entry also, but chances
+                // two levels will be present are low.
+                if (disp.sf && disp.sf->method_of == dispatch_udt && disp.is_dispatch_root &&
+                    &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf)) {
+                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
+                        auto &arg = disp.sf->args.v[i];
+                        if (i && !ConvertsTo(c->exptype, arg.type, false, false))
+                            goto fail;
+                    }
+                    for (auto udt : dispatch_udt->subudts) {
+                        // Since all functions were specialized with the same args, they should
+                        // all be compatible if the root is.
+                        auto sf = udt->dispatch[i].sf;
+                        LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
+                        assert(SpecializationIsCompatible(*sf));
+                        for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
+                        ReplayReturns(sf);
+                    }
+                    // Type check this as if it is a static dispatch to just the root function.
+                    TypeCheckMatchingCall(disp.sf, true, false);
+                    vtable_idx = (int)i;
+                    return dispatch_udt->dispatch[i].returntype;
+                }
+                fail:;
+            }
+            // Must create a new vtable entry.
+            // TODO: would be good to search superclass if it has this method also.
+            // Probably not super important since dispatching on the "middle" type in a
+            // hierarchy will be rare.
+            // Find subclasses and max vtable size.
+            {
+                vector<int> overload_idxs;
+                for (auto sub : dispatch_udt->subudts) {
+                    int best = -1;
+                    int bestdist = 0;
+                    for (auto [i, sf] : enumerate(csf->parent->overloads)) {
+                        if (sf->method_of) {
+                            auto sdist = st.SuperDistance(sf->method_of, sub);
+                            if (sdist >= 0 && (best < 0 || bestdist > sdist)) {
+                                best = (int)i;
+                                bestdist = sdist;
+                            }
+                        }
+                    }
+                    if (best < 0) {
+                        if (sub->constructed) {
+                            TypeError("no implementation for " + sub->name + "." + csf->parent->name,
+                                call_context);
+                        } else {
+                            // This UDT is unused, so we're ok there not being an implementation
+                            // for it.. like e.g. an abstract base class.
+                        }
+                    }
+                    overload_idxs.push_back(best);
+                    vtable_idx = max(vtable_idx, (int)sub->dispatch.size());
+                }
+                // Add functions to all vtables.
+                for (auto [i, udt] : enumerate(dispatch_udt->subudts)) {
+                    auto &dt = udt->dispatch;
+                    assert((int)dt.size() <= vtable_idx);  // Double entry.
+                    // FIXME: this is not great, wasting space, but only way to do this
+                    // on the fly without tracking lots of things.
+                    while ((int)dt.size() < vtable_idx) dt.push_back({});
+                    dt.push_back({ overload_idxs[i] < 0
+                                    ? nullptr
+                                    : csf->parent->overloads[overload_idxs[i]] });
+                }
+                // FIXME: if any of the overloads below contain recursive calls, it may run into
+                // issues finding an existing dispatch above? would be good to guarantee..
+                // The fact that in subudts the superclass comes first will help avoid problems
+                // in many cases.
+                auto de = &dispatch_udt->dispatch[vtable_idx];
+                de->is_dispatch_root = true;
+                de->returntype = NewTypeVar();
+                // Typecheck all the individual functions.
+                SubFunction *last_sf = nullptr;
+                for (auto [i, udt] : enumerate(dispatch_udt->subudts)) {
+                    auto sf = udt->dispatch[vtable_idx].sf;
+                    if (!sf) continue;  // Missing implementation for unused UDT.
+                    // FIXME: this possible runs the code below multiple times for the same sf,
+                    // we rely on it finding the same specialization.
+                    if (last_sf) {
+                        // FIXME: good to have this check here so it only occurs for functions
+                        // participating in the dispatch, but error now appears at the call site!
+                        for (auto [j, arg] : enumerate(sf->args.v)) {
+                            if (j && arg.type != last_sf->args.v[j].type &&
+                                !(arg.flags & AF_GENERIC))
+                                TypeError("argument " + to_string(j + 1) + " of " + f.name +
+                                          " overload type mismatch", call_context);
+                        }
+                    }
+                    call_args->children[0]->exptype = &udt->thistype;
+                    auto rtype = TypeCheckCallStatic(overload_idxs[i], false, !last_sf);
+                    de = &dispatch_udt->dispatch[vtable_idx];  // May have realloced.
+                    sf = chosen;
+                    sf->method_of->dispatch[vtable_idx].sf = sf;
+                    // FIXME: Lift these limits?
+                    if (sf->returntype->NumValues() > 1)
+                        TypeError("dynamic dispatch can currently return only 1 value.",
+                            call_context);
+                    auto u = sf->returntype;
+                    if (de->returntype->IsBoundVar()) {
+                        // Typically in recursive calls, but can happen otherwise also?
+                        if (!ConvertsTo(u, de->returntype, false))
+                            // FIXME: not a great error, but should be rare.
+                            TypeError("dynamic dispatch for " + f.name +
+                                " return value type " +
+                                TypeName(sf->returntype) +
+                                " doesn\'t match other case returning " +
+                                TypeName(de->returntype), *sf->body);
+                    } else {
+                        if (i) {
+                            // We have to be able to take the union of all retvals without
+                            // coercion, since we're not fixing up any previously typechecked
+                            // functions.
+                            u = Union(u, de->returntype, false, &call_context);
+                            // Ensure we didn't accidentally widen the type from a scalar.
+                            assert(IsRef(de->returntype->t) || !IsRef(u->t));
+                        }
+                        de->returntype = u;
+                    }
+                    last_sf = sf;
+                }
+                call_args->children[0]->exptype = &dispatch_udt->thistype;
+            }
+            return dispatch_udt->dispatch[vtable_idx].returntype;
+        };
+
+        if (f.istype) {
+            // Function types are always fully typed.
+            // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
+            return TypeCheckMatchingCall(csf, true, false);
         }
+        // Check if we need to do dynamic dispatch. We only do this for functions that have a
+        // explicit first arg type of a class (not structs, since they can never dynamically be
+        // different from their static type), and only when there is a sub-class that has a
+        // method that can be called also.
+        if (f.nargs()) {
+            auto type = call_args->children[0]->exptype;
+            if (type->t == V_CLASS) dispatch_udt = type->udt;
+        }
+        if (dispatch_udt) {
+            size_t num_methods = 0;
+            for (auto isf : csf->parent->overloads) if (isf->method_of) num_methods++;
+            if (num_methods > 1) {
+                // Go thru all other overloads, and see if any of them have this one as superclass.
+                for (auto isf : csf->parent->overloads) {
+                    if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
+                        LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
+                        return TypeCheckCallDispatch();
+                    }
+                }
+                // Yay there are no sub-class implementations, we can just statically dispatch.
+            }
+            // Yay only one method, we can statically dispatch.
+        }
+        // Do a static dispatch, if there are overloads, figure out from first arg which to pick,
+        // much like dynamic dispatch. Unlike dynamic dispatch, we also include non-class types.
+        // TODO: also involve the other arguments for more complex static overloads?
+        int overload_idx = 0;
+        if (f.nargs() && f.overloads.size() > 1) {
+            overload_idx = -1;
+            auto type0 = call_args->children[0]->exptype;
+            // First see if there is an exact match.
+            for (auto [i, isf] : enumerate(f.overloads)) {
+                if (ExactType(type0, isf->args.v[0].type)) {
+                    if (overload_idx >= 0)
+                        TypeError("multiple overloads have the same type: " + f.name +
+                                  ", first arg: " + TypeName(type0), call_context);
+                    overload_idx = (int)i;
+                }
+            }
+            // Then see if there's a match by subtyping.
+            if (overload_idx < 0) {
+                for (auto [i, isf] : enumerate(f.overloads)) {
+                    auto arg0 = isf->args.v[0].type;
+                    if (ConvertsTo(type0, arg0, false, false)) {
+                        if (overload_idx >= 0) {
+                            if (type0->t == V_CLASS) {
+                                auto oarg0 = f.overloads[overload_idx]->args.v[0].type;
+                                // Prefer "closest" supertype.
+                                auto dist = st.SuperDistance(arg0->udt, type0->udt);
+                                auto odist = st.SuperDistance(oarg0->udt, type0->udt);
+                                if (dist < odist) overload_idx = (int)i;
+                                else if (odist < dist) { /* keep old one */ }
+                                else {
+                                    TypeError("multiple overloads have the same class: " + f.name +
+                                              ", first arg: " + TypeName(type0), call_context);
+                                }
+                            } else {
+                                TypeError("multiple overloads apply: " + f.name + ", first arg: " +
+                                    TypeName(type0), call_context);
+                            }
+                        } else {
+                            overload_idx = (int)i;
+                        }
+                    }
+                }
+            }
+            // Then finally try with coercion.
+            if (overload_idx < 0) {
+                for (auto [i, isf] : enumerate(f.overloads)) {
+                    if (ConvertsTo(type0, isf->args.v[0].type, true, false)) {
+                        if (overload_idx >= 0) {
+                            TypeError("multiple overloads can coerce: " + f.name +
+                                      ", first arg: " + TypeName(type0), call_context);
+                        }
+                        overload_idx = (int)i;
+                    }
+                }
+            }
+            if (overload_idx < 0)
+                TypeError("no overloads apply: " + f.name + ", first arg: " + TypeName(type0),
+                          call_context);
+        }
+        LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx]));
+        return TypeCheckCallStatic(overload_idx, true, false);
     }
 
     SubFunction *PreSpecializeFunction(SubFunction *hsf) {
         // Don't pre-specialize named functions, because this is not their call-site.
         if (!hsf->parent->anonymous) return hsf;
-        hsf = hsf->parent->subf;
+        assert(hsf->parent->overloads.size() == 1);
+        hsf = hsf->parent->overloads[0];
         auto sf = hsf;
         if (sf->freevarchecked) {
             // See if there's an existing match.
             for (; sf; sf = sf->next) if (sf->freevarchecked) {
                 if (FreeVarsSameAsCurrent(*sf, true)) return sf;
             }
-            sf = CloneFunction(hsf);
+            sf = CloneFunction(hsf, 0);
         } else {
             // First time this function has ever been touched.
             sf->freevarchecked = true;
         }
         assert(!sf->freevars.v.size());
         // Output without arg types, since those are yet to be overwritten.
-        LOG_DEBUG("pre-specialization: ",
-               SignatureWithFreeVars(*sf, nullptr, false));
+        LOG_DEBUG("pre-specialization: ", SignatureWithFreeVars(*sf, nullptr, false));
         return sf;
     }
 
@@ -1113,13 +1240,14 @@ struct TypeChecker {
         if (ftype->IsFunction()) {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping
             // closures.
-            // FIXME: just transform into a Call node much like GenericCall does.
             auto sf = ftype->sf;
             if (nargs < sf->parent->nargs())
                 TypeError("function value called with too few arguments", *args);
             // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
             // remove them).
-            auto type = TypeCheckCall(sf, args, fspec, args, reqret);
+            int vtable_idx = -1;
+            auto type = TypeCheckCall(sf, args, fspec, *args, reqret, vtable_idx);
+            assert(vtable_idx < 0);
             ftype = &fspec->thistype;
             return { type, fspec->ltret };
         } else if (ftype->t == V_YIELD) {
@@ -1133,7 +1261,7 @@ struct TypeChecker {
                 if (!sf->iscoroutine) continue;
                 // What yield returns to return_value(). If no arg, then it will return nil.
                 auto type = args->children[0]->exptype;
-                RetVal(type, sf, args);
+                RetVal(type, sf, *args);
                 SubTypeT(type, sf->returntype, *args, "", "yield value");
                 // Now collect all ids between coroutine and yield, so that we can save these in the
                 // VM.
@@ -1390,7 +1518,7 @@ struct TypeChecker {
         if (auto call = Is<Call>(n)) {
             // Have to be conservative for recursive calls since we're not done typechecking it.
             if (call->sf->isrecursivelycalled ||
-                call->sf->parent->multimethod ||
+                call->sf->method_of ||
                 call->sf->iscoroutine ||
                 call->sf->parent->istype) return false;
             if (!call->sf->num_returns) return true;
@@ -1657,17 +1785,14 @@ struct TypeChecker {
 
     void Stats() {
         if (min_output_level > OUTPUT_INFO) return;
-        int origsf = 0, multisf = 0, clonesf = 0;
+        int origsf = 0, clonesf = 0;
         size_t orignodes = 0, clonenodes = 0;
         typedef pair<size_t, Function *> Pair;
         vector<Pair> funstats;
         for (auto f : st.functiontable) funstats.push_back({ 0, f });
         for (auto sf : st.subfunctiontable) {
             auto count = sf->body ? sf->body->Count() : 0;
-            if (sf->parent->multimethod) {
-                multisf++;
-                orignodes += count;
-            } else if (!sf->next)        {
+            if (!sf->next)        {
                 origsf++;
                 orignodes += count;
             } else {
@@ -1676,16 +1801,15 @@ struct TypeChecker {
                 funstats[sf->parent->idx].first += count;
             }
         }
-        LOG_INFO("SF count: multi: ", multisf, ", orig: ", origsf, ", cloned: ",
-                            clonesf);
+        LOG_INFO("SF count: orig: ", origsf, ", cloned: ", clonesf);
         LOG_INFO("Node count: orig: ", orignodes, ", cloned: ", clonenodes);
         sort(funstats.begin(), funstats.end(),
             [](const Pair &a, const Pair &b) { return a.first > b.first; });
         for (auto &[fsize, f] : funstats) if (fsize > orignodes / 100) {
-            auto &pos = f->subf->body->line;
-            LOG_INFO("Most clones: ", f->name, " (", st.filenames[pos.fileidx],
-                                ":", pos.line, ") -> ", fsize, " nodes accross ",
-                                f->NumSubf() - 1, " clones (+1 orig)");
+            auto &pos = f->overloads.back()->body->line;
+            LOG_INFO("Most clones: ", f->name, " (", st.filenames[pos.fileidx], ":", pos.line,
+                     ") -> ", fsize, " nodes accross ", f->NumSubf() - f->overloads.size(),
+                     " clones (+", f->overloads.size(), " orig)");
         }
     }
 };
@@ -2233,7 +2357,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         // See if any of sf's specializations matches type exactly, then it overrides nf.
         bool prefer_sf = false;
         if (sf && udt && sf->parent->nargs()) {
-            for (auto sfi = sf->parent->subf; sfi; sfi = sfi->next) {
+            for (auto sfi : sf->parent->overloads) {
                 if (sfi->args.v[0].type->udt == udt) {
                     prefer_sf = true;
                     break;
@@ -2374,7 +2498,9 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
             }
             auto chosen = fsf;
             List args(tc.parser.lex);
-            tc.TypeCheckCall(fsf, &args, chosen, c, false);
+            int vtable_idx = -1;
+            tc.TypeCheckCall(fsf, &args, chosen, *c, false, vtable_idx);
+            assert(vtable_idx < 0);
             assert(fsf == chosen);
         }
         argtypes[i] = actualtype;
@@ -2460,7 +2586,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 
 void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
     sf = tc.PreSpecializeFunction(sf);
-    exptype = tc.TypeCheckCall(sf, this, sf, this, reqret);
+    exptype = tc.TypeCheckCall(sf, this, sf, *this, reqret, vtable_idx);
     lt = sf->ltret;
 }
 
@@ -2534,22 +2660,22 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     if (never_returns && sf->reqret && sf->parent->anonymous) {
         // A return to the immediately enclosing anonymous function that needs to return a value
         // but is bypassed.
-        tc.RetVal(child->exptype, sf, this);  // If it's a variable, bind it.
+        tc.RetVal(child->exptype, sf, *this);  // If it's a variable, bind it.
         return this;
     }
     if (!Is<DefaultVal>(child)) {
         if (auto mrs = Is<MultipleReturn>(child)) {
-            tc.RetVal(mrs->exptype, sf, this);
+            tc.RetVal(mrs->exptype, sf, *this);
             for (auto [i, mr] : enumerate(mrs->children)) {
                 if (i < sf->reqret)
                     tc.SubType(mr, sf->returntype->Get(i), tc.ArgName(i), *this);
             }
         } else {
-            tc.RetVal(child->exptype, sf, this);
+            tc.RetVal(child->exptype, sf, *this);
             tc.SubType(child, sf->returntype, "", *this);
         }
     } else {
-        tc.RetVal(type_void, sf, this);
+        tc.RetVal(type_void, sf, *this);
         tc.SubType(child, sf->returntype, "", *this);
     }
     return this;

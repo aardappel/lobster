@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_BYTECODE_FORMAT_VERSION = 14;
+const int LOBSTER_BYTECODE_FORMAT_VERSION = 15;
 const int MAX_RETURN_VALUES = 64;
 
 // Any type specialized ops below must always have this ordering.
@@ -53,7 +53,7 @@ enum MathOp {
     F(BCALLRET7, 1) F(BCALLREF7, 1) F(BCALLUNB7, 1) \
     F(ASSERT, 3) F(ASSERTR, 3) \
     F(CONT1, 1) \
-    F(FUNSTART, ILUNKNOWNARITY) F(FUNMULTI, ILUNKNOWNARITY) \
+    F(FUNSTART, ILUNKNOWNARITY) \
     F(ENDSTATEMENT, 2) \
     F(NEWVEC, 2) F(NEWOBJECT, 1) \
     F(POP, 0) F(POPREF, 0) F(POPV, 1) F(POPVREF, 1) \
@@ -87,7 +87,7 @@ enum MathOp {
     F(INCREF, 1) F(KEEPREF, 2)
 
 #define ILCALLNAMES \
-    F(CALL, 1) F(CALLMULTI, ILUNKNOWNARITY) F(CALLV, 0) F(CALLVCOND, 0) \
+    F(CALL, 1) F(CALLV, 0) F(CALLVCOND, 0) F(DDCALL, 2) \
     F(PUSHFUN, 1) F(CORO, ILUNKNOWNARITY) F(YIELD, 0)
 
 #define ILJUMPNAMES \

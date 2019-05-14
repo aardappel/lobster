@@ -151,15 +151,10 @@ print mat[pos]</code></pre>
     exp1
     exp2</code></pre>
 <p>The return value of a function is determined by its <code>return</code> statements (see below) or <code>void</code> (no return value) otherwise, except for anonymous functions, which don’t need an explicit <code>return</code> (it is automatically the last expression evaluated).</p>
-<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). If you don’t specify types, the function is generic, meaning it will receive types from the caller.</p>
+<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). If you don’t specify types, the function is generic, meaning it will receive types from the caller. If called with multiple combinations of incompatible arguments, you automatically get multiple “specializations” of the same function, meaning working with different types is very easy (more in <a href="type_checker.html">type system</a>).</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
 <pre><code>def magnitude(v::xy): return sqrt(x * x + y * y)</code></pre>
 <p>You can also leave out the <code>v::xy</code> entirely if you define this function as part of a <code>class</code> / <code>struct</code> definition of type <code>xy</code> (see above). Both types of definition are equivalent.</p>
-<p>Additionally, types allow the definition of multimethods, whereby all functions of the same name and number of arguments inside the program (not necessarily adjacent in code, in any order) act as a single function:</p>
-<pre><code>def intersect(a, b): return &quot;no idea how to intersect these two!&quot;
-def intersect(c:circle, p:xy): return &quot;point in circle&quot;
-def intersect(c:circle, r:ray): return &quot;ray vs circle&quot;</code></pre>
-<p>Calling intersect with any 2 arguments will automatically call the most appropriate function. If 2 functions apply to the argument types, the most specific one (the one where the exact types match) will be preferred, determined by the arguments from left to right. If no function satisfies the argument types, this is a run-time error (the above example will never have a runtime error, since at least one function always matches).</p>
 <p>You can specify an explicit return type, like so:</p>
 <pre><code>def f(a:int, b:int) -&gt; float: return a + b</code></pre>
 <p>This is typically not necessary, but may be helpful when coercing to a more general type.</p>
@@ -206,13 +201,38 @@ let a, b = m()</code></pre>
 <h3 id="scope">Scope</h3>
 <p>Functions and variables declared there-in always obey lexical scope: any use of a variable always refers to the closest enclosing definition of it.</p>
 <p>Since functions and function values can be defined at any scope level, this means they can access variables from enclosing scopes, called <em>free variables</em>. Free variables are essential to make Lobster’s higher order functions convenient. References to free variables are only valid within the scope they are defined, which luckily is almost always the case, but can be broken by storing a function value and then calling it at a later time outside of the context where its free variables were valid, which will result in a runtime error. Other languages use <em>closures</em> to ensure availability in all cases, which are very costly (parent stackframe(s) may have to be dynamically allocated) as opposed to Lobster’s approach which makes function values and free variables have no overhead compared to regular functions and variables.</p>
+<h3 id="overloading-and-dynamic-dispatch">Overloading and dynamic dispatch</h3>
+<p>Overloading and dynamic dispatch are part of the same system, the only difference being wether choosing the right function is done at compile time or runtime.</p>
+<p>You can define these overloads anywhere, either as part of a class, or outside of them, regardless of wether you wrote the original class. For example:</p>
+<pre><code>def f(a::A): return 1
+def f(b::B): return 2
+def f(c::C): return 3
+def f(i:int): return 4</code></pre>
+<p>(as we note above, using <code>::</code> instead of <code>:</code> merely means all fields of that type become directly available, saving you having to type <code>this.</code>, but is otherwise equivalent.)</p>
+<p>What happens when you call <code>f</code> depends on the types above, and the type you call it with. If all 4 types are unrelated, the you guaranteed get static dispatch (a normal function call). If <code>B</code> inherits from <code>A</code>, but <code>C</code> is unrelated, and you call with either a <code>B</code>, <code>C</code> or <code>int</code> argument type, you still get static dispatch, since there is statically only one option.</p>
+<p>Only if you call with an <code>A</code> argument however, you get dynamic dispatch, since the argument may point to a <code>B</code> value, and <code>B</code> has a different function implementation. A dynamic dispatch goes thru a “virtual table”, and while slower than static dispatch, is still very fast. As you can see, wether something is “virtual” gets decided per call, and with knowledge of the whole program (all types and functions that can possibly exist), so typically less calls result in dynamic dispatch than in other languages.</p>
+<p>Types like <code>int</code> never participate in dynamic dispatch, since they don’t have a sub-class relation to any other type.</p>
+<p>Defining these functions can also be done “in line” in a class declaration, like so:</p>
+<pre><code>class A:
+    def f(): return 1</code></pre>
+<p>This definition of <code>f</code> for <code>A</code> is entirely equivalent to the one above.</p>
+<p>Only the first argument to a function is used to resolve which overload to call, either statically or dynamically. Lobster used to have the ability to dispatch on all arguments, called “multi-methods”, which at least academically seem very elegant. In practice however, these are slow (require complicated look-up tables) and ambiguous (hard to tell which function will get called, sometimes accidentally combine unrelated functions into a multimethod and get unexpected errors or slow-down). Single dispatch gives predictable, fast polymorphism that seems to work well for most languages, so for the moment, multi-methods are removed from the language.</p>
+<p>Overloading and dynamic dispatch in can even be mixed with type specialization (see <a href="type_checker.html">type system</a>), meaning you can generate multiple versions of a polymorphic call that do different things. Simply leave out the type of any arguments beyond the first:</p>
+<pre><code>class A:
+    def g(c): return c + 1
+class B : A
+    def g(c): return c + 2
+x : A = B {}  // Type is A, but dynamic value is a B!
+assert x.g(&quot;hi&quot;) == &quot;hi2&quot;
+assert x.g(3) == 5</code></pre>
+<p>Here, the call to <code>g</code> is dynamically dispatched for <code>A</code> or <code>B</code>, but choosing the <code>int</code> or <code>string</code> specialization is entirely static.</p>
 <h2 id="typing">Typing</h2>
 <p>Lobster is statically typed, though most of the time you don’t notice, since most types can be inferred. You specify types:</p>
 <ul>
-<li><p>Used to create multi-methods (see earlier)</p></li>
+<li><p>To define overloaded / dynamic dispatched functions (see earlier).</p></li>
 <li><p>To provide coercion (<code>int</code> -&gt; <code>float</code>, anything -&gt; <code>string</code>)</p></li>
-<li><p>As documentation</p></li>
-<li><p>To get simpler type errors.</p></li>
+<li><p>As documentation.</p></li>
+<li><p>To get simpler/earlier type errors.</p></li>
 </ul>
 <p>As we’ve seen, you can type function arguments and UDT fields.</p>
 <p>For more detail, see the <a href="type_checker.html">type system</a>.</p>

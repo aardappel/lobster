@@ -82,6 +82,8 @@ table BytecodeFile {
     logvars:[int];  // Index into specidents.
 
     enums:[Enum];
+
+    vtables:[int];
 }
 
 root_type BytecodeFile;

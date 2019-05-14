@@ -45,10 +45,13 @@ int last_instruction_opc = -1;
 #endif
 
 VM::VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, size_t static_size, const vector<string> &args)
+       const void *static_bytecode, size_t static_size, const vector<string> &args,
+       const lobster::block_t *native_vtables)
       : nfr(nfr), maxstacksize(DEFMAXSTACKSIZE),
         bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
-        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode), compiled_code_size(static_size), program_args(args) {
+        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode),
+        compiled_code_size(static_size), program_args(args),
+        native_vtables(native_vtables) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     auto bcs = static_bytecode ? static_size : bytecode_buffer.size();
     flatbuffers::Verifier verifier(bcfb, bcs);
@@ -83,6 +86,17 @@ VM::VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const voi
     vml.LogInit(bcfb);
     InstructionPointerInit();
     constant_strings.resize(bcf->stringtable()->size());
+    #ifdef VM_COMPILED_CODE_MODE
+        assert(native_vtables);
+        for (size_t i = 0; i < bcf->vtables()->size(); i++) {
+            vtables.push_back(InsPtr(native_vtables[i]));
+        }
+    #else
+        assert(!native_vtables);
+        for (auto bcs : *bcf->vtables()) {
+            vtables.push_back(InsPtr(bcs));
+        }
+    #endif
 }
 
 VM::~VM() {
@@ -151,6 +165,11 @@ void VM::DumpLeaks() {
         LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");
         ostringstream ss;
+        #ifndef VM_COMPILED_CODE_MODE
+            ss << "in: ";
+            DumpFileLine(ip, ss);
+            ss << "\n";
+        #endif
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
         leakpp.cycles = 0;
@@ -358,70 +377,6 @@ int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals)
         x.ToString(*this, ss, ti, debugpp);
         return 1;
     }
-}
-
-void VM::EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip) {
-    auto definedfunction = *mip++;
-    auto nsubf = *mip++;
-    auto nargs = *mip++;
-    // FIXME: this is a temp fix to keep MM's working with struct args, but
-    // should be completely reworked.
-    const int MAX_ARGS = 16;
-    int idx[MAX_ARGS];
-    assert(nargs <= MAX_ARGS);
-    auto so = sp;
-    for (int j = nargs - 1; j >= 0; j--) {
-        auto giveni = (type_elem_t)call_arg_types[j];
-        auto &given = GetTypeInfo(giveni);
-        if (IsStruct(given.t)) so -= given.len - 1;
-        idx[j] = so;
-        so--;
-    }
-    for (int i = 0; i < nsubf; i++) {
-        // TODO: rather than going thru all args, only go thru those that have types
-        for (int j = 0; j < nargs; j++) {
-            auto desiredi = (type_elem_t)*mip++;
-            auto &desired = GetTypeInfo(desiredi);
-            if (desired.t != V_ANY) {
-                auto giveni = (type_elem_t)call_arg_types[j];
-                auto &given = GetTypeInfo(giveni);
-                //LOG_ERROR(j, " ", desired.Debug(*this, false), " ",
-                //                             given.Debug(*this, false));
-                // Have to check the actual value, since given may be a supertype.
-                // FIXME: this is slow.
-                if (IsRef(given.t)) {
-                    giveni = stack[idx[j]].ref()->tti;
-                }
-                if (giveni != desiredi) {
-                    mip += nargs - j;  // Includes the code starting point.
-                    goto fail;
-                }
-            } else {
-            }
-        } {
-            call_arg_types += nargs;
-            #ifdef VM_COMPILED_CODE_MODE
-                InsPtr retip(comp_retip);
-                InsPtr fun(next_mm_table[i]);
-            #else
-                InsPtr retip(call_arg_types - codestart);
-                InsPtr fun(*mip);
-                (void)comp_retip;
-            #endif
-            StartStackFrame(retip);
-            return FunIntroPre(fun);
-        }
-        fail:;
-    }
-    string argtypes;
-    for (int j = 0; j < nargs; j++) {
-        auto &ti = GetTypeInfo((type_elem_t)call_arg_types[j]);
-        Value &v = stack[idx[j]];  // FIXME: structs
-        argtypes += ProperTypeName(IsRef(ti.t) && v.ref() ? v.ref()->ti(*this) : ti);
-        if (j < nargs - 1) argtypes += ", ";
-    }
-    Error("the call " + bcf->functions()->Get(definedfunction)->name()->string_view() + "(" +
-          argtypes + ") did not match any function variants");
 }
 
 void VM::FinalStackVarsCleanup() {
@@ -913,31 +868,6 @@ VM_INS_RET VM::U_CALL(int f VM_COMMA VM_OP_ARGS_CALL) {
     VM_RET;
 }
 
-VM_INS_RET VM::U_CALLMULTI(VM_OP_ARGS VM_COMMA VM_OP_ARGS_CALL) {
-    #ifdef VM_COMPILED_CODE_MODE
-        next_mm_call = ip;
-        next_call_target = fcont;  // Used just to transfer value here.
-    #else
-        auto fun = *ip++;
-        auto mip = codestart + fun;
-        VMASSERT(*mip == IL_FUNMULTI);
-        mip++;
-        EvalMulti(mip, ip, 0);
-    #endif
-    VM_RET;
-}
-
-VM_INS_RET VM::U_FUNMULTI(VM_OP_ARGS) {
-    #ifdef VM_COMPILED_CODE_MODE
-        auto cip = next_mm_call;
-        cip++;  // bytecode start of FUNMULTI.
-        EvalMulti(ip, cip, next_call_target);
-    #else
-        VMASSERT(false);
-    #endif
-    VM_RET;
-}
-
 VM_INS_RET VM::U_CALLVCOND(VM_OP_ARGS_CALL) {
     // FIXME: don't need to check for function value again below if false
     if (!VM_TOP().True()) {
@@ -962,6 +892,21 @@ VM_INS_RET VM::U_CALLV(VM_OP_ARGS_CALL) {
     VM_RET;
 }
 
+VM_INS_RET VM::U_DDCALL(int vtable_idx, int stack_idx VM_COMMA VM_OP_ARGS_CALL) {
+    auto self = VM_TOPM(stack_idx);
+    VMTYPEEQ(self, V_CLASS);
+    auto start = self.oval()->ti(*this).vtable_start;
+    auto fun = vtables[start + vtable_idx];
+    #ifdef VM_COMPILED_CODE_MODE
+    #else
+        auto fcont = ip - codestart;
+        assert(fun.f >= 0);
+    #endif
+    StartStackFrame(InsPtr(fcont));
+    FunIntroPre(fun);
+    VM_RET;
+}
+
 VM_INS_RET VM::U_FUNSTART(VM_OP_ARGS) {
     #ifdef VM_COMPILED_CODE_MODE
         FunIntro(ip);
@@ -977,7 +922,10 @@ VM_INS_RET VM::U_RETURN(int df, int nrv) {
 }
 
 VM_INS_RET VM::U_ENDSTATEMENT(int line, int fileidx) {
-    #ifndef NDEBUG
+    #ifdef NDEBUG
+        (void)line;
+        (void)fileidx;
+    #else
         if (trace) {
             auto &ss = TraceStream();
             ss << bcf->filenames()->Get(fileidx)->string_view() << '(' << line << ')';
@@ -1787,7 +1735,7 @@ void VM::StartWorkers(size_t numthreads) {
         // FIXME: have to copy this even though it is read-only.
         auto bc = bytecode_buffer;
         auto wvm = new VM(nfr, programname, bc, compiled_code_ip, compiled_code_bc,
-                          compiled_code_size, vector<string>());
+                          compiled_code_size, vector<string>(), native_vtables);
         wvm->is_worker = true;
         wvm->tuple_space = tuple_space;
         workers.emplace_back([wvm] {
@@ -1894,12 +1842,6 @@ void CVM_SetNextCallTarget(VM *vm, block_t fcont) {
 
 block_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
-}
-
-void CVM_TempMMTable(VM *vm, block_t entry, int idx) {
-    if (!idx) vm->temp_mm_table.clear();
-    vm->temp_mm_table.push_back(entry);
-    vm->next_mm_table = vm->temp_mm_table.data();
 }
 
 #define F(N, A) \

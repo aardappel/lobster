@@ -131,14 +131,6 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void EmitMultiMethodDispatch(const vector<int> &mmtable) override {
-        ss << "static lobster::block_t mmtable[] = {";
-        for (auto &id : mmtable) {
-            ss << Block() << id << ", ";
-        }
-        ss << "}; vm.next_mm_table = mmtable; ";
-    }
-
     void SetNextCallTarget(int id) override {
         ss << "vm.next_call_target = " << Block() << id << "; ";
     }
@@ -190,13 +182,27 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void FileEnd(int start_id, string_view bytecode_buffer) override {
+    void CodeEnd() override {
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             ss << "}\n}\n";  // End of gigantic function.
         }
+    }
+
+    void VTables(vector<int> &vtables) {
+        ss << "\nstatic const lobster::block_t vtables[] = {\n";
+        for (auto id : vtables) {
+            ss << "    ";
+            if (id >= 0) ss << Block() << id;
+            else ss << "0";
+            ss << ",\n";
+        }
+        ss << "};\n";
+    }
+
+    void FileEnd(int start_id, string_view bytecode_buffer) override {
         // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
         // in fact, it be nice if those were in readable format in the generated code.
-        ss << "\nstatic const int bytecodefb[] =\n{";
+        ss << "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)bytecode_buffer.data();
         for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
             if ((i & 0xF) == 0) ss << "\n  ";
@@ -210,7 +216,7 @@ class CPPGenerator : public NativeGenerator {
         } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
             ss << Block() << start_id;
         }
-        ss << ", bytecodefb, " << bytecode_buffer.size() << ");\n}\n";
+        ss << ", bytecodefb, " << bytecode_buffer.size() << ", vtables);\n}\n";
     }
 
     void Annotate(string_view comment) override {

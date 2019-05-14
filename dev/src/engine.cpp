@@ -86,9 +86,10 @@ void one_frame_callback(void *arg) {
 }
 
 void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, const void *entry_point,
-                       const void *static_bytecode, size_t static_size, const vector<string> &program_args) {
+                       const void *static_bytecode, size_t static_size,
+                       const vector<string> &program_args, const lobster::block_t *vtables) {
     lobster::VM vm(nfr, fn ? StripDirPart(fn) : "", bytecode, entry_point,
-                   static_bytecode, static_size, program_args);
+                   static_bytecode, static_size, program_args, vtables);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
@@ -126,7 +127,8 @@ void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, co
 }
 
 extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
-                                         const void *bytecodefb, size_t static_size) {
+                                         const void *bytecodefb, size_t static_size,
+                                         const lobster::block_t *vtables) {
     (void)argc;
 
     min_output_level = OUTPUT_INFO;
@@ -142,7 +144,7 @@ extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *ent
         string empty;
         vector<string> args;
         for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, static_size, args);
+        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, static_size, args, vtables);
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

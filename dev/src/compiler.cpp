@@ -317,7 +317,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (parsedump) *parsedump = parser.DumpAll(true);
     CodeGen cg(parser, st, return_value, runtime_checks);
     st.Serialize(cg.code, cg.code_attr, cg.type_table, cg.vint_typeoffsets, cg.vfloat_typeoffsets,
-        cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode);
+        cg.lineinfo, cg.sids, cg.stringtable, cg.speclogvars, bytecode, cg.vtables);
     if (pakfile) BuildPakFile(*pakfile, bytecode, parser.pakfiles);
     if (dump_builtins) DumpBuiltins(nfr, false, st);
     if (dump_names) DumpBuiltins(nfr, true, st);
@@ -337,7 +337,7 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        VM vm(parent_vm.nfr, fn, bytecode, nullptr, nullptr, 0, args);
+        VM vm(parent_vm.nfr, fn, bytecode, nullptr, nullptr, 0, args, nullptr);
         vm.EvalProgram();
         auto ret = vm.evalret;
         parent_vm.Push(Value(parent_vm.NewString(ret)));

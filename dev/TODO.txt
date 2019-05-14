@@ -1,5 +1,10 @@
 - rework/replace multimethods
-  - may also make default/tagged args easier / more logical.
+  - C++ and wasm modes
+  - webpage
+
+- default/tagged args for functions.
+
+- remove logvars?
 
 - do more inlining:
   - mark certain functions as un-inlinable.
@@ -26,6 +31,8 @@
   - These were immutable in the past, because values were shared by pointer, but now there
     really is no reason to anymore, as they're always copied, so modifying a field of
     a struct that sits in a variable would totally be fine and useful.
+    - allow fields in a struct to be preceded by var, and similarly in a class by let
+      to change their respective defaults.
     - Will greatly expand the zero abstraction use cases where
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
@@ -61,9 +68,6 @@
     make it all more parsable.
     map xs do x: body
     map x in xs: body  // Python-esque, sadly in an odd order.
-
-- methods in unrelated types still form a multimethod
-  - this should be the final straw to rework them.
 
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
@@ -162,9 +166,9 @@
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
 
 - remaining improvements we can do related to return values.
-  - allow multi-methods to be specialized on reqret etc.
-    - multi-methods should have better return value type checking, probably by coercing them at
-      the end?
+  - allow dynamic dispatch overloads to be specialized on reqret etc.
+    - dynamic dispatch overloads should have better return value type checking, probably by
+      coercing them at the end?
   - codegen: remove special purpose use of rettypes, replace by regular types.
   - codegen: remove dropping in codegen to just follow typechecker?
     - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
@@ -307,14 +311,6 @@
   - extend switch to do pattern matching.
     - failing that, a switch that can use types as case labels would be a good start,
       and simple to do given that we have type indices!
-  - do we still want multi-methods? certainly allowing both ADT and inheritance
-    styles is more flexible, but multimethods aren't particularly fast right
-    now and probably don't support inheritance that well.
-    Also complicates namespacing see above.
-    Either just:
-    - support inheritance well and efficiently.
-    - reduce their use case to be an alternative to pattern matching on an ADT.
-    - remove them altogether.
 - It would be better if we could leave the decision wether something is a builtin or a user
   defined function to the type checker, since that would allow user defined types to have
   a length function, or anything else that clashes with builtins.
@@ -328,7 +324,7 @@
   - extend non-namespaced "methods" to out of line declarations.
   - Private functions and data types do not appear to be deleted at the end of an include
     currently, see EndOfInclude.
-    - what if they participate in a multimethod?
+    - what if they are overloads?
 
 - things that would help making --to-cpp faster:
   - current lowest hanging fruit:
@@ -723,12 +719,6 @@
   - flow analysis should also know about if !a: return; a // not nil here
 
   - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
-
-  - multimethods
-    - the implementation is rather clumsy, and needing to dispatch on more than 1 arg so far has remained unused.
-      - revert them to single dispatch?
-    - need to disallow nilable types for args that are being dispatched on, since if the runtime value
-      is ever nil, we can't choose a method. That, or have a way to have a method that works on nil alone.
 
   - You're able to pass a value to vector_reserve that's a different typeof than "return", which potentially
     gets the wrong type set.
@@ -1559,17 +1549,6 @@ CURRENT SOLUTION FROM TRADEOFS:
   include "gui.lobster" as gui. If you leave out the as-part, you instead get it dumped in the
   current namespace.
   Hmm.. defaulting to namespaced as declared is probably better, "as" could be optional renaming.
-  Again multi-methods don't help here, since a function that is supposed to be a "method" should
-  really not be namespaced, but a free standing top level function should. We cannot easily
-  make such a distinction, unless you say something like "functions whose first argument (or any?)
-  is a type thats namespaced (by the current namespace or any?) then it should not itself be
-  namespaced", which is somewhat yucky.
-  Probably should be first arg only, since the . syntax makes names look "not global".
-  Of course that the . syntax is optional makes this less ideal.
-  And should be current namespace, since it should be discouraged to have a "method" declared
-  in essentially the wrong namespace.
-  Or we could tie non-namespacing of function to inline definition? That would be cleaner
-  though potentially less flexible.
 
 - try to measure the cost of removing exception handling from lobster: turning exceptions of will
   have a gain that my compensate for the branch not taken needed for explicit error handling.
@@ -1667,6 +1646,7 @@ C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
 VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
 C++64-MSVC: inlinestr : secs 13.0 inline structs v1
 C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
+C++64-MSVC: dd        : secs 12.0
 
 compiletime speed:
 

@@ -25,12 +25,14 @@ struct Optimizer {
         : parser(_p), st(_st), tc(_tc) {
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : parser.st.functiontable) {
-            if (f->subf && f->subf->typechecked) {
-                for (auto sf = f->subf; sf; sf = sf->next) if (sf->body) {
-                    cursf = sf;
-                    auto nb = sf->body->Optimize(*this, nullptr);
-                    assert(nb == sf->body);
-                    (void)nb;
+            for (auto sf : f->overloads) {
+                if (sf && sf->typechecked) {
+                    for (; sf; sf = sf->next) if (sf->body) {
+                        cursf = sf;
+                        auto nb = sf->body->Optimize(*this, nullptr);
+                        assert(nb == sf->body);
+                        (void)nb;
+                    }
                 }
             }
         }
@@ -139,7 +141,7 @@ Node *Call::Optimize(Optimizer &opt, Node *parent_maybe) {
     if (!parent_maybe || typeid(*parent_maybe) != typeid(For)) {
         if (!sf->parent->anonymous ||
             sf->num_returns > 1 ||       // Implied by anonymous, but here for clarity.
-            sf->parent->multimethod ||   // unless multimethod_specialized?
+            vtable_idx >= 0 ||
             sf->iscoroutine ||
             sf->returntype->NumValues() > 1 ||
             (sf->numcallers > 1 && sf->body->Count() >= 8))  // FIXME: configurable.

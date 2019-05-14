@@ -24,7 +24,7 @@ struct CodeGen  {
     vector<bytecode::SpecIdent> sids;
     Parser &parser;
     vector<const Node *> linenumbernodes;
-    vector<tuple<int, const SubFunction *, bool>> call_fixups;
+    vector<tuple<int, const SubFunction *>> call_fixups;
     SymbolTable &st;
     vector<type_elem_t> type_table, vint_typeoffsets, vfloat_typeoffsets;
     map<vector<type_elem_t>, type_elem_t> type_lookup;  // Wasteful, but simple.
@@ -35,6 +35,7 @@ struct CodeGen  {
     vector<int> speclogvars;  // Index into specidents.
     int keepvars = 0;
     int runtime_checks;
+    vector<int> vtables;
 
     int Pos() { return (int)code.size(); }
 
@@ -65,13 +66,18 @@ struct CodeGen  {
         SplitAttr(Pos());
     }
 
+    const size_t ti_num_udt_fields = 4;
+    const size_t ti_num_udt_per_field = 2;
+
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
         for (auto &field : udt->fields.v) {
             auto ti = GetTypeTableOffset(field.type);
             if (IsStruct(field.type->t)) {
                 PushFields(field.type->udt, tt, ti);
             } else {
-                tt.insert(tt.begin() + (tt.size() - 3) / 2 + 3, ti);
+              tt.insert(tt.begin() + (tt.size() - ti_num_udt_fields) / ti_num_udt_per_field +
+                            ti_num_udt_fields,
+                        ti);
                 tt.push_back(parent);
             }
         }
@@ -116,10 +122,12 @@ struct CodeGen  {
                 type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 assert(type->udt->numslots >= 0);
-                auto ttsize = (size_t)(type->udt->numslots * 2) + 3;
+                auto ttsize =
+                    (size_t)(type->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)type->udt->idx);
                 tt.push_back((type_elem_t)type->udt->numslots);
+                tt.push_back((type_elem_t)type->udt->vtable_start);
                 PushFields(type->udt, tt);
                 assert(tt.size() == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
@@ -146,6 +154,11 @@ struct CodeGen  {
 
     CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks)
         : parser(_p), st(_st), runtime_checks(runtime_checks) {
+        // Reserve space and index for all vtables.
+        for (auto udt : st.udttable) {
+            udt->vtable_start = (int)vtables.size();
+            vtables.insert(vtables.end(), udt->dispatch.size(), -1);
+        }
         // Pre-load some types into the table, must correspond to order of type_elem_t enums.
                                                             GetTypeTableOffset(type_int);
                                                             GetTypeTableOffset(type_float);
@@ -180,21 +193,19 @@ struct CodeGen  {
                     sids.push_back(bytecode::SpecIdent(sid->id->idx, tti));
             }
         }
-        // Create list of subclasses, to help in creation of dispatch tables.
-        for (auto udt : st.udttable) {
-            if (udt->superclass) {
-                udt->nextsubclass = udt->superclass->firstsubclass;
-                udt->superclass->firstsubclass = udt;
-            }
-        }
         linenumbernodes.push_back(parser.root);
         SplitAttr(0);
         Emit(IL_JUMP, 0);
         auto fundefjump = Pos();
         SplitAttr(Pos());
-        for (auto f : parser.st.functiontable)
-            if (f->subf && f->subf->typechecked)
-                GenFunction(*f);
+        for (auto f : parser.st.functiontable) {
+            if (f->bytecodestart <= 0 && !f->istype) {
+                f->bytecodestart = Pos();
+                for (auto sf : f->overloads) for (; sf; sf = sf->next) {
+                    if (sf && sf->typechecked) GenScope(*sf);
+                }
+            }
+        }
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
@@ -212,14 +223,19 @@ struct CodeGen  {
         Emit(IL_EXIT, return_value ? GetTypeTableOffset(type): -1);
         SplitAttr(Pos());  // Allow off by one indexing.
         linenumbernodes.pop_back();
-        for (auto &[loc, sf, multimethod_specialized] : call_fixups) {
-            auto f = sf->parent;
-            auto bytecodestart = f->multimethod && !multimethod_specialized
-                ? f->bytecodestart
-                : sf->subbytecodestart;
+        for (auto &[loc, sf] : call_fixups) {
+            auto bytecodestart = sf->subbytecodestart;
             if (!bytecodestart) bytecodestart = dummyfun;
             assert(!code[loc]);
             code[loc] = bytecodestart;
+        }
+        // Now fill in the vtables.
+        for (auto udt : st.udttable) {
+            for (auto [i, de] : enumerate(udt->dispatch)) {
+                if (de.sf) {
+                    vtables[udt->vtable_start + i] = de.sf->subbytecodestart;
+                }
+            }
         }
     }
 
@@ -230,81 +246,6 @@ struct CodeGen  {
     void Dummy(size_t retval) {
         assert(!retval);
         while (retval--) Emit(IL_PUSHNIL);
-    }
-
-    struct sfcompare {
-        size_t nargs;
-        CodeGen *cg;
-        Function *f;
-        bool operator() (SubFunction *a, SubFunction *b) {
-            for (size_t i = 0; i < nargs; i++) {
-                auto ta = a->args.v[i].type;
-                auto tb = b->args.v[i].type;
-                if (ta != tb) return cg->st.IsLessGeneralThan(*ta, *tb);
-            }
-            cg->parser.Error("function signature overlap for " + f->name, nullptr);
-            return false;
-        }
-    } sfcomparator;
-
-    bool GenFunction(Function &f) {
-        if (f.bytecodestart > 0 || f.istype) return false;
-        if (!f.multimethod) {
-            f.bytecodestart = Pos();
-            for (auto sf = f.subf; sf; sf = sf->next) {
-                GenScope(*sf);
-            }
-        } else {
-            // do multi-dispatch
-            vector<SubFunction *> sfs;
-            for (auto sf = f.subf; sf; sf = sf->next) {
-                sfs.push_back(sf);
-                GenScope(*sf);
-            }
-            sfcomparator.nargs = f.nargs();
-            sfcomparator.cg = this;
-            sfcomparator.f = &f;
-            sort(sfs.begin(), sfs.end(), sfcomparator);
-            f.bytecodestart = Pos();
-            int numentries = 0;
-            auto multistart = Pos();
-            SplitAttr(Pos());
-            Emit(IL_FUNMULTI, f.idx, 0, (int)f.nargs());
-            // FIXME: invent a much faster, more robust multi-dispatch mechanic.
-            for (auto sf : sfs) {
-                auto gendispatch = [&] (size_t override_j, TypeRef override_type) {
-                    LOG_DEBUG("dispatch ", f.name);
-                    for (size_t j = 0; j < f.nargs(); j++) {
-                        auto type = j == override_j ? override_type : sf->args.v[j].type;
-                        LOG_DEBUG("arg ", j, ": ", TypeName(type));
-                        Emit(GetTypeTableOffset(type));
-                    }
-                    Emit(sf->subbytecodestart);
-                    numentries++;
-                };
-                // Generate regular dispatch entry.
-                gendispatch(0xFFFFFFFF, nullptr);
-                // See if this entry contains sub-types and generate additional entries.
-                for (size_t j = 0; j < f.nargs(); j++) {
-                    auto arg = sf->args.v[j];
-                    if (IsUDT(arg.type->t)) {
-                        auto udt = arg.type->udt;
-                        for (auto subs = udt->firstsubclass; subs; subs = subs->nextsubclass) {
-                            // See if this instance already exists:
-                            for (auto osf : sfs) {
-                                // Only check this arg, not all arg, which is reasonable.
-                                if (*osf->args.v[j].type == subs->thistype) goto skip;
-                            }
-                            gendispatch(j, &subs->thistype);
-                            // FIXME: We should also call it on subtypes of subs.
-                            skip:;
-                        }
-                    }
-                }
-            }
-            code[multistart + 2] = numentries;
-        }
-        return true;
     }
 
     void GenScope(SubFunction &sf) {
@@ -369,16 +310,14 @@ struct CodeGen  {
         }
     }
 
-    void GenFixup(const SubFunction *sf, bool multimethod_specialized) {
+    void GenFixup(const SubFunction *sf) {
         assert(sf->body);
         auto pos = Pos() - 1;
-        if (!code[pos]) call_fixups.push_back({ pos, sf, multimethod_specialized });
+        if (!code[pos]) call_fixups.push_back({ pos, sf });
     }
 
-    void GenCall(const SubFunction &sf, const List *args, size_t retval,
-                 bool multimethod_specialized) {
+    void GenCall(const SubFunction &sf, int vtable_idx, const List *args, size_t retval) {
         auto &f = *sf.parent;
-        auto multicall = f.multimethod && !multimethod_specialized;
         for (auto c : args->children) {
             Gen(c, 1);
         }
@@ -387,11 +326,13 @@ struct CodeGen  {
             parser.Error(cat("call to function ", f.name, " needs ", f.nargs(),
                              " arguments, ", nargs, " given"), node_context.back());
         TakeTemp(nargs, true);
-        Emit(multicall ? IL_CALLMULTI : IL_CALL,
-             multicall ? f.bytecodestart : sf.subbytecodestart);
-        GenFixup(&sf, multimethod_specialized);
-        if (multicall) {
-            for (auto c : args->children) Emit(GetTypeTableOffset(c->exptype));
+        if (vtable_idx < 0) {
+            Emit(IL_CALL, sf.subbytecodestart);
+            GenFixup(&sf);
+        } else {
+            int stack_depth = -1;
+            for (auto c : args->children) stack_depth += ValWidth(c->exptype);
+            Emit(IL_DDCALL, vtable_idx, stack_depth);
         }
         SplitAttr(Pos());
         auto nretvals = sf.returntype->NumValues();
@@ -974,7 +915,7 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     // FIXME: instead, ensure such values are removed by the optimizer.
     if (sf->parent->anonymous && sf->body) {
         cg.Emit(IL_PUSHFUN, sf->subbytecodestart);
-        cg.GenFixup(sf, false);
+        cg.GenFixup(sf);
     } else {
         cg.Dummy(retval);
     }
@@ -1079,7 +1020,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Call::Generate(CodeGen &cg, size_t retval) const {
-    cg.GenCall(*sf, this, retval, multimethod_specialized);
+    cg.GenCall(*sf, vtable_idx, this, retval);
 }
 
 void DynCall::Generate(CodeGen &cg, size_t retval) const {
@@ -1106,7 +1047,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
         if (!sf->parent->istype) {
             // We statically know which function this is calling.
             // We can now turn this into a normal call.
-            cg.GenCall(*sf, this, retval, false);
+            cg.GenCall(*sf, -1, this, retval);
         } else {
             for (auto c : children) {
                 cg.Gen(c, 1);
@@ -1316,6 +1257,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
             exitswitch.push_back(cg.Pos());
         }
     }
+    for (auto loc : nextcase) cg.SetLabel(loc);
     for (auto loc : exitswitch) cg.SetLabel(loc);
 }
 

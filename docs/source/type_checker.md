@@ -225,8 +225,8 @@ This is powerful, because it allows you to write generic functions that do
 subtly different things depending on the input, with no overhead from the
 conditional, and the ability to operate differently on each case.
 
-You can do something similar with multi-methods, but that may require more code
-or may be less efficient.
+You can do something similar with overloading / dynamic dispatch, but that may
+require more code or may be less efficient.
 
 Generic classes and structs
 --------------------------

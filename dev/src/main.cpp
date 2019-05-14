@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
         } else if (!compile_only) {
-            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, 0, program_args);
+            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, 0, program_args, nullptr);
         }
     }
     #ifdef USE_EXCEPTION_HANDLING

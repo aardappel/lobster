@@ -86,7 +86,7 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>If you’re used to dynamic languages, you might think: what’s the fuss? This would be a compile error in almost all statically typed languages, since they don’t cull code before the optimizer. For example with C++ templates can’t handle this situation, and that’s already more powerful than most forms of generics.</p>
 <p>Also note the return type is just the else branch in the string case, it doesn’t need to make a type union between the branches anymore.</p>
 <p>This is powerful, because it allows you to write generic functions that do subtly different things depending on the input, with no overhead from the conditional, and the ability to operate differently on each case.</p>
-<p>You can do something similar with multi-methods, but that may require more code or may be less efficient.</p>
+<p>You can do something similar with overloading / dynamic dispatch, but that may require more code or may be less efficient.</p>
 <h2 id="generic-classes-and-structs">Generic classes and structs</h2>
 <p>Besides functions, classes can also be generic, but here we use explicit generic parameters to do so:</p>
 <pre><code>class foo&lt;T&gt;:

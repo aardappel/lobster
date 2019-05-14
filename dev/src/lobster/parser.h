@@ -50,7 +50,8 @@ struct Parser {
         auto sf = st.ScopeStart();
         st.toplevel = sf;
         auto &f = st.CreateFunction("__top_level_expression", "");
-        sf->SetParent(f, f.subf);
+        f.overloads.push_back(nullptr);
+        sf->SetParent(f, f.overloads[0]);
         f.anonymous = true;
         lex.Include("stdtype.lobster");
         sf->body = ParseStatements(T_ENDOFFILE);
@@ -251,7 +252,9 @@ struct Parser {
         UDT *udt = &st.StructDecl(sname, lex, is_struct);
         auto parse_sup = [&] () {
             ExpectId();
-            return &st.StructUse(lastid, lex);
+            auto sup = &st.StructUse(lastid, lex);
+            if (sup == udt) Error("can\'t inherit from: " + lastid);
+            return sup;
         };
         auto parse_specializers = [&] () {
             int i = 0;
@@ -301,6 +304,8 @@ struct Parser {
             if (udt->superclass) {
                 // This points to a generic version of the superclass of this class.
                 // See if we can find a matching specialization instead.
+                // FIXME: better to move this to start of typecheck just in case more to be
+                // declared.
                 auto sti = udt->superclass->next;
                 for (; sti; sti = sti->next) {
                     for (size_t i = 0; i < sti->fields.size(); i++)
@@ -423,27 +428,39 @@ struct Parser {
                     lex.Next();
                     ParseType(arg.type, withtype, nullptr, nullptr, &sf->args.v.back());
                     if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
+                    if (nargs == 1 && IsUDT(arg.type->t)) self = arg.type->udt;
                 }
                 SetArgFlags(arg, withtype);
                 if (!IsNext(T_COMMA)) break;
             }
         }
         if (parens) Expect(T_RIGHTPAREN);
+        sf->method_of = self;
         auto &f = name ? st.FunctionDecl(*name, nargs, lex) : st.CreateFunction("", context);
-        sf->SetParent(f, f.subf);
+        if (name && self) {
+            for (auto isf : f.overloads) {
+                if (isf->method_of == self) {
+                    // FIXME: this currently disallows static overloads on the other args, that
+                    // would be nice to add.
+                    Error("method " + *name + " already declared for type: " + self->name);
+                }
+            }
+        }
+        f.overloads.push_back(nullptr);
+        sf->SetParent(f, f.overloads.back());
         if (!expfunval) {
             if (IsNext(T_CODOT)) {  // Return type decl.
                 ParseType(sf->fixedreturntype, false, nullptr, sf);
             }
             if (!IsNext(T_COLON)) {
                 if (lex.token == T_IDENT || !name) Expect(T_COLON);
-                if (f.istype || f.subf->next)
+                if (f.istype || f.overloads.size() > 1)
                     Error("redefinition of function type: " + *name);
                 f.istype = true;
                 sf->typechecked = true;
                 // Any untyped args truely mean "any", they should not be specialized (we wouldn't know
                 // which specialization that refers to).
-                for (auto &arg : f.subf->args.v) {
+                for (auto &arg : sf->args.v) {
                     if (arg.flags & AF_GENERIC) arg.flags = AF_NONE;
                     // No idea what the function is going to be, so have to default to borrow.
                     arg.sid->lt = LT_BORROW;
@@ -454,11 +471,18 @@ struct Parser {
             }
         }
         if (name) {
-            if (f.subf->next) {
-                f.multimethod = true;
+            if (f.overloads.size() > 1) {
+                // We could check here for "double declaration", but since that entails
+                // detecting what is a legit overload or not, this is in general better left to the
+                // type checker.
+                if (!f.nargs()) Error("double declaration: " + f.name);
+                for (auto [i, arg] : enumerate(sf->args.v)) {
+                    if (arg.flags & AF_GENERIC && !i)
+                        Error("first argument of overloaded function must be typed: " + f.name);
+                }
                 if (isprivate != f.isprivate)
                     Error("inconsistent private annotation of multiple function implementations"
-                          " for " + *name);
+                          " for: " + *name);
             }
             f.isprivate = isprivate;
             functionstack.push_back(&f);
@@ -518,7 +542,7 @@ struct Parser {
                 }
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {
-                    dest = &f->subf->thistype;
+                    dest = &f->overloads[0]->thistype;
                     lex.Next();
                     return -1;
                 }
@@ -686,13 +710,13 @@ struct Parser {
                     auto f = st.FindFunction(lastid);
                     if (!f)
                         Error("return from: not a known function");
-                    if (f->sibf || f->multimethod)
+                    if (f->sibf || f->overloads.size() > 1)
                         Error("return from: function must have single implementation");
-                    sf = f->subf;
+                    sf = f->overloads[0];
                 }
             } else {
                 if (functionstack.size())
-                    sf = functionstack.back()->subf;
+                    sf = functionstack.back()->overloads.back();
             }
             return new Return(lex, rv, sf, false);
         }
@@ -870,10 +894,10 @@ struct Parser {
                 if (fi->nargs() > bestf->nargs()) bestf = fi;
             auto call = new GenericCall(lex, idname, nullptr, false);
             if (!firstarg) firstarg = SelfArg(f, wse);
-            ParseFunArgs(call, coroutine, firstarg, idname, &bestf->subf->args, noparens);
+            ParseFunArgs(call, coroutine, firstarg, idname, &bestf->overloads.back()->args, noparens);
             auto nargs = call->Arity();
             f = FindFunctionWithNargs(f, nargs, idname, nullptr);
-            call->sf = f->subf;
+            call->sf = f->overloads.back();
             return call;
         }
         if (id) {
@@ -894,14 +918,13 @@ struct Parser {
             // If we're in the context of a withtype, calling a function that starts with an
             // arg of the same type we pass it in automatically.
             // This is maybe a bit very liberal, should maybe restrict it?
-            if (wse.id &&
-                // FIXME: for a multimethod, this would need to check against ever subf.
-                // Though even then, the corresponding subf for this call may have not been
-                // declared, so better to do it all in type checking.
-                wse.type == f->subf->args.v[0].type &&
-                f->subf->args.v[0].flags & AF_WITHTYPE &&
-                wse.sf->parent != f) {  // Not in recursive calls.
-                return new IdentRef(lex, wse.id->cursid);
+            for (auto sf : f->overloads) {
+                if (wse.type == sf->args.v[0].type && sf->args.v[0].flags & AF_WITHTYPE) {
+                    if (wse.id && wse.sf->parent != f) {  // Not in recursive calls.
+                        return new IdentRef(lex, wse.id->cursid);
+                    }
+                    break;
+                }
             }
         }
         return nullptr;
@@ -925,7 +948,7 @@ struct Parser {
                         if (self) ffc->n->children.insert(ffc->n->children.begin(), self);
                     }
                     ffc->n->sf = FindFunctionWithNargs(f,
-                        ffc->n->Arity(), ffc->n->name, ffc->n)->subf;
+                        ffc->n->Arity(), ffc->n->name, ffc->n)->overloads.back();
                     ffc = forwardfunctioncalls.erase(ffc);
                     continue;
                 } else {
@@ -963,7 +986,9 @@ struct Parser {
                     auto nf = natreg.FindNative(idname);
                     if (fld || f || nf) {
                         if (fld && lex.token != T_LEFTPAREN) {
-                            auto dot = new GenericCall(lex, idname, f ? f->subf : nullptr, true);
+                            auto dot = new GenericCall(lex,
+                                                       idname, f ? f->overloads.back() : nullptr,
+                                                       true);
                             dot->Add(n);
                             n = dot;
                         } else {
@@ -1156,6 +1181,7 @@ struct Parser {
     Node *IdentFactor(string_view idname) {
         if (IsNext(T_LEFTCURLY)) {
             auto &udt = st.StructUse(idname, lex);
+            udt.constructed = true;
             vector<Node *> exps(udt.fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;
@@ -1284,17 +1310,19 @@ struct Parser {
     string DumpAll(bool onlytypechecked = false) {
         string s;
         for (auto f : st.functiontable) {
-            for (auto sf = f->subf; sf; sf = sf->next) {
-                if (!onlytypechecked || sf->typechecked) {
-                    s += "FUNCTION: " + f->name + "(";
-                    for (auto &arg : sf->args.v) {
-                        s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
+            for (auto sf : f->overloads) {
+                for (; sf; sf = sf->next) {
+                    if (!onlytypechecked || sf->typechecked) {
+                        s += "FUNCTION: " + f->name + "(";
+                        for (auto &arg : sf->args.v) {
+                            s += arg.sid->id->name + ":" + TypeName(arg.type) + " ";
+                        }
+                        s += ") -> ";
+                        s += TypeName(sf->returntype);
+                        s += "\n";
+                        if (sf->body) s += DumpNode(*sf->body, 4, false);
+                        s += "\n\n";
                     }
-                    s += ") -> ";
-                    s += TypeName(sf->returntype);
-                    s += "\n";
-                    if (sf->body) s += DumpNode(*sf->body, 4, false);
-                    s += "\n\n";
                 }
             }
         }

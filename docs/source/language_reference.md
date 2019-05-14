@@ -368,7 +368,10 @@ evaluated).
 Arguments can be just an argument name (which will be available as a lexically
 scoped local variable inside body), or a typed name (e.g. `s:string`).
 If you don't specify types, the function is generic,
-meaning it will receive types from the caller.
+meaning it will receive types from the caller. If called with multiple
+combinations of incompatible arguments, you automatically get multiple
+"specializations" of the same function, meaning working with different types
+is very easy (more in [type system](type_checker.html)).
 
 You can use :: instead of : for typed vector arguments, which allows you to
 access all fields / functions of that vector directly, without having to prefix
@@ -381,23 +384,6 @@ def magnitude(v::xy): return sqrt(x * x + y * y)
 You can also leave out the `v::xy` entirely if you define this function as part
 of a `class` / `struct` definition of type `xy` (see above). Both types of
 definition are equivalent.
-
-Additionally, types allow the definition of multimethods, whereby all functions
-of the same name and number of arguments inside the program (not necessarily
-adjacent in code, in any order) act as a single function:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def intersect(a, b): return "no idea how to intersect these two!"
-def intersect(c:circle, p:xy): return "point in circle"
-def intersect(c:circle, r:ray): return "ray vs circle"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Calling intersect with any 2 arguments will automatically call the most
-appropriate function. If 2 functions apply to the argument types, the most
-specific one (the one where the exact types match) will be preferred, determined
-by the arguments from left to right. If no function satisfies the argument
-types, this is a run-time error (the above example will never have a runtime
-error, since at least one function always matches).
 
 You can specify an explicit return type, like so:
 
@@ -567,19 +553,91 @@ are very costly (parent stackframe(s) may have to be dynamically allocated) as
 opposed to Lobster's approach which makes function values and free variables
 have no overhead compared to regular functions and variables.
 
+### Overloading and dynamic dispatch
+
+Overloading and dynamic dispatch are part of the same system, the only difference
+being wether choosing the right function is done at compile time or runtime.
+
+You can define these overloads anywhere, either as part of a class, or outside
+of them, regardless of wether you wrote the original class. For example:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def f(a::A): return 1
+def f(b::B): return 2
+def f(c::C): return 3
+def f(i:int): return 4
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(as we note above, using `::` instead of `:` merely means all fields of that type
+become directly available, saving you having to type `this.`, but is otherwise
+equivalent.)
+
+What happens when you call `f` depends on the types above, and the type you call
+it with. If all 4 types are unrelated, the you guaranteed get static dispatch
+(a normal function call). If `B` inherits from `A`, but `C` is unrelated, and you call
+with either a `B`, `C` or `int` argument type, you still get static dispatch, since
+there is statically only one option.
+
+Only if you call with an `A` argument however, you get dynamic dispatch,
+since the argument may point to a `B` value, and `B` has a different function
+implementation. A dynamic dispatch goes thru a "virtual table", and while slower than
+static dispatch, is still very fast. As you can see, wether something is "virtual" gets
+decided per call, and with knowledge of the whole program (all types and functions that
+can possibly exist), so typically less calls result in dynamic dispatch than in other
+languages.
+
+Types like `int` never participate in dynamic dispatch, since they don't have a
+sub-class relation to any other type.
+
+Defining these functions can also be done "in line" in a class declaration, like so:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class A:
+    def f(): return 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This definition of `f` for `A` is entirely equivalent to the one above.
+
+Only the first argument to a function is used to resolve which overload to call,
+either statically or dynamically. Lobster used to have the ability to dispatch on
+all arguments, called "multi-methods", which at least academically seem very elegant.
+In practice however, these are slow (require complicated look-up tables) and ambiguous
+(hard to tell which function will get called, sometimes accidentally combine unrelated
+functions into a multimethod and get unexpected errors or slow-down). Single dispatch
+gives predictable, fast polymorphism that seems to work well for most languages,
+so for the moment, multi-methods are removed from the language.
+
+Overloading and dynamic dispatch in can even be mixed with type specialization (see
+[type system](type_checker.html)), meaning you can generate multiple versions of
+a polymorphic call that do different things. Simply leave out the type of any
+arguments beyond the first:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class A:
+    def g(c): return c + 1
+class B : A
+    def g(c): return c + 2
+x : A = B {}  // Type is A, but dynamic value is a B!
+assert x.g("hi") == "hi2"
+assert x.g(3) == 5
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here, the call to `g` is dynamically dispatched for `A` or `B`, but choosing the
+`int` or `string` specialization is entirely static.
+
 Typing
 ------
 
 Lobster is statically typed, though most of the time you don’t notice, since
 most types can be inferred. You specify types:
 
--   Used to create multi-methods (see earlier)
+-   To define overloaded / dynamic dispatched functions (see earlier).
 
 -   To provide coercion (`int` -\> `float`, anything -\> `string`)
 
--   As documentation
+-   As documentation.
 
--   To get simpler type errors.
+-   To get simpler/earlier type errors.
 
 As we've seen, you can type function arguments and UDT fields.
 

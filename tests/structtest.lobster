@@ -1,7 +1,7 @@
 import testing
 import vec
 
-run_test("misch"):
+run_test("struct"):
 
     // Basic struct and nested struct usage.
     do():
@@ -78,7 +78,7 @@ run_test("misch"):
         let mr1, mr2, mr3 = g(7)
         assert mr2 == xy { 7, 7 }
 
-    // Multi-methods.
+    // As part of dynamic dispatch.
     do():
         class mm1:
             m:int

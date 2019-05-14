@@ -40,6 +40,7 @@ class WASMGenerator : public NativeGenerator {
         TI_I_III,
         TI_I_IIII,
         TI_I_IIIII,
+        TI_I_IIIIII,
         TI_V_,
         TI_V_I,
         TI_V_II,
@@ -56,6 +57,7 @@ class WASMGenerator : public NativeGenerator {
         bw.AddType({ WASM::I32, WASM::I32, WASM::I32 }, { WASM::I32 });
         bw.AddType({ WASM::I32, WASM::I32, WASM::I32, WASM::I32 }, { WASM::I32 });
         bw.AddType({ WASM::I32, WASM::I32, WASM::I32, WASM::I32, WASM::I32 }, { WASM::I32 });
+        bw.AddType({ WASM::I32, WASM::I32, WASM::I32, WASM::I32, WASM::I32, WASM::I32 }, { WASM::I32 });
         bw.AddType({}, {});
         bw.AddType({ WASM::I32 }, {});
         bw.AddType({ WASM::I32, WASM::I32 }, {});
@@ -88,10 +90,9 @@ class WASMGenerator : public NativeGenerator {
         #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_I);
             ILJUMPNAMES
         #undef F
-        import_erccm = bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIIII);
+        import_erccm = bw.AddImportLinkFunction("EngineRunCompiledCodeMain", TI_I_IIIIII);
         import_snct = bw.AddImportLinkFunction("CVM_SetNextCallTarget", TI_V_II);
         import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
-        import_tmmt = bw.AddImportLinkFunction("CVM_TempMMTable", TI_V_III);
         bw.EndSection(WASM::Section::Import);
 
         bw.BeginSection(WASM::Section::Function);
@@ -125,8 +126,9 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitGetLocal(0 /*argc*/);
         bw.EmitGetLocal(1 /*argv*/);
         bw.EmitI32FunctionRef(bw.GetNumImports() + start_id);
-        bw.EmitI32ConstDataRef(0, 0);  // Bytecode, for data refs.
+        bw.EmitI32ConstDataRef(1, 0);  // Bytecode, for data refs.
         bw.EmitI32Const((int)bytecode_buffer.size());
+        bw.EmitI32ConstDataRef(0, 0);  // vtables.
         bw.EmitCall(import_erccm);
         bw.EmitEndFunction();
     }
@@ -167,18 +169,8 @@ class WASMGenerator : public NativeGenerator {
     void EmitOperands(const char *base, const int *args, int arity, bool is_vararg) override {
         bw.EmitGetLocal(0 /*VM*/);
         if (is_vararg) {
-            if (arity) bw.EmitI32ConstDataRef(0, (const char *)args - base);
+            if (arity) bw.EmitI32ConstDataRef(1, (const char *)args - base);
             else bw.EmitI32Const(0);  // nullptr
-        }
-    }
-
-    void EmitMultiMethodDispatch(const vector<int> &mmtable) override {
-        // FIXME: this is terrible, but a quick way to make it work.
-        for (auto [i, id] : enumerate(mmtable)) {
-            bw.EmitGetLocal(0 /*VM*/);
-            bw.EmitI32FunctionRef(bw.GetNumImports() + id);
-            bw.EmitI32Const((int)i);
-            bw.EmitCall(import_tmmt);
         }
     }
 
@@ -232,10 +224,20 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitEndFunction();
     }
 
-    void FileEnd(int /*start_id*/, string_view bytecode_buffer) override {
+    void CodeEnd() override {
         bw.EndSection(WASM::Section::Code);
+    }
 
+    void VTables(vector<int> &vtables) {
         bw.BeginSection(WASM::Section::Data);
+
+        assert(false);
+        bw.AddData(string_view(), "vtables", 4);
+        for (auto id : vtables) {
+        }
+    }
+
+    void FileEnd(int /*start_id*/, string_view bytecode_buffer) override {
         // TODO: don't really want to store all of this.
         bw.AddData(bytecode_buffer, "static_data", 16);
         bw.EndSection(WASM::Section::Data);

@@ -161,6 +161,7 @@ struct TypeInfo {
         struct {           // V_CLASS, V_STRUCT_*
             int structidx;
             int len;
+            int vtable_start;
             type_elem_t elemtypes[1];  // len elems, followed by len parent types.
         };
         int enumidx;       // V_INT, -1 if not an enum.
@@ -731,9 +732,6 @@ struct VM {
 
     #ifdef VM_COMPILED_CODE_MODE
         block_t next_call_target = 0;
-        vector<block_t> temp_mm_table;
-        block_t *next_mm_table = nullptr;
-        const int *next_mm_call = nullptr;
     #else
         const int *ip = nullptr;
     #endif
@@ -777,6 +775,8 @@ struct VM {
 
     vector<LString *> constant_strings;
 
+    vector<InsPtr> vtables;
+
     int64_t vm_count_ins = 0;
     int64_t vm_count_fcalls = 0;
     int64_t vm_count_bcalls = 0;
@@ -806,8 +806,11 @@ struct VM {
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
+    const lobster::block_t *native_vtables;
+
     VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, size_t static_size, const vector<string> &args);
+       const void *static_bytecode, size_t static_size, const vector<string> &args,
+       const lobster::block_t *native_vtables);
     ~VM();
 
     void OneMoreFrame();
@@ -845,8 +848,6 @@ struct VM {
     void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
     int DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
-
-    void EvalMulti(const int *mip, const int *call_arg_types, block_t comp_retip);
 
     void FinalStackVarsCleanup();
 
@@ -925,6 +926,7 @@ struct VM {
     #define VM_COMMA_IF(N) VM_COMMA_##N
     #define VM_CCOMMA_0
     #define VM_CCOMMA_1 VM_COMMA
+    #define VM_CCOMMA_2 VM_COMMA
     #define VM_CCOMMA_9 VM_COMMA
     #define VM_CCOMMA_IF(N) VM_CCOMMA_##N
 

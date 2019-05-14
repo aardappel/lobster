@@ -187,7 +187,7 @@ cannot assign to borrowed argument: x
 ~~~~
 
 This typically never triggers, as arguments that are assigned to are typically forced to
-be owners, but there are currently some exceptions related to multi-methods where this may still
+be owners, but there are currently some exceptions related to dynamic dispatch where this may still
 happen. Likely will be eliminated entirely in the future.
 
 ~~~~
@@ -293,8 +293,6 @@ There are currently some exceptions to this:
 
 * Arguments that are assigned to are always owned.
 * Coroutines always own (because they are longer lived).
-* Multimethods speculatively adopt the lifetimes of the first caller,
-  since we currently don't specialize multimethods.
 * The return value of a function is currently always owned.
 
 Much like variables, some of these could be relaxed/improved in the future.

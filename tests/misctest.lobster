@@ -10,6 +10,7 @@ namespace test_namespace
 def f(): return 1
 class g:
     x = 1
+    def m(): return 2
 
 namespace whatever
 
@@ -28,6 +29,7 @@ run_test("misc"):
 
     assert test_namespace_f() == 1
     assert (test_namespace_g {}).x == 1
+    assert (test_namespace_g {}).m() == 2
 
     class testa:
         a:int
@@ -35,28 +37,18 @@ run_test("misc"):
         b:int
 
     def tf(x:int, y:int): return 1
-    def tf(x:string, y:float): return 2
-    def tf(x:string, y:int): return 3
-    def tf(x:testa, y:int): return 4
-    def tf(x:testb, y:string): return 9
-    def tf(x:testb, y:float): return 5
-    def tf(x:testb, y:int): return 6
+    def tf(x:string, y:int): return 2
+    def tf(x:testa, y:int): return 3
+    def tf(x:testb, y:int): return 4
 
-    def tf(x): return 8
-
-    assert(tf(testa { 0 }, 0) == 4)
+    // These will all resolve statically.
     assert(tf(1, 0) == 1)
-    assert(tf("", 0.0) == 2)
-    assert(tf("", 0) == 3)
-    assert(tf(testb { 0, 0 }, "") == 9)
-    assert(tf(testb { 0, 0 }, 0.0) == 5)
-    assert(tf(testb { 0, 0 }, 0) == 6)
+    assert(tf("", 0) == 2)
+    assert(tf(testb { 0, 0 }, 4) == 4)  // No subclasses.
 
-    // force dynamic dispatch
+    // This will dispatch dynamically.
     def to_a(a:testa): return a
-    assert(tf(to_a(testb { 0, 0 }), 1) == 6)
-
-    assert(tf("") == 8)
+    assert(tf(to_a(testb { 0, 0 }), 1) == 4)
 
     class parsetest:
         h:bool

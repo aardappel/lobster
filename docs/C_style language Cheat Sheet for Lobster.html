@@ -225,25 +225,14 @@ function, not just "methods".</td>
 def name(y:Y): return 1</td>
 <td>/* inside class X */ int name() { return 0; }<br>
 /* inside class Y */ int name() { return 1; }</td>
-<td>You write polymorphic functions (like virtual methods,
-dynamic dispatch, and unlike overloading which is static) by simply
-writing multiple functions. These functions can work on user defined
-types or builtin ones. They can be written by whoever wrote the type, or completely separately. </td>
+<td>You write multiple function implementations for multiple types,
+which can then be called and resolved either statically (overloading)
+or dynamically (dynamic dispatch) depending on the situation. These
+functions can work on user defined
+types or builtin ones. They can be written by whoever wrote the type
+(even in-line in the class definition), or completely separately. </td>
 </tr>
-<tr>
-<td>def&nbsp;name(x:X, z:Z): return 0<br>
-def name(x:X, w:W): return 1<br>
-def name(y:Y, z:Z): return 2</td>
-<td style="white-space: nowrap;">/* inside class X
-*/ int name(B b) { return b.nameX(); }<br>
-/* inside class Y */ int name(Z z) { return 2; }<br>
-/* inside class Z */ int nameX() { return 0; }<br>
-/* inside class W */ int nameX() { return 1; }</td>
-<td>Lobster can dispatch on any number or arguments, where
-most languages cannot. To emulate that, you do double dispatch. Note
-that we're assuming we don't know the dynamic argument types to name(),
-so we can't use overloading.</td>
-</tr>
+
 <tr>
 <td>let f&nbsp;= def(a, b):&nbsp;a + b</td>
 <td>var f = (int a, int b) =&gt; a + b</td>
