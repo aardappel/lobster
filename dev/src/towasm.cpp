@@ -28,6 +28,7 @@ class WASMGenerator : public NativeGenerator {
 
     size_t import_erccm  = 0, import_snct = 0, import_gnct = 0, import_tmmt = 0;
 
+    const bytecode::Function *next_block = nullptr;
   public:
 
     explicit WASMGenerator(vector<uint8_t> &dest) : bw(dest) {}
@@ -130,11 +131,14 @@ class WASMGenerator : public NativeGenerator {
         bw.EmitEndFunction();
     }
 
-    void FunStart(const bytecode::Function * /*f*/) override {
+    void FunStart(const bytecode::Function *f) override {
+        next_block = f;
     }
 
     void BlockStart(int id) override {
-        bw.AddCode({}, "block" + std::to_string(id), true);
+        bw.AddCode({}, "block" + std::to_string(id) +
+                       (next_block ? "_" + next_block->name()->string_view() : ""), true);
+        next_block = nullptr;
     }
 
     void InstStart() override {

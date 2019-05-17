@@ -3,7 +3,7 @@
 CXX= emcc
 CC= emcc
 
-# LTO only works for the cppout target, where it gives a huge speedup.
+# LTO only has an effect for the cppout target, where it gives a huge speedup.
 LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -s WASM_OBJECT_FILES=0
 
 # Pure debug mode.
@@ -120,8 +120,11 @@ $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
 		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
-		-s DEMANGLE_SUPPORT=1 --emrun
+		-s DEMANGLE_SUPPORT=1 --emrun --profiling-funcs \
+		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1 \
+		-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
 
+#EMCC_DEBUG=1
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
 	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
@@ -132,7 +135,7 @@ lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
 WASMOUT= compiled_lobster_wasm.o
 lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
 lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
-	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
+	EMCC_WASM_BACKEND=1 emcc -v $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
 
 clean:
 	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout
