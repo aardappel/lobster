@@ -517,7 +517,7 @@ struct Parser {
         return new FunRef(lex, sf);
     }
 
-    int ParseType(TypeRef &dest, bool withtype, UDT *fieldrefstruct = nullptr,
+    int ParseType(TypeRef &dest, bool withtype, UDT *udt = nullptr,
                   SubFunction *sfreturntype = nullptr, Arg *funarg = nullptr) {
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
@@ -526,8 +526,8 @@ struct Parser {
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
             case T_IDENT: {
-                if (fieldrefstruct) {
-                    for (auto [i, gen] : enumerate(fieldrefstruct->generics)) {
+                if (udt) {
+                    for (auto [i, gen] : enumerate(udt->generics)) {
                         if (gen.name == lex.sattr) {
                             lex.Next();
                             dest = type_undefined;
@@ -544,16 +544,15 @@ struct Parser {
                 if (f && f->istype) {
                     dest = &f->overloads[0]->thistype;
                     lex.Next();
-                    return -1;
+                    break;
                 }
                 auto e = st.EnumLookup(lex.sattr, lex, false);
                 if (e) {
                     dest = &e->thistype;
                     lex.Next();
-                    return -1;
+                    break;
                 }
-                auto &udt = st.StructUse(lex.sattr, lex);
-                dest = &udt.thistype;
+                dest = &st.StructUse(lex.sattr, lex).thistype;
                 lex.Next();
                 break;
             }
