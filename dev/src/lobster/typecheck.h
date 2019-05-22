@@ -1424,7 +1424,7 @@ struct TypeChecker {
                 ao.exptype = &st.default_bool_type->thistype;
                 ao.lt = LT_ANY;
             } else {
-                ao.lt = LifetimeUnion(ao.left, ao.right);
+                ao.lt = LifetimeUnion(ao.left, ao.right, Is<And>(ao));
             }
         }
         promoted_type = ao.exptype;
@@ -1596,20 +1596,28 @@ struct TypeChecker {
         return LT_KEEP;
     }
 
-    Lifetime LifetimeUnion(Node *&a, Node *&b) {
-        // FIXME: for LT_BORROW, this only works if it is the exact same variable, which is
-        // kinda useless. Instead, we'd like to create a set of sids.
-        // The cases with LT_ANY may happen e.g. an if between a var and nil, or an and/or between
-        // a var and a scalar.
+    Lifetime LifetimeUnion(Node *&a, Node *&b, bool is_and) {
         if (a->lt == b->lt) {
             DecBorrowers(b->lt, *b);
             return a->lt;
         } else if (a->lt == LT_ANY && b->lt >= LT_BORROW) {
+            // This case may apply in an if-then between a var and nil, or an and/or between
+            // a var and a scalar.
             return b->lt;
         } else if (b->lt == LT_ANY && a->lt >= LT_BORROW) {
+            // Same.
             return a->lt;
+        } else if (is_and && a->lt >= LT_BORROW && b->lt >= LT_BORROW) {
+            // var_a and var_b never results in var_a.
+            DecBorrowers(a->lt, *a);
+            return b->lt;
         } else {
-            AdjustLifetime(a, LT_KEEP);
+            // If it is an and we want to borrow the lhs since it will never be used.
+            // Otherwise default to LT_KEEP for everything.
+            // FIXME: for cases where both sides are >= LT_BORROW (in an if-then) we'd like to
+            // combine both lifetimes into one, but we currently can't represent that.
+            AdjustLifetime(a, is_and ? LT_BORROW : LT_KEEP);
+            if (is_and) DecBorrowers(a->lt, *a);
             AdjustLifetime(b, LT_KEEP);
             return LT_KEEP;
         }
@@ -1873,7 +1881,7 @@ Node *If::TypeCheck(TypeChecker &tc, size_t reqret) {
                 // coercion.
                 tc.SubType(truepart, exptype, "then branch", *this);
                 tc.SubType(falsepart, exptype, "else branch", *this);
-                lt = tc.LifetimeUnion(truepart, falsepart);
+                lt = tc.LifetimeUnion(truepart, falsepart, false);
             }
         } else if (cval.True()) {
             // Ignore the else part, optimizer guaranteed to cull it.

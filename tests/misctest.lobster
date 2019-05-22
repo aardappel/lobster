@@ -141,6 +141,10 @@ run_test("misc"):
     assert ns == "\x00\x00\x02\x08" and ni == 2
     assert ns.read_int16_le_back(0) == 2050
 
+    let s1 = "a"
+    let s2 = "b"
+    assert (s1 and s2) == s2
+
     var aa = 5
     aa %= 2
     assert aa == 1
@@ -163,6 +167,12 @@ run_test("misc"):
     def multiretpassthru(): return multiret()  // doesn't work without the return!
     let jj, kk = multiretpassthru()
     assert jj == 6 and kk == 7
+    class mretfields:
+        a = ""
+        b = 0
+        def write():
+            a, b = a.write_int16_le(b, 12345)
+    (mretfields {}).write()
 
     // Union return types (should infer string?):
     def union_return(n):
