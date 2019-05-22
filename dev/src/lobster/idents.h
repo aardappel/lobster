@@ -576,7 +576,13 @@ struct SymbolTable {
             if (decl) lex.Error("double declaration of enum: " + name);
             return eit->second;
         }
-        if (!decl) return nullptr;
+        if (!decl) {
+            if (!current_namespace.empty()) {
+                eit = enums.find(NameSpaced(name));
+                if (eit != enums.end()) return eit->second;
+            }
+            return nullptr;
+        }
         auto e = new Enum(name, (int)enumtable.size());
         enumtable.push_back(e);
         enums[e->name /* must be in value */] = e;
@@ -589,7 +595,13 @@ struct SymbolTable {
             if (decl) lex.Error("double declaration of enum value: " + name);
             return evit->second;
         }
-        if (!decl) return nullptr;
+        if (!decl) {
+            if (!current_namespace.empty()) {
+                evit = enumvals.find(NameSpaced(name));
+                if (evit != enumvals.end()) return evit->second;
+            }
+            return nullptr;
+        }
         auto ev = new EnumVal(name, 0);
         enumvals[ev->name /* must be in value */] = ev;
         return ev;
