@@ -901,6 +901,38 @@ Instead of using `do` (defined in `std.lobster`), you can also use a regular
 `return` from any named function definition (which can be nested in any code block).
 
 
+Modules and Name Spaces
+----------------------
+A module is simply a single `.lobster` file, that can be imported into another using the
+`import` keyword. You can `import` a module from multiple files and it will only be compiled
+once.
+
+You can prefix any top-level declaration by `private` to cause it not be available to
+users of the module.
+
+Lobster has a very simple namespacing mechanism that uses `_` for separating namespaces,
+effectively generating just a longer identifier:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+namespace foo
+
+class bar:
+    x = 1
+
+def baz(): return bar {}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Names `bar` and `baz` can be used as-is inside this module, but must be referred
+to as `foo_bar` and `foo_baz` outside of this module. Non-top level items like `x` are not
+affected.
+
+Most built-in functions come with a namespace, such as `gl` etc.
+
+Namespaces are indistinguishable from identifiers that already have a `_` baked into them,
+except from the fact that these have to be referred to by their full name everywhere, even
+inside the module that defines them.
+
+
 Type Checking
 -------------
 
