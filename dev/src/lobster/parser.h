@@ -254,6 +254,8 @@ struct Parser {
             ExpectId();
             auto sup = &st.StructUse(lastid, lex);
             if (sup == udt) Error("can\'t inherit from: " + lastid);
+            if (is_struct != sup->is_struct)
+                Error("class/struct must match parent");
             return sup;
         };
         auto parse_specializers = [&] () {
@@ -295,8 +297,6 @@ struct Parser {
             udt->name = sname;
             if (!parse_specializers())
                 Error("no specialization types specified");
-            if (is_struct != sup->is_struct)
-                Error("specialization must be same class/struct kind");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
             if (sup->predeclaration)
