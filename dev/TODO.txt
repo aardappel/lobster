@@ -1,6 +1,16 @@
-- rework/replace multimethods
-  - C++ and wasm modes
-  - webpage
+- Wasm: dynamic dispatch
+
+- FlatBuffers implementation:
+  - use strict enums
+  - make handles into structs.
+
+- --trace / VMopts
+
+- VS 2019: using platform toolset v141 (from VS2017) for engine project because of
+  https://developercommunity.visualstudio.com/content/problem/577035/internal-error-in-p2symtabc-line-7476-1610.html
+
+- stack & variable access is becoming a bottleneck in native backends, should think of a
+  way such that they can easily be swapped out for native locals when possible.
 
 - default/tagged args for functions.
 
@@ -47,6 +57,10 @@
     especially in vectors, then structs..
   - somehow not store LVector::width.
 
+- --to-cpp mode: VS /LTCG is very weak in terms on inlining, doesn't appear to inline any of
+  the VM ops, gets only 30% or so speedup vs interpreted (compared to LLVM LTO getting 2.5x).
+  Even including vm.cpp in the compiled code and __forceinline does nothing.
+
 - think about special casing parsing of if/while/for, that way some crazy syntax features can be
   reduced
   - if can gain an elseif
@@ -88,6 +102,9 @@
   - redo philosophy doc.
 
 - move all string formatting and parsing to to_chars and from_chars
+
+- We support implicit this.member in multi-assign, but not explicit.
+  See mretfields test.
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - AssignList with instance variables probably doesn't work.
@@ -144,7 +161,26 @@
     - drawcalls? triangles?
   - add screenshot & link to imgui page?
 
+- A way to load a DLL/so containing a built-in function extension, so larger
+  libraries don't need to be part of the base Lobster, and people can add their own
+  without having to re-build lobster itself.
+  Would work best if these are passed on the command-line (or in a cfg file) given
+  that these definitions are needed to parse a file, though you'd be ok to start
+  parsing a file and defs becoming available half-way.
+  Would also need to be stored in a bytecode file in that case.
+
+- Something like Python C-types: ability to call any DLL/so function without explicit
+  bindings.
+
+- Python struct create: printf for binary https://docs.python.org/2/library/struct.html
+
 - Built-in dictionary type?
+
+- Would be useful to typecheck top-level named functions that have a full type signature
+  and haven't been typechecked at the end of type-checking, to get any type errors they
+  may contain earlier.
+  - Have to be careful that it is still seen as dead code by the codegen, and not
+    contribute to any use-count for inlining by the optimizer etc.
 
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?
@@ -229,6 +265,9 @@
     - remove keywords?
   - get min/max
   - iterate them? return a vector of all values?
+
+- nice samples to port:
+  https://github.com/ssloy/tinyraytracer
 
 - strong typedefs.
   Will basically add a tag to any base type.
@@ -463,6 +502,7 @@
     wrapped in native code.
     Could be good to write something that does a lot of error handling like a parser, then
     again the above constructs sound generally useful
+    - parsers are better of using "return from" as form of exception handling.
 
 - try again having --tocpp output basic blocks as switch case rather than function pointers.
   - try with clang to see if it optimizes that case better
@@ -1646,7 +1686,7 @@ C++64-MSVC: lvalinl   : secs 12.8 Inlined the LvalOp function, one less switch()
 VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
 C++64-MSVC: inlinestr : secs 13.0 inline structs v1
 C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
-C++64-MSVC: dd        : secs 12.0
+C++64-MSVC: dd        : secs 11.9
 
 compiletime speed:
 

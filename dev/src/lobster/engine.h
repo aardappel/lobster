@@ -15,13 +15,10 @@
 #ifndef LOBSTER_ENGINE
 #define LOBSTER_ENGINE
 
-#include "lobster/natreg.h"
+#include "lobster/vmdata.h"
 
 extern void RegisterCoreEngineBuiltins(lobster::NativeRegistry &natreg);
-extern void EngineRunByteCode(lobster::NativeRegistry &natreg, const char *fn, string &bytecode,
-                              const void *entry_point, const void *static_bytecode,
-                              size_t static_size, const vector<string> &program_args,
-                              const lobster::block_t *vtables);
+extern void EngineRunByteCode(lobster::VMArgs &&vmargs);
 extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
                                          const void *bytecodefb, size_t static_size,
                                          const lobster::block_t *vtables);

@@ -85,11 +85,8 @@ void one_frame_callback(void *arg) {
     #endif
 }
 
-void EngineRunByteCode(NativeRegistry &nfr, const char *fn, string &bytecode, const void *entry_point,
-                       const void *static_bytecode, size_t static_size,
-                       const vector<string> &program_args, const lobster::block_t *vtables) {
-    lobster::VM vm(nfr, fn ? StripDirPart(fn) : "", bytecode, entry_point,
-                   static_bytecode, static_size, program_args, vtables);
+void EngineRunByteCode(VMArgs &&vmargs) {
+    lobster::VM vm(std::move(vmargs));
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
@@ -141,10 +138,12 @@ extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *ent
         NativeRegistry nfr;
         RegisterCoreEngineBuiltins(nfr);
 
-        string empty;
-        vector<string> args;
-        for (int arg = 1; arg < argc; arg++) { args.push_back(argv[arg]); }
-        EngineRunByteCode(nfr, argv[0], empty, entry_point, bytecodefb, static_size, args, vtables);
+        auto vmargs = VMArgs {
+            nfr, StripDirPart(argv[0]), {}, entry_point, bytecodefb, static_size, {},
+            vtables
+        };
+        for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
+        EngineRunByteCode(std::move(vmargs));
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

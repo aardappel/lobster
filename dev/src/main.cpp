@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
         const char *lpak = nullptr;
         const char *fn = nullptr;
         vector<string> program_args;
+        auto trace = TraceMode::OFF;
         string helptext = "\nUsage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
@@ -87,6 +88,8 @@ int main(int argc, char* argv[]) {
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
             "--non-interactive-test Quit after running 1 frame.\n"
+            "--trace                Log bytecode instructions (SLOW).\n"
+            "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--wait                 Wait for input before exiting.\n";
             int arg = 1;
         for (; arg < argc; arg++) {
@@ -110,6 +113,8 @@ int main(int argc, char* argv[]) {
                 else if (a == "--compile-only") { compile_only = true; }
                 else if (a == "--compile-bench") { compile_bench = true; }
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
+                else if (a == "--trace") { trace = TraceMode::ON; }
+                else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
@@ -131,13 +136,18 @@ int main(int argc, char* argv[]) {
         NativeRegistry nfr;
         RegisterCoreEngineBuiltins(nfr);
 
-        string bytecode;
+        if (fn) fn = StripDirPart(fn);
+
+        auto vmargs = VMArgs { nfr, fn };
+        vmargs.program_args = std::move(program_args);
+        vmargs.trace = trace;
+
         if (!fn) {
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version " __DATE__
                                ")\nno arguments given - cannot load " + (default_lpak + helptext));
             // This will now come from the pakfile.
-            if (!LoadByteCode(bytecode))
+            if (!LoadByteCode(vmargs.bytecode_buffer))
                 THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
         } else {
             LOG_INFO("compiling...");
@@ -148,9 +158,10 @@ int main(int argc, char* argv[]) {
             for (size_t i = 0; i < (compile_bench ? bench_iters : 1); i++) {
                 dump.clear();
                 pakfile.clear();
-                bytecode.clear();
-                Compile(nfr, StripDirPart(fn), {}, bytecode, parsedump ? &dump : nullptr,
-                        lpak ? &pakfile : nullptr, dump_builtins, dump_names, false, runtime_checks);
+                vmargs.bytecode_buffer.clear();
+                Compile(nfr, StripDirPart(fn), {}, vmargs.bytecode_buffer,
+                        parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr, dump_builtins,
+                        dump_names, false, runtime_checks);
             }
             if (compile_bench) {
                 auto compile_time = (SecondsSinceStart() - start_time);
@@ -167,12 +178,12 @@ int main(int argc, char* argv[]) {
         }
         if (disasm) {
             ostringstream ss;
-            DisAsm(nfr, ss, bytecode);
+            DisAsm(nfr, ss, vmargs.bytecode_buffer);
             WriteFile("disasm.txt", false, ss.str());
         }
         if (to_cpp) {
             ostringstream ss;
-            auto err = ToCPP(nfr, ss, bytecode);
+            auto err = ToCPP(nfr, ss, vmargs.bytecode_buffer);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
@@ -185,7 +196,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (to_wasm) {
             vector<uint8_t> buf;
-            auto err = ToWASM(nfr, buf, bytecode);
+            auto err = ToWASM(nfr, buf, vmargs.bytecode_buffer);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/emscripten/compiled_lobster_wasm.o";
@@ -198,7 +209,7 @@ int main(int argc, char* argv[]) {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
         } else if (!compile_only) {
-            EngineRunByteCode(nfr, fn, bytecode, nullptr, nullptr, 0, program_args, nullptr);
+            EngineRunByteCode(std::move(vmargs));
         }
     }
     #ifdef USE_EXCEPTION_HANDLING

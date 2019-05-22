@@ -1132,11 +1132,11 @@ nfr("assert", "condition", "A*", "Ab1",
         return c;
     });
 
-nfr("trace_bytecode", "on,tail", "BB", "",
+nfr("trace_bytecode", "mode", "I", "",
     "tracing shows each bytecode instruction as it is being executed, not very useful unless"
-    " you are trying to isolate a compiler bug",
-    [](VM &vm, Value &i, Value &tail) {
-        vm.Trace(i.ival() != 0, tail.ival() != 0);
+    " you are trying to isolate a compiler bug. Mode is off(0), on(1) or tail only (2)",
+    [](VM &vm, Value &i) {
+        vm.Trace((TraceMode)i.ival());
         return Value();
     });
 

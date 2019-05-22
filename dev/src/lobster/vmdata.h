@@ -718,10 +718,22 @@ struct TupleSpace {
     }
 };
 
-struct VM {
-    SlabAlloc pool;
+enum class TraceMode { OFF, ON, TAIL };
 
+struct VMArgs {
     NativeRegistry &nfr;
+    string_view programname;
+    string bytecode_buffer;
+    const void *entry_point = nullptr;
+    const void *static_bytecode = nullptr;
+    size_t static_size = 0;
+    vector<string> program_args;
+    const lobster::block_t *native_vtables = nullptr;
+    TraceMode trace = TraceMode::OFF;
+};
+
+struct VM : VMArgs {
+    SlabAlloc pool;
 
     Value *stack = nullptr;
     int stacksize = 0;
@@ -748,7 +760,6 @@ struct VM {
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
 
-    string bytecode_buffer;
     const bytecode::BytecodeFile *bcf = nullptr;
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
@@ -760,14 +771,10 @@ struct VM {
 
     PrintPrefs debugpp { 2, 50, true, -1 };
 
-    string programname;
-
     VMLog vml { *this };
 
     ostringstream ss_reuse;
 
-    bool trace = false;
-    bool trace_tail = false;
     vector<ostringstream> trace_output;
     size_t trace_ring_idx = 0;
 
@@ -797,20 +804,12 @@ struct VM {
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
     const void *compiled_code_ip;
-    const void *compiled_code_bc;
-    size_t compiled_code_size;
-
-    const vector<string> &program_args;
 
     bool is_worker = false;
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
-    const lobster::block_t *native_vtables;
-
-    VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, size_t static_size, const vector<string> &args,
-       const lobster::block_t *native_vtables);
+    VM(VMArgs &&args);
     ~VM();
 
     void OneMoreFrame();
@@ -1035,7 +1034,7 @@ struct VM {
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(uint v);
-    void Trace(bool on, bool tail) { trace = on; trace_tail = tail; }
+    void Trace(TraceMode m) { trace = m; }
     double Time() { return SecondsSinceStart(); }
 
     Value ToString(const Value &a, const TypeInfo &ti) {

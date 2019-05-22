@@ -234,6 +234,7 @@ class WASMGenerator : public NativeGenerator {
         assert(false);
         bw.AddData(string_view(), "vtables", 4);
         for (auto id : vtables) {
+            (void)id;
         }
     }
 

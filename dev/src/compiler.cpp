@@ -329,15 +329,17 @@ Value CompileRun(VM &parent_vm, Value &source, bool stringiscode, const vector<s
     try
     #endif
     {
-        string bytecode;
+        auto vmargs = VMArgs {
+            parent_vm.nfr, fn, {}, nullptr, nullptr, 0, args
+        };
         Compile(parent_vm.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                bytecode, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
+                vmargs.bytecode_buffer, nullptr, nullptr, false, false, true, RUNTIME_ASSERT);
         #ifdef VM_COMPILED_CODE_MODE
             // FIXME: Sadly since we modify how the VM operates under compiled code, we can't run in
             // interpreted mode anymore.
             THROW_OR_ABORT(string("cannot execute bytecode in compiled mode"));
         #endif
-        VM vm(parent_vm.nfr, fn, bytecode, nullptr, nullptr, 0, args, nullptr);
+        VM vm(std::move(vmargs));
         vm.EvalProgram();
         auto ret = vm.evalret;
         parent_vm.Push(Value(parent_vm.NewString(ret)));

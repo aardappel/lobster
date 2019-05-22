@@ -44,14 +44,7 @@ map<pair<int, int>, size_t> instruction_combinations;
 int last_instruction_opc = -1;
 #endif
 
-VM::VM(NativeRegistry &nfr, string_view _pn, string &_bytecode_buffer, const void *entry_point,
-       const void *static_bytecode, size_t static_size, const vector<string> &args,
-       const lobster::block_t *native_vtables)
-      : nfr(nfr), maxstacksize(DEFMAXSTACKSIZE),
-        bytecode_buffer(std::move(_bytecode_buffer)), programname(_pn),
-        compiled_code_ip(entry_point), compiled_code_bc(static_bytecode),
-        compiled_code_size(static_size), program_args(args),
-        native_vtables(native_vtables) {
+VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZE) {
     auto bcfb = (uchar *)(static_bytecode ? static_bytecode : bytecode_buffer.data());
     auto bcs = static_bytecode ? static_size : bytecode_buffer.size();
     flatbuffers::Verifier verifier(bcfb, bcs);
@@ -293,7 +286,7 @@ LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
 // This function is now way less important than it was when the language was still dynamically
 // typed. But ok to leave it as-is for "index out of range" and other errors that are still dynamic.
 Value VM::Error(string err, const RefObj *a, const RefObj *b) {
-    if (trace_tail && trace_output.size()) {
+    if (trace == TraceMode::TAIL && trace_output.size()) {
         string s;
         for (size_t i = trace_ring_idx; i < trace_output.size(); i++) s += trace_output[i].str();
         for (size_t i = 0; i < trace_ring_idx; i++) s += trace_output[i].str();
@@ -736,7 +729,7 @@ void VM::EvalProgram() {
 }
 
 ostringstream &VM::TraceStream() {
-  size_t trace_size = trace_tail ? 50 : 1;
+  size_t trace_size = trace == TraceMode::TAIL ? 50 : 1;
   if (trace_output.size() < trace_size) trace_output.resize(trace_size);
   if (trace_ring_idx == trace_size) trace_ring_idx = 0;
   auto &ss = trace_output[trace_ring_idx++];
@@ -755,7 +748,7 @@ void VM::EvalProgramInner() {
             #endif
         #else
             #ifndef NDEBUG
-                if (trace) {
+                if (trace != TraceMode::OFF) {
                     auto &ss = TraceStream();
                     DisAsmIns(nfr, ss, ip, codestart, typetable, bcf);
                     ss << " [" << (sp + 1) << "] -";
@@ -769,7 +762,7 @@ void VM::EvalProgramInner() {
                         x.ToStringBase(*this, ss, x.type, debugpp);
                     }
                     #endif
-                    if (trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str());
+                    if (trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str());
                 }
                 //currentline = LookupLine(ip).line;
             #endif
@@ -926,10 +919,10 @@ VM_INS_RET VM::U_ENDSTATEMENT(int line, int fileidx) {
         (void)line;
         (void)fileidx;
     #else
-        if (trace) {
+        if (trace != TraceMode::OFF) {
             auto &ss = TraceStream();
             ss << bcf->filenames()->Get(fileidx)->string_view() << '(' << line << ')';
-            if (trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str());
+            if (trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str());
         }
     #endif
     assert(sp == stackframes.back().spstart);
@@ -1732,10 +1725,11 @@ void VM::StartWorkers(size_t numthreads) {
         // Create a new VM that should own all its own memory and be completely independent
         // from this one.
         // We share nfr and programname for now since they're fully read-only.
-        // FIXME: have to copy this even though it is read-only.
-        auto bc = bytecode_buffer;
-        auto wvm = new VM(nfr, programname, bc, compiled_code_ip, compiled_code_bc,
-                          compiled_code_size, vector<string>(), native_vtables);
+        // FIXME: have to copy bytecode buffer even though it is read-only.
+        auto vmargs = *(VMArgs *)this;
+        vmargs.program_args.resize(0);
+        vmargs.trace = TraceMode::OFF;
+        auto wvm = new VM(std::move(vmargs));
         wvm->is_worker = true;
         wvm->tuple_space = tuple_space;
         workers.emplace_back([wvm] {
