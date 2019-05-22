@@ -141,9 +141,10 @@ run_test("misc"):
     assert ns == "\x00\x00\x02\x08" and ni == 2
     assert ns.read_int16_le_back(0) == 2050
 
-    let s1 = "a"
-    let s2 = "b"
+    var s1 = "a"
+    var s2 = "b"
     assert (s1 and s2) == s2
+    s1, s2 = s2, s1
 
     var aa = 5
     aa %= 2

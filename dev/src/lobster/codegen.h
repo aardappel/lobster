@@ -739,7 +739,9 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(children.back(), children.size() - 1);
     for (size_t i = children.size() - 1; i-- > 0; ) {
         auto left = children[i];
-        cg.GenAssign(left, cg.AssignBaseOp({ *children.back(), i }), 0, nullptr, 1);
+        auto id = Is<IdentRef>(left);
+        auto llt = id ? id->sid->lt : LT_KEEP /* Dot */;
+        cg.GenAssign(left, cg.AssignBaseOp({ left->exptype, llt }), 0, nullptr, 1);
     }
     assert(!retval);  // Type checker guarantees this.
     (void)retval;
