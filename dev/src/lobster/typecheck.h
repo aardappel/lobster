@@ -1586,10 +1586,12 @@ struct TypeChecker {
         return ch;
     }
 
-    Lifetime LvalueLifetime(const Node &lval) {
+    Lifetime LvalueLifetime(const Node &lval, bool deref) {
         if (auto idr = Is<IdentRef>(lval)) return idr->sid->lt;
-        //if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->children[0]);
-        //if (auto idx = Is<Indexing>(lval)) return LvalueLifetime(*idx->object);
+        if (deref) {
+            if (auto dot = Is<Dot>(lval)) return LvalueLifetime(*dot->children[0], deref);
+            if (auto idx = Is<Indexing>(lval)) return LvalueLifetime(*idx->object, deref);
+        }
         if (auto cod = Is<CoDot>(lval)) return AssertIs<IdentRef>(cod->variable)->sid->lt;
         return LT_KEEP;
     }
@@ -1648,8 +1650,7 @@ struct TypeChecker {
             assert (n->lt != LT_MULTIPLE || rt->t == V_TUPLE);
             auto givenlt = rt->GetLifetime(i, n->lt);
             auto given = LifetimeType(givenlt);
-            // FIXME: what if idents contains Dot objects?
-            if (idents) recip = AssertIs<IdentRef>((*idents)[i])->sid->lt;  // FIXME: overwrite var?
+            if (idents) recip = LvalueLifetime(*(*idents)[i], false);  // FIXME: overwrite var?
             recip = LifetimeType(recip);
             if (given != recip) {
                 auto rtt = rt->Get(i)->t;
@@ -2312,7 +2313,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(left, 1, LT_BORROW);
     tc.DecBorrowers(left->lt, *this);
-    tc.TT(right, 1, tc.LvalueLifetime(*left));
+    tc.TT(right, 1, tc.LvalueLifetime(*left, false));
     tc.CheckLval(left);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {

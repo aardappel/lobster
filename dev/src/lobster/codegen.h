@@ -737,10 +737,9 @@ void CoDot::Generate(CodeGen &cg, size_t retval) const {
 
 void AssignList::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(children.back(), children.size() - 1);
-    for (int i = (int)children.size() - 2; i >= 0; i--) {
+    for (size_t i = children.size() - 1; i-- > 0; ) {
         auto left = children[i];
-        auto sid = AssertIs<IdentRef>(left)->sid;
-        cg.GenAssign(left, cg.AssignBaseOp({ *sid }), 0, nullptr, 1);
+        cg.GenAssign(left, cg.AssignBaseOp({ *children.back(), i }), 0, nullptr, 1);
     }
     assert(!retval);  // Type checker guarantees this.
     (void)retval;
@@ -748,7 +747,7 @@ void AssignList::Generate(CodeGen &cg, size_t retval) const {
 
 void Define::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, sids.size());
-    for (int i = (int)sids.size() - 1; i >= 0; i--) {
+    for (size_t i = sids.size(); i-- > 0; ) {
         auto sid = sids[i].first;
         if (sid->id->logvar)
             cg.Emit(IL_LOGREAD, sid->logvaridx);
