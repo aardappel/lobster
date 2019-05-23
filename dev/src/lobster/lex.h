@@ -334,6 +334,7 @@ struct Lex : LoadedFile {
                 }
                 if (c == '.') {
                     if (*p == '.') { p++; return T_DOTDOT; }
+                    islf = false;  // Support "builder" APIs.
                     return T_DOT;
                 }
                 auto tok = c < ' ' || c >= 127

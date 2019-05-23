@@ -1,10 +1,6 @@
 - Wasm: dynamic dispatch
 
-- FlatBuffers implementation:
-  - use strict enums
-  - make handles into structs.
-
-- --trace / VMopts
+- document tagged arg constructors.
 
 - VS 2019: using platform toolset v141 (from VS2017) for engine project because of
   https://developercommunity.visualstudio.com/content/problem/577035/internal-error-in-p2symtabc-line-7476-1610.html
@@ -53,9 +49,14 @@
     ts_memcpy still has a cost.
   - push() for non-struct has superfluous pushint 1.
   - Support mixed refc/scalar fields in structs.
+    - then use this for FlatBuffers handles.
   - Extend functionality of having different sized values to also allow 8/16/32/64 bits items,
     especially in vectors, then structs..
   - somehow not store LVector::width.
+
+- FlatBuffers implementation:
+  - once we have mixed scalar/ref: make accessor handles into structs.
+  - Make builder offset struct into specialized structs for the type? Maybe not necessary?
 
 - --to-cpp mode: VS /LTCG is very weak in terms on inlining, doesn't appear to inline any of
   the VM ops, gets only 30% or so speedup vs interpreted (compared to LLVM LTO getting 2.5x).
