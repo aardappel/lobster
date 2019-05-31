@@ -188,7 +188,7 @@ class CPPGenerator : public NativeGenerator {
         }
     }
 
-    void VTables(vector<int> &vtables) {
+    void VTables(vector<int> &vtables) override {
         ss << "\nstatic const lobster::block_t vtables[] = {\n";
         for (auto id : vtables) {
             ss << "    ";

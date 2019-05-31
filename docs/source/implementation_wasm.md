@@ -134,6 +134,7 @@ bw.AddCode({}, "main", false);
 // data correctly.
 bw.EmitI32ConstDataRef(0, 0);
 bw.EmitCall(import_print);
+bw.EmitI32Const(0);  // Return value.
 bw.EmitEndFunction();
 
 // Here, call AddCode..EmitEndFunction for more functions.

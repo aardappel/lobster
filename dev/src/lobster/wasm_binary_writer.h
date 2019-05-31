@@ -20,6 +20,8 @@
 #include "string"
 #include "string_view"
 
+using namespace std::string_view_literals;
+
 // Stand-alone single header WASM module writer class.
 // Takes care of the "heavy lifting" of generating the binary format
 // correctly, and provide a friendly code generation API
@@ -441,6 +443,77 @@ class BinaryWriter {
     }
 
 };
+
+// This is a very simple test of the instruction encoding. The function returns a binary that
+// when written to a file should pass e.g. wasm-validate in WABT.
+std::vector<uint8_t> SimpleBinaryWriterTest() {
+    std::vector<uint8_t> vec;
+    BinaryWriter bw(vec);
+    // Write a (function) type section, to be referred to by functions below.
+    // For any of these sections, if you write them out of order, or don't match
+    // begin/end, you'll get an assert.
+    // As with everything, to refer to things in wasm, use a 0 based index.
+    bw.BeginSection(WASM::Section::Type);
+    // A list of arguments followed by a list of return values.
+    // You don't have to use the return value, but it may make referring to this
+    // type easier.
+    auto type_ii_i = bw.AddType({ WASM::I32, WASM::I32 }, { WASM::I32 });  // 0
+    auto type_i_v = bw.AddType({ WASM::I32 }, {});  // 1
+    bw.EndSection(WASM::Section::Type);
+
+    // Import some functions, from the runtime compiled in other modules.
+    // For our example that will just be the printing function.
+    // Note: we assume this function has been declared with: extern "C"
+    // You can link against C++ functions as well if you don't mind dealing
+    // with name mangling.
+    bw.BeginSection(WASM::Section::Import);
+    auto import_print = bw.AddImportLinkFunction("print", type_i_v);  // 0
+    bw.EndSection(WASM::Section::Import);
+
+    // Declare all the functions we will generate. Note this is just the type,
+    // the body of the code will follow below.
+    bw.BeginSection(WASM::Section::Function);
+    bw.AddFunction(type_ii_i);  // main()
+    bw.EndSection(WASM::Section::Function);
+
+    // Declare the linear memory we want to use, with 1 initial page.
+    bw.BeginSection(WASM::Section::Memory);
+    bw.AddMemory(1);
+    bw.EndSection(WASM::Section::Memory);
+
+    // Here we'd normally declare a "Start" section, but the linker will
+    // take care for that for us.
+
+    // Now the exciting part: emitting function bodies.
+    bw.BeginSection(WASM::Section::Code);
+
+    // A list of 0 local types,
+    bw.AddCode({}, "main", false);
+    // Refers to data segment 0 at offset 0 below. This emits an i32.const
+    // instruction, whose immediate value will get relocated to refer to the
+    // data correctly.
+    bw.EmitI32ConstDataRef(0, 0);
+    bw.EmitCall(import_print);
+    bw.EmitI32Const(0);  // Return value.
+    bw.EmitEndFunction();
+
+    // Here, call AddCode..EmitEndFunction for more functions.
+
+    bw.EndSection(WASM::Section::Code);
+
+    // Add all our static data.
+    bw.BeginSection(WASM::Section::Data);
+    // This is our first segment, we referred to this above as 0.
+    auto hello = "Hello, World\n\0"sv;
+    // Data, name, and alignment.
+    bw.AddData(hello, "hello", 0);
+    bw.EndSection(WASM::Section::Data);
+
+    // This call does all the remaining work of generating the linking
+    // information, and wrapping up the file.
+    bw.Finish();
+    return vec;
+}
 
 }  // namespace WASM
 

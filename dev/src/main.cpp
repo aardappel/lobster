@@ -36,6 +36,7 @@ void unit_test_all() {
     #endif
     unit_test_tools();
     unit_test_unicode();
+    unit_test_wasm();
 }
 
 int main(int argc, char* argv[]) {

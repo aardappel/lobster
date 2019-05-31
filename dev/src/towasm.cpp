@@ -26,7 +26,7 @@ namespace lobster {
 class WASMGenerator : public NativeGenerator {
     WASM::BinaryWriter bw;
 
-    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0, import_tmmt = 0;
+    size_t import_erccm  = 0, import_snct = 0, import_gnct = 0;
 
     const bytecode::Function *next_block = nullptr;
   public:
@@ -228,7 +228,7 @@ class WASMGenerator : public NativeGenerator {
         bw.EndSection(WASM::Section::Code);
     }
 
-    void VTables(vector<int> &vtables) {
+    void VTables(vector<int> &vtables) override {
         bw.BeginSection(WASM::Section::Data);
 
         assert(false);
@@ -257,4 +257,15 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
     return ToNative(natreg, wasmgen, bytecode_buffer);
 }
 
+}
+
+void unit_test_wasm() {
+    auto vec = WASM::SimpleBinaryWriterTest();
+    if (true) {
+        auto f = OpenForWriting("simple_binary_writer_test.wasm", true);
+        if (f) {
+            fwrite(vec.data(), vec.size(), 1, f);
+            fclose(f);
+        }
+    }
 }
