@@ -803,7 +803,7 @@ struct VM : VMArgs {
     typedef VM_INS_RET (VM::* f_ins_pointer)();
     f_ins_pointer f_ins_pointers[IL_MAX_OPS];
 
-    const void *compiled_code_ip;
+    const void *compiled_code_ip = nullptr;
 
     bool is_worker = false;
     vector<thread> workers;

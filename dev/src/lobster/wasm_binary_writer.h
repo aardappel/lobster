@@ -63,6 +63,7 @@ class BinaryWriter {
     size_t section_data = 0;
     size_t section_index_in_file = 0;
     size_t section_index_in_file_code = 0;
+    size_t section_index_in_file_data = 0;
     size_t num_imports = 0;
     size_t num_function_decls = 0;
     struct Function {
@@ -87,7 +88,8 @@ class BinaryWriter {
         size_t addend;
         bool is_function;  // What index refers to.
     };
-    std::vector<Reloc> relocs;
+    std::vector<Reloc> code_relocs;
+    std::vector<Reloc> data_relocs;
 
     template<typename T> void UInt8(T v) {
         buf.push_back(static_cast<uint8_t>(v));
@@ -175,17 +177,17 @@ class BinaryWriter {
     };
 
 
-    void RelocULEB(uint8_t reloc_type, size_t index, size_t addend, bool is_function) {
-        relocs.push_back({ reloc_type,
-                           buf.size() - section_data,
-                           index,
-                           addend,
-                           is_function });
+    void RelocULEB(uint8_t reloc_type, size_t sym_index, size_t addend, bool is_function) {
+        code_relocs.push_back({ reloc_type,
+                                buf.size() - section_data,
+                                sym_index,
+                                addend,
+                                is_function });
         // A relocatable LEB typically can be 0, since all information about
         // this value is stored in the relocation itself. But putting
         // a meaningful value here will help with reading the output of
         // objdump.
-        PatchULEB(PatchableLEB(), is_function ? index : addend);
+        PatchULEB(PatchableLEB(), is_function ? sym_index : addend);
     };
 
   public:
@@ -204,6 +206,8 @@ class BinaryWriter {
         cur_section = st;
         if (st == Section::Code)
             section_index_in_file_code = section_index_in_file;
+        if (st == Section::Data)
+            section_index_in_file_data = section_index_in_file;
         UInt8(st);
         section_size = PatchableLEB();
         if (st == Section::Custom) {
@@ -348,6 +352,15 @@ class BinaryWriter {
         section_count++;
     }
 
+    // FIXME: "off" is across all segments (including metadata!), make this easier.
+    void DataFunctionRef(size_t fid, size_t off) {
+        data_relocs.push_back({ R_WASM_TABLE_INDEX_I32,
+                                off + 11,  // FIXME!!!!!
+                                fid,
+                                0,
+                                true });
+    }
+
     // Call this last, to finalize the buffer into a valid WASM module,
     // and to add linking/reloc sections based on the previous sections.
     void Finish() {
@@ -422,23 +435,31 @@ class BinaryWriter {
             }
             EndSection(Section::Custom);  // linking
         }
-        // Reloc section
+        // Reloc sections
         {
-            BeginSection(Section::Custom, "reloc.CODE");
-            ULEB(section_index_in_file_code);
-            ULEB(relocs.size());
-            for (auto &r : relocs) {
+            auto EncodeReloc = [&](Reloc &r) {
                 UInt8(r.type);
                 ULEB(r.offset);
-                ULEB(r.index + (r.is_function ? data_segments.size() : 0));
+                ULEB(r.index + (r.is_function ? data_segments.size() : 0));  // Sym index.
                 if (r.type == R_WASM_MEMORY_ADDR_LEB ||
                     r.type == R_WASM_MEMORY_ADDR_SLEB ||
                     r.type == R_WASM_MEMORY_ADDR_I32 ||
                     r.type == R_WASM_FUNCTION_OFFSET_I32 ||
                     r.type == R_WASM_SECTION_OFFSET_I32)
                     SLEB((ptrdiff_t)r.addend);
-            }
+            };
+
+            BeginSection(Section::Custom, "reloc.CODE");
+            ULEB(section_index_in_file_code);
+            ULEB(code_relocs.size());
+            for (auto &r : code_relocs) EncodeReloc(r);
             EndSection(Section::Custom);  // reloc.CODE
+
+            BeginSection(Section::Custom, "reloc.DATA");
+            ULEB(section_index_in_file_data);
+            ULEB(data_relocs.size());
+            for (auto &r : data_relocs) EncodeReloc(r);
+            EndSection(Section::Custom);  // reloc.DATA
         }
     }
 

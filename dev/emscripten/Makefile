@@ -9,9 +9,9 @@ LTOFLAGS= --llvm-opts 3 --llvm-lto 1 -s WASM_OBJECT_FILES=0
 # Pure debug mode.
 #OPTLEVEL= -g4 -s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0
 # Fast debug mode.
-OPTLEVEL= -g4 -O2 -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0
+#OPTLEVEL= -g4 -O2 -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0
 # Release/Shipping mode
-#OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -s DISABLE_EXCEPTION_CATCHING=0
+OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -s DISABLE_EXCEPTION_CATCHING=0
 # Benchmark mode: does not support graphics/exceptions.
 #OPTLEVEL= -O3 -DNDEBUG -s ASSERTIONS=0 $(LTOFLAGS) -fno-exceptions -s DISABLE_EXCEPTION_CATCHING=1 -DDISABLE_EXCEPTION_HANDLING
 
@@ -121,8 +121,8 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		--source-map-base http://localhost:6931/ \
 		-s ALLOW_MEMORY_GROWTH=1 -o lobster.html --preload-file assets@/ \
 		-s DEMANGLE_SUPPORT=1 --emrun --profiling-funcs \
-		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1 \
-		-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
+		-s BINARYEN_IGNORE_IMPLICIT_TRAPS=1
+		#-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
 
 #EMCC_DEBUG=1
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)

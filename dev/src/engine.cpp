@@ -140,7 +140,7 @@ extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *ent
 
         auto vmargs = VMArgs {
             nfr, StripDirPart(argv[0]), {}, entry_point, bytecodefb, static_size, {},
-            vtables
+            vtables, TraceMode::OFF
         };
         for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
         EngineRunByteCode(std::move(vmargs));

@@ -231,10 +231,14 @@ class WASMGenerator : public NativeGenerator {
     void VTables(vector<int> &vtables) override {
         bw.BeginSection(WASM::Section::Data);
 
-        assert(false);
-        bw.AddData(string_view(), "vtables", 4);
+        vector<int> wid;
         for (auto id : vtables) {
-            (void)id;
+            wid.push_back(id >= 0 ? bw.GetNumImports() + id : -1);
+        }
+        bw.AddData(string_view((char *)wid.data(), wid.size() * sizeof(int)), "vtables",
+                   sizeof(int));
+        for (auto [i, id] : enumerate(vtables)) {
+            if (id >= 0) bw.DataFunctionRef(bw.GetNumImports() + id, i * sizeof(int));
         }
     }
 

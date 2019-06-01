@@ -67,7 +67,9 @@ VM::VM(VMArgs &&vmargs) : VMArgs(std::move(vmargs)), maxstacksize(DEFMAXSTACKSIZ
             typetablebigendian.push_back((type_elem_t)bcf->typetable()->Get(i));
         typetable = typetablebigendian.data();
     }
-    #ifndef VM_COMPILED_CODE_MODE
+    #ifdef VM_COMPILED_CODE_MODE
+        compiled_code_ip = entry_point;
+    #else
         ip = codestart;
     #endif
     vars = new Value[bcf->specidents()->size()];
@@ -1816,10 +1818,10 @@ using namespace lobster;
 
 #ifndef NDEBUG
     #define CHECKI(B) \
-        if (vm->trace) { \
+        if (vm->trace != TraceMode::OFF) { \
             auto &ss = vm->TraceStream(); \
             ss << B; \
-            if (vm->trace_tail) ss << '\n'; else LOG_PROGRAM(ss.str()); \
+            if (vm->trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str()); \
         }
     // FIXME: add spaces.
     #define CHECK(N, A) CHECKI(#N << cat A)
