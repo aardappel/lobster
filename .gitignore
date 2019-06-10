@@ -93,3 +93,5 @@ dev/compiled_lobster/build/
 \.vs/slnx\.sqlite
 
 \.vs/
+
+simple_binary_writer_test\.wasm

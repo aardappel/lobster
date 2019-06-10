@@ -64,6 +64,7 @@ class BinaryWriter {
     size_t section_index_in_file = 0;
     size_t section_index_in_file_code = 0;
     size_t section_index_in_file_data = 0;
+    size_t segment_payload_start = 0;
     size_t num_imports = 0;
     size_t num_function_decls = 0;
     struct Function {
@@ -152,9 +153,11 @@ class BinaryWriter {
         for (auto c : chars) UInt8(c);
     }
 
-    void LenChars(std::string_view chars) {
+    size_t LenChars(std::string_view chars) {
         ULEB(chars.size());
+        auto pos = buf.size();
         Chars(chars);
+        return pos;
     }
 
     bool StartsWithCount() {
@@ -346,16 +349,17 @@ class BinaryWriter {
         // Init exp: must use 32-bit for wasm32 target.
         EmitI32Const(static_cast<int32_t>(data_section_size));
         EmitEnd();
-        LenChars(data);
+        segment_payload_start = LenChars(data);
         data_section_size += data.size();
         data_segments.push_back({ std::string(symbol), align, data.size(), local });
         section_count++;
     }
 
-    // FIXME: "off" is across all segments (including metadata!), make this easier.
+    // "off" is relative to the data in the last AddData call.
     void DataFunctionRef(size_t fid, size_t off) {
+        assert(segment_payload_start);
         data_relocs.push_back({ R_WASM_TABLE_INDEX_I32,
-                                off + 11,  // FIXME!!!!!
+                                off + (segment_payload_start - section_data),
                                 fid,
                                 0,
                                 true });
@@ -524,10 +528,17 @@ std::vector<uint8_t> SimpleBinaryWriterTest() {
 
     // Add all our static data.
     bw.BeginSection(WASM::Section::Data);
+
     // This is our first segment, we referred to this above as 0.
     auto hello = "Hello, World\n\0"sv;
     // Data, name, and alignment.
     bw.AddData(hello, "hello", 0);
+
+    // Create another segment, this time with function references.
+    int function_ref = (int)bw.GetNumImports() + 0;  // Refers to main()
+    bw.AddData(std::string_view((char *)&function_ref, sizeof(int)), "funids", sizeof(int));
+    bw.DataFunctionRef(function_ref, 0);  // Reloc it.
+
     bw.EndSection(WASM::Section::Data);
 
     // This call does all the remaining work of generating the linking

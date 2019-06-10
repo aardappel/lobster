@@ -28,7 +28,7 @@
 
 using namespace lobster;
 
-void unit_test_all() {
+void unit_test_all(bool full) {
     // We don't really have unit tests, but let's collect some that always
     // run in debug mode:
     #ifdef NDEBUG
@@ -36,7 +36,7 @@ void unit_test_all() {
     #endif
     unit_test_tools();
     unit_test_unicode();
-    unit_test_wasm();
+    unit_test_wasm(full);
 }
 
 int main(int argc, char* argv[]) {
@@ -44,7 +44,6 @@ int main(int argc, char* argv[]) {
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
         InitUnhandledExceptionFilter(argc, argv);
     #endif
-    unit_test_all();
     LOG_INFO("Lobster running...");
     bool wait = false;
     bool from_bundle =
@@ -65,6 +64,7 @@ int main(int argc, char* argv[]) {
         bool dump_names = false;
         bool compile_only = false;
         bool compile_bench = false;
+        bool full_unit_test = false;
         int runtime_checks = 1;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
@@ -116,6 +116,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
                 else if (a == "--trace") { trace = TraceMode::ON; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
+                else if (a == "--full-unit-test") { full_unit_test = true; }
                 else if (a == "--") { arg++; break; }
                 // process identifier supplied by OS X
                 else if (a.substr(0, 5) == "-psn_") { from_bundle = true; }
@@ -126,6 +127,8 @@ int main(int argc, char* argv[]) {
             }
         }
         for (; arg < argc; arg++) { program_args.push_back(argv[arg]); }
+
+        unit_test_all(full_unit_test);
 
         #ifdef __IOS__
             //fn = "totslike.lobster";  // FIXME: temp solution
@@ -139,7 +142,7 @@ int main(int argc, char* argv[]) {
 
         if (fn) fn = StripDirPart(fn);
 
-        auto vmargs = VMArgs { nfr, fn };
+        auto vmargs = VMArgs { nfr, fn ? fn : "" };
         vmargs.program_args = std::move(program_args);
         vmargs.trace = trace;
 

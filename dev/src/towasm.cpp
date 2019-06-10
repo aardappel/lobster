@@ -233,7 +233,7 @@ class WASMGenerator : public NativeGenerator {
 
         vector<int> wid;
         for (auto id : vtables) {
-            wid.push_back(id >= 0 ? bw.GetNumImports() + id : -1);
+            wid.push_back(id >= 0 ? (int)bw.GetNumImports() + id : -1);
         }
         bw.AddData(string_view((char *)wid.data(), wid.size() * sizeof(int)), "vtables",
                    sizeof(int));
@@ -263,9 +263,9 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
 
 }
 
-void unit_test_wasm() {
+void unit_test_wasm(bool full) {
     auto vec = WASM::SimpleBinaryWriterTest();
-    if (true) {
+    if (full) {
         auto f = OpenForWriting("simple_binary_writer_test.wasm", true);
         if (f) {
             fwrite(vec.data(), vec.size(), 1, f);

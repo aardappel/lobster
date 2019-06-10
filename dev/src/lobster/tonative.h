@@ -57,6 +57,6 @@ extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
 }  // namespace lobster;
 
 // Test the wasm binary writer is working as expected.
-void unit_test_wasm();
+void unit_test_wasm(bool full);
 
 #endif  // LOBSTER_TONATIVE
