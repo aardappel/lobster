@@ -161,9 +161,7 @@ void DrawMesh(Mesh &mesh, float4x4 model_view_mat, float4x4 proj_mat) {
 
 namespace fgltf {
 
-#    ifndef MAX_TREE_DEPTH
-#        define MAX_TREE_DEPTH 1000000
-#    endif
+size_t max_tree_depth = 1000000;
 
 struct SceneMaterial {
     int base_color_image;
@@ -576,7 +574,7 @@ int DrawScene(Scene scene, float4x4 model_view_mat, float4x4 proj_mat) {
     // https://shaharmike.com/cpp/lambdas-and-functions/
     std::function<void(int, float4x4, size_t)> DrawTree = [&](int n, float4x4 m, size_t depth) {
         depth++;
-        if (depth > MAX_TREE_DEPTH) {
+        if (depth > max_tree_depth) {
             error = 1;
             return;
         }
