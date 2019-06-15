@@ -15,6 +15,7 @@
 // OpenGL platform definitions
 
 #ifdef __APPLE__
+    #define GL_SILENCE_DEPRECATION
     #include "TargetConditionals.h"
     #ifdef __IOS__
         //#include <SDL_opengles2.h>
