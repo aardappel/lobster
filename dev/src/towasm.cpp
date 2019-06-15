@@ -14,6 +14,7 @@
 
 // Include this first to ensure it is free of dependencies.
 #include "lobster/wasm_binary_writer.h"
+#include "lobster/wasm_binary_writer_test.h"
 
 #include "lobster/stdafx.h"
 
@@ -125,7 +126,7 @@ class WASMGenerator : public NativeGenerator {
         bw.AddCode({}, "main", false);
         bw.EmitGetLocal(0 /*argc*/);
         bw.EmitGetLocal(1 /*argv*/);
-        bw.EmitI32FunctionRef(bw.GetNumImports() + start_id);
+        bw.EmitI32ConstFunctionRef(bw.GetNumImports() + start_id);
         bw.EmitI32ConstDataRef(1, 0);  // Bytecode, for data refs.
         bw.EmitI32Const((int)bytecode_buffer.size());
         bw.EmitI32ConstDataRef(0, 0);  // vtables.
@@ -149,7 +150,7 @@ class WASMGenerator : public NativeGenerator {
     void EmitJump(int id) override {
         if (id <= current_block_id) {
             // A backwards jump, go via the trampoline.
-            bw.EmitI32FunctionRef(bw.GetNumImports() + id);
+            bw.EmitI32ConstFunctionRef(bw.GetNumImports() + id);
         } else {
             // A forwards call, should be safe to tail-call.
             bw.EmitGetLocal(0 /*VM*/);
@@ -176,7 +177,7 @@ class WASMGenerator : public NativeGenerator {
 
     void SetNextCallTarget(int id) override {
         bw.EmitGetLocal(0 /*VM*/);
-        bw.EmitI32FunctionRef(bw.GetNumImports() + id);
+        bw.EmitI32ConstFunctionRef(bw.GetNumImports() + id);
         bw.EmitCall(import_snct);
     }
 
@@ -184,7 +185,7 @@ class WASMGenerator : public NativeGenerator {
         if (!is_vararg) {
             for (int i = 0; i < arity; i++) bw.EmitI32Const(args[i]);
         }
-        if (target >= 0) { bw.EmitI32FunctionRef(bw.GetNumImports() + target); }
+        if (target >= 0) { bw.EmitI32ConstFunctionRef(bw.GetNumImports() + target); }
         bw.EmitCall((size_t)opc);  // Opcodes are the 0..N of imports.
     }
 

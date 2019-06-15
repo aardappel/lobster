@@ -20,8 +20,6 @@
 #include "string"
 #include "string_view"
 
-using namespace std::string_view_literals;
-
 // Stand-alone single header WASM module writer class.
 // Takes care of the "heavy lifting" of generating the binary format
 // correctly, and provide a friendly code generation API
@@ -84,10 +82,10 @@ class BinaryWriter {
     std::vector<DataSegment> data_segments;
     struct Reloc {
         uint8_t type;
-        size_t offset;
-        size_t index;
-        size_t addend;
-        bool is_function;  // What index refers to.
+        size_t src_offset;    // Where we are doing the relocation.
+        size_t sym_index;     // If is_function.
+        size_t target_index;  // Index inside thing we're referring to, e.g. addend.
+        bool is_function;
     };
     std::vector<Reloc> code_relocs;
     std::vector<Reloc> data_relocs;
@@ -109,6 +107,13 @@ class BinaryWriter {
     template<typename T> void UInt64(T v) {
         UInt32(v & 0xFFFFFFFF);
         UInt32(v >> 32);
+    }
+
+    template<typename T, typename U> U Bits(T v) {
+        static_assert(sizeof(T) == sizeof(U), "");
+        U u;
+        memcpy(&u, &v, sizeof(T));
+        return u;
     }
 
     template<typename T> void ULEB(T v) {
@@ -180,18 +185,18 @@ class BinaryWriter {
     };
 
 
-    void RelocULEB(uint8_t reloc_type, size_t sym_index, size_t addend, bool is_function) {
+    void RelocULEB(uint8_t reloc_type, size_t sym_index, size_t target_index, bool is_function) {
         code_relocs.push_back({ reloc_type,
                                 buf.size() - section_data,
                                 sym_index,
-                                addend,
+                                target_index,
                                 is_function });
         // A relocatable LEB typically can be 0, since all information about
         // this value is stored in the relocation itself. But putting
         // a meaningful value here will help with reading the output of
         // objdump.
-        PatchULEB(PatchableLEB(), is_function ? sym_index : addend);
-    };
+        PatchULEB(PatchableLEB(), is_function ? sym_index : target_index);
+    }
 
   public:
 
@@ -255,9 +260,10 @@ class BinaryWriter {
         ULEB(tidx);
         function_symbols.push_back({ std::string(name), true, true });
         section_count++;
-        return num_imports++;
+        return num_imports++;  // FIXME: separate import types.
     }
 
+    // FIXME: this will not make sense if we add non-function imports.
     size_t GetNumImports() { return num_imports; }
 
     void AddFunction(size_t tidx) {
@@ -269,6 +275,14 @@ class BinaryWriter {
 
     size_t GetNumDefinedFunctions() { return num_function_decls; }
 
+    void AddTable() {
+        assert(cur_section == Section::Table);
+        UInt8(WASM::ANYFUNC);  // Currently only option.
+        ULEB(0);  // Flags: no maximum.
+        ULEB(0);  // Initial length.
+        section_count++;
+    }
+
     void AddMemory(size_t initial_pages) {
         assert(cur_section == Section::Memory);
         ULEB(0);  // Flags: no maximum.
@@ -276,9 +290,30 @@ class BinaryWriter {
         section_count++;
     }
 
+    // You MUST emit an init exp after calling this, e.g. EmitI32Const(0); EmitEnd();
+    void AddGlobal(uint8_t type, bool is_mutable) {
+      assert(cur_section == Section::Global);
+      UInt8(type);
+      ULEB(is_mutable);
+      section_count++;
+    }
+
     void AddStart(size_t fidx) {
         assert(cur_section == Section::Start);
         ULEB(fidx);
+    }
+
+    // Simple 1:1 mapping of function ids.
+    // TODO: add more flexible Element functions later.
+    void AddElementAllFunctions() {
+        assert(cur_section == Section::Element);
+        ULEB(0);  // Table index, always 0 for now.
+        EmitI32Const(0);  // Offset.
+        EmitEnd();
+        auto total_funs = num_imports + num_function_decls;
+        ULEB(total_funs);
+        for (size_t i = 0; i < total_funs; i++) ULEB(i);
+        section_count++;
     }
 
     // Use the Emit Functions below to add to the function body, and be sure
@@ -305,19 +340,26 @@ class BinaryWriter {
         section_count++;
     }
 
-    void EmitI32Const(int32_t v) { UInt8(0x41); SLEB(v); }
-    void EmitI64Const(int64_t v) { UInt8(0x42); SLEB(v); }
+    // --- CONTROL FLOW ---
 
-    void EmitI32ConstDataRef(size_t segment, size_t addend) {
-        UInt8(0x41);
-        RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false );
+    void EmitUnreachable() { UInt8(0x00); }
+    void EmitNop() { UInt8(0x01); }
+    void EmitBlock(uint8_t block_type) { UInt8(0x02); UInt8(block_type); }
+    void EmitLoop(uint8_t block_type) { UInt8(0x03); UInt8(block_type); }
+    void EmitIf(uint8_t block_type) { UInt8(0x04); UInt8(block_type); }
+    void EmitElse() { UInt8(0x05); }
+    void EmitEnd() { UInt8(0x0B); }
+    void EmitBr(size_t relative_depth) { UInt8(0x0C); ULEB(relative_depth); }
+    void EmitBrIf(size_t relative_depth) { UInt8(0x0D); ULEB(relative_depth); }
+    void EmitBrTable(const std::vector<size_t> &targets, size_t default_target) {
+        UInt8(0x0E);
+        ULEB(targets.size());
+        for (auto t : targets) ULEB(t);
+        ULEB(default_target);
     }
+    void EmitReturn() { UInt8(0x0F); }
 
-    // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
-    void EmitI32FunctionRef(size_t fun_idx) {
-        UInt8(0x41);
-        RelocULEB(R_WASM_TABLE_INDEX_SLEB, fun_idx, 0, true);
-    }
+    // --- CALL OPERATORS ---
 
     // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
     void EmitCall(size_t fun_idx) {
@@ -325,13 +367,216 @@ class BinaryWriter {
         RelocULEB(R_WASM_FUNCTION_INDEX_LEB, fun_idx, 0, true);
     }
 
-    void EmitReturn() { UInt8(0x0F); }
+    void EmitCallIndirect(size_t type_index) {
+        UInt8(0x11);
+        RelocULEB(R_WASM_TYPE_INDEX_LEB, 0, type_index, false);
+        ULEB(0);
+    }
 
-    void EmitEnd() { UInt8(0x0B); }
+    // --- PARAMETRIC OPERATORS
+
+    void EmitDrop() { UInt8(0x1A); }
+    void EmitSelect() { UInt8(0x1B); }
+
+    // --- VARIABLE ACCESS ---
 
     void EmitGetLocal(size_t local) { UInt8(0x20); ULEB(local); }
+    void EmitSetLocal(size_t local) { UInt8(0x21); ULEB(local); }
+    void EmitTeeLocal(size_t local) { UInt8(0x22); ULEB(local); }
+    void EmitGetGlobal(size_t global) { UInt8(0x23); ULEB(global); }
+    void EmitSetGlobal(size_t global) { UInt8(0x24); ULEB(global); }
 
-    void EmitIf(uint8_t block_type) { UInt8(0x04); UInt8(block_type); }
+    // --- MEMORY ACCESS ---
+
+    void EmitI32Load(size_t off, size_t flags = 2) { UInt8(0x28); ULEB(flags); ULEB(off); }
+    void EmitI64Load(size_t off, size_t flags = 3) { UInt8(0x29); ULEB(flags); ULEB(off); }
+    void EmitF32Load(size_t off, size_t flags = 2) { UInt8(0x2A); ULEB(flags); ULEB(off); }
+    void EmitF64Load(size_t off, size_t flags = 3) { UInt8(0x2B); ULEB(flags); ULEB(off); }
+    void EmitI32Load8S(size_t off, size_t flags = 0) { UInt8(0x2C); ULEB(flags); ULEB(off); }
+    void EmitI32Load8U(size_t off, size_t flags = 0) { UInt8(0x2D); ULEB(flags); ULEB(off); }
+    void EmitI32Load16S(size_t off, size_t flags = 1) { UInt8(0x2E); ULEB(flags); ULEB(off); }
+    void EmitI32Load16U(size_t off, size_t flags = 1) { UInt8(0x2F); ULEB(flags); ULEB(off); }
+    void EmitI64Load8S(size_t off, size_t flags = 0) { UInt8(0x30); ULEB(flags); ULEB(off); }
+    void EmitI64Load8U(size_t off, size_t flags = 0) { UInt8(0x31); ULEB(flags); ULEB(off); }
+    void EmitI64Load16S(size_t off, size_t flags = 1) { UInt8(0x32); ULEB(flags); ULEB(off); }
+    void EmitI64Load16U(size_t off, size_t flags = 1) { UInt8(0x33); ULEB(flags); ULEB(off); }
+    void EmitI64Load32S(size_t off, size_t flags = 2) { UInt8(0x34); ULEB(flags); ULEB(off); }
+    void EmitI64Load32U(size_t off, size_t flags = 2) { UInt8(0x35); ULEB(flags); ULEB(off); }
+
+    void EmitI32Store(size_t off, size_t flags = 2) { UInt8(0x36); ULEB(flags); ULEB(off); }
+    void EmitI64Store(size_t off, size_t flags = 3) { UInt8(0x37); ULEB(flags); ULEB(off); }
+    void EmitF32Store(size_t off, size_t flags = 2) { UInt8(0x38); ULEB(flags); ULEB(off); }
+    void EmitF64Store(size_t off, size_t flags = 3) { UInt8(0x39); ULEB(flags); ULEB(off); }
+    void EmitI32Store8(size_t off, size_t flags = 0) { UInt8(0x3A); ULEB(flags); ULEB(off); }
+    void EmitI32Store16(size_t off, size_t flags = 1) { UInt8(0x3B); ULEB(flags); ULEB(off); }
+    void EmitI64Store8(size_t off, size_t flags = 0) { UInt8(0x3C); ULEB(flags); ULEB(off); }
+    void EmitI64Store16(size_t off, size_t flags = 1) { UInt8(0x3D); ULEB(flags); ULEB(off); }
+    void EmitI64Store32(size_t off, size_t flags = 2) { UInt8(0x3E); ULEB(flags); ULEB(off); }
+
+    void EmitCurrentMemory() { UInt8(0x3F); ULEB(0); }
+    void EmitGrowMemory() { UInt8(0x40); ULEB(0); }
+
+    // --- CONSTANTS ---
+
+    void EmitI32Const(int32_t v) { UInt8(0x41); SLEB(v); }
+    void EmitI64Const(int64_t v) { UInt8(0x42); SLEB(v); }
+    void EmitF32Const(float v) { UInt8(0x43); UInt32(Bits<float, uint32_t>(v)); }
+    void EmitF64Const(double v) { UInt8(0x44); UInt64(Bits<double, uint64_t>(v)); }
+
+    // Getting the address of data in a data segment, encoded as a i32.const + reloc.
+    void EmitI32ConstDataRef(size_t segment, size_t addend) {
+        UInt8(0x41);
+        RelocULEB(R_WASM_MEMORY_ADDR_SLEB, segment, addend, false );
+    }
+
+    // fun_idx is 0..N-1 imports followed by N..M-1 defined functions.
+    void EmitI32ConstFunctionRef(size_t fun_idx) {
+        UInt8(0x41);
+        RelocULEB(R_WASM_TABLE_INDEX_SLEB, fun_idx, 0, true);
+    }
+
+    // --- COMPARISON OPERATORS ---
+
+    void EmitI32Eqz() { UInt8(0x45); }
+    void EmitI32Eq() { UInt8(0x46); }
+    void EmitI32Ne() { UInt8(0x47); }
+    void EmitI32LtS() { UInt8(0x48); }
+    void EmitI32LtU() { UInt8(0x49); }
+    void EmitI32GtS() { UInt8(0x4A); }
+    void EmitI32GtU() { UInt8(0x4B); }
+    void EmitI32LeS() { UInt8(0x4C); }
+    void EmitI32LeU() { UInt8(0x4D); }
+    void EmitI32GeS() { UInt8(0x4E); }
+    void EmitI32GeU() { UInt8(0x4F); }
+
+    void EmitI64Eqz() { UInt8(0x50); }
+    void EmitI64Eq() { UInt8(0x51); }
+    void EmitI64Ne() { UInt8(0x52); }
+    void EmitI64LtS() { UInt8(0x53); }
+    void EmitI64LtU() { UInt8(0x54); }
+    void EmitI64GtS() { UInt8(0x55); }
+    void EmitI64GtU() { UInt8(0x56); }
+    void EmitI64LeS() { UInt8(0x57); }
+    void EmitI64LeU() { UInt8(0x58); }
+    void EmitI64GeS() { UInt8(0x59); }
+    void EmitI64GeU() { UInt8(0x5A); }
+
+    void EmitF32Eq() { UInt8(0x5B); }
+    void EmitF32Ne() { UInt8(0x5C); }
+    void EmitF32Lt() { UInt8(0x5D); }
+    void EmitF32Gt() { UInt8(0x5E); }
+    void EmitF32Le() { UInt8(0x5F); }
+    void EmitF32Ge() { UInt8(0x60); }
+
+    void EmitF64Eq() { UInt8(0x61); }
+    void EmitF64Ne() { UInt8(0x62); }
+    void EmitF64Lt() { UInt8(0x63); }
+    void EmitF64Gt() { UInt8(0x64); }
+    void EmitF64Le() { UInt8(0x65); }
+    void EmitF64Ge() { UInt8(0x66); }
+
+    // --- NUMERIC OPERATORS
+
+    void EmitI32Clz() { UInt8(0x67); }
+    void EmitI32Ctz() { UInt8(0x68); }
+    void EmitI32PopCnt() { UInt8(0x69); }
+    void EmitI32Add() { UInt8(0x6A); }
+    void EmitI32Sub() { UInt8(0x6B); }
+    void EmitI32Mul() { UInt8(0x6C); }
+    void EmitI32DivS() { UInt8(0x6D); }
+    void EmitI32DivU() { UInt8(0x6E); }
+    void EmitI32RemS() { UInt8(0x6F); }
+    void EmitI32RemU() { UInt8(0x70); }
+    void EmitI32And() { UInt8(0x71); }
+    void EmitI32Or() { UInt8(0x72); }
+    void EmitI32Xor() { UInt8(0x73); }
+    void EmitI32Shl() { UInt8(0x74); }
+    void EmitI32ShrS() { UInt8(0x75); }
+    void EmitI32ShrU() { UInt8(0x76); }
+    void EmitI32RotL() { UInt8(0x77); }
+    void EmitI32RotR() { UInt8(0x78); }
+
+    void EmitI64Clz() { UInt8(0x79); }
+    void EmitI64Ctz() { UInt8(0x7A); }
+    void EmitI64PopCnt() { UInt8(0x7B); }
+    void EmitI64Add() { UInt8(0x7C); }
+    void EmitI64Sub() { UInt8(0x7D); }
+    void EmitI64Mul() { UInt8(0x7E); }
+    void EmitI64DivS() { UInt8(0x7F); }
+    void EmitI64DivU() { UInt8(0x80); }
+    void EmitI64RemS() { UInt8(0x81); }
+    void EmitI64RemU() { UInt8(0x82); }
+    void EmitI64And() { UInt8(0x83); }
+    void EmitI64Or() { UInt8(0x84); }
+    void EmitI64Xor() { UInt8(0x85); }
+    void EmitI64Shl() { UInt8(0x86); }
+    void EmitI64ShrS() { UInt8(0x87); }
+    void EmitI64ShrU() { UInt8(0x88); }
+    void EmitI64RotL() { UInt8(0x89); }
+    void EmitI64RotR() { UInt8(0x8A); }
+
+    void EmitF32Abs() { UInt8(0x8B); }
+    void EmitF32Neg() { UInt8(0x8C); }
+    void EmitF32Ceil() { UInt8(0x8D); }
+    void EmitF32Floor() { UInt8(0x8E); }
+    void EmitF32Trunc() { UInt8(0x8F); }
+    void EmitF32Nearest() { UInt8(0x90); }
+    void EmitF32Sqrt() { UInt8(0x91); }
+    void EmitF32Add() { UInt8(0x92); }
+    void EmitF32Sub() { UInt8(0x93); }
+    void EmitF32Mul() { UInt8(0x94); }
+    void EmitF32Div() { UInt8(0x95); }
+    void EmitF32Min() { UInt8(0x96); }
+    void EmitF32Max() { UInt8(0x97); }
+    void EmitF32CopySign() { UInt8(0x98); }
+
+    void EmitF64Abs() { UInt8(0x99); }
+    void EmitF64Neg() { UInt8(0x9A); }
+    void EmitF64Ceil() { UInt8(0x9B); }
+    void EmitF64Floor() { UInt8(0x9C); }
+    void EmitF64Trunc() { UInt8(0x9D); }
+    void EmitF64Nearest() { UInt8(0x9E); }
+    void EmitF64Sqrt() { UInt8(0x9F); }
+    void EmitF64Add() { UInt8(0xA0); }
+    void EmitF64Sub() { UInt8(0xA1); }
+    void EmitF64Mul() { UInt8(0xA2); }
+    void EmitF64Div() { UInt8(0xA3); }
+    void EmitF64Min() { UInt8(0xA4); }
+    void EmitF64Max() { UInt8(0xA5); }
+    void EmitF64CopySign() { UInt8(0xA6); }
+
+    // --- CONVERSION OPERATORS ---
+
+    void EmitI32WrapI64() { UInt8(0xA7); }
+    void EmitI32TruncSF32() { UInt8(0xA8); }
+    void EmitI32TruncUF32() { UInt8(0xA9); }
+    void EmitI32TruncSF64() { UInt8(0xAA); }
+    void EmitI32TruncUF64() { UInt8(0xAB); }
+    void EmitI64ExtendSI32() { UInt8(0xAC); }
+    void EmitI64ExtendUI32() { UInt8(0xAD); }
+    void EmitI64TruncSF32() { UInt8(0xAE); }
+    void EmitI64TruncUF32() { UInt8(0xAF); }
+    void EmitI64TruncSF64() { UInt8(0xB0); }
+    void EmitI64TruncUF64() { UInt8(0xB1); }
+    void EmitF32ConvertSI32() { UInt8(0xB2); }
+    void EmitF32ConvertUI32() { UInt8(0xB3); }
+    void EmitF32ConvertSI64() { UInt8(0xB4); }
+    void EmitF32ConvertUI64() { UInt8(0xB5); }
+    void EmitF32DemoteF64() { UInt8(0xB6); }
+    void EmitF64ConvertSI32() { UInt8(0xB7); }
+    void EmitF64ConvertUI32() { UInt8(0xB8); }
+    void EmitF64ConvertSI64() { UInt8(0xB9); }
+    void EmitF64ConvertUI64() { UInt8(0xBA); }
+    void EmitF64PromoteF32() { UInt8(0xBB); }
+
+    // --- REINTERPRETATIONS ---
+
+    void EmitI32ReinterpretF32() { UInt8(0xBC); }
+    void EmitI64ReinterpretF64() { UInt8(0xBD); }
+    void EmitF32ReinterpretI32() { UInt8(0xBE); }
+    void EmitF64ReinterpretI64() { UInt8(0xBF); }
+
+    // --- END FUNCTION ---
 
     void EmitEndFunction() {
         assert(cur_section == Section::Code);
@@ -443,14 +688,14 @@ class BinaryWriter {
         {
             auto EncodeReloc = [&](Reloc &r) {
                 UInt8(r.type);
-                ULEB(r.offset);
-                ULEB(r.index + (r.is_function ? data_segments.size() : 0));  // Sym index.
+                ULEB(r.src_offset);
+                ULEB(r.sym_index + (r.is_function ? data_segments.size() : 0));
                 if (r.type == R_WASM_MEMORY_ADDR_LEB ||
                     r.type == R_WASM_MEMORY_ADDR_SLEB ||
                     r.type == R_WASM_MEMORY_ADDR_I32 ||
                     r.type == R_WASM_FUNCTION_OFFSET_I32 ||
                     r.type == R_WASM_SECTION_OFFSET_I32)
-                    SLEB((ptrdiff_t)r.addend);
+                    SLEB((ptrdiff_t)r.target_index);
             };
 
             BeginSection(Section::Custom, "reloc.CODE");
@@ -468,84 +713,6 @@ class BinaryWriter {
     }
 
 };
-
-// This is a very simple test of the instruction encoding. The function returns a binary that
-// when written to a file should pass e.g. wasm-validate in WABT.
-std::vector<uint8_t> SimpleBinaryWriterTest() {
-    std::vector<uint8_t> vec;
-    BinaryWriter bw(vec);
-    // Write a (function) type section, to be referred to by functions below.
-    // For any of these sections, if you write them out of order, or don't match
-    // begin/end, you'll get an assert.
-    // As with everything, to refer to things in wasm, use a 0 based index.
-    bw.BeginSection(WASM::Section::Type);
-    // A list of arguments followed by a list of return values.
-    // You don't have to use the return value, but it may make referring to this
-    // type easier.
-    auto type_ii_i = bw.AddType({ WASM::I32, WASM::I32 }, { WASM::I32 });  // 0
-    auto type_i_v = bw.AddType({ WASM::I32 }, {});  // 1
-    bw.EndSection(WASM::Section::Type);
-
-    // Import some functions, from the runtime compiled in other modules.
-    // For our example that will just be the printing function.
-    // Note: we assume this function has been declared with: extern "C"
-    // You can link against C++ functions as well if you don't mind dealing
-    // with name mangling.
-    bw.BeginSection(WASM::Section::Import);
-    auto import_print = bw.AddImportLinkFunction("print", type_i_v);  // 0
-    bw.EndSection(WASM::Section::Import);
-
-    // Declare all the functions we will generate. Note this is just the type,
-    // the body of the code will follow below.
-    bw.BeginSection(WASM::Section::Function);
-    bw.AddFunction(type_ii_i);  // main()
-    bw.EndSection(WASM::Section::Function);
-
-    // Declare the linear memory we want to use, with 1 initial page.
-    bw.BeginSection(WASM::Section::Memory);
-    bw.AddMemory(1);
-    bw.EndSection(WASM::Section::Memory);
-
-    // Here we'd normally declare a "Start" section, but the linker will
-    // take care for that for us.
-
-    // Now the exciting part: emitting function bodies.
-    bw.BeginSection(WASM::Section::Code);
-
-    // A list of 0 local types,
-    bw.AddCode({}, "main", false);
-    // Refers to data segment 0 at offset 0 below. This emits an i32.const
-    // instruction, whose immediate value will get relocated to refer to the
-    // data correctly.
-    bw.EmitI32ConstDataRef(0, 0);
-    bw.EmitCall(import_print);
-    bw.EmitI32Const(0);  // Return value.
-    bw.EmitEndFunction();
-
-    // Here, call AddCode..EmitEndFunction for more functions.
-
-    bw.EndSection(WASM::Section::Code);
-
-    // Add all our static data.
-    bw.BeginSection(WASM::Section::Data);
-
-    // This is our first segment, we referred to this above as 0.
-    auto hello = "Hello, World\n\0"sv;
-    // Data, name, and alignment.
-    bw.AddData(hello, "hello", 0);
-
-    // Create another segment, this time with function references.
-    int function_ref = (int)bw.GetNumImports() + 0;  // Refers to main()
-    bw.AddData(std::string_view((char *)&function_ref, sizeof(int)), "funids", sizeof(int));
-    bw.DataFunctionRef(function_ref, 0);  // Reloc it.
-
-    bw.EndSection(WASM::Section::Data);
-
-    // This call does all the remaining work of generating the linking
-    // information, and wrapping up the file.
-    bw.Finish();
-    return vec;
-}
 
 }  // namespace WASM
 
