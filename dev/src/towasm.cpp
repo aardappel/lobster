@@ -108,6 +108,11 @@ class WASMGenerator : public NativeGenerator {
     void BeforeBlocks(int start_id, string_view bytecode_buffer) override {
         bw.EndSection(WASM::Section::Function);
 
+        // We need this (and Element below) to be able to use call_indirect.
+        bw.BeginSection(WASM::Section::Table);
+        bw.AddTable();
+        bw.EndSection(WASM::Section::Table);
+
         bw.BeginSection(WASM::Section::Memory);
         bw.AddMemory(1);
         bw.EndSection(WASM::Section::Memory);
@@ -119,6 +124,12 @@ class WASMGenerator : public NativeGenerator {
         bw.AddStart(0);
         bw.EndSection(WASM::Section::Start);
         */
+
+        // This initializes the Table declared above. Needed for call_indirect.
+        // For now we use a utility function that maps all functions ids 1:1 to the table.
+        bw.BeginSection(WASM::Section::Element);
+        bw.AddElementAllFunctions();
+        bw.EndSection(WASM::Section::Element);
 
         bw.BeginSection(WASM::Section::Code);
 

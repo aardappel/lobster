@@ -16,6 +16,7 @@
 #define WASM_BINARY_WRITER_H
 
 #include "assert.h"
+#include "cstring"
 #include "vector"
 #include "string"
 #include "string_view"
