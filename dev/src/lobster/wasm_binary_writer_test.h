@@ -297,7 +297,7 @@ std::vector<uint8_t> SimpleBinaryWriterTest() {
     bw.AddData(hello, "hello", 0);
 
     // Create another segment, this time with function references.
-    int function_ref = (int)bw.GetNumImports() + 0;  // Refers to main()
+    int function_ref = (int)bw.GetNumFunctionImports() + 0;  // Refers to main()
     bw.AddData(std::string_view((char *)&function_ref, sizeof(int)), "funids", sizeof(int));
     bw.DataFunctionRef(function_ref, 0);  // Reloc it.
 

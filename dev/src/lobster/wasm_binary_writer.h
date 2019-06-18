@@ -64,7 +64,8 @@ class BinaryWriter {
     size_t section_index_in_file_code = 0;
     size_t section_index_in_file_data = 0;
     size_t segment_payload_start = 0;
-    size_t num_imports = 0;
+    size_t num_function_imports = 0;
+    size_t num_global_imports = 0;
     size_t num_function_decls = 0;
     struct Function {
         std::string name;
@@ -254,18 +255,35 @@ class BinaryWriter {
         return section_count++;
     }
 
+    enum {
+        EXTERNAL_FUNCTION,
+        EXTERNAL_TABLE,
+        EXTERNAL_MEMORY,
+        EXTERNAL_GLOBAL,
+    };
+
     size_t AddImportLinkFunction(std::string_view name, size_t tidx) {
         LenChars("");  // Module, unused.
         LenChars(name);
-        UInt8(0);  // Function.
+        ULEB(EXTERNAL_FUNCTION);
         ULEB(tidx);
         function_symbols.push_back({ std::string(name), true, true });
         section_count++;
-        return num_imports++;  // FIXME: separate import types.
+        return num_function_imports++;
     }
 
-    // FIXME: this will not make sense if we add non-function imports.
-    size_t GetNumImports() { return num_imports; }
+    size_t AddImportGlobal(std::string_view name, uint8_t type, bool is_mutable) {
+        LenChars("");  // Module, unused.
+        LenChars(name);
+        ULEB(EXTERNAL_GLOBAL);
+        UInt8(type);
+        ULEB(is_mutable);
+        section_count++;
+        return num_global_imports++;
+    }
+
+    size_t GetNumFunctionImports() { return num_function_imports; }
+    size_t GetNumGlobalImports() { return num_global_imports; }
 
     void AddFunction(size_t tidx) {
         assert(cur_section == Section::Function);
@@ -299,6 +317,18 @@ class BinaryWriter {
       section_count++;
     }
 
+    void AddExportFunction(std::string_view name, size_t fidx) {
+        LenChars(name);
+        ULEB(EXTERNAL_FUNCTION);
+        ULEB(fidx);
+    }
+
+    void AddExportGlobal(std::string_view name, size_t gidx) {
+        LenChars(name);
+        ULEB(EXTERNAL_GLOBAL);
+        ULEB(gidx);
+    }
+
     void AddStart(size_t fidx) {
         assert(cur_section == Section::Start);
         ULEB(fidx);
@@ -311,7 +341,7 @@ class BinaryWriter {
         ULEB(0);  // Table index, always 0 for now.
         EmitI32Const(0);  // Offset.
         EmitEnd();
-        auto total_funs = num_imports + num_function_decls;
+        auto total_funs = num_function_imports + num_function_decls;
         ULEB(total_funs);
         for (size_t i = 0; i < total_funs; i++) ULEB(i);
         section_count++;
@@ -618,7 +648,7 @@ class BinaryWriter {
         // If this assert fails, you likely have not matched the number of
         // AddFunction calls in a Function section with the number of AddCode
         // calls in a Code section.
-        assert(num_imports + num_function_decls == function_symbols.size());
+        assert(num_function_imports + num_function_decls == function_symbols.size());
         // Linking section.
         {
             BeginSection(Section::Custom, "linking");

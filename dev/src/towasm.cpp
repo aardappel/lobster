@@ -137,7 +137,7 @@ class WASMGenerator : public NativeGenerator {
         bw.AddCode({}, "main", false);
         bw.EmitGetLocal(0 /*argc*/);
         bw.EmitGetLocal(1 /*argv*/);
-        bw.EmitI32ConstFunctionRef(bw.GetNumImports() + start_id);
+        bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + start_id);
         bw.EmitI32ConstDataRef(1, 0);  // Bytecode, for data refs.
         bw.EmitI32Const((int)bytecode_buffer.size());
         bw.EmitI32ConstDataRef(0, 0);  // vtables.
@@ -161,11 +161,11 @@ class WASMGenerator : public NativeGenerator {
     void EmitJump(int id) override {
         if (id <= current_block_id) {
             // A backwards jump, go via the trampoline.
-            bw.EmitI32ConstFunctionRef(bw.GetNumImports() + id);
+            bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + id);
         } else {
             // A forwards call, should be safe to tail-call.
             bw.EmitGetLocal(0 /*VM*/);
-            bw.EmitCall(bw.GetNumImports() + id);
+            bw.EmitCall(bw.GetNumFunctionImports() + id);
         }
         bw.EmitReturn();
     }
@@ -188,7 +188,7 @@ class WASMGenerator : public NativeGenerator {
 
     void SetNextCallTarget(int id) override {
         bw.EmitGetLocal(0 /*VM*/);
-        bw.EmitI32ConstFunctionRef(bw.GetNumImports() + id);
+        bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + id);
         bw.EmitCall(import_snct);
     }
 
@@ -196,7 +196,7 @@ class WASMGenerator : public NativeGenerator {
         if (!is_vararg) {
             for (int i = 0; i < arity; i++) bw.EmitI32Const(args[i]);
         }
-        if (target >= 0) { bw.EmitI32ConstFunctionRef(bw.GetNumImports() + target); }
+        if (target >= 0) { bw.EmitI32ConstFunctionRef(bw.GetNumFunctionImports() + target); }
         bw.EmitCall((size_t)opc);  // Opcodes are the 0..N of imports.
     }
 
@@ -245,12 +245,12 @@ class WASMGenerator : public NativeGenerator {
 
         vector<int> wid;
         for (auto id : vtables) {
-            wid.push_back(id >= 0 ? (int)bw.GetNumImports() + id : -1);
+            wid.push_back(id >= 0 ? (int)bw.GetNumFunctionImports() + id : -1);
         }
         bw.AddData(string_view((char *)wid.data(), wid.size() * sizeof(int)), "vtables",
                    sizeof(int));
         for (auto [i, id] : enumerate(vtables)) {
-            if (id >= 0) bw.DataFunctionRef(bw.GetNumImports() + id, i * sizeof(int));
+            if (id >= 0) bw.DataFunctionRef(bw.GetNumFunctionImports() + id, i * sizeof(int));
         }
     }
 
