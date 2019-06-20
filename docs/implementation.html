@@ -9,13 +9,9 @@
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
       span.underline{text-decoration: underline;}
-      div.line-block{white-space: pre-line;}
       div.column{display: inline-block; vertical-align: top; width: 50%;}
   </style>
-  <link rel="stylesheet" href="github.css">
-  <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
+  <link rel="stylesheet" href="github.css" />
 </head>
 <body>
 <header>
@@ -82,7 +78,7 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>Before you build, gather your lobster distribution files (see below) and place them in <code>dev/emscripten/assets</code>. They will be automatically picked up by the build process this way.</p>
 <p>To build, go to <code>dev/emscripten</code>, and type <code>make -j8</code>. This should produce a lobster.[wasm|js|html|data] in the same directory (the latter containing whatever you placed in <code>assets</code>).</p>
 <p>You can now run it with <code>emrun --browser chrome lobster.html --verbose</code> or similar. Note that just loading up the html in your browser directly may not work because of security restrictions. Alternatively place all the generated files on a webserver, and load from there.</p>
-<p>Note: the above compiles the bytecode interpreter to wasm. To instead compile the lobster bytecode to wasm directly, see “Compiling Lobster code to WebAssembly” below.</p>
+<p>Note: the above compiles the bytecode <em>interpreter</em> to wasm. To instead compile the lobster bytecode to wasm directly, see “Compiling Lobster code to WebAssembly” below.</p>
 <h2 id="distributing-lobster-programs.">Distributing Lobster programs.</h2>
 <p>While the above instructions will build you the lobster executable, to distribute a Lobster program to others, you will need to distribution files. These must be (including correct paths):</p>
 <ul>
@@ -108,7 +104,7 @@ cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>Though this file has the same format as a <code>.wasm</code> file (and can be inspected by the tools in e.g. WABT), this is not a WebAssembly module ready to be run however, it is a file that still needs to be linked against the rest of the Lobster runtime, much like in the C++ case. The build files in <code>dev/emscripten</code> can pick up this file.</p>
 <p>To compile the project and link in the <code>.o</code> we just generated, we build similarly to described in the <code>WebAssembly / Emscripten</code> section above, except we use a special make target to indicate it should link in our compiled code as the main program instead of the default: <code>make -j8 lobster_wasmout</code>.</p>
 <p>Don’t forget to place needed files in the <code>assets</code> dir as described above. You can even place an <code>lpak</code> file there (which currently will contain bytecode, which will be unused).</p>
-<p>You now run this much descrived above.</p>
+<p>You now run this much like described above.</p>
 <p>If you’re interested in the details of how Lobster is translated to wasm, or how you can generate wasm yourself, read more <a href="implementation_wasm.html">here</a>.</p>
 <h2 id="extending-lobster">Extending Lobster</h2>
 <p>Besides using Lobster as a stand-alone programming language as-is, there are 2 ways of extending Lobster, by adding your code to Lobster, or adding Lobster to your project.</p>

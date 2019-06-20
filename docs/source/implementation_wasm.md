@@ -6,28 +6,39 @@ NOTE: this document contains detail on how code generation for the
 WebAssembly backend works internally, if you just want to USE this backend,
 please read the sections on WebAssembly [here](implementation.html).
 
+This document is also meant to be useful for implementors of other languages
+that may wish to do something similar (and could re-use Lobster's
+[WASM binary writer](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer.h) ).
+
 Structure of the backend
 ------------------------
 Lobster is structured such that the front-end outputs Lobster bytecode,
 which sits in a FlatBuffer file together with all its metadata. That file
 is stand-alone (does not need any further information from the front-end
 or source code) and can be interpreted by the VM directly, or passed to
-any of the native code backends, currently C++ and WebAssembly.
+any of the native code backends, currently C++ or WebAssembly.
 
 The backend is layered in these 3 files:
 
-* `tonative.cpp` is shared between all native code backends. It parses the
-   Lobster bytecode and tracks information needed by any backend, then calls
-   into the specific backend through an interface defined in `tonative.h`.
-* `towasm.cpp` implements that interface, and does all the Lobster-specific
+* [`tonative.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/tonative.cpp)
+  is shared between all native code backends. It parses the
+  Lobster bytecode and tracks information needed by any backend, then calls
+  into the specific backend through an interface defined in `tonative.h`.
+* [`towasm.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/towasm.cpp)
+  implements that interface, and does all the Lobster-specific
   work of generating wasm code.
-* `wasm_binary_writer.h` is a utility class that does all the heavy lifting
+* [`wasm_binary_writer.h`](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer.h)
+  is a utility class that does all the heavy lifting
   of actually generating a valid wasm module. It is written such that it is
   entirely independent of the rest of the Lobster code base, and depends only
   on a few STL containers, to ensure it can easily be adopted by others
   wishing to emit wasm. It contains functionality for low level encoding
   (LEBs etc), emitting sections, individual instructions, and importantly,
   linking and relocation information.
+  [`wasm_binary_writer_test.h`](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer_test.h)
+  is a simple test of this functionality, and
+  may also serve as a more complete example than the small example below.
+
 
 Design of the binary writer
 ---------------------------
@@ -43,7 +54,7 @@ the right relocations. Many instructions in wasm refer to functions and other
 things by index, but the linker has to merge many such index spaces into
 the final module, which means renumbering all of these indices. Luckily, the
 binary writer takes care of all this automatically, and allows us the generate
-code as-if we're the only ones.
+code as-if we're the only object file.
 
 ### Streaming interface.
 The binary writer is a "streaming" API (as opposed to an object
@@ -95,13 +106,13 @@ WASM::BinaryWriter bw(bytes);
 // As with everything, to refer to things in wasm, use a 0 based index.
 bw.BeginSection(WASM::Section::Type);
 // A list of arguments followed by a list of return values.
-// You don't have to use the return value, but it may make referring to this
-// type easier.
+// You don't have to use the return value of AddType, but it may make referring
+// to these types easier.
 auto type_ii_i = bw.AddType({ WASM::I32, WASM::I32 }, { WASM::I32 });  // 0
 auto type_i_v = bw.AddType({ WASM::I32 }, {});  // 1
 bw.EndSection(WASM::Section::Type);
 
-// Import some functions, from the runtime compiled in other modules.
+// Import some functions, from the runtime compiled in other object files.
 // For our example that will just be the printing function.
 // Note: we assume this function has been declared with: extern "C"
 // You can link against C++ functions as well if you don't mind dealing
@@ -129,7 +140,7 @@ bw.BeginSection(WASM::Section::Code);
 
 // A list of 0 local types,
 bw.AddCode({}, "main", false);
-// Refers to data segment 0 at offset 0 below. This emits an i32.const
+// Refer to data segment 0 at offset 0 below. This emits an i32.const
 // instruction, whose immediate value will get relocated to refer to the
 // data correctly.
 bw.EmitI32ConstDataRef(0, 0);
@@ -158,13 +169,24 @@ bw.Finish();
 // produce a valid module!
 ~~~~
 
+The binary writer API contains functionality for many more instructions
+and sections, best to have a browse through
+[`wasm_binary_writer.h`](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer.h)
+and
+[`wasm_binary_writer_test.h`](https://github.com/aardappel/lobster/blob/master/dev/src/lobster/wasm_binary_writer_test.h)
+which are both fairly small, so should give a good impression what else you
+can generate.
+
+
 ### The Lobster generator.
 
 A more complex example using the binary writer is the Lobster generator
-in `towasm.cpp`, which follows the same pattern as the above simple example.
-Because it is being driven by calls from `tonative.cpp` it is in separate
-functions, but these functions are in the order of being called, so should
-be easy to follow.
+in [`towasm.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/towasm.cpp),
+which follows the same pattern as the above simple example.
+Because it is being driven by calls from
+[`tonative.cpp`](https://github.com/aardappel/lobster/blob/master/dev/src/tonative.cpp)
+it is in separate functions, but these functions are in the order of being
+called, so should be easy to follow.
 
 In terms of imports, it imports one function for each of Lobsters bytecodes,
 which means a Lobster bytecode can be directly mapped to a function id.
@@ -180,11 +202,35 @@ This is because Lobster has more complicated control flow features (such
 as non-local returns and co-routines) which (at the time of writing)
 wasm can't support natively. So it uses a "trampoline" system where each
 basic block returns the function address of the next basic block it wants
-to go to. Some of these transitions can be optimized, but in the most
-general case this has to be an indirect jump.
+to go to. Some of these transitions can be optimized (and the generator
+does use tail calls in many cases), but in the most general case this has
+to be an indirect jump.
 
 The actual instructions generated are pretty simple, with it mostly
 emitting a call per VM instruction, with the exception of control flow
 operations which have more special purpose implementation.
 
-(to be expanded)
+You would expect it to directly emit wasm instructions like `i32.add` for
+simple Lobster bytecode instructions like `IL_IADD`, but it doesn't, for
+various reasons. First, we rely on Binaryen to do whole program optimisation
+(similar to LTO) after linking (since the we're calling the implementation of
+bytecode instruction that sits in a different object file). This means that if the
+implementation of a bytecode instruction is trivial, it will get inlined,
+saving us the trouble of doing so. The second reason is more complicated:
+Lobster currently has all of its variables on its own stack (where it can
+do custom management of it, required for e.g. its memory management, non
+local return and co-routine features). Instructions like `i32.add` instead
+expects values on the wasm stack. So maximum benefit of emitting such
+instructions directly would only be achieved if (a subset of) Lobster
+variables could be moved into wasm locals first. That is a more extensive
+optimization that may be added in the future.
+
+Speed of code produced by this backend is almost competitive with code that
+instead goes through the C++ backend (which is quite a feat, as the C++ code
+goes through the entire LLVM optimisation pipeline, and the WASM backend does
+not). One area where it can seriously slow down is exceptions, which are
+currently not natively implemented in WASM (they go through an indirection
+in JS) and the Lobster runtime relies on them for error handling, and even
+frame termination. This problem will be solved when WASM gains native
+exceptions, or when the runtime is able to execute without exceptions (which
+would cause some overhead of its own).

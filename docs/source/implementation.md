@@ -186,7 +186,7 @@ similar. Note that just loading up the html in your browser directly may not
 work because of security restrictions. Alternatively place all the generated
 files on a webserver, and load from there.
 
-Note: the above compiles the bytecode interpreter to wasm. To instead
+Note: the above compiles the bytecode *interpreter* to wasm. To instead
 compile the lobster bytecode to wasm directly, see
 "Compiling Lobster code to WebAssembly" below.
 
@@ -276,7 +276,7 @@ Don't forget to place needed files in the `assets` dir as described above.
 You can even place an `lpak` file there (which currently will contain bytecode,
 which will be unused).
 
-You now run this much descrived above.
+You now run this much like described above.
 
 If you're interested in the details of how Lobster is translated to wasm,
 or how you can generate wasm yourself, read more [here](implementation_wasm.html).

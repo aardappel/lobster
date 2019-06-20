@@ -23,7 +23,13 @@
 
 // Stand-alone single header WASM module writer class.
 // Takes care of the "heavy lifting" of generating the binary format
-// correctly, and provide a friendly code generation API
+// correctly, and provide a friendly code generation API, that may
+// be useful outside of Lobster as well.
+
+// Documentation and example of the API in this file:
+// http://aardappel.github.io/lobster/implementation_wasm.html
+// (and see also test cases in wasm_binary_writer_test.h)
+// Main use of this API in towasm.cpp.
 
 namespace WASM {
 
@@ -318,12 +324,14 @@ class BinaryWriter {
     }
 
     void AddExportFunction(std::string_view name, size_t fidx) {
+        assert(cur_section == Section::Export);
         LenChars(name);
         ULEB(EXTERNAL_FUNCTION);
         ULEB(fidx);
     }
 
     void AddExportGlobal(std::string_view name, size_t gidx) {
+        assert(cur_section == Section::Export);
         LenChars(name);
         ULEB(EXTERNAL_GLOBAL);
         ULEB(gidx);
@@ -347,8 +355,8 @@ class BinaryWriter {
         section_count++;
     }
 
-    // Use the Emit Functions below to add to the function body, and be sure
-    // to end with EmitEndFunction.
+    // After calling this, use the Emit Functions below to add to the function body,
+    // and be sure to end with EmitEndFunction.
     void AddCode(const std::vector<unsigned> &locals, std::string_view name,
                  bool local) {
         assert(cur_section == Section::Code);
