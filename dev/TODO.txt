@@ -1,9 +1,8 @@
-- Wasm: dynamic dispatch
-
 - document tagged arg constructors.
 
 - VS 2019: using platform toolset v141 (from VS2017) for engine project because of
   https://developercommunity.visualstudio.com/content/problem/577035/internal-error-in-p2symtabc-line-7476-1610.html
+  Fix apparently in 16.3
 
 - stack & variable access is becoming a bottleneck in native backends, should think of a
   way such that they can easily be swapped out for native locals when possible.
@@ -100,6 +99,7 @@
     examples, kind of like whats on the home page but more extensive.
   - multithreading
   - have selectable examples like e.g. https://dlang.org/ https://ziglang.org/
+    https://gobyexample.com/
   - redo philosophy doc.
 
 - move all string formatting and parsing to to_chars and from_chars
@@ -150,6 +150,8 @@
     nice to separate out the default const string from niche mutable use). We also have const/var
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
+
+- should hook up meshgen to cubegen
 
 - add to imgui functionality:
   - logging

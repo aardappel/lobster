@@ -283,7 +283,7 @@ class BinaryWriter {
         LenChars(name);
         ULEB(EXTERNAL_GLOBAL);
         UInt8(type);
-        ULEB(is_mutable);
+        ULEB<unsigned>(is_mutable);
         section_count++;
         return num_global_imports++;
     }
@@ -319,7 +319,7 @@ class BinaryWriter {
     void AddGlobal(uint8_t type, bool is_mutable) {
       assert(cur_section == Section::Global);
       UInt8(type);
-      ULEB(is_mutable);
+      ULEB<unsigned>(is_mutable);
       section_count++;
     }
 
