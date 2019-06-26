@@ -22,6 +22,16 @@ def filter_indices(l, f):
             r.push(i)
     return r
 
+def partition(xs, fun):
+    let t = []
+    let f = []
+    for(xs) x, i:
+        if fun(x, i):
+            t.push(x)
+        else:
+            f.push(x)
+    return t, f
+
 def exists(xs, fun):
     for(xs) x, i:
         if fun(x, i):
@@ -102,8 +112,7 @@ def qsort(xs, lt):
     else:
         let pivot = xs[0]
         let tail = xs.slice(1, -1)
-        let f1 = tail.filter():  lt(_, pivot)
-        let f2 = tail.filter(): !lt(_, pivot)
+        let f1, f2 = tail.partition(): lt(_, pivot)
         return append(append(qsort(f1, lt), [ pivot ]),
                              qsort(f2, lt))
 

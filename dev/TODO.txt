@@ -1026,6 +1026,15 @@
       So that should be acceptable as that is the least likely case, happens only when writing
       results back into fields/vectors.
       - vector ops can still be all-float
+  - Could remove the need for a base address by making everything a relative offset
+    That way, your only concern is to keep all memory within an arbitrary 4GB (or 32GB) range,
+    which should be easier, and doesn't require OS support.
+    The one issue is that it still needs a special case for null.
+    - you can make that actually 0, assuming pointers never point at themselves, such that
+      a null-check can happen before unpacking, and hopefully code that knows something is not
+      null can avoid this check entirely.
+    - the alternative would be an offset towards the base address, but that is way more
+      expensive to check.
 - Improve 64bit builds.
   We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
   bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out

@@ -763,6 +763,12 @@ nfr("in_range", "x,range,bias", "III?", "B",
         return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
     });
 
+nfr("in_range", "x,range,bias", "FFF?", "B",
+    "checks if a float is >= bias and < bias + range. Bias defaults to 0.",
+    [](VM &, Value &x, Value &range, Value &bias) {
+        return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
+    });
+
 nfr("in_range", "x,range,bias", "I}I}I}?", "B",
     "checks if a 2d/3d integer vector is >= bias and < bias + range. Bias defaults to 0.",
     [](VM &vm) {
@@ -957,61 +963,73 @@ nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2"
         vm.PushVec(ipoint);
     });
 
-nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "I]]",
-    "given a vector of 2D positions (an same size vectors of radiuses and pre-filter), returns"
-    " a vector of vectors of indices of the circles that are within dist of eachothers radius."
-    " pre-filter indicates objects that should appear in the inner vectors.",
-    [](VM &vm, Value &dist, Value &positions, Value &radiuses,
-                                        Value &prefilter) {
-        auto vec = positions.vval();
-        auto len = vec->len;
-        if (radiuses.vval()->len != len || prefilter.vval()->len != len)
-            return vm.BuiltinError(
-                "circles_within_range: all input vectors must be the same size");
-        struct Node { floatp2 pos; floatp rad; bool filter; intp idx; Node *next; };
-        vector<Node> nodes(len, Node());
+nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
+    "Given a vector of 2D positions (and same size vectors of radiuses), returns a vector of"
+    " vectors of indices (to the second set of positions and radiuses) of the circles that are"
+    " within dist of eachothers radius. If the second set are [], the first set is used for"
+    " both (and the self element is excluded)."
+    " gridsize optionally specifies the size of the grid to use for accellerated lookup of nearby"
+    " points. This is essential for the algorithm to be fast, too big or too small can cause slowdown."
+    " Omit it, and a heuristic will be chosen for you, which is currently sqrt(num_circles) * 2 along"
+    " each dimension, e.g. 100 elements would use a 20x20 grid."
+    " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
+    " the second set and/or the second set has smaller radiuses than the first.",
+    [](VM &vm) {
+        auto ncelld = vm.PopVec<intp2>();
+        auto radiuses2 = vm.Pop().vval();
+        auto positions2 = vm.Pop().vval();
+        auto radiuses1 = vm.Pop().vval();
+        auto positions1 = vm.Pop().vval();
+        if (!radiuses2->len) radiuses2 = radiuses1;
+        if (!positions2->len) positions2 = positions1;
+        auto qdist = vm.Pop().fval();
+        if (ncelld.x <= 0 || ncelld.y <= 0)
+            ncelld = intp2((intp)sqrtf(float(positions2->len + 1) * 4));
+        if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
+            vm.BuiltinError(
+                "circles_within_range: input vectors size mismatch");
+        struct Node { floatp2 pos; floatp rad; intp idx; Node *next; };
+        vector<Node> nodes(positions2->len, Node());
         floatp maxrad = 0;
         floatp2 minpos = floatp2(FLT_MAX), maxpos(FLT_MIN);
-        for (intp i = 0; i < len; i++) {
+        for (intp i = 0; i < positions2->len; i++) {
             auto &n = nodes[i];
-            auto p = ValueToF<2>(vec->AtSt(i), vec->width);
+            auto p = ValueToF<2>(positions2->AtSt(i), positions2->width);
             minpos = min(minpos, p);
             maxpos = max(maxpos, p);
             n.pos = p;
-            auto r = radiuses.vval()->At(i).fval();
+            auto r = radiuses2->At(i).fval();
             maxrad = max(maxrad, r);
             n.rad = r;
-            n.filter = prefilter.vval()->At(i).True();
             n.idx = i;
             n.next = nullptr;
         }
-        auto ncelld = (intp)sqrtf(float(len + 1) * 4);
-        vector<Node *> cells(ncelld * ncelld, nullptr);
+        vector<Node *> cells(ncelld.x * ncelld.y, nullptr);
         auto wsize = maxpos - minpos;
         wsize *= 1.00001f;  // No objects may fall exactly on the far border.
         auto tocellspace = [&](const floatp2 &pos) {
-            return intp2((pos - minpos) / wsize * float(ncelld));
+            return intp2((pos - minpos) / wsize * floatp2(ncelld));
         };
-        for (intp i = 0; i < len; i++) {
+        for (intp i = 0; i < positions2->len; i++) {
             auto &n = nodes[i];
             auto cp = tocellspace(n.pos);
-            auto &c = cells[cp.x + cp.y * ncelld];
+            auto &c = cells[cp.x + cp.y * ncelld.x];
             n.next = c;
             c = &n;
         }
-        auto qdist = dist.fval();
         vector<intp> within_range;
-        vector<LVector *> results(len, nullptr);
-        for (intp i = 0; i < len; i++) {
-            auto &n = nodes[i];
-            auto scanrad = n.rad + maxrad + qdist;
-            auto minc = max(intp2_0, min((ncelld - 1) * intp2_1, tocellspace(n.pos - scanrad)));
-            auto maxc = max(intp2_0, min((ncelld - 1) * intp2_1, tocellspace(n.pos + scanrad)));
+        vector<LVector *> results(positions1->len, nullptr);
+        for (intp i = 0; i < positions1->len; i++) {
+            auto pos = ValueToF<2>(positions1->AtSt(i), positions1->width);
+            auto rad = radiuses1->At(i).fval();
+            auto scanrad = rad + maxrad + qdist;
+            auto minc = max(intp2_0, min(ncelld - 1, tocellspace(pos - scanrad)));
+            auto maxc = max(intp2_0, min(ncelld - 1, tocellspace(pos + scanrad)));
             for (intp y = minc.y; y <= maxc.y; y++) {
                 for (intp x = minc.x; x <= maxc.x; x++) {
-                    for (auto c = cells[x + y * ncelld]; c; c = c->next) {
-                        if (c->filter && c != &n) {
-                            auto d = length(c->pos - n.pos) - n.rad - c->rad;
+                    for (auto c = cells[x + y * ncelld.x]; c; c = c->next) {
+                        if (c->idx != i || positions1 != positions2) {
+                            auto d = length(c->pos - pos) - rad - c->rad;
                             if (d < qdist) {
                                 within_range.push_back(c->idx);
                             }
@@ -1025,9 +1043,9 @@ nfr("circles_within_range", "dist,positions,radiuses,prefilter", "FF}:2]F]I]", "
             within_range.clear();
             results[i] = vec;
         }
-        auto rvec = (LVector *)vm.NewVec(0, len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
+        auto rvec = (LVector *)vm.NewVec(0, positions1->len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
         for (auto vec : results) rvec->Push(vm, Value(vec));
-        return Value(rvec);
+        vm.Push(rvec);
     });
 
 nfr("wave_function_collapse", "tilemap,size", "S]I}:2", "S]I",
