@@ -22,27 +22,26 @@ struct Voxels {
 
     Voxels(const int3 &dim) : is_default_palette(true), grid(dim, transparant) {}
 
-    void Set(const int3 &p, const int3 &sz, uchar pi) {
+    template<typename F> void Do(const int3 &p, const int3 &sz, F f) {
         for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {
             for (int y = max(0, p.y); y < min(p.y + sz.y, grid.dim.y); y++) {
                 for (int z = max(0, p.z); z < min(p.z + sz.z, grid.dim.z); z++) {
-                    grid.Get(int3(x, y, z)) = pi;
+                    auto pos = int3(x, y, z);
+                    f(pos, grid.Get(pos));
                 }
             }
         }
     }
 
+    void Set(const int3 &p, const int3 &sz, uchar pi) {
+        Do(p, sz, [&](const int3 &, uchar &vox) { vox = pi; });
+    }
+
     void Copy(const int3 &p, const int3 &sz, const int3 &dest, const int3 &flip) {
-        for (int x = max(0, p.x); x < min(p.x + sz.x, grid.dim.x); x++) {
-            for (int y = max(0, p.y); y < min(p.y + sz.y, grid.dim.y); y++) {
-                for (int z = max(0, p.z); z < min(p.z + sz.z, grid.dim.z); z++) {
-                    auto pos = int3(x, y, z);
-                    auto pi = grid.Get(pos);
-                    auto d = (pos - p) * flip + dest;
-                    if (d >= int3_0 && d < grid.dim) grid.Get(d) = pi;
-                }
-            }
-        }
+        Do(p, sz, [&](const int3 &pos, uchar &vox) {
+            auto d = (pos - p) * flip + dest;
+            if (d >= int3_0 && d < grid.dim) grid.Get(d) = vox;
+        });
     }
 
     uchar Color2Palette(const float4 &color) const {

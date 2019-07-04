@@ -22,6 +22,8 @@
 
 #include "lobster/cubegen.h"
 
+#include "lobster/simplex.h"
+
 namespace lobster {
 
 const unsigned int default_palette[256] = {
@@ -466,5 +468,70 @@ nfr("cg_rotate", "block,n", "RI", "R",
         }
         return Value(vm.NewResource(&d, GetVoxelType()));
     });
+
+nfr("cg_simplex", "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "RI}:3I}:3F}:3F}:3IFFIFF", "",
+    "",
+    [](VM &vm) {
+        auto zbias = vm.Pop().fltval();
+        auto zscale = vm.Pop().fltval();
+        auto solidcol = vm.Pop().intval();
+        auto persistence = vm.Pop().fltval();
+        auto scale = vm.Pop().fltval();
+        auto octaves = vm.Pop().intval();
+        auto ssize = vm.PopVec<float3>();
+        auto spos = vm.PopVec<float3>();
+        auto sz = vm.PopVec<int3>();
+        auto p = vm.PopVec<int3>();
+        auto &v = GetVoxels(vm, vm.Pop());
+        v.Do(p, sz, [&](const int3 &pos, uchar &vox) {
+            auto sp = (float3(pos - p) + 0.5) / float3(sz) * ssize + spos;
+            auto fun = SimplexNoise(octaves, persistence, scale, sp) + sp.z * zscale - zbias;
+            vox = uchar((fun < 0) * solidcol);
+        });
+    });
+
+nfr("cg_bounding_box", "world,minsolids", "RF", "I}:3I}:3",
+    "",
+	[](VM &vm) {
+        auto minsolids = vm.Pop().fltval();
+		auto &v = GetVoxels(vm, vm.Pop());
+        auto bmin = int3_0;
+        auto bmax = v.grid.dim;
+        auto bestsolids = 0.0f;
+        while ((bmax - bmin).volume()) {
+            bestsolids = 1.0f;
+            auto smin = bmin;
+            auto smax = bmax;
+            for (int c = 0; c < 3; c++) {
+                for (int mm = 0; mm < 2; mm++) {
+                    auto tmin = bmin;
+                    auto tmax = bmax;
+                    if (mm) tmin[c] = tmax[c] - 1;
+                    else tmax[c] = tmin[c] + 1;
+                    int solid = 0;
+                    v.Do(tmin, tmax - tmin, [&](const int3 &, uchar &vox) {
+                        if (vox) solid++;
+                    });
+                    auto total = (tmax - tmin).volume();
+                    auto ratio = solid / float(total);
+                    if (ratio < bestsolids) {
+                        bestsolids = ratio;
+                        smin = bmin;
+                        smax = bmax;
+                        if (mm) smax[c]--;
+                        else smin[c]++;
+                    }
+                }
+            }
+            if (bestsolids <= minsolids) {
+                bmin = smin;
+                bmax = smax;
+            } else {
+                break;
+            }
+        }
+        vm.PushVec(bmin);
+        vm.PushVec(bmax);
+	});
 
 }  // AddCubeGen
