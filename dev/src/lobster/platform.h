@@ -16,8 +16,10 @@
 typedef int64_t (* FileLoader)(string_view absfilename, string *dest, int64_t start, int64_t len);
 
 // Call this at init to determine default folders to load stuff from.
-// Also initializes anything else functions in this file need.
-extern bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+string GetMainDirFromExePath(const char *argv_0);
+// Then pass the result as maindir to InitPlatform.
+// This also initializes anything else functions in this file need.
+extern bool InitPlatform(string maindir, const char *auxfilepath, bool from_bundle,
                              FileLoader loader);
 extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
 extern string_view ProjectDir();

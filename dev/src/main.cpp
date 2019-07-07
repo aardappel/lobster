@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
         bool compile_only = false;
         bool compile_bench = false;
         bool full_unit_test = false;
-        int runtime_checks = 1;
+        int runtime_checks = RUNTIME_ASSERT;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         const char *fn = nullptr;
@@ -134,7 +134,8 @@ int main(int argc, char* argv[]) {
             //fn = "totslike.lobster";  // FIXME: temp solution
         #endif
 
-        if (!InitPlatform(argv[0], fn ? fn : default_lpak, from_bundle, SDLLoadFile))
+        if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
+                SDLLoadFile))
             THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
 
         NativeRegistry nfr;

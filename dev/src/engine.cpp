@@ -134,7 +134,7 @@ extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *ent
     try
     #endif
     {
-        InitPlatform ("../../", "", false, SDLLoadFile);  // FIXME
+        InitPlatform("../../", "", false, SDLLoadFile);  // FIXME
         NativeRegistry nfr;
         RegisterCoreEngineBuiltins(nfr);
 

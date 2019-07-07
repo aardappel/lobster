@@ -144,11 +144,23 @@ string_view StripTrailing(string_view in, string_view tail) {
     return in;
 }
 
-bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bundle,
+string GetMainDirFromExePath(const char *argv_0) {
+    string md = SanitizePath(argv_0);
+    #ifdef _WIN32
+        // Windows can pass just the exe name without a full path, which is useless.
+        char winfn[MAX_PATH + 1];
+        GetModuleFileName(NULL, winfn, MAX_PATH + 1);
+        md = winfn;
+    #endif
+    md = StripTrailing(StripTrailing(StripFilePart(md), "bin/"), "bin\\");
+    return md;
+}
+
+bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
+    maindir = _maindir;
     InitTime();
     InitCPU();
-    maindir = SanitizePath(exefilepath);
     cur_loader = loader;
     // FIXME: use SDL_GetBasePath() instead?
     #if defined(__APPLE__)
@@ -195,13 +207,7 @@ bool InitPlatform(const char *exefilepath, const char *auxfilepath, bool from_bu
         data_dirs.push_back("");
         data_dirs.push_back(write_dir);
     #else  // Linux, Windows, and OS X console mode.
-        #ifdef _WIN32
-            // Windows can pass just the exe name without a full path, which is useless.
-            char winfn[MAX_PATH + 1];
-            GetModuleFileName(NULL, winfn, MAX_PATH + 1);
-            maindir = winfn;
-        #endif
-        maindir = StripTrailing(StripTrailing(StripFilePart(maindir), "bin/"), "bin\\");
+
         if (auxfilepath) {
             projectdir = StripFilePart(SanitizePath(auxfilepath));
             data_dirs.push_back(projectdir);
