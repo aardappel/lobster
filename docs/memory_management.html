@@ -9,9 +9,13 @@
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
       span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
       div.column{display: inline-block; vertical-align: top; width: 50%;}
   </style>
-  <link rel="stylesheet" href="github.css" />
+  <link rel="stylesheet" href="github.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
 <header>
@@ -35,6 +39,7 @@
 <li>Modern C++ with <code>std::unique_ptr</code> is essentially an ownership model, except one that answers questions like “How do we detect that a borrower outlives an owner” with “We don’t”. But even with such caveats, it largely works well, and is a huge improvement over the manual memory management of C and even the manual RAII of earlier C++.</li>
 <li>Swift, one of the few languages that uses reference counting (inherited from objective C) has intentions to (optionally) move to <a href="https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md">ownership</a>.</li>
 <li>Nim has intention to move away from GC to ownership (see post <a href="https://nim-lang.org/araq/destructors.html">1</a> <a href="https://nim-lang.org/araq/ownedrefs.html">2</a>) with a model that is partially programmer assisted and partially runtime.</li>
+<li>D has <a href="https://dlang.org/blog/2019/07/15/ownership-and-borrowing-in-d/">plans</a>.</li>
 <li>Many more research-y or less known languages, e.g. <a href="https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf">Gel</a>, <a href="https://github.com/PistonDevelopers/dyon/issues/173">Dyon</a>, <a href="http://liu.diva-portal.org/smash/get/diva2:20899/FULLTEXT01.pdf">CoSy</a>, <a href="https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view">ParaSail</a> <a href="http://cone.jondgoodwin.com/memory.html">Cone</a> <a href="https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1">Scopes</a></li>
 </ul>
 <p>I personally think this general direction is the future of memory management. It just needs to be made more friendly than Rust for most programmers to want to come on board. Lobster offers a possible direction.</p>

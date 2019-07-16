@@ -70,6 +70,7 @@ becoming more mainstream:
   [1](https://nim-lang.org/araq/destructors.html)
   [2](https://nim-lang.org/araq/ownedrefs.html)) with a model that is partially
   programmer assisted and partially runtime.
+* D has [plans](https://dlang.org/blog/2019/07/15/ownership-and-borrowing-in-d/).
 * Many more research-y or less known languages, e.g.
   [Gel](https://pdfs.semanticscholar.org/d0f2/d28962d2a50d1914f0af8243d3f382fe077c.pdf),
   [Dyon](https://github.com/PistonDevelopers/dyon/issues/173),
