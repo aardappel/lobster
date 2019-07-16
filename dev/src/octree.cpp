@@ -20,20 +20,6 @@
 
 namespace lobster {
 
-class OcVal {
-    int32_t node;
-    public:
-    //OcVal() { SetLeafData(0); }
-    bool IsLeaf() const { return node < 0; }
-    int32_t NodeIdx() { return node; }
-    void SetNodeIdx(int32_t n) { node = n; }
-    // leaf data is a 31-bit signed integer :)
-    int32_t LeafData() { return node + 0x40000000; }
-    void SetLeafData(int32_t v) { node = v - 0x40000000; }
-    bool operator==(const OcVal &o) const { return node == o.node; }
-    bool operator!=(const OcVal &o) const { return node != o.node; }
-};
-
 inline ResourceType *GetOcTreeType() {
     static ResourceType voxel_type = { "octree", [](void *v) { delete (OcTree<OcVal> *)v; } };
     return &voxel_type;
@@ -126,7 +112,7 @@ nfr("oc_set", "octree,pos,val", "RI}:3I", "", "",
         auto pos = vm.PopVec<int3>();
         auto &ocworld = GetOcTree(vm, vm.Pop());
         OcVal v;
-        v.SetLeafData(val);
+        v.SetLeafData(max(val, 0));
         ocworld.Set(pos, v);
     });
 

@@ -110,7 +110,7 @@ template<typename T> struct OcTree {
             if (!n.IsLeaf()) n = Merge(n.NodeIdx());
         }
         T ov;
-        ov.node = cur;
+        ov.SetNodeIdx(cur);
         if (!nodes[cur].IsLeaf()) return ov;
         for (int i = 1; i < OCTREE_SUBDIV; i++) {
             if (nodes[cur] != nodes[cur + i]) return ov;
@@ -123,3 +123,15 @@ template<typename T> struct OcTree {
     }
 };
 
+class OcVal {
+    int32_t node;
+  public:
+    bool IsLeaf() const { return node < 0; }
+    int32_t NodeIdx() { assert(node >= 0); return node; }
+    void SetNodeIdx(int32_t n) { assert(n >= 0); node = n; }
+    // leaf data is a 31-bit usigned integer.
+    int32_t LeafData() { assert(node < 0); return node & 0x7FFFFFFF; }
+    void SetLeafData(int32_t v) { assert(v >= 0); node = v | 0x80000000; }
+    bool operator==(const OcVal &o) const { return node == o.node; }
+    bool operator!=(const OcVal &o) const { return node != o.node; }
+};
