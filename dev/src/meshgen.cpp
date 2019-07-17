@@ -21,6 +21,7 @@
 #include "lobster/meshgen.h"
 #include "lobster/mctables.h"
 #include "lobster/polyreduce.h"
+#include "lobster/cubegen.h"
 
 #include "lobster/simplex.h"
 
@@ -615,19 +616,6 @@ Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtra
     return m;
 }
 
-Mesh *eval_and_polygonize(ImplicitFunction *root, const int targetgridsize) {
-    auto scenesize = root->Size() * 2;
-    float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
-    auto gridscale = targetgridsize / biggestdim;
-    auto gridsize = int3(scenesize * gridscale + float3(2.5f));
-    auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
-    auto distgrid = new DistGrid(gridsize, DistVert());
-    ThreadPool threadpool(NumHWThreads());
-    root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1,
-                   threadpool);
-    return polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
-}
-
 Group *root = nullptr;
 Group *curgroup = nullptr;
 float3 cursize = float3_1;
@@ -663,6 +651,29 @@ Value AddShape(ImplicitFunction *f) {
     f->smoothmink = cursmoothmink;
     GetGroup()->children.push_back(f);
     return Value();
+}
+
+Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly) {
+    auto scenesize = root->Size() * 2;
+    float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
+    auto gridscale = targetgridsize / biggestdim;
+    auto gridsize = int3(scenesize * gridscale + float3(2.001f));
+    auto gridtrans = (float3(gridsize) - 1) / 2 - root->orig * gridscale;
+    auto distgrid = new DistGrid(gridsize, DistVert());
+    ThreadPool threadpool(NumHWThreads());
+    root->FillGrid(int3(0), gridsize, distgrid, float3(gridscale), gridtrans, float3x3_1,
+        threadpool);
+    if (do_poly) {
+        auto mesh = polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
+        MeshGenClear();
+        extern ResourceType mesh_type;
+        return Value(vm.NewResource(mesh, &mesh_type));
+    } else {
+        auto cg = CubesFromMeshGen(vm, *distgrid, targetgridsize, zoffset);
+        MeshGenClear();
+        delete distgrid;
+        return cg;
+    }
 }
 
 void AddMeshGen(NativeRegistry &nfr) {
@@ -787,10 +798,15 @@ nfr("mg_polygonize", "subdiv", "I", "R",
     " model), try 30.. 300 depending on the subject."
     " values much higher than that will likely make you run out of memory (or take very long).",
     [](VM &vm, Value &subdiv) {
-        auto mesh = eval_and_polygonize(root, subdiv.intval());
-        MeshGenClear();
-        extern ResourceType mesh_type;
-        return Value(vm.NewResource(mesh, &mesh_type));
+        return eval_and_polygonize(vm, subdiv.intval(), 0, true);
+    });
+
+nfr("mg_convert_to_cubes", "subdiv,zoffset", "II", "R",
+    "returns a cubegen block (see cg_ functions) from past mg_ commands."
+    " subdiv determines detail and number of cubes (relative to the largest dimension of the"
+    " model).",
+    [](VM &vm, Value &subdiv, Value &zoffset) {
+        return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
     });
 
 nfr("mg_translate", "vec,body", "F}:3L?", "",

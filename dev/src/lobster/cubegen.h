@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_CUBEGEN_H
+#define LOBSTER_CUBEGEN_H
+
 const uchar transparant = 0;
 
 struct Voxels {
@@ -75,7 +78,10 @@ inline Voxels &GetVoxels(VM &vm, const Value &res) {
     return *GetResourceDec<Voxels *>(vm, res, GetVoxelType());
 }
 
+Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset);
+
 extern const unsigned int default_palette[256];
 
 }
 
+#endif LOBSTER_CUBEGEN_H

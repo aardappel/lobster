@@ -19,9 +19,8 @@
 #include "lobster/glinterface.h"
 
 #include "lobster/3dgrid.h"
-
+#include "lobster/meshgen.h"
 #include "lobster/cubegen.h"
-
 #include "lobster/simplex.h"
 
 namespace lobster {
@@ -65,6 +64,27 @@ Voxels *NewWorld(const int3 &size) {
     auto v = new Voxels(size);
     v->palette.insert(v->palette.end(), (byte4 *)default_palette, ((byte4 *)default_palette) + 256);
     return v;
+}
+
+Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset) {
+    auto &v = *NewWorld(int3_1 * targetgridsize);
+    auto off = (grid.dim - v.grid.dim) / 2;
+    off.z += zoffset;
+    for (int x = 0; x < v.grid.dim.x; x++) {
+        for (int y = 0; y < v.grid.dim.y; y++) {
+            for (int z = 0; z < v.grid.dim.z; z++) {
+                auto pos = int3(x, y, z);
+                auto spos = pos + off;
+                uchar np = transparant;
+                if (spos >= 0 && spos < grid.dim) {
+                    auto &dgc = grid.Get(spos);
+                    np = v.Color2Palette(float4(color2vec(dgc.color).xyz(), dgc.dist <= 0));
+                }
+                v.grid.Get(pos) = np;
+            }
+        }
+    }
+    return vm.NewResource(&v, GetVoxelType());
 }
 
 }

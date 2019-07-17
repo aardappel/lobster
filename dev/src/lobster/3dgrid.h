@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_3DGRID_H
+#define LOBSTER_3DGRID_H
 
 // A basic 3D grid, with individually allocated YZ arrays.
 // Make Z your inner loop when accessing this.
@@ -205,3 +207,4 @@ template<typename T> class RLE3DGrid : NonCopyable {
     }
 };
 
+#endif LOBSTER_3DGRID_H

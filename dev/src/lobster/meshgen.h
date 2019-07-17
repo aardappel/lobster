@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef LOBSTER_MESHGEN_H
+#define LOBSTER_MESHGEN_H
+
 #include "3dgrid.h"
 
 struct DistVert {  // FIXME: can optimize this for memory usage making both 16bit
@@ -44,3 +47,5 @@ inline void RecomputeNormals(vector<int> &triangles, vector<mgvert> &verts) {
 
 extern Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
                            const DistGrid *distgrid, float3 (* grid_to_world)(const int3 &pos));
+
+#endif LOBSTER_MESHGEN_H
