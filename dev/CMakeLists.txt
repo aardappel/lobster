@@ -2,27 +2,78 @@ cmake_minimum_required(VERSION 2.8)
 
 project(Lobster)
 
+option(LOBSTER_ENGINE "Build a Lobster with the default engine included" ON)
 option(LOBSTER_TOCPP "Build Lobster with the output of --to-cpp" OFF)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
 endif()
-set(SDL_SHARED OFF CACHE INTERNAL "")
-set(SDL_STATIC ON CACHE INTERNAL "")
-set(VIDEO_VULKAN OFF CACHE INTERNAL "")
-add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
 
-file(GLOB LOBSTER_SRCS
-    "src/*.h"
+if(LOBSTER_ENGINE)
+  file(GLOB LOBSTER_SRCS
     "src/lobster/*.h"
     "src/*.cpp"
-)
+  )
+  add_definitions(-DLOBSTER_ENGINE=1)
+else()
+  # FIXME: move into separate dirs so these can be globbed.
+  set(LOBSTER_SRCS
+     src/lobster/bytecode_generated.h
+     src/lobster/codegen.h
+     src/lobster/compiler.h
+     src/lobster/disasm.h
+     src/lobster/geom.h
+     src/lobster/idents.h
+     src/lobster/il.h
+     src/lobster/lex.h
+     src/lobster/natreg.h
+     src/lobster/node.h
+     src/lobster/optimizer.h
+     src/lobster/parser.h
+     src/lobster/platform.h
+     src/lobster/slaballoc.h
+     src/lobster/stdafx.h
+     src/lobster/tonative.h
+     src/lobster/tools.h
+     src/lobster/ttypes.h
+     src/lobster/typecheck.h
+     src/lobster/unicode.h
+     src/lobster/vmdata.h
+     src/lobster/wasm_binary_writer.h
+     src/lobster/wasm_binary_writer_test.h
+     src/lobster/wentropy.h
+     src/lobster/wfc.h
+     src/builtins.cpp
+     src/compiler.cpp
+     src/disasm.cpp
+     src/file.cpp
+     src/lobsterreader.cpp
+     src/main.cpp
+     src/platform.cpp
+     src/stdafx.cpp
+     src/tocpp.cpp
+     src/tonative.cpp
+     src/towasm.cpp
+     src/vm.cpp
+     src/vmdata.cpp
+     src/vmlog.cpp
+  )
+  add_definitions(-DLOBSTER_ENGINE=0)
+endif()
 
 file(GLOB_RECURSE EXTERNAL_SRCS
+    "external/flatbuffers/*.cpp"
+)
+
+if(LOBSTER_ENGINE)
+  set(SDL_SHARED OFF CACHE INTERNAL "")
+  set(SDL_STATIC ON CACHE INTERNAL "")
+  set(VIDEO_VULKAN OFF CACHE INTERNAL "")
+  add_subdirectory(external/SDL EXCLUDE_FROM_ALL)
+  file(GLOB_RECURSE EXTERNAL_ENGINE_SRCS
     "include/Box2D/*.cpp"
     "lib/stb_image.c"
     "external/SDLMixer/*.c"
-    "external/flatbuffers/*.cpp"
     "external/imgui/*.cpp"
     external/freetype/src/autofit/autofit.c
     external/freetype/src/base/basepic.c
@@ -45,12 +96,10 @@ file(GLOB_RECURSE EXTERNAL_SRCS
     external/freetype/src/sfnt/sfnt.c
     external/freetype/src/smooth/smooth.c
     external/freetype/src/truetype/truetype.c
-)
-
-# source_group(Lobster FILES ${LOBSTER_SRCS})
-# source_group(External FILES ${EXTERNAL_SRCS})
-
-add_definitions(-DFT2_BUILD_LIBRARY=1)
+  )
+  add_definitions(-DFT2_BUILD_LIBRARY=1)
+  list (APPEND EXTERNAL_SRCS ${EXTERNAL_ENGINE_SRCS})
+endif()
 
 set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-multichar") # -fno-exceptions
 
@@ -73,6 +122,8 @@ if(MSVC)
   add_compile_definitions(SKIP_SDKS)
 endif()
 
+find_package(Threads)
+
 include_directories(include
                     src
                     external/SDL/include
@@ -80,21 +131,21 @@ include_directories(include
                     external/freetype/include
                     external/imgui)
 
-find_package(OpenGL REQUIRED)
-set(SDL_LIBRARIES SDL2-static)
-set(ADDITIONAL_LIBRARIES "")
-
-if(APPLE)
-  find_library(OPENGL_LIBRARIES NAMES GL GLU)
-  SET(CMAKE_CXX_LINK_FLAGS "-framework OpenGL")
-endif()
-
-if(WIN32)
-  add_definitions(-D_USE_MATH_DEFINES)
-  set(OPENGL_LIBRARIES opengl32)
-  set(SDL_LIBRARIES SDL2main ${SDL_LIBRARIES})
-  set(ADDITIONAL_LIBRARIES "winmm.lib imm32.lib version.lib")
-  link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
+if(LOBSTER_ENGINE)
+  find_package(OpenGL REQUIRED)
+  set(SDL_LIBRARIES SDL2-static)
+  set(ADDITIONAL_LIBRARIES "")
+  if(APPLE)
+    find_library(OPENGL_LIBRARIES NAMES GL GLU)
+    SET(CMAKE_CXX_LINK_FLAGS "-framework OpenGL")
+  endif()
+  if(WIN32)
+    add_definitions(-D_USE_MATH_DEFINES)
+    set(OPENGL_LIBRARIES opengl32)
+    set(SDL_LIBRARIES SDL2main ${SDL_LIBRARIES})
+    set(ADDITIONAL_LIBRARIES "winmm.lib imm32.lib version.lib")
+    link_directories("$ENV{DXSDK_DIR}/Lib/$ENV{PROCESSOR_ARCHITECTURE}" "${CMAKE_SOURCE_DIR}/lib")
+  endif()
 endif()
 
 if(UNIX)
@@ -131,10 +182,13 @@ if(LOBSTER_TOCPP)
   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -flto")
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
-target_link_libraries(${EXE_NAME}
-  ${SDL_LIBRARIES}
-  ${ADDITIONAL_LIBRARIES}
-  ${OPENGL_LIBRARIES})
+target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT})
+if(LOBSTER_ENGINE)
+    target_link_libraries(${EXE_NAME}
+      ${SDL_LIBRARIES}
+      ${ADDITIONAL_LIBRARIES}
+      ${OPENGL_LIBRARIES})
+endif()
 
 install(TARGETS ${EXE_NAME} DESTINATION ${BINDIR})
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/../data" DESTINATION ${DATADIR})

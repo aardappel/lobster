@@ -156,6 +156,27 @@ string GetMainDirFromExePath(const char *argv_0) {
     return md;
 }
 
+int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len) {
+    LOG_INFO("DefaultLoadFile: ", absfilename);
+    auto f = fopen(null_terminated(absfilename), "rb");
+    if (!f) return -1;
+    if (fseek(f, 0, SEEK_END)) {
+        fclose(f);
+        return -1;
+    }
+    auto filelen = ftell(f);
+    if (!len) {  // Just the file length requested.
+        fclose(f);
+        return filelen;
+    }
+    if (len < 0) len = filelen;
+    fseek(f, start, SEEK_SET);
+    dest->resize((size_t)len);
+    auto rlen = fread(&(*dest)[0], 1, (size_t)len, f);
+    fclose(f);
+    return len != (int64_t)rlen ? -1 : len;
+}
+
 bool InitPlatform(string _maindir, const char *auxfilepath, bool from_bundle,
                       FileLoader loader) {
     maindir = _maindir;

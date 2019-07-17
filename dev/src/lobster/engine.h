@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef LOBSTER_ENGINE
-#define LOBSTER_ENGINE
+#ifndef LOBSTER_ENGINE_H
+#define LOBSTER_ENGINE_H
 
 #include "lobster/vmdata.h"
 
@@ -29,4 +29,4 @@ extern void EngineExit(int code);
 #define USE_MAIN_LOOP_CALLBACK
 #endif
 
-#endif  // LOBSTER_ENGINE
+#endif  // LOBSTER_ENGINE_H

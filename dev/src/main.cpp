@@ -18,13 +18,17 @@
 #include "lobster/disasm.h"
 #include "lobster/tonative.h"
 
-#include "lobster/engine.h"
+#if LOBSTER_ENGINE
+    #include "lobster/engine.h"
+#endif
 
 #include "lobster/unicode.h"
 
-// FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
-#include "lobster/sdlincludes.h"
-#include "lobster/sdlinterface.h"
+#if LOBSTER_ENGINE
+    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
+    #include "lobster/sdlincludes.h"
+    #include "lobster/sdlinterface.h"
+#endif
 
 using namespace lobster;
 
@@ -88,7 +92,9 @@ int main(int argc, char* argv[]) {
             "--noconsole            Close console window (Windows).\n"
             "--gen-builtins-html    Write builtin commands help file.\n"
             "--gen-builtins-names   Write builtin commands - just names.\n"
+            #if LOBSTER_ENGINE
             "--non-interactive-test Quit after running 1 frame.\n"
+            #endif
             "--trace                Log bytecode instructions (SLOW).\n"
             "--trace-tail           Show last 50 bytecode instructions on error.\n"
             "--wait                 Wait for input before exiting.\n";
@@ -113,7 +119,9 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
                 else if (a == "--compile-bench") { compile_bench = true; }
+                #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { SDLTestMode(); }
+                #endif
                 else if (a == "--trace") { trace = TraceMode::ON; }
                 else if (a == "--trace-tail") { trace = TraceMode::TAIL; }
                 else if (a == "--full-unit-test") { full_unit_test = true; }
@@ -135,11 +143,20 @@ int main(int argc, char* argv[]) {
         #endif
 
         if (!InitPlatform(GetMainDirFromExePath(argv[0]), fn ? fn : default_lpak, from_bundle,
-                SDLLoadFile))
+                #if LOBSTER_ENGINE
+                    SDLLoadFile
+                #else
+                    DefaultLoadFile
+                #endif
+            ))
             THROW_OR_ABORT(string("cannot find location to read/write data on this platform!"));
 
         NativeRegistry nfr;
-        RegisterCoreEngineBuiltins(nfr);
+        #if LOBSTER_ENGINE
+            RegisterCoreEngineBuiltins(nfr);
+        #else
+            RegisterCoreLanguageBuiltins(nfr);
+        #endif
 
         if (fn) fn = StripDirPart(fn);
 
@@ -214,13 +231,20 @@ int main(int argc, char* argv[]) {
                 THROW_OR_ABORT(cat("cannot write: ", out));
             }
         } else if (!compile_only) {
-            EngineRunByteCode(std::move(vmargs));
+            #if LOBSTER_ENGINE
+                EngineRunByteCode(std::move(vmargs));
+            #else
+                VM vm(std::move(vmargs));
+                vm.EvalProgram();
+            #endif
         }
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         LOG_ERROR(s);
-        if (from_bundle) SDLMessageBox("Lobster", s.c_str());
+        #if LOBSTER_ENGINE
+            if (from_bundle) SDLMessageBox("Lobster", s.c_str());
+        #endif
         if (wait) {
             LOG_PROGRAM("press <ENTER> to continue:\n");
             getchar();
@@ -228,10 +252,14 @@ int main(int argc, char* argv[]) {
         #ifdef _WIN32
             _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
         #endif
-        EngineExit(1);
+        #if LOBSTER_ENGINE
+            EngineExit(1);
+        #endif
     }
     #endif
-    EngineExit(0);
+    #if LOBSTER_ENGINE
+        EngineExit(0);
+    #endif
     return 0;
 }
 

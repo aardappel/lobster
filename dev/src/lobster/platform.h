@@ -35,6 +35,9 @@ extern const char *StripDirPart(const char *filepath);
 extern int64_t LoadFile(string_view relfilename, string *dest, int64_t start = 0, int64_t len = -1,
                         bool binary = true);
 
+// fopen based implementation of FileLoader above to pass to InitPlatform if needed.
+extern int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, int64_t len);
+
 extern FILE *OpenForWriting(string_view relfilename, bool binary);
 extern bool WriteFile(string_view relfilename, bool binary, string_view contents);
 extern bool FileExists(string_view relfilename);

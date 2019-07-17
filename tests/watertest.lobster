@@ -59,7 +59,7 @@ run_test("water"):
     cells[highest].wh += starting_extra_water
 
     def sim():
-        cells[highest].wh += gl_delta_time() * water_per_second
+        cells[highest].wh += (1.0 / 60.0) * water_per_second
         loopworld() x, y, c:
             if abs(c.wh - c.h) > minimum_water_accumulation:
                 var totald = 0.0

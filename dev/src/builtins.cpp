@@ -1235,6 +1235,13 @@ nfr("thread_read", "type", "T", "A1?",
         return Value(vm.WorkerRead((type_elem_t)t.ival()));
     });
 
+nfr("log_frame", "", "", "",
+    "call this function instead of gl_frame() or gl_log_frame() to simulate a frame based program"
+    " from non-graphical code.",
+    [](VM &vm) {
+        vm.vml.LogFrame();
+        return Value();
+    });
 
 }  // AddBuiltins
 

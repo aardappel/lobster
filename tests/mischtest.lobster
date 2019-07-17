@@ -19,7 +19,7 @@ run_test("misch"):
 
         // Minimal log test with ref types:
         for(3) i:
-            gl_log_frame(0.01)
+            log_frame()
             let v ?= []
             assert v.length == i
             v.push(string(i))

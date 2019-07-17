@@ -3,7 +3,6 @@
 import testing
 import vec
 import color
-import texture
 
 run_test("smallpt"):
 

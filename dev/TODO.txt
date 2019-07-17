@@ -917,6 +917,8 @@
   - cache for text VBOs, and cache for arbitrary polygons, cleared if not used in a frame.
 
 - create easy way to build Lobster as console-only language.
+  -> this already available for Linux/CMake: just turn off the LOBSTER_ENGINE option.
+  Not sure if it makes much sense for the other platforms?
 
 - This doesn't parse well (see std.lobster):
   for xs: acc1, acc2 = fun(acc1, acc2, _)

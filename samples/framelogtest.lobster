@@ -1,6 +1,6 @@
 
 for 60:
-    gl_log_frame(1.0 / 60.0)
+    log_frame()
 
     def a():
         var v ?= 0

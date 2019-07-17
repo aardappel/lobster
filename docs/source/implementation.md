@@ -69,6 +69,10 @@ cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 It creates `bin/lobster`. Run it to access the
 samples, e.g. `bin/lobster samples/pythtree.lobster`
 
+Note the `LOBSTER_ENGINE` CMake option, which is by default on. You can turn this
+off to get a command-line only version of Lobster that does not depend on OpenGL,
+SDL, FreeType etc.
+
 ### Android
 
 You must have the following installed:
