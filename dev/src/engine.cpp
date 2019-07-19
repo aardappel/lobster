@@ -126,24 +126,14 @@ void EngineRunByteCode(VMArgs &&vmargs) {
 extern "C" int EngineRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
                                          const void *bytecodefb, size_t static_size,
                                          const lobster::block_t *vtables) {
-    (void)argc;
-
-    min_output_level = OUTPUT_INFO;
-
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        InitPlatform("../../", "", false, SDLLoadFile);  // FIXME
         NativeRegistry nfr;
         RegisterCoreEngineBuiltins(nfr);
-
-        auto vmargs = VMArgs {
-            nfr, StripDirPart(argv[0]), {}, entry_point, bytecodefb, static_size, {},
-            vtables, TraceMode::OFF
-        };
-        for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
-        EngineRunByteCode(std::move(vmargs));
+        EngineRunByteCode(CompiledInit(argc, argv, entry_point, bytecodefb, static_size, vtables,
+                                       SDLLoadFile, nfr));
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {

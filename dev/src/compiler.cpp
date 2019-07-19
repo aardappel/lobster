@@ -380,6 +380,41 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddReader(NativeRegistry &nfr);   RegisterBuiltin(nfr, "parsedata", AddReader);
 }
 
+VMArgs CompiledInit(int argc, char *argv[], const void *entry_point, const void *bytecodefb,
+                    size_t static_size, const lobster::block_t *vtables, FileLoader loader,
+                    NativeRegistry &nfr) {
+    min_output_level = OUTPUT_INFO;
+    InitPlatform("../../", "", false, loader);  // FIXME: path.
+    auto vmargs = VMArgs {
+        nfr, StripDirPart(argv[0]), {}, entry_point, bytecodefb, static_size, {},
+        vtables, TraceMode::OFF
+    };
+    for (int arg = 1; arg < argc; arg++) { vmargs.program_args.push_back(argv[arg]); }
+    return vmargs;
+}
+
+extern "C" int ConsoleRunCompiledCodeMain(int argc, char *argv[], const void *entry_point,
+                                          const void *bytecodefb, size_t static_size,
+                                          const lobster::block_t *vtables) {
+    #ifdef USE_EXCEPTION_HANDLING
+    try
+    #endif
+    {
+        NativeRegistry nfr;
+        RegisterCoreLanguageBuiltins(nfr);
+        lobster::VM vm(CompiledInit(argc, argv, entry_point, bytecodefb, static_size, vtables,
+                                    DefaultLoadFile, nfr));
+        vm.EvalProgram();
+    }
+    #ifdef USE_EXCEPTION_HANDLING
+    catch (string &s) {
+        LOG_ERROR(s);
+        return 1;
+    }
+    #endif
+    return 0;
+}
+
 SubFunction::~SubFunction() { delete body; }
 
 Field::~Field() { delete defaultval; }

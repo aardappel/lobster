@@ -45,7 +45,11 @@ class CPPGenerator : public NativeGenerator {
         ss <<
             "#include \"lobster/stdafx.h\"\n"
             "#include \"lobster/vmdata.h\"\n"
-            "#include \"lobster/engine.h\"\n"
+            #if LOBSTER_ENGINE
+                "#include \"lobster/engine.h\"\n"
+            #else
+                "#include \"lobster/compiler.h\"\n"
+            #endif
             "\n"
             "#ifndef VM_COMPILED_CODE_MODE\n"
             "    #error VM_COMPILED_CODE_MODE must be set for the entire code base.\n"
@@ -210,7 +214,13 @@ class CPPGenerator : public NativeGenerator {
         }
         ss << "\n};\n\n";
         ss << "int main(int argc, char *argv[]){\n";
-        ss << "    return EngineRunCompiledCodeMain(argc, argv, (void *)";
+        ss << "    return ";
+        #if LOBSTER_ENGINE
+            ss << "EngineRunCompiledCodeMain";
+        #else
+            ss << "ConsoleRunCompiledCodeMain";
+        #endif
+        ss << "(argc, argv, (void *)";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
             ss << "one_gigantic_function";
         } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {

@@ -171,7 +171,8 @@ set_source_files_properties(${EXTERNAL_SRCS} PROPERTIES COMPILE_FLAGS -w)
 
 set(EXE_NAME lobster)
 if(LOBSTER_TOCPP)
-  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+  list(REMOVE_ITEM LOBSTER_SRCS "src/main.cpp")
+  list(REMOVE_ITEM LOBSTER_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")  #FIXME
   list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
   add_definitions(-DVM_COMPILED_CODE_MODE=1)
   add_definitions(-flto)
