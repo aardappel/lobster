@@ -1082,7 +1082,8 @@ struct TypeChecker {
                         }
                     }
                     call_args->children[0]->exptype = &udt->thistype;
-                    auto rtype = TypeCheckCallStatic(overload_idxs[i], false, !last_sf);
+                    // FIXME: return value?
+                    /*auto rtype =*/ TypeCheckCallStatic(overload_idxs[i], false, !last_sf);
                     de = &dispatch_udt->dispatch[vtable_idx];  // May have realloced.
                     sf = chosen;
                     sf->method_of->dispatch[vtable_idx].sf = sf;
