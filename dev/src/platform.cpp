@@ -170,7 +170,7 @@ int64_t DefaultLoadFile(string_view absfilename, string *dest, int64_t start, in
         return filelen;
     }
     if (len < 0) len = filelen;
-    fseek(f, start, SEEK_SET);
+    fseek(f, (long)start, SEEK_SET);  // FIXME: 32-bit on WIN32.
     dest->resize((size_t)len);
     auto rlen = fread(&(*dest)[0], 1, (size_t)len, f);
     fclose(f);
