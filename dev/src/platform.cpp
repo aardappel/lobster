@@ -34,6 +34,10 @@
     #define FILESEP '/'
 #endif
 
+#ifdef __linux__
+    #include <unistd.h>
+#endif
+
 #ifdef __APPLE__
 #include "CoreFoundation/CoreFoundation.h"
 #ifndef __IOS__
@@ -151,6 +155,14 @@ string GetMainDirFromExePath(const char *argv_0) {
         char winfn[MAX_PATH + 1];
         GetModuleFileName(NULL, winfn, MAX_PATH + 1);
         md = winfn;
+    #endif
+    #ifdef __linux__
+        char path[PATH_MAX];
+        ssize_t length = readlink("/proc/self/exe", path, sizeof(path)-1);
+        if (length != -1) {
+          path[length] = '\0';
+          md = string(path);
+        }
     #endif
     md = StripTrailing(StripTrailing(StripFilePart(md), "bin/"), "bin\\");
     return md;
