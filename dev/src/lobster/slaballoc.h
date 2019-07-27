@@ -56,28 +56,29 @@ is desired.
 #endif
 
 class SlabAlloc {
-    // Must be ^2. lower means more blocks have to go thru the traditional allocator (slower).
-    // Higher means you may get pages with only few allocs of that unique size (memory wasted).
-    // On 32bit, 32 means all allocations <= 256 bytes go into buckets (in increments of 8 bytes
-    // each).
-    enum { MAXBUCKETS = 32 };
-    // Depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZEF
-    // You will waste 1 page to alignment with MAXBUCKETS at 32 on a 32bit system, PAGESIZEF is
-    // 2048, so this is 202k.
-    enum { PAGESATONCE = 101 };
-
-    // "64bit should be enough for everyone". Everything is twice as big on 64bit: alignment,
-    // memory blocks, and pages.
-    enum { PTRBITS = sizeof(char *)==4 ? 2 : 3 };
-    // Must fit 2 pointers in smallest block for doubly linked list.
-    enum { ALIGNBITS = PTRBITS+1 };
-    enum { ALIGN = 1<<ALIGNBITS };
-    enum { ALIGNMASK = ALIGN-1 };
-    enum { MAXREUSESIZE = (MAXBUCKETS-1)*ALIGN };
-    // The largest block will fit almost 8 times.
-    enum { PAGESIZEF = MAXBUCKETS*ALIGN*8 };
-    enum { PAGEMASK = (~(PAGESIZEF-1)) };
-    enum { PAGEBLOCKSIZE = PAGESIZEF*PAGESATONCE };
+    enum {
+        // Must be ^2. lower means more blocks have to go thru the traditional allocator (slower).
+        // Higher means you may get pages with only few allocs of that unique size (memory wasted).
+        // On 32bit, 32 means all allocations <= 256 bytes go into buckets (in increments of 8 bytes
+        // each).
+        MAXBUCKETS = 32,
+        // Depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZEF
+        // You will waste 1 page to alignment with MAXBUCKETS at 32 on a 32bit system, PAGESIZEF is
+        // 2048, so this is 202k.
+        PAGESATONCE = 101,
+        // "64bit should be enough for everyone". Everything is twice as big on 64bit: alignment,
+        // memory blocks, and pages.
+        PTRBITS = sizeof(char *) == 4 ? 2 : 3,
+        // Must fit 2 pointers in smallest block for doubly linked list.
+        ALIGNBITS = PTRBITS + 1,
+        ALIGN = 1 << ALIGNBITS,
+        ALIGNMASK = ALIGN - 1,
+        MAXREUSESIZE = (MAXBUCKETS - 1) * ALIGN,
+        // The largest block will fit almost 8 times.
+        PAGESIZEF = MAXBUCKETS * ALIGN * 8,
+        PAGEMASK = (~(PAGESIZEF - 1)),
+        PAGEBLOCKSIZE = PAGESIZEF * PAGESATONCE,
+    };
 
     struct PageHeader : DLNodeRaw {
         int refc;

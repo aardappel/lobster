@@ -508,13 +508,13 @@ struct CodeGen  {
         }
     }
 
-    void GenMathOp(const BinOp *n, size_t retval, MathOp opc) {
+    void GenMathOp(const BinOp *n, size_t retval, int opc) {
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, opc);
     }
 
-    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp opc) {
+    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, int opc) {
         TakeTemp(2, true);
         // Have to check right and left because comparison ops generate ints for node
         // overall.
