@@ -620,10 +620,7 @@ bool SDLCursor(bool on) {
         } else {
             if (fullscreen) SDL_SetWindowGrab(_sdl_window, SDL_TRUE);
             SDL_ShowCursor(0);
-            #if defined(_WIN32) || defined(__APPLE__)
-            // This is broken on Linux, gives bogus xrel/yrel in SDL_MOUSEMOVE
             SDL_SetRelativeMouseMode(SDL_TRUE);
-            #endif
             clearfingers(false);
         }
     }
@@ -681,4 +678,3 @@ int SDLScreenDPI(int screen) {
            ? 0  // Screen not present.
            : (int)(ddpi + 0.5f);
 }
-
