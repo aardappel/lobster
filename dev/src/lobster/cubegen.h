@@ -47,6 +47,13 @@ struct Voxels {
         });
     }
 
+    void Clone(const int3 &p, const int3 &sz, Voxels *dest) {
+        assert(dest->grid.dim == sz);
+        Do(p, sz, [&](const int3 &pos, uchar &vox) {
+            dest->grid.Get(pos - p) = vox;
+        });
+    }
+
     uchar Color2Palette(const float4 &color) const {
         uchar pi = transparant;
         if (color.w >= 0.5f) {

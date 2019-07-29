@@ -60,9 +60,10 @@ const unsigned int default_palette[256] = {
     0xffbbbbbb, 0xffaaaaaa, 0xff888888, 0xff777777, 0xff555555, 0xff444444, 0xff222222, 0xff111111
 };
 
-Voxels *NewWorld(const int3 &size) {
+Voxels *NewWorld(const int3 &size, const byte4 *from_palette = nullptr) {
     auto v = new Voxels(size);
-    v->palette.insert(v->palette.end(), (byte4 *)default_palette, ((byte4 *)default_palette) + 256);
+    if (!from_palette) from_palette = (byte4 *)default_palette;
+    v->palette.insert(v->palette.end(), from_palette, from_palette + 256);
     return v;
 }
 
@@ -130,6 +131,18 @@ nfr("cg_copy", "block,pos,size,dest,flip", "RI}:3I}:3I}:3I}:3", "",
         auto sz = vm.PopVec<int3>();
         auto p = vm.PopVec<int3>();
         GetVoxels(vm, vm.Pop()).Copy(p, sz, d, fl);
+    });
+
+nfr("cg_clone", "block,pos,size", "RI}:3I}:3", "R",
+    "clone a range of cubes from pos to a new block."
+    " Coordinates automatically clipped to the size of the grid",
+    [](VM &vm) {
+        auto sz = vm.PopVec<int3>();
+        auto p = vm.PopVec<int3>();
+        auto &v = GetVoxels(vm, vm.Pop());
+        auto nw = NewWorld(sz, v.palette.data());
+        v.Clone(p, sz, nw);
+        vm.Push(vm.NewResource(nw, GetVoxelType()));
     });
 
 nfr("cg_color_to_palette", "block,color", "RF}:4", "I",

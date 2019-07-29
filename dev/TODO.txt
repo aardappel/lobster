@@ -4,12 +4,17 @@
   https://developercommunity.visualstudio.com/content/problem/577035/internal-error-in-p2symtabc-line-7476-1610.html
   Fix apparently in 16.3
 
+- See if a tail-call based interpreter would be a speed-up:
+  https://github.com/soundandform/m3
+
 - stack & variable access is becoming a bottleneck in native backends, should think of a
   way such that they can easily be swapped out for native locals when possible.
 
 - default/tagged args for functions.
 
 - remove logvars?
+
+- run coverage to see where more tests are needed.
 
 - do more inlining:
   - mark certain functions as un-inlinable.
@@ -203,6 +208,15 @@
 
 - contribute Lobster syntax highlighting to:
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
+
+- add support for pure functions.
+  introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
+  currently "let" and "var").
+  A pure function is not allowed to mutate anything external to the function. It still is
+  allowed to have a var and update it, or even a var with a locally allocated data structure
+  and update that, just not update any free vars, or data pointer to by free vars and args.
+  This analysis runs for every function, such that functions declared with def that are
+  actually pure will get a warning that they could be declared with fun.
 
 - remaining improvements we can do related to return values.
   - allow dynamic dispatch overloads to be specialized on reqret etc.
