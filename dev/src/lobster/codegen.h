@@ -963,7 +963,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     }
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
-    assert(nargs == nf->args.size() && nargs <= 7);
+    assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
     int vmop = nf->fun.fnargs >= 0 ? IL_BCALLRET0 + (int)nargs * 3 : IL_BCALLRETV;
     if (nf->cont1) { // graphics.h
         auto lastarg = children.empty() ? nullptr : children.back();
