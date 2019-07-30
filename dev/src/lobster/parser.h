@@ -17,7 +17,7 @@ namespace lobster {
 struct Parser {
     NativeRegistry &natreg;
     Lex lex;
-    Call *root = nullptr;
+    Node *root = nullptr;
     SymbolTable &st;
     vector<Function *> functionstack;
     vector<string_view> trailingkeywordedfunctionvaluestack;

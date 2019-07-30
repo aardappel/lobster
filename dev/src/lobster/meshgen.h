@@ -48,4 +48,4 @@ inline void RecomputeNormals(vector<int> &triangles, vector<mgvert> &verts) {
 extern Mesh *polygonize_mc(const int3 &gridsize, float gridscale, const float3 &gridtrans,
                            const DistGrid *distgrid, float3 (* grid_to_world)(const int3 &pos));
 
-#endif LOBSTER_MESHGEN_H
+#endif  // LOBSTER_MESHGEN_H

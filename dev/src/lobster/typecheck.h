@@ -109,11 +109,9 @@ struct TypeChecker {
             }
             for (auto u = udt; u; u = u->superclass) u->subudts.push_back(udt);
         }
-        parser.root->sf->reqret = retreq;
-        TT((Node *&)parser.root, retreq, LT_KEEP);
-        auto call = Is<Call>(parser.root);
-        assert(call);
-        parser.root = call;
+        AssertIs<Call>(parser.root)->sf->reqret = retreq;
+        TT(parser.root, retreq, LT_KEEP);
+        AssertIs<Call>(parser.root);
         CleanUpFlow(0);
         assert(borrowstack.empty());
         assert(scopes.empty());

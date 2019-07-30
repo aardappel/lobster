@@ -91,4 +91,4 @@ extern const unsigned int default_palette[256];
 
 }
 
-#endif LOBSTER_CUBEGEN_H
+#endif  // LOBSTER_CUBEGEN_H

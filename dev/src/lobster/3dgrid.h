@@ -207,4 +207,4 @@ template<typename T> class RLE3DGrid : NonCopyable {
     }
 };
 
-#endif LOBSTER_3DGRID_H
+#endif  // LOBSTER_3DGRID_H

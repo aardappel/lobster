@@ -795,7 +795,7 @@ void VM::EvalProgramInner() {
 }
 
 VM_INS_RET VM::U_PUSHINT(int x) { VM_PUSH(Value(x)); VM_RET; }
-VM_INS_RET VM::U_PUSHFLT(int x) { VM_PUSH(Value(*(float *)&x)); VM_RET; }
+VM_INS_RET VM::U_PUSHFLT(int x) { int2float i2f; i2f.i = x; VM_PUSH(Value(i2f.f)); VM_RET; }
 VM_INS_RET VM::U_PUSHNIL() { VM_PUSH(Value()); VM_RET; }
 
 VM_INS_RET VM::U_PUSHINT64(int a, int b) {
