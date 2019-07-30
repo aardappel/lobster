@@ -527,6 +527,9 @@ struct Parser {
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
             case T_LAZYEXP: {
                 lex.Next();
+                if (!funarg) {
+                  Error("lazy_expression cannot be used outside function signature");
+                }
                 funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
                 return -1;
             }
