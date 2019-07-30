@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -97,15 +97,29 @@ typedef enum
 typedef enum
 {
     SDL_JOYSTICK_POWER_UNKNOWN = -1,
-    SDL_JOYSTICK_POWER_EMPTY,
-    SDL_JOYSTICK_POWER_LOW,
-    SDL_JOYSTICK_POWER_MEDIUM,
-    SDL_JOYSTICK_POWER_FULL,
+    SDL_JOYSTICK_POWER_EMPTY,   /* <= 5% */
+    SDL_JOYSTICK_POWER_LOW,     /* <= 20% */
+    SDL_JOYSTICK_POWER_MEDIUM,  /* <= 70% */
+    SDL_JOYSTICK_POWER_FULL,    /* <= 100% */
     SDL_JOYSTICK_POWER_WIRED,
     SDL_JOYSTICK_POWER_MAX
 } SDL_JoystickPowerLevel;
 
 /* Function prototypes */
+
+/**
+ * Locking for multi-threaded access to the joystick API
+ *
+ * If you are using the joystick API or handling events from multiple threads
+ * you should use these locking functions to protect access to the joysticks.
+ *
+ * In particular, you are guaranteed that the joystick list won't change, so
+ * the API functions that take a joystick index will be valid, and joystick
+ * and game controller events will not be delivered.
+ */
+extern DECLSPEC void SDLCALL SDL_LockJoysticks(void);
+extern DECLSPEC void SDLCALL SDL_UnlockJoysticks(void);
+
 /**
  *  Count the number of joysticks attached to the system right now
  */
@@ -117,6 +131,12 @@ extern DECLSPEC int SDLCALL SDL_NumJoysticks(void);
  *  If no name can be found, this function returns NULL.
  */
 extern DECLSPEC const char *SDLCALL SDL_JoystickNameForIndex(int device_index);
+
+/**
+ *  Get the player index of a joystick, or -1 if it's not available
+ *  This can be called before any joysticks are opened.
+ */
+extern DECLSPEC int SDLCALL SDL_JoystickGetDevicePlayerIndex(int device_index);
 
 /**
  *  Return the GUID for the joystick at this index
@@ -179,6 +199,13 @@ extern DECLSPEC SDL_Joystick *SDLCALL SDL_JoystickFromInstanceID(SDL_JoystickID 
  *  If no name can be found, this function returns NULL.
  */
 extern DECLSPEC const char *SDLCALL SDL_JoystickName(SDL_Joystick * joystick);
+
+/**
+ *  Get the player index of an opened joystick, or -1 if it's not available
+ *
+ *  For XInput controllers this returns the XInput user index.
+ */
+extern DECLSPEC int SDLCALL SDL_JoystickGetPlayerIndex(SDL_Joystick * joystick);
 
 /**
  *  Return the GUID for this opened joystick
@@ -346,6 +373,19 @@ extern DECLSPEC int SDLCALL SDL_JoystickGetBall(SDL_Joystick * joystick,
  */
 extern DECLSPEC Uint8 SDLCALL SDL_JoystickGetButton(SDL_Joystick * joystick,
                                                     int button);
+
+/**
+ *  Trigger a rumble effect
+ *  Each call to this function cancels any previous rumble effect, and calling it with 0 intensity stops any rumbling.
+ *
+ *  \param joystick The joystick to vibrate
+ *  \param low_frequency_rumble The intensity of the low frequency (left) rumble motor, from 0 to 0xFFFF
+ *  \param high_frequency_rumble The intensity of the high frequency (right) rumble motor, from 0 to 0xFFFF
+ *  \param duration_ms The duration of the rumble effect, in milliseconds
+ *
+ *  \return 0, or -1 if rumble isn't supported on this joystick
+ */
+extern DECLSPEC int SDLCALL SDL_JoystickRumble(SDL_Joystick * joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble, Uint32 duration_ms);
 
 /**
  *  Close a joystick previously opened with SDL_JoystickOpen().

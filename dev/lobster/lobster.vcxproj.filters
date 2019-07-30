@@ -367,6 +367,18 @@
     <ClInclude Include="..\src\lobster\octree.h">
       <Filter>engine\meshgen</Filter>
     </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_config_os2.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_sensor.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_test_memory.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\external\SDL\include\SDL_vulkan.h">
+      <Filter>engine\sdl\headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -576,9 +588,6 @@
     <ClCompile Include="..\external\freetype\src\autofit\autofit.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\external\freetype\src\base\basepic.c">
-      <Filter>engine\freetype\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\freetype\src\base\ftapi.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
@@ -591,9 +600,6 @@
     <ClCompile Include="..\external\freetype\src\base\ftbitmap.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
-    <ClCompile Include="..\external\freetype\src\base\ftdbgmem.c">
-      <Filter>engine\freetype\lib</Filter>
-    </ClCompile>
     <ClCompile Include="..\external\freetype\src\base\ftdebug.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
@@ -601,9 +607,6 @@
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\external\freetype\src\base\ftinit.c">
-      <Filter>engine\freetype\lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\external\freetype\src\base\ftpic.c">
       <Filter>engine\freetype\lib</Filter>
     </ClCompile>
     <ClCompile Include="..\external\freetype\src\base\ftstroke.c">
@@ -1151,6 +1154,36 @@
     </ClCompile>
     <ClCompile Include="..\src\octree.cpp">
       <Filter>engine\meshgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\wasapi\SDL_wasapi_win32.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\audio\wasapi\SDL_wasapi_winrt.cpp">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\sensor\SDL_sensor.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\sensor\dummy\SDL_dummysensor.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\yuv2rgb\yuv_rgb.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\video\SDL_yuv.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapijoystick.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\hidapi\windows\hid.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_ps4.c">
+      <Filter>engine\sdl\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\SDL\src\joystick\hidapi\SDL_hidapi_switch.c">
+      <Filter>engine\sdl\lib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

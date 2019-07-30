@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,6 +36,8 @@
 #endif
 
 extern int VIVANTE_SetupPlatform(_THIS);
+extern char *VIVANTE_GetDisplayName(_THIS);
+extern void VIVANTE_UpdateDisplayScale(_THIS);
 extern void VIVANTE_CleanupPlatform(_THIS);
 
 #endif /* SDL_VIDEO_DRIVER_VIVANTE */

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -354,7 +354,7 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             return NO;
         }
 
-        if (open_playback_devices + open_capture_devices == 1) {
+        if (open && (open_playback_devices + open_capture_devices) == 1) {
             if (![session setActive:YES error:&err]) {
                 NSString *desc = err.description;
                 SDL_SetError("Could not activate Audio Session: %s", desc.UTF8String);
@@ -376,25 +376,26 @@ static BOOL update_audio_session(_THIS, SDL_bool open)
             /* An interruption end notification is not guaranteed to be sent if
              we were previously interrupted... resuming if needed when the app
              becomes active seems to be the way to go. */
+			// Note: object: below needs to be nil, as otherwise it filters by the object, and session doesn't send foreground / active notifications.  johna
             [center addObserver:listener
                        selector:@selector(applicationBecameActive:)
                            name:UIApplicationDidBecomeActiveNotification
-                         object:session];
+                         object:nil];
 
             [center addObserver:listener
                        selector:@selector(applicationBecameActive:)
                            name:UIApplicationWillEnterForegroundNotification
-                         object:session];
+                         object:nil];
 
             this->hidden->interruption_listener = CFBridgingRetain(listener);
         } else {
             if (this->hidden->interruption_listener != NULL) {
                 SDLInterruptionListener *listener = nil;
                 listener = (SDLInterruptionListener *) CFBridgingRelease(this->hidden->interruption_listener);
+                [center removeObserver:listener];
                 @synchronized (listener) {
                     listener.device = NULL;
                 }
-                [center removeObserver:listener];
             }
         }
     }
@@ -541,13 +542,16 @@ COREAUDIO_CloseDevice(_THIS)
     update_audio_session(this, SDL_FALSE);
 #endif
 
-    if (this->hidden->thread) {
-        SDL_AtomicSet(&this->hidden->shutdown, 1);
-        SDL_WaitThread(this->hidden->thread, NULL);
-    }
+    /* if callback fires again, feed silence; don't call into the app. */
+    SDL_AtomicSet(&this->paused, 1);
 
     if (this->hidden->audioQueue) {
         AudioQueueDispose(this->hidden->audioQueue, 1);
+    }
+
+    if (this->hidden->thread) {
+        SDL_AtomicSet(&this->hidden->shutdown, 1);
+        SDL_WaitThread(this->hidden->thread, NULL);
     }
 
     if (this->hidden->ready_semaphore) {
@@ -725,18 +729,17 @@ audioqueue_thread(void *arg)
         return 0;
     }
 
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+
     /* init was successful, alert parent thread and start running... */
     SDL_SemPost(this->hidden->ready_semaphore);
     while (!SDL_AtomicGet(&this->hidden->shutdown)) {
         CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.10, 1);
     }
 
-    if (this->iscapture) {  /* just stop immediately for capture devices. */
-        AudioQueueStop(this->hidden->audioQueue, 1);
-    } else {  /* Drain off any pending playback. */
+    if (!this->iscapture) {  /* Drain off any pending playback. */
         const CFTimeInterval secs = (((this->spec.size / (SDL_AUDIO_BITSIZE(this->spec.format) / 8)) / this->spec.channels) / ((CFTimeInterval) this->spec.freq)) * 2.0;
         CFRunLoopRunInMode(kCFRunLoopDefaultMode, secs, 0);
-        AudioQueueStop(this->hidden->audioQueue, 0);
     }
 
     return 0;

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -26,11 +26,22 @@
 
 #include <stdio.h>
 
-#define VIDEO_USAGE \
-"[--video driver] [--renderer driver] [--gldebug] [--info all|video|modes|render|event] [--log all|error|system|audio|video|render|input] [--display N] [--fullscreen | --fullscreen-desktop | --windows N] [--title title] [--icon icon.bmp] [--center | --position X,Y] [--geometry WxH] [--min-geometry WxH] [--max-geometry WxH] [--logical WxH] [--scale N] [--depth N] [--refresh R] [--vsync] [--noframe] [--resize] [--minimize] [--maximize] [--grab] [--allow-highdpi]"
+static const char *video_usage[] = {
+    "[--video driver]", "[--renderer driver]", "[--gldebug]",
+    "[--info all|video|modes|render|event]",
+    "[--log all|error|system|audio|video|render|input]", "[--display N]",
+    "[--fullscreen | --fullscreen-desktop | --windows N]", "[--title title]",
+    "[--icon icon.bmp]", "[--center | --position X,Y]", "[--geometry WxH]",
+    "[--min-geometry WxH]", "[--max-geometry WxH]", "[--logical WxH]",
+    "[--scale N]", "[--depth N]", "[--refresh R]", "[--vsync]", "[--noframe]",
+    "[--resize]", "[--minimize]", "[--maximize]", "[--grab]",
+    "[--allow-highdpi]"
+};
 
-#define AUDIO_USAGE \
-"[--rate N] [--format U8|S8|U16|U16LE|U16BE|S16|S16LE|S16BE] [--channels N] [--samples N]"
+static const char *audio_usage[] = {
+    "[--rate N]", "[--format U8|S8|U16|U16LE|U16BE|S16|S16LE|S16BE]",
+    "[--channels N]", "[--samples N]"
+};
 
 static void SDL_snprintfcat(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char *fmt, ... )
 {
@@ -47,7 +58,18 @@ static void SDL_snprintfcat(SDL_OUT_Z_CAP(maxlen) char *text, size_t maxlen, SDL
 SDLTest_CommonState *
 SDLTest_CommonCreateState(char **argv, Uint32 flags)
 {
-    SDLTest_CommonState *state = (SDLTest_CommonState *)SDL_calloc(1, sizeof(*state));
+    int i;
+    SDLTest_CommonState *state;
+
+    /* Do this first so we catch all allocations */
+    for (i = 1; argv[i]; ++i) {
+        if (SDL_strcasecmp(argv[i], "--trackmem") == 0) {
+            SDLTest_TrackAllocations();
+            break;
+        }
+    }
+
+    state = (SDLTest_CommonState *)SDL_calloc(1, sizeof(*state));
     if (!state) {
         SDL_OutOfMemory();
         return NULL;
@@ -447,6 +469,10 @@ SDLTest_CommonArg(SDLTest_CommonState * state, int index)
         state->audiospec.samples = (Uint16) SDL_atoi(argv[index]);
         return 2;
     }
+    if (SDL_strcasecmp(argv[index], "--trackmem") == 0) {
+        /* Already handled in SDLTest_CommonCreateState() */
+        return 1;
+    }
     if ((SDL_strcasecmp(argv[index], "-h") == 0)
         || (SDL_strcasecmp(argv[index], "--help") == 0)) {
         /* Print the usage message */
@@ -459,19 +485,46 @@ SDLTest_CommonArg(SDLTest_CommonState * state, int index)
     return 0;
 }
 
-const char *
-SDLTest_CommonUsage(SDLTest_CommonState * state)
+void
+SDLTest_CommonLogUsage(SDLTest_CommonState * state, const char *argv0, const char **options)
 {
-    switch (state->flags & (SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-    case SDL_INIT_VIDEO:
-        return VIDEO_USAGE;
-    case SDL_INIT_AUDIO:
-        return AUDIO_USAGE;
-    case (SDL_INIT_VIDEO | SDL_INIT_AUDIO):
-        return VIDEO_USAGE " " AUDIO_USAGE;
-    default:
-        return "";
+    int i;
+
+    SDL_Log("USAGE: %s", argv0);
+    SDL_Log("    %s", "[--trackmem]");
+
+    if (state->flags & SDL_INIT_VIDEO) {
+        for (i = 0; i < SDL_arraysize(video_usage); i++) {
+            SDL_Log("    %s", video_usage[i]);
+        }
     }
+
+    if (state->flags & SDL_INIT_AUDIO) {
+        for (i = 0; i < SDL_arraysize(audio_usage); i++) {
+            SDL_Log("    %s", audio_usage[i]);
+        }
+    }
+
+    if (options) {
+        for (i = 0; options[i] != NULL; i++) {
+            SDL_Log("    %s", options[i]);
+        }
+    }
+}
+
+SDL_bool
+SDLTest_CommonDefaultArgs(SDLTest_CommonState *state, const int argc, char **argv)
+{
+    int i = 1;
+    while (i < argc) {
+        const int consumed = SDLTest_CommonArg(state, i);
+        if (consumed == 0) {
+            SDLTest_CommonLogUsage(state, argv[0], NULL);
+            return SDL_FALSE;
+        }
+        i += consumed;
+    }
+    return SDL_TRUE;
 }
 
 static void
@@ -661,6 +714,52 @@ SDLTest_LoadIcon(const char *file)
     return (icon);
 }
 
+static SDL_HitTestResult SDLCALL
+SDLTest_ExampleHitTestCallback(SDL_Window *win, const SDL_Point *area, void *data)
+{
+    int w, h;
+    const int RESIZE_BORDER = 8;
+    const int DRAGGABLE_TITLE = 32;
+
+    /*SDL_Log("Hit test point %d,%d\n", area->x, area->y);*/
+
+    SDL_GetWindowSize(win, &w, &h);
+
+    if (area->x < RESIZE_BORDER) {
+        if (area->y < RESIZE_BORDER) {
+            SDL_Log("SDL_HITTEST_RESIZE_TOPLEFT\n");
+            return SDL_HITTEST_RESIZE_TOPLEFT;
+        } else if (area->y >= (h-RESIZE_BORDER)) {
+            SDL_Log("SDL_HITTEST_RESIZE_BOTTOMLEFT\n");
+            return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+        } else {
+            SDL_Log("SDL_HITTEST_RESIZE_LEFT\n");
+            return SDL_HITTEST_RESIZE_LEFT;
+        }
+    } else if (area->x >= (w-RESIZE_BORDER)) {
+        if (area->y < RESIZE_BORDER) {
+            SDL_Log("SDL_HITTEST_RESIZE_TOPRIGHT\n");
+            return SDL_HITTEST_RESIZE_TOPRIGHT;
+        } else if (area->y >= (h-RESIZE_BORDER)) {
+            SDL_Log("SDL_HITTEST_RESIZE_BOTTOMRIGHT\n");
+            return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+        } else {
+            SDL_Log("SDL_HITTEST_RESIZE_RIGHT\n");
+            return SDL_HITTEST_RESIZE_RIGHT;
+        }
+    } else if (area->y >= (h-RESIZE_BORDER)) {
+        SDL_Log("SDL_HITTEST_RESIZE_BOTTOM\n");
+        return SDL_HITTEST_RESIZE_BOTTOM;
+    } else if (area->y < RESIZE_BORDER) {
+        SDL_Log("SDL_HITTEST_RESIZE_TOP\n");
+        return SDL_HITTEST_RESIZE_TOP;
+    } else if (area->y < DRAGGABLE_TITLE) {
+        SDL_Log("SDL_HITTEST_DRAGGABLE\n");
+        return SDL_HITTEST_DRAGGABLE;
+    }
+    return SDL_HITTEST_NORMAL;
+}
+
 SDL_bool
 SDLTest_CommonInit(SDLTest_CommonState * state)
 {
@@ -734,8 +833,8 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
             int bpp;
             Uint32 Rmask, Gmask, Bmask, Amask;
 #if SDL_VIDEO_DRIVER_WINDOWS
-			int adapterIndex = 0;
-			int outputIndex = 0;
+            int adapterIndex = 0;
+            int outputIndex = 0;
 #endif
             n = SDL_GetNumVideoDisplays();
             SDL_Log("Number of displays: %d\n", n);
@@ -778,7 +877,7 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
                         SDL_GetDisplayMode(i, j, &mode);
                         SDL_PixelFormatEnumToMasks(mode.format, &bpp, &Rmask,
                                                    &Gmask, &Bmask, &Amask);
-						SDL_Log("    Mode %d: %dx%d@%dHz, %d bits-per-pixel (%s)\n",
+                        SDL_Log("    Mode %d: %dx%d@%dHz, %d bits-per-pixel (%s)\n",
                                 j, mode.w, mode.h, mode.refresh_rate, bpp,
                                 SDL_GetPixelFormatName(mode.format));
                         if (Rmask || Gmask || Bmask) {
@@ -789,20 +888,20 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
                             SDL_Log("        Blue Mask  = 0x%.8x\n",
                                     Bmask);
                             if (Amask)
-								SDL_Log("        Alpha Mask = 0x%.8x\n",
+                                SDL_Log("        Alpha Mask = 0x%.8x\n",
                                         Amask);
                         }
                     }
                 }
 
 #if SDL_VIDEO_DRIVER_WINDOWS
-				/* Print the D3D9 adapter index */
-				adapterIndex = SDL_Direct3D9GetAdapterIndex( i );
-				SDL_Log("D3D9 Adapter Index: %d", adapterIndex);
+                /* Print the D3D9 adapter index */
+                adapterIndex = SDL_Direct3D9GetAdapterIndex( i );
+                SDL_Log("D3D9 Adapter Index: %d", adapterIndex);
 
-				/* Print the DXGI adapter and output indices */
-				SDL_DXGIGetOutputInfo(i, &adapterIndex, &outputIndex);
-				SDL_Log("DXGI Adapter Index: %d  Output Index: %d", adapterIndex, outputIndex);
+                /* Print the DXGI adapter and output indices */
+                SDL_DXGIGetOutputInfo(i, &adapterIndex, &outputIndex);
+                SDL_Log("DXGI Adapter Index: %d  Output Index: %d", adapterIndex, outputIndex);
 #endif
             }
         }
@@ -892,6 +991,12 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
                 return SDL_FALSE;
             }
 
+            /* Add resize/drag areas for windows that are borderless and resizable */
+            if ((state->window_flags & (SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS)) ==
+                (SDL_WINDOW_RESIZABLE|SDL_WINDOW_BORDERLESS)) {
+                SDL_SetWindowHitTest(state->windows[i], SDLTest_ExampleHitTestCallback, NULL);
+            }
+
             if (state->window_icon) {
                 SDL_Surface *icon = SDLTest_LoadIcon(state->window_icon);
                 if (icon) {
@@ -918,7 +1023,7 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
                         }
                     }
                     if (m == -1) {
-						SDL_Log("Couldn't find render driver named %s",
+                        SDL_Log("Couldn't find render driver named %s",
                                 state->renderdriver);
                         return SDL_FALSE;
                     }
@@ -932,7 +1037,7 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
                 }
                 if (state->logical_w && state->logical_h) {
                     SDL_RenderSetLogicalSize(state->renderers[i], state->logical_w, state->logical_h);
-                } else if (state->scale) {
+                } else if (state->scale != 0.) {
                     SDL_RenderSetScale(state->renderers[i], state->scale, state->scale);
                 }
                 if (state->verbose & VERBOSE_RENDER) {
@@ -979,6 +1084,22 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
     }
 
     return SDL_TRUE;
+}
+
+static const char *
+DisplayOrientationName(int orientation)
+{
+    switch (orientation)
+    {
+#define CASE(X) case SDL_ORIENTATION_##X: return #X
+        CASE(UNKNOWN);
+        CASE(LANDSCAPE);
+        CASE(LANDSCAPE_FLIPPED);
+        CASE(PORTRAIT);
+        CASE(PORTRAIT_FLIPPED);
+#undef CASE
+default: return "???";
+    }
 }
 
 static const char *
@@ -1035,6 +1156,17 @@ SDLTest_PrintEvent(SDL_Event * event)
     }
 
     switch (event->type) {
+    case SDL_DISPLAYEVENT:
+        switch (event->display.event) {
+        case SDL_DISPLAYEVENT_ORIENTATION:
+            SDL_Log("SDL EVENT: Display %d changed orientation to %s", event->display.display, DisplayOrientationName(event->display.data1));
+            break;
+        default:
+            SDL_Log("SDL EVENT: Display %d got unknown event 0x%4.4x",
+                    event->display.display, event->display.event);
+            break;
+        }
+        break;
     case SDL_WINDOWEVENT:
         switch (event->window.event) {
         case SDL_WINDOWEVENT_SHOWN:
@@ -1282,7 +1414,18 @@ SDLTest_PrintEvent(SDL_Event * event)
     case SDL_APP_DIDENTERFOREGROUND:
         SDL_Log("SDL EVENT: App entered the foreground");
         break;
-
+    case SDL_DROPBEGIN:
+        SDL_Log("SDL EVENT: Drag and drop beginning");
+        break;
+    case SDL_DROPFILE:
+        SDL_Log("SDL EVENT: Drag and drop file: '%s'", event->drop.file);
+        break;
+    case SDL_DROPTEXT:
+        SDL_Log("SDL EVENT: Drag and drop text: '%s'", event->drop.file);
+        break;
+    case SDL_DROPCOMPLETE:
+        SDL_Log("SDL EVENT: Drag and drop ending");
+        break;
     case SDL_QUIT:
         SDL_Log("SDL EVENT: Quit requested");
         break;
@@ -1677,6 +1820,11 @@ SDLTest_CommonEvent(SDLTest_CommonState * state, SDL_Event * event, int *done)
     case SDL_MOUSEMOTION:
         lastEvent = event->motion;
         break;
+
+    case SDL_DROPFILE:
+    case SDL_DROPTEXT:
+        SDL_free(event->drop.file);
+        break;
     }
 }
 
@@ -1710,6 +1858,7 @@ SDLTest_CommonQuit(SDLTest_CommonState * state)
     }
     SDL_free(state);
     SDL_Quit();
+    SDLTest_LogAllocations();
 }
 
 /* vi: set ts=4 sw=4 expandtab: */
