@@ -849,7 +849,7 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SF}:4]I", "I",
             vals[i] = ValueToFLT<4>(vec.vval()->AtSt(i), vec.vval()->width);
         auto id = UniformBufferObject(currentshader, vals.data()->data(),
                                       4 * sizeof(float) * vals.size(),
-                                      name.sval()->strv(), ssbo.True());
+                                      name.sval()->strv(), ssbo.True(), 0);
         return Value((int)id);
     });
 
@@ -863,7 +863,7 @@ nfr("gl_uniform_buffer_object", "name,value,ssbo", "SSI", "I",
     TestGL(vm);
     auto id = UniformBufferObject(currentshader, vec.sval()->strv().data(),
                                   vec.sval()->strv().size(),
-                                  name.sval()->strv(), ssbo.True());
+                                  name.sval()->strv(), ssbo.True(), 0);
     return Value((int)id);
 });
 
@@ -877,13 +877,13 @@ nfr("gl_delete_buffer_object", "id", "I", "",
         return Value();
     });
 
-nfr("gl_bind_mesh_to_compute", "mesh,binding", "R?I", "",
+nfr("gl_bind_mesh_to_compute", "mesh,name", "R?S", "",
     "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
     " unbind.",
-    [](VM &vm, Value &mesh, Value &bpi) {
+    [](VM &vm, Value &mesh, Value &name) {
         TestGL(vm);
-        if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(bpi.intval());
-        else BindVBOAsSSBO(bpi.intval(), 0);
+        if (mesh.True()) GetMesh(vm, mesh).geom->BindAsSSBO(currentshader, name.sval()->strv());
+        else UniformBufferObject(currentshader, nullptr, 0, name.sval()->strv(), true, 0);
         return Value();
     });
 

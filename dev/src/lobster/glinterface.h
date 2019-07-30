@@ -120,7 +120,7 @@ class Geometry  {
     void Init(const void *verts1, const void *verts2);
 
     void RenderSetup();
-    void BindAsSSBO(uint bind_point_index);
+    void BindAsSSBO(Shader *sh, string_view name);
     bool WritePLY(string &s, size_t nindices);
 };
 
@@ -170,8 +170,7 @@ extern void ShaderShutDown();
 extern void DispatchCompute(const int3 &groups);
 extern void SetImageTexture(uint textureunit, const Texture &tex, int tf);
 extern uint UniformBufferObject(Shader *sh, const void *data, size_t len,
-                                string_view uniformblockname, bool ssbo);
-extern void BindVBOAsSSBO(uint bind_point_index, uint vbo);
+                                string_view uniformblockname, bool ssbo, uint bo);
 
 // These must correspond to the constants in color.lobster
 enum TextureFlag {

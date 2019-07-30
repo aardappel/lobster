@@ -111,8 +111,8 @@ Geometry::~Geometry() {
     GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
-void Geometry::BindAsSSBO(uint bind_point_index) {
-    BindVBOAsSSBO(bind_point_index, vbo1);
+void Geometry::BindAsSSBO(Shader *sh, string_view name) {
+    UniformBufferObject(sh, nullptr, 0, name, true, vbo1);
     assert(!vbo2);
 }
 

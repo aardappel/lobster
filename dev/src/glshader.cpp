@@ -415,10 +415,13 @@ void DispatchCompute(const int3 &groups) {
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
 // Use this for reusing BO's for now:
-map<string, uint, less<>> ubomap;
+map<string, pair<uint, uint>, less<>> ubomap;
+// Note that bo_binding_point_index is assigned automatically based on unique block names.
+// You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
+// to retrieve these programmatically.
+// If data is nullptr, bo is used instead.
 uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view uniformblockname,
-                         bool ssbo) {
-    GLuint bo = 0;
+                         bool ssbo, uint bo) {
     #ifdef PLATFORM_WINNIX
         if (sh && glGetProgramResourceIndex && glShaderStorageBlockBinding && glBindBufferBase &&
                   glUniformBlockBinding && glGetUniformBlockIndex) {
@@ -434,18 +437,20 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view u
             else glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
             if (idx != GL_INVALID_INDEX && len <= size_t(maxsize)) {
                 auto type = ssbo ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
+                static uint binding_point_index_alloc = 0;
                 auto it = ubomap.find(uniformblockname);
+                uint bo_binding_point_index = 0;
                 if (it == ubomap.end()) {
-                    bo = GenBO_(type, len, data);
-                    ubomap[string(uniformblockname)] = bo;
+                    if (data) bo = GenBO_(type, len, data);
+                    bo_binding_point_index = binding_point_index_alloc++;
+                    ubomap[string(uniformblockname)] = { bo, bo_binding_point_index };
 				} else {
-                    bo = it->second;
+                    if (data) bo = it->second.first;
+                    bo_binding_point_index = it->second.second;
                     glBindBuffer(type, bo);
-                    glBufferData(type, len, data, GL_STATIC_DRAW);
+                    if (data) glBufferData(type, len, data, GL_STATIC_DRAW);
                 }
                 GL_CALL(glBindBuffer(type, 0));
-                static GLuint bo_binding_point_index = 0;
-                bo_binding_point_index++;  // FIXME: how do we allocate these properly?
                 GL_CALL(glBindBufferBase(type, bo_binding_point_index, bo));
                 if (ssbo) GL_CALL(glShaderStorageBlockBinding(sh->program, idx,
                                                               bo_binding_point_index));
@@ -456,14 +461,6 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view u
         // UBO's are in ES 3.0, not sure why OS X doesn't have them
     #endif
     return bo;
-}
-
-void BindVBOAsSSBO(uint bind_point_index, uint vbo) {
-    #ifdef PLATFORM_WINNIX
-        if (glBindBufferBase) {
-            GL_CALL(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bind_point_index, vbo));
-        }
-    #endif
 }
 
 bool Shader::Dump(string_view filename, bool stripnonascii) {
