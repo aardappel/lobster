@@ -85,6 +85,20 @@
 		3381CB30162371AB0069B2E8 /* simplex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CAD1162340540069B2E8 /* simplex.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3381CB31162371AB0069B2E8 /* stdafx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CAD4162340540069B2E8 /* stdafx.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		3381CB32162371AB0069B2E8 /* vmdata.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3381CADA162340540069B2E8 /* vmdata.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
+		3383F0B222F0EAB9005BD993 /* SDL_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B122F0EAB9005BD993 /* SDL_sensor.c */; };
+		3383F0B322F0EAB9005BD993 /* SDL_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B122F0EAB9005BD993 /* SDL_sensor.c */; };
+		3383F0B422F0EAB9005BD993 /* SDL_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B122F0EAB9005BD993 /* SDL_sensor.c */; };
+		3383F0B622F0EADB005BD993 /* SDL_dummysensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B522F0EADB005BD993 /* SDL_dummysensor.c */; };
+		3383F0B722F0EADB005BD993 /* SDL_dummysensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B522F0EADB005BD993 /* SDL_dummysensor.c */; };
+		3383F0B922F0EB03005BD993 /* SDL_coremotionsensor.m in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0B822F0EB03005BD993 /* SDL_coremotionsensor.m */; };
+		3383F0BB22F0EB54005BD993 /* SDL_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BA22F0EB54005BD993 /* SDL_yuv.c */; };
+		3383F0BC22F0EB54005BD993 /* SDL_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BA22F0EB54005BD993 /* SDL_yuv.c */; };
+		3383F0BD22F0EB54005BD993 /* SDL_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BA22F0EB54005BD993 /* SDL_yuv.c */; };
+		3383F0BF22F0EB7D005BD993 /* yuv_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BE22F0EB7D005BD993 /* yuv_rgb.c */; };
+		3383F0C022F0EB7D005BD993 /* yuv_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BE22F0EB7D005BD993 /* yuv_rgb.c */; };
+		3383F0C122F0EB7D005BD993 /* yuv_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0BE22F0EB7D005BD993 /* yuv_rgb.c */; };
+		3383F0C422F0EE38005BD993 /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0C322F0EE38005BD993 /* hid.c */; };
+		3383F0C522F0EE38005BD993 /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = 3383F0C322F0EE38005BD993 /* hid.c */; };
 		33878CC01F7B201C007BB196 /* music.c in Sources */ = {isa = PBXBuildFile; fileRef = 33878C891F7B2016007BB196 /* music.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33878CC11F7B201C007BB196 /* music.c in Sources */ = {isa = PBXBuildFile; fileRef = 33878C891F7B2016007BB196 /* music.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		33878CC21F7B201D007BB196 /* music.c in Sources */ = {isa = PBXBuildFile; fileRef = 33878C891F7B2016007BB196 /* music.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -907,6 +921,12 @@
 		3381CAD1162340540069B2E8 /* simplex.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = simplex.cpp; sourceTree = "<group>"; };
 		3381CAD4162340540069B2E8 /* stdafx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = stdafx.cpp; sourceTree = "<group>"; };
 		3381CADA162340540069B2E8 /* vmdata.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = vmdata.cpp; sourceTree = "<group>"; };
+		3383F0B122F0EAB9005BD993 /* SDL_sensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_sensor.c; path = ../../../external/SDL/src/sensor/SDL_sensor.c; sourceTree = "<group>"; };
+		3383F0B522F0EADB005BD993 /* SDL_dummysensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDL_dummysensor.c; path = ../../../external/SDL/src/sensor/dummy/SDL_dummysensor.c; sourceTree = "<group>"; };
+		3383F0B822F0EB03005BD993 /* SDL_coremotionsensor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SDL_coremotionsensor.m; path = ../../../external/SDL/src/sensor/coremotion/SDL_coremotionsensor.m; sourceTree = "<group>"; };
+		3383F0BA22F0EB54005BD993 /* SDL_yuv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SDL_yuv.c; sourceTree = "<group>"; };
+		3383F0BE22F0EB7D005BD993 /* yuv_rgb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = yuv_rgb.c; path = yuv2rgb/yuv_rgb.c; sourceTree = "<group>"; };
+		3383F0C322F0EE38005BD993 /* hid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hid.c; path = ../../../external/SDL/src/hidapi/mac/hid.c; sourceTree = "<group>"; };
 		33878C891F7B2016007BB196 /* music.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = music.c; path = ../../external/SDLMixer/music.c; sourceTree = "<group>"; };
 		33878C8A1F7B2016007BB196 /* SDL_mixer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDL_mixer.h; path = ../../external/SDLMixer/SDL_mixer.h; sourceTree = "<group>"; };
 		33878C8B1F7B2016007BB196 /* music_mod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = music_mod.h; path = ../../external/SDLMixer/music_mod.h; sourceTree = "<group>"; };
@@ -1568,6 +1588,24 @@
 			path = ../../src;
 			sourceTree = "<group>";
 		};
+		3383F0B022F0EA7B005BD993 /* Sensor */ = {
+			isa = PBXGroup;
+			children = (
+				3383F0B822F0EB03005BD993 /* SDL_coremotionsensor.m */,
+				3383F0B522F0EADB005BD993 /* SDL_dummysensor.c */,
+				3383F0B122F0EAB9005BD993 /* SDL_sensor.c */,
+			);
+			path = Sensor;
+			sourceTree = "<group>";
+		};
+		3383F0C222F0EDF5005BD993 /* hidapi */ = {
+			isa = PBXGroup;
+			children = (
+				3383F0C322F0EE38005BD993 /* hid.c */,
+			);
+			path = hidapi;
+			sourceTree = "<group>";
+		};
 		33878C881F7B1FC8007BB196 /* SDLMixer */ = {
 			isa = PBXGroup;
 			children = (
@@ -1809,6 +1847,8 @@
 		33D15CC81BAB99F700BAD84D /* SDL */ = {
 			isa = PBXGroup;
 			children = (
+				3383F0C222F0EDF5005BD993 /* hidapi */,
+				3383F0B022F0EA7B005BD993 /* Sensor */,
 				33878D0E1F7B204D007BB196 /* SDL_dataqueue.c */,
 				33878D0F1F7B204D007BB196 /* SDL_dataqueue.h */,
 				33D15CC91BAB9A2000BAD84D /* atomic */,
@@ -2172,6 +2212,8 @@
 		33D15E661BAB9A2100BAD84D /* video */ = {
 			isa = PBXGroup;
 			children = (
+				3383F0BE22F0EB7D005BD993 /* yuv_rgb.c */,
+				3383F0BA22F0EB54005BD993 /* SDL_yuv.c */,
 				33D163C81BABA50800BAD84D /* uikit */,
 				33D15E791BAB9A2100BAD84D /* cocoa */,
 				33D15EA51BAB9A2100BAD84D /* dummy */,
@@ -2759,6 +2801,11 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 1010;
+				TargetAttributes = {
+					33F9FE90148DE2DE0029564B = {
+						DevelopmentTeam = PTG2VS5JAH;
+					};
+				};
 			};
 			buildConfigurationList = 3368FEB71488AA88008B38B6 /* Build configuration list for PBXProject "lobster" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -2853,6 +2900,7 @@
 				33878CF81F7B201D007BB196 /* load_flac.c in Sources */,
 				33D1637B1BAB9A2200BAD84D /* SDL_x11modes.c in Sources */,
 				33D161241BAB9A2200BAD84D /* SDL_shaders_gl.c in Sources */,
+				3383F0B722F0EADB005BD993 /* SDL_dummysensor.c in Sources */,
 				33D15FBA1BAB9A2200BAD84D /* SDL_dummyaudio.c in Sources */,
 				8C7603CA195E457400EADF6F /* b2VoronoiDiagram.cpp in Sources */,
 				33D161BA1BAB9A2200BAD84D /* SDL_systls.c in Sources */,
@@ -2865,6 +2913,7 @@
 				3331456517596E1100D488CC /* glloadiqm.cpp in Sources */,
 				8C760391195E457400EADF6F /* b2EdgeAndCircleContact.cpp in Sources */,
 				33D162111BAB9A2200BAD84D /* SDL_cocoamouse.m in Sources */,
+				3383F0C522F0EE38005BD993 /* hid.c in Sources */,
 				33878CDA1F7B201D007BB196 /* load_voc.c in Sources */,
 				33878CEC1F7B201D007BB196 /* effects_internal.c in Sources */,
 				33D1621D1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
@@ -2954,6 +3003,7 @@
 				33D161B71BAB9A2200BAD84D /* SDL_systhread.c in Sources */,
 				33D162411BAB9A2200BAD84D /* SDL_nullevents.c in Sources */,
 				8C7603BB195E457400EADF6F /* b2WeldJoint.cpp in Sources */,
+				3383F0C122F0EB7D005BD993 /* yuv_rgb.c in Sources */,
 				8C76035B195E457400EADF6F /* b2FreeList.cpp in Sources */,
 				33FDF158220A599400D7B010 /* imgui_demo.cpp in Sources */,
 				33D162CB1BAB9A2200BAD84D /* SDL_bmp.c in Sources */,
@@ -3048,6 +3098,7 @@
 				8C760352195E457400EADF6F /* b2PolygonShape.cpp in Sources */,
 				3331457317596E1100D488CC /* simplex.cpp in Sources */,
 				33D161631BAB9A2200BAD84D /* SDL_string.c in Sources */,
+				3383F0BD22F0EB54005BD993 /* SDL_yuv.c in Sources */,
 				33D161B41BAB9A2200BAD84D /* SDL_syssem.c in Sources */,
 				33D161421BAB9A2200BAD84D /* SDL_blendline.c in Sources */,
 				3307DA4321098A8100B98515 /* idl_gen_text.cpp in Sources */,
@@ -3074,6 +3125,7 @@
 				33878CE91F7B201D007BB196 /* load_ogg.c in Sources */,
 				8C760349195E457400EADF6F /* b2ChainShape.cpp in Sources */,
 				3331457517596E1100D488CC /* vmdata.cpp in Sources */,
+				3383F0B422F0EAB9005BD993 /* SDL_sensor.c in Sources */,
 				33D162E31BAB9A2200BAD84D /* SDL_stretch.c in Sources */,
 				33D162DD1BAB9A2200BAD84D /* SDL_RLEaccel.c in Sources */,
 				33D163991BAB9A2200BAD84D /* SDL_error.c in Sources */,
@@ -3117,6 +3169,7 @@
 				33878CF71F7B201D007BB196 /* load_flac.c in Sources */,
 				33D1637A1BAB9A2200BAD84D /* SDL_x11modes.c in Sources */,
 				33D161231BAB9A2200BAD84D /* SDL_shaders_gl.c in Sources */,
+				3383F0B622F0EADB005BD993 /* SDL_dummysensor.c in Sources */,
 				33D15FB91BAB9A2200BAD84D /* SDL_dummyaudio.c in Sources */,
 				3381CB28162371AB0069B2E8 /* builtins.cpp in Sources */,
 				33D161B91BAB9A2200BAD84D /* SDL_systls.c in Sources */,
@@ -3129,6 +3182,7 @@
 				8C760390195E457400EADF6F /* b2EdgeAndCircleContact.cpp in Sources */,
 				8C7603AE195E457400EADF6F /* b2PrismaticJoint.cpp in Sources */,
 				33D162101BAB9A2200BAD84D /* SDL_cocoamouse.m in Sources */,
+				3383F0C422F0EE38005BD993 /* hid.c in Sources */,
 				33878CD91F7B201D007BB196 /* load_voc.c in Sources */,
 				33878CEB1F7B201D007BB196 /* effects_internal.c in Sources */,
 				33D1621C1BAB9A2200BAD84D /* SDL_cocoavideo.m in Sources */,
@@ -3218,6 +3272,7 @@
 				33D161B61BAB9A2200BAD84D /* SDL_systhread.c in Sources */,
 				33D162401BAB9A2200BAD84D /* SDL_nullevents.c in Sources */,
 				8C76035A195E457400EADF6F /* b2FreeList.cpp in Sources */,
+				3383F0C022F0EB7D005BD993 /* yuv_rgb.c in Sources */,
 				8C760330195E457400EADF6F /* b2BroadPhase.cpp in Sources */,
 				33FDF157220A599400D7B010 /* imgui_demo.cpp in Sources */,
 				33D162CA1BAB9A2200BAD84D /* SDL_bmp.c in Sources */,
@@ -3312,6 +3367,7 @@
 				8C760351195E457400EADF6F /* b2PolygonShape.cpp in Sources */,
 				33F7F3E617236720005B7988 /* font.cpp in Sources */,
 				33D161621BAB9A2200BAD84D /* SDL_string.c in Sources */,
+				3383F0BC22F0EB54005BD993 /* SDL_yuv.c in Sources */,
 				33D161B31BAB9A2200BAD84D /* SDL_syssem.c in Sources */,
 				33D161411BAB9A2200BAD84D /* SDL_blendline.c in Sources */,
 				3307DA4221098A8100B98515 /* idl_gen_text.cpp in Sources */,
@@ -3338,6 +3394,7 @@
 				33878CE81F7B201D007BB196 /* load_ogg.c in Sources */,
 				8C760348195E457400EADF6F /* b2ChainShape.cpp in Sources */,
 				33F7F3EA17236720005B7988 /* glshader.cpp in Sources */,
+				3383F0B322F0EAB9005BD993 /* SDL_sensor.c in Sources */,
 				33D162E21BAB9A2200BAD84D /* SDL_stretch.c in Sources */,
 				33D162DC1BAB9A2200BAD84D /* SDL_RLEaccel.c in Sources */,
 				33D163981BAB9A2200BAD84D /* SDL_error.c in Sources */,
@@ -3458,6 +3515,7 @@
 				33D163DE1BABA50800BAD84D /* SDL_uikitappdelegate.m in Sources */,
 				33D163BB1BABA14B00BAD84D /* SDL_render_gles.c in Sources */,
 				33D162121BAB9A2200BAD84D /* SDL_cocoamousetap.m in Sources */,
+				3383F0BB22F0EB54005BD993 /* SDL_yuv.c in Sources */,
 				33878CDE1F7B201D007BB196 /* music_flac.c in Sources */,
 				8C7603B0195E457400EADF6F /* b2PulleyJoint.cpp in Sources */,
 				33D160371BAB9A2200BAD84D /* SDL_touch.c in Sources */,
@@ -3511,10 +3569,12 @@
 				33D163E01BABA50800BAD84D /* SDL_uikitmessagebox.m in Sources */,
 				33D162001BAB9A2200BAD84D /* SDL_cocoaclipboard.m in Sources */,
 				8C760344195E457400EADF6F /* b2TimeOfImpact.cpp in Sources */,
+				3383F0B222F0EAB9005BD993 /* SDL_sensor.c in Sources */,
 				33F7F3D717236720005B7988 /* glsystem.cpp in Sources */,
 				33D163611BAB9A2200BAD84D /* edid-parse.c in Sources */,
 				33D15CBD1BAB7E7100BAD84D /* sfnt.c in Sources */,
 				33D161461BAB9A2200BAD84D /* SDL_drawline.c in Sources */,
+				3383F0BF22F0EB7D005BD993 /* yuv_rgb.c in Sources */,
 				33D163E71BABA50800BAD84D /* SDL_uikitwindow.m in Sources */,
 				33D162D21BAB9A2200BAD84D /* SDL_fillrect.c in Sources */,
 				33878D021F7B201D007BB196 /* dynamic_modplug.c in Sources */,
@@ -3568,6 +3628,7 @@
 				33D161041BAB9A2200BAD84D /* SDL_syspower.c in Sources */,
 				8C760341195E457400EADF6F /* b2DynamicTree.cpp in Sources */,
 				33D160671BAB9A2200BAD84D /* SDL_haptic.c in Sources */,
+				3383F0B922F0EB03005BD993 /* SDL_coremotionsensor.m in Sources */,
 				33D15FB81BAB9A2200BAD84D /* SDL_dummyaudio.c in Sources */,
 				8C76035C195E457400EADF6F /* b2Math.cpp in Sources */,
 				33878CDB1F7B201D007BB196 /* effect_stereoreverse.c in Sources */,
@@ -3875,6 +3936,7 @@
 				CLANG_LINK_OBJC_RUNTIME = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = PTG2VS5JAH;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(DEVELOPER_FRAMEWORKS_DIR)\"",
@@ -3891,7 +3953,7 @@
 				"GCC_THUMB_SUPPORT[arch=armv6]" = "";
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				INFOPLIST_FILE = "lobster_ios/lobster_ios-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "wouter.lobster-ios";
@@ -3912,6 +3974,7 @@
 				CLANG_LINK_OBJC_RUNTIME = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = PTG2VS5JAH;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(DEVELOPER_FRAMEWORKS_DIR)\"",
@@ -3927,7 +3990,7 @@
 				"GCC_THUMB_SUPPORT[arch=armv6]" = "";
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				INFOPLIST_FILE = "lobster_ios/lobster_ios-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				PRODUCT_BUNDLE_IDENTIFIER = "wouter.lobster-ios";
