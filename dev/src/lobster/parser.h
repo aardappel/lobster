@@ -525,6 +525,14 @@ struct Parser {
             case T_STRTYPE:   dest = type_string;     lex.Next(); break;
             case T_COROUTINE: dest = type_coroutine;  lex.Next(); break;
             case T_RESOURCE:  dest = type_resource;   lex.Next(); break;
+            case T_LAZYEXP: {
+                lex.Next();
+                if (!funarg) {
+                  Error("lazy_expression cannot be used outside function signature");
+                }
+                funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
+                return -1;
+            }
             case T_IDENT: {
                 if (udt) {
                     for (auto [i, gen] : enumerate(udt->generics)) {
@@ -534,11 +542,6 @@ struct Parser {
                             return (int)i;
                         }
                     }
-                }
-                if (funarg && lex.sattr == "lazy_expression") {  // TODO: make keyword?
-                    lex.Next();
-                    funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
-                    return -1;
                 }
                 auto f = st.FindFunction(lex.sattr);
                 if (f && f->istype) {

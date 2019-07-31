@@ -277,36 +277,37 @@ struct Lex : LoadedFile {
                 if (isalpha(c) || c == '_' || c < 0) {
                     while (isalnum(*p) || *p == '_' || *p < 0) p++;
                     sattr = string_view(tokenstart, p - tokenstart);
-                    if      (sattr == "nil")       return T_NIL;
-                    else if (sattr == "return")    return T_RETURN;
-                    else if (sattr == "class")     return T_CLASS;
-                    else if (sattr == "struct")    return T_STRUCT;
-                    else if (sattr == "import")    return T_INCLUDE;
-                    else if (sattr == "int")       return T_INTTYPE;
-                    else if (sattr == "float")     return T_FLOATTYPE;
-                    else if (sattr == "string")    return T_STRTYPE;
-                    else if (sattr == "any")       return T_ANYTYPE;
-                    else if (sattr == "void")      return T_VOIDTYPE;
-                    else if (sattr == "def")       return T_FUN;
-                    else if (sattr == "is")        return T_IS;
-                    else if (sattr == "from")      return T_FROM;
-                    else if (sattr == "program")   return T_PROGRAM;
-                    else if (sattr == "private")   return T_PRIVATE;
-                    else if (sattr == "coroutine") return T_COROUTINE;
-                    else if (sattr == "resource")  return T_RESOURCE;
-                    else if (sattr == "enum")      return T_ENUM;
-                    else if (sattr == "enum_flags")return T_ENUM_FLAGS;
-                    else if (sattr == "typeof")    return T_TYPEOF;
-                    else if (sattr == "var")       return T_VAR;
-                    else if (sattr == "let")       return T_CONST;
-                    else if (sattr == "pakfile")   return T_PAKFILE;
-                    else if (sattr == "switch")    return T_SWITCH;
-                    else if (sattr == "case")      return T_CASE;
-                    else if (sattr == "default")   return T_DEFAULT;
-                    else if (sattr == "namespace") return T_NAMESPACE;
-                    else if (sattr == "not")       return T_NOT;
-                    else if (sattr == "and")       { cont = true; return T_AND; }
-                    else if (sattr == "or")        { cont = true; return T_OR; }
+                    if      (sattr == "nil")                return T_NIL;
+                    else if (sattr == "return")             return T_RETURN;
+                    else if (sattr == "class")              return T_CLASS;
+                    else if (sattr == "struct")             return T_STRUCT;
+                    else if (sattr == "import")             return T_INCLUDE;
+                    else if (sattr == "int")                return T_INTTYPE;
+                    else if (sattr == "float")              return T_FLOATTYPE;
+                    else if (sattr == "string")             return T_STRTYPE;
+                    else if (sattr == "any")                return T_ANYTYPE;
+                    else if (sattr == "void")               return T_VOIDTYPE;
+                    else if (sattr == "lazy_expression")    return T_LAZYEXP;
+                    else if (sattr == "def")                return T_FUN;
+                    else if (sattr == "is")                 return T_IS;
+                    else if (sattr == "from")               return T_FROM;
+                    else if (sattr == "program")            return T_PROGRAM;
+                    else if (sattr == "private")            return T_PRIVATE;
+                    else if (sattr == "coroutine")          return T_COROUTINE;
+                    else if (sattr == "resource")           return T_RESOURCE;
+                    else if (sattr == "enum")               return T_ENUM;
+                    else if (sattr == "enum_flags")         return T_ENUM_FLAGS;
+                    else if (sattr == "typeof")             return T_TYPEOF;
+                    else if (sattr == "var")                return T_VAR;
+                    else if (sattr == "let")                return T_CONST;
+                    else if (sattr == "pakfile")            return T_PAKFILE;
+                    else if (sattr == "switch")             return T_SWITCH;
+                    else if (sattr == "case")               return T_CASE;
+                    else if (sattr == "default")            return T_DEFAULT;
+                    else if (sattr == "namespace")          return T_NAMESPACE;
+                    else if (sattr == "not")                return T_NOT;
+                    else if (sattr == "and")                { cont = true; return T_AND; }
+                    else if (sattr == "or")                 { cont = true; return T_OR; }
                     else return T_IDENT;
                 }
                 bool isfloat = c == '.' && *p != '.';
