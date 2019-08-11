@@ -29,6 +29,19 @@
     to be inline.
   - need to see what consequences this has for making the lifetimes of variables longer.
 
+- speed plan:
+  - should really try the "inline all" feature above, especially since the current inlining
+    is not great, and any further optimisations depend on it. Though can first try to more
+    maximally inline traditionally also. Then work on doing better high level optimisation
+    of the remainder.
+  - then for further speed, if the interpreter loop overhead on VC is only 15% or so, then
+    doubling instructions is only a further 15% cost, which can be offsets by the instructions
+    being more specialized. Then C++ and Wasm modes can get much faster with inling at
+    the instruction level.
+  - and for more speed, analyze functions that are not participating in being free vars etc,
+    and assign them to "locals" to really speed up Wasm/C++ modes.
+    - This may need to first change how we deal with variables on the stack in the first place.
+
 - Should add template arg types also to regular functions.
   - an example is gui_multiselect called with enum type for selected.
 
@@ -155,8 +168,6 @@
     nice to separate out the default const string from niche mutable use). We also have const/var
     variables. We were also thinking about mut argument annotations which would still also be nice
     being able to say an arg is mut without specifying the type.
-
-- should hook up meshgen to cubegen
 
 - add to imgui functionality:
   - logging
