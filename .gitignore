@@ -95,3 +95,9 @@ dev/compiled_lobster/build/
 \.vs/
 
 simple_binary_writer_test\.wasm
+dev/android-project/app/.externalNativeBuild
+dev/android-project/local.properties
+dev/android-project/.gradle
+dev/android-project/.idea
+dev/android-project/app/build
+dev/android-project/app/src/main/assets/default.lpak

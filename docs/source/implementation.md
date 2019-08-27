@@ -75,100 +75,41 @@ SDL, FreeType etc.
 
 ### Android
 
-You must have the following installed:
+Make sure you have the latest [Android Studio](https://developer.android.com/studio)
+installed, and follow instructions to add the
+[NDK](https://developer.android.com/studio/projects/install-ndk.md)
 
--   [Android
-    SDK](https://developer.android.com/sdk/installing/index.html?pkg=tools)
-    (standalone, Android Studio not necessary).
+In Android Studio, use "Open" to open the `dev/android-project` dir.
+It may complain about not knowing where the NDK lives, either let it fix this
+automatically, or manually modify the path in `local.properties`
 
--   [Android NDK](https://developer.android.com/ndk/downloads/index.html).
+Using the desktop lobster exe, build your desired Lobster program using the `--pak`
+option, such that all assets end up in a single file (see below for more information).
+Place the result in `dev/android-project/app/src/main/assets/default.lpak` so
+it will automatically be picked up by the build process and added to the APK.
 
--   [Java
-    SDK](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-    (needed by Ant, and for keytool.exe)
+You should now be able to just press run. Wait for the build, and see it launch
+on an attached Android device. Note that Lobster requires a device that supports
+GLES 3.0 and Android version 4.3 (Jellybean). Emulators often do not support ES3,
+you'll see a shader compile error in logcat if this happens.
 
--   [Ant](http://ant.apache.org/) (Windows users may prefer
-    [WinAnt](https://code.google.com/p/winant/)).
+If there are errors running, check logcat.
 
--   [Python](https://www.python.org/downloads/) (2.7).
+Things to change if you want to release your app in the Google Play store (these
+instructions may be out of date):
 
-If the above are not installed correctly, and *their tools are not in your
-path*, the steps below will not work.
+-   Generate your own signing key with `keytool`. Make sure to also delete any
+    old debug copy of the app from your device, or you’ll get a signature mismatch error.
 
-Now, in a shell / command prompt, cd to `dev/android/` in your lobster
-directory.
+-   Change the name to something else in `app/src/main/res/values/strings.xml`.
 
-Make sure that the `assets/` directory contains your Lobster distribution files,
-see the section below.
+-   Change the .png files in `app/src/main/res/` with your own application icon.
 
-First run:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-android update project -p .
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This will update the Ant settings to point to your SDK. You should have to do
-this only once.
-
-Then build Lobster into a .apk using:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-python -B build_all_android.py -j4 -f NDK_DEBUG=0 -S -k debug.keystore -K android -P debugkey.txt
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-(Windows users: there’s a convenient `build.bat` that does the same).
-
-If this gives any errors indicating missing programs, check the what you
-installed above.
-
-`dev/android/apks/` should now contain a .apk file.
-
-The Python script above comes from [FPLUtil](https://google.github.io/fplutil/),
-and has lots of options that allow you to check devices, run, sign your apk,
-which you’ll need to release to the play store (in particular, you’ll need to
-generate your own certifcate using keytool, and replace the above arguments). To
-see more, run:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-python -B build_all_android.py --help
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install .apk on an attached Android device (note, emulators are not recommended,
-since Lobster is graphics heavy):
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-adb install -r apks\app.apk
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If this fails, make sure you can see the device using `adb devices`. If nothing
-shows up, that’s likely because the device has not been put in developer mode,
-or not using usb for debugging, etc.
-
-You can now run it by tapping its icon on the device (it’s called LobsterApp by
-default)
-
-If it doesn’t run, run this to see what the problem is:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-adb logcat -s "SDL","lobster"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In particular, look for messages showing files it can’t load.
-
-Things to change if you want to release your app in the Google Play store:
-
--   Generate your own signing key with `keytool`, and substitute the `-k -K -P`
-    parameters above. Make sure to also delete any old debug copy of the app
-    from your device, or you’ll get a signature mismatch error.
-
--   Change LobsterApp to something else in `res/values/strings.xml`.
-
--   Change the .png files in `res/` with your own application icon.
-
--   You may want to change the package name from `com.strlen.lobster` to your
-    own. This needs to be done in 3 places, `AndroidManifest.xml`, and
-    `src/com/strlen/lobster/LobsterActivity.java` (both at the top of that file
-    and the directory path itself!).
+-   You may want to change the package name from `org.libsdl.app` to your
+    own. This needs to be done in 3 places, `app/build.gradle`, and
+    `app/src/main/java/org/libsdl/app/SDLActivity.java` (both at the top of that file
+    and the directory path itself!). Alternatively create a new class and inherit from
+    `SDLActivity`.
 
 ### WebAssembly / Emscripten
 

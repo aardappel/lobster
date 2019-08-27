@@ -709,9 +709,9 @@ struct TupleSpace {
     };
     vector<TupleType> tupletypes;
 
-    atomic<bool> alive = true;
+    atomic<bool> alive;
 
-    TupleSpace(size_t numstructs) : tupletypes(numstructs) {}
+    TupleSpace(size_t numstructs) : tupletypes(numstructs), alive(true) {}
 
     ~TupleSpace() {
         for (auto &tt : tupletypes) for (auto p : tt.tuples) delete[] p;
