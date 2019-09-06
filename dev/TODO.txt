@@ -279,7 +279,7 @@
 
 - binary string ops:
   - Need to have a way such that reading 64-bit values doesn't truncate when using 32-bit
-    version of Lobster (which may be needed to be supported for a while, because wasm)
+    version of Lobster (which would be nice to permanently remove)
   - memcpy, memmove
   - write_string
   - ops for doing things with unsigned values stored inside signed ones?
@@ -1001,6 +1001,43 @@
     bundles a type and a generic value, and is like a built-in value type. This can be used
     for "any" and dynamic dispatch.
 
+- Simplify scalar use in the project.
+  Current code is a mess of use of int (because, bytecode), size_t (stl), intp (lobster int type),
+  int64_t etc, because of the desire to support both 32/64 bit platforms well, and allow the
+  language to function with those sizes, possibly independently from platform.
+  We can greatly simplify this, driving as much as possible towards signed 64 as the one true int :)
+  This has multiple sub-project which would benefit from all being done together (so code
+  cleanup doesn't need multiple iterations):
+  - adopt ssize_t over size_t by calling ssize() instead of .size() on STL containers.
+  - change bytecode from int to LEB. this will make it more compact, though mildly slower
+    to read. would solve issues with 64-bit contants etc. would read into ssize_t or int64_t,
+    depending. Can still hard-code instruction into 16-bit. Or make it a 16-bit LEB?
+  - Change Value to always be 64-bit (see below).
+  - Finally, deprecate 32-bit platforms, like older Android architectures, and push for wasm64.
+
+- Re-evaluating what to do about 32 vs 64 bits for the language.
+  - Can actually do a 64-bit memory model easily, even in wasm-32, just truncate the i64 into an i32
+    and do regular load. Since it won't give you give you more than 4 gigs this is safe, and then
+    when wasm64 comes around it will be easy to upgrade.
+  - Basically on a 32-bit build, represent a pointer in Value as a uint64_t and cast that to a
+    pointer to force the truncation op. See points 2 & 3 here:
+    https://en.cppreference.com/w/cpp/language/reinterpret_cast
+    In fact, all of this is completely independent of target bit-ness. It would also work for,
+    say, a 32-bit Android build if still required.
+  - On ARM/x86, this truncation is a no-op, even though in Wasm it will cost some instructions
+    space. And this op only has to be done when reading a pointer from a value, most other pointer
+    uses are still native.
+  - Going all-64 may be ok for Lobster, given that lobster data structures represent such a small
+    part of total memory.
+    - Should definitely add support for 8/16/32-bit int arrays and maybe struct fields though.
+    - Maybe allow special structs that pack multiple things in a single 64-bit value? :)
+  - 64-bit is low cost, simpler, with nice extra precision, less overflows, and more future-proof.
+    Once we do this can stop thinking about it entirely.
+    There are quite a few places in Lobster where supporting both means surpring truncations
+    and precision loss.
+  - 32-bit seems nice but it may be a false optimisation, and will continue to create issues when
+    at some point someone wants more precision/address space etc.
+  - Previous thoughts on the topic follow:
 - 32-bit pointers in 64-bit
   - exampler: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
   - If all objects are 8-byte aligned, and if a << 3 is ok, can address 32GB.
@@ -1067,6 +1104,8 @@
       null can avoid this check entirely.
     - the alternative would be an offset towards the base address, but that is way more
       expensive to check.
+    NOTE: relative offsets will not work unless we disable copy constructor on Value, and track
+    down each and every memcpy or whatever of values
 - Improve 64bit builds.
   We currently can build for 32 and 64, and in the latter we use int64_t & double, which gives
   bonus precision, but uses exactly twice as much memory, since all Lobster memory is made out
