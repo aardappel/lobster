@@ -846,7 +846,7 @@ struct VM : VMArgs {
     void VMAssert(const char *what);
     void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
-    int DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals);
+    int DumpVar(ostringstream &ss, const Value &x, size_t idx);
 
     void FinalStackVarsCleanup();
 

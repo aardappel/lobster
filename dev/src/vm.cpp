@@ -328,10 +328,6 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         #endif
         VarCleanup<1>(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
     }
-    ss << "\nglobals:";
-    for (size_t i = 0; i < bcf->specidents()->size(); ) {
-        i += DumpVar(ss, vars[i], i, true);
-    }
     THROW_OR_ABORT(ss.str());
 }
 
@@ -355,10 +351,13 @@ void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
 #endif
 
-int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx, bool dumpglobals) {
+int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx) {
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
-    if (id->readonly() || id->global() != dumpglobals) return 1;
+    // FIXME: this is not ideal, it filters global "let" declared vars.
+    // It should probably instead filter global let vars whose values are entirely
+    // constructors, and which are never written to.
+    if (id->readonly() && id->global()) return 1;
     auto name = id->name()->string_view();
     auto &ti = GetVarTypeInfo((int)idx);
     #if RTT_ENABLED
@@ -414,11 +413,11 @@ template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
         // Do this first, since values may get deleted below.
         for (int j = 0; j < ndef; ) {
             auto i = *(defvars - j - 1);
-            j += DumpVar(*error, vars[i], i, false);
+            j += DumpVar(*error, vars[i], i);
         }
         for (int j = 0; j < nargs; ) {
             auto i = *(freevars - j - 1);
-            j += DumpVar(*error, vars[i], i, false);
+            j += DumpVar(*error, vars[i], i);
         }
     }
     for (int i = 0; i < nkeepvars; i++) VM_POP().LTDECRTNIL(*this);
