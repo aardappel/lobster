@@ -1,9 +1,5 @@
 - document tagged arg constructors.
 
-- VS 2019: using platform toolset v141 (from VS2017) for engine project because of
-  https://developercommunity.visualstudio.com/content/problem/577035/internal-error-in-p2symtabc-line-7476-1610.html
-  Fix apparently in 16.3
-
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
 
