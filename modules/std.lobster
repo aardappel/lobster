@@ -15,10 +15,10 @@ def filter(xs, fun):
             r.push(x)
     return r
 
-def filter_indices(l, f):
+def filter_indices(xs, fun):
     let r = []
-    for(l) x, i:
-        if f(x, i):
+    for(xs) x, i:
+        if fun(x, i):
             r.push(i)
     return r
 
