@@ -722,7 +722,6 @@ nfr("gl_new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indice
             // if no normals were specified, generate them.
             normalize_mesh(make_span(idxs), verts, nverts, vsize, normal_offset);
         }
-        // FIXME: make meshes into points in a more general way.
         auto m = new Mesh(new Geometry(make_span(verts, nverts * vsize), fmt, span<uchar>(), vsize),
                           indices.True() ? PRIM_TRIS : PRIM_POINT);
         if (idxs.size()) m->surfs.push_back(new Surface(make_span(idxs)));
@@ -776,6 +775,16 @@ nfr("gl_save_mesh", "m,name", "RS", "B",
         TestGL(vm);
         bool ok = GetMesh(vm, i).SaveAsPLY(name.sval()->strv());
         return Value(ok);
+    });
+
+nfr("gl_mesh_pointsize", "m,pointsize", "RF", "",
+    "sets the pointsize for this mesh. "
+    "the mesh must have been created with indices = nil for point rendering to be used. "
+    "you also want to use a shader that works with points, such as color_attr_particle.",
+    [](VM &vm, Value &i, Value &ps) {
+        auto &m = GetMesh(vm, i);
+        m.pointsize = ps.fltval();
+        return Value();
     });
 
 nfr("gl_set_shader", "shader", "S", "",
