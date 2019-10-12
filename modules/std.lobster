@@ -152,8 +152,11 @@ def insert_ordered(xs, x, lt):
     xs.push(x)
 
 def randomize(xs):
-    // Simple and effective, but remove makes it expensive.
-    for(xs.length) i: xs.push(xs.remove(rnd(xs.length - i)))
+    for(xs) x, i:
+        if i:
+            let j = rnd(i + 1)
+            xs[i] = xs[j]
+            xs[j] = x
     return xs
 
 def nest_if(c, nest, with):
