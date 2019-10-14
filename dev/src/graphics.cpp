@@ -184,7 +184,7 @@ nfr("gl_load_materials", "materialdefs,inline", "SI?", "S?",
 
 nfr("gl_frame", "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
-    " returns true if the closebutton on the window was pressed",
+    " returns false if the closebutton on the window was pressed",
     [](VM &vm) {
         TestGL(vm);
         EngineSuspendIfNeeded();
