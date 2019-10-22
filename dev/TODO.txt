@@ -1,3 +1,15 @@
+- improved random number generation:
+  - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
+  - a good lobster choice may be to abstract them as coroutines, or at least a
+    higher order `def generator(consume):` protocol
+  - especially so since insatiable random generators (to get multiple
+    independent streams) would be great in addition to / instead of a shared
+    global generator
+
+- a basis_spline equivalent of cardinal_spline
+
+- vectorized clamp function (and evaluate other adjacent functions while at it)
+
 - document tagged arg constructors.
 
 - See if a tail-call based interpreter would be a speed-up:
