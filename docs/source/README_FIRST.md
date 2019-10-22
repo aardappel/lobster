@@ -13,8 +13,8 @@ Using the compiler
 A quick [getting started](getting_started.html) guide.
 
 More detailed: using Lobster from the [command line](command_line_usage.html), or setting up
-editors such as [Sublime Text](sublime_ide.html), [VSCode](vscode_ide.html) or
-[Notepad++](notepadpp_ide.html) as IDE.
+editors such as [Sublime Text](sublime_ide.html), [VSCode](vscode_ide.html),
+[Notepad++](notepadpp_ide.html) or [vim](https://github.com/jcorbin/vim-lobster) as IDE.
 
 Learning the language
 ---------------------
