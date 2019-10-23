@@ -78,6 +78,7 @@ becoming more mainstream:
   [ParaSail](https://drive.google.com/file/d/0B6Vq5QaY4U7ubm5qVkFpMEtmN2s/view)
   [Cone](http://cone.jondgoodwin.com/memory.html)
   [Scopes](https://gist.github.com/paniq/71251083aa52c1577f2d1b22be0ac6e1)
+  [Pure RC GC](https://researcher.watson.ibm.com/researcher/files/us-bacon/Bacon03Pure.pdf)
 
 I personally think this general direction is the future of memory management.
 It just needs to be made more friendly than Rust for most programmers to

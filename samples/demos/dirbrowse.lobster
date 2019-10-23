@@ -26,7 +26,7 @@ def scan(n:node):
         for(names) name, i:
             entries.push(node { name, sizes[i], nil })
     insertion_sort(entries) a, b:
-        if ((a.size < 0) == (b.size < 0)): a.name < b.name else: a.size < b.size
+        if (a.size < 0) == (b.size < 0): a.name < b.name else: a.size < b.size
 
 def select(n:node):
     selected = n

@@ -28,7 +28,7 @@ def astar_generic(startnode, endcondition, generatenewstates, heuristic):
         generatenewstates(n) delta, cost, nn:
             if !nn.closed:
                 let G = n.G + cost
-                if ((!nn.open and openlist.push(nn)) or G < nn.G):
+                if (!nn.open and openlist.push(nn)) or G < nn.G:
                     nn.open = true
                     nn.delta = delta
                     nn.previous = n

@@ -108,6 +108,13 @@
     make it all more parsable.
     map xs do x: body
     map x in xs: body  // Python-esque, sadly in an odd order.
+  - more discussion in: https://github.com/aardappel/lobster/issues/56
+    options:
+    - if a ( follows a function call, it must be without space, and thus it effectively forces
+      there to be two of them.
+    - allow function to declare that they take their first are without ()
+      - now spacing doesn't matter
+      - but we don't even want to allow `for (` necessarily.
 
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
@@ -132,6 +139,8 @@
 
 - We support implicit this.member in multi-assign, but not explicit.
   See mretfields test.
+
+- detect a + b + c etc and emit better string concat op in codegen
 
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - AssignList with instance variables probably doesn't work.
@@ -167,6 +176,8 @@
         transfer, but mark variable as dead so any further uses can be errors.
     - go thru an AST dump and check that where lifetime changes happen makes sense.
     - somehow get rid of ownedvars in FUNSTART. generally clean up function calling.
+  - could omit the check for refc==1 at end of scope if we know variable has never had a
+    refc inc/dec statically.
   - add language features that make use of this new system:
   - allow variables/fields/types? to be annotated as single owner, such that these can also
     lose their reference count (but stay heap allocated). Instead if incref they error.
@@ -232,6 +243,9 @@
 
 - contribute Lobster syntax highlighting to:
   https://github.com/github/linguist/blob/master/CONTRIBUTING.md#fixing-syntax-highlighting
+
+- should support scalar op vector, not just vector op scalar
+  - that requires yet more vector vm ops, at least for - /
 
 - add support for pure functions.
   introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
@@ -729,6 +743,13 @@
 - inlining has kind of broken the variable stack trace. not only are certain functions gone,
   it can now show multiple variables of the same name and variables that are not really in scope
   anymore.
+
+- the codesize optimization where we introduce a function type for gui_button or whatever
+  should really be possible to be done automatically, as long as it doesn't touch functions
+  like map for which performance may be important. could have an easy way to annotate a
+  function argument saying: make all compatible function signatures go thru the same
+  specialization. Or maybe more sane, do that by default, and have an annotation to inline
+  for the few functions where that matters.
 
 - function call optimization and simplication.
   - make a micro-benchmark to compare against other languages.
