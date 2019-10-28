@@ -39,15 +39,16 @@
 #endif
 
 #ifdef __APPLE__
-#include "CoreFoundation/CoreFoundation.h"
-#ifndef __IOS__
-#include <Carbon/Carbon.h>
-#endif
+    #include "CoreFoundation/CoreFoundation.h"
+    #include <libproc.h>
+    #ifndef __IOS__
+        #include <Carbon/Carbon.h>
+    #endif
 #endif
 
 #ifdef __ANDROID__
-#include <android/log.h>
-#include "lobster/sdlincludes.h"  // FIXME
+    #include <android/log.h>
+    #include "lobster/sdlincludes.h"  // FIXME
 #endif
 
 // Dirs to load files relative to, they typically contain, and will be searched in this order:
@@ -162,6 +163,12 @@ string GetMainDirFromExePath(const char *argv_0) {
         if (length != -1) {
           path[length] = '\0';
           md = string(path);
+        }
+    #endif
+    #ifdef __APPLE__
+        char path[PROC_PIDPATHINFO_MAXSIZE];
+        if (proc_pidpath(getpid(), path, sizeof(path)) > 0) { 
+            md = string(path); 
         }
     #endif
     md = StripTrailing(StripTrailing(StripFilePart(md), "bin/"), "bin\\");
