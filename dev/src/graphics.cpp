@@ -929,7 +929,7 @@ nfr("gl_blend", "on,body", "IL?", "",
 
 nfr("gl_load_texture", "name,textureformat", "SI?", "R?",
     "returns texture if succesfully loaded from file name, otherwise nil."
-    " see color.lobster for texture format. Uses stb_image internally"
+    " see texture.lobster for texture format. Uses stb_image internally"
     " (see http://nothings.org/), loads JPEG Baseline, subsets of PNG, TGA, BMP, PSD, GIF, HDR,"
     " PIC.",
     [](VM &vm, Value &name, Value &tf) {
