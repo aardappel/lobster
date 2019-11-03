@@ -1,3 +1,18 @@
+- weighted_pick, product and sum in std.lobster all have a problem of not being able to
+  type the 0. This can be solved in a few ways:
+  - some construct to get a default value for any type
+  - a way to cast to a type obtained from typeof
+  - explicit genericity, and generic type cast, which may be generally most useful:
+    def sumf<T>(xs:[T]): return fold(xs, T(0)): _x + _y
+    This would mirror what we already have for structs/classes.
+
+- error: illegal type syntax: indentation
+  if x != nil:
+
+- replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
+
+- docs: document function value types.
+
 - improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
   - a good lobster choice may be to abstract them as coroutines, or at least a
