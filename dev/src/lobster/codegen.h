@@ -1216,11 +1216,13 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(1, false);
     auto valtlt = TypeLT { *value, 0 };
     vector<int> nextcase, thiscase, exitswitch;
+    bool have_default = false;
     for (auto n : cases->children) {
         for (auto loc : nextcase) cg.SetLabel(loc);
         nextcase.clear();
         cg.temptypestack.push_back(valtlt);
         auto cas = AssertIs<Case>(n);
+        if (cas->pattern->children.empty()) have_default = true;
         for (auto c : cas->pattern->children) {
             auto is_last = c == cas->pattern->children.back();
             cg.GenDup(valtlt);
@@ -1253,12 +1255,13 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cg.TakeTemp(1, false);
         cg.Gen(cas->body, retval);
         if (retval) cg.TakeTemp(1, true);
-        if (n != cases->children.back()) {
+        if (n != cases->children.back() || !have_default) {
             cg.Emit(IL_JUMP, 0);
             exitswitch.push_back(cg.Pos());
         }
     }
     for (auto loc : nextcase) cg.SetLabel(loc);
+    if (!have_default) cg.GenPop(valtlt);
     for (auto loc : exitswitch) cg.SetLabel(loc);
 }
 
