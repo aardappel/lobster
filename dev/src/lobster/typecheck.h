@@ -280,7 +280,8 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true) {
+    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true,
+                    bool allow_numeric_nil = false) {
         if (sub == type) return true;
         if (type->t == V_VAR) {
             if (unifications) UnifyVar(sub, type);
@@ -299,7 +300,7 @@ struct TypeChecker {
                                                  unifications)) ||
                                      (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
                                       ConvertsTo(type, sub->Element(), false, unifications)) ||
-                                     (type->Numeric() &&  // For builtins.
+                                     (allow_numeric_nil && type->Numeric() &&  // For builtins.
                                       ConvertsTo(type, sub->Element(), false, unifications));
             case V_VECTOR:    return (type->t == V_VECTOR &&
                                       ConvertsTo(type->Element(), sub->Element(), false,
@@ -2413,7 +2414,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                     !tc.ConvertsTo(children[i]->exptype,
                                    tc.ActualBuiltinType(arg.fixed_len, arg.type, arg.flags,
                                                         children[i], nf, true, i + 1, *this),
-                                   arg.type->t != V_STRING, false)) goto nomatch;
+                                   arg.type->t != V_STRING, false, true)) goto nomatch;
             }
             nf = cnf;
             break;
