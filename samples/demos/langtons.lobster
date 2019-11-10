@@ -96,8 +96,7 @@ def modxy(v, w): return xy{ (w.x + v.x) % w.x, (w.y + v.y) % w.y }
 // the center of the window, regardless of its aspect ratio.
 def center_unit_square():
     let size = float(gl_window_size())
-    let major = min(size.x, size.y)
-    let scale = xy_1 * major
+    let scale = xy_1 * min(size)
     gl_translate((size - scale) / 2)
     gl_scale(scale)
 
