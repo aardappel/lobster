@@ -106,6 +106,9 @@ def split(l, f):
     for(l) e: r[f(e)].push(e)
     return r
 
+def rnd_pick(xs): return xs[rnd(xs.length)]
+def rnd_pick2(xs): return rnd_pick(rnd_pick(xs))
+
 def qsort(xs, lt):
     if xs.length <= 1:
         return xs

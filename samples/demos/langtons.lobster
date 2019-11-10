@@ -15,9 +15,6 @@
 import gui
 import texture
 
-def pick(list):
-    return list[rnd(length(list))]
-
 // scatter copies the values from the source array into their respective places
 // in an array of all the neighborhoods around their position.
 // The neighborhoods array must contain an array with the indices of each neighbor.
@@ -227,7 +224,7 @@ def new_world(size, count, rules):
         winners: map(points): 0,
         winner_neighborhoods: map(points): map(cardinal_directions): 0,
         transitions: map(points): 0,
-        directions: map(points): pick(cardinal_directions),
+        directions: map(points): rnd_pick(cardinal_directions),
         headings: headings,
         headings_next: map(area): headings[_],
         rotations: map(area): 0,
