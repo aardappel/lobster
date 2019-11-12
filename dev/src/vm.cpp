@@ -1077,16 +1077,21 @@ VM_INS_RET VM::U_POPVREF(int len) { while (len--) VM_POP().LTDECRTNIL(*this); VM
 
 VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 
+
 #define GETARGS() Value b = VM_POP(); Value a = VM_POP()
-#define TYPEOP(op, extras, field, errstat) Value res; errstat; \
-    if (extras & 1 && b.field == 0) Div0(); res = a.field op b.field;
+#define TYPEOP(op, extras, av, bv, res) \
+    if constexpr ((extras & 1) != 0) if (bv == 0) Div0(); \
+    if constexpr ((extras & 2) != 0) res = fmod((floatp)av, (floatp)bv); else res = av op bv;
 
 #define _IOP(op, extras) \
-    TYPEOP(op, extras, ival(), TYPE_ASSERT(a.type == V_INT && b.type == V_INT))
+    Value res; \
+    TYPE_ASSERT(a.type == V_INT && b.type == V_INT); \
+    TYPEOP(op, extras, a.ival(), b.ival(), res)
 #define _FOP(op, extras) \
-    TYPEOP(op, extras, fval(), TYPE_ASSERT(a.type == V_FLOAT && b.type == V_FLOAT))
+    Value res; \
+    TYPE_ASSERT(a.type == V_FLOAT && b.type == V_FLOAT); \
+    TYPEOP(op, extras, a.fval(), b.fval(), res)
 
-#define _GETA() VM_TOPPTR() - len
 #define _VOP(op, extras, V_T, field, withscalar, geta) { \
     if (withscalar) { \
         auto b = VM_POP(); \
@@ -1096,8 +1101,7 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
             auto &a = veca[j]; \
             VMTYPEEQ(a, V_T) \
             auto bv = b.field(); \
-            if (extras&1 && bv == 0) Div0(); \
-            a = Value(a.field() op bv); \
+            TYPEOP(op, extras, a.field(), bv, a) \
         } \
     } else { \
         VM_POPN(len); \
@@ -1109,8 +1113,7 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
             auto &a = veca[j]; \
             VMTYPEEQ(a, V_T) \
             auto bv = b.field(); \
-            if (extras & 1 && bv == 0) Div0(); \
-            a = Value(a.field() op bv); \
+            TYPEOP(op, extras, a.field(), bv, a) \
         } \
     } \
 }
@@ -1130,7 +1133,6 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 #define _IVOP(op, extras, withscalar, geta) _VOP(op, extras, V_INT, ival, withscalar, geta)
 #define _FVOP(op, extras, withscalar, geta) _VOP(op, extras, V_FLOAT, fval, withscalar, geta)
 
-#define _SOP(op) Value res = *a.sval() op *b.sval()
 #define _SCAT() Value res = NewString(a.sval()->strv(), b.sval()->strv())
 
 #define ACOMPEN(op)        { GETARGS(); Value res = a.any() op b.any();  VM_PUSH(res); VM_RET; }
@@ -1139,19 +1141,19 @@ VM_INS_RET VM::U_DUP()    { auto x = VM_TOP(); VM_PUSH(x); VM_RET; }
 
 #define LOP(op)            { GETARGS(); auto res = a.ip() op b.ip();     VM_PUSH(res); VM_RET; }
 
-#define IVVOP(op, extras)  { _IVOP(op, extras, false, _GETA()); VM_RET; }
-#define FVVOP(op, extras)  { _FVOP(op, extras, false, _GETA()); VM_RET; }
-#define IVSOP(op, extras)  { _IVOP(op, extras, true, _GETA());  VM_RET; }
-#define FVSOP(op, extras)  { _FVOP(op, extras, true, _GETA());  VM_RET; }
+#define IVVOP(op, extras)  { _IVOP(op, extras, false, VM_TOPPTR() - len); VM_RET; }
+#define FVVOP(op, extras)  { _FVOP(op, extras, false, VM_TOPPTR() - len); VM_RET; }
+#define IVSOP(op, extras)  { _IVOP(op, extras, true, VM_TOPPTR() - len);  VM_RET; }
+#define FVSOP(op, extras)  { _FVOP(op, extras, true, VM_TOPPTR() - len);  VM_RET; }
 
-#define SOP(op)            { GETARGS(); _SOP(op);                        VM_PUSH(res); VM_RET; }
-#define SCAT()             { GETARGS(); _SCAT();                         VM_PUSH(res); VM_RET; }
+#define SOP(op)            { GETARGS(); Value res = *a.sval() op *b.sval(); VM_PUSH(res); VM_RET; }
+#define SCAT()             { GETARGS(); _SCAT();                            VM_PUSH(res); VM_RET; }
 
 // +  += I F Vif S
 // -  -= I F Vif
 // *  *= I F Vif
 // /  /= I F Vif
-// %  %= I   Vi
+// %  %= I F Vif
 
 // <     I F Vif S
 // >     I F Vif S
@@ -1167,7 +1169,7 @@ VM_INS_RET VM::U_IVVADD(int len) { IVVOP(+,  0);  }
 VM_INS_RET VM::U_IVVSUB(int len) { IVVOP(-,  0);  }
 VM_INS_RET VM::U_IVVMUL(int len) { IVVOP(*,  0);  }
 VM_INS_RET VM::U_IVVDIV(int len) { IVVOP(/,  1);  }
-VM_INS_RET VM::U_IVVMOD(int)     { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_IVVMOD(int len) { IVVOP(% , 1); }
 VM_INS_RET VM::U_IVVLT(int len)  { IVVOP(<,  0);  }
 VM_INS_RET VM::U_IVVGT(int len)  { IVVOP(>,  0);  }
 VM_INS_RET VM::U_IVVLE(int len)  { IVVOP(<=, 0);  }
@@ -1176,7 +1178,7 @@ VM_INS_RET VM::U_FVVADD(int len) { FVVOP(+,  0);  }
 VM_INS_RET VM::U_FVVSUB(int len) { FVVOP(-,  0);  }
 VM_INS_RET VM::U_FVVMUL(int len) { FVVOP(*,  0);  }
 VM_INS_RET VM::U_FVVDIV(int len) { FVVOP(/,  1);  }
-VM_INS_RET VM::U_FVVMOD(int)     { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_FVVMOD(int len) { FVVOP(/ , 3); }
 VM_INS_RET VM::U_FVVLT(int len)  { FVVOP(<,  0); }
 VM_INS_RET VM::U_FVVGT(int len)  { FVVOP(>,  0); }
 VM_INS_RET VM::U_FVVLE(int len)  { FVVOP(<=, 0); }
@@ -1186,7 +1188,7 @@ VM_INS_RET VM::U_IVSADD(int len) { IVSOP(+,  0);  }
 VM_INS_RET VM::U_IVSSUB(int len) { IVSOP(-,  0);  }
 VM_INS_RET VM::U_IVSMUL(int len) { IVSOP(*,  0);  }
 VM_INS_RET VM::U_IVSDIV(int len) { IVSOP(/,  1);  }
-VM_INS_RET VM::U_IVSMOD(int)     { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_IVSMOD(int len) { IVSOP(% , 1); }
 VM_INS_RET VM::U_IVSLT(int len)  { IVSOP(<,  0);  }
 VM_INS_RET VM::U_IVSGT(int len)  { IVSOP(>,  0);  }
 VM_INS_RET VM::U_IVSLE(int len)  { IVSOP(<=, 0);  }
@@ -1195,7 +1197,7 @@ VM_INS_RET VM::U_FVSADD(int len) { FVSOP(+,  0);  }
 VM_INS_RET VM::U_FVSSUB(int len) { FVSOP(-,  0);  }
 VM_INS_RET VM::U_FVSMUL(int len) { FVSOP(*,  0);  }
 VM_INS_RET VM::U_FVSDIV(int len) { FVSOP(/,  1);  }
-VM_INS_RET VM::U_FVSMOD(int)     { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_FVSMOD(int len) { FVSOP(/ , 3); }
 VM_INS_RET VM::U_FVSLT(int len)  { FVSOP(<,  0); }
 VM_INS_RET VM::U_FVSGT(int len)  { FVSOP(>,  0); }
 VM_INS_RET VM::U_FVSLE(int len)  { FVSOP(<=, 0); }
@@ -1224,7 +1226,7 @@ VM_INS_RET VM::U_FADD() { FOP(+,  0); }
 VM_INS_RET VM::U_FSUB() { FOP(-,  0); }
 VM_INS_RET VM::U_FMUL() { FOP(*,  0); }
 VM_INS_RET VM::U_FDIV() { FOP(/,  1); }
-VM_INS_RET VM::U_FMOD() { VMASSERT(0); VM_RET; }
+VM_INS_RET VM::U_FMOD() { FOP(/,  3); }
 VM_INS_RET VM::U_FLT()  { FOP(<,  0); }
 VM_INS_RET VM::U_FGT()  { FOP(>,  0); }
 VM_INS_RET VM::U_FLE()  { FOP(<=, 0); }

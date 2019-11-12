@@ -486,39 +486,35 @@ struct TypeChecker {
 
     const char *MathCheck(TypeRef &type, BinOp &n, bool &unionchecked,
                           bool typechangeallowed) {
-        if (Is<Mod>(&n) || Is<ModEq>(&n)) {
-            if (type->t != V_INT) return "int";
-        } else {
-            if (!type->Numeric() && type->t != V_VECTOR && !IsUDT(type->t)) {
-                if (MathCheckVector(type, n.left, n.right)) {
-                    unionchecked = true;
-                    return nullptr;
-                }
-                if (Is<Plus>(&n) || Is<PlusEq>(&n)) {
-                    auto ltype = n.left->exptype;
-                    auto rtype = n.right->exptype;
-                    if (ltype->t == V_STRING) {
-                        if (rtype->t != V_STRING) {
-                            // Anything can be added to a string on the right (because of +=).
-                            MakeString(n.right, LT_BORROW);
-                            // Make sure the overal type is string.
-                            type = type_string;
-                            unionchecked = true;
-                        }
-                    } else if (rtype->t == V_STRING && ltype->t != V_STRING && typechangeallowed) {
-                        // Only if not in a +=
-                        MakeString(n.left, LT_BORROW);
-                        type = type_string;
-                        unionchecked = true;
-                    } else {
-                        return "numeric/string/vector/struct";
-                    }
-                } else {
-                    return "numeric/vector/struct";
-                }
-            }
+        if (type->Numeric() || type->t == V_VECTOR || IsUDT(type->t))
+            return nullptr;
+        if (MathCheckVector(type, n.left, n.right)) {
+            unionchecked = true;
+            return nullptr;
         }
-        return nullptr;
+        if (!Is<Plus>(&n) && !Is<PlusEq>(&n))
+            return "numeric/vector/struct";
+        // Special purpose checking for + on strings.
+        auto ltype = n.left->exptype;
+        auto rtype = n.right->exptype;
+        if (ltype->t == V_STRING) {
+            if (rtype->t != V_STRING) {
+                // Anything can be added to a string on the right (because of +=).
+                MakeString(n.right, LT_BORROW);
+                // Make sure the overal type is string.
+                type = type_string;
+                unionchecked = true;
+            }
+            return nullptr;
+        } else if (rtype->t == V_STRING && ltype->t != V_STRING && typechangeallowed) {
+            // Only if not in a +=
+            MakeString(n.left, LT_BORROW);
+            type = type_string;
+            unionchecked = true;
+            return nullptr;
+        } else {
+            return "numeric/string/vector/struct";
+        }
     }
 
     void MathError(TypeRef &type, BinOp &n, bool &unionchecked, bool typechangeallowed) {
