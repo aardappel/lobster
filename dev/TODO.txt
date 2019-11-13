@@ -1,19 +1,31 @@
-- weighted_pick, product and sum in std.lobster all have a problem of not being able to
+- jcorbin: weighted_pick, find_best, product and sum in std.lobster all have a problem of not being able to
   type the 0. This can be solved in a few ways:
-  - some construct to get a default value for any type
-  - a way to cast to a type obtained from typeof
+  - some construct to get a default value for any type (does not work for product, except for +0)
+  - a way to cast to a type obtained from typeof (though would need vector element of typeof)
   - explicit genericity, and generic type cast, which may be generally most useful:
-    def sumf<T>(xs:[T]): return fold(xs, T(0)): _x + _y
+    def sum<T>(xs:[T]): return fold(xs, T(0)): _x + _y
     This would mirror what we already have for structs/classes.
+    (more complicated, since it requires vector of type var, which we don't have yet)
 
-- error: illegal type syntax: indentation
+- kriskowal: a non-allocating version of copy() with a second destination arg.
+
+- jcorbin: should allow function values to be other than just variables, any exp.
+  currently not even `f()` works if `f` is a member variable.
+  _ as function value doesn't even work even though explicit var does for loop.
+
+- kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
+
+- jcorbin: error: illegal type syntax: indentation
   if x != nil:
 
 - replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
+  - unlikely to work: even if you can guarantee to inline all the hofs a yield may sit in,
+    there's loop temps, keepvars, and other stack tracking stuff we'd now have to back up in
+    a struct to be able to resume, making this more complicated than the current solution.
+  - if co-routines ever become an obstruction to optimisation, this will force us to have
+    a "slow" fall-back for stack frames, similar to what we have now.
 
-- docs: document function value types.
-
-- improved random number generation:
+- jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
   - a good lobster choice may be to abstract them as coroutines, or at least a
     higher order `def generator(consume):` protocol
@@ -21,11 +33,9 @@
     independent streams) would be great in addition to / instead of a shared
     global generator
 
-- a basis_spline equivalent of cardinal_spline
+- jcorbin: a basis_spline equivalent of cardinal_spline
 
-- vectorized clamp function (and evaluate other adjacent functions while at it)
-
-- document tagged arg constructors.
+- jcorbin: vectorized clamp function (and evaluate other adjacent functions while at it)
 
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
@@ -131,6 +141,37 @@
       - now spacing doesn't matter
       - but we don't even want to allow `for (` necessarily.
 
+- It would be better if we could leave the decision wether something is a builtin or a user
+  defined function to the type checker, since that would allow user defined types to have
+  a length function, or anything else that clashes with builtins.
+  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
+  and optional things etc.
+  Maybe if both are available, we could simply require that the user function corresponds to
+  the builtin one in terms of these features, and otherwise error?
+- the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
+  called "length" anywhere, suddenly all calls to length() don't work anymore.
+  Only way to fix this is to delay this decision until typechecking.
+- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
+  clash with typechecking.
+  - this would also allow defining methods with the same name as builtins, which is sorely needed.
+  - after cleaning up parser, for every top level definition should mark from which file it comes,
+    and then each use should make sure that file has been included in the current file, to avoid
+    suprises when things are included independently.
+  - if we can delay looking up the function to the type checker, then we can allow
+    "functions as environments", e.g.
+    def env(f):
+        v := 1
+        def m(): return v++
+        f()
+    env():
+        for 10: print m()
+        env():
+            m()  // increments different variable!
+    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
+    The type checker already supports this, its just the parser lookup!
+    Using this recursively will make it harder to optimize stack frame usage in the future,
+    though neither match nor gui is properly recursive, it is all instantiated.
+
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
   - Also maybe replace uses that just want to know if its a ref or not by a table that lists
@@ -145,7 +186,6 @@
   - better "why should I want this language" intro rather than just a list of features.
   - maybe more of a document that is meant to show the best of the language, with
     examples, kind of like whats on the home page but more extensive.
-  - multithreading
   - have selectable examples like e.g. https://dlang.org/ https://ziglang.org/
     https://gobyexample.com/
   - redo philosophy doc.
@@ -285,26 +325,6 @@
     - allowing it to return 0 or N values requires quite a bit of weaving thru the VM, so may
       not be worth it for now?
 
-- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
-  clash with typechecking.
-  - after cleaning up parser, for every top level definition should mark from which file it comes,
-    and then each use should make sure that file has been included in the current file, to avoid
-    suprises when things are included independently.
-  - if we can delay looking up the function to the type checker, then we can allow
-    "functions as environments", e.g.
-    def env(f):
-        v := 1
-        def m(): return v++
-        f()
-    env():
-        for 10: print m()
-        env():
-            m()  // increments different variable!
-    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
-    The type checker already supports this, its just the parser lookup!
-    Using this recursively will make it harder to optimize stack frame usage in the future,
-    though neither match nor gui is properly recursive, it is all instantiated.
-
 - tagged arguments in Lobster for function calls.
   maybe also add default args while we're at it.
 
@@ -420,13 +440,6 @@
   - extend switch to do pattern matching.
     - failing that, a switch that can use types as case labels would be a good start,
       and simple to do given that we have type indices!
-- It would be better if we could leave the decision wether something is a builtin or a user
-  defined function to the type checker, since that would allow user defined types to have
-  a length function, or anything else that clashes with builtins.
-  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
-  and optional things etc.
-  Maybe if both are available, we could simply require that the user function corresponds to
-  the builtin one in terms of these features, and otherwise error?
 
 - namespaces improvements:
   - also implement them for global variables.
@@ -858,10 +871,6 @@
 
   - should fields be allowed to have types of generic structs? can be a bit confusing that the containing
     struct becomes generic because of it but doesn't look generic.
-
-  - the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
-    called "length" anywhere, suddenly all calls to length() don't work anymore.
-    Only way to fix this is to delay this decision until typechecking.
 
   - add more cases to typecheck if-then optimisation.
 

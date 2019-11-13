@@ -642,6 +642,7 @@ nfr("gl_ortho3d", "center,extends", "F}F}", "",
 nfr("gl_new_poly", "positions", "F}]", "R",
     "creates a mesh out of a loop of points, much like gl_polygon."
     " gl_line_mode determines how this gets drawn (fan or loop)."
+    " automatically generates texcoords and normals."
     " returns mesh id",
     [](VM &vm, Value &positions) {
         auto m = CreatePolygon(vm, positions);

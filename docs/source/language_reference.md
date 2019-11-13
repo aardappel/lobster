@@ -230,6 +230,17 @@ struct xy:
 Additionally, you may specify default values, if these are given, then these
 values are not arguments to the constructor, e.g. `xy {}`.
 
+For more complex structs, you can use field names as "tags" in a constructor
+call, for example:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+xy { x: 1, y: 2 }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Besides being more readable, it allows you to specify the fields in any order,
+and to override fields that have defaults.
+
+
 Operators
 ---------
 
@@ -419,11 +430,11 @@ You can also create anonymous (nameless) functions as values. In the most
 general case, this has the syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-var f = def(arg1, arg2): body
+let f = def(arg1, arg2): body
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You call these just like any other function, e.g. `f(1, 2)`. You must call them
-using a variable.
+You call these just like any other function, e.g. `f(1, 2)`. You currently
+must call them using a variable (not any expression, not even a field).
 
 The full `function` syntax is infrequently used however, because most function
 values are created to be passed to other functions, and Lobster has a special
@@ -484,6 +495,42 @@ else:
 Writing your own functions that take function values is the key to getting the
 most out of Lobster. It allows you to refactor pretty much any code into
 something that has no redundancy yet is easy to create, use and modify.
+
+Typically, to write a function that takes a function value argument, simply
+use an argument with no type:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def twice(f):
+    for(2): f()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, you may want to be explicit about the function type. You can declare
+new function types, and then use them as a type:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def function_type(int) -> int
+def g(f:function_type): return 1 + f(2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Besides enforcing the type of function that can be passed (which makes for more
+readable errors when it fails), it also forces the function passed to not be inlined
+(which may reduce code-bloat if functions taking this function type are called
+many times, at a minimal hit in speed). Function values called over a generic
+variable are always inlined, to ensure higher order functions are competitive
+in speed with hard-coded equivalents.
+
+Lobster really wants you to be able to use function values everywhere at no
+cost, so besides guaranteed inlining, the other way they differ from other
+languages is that they are always *non-escaping*. What that means is, that
+while function values may use free variables (refer to variables from enclosing
+scopes), they are not "closures", i.e. they do not close over (capture) these
+variables, they merely refer to them. This means these function values cannot
+be called from an environment where those free variables are not available
+anymore (this will typically result in a compile-time error). This makes a
+function value in Lobster a single code pointer without any variable information
+attached, and thus extremely cheap. The downside is that they can't be used
+for things like certain kinds of callbacks, though you probably shouldn't be
+using those in game-like contexts anyway ;)
 
 ### Explicit Returns
 
@@ -569,11 +616,11 @@ def f(i:int): return 4
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 (as we note above, using `::` instead of `:` merely means all fields of that type
-become directly available, saving you having to type `this.`, but is otherwise
+become directly available, saving you having to type `a.`, but is otherwise
 equivalent.)
 
 What happens when you call `f` depends on the types above, and the type you call
-it with. If all 4 types are unrelated, the you guaranteed get static dispatch
+it with. If all 4 types are unrelated, then you guaranteed get static dispatch
 (a normal function call). If `B` inherits from `A`, but `C` is unrelated, and you call
 with either a `B`, `C` or `int` argument type, you still get static dispatch, since
 there is statically only one option.
@@ -596,7 +643,8 @@ class A:
     def f(): return 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This definition of `f` for `A` is entirely equivalent to the one above.
+This definition of `f` for `A` is entirely equivalent to the one above, except
+the name of the first argument is now `this` instead of `a` above.
 
 Only the first argument to a function is used to resolve which overload to call,
 either statically or dynamically. Lobster used to have the ability to dispatch on
@@ -607,7 +655,7 @@ functions into a multimethod and get unexpected errors or slow-down). Single dis
 gives predictable, fast polymorphism that seems to work well for most languages,
 so for the moment, multi-methods are removed from the language.
 
-Overloading and dynamic dispatch in can even be mixed with type specialization (see
+Overloading and dynamic dispatch can even be mixed with type specialization (see
 [type system](type_checker.html)), meaning you can generate multiple versions of
 a polymorphic call that do different things. Simply leave out the type of any
 arguments beyond the first:
@@ -758,7 +806,7 @@ An identifier like `std` is the same as specifying `"std.lobster"`, similarly `a
 is short for `"a/b.lobster"`.
 
 Modules will typically be loaded relative to 2 locations: the current
-main .lobster file being compiled, and whereever the lobster compiler is installed.
+main `.lobster` file being compiled, and whereever the lobster compiler is installed.
 In both those locations, files may be optionally be found under an `modules`
 sub-directory.
 You can use `import from "path/to/"` to provide additional such starting directories
@@ -776,7 +824,7 @@ reasons. Besides simplicity and space efficiency, reference counting makes a
 language more predictable in how much time is spent for a given amount of code,
 since memory management cost is spread equally through all code, instead of
 causing possibly long pauses like with garbage collection. Lobster has a custom
-allocator for its vector object that is very fast.
+allocator that is very fast.
 
 Most reference counting happens at compile time using a "lifetime analysis"
 algorithm, details [here](memory_management.html).
@@ -943,3 +991,31 @@ Built-in Functions
 ------------------
 
 Please refer to the [built-in function reference](builtin_functions_reference.html).
+
+
+Multi-threading
+---------------
+
+Lobster has built-in multi-threading functionality, that is in its early stages.
+
+It is different from multi-threading in most other languages, in that it does not
+allow threads to share memory or any other VM state. It essentially runs one Lobster
+VM per hardware thread / core, each running an independent and isolated copy of
+your Lobster program. This prevents entire classes of potential concurrency bugs,
+like race conditions.
+
+Communication/synchronisation between the threads is explicit through the use of a
+"tuple space" (a bag of Lobster objects used as messages) which are copied rather
+than shared. While copying is potentially slower than sharing, it allows each
+Lobster VM to run as-if it was single-threaded, with no synchronisation primitives
+to slow it down (for example, memory allocators in Lobster are single-threaded),
+no GIL (global interpreter lock) or other multi-threading overhead, so overal
+performance can easily be higher than shared memory concurrency systems.
+
+The use of tuple spaces and 1 VM per thread suits "worker" style concurrency, for
+example if you have 100 parallel tasks to perform, you throw each of those in
+the tuple space, and the individual VMs grab and complete them, given automatic
+load balancing for however many cores are available.
+
+For now, the easiest way to get a feel for how this works is to read
+`samples/threads.lobster`.

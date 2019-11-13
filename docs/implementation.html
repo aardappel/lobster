@@ -9,9 +9,13 @@
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
       span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
       div.column{display: inline-block; vertical-align: top; width: 50%;}
   </style>
-  <link rel="stylesheet" href="github.css" />
+  <link rel="stylesheet" href="github.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
 <header>
@@ -37,41 +41,19 @@
 <pre><code>cd dev
 cmake -DCMAKE_BUILD_TYPE=Release &amp;&amp; make -j8</code></pre>
 <p>It creates <code>bin/lobster</code>. Run it to access the samples, e.g. <code>bin/lobster samples/pythtree.lobster</code></p>
+<p>Note the <code>LOBSTER_ENGINE</code> CMake option, which is by default on. You can turn this off to get a command-line only version of Lobster that does not depend on OpenGL, SDL, FreeType etc.</p>
 <h3 id="android">Android</h3>
-<p>You must have the following installed:</p>
+<p>Make sure you have the latest <a href="https://developer.android.com/studio">Android Studio</a> installed, and follow instructions to add the <a href="https://developer.android.com/studio/projects/install-ndk.md">NDK</a></p>
+<p>In Android Studio, use “Open” to open the <code>dev/android-project</code> dir. It may complain about not knowing where the NDK lives, either let it fix this automatically, or manually modify the path in <code>local.properties</code></p>
+<p>Using the desktop lobster exe, build your desired Lobster program using the <code>--pak</code> option, such that all assets end up in a single file (see below for more information). Place the result in <code>dev/android-project/app/src/main/assets/default.lpak</code> so it will automatically be picked up by the build process and added to the APK.</p>
+<p>You should now be able to just press run. Wait for the build, and see it launch on an attached Android device. Note that Lobster requires a device that supports GLES 3.0 and Android version 4.3 (Jellybean). Emulators often do not support ES3, you’ll see a shader compile error in logcat if this happens.</p>
+<p>If there are errors running, check logcat.</p>
+<p>Things to change if you want to release your app in the Google Play store (these instructions may be out of date):</p>
 <ul>
-<li><p><a href="https://developer.android.com/sdk/installing/index.html?pkg=tools">Android SDK</a> (standalone, Android Studio not necessary).</p></li>
-<li><p><a href="https://developer.android.com/ndk/downloads/index.html">Android NDK</a>.</p></li>
-<li><p><a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Java SDK</a> (needed by Ant, and for keytool.exe)</p></li>
-<li><p><a href="http://ant.apache.org/">Ant</a> (Windows users may prefer <a href="https://code.google.com/p/winant/">WinAnt</a>).</p></li>
-<li><p><a href="https://www.python.org/downloads/">Python</a> (2.7).</p></li>
-</ul>
-<p>If the above are not installed correctly, and <em>their tools are not in your path</em>, the steps below will not work.</p>
-<p>Now, in a shell / command prompt, cd to <code>dev/android/</code> in your lobster directory.</p>
-<p>Make sure that the <code>assets/</code> directory contains your Lobster distribution files, see the section below.</p>
-<p>First run:</p>
-<pre><code>android update project -p .</code></pre>
-<p>This will update the Ant settings to point to your SDK. You should have to do this only once.</p>
-<p>Then build Lobster into a .apk using:</p>
-<pre><code>python -B build_all_android.py -j4 -f NDK_DEBUG=0 -S -k debug.keystore -K android -P debugkey.txt</code></pre>
-<p>(Windows users: there’s a convenient <code>build.bat</code> that does the same).</p>
-<p>If this gives any errors indicating missing programs, check the what you installed above.</p>
-<p><code>dev/android/apks/</code> should now contain a .apk file.</p>
-<p>The Python script above comes from <a href="https://google.github.io/fplutil/">FPLUtil</a>, and has lots of options that allow you to check devices, run, sign your apk, which you’ll need to release to the play store (in particular, you’ll need to generate your own certifcate using keytool, and replace the above arguments). To see more, run:</p>
-<pre><code>python -B build_all_android.py --help</code></pre>
-<p>Install .apk on an attached Android device (note, emulators are not recommended, since Lobster is graphics heavy):</p>
-<pre><code>adb install -r apks\app.apk</code></pre>
-<p>If this fails, make sure you can see the device using <code>adb devices</code>. If nothing shows up, that’s likely because the device has not been put in developer mode, or not using usb for debugging, etc.</p>
-<p>You can now run it by tapping its icon on the device (it’s called LobsterApp by default)</p>
-<p>If it doesn’t run, run this to see what the problem is:</p>
-<pre><code>adb logcat -s &quot;SDL&quot;,&quot;lobster&quot;</code></pre>
-<p>In particular, look for messages showing files it can’t load.</p>
-<p>Things to change if you want to release your app in the Google Play store:</p>
-<ul>
-<li><p>Generate your own signing key with <code>keytool</code>, and substitute the <code>-k -K -P</code> parameters above. Make sure to also delete any old debug copy of the app from your device, or you’ll get a signature mismatch error.</p></li>
-<li><p>Change LobsterApp to something else in <code>res/values/strings.xml</code>.</p></li>
-<li><p>Change the .png files in <code>res/</code> with your own application icon.</p></li>
-<li><p>You may want to change the package name from <code>com.strlen.lobster</code> to your own. This needs to be done in 3 places, <code>AndroidManifest.xml</code>, and <code>src/com/strlen/lobster/LobsterActivity.java</code> (both at the top of that file and the directory path itself!).</p></li>
+<li><p>Generate your own signing key with <code>keytool</code>. Make sure to also delete any old debug copy of the app from your device, or you’ll get a signature mismatch error.</p></li>
+<li><p>Change the name to something else in <code>app/src/main/res/values/strings.xml</code>.</p></li>
+<li><p>Change the .png files in <code>app/src/main/res/</code> with your own application icon.</p></li>
+<li><p>You may want to change the package name from <code>org.libsdl.app</code> to your own. This needs to be done in 3 places, <code>app/build.gradle</code>, and <code>app/src/main/java/org/libsdl/app/SDLActivity.java</code> (both at the top of that file and the directory path itself!). Alternatively create a new class and inherit from <code>SDLActivity</code>.</p></li>
 </ul>
 <h3 id="webassembly-emscripten">WebAssembly / Emscripten</h3>
 <p>You need the <a href="https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html">emscripten toolchain</a> installed, as well as GNU make (on windows that means installing <a href="http://gnuwin32.sourceforge.net/packages/make.htm">this</a>).</p>

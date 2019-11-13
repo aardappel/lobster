@@ -19,14 +19,15 @@ if not is_worker_thread():
     print "running on " + hwthreads + " hardware threads and " + hwcores + " cores"
     let fibn = 30
     let fibr = 832040
-    time("single thread fib " + fibn): assert fib(fibn) == fibr
+    time("single thread fib(" + fibn + ")"): assert fib(fibn) == fibr
     // Let's launch some threads!
     start_worker_threads(hwthreads)
-    time("parallel fib " + fibn + " x " + hwthreads):
+    let num_fibs = hwthreads
+    time("parallel fib(" + fibn + ") * " + num_fibs):
         // Now Q up some work:
-        for(hwthreads): thread_write(fib_request { fibn })
+        for(num_fibs): thread_write(fib_request { fibn })
         // And wait for the responses.
-        for(hwthreads):
+        for(num_fibs):
             let r = thread_read(typeof fib_response)
             assert r && r.fr == fibr
 else:

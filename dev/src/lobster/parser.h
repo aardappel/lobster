@@ -465,7 +465,8 @@ struct Parser {
                     // No idea what the function is going to be, so have to default to borrow.
                     arg.sid->lt = LT_BORROW;
                 }
-                if (sf->fixedreturntype.Null()) Error("missing return type");
+                if (sf->fixedreturntype.Null())
+                    Error("missing return type or : in function definition header");
                 sf->returntype = sf->fixedreturntype;
                 sf->reqret = sf->returntype->NumValues();
             }

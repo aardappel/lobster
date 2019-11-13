@@ -9,9 +9,13 @@
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
       span.underline{text-decoration: underline;}
+      div.line-block{white-space: pre-line;}
       div.column{display: inline-block; vertical-align: top; width: 50%;}
   </style>
-  <link rel="stylesheet" href="github.css" />
+  <link rel="stylesheet" href="github.css">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
 <header>
@@ -106,6 +110,9 @@ struct xy_f = xy&lt;float&gt;</code></pre>
     x = 0.0
     y = 0.0</code></pre>
 <p>Additionally, you may specify default values, if these are given, then these values are not arguments to the constructor, e.g. <code>xy {}</code>.</p>
+<p>For more complex structs, you can use field names as “tags” in a constructor call, for example:</p>
+<pre><code>xy { x: 1, y: 2 }</code></pre>
+<p>Besides being more readable, it allows you to specify the fields in any order, and to override fields that have defaults.</p>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from other languages that attempt to work on as many of the above types as makes sense. In particular, unlike most languages, many of them work on (numeric) structs, which makes typical game code both convenient and fast.</p>
 <h3 id="assignment-and-definition">Assignment and Definition</h3>
@@ -159,8 +166,8 @@ print mat[pos]</code></pre>
 <p>Optionally, you may also call functions without any parentheses at all, e.g. <code>print &quot;hi!&quot;</code>. This is only allowed for known functions (that are not ambiguous with variables) that have 1 expression argument (followed by any number of function value arguments that don’t take arguments themselves, see below). It is up to the programmer to use good judgement on when to use this, the recommended use case is for calls used as statements (no nesting) that don’t cause additional parentheses to be needed elsewhere. In case of doubt, use the standard call syntax.</p>
 <h3 id="function-values">Function Values</h3>
 <p>You can also create anonymous (nameless) functions as values. In the most general case, this has the syntax:</p>
-<pre><code>var f = def(arg1, arg2): body</code></pre>
-<p>You call these just like any other function, e.g. <code>f(1, 2)</code>. You must call them using a variable.</p>
+<pre><code>let f = def(arg1, arg2): body</code></pre>
+<p>You call these just like any other function, e.g. <code>f(1, 2)</code>. You currently must call them using a variable (not any expression, not even a field).</p>
 <p>The full <code>function</code> syntax is infrequently used however, because most function values are created to be passed to other functions, and Lobster has a special syntax for this situation that is meant to mimic control structures in other languages. Any function call may be followed by one or more function values, where the <code>def</code> keyword is omitted:</p>
 <pre><code>for(10) (i): print(i)</code></pre>
 <p>Here, the function <code>for</code> is called with 2 arguments, the first is <code>10</code>, and the second is the function value <code>def(i): print(i)</code>. Lobster allows three more levels of further simplification of the syntax if the arguments do not contain type annotations:</p>
@@ -178,6 +185,14 @@ for 10: print _</code></pre>
 else:
     print &quot;a = &quot; + a</code></pre>
 <p>Writing your own functions that take function values is the key to getting the most out of Lobster. It allows you to refactor pretty much any code into something that has no redundancy yet is easy to create, use and modify.</p>
+<p>Typically, to write a function that takes a function value argument, simply use an argument with no type:</p>
+<pre><code>def twice(f):
+    for(2): f()</code></pre>
+<p>Sometimes, you may want to be explicit about the function type. You can declare new function types, and then use them as a type:</p>
+<pre><code>def function_type(int) -&gt; int
+def g(f:function_type): return 1 + f(2)</code></pre>
+<p>Besides enforcing the type of function that can be passed (which makes for more readable errors when it fails), it also forces the function passed to not be inlined (which may reduce code-bloat if functions taking this function type are called many times, at a minimal hit in speed). Function values called over a generic variable are always inlined, to ensure higher order functions are competitive in speed with hard-coded equivalents.</p>
+<p>Lobster really wants you to be able to use function values everywhere at no cost, so besides guaranteed inlining, the other way they differ from other languages is that they are always <em>non-escaping</em>. What that means is, that while function values may use free variables (refer to variables from enclosing scopes), they are not “closures”, i.e. they do not close over (capture) these variables, they merely refer to them. This means these function values cannot be called from an environment where those free variables are not available anymore (this will typically result in a compile-time error). This makes a function value in Lobster a single code pointer without any variable information attached, and thus extremely cheap. The downside is that they can’t be used for things like certain kinds of callbacks, though you probably shouldn’t be using those in game-like contexts anyway ;)</p>
 <h3 id="explicit-returns">Explicit Returns</h3>
 <p>Using <code>return</code> you return from the closest lexically enclosing named function, e.g.:</p>
 <pre><code>def find(list, x):
@@ -204,16 +219,16 @@ let a, b = m()</code></pre>
 def f(b::B): return 2
 def f(c::C): return 3
 def f(i:int): return 4</code></pre>
-<p>(as we note above, using <code>::</code> instead of <code>:</code> merely means all fields of that type become directly available, saving you having to type <code>this.</code>, but is otherwise equivalent.)</p>
-<p>What happens when you call <code>f</code> depends on the types above, and the type you call it with. If all 4 types are unrelated, the you guaranteed get static dispatch (a normal function call). If <code>B</code> inherits from <code>A</code>, but <code>C</code> is unrelated, and you call with either a <code>B</code>, <code>C</code> or <code>int</code> argument type, you still get static dispatch, since there is statically only one option.</p>
+<p>(as we note above, using <code>::</code> instead of <code>:</code> merely means all fields of that type become directly available, saving you having to type <code>a.</code>, but is otherwise equivalent.)</p>
+<p>What happens when you call <code>f</code> depends on the types above, and the type you call it with. If all 4 types are unrelated, then you guaranteed get static dispatch (a normal function call). If <code>B</code> inherits from <code>A</code>, but <code>C</code> is unrelated, and you call with either a <code>B</code>, <code>C</code> or <code>int</code> argument type, you still get static dispatch, since there is statically only one option.</p>
 <p>Only if you call with an <code>A</code> argument however, you get dynamic dispatch, since the argument may point to a <code>B</code> value, and <code>B</code> has a different function implementation. A dynamic dispatch goes thru a “virtual table”, and while slower than static dispatch, is still very fast. As you can see, wether something is “virtual” gets decided per call, and with knowledge of the whole program (all types and functions that can possibly exist), so typically less calls result in dynamic dispatch than in other languages.</p>
 <p>Types like <code>int</code> never participate in dynamic dispatch, since they don’t have a sub-class relation to any other type.</p>
 <p>Defining these functions can also be done “in line” in a class declaration, like so:</p>
 <pre><code>class A:
     def f(): return 1</code></pre>
-<p>This definition of <code>f</code> for <code>A</code> is entirely equivalent to the one above.</p>
+<p>This definition of <code>f</code> for <code>A</code> is entirely equivalent to the one above, except the name of the first argument is now <code>this</code> instead of <code>a</code> above.</p>
 <p>Only the first argument to a function is used to resolve which overload to call, either statically or dynamically. Lobster used to have the ability to dispatch on all arguments, called “multi-methods”, which at least academically seem very elegant. In practice however, these are slow (require complicated look-up tables) and ambiguous (hard to tell which function will get called, sometimes accidentally combine unrelated functions into a multimethod and get unexpected errors or slow-down). Single dispatch gives predictable, fast polymorphism that seems to work well for most languages, so for the moment, multi-methods are removed from the language.</p>
-<p>Overloading and dynamic dispatch in can even be mixed with type specialization (see <a href="type_checker.html">type system</a>), meaning you can generate multiple versions of a polymorphic call that do different things. Simply leave out the type of any arguments beyond the first:</p>
+<p>Overloading and dynamic dispatch can even be mixed with type specialization (see <a href="type_checker.html">type system</a>), meaning you can generate multiple versions of a polymorphic call that do different things. Simply leave out the type of any arguments beyond the first:</p>
 <pre><code>class A:
     def g(c): return c + 1
 class B : A
@@ -263,10 +278,10 @@ assert x.g(3) == 5</code></pre>
 <pre><code>import std</code></pre>
 <p>The contents of that file will be merged into your main file at the location of the <code>import</code> for the purpose of compilation. If you you import the same file twice, the second occurrence will be ignored.</p>
 <p>An identifier like <code>std</code> is the same as specifying <code>&quot;std.lobster&quot;</code>, similarly <code>a.b</code> is short for <code>&quot;a/b.lobster&quot;</code>.</p>
-<p>Modules will typically be loaded relative to 2 locations: the current main .lobster file being compiled, and whereever the lobster compiler is installed. In both those locations, files may be optionally be found under an <code>modules</code> sub-directory. You can use <code>import from &quot;path/to/&quot;</code> to provide additional such starting directories (relative to the current main <code>.lobster</code> file being compiled) that any following import statements (recursively) can use.</p>
+<p>Modules will typically be loaded relative to 2 locations: the current main <code>.lobster</code> file being compiled, and whereever the lobster compiler is installed. In both those locations, files may be optionally be found under an <code>modules</code> sub-directory. You can use <code>import from &quot;path/to/&quot;</code> to provide additional such starting directories (relative to the current main <code>.lobster</code> file being compiled) that any following import statements (recursively) can use.</p>
 <p>You may use the keyword <code>private</code> at the top level in a file to prefix structs, variables, and functions that you don’t want to be visible outside that file.</p>
 <h2 id="memory-management">Memory Management</h2>
-<p>Lobster uses (compile time) reference counting as its form of management for many reasons. Besides simplicity and space efficiency, reference counting makes a language more predictable in how much time is spent for a given amount of code, since memory management cost is spread equally through all code, instead of causing possibly long pauses like with garbage collection. Lobster has a custom allocator for its vector object that is very fast.</p>
+<p>Lobster uses (compile time) reference counting as its form of management for many reasons. Besides simplicity and space efficiency, reference counting makes a language more predictable in how much time is spent for a given amount of code, since memory management cost is spread equally through all code, instead of causing possibly long pauses like with garbage collection. Lobster has a custom allocator that is very fast.</p>
 <p>Most reference counting happens at compile time using a “lifetime analysis” algorithm, details <a href="memory_management.html">here</a>.</p>
 <p>Reference counting has one problem, which is that it can’t deallocate cycles. For example, this code:</p>
 <pre><code>class rec:
@@ -326,5 +341,11 @@ def baz(): return bar {}</code></pre>
 <p>This has its own document, <a href="type_checker.html">here</a>.</p>
 <h2 id="built-in-functions">Built-in Functions</h2>
 <p>Please refer to the <a href="builtin_functions_reference.html">built-in function reference</a>.</p>
+<h2 id="multi-threading">Multi-threading</h2>
+<p>Lobster has built-in multi-threading functionality, that is in its early stages.</p>
+<p>It is different from multi-threading in most other languages, in that it does not allow threads to share memory or any other VM state. It essentially runs one Lobster VM per hardware thread / core, each running an independent and isolated copy of your Lobster program. This prevents entire classes of potential concurrency bugs, like race conditions.</p>
+<p>Communication/synchronisation between the threads is explicit through the use of a “tuple space” (a bag of Lobster objects used as messages) which are copied rather than shared. While copying is potentially slower than sharing, it allows each Lobster VM to run as-if it was single-threaded, with no synchronisation primitives to slow it down (for example, memory allocators in Lobster are single-threaded), no GIL (global interpreter lock) or other multi-threading overhead, so overal performance can easily be higher than shared memory concurrency systems.</p>
+<p>The use of tuple spaces and 1 VM per thread suits “worker” style concurrency, for example if you have 100 parallel tasks to perform, you throw each of those in the tuple space, and the individual VMs grab and complete them, given automatic load balancing for however many cores are available.</p>
+<p>For now, the easiest way to get a feel for how this works is to read <code>samples/threads.lobster</code>.</p>
 </body>
 </html>
