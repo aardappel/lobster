@@ -15,15 +15,22 @@
 
 - kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
 
-- jcorbin: error: illegal type syntax: indentation
-  if x != nil:
-
 - replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
   - unlikely to work: even if you can guarantee to inline all the hofs a yield may sit in,
     there's loop temps, keepvars, and other stack tracking stuff we'd now have to back up in
     a struct to be able to resume, making this more complicated than the current solution.
   - if co-routines ever become an obstruction to optimisation, this will force us to have
     a "slow" fall-back for stack frames, similar to what we have now.
+  - Should we consider removing co-routines? They're a "sexy" feature everyone always seems
+    excited about, but in practice in games they are not all that useful.
+    I end up never using them, and when I do, it is for uses that can easily be replaced by
+    a class with an update function.
+    Having cross-frame state in locals is really not as nice as in member vars.
+    It could be cool in complex multi-stage animations.. but even for those it is questionable,
+    as code that interrupts/changes these animations then becomes more complex.
+    Fundamentally, state that survives a frame needs to be carefully managed regardless.
+    Co-routines have also been an endless source of complexity in the VM, and don't fit
+    with Lobster's new focus on efficiency.
 
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg

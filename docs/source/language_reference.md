@@ -109,7 +109,7 @@ factor = constant \| `(` exp `)` \| constructor \| `def` functionargsbody \|
 constructor = `[` [ list( exp ) ] `]` [ `::` type ] \| ident `{` [ list(
 exp ) ] `}`
 
-constant = numeric\_constant \| string\_constant \| character\_constant \| `nil`
+constant = numeric\_constant \| string\_constant \| character\_constant \| `nil` [ `::` type ]
 
 indlist(e) = indent list(e) [ linefeed ] dedent linefeed
 
@@ -150,8 +150,9 @@ a value of one of the following types:
     -   vector : a dynamically sized array of any Lobster values, constructed
         with square brackets surrounding 0 or more comma separated values, e.g.
         `[ 1, 2, 3 ]`. May be dereferenced for reading/writing using indices
-        (e.g. `a[0]`). Vectors may be typed by being suffixed by `: type`, which
-        will require all elements to be of that type
+        (e.g. `a[0]`). Vectors may be typed by being suffixed by `::type`, which
+        will require all elements to be of that type (also useful to force a type
+        on an empty list).
 
     -   `class` / `struct` : a user defined data structure, see below.
 
@@ -161,7 +162,11 @@ a value of one of the following types:
     -   `nil` : a special value of any reference type above, that indicates the
         absence of a legal value. `nil` is only allowed if the type is
         "nilable", for more on that see the document on type checking,
-        [here](type_checker.html).
+        [here](type_checker.html). Since just `nil` doesn't make it obvious
+        what type you are referring to, you can use e.g. `nil::string` to
+        specify a value of type `string?` (a type that denotes the value can be
+        a string or nil), though in most cases type inference makes writing
+        just `nil` sufficient.
 
 Lobster does not have a built-in boolean type, though it does have a pre-defined
 `bool` enum (see enums below). In general, for boolean tests such

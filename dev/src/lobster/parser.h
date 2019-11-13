@@ -1054,7 +1054,7 @@ struct Parser {
             case T_NIL: {
                 lex.Next();
                 auto n = new Nil(lex, nullptr);
-                if (IsNext(T_COLON)) {
+                if (IsNext(T_TYPEIN)) {
                     ParseType(n->giventype, false);
                     if (!IsNillable(n->giventype->t)) Error("illegal nil type");
                     n->giventype = st.Wrap(n->giventype, V_NIL);

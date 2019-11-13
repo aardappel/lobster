@@ -56,7 +56,7 @@
 <p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>def</code> functionargsbody | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [ <code>::</code> type ] | ident <code>{</code> [ list( exp ) ] <code>}</code></p>
-<p>constant = numeric_constant | string_constant | character_constant | <code>nil</code></p>
+<p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> [ <code>::</code> type ]</p>
 <p>indlist(e) = indent list(e) [ linefeed ] dedent linefeed</p>
 <p>list(e) = e … <code>,</code></p>
 <h2 id="types">Types</h2>
@@ -77,10 +77,10 @@
 <li><p>Reference values:</p>
 <ul>
 <li><p><code>string</code> : a vector of byte sized elements, generally used to store text, but can store any byte array. The recommended format for text is UTF-8, though this is not enforced; indexing and size operations act on bytes. To properly manipulate unicode symbols, UTF-8 strings can be converted to vectors of uncompressed unicode values using the built-in functions string_to_unicode and unicode_to_string. Immutable: can be indexed into for reading but not writing.</p></li>
-<li><p>vector : a dynamically sized array of any Lobster values, constructed with square brackets surrounding 0 or more comma separated values, e.g. <code>[ 1, 2, 3 ]</code>. May be dereferenced for reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be typed by being suffixed by <code>: type</code>, which will require all elements to be of that type</p></li>
+<li><p>vector : a dynamically sized array of any Lobster values, constructed with square brackets surrounding 0 or more comma separated values, e.g. <code>[ 1, 2, 3 ]</code>. May be dereferenced for reading/writing using indices (e.g. <code>a[0]</code>). Vectors may be typed by being suffixed by <code>::type</code>, which will require all elements to be of that type (also useful to force a type on an empty list).</p></li>
 <li><p><code>class</code> / <code>struct</code> : a user defined data structure, see below.</p></li>
 <li><p><code>coroutine</code> : a special object that contains a suspended computation, see the section on coroutines below.</p></li>
-<li><p><code>nil</code> : a special value of any reference type above, that indicates the absence of a legal value. <code>nil</code> is only allowed if the type is “nilable”, for more on that see the document on type checking, <a href="type_checker.html">here</a>.</p></li>
+<li><p><code>nil</code> : a special value of any reference type above, that indicates the absence of a legal value. <code>nil</code> is only allowed if the type is “nilable”, for more on that see the document on type checking, <a href="type_checker.html">here</a>. Since just <code>nil</code> doesn’t make it obvious what type you are referring to, you can use e.g. <code>nil::string</code> to specify a value of type <code>string?</code> (a type that denotes the value can be a string or nil), though in most cases type inference makes writing just <code>nil</code> sufficient.</p></li>
 </ul></li>
 </ul>
 <p>Lobster does not have a built-in boolean type, though it does have a pre-defined <code>bool</code> enum (see enums below). In general, for boolean tests such as the <code>not and or</code> operators (see below) or the builtin function <code>if</code>, the values <code>0 0.0 nil</code> (which includes the enum value <code>false</code>) are all considered to be false, and all other values are true.</p>
