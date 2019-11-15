@@ -90,7 +90,6 @@ def move(len, dst, src, fun):
         dst[i] = fun(src[i])
 
 def index_of_point(v, size): return v.y * size + v.x
-def modxy(v, w): return xy{ (w.x + v.x) % w.x, (w.y + v.y) % w.y }
 
 // center_unit_square projects a unit square coordinate system over
 // the center of the window, regardless of its aspect ratio.
@@ -212,7 +211,7 @@ def new_world(size, count, rules):
         size: size,
         area: area,
         points: points,
-        neighborhoods: map(points) v: map(cardinal_directions) d: index_of_point(modxy(v + d, grid), size),
+        neighborhoods: map(points) v: map(cardinal_directions) d: index_of_point((v + d + grid) % grid, size),
         weights_next: randomize(map(area) n: n),
         weights: map(area): 0,
         lobsters_next: lobsters_next,
