@@ -32,6 +32,16 @@ def partition(xs, fun):
             f.push(x)
     return t, f
 
+def partition_indices(xs, fun):
+    let t = []
+    let f = []
+    for(xs) x, i:
+        if fun(x, i):
+            t.push(i)
+        else:
+            f.push(i)
+    return t, f
+
 def exists(xs, fun):
     for(xs) x, i:
         if fun(x, i):
