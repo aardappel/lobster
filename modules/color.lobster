@@ -6,6 +6,7 @@ struct color:
     blue:float
     alpha:float
 
+let color_clear = color { 0, 0, 0, 0 }
 let color_black = color { 0, 0, 0, 1 }
 let color_white = color { 1, 1, 1, 1 }
 
