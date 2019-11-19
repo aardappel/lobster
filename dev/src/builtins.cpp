@@ -167,7 +167,7 @@ nfr("append", "xs,ys", "A]*A]*1", "A]1",
         return Value(nv);
     });
 
-nfr("vector_reserve", "typeid,len", "TI", "A]*",
+nfr("vector_reserve", "typeid,len", "VI", "A]*",
     "creates a new empty vector much like [] would, except now ensures"
     " it will have space for len push() operations without having to reallocate."
     " pass \"typeof return\" as typeid.",

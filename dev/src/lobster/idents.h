@@ -902,6 +902,8 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
         }
         case V_INT:
             return type->e ? type->e->name : "int";
+        case V_TYPEID:
+            return "typeid(" + TypeName(type->sub) + ")";
         default:
             return string(BaseTypeName(type->t));
     }

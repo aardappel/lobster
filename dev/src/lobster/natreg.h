@@ -65,7 +65,7 @@ struct Type {
     struct TupleElem { const Type *type; Lifetime lt; };
 
     union {
-        const Type *sub;         // V_VECTOR | V_NIL | V_VAR
+        const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
         UDT *udt;                // V_CLASS | V_STRUCT_*
         Enum *e;                 // V_INT
@@ -191,6 +191,7 @@ extern TypeRef type_function_void;
 extern TypeRef type_coroutine;
 extern TypeRef type_resource;
 extern TypeRef type_typeid;
+extern TypeRef type_typeid_vec;
 extern TypeRef type_void;
 extern TypeRef type_undefined;
 
@@ -245,6 +246,7 @@ struct Narg : Typed {
             case 'C': type = type_coroutine; break;
             case 'R': type = type_resource; break;
             case 'T': type = type_typeid; break;
+            case 'V': type = type_typeid_vec; break;
             default:  assert(0);
         }
         while (*tid && !isupper(*tid)) {

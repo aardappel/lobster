@@ -314,6 +314,17 @@ struct TypeChecker {
                                       (!sub->sf && type->sf && ConvertsTo(type->sf->coresumetype,
                                                               NewNilTypeVar(), false)));
             case V_TUPLE:     return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *sub->tup);
+            case V_TYPEID:    if (type->t != V_TYPEID) return false;
+                              sub = sub->sub;
+                              type = type->sub;
+                              // FIXME: should bind to vector of var? See typeof return in map.
+                              if (type->t == V_VAR) return true;
+                              if (sub->t == V_VECTOR && type->t == V_VECTOR) {
+                                  sub = sub->sub;
+                                  type = type->sub;
+                              }
+                              // This is minimalistic, but suffices for the current uses of V_TYPEID.
+                              return sub->t == V_ANY;
             default:          return false;
         }
     }
@@ -2823,7 +2834,8 @@ Node *CoRoutine::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 Node *TypeOf::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     tc.DecBorrowers(child->lt, *this);
-    exptype = type_typeid;
+    auto ti = tc.st.NewType();
+    exptype = child->exptype->Wrap(ti, V_TYPEID);
     lt = LT_ANY;
     return this;
 }
