@@ -97,6 +97,16 @@ struct TypeChecker {
                     const_cast<ValueType &>(udt->thistype.t) =
                         udt->hasref ? V_STRUCT_R : V_STRUCT_S;
                 }
+                if (!udt->first->generics.empty()) {
+                    // This was specialized from a generic udt, much like with superclass
+                    // below, promote generic fields.
+                    // FIXME: much better to require explicit template parameters on the
+                    // generic definition, e.g. `next:Node<T>` which then automatically
+                    // gets specialized for `SubNode<int>` etc.
+                    for (auto &field : udt->fields.v) {
+                        PromoteStructIdx(field.type, udt->first, udt);
+                    }
+                }
             }
             if (udt->superclass) {
                 // If this type has fields inherited from the superclass that refer to the
