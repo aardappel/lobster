@@ -168,6 +168,10 @@ run_test("misc"):
     def multiretpassthru(): return multiret()  // doesn't work without the return!
     let jj, kk = multiretpassthru()
     assert jj == 6 and kk == 7
+    def multirettyped() -> float, string: return 1.0, "a"
+    let nn, mm = multirettyped()
+    assert nn == 1.0
+    assert mm == "a"
     class mretfields:
         a = ""
         b = 0

@@ -251,14 +251,6 @@ struct TypeChecker {
         return nil;
     }
 
-    TypeRef NewTuple(size_t sz) {
-        auto type = st.NewType();
-        *type = Type(V_TUPLE);
-        type->tup = new vector<Type::TupleElem>(sz);
-        st.tuplelist.push_back(type->tup);
-        return type;
-    }
-
     void UnifyVar(TypeRef type, TypeRef hasvar) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
@@ -1736,7 +1728,7 @@ struct TypeChecker {
                     break;
                 }
                 default: {
-                    auto nt = NewTuple(reqret);
+                    auto nt = st.NewTuple(reqret);
                     nt->tup->assign(rt->tup->begin(), rt->tup->begin() + reqret);
                     rt = nt;
                 }
@@ -2530,7 +2522,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 
     exptype = type_void;  // no retvals
     lt = LT_ANY;
-    if (nf->retvals.v.size() > 1) exptype = tc.NewTuple(nf->retvals.v.size());
+    if (nf->retvals.v.size() > 1) exptype = tc.st.NewTuple(nf->retvals.v.size());
     for (auto [i, ret] : enumerate(nf->retvals.v)) {
         int sa = 0;
         auto type = ret.type;
@@ -2851,7 +2843,7 @@ Node *EnumCoercion::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
 
 Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TypeCheckList(this, false, 1, LT_ANY);
-    exptype = tc.NewTuple(children.size());
+    exptype = tc.st.NewTuple(children.size());
     for (auto [i, mrc] : enumerate(children))
         exptype->Set(i, mrc->exptype.get(), mrc->lt);
     lt = LT_MULTIPLE;

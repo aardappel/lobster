@@ -450,9 +450,10 @@ struct Parser {
         sf->SetParent(f, f.overloads.back());
         if (!expfunval) {
             if (IsNext(T_CODOT)) {  // Return type decl.
-                ParseType(sf->fixedreturntype, false, nullptr, sf);
+                ParseTypes(sf->fixedreturntype, sf, LT_KEEP);
             }
             if (!IsNext(T_COLON)) {
+                // This must be a function type.
                 if (lex.token == T_IDENT || !name) Expect(T_COLON);
                 if (f.istype || f.overloads.size() > 1)
                     Error("redefinition of function type: " + *name);
@@ -516,6 +517,20 @@ struct Parser {
         // Keep copy or arg types from before specialization.
         f.orig_args = sf->args;  // not used for multimethods
         return new FunRef(lex, sf);
+    }
+
+    void ParseTypes(TypeRef &dest, SubFunction *sfreturntype, Lifetime lt) {
+        ParseType(dest, false, nullptr, sfreturntype);
+        if (!IsNext(T_COMMA)) return;
+        vector<TypeRef> types;
+        types.push_back(dest);
+        do {
+            types.push_back(nullptr);
+            ParseType(types.back(), false, nullptr, sfreturntype);
+        } while (IsNext(T_COMMA));
+        dest = st.NewTuple(types.size());
+        for (auto [i, type] : enumerate(types))
+            dest->Set(i, &*type, IsRefNil(type->t) ? lt : LT_ANY);
     }
 
     int ParseType(TypeRef &dest, bool withtype, UDT *udt = nullptr,

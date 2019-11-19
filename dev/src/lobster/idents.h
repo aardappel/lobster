@@ -736,6 +736,14 @@ struct SymbolTable {
         return t;
     }
 
+    TypeRef NewTuple(size_t sz) {
+        auto type = NewType();
+        *type = Type(V_TUPLE);
+        type->tup = new vector<Type::TupleElem>(sz);
+        tuplelist.push_back(type->tup);
+        return type;
+    }
+
     TypeRef Wrap(TypeRef elem, ValueType with) {
         auto wt = WrapKnown(elem, with);
         return !wt.Null() ? wt : elem->Wrap(NewType(), with);
