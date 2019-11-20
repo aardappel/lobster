@@ -18,6 +18,7 @@ struct LValContext {
     // For now, only: ident ( . field )*.
     const SpecIdent *sid;
     vector<SharedField *> derefs;
+    LValContext(SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n) {
         auto t = &n;
         while (auto dot = Is<Dot>(t)) {
@@ -51,6 +52,7 @@ struct LValContext {
 struct FlowItem : LValContext {
     TypeRef old, now;
     FlowItem(const Node &n, TypeRef type) : LValContext(n), old(n.exptype), now(type) {}
+    FlowItem(SpecIdent *sid, TypeRef old, TypeRef now) : LValContext(sid), old(old), now(now) {}
 };
 
 struct Borrow : LValContext {
@@ -1319,6 +1321,10 @@ struct TypeChecker {
             if (iftrue) CheckFlowTypeIdOrDot(*c->child, c->giventype);
         } else if (auto c = Is<Not>(condition)) {
             CheckFlowTypeChangesSub(!iftrue, c->child);
+        } else if (auto eq = Is<Equal>(condition)) {
+            if (Is<Nil>(eq->right)) CheckFlowTypeChangesSub(!iftrue, eq->left);
+        } else if (auto neq = Is<NotEqual>(condition)) {
+            if (Is<Nil>(neq->right)) CheckFlowTypeChangesSub(iftrue, neq->left);
         } else {
             if (iftrue && type->t == V_NIL) CheckFlowTypeIdOrDot(*condition, type->Element());
         }
@@ -1352,8 +1358,7 @@ struct TypeChecker {
     }
 
     void AssignFlowPromote(Node &left, TypeRef right) {
-        if ((left.exptype->t == V_ANY && right->t != V_ANY) ||
-            (left.exptype->t == V_NIL && right->t != V_NIL)) {
+        if (left.exptype->t == V_NIL && right->t != V_NIL) {
             CheckFlowTypeIdOrDot(left, right);
         }
     }
@@ -2091,7 +2096,13 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
             // Have to subtype the initializer value, as that node may contain
             // unbound vars (a:[int] = []) or values that that need to be coerced
             // (a:float = 1)
+            // FIXME: this doesn't look like it would work for multi-return..
             tc.SubType(child, var.type, "initializer", "definition");
+            // In addition, the initializer may already cause the type to be promoted.
+            // a:string? = ""
+            FlowItem fi(p.first, var.type, child->exptype);
+            // Similar to AssignFlowPromote (TODO: refactor):
+            if (fi.now->t != V_NIL && fi.old->t == V_NIL) tc.flowstack.push_back(fi);
         }
         auto sid = p.first;
         sid->type = var.type;

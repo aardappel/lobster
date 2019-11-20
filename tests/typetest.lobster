@@ -88,3 +88,16 @@ run_test("types"):
         assert x.g(3) == 5
         // Recursive dynamic dispatch.
         assert x.r(10) == 0
+
+    do():
+        // Flow sensitive checking.
+        let a:string? = ""
+        assert a == ""  // Here a is already promoted to non-nil.
+        let b:string? = nil
+        if b == nil:  // Should work similarly to just "b" or "not b".
+            nil
+        else:
+            assert b == ""
+        def f(x): assert x == ""
+        f(a)  // Promoted type should be passed.
+
