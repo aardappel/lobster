@@ -465,9 +465,8 @@ for 10: print _
 You can leave out the parentheses, and you may use anonymous arguments, which
 are variable names starting with an `_` that will automatically be declared as
 arguments for you. If you use multiple such arguments (e.g. `_a` and `_b`), they
-will become arguments in lexical order, irrespective of what order they appear
-in the body. Using anonymous variables is only recommended for very simple
-function bodies.
+will become arguments in the order they appear in the body. Using anonymous
+variables is only recommended for very simple function bodies.
 
 As mentioned above, you may drop the parentheses entirely if the body doesn't
 have any argument declarations.
