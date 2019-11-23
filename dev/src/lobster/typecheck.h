@@ -501,14 +501,14 @@ struct TypeChecker {
 
     const char *MathCheck(TypeRef &type, BinOp &n, bool &unionchecked,
                           bool typechangeallowed) {
-        if (type->Numeric() || type->t == V_VECTOR || IsUDT(type->t))
+        if (type->Numeric() || IsUDT(type->t))
             return nullptr;
         if (MathCheckVector(type, n.left, n.right)) {
             unionchecked = true;
             return nullptr;
         }
         if (!Is<Plus>(&n) && !Is<PlusEq>(&n))
-            return "numeric/vector/struct";
+            return "numeric/struct";
         // Special purpose checking for + on strings.
         auto ltype = n.left->exptype;
         auto rtype = n.right->exptype;
@@ -528,7 +528,7 @@ struct TypeChecker {
             unionchecked = true;
             return nullptr;
         } else {
-            return "numeric/string/vector/struct";
+            return "numeric/string/struct";
         }
     }
 
