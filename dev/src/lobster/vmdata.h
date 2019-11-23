@@ -98,6 +98,7 @@ enum ValueType : int {
     V_YIELD,
     V_STRUCT_S,
     V_VAR,              // [typechecker only] like V_ANY, except idx refers to a type variable
+    V_TYPEVAR,          // [typechecker only] refers to an explicit type variable in code, e.g. "T".
     V_TYPEID,           // [typechecker only] a typetable offset.
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
     V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
@@ -124,7 +125,7 @@ inline string_view BaseTypeName(ValueType t) {
         "struct_ref",
         "resource", "coroutine", "string", "class", "vector",
         "nil", "int", "float", "function", "yield_function", "struct_scalar",
-        "variable", "typeid", "void",
+        "variable", "type_variable", "typeid", "void",
         "tuple", "undefined",
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {

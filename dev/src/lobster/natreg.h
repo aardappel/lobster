@@ -59,6 +59,8 @@ struct Enum;
 
 struct UDT;
 
+struct TypeVariable;
+
 struct Type {
     const ValueType t = V_UNDEFINED;
 
@@ -70,14 +72,17 @@ struct Type {
         UDT *udt;                // V_CLASS | V_STRUCT_*
         Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
+        TypeVariable *tv;        // V_TYPEVAR
     };
 
-    Type()                               :           sub(nullptr) {}
-    explicit Type(ValueType _t)          : t(_t),    sub(nullptr) {}
-    Type(ValueType _t, const Type *_s)   : t(_t),    sub(_s)      {}
-    Type(ValueType _t, SubFunction *_sf) : t(_t),    sf(_sf)      {}
-    Type(ValueType _t, UDT *_udt)        : t(_t),    udt(_udt)    {}
-    Type(Enum *_e)                       : t(V_INT), e(_e)        {}
+    Type()                               :               sub(nullptr) {}
+    explicit Type(ValueType _t)          : t(_t),        sub(nullptr) {}
+    Type(ValueType _t, const Type *_s)   : t(_t),        sub(_s)      {}
+    Type(ValueType _t, SubFunction *_sf) : t(_t),        sf(_sf)      {}
+    Type(ValueType _t, UDT *_udt)        : t(_t),        udt(_udt)    {}
+    Type(Enum *_e)                       : t(V_INT),     e(_e)        {}
+    Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
+
 
     bool operator==(const Type &o) const {
         return t == o.t &&

@@ -73,7 +73,7 @@ struct TypeChecker {
         if (!st.RegisterDefaultTypes())
             TypeError("cannot find standard types (from stdtype.lobster)", *parser.root);
         for (auto &udt : st.udttable) {
-            if (udt->generics.empty()) {
+            if (udt->unbound_generics.empty()) {
                 // NOTE: all users of sametype will only act on it if it is numeric, since
                 // otherwise it would a scalar field to become any without boxing.
                 // Much of the implementation relies on these being 2-4 component vectors, so
@@ -99,7 +99,7 @@ struct TypeChecker {
                     const_cast<ValueType &>(udt->thistype.t) =
                         udt->hasref ? V_STRUCT_R : V_STRUCT_S;
                 }
-                if (!udt->first->generics.empty()) {
+                if (!udt->first->unbound_generics.empty()) {
                     // This was specialized from a generic udt, much like with superclass
                     // below, promote generic fields.
                     // FIXME: much better to require explicit template parameters on the
@@ -741,7 +741,7 @@ struct TypeChecker {
     UDT *FindStructSpecialization(UDT *given, const Constructor *cons) {
         // This code is somewhat similar to function specialization, but not similar enough to
         // share. If they're all typed, we bail out early:
-        if (given->generics.empty()) return given;
+        if (given->unbound_generics.empty()) return given;
         auto head = given->first;
         assert(cons->Arity() == head->fields.size());
         // Now find a match:
@@ -751,10 +751,8 @@ struct TypeChecker {
             int nmatches = 0;
             for (auto [i, arg] : enumerate(cons->children)) {
                 auto &field = udt->fields.v[i];
-                if (field.genericref >= 0) {
-                    if (ExactType(arg->exptype, field.type)) nmatches++;
-                    else break;
-                }
+                if (ConvertsTo(arg->exptype, field.type, false, false)) nmatches++;
+                else break;
             }
             if (nmatches > bestmatch) {
                 bestmatch = nmatches;
@@ -764,8 +762,12 @@ struct TypeChecker {
         if (best) return best;
         string s;
         for (auto &arg : cons->children) s += " " + TypeName(arg->exptype);
-        TypeError("no specialization of " + given->first->name + " matches these types:" + s,
-                  *cons);
+        auto err = "no specialization of " + given->first->name + " matches these types:" + s;
+        for (auto udt = given->first->next; udt; udt = udt->next) {
+            err += "\n  specialization: ";
+            err += Signature(*udt);
+        }
+        TypeError(err, *cons);
         return nullptr;
     }
 

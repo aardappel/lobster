@@ -101,3 +101,20 @@ run_test("types"):
         def f(x): assert x == ""
         f(a)  // Promoted type should be passed.
 
+    do():
+        // Use of type variables:
+        class Ai             // Pre-declared specialization.
+        class A<T>:
+            ts:[T]           // Type vars may occur nested.
+            next:A? = nil    // Automatically "upgraded" to A<T>
+            nexts:[A] = []   // Same.
+            nexti:Ai? = nil  // Refer to specialization before fully defined!
+            def f(t /*:T*/): // TODO!
+                ts.push(t)
+        class Ai = A<int>    // Specialize.
+        let a = Ai { [ 1 ] }
+        a.nexts.push(a)
+        a.nexts = []
+        a.nexti = a
+        a.nexti = nil
+        a.f(2)

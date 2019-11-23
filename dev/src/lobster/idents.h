@@ -109,14 +109,12 @@ struct SharedField : Named {
 struct Field {
     TypeRef type;
     SharedField *id = nullptr;
-    int genericref = -1;
     Node *defaultval = nullptr;
     int slot = -1;
 
     Field() = default;
-    Field(SharedField *_id, TypeRef _type, int _genericref, Node *_defaultval)
-        : type(_type), id(_id),
-        genericref(_genericref), defaultval(_defaultval) {}
+    Field(SharedField *_id, TypeRef _type, Node *_defaultval)
+        : type(_type), id(_id), defaultval(_defaultval) {}
     Field(const Field &o);
     ~Field();
 };
@@ -132,8 +130,16 @@ struct FieldVector : GenericArgs {
     string_view GetName(size_t i) const { return v[i].id->name; }
 };
 
-struct GenericParameter {
+struct TypeVariable {
     string_view name;
+    Type thistype;
+
+    TypeVariable(string_view name) : name(name), thistype(this) {}
+};
+
+struct BoundTypeVariable {
+    TypeVariable *tv;
+    TypeRef type;
 };
 
 struct DispatchEntry {
@@ -145,7 +151,8 @@ struct DispatchEntry {
 
 struct UDT : Named {
     FieldVector fields { 0 };
-    vector<GenericParameter> generics;
+    vector<TypeVariable *> unbound_generics;
+    vector<BoundTypeVariable> bound_generics;
     UDT *next = nullptr, *first = this;  // Specializations
     UDT *superclass = nullptr;
     bool is_struct = false, hasref = false;
@@ -183,7 +190,7 @@ struct UDT : Named {
     }
 
     bool IsSpecialization(UDT *other) {
-        if (!generics.empty()) {
+        if (!unbound_generics.empty()) {
             for (auto udt = first->next; udt; udt = udt->next)
                 if (udt == other)
                     return true;
@@ -372,6 +379,9 @@ struct SymbolTable {
     unordered_map<string_view, EnumVal *> enumvals;  // Key points to value!
     vector<Enum *> enumtable;
 
+    vector<TypeVariable *> typevars;
+    vector<vector<BoundTypeVariable> *> bound_typevars_stack;
+
     vector<string> filenames;
 
     vector<size_t> scopelevels;
@@ -408,6 +418,7 @@ struct SymbolTable {
         for (auto t   : typelist)         delete t;
         for (auto t   : tuplelist)        delete t;
         for (auto n   : stored_names)     delete[] n;
+        for (auto tv  : typevars)         delete tv;
     }
 
     string NameSpaced(string_view name) {
@@ -749,6 +760,22 @@ struct SymbolTable {
         return !wt.Null() ? wt : elem->Wrap(NewType(), with);
     }
 
+    TypeRef ResolveTypeVars(TypeRef type) {
+        if (type->Wrapped()) {
+            auto nt = ResolveTypeVars(type->Element());
+            if (&*nt != &*type->Element()) {
+                return Wrap(nt, type->t);
+            }
+        } else if (type->t == V_TYPEVAR) {
+            for (auto bvec : reverse(bound_typevars_stack)) {
+                for (auto &btv : *bvec) {
+                    if (btv.tv == type->tv) return btv.type;
+                }
+            }
+        }
+        return type;
+    }
+
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
         if (sv[0].size()) return true;  // Already initialized.
         for (size_t i = 0; i < NUM_VECTOR_TYPE_WRAPPINGS; i++) {
@@ -798,7 +825,7 @@ struct SymbolTable {
     bool IsGeneric(TypeRef type) {
         if (type->t == V_ANY) return true;
         auto u = type->UnWrapped();
-        return IsUDT(u->t) && !u->udt->generics.empty();
+        return IsUDT(u->t) && !u->udt->unbound_generics.empty();
     }
 
     // This one is used to sort types for multi-dispatch.
@@ -912,6 +939,8 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
             return type->e ? type->e->name : "int";
         case V_TYPEID:
             return "typeid(" + TypeName(type->sub) + ")";
+        case V_TYPEVAR:
+            return string(type->tv->name);
         default:
             return string(BaseTypeName(type->t));
     }
