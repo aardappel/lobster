@@ -54,6 +54,7 @@
 
 import vec
 import color
+import texture
 import util3d
 
 fatal(gl_window("Lobster Cube", 515, 515))
