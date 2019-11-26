@@ -1,3 +1,5 @@
+import color
+
 // texture format constants
 
 enum_flags texture_format:
