@@ -106,7 +106,14 @@ def product(xs): return fold(xs, 1): _x * _y
 
 def zip(xs, ys): return map xs.length: [ xs[_], ys[_] ]
 
-def reverse(xs, fun): for(xs.length) i: fun(xs[xs.length - i - 1])
+def reverse(xs, fun): for(xs.length) i:
+    let j = xs.length - i - 1
+    fun(xs[j], j)
+
+def reverse_map(xs, fun): return map(xs.length) i:
+    let j = xs.length - i - 1
+    fun(xs[j], j)
+
 def reverse_list(xs): return map(xs.length) i: xs[xs.length - i - 1]
 
 def flatten(xs): return fold(xs, []): append(_a, _b)
