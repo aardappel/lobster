@@ -22,8 +22,6 @@
 <h1 class="title">The Lobster Type System</h1>
 </header>
 <p>This document is about how to make most effective use of the type system..</p>
-<h2 id="state-of-the-type-checker">State of the Type Checker</h2>
-<p>The type checker is now the only way to write Lobster code, even though it only just excited “beta” state. There may be rough edges. If after reading this document you still don’t understand why you’re getting type errors, contact me and I see if I can improve the compiler or the documentation. If the VM crashes due to a type related error, definitely contact me.</p>
 <h2 id="the-nature-of-the-type-system">The nature of the type system</h2>
 <p>Lobster was originally dynamically typed. Not only is this easier to implement, it bring tremendous expressive power “for free”, particularly in the way it allows you to write generic code which often requires arcane typing annotations in static languages. The downsides are obvious too: type errors come late or stay hidden, and execution speed suffers.</p>
 <p>The type system in Lobster attempts to achieve the best of both worlds, with a type system that retains as much as possible of the dynamic style of writing (little to no type annotations needed, while able to type check a much broader range of code than other languages). It achieves this by using 3 techniques that build on eachother:</p>
@@ -39,6 +37,12 @@
 <p>is how you create a generic functions in either case. You create a generic parameter by.. not specifying a type!</p>
 <p>Now this is already a non-trivial example that will trip up many languages with type inference, since you cannot have the arguments be generic unless the <code>+</code> operation is defined on them, requiring them to have a way to specify the set of types that have this operation specified (see e.g. type classes in Haskell), or simply not allowing it at all (see e.g. generics in Java).</p>
 <p>Lobster does not have this problem, since it simply type checks a copy of <code>add</code> for each combination of types it is called with. This then deals correctly with allowing to write <code>add(&quot;number: &quot;, 4)</code>, taking care of converting <code>4</code> to a string and calling string concatenation on the result, without making simpler cases like <code>add(1, 2)</code> slower because of type inspection. In fact, the opportunities for statically optimizing these operations are now greatly increased. This is very similar to C++ templates, but without the clunky syntax.</p>
+<p>It is typically “good style” in Lobster to use untyped arguments when a) multiple types are possible/useful, and b) there is no relation between the types of the arguments. Sometimes it is useful to use explicit generic annotations, for example:</p>
+<pre><code>def add&lt;T&gt;(x:T, y:T): x + y</code></pre>
+<p>Would enforce that both parameters are of the same type, unlike the example above. The type <code>T</code> is automatically deduced from the first argument that matches it (in this case, the first), and then any further uses are required to be that same type, so for example <code>add(1.0, 1)</code> would make <code>T</code> a <code>float</code>, and thus coerce the second argument to <code>float</code> before the function call. In the untyped case above, it would specialize <code>add</code> for <code>(float, int)</code> arguments, and the coercion to <code>float</code> (required by <code>+</code>) would now happen inside the function.</p>
+<p>You can even specify the generic type explicitly, for example <code>add&lt;float&gt;(1, 1)</code> would actually coerce both arguments ahead of time. If the function has multiple generic arguments, you don’t need to specify all of them, if the remaining ones can be inferred. Caveat: this currently only works where the <code>&lt;</code> directly follows a known function name (to distinguish it from uses of the <code>&lt;</code> operator).</p>
+<p>And all of this also works on untyped function declarations equally, since they internally get converted to explicit generics by simply adding generic types <code>A, B, C,..</code> to them for their untypes arguments.</p>
+<p>You can use generic types from surrounding functions, and from any class this function is a “method” of (either declared inside that class, or with the class type as first argument).</p>
 <h2 id="the-trouble-with-nil">The trouble with nil</h2>
 <p>So far, the type system tries to preserve as much freedom of dynamic typing as possible. One area where it is however <em>more</em> strict than most existing languages is how it deals with <code>nil</code>.</p>
 <p><code>nil</code> (or <code>null</code> in other languages) is usually a default value of all reference types, which is very convenient in expressing uninitialized or optional values. But this convenience comes at a high cost: if you forget to check for <code>nil</code> before you access a value, your program may terminate with a run-time error. Very often we know a value cannot be <code>nil</code>, but we cannot guarantee this, or are lazy to do so. Result: random errors popping up in random places. Not good.</p>
@@ -88,7 +92,7 @@ assert(compile_time_if(&quot;&quot;) is string)</code></pre>
 <p>This is powerful, because it allows you to write generic functions that do subtly different things depending on the input, with no overhead from the conditional, and the ability to operate differently on each case.</p>
 <p>You can do something similar with overloading / dynamic dispatch, but that may require more code or may be less efficient.</p>
 <h2 id="generic-classes-and-structs">Generic classes and structs</h2>
-<p>Besides functions, classes can also be generic, but here we use explicit generic parameters to do so:</p>
+<p>Besides functions, classes can also be generic, but here we only use explicit generic parameters to do so:</p>
 <pre><code>class foo&lt;T&gt;:
     a:string
     b:T</code></pre>

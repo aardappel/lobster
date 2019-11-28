@@ -121,6 +121,7 @@ struct Type {
     bool Wrapped() const { return t == V_VECTOR || t == V_NIL; }
 
     const Type *UnWrapped() const { return Wrapped() ? sub : this; }
+    const Type *UnWrapAll() const { return Wrapped() ? sub->UnWrapped() : this; }
 
     bool Numeric() const { return t == V_INT || t == V_FLOAT; }
 
@@ -203,18 +204,17 @@ extern TypeRef type_undefined;
 TypeRef WrapKnown(TypeRef elem, ValueType with);
 
 enum ArgFlags {
-    AF_NONE = 0,
-    AF_EXPFUNVAL = 1,
-    AF_GENERIC = 2,
-    NF_SUBARG1 = 4,
-    NF_SUBARG2 = 8,
-    NF_SUBARG3 = 16,
-    NF_ANYVAR = 32,
-    NF_CORESUME = 64,
-    AF_WITHTYPE = 128,
-    NF_CONVERTANYTOSTRING = 256,
-    NF_PUSHVALUEWIDTH = 512,
-    NF_BOOL = 1024,
+    AF_NONE               = 0,
+    AF_EXPFUNVAL          = 1 << 0,
+    NF_SUBARG1            = 1 << 1,
+    NF_SUBARG2            = 1 << 2,
+    NF_SUBARG3            = 1 << 3,
+    NF_ANYVAR             = 1 << 4,
+    NF_CORESUME           = 1 << 5,
+    AF_WITHTYPE           = 1 << 6,
+    NF_CONVERTANYTOSTRING = 1 << 7,
+    NF_PUSHVALUEWIDTH     = 1 << 8,
+    NF_BOOL               = 1 << 9,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(ArgFlags)
 

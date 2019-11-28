@@ -103,18 +103,64 @@ run_test("types"):
 
     do():
         // Use of type variables:
-        class Ai             // Pre-declared specialization.
+        class Ai               // Pre-declared specialization.
         class A<T>:
-            ts:[T]           // Type vars may occur nested.
-            next:A? = nil    // Automatically "upgraded" to A<T>
-            nexts:[A] = []   // Same.
-            nexti:Ai? = nil  // Refer to specialization before fully defined!
-            def f(t /*:T*/): // TODO!
+            ts:[T]             // Type vars may occur nested.
+            next:A? = nil      // Automatically "upgraded" to A<T>
+            nexts:[A] = []     // Same.
+            nexti:Ai? = nil    // Refer to specialization before fully defined!
+            def f(t:T):        // Generic from surrounding class.
                 ts.push(t)
-        class Ai = A<int>    // Specialize.
+            def g<U>(u:U):     // Own generic.
+                ts.push(u)
+            def h():
+                let x:T = true // Use as internal type.
+                return x
+        def i(a::A, t:T):       // Non-inline "method" using generic of first arg.
+            ts.push(t)
+        class Ai = A<int>      // Specialize.
         let a = Ai { [ 1 ] }
         a.nexts.push(a)
         a.nexts = []
         a.nexti = a
         a.nexti = nil
         a.f(2)
+        a.g(3)
+        a.i(4)
+        assert a.h() == 1
+        /*
+        class B : Ai
+            def f(t:T):   // Explicit generic mixed with dynamic dispatch!
+                ts.push(t + 1)
+        let aa:Ai = B { [ 1 ] }
+        aa.f(3)
+        assert aa.ts.top() == 4
+        */
+        /*
+        class B : Ai
+            def g<U>(u:U):   // Explicit generic mixed with dynamic dispatch!
+                ts.push(u + 1)
+        let aa:Ai = B { [ 1 ] }
+        aa.g(3)
+        assert aa.ts.top() == 4
+        */
+        // Explicit use in functions.
+        def j<T>(x:T, y:T): return y
+        assert j<float>(1, 1) is float  // Explicit specializer.
+        assert j(1.0, 1) is float       // Implicit, from 1st arg.
+        def k<T>(t:T) -> T: return 1    // Explicit return type.
+        assert k<float>(2) == 1.0
+        assert k(2.0) == 1.0
+        def q<T>() -> T, T:             // multiple return.
+            return 1, 1
+        let r, s = q<float>()
+        assert r is float and s is float
+        // Use with various explicit type features.
+        def l<T>(): return 1.0 is T     // Use with is.
+        assert l<float>()
+        def n<T>(): return nil::T       // As nil type.
+        assert n<string>() == nil::string
+        def o<T>(): return []::T        // As vector type.
+        assert equal(o<string>(), []::string)
+        def p<T>(): return typeof T     // Use with typeof.
+        assert p<string>() == 3

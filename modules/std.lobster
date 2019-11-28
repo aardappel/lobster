@@ -78,9 +78,9 @@ def find(xs, fun):
     for(xs) x, i: if fun(x): return i
     return -1
 
-// return element for which fun returns biggest float value.
-def find_best(xs, fun):
-    var best = 0.0
+// return element index for which fun returns biggest value of type R (float or int).
+def find_best<R>(xs, fun):
+    var best:R = 0
     var i = -1
     for(xs) x, j:
         let v = fun(x)
@@ -89,20 +89,21 @@ def find_best(xs, fun):
             best = v
     return i
 
-def weighted_pick(list, zero, wf):
-    // FIXME: "zero" is an easy way to select float vs int implementation, explicit template
-    // arg would be better here.
-    let weights = fold(list, zero): _a + wf(_x)
+// Given a function that produces a weight (float or int, specified as R) for each list element,
+// return a random pick that takes that weight into account.
+def weighted_pick<R, T>(list:[T], wf):
+    let weights = fold<[T], R>(list, 0): _a + wf(_x)
     assert(weights)
-    let pick = if zero is float: rnd_float() * weights else: rnd(weights)  // compile-time if!
-    var acc = zero
+    var acc:R = 0
+    let pick = if acc is float: rnd_float() * weights else: rnd(weights)  // compile-time if!
     for(list) x:
         acc += wf(x)
         if pick < acc: return x
     return list.top()  // just in case float precision causes pick == weights.
 
-def sum(xs):     return fold(xs, 0): _x + _y
-def product(xs): return fold(xs, 1): _x * _y
+// These work on int or float vectors.
+def sum<T>(xs:[T]):     return fold<[T], T>(xs, 0): _x + _y
+def product<T>(xs:[T]): return fold<[T], T>(xs, 1): _x * _y
 
 def zip(xs, ys): return map xs.length: [ xs[_], ys[_] ]
 

@@ -151,8 +151,7 @@ struct DispatchEntry {
 
 struct UDT : Named {
     FieldVector fields { 0 };
-    vector<TypeVariable *> unbound_generics;
-    vector<BoundTypeVariable> bound_generics;
+    vector<BoundTypeVariable> generics;
     UDT *next = nullptr, *first = this;  // Specializations
     UDT *superclass = nullptr;
     bool is_struct = false, hasref = false;
@@ -189,8 +188,10 @@ struct UDT : Named {
         return st;
     }
 
+    bool FullyBound() { return generics.empty() || !generics.back().type.Null(); }
+
     bool IsSpecialization(UDT *other) {
-        if (!unbound_generics.empty()) {
+        if (!FullyBound()) {
             for (auto udt = first->next; udt; udt = udt->next)
                 if (udt == other)
                     return true;
@@ -277,6 +278,7 @@ struct SubFunction {
     ArgVector args { 0 };
     ArgVector locals { 0 };
     ArgVector freevars { 0 };       // any used from outside this scope
+    vector<TypeRef> orig_types;     // before specialization, includes typevars. FIXME: Only needed once per overload
     TypeRef fixedreturntype = nullptr;
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
@@ -300,6 +302,7 @@ struct SubFunction {
     UDT *method_of = nullptr;
     int numcallers = 0;
     Type thistype { V_FUNCTION, this };  // convenient place to store the type corresponding to this
+    vector<BoundTypeVariable> generics;
 
     SubFunction(int _idx) : idx(_idx) {}
 
@@ -324,8 +327,7 @@ struct Function : Named {
     bool anonymous = false;
     // its merely a function type, has no body, but does have a set return type.
     bool istype = false;
-    // Store the original types the function was declared with, before specialization.
-    ArgVector orig_args { 0 };
+
     size_t scopelevel;
 
     Function(string_view _name, int _idx, size_t _sl)
@@ -473,7 +475,7 @@ struct SymbolTable {
         ident = NewId(name, sf);
         ident->anonymous_arg = anonymous_arg;
         (islocal ? sf->locals : sf->args).v.push_back(
-            Arg(ident->cursid, type_any, AF_GENERIC | (withtype ? AF_WITHTYPE : AF_NONE)));
+            Arg(ident->cursid, type_any, withtype ? AF_WITHTYPE : AF_NONE));
         if (existing_ident) {
             lex.Error("identifier redefinition / shadowing: " + ident->name);
         }
@@ -761,16 +763,29 @@ struct SymbolTable {
     }
 
     TypeRef ResolveTypeVars(TypeRef type) {
-        if (type->Wrapped()) {
-            auto nt = ResolveTypeVars(type->Element());
-            if (&*nt != &*type->Element()) {
-                return Wrap(nt, type->t);
-            }
-        } else if (type->t == V_TYPEVAR) {
-            for (auto bvec : reverse(bound_typevars_stack)) {
-                for (auto &btv : *bvec) {
-                    if (btv.tv == type->tv) return btv.type;
+        switch (type->t) {
+            case V_NIL:
+            case V_VECTOR: {
+                auto nt = ResolveTypeVars(type->Element());
+                if (&*nt != &*type->Element()) {
+                    return Wrap(nt, type->t);
                 }
+                break;
+            }
+            case V_TUPLE: {
+                auto nt = NewTuple(type->tup->size());
+                for (auto [i, te] : enumerate(*type->tup)) {
+                    nt->Set(i, &*ResolveTypeVars(te.type), te.lt);
+                }
+                return nt;
+            }
+            case V_TYPEVAR: {
+                for (auto bvec : reverse(bound_typevars_stack)) {
+                    for (auto &btv : *bvec) {
+                        if (btv.tv == type->tv && !btv.type.Null()) return btv.type;
+                    }
+                }
+                break;
             }
         }
         return type;
@@ -823,9 +838,15 @@ struct SymbolTable {
     }
 
     bool IsGeneric(TypeRef type) {
-        if (type->t == V_ANY) return true;
+        if (type->HasValueType(V_TYPEVAR)) return true;
         auto u = type->UnWrapped();
-        return IsUDT(u->t) && !u->udt->unbound_generics.empty();
+        return IsUDT(u->t) && !u->udt->FullyBound();
+    }
+
+    TypeVariable *NewGeneric(string_view name) {
+        auto tv = new TypeVariable { name };
+        typevars.push_back(tv);
+        return tv;
     }
 
     // This one is used to sort types for multi-dispatch.

@@ -75,7 +75,7 @@ vardef = ( `var` \| `let` ) list( ident ) `=` opexp
 
 enumdef = ( `enum` | `enum_flags` ) indlist( ident [ `=` integer\_constant ] )
 
-functiondef = `def` ident functionargsbody
+functiondef = `def` ident generics functionargsbody
 functionargsbody = `(` args `) :` body
 
 block = [ args ] `:` body \| functionargsbody
@@ -87,7 +87,7 @@ body = ( expstat \| indent stats dedent )
 type = `int` \| `float` \| `string` \| `[` type `]` \| `coroutine` \| `resource` \| `void`
     \| ident
 
-call = `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
+call = specializers `(` [ list( exp ) ] `)` [ block [ ident block … ] ]
 
 expstat = ( exp … `;` ) \| `return` ( [ list( opexp ) ] ) [ `from` ( `program`
 \| ident ) ]
@@ -101,7 +101,7 @@ opexp = unary ( `*` \| `/` \| `%` \|\| `+` \| `-` \|\| `<` \| `>` \| `>=` \|
 unary = ( `-` \| `!` \| `++` \| `--` \| \~ \| `not` ) unary \| deref
 
 deref = factor [ `[` exp `]` \| `.` ident [ call ] \| `->` ident
-\| `++` \| `--` \| call \| `is` type ]
+\| `++` \| `--` \| `is` type ]
 
 factor = constant \| `(` exp `)` \| constructor \| `def` functionargsbody \|
 `coroutine` ident call \| ident [ call ]
@@ -387,7 +387,8 @@ If you don't specify types, the function is generic,
 meaning it will receive types from the caller. If called with multiple
 combinations of incompatible arguments, you automatically get multiple
 "specializations" of the same function, meaning working with different types
-is very easy (more in [type system](type_checker.html)).
+is very easy. Alternatively, you can specify generic types explicitly as well
+(more in [type system](type_checker.html)).
 
 You can use :: instead of : for typed vector arguments, which allows you to
 access all fields / functions of that vector directly, without having to prefix

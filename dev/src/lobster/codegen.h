@@ -1302,7 +1302,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.Emit(IL_ISTYPE, cg.GetTypeTableOffset(giventype));
+        cg.Emit(IL_ISTYPE, cg.GetTypeTableOffset(resolvedtype));
     }
 }
 
@@ -1391,7 +1391,7 @@ void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
         cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(idr->exptype));
     } else {
         auto ta = AssertIs<TypeAnnotation>(child);
-        cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(ta->giventype));
+        cg.Emit(IL_PUSHINT, cg.GetTypeTableOffset(ta->exptype));
     }
 }
 

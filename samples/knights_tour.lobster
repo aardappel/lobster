@@ -13,7 +13,7 @@ def knights_tour(dim):
         candidates = filter(candidates) c: empty(c)
         if not candidates.length: return nil
         let degrees = map(candidates) c: (filter(knight_moves) m: empty(c + m)).length
-        cur = candidates[find_best(degrees) d: -d]
+        cur = candidates[find_best<int>(degrees) d: -d]
         board[cur] = step + 1
     return board
 

@@ -4,15 +4,6 @@ title: The Lobster Type System
 
 This document is about how to make most effective use of the type system..
 
-State of the Type Checker
--------------------------
-
-The type checker is now the only way to write Lobster code, even though it only
-just excited "beta" state. There may be rough edges. If after reading this
-document you still don't understand why you're getting type errors, contact me
-and I see if I can improve the compiler or the documentation. If the VM crashes
-due to a type related error, definitely contact me.
-
 The nature of the type system
 -----------------------------
 
@@ -86,6 +77,38 @@ string and calling string concatenation on the result, without making simpler
 cases like `add(1, 2)` slower because of type inspection. In fact, the
 opportunities for statically optimizing these operations are now greatly
 increased. This is very similar to C++ templates, but without the clunky syntax.
+
+It is typically "good style" in Lobster to use untyped arguments when a)
+multiple types are possible/useful, and b) there is no relation between the
+types of the arguments. Sometimes it is useful to use explicit generic
+annotations, for example:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def add<T>(x:T, y:T): x + y
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Would enforce that both parameters are of the same type, unlike the example above.
+The type `T` is automatically deduced from the first argument that matches it (in
+this case, the first), and then any further uses are required to be that same type,
+so for example `add(1.0, 1)` would make `T` a `float`, and thus coerce the second
+argument to `float` before the function call. In the untyped case above, it would
+specialize `add` for `(float, int)` arguments, and the coercion to `float`
+(required by `+`) would now happen inside the function.
+
+You can even specify the generic type explicitly, for example `add<float>(1, 1)`
+would actually coerce both arguments ahead of time. If the function has
+multiple generic arguments, you don't need to specify all of them, if the
+remaining ones can be inferred. Caveat: this currently only works where the `<`
+directly follows a known function name (to distinguish it from uses of the
+`<` operator).
+
+And all of this also works on untyped function declarations equally, since they
+internally get converted to explicit generics by simply adding generic types
+`A, B, C,..` to them for their untypes arguments.
+
+You can use generic types from surrounding functions, and from any class
+this function is a "method" of (either declared inside that class, or with the
+class type as first argument).
 
 The trouble with nil
 --------------------
@@ -231,7 +254,7 @@ require more code or may be less efficient.
 Generic classes and structs
 --------------------------
 
-Besides functions, classes can also be generic, but here we use explicit
+Besides functions, classes can also be generic, but here we only use explicit
 generic parameters to do so:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

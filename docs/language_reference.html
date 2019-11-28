@@ -43,17 +43,17 @@
 <p>specializers = <code>&lt;</code> list( type ) <code>&gt;</code> generics = <code>&lt;</code> list( ident ) <code>&gt;</code></p>
 <p>vardef = ( <code>var</code> | <code>let</code> ) list( ident ) <code>=</code> opexp</p>
 <p>enumdef = ( <code>enum</code> | <code>enum_flags</code> ) indlist( ident [ <code>=</code> integer_constant ] )</p>
-<p>functiondef = <code>def</code> ident functionargsbody functionargsbody = <code>(</code> args <code>) :</code> body</p>
+<p>functiondef = <code>def</code> ident generics functionargsbody functionargsbody = <code>(</code> args <code>) :</code> body</p>
 <p>block = [ args ] <code>:</code> body | functionargsbody</p>
 <p>args = [ list( ident [ ( <code>:</code> | <code>::</code> ) type ] ) ]</p>
 <p>body = ( expstat | indent stats dedent )</p>
 <p>type = <code>int</code> | <code>float</code> | <code>string</code> | <code>[</code> type <code>]</code> | <code>coroutine</code> | <code>resource</code> | <code>void</code> | ident</p>
-<p>call = <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
+<p>call = specializers <code>(</code> [ list( exp ) ] <code>)</code> [ block [ ident block … ] ]</p>
 <p>expstat = ( exp … <code>;</code> ) | <code>return</code> ( [ list( opexp ) ] ) [ <code>from</code> ( <code>program</code> | ident ) ]</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> | <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>
 <p>opexp = unary ( <code>*</code> | <code>/</code> | <code>%</code> || <code>+</code> | <code>-</code> || <code>&lt;</code> | <code>&gt;</code> | <code>&gt;=</code> | <code>&lt;=</code> || <code>==</code> | <code>!=</code> || <code>&amp;</code> | <code>|</code> | <code>&amp;&amp;</code> | <code>||</code> | <code>and</code> | <code>or</code> | ^ | <code>&lt;&lt;</code> | <code>&gt;&gt;</code>) unary</p>
 <p>unary = ( <code>-</code> | <code>!</code> | <code>++</code> | <code>--</code> | ~ | <code>not</code> ) unary | deref</p>
-<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | call | <code>is</code> type ]</p>
+<p>deref = factor [ <code>[</code> exp <code>]</code> | <code>.</code> ident [ call ] | <code>-&gt;</code> ident | <code>++</code> | <code>--</code> | <code>is</code> type ]</p>
 <p>factor = constant | <code>(</code> exp <code>)</code> | constructor | <code>def</code> functionargsbody | <code>coroutine</code> ident call | ident [ call ]</p>
 <p>constructor = <code>[</code> [ list( exp ) ] <code>]</code> [ <code>::</code> type ] | ident <code>{</code> [ list( exp ) ] <code>}</code></p>
 <p>constant = numeric_constant | string_constant | character_constant | <code>nil</code> [ <code>::</code> type ]</p>
@@ -154,7 +154,7 @@ print mat[pos]</code></pre>
     exp1
     exp2</code></pre>
 <p>The return value of a function is determined by its <code>return</code> statements (see below) or <code>void</code> (no return value) otherwise, except for anonymous functions, which don’t need an explicit <code>return</code> (it is automatically the last expression evaluated).</p>
-<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). If you don’t specify types, the function is generic, meaning it will receive types from the caller. If called with multiple combinations of incompatible arguments, you automatically get multiple “specializations” of the same function, meaning working with different types is very easy (more in <a href="type_checker.html">type system</a>).</p>
+<p>Arguments can be just an argument name (which will be available as a lexically scoped local variable inside body), or a typed name (e.g. <code>s:string</code>). If you don’t specify types, the function is generic, meaning it will receive types from the caller. If called with multiple combinations of incompatible arguments, you automatically get multiple “specializations” of the same function, meaning working with different types is very easy. Alternatively, you can specify generic types explicitly as well (more in <a href="type_checker.html">type system</a>).</p>
 <p>You can use :: instead of : for typed vector arguments, which allows you to access all fields / functions of that vector directly, without having to prefix them with the argument name, e.g.:</p>
 <pre><code>def magnitude(v::xy): return sqrt(x * x + y * y)</code></pre>
 <p>You can also leave out the <code>v::xy</code> entirely if you define this function as part of a <code>class</code> / <code>struct</code> definition of type <code>xy</code> (see above). Both types of definition are equivalent.</p>
@@ -174,7 +174,7 @@ print mat[pos]</code></pre>
 <pre><code>for(10) i: print(i)
 for(10): print(_)
 for 10: print _</code></pre>
-<p>You can leave out the parentheses, and you may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in lexical order, irrespective of what order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
+<p>You can leave out the parentheses, and you may use anonymous arguments, which are variable names starting with an <code>_</code> that will automatically be declared as arguments for you. If you use multiple such arguments (e.g. <code>_a</code> and <code>_b</code>), they will become arguments in the order they appear in the body. Using anonymous variables is only recommended for very simple function bodies.</p>
 <p>As mentioned above, you may drop the parentheses entirely if the body doesn’t have any argument declarations.</p>
 <p>This style of syntax is intended to make each function that takes a function as argument (a <em>higher order function</em>) have the convenient syntax of a control structure, since that’s what those functions usually are meant to be anyway. In fact, Lobster’s built-in control structures <code>if</code> <code>for</code> and <code>while</code> are actually parsed just like any other function, and have no special syntactical status (you’ll notice they’re not part of the language grammar above).</p>
 <p>As an example of how to pass more than one function value, let’s see an example for <code>if</code>:</p>
