@@ -1,11 +1,78 @@
-- jcorbin: weighted_pick, find_best, product and sum in std.lobster all have a problem of not being able to
-  type the 0. This can be solved in a few ways:
-  - some construct to get a default value for any type (does not work for product, except for +0)
-  - a way to cast to a type obtained from typeof (though would need vector element of typeof)
-  - explicit genericity, and generic type cast, which may be generally most useful:
-    def sum<T>(xs:[T]): return fold(xs, T(0)): _x + _y
-    This would mirror what we already have for structs/classes.
-    (more complicated, since it requires vector of type var, which we don't have yet)
+- General order of typechecking is:
+  * child TT
+  * child LT adjust
+  * subtype coercion
+  This can be problematic in some cases, what really needs to happen is:
+  * child TT
+  * child LT adjust for coercion
+  * subtype coercion
+  * child LT adjust for recipient
+  This is already done manually in a few places, but would be good to do more consistently.
+  Recent example:
+  def multirettyped() -> float, string: return 1, "a"
+  This first causes a LT adjust on the MultiReturn, which the can't have coercion applied to it
+  anymore in Subtype (see end of TypeCheck::Return).
+  Also, maybe have the case where LT adjust does nothing (e.g. for integer) then subtype coercion
+  to e.g. string suddenly needs a different LT than the initial TT.
+
+- Explicit genericity for functions.
+  - weighted_pick: being able to write "T is float" would be cool.
+  - See typetest.lobster: Explicit generic mixed with dynamic dispatch doesn't seem to work.
+  - Generics for function types? See use of R in std.
+
+- kriskowal: adopt Python's "pass" statement, a void nop (better than nil idiom).
+
+- kriskowal: maybe replace gl_button string with an enum.
+
+- docs: explain about unbound variables, and what causes:
+  type variable does not have field: size
+
+- It would be better if we could leave the decision wether something is a builtin or a user
+  defined function to the type checker, since that would allow user defined types to have
+  a length function, or anything else that clashes with builtins.
+  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
+  and optional things etc.
+  Maybe if both are available, we could simply require that the user function corresponds to
+  the builtin one in terms of these features, and otherwise error?
+- the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
+  called "length" anywhere, suddenly all calls to length() don't work anymore.
+  Only way to fix this is to delay this decision until typechecking.
+- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
+  clash with typechecking.
+  - this would also allow defining methods with the same name as builtins, which is sorely needed.
+  - after cleaning up parser, for every top level definition should mark from which file it comes,
+    and then each use should make sure that file has been included in the current file, to avoid
+    suprises when things are included independently.
+  - if we can delay looking up the function to the type checker, then we can allow
+    "functions as environments", e.g.
+    def env(f):
+        v := 1
+        def m(): return v++
+        f()
+    env():
+        for 10: print m()
+        env():
+            m()  // increments different variable!
+    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
+    The type checker already supports this, its just the parser lookup!
+    Using this recursively will make it harder to optimize stack frame usage in the future,
+    though neither match nor gui is properly recursive, it is all instantiated.
+  - example of deciding between different methods going wrong:
+    class foo:
+        def f(): g(3)
+        def g(n): print(n)
+    class bar:
+        def f(): g(3, 4)
+        def g(n, m): print(n + " " + m)
+    bar{}.f()
+    bar{}.g(1, 2)
+    foo{}.f()
+    foo{}.g(1)
+    error: "g" (1st argument) requires type: foo, got: int
+  - can things like closures be parsed conservatively after a function call without knowing
+    the function? It seems to already work for some calls:
+    def foo(fun):
+      fun() x: print x
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
@@ -39,10 +106,11 @@
   - especially so since insatiable random generators (to get multiple
     independent streams) would be great in addition to / instead of a shared
     global generator
+- doug currie: rnd(9223372036854775807) always returns 1.
+  rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
+  results for existing code..
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
-
-- jcorbin: vectorized clamp function (and evaluate other adjacent functions while at it)
 
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
@@ -55,6 +123,14 @@
 - remove logvars?
 
 - run coverage to see where more tests are needed.
+
+- Remove exceptions completely by making each function call always check for a target function,
+  and then make runtime errors use the same mechanism
+  - fun way to make this fast: if an exception occurs, decrement the return_ip field in all
+    stackframes by N, and insert an exit function jump after each call, and before the regular
+    continuation. Then the code can unwind without conditionals.
+    Though not easy to do in C++/Wasm backend mode.
+  - alternatively: each call supplies 2 return ips, the regular and error paths.
 
 - do more inlining:
   - mark certain functions as un-inlinable.
@@ -97,6 +173,8 @@
     - allow fields in a struct to be preceded by var, and similarly in a class by let
       to change their respective defaults.
     - Will greatly expand the zero abstraction use cases where
+    - once structs are mutable, maybe introduce a way to annotate both structs and classes
+      as immutable?
   - can maybe simplify some of type checker now that certain ops don't ever deal with refs,
     for anything vector related, like MathCheckVector
   - finally split builtins into one op per len.
@@ -147,37 +225,6 @@
     - allow function to declare that they take their first are without ()
       - now spacing doesn't matter
       - but we don't even want to allow `for (` necessarily.
-
-- It would be better if we could leave the decision wether something is a builtin or a user
-  defined function to the type checker, since that would allow user defined types to have
-  a length function, or anything else that clashes with builtins.
-  Problem is, we rely on deciding this in the parser for things like parsing lambda args,
-  and optional things etc.
-  Maybe if both are available, we could simply require that the user function corresponds to
-  the builtin one in terms of these features, and otherwise error?
-- the parser deciding between a field or function upon x.y is very brittle, the moment someone adds a field
-  called "length" anywhere, suddenly all calls to length() don't work anymore.
-  Only way to fix this is to delay this decision until typechecking.
-- should overhaul ParseFunctionCall, it contains way too much special purpose logic that may
-  clash with typechecking.
-  - this would also allow defining methods with the same name as builtins, which is sorely needed.
-  - after cleaning up parser, for every top level definition should mark from which file it comes,
-    and then each use should make sure that file has been included in the current file, to avoid
-    suprises when things are included independently.
-  - if we can delay looking up the function to the type checker, then we can allow
-    "functions as environments", e.g.
-    def env(f):
-        v := 1
-        def m(): return v++
-        f()
-    env():
-        for 10: print m()
-        env():
-            m()  // increments different variable!
-    This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
-    The type checker already supports this, its just the parser lookup!
-    Using this recursively will make it harder to optimize stack frame usage in the future,
-    though neither match nor gui is properly recursive, it is all instantiated.
 
 - remove V_NIL from elemtypes and ElemTypeS, no users need this information, in fact all are
   working around it.
@@ -280,6 +327,8 @@
 - Python struct create: printf for binary https://docs.python.org/2/library/struct.html
 
 - Built-in dictionary type?
+
+- For fun: follow along https://github.com/kanaka/mal/blob/master/process/guide.md
 
 - Would be useful to typecheck top-level named functions that have a full type signature
   and haven't been typechecked at the end of type-checking, to get any type errors they
