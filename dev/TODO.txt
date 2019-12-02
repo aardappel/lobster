@@ -1,3 +1,9 @@
+- Typechecker can actually blow the 1MB Windows stack space on complex programs.
+  Set to 16MB for the moment.
+  Each function nesting can easily take 10 calls, and since even simple if-then's
+  do this, it quickly adds up in number of calls.
+  Need to create an explicit stack for recursive calls.
+
 - General order of typechecking is:
   * child TT
   * child LT adjust

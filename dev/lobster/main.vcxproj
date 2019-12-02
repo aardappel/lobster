@@ -80,8 +80,7 @@
       <AdditionalLibraryDirectories>..\lib;$(DXSDK_DIR)\Lib\x86</AdditionalLibraryDirectories>
       <StackCommitSize>
       </StackCommitSize>
-      <StackReserveSize>
-      </StackReserveSize>
+      <StackReserveSize>16000000</StackReserveSize>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/HIGHENTROPYVA:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -118,8 +117,7 @@
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>false</GenerateMapFile>
       <MapExports>false</MapExports>
-      <StackReserveSize>
-      </StackReserveSize>
+      <StackReserveSize>16000000</StackReserveSize>
       <DelayLoadDLLs>openvr_api.dll;steam_api64.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/HIGHENTROPYVA:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
