@@ -834,6 +834,11 @@
   it can now show multiple variables of the same name and variables that are not really in scope
   anymore.
 
+- Should probably allow named functions as function values too.
+  - See could_be_function in parser.
+  - Need to make sure this works with overloading, templates, etc..
+  - There are various places in the code where we assume "anonymous" is very different from named.
+
 - the codesize optimization where we introduce a function type for gui_button or whatever
   should really be possible to be done automatically, as long as it doesn't touch functions
   like map for which performance may be important. could have an easy way to annotate a

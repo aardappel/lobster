@@ -484,13 +484,6 @@ struct SymbolTable {
         return ident;
     }
 
-    Ident *LookupUse(string_view name, Lex &lex) {
-        auto id = Lookup(name);
-        if (!id)
-            lex.Error("unknown identifier: " + name);
-        return id;
-    }
-
     void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
         if (!IsUDT(t->t)) lex.Error(":: can only be used with struct/value types");
         for (auto &wp : withstack)

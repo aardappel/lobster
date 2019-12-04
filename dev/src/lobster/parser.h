@@ -1340,7 +1340,7 @@ struct Parser {
         }
         auto id = st.Lookup(idname);
         // Check for function call without ().
-        if (!id && (nf || f) && lex.whitespacebefore > 0) {
+        if (!id && (nf || f) && lex.whitespacebefore > 0 && lex.token != T_LINEFEED) {
             return ParseFunctionCall(f, nf, idname, nullptr, false, true);
         }
         // Check for enum value.
@@ -1350,10 +1350,10 @@ struct Parser {
             ic->from = ev;
             return ic;
         }
-        return IdentUseOrWithStruct(idname);
+        return IdentUseOrWithStruct(idname, f || nf);
     }
 
-    Node *IdentUseOrWithStruct(string_view idname) {
+    Node *IdentUseOrWithStruct(string_view idname, bool could_be_function = false) {
         // Check for field reference in function with :: arguments.
         Ident *id = nullptr;
         auto fld = st.LookupWithStruct(idname, lex, id);
@@ -1362,8 +1362,14 @@ struct Parser {
             dot->Add(new IdentRef(lex, id->cursid));
             return dot;
         }
-        // It's a regular variable.
-        return new IdentRef(lex, st.LookupUse(idname, lex)->cursid);
+        // It's likely a regular variable.
+        id = st.Lookup(idname);
+        if (!id) {
+            lex.Error((could_be_function
+                ? "can't use named function as value: "
+                : "unknown identifier: ") + idname);
+        }
+        return new IdentRef(lex, id->cursid);
     }
 
     bool IsNext(TType t) {
