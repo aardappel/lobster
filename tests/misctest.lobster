@@ -7,7 +7,8 @@ import vec
 
 namespace test_namespace
 
-def f(): return 1
+def f(): return f2()  // Forward call with correct namespace.
+def f2(): return 1
 class g:
     x = 1
     def m(): return 2

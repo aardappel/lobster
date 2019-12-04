@@ -23,6 +23,7 @@ struct Parser {
     vector<string_view> trailingkeywordedfunctionvaluestack;
     struct ForwardFunctionCall {
         size_t maxscopelevel;
+        string call_namespace;
         GenericCall *n;
         bool has_firstarg;
         SymbolTable::WithStackElem wse;
@@ -977,7 +978,9 @@ struct Parser {
         } else {
             auto call = new GenericCall(lex, idname, nullptr, false, specializers);
             ParseFunArgs(call, coroutine, firstarg);
-            ForwardFunctionCall ffc = { st.scopelevels.size(), call, !!firstarg, wse };
+            ForwardFunctionCall ffc = {
+                st.scopelevels.size(), st.current_namespace, call, !!firstarg, wse
+            };
             forwardfunctioncalls.push_back(ffc);
             return call;
         }
@@ -1011,7 +1014,9 @@ struct Parser {
     void ResolveForwardFunctionCalls() {
         for (auto ffc = forwardfunctioncalls.begin(); ffc != forwardfunctioncalls.end(); ) {
             if (ffc->maxscopelevel >= st.scopelevels.size()) {
+                swap(ffc->call_namespace, st.current_namespace);
                 auto f = st.FindFunction(ffc->n->name);
+                swap(ffc->call_namespace, st.current_namespace);
                 if (f) {
                     if (!ffc->has_firstarg) {
                         auto self = SelfArg(f, ffc->wse);
