@@ -955,8 +955,12 @@ struct TypeChecker {
                 // should be ok to reuse.
                 for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
                     auto &arg = sf->args.v[i];
-                    if (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
-                        AllowAnyLifetime(arg)) goto fail;
+                    if ((IsBorrow(c->lt) != IsBorrow(arg.sid->lt) && AllowAnyLifetime(arg)) ||
+                        // TODO: we need this check here because arg type may rely on parent
+                        // struct (or function) generic, and thus isn't covered by the checking
+                        // of sf->generics below. Can this be done more elegantly?
+                        (st.IsGeneric(sf->orig_types[i]) && !ExactType(c->exptype, arg.type)))
+                        goto fail;
                 }
                 for (auto [i, btv] : enumerate(sf->generics)) {
                     if (!ExactType(btv.type, generics[i].type)) goto fail;

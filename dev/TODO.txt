@@ -42,6 +42,8 @@
   to e.g. string suddenly needs a different LT than the initial TT.
 
 - Explicit genericity for functions.
+  - Would be good if the type of "this" on a A<T> class would be A<T>, not A.
+    See also IsGeneric that has to explicitly test A to see if it has unbound generics.
   - if we had T() as a cast, we could fix the enum type problem in gui_multiselect.
     - that is yet another form of function call in the parser.. better first refactor that.
   - weighted_pick: being able to write "T is float" would be cool.
