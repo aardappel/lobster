@@ -425,3 +425,7 @@ Field::Field(const Field &o)
     : type(o.type), id(o.id), defaultval(o.defaultval ? o.defaultval->Clone() : nullptr) {}
 
 }
+
+#if STACK_PROFILING_ON
+    vector<StackProfile> stack_profiles;
+#endif

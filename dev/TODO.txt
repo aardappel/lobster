@@ -1,8 +1,28 @@
-- Typechecker can actually blow the 1MB Windows stack space on complex programs.
-  Set to 16MB for the moment.
-  Each function nesting can easily take 10 calls, and since even simple if-then's
-  do this, it quickly adds up in number of calls.
-  Need to create an explicit stack for recursive calls.
+- We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
+  this for regular V_VAR?
+
+- jcorbin: improved random number generation:
+  - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
+  - a good lobster choice may be to abstract them as coroutines, or at least a
+    higher order `def generator(consume):` protocol
+  - especially so since insatiable random generators (to get multiple
+    independent streams) would be great in addition to / instead of a shared
+    global generator
+- doug currie: rnd(9223372036854775807) always returns 1.
+  rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
+  results for existing code..
+
+- jg/jcorbin: should allow function values to be other than just variables, any exp.
+  currently not even `f()` works if `f` is a member variable.
+  _ as function value doesn't even work even though explicit var does for loop.
+  maybe this feature is easier to introduce after refactoring what happens in the parser.
+
+- jg: it's pretty easy to define a function value with an escaping free variable that gets
+  caught neither at compile time nor at runtime.
+  We need to somehow protect users expecting closures from this, yet we don't want to blanket
+  forbid free variables when something becomes a dynamic function value, since there are plenty
+  of useful cases of accessing top level variables etc.
+  Maybe somehow tie the scope of free variables to the function type?
 
 - General order of typechecking is:
   * child TT
@@ -22,6 +42,8 @@
   to e.g. string suddenly needs a different LT than the initial TT.
 
 - Explicit genericity for functions.
+  - if we had T() as a cast, we could fix the enum type problem in gui_multiselect.
+    - that is yet another form of function call in the parser.. better first refactor that.
   - weighted_pick: being able to write "T is float" would be cool.
   - See typetest.lobster: Explicit generic mixed with dynamic dispatch doesn't seem to work.
   - Generics for function types? See use of R in std.
@@ -82,10 +104,6 @@
 
 - kriskowal: a non-allocating version of copy() with a second destination arg.
 
-- jcorbin: should allow function values to be other than just variables, any exp.
-  currently not even `f()` works if `f` is a member variable.
-  _ as function value doesn't even work even though explicit var does for loop.
-
 - kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
 
 - replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
@@ -104,17 +122,6 @@
     Fundamentally, state that survives a frame needs to be carefully managed regardless.
     Co-routines have also been an endless source of complexity in the VM, and don't fit
     with Lobster's new focus on efficiency.
-
-- jcorbin: improved random number generation:
-  - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
-  - a good lobster choice may be to abstract them as coroutines, or at least a
-    higher order `def generator(consume):` protocol
-  - especially so since insatiable random generators (to get multiple
-    independent streams) would be great in addition to / instead of a shared
-    global generator
-- doug currie: rnd(9223372036854775807) always returns 1.
-  rnd only works in 32-bit currently. could make it use 64-bit, but this will change the
-  results for existing code..
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
 
@@ -829,6 +836,23 @@
 - add options to either show more extensive stacktrace dump to either stdout or file.
 
 - break statement
+
+- Typechecker can actually blow the 1MB Windows stack space on complex programs.
+  Set to 16MB for the moment.
+  Each function nesting can easily take 10 calls, and since even simple if-then's
+  do this, it quickly adds up in number of calls.
+  Need to create an explicit stack for recursive calls.
+  - Apparently the amount of guard values inserted in Debug seems random and can be quite large, it
+    appears to be using 5-10x as much stack as in release mode, so stack defaults should reflect
+    that.
+    - checking stack usage with /RTC off (on language project) is more meaningful -> rebuild.
+      Reduced stack usage by.. 2.5x?
+    - Even after that, the amount of stack space in the function prologue being allocated by
+      lea rsp / rbp setup is way bigger than the amount of locals?
+  - Even release mode stack frames are huge, similar to debug with /RTC off.
+    /GS off seems to make a huge difference in release, unlike debug, 4x in some cases.
+  - Maybe add this for Linux/OSX:
+    https://stackoverflow.com/questions/2275550/change-stack-size-for-a-c-application-in-linux-during-compilation-with-gnu-com
 
 - inlining has kind of broken the variable stack trace. not only are certain functions gone,
   it can now show multiple variables of the same name and variables that are not really in scope
@@ -1890,6 +1914,7 @@ VM64-MSVC: inlinestr  : secs 16.8 inline structs v1
 C++64-MSVC: inlinestr : secs 13.0 inline structs v1
 C++64-MSVC: immediates: secs 12.4 direct immediates in native code VM calls
 C++64-MSVC: dd        : secs 11.9
+VM64-MSVC:            : secs 16.0 (newer VS, better release settings??)
 
 compiletime speed:
 

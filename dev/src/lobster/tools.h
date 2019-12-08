@@ -871,3 +871,34 @@ inline void unit_test_tools() {
     assert(strcmp(null_terminated<0>(string_view("aa", 1)),
                   null_terminated<1>(string_view("bb", 1))) != 0);
 }
+
+
+// Stack profiling.
+
+
+struct StackProfile {
+    const char *name;
+    void *stack_level;
+    ptrdiff_t diff;
+};
+extern vector<StackProfile> stack_profiles;
+struct StackHelper {
+    StackHelper(const char *name) {
+        stack_profiles.push_back({
+            name,
+            this,
+            stack_profiles.empty() ? 0 : (char *)stack_profiles.back().stack_level - (char *)this
+        });
+    }
+    ~StackHelper() {
+        stack_profiles.pop_back();
+    }
+};
+
+#define STACK_PROFILING_ON 0
+
+#if STACK_PROFILING_ON
+    #define STACK_PROFILE StackHelper __stack_helper(__FUNCTION__);
+#else
+    #define STACK_PROFILE
+#endif

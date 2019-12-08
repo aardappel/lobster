@@ -670,6 +670,7 @@ struct TypeChecker {
 
     void TypeCheckFunctionDef(SubFunction &sf, const Node &call_context) {
         if (sf.typechecked) return;
+        STACK_PROFILE;
         LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
         scope.sf = &sf;
@@ -834,345 +835,351 @@ struct TypeChecker {
         }
     }
 
-    TypeRef TypeCheckCall(SubFunction *csf, List *call_args, SubFunction *&chosen,
-                          const Node &call_context, size_t reqret, int &vtable_idx,
-                          vector<TypeRef> *specializers = nullptr) {
-        Function &f = *csf->parent;
-        UDT *dispatch_udt = nullptr;
-        vtable_idx = -1;
-
-        auto TypeCheckMatchingCall = [&](SubFunction *sf, bool static_dispatch, bool first_dynamic) {
-            // Here we have a SubFunction witch matching specialized types.
-            sf->numcallers++;
-            Function &f = *sf->parent;
-            if (!f.istype) TypeCheckFunctionDef(*sf, call_context);
-            // Finally check all args. We do this after checking the function
-            // definition, since SubType below can cause specializations of the current function
-            // to be typechecked with strongly typed function value arguments.
-            for (auto [i, c] : enumerate(call_args->children)) {
-                if (i < f.nargs()) /* see below */ {
-                    auto &arg = sf->args.v[i];
-                    if (static_dispatch || first_dynamic) {
-                        // Check a dynamic dispatch only for the first case, and then skip
-                        // checking the first arg.
-                        if (static_dispatch || i)
-                            SubType(c, arg.type, ArgName(i), f.name);
-                        AdjustLifetime(c, arg.sid->lt);
-                    }
+    TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
+                                  bool first_dynamic) {
+        STACK_PROFILE;
+        // Here we have a SubFunction witch matching specialized types.
+        sf->numcallers++;
+        Function &f = *sf->parent;
+        if (!f.istype) TypeCheckFunctionDef(*sf, call_args);
+        // Finally check all args. We do this after checking the function
+        // definition, since SubType below can cause specializations of the current function
+        // to be typechecked with strongly typed function value arguments.
+        for (auto [i, c] : enumerate(call_args.children)) {
+            if (i < f.nargs()) /* see below */ {
+                auto &arg = sf->args.v[i];
+                if (static_dispatch || first_dynamic) {
+                    // Check a dynamic dispatch only for the first case, and then skip
+                    // checking the first arg.
+                    if (static_dispatch || i)
+                        SubType(c, arg.type, ArgName(i), f.name);
+                    AdjustLifetime(c, arg.sid->lt);
                 }
-                // This has to happen even to dead args:
-                if (static_dispatch || first_dynamic) DecBorrowers(c->lt, call_context);
             }
-            chosen = sf;
-            for (auto &freevar : sf->freevars.v) {
-                // New freevars may have been added during the function def typecheck above.
-                // In case their types differ from the flow-sensitive value at the callsite (here),
-                // we want to override them.
-                freevar.type = freevar.sid->Current()->type;
+            // This has to happen even to dead args:
+            if (static_dispatch || first_dynamic) DecBorrowers(c->lt, call_args);
+        }
+        for (auto &freevar : sf->freevars.v) {
+            // New freevars may have been added during the function def typecheck above.
+            // In case their types differ from the flow-sensitive value at the callsite (here),
+            // we want to override them.
+            freevar.type = freevar.sid->Current()->type;
+        }
+        // See if this call is recursive:
+        for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
+        return sf->returntype;
+    };
+
+    bool SpecializationIsCompatible(const SubFunction &sf, size_t reqret) {
+        return reqret == sf.reqret &&
+            FreeVarsSameAsCurrent(sf, false) &&
+            CompatibleReturns(sf);
+    };
+
+    void ReplayReturns(const SubFunction *sf, const Node &call_context) {
+        // Apply effects of return statements for functions being reused, see
+        // RetVal above.
+        for (auto [isf, type] : sf->reuse_return_events) {
+            for (auto isc : reverse(scopes)) {
+                if (isc.sf->parent == isf->parent) {
+                    // NOTE: will have to re-apply lifetimes as well if we change
+                    // from default of LT_KEEP.
+                    RetVal(type, isc.sf, call_context, false);
+                    // This should in theory not cause an error, since the previous
+                    // specialization was also ok with this set of return types.
+                    // It could happen though if this specialization has an
+                    // additional return statement that was optimized
+                    // out in the previous one.
+                    SubTypeT(type, isc.sf->returntype, call_context, "",
+                        "reused return value");
+                    break;
+                }
+                CheckReturnPast(isc.sf, isf, call_context);
             }
-            // See if this call is recursive:
-            for (auto &sc : scopes) if (sc.sf == sf) { sf->isrecursivelycalled = true; break; }
-            return sf->returntype;
-        };
+        }
+    };
 
-        auto SpecializationIsCompatible = [&](const SubFunction &sf) {
-            return reqret == sf.reqret &&
-                FreeVarsSameAsCurrent(sf, false) &&
-                CompatibleReturns(sf);
-        };
-
-        auto ReplayReturns = [&](const SubFunction *sf) {
-            // Apply effects of return statements for functions being reused, see
-            // RetVal above.
-            for (auto [isf, type] : sf->reuse_return_events) {
-                for (auto isc : reverse(scopes)) {
-                    if (isc.sf->parent == isf->parent) {
-                        // NOTE: will have to re-apply lifetimes as well if we change
-                        // from default of LT_KEEP.
-                        RetVal(type, isc.sf, call_context, false);
-                        // This should in theory not cause an error, since the previous
-                        // specialization was also ok with this set of return types.
-                        // It could happen though if this specialization has an
-                        // additional return statement that was optimized
-                        // out in the previous one.
-                        SubTypeT(type, isc.sf->returntype, call_context, "",
-                            "reused return value");
+    TypeRef TypeCheckCallStatic(SubFunction *&sf, List &call_args, size_t reqret,
+                                vector<TypeRef> *specializers, int overload_idx,
+                                bool static_dispatch, bool first_dynamic) {
+        STACK_PROFILE;
+        Function &f = *sf->parent;
+        sf = f.overloads[overload_idx];
+        if (sf->logvarcallgraph) {
+            // Mark call-graph up to here as using logvars, if it hasn't been already.
+            for (auto sc : reverse(scopes)) {
+                if (sc.sf->logvarcallgraph) break;
+                sc.sf->logvarcallgraph = true;
+            }
+        }
+        // Collect generic type values.
+        vector<BoundTypeVariable> generics = sf->generics;
+        for (auto &btv : generics) btv.type = nullptr;
+        if (specializers) {
+            if (specializers->size() > generics.size())
+                TypeError("too many specializers given", call_args);
+            for (auto [i, type] : enumerate(*specializers))
+                generics[i].type = st.ResolveTypeVars(type);
+        }
+        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+            auto otype = sf->orig_types[i];
+            auto atype = c->exptype;
+            while (otype->Wrapped() && otype->t == atype->t) {
+                otype = otype->Element();
+                atype = atype->Element();
+            }
+            if (otype->t == V_TYPEVAR) {
+                for (auto &btv : generics) {
+                    if (btv.tv == otype->tv && btv.type.Null()) {
+                        btv.type = atype;
                         break;
                     }
-                    CheckReturnPast(isc.sf, isf, call_context);
                 }
             }
+        }
+        for (auto &btv : generics) if (btv.type.Null())
+            TypeError("Type variable " + btv.tv->name + " not bound in call to " + f.name,
+                      call_args);
+        // Check if we need to specialize: generic args, free vars and need of retval
+        // must match previous calls.
+        auto AllowAnyLifetime = [&](const Arg &arg) {
+            return arg.sid->id->single_assignment && !sf->iscoroutine;
         };
-
-        auto TypeCheckCallStatic = [&](int overload_idx, bool static_dispatch, bool first_dynamic) {
-            Function &f = *csf->parent;
-            SubFunction *sf = f.overloads[overload_idx];
-            if (sf->logvarcallgraph) {
-                // Mark call-graph up to here as using logvars, if it hasn't been already.
-                for (auto sc : reverse(scopes)) {
-                    if (sc.sf->logvarcallgraph) break;
-                    sc.sf->logvarcallgraph = true;
+        // Check if any existing specializations match.
+        for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
+            if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
+                // We check against f.nargs because HOFs are allowed to call a function
+                // value with more arguments than it needs (if we're called from
+                // TypeCheckDynCall). Optimizer always removes these.
+                // Note: we compare only lt, since calling with other borrowed sid
+                // should be ok to reuse.
+                for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+                    auto &arg = sf->args.v[i];
+                    if (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
+                        AllowAnyLifetime(arg)) goto fail;
                 }
-            }
-            // Collect generic type values.
-            vector<BoundTypeVariable> generics = sf->generics;
-            for (auto &btv : generics) btv.type = nullptr;
-            if (specializers) {
-                if (specializers->size() > generics.size())
-                    TypeError("too many specializers given", call_context);
-                for (auto [i, type] : enumerate(*specializers))
-                    generics[i].type = st.ResolveTypeVars(type);
-            }
-            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                auto otype = sf->orig_types[i];
-                auto atype = c->exptype;
-                while (otype->Wrapped() && otype->t == atype->t) {
-                    otype = otype->Element();
-                    atype = atype->Element();
+                for (auto [i, btv] : enumerate(sf->generics)) {
+                    if (!ExactType(btv.type, generics[i].type)) goto fail;
                 }
-                if (otype->t == V_TYPEVAR) {
-                    for (auto &btv : generics) {
-                        if (btv.tv == otype->tv && btv.type.Null()) {
-                            btv.type = atype;
-                            break;
-                        }
-                    }
-                }
-            }
-            for (auto &btv : generics) if (btv.type.Null())
-                TypeError("Type variable " + btv.tv->name + " not bound in call to " + f.name,
-                          call_context);
-            // Check if we need to specialize: generic args, free vars and need of retval
-            // must match previous calls.
-            auto AllowAnyLifetime = [&](const Arg &arg) {
-                return arg.sid->id->single_assignment && !sf->iscoroutine;
-            };
-            // Check if any existing specializations match.
-            for (sf = f.overloads[overload_idx]; sf; sf = sf->next) {
-                if (sf->typechecked && !sf->mustspecialize && !sf->logvarcallgraph) {
-                    // We check against f.nargs because HOFs are allowed to call a function
-                    // value with more arguments than it needs (if we're called from
-                    // TypeCheckDynCall). Optimizer always removes these.
-                    // Note: we compare only lt, since calling with other borrowed sid
-                    // should be ok to reuse.
-                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                        auto &arg = sf->args.v[i];
-                        if (IsBorrow(c->lt) != IsBorrow(arg.sid->lt) &&
-                            AllowAnyLifetime(arg)) goto fail;
-                    }
-                    for (auto [i, btv] : enumerate(sf->generics)) {
-                        if (!ExactType(btv.type, generics[i].type)) goto fail;
-                    }
-                    if (SpecializationIsCompatible(*sf)) {
-                        // This function can be reused.
-                        // Make sure to add any freevars this call caused to be
-                        // added to its parents also to the current parents, just in case
-                        // they're different.
-                        LOG_DEBUG("re-using: ", Signature(*sf));
-                        for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
-                        ReplayReturns(sf);
-                        return TypeCheckMatchingCall(sf, static_dispatch, first_dynamic);
-                    }
-                    fail:;
-                }
-            }
-            // No match.
-            sf = f.overloads[overload_idx];
-            // Specialize existing function, or its clone.
-            if (sf->typechecked) sf = CloneFunction(sf, overload_idx);
-            // Now specialize.
-            sf->reqret = reqret;
-            sf->generics = generics;
-            if (sf->method_of)
-                st.bound_typevars_stack.push_back(&call_args->children[0]->exptype->udt->generics);
-            st.bound_typevars_stack.push_back(&sf->generics);
-            // See if this is going to be a coroutine.
-            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
-                if (Is<CoClosure>(c))
-                    sf->iscoroutine = true;
-            }
-            for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) /* see above */ {
-                auto &arg = sf->args.v[i];
-                arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
-                auto otype = sf->orig_types[i];
-                auto u = otype->UnWrapAll();
-                // We have 2 types of generics here that may need updating, typevars and
-                // struct types with unresolved typevars.
-                if (u->t ==V_TYPEVAR) {
-                    arg.type = st.ResolveTypeVars(otype);
-                } else if (IsUDT(u->t) && !u->udt->FullyBound()) {
-                    arg.type = c->exptype;
-                    // Check if argument is a generic struct type, or wrapped in vector/nilable.
-                    if (otype->EqNoIndex(*arg.type)) {
-                        auto givenu = arg.type->UnWrapAll();
-                        if (!IsUDT(givenu->t) ||
-                            (!u->udt->IsSpecialization(givenu->udt) &&
-                            st.SuperDistance(u->udt, givenu->udt) < 0)) {
-                            TypeError(TypeName(otype), arg.type, *c, arg.sid->id->name, f.name);
-                        }
-                    } else {
-                        // This likely generates either an error, or contains an unbound var
-                        // that will get bound.
-                        SubTypeT(arg.type, otype, *c, arg.sid->id->name, f.name);
-                    }
-                }
-                LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
-            }
-            // This must be the correct freevar specialization.
-            assert(!f.anonymous || sf->freevarchecked);
-            assert(!sf->freevars.v.size());
-            LOG_DEBUG("specialization: ", Signature(*sf));
-            auto rtype = TypeCheckMatchingCall(sf, static_dispatch, first_dynamic);
-            st.bound_typevars_stack.pop_back();
-            if (sf->method_of) st.bound_typevars_stack.pop_back();
-            return rtype;
-        };
-
-        auto TypeCheckCallDispatch = [&]() {
-            // We must assume the instance may dynamically be different, so go thru vtable.
-            // See if we already have a vtable entry for this type of call.
-            for (auto [i, disp] : enumerate(dispatch_udt->dispatch)) {
-                // FIXME: does this guarantee it find it in the recursive case?
-                // TODO: we chould check for a superclass vtable entry also, but chances
-                // two levels will be present are low.
-                if (disp.sf && disp.sf->method_of == dispatch_udt && disp.is_dispatch_root &&
-                    &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf)) {
-                    for (auto [i, c] : enumerate(call_args->children)) if (i < f.nargs()) {
-                        auto &arg = disp.sf->args.v[i];
-                        if (i && !ConvertsTo(c->exptype, arg.type, false, false))
-                            goto fail;
-                    }
-                    for (auto udt : dispatch_udt->subudts) {
-                        // Since all functions were specialized with the same args, they should
-                        // all be compatible if the root is.
-                        auto sf = udt->dispatch[i].sf;
-                        LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
-                        assert(SpecializationIsCompatible(*sf));
-                        for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
-                        ReplayReturns(sf);
-                    }
-                    // Type check this as if it is a static dispatch to just the root function.
-                    TypeCheckMatchingCall(disp.sf, true, false);
-                    vtable_idx = (int)i;
-                    return dispatch_udt->dispatch[i].returntype;
+                if (SpecializationIsCompatible(*sf, reqret)) {
+                    // This function can be reused.
+                    // Make sure to add any freevars this call caused to be
+                    // added to its parents also to the current parents, just in case
+                    // they're different.
+                    LOG_DEBUG("re-using: ", Signature(*sf));
+                    for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
+                    ReplayReturns(sf, call_args);
+                    return TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
                 }
                 fail:;
             }
-            // Must create a new vtable entry.
-            // TODO: would be good to search superclass if it has this method also.
-            // Probably not super important since dispatching on the "middle" type in a
-            // hierarchy will be rare.
-            // Find subclasses and max vtable size.
-            {
-                vector<int> overload_idxs;
-                for (auto sub : dispatch_udt->subudts) {
-                    int best = -1;
-                    int bestdist = 0;
-                    for (auto [i, sf] : enumerate(csf->parent->overloads)) {
-                        if (sf->method_of) {
-                            auto sdist = st.SuperDistance(sf->method_of, sub);
-                            if (sdist >= 0 && (best < 0 || bestdist > sdist)) {
-                                best = (int)i;
-                                bestdist = sdist;
-                            }
-                        }
+        }
+        // No match.
+        sf = f.overloads[overload_idx];
+        // Specialize existing function, or its clone.
+        if (sf->typechecked) sf = CloneFunction(sf, overload_idx);
+        // Now specialize.
+        sf->reqret = reqret;
+        sf->generics = generics;
+        if (sf->method_of)
+            st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
+        st.bound_typevars_stack.push_back(&sf->generics);
+        // See if this is going to be a coroutine.
+        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
+            if (Is<CoClosure>(c))
+                sf->iscoroutine = true;
+        }
+        for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
+            auto &arg = sf->args.v[i];
+            arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
+            auto otype = sf->orig_types[i];
+            auto u = otype->UnWrapAll();
+            // We have 2 types of generics here that may need updating, typevars and
+            // struct types with unresolved typevars.
+            if (u->t == V_TYPEVAR) {
+                arg.type = st.ResolveTypeVars(otype);
+            } else if (IsUDT(u->t) && !u->udt->FullyBound()) {
+                arg.type = c->exptype;
+                // Check if argument is a generic struct type, or wrapped in vector/nilable.
+                if (otype->EqNoIndex(*arg.type)) {
+                    auto givenu = arg.type->UnWrapAll();
+                    if (!IsUDT(givenu->t) ||
+                        (!u->udt->IsSpecialization(givenu->udt) &&
+                            st.SuperDistance(u->udt, givenu->udt) < 0)) {
+                        TypeError(TypeName(otype), arg.type, *c, arg.sid->id->name, f.name);
                     }
-                    if (best < 0) {
-                        if (sub->constructed) {
-                            TypeError("no implementation for " + sub->name + "." + csf->parent->name,
-                                call_context);
-                        } else {
-                            // This UDT is unused, so we're ok there not being an implementation
-                            // for it.. like e.g. an abstract base class.
-                        }
-                    }
-                    overload_idxs.push_back(best);
-                    vtable_idx = max(vtable_idx, (int)sub->dispatch.size());
+                } else {
+                    // This likely generates either an error, or contains an unbound var
+                    // that will get bound.
+                    SubTypeT(arg.type, otype, *c, arg.sid->id->name, f.name);
                 }
-                // Add functions to all vtables.
-                for (auto [i, udt] : enumerate(dispatch_udt->subudts)) {
-                    auto &dt = udt->dispatch;
-                    assert((int)dt.size() <= vtable_idx);  // Double entry.
-                    // FIXME: this is not great, wasting space, but only way to do this
-                    // on the fly without tracking lots of things.
-                    while ((int)dt.size() < vtable_idx) dt.push_back({});
-                    dt.push_back({ overload_idxs[i] < 0
-                                    ? nullptr
-                                    : csf->parent->overloads[overload_idxs[i]] });
-                }
-                // FIXME: if any of the overloads below contain recursive calls, it may run into
-                // issues finding an existing dispatch above? would be good to guarantee..
-                // The fact that in subudts the superclass comes first will help avoid problems
-                // in many cases.
-                auto de = &dispatch_udt->dispatch[vtable_idx];
-                de->is_dispatch_root = true;
-                de->returntype = NewTypeVar();
-                // Typecheck all the individual functions.
-                SubFunction *last_sf = nullptr;
-                for (auto [i, udt] : enumerate(dispatch_udt->subudts)) {
-                    auto sf = udt->dispatch[vtable_idx].sf;
-                    if (!sf) continue;  // Missing implementation for unused UDT.
-                    // FIXME: this possible runs the code below multiple times for the same sf,
-                    // we rely on it finding the same specialization.
-                    if (last_sf) {
-                        // FIXME: good to have this check here so it only occurs for functions
-                        // participating in the dispatch, but error now appears at the call site!
-                        for (auto [j, arg] : enumerate(sf->args.v)) {
-                            if (j && arg.type != last_sf->args.v[j].type &&
-                                !st.IsGeneric(sf->orig_types[j]))
-                                TypeError("argument " + to_string(j + 1) + " of " + f.name +
-                                          " overload type mismatch", call_context);
-                        }
-                    }
-                    call_args->children[0]->exptype = &udt->thistype;
-                    // FIXME: return value?
-                    /*auto rtype =*/ TypeCheckCallStatic(overload_idxs[i], false, !last_sf);
-                    de = &dispatch_udt->dispatch[vtable_idx];  // May have realloced.
-                    sf = chosen;
-                    sf->method_of->dispatch[vtable_idx].sf = sf;
-                    // FIXME: Lift these limits?
-                    if (sf->returntype->NumValues() > 1)
-                        TypeError("dynamic dispatch can currently return only 1 value.",
-                            call_context);
-                    auto u = sf->returntype;
-                    if (de->returntype->IsBoundVar()) {
-                        // Typically in recursive calls, but can happen otherwise also?
-                        if (!ConvertsTo(u, de->returntype, false))
-                            // FIXME: not a great error, but should be rare.
-                            TypeError("dynamic dispatch for " + f.name +
-                                " return value type " +
-                                TypeName(sf->returntype) +
-                                " doesn\'t match other case returning " +
-                                TypeName(de->returntype), *sf->body);
-                    } else {
-                        if (i) {
-                            // We have to be able to take the union of all retvals without
-                            // coercion, since we're not fixing up any previously typechecked
-                            // functions.
-                            u = Union(u, de->returntype, false, &call_context);
-                            // Ensure we didn't accidentally widen the type from a scalar.
-                            assert(IsRef(de->returntype->t) || !IsRef(u->t));
-                        }
-                        de->returntype = u;
-                    }
-                    last_sf = sf;
-                }
-                call_args->children[0]->exptype = &dispatch_udt->thistype;
             }
-            return dispatch_udt->dispatch[vtable_idx].returntype;
-        };
+            LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
+        }
+        // This must be the correct freevar specialization.
+        assert(!f.anonymous || sf->freevarchecked);
+        assert(!sf->freevars.v.size());
+        LOG_DEBUG("specialization: ", Signature(*sf));
+        auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic);
+        st.bound_typevars_stack.pop_back();
+        if (sf->method_of) st.bound_typevars_stack.pop_back();
+        return rtype;
+    };
 
+    TypeRef TypeCheckCallDispatch(UDT &dispatch_udt, SubFunction *&csf, List &call_args,
+                                  size_t reqret, vector<TypeRef> *specializers, int &vtable_idx) {
+        Function &f = *csf->parent;
+        // We must assume the instance may dynamically be different, so go thru vtable.
+        // See if we already have a vtable entry for this type of call.
+        for (auto [i, disp] : enumerate(dispatch_udt.dispatch)) {
+            // FIXME: does this guarantee it find it in the recursive case?
+            // TODO: we chould check for a superclass vtable entry also, but chances
+            // two levels will be present are low.
+            if (disp.sf && disp.sf->method_of == &dispatch_udt && disp.is_dispatch_root &&
+                &f == disp.sf->parent && SpecializationIsCompatible(*disp.sf, reqret)) {
+                for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
+                    auto &arg = disp.sf->args.v[i];
+                    if (i && !ConvertsTo(c->exptype, arg.type, false, false))
+                        goto fail;
+                }
+                for (auto udt : dispatch_udt.subudts) {
+                    // Since all functions were specialized with the same args, they should
+                    // all be compatible if the root is.
+                    auto sf = udt->dispatch[i].sf;
+                    LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
+                    assert(SpecializationIsCompatible(*sf, reqret));
+                    for (auto &fv : sf->freevars.v) CheckFreeVariable(*fv.sid);
+                    ReplayReturns(sf, call_args);
+                }
+                // Type check this as if it is a static dispatch to just the root function.
+                TypeCheckMatchingCall(csf = disp.sf, call_args, true, false);
+                vtable_idx = (int)i;
+                return dispatch_udt.dispatch[i].returntype;
+            }
+            fail:;
+        }
+        // Must create a new vtable entry.
+        // TODO: would be good to search superclass if it has this method also.
+        // Probably not super important since dispatching on the "middle" type in a
+        // hierarchy will be rare.
+        // Find subclasses and max vtable size.
+        {
+            vector<int> overload_idxs;
+            for (auto sub : dispatch_udt.subudts) {
+                int best = -1;
+                int bestdist = 0;
+                for (auto [i, sf] : enumerate(csf->parent->overloads)) {
+                    if (sf->method_of) {
+                        auto sdist = st.SuperDistance(sf->method_of, sub);
+                        if (sdist >= 0 && (best < 0 || bestdist > sdist)) {
+                            best = (int)i;
+                            bestdist = sdist;
+                        }
+                    }
+                }
+                if (best < 0) {
+                    if (sub->constructed) {
+                        TypeError("no implementation for " + sub->name + "." + csf->parent->name,
+                                  call_args);
+                    } else {
+                        // This UDT is unused, so we're ok there not being an implementation
+                        // for it.. like e.g. an abstract base class.
+                    }
+                }
+                overload_idxs.push_back(best);
+                vtable_idx = max(vtable_idx, (int)sub->dispatch.size());
+            }
+            // Add functions to all vtables.
+            for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
+                auto &dt = udt->dispatch;
+                assert((int)dt.size() <= vtable_idx);  // Double entry.
+                // FIXME: this is not great, wasting space, but only way to do this
+                // on the fly without tracking lots of things.
+                while ((int)dt.size() < vtable_idx) dt.push_back({});
+                dt.push_back({ overload_idxs[i] < 0
+                                ? nullptr
+                                : csf->parent->overloads[overload_idxs[i]] });
+            }
+            // FIXME: if any of the overloads below contain recursive calls, it may run into
+            // issues finding an existing dispatch above? would be good to guarantee..
+            // The fact that in subudts the superclass comes first will help avoid problems
+            // in many cases.
+            auto de = &dispatch_udt.dispatch[vtable_idx];
+            de->is_dispatch_root = true;
+            de->returntype = NewTypeVar();
+            // Typecheck all the individual functions.
+            SubFunction *last_sf = nullptr;
+            for (auto [i, udt] : enumerate(dispatch_udt.subudts)) {
+                auto sf = udt->dispatch[vtable_idx].sf;
+                if (!sf) continue;  // Missing implementation for unused UDT.
+                // FIXME: this possible runs the code below multiple times for the same sf,
+                // we rely on it finding the same specialization.
+                if (last_sf) {
+                    // FIXME: good to have this check here so it only occurs for functions
+                    // participating in the dispatch, but error now appears at the call site!
+                    for (auto [j, arg] : enumerate(sf->args.v)) {
+                        if (j && arg.type != last_sf->args.v[j].type &&
+                            !st.IsGeneric(sf->orig_types[j]))
+                            TypeError("argument " + to_string(j + 1) + " of " + f.name +
+                                " overload type mismatch", call_args);
+                    }
+                }
+                call_args.children[0]->exptype = &udt->thistype;
+                // FIXME: return value?
+                /*auto rtype =*/
+                TypeCheckCallStatic(csf, call_args, reqret, specializers,
+                                    overload_idxs[i], false, !last_sf);
+                de = &dispatch_udt.dispatch[vtable_idx];  // May have realloced.
+                sf = csf;
+                sf->method_of->dispatch[vtable_idx].sf = sf;
+                // FIXME: Lift these limits?
+                if (sf->returntype->NumValues() > 1)
+                    TypeError("dynamic dispatch can currently return only 1 value.", call_args);
+                auto u = sf->returntype;
+                if (de->returntype->IsBoundVar()) {
+                    // Typically in recursive calls, but can happen otherwise also?
+                    if (!ConvertsTo(u, de->returntype, false))
+                        // FIXME: not a great error, but should be rare.
+                        TypeError("dynamic dispatch for " + f.name +
+                            " return value type " +
+                            TypeName(sf->returntype) +
+                            " doesn\'t match other case returning " +
+                            TypeName(de->returntype), *sf->body);
+                } else {
+                    if (i) {
+                        // We have to be able to take the union of all retvals without
+                        // coercion, since we're not fixing up any previously typechecked
+                        // functions.
+                        u = Union(u, de->returntype, false, &call_args);
+                        // Ensure we didn't accidentally widen the type from a scalar.
+                        assert(IsRef(de->returntype->t) || !IsRef(u->t));
+                    }
+                    de->returntype = u;
+                }
+                last_sf = sf;
+            }
+            call_args.children[0]->exptype = &dispatch_udt.thistype;
+        }
+        return dispatch_udt.dispatch[vtable_idx].returntype;
+    };
+
+    TypeRef TypeCheckCall(SubFunction *&csf, List &call_args, size_t reqret, int &vtable_idx,
+                          vector<TypeRef> *specializers) {
+        STACK_PROFILE;
+        Function &f = *csf->parent;
+        UDT *dispatch_udt = nullptr;
+        vtable_idx = -1;
         if (f.istype) {
             // Function types are always fully typed.
             // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
-            return TypeCheckMatchingCall(csf, true, false);
+            return TypeCheckMatchingCall(csf, call_args, true, false);
         }
         // Check if we need to do dynamic dispatch. We only do this for functions that have a
         // explicit first arg type of a class (not structs, since they can never dynamically be
         // different from their static type), and only when there is a sub-class that has a
         // method that can be called also.
         if (f.nargs()) {
-            auto type = call_args->children[0]->exptype;
+            auto type = call_args.children[0]->exptype;
             if (type->t == V_CLASS) dispatch_udt = type->udt;
         }
         if (dispatch_udt) {
@@ -1183,7 +1190,8 @@ struct TypeChecker {
                 for (auto isf : csf->parent->overloads) {
                     if (isf->method_of && st.SuperDistance(dispatch_udt, isf->method_of) > 0) {
                         LOG_DEBUG("dynamic dispatch: ", Signature(*isf));
-                        return TypeCheckCallDispatch();
+                        return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
+                                                     reqret, specializers, vtable_idx);
                     }
                 }
                 // Yay there are no sub-class implementations, we can just statically dispatch.
@@ -1196,13 +1204,13 @@ struct TypeChecker {
         int overload_idx = 0;
         if (f.nargs() && f.overloads.size() > 1) {
             overload_idx = -1;
-            auto type0 = call_args->children[0]->exptype;
+            auto type0 = call_args.children[0]->exptype;
             // First see if there is an exact match.
             for (auto [i, isf] : enumerate(f.overloads)) {
                 if (ExactType(type0, isf->args.v[0].type)) {
                     if (overload_idx >= 0)
                         TypeError("multiple overloads have the same type: " + f.name +
-                                  ", first arg: " + TypeName(type0), call_context);
+                                  ", first arg: " + TypeName(type0), call_args);
                     overload_idx = (int)i;
                 }
             }
@@ -1221,11 +1229,11 @@ struct TypeChecker {
                                 else if (odist < dist) { /* keep old one */ }
                                 else {
                                     TypeError("multiple overloads have the same class: " + f.name +
-                                              ", first arg: " + TypeName(type0), call_context);
+                                              ", first arg: " + TypeName(type0), call_args);
                                 }
                             } else {
                                 TypeError("multiple overloads apply: " + f.name + ", first arg: " +
-                                    TypeName(type0), call_context);
+                                    TypeName(type0), call_args);
                             }
                         } else {
                             overload_idx = (int)i;
@@ -1239,7 +1247,7 @@ struct TypeChecker {
                     if (ConvertsTo(type0, isf->args.v[0].type, true, false)) {
                         if (overload_idx >= 0) {
                             TypeError("multiple overloads can coerce: " + f.name +
-                                      ", first arg: " + TypeName(type0), call_context);
+                                      ", first arg: " + TypeName(type0), call_args);
                         }
                         overload_idx = (int)i;
                     }
@@ -1247,10 +1255,11 @@ struct TypeChecker {
             }
             if (overload_idx < 0)
                 TypeError("no overloads apply: " + f.name + ", first arg: " + TypeName(type0),
-                          call_context);
+                          call_args);
         }
         LOG_DEBUG("static dispatch: ", Signature(*f.overloads[overload_idx]));
-        return TypeCheckCallStatic(overload_idx, true, false);
+        return TypeCheckCallStatic(csf, call_args, reqret, specializers,
+                                   overload_idx, true, false);
     }
 
     SubFunction *PreSpecializeFunction(SubFunction *hsf) {
@@ -1284,13 +1293,13 @@ struct TypeChecker {
         if (ftype->IsFunction()) {
             // We can statically typecheck this dynamic call. Happens for almost all non-escaping
             // closures.
-            auto sf = ftype->sf;
-            if (nargs < sf->parent->nargs())
+            fspec = ftype->sf;
+            if (nargs < fspec->parent->nargs())
                 TypeError("function value called with too few arguments", *args);
             // In the case of too many args, TypeCheckCall will ignore them (and optimizer will
             // remove them).
             int vtable_idx = -1;
-            auto type = TypeCheckCall(sf, args, fspec, *args, reqret, vtable_idx);
+            auto type = TypeCheckCall(fspec, *args, reqret, vtable_idx, nullptr);
             assert(vtable_idx < 0);
             ftype = &fspec->thistype;
             return { type, fspec->ltret };
@@ -1747,6 +1756,7 @@ struct TypeChecker {
     // This is the central function thru which all typechecking flows, so we can conveniently
     // match up what the node produces and what the recipient expects.
     void TT(Node *&n, size_t reqret, Lifetime recip, const vector<Node *> *idents = nullptr) {
+        STACK_PROFILE;
         // Central point from which each node is typechecked.
         n = n->TypeCheck(*this, reqret);
         // Check if we need to do any type adjustmenst.
@@ -2404,6 +2414,7 @@ Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t reqret) {
 }
 
 Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
+    STACK_PROFILE;
     // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
     tc.TypeCheckList(this, false, 1, LT_ANY);
     auto nf = tc.parser.natreg.FindNative(name);
@@ -2564,11 +2575,11 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                              " cannot take any arguments", *this);
             }
             auto chosen = fsf;
-            List args(tc.parser.lex);
+            List args(c->line);  // If any error, on same line as c.
             int vtable_idx = -1;
-            tc.TypeCheckCall(fsf, &args, chosen, *c, false, vtable_idx);
+            tc.TypeCheckCall(fsf, args, false, vtable_idx, nullptr);
             assert(vtable_idx < 0);
-            assert(fsf == chosen);
+            assert(fsf == chosen); (void)chosen;
         }
         argtypes[i] = actualtype;
         tc.StorageType(actualtype, *this);
@@ -2652,8 +2663,9 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
 }
 
 void Call::TypeCheckSpecialized(TypeChecker &tc, size_t reqret) {
+    STACK_PROFILE;
     sf = tc.PreSpecializeFunction(sf);
-    exptype = tc.TypeCheckCall(sf, this, sf, *this, reqret, vtable_idx, &specializers);
+    exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers);
     lt = sf->ltret;
 }
 
