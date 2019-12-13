@@ -74,12 +74,12 @@ struct Parser {
             }
             if (Either(T_ENDOFFILE, T_DEDENT)) break;
         }
+        Expect(terminator);
         auto b = list->children.back();
         if (Is<EnumRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
             if (terminator == T_ENDOFFILE) list->Add(new IntConstant(lex, 0));
             else Error("last expression in list can\'t be a definition");
         }
-        Expect(terminator);
         CleanupStatements(list);
         return list;
     }
@@ -384,6 +384,16 @@ struct Parser {
             field.type = st.ResolveTypeVars(field.type);
         }
         st.bound_typevars_stack.pop_back();
+        // Set correct types for SpecUDT.
+        udt->thisspec.specializers.clear();
+        udt->thisspec.is_generic = false;
+        for (auto &g : udt->generics) {
+            auto type = g.type.Null() ? &g.tv->thistype : g.type;
+            // This test works correctly if a generic refers to its own struct, since either
+            // is_generic is still false, or it is already true if theres other generics.
+            if (st.IsGeneric(type)) udt->thisspec.is_generic = true;
+            udt->thisspec.specializers.push_back(&*type);
+        }
         parent_list->Add(new UDTRef(lex, udt));
     }
 
@@ -475,7 +485,7 @@ struct Parser {
                         if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
                         if (nargs == 1 && IsUDT(arg.type->t)) {
                             non_inline_method = true;
-                            self = arg.type->udt;
+                            self = arg.type->su->udt;
                             st.bound_typevars_stack.push_back(&self->generics);
                         }
                         sf->orig_types.push_back(arg.type);
@@ -626,6 +636,24 @@ struct Parser {
                 }
                 dest = &st.StructUse(lex.sattr, lex).thistype;
                 lex.Next();
+                if (IsNext(T_LT)) {
+                    dest = st.NewSpecUDT(dest);
+                    for (;;) {
+                        TypeRef s;
+                        ParseType(s, false);
+                        if (st.IsGeneric(s)) dest->su->is_generic = true;
+                        dest->su->specializers.push_back(&*s);
+                        if (lex.token == T_GT) {
+                            // This may be the end of the line, so make sure Lex doesn't see it
+                            // as a GT op.
+                            lex.OverrideCont(false);
+                            lex.Next();
+                            break;
+                        }
+                        Expect(T_COMMA);
+                    }
+                    dest = st.ReplaceByNamedSpecialization(dest);
+                }
                 done:
                 break;
             }

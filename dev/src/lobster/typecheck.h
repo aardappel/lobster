@@ -138,7 +138,7 @@ struct TypeChecker {
     void PromoteStructIdx(TypeRef &type, const UDT *olds, const UDT *news) {
         auto u = type;
         while (u->Wrapped()) u = u->Element();
-        if (IsUDT(u->t) && u->udt == olds) type = PromoteStructIdxRec(type, news);
+        if (IsUDT(u->t) && u->su->udt == olds) type = PromoteStructIdxRec(type, news);
     }
 
     TypeRef PromoteStructIdxRec(TypeRef type, const UDT *news) {
@@ -284,52 +284,78 @@ struct TypeChecker {
         }
     }
 
-    bool ConvertsTo(TypeRef type, TypeRef sub, bool coercions, bool unifications = true,
+    bool SameSpecializers(SpecUDT *su, SpecUDT *bound) {
+        // If we have specializers, this should not apply to subclasses.
+        if (bound->udt != su->udt) return true;
+        assert(bound->specializers.size() == su->specializers.size());
+        for (auto [i, s] : enumerate(bound->specializers)) {
+            // TODO: are there situations where we should relax this?
+            if (!ExactType(s, su->specializers[i])) return false;
+        }
+        return true;
+    }
+
+    bool ConvertsTo(TypeRef type, TypeRef bound, bool coercions, bool unifications = true,
                     bool allow_numeric_nil = false) {
-        if (sub == type) return true;
+        if (bound == type) return true;
         if (type->t == V_VAR) {
-            if (unifications) UnifyVar(sub, type);
+            if (unifications) UnifyVar(bound, type);
             return true;
         }
-        switch (sub->t) {
-            case V_VOID:      return coercions;
-            case V_VAR:       if (unifications) UnifyVar(type, sub); return unifications;
-            case V_FLOAT:     return type->t == V_INT && coercions;
-            case V_INT:       return (type->t == V_TYPEID && coercions) ||
-                                     (type->t == V_INT && !sub->e);
-            case V_STRING:    return coercions && IsRuntimePrintable(type->t);
-            case V_FUNCTION:  return type->t == V_FUNCTION && !sub->sf;
-            case V_NIL:       return (type->t == V_NIL &&
-                                      ConvertsTo(type->Element(), sub->Element(), false,
-                                                 unifications)) ||
-                                     (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
-                                      ConvertsTo(type, sub->Element(), false, unifications)) ||
-                                     (allow_numeric_nil && type->Numeric() &&  // For builtins.
-                                      ConvertsTo(type, sub->Element(), false, unifications));
-            case V_VECTOR:    return (type->t == V_VECTOR &&
-                                      ConvertsTo(type->Element(), sub->Element(), false,
-                                                 unifications));
-            case V_CLASS:     return type->t == V_CLASS &&
-                                     st.SuperDistance(sub->udt, type->udt) >= 0;
+        switch (bound->t) {
+            case V_VOID:
+                return coercions;
+            case V_VAR:
+                if (unifications) UnifyVar(type, bound);
+                return unifications;
+            case V_FLOAT:
+                return type->t == V_INT && coercions;
+            case V_INT:
+                return (type->t == V_TYPEID && coercions) || (type->t == V_INT && !bound->e);
+            case V_STRING:
+                return coercions && IsRuntimePrintable(type->t);
+            case V_FUNCTION:
+                return type->t == V_FUNCTION && !bound->sf;
+            case V_NIL:
+                return (type->t == V_NIL &&
+                        ConvertsTo(type->Element(), bound->Element(), false, unifications)) ||
+                       (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
+                        ConvertsTo(type, bound->Element(), false, unifications)) ||
+                       (allow_numeric_nil && type->Numeric() &&  // For builtins.
+                        ConvertsTo(type, bound->Element(), false, unifications));
+            case V_VECTOR:
+                return (type->t == V_VECTOR &&
+                        ConvertsTo(type->Element(), bound->Element(), false, unifications));
+            case V_CLASS:
+                return type->t == V_CLASS &&
+                       st.SuperDistance(bound->su->udt, type->su->udt) >= 0 &&
+                       SameSpecializers(type->su, bound->su);
             case V_STRUCT_R:
-            case V_STRUCT_S:  return type->t == sub->t && type->udt == sub->udt;
-            case V_COROUTINE: return type->t == V_COROUTINE &&
-                                     (sub->sf == type->sf ||
-                                      (!sub->sf && type->sf && ConvertsTo(type->sf->coresumetype,
-                                                              NewNilTypeVar(), false)));
-            case V_TUPLE:     return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *sub->tup);
-            case V_TYPEID:    if (type->t != V_TYPEID) return false;
-                              sub = sub->sub;
-                              type = type->sub;
-                              // FIXME: should bind to vector of var? See typeof return in map.
-                              if (type->t == V_VAR) return true;
-                              if (sub->t == V_VECTOR && type->t == V_VECTOR) {
-                                  sub = sub->sub;
-                                  type = type->sub;
-                              }
-                              // This is minimalistic, but suffices for the current uses of V_TYPEID.
-                              return sub->t == V_ANY;
-            default:          return false;
+            case V_STRUCT_S:
+                return type->t == bound->t &&
+                       type->su->udt == bound->su->udt &&
+                       SameSpecializers(type->su, bound->su);
+            case V_COROUTINE:
+                return type->t == V_COROUTINE &&
+                       (bound->sf == type->sf ||
+                        (!bound->sf && type->sf &&
+                         ConvertsTo(type->sf->coresumetype, NewNilTypeVar(), false)));
+            case V_TUPLE:
+                return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
+            case V_TYPEID:
+                if (type->t != V_TYPEID) return false;
+                bound = bound->sub;
+                type = type->sub;
+                // FIXME: should bind to vector of var? See typeof return in map.
+                if (type->t == V_VAR) return true;
+                if (bound->t == V_VECTOR && type->t == V_VECTOR) {
+                    bound = bound->sub;
+                    type = type->sub;
+                }
+                // This is minimalistic, but suffices for the current uses of V_TYPEID.
+                return bound->t == V_ANY;
+            default:
+                return false;
         }
     }
 
@@ -349,7 +375,7 @@ struct TypeChecker {
             return st.Wrap(et, V_VECTOR);
         }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
-            auto sstruc = st.CommonSuperType(at->udt, bt->udt);
+            auto sstruc = st.CommonSuperType(at->su->udt, bt->su->udt);
             if (sstruc) return &sstruc->thistype;
         }
         if (err)
@@ -404,17 +430,17 @@ struct TypeChecker {
         if (type->HasValueType(V_VOID)) TypeError("cannot store value of type void", context);
     }
 
-    void SubTypeLR(TypeRef sub, BinOp &n) {
-        SubType(n.left, sub, "left", n);
-        SubType(n.right, sub, "right", n);
+    void SubTypeLR(TypeRef bound, BinOp &n) {
+        SubType(n.left, bound, "left", n);
+        SubType(n.right, bound, "right", n);
     }
 
-    void SubType(Node *&a, TypeRef sub, string_view argname, const Node &context) {
-        SubType(a, sub, argname, NiceName(context));
+    void SubType(Node *&a, TypeRef bound, string_view argname, const Node &context) {
+        SubType(a, bound, argname, NiceName(context));
     }
-    void SubType(Node *&a, TypeRef sub, string_view argname, string_view context) {
-        if (ConvertsTo(a->exptype, sub, false)) return;
-        switch (sub->t) {
+    void SubType(Node *&a, TypeRef bound, string_view argname, string_view context) {
+        if (ConvertsTo(a->exptype, bound, false)) return;
+        switch (bound->t) {
             case V_FLOAT:
                 if (a->exptype->t == V_INT) {
                     MakeFloat(a);
@@ -428,11 +454,11 @@ struct TypeChecker {
                 }
                 break;
             case V_FUNCTION:
-                if (a->exptype->IsFunction() && sub->sf) {
+                if (a->exptype->IsFunction() && bound->sf) {
                     // See if these functions can be made compatible. Specialize and typecheck if
                     // needed.
                     auto sf = a->exptype->sf;
-                    auto ss = sub->sf;
+                    auto ss = bound->sf;
                     if (!ss->parent->istype)
                         TypeError("dynamic function value can only be passed to declared "
                                   "function type", *a);
@@ -470,13 +496,13 @@ struct TypeChecker {
                 ;
         }
         error:
-        TypeError(TypeName(sub), a->exptype, *a, argname, context);
+        TypeError(TypeName(bound), a->exptype, *a, argname, context);
     }
 
-    void SubTypeT(TypeRef type, TypeRef sub, const Node &n, string_view argname,
+    void SubTypeT(TypeRef type, TypeRef bound, const Node &n, string_view argname,
                   string_view context = {}) {
-        if (!ConvertsTo(type, sub, false))
-            TypeError(TypeName(sub), type, n, argname, context);
+        if (!ConvertsTo(type, bound, false))
+            TypeError(TypeName(bound), type, n, argname, context);
     }
 
     bool MathCheckVector(TypeRef &type, Node *&left, Node *&right) {
@@ -484,7 +510,7 @@ struct TypeChecker {
         TypeRef rtype = right->exptype;
         // Special purpose check for vector * scalar etc.
         if (ltype->t == V_STRUCT_S && rtype->Numeric()) {
-            auto etype = ltype->udt->sametype;
+            auto etype = ltype->su->udt->sametype;
             if (etype->Numeric()) {
                 if (etype->t == V_INT) {
                     // Don't implicitly convert int vectors to float.
@@ -492,7 +518,7 @@ struct TypeChecker {
                 } else {
                     if (rtype->t == V_INT) SubType(right, type_float, "right", *right);
                 }
-                type = &ltype->udt->thistype;
+                type = &ltype->su->udt->thistype;
                 return true;
             }
         }
@@ -591,10 +617,10 @@ struct TypeChecker {
                     TypeError(TypeName(n.left->exptype), n.right->exptype, n, "right-hand side");
             } else {
                 // Comparison vector op: vector inputs, vector out.
-                if (u->t == V_STRUCT_S && u->udt->sametype->Numeric()) {
-                    n.exptype = st.default_int_vector_types[0][u->udt->fields.size()];
+                if (u->t == V_STRUCT_S && u->su->udt->sametype->Numeric()) {
+                    n.exptype = st.default_int_vector_types[0][u->su->udt->fields.size()];
                 } else if (MathCheckVector(n.exptype, n.left, n.right)) {
-                    n.exptype = st.default_int_vector_types[0][n.exptype->udt->fields.size()];
+                    n.exptype = st.default_int_vector_types[0][n.exptype->su->udt->fields.size()];
                     // Don't do SubTypeLR since type already verified and `u` not
                     // appropriate anyway.
                     goto out;
@@ -899,6 +925,37 @@ struct TypeChecker {
         }
     };
 
+    void UnWrapBoth(TypeRef &otype, TypeRef &atype) {
+        while (otype->Wrapped() && otype->t == atype->t) {
+            otype = otype->Element();
+            atype = atype->Element();
+        }
+    }
+
+    void BindTypeVar(TypeRef otype, TypeRef atype, vector<BoundTypeVariable> &generics,
+                     UDT *parent = nullptr) {
+        UnWrapBoth(otype, atype);
+        if (otype->t == V_NIL) {
+            otype = otype->Element();
+        }
+        if (otype->t == V_TYPEVAR) {
+            for (auto &btv : generics) {
+                if (btv.tv == otype->tv && btv.type.Null()) {
+                    btv.type = atype;
+                    break;
+                }
+            }
+        } else if (otype->t == atype->t &&
+                   IsUDT(otype->t) &&
+                   otype->su->udt != parent &&  // Avoid recursion!
+                   otype->su->udt->first == atype->su->udt->first) {
+            assert(otype->su->specializers.size() == atype->su->specializers.size());
+            for (auto [i, s] : enumerate(otype->su->specializers)) {
+                BindTypeVar(s, atype->su->specializers[i], generics, otype->su->udt);
+            }
+        }
+    }
+
     TypeRef TypeCheckCallStatic(SubFunction *&sf, List &call_args, size_t reqret,
                                 vector<TypeRef> *specializers, int overload_idx,
                                 bool static_dispatch, bool first_dynamic) {
@@ -922,23 +979,11 @@ struct TypeChecker {
                 generics[i].type = st.ResolveTypeVars(type);
         }
         for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) {
-            auto otype = sf->orig_types[i];
-            auto atype = c->exptype;
-            while (otype->Wrapped() && otype->t == atype->t) {
-                otype = otype->Element();
-                atype = atype->Element();
-            }
-            if (otype->t == V_TYPEVAR) {
-                for (auto &btv : generics) {
-                    if (btv.tv == otype->tv && btv.type.Null()) {
-                        btv.type = atype;
-                        break;
-                    }
-                }
-            }
+            BindTypeVar(sf->orig_types[i], c->exptype, generics);
         }
         for (auto &btv : generics) if (btv.type.Null())
-            TypeError("Type variable " + btv.tv->name + " not bound in call to " + f.name,
+            TypeError("Cannot implicitly bind type variable " + btv.tv->name + " in call to " +
+                      f.name + " (argument doesn't match?)",
                       call_args);
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
@@ -986,7 +1031,7 @@ struct TypeChecker {
         sf->reqret = reqret;
         sf->generics = generics;
         if (sf->method_of)
-            st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->udt->generics);
+            st.bound_typevars_stack.push_back(&call_args.children[0]->exptype->su->udt->generics);
         st.bound_typevars_stack.push_back(&sf->generics);
         // See if this is going to be a coroutine.
         for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
@@ -996,26 +1041,48 @@ struct TypeChecker {
         for (auto [i, c] : enumerate(call_args.children)) if (i < f.nargs()) /* see above */ {
             auto &arg = sf->args.v[i];
             arg.sid->lt = AllowAnyLifetime(arg) ? c->lt : LT_KEEP;
-            auto otype = sf->orig_types[i];
-            auto u = otype->UnWrapAll();
             // We have 2 types of generics here that may need updating, typevars and
             // struct types with unresolved typevars.
-            if (u->t == V_TYPEVAR) {
-                arg.type = st.ResolveTypeVars(otype);
-            } else if (IsUDT(u->t) && !u->udt->FullyBound()) {
-                arg.type = c->exptype;
-                // Check if argument is a generic struct type, or wrapped in vector/nilable.
-                if (otype->EqNoIndex(*arg.type)) {
-                    auto givenu = arg.type->UnWrapAll();
-                    if (!IsUDT(givenu->t) ||
-                        (!u->udt->IsSpecialization(givenu->udt) &&
-                            st.SuperDistance(u->udt, givenu->udt) < 0)) {
-                        TypeError(TypeName(otype), arg.type, *c, arg.sid->id->name, f.name);
+            // TODO: this logic should also be used in Define ?
+            auto otype = sf->orig_types[i];
+            if (otype->HasValueType(V_TYPEVAR)) {
+                // Simple case, typevar directly in vec/nil.
+                arg.type = st.ResolveTypeVars(sf->orig_types[i]);
+            } else {
+                // We want to specialize this argument type to the type of argument supplied,
+                // since the type may be a subtype and or (partial) specialization of the
+                // specified type. Simply resolving the specified type gives us potentially a
+                // specialization of a supertype for which no named specialization exists,
+                // which causes problems down the road.
+                auto atype = c->exptype;
+                UnWrapBoth(otype, atype);
+                bool make_nillable = false;
+                if (otype->t == V_NIL) {
+                    // A nillable specified type receiving a non-nil arg. We still want the
+                    // type to be nillable, since code inside this function may only work when
+                    // the arg is nillable (like e.g. setting the arg to nil).
+                    otype = otype->Element();
+                    make_nillable = true;
+                }
+                if (IsUDT(otype->t) && !otype->su->udt->FullyBound()) {
+                    // FIXME: Should we check su->specializers instead of FullyBound?
+                    // Complex case: generic struct types. We allow such type as param types, but
+                    // these have generics that are not currently in scope! So best thing to do is
+                    // to see if they're compatible, and then use the arg type as-is.
+                    arg.type = c->exptype;
+                    if (make_nillable) arg.type = arg.type->Wrap(st.NewType(), V_NIL);
+                    if (otype->t == atype->t) {
+                        if (!IsUDT(atype->t) ||
+                            (!otype->su->udt->IsSpecialization(atype->su->udt) &&
+                                st.SuperDistance(otype->su->udt, atype->su->udt) < 0)) {
+                            TypeError(TypeName(sf->orig_types[i]), arg.type, *c, arg.sid->id->name,
+                                      f.name);
+                        }
+                    } else {
+                        // This likely generates either an error, or contains an unbound var
+                        // that will get bound.
+                        SubTypeT(arg.type, sf->orig_types[i], *c, arg.sid->id->name, f.name);
                     }
-                } else {
-                    // This likely generates either an error, or contains an unbound var
-                    // that will get bound.
-                    SubTypeT(arg.type, otype, *c, arg.sid->id->name, f.name);
                 }
             }
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.type));
@@ -1184,7 +1251,7 @@ struct TypeChecker {
         // method that can be called also.
         if (f.nargs()) {
             auto type = call_args.children[0]->exptype;
-            if (type->t == V_CLASS) dispatch_udt = type->udt;
+            if (type->t == V_CLASS) dispatch_udt = type->su->udt;
         }
         if (dispatch_udt) {
             size_t num_methods = 0;
@@ -1227,8 +1294,8 @@ struct TypeChecker {
                             if (type0->t == V_CLASS) {
                                 auto oarg0 = f.overloads[overload_idx]->args.v[0].type;
                                 // Prefer "closest" supertype.
-                                auto dist = st.SuperDistance(arg0->udt, type0->udt);
-                                auto odist = st.SuperDistance(oarg0->udt, type0->udt);
+                                auto dist = st.SuperDistance(arg0->su->udt, type0->su->udt);
+                                auto odist = st.SuperDistance(oarg0->su->udt, type0->su->udt);
                                 if (dist < odist) overload_idx = (int)i;
                                 else if (odist < dist) { /* keep old one */ }
                                 else {
@@ -1512,7 +1579,7 @@ struct TypeChecker {
         if (auto dot = Is<Dot>(n)) {
             auto type = dot->children[0]->exptype;
             if (IsStruct(type->t))
-                TypeError("cannot write to field of value: " + type->udt->name, *n);
+                TypeError("cannot write to field of value: " + type->su->udt->name, *n);
         }
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
@@ -1818,7 +1885,7 @@ struct TypeChecker {
             if (vt->sub->Numeric()) {
                 // Check if we allow any vector length.
                 if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
-                    flen = (int)e->udt->fields.size();
+                    flen = (int)e->su->udt->fields.size();
                 }
                 if (!etype.Null() && flen == -1 && etype->t == V_VAR) {
                     // Special case for "F}?" style types that can be matched against a
@@ -1827,8 +1894,8 @@ struct TypeChecker {
                     return st.VectorType(vt, i, 2);
                 }
                 if (flen >= 2 && flen <= 4) {
-                    if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->fields.size() == flen &&
-                        e->udt->sametype == vt->sub) {
+                    if (!e.Null() && e->t == V_STRUCT_S && (int)e->su->udt->fields.size() == flen &&
+                        e->su->udt->sametype == vt->sub) {
                         // Allow any similar vector type, like "color".
                         return etype;
                     }
@@ -2370,7 +2437,7 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     tc.TT(child, 1, LT_BORROW);
     exptype = child->exptype;
     if (!exptype->Numeric() &&
-        (exptype->t != V_STRUCT_S || !exptype->udt->sametype->Numeric()))
+        (exptype->t != V_STRUCT_S || !exptype->su->udt->sametype->Numeric()))
         tc.TypeError("numeric / numeric struct", exptype, *this);
     tc.DecBorrowers(child->lt, *this);
     lt = LT_KEEP;
@@ -2427,7 +2494,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
     UDT *udt = nullptr;
     if (children.size()) {
         type = children[0]->exptype;
-        if (IsUDT(type->t)) udt = type->udt;
+        if (IsUDT(type->t)) udt = type->su->udt;
     }
     Node *r = nullptr;
     if (fld && dotnoparens && udt && udt->Has(fld) >= 0) {
@@ -2440,7 +2507,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret) {
         bool prefer_sf = false;
         if (sf && udt && sf->parent->nargs()) {
             for (auto sfi : sf->parent->overloads) {
-                if (sfi->args.v[0].type->udt == udt) {
+                auto ti = sfi->args.v[0].type;
+                if (IsUDT(ti->t) && ti->su->udt == udt) {
                     prefer_sf = true;
                     break;
                 }
@@ -2559,7 +2627,7 @@ void NativeCall::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
                 typed = true;
             } else if (IsStruct(c->exptype->t) &&
                        !(arg.flags & NF_PUSHVALUEWIDTH) &&
-                       c->exptype->udt->numslots > 1) {
+                       c->exptype->su->udt->numslots > 1) {
                 // Avoid unsuspecting generic functions taking values as args.
                 // TODO: ideally this does not trigger for any functions.
                 tc.TypeError("function does not support this struct type", *this);
@@ -2801,13 +2869,13 @@ Node *Constructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     }
     if (IsUDT(exptype->t)) {
         // We have to check this here, since the parser couldn't check this yet.
-        if (exptype->udt->fields.v.size() < children.size())
-            tc.TypeError("too many initializers for: " + exptype->udt->name, *this);
-        auto udt = tc.FindStructSpecialization(exptype->udt, this);
+        if (exptype->su->udt->fields.v.size() < children.size())
+            tc.TypeError("too many initializers for: " + exptype->su->udt->name, *this);
+        auto udt = tc.FindStructSpecialization(exptype->su->udt, this);
         exptype = &udt->thistype;
     }
     for (auto [i, c] : enumerate(children)) {
-        TypeRef elemtype = IsUDT(exptype->t) ? exptype->udt->fields.v[i].type
+        TypeRef elemtype = IsUDT(exptype->t) ? exptype->su->udt->fields.v[i].type
                                              : exptype->Element();
         tc.SubType(c, elemtype, tc.ArgName(i), *this);
     }
@@ -2821,7 +2889,7 @@ void Dot::TypeCheckSpecialized(TypeChecker &tc, size_t /*reqret*/) {
     auto stype = children[0]->exptype;
     if (!IsUDT(stype->t))
         tc.TypeError("class/struct", stype, *this, "object");
-    auto udt = stype->udt;
+    auto udt = stype->su->udt;
     auto fieldidx = udt->Has(fld);
     if (fieldidx < 0)
         tc.TypeError("type " + udt->name + " has no field named " + fld->name, *this);
@@ -2839,19 +2907,19 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/) {
     auto vtype = object->exptype;
     if (vtype->t != V_VECTOR &&
         vtype->t != V_STRING &&
-        (!IsStruct(vtype->t) || !vtype->udt->sametype->Numeric()))
+        (!IsStruct(vtype->t) || !vtype->su->udt->sametype->Numeric()))
         tc.TypeError("vector/string/numeric struct", vtype, *this, "container");
     auto itype = index->exptype;
     switch (itype->t) {
         case V_INT:
             exptype = vtype->t == V_VECTOR
                 ? vtype->Element()
-                : (IsUDT(vtype->t) ? vtype->udt->sametype : type_int);
+                : (IsUDT(vtype->t) ? vtype->su->udt->sametype : type_int);
             break;
         case V_STRUCT_S: {
             if (vtype->t != V_VECTOR)
                 tc.TypeError("multi-dimensional indexing on non-vector", *this);
-            auto &udt = *itype->udt;
+            auto &udt = *itype->su->udt;
             exptype = vtype;
             for (auto &field : udt.fields.v) {
                 if (field.type->t != V_INT)

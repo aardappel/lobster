@@ -61,6 +61,16 @@ struct UDT;
 
 struct TypeVariable;
 
+struct Type;
+
+struct SpecUDT {
+    UDT *udt;
+    vector<const Type *> specializers;
+    bool is_generic = false;
+
+    SpecUDT(UDT *udt) : udt(udt) {}
+};
+
 struct Type {
     const ValueType t = V_UNDEFINED;
 
@@ -69,7 +79,7 @@ struct Type {
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
-        UDT *udt;                // V_CLASS | V_STRUCT_*
+        SpecUDT *su;             // V_CLASS | V_STRUCT_*
         Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
         TypeVariable *tv;        // V_TYPEVAR
@@ -79,7 +89,7 @@ struct Type {
     explicit Type(ValueType _t)          : t(_t),        sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),        sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),        sf(_sf)      {}
-    Type(ValueType _t, UDT *_udt)        : t(_t),        udt(_udt)    {}
+    Type(ValueType _t, SpecUDT *_su)     : t(_t),        su(_su)      {}
     Type(Enum *_e)                       : t(V_INT),     e(_e)        {}
     Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
 
@@ -91,10 +101,6 @@ struct Type {
     }
 
     bool operator!=(const Type &o) const { return !(*this == o); }
-
-    bool EqNoIndex(const Type &o) const {
-        return t == o.t && (!Wrapped() || sub->EqNoIndex(*o.sub));
-    }
 
     Type &operator=(const Type &o) {
         // Hack: we want t to be const, but still have a working assignment operator.

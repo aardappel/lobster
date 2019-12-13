@@ -116,7 +116,7 @@ run_test("types"):
             def h():
                 let x:T = true // Use as internal type.
                 return x
-        def i(a::A, t:T):       // Non-inline "method" using generic of first arg.
+        def i(a::A, t:T):      // Non-inline "method" using generic of first arg.
             ts.push(t)
         class Ai = A<int>      // Specialize.
         let a = Ai { [ 1 ] }
@@ -155,6 +155,9 @@ run_test("types"):
             return 1, 1
         let r, s = q<float>()
         assert r is float and s is float
+        def t0(aa:Ai?) -> Ai:
+            return A { [ if aa: aa.ts[0] else: 2 ] }
+        assert t0(a).ts[0] == 1
         // Use with various explicit type features.
         def l<T>(): return 1.0 is T     // Use with is.
         assert l<float>()
@@ -164,3 +167,11 @@ run_test("types"):
         assert equal(o<string>(), []::string)
         def p<T>(): return typeof T     // Use with typeof.
         assert p<string>() == 3
+        // Use without an named specialization type.
+        def t1<V>(aa:A<V>) -> A<V>:
+            return A { [ aa.ts[0] ] }
+        assert t1(a).ts[0] == 1
+        def t2<V>(aa:A<V>?) -> A<V>:
+            return A { [ if aa: aa.ts[0] else: 2 ] }
+        assert t2(a).ts[0] == 1
+

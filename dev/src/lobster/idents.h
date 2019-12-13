@@ -157,6 +157,7 @@ struct UDT : Named {
     bool is_struct = false, hasref = false;
     bool predeclaration = false;
     bool constructed = false;  // Is this instantiated anywhere in the code?
+    SpecUDT thisspec;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
@@ -170,8 +171,9 @@ struct UDT : Named {
     // in here.
     vector<DispatchEntry> dispatch;
 
-    UDT(string_view _name, int _idx, bool is_struct) : Named(_name, _idx), is_struct(is_struct) {
-        thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
+    UDT(string_view _name, int _idx, bool is_struct)
+        : Named(_name, _idx), is_struct(is_struct), thisspec(this) {
+        thistype = is_struct ? Type { V_STRUCT_R, &thisspec } : Type { V_CLASS, &thisspec };
     }
 
     int Has(SharedField *fld) {
@@ -181,7 +183,8 @@ struct UDT : Named {
 
     UDT *CloneInto(UDT *st) {
         *st = *this;
-        st->thistype.udt = st;
+        st->thisspec.udt = st;
+        st->thistype.su = &st->thisspec;
         st->next = next;
         st->first = first;
         next = st;
@@ -214,8 +217,8 @@ struct UDT : Named {
         for (auto &uf : fields.v) {
             uf.slot = size;
             if (IsStruct(uf.type->t)) {
-                if (!uf.type->udt->ComputeSizes(depth + 1)) return false;
-                size += uf.type->udt->numslots;
+                if (!uf.type->su->udt->ComputeSizes(depth + 1)) return false;
+                size += uf.type->su->udt->numslots;
             } else {
                 size++;
             }
@@ -234,11 +237,11 @@ struct UDT : Named {
     }
 };
 
-inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->udt->numslots : 1; }
+inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->su->udt->numslots : 1; }
 
 inline const Field *FindSlot(const UDT &udt, int i) {
     for (auto &f : udt.fields.v) if (i >= f.slot && i < f.slot + ValWidth(f.type)) {
-        return IsStruct(f.type->t) ? FindSlot(*f.type->udt, i - f.slot) : &f;
+        return IsStruct(f.type->t) ? FindSlot(*f.type->su->udt, i - f.slot) : &f;
     }
     assert(false);
     return nullptr;
@@ -402,6 +405,7 @@ struct SymbolTable {
 
     vector<Type *> typelist;  // Used for constructing new vector types, variables, etc.
     vector<vector<Type::TupleElem> *> tuplelist;
+    vector<SpecUDT *> specudts;
 
     string current_namespace;
     // FIXME: because we cleverly use string_view's into source code everywhere, we now have
@@ -421,6 +425,7 @@ struct SymbolTable {
         for (auto t   : tuplelist)        delete t;
         for (auto n   : stored_names)     delete[] n;
         for (auto tv  : typevars)         delete tv;
+        for (auto su  : specudts)         delete su;
     }
 
     string NameSpaced(string_view name) {
@@ -487,11 +492,11 @@ struct SymbolTable {
     void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
         if (!IsUDT(t->t)) lex.Error(":: can only be used with struct/value types");
         for (auto &wp : withstack)
-            if (wp.type->udt == t->udt)
+            if (wp.type->su->udt == t->su->udt)
                 lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
-        assert(t->udt);
+        assert(t->su->udt);
         withstack.push_back({ t, id, sf });
     }
 
@@ -500,7 +505,7 @@ struct SymbolTable {
         if (!fld) return nullptr;
         assert(!id);
         for (auto &wse : withstack) {
-            if (wse.type->udt->Has(fld) >= 0) {
+            if (wse.type->su->udt->Has(fld) >= 0) {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wse.id;
             }
@@ -640,10 +645,10 @@ struct SymbolTable {
         return *uit->second;
     }
 
-    int SuperDistance(const UDT *sup, const UDT *sub) {
+    int SuperDistance(const UDT *super, const UDT *subclass) {
         int dist = 0;
-        for (auto t = sub; t; t = t->superclass) {
-            if (t == sup) return dist;
+        for (auto t = subclass; t; t = t->superclass) {
+            if (t == super) return dist;
             dist++;
         }
         return -1;
@@ -651,9 +656,9 @@ struct SymbolTable {
 
     const UDT *CommonSuperType(const UDT *a, const UDT *b) {
         if (a != b) for (;;) {
+            if (SuperDistance(a, b) >= 0) break;
             a = a->superclass;
             if (!a) return nullptr;
-            if (SuperDistance(a, b) >= 0) break;
         }
         return a;
     }
@@ -750,9 +755,34 @@ struct SymbolTable {
         return type;
     }
 
+    TypeRef NewSpecUDT(TypeRef st) {
+        assert(IsUDT(st->t));
+        auto su = new SpecUDT(st->su->udt);
+        specudts.push_back(su);
+        auto nt = NewType();
+        *nt = Type(st->t, su);
+        return nt;
+    }
+
     TypeRef Wrap(TypeRef elem, ValueType with) {
         auto wt = WrapKnown(elem, with);
         return !wt.Null() ? wt : elem->Wrap(NewType(), with);
+    }
+
+    TypeRef ReplaceByNamedSpecialization(TypeRef sut) {
+        // TODO: in the case of both callers, the SpecUDT has already been allocated, would be
+        // be better to do that only if a named specialization is actually found.
+        for (auto udt = sut->su->udt->first; udt; udt = udt->next) {
+            if (udt->FullyBound()) {
+                assert(udt->generics.size() == sut->su->specializers.size());
+                for (auto [i, btv] : enumerate(udt->generics)) {
+                    if (btv.type != sut->su->specializers[i]) goto nomatch;
+                }
+                return &udt->thistype;
+                nomatch:;
+            }
+        }
+        return sut;
     }
 
     TypeRef ResolveTypeVars(TypeRef type) {
@@ -771,6 +801,15 @@ struct SymbolTable {
                     nt->Set(i, &*ResolveTypeVars(te.type), te.lt);
                 }
                 return nt;
+            }
+            case V_CLASS:
+            case V_STRUCT_R:
+            case V_STRUCT_S: {
+                if (!type->su->is_generic) break;
+                auto nt = NewSpecUDT(type);
+                for (auto s : type->su->specializers)
+                    nt->su->specializers.push_back(&*ResolveTypeVars(s));
+                return ReplaceByNamedSpecialization(nt);
             }
             case V_TYPEVAR: {
                 for (auto bvec : reverse(bound_typevars_stack)) {
@@ -831,39 +870,14 @@ struct SymbolTable {
     }
 
     bool IsGeneric(TypeRef type) {
-        if (type->HasValueType(V_TYPEVAR)) return true;
-        auto u = type->UnWrapped();
-        return IsUDT(u->t) && !u->udt->FullyBound();
+        auto u = type->UnWrapAll();
+        return u->t == V_TYPEVAR || (IsUDT(u->t) && u->su->is_generic);
     }
 
     TypeVariable *NewGeneric(string_view name) {
         auto tv = new TypeVariable { name };
         typevars.push_back(tv);
         return tv;
-    }
-
-    // This one is used to sort types for multi-dispatch.
-    bool IsLessGeneralThan(const Type &a, const Type &b) const {
-        if (a.t != b.t) return a.t > b.t;
-        switch (a.t) {
-            case V_VECTOR:
-            case V_NIL:
-                return IsLessGeneralThan(*a.sub, *b.sub);
-            case V_FUNCTION:
-                return a.sf->idx < b.sf->idx;
-            case V_STRUCT_R:
-            case V_STRUCT_S:
-            case V_CLASS: {
-                if (a.udt == b.udt) return false;
-                auto ans = a.udt->NumSuperTypes();
-                auto bns = b.udt->NumSuperTypes();
-                return ans != bns
-                    ? ans > bns
-                    : a.udt->idx < b.udt->idx;
-            }
-            default:
-                return false;
-        }
     }
 
     void Serialize(vector<int> &code,
@@ -918,8 +932,18 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
     switch (type->t) {
         case V_STRUCT_R:
         case V_STRUCT_S:
-        case V_CLASS:
-            return type->udt->name;
+        case V_CLASS: {
+            string s = type->su->udt->name;
+            if (!type->su->specializers.empty() && !type->su->udt->FullyBound()) {
+                s += "<";
+                for (auto [i, t] : enumerate(type->su->specializers)) {
+                    if (i) s += ", ";
+                    s += TypeName(t);
+                }
+                s += ">";
+            }
+            return s;
+        }
         case V_VECTOR:
             return flen && type->Element()->Numeric()
                 ? (flen < 0
