@@ -182,6 +182,13 @@ struct Lex : LoadedFile {
         bracketstack.pop_back();
     }
 
+    // The ones from ctype.h assert on negative values, even though char is signed on most
+    // platforms?? And they contain a bunch of locale crap we don't care about.
+    static bool IsAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');  }
+    static bool IsDigit(char c) { return c >= '0' && c <= '9'; }
+    static bool IsXDigit(char c) { return IsDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
+    static bool IsAlNum(char c) { return IsAlpha(c) || IsDigit(c); }
+
     TType NextToken() {
         line = tokline;
         islf = false;
@@ -274,8 +281,8 @@ struct Lex : LoadedFile {
                 return SkipString(c);
 
             default: {
-                if (isalpha(c) || c == '_' || c < 0) {
-                    while (isalnum(*p) || *p == '_' || *p < 0) p++;
+                if (IsAlpha(c) || c == '_' || c < 0) {
+                    while (IsAlNum(*p) || *p == '_' || *p < 0) p++;
                     sattr = string_view(tokenstart, p - tokenstart);
                     if      (sattr == "nil")                return T_NIL;
                     else if (sattr == "return")             return T_RETURN;
@@ -311,23 +318,23 @@ struct Lex : LoadedFile {
                     else return T_IDENT;
                 }
                 bool isfloat = c == '.' && *p != '.';
-                if (isdigit(c) || (isfloat && isdigit(*p))) {
+                if (IsDigit(c) || (isfloat && IsDigit(*p))) {
                     if (c == '0' && *p == 'x') {
                         p++;
-                        while (isxdigit(*p)) p++;
+                        while (IsXDigit(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
                         return T_INT;
                     } else {
-                        while (isdigit(*p)) p++;
-                        if (!isfloat && *p == '.' && *(p + 1) != '.' && !isalpha(*(p + 1))) {
+                        while (IsDigit(*p)) p++;
+                        if (!isfloat && *p == '.' && *(p + 1) != '.' && !IsAlpha(*(p + 1))) {
                             p++;
                             isfloat = true;
-                            while (isdigit(*p)) p++;
+                            while (IsDigit(*p)) p++;
                         }
                         if (isfloat && (*p == 'e' || *p == 'E')) {
                             p++;
                             if (*p == '+' || *p == '-') p++;
-                            while (isdigit(*p)) p++;
+                            while (IsDigit(*p)) p++;
                         }
                         sattr = string_view(tokenstart, p - tokenstart);
                         return isfloat ? T_FLOAT : T_INT;
@@ -348,8 +355,8 @@ struct Lex : LoadedFile {
     }
 
     char HexDigit(char c) {
-        if (isdigit(c)) return c - '0';
-        if (isxdigit(c)) return c - (c < 'a' ? 'A' : 'a') + 10;
+        if (IsDigit(c)) return c - '0';
+        if (IsXDigit(c)) return c - (c < 'a' ? 'A' : 'a') + 10;
         return -1;
     }
 
@@ -444,7 +451,7 @@ struct Lex : LoadedFile {
                     case '\"':
                     case '\'': break;
                     case 'x':
-                        if (!isxdigit(*s) || !isxdigit(s[1]))
+                        if (!IsXDigit(*s) || !IsXDigit(s[1]))
                             Error("illegal hexadecimal escape code in string constant");
                         c = HexDigit(*s++) << 4;
                         c |= HexDigit(*s++);

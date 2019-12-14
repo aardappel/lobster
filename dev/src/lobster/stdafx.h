@@ -29,7 +29,6 @@
 #endif
 
 #include <stdio.h>
-#include <ctype.h>
 #include <assert.h>
 #include <math.h>
 #include <string.h>
