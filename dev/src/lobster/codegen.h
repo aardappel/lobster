@@ -310,6 +310,12 @@ struct CodeGen  {
         }
     }
 
+    int StackDepth() {
+        int stack_depth = 0;
+        for (auto &tlt : temptypestack) stack_depth += ValWidth(tlt.type);
+        return stack_depth;
+    }
+
     void GenFixup(const SubFunction *sf) {
         assert(sf->body);
         auto pos = Pos() - 1;
@@ -888,8 +894,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             }
             if (decref & (1LL << i)) {
                 assert(IsRefNil(type->t));
-                int stack_depth = 0;
-                for (auto &tlt : cg.temptypestack) stack_depth += ValWidth(tlt.type);
+                int stack_depth = cg.StackDepth();
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask?
                     for (int j = 0; j < type->udt->numslots; j++) {
@@ -969,7 +974,11 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         auto lastarg = children.empty() ? nullptr : children.back();
         if (!Is<DefaultVal>(lastarg)) {
             cg.Emit(vmop, nf->idx);
-            cg.Emit(IL_CALLVCOND);  // FIXME: doesn't need to be COND anymore?
+            // Note: this call is still conditional, since some of these functions dynamically
+            // decide to pass a nil lambda even if statically one is given.
+            // These functions return the function they're passed + a string (if the function)
+            // isn't nil), so we must store the string in a keepvar.
+            cg.Emit(IL_CALLVCOND, cg.keepvars++ + cg.StackDepth() + 2);
             cg.SplitAttr(cg.Pos());
             assert(lastarg->exptype->t == V_FUNCTION);
             assert(!lastarg->exptype->sf->reqret);  // We never use the retval.

@@ -252,8 +252,10 @@ nfr("im_frame", "body", "L", "", "",
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(_sdl_window);
         ImGui::NewFrame();
+        vm.Push(Value());  // State value.
         return body;
-    }, [](VM &) {
+    }, [](VM &vm) {
+        vm.Pop();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     });
@@ -271,8 +273,10 @@ nfr("im_window", "title,flags,body", "SIL", "", "",
         IsInit(vm, false);
         ImGui::Begin(title.sval()->data(), nullptr, (ImGuiWindowFlags)flags.ival());
         imgui_windows++;
+        vm.Push(Value());  // State value.
         return body;
-    }, [](VM &) {
+    }, [](VM &vm) {
+        vm.Pop();
         ImGui::End();
         imgui_windows--;
     });
@@ -281,8 +285,10 @@ nfr("im_button", "label,body", "SL", "", "",
     [](VM &vm, Value &title, Value &body) {
         IsInit(vm);
         auto press = ImGui::Button(title.sval()->data());
+        vm.Push(Value());  // State value.
         return press ? body : Value();
-    }, [](VM &) {
+    }, [](VM &vm) {
+        vm.Pop();
     });
 
 nfr("im_same_line", "", "", "", "",
@@ -389,11 +395,13 @@ nfr("im_coloredit", "label,color", "SF}", "A2", "",
 nfr("im_treenode", "label,body", "SL", "", "",
     [](VM &vm, Value &title, Value &body) {
         IsInit(vm);
-        auto open = ImGui::TreeNode(title.sval()->data());
-        vm.Push(open);
+        bool open = ImGui::TreeNode(title.sval()->data());
+        vm.PushAnyAsString(open);
         return open ? body : Value();
     }, [](VM &vm) {
-        if (vm.Pop().True()) ImGui::TreePop();
+        bool open;
+        vm.PopAnyFromString(open);
+        if (open) ImGui::TreePop();
     });
 
 nfr("im_group", "label,body", "SsL", "",
@@ -403,8 +411,10 @@ nfr("im_group", "label,body", "SsL", "",
     [](VM &vm, Value &title, Value &body) {
         IsInit(vm);
         ImGui::PushID(title.sval()->data());
+        vm.Push(Value());  // State value.
         return body;
-    }, [](VM &) {
+    }, [](VM &vm) {
+        vm.Pop();
         ImGui::PopID();
     });
 

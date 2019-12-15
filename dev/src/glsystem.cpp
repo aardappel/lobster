@@ -38,7 +38,7 @@ void AppendTransform(const float4x4 &forward, const float4x4 &backward) {
     otransforms.view2object = backward * otransforms.view2object;
 }
 
-int SetBlendMode(BlendMode mode) {
+BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
     if (mode == curblendmode) return curblendmode;
     switch (mode) {
@@ -66,7 +66,7 @@ int SetBlendMode(BlendMode mode) {
             GL_CALL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
             break;
     }
-    int old = curblendmode;
+    BlendMode old = curblendmode;
     curblendmode = mode;
     return old;
 }

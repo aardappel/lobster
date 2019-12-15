@@ -157,7 +157,7 @@ extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void Set3DOrtho(const float3 &center, const float3 &extends);
 extern bool Is2DMode();
 extern void ClearFrameBuffer(const float3 &c);
-extern int SetBlendMode(BlendMode mode);
+extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 
 extern void AppendTransform(const float4x4 &forward, const float4x4 &backward);

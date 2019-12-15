@@ -862,7 +862,9 @@ VM_INS_RET VM::U_CALL(int f VM_COMMA VM_OP_ARGS_CALL) {
     VM_RET;
 }
 
-VM_INS_RET VM::U_CALLVCOND(VM_OP_ARGS_CALL) {
+VM_INS_RET VM::U_CALLVCOND(int keepvar VM_COMMA VM_OP_ARGS_CALL) {
+    // This we do regardless, since a string is on the stack.
+    U_KEEPREF(1, keepvar);
     // FIXME: don't need to check for function value again below if false
     if (!VM_TOP().True()) {
         VM_POP();

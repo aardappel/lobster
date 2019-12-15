@@ -367,14 +367,11 @@ nfr("gl_color", "col,body", "F}:4L?", "",
     "sets the current color. when a body is given, restores the previous color afterwards",
     [](VM &vm) {
         auto body = vm.Pop();
-        auto col = vm.PopVec<float4>();
-        auto cc = quantizec(curcolor);
-        if (body.True()) vm.Push(*(int *)&cc);
-        curcolor = col;
+        curcolor = vm.PopVec<float4>();
+        if (body.True()) vm.PushAnyAsString(curcolor);
         vm.Push(body);
     }, [](VM &vm) {
-        auto tmpcol = vm.Pop().intval();
-        curcolor = color2vec(*(byte4 *)&tmpcol);
+        vm.PopAnyFromString(curcolor);
     });
 
 nfr("gl_polygon", "vertlist", "F}]", "",
@@ -521,11 +518,11 @@ nfr("gl_line_mode", "on,body", "IL", "",
     "set line mode (true == on). when a body is given,"
     " restores the previous mode afterwards",
     [](VM &vm, Value &on, Value &body) {
-        if (body.True()) vm.Push(Value(polymode));
+        if (body.True()) vm.PushAnyAsString(polymode);
         polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
         return body;
     }, [](VM &vm) {
-        polymode = (Primitive)vm.Pop().ival();
+        vm.PopAnyFromString(polymode);
     });
 
 nfr("gl_hit", "vec,i", "F}I", "B",
@@ -919,13 +916,13 @@ nfr("gl_blend", "on,body", "IL?", "",
     " given, restores the previous mode afterwards",
     [](VM &vm, Value &mode, Value &body) {
         TestGL(vm);
-        int old = SetBlendMode((BlendMode)mode.ival());
-        if (body.True()) vm.Push(Value(old));
+        BlendMode old = SetBlendMode((BlendMode)mode.ival());
+        if (body.True()) vm.PushAnyAsString(old);
         return body;
     }, [](VM &vm) {
-        auto m = vm.Pop();
-        assert(m.type == V_INT);
-        SetBlendMode((BlendMode)m.ival());
+        BlendMode old;
+        vm.PopAnyFromString(old);
+        SetBlendMode(old);
     });
 
 nfr("gl_load_texture", "name,textureformat", "SI?", "R?",

@@ -882,13 +882,11 @@ nfr("mg_smooth", "smooth,body", "FL?", "",
     [](VM &vm) {
         auto body = vm.Pop();
         auto smooth = vm.Pop().fltval();
-        if (body.True()) vm.Push(Value(cursmoothmink));
+        if (body.True()) vm.PushAnyAsString(cursmoothmink);
         cursmoothmink = smooth;
         vm.Push(body);
     }, [](VM &vm) {
-        auto smooth = vm.Pop();
-        assert(smooth.type == V_FLOAT);
-        cursmoothmink = smooth.fltval();
+        vm.PopAnyFromString(cursmoothmink);
     });
 
 }  // AddMeshGen

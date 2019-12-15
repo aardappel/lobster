@@ -951,7 +951,7 @@ struct VM : VMArgs {
                         VM_OP_DEFSN(A); \
                         return U_##N(VM_OP_PASSN(A) VM_CCOMMA_IF(A) VM_FC_PASS_THRU); \
                     }
-        ILCALLNAMES
+             ILCALLNAMES
     #undef F
     #define F(N, A) VM_JMP_RET U_##N(); VM_JMP_RET F_##N() { return U_##N(); }
         ILJUMPNAMES
@@ -1032,7 +1032,7 @@ struct VM : VMArgs {
         assert(s.type == V_STRING);
         assert(s.sval()->len == sizeof(T));
         t = *(T *)s.sval()->strv().data();
-        s.LTDECRT(*this);
+        // No rc dec, these are stored in a keepvar.
     }
 
     string_view StructName(const TypeInfo &ti);

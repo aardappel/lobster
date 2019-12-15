@@ -1,3 +1,5 @@
+- how does keepvar work with inlined functions?
+
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
