@@ -261,30 +261,58 @@ template<typename T> struct RandomNumberGenerator {
 
 // Special case for to_string to get exact float formatting we need.
 template<typename T> string to_string_float(T x, int decimals = -1) {
-    // ostringstream gives more consistent cross-platform results than to_string() for floats, and
-    // can at least be configured to turn scientific notation off.
-    ostringstream ss;
-    // Suppress scientific notation.
-    ss << std::fixed;
-    // There's no way to tell it to just output however many decimals are actually significant,
-    // sigh. Once you turn on fixed, it will default to 5 or 6, depending on platform, for both
-    // float and double. So we set our own more useful defaults:
-    int default_precision = sizeof(T) == sizeof(float) ? 6 : 12;
-    ss << std::setprecision(decimals <= 0 ? default_precision : decimals);
-    ss << x;
-    auto s = ss.str();
-    if (decimals <= 0) {
-        // First trim whatever lies beyond the precision to avoid garbage digits.
-        size_t max_significant = default_precision;
-        max_significant += 2;  // "0."
-        if (s[0] == '-') max_significant++;
-        while (s.length() > max_significant && s.back() != '.') s.pop_back();
-        // Now strip unnecessary trailing zeroes.
-        while (s.back() == '0') s.pop_back();
-        // If there were only zeroes, keep at least 1.
-        if (s.back() == '.') s.push_back('0');
-    }
-    return s;
+    // FIXME: make this work for other compilers.
+    // Looks like gcc/clang/xcode are behind on msvc on this one for once. May need to upgrade to
+    // bleeding edge versions on CI somehow.
+    #if _MSC_VER >= 1923
+        string s;
+        for (;;) {
+            // Typical capacity of an empty string is 15 or 22 on 64-bit compilers since they
+            // all use "small string optimization" nowadays. That would fit most floats, needing no
+            // allocation in the base case.
+            // Even on 32-bit, it would likely be 7 or 10 which fits some floats.
+            s.resize(s.capacity());  // Sadly need this.
+            auto res = decimals >= 0
+                ? to_chars(s.data(), s.data() + s.size(), x, std::chars_format::fixed, decimals)
+                : to_chars(s.data(), s.data() + s.size(), x, std::chars_format::fixed);
+            if (res.ec == errc()) {
+                s.resize(res.ptr - s.data());
+                // We like floats to be recognizable as floats, not integers.
+                if (s.find_last_of('.') == string::npos) s += ".0";
+                return s;
+            }
+            // It didn't fit, we're going to have to allocate.
+            // Simply double the capacity until it works.
+            // We choose 15 as minimum bound, since together with the null-terminator, it is most
+            // likely to fit in a memory allocator bucket.
+            s.reserve(max(s.capacity(), (size_t)15) * 2);
+        }
+    #else
+        // ostringstream gives more consistent cross-platform results than to_string() for floats,
+        // and can at least be configured to turn scientific notation off.
+        ostringstream ss;
+        // Suppress scientific notation.
+        ss << std::fixed;
+        // There's no way to tell it to just output however many decimals are actually significant,
+        // sigh. Once you turn on fixed, it will default to 5 or 6, depending on platform, for both
+        // float and double. So we set our own more useful defaults:
+        int default_precision = sizeof(T) == sizeof(float) ? 6 : 12;
+        ss << std::setprecision(decimals <= 0 ? default_precision : decimals);
+        ss << x;
+        auto s = ss.str();
+        if (decimals <= 0) {
+            // First trim whatever lies beyond the precision to avoid garbage digits.
+            size_t max_significant = default_precision;
+            max_significant += 2;  // "0."
+            if (s[0] == '-') max_significant++;
+            while (s.length() > max_significant && s.back() != '.') s.pop_back();
+            // Now strip unnecessary trailing zeroes.
+            while (s.back() == '0') s.pop_back();
+            // If there were only zeroes, keep at least 1.
+            if (s.back() == '.') s.push_back('0');
+        }
+        return s;
+    #endif
 }
 
 inline void to_string_hex(ostringstream &ss, size_t x) {

@@ -49,6 +49,7 @@
 #include <type_traits>
 #include <memory>
 #include <optional>
+#include <charconv>
 
 #if defined(__has_include) && __has_include(<string_view>)
     #include <string_view>
