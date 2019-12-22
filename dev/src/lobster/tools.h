@@ -819,15 +819,15 @@ inline string operator+(string_view a, string_view b) {
     return r;
 }
 
-auto to_string_conv(string_view sv) {
+inline auto to_string_conv(string_view sv) {
     return[sv]() { return sv; };
 }
 
-auto to_string_conv(const string &s) {
+inline auto to_string_conv(const string &s) {
     return[&s]() { return string_view(s); };
 }
 
-auto to_string_conv(const char *cs) {
+inline auto to_string_conv(const char *cs) {
     return [sv = string_view(cs)]() { return sv; };  // Caches strlen!
 }
 
