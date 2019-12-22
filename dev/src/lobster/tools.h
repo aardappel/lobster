@@ -791,15 +791,44 @@ inline string operator+(string_view a, string_view b) {
     return r;
 }
 
-inline void cat_helper(stringstream &) {}
-template<typename T, typename ...Ts> void cat_helper(stringstream &ss, const T &t, const Ts&... args) {
-    ss << t;
-    cat_helper(ss, args...);
+auto to_string_conv(string_view sv) {
+    return[sv]() { return sv; };
 }
+
+auto to_string_conv(const string &s) {
+    return[&s]() { return string_view(s); };
+}
+
+auto to_string_conv(const char *cs) {
+    return [sv = string_view(cs)]() { return sv; };  // Caches strlen!
+}
+
+template<typename T> auto to_string_conv(T i) {
+    static_assert(is_scalar<T>::value, "");
+    return [s = to_string(i)]() { return string_view(s); };  // Caches to_string!
+}
+
+inline size_t size_helper() { return 0; }
+template<typename T, typename ...Ts> size_t size_helper(const T &t, const Ts &... args) {
+    return t().size() + size_helper(args...);
+}
+
+inline void cat_helper(string &) {}
+template<typename T, typename ...Ts> void cat_helper(string &s, const T &t, const Ts&... args) {
+    s += t();
+    cat_helper(s, args...);
+}
+
+template<typename ...Ts> void cat_convs(string &s, const Ts &... args) {
+    auto len = size_helper(args...);
+    s.reserve(len);  // Only 1 alloc ever.
+    cat_helper(s, args...);
+}
+
 template<typename ...Ts> string cat(const Ts&... args) {
-    stringstream ss;
-    cat_helper(ss, args...);
-    return ss.str();
+    string s;
+    cat_convs(s, to_string_conv(args)...);
+    return s;
 }
 
 // This method is in C++20, but quite essential.
