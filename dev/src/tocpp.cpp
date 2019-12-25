@@ -20,7 +20,7 @@
 namespace lobster {
 
 class CPPGenerator : public NativeGenerator {
-    ostringstream &ss;
+    string &sd;
     const int dispatch = VM_DISPATCH_METHOD;
     int current_block_id = -1;
     int tail_calls_in_a_row = 0;
@@ -31,18 +31,18 @@ class CPPGenerator : public NativeGenerator {
 
     void JumpInsVar() {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << "return (void *)vm.next_call_target;";
+            sd += "return (void *)vm.next_call_target;";
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "{ ip = vm.next_call_target; continue; }";
+            sd += "{ ip = vm.next_call_target; continue; }";
         }
     }
 
   public:
 
-    explicit CPPGenerator(ostringstream &ss) : ss(ss) {}
+    explicit CPPGenerator(string &sd) : sd(sd) {}
 
     void FileStart() override {
-        ss <<
+        sd +=
             "#include \"lobster/stdafx.h\"\n"
             "#include \"lobster/vmdata.h\"\n"
             #if LOBSTER_ENGINE
@@ -63,34 +63,34 @@ class CPPGenerator : public NativeGenerator {
 
     void DeclareBlock(int id) override {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << "static void *block" << id << "(lobster::VM &);\n";
+            append(sd, "static void *block", id, "(lobster::VM &);\n");
         }
     }
 
     void BeforeBlocks(int start_id, string_view /*bytecode_buffer*/) override {
-        ss << "\n";
+        sd += "\n";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "static void *one_gigantic_function(lobster::VM &vm) {\n";
-            ss << "  lobster::block_t ip = " << start_id;
-            ss << ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n";
+            append(sd, "static void *one_gigantic_function(lobster::VM &vm) {\n",
+                       "  lobster::block_t ip = ", start_id,
+                       ";\n  for(;;) switch(ip) {\n    default: assert(false); continue;\n");
         }
     }
 
     void FunStart(const bytecode::Function *f) override {
-        ss << "\n";
-        if (f) ss << "// " << f->name()->string_view() << "\n";
+        sd += "\n";
+        if (f) append(sd, "// ", f->name()->string_view(), "\n");
     }
 
     void BlockStart(int id) override {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << "static void *block" << id << "(lobster::VM &vm) {\n";
+            append(sd, "static void *block", id, "(lobster::VM &vm) {\n");
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "  case " << id << ": block_label" << id << ":\n";
+            append(sd, "  case ", id, ": block_label", id, ":\n");
         }
     }
 
     void InstStart() override {
-        ss << "    { ";
+        sd += "    { ";
     }
 
     void EmitJump(int id) override {
@@ -107,135 +107,135 @@ class CPPGenerator : public NativeGenerator {
             if (tail_calls_in_a_row > 10 || id <= current_block_id) {
                 // A backwards jump, go via the trampoline to be safe
                 // (just in-case the compiler doesn't optimize tail calls).
-                ss << "return (void *)block" << id << ";";
+                append(sd, "return (void *)block", id, ";");
                 tail_calls_in_a_row = 0;
             } else {
                 // A forwards call, should be safe to tail-call.
-                ss << "return block" << id << "(vm);";
+                append(sd, "return block", id, "(vm);");
                 tail_calls_in_a_row++;
             }
         } else if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "goto block_label" << id << ";";
+            append(sd, "goto block_label", id, ";");
         }
     }
 
     void EmitConditionalJump(int opc, int id) override {
-        ss << "if (vm.F_" << ILNames()[opc] << "()) ";
+        append(sd, "if (vm.F_", ILNames()[opc], "()) ");
         EmitJump(id);
     }
 
     void EmitOperands(const char * /*base*/, const int *args, int arity, bool is_vararg) override {
         if (is_vararg && arity) {
-            ss << "static int args[] = {";
+            sd += "static int args[] = {";
             for (int i = 0; i < arity; i++) {
-                if (i) ss << ", ";
-                ss << args[i];
+                if (i) sd += ", ";
+                append(sd, args[i]);
             }
-            ss << "}; ";
+            sd += "}; ";
         }
     }
 
     void SetNextCallTarget(int id) override {
-        ss << "vm.next_call_target = " << Block() << id << "; ";
+        append(sd, "vm.next_call_target = ", Block(), id, "; ");
     }
 
     void EmitGenericInst(int opc, const int *args, int arity, bool is_vararg, int target) override {
-        ss << "vm.U_" << ILNames()[opc] << "(";
+        append(sd, "vm.U_", ILNames()[opc], "(");
         if (is_vararg) {
-            ss << "args";
+            sd += "args";
         } else {
             for (int i = 0; i < arity; i++) {
-                if (i) ss << ", ";
-                ss << args[i];
+                if (i) sd += ", ";
+                append(sd, args[i]);
             }
         }
         if (target >= 0) {
-            if (arity) ss << ", ";
-            ss << Block() << target;
+            if (arity) sd += ", ";
+            append(sd, Block(), target);
         }
-        ss << ");";
+        sd += ");";
     }
 
     void EmitCall(int id) override {
-        ss << " ";
+        sd += " ";
         EmitJump(id);
     }
 
     void EmitCallIndirect() override {
-        ss << " ";
+        sd += " ";
         JumpInsVar();
     }
 
     void EmitCallIndirectNull() override {
-        ss << " if (vm.next_call_target) ";
+        sd += " if (vm.next_call_target) ";
         JumpInsVar();
     }
 
     void InstEnd() override {
-        ss << " }\n";
+        sd += " }\n";
     }
 
     void BlockEnd(int id, bool already_returned, bool is_exit) override {
         if (dispatch == VM_DISPATCH_TRAMPOLINE) {
             if (!already_returned) {
-                ss << "    { ";
+                sd += "    { ";
                 if (is_exit) JumpInsVar(); else EmitJump(id);
-                ss << " }\n";
+                sd += " }\n";
             }
-            ss << "}\n";
+            sd += "}\n";
         }
     }
 
     void CodeEnd() override {
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "}\n}\n";  // End of gigantic function.
+            sd += "}\n}\n";  // End of gigantic function.
         }
     }
 
     void VTables(vector<int> &vtables) override {
-        ss << "\nstatic const lobster::block_t vtables[] = {\n";
+        sd += "\nstatic const lobster::block_t vtables[] = {\n";
         for (auto id : vtables) {
-            ss << "    ";
-            if (id >= 0) ss << Block() << id;
-            else ss << "0";
-            ss << ",\n";
+            sd += "    ";
+            if (id >= 0) append(sd, Block(), id);
+            else sd += "0";
+            sd += ",\n";
         }
-        ss << "};\n";
+        sd += "};\n";
     }
 
     void FileEnd(int start_id, string_view bytecode_buffer) override {
         // FIXME: this obviously does NOT need to include the actual bytecode, just the metadata.
         // in fact, it be nice if those were in readable format in the generated code.
-        ss << "\nstatic const int bytecodefb[] = {";
+        sd += "\nstatic const int bytecodefb[] = {";
         auto bytecode_ints = (const int *)bytecode_buffer.data();
         for (size_t i = 0; i < bytecode_buffer.length() / sizeof(int); i++) {
-            if ((i & 0xF) == 0) ss << "\n  ";
-            ss << bytecode_ints[i] << ", ";
+            if ((i & 0xF) == 0) sd += "\n  ";
+            append(sd, bytecode_ints[i], ", ");
         }
-        ss << "\n};\n\n";
-        ss << "int main(int argc, char *argv[]){\n";
-        ss << "    return ";
+        sd += "\n};\n\n";
+        sd += "int main(int argc, char *argv[]){\n";
+        sd += "    return ";
         #if LOBSTER_ENGINE
-            ss << "EngineRunCompiledCodeMain";
+            sd += "EngineRunCompiledCodeMain";
         #else
-            ss << "ConsoleRunCompiledCodeMain";
+            sd += "ConsoleRunCompiledCodeMain";
         #endif
-        ss << "(argc, argv, (void *)";
+        sd += "(argc, argv, (void *)";
         if (dispatch == VM_DISPATCH_SWITCH_GOTO) {
-            ss << "one_gigantic_function";
+            sd += "one_gigantic_function";
         } else if (dispatch == VM_DISPATCH_TRAMPOLINE) {
-            ss << Block() << start_id;
+            append(sd, Block(), start_id);
         }
-        ss << ", bytecodefb, " << bytecode_buffer.size() << ", vtables);\n}\n";
+        append(sd, ", bytecodefb, ", bytecode_buffer.size(), ", vtables);\n}\n");
     }
 
     void Annotate(string_view comment) override {
-        ss << " /* " << comment << " */";
+        append(sd, " /* ", comment, " */");
     }
 };
 
-string ToCPP(NativeRegistry &natreg, ostringstream &ss, string_view bytecode_buffer) {
-    CPPGenerator cppgen(ss);
+string ToCPP(NativeRegistry &natreg, string &sd, string_view bytecode_buffer) {
+    CPPGenerator cppgen(sd);
     return ToNative(natreg, cppgen, bytecode_buffer);
 }
 

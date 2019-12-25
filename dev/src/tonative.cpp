@@ -77,9 +77,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             ng.DeclareBlock(id);
         }
         if ((false)) {  // Debug corrupt bytecode.
-            ostringstream dss;
-            DisAsmIns(natreg, dss, ip, code, (const type_elem_t *)bcf->typetable()->Data(), bcf);
-            LOG_DEBUG(dss.str());
+            string sd;
+            DisAsmIns(natreg, sd, ip, code, (const type_elem_t *)bcf->typetable()->Data(), bcf);
+            LOG_DEBUG(sd);
         }
         int opc = *ip++;
         if (opc < 0 || opc >= IL_MAX_OPS) {
@@ -135,9 +135,9 @@ string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
             } else if (ISLVALVARINS(opc)) {
                 ng.Annotate(IdName(bcf, args[0]));
             } else if (opc == IL_PUSHSTR) {
-                ostringstream css;
-                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), css);
-                ng.Annotate(css.str());
+                string cs;
+                EscapeAndQuote(bcf->stringtable()->Get(args[0])->string_view(), cs);
+                ng.Annotate(cs);
             } else if (opc == IL_CALL) {
                 auto fs = code + args[0];
                 assert(*fs == IL_FUNSTART);

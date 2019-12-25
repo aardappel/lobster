@@ -183,9 +183,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo &ti, string_view label, bool expa
             ValToGUI(vm, v, vm.GetTypeInfo(ti.subt), label, expanded);
             return;
     }
-    ostringstream ss;
-    v->ToString(vm, ss, ti, vm.debugpp);
-    ImGui::LabelText(l, "%s", ss.str().c_str());  // FIXME: no formatting?
+    string sd;
+    v->ToString(vm, sd, ti, vm.debugpp);
+    ImGui::LabelText(l, "%s", sd.c_str());  // FIXME: no formatting?
 }
 
 void VarsToGUI(VM &vm) {

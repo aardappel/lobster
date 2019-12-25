@@ -199,19 +199,19 @@ int main(int argc, char* argv[]) {
             }
         }
         if (disasm) {
-            ostringstream ss;
-            DisAsm(nfr, ss, vmargs.bytecode_buffer);
-            WriteFile("disasm.txt", false, ss.str());
+            string sd;
+            DisAsm(nfr, sd, vmargs.bytecode_buffer);
+            WriteFile("disasm.txt", false, sd);
         }
         if (to_cpp) {
-            ostringstream ss;
-            auto err = ToCPP(nfr, ss, vmargs.bytecode_buffer);
+            string sd;
+            auto err = ToCPP(nfr, sd, vmargs.bytecode_buffer);
             if (!err.empty()) THROW_OR_ABORT(err);
             // FIXME: make less hard-coded.
             auto out = "dev/compiled_lobster/src/compiled_lobster.cpp";
             FILE *f = fopen((MainDir() + out).c_str(), "w");
             if (f) {
-                fputs(ss.str().c_str(), f);
+                fputs(sd.c_str(), f);
                 fclose(f);
             } else {
                 THROW_OR_ABORT(cat("cannot write: ", out));

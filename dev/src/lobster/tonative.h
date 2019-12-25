@@ -49,7 +49,7 @@ struct NativeGenerator {
 extern string ToNative(NativeRegistry &natreg, NativeGenerator &ng,
                        string_view bytecode_buffer);
 
-extern string ToCPP(NativeRegistry &natreg, ostringstream &ss,
+extern string ToCPP(NativeRegistry &natreg, string &sd,
                     string_view bytecode_buffer);
 extern string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest,
                      string_view bytecode_buffer);

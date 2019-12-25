@@ -33,7 +33,7 @@ struct Node {
     virtual Node *Clone() = 0;
     virtual bool IsConstInit() const { return false; }
     virtual string_view Name() const = 0;
-    virtual void Dump(ostringstream &ss) const { ss << Name(); }
+    virtual void Dump(string &sd) const { sd += Name(); }
     void Iterate(IterateFun f) {
         f(this);
         auto ch = Children();
@@ -174,7 +174,7 @@ struct NAME : Node { \
 struct TypeAnnotation : Node {
     TypeRef giventype;
     TypeAnnotation(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
-    void Dump(ostringstream &ss) const { ss << TypeName(giventype); }
+    void Dump(string &sd) const { sd += TypeName(giventype); }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
@@ -256,7 +256,7 @@ struct IdentRef : Node {
     IdentRef(const Line &ln, SpecIdent *_sid)
         : Node(ln), sid(_sid) {}
     bool IsConstInit() const { return sid->id->static_constant; }
-    void Dump(ostringstream &ss) const { ss << sid->id->name; }
+    void Dump(string &sd) const { sd += sid->id->name; }
     SHARED_SIGNATURE(IdentRef, TName(T_IDENT), false)
 };
 
@@ -265,7 +265,7 @@ struct IntConstant : Node {
     EnumVal *from;
     IntConstant(const Line &ln, int64_t i) : Node(ln), integer(i), from(nullptr) {}
     bool IsConstInit() const { return true; }
-    void Dump(ostringstream& ss) const { if (from) ss << from->name; else ss << integer; }
+    void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
     bool ConstVal(TypeChecker &, Value &val) const {
         val = Value(integer);  // FIXME: this clips.
         return true;
@@ -277,7 +277,7 @@ struct FloatConstant : Node {
     double flt;
     FloatConstant(const Line &ln, double f) : Node(ln), flt(f) {}
     bool IsConstInit() const { return true; }
-    void Dump(ostringstream &ss) const { ss << flt; }
+    void Dump(string &sd) const { sd += to_string_float(flt); }
     bool ConstVal(TypeChecker &, Value &val) const {
         val = Value(flt);
         return true;
@@ -289,21 +289,21 @@ struct StringConstant : Node {
     string str;
     StringConstant(const Line &ln, string_view s) : Node(ln), str(s) {}
     bool IsConstInit() const { return true; }
-    void Dump(ostringstream &ss) const { EscapeAndQuote(str, ss); }
+    void Dump(string &sd) const { EscapeAndQuote(str, sd); }
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
 };
 
 struct EnumRef : Node {
     Enum *e;
     EnumRef(const Line &ln, Enum *_e) : Node(ln), e(_e) {}
-    void Dump(ostringstream &ss) const { ss << "enum" << e->name; }
+    void Dump(string &sd) const { append(sd, "enum", e->name); }
     SHARED_SIGNATURE(EnumRef, TName(T_ENUM), false)
 };
 
 struct UDTRef : Node {
     UDT *udt;
     UDTRef(const Line &ln, UDT *_udt) : Node(ln), udt(_udt) {}
-    void Dump(ostringstream &ss) const { ss << (udt->is_struct ? "struct " : "class ") << udt->name; }
+    void Dump(string &sd) const { append(sd, udt->is_struct ? "struct " : "class ", udt->name); }
     SHARED_SIGNATURE(UDTRef, TName(T_CLASS), false)
 };
 
@@ -311,8 +311,8 @@ struct FunRef : Node {
     SubFunction *sf;
     FunRef(const Line &ln, SubFunction *_sf) : Node(ln), sf(_sf) {}
     bool IsConstInit() const { return true; }
-    void Dump(ostringstream &ss) const {
-        ss << "(def " << sf->parent->name << ")";
+    void Dump(string &sd) const {
+        append(sd, "(def ", sf->parent->name, ")");
     }
     SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
 };
@@ -348,7 +348,7 @@ struct Call : GenericCall {
     explicit Call(GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers) {};
     Call(Line &ln, SubFunction *sf) : GenericCall(ln, sf->parent->name, sf, false, nullptr) {};
-    void Dump(ostringstream &ss) const { ss << sf->parent->name; }
+    void Dump(string &sd) const { sd += sf->parent->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Call, "call", true)
     OPTMETHOD
@@ -359,7 +359,7 @@ struct DynCall : List {
     SpecIdent *sid;
     DynCall(const Line &ln, SubFunction *_sf, SpecIdent *_sid)
         : List(ln), sf(_sf), sid(_sid) {};
-    void Dump(ostringstream &ss) const { ss << sid->id->name; }
+    void Dump(string &sd) const { sd += sid->id->name; }
     SHARED_SIGNATURE(DynCall, "dynamic call", true)
     OPTMETHOD
 };
@@ -370,7 +370,7 @@ struct NativeCall : GenericCall {
     Lifetime natlt = LT_UNDEF;
     NativeCall(NativeFun *_nf, GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), nf(_nf) {};
-    void Dump(ostringstream &ss) const { ss << nf->name; }
+    void Dump(string &sd) const { sd += nf->name; }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(NativeCall, "native call", true)
 };
@@ -392,9 +392,6 @@ struct AssignList : List {
     AssignList(const Line &ln, Node *a) : List(ln) {
         children.push_back(a);
     }
-    void Dump(ostringstream &ss) const {
-        for (auto e : children) ss << e << " ";
-    }
     SHARED_SIGNATURE(AssignList, "assign list", true)
 };
 
@@ -403,9 +400,9 @@ struct Define : Unary {
     Define(const Line &ln, SpecIdent *sid, Node *_a) : Unary(ln, _a) {
         if (sid) sids.push_back({ sid, nullptr });
     }
-    void Dump(ostringstream &ss) const {
-        for (auto p : sids) ss << p.first->id->name << " ";
-        ss << Name();
+    void Dump(string &sd) const {
+        for (auto p : sids) append(sd, p.first->id->name, " ");
+        sd += Name();
     }
     SHARED_SIGNATURE(Define, "var", true)
 };
@@ -414,7 +411,7 @@ struct Dot : GenericCall {
     SharedField *fld;  // FIXME
     Dot(SharedField *_fld, GenericCall &gc)
         : GenericCall(gc.line, gc.name, gc.sf, gc.dotnoparens, &gc.specializers), fld(_fld) {}
-    void Dump(ostringstream &ss) const { ss << Name() << fld->name; }
+    void Dump(string &sd) const { append(sd, Name(), fld->name); }
     void TypeCheckSpecialized(TypeChecker &tc, size_t reqret);
     SHARED_SIGNATURE_NO_TT(Dot, TName(T_DOT), false)
 };
@@ -422,7 +419,7 @@ struct Dot : GenericCall {
 struct IsType : Unary {
     TypeRef giventype, resolvedtype;
     IsType(const Line &ln, Node *_a) : Unary(ln, _a) {}
-    void Dump(ostringstream &ss) const { ss << Name() << ":" << TypeName(giventype); }
+    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype)); }
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
     OPTMETHOD
@@ -431,7 +428,7 @@ struct IsType : Unary {
 struct EnumCoercion : Unary {
     Enum *e;
     EnumCoercion(const Line &ln, Node *_a, Enum *e) : Unary(ln, _a), e(e) {}
-    void Dump(ostringstream &ss) const { ss << e->name; }
+    void Dump(string &sd) const { sd += e->name; }
     CONSTVALMETHOD
     SHARED_SIGNATURE(EnumCoercion, e->name, false)
 };
@@ -440,7 +437,7 @@ struct ToLifetime : Coercion {
     uint64_t incref, decref;
     ToLifetime(const Line &ln, Node *_a, uint64_t incref, uint64_t decref)
         : Coercion(ln, _a), incref(incref), decref(decref) {}
-    void Dump(ostringstream &ss) const { ss << Name() << "<" << incref << "|" << decref << ">"; }
+    void Dump(string &sd) const { append(sd, Name(), "<", incref, "|", decref, ">"); }
     SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", true)
 };
 
@@ -450,11 +447,10 @@ template<typename T> Node *Forward(Node *n) {
 }
 
 inline string DumpNode(Node &n, int indent, bool single_line) {
-    ostringstream ss;
-    n.Dump(ss);
-    string s = ss.str();
+    string sd;
+    n.Dump(sd);
     auto arity = n.Arity();
-    if (!arity) return s;
+    if (!arity) return sd;
     bool ml = false;
     auto ch = n.Children();
     vector<string> sv;
@@ -469,18 +465,20 @@ inline string DumpNode(Node &n, int indent, bool single_line) {
     }
     if (total > 60) ml = true;
     if (ml && !single_line) {
-        s = string(indent, ' ') + "(" + s;
-        s += "\n";
+        sd.insert(0, string(indent, ' ') + "(");
+        sd += "\n";
         for (size_t i = 0; i < arity; i++) {
-            if (i) s += "\n";
-            if (sv[i][0] != ' ') s += string(indent + 2, ' ');
-            s += sv[i];
+            if (i) sd += "\n";
+            if (sv[i][0] != ' ') sd += string(indent + 2, ' ');
+            sd += sv[i];
         }
-        return s + ")";
+        sd += ")";
     } else {
-        for (size_t i = 0; i < arity; i++) s += " " + sv[i];
-        return "(" + s + ")";
+        sd.insert(0, "(");
+        for (size_t i = 0; i < arity; i++) append(sd, " ", sv[i]);
+        sd += ")";
     }
+    return sd;
 }
 
 }  // namespace lobster

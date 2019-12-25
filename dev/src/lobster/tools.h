@@ -315,8 +315,11 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
     #endif
 }
 
-inline void to_string_hex(ostringstream &ss, size_t x) {
+inline void to_string_hex(string &sd, size_t x) {
+    // FIXME: replace with to_chars.
+    ostringstream ss;
     ss << "0x" << std::hex << x << std::dec;
+    sd += ss.str();
 }
 
 /* Accumulator: a container that is great for accumulating data like std::vector,
@@ -831,8 +834,13 @@ inline auto to_string_conv(const char *cs) {
     return [sv = string_view(cs)]() { return sv; };  // Caches strlen!
 }
 
+template<int I> auto to_string_conv(const char cs[I]) {
+    return[sv = string_view(cs, I)]() { return sv; };  // Static strlen!
+}
+
 template<typename T> auto to_string_conv(T i) {
     static_assert(is_scalar<T>::value, "");
+    // FIXME: use to_chars.
     return [s = to_string(i)]() { return string_view(s); };  // Caches to_string!
 }
 
@@ -857,6 +865,10 @@ template<typename ...Ts> string cat(const Ts&... args) {
     string s;
     cat_convs(s, to_string_conv(args)...);
     return s;
+}
+
+template<typename ...Ts> void append(string &sd, const Ts &... args) {
+    cat_helper(sd, to_string_conv(args)...);
 }
 
 // This method is in C++20, but quite essential.

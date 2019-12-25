@@ -66,10 +66,9 @@ void AddBuiltins(NativeRegistry &nfr) {
 nfr("print", "x", "Ss", "",
     "output any value to the console (with linefeed).",
     [](VM &vm, Value &a) {
-        vm.ss_reuse.str(string());
-        vm.ss_reuse.clear();
-        RefToString(vm, vm.ss_reuse, a.refnil(), vm.programprintprefs);
-        LOG_PROGRAM(vm.ss_reuse.str());
+        vm.s_reuse.clear();
+        RefToString(vm, vm.s_reuse, a.refnil(), vm.programprintprefs);
+        LOG_PROGRAM(vm.s_reuse);
         return Value();
     });
 

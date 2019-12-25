@@ -138,17 +138,17 @@ static bool _LeakSorter(void *va, void *vb) {
 }
 
 void VM::DumpVal(RefObj *ro, const char *prefix) {
-    ostringstream ss;
-    ss << prefix << ": ";
-    RefToString(*this, ss, ro, debugpp);
-    ss << " (" << ro->refc << "): " << (size_t)ro;
-    LOG_DEBUG(ss.str());
+    string sd;
+    append(sd, prefix, ": ");
+    RefToString(*this, sd, ro, debugpp);
+    append(sd, " (", ro->refc, "): ", (size_t)ro);
+    LOG_DEBUG(sd);
 }
 
-void VM::DumpFileLine(const int *fip, ostringstream &ss) {
+void VM::DumpFileLine(const int *fip, string &sd) {
     // error is usually in the byte before the current ip.
     auto li = LookupLine(fip - 1, codestart, bcf);
-    ss << bcf->filenames()->Get(li->fileidx())->string_view() << '(' << li->line() << ')';
+    append(sd, bcf->filenames()->Get(li->fileidx())->string_view(), "(", li->line(), ")");
 }
 
 void VM::DumpLeaks() {
@@ -159,11 +159,11 @@ void VM::DumpLeaks() {
     } else {
         LOG_ERROR("LEAKS FOUND (this indicates cycles in your object graph, or a bug in"
                              " Lobster)");
-        ostringstream ss;
+        string sd;
         #ifndef VM_COMPILED_CODE_MODE
-            ss << "in: ";
-            DumpFileLine(ip, ss);
-            ss << "\n";
+            sd += "in: ";
+            DumpFileLine(ip, sd);
+            sd += "\n";
         #endif
         sort(leaks.begin(), leaks.end(), _LeakSorter);
         PrintPrefs leakpp = debugpp;
@@ -179,28 +179,28 @@ void VM::DumpLeaks() {
                 case V_RESOURCE:
                 case V_VECTOR:
                 case V_CLASS: {
-                    ro->CycleStr(ss);
-                    ss << " = ";
-                    RefToString(*this, ss, ro, leakpp);
+                    ro->CycleStr(sd);
+                    sd += " = ";
+                    RefToString(*this, sd, ro, leakpp);
                     #if DELETE_DELAY
-                    ss << " ";
-                    DumpFileLine(ro->alloc_ip, ss);
-                    ss << " " << (size_t)ro;
+                    sd += " ";
+                    DumpFileLine(ro->alloc_ip, sd);
+                    append(sd, " ", (size_t)ro);
                     #endif
-                    ss << "\n";
+                    sd += "\n";
                     break;
                 }
                 default: assert(false);
             }
         }
         #ifndef NDEBUG
-            LOG_ERROR(ss.str());
+            LOG_ERROR(sd);
         #else
             if (leaks.size() < 50) {
-                LOG_ERROR(ss.str());
+                LOG_ERROR(sd);
             } else {
                 LOG_ERROR(leaks.size(), " leaks, details in ", filename);
-                WriteFile(filename, false, ss.str());
+                WriteFile(filename, false, sd);
             }
         #endif
     }
@@ -290,26 +290,26 @@ LString *VM::ResizeString(LString *s, intp size, int c, bool back) {
 Value VM::Error(string err, const RefObj *a, const RefObj *b) {
     if (trace == TraceMode::TAIL && trace_output.size()) {
         string s;
-        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) s += trace_output[i].str();
-        for (size_t i = 0; i < trace_ring_idx; i++) s += trace_output[i].str();
+        for (size_t i = trace_ring_idx; i < trace_output.size(); i++) s += trace_output[i];
+        for (size_t i = 0; i < trace_ring_idx; i++) s += trace_output[i];
         s += err;
         THROW_OR_ABORT(s);
     }
-    ostringstream ss;
+    string sd;
     #ifndef VM_COMPILED_CODE_MODE
-        DumpFileLine(ip, ss);
-        ss << ": ";
+        DumpFileLine(ip, sd);
+        sd += ": ";
     #endif
-    ss << "VM error: " << err;
-    if (a) { ss << "\n   arg: "; RefToString(*this, ss, a, debugpp); }
-    if (b) { ss << "\n   arg: "; RefToString(*this, ss, b, debugpp); }
+    append(sd, "VM error: ", err);
+    if (a) { sd += "\n   arg: "; RefToString(*this, sd, a, debugpp); }
+    if (b) { sd += "\n   arg: "; RefToString(*this, sd, b, debugpp); }
     while (sp >= 0 && (!stackframes.size() || sp != stackframes.back().spstart)) {
         // Sadly can't print this properly.
-        ss << "\n   stack: ";
-        to_string_hex(ss, (size_t)VM_TOP().any());
+        sd += "\n   stack: ";
+        to_string_hex(sd, (size_t)VM_TOP().any());
         if (pool.pointer_is_in_allocator(VM_TOP().any())) {
-            ss << ", maybe: ";
-            RefToString(*this, ss, VM_TOP().ref(), debugpp);
+            sd += ", maybe: ";
+            RefToString(*this, sd, VM_TOP().ref(), debugpp);
         }
         VM_POP();  // We don't DEC here, as we can't know what type it is.
                 // This is ok, as we ignore leaks in case of an error anyway.
@@ -318,17 +318,17 @@ Value VM::Error(string err, const RefObj *a, const RefObj *b) {
         if (!stackframes.size()) break;
         int deffun = *(stackframes.back().funstart);
         if (deffun >= 0) {
-            ss << "\nin function: " << bcf->functions()->Get(deffun)->name()->string_view();
+            append(sd, "\nin function: ", bcf->functions()->Get(deffun)->name()->string_view());
         } else {
-            ss << "\nin block";
+            sd += "\nin block";
         }
         #ifndef VM_COMPILED_CODE_MODE
-        ss << " -> ";
-        DumpFileLine(ip, ss);
+        sd += " -> ";
+        DumpFileLine(ip, sd);
         #endif
-        VarCleanup<1>(ss.tellp() < 10000 ? &ss : nullptr, -2 /* clean up temps always */);
+        VarCleanup<1>(sd.size() < 10000 ? &sd : nullptr, -2 /* clean up temps always */);
     }
-    THROW_OR_ABORT(ss.str());
+    THROW_OR_ABORT(sd);
 }
 
 void VM::VMAssert(const char *what)  {
@@ -351,7 +351,7 @@ void VM::VMAssert(const char *what, const RefObj *a, const RefObj *b)  {
     #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); }
 #endif
 
-int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx) {
+int VM::DumpVar(string &sd, const Value &x, size_t idx) {
     auto sid = bcf->specidents()->Get((uint)idx);
     auto id = bcf->idents()->Get(sid->ididx());
     // FIXME: this is not ideal, it filters global "let" declared vars.
@@ -363,12 +363,12 @@ int VM::DumpVar(ostringstream &ss, const Value &x, size_t idx) {
     #if RTT_ENABLED
         if (ti.t != x.type) return 1;  // Likely uninitialized.
     #endif
-    ss << "\n   " << name << " = ";
+    append(sd, "\n   ", name, " = ");
     if (IsStruct(ti.t)) {
-        StructToString(ss, debugpp, ti, &x);
+        StructToString(sd, debugpp, ti, &x);
         return ti.len;
     } else {
-        x.ToString(*this, ss, ti, debugpp);
+        x.ToString(*this, sd, ti, debugpp);
         return 1;
     }
 }
@@ -396,7 +396,7 @@ InsPtr VM::GetIP() {
     #endif
 }
 
-template<int is_error> int VM::VarCleanup(ostringstream *error, int towhere) {
+template<int is_error> int VM::VarCleanup(string *error, int towhere) {
     (void)error;
     auto &stf = stackframes.back();
     if constexpr (!is_error) VMASSERT(sp == stf.spstart);
@@ -631,9 +631,7 @@ void VM::CoResume(LCoRoutine *co) {
 
 void VM::EndEval(const Value &ret, const TypeInfo &ti) {
     TerminateWorkers();
-    ostringstream ss;
-    ret.ToString(*this, ss, ti, programprintprefs);
-    evalret = ss.str();
+    ret.ToString(*this, evalret, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
     assert(sp == -1);
     FinalStackVarsCleanup();
@@ -729,13 +727,13 @@ void VM::EvalProgram() {
     #endif
 }
 
-ostringstream &VM::TraceStream() {
+string &VM::TraceStream() {
   size_t trace_size = trace == TraceMode::TAIL ? 50 : 1;
   if (trace_output.size() < trace_size) trace_output.resize(trace_size);
   if (trace_ring_idx == trace_size) trace_ring_idx = 0;
-  auto &ss = trace_output[trace_ring_idx++];
-  ss.str(string());
-  return ss;
+  auto &sd = trace_output[trace_ring_idx++];
+  sd.clear();
+  return sd;
 }
 
 void VM::EvalProgramInner() {
@@ -750,20 +748,20 @@ void VM::EvalProgramInner() {
         #else
             #ifndef NDEBUG
                 if (trace != TraceMode::OFF) {
-                    auto &ss = TraceStream();
-                    DisAsmIns(nfr, ss, ip, codestart, typetable, bcf);
-                    ss << " [" << (sp + 1) << "] -";
+                    auto &sd = TraceStream();
+                    DisAsmIns(nfr, sd, ip, codestart, typetable, bcf);
+                    append(sd, " [", sp + 1, "] -");
                     #if RTT_ENABLED
                     #if DELETE_DELAY
-                        ss << ' ' << (size_t)VM_TOP().any();
+                        append(sd, " ", (size_t)VM_TOP().any());
                     #endif
                     for (int i = 0; i < 3 && sp - i >= 0; i++) {
                         auto x = VM_TOPM(i);
-                        ss << ' ';
-                        x.ToStringBase(*this, ss, x.type, debugpp);
+                        sd += ' ';
+                        x.ToStringBase(*this, sd, x.type, debugpp);
                     }
                     #endif
-                    if (trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str());
+                    if (trace == TraceMode::TAIL) sd += '\n'; else LOG_PROGRAM(sd);
                 }
                 //currentline = LookupLine(ip).line;
             #endif
@@ -923,9 +921,9 @@ VM_INS_RET VM::U_ENDSTATEMENT(int line, int fileidx) {
         (void)fileidx;
     #else
         if (trace != TraceMode::OFF) {
-            auto &ss = TraceStream();
-            ss << bcf->filenames()->Get(fileidx)->string_view() << '(' << line << ')';
-            if (trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str());
+            auto &sd = TraceStream();
+            append(sd, bcf->filenames()->Get(fileidx)->string_view(), "(", line, ")");
+            if (trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd);
         }
     #endif
     assert(sp == stackframes.back().spstart);
@@ -1824,9 +1822,9 @@ using namespace lobster;
 #ifndef NDEBUG
     #define CHECKI(B) \
         if (vm->trace != TraceMode::OFF) { \
-            auto &ss = vm->TraceStream(); \
-            ss << B; \
-            if (vm->trace == TraceMode::TAIL) ss << '\n'; else LOG_PROGRAM(ss.str()); \
+            auto &sd = vm->TraceStream(); \
+            sd += B; \
+            if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd); \
         }
     // FIXME: add spaces.
     #define CHECK(N, A) CHECKI(#N << cat A)

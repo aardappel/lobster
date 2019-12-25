@@ -25,27 +25,32 @@ LResource::LResource(void *v, const ResourceType *t)
 
 char HexChar(char i) { return i + (i < 10 ? '0' : 'A' - 10); }
 
-void EscapeAndQuote(string_view s, ostringstream &ss) {
-    ss << '\"';
+void EscapeAndQuote(string_view s, string &sd) {
+    sd += '\"';
     for (auto c : s) switch(c) {
-        case '\n': ss << "\\n"; break;
-        case '\t': ss << "\\t"; break;
-        case '\r': ss << "\\r"; break;
-        case '\\': ss << "\\\\"; break;
-        case '\"': ss << "\\\""; break;
-        case '\'': ss << "\\\'"; break;
+        case '\n': sd += "\\n"; break;
+        case '\t': sd += "\\t"; break;
+        case '\r': sd += "\\r"; break;
+        case '\\': sd += "\\\\"; break;
+        case '\"': sd += "\\\""; break;
+        case '\'': sd += "\\\'"; break;
         default:
-            if (c >= ' ' && c <= '~') ss << c;
-            else ss << "\\x" << HexChar(((uchar)c) >> 4) << HexChar(c & 0xF);
+            if (c >= ' ' && c <= '~') {
+                sd += c;
+            } else {
+                sd += "\\x";
+                sd += HexChar(((uchar)c) >> 4);
+                sd += HexChar(c & 0xF);
+            }
             break;
     }
-    ss << "\"";
+    sd += "\"";
 }
 
 void LString::DeleteSelf(VM &vm) { vm.pool.dealloc(this, sizeof(LString) + len + 1); }
 
-void LString::ToString(ostringstream &ss, PrintPrefs &pp) {
-    if (CycleCheck(ss, pp)) return;
+void LString::ToString(string &sd, PrintPrefs &pp) {
+    if (CycleCheck(sd, pp)) return;
     auto sv = strv();
     auto dd = string_view();
     if (len > pp.budget) {
@@ -53,11 +58,11 @@ void LString::ToString(ostringstream &ss, PrintPrefs &pp) {
         dd = "..";
     }
     if (pp.quoted) {
-        EscapeAndQuote(sv, ss);
+        EscapeAndQuote(sv, sd);
     } else {
-        ss << sv;
+        sd += sv;
     }
-    ss << dd;
+    sd += dd;
 }
 
 LVector::LVector(VM &vm, intp _initial, intp _max, type_elem_t _tti)
@@ -188,45 +193,45 @@ bool Value::Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool
     }
 }
 
-void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp) {
-    if (!ro) { ss << "nil"; return; }
+void RefToString(VM &vm, string &sd, const RefObj *ro, PrintPrefs &pp) {
+    if (!ro) { sd += "nil"; return; }
     auto &roti = ro->ti(vm);
     switch (roti.t) {
-        case V_STRING:    ((LString *)ro)->ToString(ss, pp);        break;
-        case V_COROUTINE: ss << "(coroutine)";                      break;
-        case V_VECTOR:    ((LVector *)ro)->ToString(vm, ss, pp);    break;
-        case V_CLASS:     ((LObject *)ro)->ToString(vm, ss, pp);    break;
-        case V_RESOURCE:  ((LResource *)ro)->ToString(ss);          break;
-        default:          ss << '(' << BaseTypeName(roti.t) << ')'; break;
+        case V_STRING:    ((LString *)ro)->ToString(sd, pp);          break;
+        case V_COROUTINE: sd += "(coroutine)";                        break;
+        case V_VECTOR:    ((LVector *)ro)->ToString(vm, sd, pp);      break;
+        case V_CLASS:     ((LObject *)ro)->ToString(vm, sd, pp);      break;
+        case V_RESOURCE:  ((LResource *)ro)->ToString(sd);            break;
+        default:          append(sd, "(", BaseTypeName(roti.t), ")"); break;
     }
 }
 
-void Value::ToString(VM &vm, ostringstream &ss, const TypeInfo &ti, PrintPrefs &pp) const {
+void Value::ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const {
     if (ti.t == V_INT && ti.enumidx >= 0) {
         auto name = vm.EnumName(ival(), ti.enumidx);
         if (!name.empty()) {
-            ss << name;
+            sd += name;
             return;
         }
     }
-    ToStringBase(vm, ss, ti.t, pp);
+    ToStringBase(vm, sd, ti.t, pp);
 }
 
-void Value::ToStringBase(VM &vm, ostringstream &ss, ValueType t, PrintPrefs &pp) const {
+void Value::ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const {
     if (IsRefNil(t)) {
-        RefToString(vm, ss, ref_, pp);
+        RefToString(vm, sd, ref_, pp);
     } else switch (t) {
         case V_INT:
-            ss << ival();
+            append(sd, ival());
             break;
         case V_FLOAT:
-            ss << to_string_float(fval(), (int)pp.decimals);
+            sd += to_string_float(fval(), (int)pp.decimals);
             break;
         case V_FUNCTION:
-            ss << "<FUNCTION>";
+            sd += "<FUNCTION>";
             break;
         default:
-            ss << '(' << BaseTypeName(t) << ')';
+            append(sd, "(", BaseTypeName(t), ")");
             break;
     }
 }
@@ -319,71 +324,71 @@ const TypeInfo &LVector::ElemType(VM &vm) const {
     ELEMTYPE(subt, {})
 }
 
-void VectorOrObjectToString(VM &vm, ostringstream &ss, PrintPrefs &pp, char openb, char closeb,
+void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb,
                             intp len, intp width, const Value *elems, bool is_vector,
                             std::function<const TypeInfo &(intp)> getti) {
-    ss << openb;
-    if (pp.indent) ss << '\n';
-    auto start_size = ss.tellp();
+    sd += openb;
+    if (pp.indent) sd += '\n';
+    auto start_size = sd.size();
     pp.cur_indent += pp.indent;
     auto Indent = [&]() {
-        for (int i = 0; i < pp.cur_indent; i++) ss << ' ';
+        for (int i = 0; i < pp.cur_indent; i++) sd += ' ';
     };
     for (intp i = 0; i < len; i++) {
         if (i) {
-            ss << ',';
-            ss << (pp.indent ? '\n' : ' ');
+            sd += ',';
+            sd += (pp.indent ? '\n' : ' ');
         }
         if (pp.indent) Indent();
-        if ((int)ss.tellp() - start_size > pp.budget) {
-            ss << "....";
+        if (intp(sd.size() - start_size) > pp.budget) {
+            sd += "....";
             break;
         }
         auto &ti = getti(i);
         if (pp.depth || !IsRef(ti.t)) {
-            PrintPrefs subpp(pp.depth - 1, pp.budget - (int)(ss.tellp() - start_size), true,
+            PrintPrefs subpp(pp.depth - 1, pp.budget - intp(sd.size() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
             if (IsStruct(ti.t)) {
-                vm.StructToString(ss, subpp, ti, elems + i * width);
+                vm.StructToString(sd, subpp, ti, elems + i * width);
                 if (!is_vector) i += ti.len - 1;
             } else {
-                elems[i].ToString(vm, ss, ti, subpp);
+                elems[i].ToString(vm, sd, ti, subpp);
             }
         } else {
-            ss << "..";
+            sd += "..";
         }
     }
     pp.cur_indent -= pp.indent;
-    if (pp.indent) { ss << '\n'; Indent(); }
-    ss << closeb;
+    if (pp.indent) { sd += '\n'; Indent(); }
+    sd += closeb;
 }
 
-void LObject::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
-    if (CycleCheck(ss, pp)) return;
-    ss << vm.ReverseLookupType(ti(vm).structidx);
-    if (pp.indent) ss << ' ';
-    VectorOrObjectToString(vm, ss, pp, '{', '}', Len(vm), 1, Elems(), false,
+void LObject::ToString(VM &vm, string &sd, PrintPrefs &pp) {
+    if (CycleCheck(sd, pp)) return;
+    sd += vm.ReverseLookupType(ti(vm).structidx);
+    if (pp.indent) sd += ' ';
+    VectorOrObjectToString(vm, sd, pp, '{', '}', Len(vm), 1, Elems(), false,
         [&](intp i) -> const TypeInfo & {
             return ElemTypeSP(vm, i);
         }
     );
 }
 
-void LVector::ToString(VM &vm, ostringstream &ss, PrintPrefs &pp) {
-    if (CycleCheck(ss, pp)) return;
-    VectorOrObjectToString(vm, ss, pp, '[', ']', len, width, v, true,
+void LVector::ToString(VM &vm, string &sd, PrintPrefs &pp) {
+    if (CycleCheck(sd, pp)) return;
+    VectorOrObjectToString(vm, sd, pp, '[', ']', len, width, v, true,
         [&](intp) ->const TypeInfo & {
             return ElemType(vm);
         }
     );
 }
 
-void VM::StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
-    ss << ReverseLookupType(ti.structidx);
-    if (pp.indent) ss << ' ';
-    VectorOrObjectToString(*this, ss, pp, '{', '}', ti.len, 1, elems, false,
+void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
+    sd += ReverseLookupType(ti.structidx);
+    if (pp.indent) sd += ' ';
+    VectorOrObjectToString(*this, sd, pp, '{', '}', ti.len, 1, elems, false,
         [&](intp i) -> const TypeInfo & {
             return GetTypeInfo(ti.GetElemOrParent(i));
         }

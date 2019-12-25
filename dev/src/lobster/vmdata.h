@@ -260,11 +260,11 @@ struct RefObj : DynAlloc {
         }
     }
 
-    void CycleStr(ostringstream &ss) const { ss << "_" << -refc << "_"; }
+    void CycleStr(string &sd) const { append(sd, "_", -refc, "_"); }
 
-    bool CycleCheck(ostringstream &ss, PrintPrefs &pp) {
+    bool CycleCheck(string &sd, PrintPrefs &pp) {
         if (pp.cycles >= 0) {
-            if (refc < 0) { CycleStr(ss); return true; }
+            if (refc < 0) { CycleStr(sd); return true; }
             refc = -(++pp.cycles);
         }
         return false;
@@ -278,7 +278,7 @@ struct RefObj : DynAlloc {
 };
 
 extern bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural);
-extern void RefToString(VM &vm, ostringstream &ss, const RefObj *ro, PrintPrefs &pp);
+extern void RefToString(VM &vm, string &sd, const RefObj *ro, PrintPrefs &pp);
 
 struct LString : RefObj {
     intp len;    // has to match the Value integer type, since we allow the length to be obtained
@@ -287,7 +287,7 @@ struct LString : RefObj {
     const char *data() const { return (char *)(this + 1); }
     string_view strv() const { return string_view(data(), len); }
 
-    void ToString(ostringstream &ss, PrintPrefs &pp);
+    void ToString(string &sd, PrintPrefs &pp);
 
     void DeleteSelf(VM &vm);
 
@@ -315,8 +315,8 @@ struct LResource : RefObj {
 
     void DeleteSelf(VM &vm);
 
-    void ToString(ostringstream &ss) {
-        ss << "(resource:" << type->name << ")";
+    void ToString(string &sd) {
+        append(sd, "(resource:", type->name, ")");
     }
 };
 
@@ -490,8 +490,8 @@ struct Value {
         if (IsRefNil(t)) LTDECRTNIL(vm);
     }
 
-    void ToString(VM &vm, ostringstream &ss, const TypeInfo &ti, PrintPrefs &pp) const;
-    void ToStringBase(VM &vm, ostringstream &ss, ValueType t, PrintPrefs &pp) const;
+    void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
+    void ToStringBase(VM &vm, string &sd, ValueType t, PrintPrefs &pp) const;
 
     bool Equal(VM &vm, ValueType vtype, const Value &o, ValueType otype, bool structural) const;
     intp Hash(VM &vm, ValueType vtype);
@@ -520,7 +520,7 @@ struct LObject : RefObj {
     const TypeInfo &ElemTypeS(VM &vm, intp i) const;
     const TypeInfo &ElemTypeSP(VM &vm, intp i) const;
 
-    void ToString(VM &vm, ostringstream &ss, PrintPrefs &pp);
+    void ToString(VM &vm, string &sd, PrintPrefs &pp);
 
     bool Equal(VM &vm, const LObject &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -639,7 +639,7 @@ struct LVector : RefObj {
 
     void Append(VM &vm, LVector *from, intp start, intp amount);
 
-    void ToString(VM &vm, ostringstream &ss, PrintPrefs &pp);
+    void ToString(VM &vm, string &sd, PrintPrefs &pp);
 
     bool Equal(VM &vm, const LVector &o) {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
@@ -776,9 +776,9 @@ struct VM : VMArgs {
 
     VMLog vml { *this };
 
-    ostringstream ss_reuse;
+    string s_reuse;
 
-    vector<ostringstream> trace_output;
+    vector<string> trace_output;
     size_t trace_ring_idx = 0;
 
     vector<RefObj *> delete_delay;
@@ -829,10 +829,10 @@ struct VM : VMArgs {
     type_elem_t GetFloatVectorType(int which);
 
     void DumpVal(RefObj *ro, const char *prefix);
-    void DumpFileLine(const int *fip, ostringstream &ss);
+    void DumpFileLine(const int *fip, string &sd);
     void DumpLeaks();
 
-    ostringstream &TraceStream();
+    string &TraceStream();
 
     void OnAlloc(RefObj *ro);
     LVector *NewVec(intp initial, intp max, type_elem_t tti);
@@ -849,7 +849,7 @@ struct VM : VMArgs {
     void VMAssert(const char *what);
     void VMAssert(const char *what, const RefObj *a, const RefObj *b);
 
-    int DumpVar(ostringstream &ss, const Value &x, size_t idx);
+    int DumpVar(string &sd, const Value &x, size_t idx);
 
     void FinalStackVarsCleanup();
 
@@ -876,7 +876,7 @@ struct VM : VMArgs {
 
     void JumpTo(InsPtr j);
     InsPtr GetIP();
-    template<int is_error> int VarCleanup(ostringstream *error, int towhere);
+    template<int is_error> int VarCleanup(string *error, int towhere);
     void StartStackFrame(InsPtr retip);
     void FunIntroPre(InsPtr fun);
     void FunIntro(VM_OP_ARGS);
@@ -1041,18 +1041,16 @@ struct VM : VMArgs {
     double Time() { return SecondsSinceStart(); }
 
     Value ToString(const Value &a, const TypeInfo &ti) {
-        ss_reuse.str(string());
-        ss_reuse.clear();
-        a.ToString(*this, ss_reuse, ti, programprintprefs);
-        return NewString(ss_reuse.str());
+        s_reuse.clear();
+        a.ToString(*this, s_reuse, ti, programprintprefs);
+        return NewString(s_reuse);
     }
     Value StructToString(const Value *elems, const TypeInfo &ti) {
-        ss_reuse.str(string());
-        ss_reuse.clear();
-        StructToString(ss_reuse, programprintprefs, ti, elems);
-        return NewString(ss_reuse.str());
+        s_reuse.clear();
+        StructToString(s_reuse, programprintprefs, ti, elems);
+        return NewString(s_reuse);
     }
-    void StructToString(ostringstream &ss, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
+    void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
 
     string_view EnumName(intp val, int enumidx);
     string_view EnumName(int enumidx);
@@ -1165,7 +1163,7 @@ inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) 
     return Value(v);
 }
 
-void EscapeAndQuote(string_view s, ostringstream &ss);
+void EscapeAndQuote(string_view s, string &sd);
 
 struct LCoRoutine : RefObj {
     bool active = true;  // Goes to false when it has hit the end of the coroutine instead of a yield.
