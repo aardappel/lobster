@@ -2,10 +2,14 @@
 title: Welcome to Lobster!
 ---
 
+<img src="./lobster.svg" height=250>
+
 This document is the starting point for all the Lobster documentation.
 
 Lobster [home page](http://strlen.com/lobster/) on the web,
 [GitHub](https://github.com/aardappel/lobster).
+
+Chat on [Discord](https://discord.gg/szJPYdX) or [Gitter](https://gitter.im/lobster_programming_language/community).
 
 Using the compiler
 ------------------
