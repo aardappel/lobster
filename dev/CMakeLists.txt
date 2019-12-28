@@ -9,6 +9,15 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/..)
 endif()
 
+# git commit date and commit hash into a definition
+execute_process(
+  COMMAND git log -1 --pretty="%cI|%h"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_INFO
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+add_definitions("-DGIT_COMMIT_INFOSTR=${GIT_COMMIT_INFO}")
+
 if(LOBSTER_ENGINE)
   file(GLOB LOBSTER_SRCS
     "src/lobster/*.h"

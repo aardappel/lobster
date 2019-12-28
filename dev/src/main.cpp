@@ -30,6 +30,10 @@
     #include "lobster/sdlinterface.h"
 #endif
 
+#ifndef GIT_COMMIT_INFOSTR
+#define GIT_COMMIT_INFOSTR __DATE__ "|unknown"
+#endif
+
 using namespace lobster;
 
 void unit_test_all(bool full) {
@@ -166,8 +170,9 @@ int main(int argc, char* argv[]) {
 
         if (!fn) {
             if (!LoadPakDir(default_lpak))
-                THROW_OR_ABORT("Lobster programming language compiler/runtime (version " __DATE__
-                               ")\nno arguments given - cannot load " + (default_lpak + helptext));
+                THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
+                               GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load " 
+                               + (default_lpak + helptext));
             // This will now come from the pakfile.
             if (!LoadByteCode(vmargs.bytecode_buffer))
                 THROW_OR_ABORT(string("Cannot load bytecode from pakfile!"));
