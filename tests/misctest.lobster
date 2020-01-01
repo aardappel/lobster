@@ -232,3 +232,6 @@ run_test("misc"):
     assert abs(4.0 % 1.5 - 1.0) < 0.01
     assert max(abs(xy { 10.1, 20.1 } % xy { 3.0, 6.0 } - xy { 1.1, 2.1 })) < 0.01
     assert max(abs(xy { 10.1, 20.1 } % 3.0 - xy { 1.1, 2.1 })) < 0.01
+
+    // Unicode in strings: either as escape code, or also direct, if your editor supports it.
+    assert "⺆㋇䬈" == "\u2E86\u32C7\u4B08"

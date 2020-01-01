@@ -22,8 +22,6 @@
     #include "lobster/engine.h"
 #endif
 
-#include "lobster/unicode.h"
-
 #if LOBSTER_ENGINE
     // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.
     #include "lobster/sdlincludes.h"
@@ -171,7 +169,7 @@ int main(int argc, char* argv[]) {
         if (!fn) {
             if (!LoadPakDir(default_lpak))
                 THROW_OR_ABORT("Lobster programming language compiler/runtime (version "
-                               GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load " 
+                               GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load "
                                + (default_lpak + helptext));
             // This will now come from the pakfile.
             if (!LoadByteCode(vmargs.bytecode_buffer))

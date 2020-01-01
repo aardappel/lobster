@@ -16,7 +16,6 @@
 
 #include "lobster/natreg.h"
 
-#include "lobster/unicode.h"
 #include "lobster/wfc.h"
 
 namespace lobster {

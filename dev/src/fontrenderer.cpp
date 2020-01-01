@@ -28,8 +28,6 @@
     #include "stb/stb_truetype.h"
 #endif
 
-#include "lobster/unicode.h"
-
 FT_Library library = nullptr;
 
 BitmapFont::~BitmapFont() {

@@ -87,6 +87,7 @@ typedef unsigned int uint;
 #include "platform.h"
 #include "slaballoc.h"
 #include "geom.h"
+#include "unicode.h"
 
 using namespace geom;
 

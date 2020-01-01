@@ -401,7 +401,9 @@ struct Lex : LoadedFile {
                 };
                 break;
             default:
-                if (c < ' ') Error("unprintable character in string constant");
+                // Allow UTF-8 chars.
+                if ((c >= 0 && c < ' ') || c == 127)
+                    Error("unprintable character in string constant");
         };
         sattr = string_view(start, p - start);
         return initial == '\"' ? T_STR : T_INT;
@@ -456,6 +458,18 @@ struct Lex : LoadedFile {
                         c = HexDigit(*s++) << 4;
                         c |= HexDigit(*s++);
                         break;
+                    case 'u': {
+                        if (!IsXDigit(*s) || !IsXDigit(s[1]) || !IsXDigit(s[2]) || !IsXDigit(s[3]))
+                            Error("illegal unicode escape code in string constant");
+                        int i = HexDigit(*s++) << 12;
+                        i |= HexDigit(*s++) << 8;
+                        i |= HexDigit(*s++) << 4;
+                        i |= HexDigit(*s++);
+                        char buf[7];
+                        ToUTF8(i, buf);
+                        r += buf;
+                        continue;
+                    }
                     default:
                         s--;
                         Error("unknown control code in string constant");
