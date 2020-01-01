@@ -73,6 +73,14 @@ struct TypeChecker {
         if (!st.RegisterDefaultTypes())
             TypeError("cannot find standard types (from stdtype.lobster)", *parser.root);
         for (auto &udt : st.udttable) {
+            // Resolve any typevars in field types ahead of time.
+            // We do this here rather than the parser so all named specializations are available.
+            // FIXME: bound_typevars_stack does NOT contain any parent nested typevars!
+            st.bound_typevars_stack.push_back(&udt->generics);
+            for (auto &field : udt->fields.v) {
+                field.type = st.ResolveTypeVars(field.type);
+            }
+            st.bound_typevars_stack.pop_back();
             if (udt->FullyBound()) {
                 // NOTE: all users of sametype will only act on it if it is numeric, since
                 // otherwise it would a scalar field to become any without boxing.
@@ -789,7 +797,8 @@ struct TypeChecker {
         if (best) return best;
         string s;
         for (auto &arg : cons->children) s += " " + TypeName(arg->exptype);
-        auto err = "no specialization of " + given->first->name + " matches these types:" + s;
+        auto err = "no named explicit specialization of " + given->first->name +
+                   " matches these types:" + s;
         for (auto udt = given->first->next; udt; udt = udt->next) {
             err += "\n  specialization: ";
             err += Signature(*udt);

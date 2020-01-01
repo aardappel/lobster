@@ -12,9 +12,9 @@ class astar_node<N,S,D>:
     open = false
     closed = false
 
-def astar_clear(n::astar_node):
-    open = closed = false
-    previous = nil
+    def astar_clear():
+        open = closed = false
+        previous = nil
 
 // the generic version searches any kind of graph in any kind of search space,
 // use specialized versions below

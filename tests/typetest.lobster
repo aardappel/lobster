@@ -116,7 +116,7 @@ run_test("types"):
             def h():
                 let x:T = true // Use as internal type.
                 return x
-        def i(a::A, t:T):      // Non-inline "method" using generic of first arg.
+        def i<T>(a::A<T>, t:T):// Non-inline "method".
             ts.push(t)
         class Ai = A<int>      // Specialize.
         let a = Ai { [ 1 ] }

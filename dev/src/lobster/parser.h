@@ -378,12 +378,6 @@ struct Parser {
             // A pre-declaration.
             udt->predeclaration = true;
         }
-        // Resolve any typevars in field types ahead of time.
-        st.bound_typevars_stack.push_back(&udt->generics);
-        for (auto &field : udt->fields.v) {
-            field.type = st.ResolveTypeVars(field.type);
-        }
-        st.bound_typevars_stack.pop_back();
         // Set correct types for SpecUDT.
         udt->thisspec.specializers.clear();
         udt->thisspec.is_generic = false;
@@ -653,6 +647,9 @@ struct Parser {
                         Expect(T_COMMA);
                     }
                     dest = st.ReplaceByNamedSpecialization(dest);
+                } else {
+                    if (dest->su->is_generic)
+                        Error("use of type " + dest->su->udt->name + " requires specializers");
                 }
                 done:
                 break;

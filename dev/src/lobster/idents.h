@@ -184,6 +184,7 @@ struct UDT : Named {
     UDT *CloneInto(UDT *st) {
         *st = *this;
         st->thisspec.udt = st;
+        st->thisspec.is_generic = false;
         st->thistype.su = &st->thisspec;
         st->next = next;
         st->first = first;
@@ -807,8 +808,11 @@ struct SymbolTable {
             case V_STRUCT_S: {
                 if (!type->su->is_generic) break;
                 auto nt = NewSpecUDT(type);
-                for (auto s : type->su->specializers)
-                    nt->su->specializers.push_back(&*ResolveTypeVars(s));
+                for (auto s : type->su->specializers) {
+                    auto t = ResolveTypeVars(s);
+                    if (IsGeneric(t)) nt->su->is_generic = true;
+                    nt->su->specializers.push_back(&*t);
+                }
                 return ReplaceByNamedSpecialization(nt);
             }
             case V_TYPEVAR: {
