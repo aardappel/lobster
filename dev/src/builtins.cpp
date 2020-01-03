@@ -1103,16 +1103,28 @@ nfr("active", "coroutine", "C", "B",
         return Value(active);
     });
 
+nfr("hash", "x", "I", "I",
+    "hashes an int value into an int; may be the identity function",
+    [](VM &vm, Value &a) {
+        auto h = a.Hash(vm, V_INT);
+        return Value(h);
+    });
+nfr("hash", "x", "A", "I",
+    "hashes any ref value into an int",
+    [](VM &vm, Value &a) {
+        auto h = a.ref()->Hash(vm);
+        return Value(h);
+    });
 nfr("hash", "x", "L", "I",
     "hashes a function value into an int",
     [](VM &vm, Value &a) {
         auto h = a.Hash(vm, V_FUNCTION);
         return Value(h);
     });
-nfr("hash", "x", "A", "I",
-    "hashes any value into an int",
+nfr("hash", "x", "F", "I",
+    "hashes a float value into an int",
     [](VM &vm, Value &a) {
-        auto h = a.ref()->Hash(vm);
+        auto h = a.Hash(vm, V_FLOAT);
         return Value(h);
     });
 
