@@ -934,6 +934,24 @@ nfr("lerp", "a,b,f", "F}F}F", "F}",
         vm.PushVec(mix(x, y, f), numelems);
     });
 
+nfr("smoothmin", "x,y,k", "FFF", "F",
+    "k is the influence range",
+    [](VM &, Value &x, Value &y, Value &k) {
+        return Value(smoothmin(x.fltval(), y.fltval(), k.fltval()));
+    });
+
+nfr("smoothstep", "x", "F", "F",
+    "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
+    [](VM &, Value &x) {
+        return Value(smoothstep(x.fltval()));
+    });
+
+nfr("smootherstep", "x", "F", "F",
+    "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep",
+    [](VM &, Value &x) {
+        return Value(smootherstep(x.fltval()));
+    });
+
 nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}F}F}FF", "F}:3",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)",

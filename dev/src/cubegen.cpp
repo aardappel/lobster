@@ -121,6 +121,14 @@ nfr("cg_set", "block,pos,size,paletteindex", "RI}:3I}:3I", "",
         GetVoxels(vm, vm.Pop()).Set(pos, size, (uchar)color);
     });
 
+nfr("cg_get", "block,pos", "RI}:3", "I",
+    "sets a range of cubes to palette index. index 0 is considered empty space."
+    "Coordinates automatically clipped to the size of the grid",
+    [](VM &vm) {
+        auto pos = vm.PopVec<int3>();
+        vm.Push(GetVoxels(vm, vm.Pop()).grid.Get(pos));
+    });
+
 nfr("cg_copy", "block,pos,size,dest,flip", "RI}:3I}:3I}:3I}:3", "",
     "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
     " each component, indicating the step from dest."

@@ -345,6 +345,14 @@ inline float smoothmax(float a, float b, float r) {
     return std::min(-r, std::max(a, b)) + length(u);
 }
 
+inline float smoothstep(float x) {
+    return x * x * (3 - 2 * x);
+}
+
+inline float smootherstep(float x) {
+    return x * x * x * (x * (x * 6 - 15) + 10);
+}
+
 template<typename T> inline float3 random_point_in_sphere(RandomNumberGenerator<T> &r) {
     for (;;) {
         const float3 p(r.rndfloatsigned(), r.rndfloatsigned(), r.rndfloatsigned());
