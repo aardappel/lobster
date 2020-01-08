@@ -43,7 +43,6 @@ const Type g_type_resource(V_RESOURCE);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
 const Type g_type_typeid_vec(V_TYPEID, &g_type_vector_any);
 const Type g_type_void(V_VOID);
-const Type g_type_function_void(V_VOID, &g_type_function_null);
 const Type g_type_undefined(V_UNDEFINED);
 
 TypeRef type_int = &g_type_int;
@@ -59,7 +58,6 @@ TypeRef type_resource = &g_type_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_typeid_vec = &g_type_typeid_vec;
 TypeRef type_void = &g_type_void;
-TypeRef type_function_void = &g_type_function_void;
 TypeRef type_undefined = &g_type_undefined;
 
 const Type g_type_vector_string(V_VECTOR, &g_type_string);
@@ -422,7 +420,8 @@ SubFunction::~SubFunction() { delete body; }
 Field::~Field() { delete defaultval; }
 
 Field::Field(const Field &o)
-    : type(o.type), id(o.id), defaultval(o.defaultval ? o.defaultval->Clone() : nullptr) {}
+    : giventype(o.giventype), resolvedtype(o.resolvedtype), id(o.id),
+      defaultval(o.defaultval ? o.defaultval->Clone() : nullptr) {}
 
 }
 

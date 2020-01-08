@@ -107,14 +107,15 @@ struct SharedField : Named {
 };
 
 struct Field {
-    TypeRef type;
+    UnresolvedTypeRef giventype = { nullptr };
+    TypeRef resolvedtype = nullptr;
     SharedField *id = nullptr;
     Node *defaultval = nullptr;
     int slot = -1;
 
     Field() = default;
-    Field(SharedField *_id, TypeRef _type, Node *_defaultval)
-        : type(_type), id(_id), defaultval(_defaultval) {}
+    Field(SharedField *_id, UnresolvedTypeRef _type, Node *_defaultval)
+        : giventype(_type), resolvedtype(_type.utr), id(_id), defaultval(_defaultval) {}
     Field(const Field &o);
     ~Field();
 };
@@ -125,7 +126,7 @@ struct FieldVector : GenericArgs {
     FieldVector(size_t nargs) : v(nargs) {}
 
     size_t size() const { return v.size(); }
-    TypeRef GetType(size_t i) const { return v[i].type; }
+    TypeRef GetType(size_t i) const { return v[i].resolvedtype; }
     ArgFlags GetFlags(size_t) const { return AF_NONE; }
     string_view GetName(size_t i) const { return v[i].id->name; }
 };
@@ -139,7 +140,13 @@ struct TypeVariable {
 
 struct BoundTypeVariable {
     TypeVariable *tv;
-    TypeRef type;
+    UnresolvedTypeRef giventype;
+    TypeRef resolvedtype;
+
+    void Resolve(TypeRef type) {
+        resolvedtype = type;
+        if (giventype.utr.Null()) giventype = { type };
+    }
 };
 
 struct DispatchEntry {
@@ -150,16 +157,20 @@ struct DispatchEntry {
 };
 
 struct UDT : Named {
-    FieldVector fields { 0 };
+    FieldVector fields{ 0 };
     vector<BoundTypeVariable> generics;
     UDT *next = nullptr, *first = this;  // Specializations
-    UDT *superclass = nullptr;
+    TypeRef given_superclass = nullptr;
+    UDT *resolved_superclass = nullptr;
     bool is_struct = false, hasref = false;
     bool predeclaration = false;
     bool constructed = false;  // Is this instantiated anywhere in the code?
-    SpecUDT thisspec;
+    bool unnamed_specialization = false;
+    bool is_generic = false;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
+    SpecUDT unspecialized;
+    Type unspecialized_type;
     type_elem_t typeinfo = (type_elem_t)-1;  // Runtime type.
     int numslots = -1;
     int vtable_start = -1;
@@ -172,8 +183,9 @@ struct UDT : Named {
     vector<DispatchEntry> dispatch;
 
     UDT(string_view _name, int _idx, bool is_struct)
-        : Named(_name, _idx), is_struct(is_struct), thisspec(this) {
-        thistype = is_struct ? Type { V_STRUCT_R, &thisspec } : Type { V_CLASS, &thisspec };
+        : Named(_name, _idx), is_struct(is_struct), unspecialized(this),
+        unspecialized_type(&unspecialized) {
+        thistype = is_struct ? Type { V_STRUCT_R, this } : Type { V_CLASS, this };
     }
 
     int Has(SharedField *fld) {
@@ -181,18 +193,26 @@ struct UDT : Named {
         return -1;
     }
 
-    UDT *CloneInto(UDT *st) {
+    UDT *CloneInto(UDT *st, string_view sname, vector<UDT *> &udttable) {
         *st = *this;
-        st->thisspec.udt = st;
-        st->thisspec.is_generic = false;
-        st->thistype.su = &st->thisspec;
+        st->is_generic = false;
+        st->thistype.udt = st;
+        st->unspecialized.udt = st;
+        st->unspecialized.is_generic = false;
+        st->unspecialized_type.spec_udt = &st->unspecialized;
+        st->idx = (int)udttable.size() - 1;
+        st->name = sname;
+        st->numslots = -1;
         st->next = next;
         st->first = first;
         next = st;
         return st;
     }
 
-    bool FullyBound() { return generics.empty() || !generics.back().type.Null(); }
+    bool FullyBound() {
+        // FIXME! This does not deal with any generics being typevars from elsewhere.
+        return generics.empty() || !generics.back().giventype.utr.Null();
+    }
 
     bool IsSpecialization(UDT *other) {
         if (!FullyBound()) {
@@ -205,21 +225,16 @@ struct UDT : Named {
         }
     }
 
-    int NumSuperTypes() {
-        int n = 0;
-        for (auto t = superclass; t; t = t->superclass) n++;
-        return n;
-    }
-
     bool ComputeSizes(int depth = 0) {
         if (numslots >= 0) return true;
         if (depth > 16) return false;  // Simple protection against recursive references.
         int size = 0;
         for (auto &uf : fields.v) {
+            assert(!uf.resolvedtype.Null());
             uf.slot = size;
-            if (IsStruct(uf.type->t)) {
-                if (!uf.type->su->udt->ComputeSizes(depth + 1)) return false;
-                size += uf.type->su->udt->numslots;
+            if (IsStruct(uf.resolvedtype->t)) {
+                if (!uf.resolvedtype->udt->ComputeSizes(depth + 1)) return false;
+                size += uf.resolvedtype->udt->numslots;
             } else {
                 size++;
             }
@@ -238,11 +253,13 @@ struct UDT : Named {
     }
 };
 
-inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->su->udt->numslots : 1; }
+inline int ValWidth(TypeRef type) { return IsStruct(type->t) ? type->udt->numslots : 1; }
 
 inline const Field *FindSlot(const UDT &udt, int i) {
-    for (auto &f : udt.fields.v) if (i >= f.slot && i < f.slot + ValWidth(f.type)) {
-        return IsStruct(f.type->t) ? FindSlot(*f.type->su->udt, i - f.slot) : &f;
+    for (auto &f : udt.fields.v) {
+        if (i >= f.slot && i < f.slot + ValWidth(f.resolvedtype)) {
+            return IsStruct(f.resolvedtype->t) ? FindSlot(*f.resolvedtype->udt, i - f.slot) : &f;
+        }
     }
     assert(false);
     return nullptr;
@@ -282,8 +299,8 @@ struct SubFunction {
     ArgVector args { 0 };
     ArgVector locals { 0 };
     ArgVector freevars { 0 };       // any used from outside this scope
-    vector<TypeRef> orig_types;     // before specialization, includes typevars. FIXME: Only needed once per overload
-    TypeRef fixedreturntype = nullptr;
+    vector<UnresolvedTypeRef> giventypes;  // before specialization, includes typevars. FIXME: Only needed once per overload
+    UnresolvedTypeRef returngiventype = { nullptr };
     TypeRef returntype = type_undefined;
     size_t num_returns = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
@@ -392,7 +409,7 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
-    struct WithStackElem { TypeRef type; Ident *id = nullptr; SubFunction *sf = nullptr; };
+    struct WithStackElem { UDT *udt; Ident *id = nullptr; SubFunction *sf = nullptr; };
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
 
@@ -490,15 +507,15 @@ struct SymbolTable {
         return ident;
     }
 
-    void AddWithStruct(TypeRef t, Ident *id, Lex &lex, SubFunction *sf) {
-        if (!IsUDT(t->t)) lex.Error(":: can only be used with struct/value types");
+    void AddWithStruct(TypeRef type, Ident *id, Lex &lex, SubFunction *sf) {
+        if (type->t != V_UUDT) lex.Error(":: can only be used with struct/class types");
         for (auto &wp : withstack)
-            if (wp.type->su->udt == t->su->udt)
+            if (wp.udt == type->spec_udt->udt)
                 lex.Error("type used twice in the same scope with ::");
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
-        assert(t->su->udt);
-        withstack.push_back({ t, id, sf });
+        assert(type->spec_udt->udt);
+        withstack.push_back({ type->spec_udt->udt, id, sf });
     }
 
     SharedField *LookupWithStruct(string_view name, Lex &lex, Ident *&id) {
@@ -506,7 +523,7 @@ struct SymbolTable {
         if (!fld) return nullptr;
         assert(!id);
         for (auto &wse : withstack) {
-            if (wse.type->su->udt->Has(fld) >= 0) {
+            if (wse.udt->Has(fld) >= 0) {
                 if (id) lex.Error("access to ambiguous field: " + fld->name);
                 id = wse.id;
             }
@@ -635,20 +652,25 @@ struct SymbolTable {
         return *st;
     }
 
-    UDT &StructUse(string_view name, Lex &lex) {
+    UDT *LookupStruct(string_view name) {
         auto uit = udts.find(name);
-        if (uit != udts.end()) return *uit->second;
+        if (uit != udts.end()) return uit->second;
         if (!current_namespace.empty()) {
             uit = udts.find(NameSpaced(name));
-            if (uit != udts.end()) return *uit->second;
+            if (uit != udts.end()) return uit->second;
         }
-        lex.Error("unknown type: " + name);
-        return *uit->second;
+        return nullptr;
+    }
+
+    UDT &StructUse(string_view name, Lex &lex) {
+        auto udt = LookupStruct(name);
+        if (!udt) lex.Error("unknown type: " + name);
+        return *udt;
     }
 
     int SuperDistance(const UDT *super, const UDT *subclass) {
         int dist = 0;
-        for (auto t = subclass; t; t = t->superclass) {
+        for (auto t = subclass; t; t = t->resolved_superclass) {
             if (t == super) return dist;
             dist++;
         }
@@ -658,7 +680,7 @@ struct SymbolTable {
     const UDT *CommonSuperType(const UDT *a, const UDT *b) {
         if (a != b) for (;;) {
             if (SuperDistance(a, b) >= 0) break;
-            a = a->superclass;
+            a = a->resolved_superclass;
             if (!a) return nullptr;
         }
         return a;
@@ -756,75 +778,17 @@ struct SymbolTable {
         return type;
     }
 
-    TypeRef NewSpecUDT(TypeRef st) {
-        assert(IsUDT(st->t));
-        auto su = new SpecUDT(st->su->udt);
+    TypeRef NewSpecUDT(UDT *udt) {
+        auto su = new SpecUDT(udt);
         specudts.push_back(su);
         auto nt = NewType();
-        *nt = Type(st->t, su);
+        *nt = Type(su);
         return nt;
     }
 
     TypeRef Wrap(TypeRef elem, ValueType with) {
         auto wt = WrapKnown(elem, with);
         return !wt.Null() ? wt : elem->Wrap(NewType(), with);
-    }
-
-    TypeRef ReplaceByNamedSpecialization(TypeRef sut) {
-        // TODO: in the case of both callers, the SpecUDT has already been allocated, would be
-        // be better to do that only if a named specialization is actually found.
-        for (auto udt = sut->su->udt->first; udt; udt = udt->next) {
-            if (udt->FullyBound()) {
-                assert(udt->generics.size() == sut->su->specializers.size());
-                for (auto [i, btv] : enumerate(udt->generics)) {
-                    if (btv.type != sut->su->specializers[i]) goto nomatch;
-                }
-                return &udt->thistype;
-                nomatch:;
-            }
-        }
-        return sut;
-    }
-
-    TypeRef ResolveTypeVars(TypeRef type) {
-        switch (type->t) {
-            case V_NIL:
-            case V_VECTOR: {
-                auto nt = ResolveTypeVars(type->Element());
-                if (&*nt != &*type->Element()) {
-                    return Wrap(nt, type->t);
-                }
-                break;
-            }
-            case V_TUPLE: {
-                auto nt = NewTuple(type->tup->size());
-                for (auto [i, te] : enumerate(*type->tup)) {
-                    nt->Set(i, &*ResolveTypeVars(te.type), te.lt);
-                }
-                return nt;
-            }
-            case V_CLASS:
-            case V_STRUCT_R:
-            case V_STRUCT_S: {
-                if (!type->su->is_generic) break;
-                auto nt = NewSpecUDT(type);
-                for (auto s : type->su->specializers) {
-                    auto t = ResolveTypeVars(s);
-                    if (IsGeneric(t)) nt->su->is_generic = true;
-                    nt->su->specializers.push_back(&*t);
-                }
-                return ReplaceByNamedSpecialization(nt);
-            }
-            case V_TYPEVAR: {
-                for (auto bvec : reverse(bound_typevars_stack)) {
-                    for (auto &btv : *bvec) {
-                        if (btv.tv == type->tv && !btv.type.Null()) return btv.type;
-                    }
-                }
-                break;
-            }
-        }
-        return type;
     }
 
     bool RegisterTypeVector(vector<TypeRef> *sv, const char **names) {
@@ -873,9 +837,16 @@ struct SymbolTable {
             : default_float_vector_types[level][arity];
     }
 
-    bool IsGeneric(TypeRef type) {
-        auto u = type->UnWrapAll();
-        return u->t == V_TYPEVAR || (IsUDT(u->t) && u->su->is_generic);
+    bool IsGeneric(UnresolvedTypeRef type) {
+        auto u = type.utr->UnWrapAll();
+        return u->t == V_TYPEVAR ||
+               (u->t == V_UUDT && u->spec_udt->is_generic) ||
+               (IsUDT(u->t) && u->udt->is_generic);
+    }
+
+    bool IsNillable(TypeRef type) {
+        return (IsRef(type->t) && type->t != V_STRUCT_R) ||
+               (type->t == V_UUDT && !type->spec_udt->udt->is_struct);
     }
 
     TypeVariable *NewGeneric(string_view name) {
@@ -937,10 +908,25 @@ inline string TypeName(TypeRef type, int flen = 0, const SymbolTable *st = nullp
         case V_STRUCT_R:
         case V_STRUCT_S:
         case V_CLASS: {
-            string s = type->su->udt->name;
-            if (!type->su->specializers.empty() && !type->su->udt->FullyBound()) {
+            string s = type->udt->name;
+            if (type->udt->unnamed_specialization) {
                 s += "<";
-                for (auto [i, t] : enumerate(type->su->specializers)) {
+                for (auto [i, t] : enumerate(type->udt->generics)) {
+                    if (i) s += ", ";
+                    s += t.giventype.utr.Null()
+                        ? t.tv->name
+                        : TypeName(t.resolvedtype.Null() ? t.giventype.utr : t.resolvedtype);
+                }
+                s += ">";
+            }
+            return s;
+        }
+        case V_UUDT: {
+            string s = type->spec_udt->udt->name;
+            if (!type->spec_udt->specializers.empty() && !type->spec_udt->udt->FullyBound()) {
+                // FIXME! merge with code above..
+                s += "<";
+                for (auto [i, t] : enumerate(type->spec_udt->specializers)) {
                     if (i) s += ", ";
                     s += TypeName(t);
                 }

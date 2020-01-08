@@ -109,6 +109,7 @@ run_test("types"):
             next:A? = nil      // Automatically "upgraded" to A<T>
             nexts:[A] = []     // Same.
             nexti:Ai? = nil    // Refer to specialization before fully defined!
+            nexto:A<string>? = nil    // Refer to unnamed specialization.
             def f(t:T):        // Generic from surrounding class.
                 ts.push(t)
             def g<U>(u:U):     // Own generic.
@@ -118,6 +119,7 @@ run_test("types"):
                 return x
         def i<T>(a::A<T>, t:T):// Non-inline "method".
             ts.push(t)
+
         class Ai = A<int>      // Specialize.
         let a = Ai { [ 1 ] }
         a.nexts.push(a)
@@ -128,22 +130,33 @@ run_test("types"):
         a.g(3)
         a.i(4)
         assert a.h() == 1
+
+        let b = A<string> { [ "hello" ] }  // Look ma, no named specialization.
+        b.nexts.push(b)
+        b.nexts = []
+        b.nexto = b
+        b.nexto = nil
+        b.f("hi")
+        b.g("yo")
+        b.i("sup")
+
         /*
         class B : Ai
             def f(t:T):   // Explicit generic mixed with dynamic dispatch!
                 ts.push(t + 1)
-        let aa:Ai = B { [ 1 ] }
-        aa.f(3)
-        assert aa.ts.top() == 4
+        let aaa:Ai = B { [ 1 ] }
+        aaa.f(3)
+        assert aaa.ts.top() == 4
         */
         /*
         class B : Ai
             def g<U>(u:U):   // Explicit generic mixed with dynamic dispatch!
                 ts.push(u + 1)
-        let aa:Ai = B { [ 1 ] }
-        aa.g(3)
-        assert aa.ts.top() == 4
+        let aaa:Ai = B { [ 1 ] }
+        aaa.g(3)
+        assert aaa.ts.top() == 4
         */
+
         // Explicit use in functions.
         def j<T>(x:T, y:T): return y
         assert j<float>(1, 1) is float  // Explicit specializer.
@@ -158,6 +171,7 @@ run_test("types"):
         def t0(aa:Ai?) -> Ai:
             return A { [ if aa: aa.ts[0] else: 2 ] }
         assert t0(a).ts[0] == 1
+
         // Use with various explicit type features.
         def l<T>(): return 1.0 is T     // Use with is.
         assert l<float>()
@@ -167,6 +181,7 @@ run_test("types"):
         assert equal(o<string>(), []::string)
         def p<T>(): return typeof T     // Use with typeof.
         assert p<string>() == 3
+
         // Use without an named specialization type.
         def t1<V>(aa:A<V>) -> A<V>:
             return A { [ aa.ts[0] ] }

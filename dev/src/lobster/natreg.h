@@ -79,7 +79,8 @@ struct Type {
     union {
         const Type *sub;         // V_VECTOR | V_NIL | V_VAR | V_TYPEID
         SubFunction *sf;         // V_FUNCTION | V_COROUTINE
-        SpecUDT *su;             // V_CLASS | V_STRUCT_*
+        SpecUDT *spec_udt;       // V_UUDT
+        UDT *udt;                // V_CLASS | V_STRUCT_*
         Enum *e;                 // V_INT
         vector<TupleElem> *tup;  // V_TUPLE
         TypeVariable *tv;        // V_TYPEVAR
@@ -89,7 +90,8 @@ struct Type {
     explicit Type(ValueType _t)          : t(_t),        sub(nullptr) {}
     Type(ValueType _t, const Type *_s)   : t(_t),        sub(_s)      {}
     Type(ValueType _t, SubFunction *_sf) : t(_t),        sf(_sf)      {}
-    Type(ValueType _t, SpecUDT *_su)     : t(_t),        su(_su)      {}
+    Type(SpecUDT *_su)                   : t(V_UUDT),    spec_udt(_su){}
+    Type(ValueType _t, UDT *_udt)        : t(_t),        udt(_udt)    {}
     Type(Enum *_e)                       : t(V_INT),     e(_e)        {}
     Type(TypeVariable *_tv)              : t(V_TYPEVAR), tv(_tv)      {}
 
@@ -191,6 +193,11 @@ class TypeRef {
     bool Null() const { return type == nullptr; }
 };
 
+struct UnresolvedTypeRef {
+    TypeRef utr;
+};
+
+
 extern TypeRef type_int;
 extern TypeRef type_float;
 extern TypeRef type_string;
@@ -199,7 +206,6 @@ extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null;
 extern TypeRef type_function_cocl;
-extern TypeRef type_function_void;
 extern TypeRef type_coroutine;
 extern TypeRef type_resource;
 extern TypeRef type_typeid;

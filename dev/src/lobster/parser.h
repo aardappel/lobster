@@ -86,8 +86,7 @@ struct Parser {
 
     void CleanupStatements(List *list) {
         ResolveForwardFunctionCalls();
-        list->children.erase(remove_if(list->children.begin(), list->children.end(),
-                                       [&](auto def) {
+        for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
                 st.UnregisterEnum(er->e);
             } else if (auto sr = Is<UDTRef>(def)) {
@@ -95,8 +94,6 @@ struct Parser {
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
                 if (!f->anonymous) st.UnregisterFun(f);
-                delete fr;
-                return true;
             } else if (auto d = Is<Define>(def)) {
                 for (auto p : d->sids) {
                     auto id = p.first->id;
@@ -109,8 +106,7 @@ struct Parser {
                 if (r != list->children.back())
                     Error("return must be last in block");
             }
-            return false;
-        }), list->children.end());
+        };
     }
 
     void ParseTopExp(List *list, bool isprivate = false) {
@@ -204,10 +200,10 @@ struct Parser {
                 for (;;) {
                     auto idname = ExpectId();
                     bool withtype = lex.token == T_TYPEIN;
-                    TypeRef type = nullptr;
+                    UnresolvedTypeRef type = { nullptr };
                     if (lex.token == T_COLON || withtype) {
                         lex.Next();
-                        ParseType(type, withtype);
+                        type = ParseType(withtype);
                     }
                     auto id = st.LookupDef(idname, lex, false, true, withtype);
                     if (isconst)  id->constant = true;
@@ -264,10 +260,10 @@ struct Parser {
             if (IsNext(T_LT)) {
                 size_t j = 0;
                 // Find first unbound generic.
-                while (j < udt->generics.size() && !udt->generics[j].type.Null()) j++;
+                while (j < udt->generics.size() && !udt->generics[j].giventype.utr.Null()) j++;
                 for (;;) {
                     if (j == udt->generics.size()) Error("too many type specializers");
-                    ParseType(udt->generics[j].type, false);
+                    udt->generics[j].giventype = ParseType(false);
                     if (IsNext(T_ASSIGN)) {
                         // FIXME: this is a bit of a hack now. We allow default values to be
                         // specified for specializers that apply to fields that have this type,
@@ -275,7 +271,8 @@ struct Parser {
                         // now a bit odd.
                         auto def = ParseFactor();
                         for (auto &field : udt->fields.v) {
-                            if (field.type->t == V_TYPEVAR && field.type->tv == udt->generics[j].tv) {
+                            if (field.giventype.utr->t == V_TYPEVAR &&
+                                field.giventype.utr->tv == udt->generics[j].tv) {
                                 if (field.defaultval) Error("field already has a default value");
                                 field.defaultval = def;
                             }
@@ -296,31 +293,15 @@ struct Parser {
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
             auto sup = parse_sup();
-            udt = sup->CloneInto(udt);
-            udt->idx = (int)st.udttable.size() - 1;
-            udt->name = sname;
+            udt = sup->CloneInto(udt, sname, st.udttable);
             if (!parse_specializers())
                 Error("no specialization types specified");
             if (isprivate != sup->isprivate)
                 Error("specialization must have same privacy level");
             if (sup->predeclaration)
                 Error("must specialization fully defined type");
-            if (udt->superclass) {
-                // This points to a generic version of the superclass of this class.
-                // See if we can find a matching specialization instead.
-                // FIXME: better to move this to start of typecheck just in case more to be
-                // declared.
-                auto sti = udt->superclass->next;
-                for (; sti; sti = sti->next) {
-                    for (size_t i = 0; i < sti->fields.size(); i++)
-                        if (sti->fields.v[i].type != udt->fields.v[i].type)
-                            goto fail;
-                    goto done;
-                    fail:;
-                }
-                done:
-                udt->superclass = sti;  // Either a match or nullptr.
-            }
+            if (udt->generics.back().giventype.utr.Null())
+                Error("missing specializers");
         } else if (Either(T_COLON, T_LT)) {
             // A regular struct declaration
             udt->isprivate = isprivate;
@@ -330,7 +311,7 @@ struct Parser {
                     for (auto &g : udt->generics)
                         if (g.tv->name == id)
                             Error("re-declaration of generic type");
-                    udt->generics.push_back({ st.NewGeneric(id), nullptr });
+                    udt->generics.push_back({ st.NewGeneric(id), { nullptr }, nullptr });
                     if (IsNext(T_GT)) break;
                     Expect(T_COMMA);
                 }
@@ -338,15 +319,24 @@ struct Parser {
             Expect(T_COLON);
             if (lex.token == T_IDENT) {
                 auto sup = parse_sup();
-                if (sup) {
-                    if (sup->predeclaration) sup->predeclaration = false;  // Empty base class.
-                    udt->superclass = sup;
-                    udt->generics = sup->generics;
-                    for (auto &fld : sup->fields.v) {
-                        udt->fields.v.push_back(fld);
-                    }
+                if (sup->predeclaration) sup->predeclaration = false;  // Empty base class.
+                udt->resolved_superclass = sup;
+                udt->given_superclass = st.NewSpecUDT(sup);
+                // FIXME: lift this restriction, only here because we overwrite generics, and
+                // because of given_superclass.
+                if (!udt->generics.empty())
+                    Error("unimplemented: cannot add generics to generic base");
+                udt->generics = sup->generics;
+                for (auto &fld : sup->fields.v) {
+                    udt->fields.v.push_back(fld);
                 }
                 parse_specializers();
+                if (udt->FullyBound()) {
+                    for (auto &g : udt->generics) {
+                        udt->given_superclass->spec_udt->specializers.push_back(&*g.giventype.utr);
+                    }
+                    udt->given_superclass->spec_udt->is_generic = true;
+                }
             }
             if (IsNext(T_INDENT)) {
                 bool fieldsdone = false;
@@ -360,11 +350,13 @@ struct Parser {
                         if (fieldsdone) Error("fields must be declared before methods");
                         ExpectId();
                         auto &sfield = st.FieldDecl(lastid);
-                        TypeRef type = type_any;
+                        UnresolvedTypeRef type = { type_any };
                         if (IsNext(T_COLON)) {
-                            ParseType(type, false);
+                            type = ParseType(false);
                         }
                         Node *defaultval = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+                        if (type.utr->t == V_ANY && !defaultval)
+                            Error("must specify either type or default value");
                         udt->fields.v.push_back(Field(&sfield, type, defaultval));
                     }
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
@@ -378,16 +370,19 @@ struct Parser {
             // A pre-declaration.
             udt->predeclaration = true;
         }
-        // Set correct types for SpecUDT.
-        udt->thisspec.specializers.clear();
-        udt->thisspec.is_generic = false;
+        udt->is_generic = false;
+        udt->unspecialized.specializers.clear();
         for (auto &g : udt->generics) {
-            auto type = g.type.Null() ? &g.tv->thistype : g.type;
+            auto type = g.giventype.utr.Null()
+                ? UnresolvedTypeRef { &g.tv->thistype }
+                : g.giventype;
             // This test works correctly if a generic refers to its own struct, since either
             // is_generic is still false, or it is already true if theres other generics.
-            if (st.IsGeneric(type)) udt->thisspec.is_generic = true;
-            udt->thisspec.specializers.push_back(&*type);
+            if (st.IsGeneric(type)) udt->is_generic = true;
+            udt->unspecialized.specializers.push_back(&*type.utr);
+            g.resolvedtype = type.utr;
         }
+        udt->unspecialized.is_generic = udt->is_generic;
         parent_list->Add(new UDTRef(lex, udt));
     }
 
@@ -427,7 +422,7 @@ struct Parser {
         auto ng = st.NewGeneric(nn);
         sf->generics.push_back({ ng, nullptr });
         sf->args.v.back().type = &ng->thistype;
-        sf->orig_types.push_back(&ng->thistype);
+        sf->giventypes.push_back({ &ng->thistype });
     }
 
     Node *ParseFunction(string_view *name,
@@ -456,8 +451,8 @@ struct Parser {
             nargs++;
             auto id = st.LookupDef("this", lex, false, false, true);
             auto &arg = sf->args.v.back();
-            arg.type = &self->thistype;
-            sf->orig_types.push_back(arg.type);
+            arg.type = &self->unspecialized_type;
+            sf->giventypes.push_back({ arg.type });
             st.AddWithStruct(arg.type, id, lex, sf);
             arg.flags |= AF_WITHTYPE;
         }
@@ -471,18 +466,18 @@ struct Parser {
                 bool withtype = lex.token == T_TYPEIN;
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
-                    ParseType(arg.type, withtype, nullptr, &sf->args.v.back());
-                    if (arg.type == type_any) {
+                    arg.type = ParseType(withtype, nullptr, &sf->args.v.back()).utr;
+                    if (arg.type == type_function_null) {
                         // FIXME: needed just for T_LAZYEXP.
                         GenImplicitGenericForLastArg();
                     } else {
                         if (withtype) st.AddWithStruct(arg.type, id, lex, sf);
-                        if (nargs == 1 && IsUDT(arg.type->t)) {
+                        if (nargs == 1 && arg.type->t == V_UUDT) {
                             non_inline_method = true;
-                            self = arg.type->su->udt;
+                            self = arg.type->spec_udt->udt;
                             st.bound_typevars_stack.push_back(&self->generics);
                         }
-                        sf->orig_types.push_back(arg.type);
+                        sf->giventypes.push_back({ arg.type });
                     }
                 } else {
                     GenImplicitGenericForLastArg();
@@ -507,7 +502,8 @@ struct Parser {
         sf->SetParent(f, f.overloads.back());
         if (!expfunval) {
             if (IsNext(T_CODOT)) {  // Return type decl.
-                ParseTypes(sf->fixedreturntype, sf, LT_KEEP);
+                sf->returngiventype = ParseTypes(sf, LT_KEEP);
+                sf->returntype = sf->returngiventype.utr;
             }
             if (!IsNext(T_COLON)) {
                 // This must be a function type.
@@ -517,14 +513,15 @@ struct Parser {
                 f.istype = true;
                 sf->typechecked = true;
                 for (auto [i, arg] : enumerate(sf->args.v)) {
-                    if (st.IsGeneric(sf->orig_types[i]))
+                    if (st.IsGeneric(sf->giventypes[i]))
                         Error("function type arguments can't be generic");
                     // No idea what the function is going to be, so have to default to borrow.
                     arg.sid->lt = LT_BORROW;
                 }
-                if (sf->fixedreturntype.Null())
+                if (sf->returngiventype.utr.Null())
                     Error("missing return type or : in function definition header");
-                sf->returntype = sf->fixedreturntype;
+                if (!sf->generics.empty())
+                    Error("function type cannot have generics");
                 sf->reqret = sf->returntype->NumValues();
             }
         }
@@ -535,7 +532,7 @@ struct Parser {
                 // type checker.
                 if (!f.nargs()) Error("double declaration: " + f.name);
                 for (auto [i, arg] : enumerate(sf->args.v)) {
-                    if (!i && st.IsGeneric(sf->orig_types[i]))
+                    if (!i && st.IsGeneric(sf->giventypes[i]))
                         Error("first argument of overloaded function must not be generic: " +
                               f.name);
                 }
@@ -576,22 +573,23 @@ struct Parser {
         return new FunRef(lex, sf);
     }
 
-    void ParseTypes(TypeRef &dest, SubFunction *sfreturntype, Lifetime lt) {
-        ParseType(dest, false, sfreturntype);
-        if (!IsNext(T_COMMA)) return;
+    UnresolvedTypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
+        auto dest = ParseType(false, sfreturntype);
+        if (!IsNext(T_COMMA)) return dest;
         vector<TypeRef> types;
-        types.push_back(dest);
+        types.push_back(dest.utr);
         do {
-            types.push_back(nullptr);
-            ParseType(types.back(), false, sfreturntype);
+            types.push_back(ParseType(false, sfreturntype).utr);
         } while (IsNext(T_COMMA));
-        dest = st.NewTuple(types.size());
+        dest = { st.NewTuple(types.size()) };
         for (auto [i, type] : enumerate(types))
-            dest->Set(i, &*type, IsRefNil(type->t) ? lt : LT_ANY);
+            dest.utr->Set(i, &*type, IsRefNil(type->t) ? lt : LT_ANY);
+        return dest;
     }
 
-    void ParseType(TypeRef &dest, bool withtype,
-                  SubFunction *sfreturntype = nullptr, Arg *funarg = nullptr) {
+    UnresolvedTypeRef ParseType(bool withtype, SubFunction *sfreturntype = nullptr,
+                                Arg *funarg = nullptr) {
+        TypeRef dest;
         switch(lex.token) {
             case T_INTTYPE:   dest = type_int;        lex.Next(); break;
             case T_FLOATTYPE: dest = type_float;      lex.Next(); break;
@@ -604,7 +602,7 @@ struct Parser {
                   Error("lazy_expression cannot be used outside function signature");
                 }
                 funarg->flags = ArgFlags(funarg->flags | AF_EXPFUNVAL);
-                return;
+                return { type_function_null };
             }
             case T_IDENT: {
                 auto f = st.FindFunction(lex.sattr);
@@ -628,15 +626,15 @@ struct Parser {
                         }
                     }
                 }
-                dest = &st.StructUse(lex.sattr, lex).thistype;
+                dest = &st.StructUse(lex.sattr, lex).unspecialized_type;
                 lex.Next();
                 if (IsNext(T_LT)) {
-                    dest = st.NewSpecUDT(dest);
+                    dest = st.NewSpecUDT(dest->spec_udt->udt);
+                    if (dest->spec_udt->udt->is_generic) dest->spec_udt->is_generic = true;
                     for (;;) {
-                        TypeRef s;
-                        ParseType(s, false);
-                        if (st.IsGeneric(s)) dest->su->is_generic = true;
-                        dest->su->specializers.push_back(&*s);
+                        auto s = ParseType(false);
+                        if (st.IsGeneric(s)) dest->spec_udt->is_generic = true;
+                        dest->spec_udt->specializers.push_back(&*s.utr);
                         if (lex.token == T_GT) {
                             // This may be the end of the line, so make sure Lex doesn't see it
                             // as a GT op.
@@ -646,18 +644,16 @@ struct Parser {
                         }
                         Expect(T_COMMA);
                     }
-                    dest = st.ReplaceByNamedSpecialization(dest);
                 } else {
-                    if (dest->su->is_generic)
-                        Error("use of type " + dest->su->udt->name + " requires specializers");
+                    if (dest->spec_udt->udt->is_generic)
+                        Error("use of type " + dest->spec_udt->udt->name + " requires specializers");
                 }
                 done:
                 break;
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                TypeRef elem;
-                ParseType(elem, false);
+                TypeRef elem = ParseType(false).utr;
                 Expect(T_RIGHTBRACKET);
                 dest = st.Wrap(elem, V_VECTOR);
                 break;
@@ -674,11 +670,13 @@ struct Parser {
                 Error("illegal type syntax: " + lex.TokStr());
         }
         if (IsNext(T_QUESTIONMARK)) {
-            if (!IsNillable(dest->t))
+            if (!st.IsNillable(dest))
                 Error("value types can\'t be made nilable");
             dest = st.Wrap(dest, V_NIL);
         }
-        if (withtype && !IsUDT(dest->t)) Error(":: must be used with a class type");
+        if (withtype && dest->t != V_UUDT)
+            Error(":: must be used with a class type");
+        return { dest };
     }
 
     void ParseFunArgs(List *list, bool coroutine, Node *derefarg, string_view fname = "",
@@ -934,7 +932,8 @@ struct Parser {
     }
 
     Node *ParseFunctionCall(Function *f, NativeFun *nf, string_view idname, Node *firstarg,
-                            bool coroutine, bool noparens, vector<TypeRef> *specializers = nullptr) {
+                            bool coroutine, bool noparens,
+        vector<UnresolvedTypeRef> *specializers = nullptr) {
         auto wse = st.GetWithStackBack();
         // FIXME: move more of the code below into the type checker, and generalize the remaining
         // code to be as little dependent as possible on wether nf or f are available.
@@ -1017,7 +1016,10 @@ struct Parser {
             // arg of the same type we pass it in automatically.
             // This is maybe a bit very liberal, should maybe restrict it?
             for (auto sf : f->overloads) {
-                if (wse.type == sf->args.v[0].type && sf->args.v[0].flags & AF_WITHTYPE) {
+                auto &arg0 = sf->args.v[0];
+                if (arg0.type->t == V_UUDT &&
+                    wse.udt == arg0.type->spec_udt->udt &&
+                    arg0.flags & AF_WITHTYPE) {
                     if (wse.id && wse.sf->parent != f) {  // Not in recursive calls.
                         return new IdentRef(lex, wse.id->cursid);
                     }
@@ -1124,8 +1126,8 @@ struct Parser {
             case T_IS: {
                 lex.Next();
                 auto is = new IsType(lex, n);
-                ParseType(is->giventype, false);
-                is->resolvedtype = is->giventype;
+                is->giventype = ParseType(false);
+                is->resolvedtype = is->giventype.utr;
                 return is;
             }
             default:
@@ -1152,10 +1154,10 @@ struct Parser {
             }
             case T_NIL: {
                 lex.Next();
-                auto n = new Nil(lex, nullptr);
+                auto n = new Nil(lex, { nullptr });
                 if (IsNext(T_TYPEIN)) {
-                    ParseType(n->giventype, false);
-                    n->giventype = st.Wrap(n->giventype, V_NIL);
+                    n->giventype = ParseType(false);
+                    n->giventype.utr = st.Wrap(n->giventype.utr, V_NIL);
                 }
                 return n;
             }
@@ -1167,13 +1169,13 @@ struct Parser {
             }
             case T_LEFTBRACKET: {
                 lex.Next();
-                auto constructor = new Constructor(lex, nullptr);
+                auto constructor = new Constructor(lex, { nullptr });
                 ParseVector([this, &constructor] () {
                     constructor->Add(this->ParseExp());
                 }, T_RIGHTBRACKET);
                 if (IsNext(T_TYPEIN)) {
-                    ParseType(constructor->giventype, false);
-                    constructor->giventype = st.Wrap(constructor->giventype, V_VECTOR);
+                    constructor->giventype = ParseType(false);
+                    constructor->giventype.utr = st.Wrap(constructor->giventype.utr, V_VECTOR);
                 }
                 return constructor;
             }
@@ -1213,8 +1215,7 @@ struct Parser {
                         return new TypeOf(lex, new IdentRef(lex, id->cursid));
                     }
                 }
-                auto tn = new TypeAnnotation(lex, TypeRef());
-                ParseType(tn->giventype, false);
+                auto tn = new TypeAnnotation(lex, ParseType(false));
                 return new TypeOf(lex, tn);
             }
             case T_IDENT: {
@@ -1280,14 +1281,13 @@ struct Parser {
         Expect(closing);
     }
 
-    vector<TypeRef> ParseSpecializers(bool likely_named_function) {
-        vector<TypeRef> specializers;
+    vector<UnresolvedTypeRef> ParseSpecializers(bool likely_named_function) {
+        vector<UnresolvedTypeRef> specializers;
         // Check for function call with generic params.
         // This is not a great way to distinguish from < operator exps, but best we can do?
         if (likely_named_function && lex.whitespacebefore == 0 && IsNext(T_LT)) {
             for (;;) {
-                specializers.push_back(nullptr);
-                ParseType(specializers.back(), false);
+                specializers.push_back(ParseType(false));
                 if (IsNext(T_GT)) break;
                 Expect(T_COMMA);
             }
@@ -1296,16 +1296,27 @@ struct Parser {
     }
 
     Node *IdentFactor(string_view idname) {
-        if (IsNext(T_LEFTCURLY)) {
-            auto &udt = st.StructUse(idname, lex);
-            udt.constructed = true;
-            vector<Node *> exps(udt.fields.size(), nullptr);
+        // First see if this a type constructor.
+        auto udt = st.LookupStruct(idname);
+        UnresolvedTypeRef type = { nullptr };
+        if (udt && lex.token == T_LT) {
+            lex.Undo(T_IDENT, idname);
+            type = ParseType(false);
+        } else if (lex.token == T_LEFTCURLY) {
+            udt = &st.StructUse(idname, lex);
+            type = { st.NewSpecUDT(udt) };
+            type.utr->spec_udt->is_generic = udt->is_generic;
+        }
+        if (udt) {
+            Expect(T_LEFTCURLY);
+            udt->constructed = true;
+            vector<Node *> exps(udt->fields.size(), nullptr);
             ParseVector([&] () {
                 auto id = lex.sattr;
                 if (IsNext(T_IDENT)) {
                     if (IsNext(T_COLON)) {
                         auto fld = st.FieldUse(id);
-                        auto field = udt.Has(fld);
+                        auto field = udt->Has(fld);
                         if (field < 0) Error("unknown field: " + id);
                         if (exps[field]) Error("field initialized twice: " + id);
                         exps[field] = ParseExp();
@@ -1317,7 +1328,7 @@ struct Parser {
                 // An initializer without a tag. Find first field without a default thats not
                 // set yet.
                 for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i] && !udt.fields.v[i].defaultval) {
+                    if (!exps[i] && !udt->fields.v[i].defaultval) {
                         exps[i] = ParseExp();
                         return;
                     }
@@ -1327,13 +1338,13 @@ struct Parser {
                 exps.push_back(ParseExp());
             }, T_RIGHTCURLY);
             // Now fill in defaults, check for missing fields, and construct list.
-            auto constructor = new Constructor(lex, &udt.thistype);
+            auto constructor = new Constructor(lex, type);
             for (size_t i = 0; i < exps.size(); i++) {
                 if (!exps[i]) {
-                    if (udt.fields.v[i].defaultval)
-                        exps[i] = udt.fields.v[i].defaultval->Clone();
+                    if (udt->fields.v[i].defaultval)
+                        exps[i] = udt->fields.v[i].defaultval->Clone();
                     else
-                        Error("field not initialized: " + udt.fields.v[i].id->name);
+                        Error("field not initialized: " + udt->fields.v[i].id->name);
                 }
                 constructor->Add(exps[i]);
             }

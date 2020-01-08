@@ -71,13 +71,12 @@ struct CodeGen  {
 
     void PushFields(UDT *udt, vector<type_elem_t> &tt, type_elem_t parent = (type_elem_t)-1) {
         for (auto &field : udt->fields.v) {
-            auto ti = GetTypeTableOffset(field.type);
-            if (IsStruct(field.type->t)) {
-                PushFields(field.type->su->udt, tt, ti);
+            auto ti = GetTypeTableOffset(field.resolvedtype);
+            if (IsStruct(field.resolvedtype->t)) {
+                PushFields(field.resolvedtype->udt, tt, ti);
             } else {
-              tt.insert(tt.begin() + (tt.size() - ti_num_udt_fields) / ti_num_udt_per_field +
-                            ti_num_udt_fields,
-                        ti);
+                tt.insert(tt.begin() + (tt.size() - ti_num_udt_fields) / ti_num_udt_per_field +
+                          ti_num_udt_fields, ti);
                 tt.push_back(parent);
             }
         }
@@ -117,21 +116,21 @@ struct CodeGen  {
             case V_CLASS:
             case V_STRUCT_R:
             case V_STRUCT_S: {
-                if (type->su->udt->typeinfo >= 0)
-                    return type->su->udt->typeinfo;
-                type->su->udt->typeinfo = (type_elem_t)type_table.size();
+                if (type->udt->typeinfo >= 0)
+                    return type->udt->typeinfo;
+                type->udt->typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
-                assert(type->su->udt->numslots >= 0);
+                assert(type->udt->numslots >= 0);
                 auto ttsize =
-                    (size_t)(type->su->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
+                    (size_t)(type->udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
-                tt.push_back((type_elem_t)type->su->udt->idx);
-                tt.push_back((type_elem_t)type->su->udt->numslots);
-                tt.push_back((type_elem_t)type->su->udt->vtable_start);
-                PushFields(type->su->udt, tt);
+                tt.push_back((type_elem_t)type->udt->idx);
+                tt.push_back((type_elem_t)type->udt->numslots);
+                tt.push_back((type_elem_t)type->udt->vtable_start);
+                PushFields(type->udt, tt);
                 assert(tt.size() == ttsize);
-                std::copy(tt.begin(), tt.end(), type_table.begin() + type->su->udt->typeinfo);
-                return type->su->udt->typeinfo;
+                std::copy(tt.begin(), tt.end(), type_table.begin() + type->udt->typeinfo);
+                return type->udt->typeinfo;
             }
             case V_VAR:
                 // This can happen with an empty [] vector that was never bound to anything.
@@ -181,7 +180,7 @@ struct CodeGen  {
         for (auto sid : st.specidents) {
             if (!sid->type.Null()) {  // Null ones are in unused functions.
                 auto tti = GetTypeTableOffset(sid->type);
-                assert(!IsStruct(sid->type->t) || sid->type->su->udt->numslots >= 0);
+                assert(!IsStruct(sid->type->t) || sid->type->udt->numslots >= 0);
                 sid->sidx = sidx;
                 auto ns = ValWidth(sid->type);
                 sidx += ns;
@@ -272,7 +271,8 @@ struct CodeGen  {
                     Emit(arg.sid->Idx() + i);
                     nvars++;
                     if (ShouldDec(IsStruct(arg.sid->type->t)
-                                  ? TypeLT { FindSlot(*arg.sid->type->su->udt, i)->type, arg.sid->lt }
+                                  ? TypeLT { FindSlot(*arg.sid->type->udt, i)->resolvedtype,
+                                             arg.sid->lt }
                                   : TypeLT { *arg.sid }) && !arg.sid->consume_on_last_use) {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
@@ -373,7 +373,7 @@ struct CodeGen  {
 
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
-            Emit(typelt.type->t == V_STRUCT_R ? IL_POPVREF : IL_POPV, typelt.type->su->udt->numslots);
+            Emit(typelt.type->t == V_STRUCT_R ? IL_POPVREF : IL_POPV, typelt.type->udt->numslots);
         } else {
             Emit(ShouldDec(typelt) ? IL_POPREF : IL_POP);
         }
@@ -448,7 +448,7 @@ struct CodeGen  {
             } else if (type->t == V_STRING) {
                 assert(lvalop == LVO_IADD); lvalop = LVO_SADD;
             } else if (type->t == V_STRUCT_S) {
-                auto sub = type->su->udt->sametype;
+                auto sub = type->udt->sametype;
                 bool withscalar = IsScalar(rhs->exptype->t);
                 if (sub->t == V_INT) {
                     lvalop += (withscalar ? LVO_IVSADD : LVO_IVVADD) - LVO_IADD;
@@ -472,12 +472,12 @@ struct CodeGen  {
         } else if (auto dot = Is<Dot>(lval)) {
             auto stype = dot->children[0]->exptype;
             assert(IsUDT(stype->t));  // Ensured by typechecker.
-            auto idx = stype->su->udt->Has(dot->fld);
+            auto idx = stype->udt->Has(dot->fld);
             assert(idx >= 0);
-            auto &field = stype->su->udt->fields.v[idx];
+            auto &field = stype->udt->fields.v[idx];
             Gen(dot->children[0], 1);
             TakeTemp(take_temp + 1, true);
-            Emit(GENLVALOP(FLD, lvalop), field.slot); GenStructIns(field.type);
+            Emit(GENLVALOP(FLD, lvalop), field.slot); GenStructIns(field.resolvedtype);
         } else if (auto cod = Is<CoDot>(lval)) {
             auto ir = AssertIs<IdentRef>(cod->variable);
             Gen(cod->coroutine, 1);
@@ -497,7 +497,7 @@ struct CodeGen  {
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
-                           indexing->object->exptype->su->udt->sametype->Numeric());
+                           indexing->object->exptype->udt->sametype->Numeric());
                     Emit(GENLVALOP(IDXNI, lvalop));
                     break;
                 case V_STRUCT_R:
@@ -547,7 +547,7 @@ struct CodeGen  {
                 // If this is a comparison op, be sure to use the child type.
                 TypeRef vectype = opc >= MOP_LT ? ltype : ptype;
                 assert(vectype->t == V_STRUCT_S);
-                auto sub = vectype->su->udt->sametype;
+                auto sub = vectype->udt->sametype;
                 bool withscalar = IsScalar(rtype->t);
                 if (sub->t == V_INT)
                     Emit((withscalar ? IL_IVSADD : IL_IVVADD) + opc);
@@ -593,9 +593,9 @@ struct CodeGen  {
             } else if (auto dot = Is<Dot>(object)) {
                 auto sstype = dot->children[0]->exptype;
                 assert(IsUDT(sstype->t));
-                auto idx = sstype->su->udt->Has(dot->fld);
+                auto idx = sstype->udt->Has(dot->fld);
                 assert(idx >= 0);
-                auto &field = sstype->su->udt->fields.v[idx];
+                auto &field = sstype->udt->fields.v[idx];
                 assert(field.slot >= 0);
                 GenPushField(retval, dot->children[0], sstype, ftype, field.slot + offset);
                 return;
@@ -642,7 +642,7 @@ struct CodeGen  {
                 if (index->exptype->t == V_INT) {
                     etype = etype->Element();
                 } else {
-                    auto &udt = *index->exptype->su->udt;
+                    auto &udt = *index->exptype->udt;
                     for (auto &field : udt.fields.v) {
                         (void)field;
                         etype = etype->Element();
@@ -660,7 +660,7 @@ struct CodeGen  {
                 break;
             }
             case V_STRUCT_S:
-                assert(index->exptype->t == V_INT && object->exptype->su->udt->sametype->Numeric());
+                assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
                 Emit(IL_NPUSHIDXI);
                 GenStructIns(object->exptype);
                 break;
@@ -712,11 +712,11 @@ void IdentRef::Generate(CodeGen &cg, size_t retval) const {
 void Dot::Generate(CodeGen &cg, size_t retval) const {
     auto stype = children[0]->exptype;
     assert(IsUDT(stype->t));
-    auto idx = stype->su->udt->Has(fld);
+    auto idx = stype->udt->Has(fld);
     assert(idx >= 0);
-    auto &field = stype->su->udt->fields.v[idx];
+    auto &field = stype->udt->fields.v[idx];
     assert(field.slot >= 0);
-    cg.GenPushField(retval, children[0], stype, field.type, field.slot);
+    cg.GenPushField(retval, children[0], stype, field.resolvedtype, field.slot);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
@@ -819,7 +819,7 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
         case V_INT: cg.Emit(IL_IUMINUS); break;
         case V_FLOAT: cg.Emit(IL_FUMINUS); break;
         case V_STRUCT_S: {
-            auto elem = ctype->su->udt->sametype->t;
+            auto elem = ctype->udt->sametype->t;
             cg.Emit(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS);
             cg.GenStructIns(ctype);
             break;
@@ -897,8 +897,8 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 int stack_depth = cg.StackDepth();
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively emit a single op with a list or bitmask?
-                    for (int j = 0; j < type->su->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->su->udt, j)->type->t))
+                    for (int j = 0; j < type->udt->numslots; j++) {
+                        if (IsRefNil(FindSlot(*type->udt, j)->resolvedtype->t))
                             cg.Emit(IL_KEEPREF, fi + j, cg.keepvars++ + stack_depth);
                     }
                 } else {
@@ -996,7 +996,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         auto last = nattype->NumValues() - 1;
         auto tlt = TypeLT { nattype->Get(last), nattype->GetLifetime(last, natlt) };
         // FIXME: simplify.
-        auto val_width_1 = !IsStruct(tlt.type->t) || tlt.type->su->udt->numslots == 1;
+        auto val_width_1 = !IsStruct(tlt.type->t) || tlt.type->udt->numslots == 1;
         auto var_width_void = nf->fun.fnargs < 0 && nf->retvals.v.empty();
         if (!retval && val_width_1 && !var_width_void) {
             // Generate version that never produces top of stack (but still may have
@@ -1291,7 +1291,7 @@ void Constructor::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(Arity(), true);
     auto offset = cg.GetTypeTableOffset(exptype);
     if (IsUDT(exptype->t)) {
-        assert(exptype->su->udt->fields.size() == Arity());
+        assert(exptype->udt->fields.size() == Arity());
         if (IsStruct(exptype->t)) {
             // This is now a no-op! Struct elements sit inline on the stack.
         } else {

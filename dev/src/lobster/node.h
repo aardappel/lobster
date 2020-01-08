@@ -172,9 +172,9 @@ struct NAME : Node { \
 };
 
 struct TypeAnnotation : Node {
-    TypeRef giventype;
-    TypeAnnotation(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
-    void Dump(string &sd) const { sd += TypeName(giventype); }
+    UnresolvedTypeRef giventype;
+    TypeAnnotation(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
+    void Dump(string &sd) const { sd += TypeName(giventype.utr); }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
@@ -242,8 +242,8 @@ BINARY_NODE_T(Case, "case", false, List, pattern, Node, body, )
 BINARY_NODE(Range, "range", false, start, end, )
 
 struct Nil : Node {
-    TypeRef giventype;
-    Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
+    UnresolvedTypeRef giventype;
+    Nil(const Line &ln, UnresolvedTypeRef tr) : Node(ln), giventype(tr) {}
     bool ConstVal(TypeChecker &, Value &val) const {
         val = Value();
         return true;
@@ -322,9 +322,9 @@ struct GenericCall : List {
     string_view name;
     SubFunction *sf;  // Need to store this, since only parser tracks scopes.
     bool dotnoparens;
-    vector<TypeRef> specializers;
+    vector<UnresolvedTypeRef> specializers;
     GenericCall(const Line &ln, string_view name, SubFunction *sf, bool dotnoparens,
-        vector<TypeRef> *spec)
+                vector<UnresolvedTypeRef> *spec)
         : List(ln), name(name), sf(sf), dotnoparens(dotnoparens) {
         if (spec) specializers = *spec;
     };
@@ -332,8 +332,8 @@ struct GenericCall : List {
 };
 
 struct Constructor : List {
-    TypeRef giventype;
-    Constructor(const Line &ln, TypeRef _type) : List(ln), giventype(_type) {};
+    UnresolvedTypeRef giventype;
+    Constructor(const Line &ln, UnresolvedTypeRef _type) : List(ln), giventype(_type) {};
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -396,9 +396,9 @@ struct AssignList : List {
 };
 
 struct Define : Unary {
-    vector<pair<SpecIdent *, TypeRef>> sids;
+    vector<pair<SpecIdent *, UnresolvedTypeRef>> sids;
     Define(const Line &ln, SpecIdent *sid, Node *_a) : Unary(ln, _a) {
-        if (sid) sids.push_back({ sid, nullptr });
+        if (sid) sids.push_back({ sid, { nullptr }});
     }
     void Dump(string &sd) const {
         for (auto p : sids) append(sd, p.first->id->name, " ");
@@ -417,9 +417,10 @@ struct Dot : GenericCall {
 };
 
 struct IsType : Unary {
-    TypeRef giventype, resolvedtype;
+    UnresolvedTypeRef giventype;
+    TypeRef resolvedtype;
     IsType(const Line &ln, Node *_a) : Unary(ln, _a) {}
-    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype)); }
+    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype.utr)); }
     CONSTVALMETHOD
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
     OPTMETHOD

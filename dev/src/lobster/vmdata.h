@@ -102,6 +102,7 @@ enum ValueType : int {
     V_TYPEID,           // [typechecker only] a typetable offset.
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
     V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
+    V_UUDT,             // [parser/typechecker only] udt with unresolved generics.
     V_UNDEFINED,        // [typechecker only] this type should never be accessed.
     V_MAXVMTYPES
 };
@@ -117,7 +118,6 @@ inline bool IsRuntime(ValueType t) { return t < V_VAR; }
 inline bool IsRuntimePrintable(ValueType t) { return t <= V_FLOAT; }
 inline bool IsStruct(ValueType t) { return t == V_STRUCT_R || t == V_STRUCT_S; }
 inline bool IsUDT(ValueType t) { return t == V_CLASS || IsStruct(t); }
-inline bool IsNillable(ValueType t) { return IsRef(t) && t != V_STRUCT_R; }
 
 inline string_view BaseTypeName(ValueType t) {
     static const char *typenames[] = {
@@ -126,7 +126,7 @@ inline string_view BaseTypeName(ValueType t) {
         "resource", "coroutine", "string", "class", "vector",
         "nil", "int", "float", "function", "yield_function", "struct_scalar",
         "variable", "type_variable", "typeid", "void",
-        "tuple", "undefined",
+        "tuple", "unresolved_udt", "undefined",
     };
     if (t <= V_MINVMTYPES || t >= V_MAXVMTYPES) {
         assert(false);
