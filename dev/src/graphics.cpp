@@ -1129,5 +1129,11 @@ nfr("gl_screenshot", "filename", "S", "B",
         return Value(ok);
     });
 
-}  // AddFont
+nfr("gl_dropped_file", "", "", "S",
+    "if a file was dropped on the window this frame, the filename, otherwise empty",
+    [](VM &vm) {
+        return Value(vm.NewString(GetDroppedFile()));
+    });
+
+}  // AddGraphics
 

@@ -167,8 +167,8 @@ string GetMainDirFromExePath(const char *argv_0) {
     #endif
     #ifdef __APPLE__
         char path[PROC_PIDPATHINFO_MAXSIZE];
-        if (proc_pidpath(getpid(), path, sizeof(path)) > 0) { 
-            md = string(path); 
+        if (proc_pidpath(getpid(), path, sizeof(path)) > 0) {
+            md = string(path);
         }
     #endif
     md = StripTrailing(StripTrailing(StripFilePart(md), "bin/"), "bin\\");
@@ -287,6 +287,10 @@ void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t o
 }
 
 int64_t LoadFileFromAny(string_view srelfilename, string *dest, int64_t start, int64_t len) {
+    if (srelfilename.size() > 1 && (srelfilename[0] == FILESEP || srelfilename[1] == ':')) {
+        // Absolute filename.
+        return cur_loader(srelfilename, dest, start, len);
+    }
     for (auto &dir : data_dirs) {
         auto l = cur_loader(dir + srelfilename, dest, start, len);
         if (l >= 0) return l;

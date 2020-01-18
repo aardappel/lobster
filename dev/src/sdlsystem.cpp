@@ -170,6 +170,8 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
     return 0;
 }
 
+string dropped_file;
+string &GetDroppedFile() { return dropped_file; }
 
 string SDLError(const char *msg) {
     string s = string_view(msg) + ": " + SDL_GetError();
@@ -391,6 +393,7 @@ bool SDLFrame() {
 
     mousewheeldelta = 0;
     clearfingers(true);
+    dropped_file.clear();
 
     if (minimized) {
         SDL_Delay(10);  // save CPU/battery
@@ -550,6 +553,11 @@ bool SDLFrame() {
                 #endif
                 minimized = false;
                 */
+                break;
+
+            case SDL_DROPFILE:
+                dropped_file = event.drop.file;
+                SDL_free(event.drop.file);
                 break;
         }
     }

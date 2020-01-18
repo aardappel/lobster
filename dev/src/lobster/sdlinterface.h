@@ -30,6 +30,7 @@ extern TimeBool8 GetKS(string_view name);
 extern double GetKeyTime(string_view name, int on);
 extern int2 GetKeyPos(string_view name, int on);
 extern float GetJoyAxis(int i);
+extern string &GetDroppedFile();
 
 extern double SDLTime();
 extern double SDLDeltaTime();

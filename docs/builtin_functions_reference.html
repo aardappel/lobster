@@ -299,6 +299,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl_render_tiles</b>(positions<font color="#666666">:[xy_f]</font>, tilecoords<font color="#666666">:[xy_i]</font>, mapsize<font color="#666666">:xy_i</font>)</tt></td><td class="a">Renders a list of tiles from a tilemap. Each tile rendered is 1x1 in size. Positions may be anywhere. Tile coordinates are inside the texture map, map size is the amount of tiles in the texture. Tiles may overlap, they are drawn in order. Before calling this, make sure to have the texture set and a textured shader</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl_debug_grid</b>(num<font color="#666666">:xyz_i</font>, dist<font color="#666666">:xyz_f</font>, thickness<font color="#666666">:float</font>)</tt></td><td class="a">renders a grid in space for debugging purposes. num is the number of lines in all 3 directions, and dist their spacing. thickness of the lines in the same units</td></tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl_screenshot</b>(filename<font color="#666666">:string</font>) -> <font color="#666666">int</font></tt></td><td class="a">saves a screenshot in .png format, returns true if succesful</td></tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl_dropped_file</b>() -> <font color="#666666">string</font></tt></td><td class="a">if a file was dropped on the window this frame, the filename, otherwise empty</td></tr>
 </table>
 <h3>font</h3>
 <table class="a" border=1 cellspacing=0 cellpadding=4>
