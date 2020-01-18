@@ -367,8 +367,9 @@ nfr("gl_color", "col,body", "F}:4L?", "",
     "sets the current color. when a body is given, restores the previous color afterwards",
     [](VM &vm) {
         auto body = vm.Pop();
-        curcolor = vm.PopVec<float4>();
+        auto newcolor = vm.PopVec<float4>();
         if (body.True()) vm.PushAnyAsString(curcolor);
+        curcolor = newcolor;
         vm.Push(body);
     }, [](VM &vm) {
         vm.PopAnyFromString(curcolor);
