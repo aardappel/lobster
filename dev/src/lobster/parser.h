@@ -1306,6 +1306,8 @@ struct Parser {
             udt = &st.StructUse(idname, lex);
             type = { st.NewSpecUDT(udt) };
             type.utr->spec_udt->is_generic = udt->is_generic;
+        } else {
+            udt = nullptr;
         }
         if (udt) {
             Expect(T_LEFTCURLY);
