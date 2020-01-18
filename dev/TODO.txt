@@ -1,3 +1,7 @@
+- gl_color doesn't pop in totslike.lobster?
+
+- is SharedField still needed?
+
 - how does keepvar work with inlined functions?
 
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
@@ -43,14 +47,22 @@
   Also, maybe have the case where LT adjust does nothing (e.g. for integer) then subtype coercion
   to e.g. string suddenly needs a different LT than the initial TT.
 
+- Builtin overload resolution could be simplified:
+  https://github.com/aardappel/lobster/issues/89
+
 - Explicit genericity for functions.
-  - Would be good if the type of "this" on a A<T> class would be A<T>, not A.
-    See also IsGeneric that has to explicitly test A to see if it has unbound generics.
+  - overload resolution still doesn't use giventypes.
   - if we had T() as a cast, we could fix the enum type problem in gui_multiselect.
     - that is yet another form of function call in the parser.. better first refactor that.
   - weighted_pick: being able to write "T is float" would be cool.
   - See typetest.lobster: Explicit generic mixed with dynamic dispatch doesn't seem to work.
   - Generics for function types? See use of R in std.
+  - currently can't specialize with itself:
+    class X = Y<Y,..>
+    Useful with e.g. astar_node that doesn't need new fields.
+    Workaround is to subclass instead.
+  - Also using nested classes might not work well with generics since we resolved in non-nested
+    fashion field types at the beginning of the type checker.
 
 - kriskowal: adopt Python's "pass" statement, a void nop (better than nil idiom).
 
@@ -110,6 +122,11 @@
 
 - kriskowal: might be fun to have gl_cube and other simple 3d primitives, for quick prototyping?
 
+- if you write def(): return 1, it appears as a function of 0 return values since it works the
+  same as other anonymous blocks (the return actually goes to the enclosing function).
+  This is probably unexpected, but how to do this better?
+  Maybe specialized warning for this case since it makes no sense?
+
 - replace co-routines by stackless object syntactic sugar? how to resume? how to store temps?
   - unlikely to work: even if you can guarantee to inline all the hofs a yield may sit in,
     there's loop temps, keepvars, and other stack tracking stuff we'd now have to back up in
@@ -128,6 +145,10 @@
     with Lobster's new focus on efficiency.
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
+
+- Upgrade CI to more recent compilers, to support e.g. to_chars.
+- Move CI to github actions?
+  - Currently still on Clang 6, gcc 7.4??
 
 - See if a tail-call based interpreter would be a speed-up:
   https://github.com/soundandform/m3
@@ -182,6 +203,28 @@
   This in particular will be good for vec/color.lobster that create a lot of globals,
   also means they don't show up in stack traces / debug windows etc.
   and can reduce function usage as well, if they're in initializers
+
+- jacob: something to allow HOFs that need to undo state, i.e. a non-local return thru
+    var state = 0.0
+    def translate(dx, body):
+        state += dx
+        body()
+        state -= dx
+  Is going to produce hard to understand bugs, yet also natural to write code this way.
+  Built-ins like gl_translate also suffer from this issue.
+  Solutions:
+  - a "defer" statement. Simple, but requires the programmer to remember to use it, does not
+    stop the above natural code being written.
+  - Some form of RAII. That is even more complicated, and still requires the programmer to
+    be smart about it.
+  - A way to annotate the body() call as not allowed to be returned out of. This is really
+    simple since this can all be detected statically, doesn't require any runtime support.
+    At least it stops the user of this code making mistakes, but still requires the
+    programmer to know when to use it.
+    Also it would be a bit weird if some global error function can't be called from within
+    a translate..
+  - Just leave it as is. Prefer not to write HOFs that modify state, and if they do, well,
+    the user needs to be aware changes don't get undone with non-local returns.
 
 - Inline structs, further improvements:
   - These were immutable in the past, because values were shared by pointer, but now there

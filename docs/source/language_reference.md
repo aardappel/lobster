@@ -206,7 +206,7 @@ fields of the supertype to the current type, thus making it an extension of the
 former.
 
 The above example uses ints directly, but you
-can also define types more generically, and then define specializations of them:
+can also define types more generically, and then define named specializations of them:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct xy<T>:
@@ -220,8 +220,11 @@ struct xy_f = xy<float>
 You construct values of these types you use a similar syntax:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-let v = xyz { 1, 0, 0 }
+let v = xy { 1, 0 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(Or use `xy_f { 1, 0 }` / `xy<bool> { true, false }` to explicitly pick a particular
+specialization).
 
 The type ensures that the right number of values are given, and they can now be
 accessed as `v.x` etc. in addition to `v[0]`.
