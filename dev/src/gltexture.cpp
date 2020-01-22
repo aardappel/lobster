@@ -57,7 +57,9 @@ Texture CreateTexture(const uchar *buf, const int *dim, int tf) {
                          : (tf & TF_NEAREST_MIN ? GL_NEAREST_MIPMAP_NEAREST
                                                 : GL_LINEAR_MIPMAP_LINEAR)));
     //if (mipmap) glTexParameteri(textype, GL_GENERATE_MIPMAP, GL_TRUE);
-    auto internalformat = tf & TF_SINGLE_CHANNEL ? GL_R8 : GL_RGBA8;
+    auto internalformat = tf & TF_SINGLE_CHANNEL
+        ? GL_R8
+        : (IsSRGBMode() ? GL_SRGB8_ALPHA8 : GL_RGBA8);
     auto bufferformat = tf & TF_SINGLE_CHANNEL ? GL_RED : GL_RGBA;
     auto buffersize = tf & TF_SINGLE_CHANNEL ? sizeof(uchar) : sizeof(byte4);
     auto buffercomponent = GL_UNSIGNED_BYTE;

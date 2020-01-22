@@ -31,6 +31,7 @@ vector<Light> lights;
 float pointscale = 1.0f;
 float custompointscale = 1.0f;
 bool mode2d = true;
+bool mode_srgb = false;
 GeometryCache *geomcache = nullptr;
 
 void AppendTransform(const float4x4 &forward, const float4x4 &backward) {
@@ -105,6 +106,7 @@ void Set3DMode(float fovy, float ratio, float znear, float zfar) {
 }
 
 bool Is2DMode() { return mode2d; }
+bool IsSRGBMode() { return mode_srgb; }
 
 uchar *ReadPixels(const int2 &pos, const int2 &size) {
     uchar *pixels = new uchar[size.x * size.y * 3];
@@ -121,7 +123,7 @@ void OpenGLFrameStart(const int2 &ssize) {
     lights.clear();
 }
 
-void OpenGLInit(int samples) {
+void OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     // If not called, flashes red framebuffer on OS X before first gl_clear() is called.
     ClearFrameBuffer(float3_0);
@@ -140,6 +142,10 @@ void OpenGLInit(int samples) {
         GL_CALL(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
         GL_CALL(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
         if (samples > 1) GL_CALL(glEnable(GL_MULTISAMPLE));
+        if (srgb) {
+            GL_CALL(glEnable(GL_FRAMEBUFFER_SRGB));
+            mode_srgb = true;
+        }
     #endif
     GL_CALL(glCullFace(GL_FRONT));
     assert(!geomcache);

@@ -147,7 +147,7 @@ struct Light {
 };
 
 
-extern void OpenGLInit(int samples);
+extern void OpenGLInit(int samples, bool srgb);
 extern void OpenGLCleanup();
 extern void OpenGLFrameStart(const int2 &ssize);
 extern void LogGLError(const char *file, int line, const char *call);
@@ -156,6 +156,7 @@ extern void Set2DMode(const int2 &ssize, bool lh, bool depthtest = false);
 extern void Set3DMode(float fovy, float ratio, float znear, float zfar);
 extern void Set3DOrtho(const float3 &center, const float3 &extends);
 extern bool Is2DMode();
+extern bool IsSRGBMode();
 extern void ClearFrameBuffer(const float3 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);

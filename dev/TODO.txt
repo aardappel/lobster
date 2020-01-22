@@ -5,6 +5,9 @@
 - We are probably not checking if T every gets bound to a scalar in T?, in fact are we doing
   this for regular V_VAR?
 
+- SRGB support:
+  - Update imgui once this merges: https://github.com/ocornut/imgui/pull/2943
+
 - jcorbin: improved random number generation:
   - swappable generators such as xorshift, pcg32/64, and even just a generic lcg
   - a good lobster choice may be to abstract them as coroutines, or at least a

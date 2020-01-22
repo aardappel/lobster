@@ -246,8 +246,7 @@ void SDLRequireGLVersion(int major, int minor) {
     #endif
 };
 
-string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscreen, int vsync,
-               int samples) {
+string SDLInit(string_view title, const int2 &desired_screensize, InitFlags flags, int samples) {
     MakeDPIAware();
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER /* | SDL_INIT_AUDIO*/) < 0) {
@@ -274,8 +273,8 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
 
     //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);      // set this if we're in 2D mode for speed on mobile?
     SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);    // because we redraw the screen each frame
-
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    if (!(flags & INIT_NO_SRGB)) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
 
     LOG_INFO("SDL about to figure out display mode...");
 
@@ -320,7 +319,9 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
                                        screensize.x, screensize.y,
                                        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE |
                                        SDL_WINDOW_ALLOW_HIGHDPI |
-                                            (isfullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+                                            (flags & INIT_FULLSCREEN
+                                                ? SDL_WINDOW_FULLSCREEN_DESKTOP
+                                                : 0));
     #endif
     ScreenSizeChanged();
     LOG_INFO("obtained resolution: ", screensize.x, " ", screensize.y);
@@ -338,7 +339,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
     LOG_INFO("SDL OpenGL context created...");
 
     #ifndef __IOS__
-        SDL_GL_SetSwapInterval(vsync);
+        SDL_GL_SetSwapInterval(flags & INIT_NO_VSYNC ? 0 : 1);
     #endif
 
     SDL_JoystickEventState(SDL_ENABLE);
@@ -359,7 +360,7 @@ string SDLInit(string_view title, const int2 &desired_screensize, bool isfullscr
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
-    OpenGLInit(samples);
+    OpenGLInit(samples, !(flags & INIT_NO_SRGB));
 
     return "";
 }

@@ -139,16 +139,14 @@ Value SetUniform(VM &vm, const Value &name, const float *data, int len) {
 
 void AddGraphics(NativeRegistry &nfr) {
 
-nfr("gl_window", "title,xs,ys,fullscreen,novsync,samples", "SIII?I?I?", "S?",
+nfr("gl_window", "title,xs,ys,flags,samples", "SIII?I?", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
-    " otherwise.",
-    [](VM &vm, Value &title, Value &xs, Value &ys, Value &fullscreen, Value &novsync,
-                          Value &samples) {
+    " otherwise. For flags, see modules/gl.lobster",
+    [](VM &vm, Value &title, Value &xs, Value &ys, Value &flags, Value &samples) {
         if (graphics_initialized)
             vm.BuiltinError("cannot call gl_window() twice");
         string err = SDLInit(title.sval()->strv(), int2(intp2(xs.ival(), ys.ival())),
-                             fullscreen.ival() != 0, novsync.ival() == 0,
-                             max(1, samples.intval()));
+                             (InitFlags)flags.intval(), max(1, samples.intval()));
         if (err.empty()) {
             err = LoadMaterialFile("data/shaders/default.materials");
         }

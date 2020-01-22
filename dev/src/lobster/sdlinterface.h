@@ -14,8 +14,10 @@
 
 // simple interface for SDL (that doesn't depend on its headers)
 
-extern string SDLInit(string_view title, const int2 &screensize, bool fullscreen, int vsync,
-                      int samples);
+// See also modules/gl.lobster
+enum InitFlags { INIT_FULLSCREEN = 1, INIT_NO_VSYNC = 2, INIT_NO_SRGB = 4 };
+
+extern string SDLInit(string_view title, const int2 &screensize, InitFlags flags, int samples);
 extern void SDLRequireGLVersion(int major, int minor);
 extern bool SDLFrame();
 extern void SDLShutdown();
