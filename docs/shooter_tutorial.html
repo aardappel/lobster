@@ -220,7 +220,7 @@ var lastenemy = gl_time()</code></pre>
 <p><img src="screenshots/shooter/tut6.jpg" /></p>
 <p>Now we have some loose ends to wrap up to call this thing a “game”: we have to keep track of the player health and score (and highscore), and give him a start / game over screen in-between sessions.</p>
 <p>To do that, we will have to be able to render text. First step towards doing that is loading up a font, right after <code>gl_window</code>:</p>
-<pre><code>check(gl_set_font_name(&quot;data/fonts/US101/US101.TTF&quot;) and gl_set_font_size(32), &quot;can\&#39;t load font!&quot;)</code></pre>
+<pre><code>check(gl_set_font_name(&quot;data/fonts/US101/US101.ttf&quot;) and gl_set_font_size(32), &quot;can\&#39;t load font!&quot;)</code></pre>
 <p><code>check</code> is another useful function much like fatal, that ensures the first argument is true, and if not, exits the program with the given message.</p>
 <p>To implement the functionality, we start with some new variables:</p>
 <pre><code>var playerhealth = 0.0

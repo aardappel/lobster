@@ -4,7 +4,7 @@ import color
 
 fatal(gl_window("Shooter Tutorial", 640, 480))
 
-check(gl_set_font_name("data/fonts/US101/US101.TTF") and gl_set_font_size(32), "can\'t load font!")
+check(gl_set_font_name("data/fonts/US101/US101.ttf") and gl_set_font_size(32), "can\'t load font!")
 
 let worldsize = 20.0
 
