@@ -25,6 +25,8 @@
 
 namespace lobster {
 
+RandomNumberGenerator<PCG32> cg_rnd;
+
 const unsigned int default_palette[256] = {
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff,
     0xffccccff, 0xff99ccff, 0xff66ccff, 0xff33ccff, 0xff00ccff, 0xffff99ff, 0xffcc99ff, 0xff9999ff,
@@ -177,31 +179,60 @@ nfr("cg_copy_palette", "fromworld,toworld", "RR", "", "",
         return Value();
     });
 
-nfr("cg_resample_half", "fromworld", "R", "", "",
-    [](VM &vm, Value &world) {
-    auto &v = GetVoxels(vm, world);
-    for (int x = 0; x < v.grid.dim.x / 2; x++) {
-        for (int y = 0; y < v.grid.dim.y / 2; y++) {
-            for (int z = 0; z < v.grid.dim.z / 2; z++) {
-                auto pos = int3(x, y, z);
-                int4 acc(0);
-                for (int xd = 0; xd < 2; xd++) {
-                    for (int yd = 0; yd < 2; yd++) {
-                        for (int zd = 0; zd < 2; zd++) {
-                            auto d = int3(xd, yd, zd);
-                            auto c = v.grid.Get(pos * 2 + d);
-                            acc += int4(v.palette[c]);
+nfr("cg_sample_down", "scale,world", "IR", "", "",
+    [](VM &vm, Value &scale, Value &world) {
+        auto sc = scale.intval();
+        if (sc < 2 || sc > 128)
+            vm.Error("cg_sample_down: scale out of range");
+        auto &v = GetVoxels(vm, world);
+        for (int x = 0; x < v.grid.dim.x / sc; x++) {
+            for (int y = 0; y < v.grid.dim.y / sc; y++) {
+                for (int z = 0; z < v.grid.dim.z / sc; z++) {
+                    auto pos = int3(x, y, z);
+                    int4 acc(0);
+                    for (int xd = 0; xd < sc; xd++) {
+                        for (int yd = 0; yd < sc; yd++) {
+                            for (int zd = 0; zd < sc; zd++) {
+                                auto d = int3(xd, yd, zd);
+                                auto c = v.grid.Get(pos * sc + d);
+                                acc += int4(v.palette[c]);
+                            }
+                        }
+                    }
+                    auto np = v.Color2Palette(float4(acc) / float(sc * sc * sc * 255));
+                    v.grid.Get(pos) = np;
+                }
+            }
+        }
+        v.grid.Shrink(v.grid.dim / sc);
+        return Value();
+    });
+
+nfr("cg_scale_up", "scale,world", "IR", "R", "",
+    [](VM &vm, Value &scale, Value &world) {
+        auto sc = scale.intval();
+        auto &v = GetVoxels(vm, world);
+        if (sc < 2 || sc > 256 || squaredlength(v.grid.dim) * sc > 2048)
+            vm.Error("cg_scale_up: scale out of range");
+        auto &d = *NewWorld(v.grid.dim * sc, v.palette.data());
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    auto p = v.grid.Get(pos);
+                    for (int xd = 0; xd < sc; xd++) {
+                        for (int yd = 0; yd < sc; yd++) {
+                            for (int zd = 0; zd < sc; zd++) {
+                                auto vd = int3(xd, yd, zd);
+                                d.grid.Get(pos * sc + vd) = p;
+                            }
                         }
                     }
                 }
-                auto np = v.Color2Palette(float4(acc) / (8 * 255));
-                v.grid.Get(pos) = np;
             }
         }
-    }
-    v.grid.Shrink(v.grid.dim / 2);
-    return Value();
-});
+        return Value(vm.NewResource(&d, GetVoxelType()));
+    });
 
 nfr("cg_create_mesh", "block", "R", "R",
     "converts block to a mesh",
@@ -231,9 +262,8 @@ nfr("cg_create_mesh", "block", "R", "R",
             return k.pos.x ^ (k.pos.y << 3) ^ (k.pos.z << 6) ^ (k.pal << 3) ^ k.dir;
         };
         unordered_map<VKey, int, decltype(hasher)> vertlookup(optimize_verts ? 100000 : 10, hasher);
-        RandomNumberGenerator<PCG32> rnd;
         vector<float> rnd_offset(1024);
-        for (auto &f : rnd_offset) { f = (rnd.rnd_float() - 0.5f) * 0.15f; }
+        for (auto &f : rnd_offset) { f = (cg_rnd.rnd_float() - 0.5f) * 0.15f; }
         // Woah nested loops!
         for (int x = 0; x < v.grid.dim.x; x++) {
             for (int y = 0; y < v.grid.dim.y; y++) {
@@ -574,5 +604,56 @@ nfr("cg_bounding_box", "world,minsolids", "RF", "I}:3I}:3",
         vm.PushVec(bmin);
         vm.PushVec(bmax);
 	});
+
+nfr("cg_randomize", "world,rnd_range,cutoff,paletteindex,filter", "RIIII", "", "",
+    [](VM &vm, Value &world, Value &rnd_range, Value &cutoff, Value &paletteindex, Value &filter) {
+        auto &v = GetVoxels(vm, world);
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    auto &p = v.grid.Get(pos);
+                    if (p != filter.ival() && cg_rnd(rnd_range.intval()) < cutoff.intval())
+                        p = (uchar)paletteindex.ival();
+                }
+            }
+        }
+        return Value();
+    });
+
+nfr("cg_erode", "world,minsolid,maxsolid", "RII", "R", "",
+    [](VM &vm, Value &world, Value &minsolid, Value &maxsolid) {
+        auto &v = GetVoxels(vm, world);
+        auto &d = *NewWorld(v.grid.dim, v.palette.data());
+        for (int x = 0; x < v.grid.dim.x; x++) {
+            for (int y = 0; y < v.grid.dim.y; y++) {
+                for (int z = 0; z < v.grid.dim.z; z++) {
+                    auto pos = int3(x, y, z);
+                    auto p = v.grid.Get(pos);
+                    int nsolid = 0;
+                    uchar last_solid = 0;
+                    for (int xd = -1; xd <= 1; xd++) {
+                        for (int yd = -1; yd <= 1; yd++) {
+                            for (int zd = -1; zd <= 1; zd++) {
+                                auto vd = int3(xd, yd, zd);
+                                auto pp = pos + vd;
+                                if (pp >= 0 && pp < v.grid.dim) {
+                                    auto n = v.grid.Get(pp);
+                                    if (n) {
+                                        nsolid++;
+                                        last_solid = n;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (p && nsolid <= minsolid.intval()) p = 0;
+                    else if (!p && nsolid >= maxsolid.intval()) p = last_solid;
+                    d.grid.Get(pos) = p;
+                }
+            }
+        }
+        return Value(vm.NewResource(&d, GetVoxelType()));
+    });
 
 }  // AddCubeGen
