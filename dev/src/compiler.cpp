@@ -73,7 +73,7 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             case V_FLOAT:  return type_vector_float;
             case V_STRING: return &g_type_vector_string;
             case V_VECTOR: switch (elem->sub->t) {
-                case V_INT:   return &g_type_vector_vector_int;
+                case V_INT:   return elem->sub->e ? nullptr : &g_type_vector_vector_int;
                 case V_FLOAT: return &g_type_vector_vector_float;
                 case V_VECTOR: switch (elem->sub->sub->t) {
                     case V_FLOAT: return &g_type_vector_vector_vector_float;
@@ -93,7 +93,7 @@ TypeRef WrapKnown(TypeRef elem, ValueType with) {
             case V_RESOURCE:  { static const Type t(V_NIL, &g_type_resource); return &t; }
             case V_COROUTINE: { static const Type t(V_NIL, &g_type_coroutine); return &t; }
             case V_VECTOR: switch (elem->sub->t) {
-                case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return &t; }
+                case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return elem->sub->e ? nullptr : &t; }
                 case V_FLOAT:  { static const Type t(V_NIL, &g_type_vector_float); return &t; }
                 case V_STRING: { static const Type t(V_NIL, &g_type_vector_string); return &t; }
                 default: return nullptr;
