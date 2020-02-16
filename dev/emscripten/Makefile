@@ -111,9 +111,9 @@ $(CPPOBJS): CXXFLAGS += $(INCLUDES)
 $(MAINOBJ): CXXFLAGS += $(INCLUDES)
 $(MAINCOMPOBJ): CXXFLAGS += $(INCLUDES)
 
-$(CPPOBJS): $(HEADERS)
-$(MAINOBJ): $(HEADERS)
-$(MAINCOMPOBJ): $(HEADERS)
+#$(CPPOBJS): $(CPPSRCS) $(HEADERS)
+#$(MAINOBJ): $(MAINSRC) $(HEADERS)
+#$(MAINCOMPOBJ): $(MAINCOMPSRC) $(HEADERS)
 
 $(COBJS): CFLAGS += $(INCLUDES) -DFT2_BUILD_LIBRARY=1
 
@@ -125,17 +125,18 @@ EFLAGS= -s WASM=1 -s USE_WEBGL2=1 -s FULL_ES3=1 \
 		#-s BINARYEN_EXTRA_PASSES='"--always-inline-max-function-size=5,--flexible-inline-max-function-size=50,--one-caller-inline-max-function-size=200"'
 
 #EMCC_DEBUG=1
+#EMCC_WASM_BACKEND=1
 lobster: $(COBJS) $(CPPOBJS) $(MAINOBJ)
-	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
+	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(EFLAGS)
 
 lobster_cppout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
 lobster_cppout: $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ)
-	EMCC_WASM_BACKEND=1 emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
+	emcc $(CXXFLAGS) $(COBJS) $(CPPOBJS) $(MAINCOMPOBJ) $(EFLAGS)
 
 WASMOUT= compiled_lobster_wasm.o
 lobster_wasmout: CXXFLAGS += -DVM_COMPILED_CODE_MODE
 lobster_wasmout: $(COBJS) $(CPPOBJS) $(WASMOUT)
-	EMCC_WASM_BACKEND=1 emcc -v $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
+	emcc -v $(CXXFLAGS) $(WASMOUT) $(COBJS) $(CPPOBJS) $(EFLAGS)
 
 clean:
 	-$(RM) $(COBJS) $(CPPOBJS) $(MAINOBJ) $(MAINCOMPOBJ) lobster lobster_cppout lobster_wasmout

@@ -838,6 +838,10 @@ template<int I> auto to_string_conv(const char cs[I]) {
     return[sv = string_view(cs, I)]() { return sv; };  // Static strlen!
 }
 
+template<typename T> auto to_string_conv(const T *p) {
+    return[s = to_string((size_t)p)]() { return string_view(s); };  // Caches to_string!
+}
+
 template<typename T> auto to_string_conv(T i) {
     static_assert(is_scalar<T>::value, "");
     // FIXME: use to_chars.

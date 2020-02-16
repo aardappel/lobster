@@ -420,7 +420,7 @@ struct Parser {
             for (auto &btv : sf->generics) if (btv.tv->name == nn) goto again;
         }
         auto ng = st.NewGeneric(nn);
-        sf->generics.push_back({ ng, nullptr });
+        sf->generics.push_back({ ng, { nullptr } });
         sf->args.v.back().type = &ng->thistype;
         sf->giventypes.push_back({ &ng->thistype });
     }
@@ -439,7 +439,7 @@ struct Parser {
                     auto ng = st.NewGeneric(ExpectId());
                     for (auto &btv : sf->generics) if (btv.tv->name == ng->name)
                         Error("re-definition of generic: " + ng->name);
-                    sf->generics.push_back({ ng, nullptr });
+                    sf->generics.push_back({ ng, { nullptr } });
                     if (IsNext(T_GT)) break;
                     Expect(T_COMMA);
                 }

@@ -1827,7 +1827,7 @@ using namespace lobster;
             if (vm->trace == TraceMode::TAIL) sd += "\n"; else LOG_PROGRAM(sd); \
         }
     // FIXME: add spaces.
-    #define CHECK(N, A) CHECKI(#N << cat A)
+    #define CHECK(N, A) CHECKI(cat(#N, ": ", cat A))
     #define CHECKJ(N) CHECKI(#N)
 #else
     #define CHECK(N, A)
