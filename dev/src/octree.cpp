@@ -21,18 +21,23 @@
 namespace lobster {
 
 inline ResourceType *GetOcTreeType() {
-    static ResourceType voxel_type = { "octree", [](void *v) { delete (OcTree<OcVal> *)v; } };
+    static ResourceType voxel_type = { "octree", [](void *v) { delete (OcTree *)v; } };
     return &voxel_type;
 }
 
-inline OcTree<OcVal> &GetOcTree(VM &vm, const Value &res) {
-    return *GetResourceDec<OcTree<OcVal> *>(vm, res, GetOcTreeType());
+inline OcTree &GetOcTree(VM &vm, const Value &res) {
+    return *GetResourceDec<OcTree *>(vm, res, GetOcTreeType());
 }
 
 const int cur_version = 3;
 
 }  // namespace lobster
 
+
+
+bool FileWriteBytes(FILE *f, const void *v, size_t len) {
+    return fwrite(v, len, 1, f) == 1;
+}
 
 template<typename T> bool FileWriteVal(FILE *f, const T &v) {
     return fwrite(&v, sizeof(T), 1, f) == 1;
@@ -52,6 +57,8 @@ template<typename T> void ReadVec(const uchar *&p, T &v) {
 }
 
 using namespace lobster;
+
+static const char *magic = "CWFF";
 
 void AddOcTree(NativeRegistry &nfr) {
 
@@ -74,12 +81,12 @@ nfr("oc_load", "name", "S", "R?", "",
         auto r = LoadFile(name.sval()->strv(), &buf);
         if (r < 0) return Value();
         auto p = (const uchar *)buf.c_str();
-        auto magic = ReadMemInc<uint>(p);
-        if (magic != 'CWFF') return Value();
+        if (strncmp((const char *)p, magic, strlen(magic))) return Value();
+        p += strlen(magic);
         auto version = ReadMemInc<int>(p);
         if (version > cur_version) return Value();
         auto bits = ReadMemInc<int>(p);
-        auto ocworld = new OcTree<OcVal>(bits);
+        auto ocworld = new OcTree(bits);
         ReadVec(p, ocworld->nodes);
         ReadVec(p, ocworld->freelist);
         assert(p == (void *)(buf.data() + buf.size()));
@@ -91,7 +98,7 @@ nfr("oc_save", "octree,name", "RS", "B", "",
         auto &ocworld = GetOcTree(vm, oc);
         auto f = OpenForWriting(name.sval()->strv(), true);
         if (!f) return Value(false);
-        auto ok = FileWriteVal(f, (uint)'CWFF') &&
+        auto ok = FileWriteBytes(f, magic, strlen(magic)) &&
             FileWriteVal(f, cur_version) &&
             FileWriteVal(f, ocworld.world_bits) &&
             FileWriteVec(f, ocworld.nodes) &&
@@ -100,9 +107,9 @@ nfr("oc_save", "octree,name", "RS", "B", "",
         return Value(ok);
     });
 
-nfr("oc_new", "bits", "I", "R", "",
-    [](VM &vm, Value &bits) {
-        auto ocworld = new OcTree<OcVal>(bits.intval());
+nfr("oc_new", "world_bits,fix_bits", "II?", "R", "",
+    [](VM &vm, Value &world_bits, Value &fix_bits) {
+        auto ocworld = new OcTree(world_bits.intval(), fix_bits.intval());
         return Value(vm.NewResource(ocworld, GetOcTreeType()));
     });
 
