@@ -415,7 +415,8 @@ void DispatchCompute(const int3 &groups) {
 // Simple function for getting some uniform / shader storage attached to a shader. Should ideally
 // be split up for more flexibility.
 // Use this for reusing BO's for now:
-map<string, pair<uint, uint>, less<>> ubomap;
+struct BOEntry { uint bo; uint bpi; size_t size; };
+map<string, BOEntry, less<>> ubomap;
 // Note that bo_binding_point_index is assigned automatically based on unique block names.
 // You can also specify these in the shader using `binding=`, but GL doesn't seem to have a way
 // to retrieve these programmatically.
@@ -443,12 +444,28 @@ uint UniformBufferObject(Shader *sh, const void *data, size_t len, string_view u
                 if (it == ubomap.end()) {
                     if (data) bo = GenBO_(type, len, data);
                     bo_binding_point_index = binding_point_index_alloc++;
-                    ubomap[string(uniformblockname)] = { bo, bo_binding_point_index };
+                    ubomap[string(uniformblockname)] = { bo, bo_binding_point_index, len };
 				} else {
-                    if (data) bo = it->second.first;
-                    bo_binding_point_index = it->second.second;
+                    if (data) bo = it->second.bo;
+                    bo_binding_point_index = it->second.bpi;
                     glBindBuffer(type, bo);
-                    if (data) glBufferData(type, len, data, GL_STATIC_DRAW);
+                    if (data) {
+                        // We're going to re-upload the buffer.
+                        // See this for what is fast:
+                        // https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-AsynchronousBufferTransfers.pdf
+                        if (false && len == it->second.size) {
+                            // Is this faster than glBufferData if same size?
+                            // Actually, this might cause *more* sync issues than glBufferData.
+                            glBufferSubData(type, 0, len, data);
+                        } else {
+                            // We can "orphan" the buffer before uploading, that way if a draw
+                            // call is still using it, we won't have to sync.
+                            // TODO: this doesn't actually seem faster in testing sofar.
+                            //glBufferData(type, it->second.size, nullptr, GL_STATIC_DRAW);
+                            glBufferData(type, len, data, GL_STATIC_DRAW);
+                            it->second.size = len;
+                        }
+                    }
                 }
                 GL_CALL(glBindBuffer(type, 0));
                 GL_CALL(glBindBufferBase(type, bo_binding_point_index, bo));
