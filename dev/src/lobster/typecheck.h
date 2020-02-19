@@ -1849,7 +1849,6 @@ struct TypeChecker {
 
     void AdjustLifetime(Node *&n, Lifetime recip, const vector<Node *> *idents = nullptr) {
         assert(n->lt != LT_UNDEF && recip != LT_UNDEF);
-        if (recip == LT_ANY) return;
         uint64_t incref = 0, decref = 0;
         auto rt = n->exptype;
         for (size_t i = 0; i < rt->NumValues(); i++) {
@@ -1871,6 +1870,8 @@ struct TypeChecker {
                         decref |= 1LL << i;
                     } else if (given == LT_ANY) {
                         // These are compatible with whatever recip wants.
+                    } else if (recip == LT_ANY) {
+                        // recipient doesn't care, e.g. void statement.
                     } else {
                         assert(false);
                     }
